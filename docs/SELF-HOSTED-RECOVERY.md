@@ -62,7 +62,11 @@ Protect separately from the data archive:
 - exact published product version, release source SHA and
   `self-hosted-image-identity.json`;
 - the Self-Hosted operator bundle from that release;
-- external backup encryption keys and restore instructions.
+- external backup encryption keys and restore instructions;
+- the application encryption keys (`EIMIR_ENCRYPTION_KEYS`, `EIMIR_ENCRYPTION_ACTIVE_KEY_ID`),
+  including every older key id the stored data is still wrapped under. The data archive
+  contains ciphertext as stored and no keys; restoring it without these keys yields content
+  that fails closed. See [ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md).
 
 Do not store the archive next to an unencrypted decryption key. The one-time bootstrap
 token is normally absent after initial registration and must not be restored as a

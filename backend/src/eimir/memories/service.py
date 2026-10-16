@@ -31,6 +31,7 @@ from eimir.core.errors import ConflictError, ErrorCode, ValidationError
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.memories import create_receipts
 from eimir.memories.models import Memory, MemoryPayload, shared_privacy
+from eimir.memories.tags import MemoryTags
 from eimir.outbox import service as outbox_service
 
 _MEMORY_SUBJECT_TYPE = "memory"
@@ -98,13 +99,14 @@ def create_memory(
     title: str,
     body: str,
     happened_on: date | None,
+    tags: MemoryTags | None = None,
 ) -> Memory:
     memory = Memory(
         space_id=context.space_id,
         owner_id=context.account_id,
         privacy_class=shared_privacy(),
         happened_on=happened_on,
-        payload=MemoryPayload(title=_normalize_title(title), body=body),
+        payload=MemoryPayload(title=_normalize_title(title), body=body, tags=tags or []),
     )
     session.add(memory)
     _flush(session)
@@ -121,6 +123,7 @@ def create_memory_once(
     title: str,
     body: str,
     happened_on: date | None,
+    tags: MemoryTags | None = None,
 ) -> MemoryCreateResult:
     """Create a Memory, or return the one an earlier request with this identity created.
 
@@ -128,12 +131,14 @@ def create_memory_once(
     creating the Memory share this transaction (see ``create_receipts``).
     """
     if idempotency_key is None:
-        memory = create_memory(session, context, title=title, body=body, happened_on=happened_on)
+        memory = create_memory(
+            session, context, title=title, body=body, happened_on=happened_on, tags=tags
+        )
         return MemoryCreateResult(memory, created=True)
 
     normalized_title = _normalize_title(title)
     request_fingerprint = create_receipts.fingerprint(
-        title=normalized_title, body=body, happened_on=happened_on
+        title=normalized_title, body=body, happened_on=happened_on, tags=tags or []
     )
     receipt_id = create_receipts.claim(session, context, idempotency_key, request_fingerprint)
     if receipt_id is None:
@@ -141,7 +146,7 @@ def create_memory_once(
         return MemoryCreateResult(memory, created=False)
 
     memory = create_memory(
-        session, context, title=normalized_title, body=body, happened_on=happened_on
+        session, context, title=normalized_title, body=body, happened_on=happened_on, tags=tags
     )
     create_receipts.attach(session, receipt_id, memory.id)
     return MemoryCreateResult(memory, created=True)
@@ -165,23 +170,28 @@ def update_memory(
     title: str | None,
     body: str | None,
     happened_on: date | None,
+    tags: MemoryTags | None = None,
 ) -> Memory:
     memory = require_writable(session, Memory, context, memory_id)
     _ensure_expected_version(memory, expected_version)
 
     next_title = memory.payload.title
     next_body = memory.payload.body
+    next_tags = memory.payload.tags
     if "title" in changed_fields:
         assert title is not None
         next_title = _normalize_title(title)
     if "body" in changed_fields:
         assert body is not None
         next_body = body
+    if "tags" in changed_fields:
+        assert tags is not None
+        next_tags = tags
     if "happened_on" in changed_fields:
         memory.happened_on = happened_on
 
-    if "title" in changed_fields or "body" in changed_fields:
-        memory.payload = MemoryPayload(title=next_title, body=next_body)
+    if changed_fields.intersection({"title", "body", "tags"}):
+        memory.payload = MemoryPayload(title=next_title, body=next_body, tags=next_tags)
 
     _flush(session)
     _record(session, memory, context.account_id, EventType.MEMORY_UPDATED)

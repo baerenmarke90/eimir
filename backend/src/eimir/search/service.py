@@ -1,25 +1,53 @@
-"""Authorized PostgreSQL full-text Search for M4-A.
+"""Authorized Search over decrypted content (M4-A, revised for issue #797).
 
-Search is deliberately a derived read model. Every SQL leg constrains tenant
-and privacy before ranking, and the result set contains only the fields needed
-for Search presentation. No separate plaintext search document exists.
+Search is a derived read model. Tenant and privacy are constrained in SQL before
+any content is loaded, and the result set contains only the fields needed for
+Search presentation. No separate plaintext search document and no plaintext
+database index exist.
+
+Why this is not PostgreSQL full-text search any more: protected payloads are
+stored as ciphertext, so the database cannot tokenize them, and a GIN index over
+their text would be a plaintext copy defeating the encryption. Matching
+therefore happens in the application, over the payloads of the rows the caller
+is already authorized to see, after decryption. The cost is linear in the
+caller's own content per query, which is bounded by the size of one relationship
+space; see docs/ENCRYPTION-AT-REST.md for the limit and the follow-up.
+
+Query language (a documented subset of ``websearch_to_tsquery``): words are
+ANDed, ``"quoted words"`` must be adjacent, ``-word`` excludes, ``or`` separates
+alternatives. Ranking weights title-like fields above body-like fields;
+ordering, cursors and pagination keep the ``search-v1`` contract.
 """
 
 from __future__ import annotations
 
+import re
 import unicodedata
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from enum import StrEnum
+from functools import cmp_to_key
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import text
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from eimir.authorization import AuthorizationContext
+from eimir.authorization import AuthorizationContext, PrivacyClass
+from eimir.chapters.models import Chapter
+from eimir.collections.models import Collection, CollectionItem
 from eimir.core import cursor as cursor_codec
 from eimir.core.errors import ValidationError
+from eimir.gift_ideas.models import GiftIdea
+from eimir.heart_moments.models import HeartMoment
+from eimir.memories.models import Memory
+from eimir.milestones.models import Milestone
+from eimir.places.models import Place
+from eimir.plans.models import Plan
+from eimir.private_collections.models import PrivateCollection, PrivateCollectionItem
+from eimir.private_notes.models import PrivateNote
+from eimir.wishes.models import Wish
 
 DEFAULT_LIMIT = 25
 MAX_LIMIT = 50
@@ -28,6 +56,9 @@ MAX_QUERY_LENGTH = 200
 _EXCERPT_LENGTH = 240
 _RANK_SCALE = 1_000_000
 _SORT_CONTRACT = "search-v1"
+_WEIGHTS = {"A": 1.0, "B": 0.4}
+_TOKEN = re.compile(r"[^\W_]+")
+_QUERY_ITEM = re.compile(r'(-?)"([^"]*)"|(-?)(\S+)')
 
 
 class SearchKind(StrEnum):
@@ -70,12 +101,6 @@ class SearchPageResult:
     next_cursor: str | None
 
 
-@dataclass(frozen=True)
-class _SearchLeg:
-    kind: SearchKind
-    sql: str
-
-
 def normalize_query(value: str) -> str:
     """Return the canonical query used for Search and cursor binding."""
     normalized = unicodedata.normalize("NFC", value)
@@ -88,291 +113,320 @@ def normalize_query(value: str) -> str:
     return normalized
 
 
-def _vector(*weighted_fields: tuple[str, str]) -> str:
-    return " || ".join(
-        "setweight(to_tsvector('simple', coalesce(" + field + ", '')), '" + weight + "')"
-        for field, weight in weighted_fields
+def tokenize(text: str) -> list[str]:
+    """Lower-cased word tokens (the equivalent of the ``simple`` text configuration)."""
+    return _TOKEN.findall(unicodedata.normalize("NFC", text).casefold())
+
+
+@dataclass(frozen=True)
+class _Group:
+    """One AND-group of an ``or``-separated query."""
+
+    required: tuple[tuple[str, ...], ...]
+    excluded: tuple[tuple[str, ...], ...]
+
+
+def parse_query(query: str) -> tuple[_Group, ...]:
+    groups: list[_Group] = []
+    required: list[tuple[str, ...]] = []
+    excluded: list[tuple[str, ...]] = []
+
+    def close() -> None:
+        nonlocal required, excluded
+        if required:
+            groups.append(_Group(tuple(required), tuple(excluded)))
+        required, excluded = [], []
+
+    for quoted_neg, quoted, bare_neg, bare in _QUERY_ITEM.findall(query):
+        if bare and not bare_neg and bare.casefold() == "or":
+            close()
+            continue
+        negated = bool(quoted_neg or bare_neg)
+        tokens = tuple(tokenize(quoted if quoted or quoted_neg else bare))
+        if not tokens:
+            continue
+        (excluded if negated else required).append(tokens)
+    close()
+    return tuple(groups)
+
+
+def _occurrences(tokens: list[str], phrase: tuple[str, ...]) -> int:
+    if len(phrase) == 1:
+        return tokens.count(phrase[0])
+    width = len(phrase)
+    return sum(
+        1
+        for start in range(len(tokens) - width + 1)
+        if tuple(tokens[start : start + width]) == phrase
     )
 
 
-def _root_leg(
-    *,
-    kind: SearchKind,
-    table_name: str,
-    vector: str,
-    scope: SearchScope,
-    title_sql: str,
-    excerpt_sql: str,
-    occurred_on_sql: str = "NULL::date",
-    owner_only: bool = False,
-    extra_predicate: str = "TRUE",
-) -> _SearchLeg:
-    owner_predicate = "AND source.owner_id = :account_id" if owner_only else ""
-    return _SearchLeg(
-        kind=kind,
-        sql=f"""
-        SELECT
-            '{kind.value}'::text AS kind,
-            source.id AS id,
-            NULL::uuid AS parent_id,
-            '{scope.value}'::text AS scope,
-            {title_sql} AS title,
-            {excerpt_sql} AS excerpt,
-            {occurred_on_sql} AS occurred_on,
-            source.created_at AS created_at,
-            round((ts_rank_cd({vector}, input.q) * {_RANK_SCALE})::numeric)::bigint AS rank_key
-        FROM {table_name} AS source
-        CROSS JOIN search_input AS input
-        WHERE source.space_id = :space_id
-          {owner_predicate}
-          AND {extra_predicate}
-          AND ({vector}) @@ input.q
-        """,
-    )
+def score(groups: tuple[_Group, ...], fields: tuple[tuple[str | None, str], ...]) -> int | None:
+    """Return the rank of a document, or ``None`` when it does not match.
+
+    ``fields`` is ``(text, weight class)`` per searchable field.
+    """
+    tokenized = [(tokenize(text or ""), weight) for text, weight in fields]
+    best: float | None = None
+    for group in groups:
+        if any(
+            _occurrences(tokens, phrase) for phrase in group.excluded for tokens, _ in tokenized
+        ):
+            continue
+        total = 0.0
+        matched = True
+        for phrase in group.required:
+            phrase_score = sum(
+                _occurrences(tokens, phrase) * _WEIGHTS[weight] for tokens, weight in tokenized
+            )
+            if phrase_score == 0:
+                matched = False
+                break
+            total += phrase_score
+        if matched and (best is None or total > best):
+            best = total
+    if best is None:
+        return None
+    return round(best * _RANK_SCALE)
 
 
-def _shared_item_leg() -> _SearchLeg:
-    vector = _vector(("item.payload->>'title'", "A"))
-    return _SearchLeg(
-        kind=SearchKind.COLLECTION_ITEM,
-        sql=f"""
-        SELECT
-            'COLLECTION_ITEM'::text AS kind,
-            item.id AS id,
-            parent.id AS parent_id,
-            'SHARED'::text AS scope,
-            item.payload->>'title' AS title,
-            NULL::text AS excerpt,
-            NULL::date AS occurred_on,
-            item.created_at AS created_at,
-            round((ts_rank_cd({vector}, input.q) * {_RANK_SCALE})::numeric)::bigint AS rank_key
-        FROM collection_items AS item
-        JOIN collections AS parent ON parent.id = item.collection_id
-        CROSS JOIN search_input AS input
-        WHERE parent.space_id = :space_id
-          AND parent.privacy_class = 'SPACE_SHARED'
-          AND ({vector}) @@ input.q
-        """,
-    )
+def _bounded(value: str | None) -> str | None:
+    return value[:_EXCERPT_LENGTH] if value else None
 
 
-def _private_item_leg() -> _SearchLeg:
-    vector = _vector(("item.payload->>'title'", "A"))
-    return _SearchLeg(
-        kind=SearchKind.PRIVATE_COLLECTION_ITEM,
-        sql=f"""
-        SELECT
-            'PRIVATE_COLLECTION_ITEM'::text AS kind,
-            item.id AS id,
-            parent.id AS parent_id,
-            'PRIVATE'::text AS scope,
-            item.payload->>'title' AS title,
-            NULL::text AS excerpt,
-            NULL::date AS occurred_on,
-            item.created_at AS created_at,
-            round((ts_rank_cd({vector}, input.q) * {_RANK_SCALE})::numeric)::bigint AS rank_key
-        FROM private_collection_items AS item
-        JOIN private_collections AS parent ON parent.id = item.collection_id
-        CROSS JOIN search_input AS input
-        WHERE parent.space_id = :space_id
-          AND parent.owner_id = :account_id
-          AND parent.privacy_class = 'OWNER_ONLY'
-          AND ({vector}) @@ input.q
-        """,
-    )
+def _joined(*values: str | None) -> str | None:
+    return _bounded(" \u00b7 ".join(value for value in values if value))
 
 
-def _bounded(value: str) -> str:
-    return f"left(nullif({value}, ''), {_EXCERPT_LENGTH})"
+@dataclass(frozen=True)
+class _Source:
+    kind: SearchKind
+    scope: SearchScope
+    model: Any
+    # Fields the query is matched against: payload attribute and weight class.
+    fields: tuple[tuple[str, str], ...]
+    title: Callable[[Any], str | None]
+    excerpt: Callable[[Any], str | None]
+    occurred_on: Callable[[Any], date | None] = lambda row: None
+    owner_only: bool = False
+    privacy: PrivacyClass = PrivacyClass.SPACE_SHARED
+    parent: Any = None
 
 
-_MEMORY_VECTOR = _vector(("source.payload->>'title'", "A"), ("source.payload->>'body'", "B"))
-_HEART_VECTOR = _vector(("source.payload->>'text'", "A"))
-_MILESTONE_VECTOR = _vector(
-    ("source.payload->>'title'", "A"),
-    ("source.payload->>'body'", "B"),
-)
-_WISH_VECTOR = _vector(("source.payload->>'title'", "A"))
-_PLAN_VECTOR = _vector(
-    ("source.payload->>'title'", "A"),
-    ("source.payload->>'description'", "B"),
-)
-_PLACE_VECTOR = _vector(
-    ("source.payload->>'name'", "A"),
-    ("source.payload->>'description'", "B"),
-    ("source.payload->>'address'", "B"),
-)
-_CHAPTER_VECTOR = _vector(
-    ("source.payload->>'title'", "A"),
-    ("source.payload->>'description'", "B"),
-)
-_COLLECTION_VECTOR = _vector(("source.payload->>'title'", "A"))
-_PRIVATE_NOTE_VECTOR = _vector(
-    ("source.payload->>'title'", "A"),
-    ("source.payload->>'body'", "B"),
-)
-_GIFT_VECTOR = _vector(
-    ("source.payload->>'title'", "A"),
-    ("source.payload->>'description'", "B"),
-    ("source.payload->>'recipient'", "B"),
-    ("source.payload->>'occasion'", "B"),
-    ("source.payload->>'price_text'", "B"),
-)
-_PRIVATE_COLLECTION_VECTOR = _vector(("source.payload->>'title'", "A"))
+def _none(_: Any) -> None:
+    return None
 
 
-_LEGS: dict[SearchKind, tuple[_SearchLeg, ...]] = {
+_SOURCES: dict[SearchKind, tuple[_Source, ...]] = {
     SearchKind.MEMORY: (
-        _root_leg(
-            kind=SearchKind.MEMORY,
-            table_name="memories",
-            vector=_MEMORY_VECTOR,
-            scope=SearchScope.SHARED,
-            title_sql="source.payload->>'title'",
-            excerpt_sql=_bounded("source.payload->>'body'"),
-            occurred_on_sql="source.happened_on",
-            extra_predicate="source.privacy_class = 'SPACE_SHARED'",
+        _Source(
+            SearchKind.MEMORY,
+            SearchScope.SHARED,
+            Memory,
+            (("title", "A"), ("body", "B")),
+            lambda row: row.payload.title,
+            lambda row: _bounded(row.payload.body),
+            lambda row: row.happened_on,
         ),
     ),
     SearchKind.HEART_MOMENT: (
-        _root_leg(
-            kind=SearchKind.HEART_MOMENT,
-            table_name="heart_moments",
-            vector=_HEART_VECTOR,
-            scope=SearchScope.SHARED,
-            title_sql="NULL::text",
-            excerpt_sql=_bounded("source.payload->>'text'"),
-            occurred_on_sql="source.happened_on",
-            extra_predicate="source.privacy_class = 'SPACE_SHARED'",
+        _Source(
+            SearchKind.HEART_MOMENT,
+            SearchScope.SHARED,
+            HeartMoment,
+            (("text", "A"),),
+            _none,
+            lambda row: _bounded(row.payload.text),
+            lambda row: row.happened_on,
         ),
-        _root_leg(
-            kind=SearchKind.HEART_MOMENT,
-            table_name="heart_moments",
-            vector=_HEART_VECTOR,
-            scope=SearchScope.PRIVATE,
-            title_sql="NULL::text",
-            excerpt_sql=_bounded("source.payload->>'text'"),
-            occurred_on_sql="source.happened_on",
+        _Source(
+            SearchKind.HEART_MOMENT,
+            SearchScope.PRIVATE,
+            HeartMoment,
+            (("text", "A"),),
+            _none,
+            lambda row: _bounded(row.payload.text),
+            lambda row: row.happened_on,
             owner_only=True,
-            extra_predicate="source.privacy_class = 'OWNER_ONLY'",
+            privacy=PrivacyClass.OWNER_ONLY,
         ),
     ),
     SearchKind.MILESTONE: (
-        _root_leg(
-            kind=SearchKind.MILESTONE,
-            table_name="milestones",
-            vector=_MILESTONE_VECTOR,
-            scope=SearchScope.SHARED,
-            title_sql="source.payload->>'title'",
-            excerpt_sql=_bounded("source.payload->>'body'"),
-            occurred_on_sql="source.happened_on",
-            extra_predicate="source.privacy_class = 'SPACE_SHARED'",
+        _Source(
+            SearchKind.MILESTONE,
+            SearchScope.SHARED,
+            Milestone,
+            (("title", "A"), ("body", "B")),
+            lambda row: row.payload.title,
+            lambda row: _bounded(row.payload.body),
+            lambda row: row.happened_on,
         ),
     ),
     SearchKind.WISH: (
-        _root_leg(
-            kind=SearchKind.WISH,
-            table_name="wishes",
-            vector=_WISH_VECTOR,
-            scope=SearchScope.SHARED,
-            title_sql="source.payload->>'title'",
-            excerpt_sql="NULL::text",
-            extra_predicate="source.privacy_class = 'SPACE_SHARED'",
+        _Source(
+            SearchKind.WISH,
+            SearchScope.SHARED,
+            Wish,
+            (("title", "A"),),
+            lambda row: row.payload.title,
+            _none,
         ),
     ),
     SearchKind.PLAN: (
-        _root_leg(
-            kind=SearchKind.PLAN,
-            table_name="plans",
-            vector=_PLAN_VECTOR,
-            scope=SearchScope.SHARED,
-            title_sql="source.payload->>'title'",
-            excerpt_sql=_bounded("source.payload->>'description'"),
-            occurred_on_sql="source.experienced_on",
-            extra_predicate="source.privacy_class = 'SPACE_SHARED'",
+        _Source(
+            SearchKind.PLAN,
+            SearchScope.SHARED,
+            Plan,
+            (("title", "A"), ("description", "B")),
+            lambda row: row.payload.title,
+            lambda row: _bounded(row.payload.description),
+            lambda row: row.experienced_on,
         ),
     ),
     SearchKind.PLACE: (
-        _root_leg(
-            kind=SearchKind.PLACE,
-            table_name="places",
-            vector=_PLACE_VECTOR,
-            scope=SearchScope.SHARED,
-            title_sql="source.payload->>'name'",
-            excerpt_sql=_bounded(
-                "concat_ws(' · ', nullif(source.payload->>'description', ''), "
-                "nullif(source.payload->>'address', ''))"
-            ),
-            extra_predicate="source.privacy_class = 'SPACE_SHARED'",
+        _Source(
+            SearchKind.PLACE,
+            SearchScope.SHARED,
+            Place,
+            (("name", "A"), ("description", "B"), ("address", "B")),
+            lambda row: row.payload.name,
+            lambda row: _joined(row.payload.description, row.payload.address),
         ),
     ),
     SearchKind.CHAPTER: (
-        _root_leg(
-            kind=SearchKind.CHAPTER,
-            table_name="chapters",
-            vector=_CHAPTER_VECTOR,
-            scope=SearchScope.SHARED,
-            title_sql="source.payload->>'title'",
-            excerpt_sql=_bounded("source.payload->>'description'"),
-            occurred_on_sql="source.start_on",
-            extra_predicate="source.privacy_class = 'SPACE_SHARED'",
+        _Source(
+            SearchKind.CHAPTER,
+            SearchScope.SHARED,
+            Chapter,
+            (("title", "A"), ("description", "B")),
+            lambda row: row.payload.title,
+            lambda row: _bounded(row.payload.description),
+            lambda row: row.start_on,
         ),
     ),
     SearchKind.COLLECTION: (
-        _root_leg(
-            kind=SearchKind.COLLECTION,
-            table_name="collections",
-            vector=_COLLECTION_VECTOR,
-            scope=SearchScope.SHARED,
-            title_sql="source.payload->>'title'",
-            excerpt_sql="NULL::text",
-            extra_predicate="source.privacy_class = 'SPACE_SHARED'",
+        _Source(
+            SearchKind.COLLECTION,
+            SearchScope.SHARED,
+            Collection,
+            (("title", "A"),),
+            lambda row: row.payload.title,
+            _none,
         ),
     ),
-    SearchKind.COLLECTION_ITEM: (_shared_item_leg(),),
+    SearchKind.COLLECTION_ITEM: (
+        _Source(
+            SearchKind.COLLECTION_ITEM,
+            SearchScope.SHARED,
+            CollectionItem,
+            (("title", "A"),),
+            lambda row: row.payload.title,
+            _none,
+            parent=Collection,
+        ),
+    ),
     SearchKind.PRIVATE_NOTE: (
-        _root_leg(
-            kind=SearchKind.PRIVATE_NOTE,
-            table_name="private_notes",
-            vector=_PRIVATE_NOTE_VECTOR,
-            scope=SearchScope.PRIVATE,
-            title_sql="source.payload->>'title'",
-            excerpt_sql=_bounded("source.payload->>'body'"),
+        _Source(
+            SearchKind.PRIVATE_NOTE,
+            SearchScope.PRIVATE,
+            PrivateNote,
+            (("title", "A"), ("body", "B")),
+            lambda row: row.payload.title,
+            lambda row: _bounded(row.payload.body),
             owner_only=True,
-            extra_predicate="source.privacy_class = 'OWNER_ONLY'",
+            privacy=PrivacyClass.OWNER_ONLY,
         ),
     ),
     SearchKind.GIFT_IDEA: (
-        _root_leg(
-            kind=SearchKind.GIFT_IDEA,
-            table_name="gift_ideas",
-            vector=_GIFT_VECTOR,
-            scope=SearchScope.PRIVATE,
-            title_sql="source.payload->>'title'",
-            excerpt_sql=_bounded(
-                "concat_ws(' · ', nullif(source.payload->>'description', ''), "
-                "nullif(source.payload->>'recipient', ''), "
-                "nullif(source.payload->>'occasion', ''), "
-                "nullif(source.payload->>'price_text', ''))"
+        _Source(
+            SearchKind.GIFT_IDEA,
+            SearchScope.PRIVATE,
+            GiftIdea,
+            (
+                ("title", "A"),
+                ("description", "B"),
+                ("recipient", "B"),
+                ("occasion", "B"),
+                ("price_text", "B"),
+            ),
+            lambda row: row.payload.title,
+            lambda row: _joined(
+                row.payload.description,
+                row.payload.recipient,
+                row.payload.occasion,
+                row.payload.price_text,
             ),
             owner_only=True,
-            extra_predicate="source.privacy_class = 'OWNER_ONLY'",
+            privacy=PrivacyClass.OWNER_ONLY,
         ),
     ),
     SearchKind.PRIVATE_COLLECTION: (
-        _root_leg(
-            kind=SearchKind.PRIVATE_COLLECTION,
-            table_name="private_collections",
-            vector=_PRIVATE_COLLECTION_VECTOR,
-            scope=SearchScope.PRIVATE,
-            title_sql="source.payload->>'title'",
-            excerpt_sql="NULL::text",
+        _Source(
+            SearchKind.PRIVATE_COLLECTION,
+            SearchScope.PRIVATE,
+            PrivateCollection,
+            (("title", "A"),),
+            lambda row: row.payload.title,
+            _none,
             owner_only=True,
-            extra_predicate="source.privacy_class = 'OWNER_ONLY'",
+            privacy=PrivacyClass.OWNER_ONLY,
         ),
     ),
-    SearchKind.PRIVATE_COLLECTION_ITEM: (_private_item_leg(),),
+    SearchKind.PRIVATE_COLLECTION_ITEM: (
+        _Source(
+            SearchKind.PRIVATE_COLLECTION_ITEM,
+            SearchScope.PRIVATE,
+            PrivateCollectionItem,
+            (("title", "A"),),
+            lambda row: row.payload.title,
+            _none,
+            owner_only=True,
+            privacy=PrivacyClass.OWNER_ONLY,
+            parent=PrivateCollection,
+        ),
+    ),
 }
+
+
+def _authorized_rows(
+    session: Session, context: AuthorizationContext, source: _Source
+) -> list[tuple[Any, UUID | None]]:
+    """Load the rows this caller may search. Authorization is decided here, in SQL.
+
+    Nothing outside this query is ever decrypted, so a row the caller may not
+    see is never exposed to ranking, excerpting or logging.
+    """
+    model = source.model
+    if source.parent is not None:
+        parent = source.parent
+        statement = (
+            select(model, parent.id)
+            .join(parent, parent.id == model.collection_id)
+            .where(
+                parent.space_id == context.space_id, parent.privacy_class == source.privacy.value
+            )
+        )
+        if source.owner_only:
+            statement = statement.where(parent.owner_id == context.account_id)
+        return [(row, parent_id) for row, parent_id in session.execute(statement).all()]
+    statement = select(model).where(
+        model.space_id == context.space_id, model.privacy_class == source.privacy.value
+    )
+    if source.owner_only:
+        statement = statement.where(model.owner_id == context.account_id)
+    return [(row, None) for row in session.execute(statement).scalars()]
+
+
+def _compare(left: SearchRow, right: SearchRow) -> int:
+    if left.rank_key != right.rank_key:
+        return -1 if left.rank_key > right.rank_key else 1
+    if left.created_at != right.created_at:
+        return -1 if left.created_at > right.created_at else 1
+    if left.kind.value != right.kind.value:
+        return -1 if left.kind.value < right.kind.value else 1
+    if left.id != right.id:
+        return -1 if str(left.id) < str(right.id) else 1
+    return 0
 
 
 def _canonical_kinds(kinds: tuple[SearchKind, ...]) -> tuple[SearchKind, ...]:
@@ -444,25 +498,23 @@ def _decode_cursor(
     return rank_raw, created_at.astimezone(UTC), kind, item_id
 
 
-def _cursor_predicate(position: tuple[int, datetime, SearchKind, UUID] | None) -> str:
-    if position is None:
-        return ""
-    return """
-    WHERE
-        rank_key < :cursor_rank
-        OR (rank_key = :cursor_rank AND created_at < :cursor_created_at)
-        OR (
-            rank_key = :cursor_rank
-            AND created_at = :cursor_created_at
-            AND kind > :cursor_kind
+def _is_after(item: SearchRow, position: tuple[int, datetime, SearchKind, UUID]) -> bool:
+    rank_key, created_at, kind, item_id = position
+    return (
+        item.rank_key < rank_key
+        or (item.rank_key == rank_key and item.created_at < created_at)
+        or (
+            item.rank_key == rank_key
+            and item.created_at == created_at
+            and item.kind.value > kind.value
         )
-        OR (
-            rank_key = :cursor_rank
-            AND created_at = :cursor_created_at
-            AND kind = :cursor_kind
-            AND id > :cursor_id
+        or (
+            item.rank_key == rank_key
+            and item.created_at == created_at
+            and item.kind is kind
+            and str(item.id) > str(item_id)
         )
-    """
+    )
 
 
 def search(
@@ -483,52 +535,39 @@ def search(
         else None
     )
 
-    legs = [leg.sql for kind in selected for leg in _LEGS[kind]]
-    if not legs:
-        return SearchPageResult(items=[], next_cursor=None)
+    groups = parse_query(normalized_query)
+    matches: list[SearchRow] = []
+    if groups:
+        for kind in selected:
+            for source in _SOURCES[kind]:
+                for row, parent_id in _authorized_rows(session, context, source):
+                    rank = score(
+                        groups,
+                        tuple(
+                            (getattr(row.payload, name), weight) for name, weight in source.fields
+                        ),
+                    )
+                    if rank is None:
+                        continue
+                    matches.append(
+                        SearchRow(
+                            kind=source.kind,
+                            id=row.id,
+                            parent_id=parent_id,
+                            scope=source.scope,
+                            title=source.title(row),
+                            excerpt=source.excerpt(row),
+                            occurred_on=source.occurred_on(row),
+                            created_at=row.created_at,
+                            rank_key=rank,
+                        )
+                    )
 
-    statement = text(
-        "WITH search_input AS ("
-        "SELECT websearch_to_tsquery('simple', :query) AS q"
-        "), candidates AS ("
-        + " UNION ALL ".join(legs)
-        + ") SELECT kind, id, parent_id, scope, title, excerpt, occurred_on, "
-        "created_at, rank_key FROM candidates "
-        + _cursor_predicate(position)
-        + " ORDER BY rank_key DESC, created_at DESC, kind ASC, id ASC "
-        "LIMIT :fetch_limit"
-    )
-    parameters: dict[str, Any] = {
-        "query": normalized_query,
-        "space_id": context.space_id,
-        "account_id": context.account_id,
-        "fetch_limit": limit + 1,
-    }
+    matches.sort(key=cmp_to_key(_compare))
     if position is not None:
-        rank_key, created_at, kind, item_id = position
-        parameters.update(
-            cursor_rank=rank_key,
-            cursor_created_at=created_at,
-            cursor_kind=kind.value,
-            cursor_id=item_id,
-        )
-
-    rows = session.execute(statement, parameters).mappings().all()
-    has_more = len(rows) > limit
-    items = [
-        SearchRow(
-            kind=SearchKind(str(row["kind"])),
-            id=row["id"],
-            parent_id=row["parent_id"],
-            scope=SearchScope(str(row["scope"])),
-            title=row["title"],
-            excerpt=row["excerpt"],
-            occurred_on=row["occurred_on"],
-            created_at=row["created_at"],
-            rank_key=int(row["rank_key"]),
-        )
-        for row in rows[:limit]
-    ]
+        matches = [item for item in matches if _is_after(item, position)]
+    has_more = len(matches) > limit
+    items = matches[:limit]
     next_cursor = None
     if has_more and items:
         next_cursor = _encode_cursor(

@@ -21,7 +21,7 @@ const de = {
       'Dein Profil, persönliche Bereiche, gemeinsame Organisation und die Einstellungen von eimir. an einem verlässlichen Ort.',
     groups: {
       personal: 'Für dich',
-      shared: 'Gemeinsam organisieren',
+      shared: 'Gemeinsam',
       utility: 'App und Konto',
     },
     people: {
@@ -332,6 +332,15 @@ const de = {
     titlePlaceholder: 'Zum Beispiel: Unser Tag am See',
     bodyLabel: 'Erinnerung',
     bodyPlaceholder: 'Was möchtet ihr von diesem Moment behalten?',
+    tagsLabel: 'Was passt zu diesem Moment?',
+    tagsHelp:
+      'Optional · Wähle aus, was euch später an diesen Moment erinnert.',
+    tagLabels: {
+      out_together: 'Unterwegs zusammen',
+      laughter: 'Lachen',
+      home: 'Zuhause',
+      special_day: 'Besonderer Tag',
+    },
     dateLabel: 'Datum',
     dateHelp: 'Optional – wenn der Moment an einem bestimmten Tag war.',
     dateChangeAction: 'Ändern',

@@ -67,14 +67,6 @@ class Milestone(
         Index("ix_milestones_owner_id", "owner_id"),
         Index("ix_milestones_space_id_created_at_id", "space_id", "created_at", "id"),
         Index("ix_milestones_space_id_happened_on", "space_id", "happened_on"),
-        Index(
-            "ix_milestones_search_fts",
-            text(
-                "(setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A') || "
-                "setweight(to_tsvector('simple', coalesce(payload->>'body', '')), 'B'))"
-            ),
-            postgresql_using="gin",
-        ),
     )
 
 

@@ -359,7 +359,15 @@ Production rejects insecure runtime settings. At minimum:
 - `EIMIR_ALLOWED_HOSTS` names concrete hosts and never `*`;
 - `TRUSTED_PROXY_IPS` is the smallest real proxy IP/CIDR set;
 - `EIMIR_ACCOUNT_DELETION_INSTANCE_ID` matches the protected forward journal;
+- `EIMIR_ENCRYPTION_AT_REST` is set explicitly (`required`, `migrating`, or `disabled`), and
+  with an encrypting mode `EIMIR_ENCRYPTION_KEYS`/`EIMIR_ENCRYPTION_ACTIVE_KEY_ID` are valid;
 - `EIMIR_MAIL_TRANSPORT` is `smtp` or `none`, never `log`.
+
+UnifiedPush delivery is optional. To enable the backend transport, configure a
+stable VAPID key, contact subject and explicit allowed HTTPS push-server
+origins for both API and worker. See
+[UnifiedPush backend transport](./m4/UNIFIEDPUSH-TRANSPORT.md) for the exact
+settings, egress restrictions and current client-integration boundary.
 
 SMTP is optional. With:
 
@@ -409,6 +417,27 @@ Presigned URLs, signatures, storage keys and credentials must not enter logs, an
 support bundles or persistent client caches.
 
 Development and Production must never share an S3 bucket or credential set.
+
+With application-controlled encryption enabled (below) the provider only ever stores
+ciphertext, and uploads and reads go through the application instead of presigned
+URLs.
+
+## Encryption at rest
+
+Set `EIMIR_ENCRYPTION_AT_REST` explicitly in Production; an unset value is refused by
+the release guard and by the application:
+
+- `required` for new installations, with `EIMIR_ENCRYPTION_KEYS` and
+  `EIMIR_ENCRYPTION_ACTIVE_KEY_ID`;
+- `migrating` while upgrading an installation that already holds plaintext, until
+  `python -m eimir.security migrate-payloads` and `migrate-media` finished, then `required`;
+- `disabled` as an explicit opt-out for operators who rely on their own disk/volume
+  encryption (leave the key variables empty).
+
+This is encryption at rest under keys you hold, not end-to-end encryption. Keep the keys
+apart from database and media backups; losing every copy of a key makes the content it
+protects permanently unreadable. Key generation, rotation, recovery, and verification:
+[ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md).
 
 ## Backup, restore, upgrade and rollback
 
@@ -518,6 +547,15 @@ allowed hosts.
 
 The `/api/` route must go directly to the API rather than through Web Nginx, otherwise
 the trusted TLS proxy hop is lost for `X-Forwarded-*` handling.
+
+The API itself rejects ordinary request bodies above 8 MiB with HTTP 413 before
+JSON parsing, including requests without a trustworthy `Content-Length`. Attachment
+uploads and Transfer imports retain their separate server-side streaming limits
+(25 MiB for supported images and 512 MiB compressed for Transfer imports). This
+application boundary is authoritative regardless of reverse-proxy configuration;
+the public TLS proxy should also enforce appropriate request-size limits to avoid
+buffering rejected traffic before forwarding it to the API. Do not set a proxy-wide
+8 MiB limit, which would break the bounded media and Transfer routes.
 
 ## Post-deploy verification
 

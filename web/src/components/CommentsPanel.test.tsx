@@ -237,6 +237,7 @@ describe('CommentsPanel', () => {
         spaceId: 'space-1',
         memoryId: 'memory-1',
         commentCreate: { body: 'A brand new comment' },
+        idempotencyKey: expect.any(String),
       });
     });
 
@@ -344,6 +345,44 @@ describe('CommentsPanel', () => {
       );
       expect(textarea.value).toBe('Keep this draft');
       expect(screen.getByPlaceholderText('Schreib etwas dazu …')).toBeTruthy();
+    });
+
+    it('reuses the request identity when an identical retry reconciles an unknown outcome', async () => {
+      const user = userEvent.setup();
+      const createMemoryComment = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('response lost'))
+        .mockResolvedValueOnce(comment({ id: 'reconciled' }));
+      const listMemoryComments = vi.fn().mockResolvedValue({
+        items: [],
+        hasMore: false,
+        nextCursor: null,
+      });
+      renderInteractivePanel([], { createMemoryComment, listMemoryComments });
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Kommentieren' }),
+      );
+      await user.type(
+        screen.getByPlaceholderText('Schreib etwas dazu …'),
+        'Maybe already saved',
+      );
+      await user.click(screen.getByRole('button', { name: 'Kommentieren' }));
+      await waitFor(() => expect(createMemoryComment).toHaveBeenCalledTimes(1));
+      await waitFor(() =>
+        expect(
+          screen.getByRole<HTMLButtonElement>('button', {
+            name: 'Kommentieren',
+          }).disabled,
+        ).toBe(false),
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Kommentieren' }));
+      await waitFor(() => expect(createMemoryComment).toHaveBeenCalledTimes(2));
+
+      expect(createMemoryComment.mock.calls[1]?.[0].idempotencyKey).toBe(
+        createMemoryComment.mock.calls[0]?.[0].idempotencyKey,
+      );
     });
   });
 

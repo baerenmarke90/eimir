@@ -23,6 +23,41 @@ def etag_for(version: int) -> str:
     return f'"{version}"'
 
 
+def etag_for_token(token: str) -> str:
+    """Encode one opaque ASCII concurrency token as a strong ETag."""
+    if (
+        not token
+        or any(ord(char) < 0x21 or ord(char) > 0x7E for char in token)
+        or '"' in token
+        or "," in token
+    ):
+        raise ValueError("Invalid strong ETag token.")
+    return f'"{token}"'
+
+
+def parse_if_match_token(value: str) -> str:
+    """Read exactly one opaque strong ETag payload from ``If-Match``."""
+    raw = value.strip()
+    if raw.startswith("W/") or raw == "*" or "," in raw:
+        raise ValidationError(
+            "The If-Match header must carry a single strong ETag.",
+            ErrorCode.IF_MATCH_MALFORMED,
+        )
+    if raw.startswith('"') or raw.endswith('"'):
+        if not (raw.startswith('"') and raw.endswith('"') and len(raw) >= 2):
+            raise ValidationError(
+                "The If-Match header must carry a single strong ETag.",
+                ErrorCode.IF_MATCH_MALFORMED,
+            )
+        raw = raw[1:-1]
+    if not raw or any(ord(char) < 0x21 or ord(char) > 0x7E for char in raw) or '"' in raw:
+        raise ValidationError(
+            "The If-Match header must carry a single strong ETag.",
+            ErrorCode.IF_MATCH_MALFORMED,
+        )
+    return raw
+
+
 def parse_if_match(value: str) -> int:
     """Read the expected version from an ``If-Match`` header.
 
@@ -74,3 +109,22 @@ def if_match_version(
 
 
 IfMatchVersion = Annotated[int, Depends(if_match_version)]
+
+
+def if_match_token(
+    if_match: Annotated[
+        str,
+        Header(
+            alias="If-Match",
+            description=(
+                "The last-read opaque resource state, encoded as a strong ETag. "
+                "Writes are rejected without this header."
+            ),
+        ),
+    ],
+) -> str:
+    """Require one opaque strong ETag without weakening numeric resources."""
+    return parse_if_match_token(if_match)
+
+
+IfMatchToken = Annotated[str, Depends(if_match_token)]

@@ -19,8 +19,10 @@ from types import FrameType
 from eimir.attachments import account_media
 from eimir.attachments import cleanup as media_cleanup
 from eimir.config import get_settings
+from eimir.daily_checkins import retention as daily_checkin_retention
 from eimir.db.session import unit_of_work
 from eimir.demo import reset as demo_reset
+from eimir.engagement import email_delivery, unified_push
 from eimir.engagement import push as push_delivery
 from eimir.engagement import service as engagement_service
 from eimir.identity import deletion_jobs as account_deletion_jobs
@@ -64,6 +66,7 @@ def _ensure_maintenance() -> None:
             media_cleanup.ensure_scheduled(session)
             reminder_runtime.ensure_scheduled(session)
             demo_reset.ensure_scheduled(session)
+            daily_checkin_retention.ensure_scheduled(session)
             transfer_jobs.ensure_scheduled(session)
             space_retention.ensure_scheduled(session)
     except Exception:
@@ -77,7 +80,9 @@ def _run_engagement_projection() -> int:
 
 
 def main() -> None:
-    configure_logging(get_settings())
+    settings = get_settings()
+    configure_logging(settings)
+    unified_push.configure_provider(settings)
 
     signal.signal(signal.SIGTERM, _request_shutdown)
     signal.signal(signal.SIGINT, _request_shutdown)
@@ -89,8 +94,10 @@ def main() -> None:
     media_cleanup.register_handlers()
     account_media.register_handlers()
     push_delivery.register_handlers()
+    email_delivery.register_handlers()
     reminder_runtime.register_handlers()
     demo_reset.register_handlers()
+    daily_checkin_retention.register_handlers()
     transfer_jobs.register_handlers()
     space_retention.register_handlers()
     account_deletion_jobs.register_handlers()

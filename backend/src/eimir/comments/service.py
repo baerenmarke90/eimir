@@ -28,6 +28,8 @@ from eimir.comments.models import Comment, CommentPayload, CommentTarget
 from eimir.core import cursor as cursor_codec
 from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
 from eimir.core.ids import parse_id
+from eimir.create_receipts import service as create_receipts
+from eimir.create_receipts.models import CreateReceiptResourceType
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.heart_moments.models import HeartMoment
 from eimir.memories.models import Memory
@@ -35,6 +37,7 @@ from eimir.milestones.models import Milestone
 from eimir.outbox import service as outbox_service
 
 _COMMENT_SUBJECT_TYPE = "comment"
+_RECEIPT_RESOURCE_TYPE = CreateReceiptResourceType.COMMENT.value
 
 
 @dataclass(frozen=True)
@@ -49,6 +52,14 @@ class CommentParent:
     target_type: CommentTarget
     target_id: UUID
     owner_id: UUID
+
+
+@dataclass(frozen=True)
+class CommentCreateResult:
+    comment: Comment
+    created: bool
+    """``False`` when this is a replay of an earlier request with the same
+    ``Idempotency-Key``, not a new Comment."""
 
 
 def _target_not_available() -> NotFoundError:
@@ -259,6 +270,67 @@ def create_comment(
         _record_created(session, comment, recipient_id=parent.owner_id)
         _flush(session)
     return comment
+
+
+def create_comment_once(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    idempotency_key: UUID | None,
+    target_type: CommentTarget,
+    target_id: UUID | str,
+    body: str,
+) -> CommentCreateResult:
+    """Create a Comment, or return the one an earlier request with this identity created.
+
+    Without a key this is a plain create. With a key, claiming the receipt
+    and creating the Comment share this transaction (see
+    ``eimir.create_receipts``). Protects a double-tap "send" or a lost-response
+    retry from posting the same comment (and notifying the partner) twice.
+    """
+    if idempotency_key is None:
+        comment = create_comment(
+            session, context, target_type=target_type, target_id=target_id, body=body
+        )
+        return CommentCreateResult(comment, created=True)
+
+    identifier = _identifier(target_id)
+    normalized_body = _normalize_body(body)
+    request_fingerprint = create_receipts.fingerprint(
+        _RECEIPT_RESOURCE_TYPE,
+        {
+            "target_type": target_type.value,
+            "target_id": str(identifier),
+            "body": normalized_body,
+        },
+    )
+    receipt_id = create_receipts.claim(
+        session,
+        context,
+        resource_type=_RECEIPT_RESOURCE_TYPE,
+        key=idempotency_key,
+        request_fingerprint=request_fingerprint,
+    )
+    if receipt_id is None:
+        comment = create_receipts.replay(
+            session,
+            context,
+            Comment,
+            resource_type=_RECEIPT_RESOURCE_TYPE,
+            key=idempotency_key,
+            request_fingerprint=request_fingerprint,
+            deleted_error=NotFoundError(
+                "The comment created by this request no longer exists.",
+                ErrorCode.COMMENT_CREATE_RESULT_DELETED,
+            ),
+        )
+        return CommentCreateResult(comment, created=False)
+
+    comment = create_comment(
+        session, context, target_type=target_type, target_id=identifier, body=normalized_body
+    )
+    create_receipts.attach(session, receipt_id, comment.id)
+    return CommentCreateResult(comment, created=True)
 
 
 def _require_comment_parent(

@@ -81,6 +81,7 @@ const m5s3 = {
       'Wenn dieser Wunsch einfach so Wirklichkeit geworden ist, könnt ihr ihn direkt als erfüllt markieren.',
     complete: 'Als erfüllt markieren',
     completing: 'Wird abgeschlossen …',
+    completePending: 'Wunsch wird als erfüllt gespeichert …',
     completionTitle: 'Wunsch erfüllt',
     completionIntro:
       'Möchtet ihr daraus auch eine Erinnerung für eure gemeinsame Geschichte festhalten?',
@@ -131,9 +132,13 @@ const m5s3 = {
     unschedule: 'Noch ohne festen Termin',
     editAction: 'Plan bearbeiten',
     complete: 'Plan abschließen',
+    completePending: 'Abschluss für den {{date}} wird gespeichert …',
     returnToWish: 'Zurück zum Wunsch',
     completedTitle: 'Gemeinsam erlebt',
     completedBody: 'Aus einem Plan wurde etwas, das ihr erlebt habt.',
+    sharedAchievementTitle: 'Gemeinsam geschafft',
+    sharedAchievementBody:
+      '„{{title}}“ ist geschafft. Das habt ihr zusammen erreicht.',
     createMemoryFromPlan: 'Erinnerung daraus festhalten',
     deleteConsequence:
       'Der Plan wird gelöscht. Ein verknüpfter Ort oder andere eigenständige Inhalte bleiben erhalten.',
@@ -267,6 +272,8 @@ const m5s3 = {
     create: 'Liste hinzufügen',
     loading: 'Liste wird geladen …',
     detailEyebrow: 'Gemeinsame Liste',
+    pinToToday: 'Auf „Wir“ anzeigen',
+    unpinFromToday: 'Nicht mehr auf „Wir“ anzeigen',
     itemCount_one: '{{count}} Eintrag',
     itemCount_other: '{{count}} Einträge',
     itemsHeading: 'Einträge',

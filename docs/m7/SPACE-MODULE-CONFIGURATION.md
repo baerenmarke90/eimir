@@ -43,10 +43,10 @@ The V1 catalog is deliberately small. These are the only Space-wide module boole
 
 | Typed field | Product module | Owner | Commercial class | Default | Classification | Rationale |
 |---|---|---:|---|---:|---|---|
-| `vibeCheckEnabled` | Vibe Check | #429 / ADR 0007 | Free/Core | `false` | SPACE_CONFIGURABLE | New optional daily relationship ritual. Explicit enablement avoids silently introducing emotional-status prompts into existing Spaces. |
-| `energyCheckInEnabled` | Daily Energy Check-in | #431 / ADR 0007 | Free/Core | `false` | SPACE_CONFIGURABLE | Independent optional DailyCheckIn dimension; may be enabled without Vibe. |
+| `vibeCheckEnabled` | Vibe Check | #429 / #1151 | Mixed (Free daily ritual; Pro longitudinal insights) | `false` | SPACE_CONFIGURABLE | New optional daily relationship ritual. Space switch remains Free/Core; longitudinal insights are Pro (`daily.insights`). Explicit enablement avoids silently introducing emotional-status prompts into existing Spaces. |
+| `energyCheckInEnabled` | Daily Energy Check-in | #431 / #1151 | Mixed (Free daily ritual; Pro longitudinal insights) | `false` | SPACE_CONFIGURABLE | Independent optional DailyCheckIn dimension; may be enabled without Vibe. Space switch remains Free/Core; longitudinal patterns/recaps are Pro (`daily.insights`). |
 | `loveNotesEnabled` | Liebesbriefkasten / partner notes | #429 | Free/Core | `false` | SPACE_CONFIGURABLE | Optional shared interaction. Existing delivered notes remain protected/readable when disabled. |
-| `supportGesturesEnabled` | Thinking of You + bounded support gestures | #455 / #429 | Free/Core | `true` | SPACE_CONFIGURABLE | Existing ThinkingOfYou behavior is already shipped, so the rollout default preserves current behavior. Future support gestures reuse the same module boundary rather than adding one switch per gesture. |
+| `supportGesturesEnabled` | Thinking of You + bounded support gestures | #455 / #429 / #1206 | Mixed (Free Thinking-of-You; Pro extended gestures) | `true` | SPACE_CONFIGURABLE | Existing ThinkingOfYou remains Free/Core and preserves its shipped default. Extended gestures reuse this same module boundary but additionally require the central `partner.quick_actions.extended` Space capability; enabling the module never grants Premium eligibility. |
 | `sharedAchievementsEnabled` | Shared achievements / celebrations | #430 | Free/Core | `false` | SPACE_CONFIGURABLE | Optional relationship-depth presentation over existing authoritative completions. |
 | `dailyQuestionsEnabled` | Daily Questions / shared answers baseline | #444 and related M7 work | Mixed (Free baseline) | `false` | SPACE_CONFIGURABLE | Optional recurring relationship ritual. Premium reflection extensions remain Entitlement-controlled separately. |
 
@@ -82,6 +82,12 @@ Rules from ADR 0007:
 - Visibility modes are dimension-scoped; enabling one dimension does not unlock/reveal the other.
 - `MUTUAL_REVEAL` affects projection eligibility only. It is not another module or Privacy class.
 
+Web surface (#432): the Account timezone is not part of any client-visible API, so the Web
+settings surface suggests the manager's device time zone for the first Vibe/Energy enable and sends it
+in the same atomic configuration write. The zone then stays visible and deliberately changeable in the
+Space settings; a refused change while current-day state exists is explained in place. The device zone
+is a one-time suggestion only and is never used to derive the shared day afterwards.
+
 The initial visibility mode is `IMMEDIATE`. Mutual Reveal is an explicit configuration choice rather than an implicit consequence of enabling a dimension.
 
 ## 5. What is not a Space module
@@ -97,6 +103,7 @@ These remain Account-scoped and cannot be changed by the Space manager for the p
 | Locale and Account timezone | Account preferences | Personal presentation/context. `dailyContextTimezone` is separately shared Space state. |
 | Appearance/theme selection where personal | appearance settings | Personal presentation must not become creator authority. |
 | Participation in Vibe/Energy/Daily Questions | owning M7 domain | Enabling a module permits participation; it never forces a person to submit personal relationship information. |
+| Daily Quote preferences (#1151) | `eimir.quotes.service` | Personal content/source/category selection (subject to Space Pro Entitlement); not Space-wide manager state. |
 
 ### 5.2 Always available / not Space-disableable
 
@@ -144,6 +151,7 @@ Some optional product capabilities are **not** added to the V1 Space-module cata
 | Annual video montage | Entitlement/action controlled, not a Space module | Same reason as printable artifacts. |
 | Surprise Mode (#514) | Entitlement/owning interaction controlled, not in v1 catalog | Specialized reveal action; underlying Privacy remains non-paywallable. |
 | Premium themes/covers | PERSONAL_CONFIGURABLE subject to Entitlement | Presentation choice should not let the creator style/control the partner's client. |
+| Daily Quote (#1151) | PERSONAL_CONFIGURABLE subject to Entitlement (`daily.quote`) | A personalized daily inspiration moment. Space manager cannot control or inspect partner's content sources/categories. Not a Space module switch in v1. |
 | External integrations (M8) | Deferred to owning integration decision | Provider authorization, data flow and operator/user ownership need integration-specific semantics rather than a speculative generic Space switch. |
 
 ## 7. Disable / re-enable semantics
@@ -196,6 +204,39 @@ A config write must validate the complete resulting state atomically. Examples:
 - an unauthorized partner receives no write capability even if they construct the request manually;
 - deployment/Entitlement state is not written into this resource.
 
+### 8.1 Legacy configuration-manager reconciliation
+
+Migration 0062 deliberately fails closed for a pre-M7 Space whose retained
+Membership history does not prove one unique founder: its
+`configurationManagerAccountId` remains unassigned. The application must not
+repair that state from Membership order, `joinedAt`, invitation history,
+Account creation time, or client ordering.
+
+V1 recovery is an explicit one-time ServerAdmin operation:
+
+- the Space must still have no configuration manager;
+- the operator selects one Account that currently has an `ACTIVE` Membership
+  in that same Space after out-of-band verification/consent;
+- reconciliation locks the selected active Membership first and the Space row
+  second, matching the existing tenant/offboarding lock order; the Membership
+  lock closes the exit race and the Space lock serializes competing assignments;
+- an already assigned manager is never replaced by this operation;
+- the privileged action is recorded in the existing content-free ServerAdmin
+  audit with actor, target Account and target Space identifiers;
+- ordinary partner reads remain safe while authority is missing, but
+  configuration writes continue to fail closed until reconciliation succeeds.
+
+The same unassigned state is produced when the current configuration manager leaves the
+Space: the exit clears the authority in the offboarding transaction, under the existing
+Space lock. It is never transferred to the remaining partner by inference. The Space stays
+readable and fails closed for configuration writes until the explicit reconciliation above
+assigns an active member (account deletion already produces the same state through the
+`SET NULL` foreign key).
+
+This is legacy-state recovery, **not** a general configuration-manager transfer
+feature. Any future transfer/consent UX requires its own product decision and
+contract.
+
 ## 9. Demo contract
 
 The canonical Demo Space receives explicit deterministic configuration rather than environment-dependent defaults.
@@ -210,11 +251,17 @@ supportGesturesEnabled = true
 sharedAchievementsEnabled = true
 dailyQuestionsEnabled = true
 dailyContextTimezone = Europe/Berlin
-vibeVisibilityMode = IMMEDIATE
-energyVisibilityMode = IMMEDIATE
+vibeVisibilityMode = MUTUAL_REVEAL
+energyVisibilityMode = MUTUAL_REVEAL
 ```
 
-This is seed/reference configuration only. It creates no synthetic user action, check-in, answer, note, support gesture or achievement by itself.
+The generic product default remains `IMMEDIATE`; the canonical Demo deliberately opts into
+`MUTUAL_REVEAL` for both dimensions so the current privacy interaction is directly demonstrable.
+
+The canonical Demo also seeds bounded recent DailyCheckIn history and a shared Collection pinned to
+Today for both personas through their owning domain contracts. Those examples make the implemented
+daily-insight, Today-composition, and shared-completion surfaces useful without changing the Space
+configuration contract or inventing data for unfinished modules.
 
 ## 10. Enforcement boundaries
 

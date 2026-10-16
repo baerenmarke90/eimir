@@ -299,10 +299,9 @@
 
 /*
  * Decorative connector between the two perspectives: a converging dot for
- * agreement, a calm dividing line for difference. Transform-only (no
- * opacity) so it never risks the mid-animation text-contrast regression
- * documented for `.eimir-motion-reveal` (#790/#791) - not that this element
- * carries text, but it keeps the same house rule everywhere in this file.
+ * agreement, a calm dividing line for difference. Transform-only motion
+ * avoids opacity compositing around text-bearing outcome content (#790/#791)
+ * and keeps the same contrast-safe house rule throughout this file.
  */
 .who-of-us-reveal-answers::before {
   content: "";
@@ -314,8 +313,8 @@
   border-radius: 50%;
   background: var(--who-of-us-outcome-accent, var(--color-text-secondary));
   transform: translate(-50%, -50%) scale(0);
-  animation: who-of-us-connector-same var(--motion-duration-long)
-    var(--motion-easing-settle) 90ms forwards;
+  animation: who-of-us-connector-same var(--duration-context)
+    var(--easing-enter) forwards;
 }
 
 .who-of-us-reveal[data-outcome="different"] .who-of-us-reveal-answers::before {
@@ -330,8 +329,8 @@
   justify-items: center;
   gap: var(--space-2);
   text-align: center;
-  animation-duration: var(--motion-duration-medium);
-  animation-timing-function: var(--motion-easing-settle);
+  animation-duration: var(--duration-transition);
+  animation-timing-function: var(--easing-enter);
   animation-fill-mode: both;
 }
 
@@ -347,7 +346,6 @@
 
 .who-of-us-reveal-person:last-child {
   animation-name: who-of-us-person-in-right;
-  animation-delay: 60ms;
 }
 
 .who-of-us-reveal[data-outcome="different"]
@@ -358,6 +356,10 @@
 .who-of-us-reveal[data-outcome="different"]
   .who-of-us-reveal-person:last-child {
   animation-name: who-of-us-person-out-right;
+}
+
+.who-of-us-reveal[data-outcome="different"] .who-of-us-reveal-person {
+  animation-timing-function: var(--easing-exit);
 }
 
 .who-of-us-reveal-avatar {

@@ -9,10 +9,12 @@ the active tenant context has already disappeared.
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Response, status
+from pydantic import ConfigDict, model_validator
+from pydantic.json_schema import SkipJsonSchema
 from sqlalchemy import select
 
 from eimir.api.concurrency import IfMatchVersion, etag_for
@@ -24,15 +26,18 @@ from eimir.core.errors import NotFoundError
 from eimir.core.ids import parse_id
 from eimir.db.mixins import INITIAL_VERSION
 from eimir.identity.models import Account
+from eimir.relationship import configuration as configuration_service
 from eimir.relationship import duration as duration_calc
 from eimir.relationship import offboarding
 from eimir.relationship import presence as presence_service
 from eimir.relationship import profile as profile_service
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import (
+    DailyCheckInVisibilityMode,
     DurationDisplayMode,
     Membership,
     MembershipStatus,
+    SpaceConfiguration,
     SpaceProfile,
 )
 
@@ -104,6 +109,50 @@ class SpaceProfileUpdate(ApiModel):
     duration_display_mode: DurationDisplayMode
 
 
+class SpaceConfigurationView(ApiModel):
+    """Shared typed module configuration visible to both active partners."""
+
+    space_id: UUID
+    version: int
+    can_manage_space_configuration: bool
+    vibe_check_enabled: bool
+    energy_check_in_enabled: bool
+    love_notes_enabled: bool
+    support_gestures_enabled: bool
+    shared_achievements_enabled: bool
+    daily_questions_enabled: bool
+    daily_context_timezone: str | None
+    vibe_visibility_mode: DailyCheckInVisibilityMode
+    energy_visibility_mode: DailyCheckInVisibilityMode
+
+
+class SpaceConfigurationUpdate(ApiModel):
+    """Partial typed update for Space-wide module configuration."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    vibe_check_enabled: bool | SkipJsonSchema[None] = None
+    energy_check_in_enabled: bool | SkipJsonSchema[None] = None
+    love_notes_enabled: bool | SkipJsonSchema[None] = None
+    support_gestures_enabled: bool | SkipJsonSchema[None] = None
+    shared_achievements_enabled: bool | SkipJsonSchema[None] = None
+    daily_questions_enabled: bool | SkipJsonSchema[None] = None
+    daily_context_timezone: str | None = None
+    vibe_visibility_mode: DailyCheckInVisibilityMode | SkipJsonSchema[None] = None
+    energy_visibility_mode: DailyCheckInVisibilityMode | SkipJsonSchema[None] = None
+
+    @model_validator(mode="after")
+    def _validate_patch(self) -> Self:
+        if not self.model_fields_set:
+            raise ValueError("at least one configuration field must be supplied")
+
+        nullable_fields = {"daily_context_timezone"}
+        for field_name in self.model_fields_set - nullable_fields:
+            if getattr(self, field_name) is None:
+                raise ValueError(f"{field_name} must not be null")
+        return self
+
+
 class SpaceMembershipExitView(ApiModel):
     """Safe lifecycle state after self-exit from one Space."""
 
@@ -159,6 +208,42 @@ def _profile_view(space_id: UUID, profile: SpaceProfile | None, today: date) -> 
     )
     _add_duration(view, profile, today)
     return view
+
+
+def _configuration_view(
+    tenant: TenantContext,
+    configuration: SpaceConfiguration,
+) -> SpaceConfigurationView:
+    return SpaceConfigurationView(
+        space_id=tenant.space_id,
+        version=configuration.version,
+        can_manage_space_configuration=relationship_service.can_manage_space_configuration(
+            tenant.membership.space,
+            tenant.membership,
+        ),
+        vibe_check_enabled=configuration.vibe_check_enabled,
+        energy_check_in_enabled=configuration.energy_check_in_enabled,
+        love_notes_enabled=configuration.love_notes_enabled,
+        support_gestures_enabled=configuration.support_gestures_enabled,
+        shared_achievements_enabled=configuration.shared_achievements_enabled,
+        daily_questions_enabled=configuration.daily_questions_enabled,
+        daily_context_timezone=configuration.daily_context_timezone,
+        vibe_visibility_mode=DailyCheckInVisibilityMode(configuration.vibe_visibility_mode),
+        energy_visibility_mode=DailyCheckInVisibilityMode(configuration.energy_visibility_mode),
+    )
+
+
+def _require_configuration(session: DbSession, space_id: UUID) -> SpaceConfiguration:
+    configuration = configuration_service.load(session, space_id)
+    if configuration is None:
+        # Migration 0063 backfills every existing Space and create_space()
+        # persists this row for every new Space. Treat a missing row as an
+        # unavailable Space resource rather than fabricating client-side state.
+        raise NotFoundError(
+            "Space configuration not found.",
+            relationship_service.SpaceErrorCode.NOT_FOUND,
+        )
+    return configuration
 
 
 def _today_for(tenant: TenantContext) -> date:
@@ -317,6 +402,120 @@ def leave_space(
         status=MembershipStatus(result.membership.status),
         ended_at=result.membership.ended_at,
     )
+
+
+@router.get(
+    "/spaces/{spaceId}/configuration",
+    response_model=SpaceConfigurationView,
+    operation_id="getSpaceConfiguration",
+    responses={
+        200: {"headers": ETAG_HEADERS},
+        **problem_responses(401, 404),
+    },
+)
+def get_space_configuration(
+    tenant: Tenant,
+    session: DbSession,
+    response: Response,
+) -> SpaceConfigurationView:
+    """Return authoritative shared module configuration and caller capability."""
+    configuration = _require_configuration(session, tenant.space_id)
+    view = _configuration_view(tenant, configuration)
+    response.headers["ETag"] = etag_for(view.version)
+    return view
+
+
+@router.patch(
+    "/spaces/{spaceId}/configuration",
+    response_model=SpaceConfigurationView,
+    operation_id="updateSpaceConfiguration",
+    responses={
+        200: {"headers": ETAG_HEADERS},
+        **problem_responses(
+            401,
+            403,
+            404,
+            409,
+            422,
+            descriptions={
+                403: (
+                    "`SPACE_CONFIGURATION_MANAGEMENT_REQUIRED`: the caller may read "
+                    "this Space configuration but is not its persisted configuration manager."
+                ),
+                409: (
+                    "The supplied version is no longer current. Nothing was changed; "
+                    "reload the latest configuration before retrying."
+                ),
+            },
+        ),
+    },
+)
+def update_space_configuration(
+    tenant: Tenant,
+    session: DbSession,
+    response: Response,
+    body: SpaceConfigurationUpdate,
+    expected_version: IfMatchVersion,
+) -> SpaceConfigurationView:
+    """Apply a typed partial update under the existing If-Match contract."""
+    current = _require_configuration(session, tenant.space_id)
+    changed = body.model_fields_set
+
+    configuration = configuration_service.update(
+        session,
+        tenant.space_id,
+        tenant.membership,
+        expected_version=expected_version,
+        vibe_check_enabled=(
+            cast(bool, body.vibe_check_enabled)
+            if "vibe_check_enabled" in changed
+            else current.vibe_check_enabled
+        ),
+        energy_check_in_enabled=(
+            cast(bool, body.energy_check_in_enabled)
+            if "energy_check_in_enabled" in changed
+            else current.energy_check_in_enabled
+        ),
+        love_notes_enabled=(
+            cast(bool, body.love_notes_enabled)
+            if "love_notes_enabled" in changed
+            else current.love_notes_enabled
+        ),
+        support_gestures_enabled=(
+            cast(bool, body.support_gestures_enabled)
+            if "support_gestures_enabled" in changed
+            else current.support_gestures_enabled
+        ),
+        shared_achievements_enabled=(
+            cast(bool, body.shared_achievements_enabled)
+            if "shared_achievements_enabled" in changed
+            else current.shared_achievements_enabled
+        ),
+        daily_questions_enabled=(
+            cast(bool, body.daily_questions_enabled)
+            if "daily_questions_enabled" in changed
+            else current.daily_questions_enabled
+        ),
+        daily_context_timezone=(
+            body.daily_context_timezone
+            if "daily_context_timezone" in changed
+            else current.daily_context_timezone
+        ),
+        vibe_visibility_mode=(
+            cast(DailyCheckInVisibilityMode, body.vibe_visibility_mode)
+            if "vibe_visibility_mode" in changed
+            else DailyCheckInVisibilityMode(current.vibe_visibility_mode)
+        ),
+        energy_visibility_mode=(
+            cast(DailyCheckInVisibilityMode, body.energy_visibility_mode)
+            if "energy_visibility_mode" in changed
+            else DailyCheckInVisibilityMode(current.energy_visibility_mode)
+        ),
+    )
+
+    view = _configuration_view(tenant, configuration)
+    response.headers["ETag"] = etag_for(view.version)
+    return view
 
 
 @router.get(

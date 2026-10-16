@@ -30,6 +30,7 @@ from eimir.auth import (
     recent_passkeys,
     sessions,
 )
+from eimir.create_receipts import service as shared_create_receipts
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import JobRegistry, registry
@@ -121,6 +122,7 @@ def run_security_retention(session: Session, payload: dict[str, Any]) -> None:
     story_view_aggregates = story_view_service.prune_expired(session)
     discover_snapshots = discover_service.prune_expired_snapshots(session)
     memory_create_receipts = create_receipts.prune_expired(session)
+    shared_create_receipts_removed = shared_create_receipts.prune_expired(session)
 
     log.info(
         "security retention completed",
@@ -136,6 +138,7 @@ def run_security_retention(session: Session, payload: dict[str, Any]) -> None:
             "story_view_aggregates_removed": story_view_aggregates,
             "discover_snapshots_removed": discover_snapshots,
             "memory_create_receipts_removed": memory_create_receipts,
+            "shared_create_receipts_removed": shared_create_receipts_removed,
         },
     )
 

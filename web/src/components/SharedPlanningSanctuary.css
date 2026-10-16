@@ -32,7 +32,7 @@
 ) {
   gap: clamp(var(--space-8), 5vw, var(--space-12));
 
-  & .page-heading {
+  & .page-heading:not(.page-heading-root) {
     margin-bottom: 0;
     border-bottom: 0;
     padding-bottom: 0;
@@ -75,8 +75,8 @@
     background: transparent;
     box-shadow: none;
     transition:
-      background var(--motion-fast),
-      border-color var(--motion-fast);
+      background var(--duration-feedback) var(--easing-standard),
+      border-color var(--duration-feedback) var(--easing-standard);
 
     &:hover {
       transform: none;
@@ -297,12 +297,6 @@
     )
     .planning-create
     > summary:hover {
-    transform: none;
-  }
-
-  :where(.planning-page.planning-sanctuary) .eimir-motion-reveal {
-    animation: none;
-    opacity: 1;
     transform: none;
   }
 }

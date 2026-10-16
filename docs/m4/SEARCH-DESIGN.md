@@ -1,5 +1,13 @@
 # M4-A Search Design
 
+> **Superseded in part by #797 ([ENCRYPTION-AT-REST.md](../ENCRYPTION-AT-REST.md), section 7).**
+> Protected payloads are now encrypted, so PostgreSQL full-text search and the per-table
+> GIN expression indexes described below no longer exist (revision `0069` drops them).
+> Search authorizes in SQL, then decrypts and matches in the application. Authorization,
+> target set, query normalization, ordering, cursor, result DTO, and log-privacy contracts
+> in this document still apply unchanged; sections 5 to 6 (PostgreSQL strategy, index,
+> query construction) are historical.
+
 **Status:** blocking contract decisions `DECIDED`  
 **Owning issue:** #272
 

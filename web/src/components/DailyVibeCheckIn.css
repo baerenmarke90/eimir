@@ -1,0 +1,458 @@
+.daily-vibe-checkin {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-section);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-text);
+  overflow: visible;
+}
+
+.daily-vibe-heading {
+  display: grid;
+  gap: var(--space-1);
+  padding-inline: var(--space-1);
+}
+
+/* The shared today-section-kicker already carries its own margin-bottom;
+   the grid gap above provides the equivalent space here, so it is zeroed
+   to avoid doubling the gap between kicker and title. */
+.daily-vibe-heading .today-section-kicker {
+  margin-bottom: 0;
+}
+
+.daily-vibe-disabled-clear h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 4vw, 1.25rem);
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.daily-vibe-heading p,
+.daily-vibe-disabled-clear p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.daily-vibe-people {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.daily-vibe-people > .daily-vibe-person:only-child {
+  grid-column: 1 / -1;
+}
+
+.daily-vibe-person {
+  display: grid;
+  min-width: 0;
+  min-height: 72px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid
+    color-mix(in srgb, var(--color-border-subtle) 74%, transparent);
+  border-radius: var(--radius-large);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  color: var(--color-text);
+  box-shadow: 0 3px 14px var(--color-shadow-soft);
+  text-align: left;
+}
+
+button.daily-vibe-person {
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
+}
+
+button.daily-vibe-person:hover:not([aria-disabled="true"]) {
+  transform: translateY(-1px);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+button.daily-vibe-person[aria-disabled="true"] {
+  cursor: default;
+}
+
+button.daily-vibe-person:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.daily-vibe-glyph,
+.daily-vibe-option-glyph {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+
+.daily-vibe-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  display: block;
+}
+
+.daily-vibe-glyph {
+  width: 2rem;
+  height: 2rem;
+}
+
+.daily-vibe-person-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.daily-vibe-person-copy > span {
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+
+.daily-vibe-person-copy > strong {
+  min-width: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.daily-vibe-pending-status {
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.daily-vibe-person.is-startup-reveal {
+  animation: daily-vibe-startup var(--duration-context) var(--easing-enter) both;
+}
+
+.daily-vibe-partner.is-revealed {
+  animation: daily-vibe-reveal var(--duration-context) var(--easing-enter) both;
+}
+
+.daily-vibe-person.is-startup-reveal .daily-vibe-glyph,
+.daily-vibe-partner.is-revealed .daily-vibe-glyph {
+  animation: daily-vibe-glyph-pop var(--duration-context) var(--easing-enter)
+    both;
+}
+
+.daily-vibe-share {
+  min-height: 44px;
+  justify-self: start;
+}
+
+.daily-vibe-loading,
+.daily-vibe-unavailable {
+  min-height: 4.75rem;
+  align-content: center;
+}
+
+.daily-vibe-unavailable {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.daily-vibe-retry {
+  min-height: 44px;
+}
+
+.daily-vibe-disabled-clear {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: calc(-1 * var(--space-3)) 0 var(--space-7);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-subtle);
+}
+
+.daily-vibe-disabled-clear > div {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.daily-vibe-disabled-clear > button {
+  min-height: 44px;
+  flex: 0 0 auto;
+}
+
+.daily-vibe-sheet .short-task-sheet-body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.daily-vibe-sheet-intro {
+  margin: calc(-1 * var(--space-2)) 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.daily-vibe-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr));
+  max-width: 100%;
+  gap: var(--space-2);
+}
+
+.daily-vibe-option {
+  display: grid;
+  min-width: 0;
+  min-height: 64px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 650;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  transition:
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
+}
+
+.daily-vibe-option:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--color-brand);
+  background: var(--color-brand-surface);
+}
+
+.daily-vibe-option:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.daily-vibe-option.is-selected {
+  border-color: var(--color-brand);
+  background: var(--color-brand-surface);
+  box-shadow: inset 0 0 0 1px var(--color-brand);
+}
+
+.daily-vibe-option:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.daily-vibe-option-glyph {
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 1.05rem;
+}
+
+.daily-vibe-note-field {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  font-weight: 650;
+}
+
+.daily-vibe-note-hint {
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.daily-vibe-note-field textarea {
+  width: 100%;
+  min-height: 6.5rem;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: var(--font-reading-body);
+  line-height: 1.45;
+}
+
+.daily-vibe-note-field textarea:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.daily-vibe-partner-context {
+  width: 100%;
+}
+
+.daily-vibe-partner-note-header {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 1rem;
+}
+
+.daily-vibe-partner-note {
+  margin: 0;
+  border-inline-start: 3px solid var(--color-brand);
+  padding-inline-start: var(--space-3);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.daily-vibe-sheet-footer {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.daily-vibe-save-status {
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+}
+
+.daily-vibe-sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.daily-vibe-remove,
+.daily-vibe-save {
+  min-height: 44px;
+}
+
+.daily-vibe-inline-error {
+  margin: 0;
+  color: var(--color-error);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+@keyframes daily-vibe-startup {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.94);
+  }
+  62% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.025);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes daily-vibe-reveal {
+  0% {
+    opacity: 0.35;
+    transform: translateY(10px) scale(0.94);
+  }
+  68% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes daily-vibe-glyph-pop {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.72) rotate(-7deg);
+  }
+  68% {
+    opacity: 1;
+    transform: scale(1.12) rotate(2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@container product-content (max-width: 14rem) {
+  .daily-vibe-people {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .daily-vibe-option {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  .daily-vibe-option-glyph {
+    display: none;
+  }
+
+  .daily-vibe-unavailable {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .daily-vibe-disabled-clear {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 340px) {
+  .daily-vibe-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (forced-colors: active) {
+  .daily-vibe-person,
+  .daily-vibe-option,
+  .daily-vibe-disabled-clear {
+    border: 1px solid CanvasText;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.daily-vibe-person,
+  .daily-vibe-option {
+    transition: none;
+  }
+
+  button.daily-vibe-person:hover,
+  .daily-vibe-option:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .daily-vibe-person.is-startup-reveal,
+  .daily-vibe-partner.is-revealed,
+  .daily-vibe-person.is-startup-reveal .daily-vibe-glyph,
+  .daily-vibe-partner.is-revealed .daily-vibe-glyph {
+    animation: none;
+  }
+}

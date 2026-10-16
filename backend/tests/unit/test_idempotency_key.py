@@ -40,6 +40,12 @@ def test_anything_but_a_hyphenated_uuid_is_rejected(value: str) -> None:
 def test_the_fingerprint_is_stable_and_content_free() -> None:
     first = fingerprint(title="Titel", body="Geheimer Text", happened_on=date(2025, 6, 13))
     assert first == fingerprint(title="Titel", body="Geheimer Text", happened_on=date(2025, 6, 13))
+    assert first == fingerprint(
+        title="Titel", body="Geheimer Text", happened_on=date(2025, 6, 13), tags=[]
+    )
+    assert first != fingerprint(
+        title="Titel", body="Geheimer Text", happened_on=date(2025, 6, 13), tags=["home"]
+    )
     assert len(first) == 64
     assert "Geheimer" not in first and "Titel" not in first
 

@@ -8,8 +8,8 @@
     "build": "npm run tokens:check && npm run pwa:check && npm run build:bundle",
     "build:bundle": "tsc -b && vite build",
     "test": "npm run tokens:check && npm run pwa:check && vitest run",
-    "tokens:generate": "node scripts/generate-product-roles.mjs",
-    "tokens:check": "node scripts/generate-product-roles.mjs --check",
+    "tokens:generate": "node scripts/generate-product-roles.mjs && node scripts/generate-identity-roles.mjs",
+    "tokens:check": "node scripts/generate-product-roles.mjs --check && node scripts/generate-identity-roles.mjs --check",
     "pwa:check": "node scripts/check-pwa-foundation.mjs",
     "cap": "cap",
     "cap:sync": "cap sync android",
@@ -39,11 +39,12 @@
     "@capacitor/cli": "8.5.2",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
+    "@types/node": "24.19.1",
     "@types/react": "19.1.12",
     "@types/react-dom": "19.1.9",
     "jsdom": "^30.0.1",
     "typescript": "5.9.2",
     "vite": "7.3.6",
-    "vitest": "3.2.7"
+    "vitest": "4.1.11"
   }
 }

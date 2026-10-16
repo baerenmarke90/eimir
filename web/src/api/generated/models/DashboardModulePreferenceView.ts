@@ -33,6 +33,12 @@ export interface DashboardModulePreferenceView {
     moduleKey: string;
     /**
      * 
+     * @type {string}
+     * @memberof DashboardModulePreferenceView
+     */
+    selectedCollectionId?: string;
+    /**
+     * 
      * @type {boolean}
      * @memberof DashboardModulePreferenceView
      */
@@ -72,6 +78,7 @@ export function DashboardModulePreferenceViewFromJSONTyped(json: any, ignoreDisc
         
         'itemLimit': json['itemLimit'] == null ? undefined : json['itemLimit'],
         'moduleKey': json['moduleKey'],
+        'selectedCollectionId': json['selectedCollectionId'] == null ? undefined : json['selectedCollectionId'],
         'visible': json['visible'],
     };
 }
@@ -89,6 +96,7 @@ export function DashboardModulePreferenceViewToJSONTyped(value?: DashboardModule
         
         'itemLimit': value['itemLimit'],
         'moduleKey': value['moduleKey'],
+        'selectedCollectionId': value['selectedCollectionId'],
         'visible': value['visible'],
     };
 }

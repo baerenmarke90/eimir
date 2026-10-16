@@ -22,7 +22,7 @@ import {
   SEARCH_ROUTE,
 } from '../client/routes';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
-import { useHideOnScrollNav } from '../client/useHideOnScrollNav';
+import { ProductTourProvider } from '../client/productTour';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { Brand } from './Brand';
@@ -49,7 +49,10 @@ function NavigationLink({ route }: { route: AppRouteDefinition }) {
       aria-current={isActive ? 'page' : undefined}
     >
       <span className="shell-nav-icon">
-        <DestinationIcon icon={route.icon} />
+        <DestinationIcon
+          icon={route.icon}
+          variant={isActive ? 'filled' : 'outline'}
+        />
       </span>
       <span>{t(route.labelKey)}</span>
     </Link>
@@ -125,7 +128,12 @@ export function AppShell(props: AppShellProps) {
         accountId={props.account.id}
         spaceId={props.spaceId}
       >
-        <AuthenticatedAppShell {...props} />
+        <ProductTourProvider
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        >
+          <AuthenticatedAppShell {...props} />
+        </ProductTourProvider>
       </TaskOriginProvider>
     </ApiRuntimeProvider>
   );
@@ -157,8 +165,6 @@ function AuthenticatedAppShell({
 
   const location = useLocation();
   const { requestReturn, resolveOrigin } = useTaskOrigin();
-  const { isVisible: isBottomNavVisible, shellRef: bottomNavRef } =
-    useHideOnScrollNav(location.pathname, location.search);
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const storyDetailMatch =
     /^\/story\/(?:memories|heart-moments|milestones)\/([^/]+)$/.exec(
@@ -210,7 +216,13 @@ function AuthenticatedAppShell({
   const unreadCount = unreadQuery.data?.unreadCount ?? 0;
 
   return (
-    <div className="product-shell" data-focused-task={isFocusedTask}>
+    <div
+      className="product-shell"
+      data-focused-task={isFocusedTask}
+      data-top-surface={
+        location.pathname === DEFAULT_APP_ROUTE ? 'today' : undefined
+      }
+    >
       <ThemeControl />
       <RouteEntryHandoff />
       <PresenceHeartbeat accountId={account.id} spaceId={spaceId} />
@@ -313,7 +325,7 @@ function AuthenticatedAppShell({
         <main
           key={location.pathname}
           id="main-content"
-          className="product-main eimir-motion-reveal"
+          className="product-main"
           tabIndex={-1}
         >
           <AppSurfacePullToRefresh pathname={location.pathname} />
@@ -330,11 +342,7 @@ function AuthenticatedAppShell({
       </div>
 
       {!isFocusedTask ? (
-        <div
-          ref={bottomNavRef}
-          className="mobile-bottom-shell"
-          data-hidden={!isBottomNavVisible ? 'true' : 'false'}
-        >
+        <div className="mobile-bottom-shell">
           <nav
             className="mobile-bottom-nav"
             aria-label={t('navigation.primary')}

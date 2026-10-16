@@ -35,12 +35,16 @@ from eimir.authorization import (
     visibility_of,
 )
 from eimir.core import cursor as cursor_codec
-from eimir.core.errors import ConflictError, ErrorCode, ValidationError
+from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
+from eimir.create_receipts import service as create_receipts
+from eimir.create_receipts.models import CreateReceiptResourceType
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
+from eimir.heart_moments.tags import HeartMomentTags
 from eimir.outbox import service as outbox_service
 
 _HEART_MOMENT_SUBJECT_TYPE = "heart_moment"
+_RECEIPT_RESOURCE_TYPE = CreateReceiptResourceType.HEART_MOMENT.value
 
 
 @dataclass(frozen=True)
@@ -50,11 +54,23 @@ class HeartMomentPageResult:
     has_more: bool
 
 
+@dataclass(frozen=True)
+class HeartMomentCreateResult:
+    heart_moment: HeartMoment
+    created: bool
+    """``False`` when this is a replay of an earlier request with the same
+    ``Idempotency-Key``, not a new HeartMoment."""
+
+
 def _normalize_text(value: str) -> str:
-    cleaned = value.strip()
-    if not cleaned:
-        raise ValidationError("Heart moment text must not be blank.", "HEART_MOMENT_TEXT_REQUIRED")
-    return cleaned
+    return value.strip()
+
+
+def _require_content(text: str, tags: HeartMomentTags, attachment_id: UUID | None) -> None:
+    if not text and not tags and attachment_id is None:
+        raise ValidationError(
+            "A thought, context tag or photo is required.", "HEART_MOMENT_CONTENT_REQUIRED"
+        )
 
 
 def _flush(session: Session) -> None:
@@ -112,13 +128,17 @@ def create_heart_moment(
     visibility: ContentVisibility,
     happened_on: date,
     attachment_id: UUID | None = None,
+    tags: HeartMomentTags | None = None,
 ) -> HeartMoment:
+    normalized_text = _normalize_text(text)
+    selected_tags = tags if tags is not None else []
+    _require_content(normalized_text, selected_tags, attachment_id)
     heart_moment = HeartMoment(
         space_id=context.space_id,
         owner_id=context.account_id,
         privacy_class=privacy_for(visibility).value,
         happened_on=happened_on,
-        payload=HeartMomentPayload(text=_normalize_text(text), emotion=emotion),
+        payload=HeartMomentPayload(text=normalized_text, emotion=emotion, tags=selected_tags),
     )
     if attachment_id is not None:
         _bind(session, context, heart_moment, attachment_id)
@@ -133,6 +153,89 @@ def create_heart_moment(
     )
     _flush(session)
     return heart_moment
+
+
+def create_heart_moment_once(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    idempotency_key: UUID | None,
+    text: str,
+    emotion: HeartEmotion,
+    visibility: ContentVisibility,
+    happened_on: date,
+    attachment_id: UUID | None = None,
+    tags: HeartMomentTags | None = None,
+) -> HeartMomentCreateResult:
+    """Create a HeartMoment, or return the one an earlier request with this identity created.
+
+    Without a key this is a plain create. With a key, claiming the receipt
+    and creating the HeartMoment share this transaction (see
+    ``eimir.create_receipts``). Protects a double-tap "save" or a
+    lost-response retry from adding the same heart moment twice.
+    """
+    if idempotency_key is None:
+        heart_moment = create_heart_moment(
+            session,
+            context,
+            text=text,
+            emotion=emotion,
+            visibility=visibility,
+            happened_on=happened_on,
+            attachment_id=attachment_id,
+            tags=tags,
+        )
+        return HeartMomentCreateResult(heart_moment, created=True)
+
+    normalized_text = _normalize_text(text)
+    selected_tags = tags if tags is not None else []
+    _require_content(normalized_text, selected_tags, attachment_id)
+    fingerprint_content: dict[str, Any] = {
+        "text": normalized_text,
+        "emotion": emotion.value,
+        "visibility": visibility.value,
+        "happened_on": happened_on.isoformat(),
+        "attachment_id": str(attachment_id) if attachment_id is not None else None,
+    }
+    if selected_tags:
+        # Keep the original receipt fingerprint for older untagged clients.
+        fingerprint_content["v"] = 2
+        fingerprint_content["tags"] = selected_tags
+    request_fingerprint = create_receipts.fingerprint(_RECEIPT_RESOURCE_TYPE, fingerprint_content)
+    receipt_id = create_receipts.claim(
+        session,
+        context,
+        resource_type=_RECEIPT_RESOURCE_TYPE,
+        key=idempotency_key,
+        request_fingerprint=request_fingerprint,
+    )
+    if receipt_id is None:
+        heart_moment = create_receipts.replay(
+            session,
+            context,
+            HeartMoment,
+            resource_type=_RECEIPT_RESOURCE_TYPE,
+            key=idempotency_key,
+            request_fingerprint=request_fingerprint,
+            deleted_error=NotFoundError(
+                "The heart moment created by this request no longer exists.",
+                ErrorCode.HEART_MOMENT_CREATE_RESULT_DELETED,
+            ),
+        )
+        return HeartMomentCreateResult(heart_moment, created=False)
+
+    heart_moment = create_heart_moment(
+        session,
+        context,
+        text=normalized_text,
+        emotion=emotion,
+        visibility=visibility,
+        happened_on=happened_on,
+        attachment_id=attachment_id,
+        tags=selected_tags,
+    )
+    create_receipts.attach(session, receipt_id, heart_moment.id)
+    return HeartMomentCreateResult(heart_moment, created=True)
 
 
 def get_heart_moment(
@@ -154,6 +257,7 @@ def update_heart_moment(
     emotion: HeartEmotion | None,
     happened_on: date | None,
     attachment_id: UUID | None = None,
+    tags: HeartMomentTags | None = None,
 ) -> HeartMoment:
     """Change content but explicitly not visibility.
 
@@ -166,18 +270,28 @@ def update_heart_moment(
 
     next_text = heart_moment.payload.text
     next_emotion = heart_moment.payload.emotion
+    next_tags = heart_moment.payload.tags
     if "text" in changed_fields:
         assert text is not None
         next_text = _normalize_text(text)
     if "emotion" in changed_fields:
         assert emotion is not None
         next_emotion = emotion
+    if "tags" in changed_fields:
+        assert tags is not None
+        next_tags = tags
+    next_attachment_id = (
+        attachment_id if "attachment_id" in changed_fields else heart_moment.attachment_id
+    )
+    _require_content(next_text, next_tags, next_attachment_id)
     if "happened_on" in changed_fields:
         assert happened_on is not None
         heart_moment.happened_on = happened_on
 
-    if "text" in changed_fields or "emotion" in changed_fields:
-        heart_moment.payload = HeartMomentPayload(text=next_text, emotion=next_emotion)
+    if {"text", "emotion", "tags"} & changed_fields:
+        heart_moment.payload = HeartMomentPayload(
+            text=next_text, emotion=next_emotion, tags=next_tags
+        )
 
     if "attachment_id" in changed_fields:
         _rebind(session, context, heart_moment, attachment_id)

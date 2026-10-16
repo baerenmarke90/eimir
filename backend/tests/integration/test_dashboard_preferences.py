@@ -12,6 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from eimir.authorization import PrivacyClass
+from eimir.collections.models import Collection, CollectionPayload
 from eimir.dashboard.models import DashboardModulePreference
 from eimir.dashboard.preferences import CATALOG, DashboardModuleKey
 from eimir.plans.models import Plan, PlanPayload, PlanStatus
@@ -76,6 +77,14 @@ def _set_visible(client, space_id, token, module_key, visible):  # type: ignore[
     return _patch(client, space_id, token, module_key, {"visible": visible})
 
 
+def _reorder(client, space_id, token, keys):  # type: ignore[no-untyped-def]
+    return client.put(
+        f"/api/v1/spaces/{space_id}/dashboard/preferences/order",
+        json={"moduleKeys": keys},
+        headers=auth(token),
+    )
+
+
 def _item(response_json, module_key):  # type: ignore[no-untyped-def]
     return next(item for item in response_json["items"] if item["moduleKey"] == module_key)
 
@@ -87,8 +96,9 @@ def test_catalog_keys_are_stable_and_unique() -> None:
     keys = [definition.key.value for definition in CATALOG]
     assert keys == [
         "relationship_presence",
-        "upcoming",
         "keepsake",
+        "upcoming",
+        "pinned_collection",
         "relationship_signal",
         "monthly_highlights",
         "recent_shared",
@@ -109,6 +119,64 @@ def test_every_module_defaults_visible() -> None:
     assert all(definition.default_visible for definition in CATALOG)
 
 
+def test_reorder_persists_full_order_without_losing_visibility_or_other_facets(
+    client, session: Session, couple
+) -> None:  # type: ignore[no-untyped-def]
+    space_id = couple["space"].id
+    token = couple["token_a"]
+    assert _set_visible(client, space_id, token, "keepsake", False).status_code == 200
+    assert _set_limit(client, space_id, token, 3).status_code == 200
+    desired = [ALL_MODULE_KEYS[-1], *ALL_MODULE_KEYS[:-1]]
+
+    response = _reorder(client, space_id, token, desired)
+    assert response.status_code == 200, response.text
+    assert [item["moduleKey"] for item in response.json()["items"]] == desired
+    assert _item(response.json(), "keepsake")["visible"] is False
+    assert _item(response.json(), "upcoming")["itemLimit"] == 3
+
+    # A visibility PATCH changes only that facet; a hidden row keeps its slot.
+    assert _set_visible(client, space_id, token, "keepsake", True).status_code == 200
+    session.expire_all()
+    reloaded = _preferences(client, space_id, token)
+    assert [item["moduleKey"] for item in reloaded.json()["items"]] == desired
+    assert _item(reloaded.json(), "keepsake")["visible"] is True
+
+    # Neither partner nor another Space receives this person's order.
+    for other_space, other_token in [
+        (space_id, couple["token_b"]),
+        (couple["second_anna_space"].id, token),
+    ]:
+        other = _preferences(client, other_space, other_token)
+        assert other.status_code == 200
+        assert [item["moduleKey"] for item in other.json()["items"]] == ALL_MODULE_KEYS
+
+
+def test_reorder_rejects_partial_duplicate_and_foreign_keys_atomically(
+    client, session: Session, couple
+) -> None:  # type: ignore[no-untyped-def]
+    space_id = couple["space"].id
+    token = couple["token_a"]
+    for invalid in [
+        ALL_MODULE_KEYS[:-1],
+        [ALL_MODULE_KEYS[0]] * len(ALL_MODULE_KEYS),
+        [*ALL_MODULE_KEYS[:-1], "not-a-module"],
+    ]:
+        result = _reorder(client, space_id, token, invalid)
+        assert result.status_code == 422
+        assert result.json()["code"] == "DASHBOARD_MODULE_INVALID_ORDER"
+    assert session.scalar(select(func.count()).select_from(DashboardModulePreference)) == 0
+
+    denied = _reorder(client, couple["foreign_space"].id, token, ALL_MODULE_KEYS)
+    assert denied.status_code == 404
+
+
+def test_only_pinned_collection_supports_collection_selection() -> None:
+    for definition in CATALOG:
+        assert definition.selects_collection is (
+            definition.key is DashboardModuleKey.PINNED_COLLECTION
+        )
+
+
 # --- B) Inventory completeness -----------------------------------------------
 
 
@@ -124,8 +192,9 @@ def test_missing_override_returns_effective_default_for_every_registered_module(
     assert response.json() == {
         "items": [
             {"moduleKey": "relationship_presence", "visible": True},
-            {"moduleKey": "upcoming", "visible": True, "itemLimit": 1},
             {"moduleKey": "keepsake", "visible": True},
+            {"moduleKey": "upcoming", "visible": True, "itemLimit": 1},
+            {"moduleKey": "pinned_collection", "visible": True},
             {"moduleKey": "relationship_signal", "visible": True},
             {"moduleKey": "monthly_highlights", "visible": True},
             {"moduleKey": "recent_shared", "visible": True},
@@ -157,6 +226,7 @@ def test_unknown_module_is_rejected_and_fails_closed(
     "module_key",
     [
         "relationship_presence",
+        "pinned_collection",
         "keepsake",
         "relationship_signal",
         "monthly_highlights",
@@ -175,6 +245,155 @@ def test_item_limit_is_rejected_on_modules_that_do_not_support_it(
     assert response.status_code == 422
     assert response.json()["code"] == "DASHBOARD_MODULE_FACET_NOT_SUPPORTED"
     assert session.scalar(select(func.count()).select_from(DashboardModulePreference)) == 0
+
+
+def _make_collection(session: Session, *, space, owner, title: str) -> Collection:  # type: ignore[no-untyped-def]
+    collection = Collection(
+        space_id=space.id,
+        owner_id=owner.id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        payload=CollectionPayload(title=title),
+    )
+    session.add(collection)
+    session.flush()
+    return collection
+
+
+def test_pinned_collection_selection_persists_per_account_and_can_be_cleared(
+    client,
+    session: Session,
+    couple,
+) -> None:  # type: ignore[no-untyped-def]
+    collection = _make_collection(
+        session,
+        space=couple["space"],
+        owner=couple["anna"],
+        title="Einkauf",
+    )
+
+    pinned = _patch(
+        client,
+        couple["space"].id,
+        couple["token_a"],
+        DashboardModuleKey.PINNED_COLLECTION.value,
+        {"selectedCollectionId": str(collection.id)},
+    )
+    assert pinned.status_code == 200, pinned.text
+    assert pinned.json() == {
+        "moduleKey": "pinned_collection",
+        "visible": True,
+        "selectedCollectionId": str(collection.id),
+    }
+
+    # The choice is personal even though the Collection itself is shared.
+    ben = _preferences(client, couple["space"].id, couple["token_b"])
+    assert "selectedCollectionId" not in _item(ben.json(), "pinned_collection")
+
+    cleared = _patch(
+        client,
+        couple["space"].id,
+        couple["token_a"],
+        DashboardModuleKey.PINNED_COLLECTION.value,
+        {"selectedCollectionId": None},
+    )
+    assert cleared.status_code == 200, cleared.text
+    assert "selectedCollectionId" not in cleared.json()
+
+
+def test_pinned_collection_rejects_foreign_resource_without_changing_selection(
+    client,
+    session: Session,
+    couple,
+) -> None:  # type: ignore[no-untyped-def]
+    own_collection = _make_collection(
+        session,
+        space=couple["space"],
+        owner=couple["anna"],
+        title="Einkauf",
+    )
+    foreign_collection = _make_collection(
+        session,
+        space=couple["foreign_space"],
+        owner=couple["outsider"],
+        title="Foreign",
+    )
+    assert (
+        _patch(
+            client,
+            couple["space"].id,
+            couple["token_a"],
+            DashboardModuleKey.PINNED_COLLECTION.value,
+            {"selectedCollectionId": str(own_collection.id)},
+        ).status_code
+        == 200
+    )
+
+    denied = _patch(
+        client,
+        couple["space"].id,
+        couple["token_a"],
+        DashboardModuleKey.PINNED_COLLECTION.value,
+        {"selectedCollectionId": str(foreign_collection.id)},
+    )
+    assert denied.status_code == 404
+    assert denied.json()["code"] == "COLLECTION_NOT_FOUND"
+
+    reloaded = _preferences(client, couple["space"].id, couple["token_a"])
+    assert _item(reloaded.json(), "pinned_collection")["selectedCollectionId"] == str(
+        own_collection.id
+    )
+
+
+def test_selected_resource_facet_is_rejected_on_other_modules(
+    client,
+    session: Session,
+    couple,
+) -> None:  # type: ignore[no-untyped-def]
+    collection = _make_collection(
+        session,
+        space=couple["space"],
+        owner=couple["anna"],
+        title="Einkauf",
+    )
+    response = _patch(
+        client,
+        couple["space"].id,
+        couple["token_a"],
+        DashboardModuleKey.KEEPSAKE.value,
+        {"selectedCollectionId": str(collection.id)},
+    )
+    assert response.status_code == 422
+    assert response.json()["code"] == "DASHBOARD_MODULE_FACET_NOT_SUPPORTED"
+
+
+def test_deleting_selected_collection_clears_the_personal_pin(
+    client,
+    session: Session,
+    couple,
+) -> None:  # type: ignore[no-untyped-def]
+    collection = _make_collection(
+        session,
+        space=couple["space"],
+        owner=couple["anna"],
+        title="Einkauf",
+    )
+    assert (
+        _patch(
+            client,
+            couple["space"].id,
+            couple["token_a"],
+            DashboardModuleKey.PINNED_COLLECTION.value,
+            {"selectedCollectionId": str(collection.id)},
+        ).status_code
+        == 200
+    )
+
+    session.delete(collection)
+    session.flush()
+    session.expire_all()
+
+    reloaded = _preferences(client, couple["space"].id, couple["token_a"])
+    assert "selectedCollectionId" not in _item(reloaded.json(), "pinned_collection")
 
 
 def test_empty_update_body_is_rejected(

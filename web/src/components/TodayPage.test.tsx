@@ -1,18 +1,26 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
+import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { M4ProductApis } from '../client/m4Product';
 import {
   DASHBOARD_MODULE_KEYS,
   type DashboardModuleKey,
 } from '../client/dashboardModules';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
+import { dailyCheckInTodayQueryKey } from '../client/dailyCheckIn';
+import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
 import m5s5 from '../i18n/locales/m5s5';
-import relationshipComponents from '../i18n/locales/relationshipComponents';
-import { formatRelationshipDuration, TodayPage } from './TodayPage';
+import {
+  formatRelationshipDuration,
+  formatTodayHeaderDate,
+  TodayPage,
+} from './TodayPage';
 
 /**
  * By default this seeds an already-resolved (empty-override) Dashboard
@@ -26,7 +34,13 @@ import { formatRelationshipDuration, TodayPage } from './TodayPage';
 function renderTodayPage(
   dashboardData: unknown,
   itemLimit?: 1 | 2 | 3,
-  options?: { preferences?: unknown; preferencesPending?: boolean },
+  options?: {
+    preferences?: unknown;
+    preferencesPending?: boolean;
+    supportGesturesEnabled?: boolean;
+    energyCheckInEnabled?: boolean;
+    configurationPending?: boolean;
+  },
 ): string {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -39,6 +53,18 @@ function renderTodayPage(
         (itemLimit !== undefined
           ? { items: [{ moduleKey: 'upcoming', itemLimit }] }
           : { items: [] }),
+    );
+  }
+  if (!options?.configurationPending) {
+    queryClient.setQueryData(
+      spaceConfigurationQueryKey('account-1', 'space-1'),
+      {
+        configuration: {
+          supportGesturesEnabled: options?.supportGesturesEnabled ?? true,
+          energyCheckInEnabled: options?.energyCheckInEnabled ?? false,
+        },
+        etag: '"1"',
+      },
     );
   }
 
@@ -56,7 +82,12 @@ function renderTodayPage(
 }
 
 describe('TodayPage', () => {
-  it('renders couple presence hero, days together, thinking-of-you button, and the composed modules', () => {
+  it('formats the Today date in the compact reference hierarchy', () => {
+    const label = formatTodayHeaderDate(new Date('2026-09-21T12:00:00.000Z'));
+    expect(label).toContain('21. September 2026');
+  });
+
+  it('renders couple presence hero, days together, the partner quick-actions trigger, and the composed modules', () => {
     const html = renderTodayPage({
       space: {
         id: 'space-1',
@@ -93,9 +124,13 @@ describe('TodayPage', () => {
       },
     });
 
+    expect(html).toContain('today-date-heading');
+    expect(html).toContain('today-date-title');
+    expect(html).toContain('Heute');
     expect(html).toContain('Marie');
     expect(html).toContain('420');
-    expect(html).toContain('today-hero-action');
+    expect(html).toContain('partner-avatar-pair-action');
+    expect(html).toContain('aria-controls="partner-quick-actions-sheet"');
     expect(html).toContain('Weekend trip to Paris');
     expect(html).toContain('Park Picnic');
     expect(html).toContain('Morning Smile');
@@ -103,8 +138,8 @@ describe('TodayPage', () => {
     // The full R4 order when every eligible role is present, top to bottom.
     const order = [
       'today-hero',
-      'today-section-upcoming',
       'today-section-moment',
+      'today-section-upcoming',
       'today-section-living',
       'today-section-recent',
     ].map((section) => html.indexOf(section));
@@ -120,30 +155,140 @@ describe('TodayPage', () => {
     expect(html).toContain('today-recent-tile');
   });
 
-  it('reflects the server-authoritative Thinking-of-you cooldown from the Dashboard on load (regression #790/#791)', () => {
-    const html = renderTodayPage({
-      space: {
-        id: 'space-1',
-        partner: { id: 'partner-1', displayName: 'Marie' },
+  it('does not expose the Support Gesture affordance while the Space module is disabled', () => {
+    const html = renderTodayPage(
+      {
+        space: {
+          id: 'space-1',
+          partner: { id: 'partner-1', displayName: 'Marie' },
+        },
+        relationshipDuration: null,
+        upcoming: [],
+        recentShared: [],
+        retrospective: null,
+        thinkingOfYouAvailableAt: null,
       },
-      relationshipDuration: null,
-      upcoming: [],
-      recentShared: [],
-      retrospective: null,
-      thinkingOfYouAvailableAt: new Date(Date.now() + 29 * 60_000),
-    });
-
-    const expectedLabel = relationshipComponents.thinkingOfYouCooldown.replace(
-      '{{minutes}}',
-      '29',
+      undefined,
+      { supportGesturesEnabled: false },
     );
-    expect(html).toContain('state-cooldown');
-    expect(html).toContain(expectedLabel);
-    expect(html).toContain('disabled=""');
+
+    expect(html).not.toContain('today-hero-action-container');
   });
 
-  it('does not show a cooldown when Dashboard.thinkingOfYouAvailableAt is null', () => {
-    const html = renderTodayPage({
+  it('integrates enabled Daily Energy into the relationship hero instead of a separate module', () => {
+    const html = renderTodayPage(
+      {
+        space: {
+          id: 'space-1',
+          partner: { id: 'partner-1', displayName: 'Marie' },
+        },
+        relationshipDuration: null,
+        upcoming: [
+          {
+            id: 'plan-1',
+            type: 'PLAN',
+            titleOrText: 'Weekend trip',
+            scheduledAt: new Date('2026-09-22T10:00:00Z'),
+          },
+        ],
+        recentShared: [],
+        retrospective: null,
+      },
+      undefined,
+      { energyCheckInEnabled: true },
+    );
+
+    const heroIndex = html.indexOf('today-hero');
+    const energyIndex = html.indexOf('daily-energy-checkin');
+    const detailsIndex = html.indexOf('couple-presence-details');
+    const upcomingIndex = html.indexOf('today-section-upcoming');
+
+    expect(heroIndex).toBeGreaterThanOrEqual(0);
+    expect(energyIndex).toBeGreaterThan(heroIndex);
+    expect(detailsIndex).toBeGreaterThan(energyIndex);
+    expect(upcomingIndex).toBeGreaterThan(detailsIndex);
+    expect(html).toContain('couple-presence-avatar-adornment');
+    expect(html).not.toContain('today-section-energy');
+  });
+
+  it('places Daily Vibe directly after Couple Presence and before planning', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(['m5-s5', 'dashboard', 'space-1'], {
+      space: {
+        id: 'space-1',
+        partner: { id: 'partner-1', displayName: 'Marie' },
+      },
+      relationshipDuration: null,
+      upcoming: [
+        {
+          id: 'plan-1',
+          type: 'PLAN',
+          titleOrText: 'Weekend trip',
+          scheduledAt: new Date('2026-09-22T10:00:00Z'),
+        },
+      ],
+      recentShared: [],
+      retrospective: null,
+    });
+    queryClient.setQueryData(
+      dashboardPreferencesQueryKey('account-1', 'space-1'),
+      { items: [] },
+    );
+    queryClient.setQueryData(
+      spaceConfigurationQueryKey('account-1', 'space-1'),
+      {
+        configuration: {
+          supportGesturesEnabled: true,
+          energyCheckInEnabled: false,
+          vibeCheckEnabled: true,
+        },
+        etag: '"1"',
+      },
+    );
+    queryClient.setQueryData(
+      dailyCheckInTodayQueryKey('account-1', 'space-1'),
+      {
+        etag: '"today:1"',
+        projection: {
+          checkedOn: new Date('2026-09-21T00:00:00Z'),
+          dailyContextTimezone: 'Europe/Berlin',
+          own: { energyLevel: null, vibe: null, version: 0 },
+          energy: null,
+          vibe: {
+            visibilityMode: 'MUTUAL_REVEAL',
+            partner: { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' },
+          },
+        },
+      },
+    );
+
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <TodayPage
+            apis={{} as M4ProductApis}
+            spaceId="space-1"
+            account={{ id: 'account-1', displayName: 'Alex' }}
+            dailyCheckInsApi={{} as DailyCheckInsApi}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const heroIndex = html.indexOf('today-hero');
+    const vibeIndex = html.indexOf('daily-vibe-checkin');
+    const upcomingIndex = html.indexOf('today-section-upcoming');
+    expect(heroIndex).toBeGreaterThanOrEqual(0);
+    expect(vibeIndex).toBeGreaterThan(heroIndex);
+    expect(upcomingIndex).toBeGreaterThan(vibeIndex);
+    expect(html).toContain('Wie geht es euch heute?');
+    expect(html).not.toContain('today-section-vibe');
+  });
+
+  it('never mounts the hero Energy control before authoritative Space configuration enables it', () => {
+    const dashboard = {
       space: {
         id: 'space-1',
         partner: { id: 'partner-1', displayName: 'Marie' },
@@ -152,12 +297,50 @@ describe('TodayPage', () => {
       upcoming: [],
       recentShared: [],
       retrospective: null,
-      thinkingOfYouAvailableAt: null,
-    });
+    };
 
-    expect(html).not.toContain('state-cooldown');
-    expect(html).toContain('today-hero-action');
+    expect(
+      renderTodayPage(dashboard, undefined, {
+        energyCheckInEnabled: false,
+      }),
+    ).not.toContain('daily-energy-checkin');
+    expect(
+      renderTodayPage(dashboard, undefined, {
+        configurationPending: true,
+      }),
+    ).not.toContain('daily-energy-checkin');
   });
+
+  // The Thinking-of-you cooldown itself is rendered inside the avatar's
+  // Compact/Expanded quick-actions surface (PartnerQuickActions), which does
+  // not mount into the static markup below until the trigger is activated.
+  // Its cooldown reflection is unit-tested directly in
+  // PartnerQuickActions.test.tsx (regression #790/#791); this level only
+  // guards that Today keeps wiring the Dashboard-authoritative
+  // thinkingOfYouAvailableAt value through the trigger without crashing,
+  // whether it is set or null.
+  it.each([
+    ['a future cooldown', new Date(Date.now() + 29 * 60_000)],
+    ['no cooldown', null],
+  ])(
+    'renders the partner quick-actions trigger in the hero regardless of thinkingOfYouAvailableAt (%s)',
+    (_label, thinkingOfYouAvailableAt) => {
+      const html = renderTodayPage({
+        space: {
+          id: 'space-1',
+          partner: { id: 'partner-1', displayName: 'Marie' },
+        },
+        relationshipDuration: null,
+        upcoming: [],
+        recentShared: [],
+        retrospective: null,
+        thinkingOfYouAvailableAt,
+      });
+
+      expect(html).toContain('partner-avatar-pair-action');
+      expect(html).toContain('aria-controls="partner-quick-actions-sheet"');
+    },
+  );
 
   it('renders welcoming new-space experience when there are no items yet, without hiding the couple presence hero', () => {
     const html = renderTodayPage({
@@ -171,7 +354,7 @@ describe('TodayPage', () => {
       retrospective: null,
     });
 
-    // Couple Presence remains the permanent H1 entry point, even for a sparse space
+    // Today remains the permanent H1; Couple Presence stays the relationship hero.
     expect(html).toContain('today-hero');
     expect(html).toContain('couple-presence-title');
 
@@ -435,14 +618,16 @@ describe('TodayPage', () => {
       </QueryClientProvider>,
     );
 
-    // A genuinely current/upcoming signal exists, so the Shared Planning
-    // Horizon precedes the merely generic (non-retrospective) Keepsake.
+    // #1189 deliberately surfaces personal shared content before the practical
+    // planning horizon so Today does not read as a utility stack. The upcoming
+    // signal remains present and authoritative; only presentation order changes.
     const planningIndex = html.indexOf('today-section-upcoming');
     const keepsakeIndex = html.indexOf('today-section-moment');
     expect(planningIndex).toBeGreaterThan(-1);
-    expect(keepsakeIndex).toBeGreaterThan(planningIndex);
+    expect(keepsakeIndex).toBeGreaterThan(-1);
+    expect(keepsakeIndex).toBeLessThan(planningIndex);
 
-    // The Keepsake still appears, still warm/editorial, just not first.
+    // The planning signal remains available after the personal focal content.
     expect(html).toContain('Beach Day');
     expect(html).toContain('Weekend trip');
     expect(html.split('Beach Day').length - 1).toBe(1);
@@ -573,17 +758,16 @@ describe('TodayPage', () => {
       </QueryClientProvider>,
     );
 
-    // #850 replaced the shared two-zone planning area with the normative
-    // section order, which keeps #840's invariant structurally rather than
-    // conditionally: the upcoming agenda always precedes the Keepsake, and
-    // the partner signal is now the `Gerade bei euch` module below it.
+    // #1189 changes only the outer Today composition: the personal moment
+    // precedes the practical horizon, while the planning area's own
+    // upcoming-before-contextual-signal sequence remains intact.
     expect(html).not.toContain('today-planning-dual');
     const agendaIndex = html.indexOf('today-agenda-row');
     const momentIndex = html.indexOf('today-section-moment');
     const signalIndex = html.indexOf('today-living');
-    expect(agendaIndex).toBeGreaterThan(-1);
-    expect(momentIndex).toBeGreaterThan(agendaIndex);
-    expect(signalIndex).toBeGreaterThan(momentIndex);
+    expect(momentIndex).toBeGreaterThan(-1);
+    expect(agendaIndex).toBeGreaterThan(momentIndex);
+    expect(signalIndex).toBeGreaterThan(agendaIndex);
   });
 
   it('places a genuine date-specific retrospective in the single `Gerade bei euch` slot (#850 supersedes #840 ordering)', () => {
@@ -964,6 +1148,10 @@ describe('TodayPage', () => {
     expect(html).toContain('today-section-upcoming');
     expect(html).toContain('today-agenda-row');
     expect(html).toContain('Cooking Night');
+    // Demnächst carries the same red-eyebrow/title hierarchy as the other
+    // Today modules (e.g. `Euer Moment`), not a locally styled heading.
+    expect(html).toContain('today-section-kicker');
+    expect(html).toContain('Euer Ausblick');
     // Nothing qualifies for the contextual slot, so the section is omitted
     // entirely rather than rendered as an empty placeholder.
     expect(html).not.toContain('today-section-living');
@@ -1833,7 +2021,7 @@ it('never exposes the internal `keepsake` term to users', () => {
   expect(html).toContain(m5s5.today.keepsake.kicker);
 });
 
-it('keeps the Thinking-of-you action in the hero, unchanged by the recomposition', () => {
+it('keeps the partner quick-actions trigger in the hero, unchanged by the recomposition', () => {
   const html = renderTodayPage({
     space: { id: 'space-1', partner: { id: 'p-1', displayName: 'Sam' } },
     relationshipDuration: { daysTogether: 100 },
@@ -1850,11 +2038,11 @@ it('keeps the Thinking-of-you action in the hero, unchanged by the recomposition
   });
 
   const heroIndex = html.indexOf('today-hero');
-  const actionIndex = html.indexOf('today-hero-action');
+  const actionIndex = html.indexOf('partner-avatar-pair-action');
   const upcomingIndex = html.indexOf('today-section-upcoming');
   expect(actionIndex).toBeGreaterThan(heroIndex);
   expect(upcomingIndex).toBeGreaterThan(actionIndex);
-  expect(html).toContain(m5s5.dashboard.thinkingOfYouButton);
+  expect(html).toContain('aria-controls="partner-quick-actions-sheet"');
 });
 
 describe('formatRelationshipDuration', () => {
@@ -2141,6 +2329,7 @@ describe('formatRelationshipDuration', () => {
 
     function renderWithVisibility(
       overrides: Partial<Record<DashboardModuleKey, boolean>>,
+      order?: readonly DashboardModuleKey[],
     ): string {
       const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },
@@ -2154,10 +2343,39 @@ describe('formatRelationshipDuration', () => {
       queryClient.setQueryData(
         dashboardPreferencesQueryKey('account-1', 'space-1'),
         {
-          items: Object.entries(overrides).map(([moduleKey, visible]) => ({
-            moduleKey,
-            visible,
-          })),
+          items: order
+            ? order.map((moduleKey) => ({
+                moduleKey,
+                visible: overrides[moduleKey] ?? true,
+                ...(moduleKey === 'pinned_collection'
+                  ? { selectedCollectionId: 'collection-1' }
+                  : {}),
+              }))
+            : [
+                {
+                  moduleKey: 'pinned_collection',
+                  visible: overrides.pinned_collection ?? true,
+                  selectedCollectionId: 'collection-1',
+                },
+                ...Object.entries(overrides)
+                  .filter(([moduleKey]) => moduleKey !== 'pinned_collection')
+                  .map(([moduleKey, visible]) => ({ moduleKey, visible })),
+              ],
+        },
+      );
+      queryClient.setQueryData(
+        authorSummaryQueryKeys.collectionDetail('space-1', 'collection-1'),
+        {
+          id: 'collection-1',
+          spaceId: 'space-1',
+          title: 'Einkauf',
+          version: 1,
+          capabilities: { canComment: false, canDelete: true, canEdit: true },
+          createdAt: new Date('2026-09-21T10:00:00Z'),
+          updatedAt: new Date('2026-09-21T10:00:00Z'),
+          createdBy: 'account-1',
+          creator: { id: 'account-1', displayName: 'Alex' },
+          items: [],
         },
       );
 
@@ -2168,6 +2386,7 @@ describe('formatRelationshipDuration', () => {
               apis={{} as M4ProductApis}
               spaceId="space-1"
               account={{ id: 'account-1', displayName: 'Alex' }}
+              collectionsApi={{} as CollectionsApi}
               loadMemoryImage={() => Promise.resolve('blob:http://localhost/x')}
             />
           </MemoryRouter>
@@ -2188,6 +2407,7 @@ describe('formatRelationshipDuration', () => {
     const MODULE_SECTION_MARKER: Record<DashboardModuleKey, string> = {
       relationship_presence: 'today-hero',
       upcoming: 'today-section-upcoming',
+      pinned_collection: 'today-section-pinned-collection',
       keepsake: 'today-section-moment',
       relationship_signal: 'today-section-living',
       monthly_highlights: 'today-section-monthly',
@@ -2198,6 +2418,21 @@ describe('formatRelationshipDuration', () => {
     const MODULE_SECTIONS = DASHBOARD_MODULE_KEYS.map(
       (key) => [key, MODULE_SECTION_MARKER[key]] as const,
     );
+
+    it('renders a personal complete order in DOM order, including the presence hero', () => {
+      const order: DashboardModuleKey[] = [
+        'upcoming',
+        'relationship_presence',
+        ...DASHBOARD_MODULE_KEYS.filter(
+          (key) => key !== 'upcoming' && key !== 'relationship_presence',
+        ),
+      ];
+      const html = renderWithVisibility({}, order);
+      expect(html.indexOf('today-section-upcoming')).toBeGreaterThan(0);
+      expect(html.indexOf('today-section-upcoming')).toBeLessThan(
+        html.indexOf('today-hero'),
+      );
+    });
 
     it('renders every registered module by default when no preference exists', () => {
       const html = renderWithVisibility({});

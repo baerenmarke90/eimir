@@ -154,7 +154,7 @@ Initial user-visible Activity kinds:
 
 - shared Memory created;
 - shared Milestone created;
-- SHARED HeartMoment created;
+- HeartMoment first shared, either at creation or through an `OWNER_ONLY` → `SHARED` transition;
 - Wish created;
 - Plan created;
 - Plan completed;
@@ -177,6 +177,10 @@ Deliberately excluded from the initial Activity feed:
 - `Ich denke an dich` signals, which create a recipient Notification but do not add Activity feed noise in v1.
 
 A later expansion of the Activity catalog requires an explicit event/privacy decision rather than a wildcard mapper.
+Re-sharing an already seen HeartMoment does not create a duplicate Activity entry.
+The current target privacy check hides the entry from the partner immediately
+if visibility later returns to `OWNER_ONLY`. HeartMoments do not gain a new
+recipient Notification or PushDelivery kind from this Activity rule.
 
 ## Activity authorization
 

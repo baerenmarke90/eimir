@@ -33,6 +33,7 @@ import {
   DiscoverSelectionToJSON,
 } from '../api/generated/models/DiscoverSelection';
 import { normalizeClientError } from '../client/problemDetails';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   loadProductWithReadCache,
   type ProductReadResult,
@@ -77,7 +78,6 @@ import {
 } from './storyPresentation';
 import { UiState } from './UiState';
 import { usePullToRefresh } from './usePullToRefresh';
-import { useStickyTimelineMonths } from './useStickyTimelineMonths';
 import {
   useDiscoverReveal,
   useTimelineAutoPagination,
@@ -117,9 +117,10 @@ function buildTapestryEntry(
   item: StoryItem,
   t: TFunction,
   locale: string,
+  nicknameFor?: (accountId: string) => string | null,
 ): TapestryEntry {
   const role = tapestryItemRole(item);
-  const presentation = storyItemPresentation(item, t);
+  const presentation = storyItemPresentation(item, t, nicknameFor);
   const firstAttachment =
     item.kind === 'MEMORY' ? item.memory.attachments[0] : undefined;
   const path =
@@ -155,13 +156,16 @@ function buildTapestryBands(
   items: StoryItem[],
   t: TFunction,
   locale: string,
+  nicknameFor?: (accountId: string) => string | null,
 ): TapestryBand[] {
   if (items.length === 0) return [];
   return [
     {
       key: 'discover',
       label: '',
-      entries: items.map((item) => buildTapestryEntry(item, t, locale)),
+      entries: items.map((item) =>
+        buildTapestryEntry(item, t, locale, nicknameFor),
+      ),
     },
   ];
 }
@@ -228,6 +232,7 @@ export function StoryProductPage({
   profilesApi?: ProfilesApi;
 }) {
   const { t } = useTranslation();
+  const { nicknameFor } = usePartnerNickname();
   const location = useLocation();
   const saved = Boolean((location.state as { saved?: boolean } | null)?.saved);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -494,11 +499,9 @@ export function StoryProductPage({
       // Browser history restoration and late layout work can settle one frame
       // after the first paint. Re-apply the exact captured offset before the
       // task origin is marked restored so return continuity stays geometry-stable.
-      // The position calculation intentionally uses layout coordinates rather
-      // than getBoundingClientRect(): Back remounts both AppShell's product-main
-      // and this Timeline wrapper with eimir-motion-reveal, so two transient
-      // 8px ancestor transforms can otherwise skew the captured coordinate by
-      // exactly 16px until their animations finish.
+      // Use layout coordinates so task-return geometry stays independent of
+      // bounded presentation transforms. Motion ownership must never become
+      // part of the scroll-restoration coordinate system.
       settleFrame = window.requestAnimationFrame(() => {
         restorePosition();
         restoredEntryRef.current = entry;
@@ -547,10 +550,6 @@ export function StoryProductPage({
   const timelineMonthGroups = useMemo(
     () => groupStoryItems(timelineItems, locale),
     [timelineItems, locale],
-  );
-  useStickyTimelineMonths(
-    timelineMonthsRef,
-    activeView === 'timeline' && timelineMonthGroups.length > 0,
   );
   useTimelineReveal({
     rootRef: timelineMonthsRef,
@@ -603,8 +602,8 @@ export function StoryProductPage({
 
   const tapestryColumnCount = useTapestryColumnCount();
   const tapestryBands = useMemo(
-    () => buildTapestryBands(discoverItems, t, locale),
-    [discoverItems, t, locale],
+    () => buildTapestryBands(discoverItems, t, locale, nicknameFor),
+    [discoverItems, t, locale, nicknameFor],
   );
 
   const featuredMedia =
@@ -612,7 +611,7 @@ export function StoryProductPage({
       ? featuredItem.memory.attachments[0]
       : undefined;
   const featuredPresentation = featuredItem
-    ? storyItemPresentation(featuredItem, t)
+    ? storyItemPresentation(featuredItem, t, nicknameFor)
     : null;
   const featuredAuthor = featuredItem ? storyItemAuthor(featuredItem) : null;
   const featuredPath = featuredItem
@@ -663,22 +662,14 @@ export function StoryProductPage({
 
       <PullToRefreshIndicator state={pullRefresh} />
 
-      {activeView === 'timeline' ? (
-        <PageHeader
-          title={t('story.timelineTitle')}
-          description={t('story.timelineIntro')}
-          className="momente-timeline-header"
-        />
-      ) : (
-        <PageHeader
-          eyebrow={t('story.eyebrow')}
-          title={t('story.title')}
-          description={t('story.intro')}
-        />
-      )}
+      <PageHeader
+        variant="root"
+        title={t('story.timelineTitle')}
+        description={t('story.timelineIntro')}
+      />
 
       <div
-        className={`momente-tabs-container eimir-motion-reveal ${activeView === 'timeline' ? 'momente-tabs-container-timeline' : ''}`}
+        className={`momente-tabs-container ${activeView === 'timeline' ? 'momente-tabs-container-timeline' : ''}`.trim()}
       >
         <div
           className="momente-tabs"
@@ -788,7 +779,7 @@ export function StoryProductPage({
       timelineItems.length === 0 &&
       availableYears.length === 0 &&
       !hasActiveFilters ? (
-        <div className="new-space-experience eimir-motion-reveal">
+        <div className="new-space-experience">
           <div className="new-space-mark" aria-hidden="true">
             <svg
               viewBox="0 0 24 24"
@@ -815,7 +806,7 @@ export function StoryProductPage({
         discoverQuery.data &&
         !featuredItem &&
         discoverItems.length === 0 ? (
-        <div className="new-space-experience eimir-motion-reveal">
+        <div className="new-space-experience">
           <div className="new-space-mark" aria-hidden="true">
             <svg
               viewBox="0 0 24 24"
@@ -1078,7 +1069,7 @@ export function StoryProductPage({
           </section>
         </div>
       ) : combinedStory && activeView === 'timeline' ? (
-        <div className="layout-single-column eimir-motion-reveal">
+        <div className="layout-single-column">
           <div className="story-filter-container">
             <ShortTaskSheet
               ref={filterSheetRef}
@@ -1270,7 +1261,7 @@ export function StoryProductPage({
               </h2>
 
               {timelineItems.length === 0 ? (
-                <div className="story-filter-empty-state eimir-motion-reveal">
+                <div className="story-filter-empty-state">
                   <p className="story-filter-empty-text">
                     {t('storyFilters.noMatches')}
                   </p>

@@ -41,6 +41,10 @@ def profile_path(space_id: object, account_id: object) -> str:
     return f"/api/v1/spaces/{space_id}/profiles/{account_id}"
 
 
+def nickname_path(space_id: object) -> str:
+    return f"/api/v1/spaces/{space_id}/partner-nickname"
+
+
 @pytest.fixture
 def couple(session: Session):  # type: ignore[no-untyped-def]
     anna = make_account(session, "Anna")
@@ -147,6 +151,62 @@ class TestPartnerProfile:
         )
         assert response.status_code == 404
         assert response.json()["code"] == "PARTNER_PROFILE_NOT_FOUND"
+
+
+class TestPartnerNickname:
+    def test_private_per_viewer_label_and_versioned_remove(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        path = nickname_path(couple["space"].id)
+        initial = client.get(path, headers=auth(couple["token_a"]))
+        assert initial.status_code == 200
+        assert initial.json() == {
+            "partnerId": str(couple["ben"].id),
+            "nickname": None,
+            "version": 0,
+        }
+        assert initial.headers["etag"] == '"0"'
+
+        saved = client.put(
+            path,
+            json={"nickname": "  Lieblingsmensch  "},
+            headers={**auth(couple["token_a"]), "If-Match": '"0"'},
+        )
+        assert saved.status_code == 200
+        assert saved.json()["nickname"] == "Lieblingsmensch"
+        assert saved.json()["version"] == 1
+        owner_view = client.get(path, headers=auth(couple["token_a"]))
+        assert owner_view.json()["nickname"] == "Lieblingsmensch"
+        assert client.get(path, headers=auth(couple["token_b"])).json()["nickname"] is None
+        partner_profile = client.get(
+            profile_path(couple["space"].id, couple["ben"].id),
+            headers=auth(couple["token_a"]),
+        )
+        assert partner_profile.json()["displayName"] == "Ben"
+
+        stale = client.put(
+            path,
+            json={"nickname": "Stern"},
+            headers={**auth(couple["token_a"]), "If-Match": '"0"'},
+        )
+        assert stale.status_code == 409
+        removed = client.put(
+            path,
+            json={"nickname": None},
+            headers={**auth(couple["token_a"]), "If-Match": '"1"'},
+        )
+        assert removed.status_code == 200
+        assert removed.json()["nickname"] is None
+        assert removed.json()["version"] == 2
+
+    def test_rejects_outsider_and_blank_label(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        path = nickname_path(couple["space"].id)
+        outsider = client.get(path, headers=auth(couple["token_outsider"]))
+        assert outsider.status_code == 404
+        blank = client.put(
+            path,
+            json={"nickname": "   "},
+            headers={**auth(couple["token_a"]), "If-Match": '"0"'},
+        )
+        assert blank.status_code == 422
 
 
 class TestPreferencePrivacy:

@@ -18,6 +18,7 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy.orm import Session
 
+from eimir.dashboard.preferences import CATALOG as DASHBOARD_CATALOG
 from eimir.engagement.models import Notification, NotificationKind
 from eimir.main import create_app
 from eimir.relationship import service as relationship_service
@@ -135,10 +136,48 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("POST", "/api/v1/spaces/{spaceId}/presence"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/membership/leave"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/entitlements"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/app-icon"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/appearance/app-icon",
+        body={"iconId": "original"},
+        if_match=True,
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/configuration"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/configuration",
+        body={"loveNotesEnabled": True},
+        if_match=True,
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-check-in/today"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/daily-check-in/today",
+        body={"energyLevel": 50},
+        if_match=True,
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-check-in/insights"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/catalog"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/preferences"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/daily-quote/preferences",
+        body={"enabled": True},
+        if_match=True,
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/moments/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/profile"),
     Endpoint("PUT", "/api/v1/spaces/{spaceId}/profile", body=PROFILE, if_match=True),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/partner-nickname"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/partner-nickname",
+        body={"nickname": "Matrix Partner"},
+        if_match=True,
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/invitations"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/invitations", body={}),
     Endpoint(
@@ -283,6 +322,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="RESOURCE_NOT_FOUND",
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/timeline"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/photos"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/discover"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/story-views", body=STORY_VIEW),
     Endpoint(
@@ -292,6 +332,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/dashboard"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/dashboard/preferences"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/dashboard/preferences/order",
+        body={"moduleKeys": [definition.key.value for definition in DASHBOARD_CATALOG]},
+    ),
     Endpoint(
         "PATCH",
         "/api/v1/spaces/{spaceId}/dashboard/preferences/{moduleKey}",
@@ -310,6 +355,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "POST",
         "/api/v1/spaces/{spaceId}/thinking-of-you",
         body={"clientRequestId": str(uuid4())},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/partner-quick-actions",
+        body={"kind": "KISS", "clientRequestId": str(uuid4())},
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/reminders"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/reminders", body=REMINDER),
@@ -870,6 +920,12 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     ("POST", "/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/start"),
     ("POST", "/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/callback"),
     ("POST", "/api/v1/account/deletion"),
+    ("GET", "/api/v1/notification-preferences"),
+    ("PATCH", "/api/v1/notification-preferences/quiet-hours"),
+    ("PATCH", "/api/v1/notification-preferences/{kind}/{channel}"),
+    ("GET", "/api/v1/push-endpoints/unifiedpush-configuration"),
+    ("POST", "/api/v1/push-endpoints"),
+    ("DELETE", "/api/v1/push-endpoints/{endpointId}"),
     ("POST", "/api/v1/auth/sign-out"),
     ("POST", "/api/v1/auth/password"),
     ("POST", "/api/v1/auth/email/verification/request"),
@@ -897,6 +953,7 @@ SERVER_ADMIN_ONLY: tuple[tuple[str, str], ...] = (
     ("GET", "/api/v1/server-admin/overview"),
     ("GET", "/api/v1/server-admin/spaces"),
     ("GET", "/api/v1/server-admin/spaces/{space_id}"),
+    ("POST", "/api/v1/server-admin/spaces/{space_id}/configuration-manager/reconcile"),
     ("GET", "/api/v1/server-admin/spaces/{space_id}/entitlement"),
     ("POST", "/api/v1/server-admin/spaces/{space_id}/entitlement/grants"),
     ("POST", "/api/v1/server-admin/spaces/{space_id}/entitlement/grants/{grant_id}/revoke"),

@@ -4,12 +4,12 @@ Every dependency is recorded with its name, version, source, and license. Every
 asset is recorded with its origin, license, and creator. Anything not listed
 here does not belong in the project.
 
-As of: 2026-09-01
+As of: 2026-09-25
 
 ## Reproducibility and verification
 
 `backend/uv.lock` is the binding, cross-platform resolution of all direct and
-transitive Python dependencies. The uv version `0.12.5`, Python `3.13.7`, the
+transitive Python dependencies. The uv version `0.12.15`, Python `3.13.7`, the
 build backend, and the Python container image are pinned exactly. CI and
 container installations run exclusively in frozen/locked mode;
 `uv lock --check` prevents a stale lock file.
@@ -72,16 +72,27 @@ tokens use `secrets` and `hashlib` from the standard library; for a value with
 full entropy, an intentionally slow algorithm would only impose unnecessary
 cost on every request.
 
-OIDC adds `pyjwt[crypto]` and therefore `cryptography`: the signature of an
-external ID Token cannot be verified with `hashlib`, and a custom RSA/ECDSA
-verifier would be exactly the wrong kind of in-house implementation in the
-Auth path. `httpx` moves from a development dependency to a runtime dependency
-because Discovery, JWKS retrieval, and the Token endpoint require outbound
-HTTP.
+`cryptography` is a direct runtime dependency for the application-controlled
+encryption-at-rest boundary. eimir. uses its established AES-256-GCM primitive
+for authenticated encryption and does not implement a cryptographic primitive
+itself. The package was already present transitively through `pyjwt[crypto]`,
+but is declared directly now that application code imports it.
+
+OIDC uses `pyjwt[crypto]`: the signature of an external ID Token cannot be
+verified with `hashlib`, and a custom RSA/ECDSA verifier would be exactly the
+wrong kind of in-house implementation in the Auth path. `httpx` is a runtime
+dependency because Discovery, JWKS retrieval, and the Token endpoint require
+outbound HTTP.
 
 `webauthn` (py_webauthn) is added for the same reason: Passkey registration
 involves CBOR, COSE keys, and Attestation, and reading these formats by hand
 would be custom implementation at the most sensitive boundary.
+
+`pywebpush` encrypts Web Push payloads and signs VAPID requests for the
+UnifiedPush backend transport. Using its established protocol implementation
+avoids custom RFC 8291 cryptography. The application supplies a restricted
+HTTPS transport for destination validation and connection pinning; it does not
+modify the upstream package.
 
 `cbor2` is development-only: the virtual Authenticator in tests constructs
 `attestationObject` and COSE keys itself so the suite verifies real signatures
@@ -119,7 +130,9 @@ in a background job under resource limits — never in the request path.
 | uuid6 | 2025.0.1 | PyPI | MIT |
 | argon2-cffi | 25.1.0 | PyPI | MIT |
 | httpx | 0.28.1 | PyPI | BSD-3-Clause |
-| pyjwt[crypto] | 2.13.0 | PyPI | MIT |
+| pyjwt[crypto] | 2.15.1 | PyPI | MIT |
+| cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
+| pywebpush | 2.5.0 | PyPI | MPL-2.0 |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 12.3.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |
@@ -152,9 +165,33 @@ in a background job under resource limits — never in the request path.
 |---|---|---|---|
 | @types/react | 19.1.12 | npm | MIT |
 | @types/react-dom | 19.1.9 | npm | MIT |
+| @types/node | 24.19.1 | npm | MIT |
 | typescript | 5.9.2 | npm | Apache-2.0 |
 | vite | 7.3.6 | npm | MIT |
-| vitest | 3.2.7 | npm | MIT |
+| vitest | 4.1.11 | npm | MIT |
+
+### October 2026 audit maintenance
+
+The lock refresh updates PyJWT to 2.15.1 and Alembic's transitive Mako to
+1.4.3. PyJWT's declared minimum also prevents restoring the vulnerable
+verification dependency during a future resolution. Both remain existing MIT
+dependencies; no authentication provider, algorithm policy or migration is added.
+
+Vitest 4.1.11 is the smallest supported major line with the fixed mocker and
+without the vulnerable Tinypool dependency. Its declared Vite 7 and Node 24
+support matches this repository. The [upstream migration guide](https://vitest.dev/guide/migration/)
+was reviewed; object-URL and callback mocks now declare their actual callable
+signatures. Node 24 types are explicit because the removed transitive type
+dependency previously supplied the existing filesystem/layout tests. Existing
+test assertions and timeouts remain unchanged. The
+lockfile also advances Vite/PostCSS's transitive `source-map-js` to 1.2.2.
+These are test/build dependencies and do not add a production feature or
+runtime provider. Core behavior and Cloud/Self-Hosted tiers are unchanged.
+
+`npm audit --audit-level=high` retains its existing policy. The remaining
+moderate `uuid` finding is in the already-adopted Capacitor CLI's `xcode`
+dependency; this maintenance does not force an unsupported transitive major
+override or downgrade the wrapper CLI. Backend audit still permits no findings.
 
 These Web dependencies serve only the thin S8 reference flow. They do not
 pull M5 functionality such as persistent Offline Caches, complete navigation,

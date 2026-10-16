@@ -15,18 +15,52 @@
   padding-top: 0;
 }
 
+.today-date-heading {
+  display: grid;
+  gap: 0.1rem;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-1) 0 var(--space-2);
+}
+
+.today-date-title {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(2.15rem, 10vw, 3.25rem);
+  font-weight: 650;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+}
+
+.today-date-value {
+  color: var(--color-text-secondary);
+  font-size: 0.96rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
 .today-hero.couple-presence-card {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-section);
   border: none;
   border-radius: 0;
-  padding: var(--space-2) 0 var(--space-5);
+  padding: var(--space-2) 0 0;
   background: transparent;
   box-shadow: none;
   gap: var(--space-4);
+}
+
+/*
+ * The reveal transform makes each Today section its own stacking context.
+ * Elevate the hero only while the Energy popover is open so its slider stays
+ * operable above the fixed Compact navigation at large text sizes. Header
+ * overlays retain their higher stacking level.
+ */
+.today-hero.couple-presence-card:has(.daily-energy-popover) {
+  z-index: 60;
 }
 
 /*
@@ -65,6 +99,14 @@
   border-radius: var(--radius-pill);
 }
 
+/* Energy owns the lower avatar edge. Keep the existing online-presence pip
+   readable by moving it to the upper edge only while avatar Energy is present. */
+.today-hero .couple-presence-avatar-anchor.has-adornment .partner-presence-pip {
+  top: 2px;
+  right: 2px;
+  bottom: auto;
+}
+
 .today-hero .couple-presence-title {
   color: var(--color-text);
   font-family: var(--font-display);
@@ -82,7 +124,7 @@
   color: var(--color-text-secondary);
   font-weight: 600;
   text-decoration: none;
-  transition: color var(--motion-fast);
+  transition: color var(--duration-feedback) var(--easing-standard);
 }
 
 /*
@@ -168,10 +210,10 @@
   font-weight: 700;
   cursor: pointer;
   transition:
-    transform var(--motion-fast),
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast),
-    background var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
 }
 
 .today-hero-action:hover {
@@ -188,27 +230,36 @@
   );
   color: var(--color-on-accent);
   border-color: transparent;
-  animation: heart-sparkle 0.6s ease-out;
+  animation: heart-sparkle var(--duration-context) var(--easing-enter);
 }
 
 .today-section {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-section);
+}
+
+/* A pinned checklist is intentionally a focused Today utility, not a
+   desktop-width form. Reuse the page's established quiet content measure so
+   Compact still fills the available width while Expanded stays glanceable. */
+.today-section-pinned-collection {
+  max-width: 45rem;
 }
 
 /*
- * `Euer Moment` is the page's dominant surface, so it gets the one deliberate
- * pause in the rhythm - before it, to set it apart, and after it, so the
- * contextual module below is read as a new thought rather than a caption.
+ * Personal content is distinguished by its image/prose composition rather
+ * than an exceptional whitespace island. Keep the same section rhythm as the
+ * rest of the root product surfaces.
  */
 .today-section-moment {
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-section);
 }
 
 .today-section-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-3);
+  row-gap: var(--space-1);
   margin-bottom: var(--space-3);
   padding-left: var(--space-1);
 }
@@ -225,13 +276,15 @@
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  flex: 0 0 auto;
+  max-width: 100%;
+  flex: 0 1 auto;
   font-size: 0.84rem;
   font-weight: 700;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--color-text-secondary);
   text-decoration: none;
-  transition: color var(--motion-fast);
+  transition: color var(--duration-feedback) var(--easing-standard);
 }
 
 .today-section-link:hover {
@@ -337,6 +390,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
+  overflow: hidden;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   background: var(--color-surface-raised);
@@ -355,9 +409,9 @@
 
 .today-agenda-row-link {
   transition:
-    transform var(--motion-fast),
-    box-shadow var(--motion-fast),
-    border-color var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .today-agenda-row-link:hover {
@@ -466,9 +520,9 @@
   text-decoration: none;
   box-sizing: border-box;
   transition:
-    transform var(--motion-fast),
-    box-shadow var(--motion-fast),
-    border-color var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .today-recent-tile-static {
@@ -632,8 +686,8 @@
   background: var(--color-surface-subtle);
   box-shadow: var(--shadow-raised);
   transition:
-    transform var(--motion-fast),
-    box-shadow var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .today-moment-link:hover .today-moment-figure {
@@ -884,8 +938,8 @@
   font-weight: 700;
   text-decoration: none;
   transition:
-    filter var(--motion-fast),
-    transform var(--motion-fast);
+    filter var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
 }
 
 .today-living-action:hover {
@@ -942,11 +996,9 @@
  * swipe invitation. A single photo has nothing to peek at, so
  * `today-monthly-strip-1` stays the plain, non-scrolling wide band above.
  *
- * `contain: paint` makes the scroll boundary airtight: without it, the
- * section's own `eimir-motion-reveal` transform (elsewhere purely cosmetic)
- * lets the swiped-off photos leak into the section's own scrollable
- * overflow and widen the document horizontally, even though the strip's
- * `overflow-x: auto` already clips them visually.
+ * `contain: paint` keeps the native horizontal strip's paint/scroll
+ * boundary local so off-canvas photos cannot widen the document while
+ * swiping.
  */
 .today-monthly-strip-2,
 .today-monthly-strip-3 {
@@ -968,8 +1020,8 @@
   overflow: hidden;
   box-shadow: var(--shadow-raised);
   transition:
-    transform var(--motion-fast),
-    box-shadow var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .today-monthly-tile:hover {
@@ -1065,6 +1117,36 @@
 }
 
 /*
+ * Extremely narrow content columns stack the relationship identity below the
+ * avatars. Section headers do not depend on this breakpoint: their base flex
+ * contract below is intrinsically wrap-safe for browser text zoom.
+ */
+@container product-content (max-width: 14rem) {
+  .today-hero .couple-presence-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .today-hero .couple-presence-details,
+  .today-hero .couple-presence-actions {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .today-hero-action-container {
+    justify-content: flex-start;
+  }
+
+  .today-hero-action {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
+  }
+}
+
+/*
  * Reduced motion, last in the file on purpose.
  *
  * `@media` adds no specificity, so this block only wins over the module
@@ -1088,6 +1170,153 @@
   .today-moment-link:hover .today-moment-figure,
   .today-monthly-tile:hover,
   .today-living-action:hover {
+    transform: none;
+  }
+}
+
+.today-pinned-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.today-pinned-list-items {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today-pinned-list-items li {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  align-items: center;
+  min-height: 48px;
+  gap: var(--space-2);
+}
+
+.today-pinned-list-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 650;
+}
+
+.today-pinned-list-items .is-completed .today-pinned-list-title {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+}
+
+.today-pinned-list-empty {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.today-pinned-list-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.today-pinned-list-disclosure {
+  min-height: 44px;
+  min-width: 0;
+  border: 0;
+  padding: 0 var(--space-1);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  text-align: start;
+}
+
+.today-pinned-list-disclosure:hover {
+  color: var(--color-link-text);
+}
+
+.today-pinned-list-disclosure:focus-visible,
+.today-pinned-list-add-button:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.today-pinned-list-add-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  flex: 0 0 auto;
+  place-items: center;
+  margin-inline-start: auto;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  padding: 0;
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  transition:
+    background var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
+}
+
+.today-pinned-list-add-button .button-icon {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+.today-pinned-list-add-button:hover {
+  background: var(--color-surface-raised);
+}
+
+.today-pinned-list-add-button:active {
+  transform: scale(0.97);
+}
+
+.today-pinned-list-add-sheet-form,
+.today-pinned-list-add-sheet-field {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.today-pinned-list-add-sheet-field label {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.today-pinned-list-add-sheet-field input {
+  min-width: 0;
+  min-height: 44px;
+}
+
+.today-pinned-list-add-error {
+  margin: 0;
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.today-pinned-list-discard {
+  display: grid;
+  gap: var(--space-2);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-medium);
+  padding: var(--space-4);
+  background: var(--color-error-surface);
+}
+
+.today-pinned-list-discard h3,
+.today-pinned-list-discard p {
+  margin: 0;
+}
+
+.today-pinned-list-discard p {
+  color: var(--color-text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .today-pinned-list-add-button {
+    transition: none;
+  }
+
+  .today-pinned-list-add-button:active {
     transform: none;
   }
 }

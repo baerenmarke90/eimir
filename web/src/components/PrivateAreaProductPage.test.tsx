@@ -38,6 +38,9 @@ describe('PrivateAreaProductPage', () => {
     expect(html).toContain(privateArea.notes.intro);
     expect(html).toContain(privateArea.gifts.intro);
     expect(html).toContain(privateArea.collections.intro);
+    for (const name of ['nurfuer', 'notes', 'geschenk', 'listen']) {
+      expect(html).toContain(`eimir-icon-${name}`);
+    }
     expect(html).not.toContain('class="private-area-nav"');
   });
 });

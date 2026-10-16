@@ -2,12 +2,15 @@
 /* eslint-disable */
 export * from './AccountApi';
 export * from './ActivityApi';
+export * from './AppearanceApi';
 export * from './AttachmentsApi';
 export * from './AuthApi';
 export * from './ChapterRelationsApi';
 export * from './ChaptersApi';
 export * from './CollectionsApi';
 export * from './CommentsApi';
+export * from './DailyCheckInsApi';
+export * from './DailyQuoteApi';
 export * from './DashboardApi';
 export * from './EntitlementsApi';
 export * from './GamesApi';

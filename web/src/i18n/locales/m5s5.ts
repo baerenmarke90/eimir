@@ -88,6 +88,8 @@ const m5s5 = {
       showMore_other: '{{count}} weitere Einträge anzeigen',
       showLess: 'Weniger anzeigen',
       loadError: 'Die angeheftete Liste konnte gerade nicht geladen werden.',
+      toggleFailed:
+        'Diese Änderung wurde nicht gespeichert. Versuche es erneut.',
       sharedAchievementConfirmed: '{{title}} als erledigt markiert',
       sharedAchievementTitle: 'Gemeinsam geschafft!',
       sharedAchievementBody:

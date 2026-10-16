@@ -17,9 +17,10 @@ This is a bounded repair of the existing no-offline-write contract, not a new or
 materially redesigned feature. The previous checklist repair explicitly deferred
 this per-item queue. Preserve all existing Today content, controls, add sheet,
 canonical list link, shell/navigation, local checked state and motion. No new markup, visual state, interaction or generated composition is needed.
-The browser probe also found the old error snackbar key was missing; use the
-existing localized offline/unknown state titles instead of displaying a technical
-translation key. No new copy or localization resource is introduced.
+The browser probe also found the old error snackbar key was missing. Use one
+scoped localized attempt-failure message instead of a technical translation key
+or a transient claim about current connectivity; the existing banner owns the
+live connection state. This corrects the existing feedback surface.
 The current [R4 Today](../../r4-today.md), Product Reference v1 and Today template
 remain authoritative; historical whole-Today references are not layout overrides.
 

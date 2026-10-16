@@ -796,8 +796,14 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
 });
 
 for (const view of [
-  { name: '390-light', width: 390, scheme: 'light' as const },
-  { name: '1280-dark', width: 1280, scheme: 'dark' as const },
+  { name: '390-light', width: 390, scheme: 'light' as const, largeText: false },
+  { name: '1280-dark', width: 1280, scheme: 'dark' as const, largeText: false },
+  {
+    name: '320-dark-200pct',
+    width: 320,
+    scheme: 'dark' as const,
+    largeText: true,
+  },
 ]) {
   test(`offline Today checkbox rolls back without replay and allows a deliberate later toggle at ${view.name}`, async ({
     page,
@@ -812,6 +818,8 @@ for (const view of [
     );
     const network = await installMocks(page, { initiallyPinned: true });
     await signIn(page);
+    if (view.largeText)
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
     const pinned = page.locator('.today-section-pinned-collection');
     const markDone = m5s3.collection.markDone.replace('{{title}}', 'Milch');
     const markOpen = m5s3.collection.markOpen.replace('{{title}}', 'Milch');
@@ -820,7 +828,7 @@ for (const view of [
     await page.context().setOffline(true);
     await pinned.getByRole('button', { name: markDone }).click();
     await expect(
-      page.getByText(de.states.offline.title, { exact: true }),
+      page.getByText(m5s5.today.pinnedCollection.toggleFailed, { exact: true }),
     ).toBeVisible();
     await expect(
       pinned.getByRole('button', { name: markDone }),

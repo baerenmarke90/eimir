@@ -222,7 +222,9 @@ describe('TodayPinnedCollection', () => {
       );
 
       await waitFor(() =>
-        expect(feedback).toHaveBeenCalledWith('states.offline.title'),
+        expect(feedback).toHaveBeenCalledWith(
+          'm5s5.today.pinnedCollection.toggleFailed',
+        ),
       );
       expect(queryClient.isMutating()).toBe(0);
       expect(queryClient.getQueryState(key)?.fetchStatus).toBe('idle');
@@ -286,7 +288,9 @@ describe('TodayPinnedCollection', () => {
         }),
       );
       await waitFor(() =>
-        expect(feedback).toHaveBeenCalledWith('states.offline.title'),
+        expect(feedback).toHaveBeenCalledWith(
+          'm5s5.today.pinnedCollection.toggleFailed',
+        ),
       );
       expect(queryClient.isMutating()).toBe(1);
       expect(

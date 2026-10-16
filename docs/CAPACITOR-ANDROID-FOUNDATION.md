@@ -33,6 +33,11 @@ web/ (Vite + TypeScript)
   - Falling back to `window.location.origin` inside the native container would incorrectly target `https://localhost` (the internal WebView origin), resulting in broken network calls.
   - The build script `web/scripts/build-capacitor-web.mjs` enforces `VITE_EIMIR_API_BASE_URL` at build time.
   - Runtime resolution (`web/src/client/config.ts`) throws a fail-closed descriptive error if `VITE_EIMIR_API_BASE_URL` is missing or resolves to localhost/127.0.0.1 in native mode.
+  - For an Android build pointed at a `demo.` API subdomain, the build enables the existing Demo entry and banner unless `VITE_EIMIR_DEMO_MODE=false` is set explicitly. Other API hosts require `VITE_EIMIR_DEMO_MODE=true` to enable that presentation. The backend remains authoritative for Demo entry and destructive-action restrictions.
+  - The Demo reset timer is independent of Demo mode. Set `VITE_EIMIR_DEMO_RESET_TIMER` and `VITE_EIMIR_DEMO_RESET_INTERVAL` to match the backend deployment (`EIMIR_DEMO_MODE_RESET_TIMER`, `EIMIR_DEMO_MODE_RESET_INTERVAL`); the build does not infer an active reset timer from the API hostname. The build fails on non-boolean flags, on a reset timer without Demo mode, and on an interval the backend would reject (`30m`/`6h`/`1d` form, 5m to 7d).
+  - Canonical `VITE_EIMIR_*` values take precedence over legacy `VITE_SBS_*` values. The resolved values are passed to Vite explicitly, so they also take precedence over any local `web/.env*` file.
+  - The Web-demo launch link (`VITE_EIMIR_DEMO_URL`) is always cleared for the native bundle, because following it would leave the app for the system browser.
+  - Demo selection happens in the Web bundle, so `assembleDebug`, `assembleRelease`, and `bundleRelease` of one synchronized bundle behave identically. All variants share the `de.sidebyside.app` application ID (debug adds `.debug`); a Demo bundle should therefore be distributed as a debug build or through a separate channel rather than through the production release workflow.
 - **Native HTTP Transport (`CapacitorHttp`)**:
   - `CapacitorHttp.enabled: true` patches `window.fetch` and `window.XMLHttpRequest` in the native WebView container.
   - Requests are routed through the native Android network stack, preserving `Authorization: Bearer ...` headers and bypassing WebView CORS restrictions against the remote API origin.
@@ -89,6 +94,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 - `loadRecentAuthenticationCapabilities()` explicitly forces `passkey: false` in native container mode, so passkey re-authentication options are not presented in the native UI.
 - `authenticateRecentPasskey()` fails closed with an informative error if invoked in native mode.
 - Standard Web/PWA passkey authentication remains completely unchanged.
+- The bounded native passkey bridge (Credential Manager plus Digital Asset Links, handing its result to the existing Web auth orchestration) is tracked in #630. It is not implemented on `main`. OIDC needs no bridge and stays out of that scope.
 - Third-party OIDC/Pocket-ID authentication (which runs in the system browser/Custom Tab via `@capacitor/browser`) is decoupled from WebView WebAuthn and functions independently.
 
 ---

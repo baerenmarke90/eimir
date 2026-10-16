@@ -4,7 +4,8 @@
 uses the five existing NotificationKind keys and #515's policy. Individual
 email is eligible only for the four currently IMMEDIATE kinds. The DIGESTIBLE
 comment kind cannot be turned into a separate per-comment mail by a personal
-choice; its eventual digest remains under #515. All EMAIL overrides default
+choice; its separately opted-in hourly digest is documented in
+[NOTIFICATION-COMMENT-EMAIL-DIGEST.md](./NOTIFICATION-COMMENT-EMAIL-DIGEST.md). All EMAIL overrides default
 off. No existing Account receives surprise mail on upgrade.
 
 **Reuse review before implementation:** the existing Python standard-library

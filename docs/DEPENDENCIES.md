@@ -155,16 +155,16 @@ in a background job under resource limits — never in the request path.
 | @tanstack/react-query | 5.85.5 | npm | MIT |
 | i18next | 26.4.0 | npm | MIT |
 | react-i18next | 17.0.11 | npm | MIT |
-| react | 19.1.1 | npm | MIT |
-| react-dom | 19.1.1 | npm | MIT |
+| react | 19.2.8 | npm | MIT |
+| react-dom | 19.2.8 | npm | MIT |
 | react-router-dom | 7.18.2 | npm | MIT |
 
 ## Web — M2-S8 Development
 
 | Package | Version | Source | License |
 |---|---|---|---|
-| @types/react | 19.1.12 | npm | MIT |
-| @types/react-dom | 19.1.9 | npm | MIT |
+| @types/react | 19.2.18 | npm | MIT |
+| @types/react-dom | 19.2.5 | npm | MIT |
 | @types/node | 24.19.1 | npm | MIT |
 | typescript | 5.9.2 | npm | Apache-2.0 |
 | vite | 7.3.6 | npm | MIT |

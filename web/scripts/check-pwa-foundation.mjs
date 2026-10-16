@@ -54,9 +54,14 @@ function assertPngDimensions(relativePath, width, height) {
 
 assertPngDimensions('public/pwa-192.png', 192, 192);
 assertPngDimensions('public/pwa-512.png', 512, 512);
+assertPngDimensions('public/pwa-maskable.png', 512, 512);
+assertPngDimensions('public/apple-touch-icon.png', 180, 180);
 assert(
-  manifest.icons.some((icon) =>
-    String(icon.purpose || '').includes('maskable'),
+  manifest.icons.some(
+    (icon) =>
+      icon.src === '/pwa-maskable.png' &&
+      icon.type === 'image/png' &&
+      String(icon.purpose || '').includes('maskable'),
   ),
   'PWA manifest must expose a maskable-capable icon.',
 );

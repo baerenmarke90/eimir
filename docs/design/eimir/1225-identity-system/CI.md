@@ -1,6 +1,6 @@
 # eimir. corporate identity — issue #1225
 
-**Status:** Selected identity implemented in Web; PR #1244 merged. Issue #1245 is the owner-image fidelity follow-up. Final Product Design acceptance remains with Philipp.
+**Status:** Selected identity implemented in Web; PR #1244 merged. The exact-poster app icon was visually accepted by Philipp on 2026-10-12 and merged in PR #1308; #1245 is closed. Issue #1225 remains the broader identity authority.
 **Authority:** The four owner images below define the app logo, icon inventory, variant examples and icon states. All other visual and interaction rules continue from [Product Reference v1](../../../product/design/product-reference-v1.md), its [design-system direction](../../../product/design/design-system-direction.md), the [partner-app experience standard](../../../PARTNER-APP-EXPERIENCE-STANDARD.md) and the central [design tokens](../../../../design/tokens.json). The owner decision is recorded in [#1225](https://github.com/baerenmarke90/eimir/issues/1225#issuecomment-5797850494).
 
 ## 1. Fixed visual references and scope
@@ -12,7 +12,7 @@
 | Icon variants | Outline, Filled and Duotone examples for Wir, heart, calendar, plane, star and lock; the Original, Natürlich and Warm worlds | [Owner icon variants](references/owner-icon-variants.png) |
 | Icon states | Default, Hover, Active, Pressed and Disabled heart examples | [Owner icon states](references/owner-icon-states.png) |
 
-These PNGs are kept byte-for-byte as supplied. They are references, not generated implementation exports. When an illustration and a small rendered SVG differ, the owner image decides the intended motif and the semantic token and accessibility contracts decide its usable implementation. This decision replaces the former interlocking-ring brand mark and the earlier plant proposal as the app logo. The two-circle symbol remains the **Wir** navigation icon.
+These PNGs are kept byte-for-byte as supplied. The app logo is extracted directly from the first poster; the other owner images remain design references. When a historical SVG differs from the poster, the owner image decides the logo. Semantic tokens and accessibility contracts govern its UI use. This decision replaces the former interlocking-ring brand mark and the earlier plant proposal as the app logo. The two-circle symbol remains the **Wir** navigation icon.
 
 The scope is identity: logo, icons, semantic color worlds and their existing Web delivery points. It does not change routes, feature behavior, entitlement, copy, image content or screen composition. The current Compact shell has **Wir, Momente, Planen and Mehr**, plus a central add action. **Listen** keeps its own icon under **Mehr > Gemeinsame Listen**; the five-item navigation in the reference is an icon usage example, not a new route decision.
 
@@ -20,20 +20,19 @@ The scope is identity: logo, icons, semantic color worlds and their existing Web
 
 The mark consists of two distinct filled circles, warm on the left and cool on the right, overlapping behind a white lower-case `e` loop. A navy lower shape finishes the `e`; the dot sits separately at lower right. The circles and loop must remain discernible. Do not substitute the navigation circles, a generic heart, a plant, an infinity symbol or a continuous ribbon for this app mark.
 
-The editable master is [logo-mark.svg](assets/logo-mark.svg) on a 256-unit square. Its mono drawing is [logo-mark-mono.svg](assets/logo-mark-mono.svg). [build-assets.py](build-assets.py) creates the Light, Dark, Natürlich and Warm marks and the 512-unit app tiles from the same geometry, then synchronizes the SVGs used by the Web app. Static brand-art colors live in these masters; the UI's semantic colors live in `design/tokens.json`. The tile has a rounded square boundary with clear inner space. The maskable asset has an additional safe area around the mark. Do not stretch, rotate, crop the dot or apply a second color effect.
+The authoritative artwork is [the unchanged owner poster](references/owner-app-logo.png). [build-assets.py](build-assets.py) extracts its Light tile at pixels `(132, 76)–(482, 426)` and its Dark and monochrome tiles at `(1068, 232)–(1209, 373)` and `(1068, 420)–(1209, 561)`. The resulting PNGs preserve those source pixels exactly. Required launcher sizes are resampled from the Light crop. The maskable PNG uses the same complete tile; its colored circles, loop and dot sit inside the central mask-safe circle. The older [SVG reconstruction](assets/logo-mark.svg) and related variants remain historical design files, not the Web logo source. UI semantic colors still live in `design/tokens.json`. Do not stretch, rotate, crop the dot or apply a second color effect.
 
-Light uses a white loop and a navy finishing stroke. **Dark cuts the loop out against its dark tile and uses a warm-to-cool finishing stroke**, with brighter circles and a lilac dot. Monochrome preserves the same geometry with one ink and a negative loop. Use the complete Dark tile on arbitrary backgrounds so its cutout keeps the correct ground. The full silhouette, overlap, lower stroke and separate dot follow the owner image at both large and launcher sizes.
+Light uses a white loop and a navy finishing stroke. **Dark cuts the loop out against its dark tile and uses a warm-to-cool finishing stroke**, with brighter circles and a lilac dot. Monochrome preserves the motif with one ink and a negative loop. Use the complete Dark tile on arbitrary backgrounds so its cutout keeps the correct ground. The full silhouette, overlap, lower stroke and separate dot are taken from the owner image.
 
 | Use | Implemented asset and rule |
 | --- | --- |
-| Light app icon and favicon | `web/public/identity/app-icon-light.svg`, `web/public/favicon.svg`, `web/public/pwa-192.png`, `web/public/pwa-512.png`, `web/public/apple-touch-icon.png` |
-| Dark app icon and favicon | `web/public/identity/app-icon-dark.svg`, `web/public/favicon-dark.svg`; startup bootstrap and runtime choose the favicon from the resolved theme, including explicit overrides |
-| Monochrome | `web/public/identity/app-icon-mono.svg`; one ink for constrained use |
-| Contextual worlds | `app-icon-natural.svg` and `app-icon-warm.svg` are controlled brand variants, not user-selectable app themes |
-| Header and entry surfaces | `Brand` uses the complete Light or Dark app tile according to the resolved theme; transparent marks remain editable exports |
-| Maskable PWA | `web/public/pwa-maskable.svg` uses the same master motif inside the mask-safe area |
+| Light app icon and favicon | `web/public/identity/app-icon-light.png`, `web/public/pwa-192.png`, `web/public/pwa-512.png`, `web/public/apple-touch-icon.png` |
+| Dark app icon and favicon | `web/public/identity/app-icon-dark.png`; startup bootstrap and runtime choose the favicon from the resolved theme, including explicit overrides |
+| Monochrome | `web/public/identity/app-icon-mono.png`; preserved for constrained use, not a selectable theme |
+| Header and entry surfaces | `Brand` uses the complete Light or Dark source tile according to the resolved theme |
+| Maskable PWA | `web/public/pwa-maskable.png` uses the full Light tile; the essential motif stays inside the mask-safe circle |
 
-The installed PWA manifest uses the Light PNG and a maskable SVG; installed launchers do not reliably select an icon based on app theme. The Dark and monochrome artwork remain explicit deliverable assets, and the Web favicon switches with the resolved theme.
+The installed PWA manifest uses the Light PNG and a maskable PNG; installed launchers do not reliably select an icon based on app theme. The Dark and monochrome artwork remain explicit deliverable assets, and the Web favicon switches with the resolved theme. The baseline icon and automatic Light/Dark treatment are Free/Core. A future user-selectable alternative app-icon catalog is Premium under [#1307](https://github.com/baerenmarke90/eimir/issues/1307) and requires separate UX and entitlement work; no picker is introduced here.
 
 The consumer name is always **eimir.** in lowercase with the terminal dot. The wordmark uses self-hosted Instrument Sans, bold, with compact letter spacing; the dot uses the semantic identity accent. The mark and wordmark have separate responsibilities: the mark must work alone as an app icon, while wordmark text stays real text in UI. The poster's handwritten phrases and slogan are part of the supplied visual reference; they do not replace existing localized product copy or the established brand claim.
 
@@ -71,7 +70,7 @@ The control owns its accessible name and interaction state; decorative SVGs are 
 
 ## 4. Color worlds and Light/Dark
 
-`design/tokens.json > identity` is the only **semantic UI color** value source. Its generated Web adapter is `web/src/design/identity-roles.css`. The static brand artwork has its own SVG master for the approved gradients; components consume semantic roles rather than scattering literal colors. **Original** is the default brand world. **Natürlich** and **Warm** are controlled contextual worlds already used on the relevant personal surfaces; they are not selectable themes and do not change Premium personalization. All three define Light and Dark roles. User choice of System/Light/Dark still controls luminance independently of the contextual world.
+`design/tokens.json > identity` is the only **semantic UI color** value source. Its generated Web adapter is `web/src/design/identity-roles.css`. The app artwork retains the poster's original colors; components consume semantic roles rather than scattering literal colors. **Original** is the default brand world. **Natürlich** and **Warm** are controlled contextual worlds already used on the relevant personal surfaces; they are not selectable themes and do not change Premium personalization. All three define Light and Dark roles. User choice of System/Light/Dark still controls luminance independently of the contextual world.
 
 The following values identify each world's main roles. `design/tokens.json` also defines elevated, muted text, border, link/action text, on-action, soft surfaces, hover, pressed and focus values for every row; those values are binding and generated, not inferred from this abbreviated display table.
 
@@ -96,17 +95,17 @@ Self-hosted **Instrument Sans** remains the UI and reading face; **Literata** re
 
 | CI element | Source and delivered consumer |
 | --- | --- |
-| Editable logo geometry and variants | `docs/design/eimir/1225-identity-system/assets/` → `build-assets.py` → `web/public/identity/`, favicon and maskable SVG |
-| Installed raster icons | Light app tile → 192/512 PWA PNG and 180 Apple touch PNG; exact dimensions checked by `web/scripts/check-pwa-foundation.mjs` |
+| Authoritative app artwork | Unchanged owner poster → fixed pixel crops in `build-assets.py` → `assets/` and `web/public/identity/` PNGs |
+| Installed raster icons | Light crop → 192/512 PWA PNG, 180 Apple touch PNG and 512 maskable PNG; dimensions checked by `web/scripts/check-pwa-foundation.mjs` |
 | Icon names, outlines and variants | `web/src/components/EimirIcon.tsx` → `DestinationIcon`, `AppShell`, Today content and existing route usage |
 | Semantic color worlds | `design/tokens.json` → `web/scripts/generate-identity-roles.mjs` → generated CSS and existing theme bootstrap |
 | Design evidence | Original PNGs in `references/`; editable board source and historical generated exports in this directory; real app screenshots in `evidence/` |
 
-Run the existing token, PWA, type, unit and browser checks for affected surfaces. [verify.py](verify.py) validates the owner-image hashes, 30 board names, runtime symbol coverage, SVG syntax, delivered asset consistency, historical export integrity and representative text contrast. The Web build validates its generated token output and PWA dimensions. Review Wir, Momente, Planen, Mehr/Listen and central add in real Compact Light/Dark UI, then the relevant Expanded view. Four #1245 screenshots of a real private-area route at 390 and 1440 CSS px in both themes are [available](evidence/) from PR browser QA with mocked API responses. They show the header logo, navigation icons and selected states in their actual compositions; they do not cover every route or hover/pressed state. Product acceptance compares those results with the four originals; a green build alone does not approve the visual match.
+Run the existing token, PWA, type, unit and browser checks for affected surfaces. [verify.py](verify.py) validates owner-image hashes, pixel-exact crops, delivered PNG consistency, 30 board names, runtime symbol coverage, historical SVG syntax and export integrity, and representative text contrast. The Web build validates its generated token output and PWA dimensions. Review Wir, Momente, Planen, Mehr/Listen and central add in real Compact Light/Dark UI, then the relevant Expanded view. Four current [390/1440 px screenshots](evidence/) show the raster icon in the private-area header in Light and Dark with mocked API responses. Four earlier #1245 screenshots at those widths record the prior vector implementation. Product acceptance compares current results with the originals; a green build alone does not approve the visual match.
 
 ### Comparison boundaries for #1245
 
-- The app logo is an editable vector reconstruction of the supplied raster. Its color order, circles, loop, lower stroke and separate dot follow the owner image. Pixel equality with the original lighting and anti-aliasing is not claimed; inspect it at 16, 32, 192 and 512 px before acceptance.
+- The three source tiles are pixel-exact crops from the supplied poster. Required 16/32 px browser renderings and 180/192/512 px installed icons are resampled from them, so equality of those resized pixels with a nonexistent higher-resolution original cannot be claimed. Inspect small and launcher sizes before acceptance.
 - The owner board shows one state sequence for a heart. Runtime icons use its contour, fill, duotone and pressed distinctions with contrast-safe semantic theme colors; the parent control still owns hover, focus, disabled and selected semantics. The PNG exports from the original snapshot predate the #1245 changes and remain historical evidence until regenerated from the updated editable board source.
-- The four `private-area-*-1245.png` screenshots are current browser evidence for Compact/Expanded Light/Dark. The earlier Today, Planen and quick-create screenshots in `evidence/` predate these refinements. The browser captures do not prove a pixel-perfect match for every icon size, interaction state or installed launcher; Philipp's direct visual review remains open.
+- The four `private-area-*-original-raster.png` screenshots capture this implementation in Compact/Expanded Light/Dark. The four `private-area-*-1245.png` screenshots record the previous vector delivery; the earlier Today, Planen and quick-create screenshots also predate this raster update. Philipp accepted the original-poster app icon on 2026-10-12. That acceptance and the browser captures do not certify every product-icon interaction state or installed launcher.
 - Native Android/store launcher packaging and the historical `docs/assets/playstore/*` preview assets are intentionally outside #1245. Web/Mobile Web and the PWA assets above are the normative delivery in this follow-up; a future store-packaging pass must explicitly migrate those native/store artifacts before they are treated as current identity evidence.

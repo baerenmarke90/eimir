@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -116,6 +117,7 @@ async function installAuthorizedApiMocks(
     });
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -126,6 +128,11 @@ async function installAuthorizedApiMocks(
         contentType: 'application/json',
         body: JSON.stringify(body),
       });
+
+    if (method === 'GET' && pathname.endsWith('/partner-nickname')) {
+      await fulfillJson({ partnerId: null, nickname: null, version: 0 });
+      return;
+    }
 
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({

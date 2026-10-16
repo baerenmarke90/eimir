@@ -1,6 +1,10 @@
 import type { TFunction } from 'i18next';
 import { describe, expect, it } from 'vitest';
-import { formatCompactCalendarDate, formatRecency } from './formatRecency';
+import {
+  formatCalendarDate,
+  formatCompactCalendarDate,
+  formatRecency,
+} from './formatRecency';
 
 describe('formatRecency', () => {
   const mockT = ((key: string, opts?: { count?: number }) => {
@@ -53,5 +57,12 @@ describe('formatRecency', () => {
     ).toBe('Fri, Sep 4');
 
     expect(formatCompactCalendarDate(calendarDate, 'en-US')).toBe('Sat, Sep 5');
+  });
+
+  it('formats a full calendar day from its encoded UTC date without shifting it', () => {
+    const calendarDate = new Date('2026-09-11T00:00:00Z');
+
+    expect(formatCalendarDate(calendarDate, 'de-DE')).toBe('11.09.2026');
+    expect(formatCalendarDate(calendarDate, 'en-US')).toBe('09/11/2026');
   });
 });

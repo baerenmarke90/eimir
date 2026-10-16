@@ -20,6 +20,7 @@ import {
 } from '../client/planningOverview';
 import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   PLAN_CREATE_ROUTE,
   planDetailPath,
@@ -166,6 +167,7 @@ export function SharedPlanningOverviewPage({
   spaceId: string;
 }) {
   const { t } = useTranslation();
+  const { relationshipLabel } = usePartnerNickname();
   const location = useLocation();
   const navigate = useNavigate();
   const { captureOrigin, registerOriginMetadata, resolveOrigin } =
@@ -471,7 +473,13 @@ export function SharedPlanningOverviewPage({
                   <strong>{wish.title}</strong>
                   <span>
                     {t('m5s3.overview.createdBy', {
-                      name: authorDisplayName(wish.creator),
+                      name: wish.creator.isFormerMember
+                        ? authorDisplayName(wish.creator)
+                        : relationshipLabel(
+                            wish.creator.id,
+                            wish.creator.displayName,
+                            t('couplePresencePartnerFallback'),
+                          ),
                     })}
                   </span>
                 </Link>

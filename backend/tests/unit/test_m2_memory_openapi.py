@@ -40,11 +40,11 @@ def test_memory_write_dtos_only_expose_approved_fields() -> None:
 
     create = components["MemoryCreate"]
     update = components["MemoryUpdate"]
-    assert set(create["properties"]) == {"title", "body", "happenedOn"}
+    assert set(create["properties"]) == {"title", "body", "happenedOn", "tags"}
     assert set(create["required"]) == {"title"}
     assert create["properties"]["body"]["default"] == ""
     assert create["additionalProperties"] is False
-    assert set(update["properties"]) == {"title", "body", "happenedOn"}
+    assert set(update["properties"]) == {"title", "body", "happenedOn", "tags"}
     assert update["additionalProperties"] is False
 
 

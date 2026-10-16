@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -35,6 +36,7 @@ async function installMocks(page: Page): Promise<{
   let lastEnergy: number | null | undefined;
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -317,6 +319,7 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page).toHaveURL(/\/today$/);
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
 function energyBadgeAriaValue(value: number): string {
@@ -374,7 +377,7 @@ test('Daily Energy keeps an unset own affordance, reveals partner Energy, and al
 
   const popover = page.getByTestId('daily-energy-popover');
   await expect(popover).toBeVisible();
-  await expect(hero).toHaveCSS('z-index', '20');
+  await expect(hero).toHaveCSS('z-index', '60');
   await expect(popover).not.toContainText('%');
   await expect(popover.locator('.daily-energy-current-value')).toHaveCount(0);
   await expect(popover.locator('.daily-energy-scale')).toHaveCount(0);
@@ -464,6 +467,136 @@ test('Daily Energy keeps an unset own affordance, reveals partner Energy, and al
   await expect(hero.getByTestId('daily-energy-own-battery')).toBeFocused();
 });
 
+test('Daily Energy changes the own battery before response, rolls back, and retries without revealing partner state early', async ({
+  page,
+}, testInfo) => {
+  const state = await installMocks(page);
+  let releaseFailure: (() => void) | null = null;
+  let failFirstWrite = true;
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/daily-check-in/today`,
+    async (route) => {
+      if (route.request().method() !== 'PATCH') {
+        await route.fallback();
+        return;
+      }
+      if (!failFirstWrite) {
+        await route.fallback();
+        return;
+      }
+      failFirstWrite = false;
+      await new Promise<void>((resolve) => {
+        releaseFailure = resolve;
+      });
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: 'SERVER_ERROR',
+          detail: 'The Energy value was not saved.',
+          status: 503,
+          title: 'Service unavailable',
+          type: 'about:blank',
+        }),
+      });
+    },
+  );
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+
+  const ownBattery = page.getByTestId('daily-energy-own-battery');
+  const partnerBattery = page.getByTestId('daily-energy-partner-battery');
+  await expect(ownBattery).toHaveAttribute(
+    'aria-label',
+    dailyEnergy.badgeAriaEmpty,
+  );
+  await ownBattery.click();
+  const popover = page.getByTestId('daily-energy-popover');
+  const slider = popover.getByRole('slider', {
+    name: dailyEnergy.selectLegend,
+  });
+  await slider.focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Tab');
+  await expect.poll(() => releaseFailure !== null).toBe(true);
+  await expect(ownBattery).toHaveAttribute(
+    'aria-label',
+    energyBadgeAriaValue(70),
+  );
+  await expect(ownBattery).toHaveAttribute('aria-busy', 'true');
+  await expect(popover.getByRole('status')).toContainText(dailyEnergy.saving);
+  await expect(partnerBattery).toHaveCount(0);
+  await page.screenshot({
+    path: testInfo.outputPath('today-energy-pending-390-light.png'),
+    fullPage: true,
+    animations: 'disabled',
+  });
+
+  releaseFailure?.();
+  await expect(ownBattery).toHaveAttribute(
+    'aria-label',
+    dailyEnergy.badgeAriaEmpty,
+  );
+  await expect(slider).toHaveValue('70');
+  const retry = popover.getByRole('button', { name: de.common.retry });
+  await expect(retry).toBeVisible();
+  await expect(partnerBattery).toHaveCount(0);
+  await page.screenshot({
+    path: testInfo.outputPath('today-energy-rollback-390-light.png'),
+    fullPage: true,
+    animations: 'disabled',
+  });
+
+  await retry.click();
+  await expect(ownBattery).toHaveAttribute(
+    'aria-label',
+    energyBadgeAriaValue(70),
+  );
+  await expect(ownBattery).toHaveAttribute('aria-busy', 'false');
+  await expect(partnerBattery).toHaveAttribute('data-energy', '20');
+  await expect(retry).toHaveCount(0);
+  expect(state.patchCount()).toBe(1);
+  expect(state.lastIfMatch()).toBe('"2026-09-21:absent"');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  expect(
+    (await new AxeBuilder({ page }).include('.today-hero').analyze())
+      .violations,
+  ).toEqual([]);
+  await page.screenshot({
+    path: testInfo.outputPath('today-energy-confirmed-1280-light.png'),
+    fullPage: true,
+    animations: 'disabled',
+  });
+
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+  const widths = await page.evaluate(() => ({
+    client: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
+  }));
+  expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+  const sliderUnobscured = await popover
+    .locator('.daily-energy-slider')
+    .evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return (
+        document.elementFromPoint(
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2,
+        ) === element
+      );
+    });
+  expect(sliderUnobscured).toBe(true);
+  await page.screenshot({
+    path: testInfo.outputPath('today-energy-confirmed-320-dark-200pct.png'),
+    fullPage: true,
+    animations: 'disabled',
+  });
+});
+
 test('an open partner Today adopts the manager turning Energy off and on again', async ({
   page,
 }) => {
@@ -524,7 +657,7 @@ test('Daily Energy avatar batteries and popover reflow at 320px with 200 percent
 
   const popover = page.getByTestId('daily-energy-popover');
   await expect(popover).toBeVisible();
-  await expect(hero).toHaveCSS('z-index', '20');
+  await expect(hero).toHaveCSS('z-index', '60');
   await expect(popover).not.toContainText('%');
   await expect(
     popover.getByRole('slider', { name: dailyEnergy.selectLegend }),

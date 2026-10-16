@@ -7,7 +7,7 @@ from typing import Annotated, Self
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, Response, status
-from pydantic import ConfigDict, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
@@ -20,6 +20,7 @@ from eimir.attachments.models import Attachment, MediaType
 from eimir.authorization import ContentVisibility, visibility_of
 from eimir.heart_moments import service
 from eimir.heart_moments.models import HeartEmotion, HeartMoment
+from eimir.heart_moments.tags import HeartMomentTags, unique_tags
 
 router = APIRouter(tags=["heart-moments"])
 
@@ -39,14 +40,21 @@ class HeartMomentCreate(ApiModel):
     visibility: ContentVisibility
     happened_on: date
     attachment_id: UUID | None = None
+    tags: HeartMomentTags = Field(default_factory=list)
+
+    _unique_tags = field_validator("tags")(unique_tags)
 
     @field_validator("text")
     @classmethod
     def _text_not_blank(cls, value: str) -> str:
         cleaned = value.strip()
-        if not cleaned:
-            raise ValueError("must not be blank")
         return cleaned
+
+    @model_validator(mode="after")
+    def _has_content(self) -> Self:
+        if not self.text and not self.tags and self.attachment_id is None:
+            raise ValueError("a thought, context tag or photo is required")
+        return self
 
 
 class HeartMomentUpdate(ApiModel):
@@ -63,15 +71,20 @@ class HeartMomentUpdate(ApiModel):
     emotion: HeartEmotion | None = None
     happened_on: date | None = None
     attachment_id: UUID | None = None
+    tags: HeartMomentTags | None = None
+
+    _unique_tags = field_validator("tags")(unique_tags)
 
     @model_validator(mode="after")
     def _validate_patch(self) -> Self:
         if not self.model_fields_set:
             raise ValueError("at least one field must be supplied")
         if "text" in self.model_fields_set:
-            if self.text is None or not self.text.strip():
-                raise ValueError("text must not be null or blank")
+            if self.text is None:
+                raise ValueError("text must not be null")
             self.text = self.text.strip()
+        if "tags" in self.model_fields_set and self.tags is None:
+            raise ValueError("tags must not be null")
         if "emotion" in self.model_fields_set and self.emotion is None:
             raise ValueError("emotion must not be null")
         if "happened_on" in self.model_fields_set and self.happened_on is None:
@@ -90,6 +103,7 @@ class HeartMomentDetail(ApiModel):
     space_id: UUID
     author_id: UUID
     text: str
+    tags: HeartMomentTags
     emotion: HeartEmotion
     visibility: ContentVisibility
     happened_on: date
@@ -129,6 +143,7 @@ def _heart_moment_detail(
         space_id=heart_moment.space_id,
         author_id=heart_moment.owner_id,
         text=heart_moment.payload.text,
+        tags=heart_moment.payload.tags,
         emotion=heart_moment.payload.emotion,
         visibility=visibility,
         happened_on=heart_moment.happened_on,
@@ -196,6 +211,7 @@ def create_heart_moment(
         visibility=body.visibility,
         happened_on=body.happened_on,
         attachment_id=body.attachment_id,
+        tags=body.tags,
     )
     if not result.created:
         response.status_code = status.HTTP_200_OK
@@ -280,6 +296,7 @@ def update_heart_moment(
         emotion=body.emotion,
         happened_on=body.happened_on,
         attachment_id=body.attachment_id,
+        tags=body.tags,
     )
     response.headers["ETag"] = etag_for(heart_moment.version)
     return _heart_moment_detail(session, authorization, heart_moment)

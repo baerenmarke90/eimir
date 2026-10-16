@@ -15,6 +15,7 @@ const memory: MemoryDetail = {
   author: { id: 'account-1', displayName: 'Alex' },
   title: 'Our saved walk',
   body: 'Quiet words from yesterday.',
+  tags: [],
   attachments: [],
   happenedOn: new Date('2026-09-15'),
   createdAt: new Date('2026-09-15'),

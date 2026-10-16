@@ -33,7 +33,7 @@ from eimir.core import clock
 from eimir.heart_moments.models import HeartEmotion, HeartMoment
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
-from eimir.story import discover_service, service, view_service
+from eimir.story import discover_service, photo_service, service, view_service
 from eimir.story.service import StoryKind, StoryOrder, StoryRow
 
 router = APIRouter(tags=["story"])
@@ -200,6 +200,64 @@ def _attachment_summary(attachment: Attachment) -> AttachmentSummary:
         width=attachment.width,
         height=attachment.height,
         has_thumbnail=attachment.has_thumbnail,
+    )
+
+
+class SharedPhoto(ApiModel):
+    parent_type: photo_service.PhotoParentType
+    parent_id: UUID
+    effective_date: date
+    attachment: AttachmentSummary
+
+
+class SharedPhotoPage(ApiModel):
+    items: list[SharedPhoto]
+    total_count: int = Field(ge=0)
+    next_cursor: str | None
+    has_more: bool
+
+
+@router.get(
+    "/spaces/{spaceId}/photos",
+    response_model=SharedPhotoPage,
+    operation_id="getSharedPhotos",
+    responses=problem_responses(400, 401, 404, 422),
+)
+def get_shared_photos(
+    response: Response,
+    tenant: Tenant,
+    authorization: Authorization,
+    session: DbSession,
+    cursor: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=photo_service.MAX_LIMIT)] = photo_service.DEFAULT_LIMIT,
+) -> SharedPhotoPage:
+    """Browse READY images from currently shared Memory and HeartMoment parents.
+
+    Owner-private media is excluded even for its owner. Media bytes still use
+    the existing parent-bound attachment read authorization.
+    """
+    response.headers["Cache-Control"] = "private, no-store"
+    page = photo_service.read_shared_photos(session, authorization, cursor=cursor, limit=limit)
+    attachments = {
+        attachment.id: attachment
+        for attachment in session.scalars(
+            select(Attachment).where(Attachment.id.in_([row.attachment_id for row in page.items]))
+        )
+    }
+    return SharedPhotoPage(
+        items=[
+            SharedPhoto(
+                parent_type=row.parent_type,
+                parent_id=row.parent_id,
+                effective_date=row.effective_date,
+                attachment=_attachment_summary(attachments[row.attachment_id]),
+            )
+            for row in page.items
+            if row.attachment_id in attachments
+        ],
+        total_count=page.total_count,
+        next_cursor=page.next_cursor,
+        has_more=page.has_more,
     )
 
 

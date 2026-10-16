@@ -111,6 +111,12 @@ export interface HeartMomentDetail {
     spaceId: string;
     /**
      * 
+     * @type {Array<string>}
+     * @memberof HeartMomentDetail
+     */
+    tags: Array<string>;
+    /**
+     * 
      * @type {string}
      * @memberof HeartMomentDetail
      */
@@ -150,6 +156,7 @@ export function instanceOfHeartMomentDetail(value: object): value is HeartMoment
     if (!('happenedOn' in value) || value['happenedOn'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('spaceId' in value) || value['spaceId'] === undefined) return false;
+    if (!('tags' in value) || value['tags'] === undefined) return false;
     if (!('text' in value) || value['text'] === undefined) return false;
     if (!('updatedAt' in value) || value['updatedAt'] === undefined) return false;
     if (!('version' in value) || value['version'] === undefined) return false;
@@ -176,6 +183,7 @@ export function HeartMomentDetailFromJSONTyped(json: any, ignoreDiscriminator: b
         'happenedOn': (new Date(json['happenedOn'])),
         'id': json['id'],
         'spaceId': json['spaceId'],
+        'tags': json['tags'],
         'text': json['text'],
         'updatedAt': (new Date(json['updatedAt'])),
         'version': json['version'],
@@ -203,6 +211,7 @@ export function HeartMomentDetailToJSONTyped(value?: HeartMomentDetail | null, i
         'happenedOn': value['happenedOn'].toISOString().substring(0,10),
         'id': value['id'],
         'spaceId': value['spaceId'],
+        'tags': value['tags'],
         'text': value['text'],
         'updatedAt': value['updatedAt'].toISOString(),
         'version': value['version'],

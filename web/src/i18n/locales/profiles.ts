@@ -52,6 +52,18 @@ const profiles = {
   partnerIntro:
     'Hier siehst du ausschließlich die Vorlieben, die dein Partner für sein Profil freigegeben hat.',
   partnerEmpty: '{{name}} hat noch keine freigegebenen Vorlieben.',
+  nickname: {
+    title: 'So nennst du {{name}}',
+    fallback: '{{name}} · Vorname',
+    privateHelp: 'Dieser Spitzname ist nur für dich sichtbar.',
+    add: 'Spitznamen vergeben',
+    edit: 'Spitznamen ändern',
+    inputLabel: 'Spitzname für {{name}}',
+    save: 'Speichern',
+    remove: 'Spitznamen entfernen',
+    saved: 'Spitzname gespeichert.',
+    removed: 'Wieder der Vorname angezeigt.',
+  },
   noPartnerTitle: 'Noch kein Partner verbunden',
   noPartnerBody:
     'Sobald ein Partner mit diesem Bereich verbunden ist, erscheint hier sein freigegebenes Profil.',

@@ -174,6 +174,47 @@ describe('theme token contrast', () => {
     }
   });
 
+  it('keeps Discover supporting text readable across its actual identity surfaces and gradient stops', () => {
+    const identityCss = readSource('./design/identity-roles.css');
+    const discoverCss = readSource('./components/StoryProductPages.css');
+    for (const theme of [
+      cssBlock(identityCss, ':root'),
+      darkThemeBlock(identityCss),
+    ]) {
+      for (const selector of [
+        '.momente-hero-kicker',
+        '.momente-tapestry-kind',
+      ]) {
+        const token = cssBlock(discoverCss, selector).match(
+          /color:\s*var\(--([\w-]+)\)/,
+        )?.[1];
+        if (!token) throw new Error(`Missing foreground token for ${selector}`);
+        for (const surface of [
+          'color-brand-surface',
+          'color-surface-raised',
+          'color-surface',
+        ]) {
+          expect(
+            contrast(cssVariable(theme, token), cssVariable(theme, surface)),
+            `${selector} on ${surface}`,
+          ).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+      const actionToken = cssBlock(
+        discoverCss,
+        '.momente-stream-all-link',
+      ).match(/color:\s*var\(--([\w-]+)\)/)?.[1];
+      if (!actionToken)
+        throw new Error('Missing Discover Timeline action foreground');
+      expect(
+        contrast(
+          cssVariable(theme, actionToken),
+          cssVariable(theme, 'color-background'),
+        ),
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it('keeps status text readable on its semantic surface', () => {
     expect(
       contrast(

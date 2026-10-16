@@ -35,6 +35,7 @@ PINNED_CONTEXTS = {
     "important_dates": "ImportantDatePayload",
     "memories": "MemoryPayload",
     "milestones": "MilestonePayload",
+    "partner_nicknames": "PartnerNicknamePayload",
     "places": "PlacePayload",
     "plans": "PlanPayload",
     "push_endpoint_secrets": "PushEndpointSecretPayload",

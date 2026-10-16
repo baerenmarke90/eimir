@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
 import {
   act,
   cleanup,
@@ -22,6 +26,8 @@ import '../i18n';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { SupportGestureKind } from '../api/generated/models/SupportGestureKind';
 import { ClientProblemError } from '../client/problemDetails';
+import { dashboardQueryKey } from '../client/dashboardQueries';
+import { partnerQuickActionsEntitlementQueryKey } from '../client/partnerQuickActions';
 import { SNACKBAR_EVENT, type SnackbarEventDetail } from '../client/snackbar';
 import type { M4ProductApis } from '../client/m4Product';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
@@ -80,14 +86,19 @@ function renderQuickActions({
   apis,
   entitlementApi,
   thinkingOfYouAvailableAt = null,
+  queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  }),
+  accountId = 'account-1',
+  spaceId = 'space-1',
 }: {
   apis?: Partial<M4ProductApis['notifications']>;
   entitlementApi?: Partial<EntitlementsApi>;
   thinkingOfYouAvailableAt?: Date | null;
+  queryClient?: QueryClient;
+  accountId?: string;
+  spaceId?: string;
 } = {}) {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
   const snackbars: string[] = [];
   window.addEventListener(SNACKBAR_EVENT, (event) =>
     snackbars.push(
@@ -103,14 +114,14 @@ function renderQuickActions({
         .mockResolvedValue({ capabilities: [] }),
     } as Partial<EntitlementsApi>);
 
-  render(
+  const element = (activeAccountId: string, activeSpaceId: string) => (
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
         <PartnerQuickActions
           apis={{ notifications: apis } as unknown as M4ProductApis}
           entitlementApi={resolvedEntitlementApi as unknown as EntitlementsApi}
-          accountId="account-1"
-          spaceId="space-1"
+          accountId={activeAccountId}
+          spaceId={activeSpaceId}
           partnerName="Marie"
           thinkingOfYouAvailableAt={thinkingOfYouAvailableAt}
         >
@@ -122,10 +133,17 @@ function renderQuickActions({
           )}
         </PartnerQuickActions>
       </MemoryRouter>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
+  const view = render(element(accountId, spaceId));
 
-  return { queryClient, snackbars };
+  return {
+    queryClient,
+    snackbars,
+    unmount: view.unmount,
+    switchScope: (nextAccountId: string, nextSpaceId: string) =>
+      view.rerender(element(nextAccountId, nextSpaceId)),
+  };
 }
 
 function openSheet() {
@@ -197,6 +215,333 @@ function mockResponsiveMatchMedia(): {
 }
 
 describe('PartnerQuickActions', () => {
+  it('uses the confirmed cache cooldown before React delivers the next observer render', async () => {
+    const sendThinkingOfYou = vi.fn().mockResolvedValue({
+      thinkingOfYouAvailableAt: new Date(Date.now() + 60_000),
+    });
+    const view = renderQuickActions({ apis: { sendThinkingOfYou } });
+    openSheet();
+    const button = screen
+      .getByText(copy.thinking)
+      .closest('button') as HTMLButtonElement;
+    let activated = false;
+    const unsubscribe = view.queryClient
+      .getMutationCache()
+      .subscribe((event) => {
+        if (
+          event.type === 'updated' &&
+          event.mutation.state.status === 'success' &&
+          !activated
+        ) {
+          activated = true;
+          button.click();
+        }
+      });
+    try {
+      await act(async () => button.click());
+      await screen.findByText(copy.sentThinking);
+      expect(activated).toBe(true);
+      expect(sendThinkingOfYou).toHaveBeenCalledTimes(1);
+    } finally {
+      unsubscribe();
+    }
+  });
+
+  it('retires a request identity after an authoritative rejection and requires an explicit new attempt', async () => {
+    const sendThinkingOfYou = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new ClientProblemError('validation', 422, 'VALIDATION_ERROR'),
+      )
+      .mockResolvedValue({
+        thinkingOfYouAvailableAt: new Date(Date.now() + 60_000),
+      });
+    renderQuickActions({ apis: { sendThinkingOfYou } });
+    openSheet();
+    const button = screen
+      .getByText(copy.thinking)
+      .closest('button') as HTMLButtonElement;
+    fireEvent.click(button);
+    await screen.findByRole('alert');
+    fireEvent.click(button);
+    await screen.findByText(copy.sentThinking);
+    expect(sendThinkingOfYou).toHaveBeenCalledTimes(2);
+    expect(
+      sendThinkingOfYou.mock.calls[1][0].thinkingOfYouCreate.clientRequestId,
+    ).not.toBe(
+      sendThinkingOfYou.mock.calls[0][0].thinkingOfYouCreate.clientRequestId,
+    );
+  });
+
+  it('keeps one pending gesture across sender remounts and blocks a competing gesture', async () => {
+    let resolve!: (result: { thinkingOfYouAvailableAt: Date }) => void;
+    const sendThinkingOfYou = vi.fn().mockImplementation(
+      () =>
+        new Promise((accept) => {
+          resolve = accept;
+        }),
+    );
+    const sendPartnerQuickAction = vi.fn();
+    const entitlementApi = {
+      getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet: vi
+        .fn()
+        .mockResolvedValue({
+          capabilities: ['partner.quick_actions.extended'],
+        }),
+    };
+    const first = renderQuickActions({
+      apis: { sendThinkingOfYou, sendPartnerQuickAction },
+      entitlementApi,
+    });
+    first.queryClient.setQueryData(dashboardQueryKey('space-1'), {
+      thinkingOfYouAvailableAt: null,
+    });
+    openSheet();
+    const thinking = screen
+      .getByText(copy.thinking)
+      .closest('button') as HTMLButtonElement;
+    act(() => {
+      thinking.click();
+      thinking.click();
+    });
+    await waitFor(() => expect(sendThinkingOfYou).toHaveBeenCalledTimes(1));
+    first.unmount();
+    renderQuickActions({
+      apis: { sendThinkingOfYou, sendPartnerQuickAction },
+      entitlementApi,
+      queryClient: first.queryClient,
+    });
+    openSheet();
+    expect(
+      screen
+        .getByText(copy.thinking)
+        .closest('button')
+        ?.getAttribute('aria-disabled'),
+    ).toBe('true');
+    expect(screen.getByText(copy.sendingThinking).getAttribute('role')).toBe(
+      'status',
+    );
+    expect(screen.queryByText(copy.sentThinking)).toBeNull();
+    const kiss = (await screen.findByText(copy.kiss)).closest(
+      'button',
+    ) as HTMLButtonElement;
+    fireEvent.click(kiss);
+    expect(sendPartnerQuickAction).not.toHaveBeenCalled();
+    await act(async () =>
+      resolve({ thinkingOfYouAvailableAt: new Date(Date.now() + 60_000) }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByText(copy.sendingThinking)).toBeNull(),
+    );
+    expect(
+      (screen.getByText(copy.thinking).closest('button') as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    expect(
+      first.queryClient
+        .getQueryData<{ thinkingOfYouAvailableAt: Date }>(
+          dashboardQueryKey('space-1'),
+        )
+        ?.thinkingOfYouAvailableAt.getTime(),
+    ).toBeGreaterThan(Date.now());
+    expect(first.snackbars).toEqual([]);
+  });
+
+  it('announces pending without losing action focus, including same-task duplicate activation', async () => {
+    let resolve!: (result: { thinkingOfYouAvailableAt: Date }) => void;
+    const sendThinkingOfYou = vi.fn().mockImplementation(
+      () =>
+        new Promise((accept) => {
+          resolve = accept;
+        }),
+    );
+    renderQuickActions({ apis: { sendThinkingOfYou } });
+    openSheet();
+    const button = screen
+      .getByText(copy.thinking)
+      .closest('button') as HTMLButtonElement;
+    button.focus();
+    act(() => {
+      button.click();
+      button.click();
+    });
+    await waitFor(() => expect(sendThinkingOfYou).toHaveBeenCalledTimes(1));
+    expect(document.activeElement).toBe(button);
+    expect(
+      screen.getByText(copy.sendingThinking).getAttribute('aria-live'),
+    ).toBe('polite');
+    expect(screen.queryByText(copy.sentThinking)).toBeNull();
+    await act(async () =>
+      resolve({ thinkingOfYouAvailableAt: new Date(Date.now() + 60_000) }),
+    );
+  });
+
+  it('retains an uncertain failed request across remount and retries deliberately with the same identity', async () => {
+    const sendThinkingOfYou = vi
+      .fn()
+      .mockRejectedValueOnce(new ClientProblemError('offline'))
+      .mockResolvedValue({
+        thinkingOfYouAvailableAt: new Date(Date.now() + 60_000),
+      });
+    const first = renderQuickActions({ apis: { sendThinkingOfYou } });
+    openSheet();
+    fireEvent.click(
+      screen.getByText(copy.thinking).closest('button') as HTMLButtonElement,
+    );
+    await screen.findByRole('alert');
+    const firstId =
+      sendThinkingOfYou.mock.calls[0][0].thinkingOfYouCreate.clientRequestId;
+    first.unmount();
+    renderQuickActions({
+      apis: { sendThinkingOfYou },
+      queryClient: first.queryClient,
+    });
+    openSheet();
+    expect(screen.getByRole('alert').textContent).toBe(copy.offline);
+    expect(screen.queryByText(copy.sendingThinking)).toBeNull();
+    fireEvent.click(
+      screen.getByText(copy.thinking).closest('button') as HTMLButtonElement,
+    );
+    await screen.findByText(copy.sentThinking);
+    expect(sendThinkingOfYou).toHaveBeenCalledTimes(2);
+    expect(
+      sendThinkingOfYou.mock.calls[1][0].thinkingOfYouCreate.clientRequestId,
+    ).toBe(firstId);
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('retains an extended gesture cooldown across remount without manufacturing another send', async () => {
+    const sendPartnerQuickAction = vi
+      .fn()
+      .mockResolvedValue({ availableAt: new Date(Date.now() + 60_000) });
+    const entitlementApi = {
+      getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet: vi
+        .fn()
+        .mockResolvedValue({
+          capabilities: ['partner.quick_actions.extended'],
+        }),
+    };
+    const first = renderQuickActions({
+      apis: { sendPartnerQuickAction },
+      entitlementApi,
+    });
+    openSheet();
+    fireEvent.click(
+      (await screen.findByText(copy.kiss)).closest(
+        'button',
+      ) as HTMLButtonElement,
+    );
+    await screen.findByText(copy.sentKiss);
+    first.unmount();
+    renderQuickActions({
+      apis: { sendPartnerQuickAction },
+      entitlementApi,
+      queryClient: first.queryClient,
+    });
+    openSheet();
+    const kiss = (await screen.findByText(copy.kiss)).closest(
+      'button',
+    ) as HTMLButtonElement;
+    expect(kiss.disabled).toBe(true);
+    fireEvent.click(kiss);
+    expect(sendPartnerQuickAction).toHaveBeenCalledTimes(1);
+    expect(
+      (screen.getByText(copy.checkIn).closest('button') as HTMLButtonElement)
+        .disabled,
+    ).toBe(false);
+  });
+
+  it.each([
+    ['account-2', 'space-1'],
+    ['account-1', 'space-2'],
+  ])(
+    'isolates pending and late success after switching to %s/%s',
+    async (accountId, spaceId) => {
+      let resolve!: (result: { thinkingOfYouAvailableAt: Date }) => void;
+      const sendThinkingOfYou = vi.fn().mockImplementation(
+        () =>
+          new Promise((accept) => {
+            resolve = accept;
+          }),
+      );
+      const first = renderQuickActions({ apis: { sendThinkingOfYou } });
+      openSheet();
+      fireEvent.click(
+        screen.getByText(copy.thinking).closest('button') as HTMLButtonElement,
+      );
+      await screen.findByText(copy.sendingThinking);
+      first.switchScope(accountId, spaceId);
+      expect(screen.queryByText(copy.sendingThinking)).toBeNull();
+      expect(
+        screen
+          .getByText(copy.thinking)
+          .closest('button')
+          ?.getAttribute('aria-disabled'),
+      ).toBeNull();
+      await act(async () =>
+        resolve({ thinkingOfYouAvailableAt: new Date(Date.now() + 60_000) }),
+      );
+      expect(screen.queryByText(copy.sentThinking)).toBeNull();
+      expect(first.snackbars).toEqual([]);
+    },
+  );
+
+  it('does not reconcile or announce a late response after cache clear and query replacement', async () => {
+    let resolve!: (result: { thinkingOfYouAvailableAt: Date }) => void;
+    const sendThinkingOfYou = vi.fn().mockImplementation(
+      () =>
+        new Promise((accept) => {
+          resolve = accept;
+        }),
+    );
+    const first = renderQuickActions({ apis: { sendThinkingOfYou } });
+    const key = dashboardQueryKey('space-1');
+    first.queryClient.setQueryData(key, { thinkingOfYouAvailableAt: null });
+    openSheet();
+    fireEvent.click(
+      screen.getByText(copy.thinking).closest('button') as HTMLButtonElement,
+    );
+    await screen.findByText(copy.sendingThinking);
+    first.unmount();
+    first.queryClient.clear();
+    first.queryClient.setQueryData(key, { thinkingOfYouAvailableAt: null });
+    first.queryClient.setQueryData(
+      partnerQuickActionsEntitlementQueryKey('account-1', 'space-1'),
+      false,
+    );
+    await act(async () =>
+      resolve({ thinkingOfYouAvailableAt: new Date(Date.now() + 60_000) }),
+    );
+    expect(first.queryClient.getQueryData(key)).toEqual({
+      thinkingOfYouAvailableAt: null,
+    });
+    expect(first.snackbars).toEqual([]);
+  });
+
+  it('fails an offline gesture without queuing it for reconnect and requires another activation', async () => {
+    const sendThinkingOfYou = vi.fn().mockResolvedValue({
+      thinkingOfYouAvailableAt: new Date(Date.now() + 60_000),
+    });
+    renderQuickActions({ apis: { sendThinkingOfYou } });
+    openSheet();
+    try {
+      onlineManager.setOnline(false);
+      fireEvent.click(
+        screen.getByText(copy.thinking).closest('button') as HTMLButtonElement,
+      );
+      await screen.findByRole('alert');
+      expect(sendThinkingOfYou).not.toHaveBeenCalled();
+      await act(async () => onlineManager.setOnline(true));
+      expect(sendThinkingOfYou).not.toHaveBeenCalled();
+      fireEvent.click(
+        screen.getByText(copy.thinking).closest('button') as HTMLButtonElement,
+      );
+      await waitFor(() => expect(sendThinkingOfYou).toHaveBeenCalledTimes(1));
+    } finally {
+      onlineManager.setOnline(true);
+    }
+  });
+
   it('exposes the avatar as a closed dialog trigger and opens the Compact sheet on activation', async () => {
     renderQuickActions();
 

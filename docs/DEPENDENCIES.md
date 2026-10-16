@@ -130,7 +130,7 @@ in a background job under resource limits — never in the request path.
 | uuid6 | 2025.0.1 | PyPI | MIT |
 | argon2-cffi | 25.1.0 | PyPI | MIT |
 | httpx | 0.28.1 | PyPI | BSD-3-Clause |
-| pyjwt[crypto] | 2.13.0 | PyPI | MIT |
+| pyjwt[crypto] | 2.15.1 | PyPI | MIT |
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
 | pywebpush | 2.5.0 | PyPI | MPL-2.0 |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
@@ -165,9 +165,33 @@ in a background job under resource limits — never in the request path.
 |---|---|---|---|
 | @types/react | 19.1.12 | npm | MIT |
 | @types/react-dom | 19.1.9 | npm | MIT |
+| @types/node | 24.19.1 | npm | MIT |
 | typescript | 5.9.2 | npm | Apache-2.0 |
 | vite | 7.3.6 | npm | MIT |
-| vitest | 3.2.7 | npm | MIT |
+| vitest | 4.1.11 | npm | MIT |
+
+### October 2026 audit maintenance
+
+The lock refresh updates PyJWT to 2.15.1 and Alembic's transitive Mako to
+1.4.3. PyJWT's declared minimum also prevents restoring the vulnerable
+verification dependency during a future resolution. Both remain existing MIT
+dependencies; no authentication provider, algorithm policy or migration is added.
+
+Vitest 4.1.11 is the smallest supported major line with the fixed mocker and
+without the vulnerable Tinypool dependency. Its declared Vite 7 and Node 24
+support matches this repository. The [upstream migration guide](https://vitest.dev/guide/migration/)
+was reviewed; object-URL and callback mocks now declare their actual callable
+signatures. Node 24 types are explicit because the removed transitive type
+dependency previously supplied the existing filesystem/layout tests. Existing
+test assertions and timeouts remain unchanged. The
+lockfile also advances Vite/PostCSS's transitive `source-map-js` to 1.2.2.
+These are test/build dependencies and do not add a production feature or
+runtime provider. Core behavior and Cloud/Self-Hosted tiers are unchanged.
+
+`npm audit --audit-level=high` retains its existing policy. The remaining
+moderate `uuid` finding is in the already-adopted Capacitor CLI's `xcode`
+dependency; this maintenance does not force an unsupported transitive major
+override or downgrade the wrapper CLI. Backend audit still permits no findings.
 
 These Web dependencies serve only the thin S8 reference flow. They do not
 pull M5 functionality such as persistent Offline Caches, complete navigation,

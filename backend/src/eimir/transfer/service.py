@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from sqlalchemy import MetaData, Table, and_, or_, select
 from sqlalchemy.orm import Session
 
+from eimir.appearance import service as appearance_service
 from eimir.attachments.models import AttachmentStatus
 from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.core.clock import now
@@ -59,7 +60,7 @@ CLEANUP_JOB_KIND = "transfer.cleanup.v1"
 # cannot enter the archive because they have no entry here.
 FILE_TABLES: dict[str, tuple[str, ...]] = {
     "space.json": ("space_profiles",),
-    "profiles.json": ("partner_profiles", "profile_preferences"),
+    "profiles.json": ("partner_profiles", "partner_nicknames", "profile_preferences"),
     "people.json": ("related_persons", "important_dates"),
     "memories.json": ("memories", "memory_attachments"),
     "heart-moments.json": ("heart_moments",),
@@ -111,6 +112,7 @@ ACCOUNT_REFERENCE_COLUMNS = frozenset({"owner_id", "created_by", "account_id"})
 INSERT_ORDER = (
     "space_profiles",
     "partner_profiles",
+    "partner_nicknames",
     "profile_preferences",
     "related_persons",
     "important_dates",
@@ -298,6 +300,21 @@ def _portable_rows(
         table = _table(session, table_name, metadata)
         rows[table_name] = _load_root_rows(session, table, authorization=authorization, scope=scope)
 
+    # A personal export carries the viewer's current relationship label only.
+    # A former partner's old label must not create an unmappable account reference.
+    if rows.get("partner_nicknames"):
+        active_account_ids = set(
+            session.execute(
+                select(Membership.account_id).where(
+                    Membership.space_id == authorization.space_id,
+                    Membership.status == MembershipStatus.ACTIVE.value,
+                )
+            ).scalars()
+        )
+        rows["partner_nicknames"] = [
+            row for row in rows["partner_nicknames"] if row["account_id"] in active_account_ids
+        ]
+
     # Relation tables carry space_id but derive visibility from both targets.
     for table_name in RELATION_REQUIREMENTS:
         table = _table(session, table_name, metadata)
@@ -471,7 +488,15 @@ def build_export_archive(
     checksums: dict[str, str] = {}
     store = get_media_store()
     with ZipFile(output, mode="w", compression=ZIP_DEFLATED, allowZip64=True) as archive:
-        add_bytes(archive, "accounts.json", json_bytes({"members": accounts}), checksums)
+        account_document: dict[str, Any] = {"members": accounts}
+        if scope is TransferScope.PERSONAL:
+            preference = appearance_service.read_preference(session, authorization)
+            account_document["personalAppearance"] = {
+                "appIconId": preference.icon_id if preference else "original",
+            }
+        # Personal appearance is export-only metadata. Import never activates
+        # paid choices or changes an installation based on untrusted bundles.
+        add_bytes(archive, "accounts.json", json_bytes(account_document), checksums)
         for file_name, table_names in FILE_TABLES.items():
             if scope is TransferScope.SHARED and file_name in PRIVATE_FILES:
                 continue

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type CSSProperties,
   type RefObject,
@@ -10,20 +10,13 @@ import {
 } from 'react';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { PartnerEnergyProjection } from '../api/generated/models/PartnerEnergyProjection';
-import {
-  dailyCheckInTodayQueryKey,
-  dailyCheckInTodayQueryOptions,
-  type DailyCheckInSnapshot,
-  updateDailyCheckInToday,
-} from '../client/dailyCheckIn';
-import {
-  ClientProblemError,
-  clientProblemKind,
-} from '../client/problemDetails';
+import { dailyCheckInTodayQueryOptions } from '../client/dailyCheckIn';
+import { ClientProblemError } from '../client/problemDetails';
 import { postSnackbar } from '../client/snackbar';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
 import { useTranslation } from '../i18n';
+import { useDailyCheckInWrite } from './useDailyCheckInWrite';
 import './DailyEnergyCheckIn.css';
 
 export const DAILY_ENERGY_LEVELS = [
@@ -164,7 +157,6 @@ export function DailyEnergyCheckIn({
     onlineSnapshot,
     () => true,
   );
-  const queryKey = dailyCheckInTodayQueryKey(accountId, spaceId);
   const dailyQuery = useQuery(
     dailyCheckInTodayQueryOptions(api, accountId, spaceId),
   );
@@ -178,9 +170,6 @@ export function DailyEnergyCheckIn({
   const [draftEnergy, setDraftEnergy] = useState<DailyEnergyLevel>(50);
   const [draftTouched, setDraftTouched] = useState(false);
   const [moduleDisabled, setModuleDisabled] = useState(false);
-  const submittedEnergyRef = useRef<DailyEnergyLevel | null | undefined>(
-    undefined,
-  );
   const dialogId = useId();
   const dialogTitleId = useId();
 
@@ -193,68 +182,60 @@ export function DailyEnergyCheckIn({
     void refreshSpaceConfiguration(queryClient, accountId, spaceId);
   }, [accountId, queryClient, serverReportsModuleDisabled, spaceId]);
 
-  const mutation = useMutation({
-    mutationFn: async (energyLevel: DailyEnergyLevel | null) => {
-      const current =
-        queryClient.getQueryData<DailyCheckInSnapshot>(queryKey) ??
-        dailyQuery.data;
-      if (!api || !current) {
-        throw new ClientProblemError('unknown');
-      }
-      return updateDailyCheckInToday(api, spaceId, current.etag, {
-        energyLevel,
-      });
-    },
-    onSuccess: (snapshot) => {
-      queryClient.setQueryData<DailyCheckInSnapshot>(queryKey, snapshot);
-      setDraftTouched(false);
-    },
-    onError: async (error) => {
-      const problem =
-        error instanceof ClientProblemError
-          ? error
-          : new ClientProblemError(clientProblemKind(error));
-
-      if (problem.code === 'SPACE_MODULE_DISABLED') {
-        setModuleDisabled(true);
-        setOpen(false);
-        postSnackbar('snackbar.dailyEnergyModuleDisabled');
-        await Promise.all([
-          queryClient.refetchQueries({
-            queryKey,
-            exact: true,
-            type: 'active',
-          }),
-          refreshSpaceConfiguration(queryClient, accountId, spaceId),
-        ]);
-        return;
-      }
-
-      if (problem.code === 'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE') {
-        await queryClient.refetchQueries({
-          queryKey,
-          exact: true,
-          type: 'active',
-        });
-        return;
-      }
-
-      if (problem.kind === 'conflict') {
-        await queryClient.refetchQueries({
-          queryKey,
-          exact: true,
-          type: 'active',
-        });
-        postSnackbar('snackbar.dailyEnergyConflict');
-      }
-    },
-    onSettled: () => {
-      submittedEnergyRef.current = undefined;
-    },
+  const mutation = useDailyCheckInWrite({
+    api,
+    accountId,
+    spaceId,
+    dimension: 'energy',
   });
+  const preserveFailedDraft = Boolean(
+    mutation.error &&
+      mutation.error.kind !== 'conflict' &&
+      mutation.error.code !== 'SPACE_MODULE_DISABLED' &&
+      mutation.error.code !== 'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE',
+  );
+  const previousContext = useRef(mutation.scopeId);
+  useEffect(() => {
+    if (previousContext.current === mutation.scopeId) return;
+    previousContext.current = mutation.scopeId;
+    setDraftTouched(false);
+    setDraftEnergy((ownEnergy ?? 50) as DailyEnergyLevel);
+    setOpen(false);
+    setModuleDisabled(false);
+  }, [mutation.scopeId, ownEnergy, setOpen]);
+  useEffect(() => {
+    const failed = mutation.request?.update.energyLevel;
+    if (!preserveFailedDraft) return;
+    if (failed !== null && failed !== undefined) {
+      setDraftEnergy(failed as DailyEnergyLevel);
+      setDraftTouched(true);
+    }
+    setOpen(true);
+  }, [preserveFailedDraft, mutation.request, setOpen]);
+  useEffect(() => {
+    if (!mutation.claimFeedback()) return;
+    if (mutation.status === 'success') {
+      setDraftTouched(false);
+    } else if (mutation.error?.code === 'SPACE_MODULE_DISABLED') {
+      setModuleDisabled(serverReportsModuleDisabled);
+      setOpen(false);
+      postSnackbar('snackbar.dailyEnergyModuleDisabled');
+    } else if (mutation.error?.code === 'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE') {
+      setDraftTouched(false);
+    } else if (mutation.error?.kind === 'conflict') {
+      setDraftTouched(false);
+      postSnackbar('snackbar.dailyEnergyConflict');
+    }
+  }, [
+    mutation.claimFeedback,
+    mutation.status,
+    mutation.error,
+    serverReportsModuleDisabled,
+    setOpen,
+  ]);
 
   useEffect(() => {
-    if (mutation.isPending) return;
+    if (mutation.isPending || preserveFailedDraft || draftTouched) return;
     if (ownEnergy !== null) {
       setDraftEnergy(ownEnergy as DailyEnergyLevel);
       return;
@@ -263,7 +244,7 @@ export function DailyEnergyCheckIn({
       setDraftEnergy(50);
       setDraftTouched(false);
     }
-  }, [mutation.isPending, open, ownEnergy]);
+  }, [draftTouched, mutation.isPending, preserveFailedDraft, open, ownEnergy]);
 
   useEffect(() => {
     if (online && !dailyQuery.isError) {
@@ -323,36 +304,50 @@ export function DailyEnergyCheckIn({
   }
 
   const snapshot = dailyQuery.data;
+  const activeMutation = Boolean(mutation.request);
+  const pendingOwnEnergy =
+    mutation.pendingUpdate && mutation.pendingUpdate.energyLevel !== undefined
+      ? { value: mutation.pendingUpdate.energyLevel }
+      : null;
+  const failedOwnEnergy =
+    mutation.error && mutation.request?.update.energyLevel !== undefined
+      ? {
+          value: mutation.request.update.energyLevel as DailyEnergyLevel | null,
+        }
+      : null;
+  const displayedEnergy = pendingOwnEnergy ? pendingOwnEnergy.value : ownEnergy;
   const mutationProblem =
-    mutation.error instanceof ClientProblemError ? mutation.error : null;
+    activeMutation && mutation.error instanceof ClientProblemError
+      ? mutation.error
+      : null;
   const contextUnavailable =
     mutationProblem?.code === 'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE';
-  const showGenericMutationError =
-    Boolean(mutation.error) &&
-    mutationProblem?.kind !== 'conflict' &&
-    mutationProblem?.code !== 'SPACE_MODULE_DISABLED' &&
-    !contextUnavailable;
+  const showGenericMutationError = activeMutation && preserveFailedDraft;
 
   const badgeAria =
-    ownEnergy === null
+    displayedEnergy === null
       ? t('dailyEnergy.badgeAriaEmpty')
-      : t('dailyEnergy.badgeAriaValue', { value: ownEnergy });
-  const progress = ((draftEnergy - 10) / 90) * 100;
+      : t('dailyEnergy.badgeAriaValue', { value: displayedEnergy });
+  const displayedDraftEnergy = pendingOwnEnergy?.value ?? draftEnergy;
+  const progress = ((displayedDraftEnergy - 10) / 90) * 100;
   const sliderStyle = {
     '--daily-energy-progress': `${progress}%`,
   } as CSSProperties;
 
   function submitEnergy(value: DailyEnergyLevel | null): void {
-    if (mutation.isPending) return;
-    if (submittedEnergyRef.current === value) return;
-    if (value === ownEnergy) return;
-    submittedEnergyRef.current = value;
-    mutation.mutate(value);
+    if (mutation.isInFlight()) return;
+    if (value === ownEnergy) {
+      mutation.reset();
+      return;
+    }
+    mutation.submit({ energyLevel: value });
   }
 
   function updateDraft(value: number): void {
+    if (mutation.isInFlight()) return;
     setDraftEnergy(value as DailyEnergyLevel);
     setDraftTouched(true);
+    mutation.reset();
   }
 
   return (
@@ -368,11 +363,16 @@ export function DailyEnergyCheckIn({
         aria-expanded={open}
         aria-controls={open ? dialogId : undefined}
         aria-label={badgeAria}
+        aria-busy={Boolean(pendingOwnEnergy)}
+        data-pending={pendingOwnEnergy ? 'true' : undefined}
         onClick={toggle}
         data-testid="daily-energy-own-battery"
       >
         <span className="daily-energy-avatar-chip" aria-hidden="true">
-          <BatteryIcon value={ownEnergy} showQuestion={ownEnergy === null} />
+          <BatteryIcon
+            value={displayedEnergy}
+            showQuestion={displayedEnergy === null}
+          />
         </span>
       </button>
 
@@ -406,10 +406,12 @@ export function DailyEnergyCheckIn({
             min={10}
             max={100}
             step={10}
-            value={draftEnergy}
+            value={displayedDraftEnergy}
             disabled={mutation.isPending}
             style={sliderStyle}
-            aria-valuetext={t('dailyEnergy.optionAria', { value: draftEnergy })}
+            aria-valuetext={t('dailyEnergy.optionAria', {
+              value: displayedDraftEnergy,
+            })}
             onChange={(event) => updateDraft(Number(event.currentTarget.value))}
             onPointerUp={() => {
               if (draftTouched) submitEnergy(draftEnergy);
@@ -430,7 +432,11 @@ export function DailyEnergyCheckIn({
               role="status"
               aria-live="polite"
             >
-              {mutation.isPending ? t('dailyEnergy.saving') : ''}
+              {mutation.otherPending
+                ? t('dailyEnergy.otherSaving')
+                : mutation.isPending && activeMutation
+                  ? t('dailyEnergy.saving')
+                  : ''}
             </span>
             {ownEnergy !== null ? (
               <button
@@ -451,6 +457,16 @@ export function DailyEnergyCheckIn({
           ) : showGenericMutationError ? (
             <div className="daily-energy-inline-error" role="status">
               {t('dailyEnergy.saveError')}
+              {failedOwnEnergy ? (
+                <button
+                  type="button"
+                  className="tertiary daily-energy-retry"
+                  disabled={mutation.isPending}
+                  onClick={() => submitEnergy(failedOwnEnergy.value)}
+                >
+                  {t('common.retry')}
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>

@@ -14,6 +14,7 @@ const dailyEnergy = {
   change: 'Ändern',
   remove: 'Entfernen',
   saving: 'Wird gespeichert …',
+  otherSaving: 'Dein Vibe wird gerade gespeichert.',
   percentage: '{{value}} %',
   optionAria: '{{value}} Prozent',
   partnerStateAria: 'Akku-Check-in deines Partners',

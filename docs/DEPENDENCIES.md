@@ -168,7 +168,7 @@ in a background job under resource limits — never in the request path.
 | @types/node | 24.19.1 | npm | MIT |
 | typescript | 5.9.2 | npm | Apache-2.0 |
 | vite | 8.2.2 | npm | MIT |
-| vitest | 4.1.11 | npm | MIT |
+| vitest | 5.0.4 | npm | MIT |
 
 ### October 2026 audit maintenance
 
@@ -177,9 +177,10 @@ The lock refresh updates PyJWT to 2.15.1 and Alembic's transitive Mako to
 verification dependency during a future resolution. Both remain existing MIT
 dependencies; no authentication provider, algorithm policy or migration is added.
 
-Vitest 4.1.11 is the smallest supported major line with the fixed mocker and
-without the vulnerable Tinypool dependency. Its supported Vite and Node 24
-ranges are validated by the locked build and test runs. The [upstream migration guide](https://vitest.dev/guide/migration/)
+The Vitest 5.0.4 upgrade follows the prior 4.1.11 security refresh.
+Its updated matcher augmentation preserves the custom focus assertion and
+uses the declared return/received type parameters. Compatibility is checked
+against the locked Vite and Node versions by the existing gates. The [upstream migration guide](https://vitest.dev/guide/migration/)
 was reviewed; object-URL and callback mocks now declare their actual callable
 signatures. Node 24 types are explicit because the removed transitive type
 dependency previously supplied the existing filesystem/layout tests. Existing

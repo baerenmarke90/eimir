@@ -472,6 +472,7 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.email).fill('anna@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await expect(page).toHaveURL(/\/today$/);
 }
 
@@ -819,7 +820,7 @@ for (const view of [
     await page.context().setOffline(true);
     await pinned.getByRole('button', { name: markDone }).click();
     await expect(
-      page.getByText(m5s5.common.error, { exact: true }),
+      page.getByText(de.states.offline.title, { exact: true }),
     ).toBeVisible();
     await expect(
       pinned.getByRole('button', { name: markDone }),

@@ -6,7 +6,10 @@ import type { CollectionDetail } from '../api/generated/models/CollectionDetail'
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
-import { normalizeClientError } from '../client/problemDetails';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
 import { collectionDetailPath } from '../client/routes';
 import { sharedAchievementKind } from '../client/sharedAchievements';
 import { planningIfMatch } from '../client/sharedPlanning';
@@ -250,7 +253,7 @@ export function TodayPinnedCollection({
         setCelebratedScope(null);
       }
     },
-    onError: (_error, variables) => {
+    onError: (error, variables) => {
       const isLatest =
         latestToggleByItemRef.current.get(variables.itemId) ===
         variables.operationId;
@@ -266,7 +269,11 @@ export function TodayPinnedCollection({
         });
       }
       setCelebratedScope(null);
-      postSnackbar('m5s5.common.error');
+      postSnackbar(
+        clientProblemKind(error) === 'offline'
+          ? 'states.offline.title'
+          : 'states.unknown.title',
+      );
       void queryClient.invalidateQueries({
         queryKey: collectionKey,
         exact: true,
@@ -314,7 +321,7 @@ export function TodayPinnedCollection({
 
   function requestToggle(item: CollectionItemDetail) {
     if (!isClientOnline()) {
-      postSnackbar('m5s5.common.error');
+      postSnackbar('states.offline.title');
       return;
     }
     const intended =

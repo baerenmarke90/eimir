@@ -1,0 +1,20 @@
+{
+  "baseline_commit": "dda7c4a2a2100dd36be36db73dd43eec366c403b",
+  "sources": {
+    "web/src/client/collectionItemUpdate.ts": "756f8ac4c05cd2a9a1890f3f9794f34c98e2b5ffc22c0be11285232de76b2708",
+    "web/src/components/TodayPinnedCollection.tsx": "9ecb4ba5e7893513405efe76ff91a409bfae2fdb47c400c7ef9f8d3678b7844b",
+    "web/src/components/TodayPinnedCollection.test.tsx": "99dd97dda42822f7d564ef804cce826ad5666a052ad438e8d9d0e7e6c1398aa6",
+    "web/e2e/tests/today-pinned-collection.spec.ts": "47dd6ca9618ef3cfe9e0dd5d1eaee5ba3084bdcffa71d3a69c13515ff927f70c"
+  },
+  "browser": "isolated @sparticuz/chromium 153.0.0 / Chromium 153.0.8010.0; not canonical hosted Playwright Chromium 151",
+  "bundles": {
+    "fixed": {
+      "file_count": 76,
+      "path_and_sha256_manifest_digest": "3aeb6bdbdb9e3c985722a7b0c772e76a7716bfcb3af2528df9f3694a02b7ec4f"
+    },
+    "baseline": {
+      "file_count": 76,
+      "path_and_sha256_manifest_digest": "b71fb9a4481cea3a689f275392c2dab96f3a5893f40dd7e3bf70d8df6bec6c98"
+    }
+  }
+}

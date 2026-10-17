@@ -375,7 +375,7 @@ for (const d of definitions) {
             : privateArea.gifts.titleLabel,
       );
       fireEvent.change(input, { target: { value: 'Conflicting edit' } });
-      fireEvent.submit(input.closest('form')!);
+      fireEvent.submit(input.closest('form') as HTMLFormElement);
       await act(async () => {});
       expect(h.update).not.toHaveBeenCalled();
       await act(async () => h.write.resolve());
@@ -401,7 +401,7 @@ for (const d of definitions) {
               : privateArea.gifts.titleLabel,
         );
         fireEvent.change(input, { target: { value: 'Submitted edit' } });
-        fireEvent.submit(input.closest('form')!);
+        fireEvent.submit(input.closest('form') as HTMLFormElement);
         await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
         const trigger = screen.getByRole('button', {
           name: confirmFirst

@@ -858,7 +858,7 @@ export function PrivateCollectionDetailPage({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { collectionId, query } = usePrivateCollection(api, accountId, spaceId);
+  const { query } = usePrivateCollection(api, accountId, spaceId);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');

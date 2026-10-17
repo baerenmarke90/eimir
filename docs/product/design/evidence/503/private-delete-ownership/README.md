@@ -88,3 +88,14 @@ All six complete-screen captures were inspected. The existing private compositio
 | [Compact independent destination](private-delete-other-task-390-light.png) | Gift list and its content remain after the older note deletion completes |
 | [Expanded Dark independent destination](private-delete-other-task-1280-dark.png) | Same retained destination in Dark |
 
+
+## Current-main integration follow-up
+
+[2026-10-17 integration acceptance](integration-2026-10-17.md) records the new
+combined source/build after #1326/#1327, lint cleanup, fresh complete private
+browser acceptance, independently rebuilt current-main counterfactuals and the
+separate #1328 intermittent test finding. Earlier results above retain their
+original identities. In particular, the six passing normal-delete browser
+controls describe the earlier browser source before the Save-disabled extension;
+the final browser assertions on current main produce ten failures and two
+passing collection controls, as explained in the follow-up.

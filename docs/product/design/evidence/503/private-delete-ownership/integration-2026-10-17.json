@@ -1,0 +1,64 @@
+{
+  "main_baseline": "d0f79055fc56114a323946e42986e1f76b26cce9",
+  "original_pr_head": "552dc86564943dca3aba0df840973f3b0cb592bb",
+  "sources": {
+    "web/src/client/privateArea.ts": "8690ebabecaa8eec77fefbd91156c2f94172571310b5b06a39d296539961569c",
+    "web/src/components/PrivateNotesPage.tsx": "d77bc7afcda9e3753d311bd832d5a24f80b0912df0e05580db178ef67ea83f67",
+    "web/src/components/GiftIdeasPage.tsx": "fd25da1d5a50856fcd78a2e80f2ed0f011fe8f351b37311dcbffc09182fefe8d",
+    "web/src/components/PrivateCollectionsPage.tsx": "a477457c70d8581863a666f45b5db4b6410c6e5329389093891af8f7a3f88c32",
+    "web/src/components/PrivateAreaLayout.tsx": "5d456f2b4afa516b228dd71d7eb7e7734eae6cab7c5cce3069ddad86a7b0d855",
+    "web/src/components/PrivateDeleteOwnership.test.tsx": "e0b943673a76fcb3106edc97cfd6e462996c13b0ff96d6da711695fd72f5031c",
+    "web/e2e/tests/private-area-reference.spec.ts": "e5d8a825c3f32d9d4476780e13d5f2d5bd095f9d35ef4790febb1e8e50d2b334",
+    "web/src/client/collectionItemUpdate.ts": "756f8ac4c05cd2a9a1890f3f9794f34c98e2b5ffc22c0be11285232de76b2708",
+    "web/src/components/TodayPinnedCollection.tsx": "b25bf7ca33d785588cb89f5fcac308d633c528bb31db684ffbbc6329c0f5c3e5",
+    "web/src/components/TodayPinnedCollection.test.tsx": "5d0eaa9b5b240d4cac2114cc84d9f6be00de88b367ed3efc23e6fb40302d86b4",
+    "web/e2e/tests/today-pinned-collection.spec.ts": "f5b4003b21d5936d2f841a8384e1af12f3f47f2ce2eef8c04f739cecee2e95da"
+  },
+  "bundles": {
+    "fixed": {
+      "file_count": 76,
+      "path_and_sha256_manifest_digest": "8fc28230f9171e38ce5c6fc2ae4447acf6cfb2c9094212928d1433d1c127921a"
+    },
+    "baseline": {
+      "file_count": 76,
+      "path_and_sha256_manifest_digest": "deb88671ea112217531766ed0695aeae2db151543bf103c08ddc5c27cfc8871a"
+    }
+  },
+  "browser": "Playwright 1.62.1; isolated Chromium 153.0.8010.0 from @sparticuz/chromium 153.0.0, outside product dependencies; not canonical hosted Chromium 151",
+  "captures": {
+    "private-delete-confirmed-390-light.png": {
+      "sha256": "ba4cf681b75132cd376a4b3e7ee8ebd38b3dca1cce0c0fd1c4acac5b898f1555",
+      "matches_existing_committed_image": true
+    },
+    "private-delete-pending-390-light.png": {
+      "sha256": "402f74eb9ab398426d66c942fcbd7bd62c97eb52cf4d9e9ea19d589b72e3285b",
+      "matches_existing_committed_image": true
+    },
+    "private-delete-other-task-390-light.png": {
+      "sha256": "fd330830f342617cdf20bc2c818cb9eb65891a8b725487ff0340fa6106dacf6d",
+      "matches_existing_committed_image": true
+    },
+    "private-delete-other-task-1280-dark.png": {
+      "sha256": "623f2b8e58e70b86226050998123177d4b47cd079f28ff7378381764526c76bf",
+      "matches_existing_committed_image": true
+    },
+    "private-delete-confirmed-1280-dark.png": {
+      "sha256": "a2c642468120a877f91c607b73e264d63126a7df207e868b66eddf744bc835d5",
+      "matches_existing_committed_image": true
+    },
+    "private-delete-pending-1280-dark.png": {
+      "sha256": "4988acf9e02e046faa6f975232c7371aea0cd958381ae32fc0111adfbd90ec99",
+      "matches_existing_committed_image": true
+    }
+  },
+  "results": {
+    "web_passed": 1679,
+    "web_existing_skips": 1,
+    "private_browser_passed": 70,
+    "component_baseline_failed": 46,
+    "component_baseline_controls_passed": 14,
+    "browser_baseline_failed": 10,
+    "browser_baseline_controls_passed": 2
+  },
+  "separate_finding": "#1328 records two unmodified full-suite failures of the existing StrictMode perspective handoff test, followed by a clean uninstrumented full pass; diagnostic results are excluded from acceptance."
+}

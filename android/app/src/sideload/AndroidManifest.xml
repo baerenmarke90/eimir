@@ -2,12 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <application>
-        <activity android:name=".MainActivity">
+        <activity android:name=".MainActivity" android:exported="true">
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="demo.eimir.ur-cloud.de" />
+                <data android:scheme="https" />
+                <data android:host="demo.eimir.ur-cloud.de" />
                 <data android:path="/auth/signup" />
                 <data android:path="/auth/magic-link" />
                 <data android:path="/auth/invitation" />

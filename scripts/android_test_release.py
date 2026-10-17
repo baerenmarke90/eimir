@@ -149,6 +149,7 @@ def build(args: argparse.Namespace) -> None:
             f"-PeimirVersionCode={args.version_code}",
             f"-PeimirVersionName={args.version_name}",
             f"-PeimirSourceRevision={revision}",
+            ":app:clean",
             ":app:assembleSideload",
             f"-PeimirUnsignedTestBuild={'true' if args.unsigned else 'false'}",
         ],

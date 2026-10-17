@@ -9,6 +9,7 @@ import type {
 import { AppShell } from '../../src/components/AppShell';
 import { SettingsPage } from '../../src/components/SettingsPage';
 import { initializeTheme, storeThemePreference } from '../../src/theme';
+import fixtureCopy from './locales/de';
 import '../../src/i18n';
 import '../../src/styles.css';
 import '../../src/theme.css';
@@ -63,8 +64,8 @@ const adapter: AppUpdatesAdapter = {
         versionName: '0.2.0-test.2',
         versionCode: 2,
         releaseNotes: parameters.has('long')
-          ? 'Eine ausführliche Beschreibung der Änderungen. '.repeat(40)
-          : 'Verbesserungen für eure Testversion.',
+          ? fixtureCopy.appUpdates.longNotes.repeat(40)
+          : fixtureCopy.appUpdates.notes,
       },
     });
   },

@@ -57,6 +57,15 @@ The signed build's embedded identity and packaged manifest provide its exact
 source revision, version, target origin and mode flags. Do not infer a signed
 artifact identity from these synthetic screenshot version labels.
 
+Initial signed APK: `0.2.0-test.1`, Android version code 1, 7,414,411 bytes,
+source `2ef6745a9f544f2ae9a0eab258d27be64a3cc951`.
+[Artifact identity, SHA-256 and exclusion inspection](signed-build.json).
+The packaging helper successfully verified its actual APK signature against the
+retained test certificate. The APK and release-asset bundle are delivered
+privately, not committed or published as a GitHub Release. Later changes in this
+PR move fixture text into its locale owner and record this evidence; they do not
+change the APK runtime sources.
+
 ## Acceptance boundary
 
 Persistent backend provisioning, public feed publication and real Android A → B

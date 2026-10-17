@@ -1,12 +1,17 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import {
+  reconcileCollectionItemUpdate,
+  rollbackCollectionItemUpdate,
+} from '../client/collectionItemUpdate';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import { normalizeClientError } from '../client/problemDetails';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { collectionDetailPath } from '../client/routes';
 import { sharedAchievementKind } from '../client/sharedAchievements';
 import { planningIfMatch } from '../client/sharedPlanning';
@@ -25,6 +30,23 @@ type ToggleVariables = {
   completed: boolean;
   fallbackItem: CollectionItemDetail;
   operationId: number;
+  state: ToggleState;
+  isCurrentQuery: () => boolean;
+  key: ReturnType<typeof authorSummaryQueryKeys.collectionDetail>;
+  spaceId: string;
+  collectionId: string;
+  scope: string;
+  title: string;
+};
+
+type ToggleState = {
+  scope: string;
+  isCurrentQuery: () => boolean;
+  active: boolean;
+  latest: Map<string, number>;
+  intended: Map<string, boolean>;
+  confirmed: Map<string, CollectionItemDetail>;
+  queue: Map<string, Promise<ToggleResult | undefined>>;
 };
 
 type ToggleResult = {
@@ -84,10 +106,31 @@ export function TodayPinnedCollection({
   const addInputRef = useRef<HTMLInputElement>(null);
   const discardHeadingRef = useRef<HTMLHeadingElement>(null);
   const toggleSequenceRef = useRef(0);
-  const latestToggleByItemRef = useRef(new Map<string, number>());
-  const intendedCompletionByItemRef = useRef(new Map<string, boolean>());
-  const confirmedItemsRef = useRef(new Map<string, CollectionItemDetail>());
-  const toggleQueueRef = useRef(new Map<string, Promise<unknown>>());
+  const query = queryClient
+    .getQueryCache()
+    .find({ queryKey: collectionKey, exact: true });
+  // A replacement query or task receives independent online intent ownership.
+  const toggleState = useMemo<ToggleState>(
+    () => ({
+      scope: celebrationScope,
+      isCurrentQuery: query
+        ? captureAuthorizedQuery(queryClient, query.queryKey)
+        : () => false,
+      active: true,
+      latest: new Map(),
+      intended: new Map(),
+      confirmed: new Map(),
+      queue: new Map(),
+    }),
+    [celebrationScope, query, queryClient],
+  );
+  const activeToggleStateRef = useRef(toggleState);
+  activeToggleStateRef.current = toggleState;
+  const ownsQuery = (variables: ToggleVariables) =>
+    variables.isCurrentQuery() &&
+    activeToggleStateRef.current === variables.state;
+  const ownsToggle = (variables: ToggleVariables) =>
+    ownsQuery(variables) && variables.state.active;
   const showSharedAchievement =
     sharedAchievementsEnabled && celebratedScope === celebrationScope;
 
@@ -104,12 +147,19 @@ export function TodayPinnedCollection({
 
   useEffect(() => {
     for (const item of collection.items) {
-      const confirmed = confirmedItemsRef.current.get(item.id);
+      const confirmed = toggleState.confirmed.get(item.id);
       if (!confirmed || item.version > confirmed.version) {
-        confirmedItemsRef.current.set(item.id, item);
+        toggleState.confirmed.set(item.id, item);
       }
     }
-  }, [collection.items]);
+  }, [collection.items, toggleState]);
+
+  useEffect(() => {
+    toggleState.active = true;
+    return () => {
+      toggleState.active = false;
+    };
+  }, [toggleState]);
 
   useEffect(() => {
     if (previousScopeRef.current === celebrationScope) return;
@@ -120,10 +170,6 @@ export function TodayPinnedCollection({
     setAddDraft('');
     setAddValidationError(false);
     setShowDiscardConfirm(false);
-    latestToggleByItemRef.current.clear();
-    intendedCompletionByItemRef.current.clear();
-    confirmedItemsRef.current.clear();
-    toggleQueueRef.current.clear();
   }, [celebrationScope]);
 
   useEffect(() => {
@@ -145,60 +191,83 @@ export function TodayPinnedCollection({
   const toggleItem = useMutation({
     networkMode: 'always',
     retry: false,
-    mutationFn: async (variables: ToggleVariables): Promise<ToggleResult> => {
-      const previous = toggleQueueRef.current.get(variables.itemId);
+    mutationFn: async (
+      variables: ToggleVariables,
+    ): Promise<ToggleResult | undefined> => {
+      const state = variables.state;
+      const previous = state.queue.get(variables.itemId);
       const request = (previous ?? Promise.resolve())
         .catch(() => undefined)
         .then(async () => {
+          if (!ownsToggle(variables)) return;
+          const currentItem = queryClient
+            .getQueryData<CollectionDetail>(variables.key)
+            ?.items.find((entry) => entry.id === variables.itemId);
+          if (!currentItem) return;
           assertOnlineWrite();
           const confirmed =
-            confirmedItemsRef.current.get(variables.itemId) ??
-            variables.fallbackItem;
+            state.confirmed.get(variables.itemId) ?? variables.fallbackItem;
+          // Cache refreshes may be newer than the effect that records confirmations.
+          const submitted =
+            currentItem.version > confirmed.version ? currentItem : confirmed;
           const response = await apiCall(() =>
             api.updateCollectionItemRaw({
-              spaceId,
-              collectionId: collection.id,
+              spaceId: variables.spaceId,
+              collectionId: variables.collectionId,
               itemId: variables.itemId,
-              ifMatch: planningIfMatch(confirmed),
+              ifMatch: planningIfMatch(submitted),
               collectionItemUpdate: { completed: variables.completed },
             }),
           );
           const updatedItem = await response.value();
-          confirmedItemsRef.current.set(variables.itemId, updatedItem);
+          const latest = state.confirmed.get(variables.itemId);
+          if (
+            ownsQuery(variables) &&
+            (!latest || updatedItem.version > latest.version)
+          ) {
+            state.confirmed.set(variables.itemId, updatedItem);
+          }
           return {
             item: updatedItem,
             achievement: sharedAchievementKind(response.raw),
           };
         });
-      toggleQueueRef.current.set(variables.itemId, request);
+      state.queue.set(variables.itemId, request);
       try {
         return await request;
       } finally {
-        if (toggleQueueRef.current.get(variables.itemId) === request) {
-          toggleQueueRef.current.delete(variables.itemId);
+        if (state.queue.get(variables.itemId) === request) {
+          state.queue.delete(variables.itemId);
         }
       }
     },
-    onMutate: (variables) => {
-      void queryClient.cancelQueries({
-        queryKey: collectionKey,
+    onMutate: async (variables) => {
+      if (!ownsToggle(variables)) return;
+      await queryClient.cancelQueries({
+        queryKey: variables.key,
         exact: true,
       });
       if (
-        latestToggleByItemRef.current.get(variables.itemId) !==
-        variables.operationId
+        !ownsToggle(variables) ||
+        variables.state.latest.get(variables.itemId) !== variables.operationId
       )
         return;
 
-      const current =
-        queryClient.getQueryData<CollectionDetail>(collectionKey) ?? collection;
-      const target = current.items.find((item) => item.id === variables.itemId);
-      if (!target) return;
-      if (!confirmedItemsRef.current.has(target.id)) {
-        confirmedItemsRef.current.set(target.id, target);
+      const current = queryClient.getQueryData<CollectionDetail>(variables.key);
+      const target = current?.items.find(
+        (item) => item.id === variables.itemId,
+      );
+      if (
+        !current ||
+        !target ||
+        target.version !== variables.fallbackItem.version
+      )
+        return;
+      if (!variables.state.confirmed.has(target.id)) {
+        variables.state.confirmed.set(target.id, target);
       }
       queryClient.setQueryData<CollectionDetail>(
-        collectionKey,
+        variables.key,
         replaceItem(current, target.id, {
           ...target,
           completed: variables.completed,
@@ -207,68 +276,84 @@ export function TodayPinnedCollection({
       setCelebratedScope(null);
     },
     onSuccess: (result, variables) => {
+      if (!ownsQuery(variables)) return;
       const isLatest =
-        latestToggleByItemRef.current.get(variables.itemId) ===
-        variables.operationId;
-      let reconciled: CollectionDetail | undefined =
-        queryClient.getQueryData<CollectionDetail>(collectionKey);
-
-      queryClient.setQueryData<CollectionDetail>(collectionKey, (current) => {
-        const base = current ?? collection;
-        const currentItem = base.items.find(
-          (item) => item.id === variables.itemId,
-        );
-        if (!currentItem) return base;
-        const replacement = isLatest
-          ? result.item
-          : {
-              ...result.item,
-              completed: currentItem.completed,
-            };
-        reconciled = replaceItem(base, variables.itemId, replacement);
-        return reconciled;
-      });
+        variables.state.latest.get(variables.itemId) === variables.operationId;
+      // A queued intent whose task ended never reached the server.
+      if (!result) {
+        if (!isLatest) return;
+        variables.state.latest.delete(variables.itemId);
+        variables.state.intended.delete(variables.itemId);
+        const confirmed = variables.state.confirmed.get(variables.itemId);
+        if (confirmed)
+          queryClient.setQueryData<CollectionDetail>(variables.key, (current) =>
+            rollbackCollectionItemUpdate(
+              reconcileCollectionItemUpdate(current, confirmed, {
+                completed: confirmed.completed,
+              }),
+              confirmed,
+              variables.completed,
+            ),
+          );
+        return;
+      }
+      const reconciled = queryClient.setQueryData<CollectionDetail>(
+        variables.key,
+        (current) =>
+          reconcileCollectionItemUpdate(
+            current,
+            result.item,
+            isLatest ? { completed: variables.completed } : {},
+          ),
+      );
 
       if (!isLatest) return;
 
-      latestToggleByItemRef.current.delete(variables.itemId);
-      intendedCompletionByItemRef.current.delete(variables.itemId);
+      variables.state.latest.delete(variables.itemId);
+      variables.state.intended.delete(variables.itemId);
+      if (!ownsToggle(variables)) return;
+      const accepted = reconciled?.items.find(
+        (entry) => entry.id === result.item.id,
+      );
       const allComplete =
         Boolean(reconciled?.items.length) &&
         reconciled?.items.every((item) => item.completed) === true;
 
       if (
         sharedAchievementsEnabled &&
+        accepted?.version === result.item.version &&
+        accepted.completed === result.item.completed &&
         result.achievement === 'collection-completed' &&
         allComplete
       ) {
-        setCelebratedScope(celebrationScope);
+        setCelebratedScope(variables.scope);
         postSnackbar('m5s5.today.pinnedCollection.sharedAchievementConfirmed', {
-          title: collection.title,
+          title: variables.title,
         });
       } else if (!allComplete) {
         setCelebratedScope(null);
       }
     },
     onError: (_error, variables) => {
+      if (!ownsQuery(variables)) return;
       const isLatest =
-        latestToggleByItemRef.current.get(variables.itemId) ===
-        variables.operationId;
+        variables.state.latest.get(variables.itemId) === variables.operationId;
       if (!isLatest) return;
 
-      latestToggleByItemRef.current.delete(variables.itemId);
-      intendedCompletionByItemRef.current.delete(variables.itemId);
-      const confirmed = confirmedItemsRef.current.get(variables.itemId);
+      variables.state.latest.delete(variables.itemId);
+      variables.state.intended.delete(variables.itemId);
+      const confirmed = variables.state.confirmed.get(variables.itemId);
       if (confirmed) {
-        queryClient.setQueryData<CollectionDetail>(collectionKey, (current) => {
-          const base = current ?? collection;
-          return replaceItem(base, variables.itemId, confirmed);
-        });
+        queryClient.setQueryData<CollectionDetail>(variables.key, (current) =>
+          rollbackCollectionItemUpdate(current, confirmed, variables.completed),
+        );
       }
-      setCelebratedScope(null);
-      postSnackbar('m5s5.today.pinnedCollection.toggleFailed');
+      if (ownsToggle(variables)) {
+        setCelebratedScope(null);
+        postSnackbar('m5s5.today.pinnedCollection.toggleFailed');
+      }
       void queryClient.invalidateQueries({
-        queryKey: collectionKey,
+        queryKey: variables.key,
         exact: true,
         refetchType: isClientOnline() ? 'active' : 'none',
       });
@@ -285,7 +370,7 @@ export function TodayPinnedCollection({
         }),
       ),
     onSuccess: (createdItem) => {
-      confirmedItemsRef.current.set(createdItem.id, createdItem);
+      toggleState.confirmed.set(createdItem.id, createdItem);
       queryClient.setQueryData<CollectionDetail>(collectionKey, (current) => {
         const base = current ?? collection;
         if (base.items.some((item) => item.id === createdItem.id)) return base;
@@ -317,18 +402,26 @@ export function TodayPinnedCollection({
       postSnackbar('m5s5.today.pinnedCollection.toggleFailed');
       return;
     }
-    const intended =
-      intendedCompletionByItemRef.current.get(item.id) ?? item.completed;
+    const isCurrentQuery = toggleState.isCurrentQuery;
+    if (!isCurrentQuery()) return;
+    const intended = toggleState.intended.get(item.id) ?? item.completed;
     const completed = !intended;
-    intendedCompletionByItemRef.current.set(item.id, completed);
+    toggleState.intended.set(item.id, completed);
     toggleSequenceRef.current += 1;
     const operationId = toggleSequenceRef.current;
-    latestToggleByItemRef.current.set(item.id, operationId);
+    toggleState.latest.set(item.id, operationId);
     toggleItem.mutate({
       itemId: item.id,
       completed,
       fallbackItem: item,
       operationId,
+      state: toggleState,
+      isCurrentQuery,
+      key: collectionKey,
+      spaceId,
+      collectionId: collection.id,
+      scope: toggleState.scope,
+      title: collection.title,
     });
   }
 

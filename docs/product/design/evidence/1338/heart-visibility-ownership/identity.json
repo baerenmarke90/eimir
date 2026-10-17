@@ -1,0 +1,48 @@
+{
+  "base": "bb8ccd7b34c4c56c6b65fe296e0461b555a1d119",
+  "baseTree": "6c4f8c4416d0cde847d29a19a2881f247c1b3630",
+  "sources": [
+    {
+      "path": "web/src/components/HeartMomentProductPage.tsx",
+      "sha256": "1189417f807530ed6cd83c48ee24e76cc53980aef624d0c993519cb9e651ecf0"
+    },
+    {
+      "path": "web/src/components/StoryDetailContentFirst.css",
+      "sha256": "bb321cc7fb064e8e5bcc807d6da8fbc96308b191a86f86fadbd3a8c7817e20b2"
+    },
+    {
+      "path": "web/src/components/HeartMomentVisibility.test.tsx",
+      "sha256": "81a09450a98b6fac345a95c9ac58d741614de68bb1ed45722993b52fb61b8efb"
+    },
+    {
+      "path": "web/e2e/tests/heart-moment-create-product-reference.spec.ts",
+      "sha256": "d103bb729123f4a8b3512fa5e3f1b20832119f58e88fcf9468686c7647af0fe4"
+    },
+    {
+      "path": "web/e2e/test-groups.json",
+      "sha256": "af14ed5918798ade4f7a9b71fd6eda2a0c74680b68c7c29e9a9c6bef88178fd0"
+    },
+    {
+      "path": "design/tokens.json",
+      "sha256": "b774f9082ba3dd01f4155979540006f76ec14bf5ffc85b3b4ecfd35ede839afd"
+    }
+  ],
+  "bundles": [
+    {
+      "path": "web/dist/assets/index-BD4V9Wek.css",
+      "sha256": "05321081a6085108bd1c22cd3abba31dc5af7407cf466ffda469a5226b31befc"
+    },
+    {
+      "path": "web/dist/assets/index-CAXDJCEp.js",
+      "sha256": "e272d73817471fdf4dcb5e9d0a8530d388f050944b653b5893f55a5f141cbd66"
+    },
+    {
+      "path": "web/dist/assets/web-Bv0qqvKw.js",
+      "sha256": "162be6b6e8c20595b36445670ac653bc89dd0029ddc83fd8e08baa30062c9992"
+    },
+    {
+      "path": "web/dist/assets/web-PW6011rT.js",
+      "sha256": "fcf196ebb09106481f5199a0f5c7f31fa525821f1d1e233c5c4263ae6e255e92"
+    }
+  ]
+}

@@ -1,0 +1,295 @@
+[WebServer] (node:18) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 7 tests using 2 workers
+
+(node:52) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:53) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 390px light (6.3s)
+  ✘  2 [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 430px dark (6.4s)
+(node:213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:221) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 1440px light (6.6s)
+  ✘  4 [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 1440px dark (6.5s)
+(node:375) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:383) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  6 [chromium] › tests/heart-moment-create-product-reference.spec.ts:564:3 › Heart Moment visibility offline attempt does not replay on reconnect in light (6.2s)
+  ✘  5 [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 320px dark (6.6s)
+(node:534) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  7 [chromium] › tests/heart-moment-create-product-reference.spec.ts:564:3 › Heart Moment visibility offline attempt does not replay on reconnect in dark (6.1s)
+
+
+  1) [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 390px light 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Sichtbarkeit wird geändert …', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Sichtbarkeit wird geändert …', { exact: true })
+
+
+      501 |       fullPage: true,
+      502 |     });
+    > 503 |     await expect(pending).toBeVisible();
+          |                           ^
+      504 |     await expect(makePrivate).toBeDisabled();
+      505 |     await expect(page.locator('.comments-panel')).toHaveCount(0);
+      506 |     await expectNoHorizontalOverflow(page);
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/heart-moment-create-product-reference.spec.ts:503:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-4c471-berate-retry-at-390px-light-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-4c471-berate-retry-at-390px-light-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-4c471-berate-retry-at-390px-light-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-4c471-berate-retry-at-390px-light-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 430px dark 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Sichtbarkeit wird geändert …', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Sichtbarkeit wird geändert …', { exact: true })
+
+
+      501 |       fullPage: true,
+      502 |     });
+    > 503 |     await expect(pending).toBeVisible();
+          |                           ^
+      504 |     await expect(makePrivate).toBeDisabled();
+      505 |     await expect(page.locator('.comments-panel')).toHaveCount(0);
+      506 |     await expectNoHorizontalOverflow(page);
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/heart-moment-create-product-reference.spec.ts:503:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-92244-iberate-retry-at-430px-dark-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-92244-iberate-retry-at-430px-dark-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-92244-iberate-retry-at-430px-dark-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-92244-iberate-retry-at-430px-dark-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 1440px light 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Sichtbarkeit wird geändert …', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Sichtbarkeit wird geändert …', { exact: true })
+
+
+      501 |       fullPage: true,
+      502 |     });
+    > 503 |     await expect(pending).toBeVisible();
+          |                           ^
+      504 |     await expect(makePrivate).toBeDisabled();
+      505 |     await expect(page.locator('.comments-panel')).toHaveCount(0);
+      506 |     await expectNoHorizontalOverflow(page);
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/heart-moment-create-product-reference.spec.ts:503:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-689dc-erate-retry-at-1440px-light-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-689dc-erate-retry-at-1440px-light-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-689dc-erate-retry-at-1440px-light-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-689dc-erate-retry-at-1440px-light-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 1440px dark 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Sichtbarkeit wird geändert …', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Sichtbarkeit wird geändert …', { exact: true })
+
+
+      501 |       fullPage: true,
+      502 |     });
+    > 503 |     await expect(pending).toBeVisible();
+          |                           ^
+      504 |     await expect(makePrivate).toBeDisabled();
+      505 |     await expect(page.locator('.comments-panel')).toHaveCount(0);
+      506 |     await expectNoHorizontalOverflow(page);
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/heart-moment-create-product-reference.spec.ts:503:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-fe953-berate-retry-at-1440px-dark-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-fe953-berate-retry-at-1440px-dark-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-fe953-berate-retry-at-1440px-dark-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-fe953-berate-retry-at-1440px-dark-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 320px dark 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Sichtbarkeit wird geändert …', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Sichtbarkeit wird geändert …', { exact: true })
+
+
+      501 |       fullPage: true,
+      502 |     });
+    > 503 |     await expect(pending).toBeVisible();
+          |                           ^
+      504 |     await expect(makePrivate).toBeDisabled();
+      505 |     await expect(page.locator('.comments-panel')).toHaveCount(0);
+      506 |     await expectNoHorizontalOverflow(page);
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/heart-moment-create-product-reference.spec.ts:503:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-23721-iberate-retry-at-320px-dark-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-23721-iberate-retry-at-320px-dark-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-23721-iberate-retry-at-320px-dark-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-23721-iberate-retry-at-320px-dark-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › tests/heart-moment-create-product-reference.spec.ts:564:3 › Heart Moment visibility offline attempt does not replay on reconnect in light 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Du bist gerade offline.', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Du bist gerade offline.', { exact: true })
+
+
+      579 |     await expect(
+      580 |       page.getByText(de.states.offline.title, { exact: true }),
+    > 581 |     ).toBeVisible();
+          |       ^
+      582 |     await expect(action).toBeEnabled();
+      583 |     expect(state.patches).toHaveLength(0);
+      584 |     await page.screenshot({
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/heart-moment-create-product-reference.spec.ts:581:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-8055d-eplay-on-reconnect-in-light-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-8055d-eplay-on-reconnect-in-light-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-8055d-eplay-on-reconnect-in-light-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-8055d-eplay-on-reconnect-in-light-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [chromium] › tests/heart-moment-create-product-reference.spec.ts:564:3 › Heart Moment visibility offline attempt does not replay on reconnect in dark 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Du bist gerade offline.', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Du bist gerade offline.', { exact: true })
+
+
+      579 |     await expect(
+      580 |       page.getByText(de.states.offline.title, { exact: true }),
+    > 581 |     ).toBeVisible();
+          |       ^
+      582 |     await expect(action).toBeEnabled();
+      583 |     expect(state.patches).toHaveLength(0);
+      584 |     await page.screenshot({
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/heart-moment-create-product-reference.spec.ts:581:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-faa27-replay-on-reconnect-in-dark-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-faa27-replay-on-reconnect-in-dark-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-faa27-replay-on-reconnect-in-dark-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../085539a6d3bb/heart-baseline-results/heart-moment-create-produc-faa27-replay-on-reconnect-in-dark-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7 failed
+    [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 390px light 
+    [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 430px dark 
+    [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 1440px light 
+    [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 1440px dark 
+    [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 320px dark 
+    [chromium] › tests/heart-moment-create-product-reference.spec.ts:564:3 › Heart Moment visibility offline attempt does not replay on reconnect in light 
+    [chromium] › tests/heart-moment-create-product-reference.spec.ts:564:3 › Heart Moment visibility offline attempt does not replay on reconnect in dark 

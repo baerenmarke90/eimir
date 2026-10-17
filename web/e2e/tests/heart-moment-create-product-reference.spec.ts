@@ -1,5 +1,5 @@
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -34,7 +34,32 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 }
 
-async function installApiMocks(page: Page): Promise<void> {
+async function expectHeartDetailContainment(page: Page): Promise<void> {
+  const geometry = await page
+    .locator('.heart-moment-detail-container article')
+    .evaluate((card) => {
+      const bounds = card.getBoundingClientRect();
+      return [
+        ...card.children,
+        ...card.querySelectorAll('.heart-moment-provenance-footer > *'),
+      ].map((element) => ({
+        left: element.getBoundingClientRect().left - bounds.left,
+        right: bounds.right - element.getBoundingClientRect().right,
+      }));
+    });
+  for (const item of geometry) {
+    expect(item.left).toBeGreaterThanOrEqual(0);
+    expect(item.right).toBeGreaterThanOrEqual(0);
+  }
+  const action = await page
+    .locator('.heart-moment-visibility-action')
+    .boundingBox();
+  expect(action?.width).toBeGreaterThanOrEqual(44);
+  expect(action?.height).toBeGreaterThanOrEqual(44);
+}
+
+async function installApiMocks(page: Page): Promise<string[]> {
+  const unexpectedRequests: string[] = [];
   let savedMoment: Record<string, unknown> | null = null;
   const photo = await readFile(PHOTO);
   const attachment = {
@@ -102,6 +127,33 @@ async function installApiMocks(page: Page): Promise<void> {
 
     if (method === 'GET' && pathname === '/api/v1/auth/capabilities') {
       await fulfillJson({ serverAdmin: false });
+      return;
+    }
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/story-views`
+    ) {
+      await route.fulfill({ status: 204, body: '' });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/partner-nickname`
+    ) {
+      await fulfillJson({ partnerId: null, nickname: null, version: 0 });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/entitlements`
+    ) {
+      await fulfillJson({
+        spaceId: SPACE_ID,
+        status: 'FREE',
+        tier: 'FREE',
+        capabilities: [],
+        isInGracePeriod: false,
+      });
       return;
     }
 
@@ -304,6 +356,7 @@ async function installApiMocks(page: Page): Promise<void> {
       return;
     }
 
+    unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
         code: 'E2E_UNEXPECTED_REQUEST',
@@ -314,6 +367,7 @@ async function installApiMocks(page: Page): Promise<void> {
       500,
     );
   });
+  return unexpectedRequests;
 }
 
 async function signIn(page: Page): Promise<void> {
@@ -323,8 +377,8 @@ async function signIn(page: Page): Promise<void> {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
-async function openHeartMomentCreate(page: Page): Promise<void> {
-  await installApiMocks(page);
+async function openHeartMomentCreate(page: Page): Promise<string[]> {
+  const unexpectedRequests = await installApiMocks(page);
   await page.goto('/today');
   await signIn(page);
   await page.goto('/story/heart-moments/new');
@@ -334,6 +388,284 @@ async function openHeartMomentCreate(page: Page): Promise<void> {
       name: storyProducts.heartMomentProduct.createHeading,
     }),
   ).toBeVisible();
+  return unexpectedRequests;
+}
+
+async function openVisibilityJourney(page: Page, failSecond = true) {
+  const unexpectedRequests = await openHeartMomentCreate(page);
+  await page.locator('#heart-moment-text').fill('A quiet afternoon together');
+  const created = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      response.url().endsWith(`/spaces/${SPACE_ID}/heart-moments`),
+  );
+  await page
+    .getByRole('button', { name: storyProducts.heartMomentProduct.save })
+    .click();
+  let current = (await (await created).json()) as Record<string, unknown>;
+  await expect(page).toHaveURL(
+    /\/story\/heart-moments\/44444444-4444-4444-8444-444444444444$/,
+  );
+  await expect(
+    page.getByRole('heading', {
+      name: 'A quiet afternoon together',
+      exact: true,
+    }),
+  ).toBeVisible();
+  let releaseFirst = () => {};
+  const firstGate = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+  const patches: { ifMatch: string | null; body: unknown }[] = [];
+  const path = `/api/v1/spaces/${SPACE_ID}/heart-moments/44444444-4444-4444-8444-444444444444`;
+  await page.route(`**${path}`, async (route) => {
+    expect(route.request().method()).toBe('GET');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(current),
+    });
+  });
+  await page.route(`**${path}/visibility`, async (route) => {
+    expect(route.request().method()).toBe('PATCH');
+    const request = route.request();
+    patches.push({
+      ifMatch: request.headers()['if-match'] ?? null,
+      body: request.postDataJSON(),
+    });
+    const index = patches.length;
+    if (index === 1) await firstGate;
+    if (index === 2 && failSecond) {
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({
+          status: 503,
+          code: 'SERVICE_UNAVAILABLE',
+          title: 'Temporarily unavailable',
+          detail: 'Synthetic visibility failure',
+          type: 'about:blank',
+        }),
+      });
+      return;
+    }
+    current = {
+      ...current,
+      visibility: request.postDataJSON().visibility,
+      version: Number(current.version) + 1,
+    };
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(current),
+    });
+  });
+  return { unexpectedRequests, patches, releaseFirst };
+}
+
+for (const viewport of [
+  { width: 390, theme: 'light', large: false },
+  { width: 430, theme: 'dark', large: false },
+  { width: 1440, theme: 'light', large: false },
+  { width: 1440, theme: 'dark', large: false },
+  { width: 320, theme: 'dark', large: true },
+] as const) {
+  test(`Heart Moment visibility retains pending through return and deliberate retry at ${viewport.width}px ${viewport.theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: viewport.width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: viewport.theme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      window.localStorage.setItem('eimir.theme', 'system'),
+    );
+    const state = await openVisibilityJourney(page);
+    if (viewport.large)
+      await page.locator('html').evaluate((element) => {
+        element.style.fontSize = '200%';
+      });
+    const makePrivate = page.getByRole('button', {
+      name: storyProducts.heartMomentProduct.makePrivate,
+      exact: true,
+    });
+    const makeShared = page.getByRole('button', {
+      name: storyProducts.heartMomentProduct.makeShared,
+      exact: true,
+    });
+    const pending = page.getByText(
+      storyProducts.heartMomentProduct.visibilityChanging,
+      { exact: true },
+    );
+    await makePrivate.click();
+    await expect.poll(() => state.patches.length).toBe(1);
+    await expect(pending).toBeVisible();
+    await expect(makePrivate).toBeDisabled();
+    await page
+      .getByRole('link', { name: navigation.more, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more$/);
+    await expect(
+      page.getByRole('heading', {
+        name: 'A quiet afternoon together',
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await page.goBack();
+    await expect(
+      page.getByRole('heading', {
+        name: 'A quiet afternoon together',
+        exact: true,
+      }),
+    ).toBeVisible();
+    const prefix = `heart-visibility-${viewport.width}-${viewport.theme}${viewport.large ? '-large' : ''}`;
+    await writeFile(
+      info.outputPath(`${prefix}-geometry.json`),
+      JSON.stringify(
+        await page.evaluate(() => ({
+          viewport: document.documentElement.clientWidth,
+          scroll: document.documentElement.scrollWidth,
+          scrollX: window.scrollX,
+        })),
+        null,
+        2,
+      ),
+    );
+    await page.screenshot({
+      path: info.outputPath(`${prefix}-return.png`),
+      fullPage: true,
+    });
+    await expect(pending).toBeVisible();
+    await expect(makePrivate).toBeDisabled();
+    await expect(page.locator('.comments-panel')).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+    await expectHeartDetailContainment(page);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    state.releaseFirst();
+    await expect(makeShared).toBeEnabled();
+    await expect(
+      page.getByText(storyProducts.heartMomentProduct.commentsPrivate, {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expectHeartDetailContainment(page);
+    await page.screenshot({
+      path: info.outputPath(`${prefix}-private.png`),
+      fullPage: true,
+    });
+    await makeShared.click();
+    await expect(
+      page.getByText(de.states.server.title, { exact: true }),
+    ).toBeVisible();
+    await expect(makeShared).toBeEnabled();
+    await expect(
+      page.getByText(storyProducts.heartMomentProduct.commentsPrivate, {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await expectHeartDetailContainment(page);
+    await page.screenshot({
+      path: info.outputPath(`${prefix}-error.png`),
+      fullPage: true,
+    });
+    await makeShared.click();
+    await expect(makePrivate).toBeEnabled();
+    await expect(page.locator('.comments-panel')).toBeVisible();
+    await expect(
+      page.getByText(de.states.server.title, { exact: true }),
+    ).toHaveCount(0);
+    expect(state.patches).toEqual([
+      { ifMatch: '1', body: { visibility: 'PRIVATE' } },
+      { ifMatch: '2', body: { visibility: 'SHARED' } },
+      { ifMatch: '2', body: { visibility: 'SHARED' } },
+    ]);
+    await page
+      .getByRole('link', { name: navigation.more, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more$/);
+    await expect(
+      page.getByRole('heading', {
+        name: 'A quiet afternoon together',
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await page.goBack();
+    await expect(makePrivate).toBeEnabled();
+    await expect(pending).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+    await expectHeartDetailContainment(page);
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    for (let tabs = 0; tabs < 30; tabs += 1) {
+      if (
+        await makePrivate.evaluate(
+          (element) => element === document.activeElement,
+        )
+      )
+        break;
+      await page.keyboard.press('Tab');
+    }
+    await expect(makePrivate).toBeFocused();
+    await page.screenshot({
+      path: info.outputPath(`${prefix}-confirmed.png`),
+      fullPage: true,
+    });
+    expect(state.unexpectedRequests).toEqual([]);
+  });
+}
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`Heart Moment visibility offline attempt does not replay on reconnect in ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(() =>
+      window.localStorage.setItem('eimir.theme', 'system'),
+    );
+    const state = await openVisibilityJourney(page, false);
+    await page.context().setOffline(true);
+    const action = page.getByRole('button', {
+      name: storyProducts.heartMomentProduct.makePrivate,
+      exact: true,
+    });
+    await action.click();
+    await expect(
+      page.getByText(de.states.offline.title, { exact: true }),
+    ).toBeVisible();
+    await expect(action).toBeEnabled();
+    expect(state.patches).toHaveLength(0);
+    await page.screenshot({
+      path: info.outputPath(`heart-visibility-offline-360-${theme}.png`),
+      fullPage: true,
+    });
+    await page.context().setOffline(false);
+    await page
+      .getByRole('link', { name: navigation.more, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more$/);
+    await expect(
+      page.getByRole('heading', {
+        name: 'A quiet afternoon together',
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await page.goBack();
+    await expect(action).toBeEnabled();
+    expect(state.patches).toHaveLength(0);
+    await action.click();
+    await expect.poll(() => state.patches.length).toBe(1);
+    state.releaseFirst();
+    await expect(
+      page.getByRole('button', {
+        name: storyProducts.heartMomentProduct.makeShared,
+        exact: true,
+      }),
+    ).toBeEnabled();
+    expect(state.patches).toHaveLength(1);
+    expect(state.unexpectedRequests).toEqual([]);
+  });
 }
 
 for (const colorScheme of ['light', 'dark'] as const) {

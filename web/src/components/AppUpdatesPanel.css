@@ -1,0 +1,47 @@
+.app-updates-panel {
+  display: grid;
+  gap: var(--space-5);
+  max-width: 40rem;
+  min-width: 0;
+}
+
+.app-updates-panel h2,
+.app-updates-panel h3,
+.app-updates-panel p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.app-updates-installed,
+.app-updates-offer {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-3);
+}
+
+.app-updates-installed > p,
+.app-updates-installed details,
+.app-updates-consequence {
+  color: var(--color-text-secondary);
+}
+
+.app-updates-panel summary {
+  min-height: 44px;
+  padding-block: var(--space-3);
+  list-style-position: inside;
+  cursor: pointer;
+}
+
+.app-updates-status {
+  border-block: 1px solid var(--color-border-subtle);
+  padding-block: var(--space-4);
+}
+
+.app-updates-notes {
+  white-space: pre-wrap;
+}
+
+.app-updates-panel progress {
+  width: 100%;
+  accent-color: var(--color-brand-strong);
+}

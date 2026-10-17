@@ -16,6 +16,11 @@ import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../api/generated/runtime';
 import { isDemoModeConfigured } from '../client/demoMode';
 import {
+  appUpdatesAvailable,
+  type AppUpdatesAdapter,
+} from '../client/appUpdates';
+import { AppUpdatesPanel } from './AppUpdatesPanel';
+import {
   appRoutePath,
   isSettingsCategoryId,
   MORE_NOTIFICATIONS_ROUTE,
@@ -49,6 +54,7 @@ export interface SettingsPageProps {
   accessToken: string;
   account: AccountView;
   spaceId: string;
+  updatesAdapter?: AppUpdatesAdapter;
 }
 
 export function SettingsPage(props: SettingsPageProps) {
@@ -109,12 +115,22 @@ export function SettingsPage(props: SettingsPageProps) {
       : null;
   const category = categoryId ? settingsCategoryDefinition(categoryId) : null;
 
+  if (
+    categoryId === 'updates' &&
+    !props.updatesAdapter &&
+    !appUpdatesAvailable()
+  ) {
+    return <Navigate replace to={MORE_SETTINGS_ROUTE} />;
+  }
+
   const openDataCategory = () => {
     navigate(settingsCategoryPath('data'));
   };
 
   let categoryContent = null;
-  if (categoryId === 'relationship') {
+  if (categoryId === 'updates') {
+    categoryContent = <AppUpdatesPanel adapter={props.updatesAdapter} />;
+  } else if (categoryId === 'relationship') {
     categoryContent = (
       <div
         id="settings-connection"
@@ -262,7 +278,11 @@ export function SettingsPage(props: SettingsPageProps) {
         }
       />
 
-      {category ? categoryContent : <SettingsIndex />}
+      {category ? (
+        categoryContent
+      ) : (
+        <SettingsIndex updatesAdapter={props.updatesAdapter} />
+      )}
     </div>
   );
 }

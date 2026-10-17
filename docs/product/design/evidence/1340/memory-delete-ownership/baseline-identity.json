@@ -1,0 +1,25 @@
+{
+  "base": "bb8ccd7b34c4c56c6b65fe296e0461b555a1d119",
+  "files": [
+    {
+      "path": "src/components/MemoryProductPage.tsx",
+      "sha256": "8020786d2e47b8e550ee4bab95437a700be29b7e56f4d59636de9a0b450f1e19"
+    },
+    {
+      "path": "dist/assets/index-8tElk24A.css",
+      "sha256": "ef1476c4c60a22227c9916340b569a95aaa622da14332a666237936a4b698866"
+    },
+    {
+      "path": "dist/assets/index-MJSEwFmH.js",
+      "sha256": "9fceba497575c7bf950584261a3d4771ce43bd0ec6eb2c68485473d2cfc2a3ad"
+    },
+    {
+      "path": "dist/assets/web-CZmI7x8Y.js",
+      "sha256": "966a6f310fa71dc7e604b6ffa250680aa411949471ae47936d4dc4a5abdb6ca2"
+    },
+    {
+      "path": "dist/assets/web-vKKS71q2.js",
+      "sha256": "e6a8a4e0585dd64f434cb3e433b0c9b94e4958e2764a9973e559aa9bccc5f538"
+    }
+  ]
+}

@@ -785,6 +785,168 @@ for (const outcome of ['failure', 'success'] as const) {
 }
 
 for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' as const },
+  { name: '1280-dark', width: 1280, scheme: 'dark' as const },
+]) {
+  for (const outcome of ['success', 'failure'] as const) {
+    test(`Today checkbox retains a newer authorized read after late ${outcome} (${view.name})`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: view.width, height: 844 });
+      await page.emulateMedia({
+        colorScheme: view.scheme,
+        reducedMotion: 'reduce',
+      });
+      await page.addInitScript(() =>
+        localStorage.setItem('eimir.theme', 'system'),
+      );
+      const network = await installMocks(page, { initiallyPinned: true });
+      await signIn(page);
+      const milk = '00000000-0000-0000-0000-000000000031';
+      const bread = '00000000-0000-0000-0000-000000000032';
+      const apples = '00000000-0000-0000-0000-000000000033';
+      let releaseWrite: (() => void) | undefined;
+      let releaseRecovery: (() => void) | undefined;
+      let holdRecovery = false;
+      let writeFinished = false;
+      const writes: string[] = [];
+      await page.route(
+        `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}`,
+        async (route) => {
+          if (holdRecovery && route.request().method() === 'GET')
+            await new Promise<void>((resolve) => {
+              releaseRecovery = resolve;
+            });
+          await route.fallback();
+        },
+      );
+      await page.route(
+        `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/items/${milk}`,
+        async (route) => {
+          if (route.request().method() !== 'PATCH') {
+            await route.fallback();
+            return;
+          }
+          writes.push(route.request().headers()['if-match']);
+          if (writes.length > 1) {
+            await route.fallback();
+            return;
+          }
+          if (outcome === 'success')
+            network.reviseItem(milk, { completed: true, version: 2 }, false);
+          const response = network
+            .snapshot()
+            .items.find((entry) => entry.id === milk);
+          await new Promise<void>((resolve) => {
+            releaseWrite = resolve;
+          });
+          await route.fulfill({
+            status: outcome === 'success' ? 200 : 503,
+            contentType: 'application/json',
+            body: JSON.stringify(
+              outcome === 'success'
+                ? response
+                : {
+                    code: 'SERVER_ERROR',
+                    detail: 'The write was not confirmed.',
+                    status: 503,
+                    title: 'Service unavailable',
+                    type: 'about:blank',
+                  },
+            ),
+          });
+          writeFinished = true;
+        },
+      );
+      const pinned = page.locator('.today-section-pinned-collection');
+      await pinned
+        .getByRole('button', {
+          name: m5s3.collection.markDone.replace('{{title}}', 'Milch'),
+        })
+        .click();
+      await expect.poll(() => Boolean(releaseWrite)).toBe(true);
+      await expect(
+        pinned.getByRole('button', {
+          name: m5s3.collection.markOpen.replace('{{title}}', 'Milch'),
+        }),
+      ).toHaveAttribute('aria-pressed', 'true');
+      network.reviseItem(
+        milk,
+        { title: 'Hafermilch', completed: false, version: 5 },
+        false,
+      );
+      network.reorder([apples, bread, milk]);
+      // The existing Add flow refreshes the authorized detail while the toggle is pending.
+      const reads = network.collectionGetCount();
+      await pinned
+        .getByRole('button', { name: m5s5.today.pinnedCollection.addAction })
+        .click();
+      const dialog = page.getByRole('dialog', {
+        name: m5s5.today.pinnedCollection.addAction,
+      });
+      await dialog.getByLabel(m5s3.collection.itemTitle).fill('Kaffee');
+      await dialog
+        .getByRole('button', { name: m5s3.collection.addItem })
+        .click();
+      await expect(dialog).toHaveCount(0);
+      await expect.poll(network.collectionGetCount).toBeGreaterThan(reads);
+      const currentToggle = pinned.getByRole('button', {
+        name: m5s3.collection.markDone.replace('{{title}}', 'Hafermilch'),
+      });
+      await expect(currentToggle).toHaveAttribute('aria-pressed', 'false');
+      holdRecovery = true;
+      releaseWrite?.();
+      await expect.poll(() => writeFinished).toBe(true);
+      if (outcome === 'failure')
+        await expect(
+          page.getByText(m5s5.today.pinnedCollection.toggleFailed, {
+            exact: true,
+          }),
+        ).toBeVisible();
+      // Recovery is held so a refetch cannot conceal a corrupt late callback.
+      await expect(currentToggle).toHaveAttribute('aria-pressed', 'false');
+      await expect(pinned.getByText('Kaffee', { exact: true })).toBeVisible();
+      await expect(
+        pinned.locator('.today-pinned-list-title').first(),
+      ).toHaveText('Äpfel');
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath(`today-newer-${outcome}-${view.name}.png`),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      holdRecovery = false;
+      releaseRecovery?.();
+      await currentToggle.click();
+      await expect.poll(() => writes.length).toBe(2);
+      expect(writes).toEqual(['1', '5']);
+      await expect(
+        pinned.getByRole('button', {
+          name: m5s3.collection.markOpen.replace('{{title}}', 'Hafermilch'),
+        }),
+      ).toHaveAttribute('aria-pressed', 'true');
+      await pinned
+        .getByRole('link', {
+          name: m5s5.today.pinnedCollection.openAriaLabel.replace(
+            '{{title}}',
+            'Einkauf',
+          ),
+        })
+        .click();
+      await expect(
+        page.locator(`[data-sortable-item-id="${milk}"]`).getByRole('textbox'),
+      ).toHaveValue('Hafermilch');
+      await page.goBack();
+      await expect(
+        pinned.getByText('Hafermilch', { exact: true }),
+      ).toBeVisible();
+      expect(writes).toEqual(['1', '5']);
+    });
+  }
+}
+
+for (const view of [
   { name: '390-light', width: 390, height: 844, theme: 'light' as const },
   { name: '1280-dark', width: 1280, height: 800, theme: 'dark' as const },
 ]) {

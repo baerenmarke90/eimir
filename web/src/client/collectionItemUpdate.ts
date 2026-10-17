@@ -9,15 +9,61 @@ type ChecklistItem = {
   updatedAt: Date;
 };
 
+type ItemUpdate = { title?: string; completed?: boolean };
+
+/** Item responses never own root positions or equal/newer authorized item reads. */
+export function reconcileCollectionItemUpdate<
+  T extends { items: ChecklistItem[] },
+>(
+  current: T | undefined,
+  updated: ChecklistItem,
+  update: ItemUpdate,
+): T | undefined {
+  return current
+    ? {
+        ...current,
+        items: current.items.map((entry) =>
+          entry.id === updated.id && entry.version < updated.version
+            ? {
+                ...entry,
+                ...(update.title !== undefined ? { title: updated.title } : {}),
+                ...(update.completed !== undefined
+                  ? { completed: updated.completed }
+                  : {}),
+                version: updated.version,
+                updatedAt: updated.updatedAt,
+              }
+            : entry,
+        ),
+      }
+    : current;
+}
+
+export function rollbackCollectionItemUpdate<
+  T extends { items: ChecklistItem[] },
+>(
+  current: T | undefined,
+  previous: ChecklistItem,
+  completed: boolean | undefined,
+): T | undefined {
+  return current
+    ? {
+        ...current,
+        items: current.items.map((entry) =>
+          entry.id === previous.id &&
+          entry.version === previous.version &&
+          entry.completed === completed
+            ? { ...entry, completed: previous.completed }
+            : entry,
+        ),
+      }
+    : current;
+}
+
 /** Own submitted item fields, never the collection's independently versioned order. */
 export async function captureCollectionItemUpdate<
   T extends { items: ChecklistItem[] },
->(
-  client: QueryClient,
-  key: QueryKey,
-  item: ChecklistItem,
-  update: { title?: string; completed?: boolean },
-) {
+>(client: QueryClient, key: QueryKey, item: ChecklistItem, update: ItemUpdate) {
   const isCurrentQuery = captureAuthorizedQuery(client, key);
   await client.cancelQueries({ queryKey: key, exact: true });
   const currentItem = isCurrentQuery()
@@ -48,43 +94,13 @@ export async function captureCollectionItemUpdate<
     rollback() {
       if (!isCurrentQuery() || !previousItem) return;
       client.setQueryData<T>(key, (current) =>
-        current
-          ? {
-              ...current,
-              items: current.items.map((entry) =>
-                entry.id === previousItem.id &&
-                entry.version === previousItem.version &&
-                entry.completed === update.completed
-                  ? { ...entry, completed: previousItem.completed }
-                  : entry,
-              ),
-            }
-          : current,
+        rollbackCollectionItemUpdate(current, previousItem, update.completed),
       );
     },
     confirm(updated: ChecklistItem) {
       if (!isCurrentQuery()) return;
       client.setQueryData<T>(key, (current) =>
-        current
-          ? {
-              ...current,
-              items: current.items.map((entry) =>
-                entry.id === updated.id && entry.version < updated.version
-                  ? {
-                      ...entry,
-                      ...(update.title !== undefined
-                        ? { title: updated.title }
-                        : {}),
-                      ...(update.completed !== undefined
-                        ? { completed: updated.completed }
-                        : {}),
-                      version: updated.version,
-                      updatedAt: updated.updatedAt,
-                    }
-                  : entry,
-              ),
-            }
-          : current,
+        reconcileCollectionItemUpdate(current, updated, update),
       );
     },
   };

@@ -2,14 +2,6 @@
   "baselineMain": "cacc2522d2ab81db3d2b60fffbcce7909e587172",
   "stackBase": "9b30f4bea6870ab90efc812d2e4ac26107304db3",
   "browser": "Chrome Headless Shell 153.0.8010.0, Playwright 1.62.1",
-  "sourceSha256": {
-    "web/src/components/GamesProductArea.css": "fe2a101ceac4671947523e1c0d6da498a20550f3f07bb8921aaf0159b4f29255",
-    "web/src/components/WhoOfUsGamePanel.tsx": "7493595d0a9b95c93e7754cf5f281a4e40c0791c5e1e57ae9e4f3e3f3243ab61",
-    "web/src/styles.css": "93fd0229564bebb4434b736c159bf8f8bc7517c7c6b9421ead92c48bf9fde612",
-    "design/tokens.json": "b774f9082ba3dd01f4155979540006f76ec14bf5ffc85b3b4ecfd35ede839afd",
-    "web/e2e/tests/perspective-game.spec.ts": "1762f74cfceea825b3730b4394209023cba148028c13363374d5232b4309cab8",
-    "web/e2e/test-groups.json": "9aa71a92ff24765bc64bf33c83ba4393cd935612d7d33d119da20af96d1d2317"
-  },
   "productionBundleSha256": {
     "web/dist/assets/index-8j4Jr9v3.js": "dfcc0569e88862dfa42b306747193cf8ff9e82447d03eac9725d2a6e4718b878",
     "web/dist/assets/web-RkCKaUgS.js": "193c5ebc36f89875a6496819519eccea7dd1835171adacd3b8c085461f67320a",
@@ -23,7 +15,7 @@
     "perspective-reveal-390-light.png": "4bac0fc86198283be95dae70ed2e75110f3e099a865ca66578bde01440fdbfdf",
     "perspective-question-430-dark.png": "6e57ab15b2d6948e1694d1bb3e553fc3e2121ceefdc6207b41df8693c43e3f03",
     "perspective-question-600-dark.png": "65414751da292bc2cc333e12e8e18bb42786a502dd0590be0057057e263d811d",
-    "README.md": "02714c804c83a34754155c66d5f3ea1364f87f1cc0fdc90915440cfa98a72b77",
+    "README.md": "fcbdd12495bfc8c0992ff8cfb9ceeee4d91e880dad07e8682f6a7d677fca94c4",
     "baseline-question-1280-light.png": "e7656f33cc739d3ee0fb3eaf1472a8b83b4de09f75b6a0ded61d4b0ae52868f0",
     "perspective-question-1280-dark.png": "6caf6fa163d8c4f8cf8f5002903b480aeb8a4d2eefcb88d766e9d2ff65b12846",
     "baseline-identity.json": "e38fcd866b25d495111b35d9e74c07b13c957d4d2c87573ba93044d13d2986a2",
@@ -38,5 +30,31 @@
     "perspective-question-600-light-default.png": "61922ad286e9521a79eaa7a534542ca3772aa4bfa1c387e6409ca04fd7b6ec1b",
     "perspective-finish-1280-dark.png": "c8d7f440c28c72c3b7a86e8a08303cb5e31f667f3f29666c2fb49eddc4da10e5",
     "perspective-question-600-light.png": "c22d25cbbc22fa75b7a6bea276967f306c6ec73aca52af56c250642a688bc3ed"
-  }
+  },
+  "sourceFiles": [
+    {
+      "path": "web/src/components/GamesProductArea.css",
+      "sha256": "fe2a101ceac4671947523e1c0d6da498a20550f3f07bb8921aaf0159b4f29255"
+    },
+    {
+      "path": "web/src/components/WhoOfUsGamePanel.tsx",
+      "sha256": "7493595d0a9b95c93e7754cf5f281a4e40c0791c5e1e57ae9e4f3e3f3243ab61"
+    },
+    {
+      "path": "web/src/styles.css",
+      "sha256": "93fd0229564bebb4434b736c159bf8f8bc7517c7c6b9421ead92c48bf9fde612"
+    },
+    {
+      "path": "design/tokens.json",
+      "sha256": "b774f9082ba3dd01f4155979540006f76ec14bf5ffc85b3b4ecfd35ede839afd"
+    },
+    {
+      "path": "web/e2e/tests/perspective-game.spec.ts",
+      "sha256": "1762f74cfceea825b3730b4394209023cba148028c13363374d5232b4309cab8"
+    },
+    {
+      "path": "web/e2e/test-groups.json",
+      "sha256": "9aa71a92ff24765bc64bf33c83ba4393cd935612d7d33d119da20af96d1d2317"
+    }
+  ]
 }

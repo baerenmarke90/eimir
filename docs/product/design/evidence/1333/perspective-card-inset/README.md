@@ -83,6 +83,14 @@ tree identifies the implementation and test source.
 - Browser planner regressions: **20 passed**; the spec remains PR-critical with
   its inventory increased from seven to twelve.
 
+The first hosted Secret Scan identified the public `design/tokens.json` SHA-256
+as a generic API key because the manifest used the path as a hash-valued key.
+The checksum matches that source file. The manifest now separates paths and
+digests into records. Following the existing `.gitleaksignore` pattern, only the
+exact historical commit/path/rule/line fingerprint is ignored; credential
+detection remains enabled for every other location and commit. No history is
+rewritten, and no broad path, rule or checksum-pattern exclusion is added.
+
 ## Representative captures
 
 - Compact: [390 Light](perspective-question-390-light.png),

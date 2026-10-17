@@ -104,6 +104,7 @@ async function installMocks(
   let finalCompletionFailed = false;
   let collectionGetCount = 0;
   let dashboardGetCount = 0;
+  let itemCreateCount = 0;
   const itemWrites: {
     itemId: string;
     completed?: boolean;
@@ -430,7 +431,7 @@ async function installMocks(
     ) {
       const body = request.postDataJSON() as { title: string };
       const created = collectionItem(
-        '00000000-0000-0000-0000-000000000034',
+        `00000000-0000-0000-0000-${String(34 + itemCreateCount++).padStart(12, '0')}`,
         body.title,
         items.length,
       );
@@ -519,6 +520,176 @@ async function expectNoWcagViolations(page: Page): Promise<void> {
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
     .analyze();
   expect(result.violations).toEqual([]);
+}
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' as const },
+  { name: '1280-dark', width: 1280, scheme: 'dark' as const },
+]) {
+  for (const outcome of ['success', 'failure'] as const) {
+    test(`Today quick-add preserves a newer draft after late ${outcome} (${view.name})`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: view.width, height: 844 });
+      await page.emulateMedia({
+        colorScheme: view.scheme,
+        reducedMotion: 'reduce',
+      });
+      await page.addInitScript(() =>
+        localStorage.setItem('eimir.theme', 'system'),
+      );
+      await installMocks(page, { initiallyPinned: true });
+      await signIn(page);
+      const titles: string[] = [];
+      let release!: () => void;
+      await page.route(
+        `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/items`,
+        async (route) => {
+          if (route.request().method() !== 'POST') return route.fallback();
+          titles.push(route.request().postDataJSON().title);
+          if (titles.length === 1) {
+            await new Promise<void>((resolve) => {
+              release = resolve;
+            });
+            if (outcome === 'failure') {
+              await route.fulfill({
+                status: 503,
+                contentType: 'application/problem+json',
+                body: JSON.stringify({
+                  status: 503,
+                  title: 'Service unavailable',
+                  detail: 'The write was not confirmed.',
+                }),
+              });
+              return;
+            }
+          }
+          await route.fallback();
+        },
+      );
+      const pinned = page.locator('.today-section-pinned-collection');
+      const add = pinned.getByRole('button', {
+        name: m5s5.today.pinnedCollection.addAction,
+      });
+      await add.click();
+      const dialog = page.getByRole('dialog', {
+        name: m5s5.today.pinnedCollection.addAction,
+      });
+      const input = dialog.getByLabel(m5s3.collection.itemTitle);
+      await input.fill('Butter');
+      await dialog
+        .getByRole('button', { name: m5s3.collection.addItem })
+        .click();
+      await expect.poll(() => titles.length).toBe(1);
+      await input.fill('Reis');
+      await input.press('Enter');
+      expect(titles).toEqual(['Butter']);
+      release();
+      await expect(
+        dialog.getByRole('button', { name: m5s3.collection.addItem }),
+      ).toBeEnabled();
+      await expect(input).toHaveValue('Reis');
+      await expect(input).toHaveAttribute('aria-invalid', 'false');
+      if (outcome === 'failure')
+        await expect(
+          dialog.getByText(de.states.server.title, { exact: true }),
+        ).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `today-add-draft-${outcome}-${view.name}.png`,
+        ),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await dialog
+        .getByRole('button', { name: m5s3.collection.addItem })
+        .click();
+      await expect(dialog).toHaveCount(0);
+      await expect(add).toBeFocused();
+      expect(titles).toEqual(['Butter', 'Reis']);
+      await expect(pinned.getByText('Reis', { exact: true })).toBeVisible();
+      await pinned
+        .getByRole('link', {
+          name: m5s5.today.pinnedCollection.openAriaLabel.replace(
+            '{{title}}',
+            'Einkauf',
+          ),
+        })
+        .click();
+      await expect(
+        page
+          .locator(
+            `[data-sortable-item-id="00000000-0000-0000-0000-0000000000${outcome === 'success' ? '35' : '34'}"]`,
+          )
+          .getByRole('textbox'),
+      ).toHaveValue('Reis');
+      await page.goBack();
+      await expect(pinned.getByText('Reis', { exact: true })).toBeVisible();
+      expect(titles).toEqual(['Butter', 'Reis']);
+    });
+  }
+
+  test(`Today quick-add rejects offline submission and requires deliberate retry (${view.name})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    await installMocks(page, { initiallyPinned: true });
+    await signIn(page);
+    const titles: string[] = [];
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/items`,
+      async (route) => {
+        if (route.request().method() === 'POST')
+          titles.push(route.request().postDataJSON().title);
+        await route.fallback();
+      },
+    );
+    const pinned = page.locator('.today-section-pinned-collection');
+    const add = pinned.getByRole('button', {
+      name: m5s5.today.pinnedCollection.addAction,
+    });
+    await add.click();
+    const dialog = page.getByRole('dialog', {
+      name: m5s5.today.pinnedCollection.addAction,
+    });
+    const input = dialog.getByLabel(m5s3.collection.itemTitle);
+    await input.fill('Butter');
+    await page.context().setOffline(true);
+    await dialog.getByRole('button', { name: m5s3.collection.addItem }).click();
+    await expect(
+      dialog.getByText(de.states.offline.title, { exact: true }),
+    ).toBeVisible();
+    await expect(input).toHaveValue('Butter');
+    await expect(input).toBeFocused();
+    expect(titles).toEqual([]);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`today-add-offline-${view.name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    await page.context().setOffline(false);
+    await expect(
+      page.getByText(de.states.offline.banner, { exact: true }),
+    ).toHaveCount(0);
+    await expect(input).toHaveValue('Butter');
+    expect(titles).toEqual([]);
+    await dialog.getByRole('button', { name: m5s3.collection.addItem }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(add).toBeFocused();
+    await expect(pinned.getByText('Butter', { exact: true })).toBeVisible();
+    expect(titles).toEqual(['Butter']);
+  });
 }
 
 test('shows an optimistic collection-detail check, rolls back a failed write and retries', async ({

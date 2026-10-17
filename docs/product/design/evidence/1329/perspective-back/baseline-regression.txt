@@ -8,7 +8,7 @@ Running 1 test using 1 worker
   ✘  1 [chromium] › tests/perspective-game.spec.ts:293:3 › perspective Back retains contrast, focus and keyboard return in light (2.4s)
 
 
-  1) [chromium] › tests/perspective-game.spec.ts:293:3 › perspective Back retains contrast, focus and keyboard return in light 
+  1) [chromium] › tests/perspective-game.spec.ts:293:3 › perspective Back retains contrast, focus and keyboard return in light
 
     Error: 320px light Back text
 
@@ -41,4 +41,4 @@ Running 1 test using 1 worker
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
   1 failed
-    [chromium] › tests/perspective-game.spec.ts:293:3 › perspective Back retains contrast, focus and keyboard return in light 
+    [chromium] › tests/perspective-game.spec.ts:293:3 › perspective Back retains contrast, focus and keyboard return in light

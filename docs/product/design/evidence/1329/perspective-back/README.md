@@ -1,8 +1,8 @@
 # Perspective-game Back contrast repair
 
-Owning issue: [#1329](https://github.com/baerenmarke90/eimir/issues/1329).  
-Baseline main: `cacc2522d2ab81db3d2b60fffbcce7909e587172`.  
-[Pre-implementation product/Mobile Interaction review](https://github.com/baerenmarke90/eimir/issues/1329#issuecomment-6233538494).  
+Owning issue: [#1329](https://github.com/baerenmarke90/eimir/issues/1329).
+Baseline main: `cacc2522d2ab81db3d2b60fffbcce7909e587172`.
+[Pre-implementation product/Mobile Interaction review](https://github.com/baerenmarke90/eimir/issues/1329#issuecomment-6233538494).
 The [verification manifest](verification.json) binds the actual source files,
 production bundle and captures by SHA-256. The containing Git tree identifies
 the final implementation and tests.

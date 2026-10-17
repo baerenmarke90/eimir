@@ -214,6 +214,247 @@ function renderPinned(
 }
 
 describe('TodayPinnedCollection', () => {
+  function submitAdd(title = 'Butter') {
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s5.today.pinnedCollection.addAction'),
+      }),
+    );
+    const input = screen.getByLabelText(
+      i18n.t('m5s3.collection.itemTitle'),
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: title } });
+    fireEvent.submit(input.closest('form') as HTMLFormElement);
+    return input;
+  }
+
+  it.each(['query', 'browser'] as const)(
+    'rejects an offline add without reconnect replay (%s signal)',
+    async (signal) => {
+      const create = vi.fn().mockResolvedValue(item('item-6', 'Butter'));
+      const { queryClient } = renderPinned({ createCollectionItem: create });
+      if (signal === 'query') onlineManager.setOnline(false);
+      else vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+      const input = submitAdd();
+      await waitFor(() =>
+        expect(input.getAttribute('aria-invalid')).toBe('true'),
+      );
+      expect(input.value).toBe('Butter');
+      expect(create).not.toHaveBeenCalled();
+      expect(
+        queryClient
+          .getMutationCache()
+          .getAll()
+          .some((m) => m.state.isPaused),
+      ).toBe(false);
+      vi.restoreAllMocks();
+      onlineManager.setOnline(true);
+      await act(async () => Promise.resolve());
+      expect(create).not.toHaveBeenCalled();
+      fireEvent.submit(input.closest('form') as HTMLFormElement);
+      await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    },
+  );
+
+  it('admits only one add while the submitted request is pending', async () => {
+    const held = deferred<CollectionItemDetail>();
+    const create = vi.fn().mockReturnValue(held.promise);
+    const { queryClient } = renderPinned({ createCollectionItem: create });
+    const input = submitAdd();
+    fireEvent.submit(input.closest('form') as HTMLFormElement);
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    expect(create).toHaveBeenCalledTimes(1);
+    held.resolve(item('item-6', 'Butter'));
+    await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+  });
+
+  it.each(['success', 'failure'] as const)(
+    'preserves a newer add draft after the submitted request ends in %s',
+    async (outcome) => {
+      const held = deferred<CollectionItemDetail>();
+      const create = vi.fn().mockReturnValue(held.promise);
+      const { queryClient } = renderPinned({ createCollectionItem: create });
+      const input = submitAdd();
+      await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+      fireEvent.change(input, { target: { value: 'Rice' } });
+      const close = screen.getByRole('button', { name: taskSheets.close });
+      close.focus();
+      await act(async () => {
+        if (outcome === 'success') held.resolve(item('item-6', 'Butter'));
+        else held.reject(new Error('failed'));
+      });
+      await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+      expect(screen.getByRole('dialog')).toBeDefined();
+      expect(input.value).toBe('Rice');
+      expect(input.getAttribute('aria-invalid')).toBe('false');
+      expect(document.activeElement).toBe(close);
+      if (outcome === 'failure')
+        expect(screen.getByText(i18n.t('states.unknown.title'))).toBeDefined();
+    },
+  );
+
+  it.each(['account', 'space'] as const)(
+    'does not settle an old add into a new %s task',
+    async (scope) => {
+      const held = deferred<CollectionItemDetail>();
+      const create = vi.fn().mockReturnValue(held.promise);
+      const { queryClient, queryFn, key, changeScope } = renderPinned({
+        createCollectionItem: create,
+      });
+      submitAdd();
+      await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+      changeScope('account-2', scope === 'space' ? 'space-2' : 'space-1');
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('m5s5.today.pinnedCollection.addAction'),
+        }),
+      );
+      const input = screen.getByLabelText(
+        i18n.t('m5s3.collection.itemTitle'),
+      ) as HTMLInputElement;
+      fireEvent.change(input, { target: { value: 'Rice' } });
+      held.resolve(item('item-6', 'Butter'));
+      await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+      expect(screen.getByRole('dialog')).toBeDefined();
+      expect(input.value).toBe('Rice');
+      expect(
+        queryClient
+          .getQueryData<CollectionDetail>(key)
+          ?.items.some((entry) => entry.id === 'item-6'),
+      ).toBe(false);
+      expect(queryFn).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    'removed',
+    'replacement',
+    'unauthorized',
+    'permission',
+    'notFound',
+  ] as const)(
+    'leaves a %s detail untouched by a late add response',
+    async (change) => {
+      const held = deferred<CollectionItemDetail>();
+      const create = vi.fn().mockReturnValue(held.promise);
+      const { queryClient, queryFn, key } = renderPinned({
+        createCollectionItem: create,
+      });
+      submitAdd();
+      await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+      if (change === 'removed' || change === 'replacement') {
+        queryClient.removeQueries({ queryKey: key, exact: true });
+        if (change === 'replacement')
+          queryClient.setQueryData(key, collection());
+      } else {
+        queryClient
+          .getQueryCache()
+          .find({ queryKey: key, exact: true })
+          ?.setState({
+            error: new ClientProblemError(change),
+            status: 'error',
+          });
+      }
+      const before = queryClient.getQueryState(key);
+      held.resolve(item('item-6', 'Butter'));
+      await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+      expect(queryClient.getQueryState(key)).toEqual(before);
+      expect(queryFn).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not resurrect a created item absent from a newer collection read', async () => {
+    const held = deferred<CollectionItemDetail>();
+    const create = vi.fn().mockReturnValue(held.promise);
+    const { queryClient, queryFn, key } = renderPinned({
+      createCollectionItem: create,
+    });
+    submitAdd();
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    const newer = { ...collection(), version: 5 };
+    queryFn.mockReturnValue(new Promise(() => undefined));
+    await act(async () => queryClient.setQueryData(key, newer));
+    held.resolve(item('item-6', 'Butter'));
+    await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+    expect(queryClient.getQueryData(key)).toEqual(newer);
+    expect(queryFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops an add whose original task ended before dispatch', async () => {
+    const admission = deferred<void>();
+    const create = vi.fn();
+    const { queryClient, unmount } = renderPinned({
+      createCollectionItem: create,
+    });
+    queryClient.getMutationCache().config.onMutate = () => admission.promise;
+    submitAdd();
+    unmount();
+    admission.resolve();
+    await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('rechecks connectivity at actual add dispatch', async () => {
+    const admission = deferred<void>();
+    const create = vi.fn();
+    const { queryClient } = renderPinned({ createCollectionItem: create });
+    queryClient.getMutationCache().config.onMutate = () => admission.promise;
+    const input = submitAdd();
+    onlineManager.setOnline(false);
+    admission.resolve();
+    await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+    expect(create).not.toHaveBeenCalled();
+    expect(input.value).toBe('Butter');
+    expect(queryClient.getMutationCache().getAll()[0]?.state.isPaused).toBe(
+      false,
+    );
+  });
+
+  it('settles a dispatched add into its original authorized detail after unmount', async () => {
+    const held = deferred<CollectionItemDetail>();
+    const create = vi.fn().mockReturnValue(held.promise);
+    const { queryClient, key, unmount } = renderPinned({
+      createCollectionItem: create,
+    });
+    submitAdd();
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    unmount();
+    held.resolve(item('item-6', 'Butter'));
+    await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+    expect(
+      queryClient.getQueryData<CollectionDetail>(key)?.items.at(-1)?.title,
+    ).toBe('Butter');
+    expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true);
+  });
+
+  it('keeps a newer created item and completes its task independently of overview lifetime', async () => {
+    const held = deferred<CollectionItemDetail>();
+    const create = vi.fn().mockReturnValue(held.promise);
+    const { queryClient, queryFn, key } = renderPinned({
+      createCollectionItem: create,
+    });
+    const listKey = authorSummaryQueryKeys.collections('space-1');
+    queryClient.setQueryData(listKey, []);
+    submitAdd();
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    queryClient.removeQueries({ queryKey: listKey, exact: true });
+    queryClient.setQueryData(listKey, []);
+    const newer = {
+      ...collection(),
+      version: 5,
+      items: [
+        ...collection().items,
+        item('item-6', 'Cultured butter', true, 5, 3),
+      ],
+    };
+    queryFn.mockReturnValue(new Promise(() => undefined));
+    await act(async () => queryClient.setQueryData(key, newer));
+    held.resolve(item('item-6', 'Butter'));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(queryClient.getQueryData(key)).toEqual(newer);
+    expect(queryClient.getQueryState(listKey)?.isInvalidated).toBe(false);
+  });
+
   it('does not cancel a replacement query before admitting an obsolete intent', async () => {
     const update = vi.fn();
     const { queryClient, key } = renderPinned({

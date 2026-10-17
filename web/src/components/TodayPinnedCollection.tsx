@@ -11,7 +11,10 @@ import {
 } from '../client/collectionItemUpdate';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import { normalizeClientError } from '../client/problemDetails';
-import { captureAuthorizedQuery } from '../client/queryIdentity';
+import {
+  captureAuthorizedQuery,
+  captureQueryIdentity,
+} from '../client/queryIdentity';
 import { collectionDetailPath } from '../client/routes';
 import { sharedAchievementKind } from '../client/sharedAchievements';
 import { planningIfMatch } from '../client/sharedPlanning';
@@ -52,6 +55,20 @@ type ToggleState = {
 type ToggleResult = {
   item: CollectionItemDetail;
   achievement: ReturnType<typeof sharedAchievementKind>;
+};
+
+type AddTask = { state: ToggleState; pending: boolean };
+
+type AddVariables = {
+  task: AddTask;
+  draft: string;
+  title: string;
+  spaceId: string;
+  collectionId: string;
+  key: ReturnType<typeof authorSummaryQueryKeys.collectionDetail>;
+  rootVersion: number;
+  isCurrentQuery: () => boolean;
+  isCurrentList: () => boolean;
 };
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
@@ -104,6 +121,9 @@ export function TodayPinnedCollection({
   const previousScopeRef = useRef(celebrationScope);
   const addTriggerRef = useRef<HTMLButtonElement>(null);
   const addInputRef = useRef<HTMLInputElement>(null);
+  const addTaskRef = useRef<AddTask | null>(null);
+  const addDraftRef = useRef(addDraft);
+  addDraftRef.current = addDraft;
   const discardHeadingRef = useRef<HTMLHeadingElement>(null);
   const toggleSequenceRef = useRef(0);
   const query = queryClient
@@ -131,6 +151,13 @@ export function TodayPinnedCollection({
     activeToggleStateRef.current === variables.state;
   const ownsToggle = (variables: ToggleVariables) =>
     ownsQuery(variables) && variables.state.active;
+  const ownsAddQuery = (variables: AddVariables) =>
+    variables.isCurrentQuery() &&
+    activeToggleStateRef.current === variables.task.state;
+  const ownsAddTask = (variables: AddVariables) =>
+    ownsAddQuery(variables) &&
+    variables.task.state.active &&
+    addTaskRef.current === variables.task;
   const showSharedAchievement =
     sharedAchievementsEnabled && celebratedScope === celebrationScope;
 
@@ -361,41 +388,56 @@ export function TodayPinnedCollection({
   });
 
   const createItem = useMutation({
-    mutationFn: (title: string) =>
-      apiCall(() =>
-        api.createCollectionItem({
-          spaceId,
-          collectionId: collection.id,
-          collectionItemCreate: { title },
-        }),
-      ),
-    onSuccess: (createdItem) => {
-      toggleState.confirmed.set(createdItem.id, createdItem);
-      queryClient.setQueryData<CollectionDetail>(collectionKey, (current) => {
-        const base = current ?? collection;
-        if (base.items.some((item) => item.id === createdItem.id)) return base;
-        return {
-          ...base,
-          items: [...base.items, createdItem],
-        };
+    networkMode: 'always',
+    retry: false,
+    mutationFn: (variables: AddVariables) =>
+      apiCall(async () => {
+        if (!ownsAddTask(variables)) return undefined;
+        assertOnlineWrite();
+        return await api.createCollectionItem({
+          spaceId: variables.spaceId,
+          collectionId: variables.collectionId,
+          collectionItemCreate: { title: variables.title },
+        });
+      }),
+    onSuccess: (createdItem, variables) => {
+      if (!createdItem || !ownsAddQuery(variables)) return;
+      queryClient.setQueryData<CollectionDetail>(variables.key, (current) => {
+        // The item receipt cannot establish the parent version or revive a
+        // row already absent from a newer authoritative collection read.
+        if (
+          !current ||
+          current.version !== variables.rootVersion ||
+          current.items.some((item) => item.id === createdItem.id)
+        )
+          return current;
+        return { ...current, items: [...current.items, createdItem] };
       });
       void queryClient.invalidateQueries({
-        queryKey: collectionKey,
+        queryKey: variables.key,
         exact: true,
       });
-      void queryClient.invalidateQueries({
-        queryKey: authorSummaryQueryKeys.collections(spaceId),
-      });
+      if (variables.isCurrentList())
+        void queryClient.invalidateQueries({
+          queryKey: authorSummaryQueryKeys.collections(variables.spaceId),
+          exact: true,
+        });
+      if (!ownsAddTask(variables) || addDraftRef.current !== variables.draft)
+        return;
       setExpanded(true);
-      setAddOpen(false);
-      setAddDraft('');
-      setAddValidationError(false);
-      setShowDiscardConfirm(false);
+      closeAddFlow();
     },
-    onError: () => {
-      addInputRef.current?.focus({ preventScroll: true });
+    onError: (_error, variables) => {
+      if (ownsAddTask(variables) && addDraftRef.current === variables.draft)
+        addInputRef.current?.focus({ preventScroll: true });
+    },
+    onSettled: (_data, _error, variables) => {
+      variables.task.pending = false;
     },
   });
+  const currentAdd = createItem.variables && ownsAddTask(createItem.variables);
+  const addPending = Boolean(currentAdd && createItem.isPending);
+  const addError = currentAdd && createItem.isError ? createItem.error : null;
 
   function requestToggle(item: CollectionItemDetail) {
     if (!isClientOnline()) {
@@ -426,6 +468,7 @@ export function TodayPinnedCollection({
   }
 
   function closeAddFlow() {
+    addTaskRef.current = null;
     setAddOpen(false);
     setAddDraft('');
     setAddValidationError(false);
@@ -435,6 +478,17 @@ export function TodayPinnedCollection({
 
   function submitItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const task = addTaskRef.current;
+    if (
+      !addOpen ||
+      !task ||
+      task.pending ||
+      task.state !== toggleState ||
+      !task.state.active ||
+      !task.state.isCurrentQuery() ||
+      !collection.capabilities.canEdit
+    )
+      return;
     const title = addDraft.trim();
     if (!title) {
       setAddValidationError(true);
@@ -442,7 +496,21 @@ export function TodayPinnedCollection({
       return;
     }
     setAddValidationError(false);
-    createItem.mutate(title);
+    task.pending = true;
+    createItem.mutate({
+      task,
+      title,
+      draft: addDraft,
+      spaceId,
+      collectionId: collection.id,
+      key: collectionKey,
+      rootVersion: collection.version,
+      isCurrentQuery: task.state.isCurrentQuery,
+      isCurrentList: captureQueryIdentity(
+        queryClient,
+        authorSummaryQueryKeys.collections(spaceId),
+      ),
+    });
   }
 
   return (
@@ -519,6 +587,7 @@ export function TodayPinnedCollection({
               aria-label={t('m5s5.today.pinnedCollection.addAction')}
               title={t('m5s5.today.pinnedCollection.addAction')}
               onClick={() => {
+                addTaskRef.current = { state: toggleState, pending: false };
                 createItem.reset();
                 setAddValidationError(false);
                 setShowDiscardConfirm(false);
@@ -538,7 +607,7 @@ export function TodayPinnedCollection({
         initialFocusRef={addInputRef}
         restoreFocusRef={addTriggerRef}
         isDirty={addDraft.length > 0}
-        isCloseBlocked={createItem.isPending}
+        isCloseBlocked={addPending}
         onDiscardRequested={() => setShowDiscardConfirm(true)}
       >
         <form
@@ -556,7 +625,10 @@ export function TodayPinnedCollection({
               value={addDraft}
               maxLength={200}
               required
-              aria-invalid={addValidationError || createItem.isError}
+              aria-invalid={
+                addValidationError ||
+                Boolean(addError && createItem.variables?.draft === addDraft)
+              }
               aria-describedby={
                 addValidationError ? 'today-pinned-list-add-error' : undefined
               }
@@ -578,7 +650,7 @@ export function TodayPinnedCollection({
             ) : null}
           </div>
 
-          {createItem.error ? <ProblemState error={createItem.error} /> : null}
+          {addError ? <ProblemState error={addError} /> : null}
 
           {showDiscardConfirm ? (
             <section
@@ -615,13 +687,13 @@ export function TodayPinnedCollection({
               <button
                 type="button"
                 className="secondary"
-                disabled={createItem.isPending}
+                disabled={addPending}
                 onClick={closeAddFlow}
               >
                 {t('common.cancel')}
               </button>
-              <button type="submit" disabled={createItem.isPending}>
-                {createItem.isPending
+              <button type="submit" disabled={addPending}>
+                {addPending
                   ? t('m5s3.common.saving')
                   : t('m5s3.collection.addItem')}
               </button>

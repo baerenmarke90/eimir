@@ -282,7 +282,7 @@
     },
     "perspective-game.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 7,
+      "baselineTests": 12,
       "reason": "Concealed two-person handoff, first input, neutral reveal, restart and local-session return must remain protected in the production browser."
     }
   }

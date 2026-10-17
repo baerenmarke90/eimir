@@ -9,3 +9,6 @@ ed692ab64e22e974e9726d909b723ec1341aba44:.github/ISSUE_TEMPLATE/feature.yml:gene
 b97a7d90d8768852c6552385b95e90ddaad0e4ba:backend/tests/integration/test_cloud_self_service_onboarding.py:generic-api-key:830
 b97a7d90d8768852c6552385b95e90ddaad0e4ba:backend/tests/integration/test_cloud_self_service_onboarding.py:generic-api-key:845
 b97a7d90d8768852c6552385b95e90ddaad0e4ba:backend/tests/integration/test_cloud_self_service_onboarding.py:generic-api-key:890
+
+# Historical #1336 evidence SHA-256 of design/tokens.json, verified against the public source; not a credential.
+74ad3b29fc88b1824046abfd56db086c40e19207:docs/product/design/evidence/1333/perspective-card-inset/verification.json:generic-api-key:9

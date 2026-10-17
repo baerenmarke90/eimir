@@ -138,6 +138,66 @@ async function expectReflow(page: Page) {
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width + 1);
 }
 
+async function expectCardInset(page: Page) {
+  const card = page.locator('.who-of-us-card');
+  await expect(card).toBeVisible();
+  const geometry = await card.evaluate((element) => {
+    const root = getComputedStyle(document.documentElement);
+    const tokenPixels = (name: string) => {
+      const value = root.getPropertyValue(name).trim();
+      return (
+        Number.parseFloat(value) *
+        (value.endsWith('rem') ? Number.parseFloat(root.fontSize) : 1)
+      );
+    };
+    const style = getComputedStyle(element);
+    const bounds = element.getBoundingClientRect();
+    const edges = ['top', 'right', 'bottom', 'left'] as const;
+    const padding = edges.map((edge) =>
+      Number.parseFloat(style.getPropertyValue(`padding-${edge}`)),
+    );
+    const border = edges.map((edge) =>
+      Number.parseFloat(style.getPropertyValue(`border-${edge}-width`)),
+    );
+    const children = Array.from(element.children).map((child) => {
+      const box = child.getBoundingClientRect();
+      return {
+        tag: child.tagName,
+        inset: [
+          box.top - bounds.top,
+          bounds.right - box.right,
+          bounds.bottom - box.bottom,
+          box.left - bounds.left,
+        ],
+      };
+    });
+    return {
+      state: element.getAttribute('aria-labelledby'),
+      width: window.innerWidth,
+      minimum: tokenPixels('--space-5'),
+      maximum: tokenPixels('--space-8'),
+      padding,
+      border,
+      children,
+    };
+  });
+  for (const [index, padding] of geometry.padding.entries()) {
+    expect(
+      padding,
+      `${geometry.state} padding edge ${index}`,
+    ).toBeGreaterThanOrEqual(geometry.minimum);
+    expect(padding).toBeLessThanOrEqual(geometry.maximum);
+    if (geometry.width < 600) expect(padding).toBeCloseTo(geometry.minimum, 1);
+    for (const child of geometry.children) {
+      expect(
+        child.inset[index],
+        `${geometry.state} ${child.tag} inset edge ${index}`,
+      ).toBeGreaterThanOrEqual(padding + geometry.border[index] - 1);
+    }
+  }
+  return geometry;
+}
+
 async function capture(page: Page, info: TestInfo, name: string) {
   const output = info.outputPath(name);
   await page.screenshot({ path: output, fullPage: true });
@@ -152,6 +212,11 @@ const cases = [
   { width: 360, theme: 'dark', reduce: true, largeText: true },
   { width: 390, theme: 'light', reduce: false, largeText: false },
   { width: 430, theme: 'dark', reduce: true, largeText: false },
+  { width: 599, theme: 'light', reduce: true, largeText: false },
+  { width: 600, theme: 'light', reduce: true, largeText: true },
+  { width: 599, theme: 'dark', reduce: true, largeText: false },
+  { width: 600, theme: 'dark', reduce: true, largeText: true },
+  { width: 1280, theme: 'light', reduce: true, largeText: false },
   { width: 1280, theme: 'dark', reduce: true, largeText: false },
 ] as const;
 
@@ -161,6 +226,7 @@ for (const scenario of cases) {
   }, info) => {
     const network = await installMocks(page);
     const errors: string[] = [];
+    const measurements = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.setViewportSize({ width: scenario.width, height: 844 });
     await page.emulateMedia({
@@ -185,6 +251,33 @@ for (const scenario of cases) {
         .locator('#who-of-us-question-title')
         .innerText();
       await expectReflow(page);
+      const questionGeometry = await expectCardInset(page);
+      if (round === 0) {
+        measurements.push(questionGeometry);
+        await capture(
+          page,
+          info,
+          `perspective-question-${scenario.width}-${scenario.theme}.png`,
+        );
+      }
+      if (round === 0 && scenario.width === 599) {
+        await page.setViewportSize({ width: 600, height: 844 });
+        measurements.push(await expectCardInset(page));
+        await expect(page.locator('#who-of-us-question-title')).toHaveText(
+          question,
+        );
+        await expectReflow(page);
+        await capture(
+          page,
+          info,
+          `perspective-question-600-${scenario.theme}-default.png`,
+        );
+        await page.setViewportSize({ width: scenario.width, height: 844 });
+        await expectCardInset(page);
+        await expect(page.locator('#who-of-us-question-title')).toHaveText(
+          question,
+        );
+      }
       await page
         .getByRole('button', {
           name: localized(copy.choiceAria, { responder: first, choice: 'Lea' }),
@@ -198,6 +291,8 @@ for (const scenario of cases) {
       await expect(page.getByText(question, { exact: true })).toHaveCount(0);
       await expect(page.locator('.who-of-us-choice')).toHaveCount(0);
       await expect(page.locator('.who-of-us-reveal-answers')).toHaveCount(0);
+      const geometry = await expectCardInset(page);
+      if (round === 0) measurements.push(geometry);
       await expectReflow(page);
       if (round === 0) {
         const axe = await new AxeBuilder({ page })
@@ -215,6 +310,7 @@ for (const scenario of cases) {
       }
       await confirm.click();
       await expect(page.getByText(question, { exact: true })).toBeVisible();
+      await expectCardInset(page);
       await expect(page.locator('.who-of-us-reveal-answers')).toHaveCount(0);
       await page
         .getByRole('button', {
@@ -237,6 +333,8 @@ for (const scenario of cases) {
         'Lea',
         round % 2 === 0 ? 'Lea' : 'Alex',
       ]);
+      const revealGeometry = await expectCardInset(page);
+      if (round === 0) measurements.push(revealGeometry);
       await expectReflow(page);
       if (round === 0 && (scenario.width === 390 || scenario.width === 1280)) {
         await capture(
@@ -265,6 +363,17 @@ for (const scenario of cases) {
         }),
       ),
     ).toBeVisible();
+    measurements.push(await expectCardInset(page));
+    await expectReflow(page);
+    await capture(
+      page,
+      info,
+      `perspective-finish-${scenario.width}-${scenario.theme}.png`,
+    );
+    fs.writeFileSync(
+      info.outputPath('card-geometry.json'),
+      `${JSON.stringify(measurements, null, 2)}\n`,
+    );
     await page.getByRole('button', { name: copy.restart }).click();
     await expect(
       page.getByText(localized(copy.round, { current: 1, total })),

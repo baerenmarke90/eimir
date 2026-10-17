@@ -9,6 +9,29 @@ public Demo mode.** Backend provisioning follows app preparation. Do not enable
 Demo entry, reset timers, synthetic memberships or Premium overrides. Full
 connected acceptance is pending until that installation exists.
 
+## Native email entry for the private installation
+
+The private installation uses the Cloud authentication policy to exercise
+self-service registration with real SMTP; Cloud disables local passwords.
+The initial `0.2.0-test.1` APK registered only the OIDC native callback, so it is
+not the installation candidate for this Cloud mail flow. Use the higher-version
+same-key `0.2.0-test.2` candidate with HTTPS email entry support instead.
+
+The sideload manifest declares verified App Links only for the five existing
+email-proof paths on `demo.eimir.ur-cloud.de`. React validates the configured HTTPS
+origin, bounded token and exact allowed path, then passes the proof in memory to
+the existing IdentityEntry consumer. It waits for session restoration and never
+replaces an already signed-in account or interrupts its drafts. No token is
+stored in history, native preferences or logs. Cold/warm delivery, duplicate and
+late events use one subscription boundary. Browser authentication and the
+existing OIDC callback remain independent.
+
+The TLS proxy must serve `/.well-known/assetlinks.json` with HTTP 200, JSON content
+type and the test certificate fingerprint recorded below. Configure Android's supported
+links if the OS verifier has not enabled them. Actual OS verification and emailed
+proof -> native session still require device acceptance; JavaScript bridge tests
+do not establish them. See [email entry preflight](product/design/references/1331/native-email-entry.md).
+
 ## Build and signing identity
 
 Requirements: clean committed checkout, locked Web dependencies installed, Java

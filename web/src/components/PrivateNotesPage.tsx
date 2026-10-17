@@ -11,6 +11,7 @@ import type { PrivateNoteDetail } from '../api/generated/models/PrivateNoteDetai
 import {
   PRIVATE_NOTES_PATH,
   capturePrivateCreate,
+  capturePrivateDelete,
   capturePrivateEdit,
   privateApiCall,
   privateAreaQueryKeys,
@@ -380,21 +381,31 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
     mutationFn: (targetNote: PrivateNoteDetail) =>
       privateApiCall(() =>
         api.deletePrivateNote({
-          spaceId,
+          spaceId: targetNote.spaceId,
           noteId: targetNote.id,
           ifMatch: String(targetNote.version),
         }),
       ),
-    onSuccess: async () => {
-      if (noteId) {
-        queryClient.removeQueries({
-          queryKey: privateAreaQueryKeys.note(accountId, spaceId, noteId),
-        });
+    onMutate: (target) =>
+      capturePrivateDelete(
+        queryClient,
+        privateAreaQueryKeys.note(target.ownerId, target.spaceId, target.id),
+        privateAreaQueryKeys.notes(target.ownerId, target.spaceId),
+        captureDeleteOwnership(),
+      ),
+    onSuccess: async (_result, _target, context) => {
+      if (!context) return;
+      await context.refreshList();
+      if (!context.isCurrentTask()) {
+        context.remove();
+        return;
       }
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.notes(accountId, spaceId),
+      closeTask(() => {
+        const shouldNavigate = context.isCurrentTask();
+        if (context.remove() && shouldNavigate) {
+          navigate(PRIVATE_NOTES_PATH, { replace: true });
+        }
       });
-      closeTask(() => navigate(PRIVATE_NOTES_PATH, { replace: true }));
     },
   });
 
@@ -440,6 +451,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
   );
   const detailFallback = noteId ? privateNotePath(noteId) : PRIVATE_NOTES_PATH;
   const {
+    captureOwnership: captureDeleteOwnership,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -473,7 +485,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (mutation.isPending) return;
+    if (mutation.isPending || deleteMutation.isPending) return;
     const data = new FormData(event.currentTarget);
     const title = titleValidation.validate(String(data.get('title') || ''));
     if (title === null) return;
@@ -519,7 +531,10 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
             >
               {t('common.cancel')}
             </button>
-            <button type="submit" disabled={mutation.isPending}>
+            <button
+              type="submit"
+              disabled={mutation.isPending || deleteMutation.isPending}
+            >
               {mutation.isPending
                 ? t('privateArea.saving')
                 : t('privateArea.save')}
@@ -539,6 +554,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
           <DeleteConfirmation
             onDelete={() => deleteMutation.mutate(note)}
             pending={deleteMutation.isPending}
+            disabled={mutation.isPending}
             error={deleteMutation.error}
           />
         </article>

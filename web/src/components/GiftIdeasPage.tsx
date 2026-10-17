@@ -12,6 +12,7 @@ import { GiftIdeaStatus } from '../api/generated/models/GiftIdeaStatus';
 import {
   PRIVATE_GIFT_IDEAS_PATH,
   capturePrivateCreate,
+  capturePrivateDelete,
   capturePrivateEdit,
   privateApiCall,
   privateAreaQueryKeys,
@@ -503,25 +504,35 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
     mutationFn: (targetGift: GiftIdeaDetail) =>
       privateApiCall(() =>
         api.deleteGiftIdea({
-          spaceId,
+          spaceId: targetGift.spaceId,
           giftIdeaId: targetGift.id,
           ifMatch: String(targetGift.version),
         }),
       ),
-    onSuccess: async () => {
-      if (giftIdeaId) {
-        queryClient.removeQueries({
-          queryKey: privateAreaQueryKeys.giftIdea(
-            accountId,
-            spaceId,
-            giftIdeaId,
-          ),
-        });
+    onMutate: (target) =>
+      capturePrivateDelete(
+        queryClient,
+        privateAreaQueryKeys.giftIdea(
+          target.ownerId,
+          target.spaceId,
+          target.id,
+        ),
+        privateAreaQueryKeys.giftIdeas(target.ownerId, target.spaceId),
+        captureDeleteOwnership(),
+      ),
+    onSuccess: async (_result, _target, context) => {
+      if (!context) return;
+      await context.refreshList();
+      if (!context.isCurrentTask()) {
+        context.remove();
+        return;
       }
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.giftIdeas(accountId, spaceId),
+      closeTask(() => {
+        const shouldNavigate = context.isCurrentTask();
+        if (context.remove() && shouldNavigate) {
+          navigate(PRIVATE_GIFT_IDEAS_PATH, { replace: true });
+        }
       });
-      closeTask(() => navigate(PRIVATE_GIFT_IDEAS_PATH, { replace: true }));
     },
   });
 
@@ -570,6 +581,7 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
     ? privateGiftIdeaPath(giftIdeaId)
     : PRIVATE_GIFT_IDEAS_PATH;
   const {
+    captureOwnership: captureDeleteOwnership,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -603,7 +615,7 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (mutation.isPending) return;
+    if (mutation.isPending || deleteMutation.isPending) return;
     const data = new FormData(event.currentTarget);
     const title = titleValidation.validate(String(data.get('title') || ''));
     if (title === null) return;
@@ -650,7 +662,10 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
             >
               {t('common.cancel')}
             </button>
-            <button type="submit" disabled={mutation.isPending}>
+            <button
+              type="submit"
+              disabled={mutation.isPending || deleteMutation.isPending}
+            >
               {mutation.isPending
                 ? t('privateArea.saving')
                 : t('privateArea.save')}
@@ -670,6 +685,7 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
           <DeleteConfirmation
             onDelete={() => deleteMutation.mutate(gift)}
             pending={deleteMutation.isPending}
+            disabled={mutation.isPending}
             error={deleteMutation.error}
           />
         </article>

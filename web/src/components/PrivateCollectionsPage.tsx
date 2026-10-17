@@ -16,6 +16,7 @@ import type { PrivateCollectionItemDetail } from '../api/generated/models/Privat
 import {
   PRIVATE_COLLECTIONS_PATH,
   capturePrivateCreate,
+  capturePrivateDelete,
   capturePrivateEdit,
   privateApiCall,
   privateAreaQueryKeys,
@@ -857,7 +858,7 @@ export function PrivateCollectionDetailPage({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { collectionId, query } = usePrivateCollection(api, accountId, spaceId);
+  const { query } = usePrivateCollection(api, accountId, spaceId);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
@@ -926,27 +927,35 @@ export function PrivateCollectionDetailPage({
     mutationFn: (collectionToDelete: PrivateCollectionDetail) =>
       privateApiCall(() =>
         api.deletePrivateCollection({
-          spaceId,
+          spaceId: collectionToDelete.spaceId,
           collectionId: collectionToDelete.id,
           ifMatch: String(collectionToDelete.version),
         }),
       ),
-    onSuccess: async () => {
-      if (collectionId) {
-        queryClient.removeQueries({
-          queryKey: privateAreaQueryKeys.collection(
-            accountId,
-            spaceId,
-            collectionId,
-          ),
-        });
+    onMutate: (target) =>
+      capturePrivateDelete(
+        queryClient,
+        privateAreaQueryKeys.collection(
+          target.ownerId,
+          target.spaceId,
+          target.id,
+        ),
+        privateAreaQueryKeys.collections(target.ownerId, target.spaceId),
+        captureDeleteOwnership(),
+      ),
+    onSuccess: async (_result, _target, context) => {
+      if (!context) return;
+      await context.refreshList();
+      if (!context.isCurrentTask()) {
+        context.remove();
+        return;
       }
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.collections(accountId, spaceId),
+      closeCollectionEdit(() => {
+        const shouldNavigate = context.isCurrentTask();
+        if (context.remove() && shouldNavigate) {
+          navigate(PRIVATE_COLLECTIONS_PATH, { replace: true });
+        }
       });
-      closeCollectionEdit(() =>
-        navigate(PRIVATE_COLLECTIONS_PATH, { replace: true }),
-      );
     },
   });
 
@@ -955,6 +964,7 @@ export function PrivateCollectionDetailPage({
     ? titleDraft.trim().length > 0 && titleDraft.trim() !== collection.title
     : false;
   const {
+    captureOwnership: captureDeleteOwnership,
     showDiscardConfirm: showEditDiscard,
     keepEditing: keepCollectionEditing,
     closeConfirmed: closeCollectionEdit,
@@ -996,6 +1006,7 @@ export function PrivateCollectionDetailPage({
     if (
       !collection ||
       !isTitleDirty ||
+      deleteMutation.isPending ||
       updateCollectionMutation.isPending ||
       collectionOperationBlocked
     )

@@ -1,0 +1,1966 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+ RUN  v5.0.4 /workspace/scratch/305585e3758d/milestone-baseline/web
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx (22 tests | 20 failed) 8118ms
+   ❯ Milestone delete response ownership (22)
+     × does not navigate after actual departure or after returning to a new activation 90ms
+     × settles its original read without interrupting another task 59ms
+     × does not evict a replacement Query or navigate 42ms
+     × preserves a later unauthorized read 47ms
+     × preserves a later permission read 36ms
+     × preserves a later notFound read 34ms
+     × rechecks ownership after persistent revocation 42ms
+     × rechecks ownership after projection recovery 39ms
+     × does not follow a reused route to another milestone 51ms
+     × keeps the submitting Account, Space and API through a scope change 34ms
+     × rejects a Query replacement during awaited cancellation before dispatch 1026ms
+     × rejects an offline confirmation and never dispatches on reconnect 1025ms
+     × preserves pending protection after leaving and returning 132ms
+     × admits only one synchronous confirmation and prevents a competing save 1047ms
+     × prevents deletion while an edit is pending 35ms
+     × rejects changed version admission after cancellation 1025ms
+     × rejects changed permission admission after cancellation 1025ms
+     × rejects changed cache admission after cancellation 1025ms
+     × rejects changed departure admission after cancellation 1036ms
+     × revokes the original persistent snapshot after its Query is removed 37ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 20 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > does not navigate after actual departure or after returning to a new activation
+AssertionError: expected '/story' to be '/story/milestones/milestone-1/edit' // Object.is equality
+
+Expected: "/story/milestones/milestone-1/edit"
+Received: "/story"
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:195:64
+    193|       .click(screen.getByRole('link', { name: 'Return to edit' }));
+    194|     await h.settle();
+    195|     expect(screen.getByLabelText('Current route').textContent).toBe(
+       |                                                                ^
+    196|       '/story/milestones/milestone-1/edit',
+    197|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > settles its original read without interrupting another task
+TestingLibraryElementError: Unable to find an element with the text: Unrelated task. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<output[39m
+      [33maria-label[39m=[32m"Current route"[39m
+    [36m>[39m
+      [0m/story[0m
+    [36m</output>[39m
+    [36m<a[39m
+      [33mdata-discover[39m=[32m"true"[39m
+      [33mhref[39m=[32m"/other"[39m
+    [36m>[39m
+      [0mOther task[0m
+    [36m</a>[39m
+    [36m<a[39m
+      [33mdata-discover[39m=[32m"true"[39m
+      [33mhref[39m=[32m"/story/milestones/milestone-1/edit"[39m
+    [36m>[39m
+      [0mReturn to edit[0m
+    [36m</a>[39m
+    [36m<a[39m
+      [33mdata-discover[39m=[32m"true"[39m
+      [33mhref[39m=[32m"/story/milestones/milestone-2/edit"[39m
+    [36m>[39m
+      [0mAnother milestone[0m
+    [36m</a>[39m
+    [36m<p>[39m
+      [0mTimeline result[0m
+    [36m</p>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../eimir/web/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../eimir/web/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../eimir/web/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:208:19
+    206|       .click(screen.getByRole('link', { name: 'Other task' }));
+    207|     await h.settle();
+    208|     expect(screen.getByText('Unrelated task')).toBeTruthy();
+       |                   ^
+    209|     expect(h.client.getQueryData(key)).toBeUndefined();
+    210|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > does not evict a replacement Query or navigate
+AssertionError: expected undefined to deeply equal { value: { …(11) }, source: 'network' }
+
+- Expected:
+{
+  "source": "network",
+  "value": {
+    "author": {
+      "displayName": "Alex",
+      "id": "account-1",
+    },
+    "authorId": "account-1",
+    "body": "A shared beginning",
+    "capabilities": {
+      "canComment": true,
+      "canDelete": true,
+      "canEdit": true,
+    },
+    "createdAt": 2026-08-01T00:00:00.000Z,
+    "happenedOn": 2026-08-01T00:00:00.000Z,
+    "id": "milestone-1",
+    "spaceId": "space-1",
+    "title": "Replacement read",
+    "updatedAt": 2026-08-01T00:00:00.000Z,
+    "version": 1,
+  },
+}
+
++ Received:
+undefined
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:223:40
+    221|     });
+    222|     await h.settle();
+    223|     expect(h.client.getQueryData(key)).toEqual(
+       |                                        ^
+    224|       read({ ...milestone, title: 'Replacement read' }),
+    225|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > preserves a later unauthorized read
+AssertionError: expected undefined to be ClientProblemError: Client request failed… { …(4) } // Object.is equality
+
+- Expected:
+ClientProblemError {
+  "message": "Client request failed (unauthorized).",
+  "kind": "unauthorized",
+  "status": undefined,
+  "code": undefined,
+  "retryAfterSeconds": undefined,
+  "name": "ClientProblemError",
+}
+
++ Received:
+undefined
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:248:50
+    246|       });
+    247|       await h.settle();
+    248|       expect(h.client.getQueryState(key)?.error).toBe(denied);
+       |                                                  ^
+    249|       expect(screen.getByLabelText('Current route').textContent).toCon…
+    250|         '/edit',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > preserves a later permission read
+AssertionError: expected undefined to be ClientProblemError: Client request failed… { …(4) } // Object.is equality
+
+- Expected:
+ClientProblemError {
+  "message": "Client request failed (permission).",
+  "kind": "permission",
+  "status": undefined,
+  "code": undefined,
+  "retryAfterSeconds": undefined,
+  "name": "ClientProblemError",
+}
+
++ Received:
+undefined
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:248:50
+    246|       });
+    247|       await h.settle();
+    248|       expect(h.client.getQueryState(key)?.error).toBe(denied);
+       |                                                  ^
+    249|       expect(screen.getByLabelText('Current route').textContent).toCon…
+    250|         '/edit',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > preserves a later notFound read
+AssertionError: expected undefined to be ClientProblemError: Client request failed… { …(4) } // Object.is equality
+
+- Expected:
+ClientProblemError {
+  "message": "Client request failed (notFound).",
+  "kind": "notFound",
+  "status": undefined,
+  "code": undefined,
+  "retryAfterSeconds": undefined,
+  "name": "ClientProblemError",
+}
+
++ Received:
+undefined
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:248:50
+    246|       });
+    247|       await h.settle();
+    248|       expect(h.client.getQueryState(key)?.error).toBe(denied);
+       |                                                  ^
+    249|       expect(screen.getByLabelText('Current route').textContent).toCon…
+    250|         '/edit',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > rechecks ownership after persistent revocation
+AssertionError: expected undefined to deeply equal { value: { …(11) }, source: 'network' }
+
+- Expected:
+{
+  "source": "network",
+  "value": {
+    "author": {
+      "displayName": "Alex",
+      "id": "account-1",
+    },
+    "authorId": "account-1",
+    "body": "A shared beginning",
+    "capabilities": {
+      "canComment": true,
+      "canDelete": true,
+      "canEdit": true,
+    },
+    "createdAt": 2026-08-01T00:00:00.000Z,
+    "happenedOn": 2026-08-01T00:00:00.000Z,
+    "id": "milestone-1",
+    "spaceId": "space-1",
+    "title": "Our first home",
+    "updatedAt": 2026-08-01T00:00:00.000Z,
+    "version": 1,
+  },
+}
+
++ Received:
+undefined
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:268:40
+    266|     await act(async () => revoking.resolve());
+    267|     await waitFor(() => expect(h.client.isMutating()).toBe(0));
+    268|     expect(h.client.getQueryData(key)).toEqual(read());
+       |                                        ^
+    269|     expect(screen.getByLabelText('Current route').textContent).toConta…
+    270|       '/edit',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > rechecks ownership after projection recovery
+AssertionError: expected '/story' to contain '/edit'
+
+Expected: "/edit"
+Received: "/story"
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:290:64
+    288|     await waitFor(() => expect(h.client.isMutating()).toBe(0));
+    289|     expect(h.client.getQueryData(key)).toEqual(read());
+    290|     expect(screen.getByLabelText('Current route').textContent).toConta…
+       |                                                                ^
+    291|       '/edit',
+    292|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > does not follow a reused route to another milestone
+AssertionError: expected undefined to be truthy
+
+- Expected:
+true
+
++ Received:
+undefined
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:309:45
+    307|       .click(screen.getByRole('link', { name: 'Another milestone' }));
+    308|     await h.settle();
+    309|     expect(h.client.getQueryData(otherKey)).toBeTruthy();
+       |                                             ^
+    310|     expect(h.client.getQueryData(key)).toBeUndefined();
+    311|     expect(screen.getByLabelText('Current route').textContent).toConta…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > keeps the submitting Account, Space and API through a scope change
+AssertionError: expected undefined to be truthy
+
+- Expected:
+true
+
++ Received:
+undefined
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:334:45
+    332|       milestone.id,
+    333|     );
+    334|     expect(h.client.getQueryData(otherKey)).toBeTruthy();
+       |                                             ^
+    335|     expect(screen.getByLabelText('Current route').textContent).toConta…
+    336|       '/edit',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > rejects a Query replacement during awaited cancellation before dispatch
+AssertionError: expected 1 to be +0 // Object.is equality
+
+Ignored nodes: comments, script, style
+[36m<html[39m
+  [33mlang[39m=[32m"de"[39m
+[36m>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<output[39m
+        [33maria-label[39m=[32m"Current route"[39m
+      [36m>[39m
+        [0m/story/milestones/milestone-1/edit[0m
+      [36m</output>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/other"[39m
+      [36m>[39m
+        [0mOther task[0m
+      [36m</a>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-1/edit"[39m
+      [36m>[39m
+        [0mReturn to edit[0m
+      [36m</a>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-2/edit"[39m
+      [36m>[39m
+        [0mAnother milestone[0m
+      [36m</a>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"page page-reading create-page product-editor-page"[39m
+      [36m>[39m
+        [36m<a[39m
+          [33mclass[39m=[32m"back-link"[39m
+          [33mdata-discover[39m=[32m"true"[39m
+          [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+        [36m>[39m
+          [0m← Zurück zum Meilenstein[0m
+        [36m</a>[39m
+        [36m<header[39m
+          [33mclass[39m=[32m"page-heading"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"eyebrow"[39m
+            [36m>[39m
+              [0mMeilenstein bearbeiten[0m
+            [36m</p>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"page-heading-title-container"[39m
+            [36m>[39m
+              [36m<h1>[39m
+                [0mMeilenstein bearbeiten[0m
+              [36m</h1>[39m
+            [36m</div>[39m
+            [36m<p>[39m
+              [0mPasse Titel, Beschreibung oder Datum an. Änderungen werden auf Basis des aktuellen Stands gespeichert.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</header>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"milestone-edit-heading"[39m
+          [33mclass[39m=[32m"form-card product-sheet"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mclass[39m=[32m"sr-only"[39m
+            [33mid[39m=[32m"milestone-edit-heading"[39m
+          [36m>[39m
+            [0mMeilenstein bearbeiten[0m
+          [36m</h2>[39m
+          [36m<form[39m
+            [33mclass[39m=[32m"form-grid"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"field-group"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"milestone-title"[39m
+              [36m>[39m
+                [0mTitel[0m
+              [36m</label>[39m
+              [36m<input[39m
+                [33mid[39m=[32m"milestone-title"[39m
+                [33mmaxlength[39m=[32m"200"[39m
+                [33mname[39m=[32m"title"[39m
+                [33mplaceholder[39m=[32m"Zum Beispiel: Erste gemeinsame Wohnung"[39m
+                [33mrequired[39m=[32m""[39m
+                [33mvalue[39m=[32m"Our first home"[39m
+              [36m/>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"field-group"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"milestone-body"[39m
+              [36m>[39m
+                [0mBeschreibung[0m
+              [36m</label>[39m
+              [36m<textarea[39m
+                [33mid[39m=[32m"milestone-body"[39m
+                [33mname[39m=[32m"body"[39m
+                [33mplaceholder[39m=[32m"Was möchtet ihr dazu festhalten?"[39m
+                [33mrows[39m=[32m"5"[39m
+              [36m>[39m
+                [0mA shared beginning[0m
+              [36m</textarea>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"field-group"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"milestone-date"[39m
+              [36m>[39m
+                [0mDatum[0m
+              [36m</label>[39m
+              [36m<input[39m
+                [33mid[39m=[32m"milestone-date"[39m
+                [33mname[39m=[32m"happenedOn"[39m
+                [33mrequired[39m=[32m""[39m
+                [33mtype[39m=[32m"date"[39m
+                [33mvalue[39m=[32m"2026-08-01"[39m
+              [36m/>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"form-actions"[39m
+            [36m>[39m
+              [36m<a[39m
+                [33mclass[39m=[32m"button-link secondary-link"[39m
+                [33mdata-discover[39m=[32m"true"[39m
+                [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+              [36m>[39m
+                [0mAbbrechen[0m
+              [36m</a>[39m
+              [36m<button[39m
+                [33mtype[39m=[32m"submit"[39m
+              [36m>[39m
+                [0mMeilenstein speichern[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</form>[39m
+          [36m<div[39m
+            [33mstyle[39m=[32m"margin-top: var(--space-8);"[39m
+          [36m>[39m
+            [36m<section[39m
+              [33maria-label[39m=[32m"Löschen"[39m
+              [33mclass[39m=[32m"memory-danger-zone memory-delete-confirmation"[39m
+              [33mrole[39m=[32m"alert"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<h2>[39m
+                  [0mMeilenstein wirklich löschen?[0m
+                [36m</h2>[39m
+                [36m<p>[39m
+                  [0mDer Meilenstein wird dauerhaft entfernt.[0m
+                [36m</p>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"memory-actions"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"tertiary"[39m
+                  [33mdisabled[39m=[32m""[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [0mNicht löschen[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"danger"[39m
+                  [33mdisabled[39m=[32m""[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [0mWird gelöscht …[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</section>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:350:55
+    348|       cancel.resolve();
+    349|     });
+    350|     await waitFor(() => expect(h.client.isMutating()).toBe(0));
+       |                                                       ^
+    351|     expect(h.deleteMilestone).not.toHaveBeenCalled();
+    352|   });
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > rejects an offline confirmation and never dispatches on reconnect
+TestingLibraryElementError: Unable to find an element with the text: Du bist gerade offline.. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<output[39m
+      [33maria-label[39m=[32m"Current route"[39m
+    [36m>[39m
+      [0m/story/milestones/milestone-1/edit[0m
+    [36m</output>[39m
+    [36m<a[39m
+      [33mdata-discover[39m=[32m"true"[39m
+      [33mhref[39m=[32m"/other"[39m
+    [36m>[39m
+      [0mOther task[0m
+    [36m</a>[39m
+    [36m<a[39m
+      [33mdata-discover[39m=[32m"true"[39m
+      [33mhref[39m=[32m"/story/milestones/milestone-1/edit"[39m
+    [36m>[39m
+      [0mReturn to edit[0m
+    [36m</a>[39m
+    [36m<a[39m
+      [33mdata-discover[39m=[32m"true"[39m
+      [33mhref[39m=[32m"/story/milestones/milestone-2/edit"[39m
+    [36m>[39m
+      [0mAnother milestone[0m
+    [36m</a>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"page page-reading create-page product-editor-page"[39m
+    [36m>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"back-link"[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+      [36m>[39m
+        [0m← Zurück zum Meilenstein[0m
+      [36m</a>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"page-heading"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"eyebrow"[39m
+          [36m>[39m
+            [0mMeilenstein bearbeiten[0m
+          [36m</p>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"page-heading-title-container"[39m
+          [36m>[39m
+            [36m<h1>[39m
+              [0mMeilenstein bearbeiten[0m
+            [36m</h1>[39m
+          [36m</div>[39m
+          [36m<p>[39m
+            [0mPasse Titel, Beschreibung oder Datum an. Änderungen werden auf Basis des aktuellen Stands gespeichert.[0m
+          [36m</p>[39m
+        [36m</div>[39m
+      [36m</header>[39m
+      [36m<section[39m
+        [33maria-labelledby[39m=[32m"milestone-edit-heading"[39m
+        [33mclass[39m=[32m"form-card product-sheet"[39m
+      [36m>[39m
+        [36m<h2[39m
+          [33mclass[39m=[32m"sr-only"[39m
+          [33mid[39m=[32m"milestone-edit-heading"[39m
+        [36m>[39m
+          [0mMeilenstein bearbeiten[0m
+        [36m</h2>[39m
+        [36m<form[39m
+          [33mclass[39m=[32m"form-grid"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"field-group"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mfor[39m=[32m"milestone-title"[39m
+            [36m>[39m
+              [0mTitel[0m
+            [36m</label>[39m
+            [36m<input[39m
+              [33mid[39m=[32m"milestone-title"[39m
+              [33mmaxlength[39m=[32m"200"[39m
+              [33mname[39m=[32m"title"[39m
+              [33mplaceholder[39m=[32m"Zum Beispiel: Erste gemeinsame Wohnung"[39m
+              [33mrequired[39m=[32m""[39m
+              [33mvalue[39m=[32m"Our first home"[39m
+            [36m/>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"field-group"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mfor[39m=[32m"milestone-body"[39m
+            [36m>[39m
+              [0mBeschreibung[0m
+            [36m</label>[39m
+            [36m<textarea[39m
+              [33mid[39m=[32m"milestone-body"[39m
+              [33mname[39m=[32m"body"[39m
+              [33mplaceholder[39m=[32m"Was möchtet ihr dazu festhalten?"[39m
+              [33mrows[39m=[32m"5"[39m
+            [36m>[39m
+              [0mA shared beginning[0m
+            [36m</textarea>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"field-group"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mfor[39m=[32m"milestone-date"[39m
+            [36m>[39m
+              [0mDatum[0m
+            [36m</label>[39m
+            [36m<input[39m
+              [33mid[39m=[32m"milestone-date"[39m
+              [33mname[39m=[32m"happenedOn"[39m
+              [33mrequired[39m=[32m""[39m
+              [33mtype[39m=[32m"date"[39m
+              [33mvalue[39m=[32m"2026-08-01"[39m
+            [36m/>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"form-actions"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"button-link secondary-link"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+            [36m>[39m
+              [0mAbbrechen[0m
+            [36m</a>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"submit"[39m
+            [36m>[39m
+              [0mMeilenstein speichern[0m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</form>[39m
+        [36m<div[39m
+          [33mstyle[39m=[32m"margin-top: var(--space-8);"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33maria-label[39m=[32m"Löschen"[39m
+            [33mclass[39m=[32m"memory-danger-zone memory-delete-confirmation"[39m
+            [33mrole[39m=[32m"alert"[39m
+          [36m>[39m
+            [36m<div>[39m
+              [36m<h2>[39m
+                [0mMeilenstein wirklich löschen?[0m
+              [36m</h2>[39m
+              [36m<p>[39m
+                [0mDer Meilenstein wird dauerhaft entfernt.[0m
+              [36m</p>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"memory-actions"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"tertiary"[39m
+                [33mdisabled[39m=[32m""[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mNicht löschen[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"danger"[39m
+                [33mdisabled[39m=[32m""[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mWird gelöscht …[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<html[39m
+  [33mlang[39m=[32m"de"[39m
+[36m>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<output[39m
+        [33maria-label[39m=[32m"Current route"[39m
+      [36m>[39m
+        [0m/story/milestones/milestone-1/edit[0m
+      [36m</output>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/other"[39m
+      [36m>[39m
+        [0mOther task[0m
+      [36m</a>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-1/edit"[39m
+      [36m>[39m
+        [0mReturn to edit[0m
+      [36m</a>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-2/edit"[39m
+      [36m>[39m
+        [0mAnother milestone[0m
+      [36m</a>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"page page-reading create-page product-editor-page"[39m
+      [36m>[39m
+        [36m<a[39m
+          [33mclass[39m=[32m"back-link"[39m
+          [33mdata-discover[39m=[32m"true"[39m
+          [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+        [36m>[39m
+          [0m← Zurück zum Meilenstein[0m
+        [36m</a>[39m
+        [36m<header[39m
+          [33mclass[39m=[32m"page-heading"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"eyebrow"[39m
+            [36m>[39m
+              [0mMeilenstein bearbeiten[0m
+            [36m</p>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"page-heading-title-container"[39m
+            [36m>[39m
+              [36m<h1>[39m
+                [0mMeilenstein bearbeiten[0m
+              [36m</h1>[39m
+            [36m</div>[39m
+            [36m<p>[39m
+              [0mPasse Titel, Beschreibung oder Datum an. Änderungen werden auf Basis des aktuellen Stands gespeichert.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</header>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"milestone-edit-heading"[39m
+          [33mclass[39m=[32m"form-card product-sheet"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mclass[39m=[32m"sr-only"[39m
+            [33mid[39m=[32m"milestone-edit-heading"[39m
+          [36m>[39m
+            [0mMeilenstein bearbeiten[0m
+          [36m</h2>[39m
+          [36m<form[39m
+            [33mclass[39m=[32m"form-grid"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"field-group"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"milestone-title"[39m
+              [36m>[39m
+                [0mTitel[0m
+              [36m</label>[39m
+              [36m<input[39m
+                [33mid[39m=[32m"milestone-title"[39m
+                [33mmaxlength[39m=[32m"200"[39m
+                [33mname[39m=[32m"title"[39m
+                [33mplaceholder[39m=[32m"Zum Beispiel: Erste gemeinsame Wohnung"[39m
+                [33mrequired[39m=[32m""[39m
+                [33mvalue[39m=[32m"Our first home"[39m
+              [36m/>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"field-group"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"milestone-body"[39m
+              [36m>[39m
+                [0mBeschreibung[0m
+              [36m</label>[39m
+              [36m<textarea[39m
+                [33mid[39m=[32m"milestone-body"[39m
+                [33mname[39m=[32m"body"[39m
+                [33mplaceholder[39m=[32m"Was möchtet ihr dazu festhalten?"[39m
+                [33mrows[39m=[32m"5"[39m
+              [36m>[39m
+                [0mA shared beginning[0m
+              [36m</textarea>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"field-group"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"milestone-date"[39m
+              [36m>[39m
+                [0mDatum[0m
+              [36m</label>[39m
+              [36m<input[39m
+                [33mid[39m=[32m"milestone-date"[39m
+                [33mname[39m=[32m"happenedOn"[39m
+                [33mrequired[39m=[32m""[39m
+                [33mtype[39m=[32m"date"[39m
+                [33mvalue[39m=[32m"2026-08-01"[39m
+              [36m/>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"form-actions"[39m
+            [36m>[39m
+              [36m<a[39m
+                [33mclass[39m=[32m"button-link secondary-link"[39m
+                [33mdata-discover[39m=[32m"true"[39m
+                [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+              [36m>[39m
+                [0mAbbrechen[0m
+              [36m</a>[39m
+              [36m<button[39m
+                [33mtype[39m=[32m"submit"[39m
+              [36m>[39m
+                [0mMeilenstein speichern[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</form>[39m
+          [36m<div[39m
+            [33mstyle[39m=[32m"margin-top: var(--space-8);"[39m
+          [36m>[39m
+            [36m<section[39m
+              [33maria-label[39m=[32m"Löschen"[39m
+              [33mclass[39m=[32m"memory-danger-zone memory-delete-confirmation"[39m
+              [33mrole[39m=[32m"alert"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<h2>[39m
+                  [0mMeilenstein wirklich löschen?[0m
+                [36m</h2>[39m
+                [36m<p>[39m
+                  [0mDer Meilenstein wird dauerhaft entfernt.[0m
+                [36m</p>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"memory-actions"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"tertiary"[39m
+                  [33mdisabled[39m=[32m""[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [0mNicht löschen[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"danger"[39m
+                  [33mdisabled[39m=[32m""[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [0mWird gelöscht …[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</section>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+ ❯ Proxy.waitForWrapper ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:359:11
+    357|     onlineManager.setOnline(false);
+    358|     fireEvent.click(button);
+    359|     await waitFor(() =>
+       |           ^
+    360|       expect(screen.getByText(de.states.offline.title)).toBeTruthy(),
+    361|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > preserves pending protection after leaving and returning
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Wird gelöscht …"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "Current route":
+  [36m<output[39m
+    [33maria-label[39m=[32m"Current route"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Other task":
+  [36m<a[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/other"[39m
+  [36m/>[39m
+
+  Name "Return to edit":
+  [36m<a[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/story/milestones/milestone-1/edit"[39m
+  [36m/>[39m
+
+  Name "Another milestone":
+  [36m<a[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/story/milestones/milestone-2/edit"[39m
+  [36m/>[39m
+
+  Name "← Zurück zum Meilenstein":
+  [36m<a[39m
+    [33mclass[39m=[32m"back-link"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+  [36m/>[39m
+
+  Name "Abbrechen":
+  [36m<a[39m
+    [33mclass[39m=[32m"button-link secondary-link"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  banner:
+
+  Name "":
+  [36m<header[39m
+    [33mclass[39m=[32m"page-heading"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  [36m<p[39m
+    [33mclass[39m=[32m"eyebrow"[39m
+  [36m/>[39m
+
+  Name "":
+  [36m<p />[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "Meilenstein bearbeiten":
+  [36m<h1 />[39m
+
+  Name "Meilenstein bearbeiten":
+  [36m<h2[39m
+    [33mclass[39m=[32m"sr-only"[39m
+    [33mid[39m=[32m"milestone-edit-heading"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Meilenstein bearbeiten":
+  [36m<section[39m
+    [33maria-labelledby[39m=[32m"milestone-edit-heading"[39m
+    [33mclass[39m=[32m"form-card product-sheet"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  textbox:
+
+  Name "Titel":
+  [36m<input[39m
+    [33mid[39m=[32m"milestone-title"[39m
+    [33mmaxlength[39m=[32m"200"[39m
+    [33mname[39m=[32m"title"[39m
+    [33mplaceholder[39m=[32m"Zum Beispiel: Erste gemeinsame Wohnung"[39m
+    [33mrequired[39m=[32m""[39m
+    [33mvalue[39m=[32m"Our first home"[39m
+  [36m/>[39m
+
+  Name "Beschreibung":
+  [36m<textarea[39m
+    [33mid[39m=[32m"milestone-body"[39m
+    [33mname[39m=[32m"body"[39m
+    [33mplaceholder[39m=[32m"Was möchtet ihr dazu festhalten?"[39m
+    [33mrows[39m=[32m"5"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "Meilenstein speichern":
+  [36m<button[39m
+    [33mtype[39m=[32m"submit"[39m
+  [36m/>[39m
+
+  Name "Löschen":
+  [36m<button[39m
+    [33mclass[39m=[32m"button-link danger-link"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<output[39m
+      [33maria-label[39m=[32m"Current route"[39m
+    [36m>[39m
+      [0m/story/milestones/milestone-1/edit[0m
+    [36m</output>[39m
+    [36m<a[39m
+      [33mdata-discover[39m=[32m"true"[39m
+      [33mhref[39m=[32m"/other"[39m
+    [36m>[39m
+      [0mOther task[0m
+    [36m</a>[39m
+    [36m<a[39m
+      [33mdata-discover[39m=[32m"true"[39m
+      [33mhref[39m=[32m"/story/milestones/milestone-1/edit"[39m
+    [36m>[39m
+      [0mReturn to edit[0m
+    [36m</a>[39m
+    [36m<a[39m
+      [33mdata-discover[39m=[32m"true"[39m
+      [33mhref[39m=[32m"/story/milestones/milestone-2/edit"[39m
+    [36m>[39m
+      [0mAnother milestone[0m
+    [36m</a>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"page page-reading create-page product-editor-page"[39m
+    [36m>[39m
+      [36m<a[39m
+        [33mclass[39m=[32m"back-link"[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+      [36m>[39m
+        [0m← Zurück zum Meilenstein[0m
+      [36m</a>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"page-heading"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"eyebrow"[39m
+          [36m>[39m
+            [0mMeilenstein bearbeiten[0m
+          [36m</p>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"page-heading-title-container"[39m
+          [36m>[39m
+            [36m<h1>[39m
+              [0mMeilenstein bearbeiten[0m
+            [36m</h1>[39m
+          [36m</div>[39m
+          [36m<p>[39m
+            [0mPasse Titel, Beschreibung oder Datum an. Änderungen werden auf Basis des aktuellen Stands gespeichert.[0m
+          [36m</p>[39m
+        [36m</div>[39m
+      [36m</header>[39m
+      [36m<section[39m
+        [33maria-labelledby[39m=[32m"milestone-edit-heading"[39m
+        [33mclass[39m=[32m"form-card product-sheet"[39m
+      [36m>[39m
+        [36m<h2[39m
+          [33mclass[39m=[32m"sr-only"[39m
+          [33mid[39m=[32m"milestone-edit-heading"[39m
+        [36m>[39m
+          [0mMeilenstein bearbeiten[0m
+        [36m</h2>[39m
+        [36m<form[39m
+          [33mclass[39m=[32m"form-grid"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"field-group"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mfor[39m=[32m"milestone-title"[39m
+            [36m>[39m
+              [0mTitel[0m
+            [36m</label>[39m
+            [36m<input[39m
+              [33mid[39m=[32m"milestone-title"[39m
+              [33mmaxlength[39m=[32m"200"[39m
+              [33mname[39m=[32m"title"[39m
+              [33mplaceholder[39m=[32m"Zum Beispiel: Erste gemeinsame Wohnung"[39m
+              [33mrequired[39m=[32m""[39m
+              [33mvalue[39m=[32m"Our first home"[39m
+            [36m/>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"field-group"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mfor[39m=[32m"milestone-body"[39m
+            [36m>[39m
+              [0mBeschreibung[0m
+            [36m</label>[39m
+            [36m<textarea[39m
+              [33mid[39m=[32m"milestone-body"[39m
+              [33mname[39m=[32m"body"[39m
+              [33mplaceholder[39m=[32m"Was möchtet ihr dazu festhalten?"[39m
+              [33mrows[39m=[32m"5"[39m
+            [36m>[39m
+              [0mA shared beginning[0m
+            [36m</textarea>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"field-group"[39m
+          [36m>[39m
+            [36m<label[39m
+              [33mfor[39m=[32m"milestone-date"[39m
+            [36m>[39m
+              [0mDatum[0m
+            [36m</label>[39m
+            [36m<input[39m
+              [33mid[39m=[32m"milestone-date"[39m
+              [33mname[39m=[32m"happenedOn"[39m
+              [33mrequired[39m=[32m""[39m
+              [33mtype[39m=[32m"date"[39m
+              [33mvalue[39m=[32m"2026-08-01"[39m
+            [36m/>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"form-actions"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33mclass[39m=[32m"button-link secondary-link"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+            [36m>[39m
+              [0mAbbrechen[0m
+            [36m</a>[39m
+            [36m<button[39m
+              [33mtype[39m=[32m"submit"[39m
+            [36m>[39m
+              [0mMeilenstein speichern[0m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</form>[39m
+        [36m<div[39m
+          [33mstyle[39m=[32m"margin-top: var(--space-8);"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"button-link danger-link"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mLöschen[0m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</section>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../eimir/web/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../eimir/web/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../eimir/web/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:382:15
+    380|       .click(screen.getByRole('link', { name: 'Return to edit' }));
+    381|     expect(
+    382|       (screen.getByRole('button', { name: copy.deleting }) as HTMLButt…
+       |               ^
+    383|         .disabled,
+    384|     ).toBe(true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > admits only one synchronous confirmation and prevents a competing save
+AssertionError: expected "vi.fn()" to be called 1 times, but got 2 times
+
+Ignored nodes: comments, script, style
+[36m<html[39m
+  [33mlang[39m=[32m"de"[39m
+[36m>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<output[39m
+        [33maria-label[39m=[32m"Current route"[39m
+      [36m>[39m
+        [0m/story/milestones/milestone-1/edit[0m
+      [36m</output>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/other"[39m
+      [36m>[39m
+        [0mOther task[0m
+      [36m</a>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-1/edit"[39m
+      [36m>[39m
+        [0mReturn to edit[0m
+      [36m</a>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-2/edit"[39m
+      [36m>[39m
+        [0mAnother milestone[0m
+      [36m</a>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"page page-reading create-page product-editor-page"[39m
+      [36m>[39m
+        [36m<a[39m
+          [33mclass[39m=[32m"back-link"[39m
+          [33mdata-discover[39m=[32m"true"[39m
+          [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+        [36m>[39m
+          [0m← Zurück zum Meilenstein[0m
+        [36m</a>[39m
+        [36m<header[39m
+          [33mclass[39m=[32m"page-heading"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"eyebrow"[39m
+            [36m>[39m
+              [0mMeilenstein bearbeiten[0m
+            [36m</p>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"page-heading-title-container"[39m
+            [36m>[39m
+              [36m<h1>[39m
+                [0mMeilenstein bearbeiten[0m
+              [36m</h1>[39m
+            [36m</div>[39m
+            [36m<p>[39m
+              [0mPasse Titel, Beschreibung oder Datum an. Änderungen werden auf Basis des aktuellen Stands gespeichert.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</header>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"milestone-edit-heading"[39m
+          [33mclass[39m=[32m"form-card product-sheet"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mclass[39m=[32m"sr-only"[39m
+            [33mid[39m=[32m"milestone-edit-heading"[39m
+          [36m>[39m
+            [0mMeilenstein bearbeiten[0m
+          [36m</h2>[39m
+          [36m<form[39m
+            [33mclass[39m=[32m"form-grid"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"field-group"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"milestone-title"[39m
+              [36m>[39m
+                [0mTitel[0m
+              [36m</label>[39m
+              [36m<input[39m
+                [33mid[39m=[32m"milestone-title"[39m
+                [33mmaxlength[39m=[32m"200"[39m
+                [33mname[39m=[32m"title"[39m
+                [33mplaceholder[39m=[32m"Zum Beispiel: Erste gemeinsame Wohnung"[39m
+                [33mrequired[39m=[32m""[39m
+                [33mvalue[39m=[32m"Our first home"[39m
+              [36m/>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"field-group"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"milestone-body"[39m
+              [36m>[39m
+                [0mBeschreibung[0m
+              [36m</label>[39m
+              [36m<textarea[39m
+                [33mid[39m=[32m"milestone-body"[39m
+                [33mname[39m=[32m"body"[39m
+                [33mplaceholder[39m=[32m"Was möchtet ihr dazu festhalten?"[39m
+                [33mrows[39m=[32m"5"[39m
+              [36m>[39m
+                [0mA shared beginning[0m
+              [36m</textarea>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"field-group"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"milestone-date"[39m
+              [36m>[39m
+                [0mDatum[0m
+              [36m</label>[39m
+              [36m<input[39m
+                [33mid[39m=[32m"milestone-date"[39m
+                [33mname[39m=[32m"happenedOn"[39m
+                [33mrequired[39m=[32m""[39m
+                [33mtype[39m=[32m"date"[39m
+                [33mvalue[39m=[32m"2026-08-01"[39m
+              [36m/>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"form-actions"[39m
+            [36m>[39m
+              [36m<a[39m
+                [33mclass[39m=[32m"button-link secondary-link"[39m
+                [33mdata-discover[39m=[32m"true"[39m
+                [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+              [36m>[39m
+                [0mAbbrechen[0m
+              [36m</a>[39m
+              [36m<button[39m
+                [33mdisabled[39m=[32m""[39m
+                [33mtype[39m=[32m"submit"[39m
+              [36m>[39m
+                [0mWird gespeichert …[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</form>[39m
+          [36m<div[39m
+            [33mstyle[39m=[32m"margin-top: var(--space-8);"[39m
+          [36m>[39m
+            [36m<section[39m
+              [33maria-label[39m=[32m"Löschen"[39m
+              [33mclass[39m=[32m"memory-danger-zone memory-delete-confirmation"[39m
+              [33mrole[39m=[32m"alert"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<h2>[39m
+                  [0mMeilenstein wirklich löschen?[0m
+                [36m</h2>[39m
+                [36m<p>[39m
+                  [0mDer Meilenstein wird dauerhaft entfernt.[0m
+                [36m</p>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"memory-actions"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"tertiary"[39m
+                  [33mdisabled[39m=[32m""[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [0mNicht löschen[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"danger"[39m
+                  [33mdisabled[39m=[32m""[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [0mWird gelöscht …[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</section>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:400:51
+    398|       screen.getByRole('button', { name: copy.save }).click();
+    399|     });
+    400|     await waitFor(() => expect(h.deleteMilestone).toHaveBeenCalledTime…
+       |                                                   ^
+    401|     expect(h.updateMilestone).not.toHaveBeenCalled();
+    402|     await h.settle();
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > prevents deletion while an edit is pending
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array [
+      Object {
+        "ifMatch": "1",
+        "milestoneId": "milestone-1",
+        "spaceId": "space-1",
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:413:35
+    411|     await waitFor(() => expect(h.updateMilestone).toHaveBeenCalledTime…
+    412|     await act(async () => fireEvent.click(button));
+    413|     expect(h.deleteMilestone).not.toHaveBeenCalled();
+       |                                   ^
+    414|   });
+    415|   it.each(['version', 'permission', 'cache', 'departure'] as const)(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > rejects changed version admission after cancellation
+AssertionError: expected 1 to be +0 // Object.is equality
+
+Ignored nodes: comments, script, style
+[36m<html[39m
+  [33mlang[39m=[32m"de"[39m
+[36m>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<output[39m
+        [33maria-label[39m=[32m"Current route"[39m
+      [36m>[39m
+        [0m/story/milestones/milestone-1/edit[0m
+      [36m</output>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/other"[39m
+      [36m>[39m
+        [0mOther task[0m
+      [36m</a>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-1/edit"[39m
+      [36m>[39m
+        [0mReturn to edit[0m
+      [36m</a>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-2/edit"[39m
+      [36m>[39m
+        [0mAnother milestone[0m
+      [36m</a>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"page page-reading create-page product-editor-page"[39m
+      [36m>[39m
+        [36m<a[39m
+          [33mclass[39m=[32m"back-link"[39m
+          [33mdata-discover[39m=[32m"true"[39m
+          [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+        [36m>[39m
+          [0m← Zurück zum Meilenstein[0m
+        [36m</a>[39m
+        [36m<header[39m
+          [33mclass[39m=[32m"page-heading"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"eyebrow"[39m
+            [36m>[39m
+              [0mMeilenstein bearbeiten[0m
+            [36m</p>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"page-heading-title-container"[39m
+            [36m>[39m
+              [36m<h1>[39m
+                [0mMeilenstein bearbeiten[0m
+              [36m</h1>[39m
+            [36m</div>[39m
+            [36m<p>[39m
+              [0mPasse Titel, Beschreibung oder Datum an. Änderungen werden auf Basis des aktuellen Stands gespeichert.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</header>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"milestone-edit-heading"[39m
+          [33mclass[39m=[32m"form-card product-sheet"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mclass[39m=[32m"sr-only"[39m
+            [33mid[39m=[32m"milestone-edit-heading"[39m
+          [36m>[39m
+            [0mMeilenstein bearbeiten[0m
+          [36m</h2>[39m
+          [36m<form[39m
+            [33mclass[39m=[32m"form-grid"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"field-group"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"milestone-title"[39m
+              [36m>[39m
+                [0mTitel[0m
+              [36m</label>[39m
+              [36m<input[39m
+                [33mid[39m=[32m"milestone-title"[39m
+                [33mmaxlength[39m=[32m"200"[39m
+                [33mname[39m=[32m"title"[39m
+                [33mplaceholder[39m=[32m"Zum Beispiel: Erste gemeinsame Wohnung"[39m
+                [33mrequired[39m=[32m""[39m
+                [33mvalue[39m=[32m"Our first home"[39m
+              [36m/>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"field-group"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"milestone-body"[39m
+              [36m>[39m
+                [0mBeschreibung[0m
+              [36m</label>[39m
+              [36m<textarea[39m
+                [33mid[39m=[32m"milestone-body"[39m
+                [33mname[39m=[32m"body"[39m
+                [33mplaceholder[39m=[32m"Was möchtet ihr dazu festhalten?"[39m
+                [33mrows[39m=[32m"5"[39m
+              [36m>[39m
+                [0mA shared beginning[0m
+              [36m</textarea>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"field-group"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"milestone-date"[39m
+              [36m>[39m
+                [0mDatum[0m
+              [36m</label>[39m
+              [36m<input[39m
+                [33mid[39m=[32m"milestone-date"[39m
+                [33mname[39m=[32m"happenedOn"[39m
+                [33mrequired[39m=[32m""[39m
+                [33mtype[39m=[32m"date"[39m
+                [33mvalue[39m=[32m"2026-08-01"[39m
+              [36m/>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"form-actions"[39m
+            [36m>[39m
+              [36m<a[39m
+                [33mclass[39m=[32m"button-link secondary-link"[39m
+                [33mdata-discover[39m=[32m"true"[39m
+                [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+              [36m>[39m
+                [0mAbbrechen[0m
+              [36m</a>[39m
+              [36m<button[39m
+                [33mtype[39m=[32m"submit"[39m
+              [36m>[39m
+                [0mMeilenstein speichern[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</form>[39m
+          [36m<div[39m
+            [33mstyle[39m=[32m"margin-top: var(--space-8);"[39m
+          [36m>[39m
+            [36m<section[39m
+              [33maria-label[39m=[32m"Löschen"[39m
+              [33mclass[39m=[32m"memory-danger-zone memory-delete-confirmation"[39m
+              [33mrole[39m=[32m"alert"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<h2>[39m
+                  [0mMeilenstein wirklich löschen?[0m
+                [36m</h2>[39m
+                [36m<p>[39m
+                  [0mDer Meilenstein wird dauerhaft entfernt.[0m
+                [36m</p>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"memory-actions"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"tertiary"[39m
+                  [33mdisabled[39m=[32m""[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [0mNicht löschen[0m
+                [36m</button>[39m
+                [36m<button[39m
+                  [33mclass[39m=[32m"danger"[39m
+                  [33mdisabled[39m=[32m""[39m
+                  [33mtype[39m=[32m"button"[39m
+                [36m>[39m
+                  [0mWird gelöscht …[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</section>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:447:57
+    445|       }
+    446|       await act(async () => cancel.resolve());
+    447|       await waitFor(() => expect(h.client.isMutating()).toBe(0));
+       |                                                         ^
+    448|       expect(h.deleteMilestone).not.toHaveBeenCalled();
+    449|     },
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > rejects changed permission admission after cancellation
+AssertionError: expected 1 to be +0 // Object.is equality
+
+Ignored nodes: comments, script, style
+[36m<html[39m
+  [33mlang[39m=[32m"de"[39m
+[36m>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<output[39m
+        [33maria-label[39m=[32m"Current route"[39m
+      [36m>[39m
+        [0m/story/milestones/milestone-1/edit[0m
+      [36m</output>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/other"[39m
+      [36m>[39m
+        [0mOther task[0m
+      [36m</a>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-1/edit"[39m
+      [36m>[39m
+        [0mReturn to edit[0m
+      [36m</a>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-2/edit"[39m
+      [36m>[39m
+        [0mAnother milestone[0m
+      [36m</a>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"page page-reading create-page product-editor-page"[39m
+      [36m>[39m
+        [36m<a[39m
+          [33mclass[39m=[32m"back-link"[39m
+          [33mdata-discover[39m=[32m"true"[39m
+          [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+        [36m>[39m
+          [0m← Zurück zum Meilenstein[0m
+        [36m</a>[39m
+        [36m<header[39m
+          [33mclass[39m=[32m"page-heading"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"eyebrow"[39m
+            [36m>[39m
+              [0mMeilenstein bearbeiten[0m
+            [36m</p>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"page-heading-title-container"[39m
+            [36m>[39m
+              [36m<h1>[39m
+                [0mMeilenstein bearbeiten[0m
+              [36m</h1>[39m
+            [36m</div>[39m
+            [36m<p>[39m
+              [0mPasse Titel, Beschreibung oder Datum an. Änderungen werden auf Basis des aktuellen Stands gespeichert.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</header>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"milestone-edit-heading"[39m
+          [33mclass[39m=[32m"form-card product-sheet"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mclass[39m=[32m"sr-only"[39m
+            [33mid[39m=[32m"milestone-edit-heading"[39m
+          [36m>[39m
+            [0mMeilenstein bearbeiten[0m
+          [36m</h2>[39m
+          [36m<form[39m
+            [33mclass[39m=[32m"form-grid"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"field-group"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"milestone-title"[39m
+              [36m>[39m
+                [0mTitel[0m
+              [36m</label>[39m
+              [36m<input[39m
+                [33mid[39m=[32m"milestone-title"[39m
+                [33mmaxlength[39m=[32m"200"[39m
+                [33mname[39m=[32m"title"[39m
+                [33mplaceholder[39m=[32m"Zum Beispiel: Erste gemeinsame Wohnung"[39m
+                [33mrequired[39m=[32m""[39m
+                [33mvalue[39m=[32m"Our first home"[39m
+              [36m/>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"field-group"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"milestone-body"[39m
+              [36m>[39m
+                [0mBeschreibung[0m
+              [36m</label>[39m
+              [36m<textarea[39m
+                [33mid[39m=[32m"milestone-body"[39m
+                [33mname[39m=[32m"body"[39m
+                [33mplaceholder[39m=[32m"Was möchtet ihr dazu festhalten?"[39m
+                [33mrows[39m=[32m"5"[39m
+              [36m>[39m
+                [0mA shared beginning[0m
+              [36m</textarea>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"field-group"[39m
+            [36m>[39m
+              [36m<label[39m
+                [33mfor[39m=[32m"milestone-date"[39m
+              [36m>[39m
+                [0mDatum[0m
+              [36m</label>[39m
+              [36m<input[39m
+                [33mid[39m=[32m"milestone-date"[39m
+                [33mname[39m=[32m"happenedOn"[39m
+                [33mrequired[39m=[32m""[39m
+                [33mtype[39m=[32m"date"[39m
+                [33mvalue[39m=[32m"2026-08-01"[39m
+              [36m/>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"form-actions"[39m
+            [36m>[39m
+              [36m<a[39m
+                [33mclass[39m=[32m"button-link secondary-link"[39m
+                [33mdata-discover[39m=[32m"true"[39m
+                [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+              [36m>[39m
+                [0mAbbrechen[0m
+              [36m</a>[39m
+              [36m<button[39m
+                [33mtype[39m=[32m"submit"[39m
+              [36m>[39m
+                [0mMeilenstein speichern[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</form>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:447:57
+    445|       }
+    446|       await act(async () => cancel.resolve());
+    447|       await waitFor(() => expect(h.client.isMutating()).toBe(0));
+       |                                                         ^
+    448|       expect(h.deleteMilestone).not.toHaveBeenCalled();
+    449|     },
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > rejects changed cache admission after cancellation
+AssertionError: expected 1 to be +0 // Object.is equality
+
+Ignored nodes: comments, script, style
+[36m<html[39m
+  [33mlang[39m=[32m"de"[39m
+[36m>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<output[39m
+        [33maria-label[39m=[32m"Current route"[39m
+      [36m>[39m
+        [0m/story/milestones/milestone-1/edit[0m
+      [36m</output>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/other"[39m
+      [36m>[39m
+        [0mOther task[0m
+      [36m</a>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-1/edit"[39m
+      [36m>[39m
+        [0mReturn to edit[0m
+      [36m</a>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-2/edit"[39m
+      [36m>[39m
+        [0mAnother milestone[0m
+      [36m</a>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"page page-reading"[39m
+      [36m>[39m
+        [36m<a[39m
+          [33mclass[39m=[32m"back-link"[39m
+          [33mdata-discover[39m=[32m"true"[39m
+          [33mhref[39m=[32m"/story/milestones/milestone-1"[39m
+        [36m>[39m
+          [0m← Zurück zum Meilenstein[0m
+        [36m</a>[39m
+        [36m<header[39m
+          [33mclass[39m=[32m"page-heading"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"eyebrow"[39m
+            [36m>[39m
+              [0mMeilenstein bearbeiten[0m
+            [36m</p>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"page-heading-title-container"[39m
+            [36m>[39m
+              [36m<h1>[39m
+                [0mMeilenstein bearbeiten[0m
+              [36m</h1>[39m
+            [36m</div>[39m
+            [36m<p>[39m
+              [0mPasse Titel, Beschreibung oder Datum an. Änderungen werden auf Basis des aktuellen Stands gespeichert.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</header>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"ui-state ui-state-offline"[39m
+          [33mrole[39m=[32m"status"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"ui-state-mark"[39m
+          [36m>[39m
+            [0m↯[0m
+          [36m</span>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ui-state-copy"[39m
+          [36m>[39m
+            [36m<strong>[39m
+              [0mDu bist gerade offline.[0m
+            [36m</strong>[39m
+            [36m<p>[39m
+              [0mStelle die Verbindung wieder her und versuche es erneut.[0m
+            [36m</p>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:447:57
+    445|       }
+    446|       await act(async () => cancel.resolve());
+    447|       await waitFor(() => expect(h.client.isMutating()).toBe(0));
+       |                                                         ^
+    448|       expect(h.deleteMilestone).not.toHaveBeenCalled();
+    449|     },
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > rejects changed departure admission after cancellation
+AssertionError: expected 1 to be +0 // Object.is equality
+
+Ignored nodes: comments, script, style
+[36m<html[39m
+  [33mlang[39m=[32m"de"[39m
+[36m>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<output[39m
+        [33maria-label[39m=[32m"Current route"[39m
+      [36m>[39m
+        [0m/other[0m
+      [36m</output>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/other"[39m
+      [36m>[39m
+        [0mOther task[0m
+      [36m</a>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-1/edit"[39m
+      [36m>[39m
+        [0mReturn to edit[0m
+      [36m</a>[39m
+      [36m<a[39m
+        [33mdata-discover[39m=[32m"true"[39m
+        [33mhref[39m=[32m"/story/milestones/milestone-2/edit"[39m
+      [36m>[39m
+        [0mAnother milestone[0m
+      [36m</a>[39m
+      [36m<p>[39m
+        [0mUnrelated task[0m
+      [36m</p>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:447:57
+    445|       }
+    446|       await act(async () => cancel.resolve());
+    447|       await waitFor(() => expect(h.client.isMutating()).toBe(0));
+       |                                                         ^
+    448|       expect(h.deleteMilestone).not.toHaveBeenCalled();
+    449|     },
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/20]⎯
+
+ FAIL  src/components/MilestoneDeleteOwnership.test.tsx > Milestone delete response ownership > revokes the original persistent snapshot after its Query is removed
+AssertionError: expected '/story' to contain '/edit'
+
+Expected: "/edit"
+Received: "/story"
+
+ ❯ src/components/MilestoneDeleteOwnership.test.tsx:464:64
+    462|     );
+    463|     expect(h.client.getQueryData(key)).toBeUndefined();
+    464|     expect(screen.getByLabelText('Current route').textContent).toConta…
+       |                                                                ^
+    465|       '/edit',
+    466|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/20]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  20 failed | 2 passed (22)
+   Start at  23:26:06
+   Duration  8.94s (tests 92%, environment 5%, import 2%, transform 1%)
+

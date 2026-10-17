@@ -179,7 +179,7 @@ button.daily-vibe-person:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  margin: calc(-1 * var(--space-3)) 0 var(--space-7);
+  margin: calc(-1 * var(--space-3)) 0 var(--space-section);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-large);
   background: var(--color-surface-subtle);

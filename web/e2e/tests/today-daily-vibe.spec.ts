@@ -5,6 +5,7 @@ import dailyVibe from '../../src/i18n/locales/dailyVibe';
 import dailyEnergy from '../../src/i18n/locales/dailyEnergy';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
+import { writeFile } from 'node:fs/promises';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -27,6 +28,8 @@ async function installMocks(
     failFirstAck?: boolean;
     failFirstPatch?: boolean;
     energyEnabled?: boolean;
+    // The daily projection can reflect a disable before cached configuration does.
+    vibeProjectionDisabled?: boolean;
   } = {},
 ) {
   let ownVibe: string | null = initial.ownVibe ?? null;
@@ -44,6 +47,7 @@ async function installMocks(
   let etag = '"2026-10-12:check-in-1:1"';
   let lastPatch: Record<string, unknown> | null = null;
   let patchCount = 0;
+  const unexpectedRequests: string[] = [];
   let dailyVersion = 1;
   let releaseFirstPatch = () => {};
   const firstPatchGate = new Promise<void>((resolve) => {
@@ -202,6 +206,26 @@ async function installMocks(
       return;
     }
     if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/partner-nickname`
+    ) {
+      await json({ partnerId: PARTNER_ID, nickname: null, version: 0 });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/entitlements`
+    ) {
+      await json({
+        spaceId: SPACE_ID,
+        status: 'FREE',
+        tier: 'FREE',
+        capabilities: [],
+        isInGracePeriod: false,
+      });
+      return;
+    }
+    if (
       (method === 'GET' || method === 'POST') &&
       pathname === `/api/v1/spaces/${SPACE_ID}/presence`
     ) {
@@ -225,12 +249,14 @@ async function installMocks(
           energy: initial.energyEnabled
             ? { visibilityMode: 'MUTUAL_REVEAL', partner: energyPartner }
             : null,
-          vibe: {
-            visibilityMode: 'MUTUAL_REVEAL',
-            partner: partnerState,
-            partnerNote:
-              partnerState.state === 'VISIBLE' ? partnerVibeNote : null,
-          },
+          vibe: initial.vibeProjectionDisabled
+            ? null
+            : {
+                visibilityMode: 'MUTUAL_REVEAL',
+                partner: partnerState,
+                partnerNote:
+                  partnerState.state === 'VISIBLE' ? partnerVibeNote : null,
+              },
         },
         200,
         { ETag: etag, 'Cache-Control': 'private, no-store' },
@@ -303,12 +329,14 @@ async function installMocks(
           energy: initial.energyEnabled
             ? { visibilityMode: 'MUTUAL_REVEAL', partner: energyPartner }
             : null,
-          vibe: {
-            visibilityMode: 'MUTUAL_REVEAL',
-            partner: partnerState,
-            partnerNote:
-              partnerState.state === 'VISIBLE' ? partnerVibeNote : null,
-          },
+          vibe: initial.vibeProjectionDisabled
+            ? null
+            : {
+                visibilityMode: 'MUTUAL_REVEAL',
+                partner: partnerState,
+                partnerNote:
+                  partnerState.state === 'VISIBLE' ? partnerVibeNote : null,
+              },
         },
         200,
         { ETag: etag, 'Cache-Control': 'private, no-store' },
@@ -316,6 +344,7 @@ async function installMocks(
       return;
     }
 
+    unexpectedRequests.push(`${method} ${pathname}`);
     await json(
       {
         code: 'E2E_UNEXPECTED_REQUEST',
@@ -331,6 +360,7 @@ async function installMocks(
     lastPatch: () => lastPatch,
     patchCount: () => patchCount,
     releaseFirstPatch,
+    unexpectedRequests,
   };
 }
 
@@ -341,6 +371,122 @@ async function signIn(page: Page) {
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
+}
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`disabled Vibe cleanup keeps section spacing and clears only Vibe in ${theme}`, async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(60_000);
+    const state = await installMocks(page, {
+      ownVibe: 'GOOD',
+      energyEnabled: true,
+      vibeProjectionDisabled: true,
+    });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(() => {
+      window.localStorage.setItem('eimir.theme', 'system');
+    });
+    await page.setViewportSize({ width: 390, height: 900 });
+    await signIn(page);
+    const cleanup = page.getByTestId('daily-vibe-disabled-clear');
+    const energy = page.getByTestId('daily-energy-own-battery');
+    await expect(cleanup).toBeVisible();
+    await expect(cleanup).toContainText(dailyVibe.values.GOOD);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    await expect(page.getByTestId('daily-vibe-partner')).toHaveCount(0);
+
+    for (const viewport of [
+      { width: 390, largeText: false },
+      { width: 360, largeText: false },
+      { width: 430, largeText: false },
+      { width: 1440, largeText: false },
+      { width: 320, largeText: true },
+    ]) {
+      await page.setViewportSize({ width: viewport.width, height: 900 });
+      await page.locator('html').evaluate((element, largeText) => {
+        element.style.fontSize = largeText ? '200%' : '';
+      }, viewport.largeText);
+      const name = `vibe-cleanup-${viewport.width}-${theme}${viewport.largeText ? '-large' : ''}`;
+      const geometry = await cleanup.evaluate((element) => {
+        const style = getComputedStyle(element);
+        const fontSize = Number.parseFloat(
+          getComputedStyle(document.documentElement).fontSize,
+        );
+        const box = element.getBoundingClientRect();
+        let next = element.nextElementSibling;
+        while (next && next.getBoundingClientRect().height === 0)
+          next = next.nextElementSibling;
+        return {
+          width: window.innerWidth,
+          fontSize,
+          top: Number.parseFloat(style.marginTop),
+          bottom: Number.parseFloat(style.marginBottom),
+          nextGap: next ? next.getBoundingClientRect().top - box.bottom : null,
+          buttonHeight:
+            element.querySelector('button')?.getBoundingClientRect().height ??
+            0,
+        };
+      });
+      await writeFile(
+        testInfo.outputPath(`${name}.json`),
+        JSON.stringify(geometry, null, 2),
+      );
+      await page.screenshot({
+        path: testInfo.outputPath(`${name}.png`),
+        fullPage: true,
+      });
+      expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+      expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+      expect.soft(geometry.nextGap).not.toBeNull();
+      expect
+        .soft(geometry.nextGap ?? -1)
+        .toBeGreaterThanOrEqual(geometry.bottom - 1);
+      expect.soft(geometry.buttonHeight).toBeGreaterThanOrEqual(44);
+      await expectNoHorizontalOverflow(page);
+      expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    }
+
+    await page
+      .getByRole('link', { name: navigation.more, exact: true })
+      .click();
+    await page
+      .getByRole('link', { name: navigation.today, exact: true })
+      .click();
+    await expect(cleanup).toBeVisible();
+    await cleanup
+      .getByRole('button', { name: dailyVibe.disabledRemove, exact: true })
+      .click();
+    await expect.poll(state.patchCount).toBe(1);
+    expect(state.lastPatch()).toEqual({ vibe: null });
+    await expect(cleanup).toHaveCount(0);
+    await expect(energy).toHaveAttribute(
+      'aria-label',
+      dailyEnergy.badgeAriaValue.replace('{{value}}', '60'),
+    );
+    await page
+      .getByRole('link', { name: navigation.more, exact: true })
+      .click();
+    await page
+      .getByRole('link', { name: navigation.today, exact: true })
+      .click();
+    await expect(cleanup).toHaveCount(0);
+    await expect(energy).toHaveAttribute(
+      'aria-label',
+      dailyEnergy.badgeAriaValue.replace('{{value}}', '60'),
+    );
+    expect(state.patchCount()).toBe(1);
+    await expectNoHorizontalOverflow(page);
+    expect(state.unexpectedRequests).toEqual([]);
+    await page.locator('html').evaluate((element) => {
+      element.style.fontSize = '';
+    });
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.screenshot({
+      path: testInfo.outputPath(`vibe-cleaned-390-${theme}.png`),
+      fullPage: true,
+    });
+  });
 }
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {

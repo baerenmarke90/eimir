@@ -1,0 +1,29 @@
+{
+  "baselineMain": "155c7e7173e2b35c5c5f877185a52ed6196b7715",
+  "files": [
+    {
+      "path": "web/dist/assets/index-8j4Jr9v3.js",
+      "sha256": "dfcc0569e88862dfa42b306747193cf8ff9e82447d03eac9725d2a6e4718b878"
+    },
+    {
+      "path": "web/dist/assets/index-CZA8vLy5.css",
+      "sha256": "8324b17d8f19c39273c1aa036a86c9eff7915c79b42f07cc31bd364aec519d0b"
+    },
+    {
+      "path": "web/dist/assets/web-RkCKaUgS.js",
+      "sha256": "193c5ebc36f89875a6496819519eccea7dd1835171adacd3b8c085461f67320a"
+    },
+    {
+      "path": "web/dist/assets/web-dGE82HYw.js",
+      "sha256": "921430015c653cb20efe4aa454437ba75e51ad39cb04967071fd102893e61076"
+    },
+    {
+      "path": "web/src/components/DailyVibeCheckIn.css",
+      "sha256": "92a69dba604f21840b48defa0ccf8c518ffa368890acfe60eeccfe4656a49a9e"
+    },
+    {
+      "path": "web/src/components/PrivateAreaReference.css",
+      "sha256": "ea8b94e061c7180bfc6bf8b72efb7d84d9848dce2659c2e1643f54515981acf1"
+    }
+  ]
+}

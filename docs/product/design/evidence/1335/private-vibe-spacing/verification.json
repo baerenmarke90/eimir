@@ -1,0 +1,176 @@
+{
+  "baselineMain": "155c7e7173e2b35c5c5f877185a52ed6196b7715",
+  "browser": "Chrome Headless Shell 153.0.8010.0; Playwright 1.62.1",
+  "validation": {
+    "productionBrowserCases": 91,
+    "productionBrowserExitCode": 0,
+    "finalResizeCases": 2,
+    "finalResizeExitCode": 0,
+    "retries": 0,
+    "webPassed": 1681,
+    "webExistingSkipped": 1,
+    "plannerPassed": 20
+  },
+  "sourceFiles": [
+    {
+      "path": "design/tokens.json",
+      "sha256": "b774f9082ba3dd01f4155979540006f76ec14bf5ffc85b3b4ecfd35ede839afd"
+    },
+    {
+      "path": "web/e2e/test-groups.json",
+      "sha256": "8cc78c0857e022c881b0d6fdef7a4c972b29a2ae9a27d4c3f7d622dd2c8b33d9"
+    },
+    {
+      "path": "web/e2e/tests/private-area-reference.spec.ts",
+      "sha256": "4c6e69616e3c2e2423c86efbbfdeb0b92791ec83edbf6e2ef714894879726129"
+    },
+    {
+      "path": "web/e2e/tests/today-daily-vibe.spec.ts",
+      "sha256": "dc382f8a2e489597c9394da1f6f4d282a10b30a4d3878456aab126407c482443"
+    },
+    {
+      "path": "web/src/components/DailyVibeCheckIn.css",
+      "sha256": "d22c8048aec19bd5a320b965b0e1524b9525be909f3a6ee33ee12b592f0abd86"
+    },
+    {
+      "path": "web/src/components/PrivateAreaReference.css",
+      "sha256": "8013bdfdf69942ce89ffa3703a812ecc115a432dc2e02e6164b73cc9920926fe"
+    },
+    {
+      "path": "web/src/design/product-roles.css",
+      "sha256": "e702430f39988490ba5ebe9644f98270a3d06769e429c1fc4d86620ebff23c95"
+    },
+    {
+      "path": "web/src/styles.css",
+      "sha256": "93fd0229564bebb4434b736c159bf8f8bc7517c7c6b9421ead92c48bf9fde612"
+    }
+  ],
+  "productionAssets": [
+    {
+      "path": "web/dist/assets/index-8tElk24A.css",
+      "sha256": "ef1476c4c60a22227c9916340b569a95aaa622da14332a666237936a4b698866"
+    },
+    {
+      "path": "web/dist/assets/index-MJSEwFmH.js",
+      "sha256": "9fceba497575c7bf950584261a3d4771ce43bd0ec6eb2c68485473d2cfc2a3ad"
+    },
+    {
+      "path": "web/dist/assets/web-CZmI7x8Y.js",
+      "sha256": "966a6f310fa71dc7e604b6ffa250680aa411949471ae47936d4dc4a5abdb6ca2"
+    },
+    {
+      "path": "web/dist/assets/web-vKKS71q2.js",
+      "sha256": "e6a8a4e0585dd64f434cb3e433b0c9b94e4958e2764a9973e559aa9bccc5f538"
+    }
+  ],
+  "evidenceFiles": [
+    {
+      "path": "README.md",
+      "sha256": "df3c6bd7b32e821617e153c6b46bf5b2e6da42f2e188bdd31a6a3a431e82555f"
+    },
+    {
+      "path": "baseline-geometry.json",
+      "sha256": "4d2b5f431578c8af6154a7da7fbd5029842ef7f34b53b7fad23f8769c5e3eb06"
+    },
+    {
+      "path": "baseline-identity.json",
+      "sha256": "581f6624ab3f903efcc0734153652947cb7fb115d587cd083a8675181ab601c1"
+    },
+    {
+      "path": "baseline-private-spacing-1440-dark.png",
+      "sha256": "2f7934379f3d54601c30322418113242168d2eb4f7c2d99f7ebfe1da923c6466"
+    },
+    {
+      "path": "baseline-private-spacing-360-light-large.png",
+      "sha256": "f0b4404e5cf5860790ecfcfa95a1b77b5c78fcb5fa34f3ce3ec39220021a75c5"
+    },
+    {
+      "path": "baseline-private-spacing-481-light.png",
+      "sha256": "8c73c52d9883dca94a16b9f77806c08ae21a532134647a4e538ce0c02f1eb399"
+    },
+    {
+      "path": "baseline-regression.txt",
+      "sha256": "8f5c3ce3d2c020be2fdd8da841bbd3455265e1790bb9da796a837a5c72fecf35"
+    },
+    {
+      "path": "baseline-vibe-cleanup-1440-dark.png",
+      "sha256": "63ca918113ef7580ddc63cbd43378f3f55180b612b667d1a4ec3766d70a806c3"
+    },
+    {
+      "path": "baseline-vibe-cleanup-320-dark-large.png",
+      "sha256": "e13c27504995cbca3cfe171f882ad079ad6bb8157a7cd964d490cc9a0907af59"
+    },
+    {
+      "path": "baseline-vibe-cleanup-390-light.png",
+      "sha256": "44eeae525579bba236c88ab2fc5d308e6450525de196b08e5a01985cddc6e2b3"
+    },
+    {
+      "path": "geometry.json",
+      "sha256": "3ffefc9b15111d56f5063765117e3de94d207d6bcfa38043a8a34ef8e118f49d"
+    },
+    {
+      "path": "private-spacing-1440-dark.png",
+      "sha256": "31e8ba083ca54c6aeada0e1d426772b736cd0d35d8e336c019b1233be583ce8c"
+    },
+    {
+      "path": "private-spacing-1440-light.png",
+      "sha256": "9842740d3a8b9172096338f78eaf07b6e6e0ab620695114a9efc587f6dbd9dec"
+    },
+    {
+      "path": "private-spacing-360-dark-large.png",
+      "sha256": "4f608be6970982c9142b2df60b5bb72f6abbad03ba707a168490cfd089b65062"
+    },
+    {
+      "path": "private-spacing-360-light-large.png",
+      "sha256": "986c9f853e857ebaa2657906992755a141f4a80eb2de595a34f06d56c90eed26"
+    },
+    {
+      "path": "private-spacing-360-light.png",
+      "sha256": "40ded81124f9643361beb67876d41920effc4652f0dc283f2bbf3ef0174058c7"
+    },
+    {
+      "path": "private-spacing-390-light.png",
+      "sha256": "933ed959fb7ef1ff80c745b4ca7df930997248e4c3c1b8ffd2cf68c02d3f82e5"
+    },
+    {
+      "path": "private-spacing-430-dark.png",
+      "sha256": "910e0acffb860150c491dcfa9fe7a8d72c91ddcf7763a7ad921897d0fa9213c4"
+    },
+    {
+      "path": "private-spacing-480-light.png",
+      "sha256": "4ca0667118663536aef41ca997549b23bf0eccc0ab186f5b42c661973bac7786"
+    },
+    {
+      "path": "private-spacing-481-light.png",
+      "sha256": "59d83b883499fb9c12c85006c689b528b5df025c4189d4daaedabb4b33a68faf"
+    },
+    {
+      "path": "vibe-cleaned-390-light.png",
+      "sha256": "2180e0dd22355262a177ba1176958665d63cbef3c599f19a9a9300419a7374ca"
+    },
+    {
+      "path": "vibe-cleanup-1440-dark.png",
+      "sha256": "a9c26d08ed807ba13d93fd35c8f6da331ae45f19dba35d916ed734be2967e7bb"
+    },
+    {
+      "path": "vibe-cleanup-1440-light.png",
+      "sha256": "eedf3402487108a34901d9d7fa19de016758fea6934eb1bb2a3e23b933561f4e"
+    },
+    {
+      "path": "vibe-cleanup-320-dark-large.png",
+      "sha256": "04baa47e3b9f4caf7cc259df65595e29199ea548a5cf340edb109271a9021fde"
+    },
+    {
+      "path": "vibe-cleanup-320-light-large.png",
+      "sha256": "69e2d7ffe543fff61d26a724d6da3d638a0b2519475ad942dff69935aaa23b16"
+    },
+    {
+      "path": "vibe-cleanup-390-light.png",
+      "sha256": "cbe6111ee87bdc051707721a26c3dfaafe9268768507bf7727c79fef3c6035c3"
+    },
+    {
+      "path": "vibe-cleanup-430-dark.png",
+      "sha256": "5d4d90f0b26b6edaa7b664311f0b902f918a922ba257ab9190febf6321056b1d"
+    }
+  ]
+}

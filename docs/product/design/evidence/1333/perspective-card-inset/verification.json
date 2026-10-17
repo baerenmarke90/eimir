@@ -1,0 +1,42 @@
+{
+  "baselineMain": "cacc2522d2ab81db3d2b60fffbcce7909e587172",
+  "stackBase": "9b30f4bea6870ab90efc812d2e4ac26107304db3",
+  "browser": "Chrome Headless Shell 153.0.8010.0, Playwright 1.62.1",
+  "sourceSha256": {
+    "web/src/components/GamesProductArea.css": "fe2a101ceac4671947523e1c0d6da498a20550f3f07bb8921aaf0159b4f29255",
+    "web/src/components/WhoOfUsGamePanel.tsx": "7493595d0a9b95c93e7754cf5f281a4e40c0791c5e1e57ae9e4f3e3f3243ab61",
+    "web/src/styles.css": "93fd0229564bebb4434b736c159bf8f8bc7517c7c6b9421ead92c48bf9fde612",
+    "design/tokens.json": "b774f9082ba3dd01f4155979540006f76ec14bf5ffc85b3b4ecfd35ede839afd",
+    "web/e2e/tests/perspective-game.spec.ts": "1762f74cfceea825b3730b4394209023cba148028c13363374d5232b4309cab8",
+    "web/e2e/test-groups.json": "9aa71a92ff24765bc64bf33c83ba4393cd935612d7d33d119da20af96d1d2317"
+  },
+  "productionBundleSha256": {
+    "web/dist/assets/index-8j4Jr9v3.js": "dfcc0569e88862dfa42b306747193cf8ff9e82447d03eac9725d2a6e4718b878",
+    "web/dist/assets/web-RkCKaUgS.js": "193c5ebc36f89875a6496819519eccea7dd1835171adacd3b8c085461f67320a",
+    "web/dist/assets/index-CZA8vLy5.css": "8324b17d8f19c39273c1aa036a86c9eff7915c79b42f07cc31bd364aec519d0b",
+    "web/dist/assets/web-dGE82HYw.js": "921430015c653cb20efe4aa454437ba75e51ad39cb04967071fd102893e61076"
+  },
+  "evidenceSha256": {
+    "geometry.json": "b20455b765a0252aa9afa8ce891fe3fa4fa2a34efc9757e937b19aca7ee988bb",
+    "perspective-question-599-dark.png": "c9686cd1482841978bc5712831114971c11c1649e2896b5d7406ecd3909ce0d7",
+    "perspective-handoff-1280-dark.png": "1af4266e119fc76c331b2a30fb6be405d6379dddf5456c73e005108822a00664",
+    "perspective-reveal-390-light.png": "4bac0fc86198283be95dae70ed2e75110f3e099a865ca66578bde01440fdbfdf",
+    "perspective-question-430-dark.png": "6e57ab15b2d6948e1694d1bb3e553fc3e2121ceefdc6207b41df8693c43e3f03",
+    "perspective-question-600-dark.png": "65414751da292bc2cc333e12e8e18bb42786a502dd0590be0057057e263d811d",
+    "README.md": "02714c804c83a34754155c66d5f3ea1364f87f1cc0fdc90915440cfa98a72b77",
+    "baseline-question-1280-light.png": "e7656f33cc739d3ee0fb3eaf1472a8b83b4de09f75b6a0ded61d4b0ae52868f0",
+    "perspective-question-1280-dark.png": "6caf6fa163d8c4f8cf8f5002903b480aeb8a4d2eefcb88d766e9d2ff65b12846",
+    "baseline-identity.json": "e38fcd866b25d495111b35d9e74c07b13c957d4d2c87573ba93044d13d2986a2",
+    "perspective-question-599-light.png": "6a0d26c414827a51609a5a451ccac02fb7fe03985d3d6705831b56a5b911cbda",
+    "baseline-regression.txt": "b44275f9ee1df9067dee7cd066ca838f060be6c2095ee0ec583f61e7cb6ee3c7",
+    "perspective-question-600-dark-default.png": "90d16c0f12d0c1dcf4ff7965b7d909cbaab27d6c0189d98c89a9a2471c340bee",
+    "perspective-question-390-light.png": "7be358ffd97f475fdf99136c180e2b413617f084fd6eb1767e3e060e94a05ae3",
+    "perspective-reveal-1280-dark.png": "206d49a177483ebae1f9d394243daef47a605fdc390a44a8f9815b3336211d45",
+    "perspective-handoff-390-light.png": "9622bf27168fdc85128e06f9a1d96304e65755054102c2e527a6e804307afd5b",
+    "perspective-question-1280-light.png": "a4100f88b764876f02a3c032081ce1ba0a3d5b4cf9467628dc18d7c3bbf02f39",
+    "perspective-finish-1280-light.png": "334a719cc35df29a383dc294d41d429951c0bc2e986d8c02ff4d4e5811fa790c",
+    "perspective-question-600-light-default.png": "61922ad286e9521a79eaa7a534542ca3772aa4bfa1c387e6409ca04fd7b6ec1b",
+    "perspective-finish-1280-dark.png": "c8d7f440c28c72c3b7a86e8a08303cb5e31f667f3f29666c2fb49eddc4da10e5",
+    "perspective-question-600-light.png": "c22d25cbbc22fa75b7a6bea276967f306c6ec73aca52af56c250642a688bc3ed"
+  }
+}

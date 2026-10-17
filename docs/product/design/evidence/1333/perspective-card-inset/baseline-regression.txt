@@ -1,0 +1,7 @@
+Baseline main: cacc2522d2ab81db3d2b60fffbcce7909e587172
+Production Chromium 153.0.8010.0; original Games CSS.
+New rendered geometry assertion at 1280px Light:
+Error: who-of-us-question-title padding edge 0
+Expected: >= 20
+Received: 0
+1 failed; no retry.

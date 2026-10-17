@@ -47,11 +47,11 @@
   },
   "knownBaselineVisualDefect": {
     "issue": 1329,
-    "text": "Zur\u00fcck zu Spielen",
     "lightForeground": "rgb(48, 85, 184)",
     "lightBackground": "rgb(48, 85, 184)",
     "contrastRatio": 1,
-    "scopedAxeDetected": false
+    "scopedAxeDetected": false,
+    "copyKey": "games.whoOfUs.back"
   },
   "sources": [
     {

@@ -1,0 +1,12 @@
+{
+  "main": "cacc2522d2ab81db3d2b60fffbcce7909e587172",
+  "assertion": "normal rendered text contrast >= 4.5",
+  "expectedFailureRatio": 1,
+  "files": {
+    "web/src/components/GamesProductArea.css": "5cce07f4e1d703a525bee00719a8396877e581f6039bab1e55ce06a03d06a2d9",
+    "web/src/components/PageHeader.tsx": "7cd0fea5fc9ac44850da501905a7b8ea7dd1daffd651991b6c6974f1334d411e",
+    "web/src/components/WhoOfUsGamePanel.tsx": "7493595d0a9b95c93e7754cf5f281a4e40c0791c5e1e57ae9e4f3e3f3243ab61",
+    "web/e2e/tests/perspective-game.spec.ts": "fd453d6cdff362e73856fb0f018dc4e0b6ad5d215af14e8d46b70a2115e92adb",
+    "web/e2e/support/renderedContrast.ts": "5e15be832d063b8cb3520b53d0b8d455dcb771cfb00107f79d915dbd4fc550da"
+  }
+}

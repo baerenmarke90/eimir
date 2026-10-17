@@ -1,0 +1,525 @@
+{
+  "baselineMain": "46872a4cee53f96c3a95f453506d664477456ae5",
+  "scope": "Tests, browser inventory and evidence only; production runtime unchanged",
+  "tooling": {
+    "node": "24.19.0",
+    "vitest": "5.0.4",
+    "playwright": "1.62.1",
+    "localChromium": "153.0.8010.0",
+    "localBrowserOutsideProductDependencies": true
+  },
+  "diagnostic": {
+    "input": "MutationObserver at first committed answer button, real consumer and fireEvent.click",
+    "normal": {
+      "liveSessionDisposed": false,
+      "subscribersAtClick": 0,
+      "postDispatchPhase": "handoff",
+      "promptStillInImmediateDOM": true
+    },
+    "strictMode": {
+      "replaySessionDisposed": true,
+      "liveSessionDisposed": false,
+      "subscribersAtClick": 0,
+      "postDispatchPhase": "handoff",
+      "promptStillInImmediateDOM": true
+    },
+    "immediateAssumptionCounterfactual": {
+      "failed": 2,
+      "passedControls": 4
+    },
+    "awaitedHandoff": {
+      "passed": 2,
+      "secondInputNeeded": false
+    },
+    "historicalSchedulerInterleavingReconstructed": false
+  },
+  "results": {
+    "focusedPassed": 11,
+    "fullWebPassed": 1681,
+    "existingWebSkips": 1,
+    "fullWebFiles": 204,
+    "fullWebSeconds": 47.53,
+    "productionBrowserPassed": 5,
+    "productionBrowserSeconds": 18.9,
+    "retries": 0,
+    "timeoutChanges": false,
+    "productionRuntimeChanges": false
+  },
+  "knownBaselineVisualDefect": {
+    "issue": 1329,
+    "text": "Zur\u00fcck zu Spielen",
+    "lightForeground": "rgb(48, 85, 184)",
+    "lightBackground": "rgb(48, 85, 184)",
+    "contrastRatio": 1,
+    "scopedAxeDetected": false
+  },
+  "sources": [
+    {
+      "path": "web/src/components/GamesProductArea.test.tsx",
+      "bytes": 12051,
+      "sha256": "2b58b54957976985ec769fb49d9fccb48b18b560bedfb0b8b1003837e97d576f"
+    },
+    {
+      "path": "web/e2e/tests/perspective-game.spec.ts",
+      "bytes": 10173,
+      "sha256": "d5764ba1a90e246116d253112872b798192ed08f0973d9f18ab5a9752683e1f9"
+    },
+    {
+      "path": "web/e2e/test-groups.json",
+      "bytes": 9705,
+      "sha256": "8fb47e8a34c48edfd59f04ca19ec065946645e184112e956855e885a28f65235"
+    },
+    {
+      "path": "web/src/components/GamesProductArea.tsx",
+      "bytes": 5512,
+      "sha256": "ce9a7bf54d0ab9d66169b38941ead5878e830bb4d5578eabf897a1d68e528980"
+    },
+    {
+      "path": "web/src/components/WhoOfUsGamePanel.tsx",
+      "bytes": 11261,
+      "sha256": "7493595d0a9b95c93e7754cf5f281a4e40c0791c5e1e57ae9e4f3e3f3243ab61"
+    },
+    {
+      "path": "web/src/client/whoOfUsSession.ts",
+      "bytes": 7830,
+      "sha256": "d19f3ce834cdca0a7384f87445472bd7bf704b8ed99d39d524f37408035c4c7c"
+    },
+    {
+      "path": "web/src/components/GamesProductArea.css",
+      "bytes": 11653,
+      "sha256": "5cce07f4e1d703a525bee00719a8396877e581f6039bab1e55ce06a03d06a2d9"
+    },
+    {
+      "path": "web/src/i18n/locales/games.ts",
+      "bytes": 7205,
+      "sha256": "74dc031d2e3dd1c700be2c065daa0ea40691dad621da9a7ed12f77f320f60aa9"
+    },
+    {
+      "path": "web/vite.config.ts",
+      "bytes": 208,
+      "sha256": "0b8706ecac24e91c714310225eaefabb5c08a98a4c82259a4bd9060fcbd6940c"
+    },
+    {
+      "path": "web/e2e/playwright.config.ts",
+      "bytes": 779,
+      "sha256": "60ad7ae921edb70733db987865d7330427899df2d2ceaf3252923e5164b4a32c"
+    },
+    {
+      "path": "web/package-lock.json",
+      "bytes": 118094,
+      "sha256": "b9fecf05a73089abbdc156f2ab6ca1cd830817d82ee10c6aaf90f06ea0d54cd1"
+    },
+    {
+      "path": "web/e2e/package-lock.json",
+      "bytes": 3082,
+      "sha256": "74121b45717ab48831dce8ac72006a6955737c29d180367fa0042b1200f28c3e"
+    }
+  ],
+  "productionBundle": {
+    "aggregateSha256": "18d4a47040a99760adc304bf6a3e31b4c34dc48a344dd2393b5123baf4e81da8",
+    "files": [
+      {
+        "path": "web/dist/apple-touch-icon.png",
+        "bytes": 35380,
+        "sha256": "f36a50d3451e38f058e8a78a483472034cf21f1ba8fe2ee787bef870035a55a4"
+      },
+      {
+        "path": "web/dist/assets/index-D3qmSww_.js",
+        "bytes": 1515896,
+        "sha256": "75dca61ee3ca3aaa75789effed2933be8b32ea2b31144ba00f12c5eba03310b1"
+      },
+      {
+        "path": "web/dist/assets/index-D46K-c7Q.css",
+        "bytes": 414694,
+        "sha256": "5a0671f0169db7c9502f7709de7b79f2568b81e89a09a3ad57a6e77202b0d3f2"
+      },
+      {
+        "path": "web/dist/assets/web-B7yX47Pj.js",
+        "bytes": 362,
+        "sha256": "4a26a00a0dc0da5e85312bfba3d81c2916eea0f88893b7350b46c0471944facd"
+      },
+      {
+        "path": "web/dist/assets/web-D93he7TI.js",
+        "bytes": 844,
+        "sha256": "e3513851a6c8e6e063dce32505618ebf7aff38733bd8d5bef3d3b70fcf07b367"
+      },
+      {
+        "path": "web/dist/fonts/OFL-InstrumentSans.txt",
+        "bytes": 4403,
+        "sha256": "9e27a72ed30eb49a08678f6a5d6ed98ec7ba5368f541637ee0683ec9134ef966"
+      },
+      {
+        "path": "web/dist/fonts/OFL-Literata.txt",
+        "bytes": 4389,
+        "sha256": "8742963604cd89dc81437811a850018fc03b2bfad686d7422c8235967c87614e"
+      },
+      {
+        "path": "web/dist/fonts/instrument-sans-latin-variable.woff2",
+        "bytes": 57332,
+        "sha256": "8b74e9bc6e415d564a5ffd32125c92ffd50b1635043e77543cb871e0a3cfcaf2"
+      },
+      {
+        "path": "web/dist/fonts/literata-latin-variable.woff2",
+        "bytes": 110080,
+        "sha256": "29de894c768689feef6ab4ef274a9a16d19bfc5b0c3cbfcdac80ef220816210c"
+      },
+      {
+        "path": "web/dist/identity/app-icon-dark.png",
+        "bytes": 23936,
+        "sha256": "4f50b0963f701a2296af543dfc40d7405fcad5af763ba70f0c86b940920463c5"
+      },
+      {
+        "path": "web/dist/identity/app-icon-light.png",
+        "bytes": 110338,
+        "sha256": "90b1c5d2b6e454f7847594df54b7a35a4a9a8be1389248bc66638b1b45f5f1f2"
+      },
+      {
+        "path": "web/dist/identity/app-icon-mono.png",
+        "bytes": 23331,
+        "sha256": "8ca72eca16d1e849a24b26cf61262f3583ca1a47c31d568675f7eafbf8cee958"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/dark-180.png",
+        "bytes": 35401,
+        "sha256": "50bbe9d90f15ca14c68e851a011e661d4c5b9cfff41a4ba86f57a268090702c1"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/dark-192.png",
+        "bytes": 38466,
+        "sha256": "1f01a406d4b9caf2a92a72cb3107f915353648132376613fbd9a8b90d02556fb"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/dark-512.png",
+        "bytes": 139035,
+        "sha256": "7af751d27f0a20def2ca8fc6130598657bb8e6b9e3bc2fa9def29ad9ce5a484c"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/dark.png",
+        "bytes": 23936,
+        "sha256": "4f50b0963f701a2296af543dfc40d7405fcad5af763ba70f0c86b940920463c5"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/dark.webmanifest",
+        "bytes": 543,
+        "sha256": "0cc96e3465f264f5beeca900f3ef99dab76ab77f9a3b9f36fa66eb42fefb89dc"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/daylight-180.png",
+        "bytes": 33118,
+        "sha256": "ce626eb886a647b6837d8be279bb825e2c911700870bf34540f86496fa711296"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/daylight-192.png",
+        "bytes": 36193,
+        "sha256": "c099f542ce1d0307f01f1937ffa6a784c9c8d4bb254e203dfae9f0ebdf4c0c0d"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/daylight-512.png",
+        "bytes": 126522,
+        "sha256": "a10ddb3f5d88fdf7909f44901a762b3fbfe400e5196e6e3a60e24801075e309d"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/daylight.png",
+        "bytes": 24331,
+        "sha256": "06104982b6f5a57d86ed311ec36af7b49d41ade20dc1fb60b87868d78662cfe4"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/daylight.webmanifest",
+        "bytes": 551,
+        "sha256": "068a0eb6f356205c6695afb1e997ae65f74efea1b68db257f57dfe13418e30bb"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/lavender-180.png",
+        "bytes": 32896,
+        "sha256": "06ac7380b6586d572d023f0ae6d7691104dadb23e6cc4f1e06688dc2a8594f93"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/lavender-192.png",
+        "bytes": 36051,
+        "sha256": "879c54cfbc75e5ded9395c172998628724be4eb4d314114339a46da65f5840df"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/lavender-512.png",
+        "bytes": 123472,
+        "sha256": "7a69e0157f3ad297737e92efe6092bfe1edf483644a0d7f3aee72d6d5d995e99"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/lavender.png",
+        "bytes": 24407,
+        "sha256": "8e88382978bd896542a287ee228652bfe794c0f7bbacc8d4e0306be945323532"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/lavender.webmanifest",
+        "bytes": 551,
+        "sha256": "4a8547e050a145fb576695bfb2bbf4b265fdfe6e307e53fb70ca30e3a7f9a52d"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/midnight-180.png",
+        "bytes": 37528,
+        "sha256": "56673cbc8047775ce5d0c91aca07de2a4a1a61690fcaa5c752566482b2c798a9"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/midnight-192.png",
+        "bytes": 41206,
+        "sha256": "6856216a6fd2f9f4e1a98bc970a952474ce3e0c7aa41cbb1117a80dd56d33005"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/midnight-512.png",
+        "bytes": 153048,
+        "sha256": "767cd962b553142fac042b5fe4793556973e8c64ab0f82f410c87338f52115c6"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/midnight.png",
+        "bytes": 27477,
+        "sha256": "7066a413184a815bf16b86274f5006f36900bf3e6f14aeca0f574c71da107b9f"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/midnight.webmanifest",
+        "bytes": 551,
+        "sha256": "27dde3575bcc947885a215f0e9670ab8b6552960ab3f28b8386f045fe259e015"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/minimal-180.png",
+        "bytes": 30587,
+        "sha256": "12d8d9c8530f6f8c38eba7fa95d4891de072ce76127504eb6ed3d7e94453189c"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/minimal-192.png",
+        "bytes": 33317,
+        "sha256": "8b3f15862bff247cace51a4d00f8972d4ac6c574c7f3f8c8326c8e75b812eb1c"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/minimal-512.png",
+        "bytes": 106360,
+        "sha256": "cb6fdb308f3d3be20286cf846098eba5e4c51c5b7f716d1fd3f5940ccc476d1b"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/minimal.png",
+        "bytes": 22694,
+        "sha256": "49d9b76d00dcaee99998b709fc50c3817d50a7e66af2051437d37dc6fbeabc96"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/minimal.webmanifest",
+        "bytes": 549,
+        "sha256": "ce320895d4e7b3d082a0eeff80cc791c7ecb94c301758dc78e048b52d18e2d34"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/monochrome-180.png",
+        "bytes": 34686,
+        "sha256": "67ddb8bb653e9adad72239fe150379f0ec9b091a02f057be7ec64fe788da9a0e"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/monochrome-192.png",
+        "bytes": 37787,
+        "sha256": "223ef024e5714e1779fc3be31bd692ef0b6a34c7c27821146e889ad282208648"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/monochrome-512.png",
+        "bytes": 136271,
+        "sha256": "48926c0d4da1902ca71b4d278d9f50d65f58278862438e69fafd1b2a08dea218"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/monochrome.png",
+        "bytes": 23331,
+        "sha256": "8ca72eca16d1e849a24b26cf61262f3583ca1a47c31d568675f7eafbf8cee958"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/monochrome.webmanifest",
+        "bytes": 555,
+        "sha256": "79cd5d4f815444e23b7cf426c97f8c3e4281ba20bd6226a117a67c56782bae22"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/original-180.png",
+        "bytes": 35380,
+        "sha256": "f36a50d3451e38f058e8a78a483472034cf21f1ba8fe2ee787bef870035a55a4"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/original-192.png",
+        "bytes": 39909,
+        "sha256": "a3f18f9d49159fd0cc32d17b5b2b5b495331d05f552091287f6663a10b935c38"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/original-512.png",
+        "bytes": 187147,
+        "sha256": "c9d5aed59121da2020c4c72417e3cd0a164ed9537cf4b7fa1dd804e10ed7855a"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/original.png",
+        "bytes": 110338,
+        "sha256": "90b1c5d2b6e454f7847594df54b7a35a4a9a8be1389248bc66638b1b45f5f1f2"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/original.webmanifest",
+        "bytes": 625,
+        "sha256": "03cd9f68dbffb6626ae727a09b5fa1cc15af106920d43653bc610711d77ff5e8"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/pearl-180.png",
+        "bytes": 36108,
+        "sha256": "239f894c220211eb81146f316e73df600a15da9d121021198112af7c8df98d56"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/pearl-192.png",
+        "bytes": 39618,
+        "sha256": "1b8b1e3b55ac524b48cb73d3839659a9f9b7dd21ad17f722f4d0ce3d5433321c"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/pearl-512.png",
+        "bytes": 144237,
+        "sha256": "f1cdff0072e38dd4010a6b646aaafa17e8ceab82e797abb625f49a7e326a0d66"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/pearl.png",
+        "bytes": 24364,
+        "sha256": "87796831e8d2cb889b7a85ad630af480712859114d2da76a2836d60e1a6cca73"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/pearl.webmanifest",
+        "bytes": 545,
+        "sha256": "fcb6f9aca3cc8370b1e88140aadd57f86354d67b5f5b65796b577a69e1c17ed8"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/sage-180.png",
+        "bytes": 35250,
+        "sha256": "5f05167e59df8cd6db4953cc413381029791f62e014750bed8bf52774d0e6b6f"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/sage-192.png",
+        "bytes": 38620,
+        "sha256": "b42d34a4ad344d5a57aed3c61a0dc11766bfe2c176709879d49f3e6c851458b8"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/sage-512.png",
+        "bytes": 135998,
+        "sha256": "c7a71048a0a5bd6e82ba48f751a575822c31a6149a01281a88b5ee07b59ea58d"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/sage.png",
+        "bytes": 25243,
+        "sha256": "faf9f5f6daac99b469724d3d4ed8f05c89e0df64238f8fa2866a360c43f43bcb"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/sage.webmanifest",
+        "bytes": 543,
+        "sha256": "86350197eec08e7b472da7d42ad2cc981396da551957ee46bc850a8240964e84"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/sand-180.png",
+        "bytes": 33936,
+        "sha256": "2c453441b5a81380ae00c49f24028916be99851ccba3bfa507b484b124caa120"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/sand-192.png",
+        "bytes": 37069,
+        "sha256": "0d71e8124c24d183d4067ef6aafc45bfb29ec9e7096652368f9d55cce480879d"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/sand-512.png",
+        "bytes": 127869,
+        "sha256": "a68a7b19ee33480f0adf1d7c7f1fb08ffb499679581083b70b70da0000178200"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/sand.png",
+        "bytes": 24338,
+        "sha256": "dfd0e742e228d542830f89f4da4ef92af3f53aeabbe49d9dd3595f1d22b08f24"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/sand.webmanifest",
+        "bytes": 543,
+        "sha256": "4441a7592f6ebd079762a3b40cd679463098b24b985ca36cb8ffaaaabb02b831"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/sunset-180.png",
+        "bytes": 33343,
+        "sha256": "8316a3ff643f0cdbe4298f0f9e754a97c08aa360322264d6c74fc1f4a3dba5fb"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/sunset-192.png",
+        "bytes": 36431,
+        "sha256": "a9166c86b82f50469980dd86539394d3a73d731073b7785130c55db3d17b02fd"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/sunset-512.png",
+        "bytes": 124340,
+        "sha256": "7608223064f7301703cda9e0ad034e9721dade1984762837ba1234d5ba866800"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/sunset.png",
+        "bytes": 24330,
+        "sha256": "6ecfd4bf178e4cf887c8e88bf0edea49538d8edd3b15fc2b1d80c3604d3d85c8"
+      },
+      {
+        "path": "web/dist/identity/app-icons/v1/sunset.webmanifest",
+        "bytes": 547,
+        "sha256": "f11f01f635c7abcb176f850ace78adaec0b247252996ed902240531bcc35a8c6"
+      },
+      {
+        "path": "web/dist/index.html",
+        "bytes": 1609,
+        "sha256": "3a003156d13d474cbac9bf8caf10c6d6d31f0f03470b72aa757106978dba17c2"
+      },
+      {
+        "path": "web/dist/manifest.webmanifest",
+        "bytes": 612,
+        "sha256": "e5ecac53e0c66cfacdc2213aff9addcead722a95d26f91fbb03bcf06e3c710a6"
+      },
+      {
+        "path": "web/dist/offline.css",
+        "bytes": 1801,
+        "sha256": "ab9d910da55323ae666917f43ea882fc158d1ba94d375b16ead3231c749512b1"
+      },
+      {
+        "path": "web/dist/offline.html",
+        "bytes": 852,
+        "sha256": "4be78433b4e196e66a5a0fbca2eceade4e1dc100a2aa1faccedd928c22c3acf9"
+      },
+      {
+        "path": "web/dist/pwa-192.png",
+        "bytes": 39909,
+        "sha256": "a3f18f9d49159fd0cc32d17b5b2b5b495331d05f552091287f6663a10b935c38"
+      },
+      {
+        "path": "web/dist/pwa-512.png",
+        "bytes": 187147,
+        "sha256": "c9d5aed59121da2020c4c72417e3cd0a164ed9537cf4b7fa1dd804e10ed7855a"
+      },
+      {
+        "path": "web/dist/pwa-maskable.png",
+        "bytes": 187147,
+        "sha256": "c9d5aed59121da2020c4c72417e3cd0a164ed9537cf4b7fa1dd804e10ed7855a"
+      },
+      {
+        "path": "web/dist/service-worker.js",
+        "bytes": 2547,
+        "sha256": "62344e7e5ed69b8f47051a178b0e1b5f526094edb4485e1c976ffa2606dcf711"
+      },
+      {
+        "path": "web/dist/theme-bootstrap.js",
+        "bytes": 1559,
+        "sha256": "bf54ac9e2081eee4c0941f5f2bf8a2f64e222f9e239e5e2716f6a9c9ac6826cc"
+      }
+    ]
+  },
+  "captures": [
+    {
+      "path": "docs/product/design/evidence/1328/perspective-handoff/perspective-handoff-1280-dark.png",
+      "bytes": 55927,
+      "sha256": "b1922ab138e2f115b0c7523ed54b66e34e9d27711c7586309ef87e361cdf5ce3"
+    },
+    {
+      "path": "docs/product/design/evidence/1328/perspective-handoff/perspective-handoff-390-light.png",
+      "bytes": 46221,
+      "sha256": "f79d8fa846d98b0df27bbaf6ecab83fd61cb61c3d835d8c1f8ae1bc8bbd2c020"
+    },
+    {
+      "path": "docs/product/design/evidence/1328/perspective-handoff/perspective-reveal-1280-dark.png",
+      "bytes": 254414,
+      "sha256": "4c0624e5091e532116b334c3c62af34186eaf5894b52a0967fa39af30e3f9742"
+    },
+    {
+      "path": "docs/product/design/evidence/1328/perspective-handoff/perspective-reveal-390-light.png",
+      "bytes": 99445,
+      "sha256": "630ea523681fe1e7a2824da915cd1817daf0ce9ab9d45bf34cd331b45fb26ed9"
+    }
+  ]
+}

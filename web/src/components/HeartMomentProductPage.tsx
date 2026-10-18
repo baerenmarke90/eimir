@@ -37,6 +37,7 @@ import {
 } from '../client/problemDetails';
 import { assertOnlineWrite } from '../client/connectivity';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
 import {
@@ -158,7 +159,18 @@ export function HeartMomentProductPage({
   const heartMomentId = params.heartMomentId;
   const queryKey = authorSummaryQueryKeys.heartMoment(spaceId, heartMomentId);
   const contextKey = formatAttachmentDraftContextKey(currentAccountId, spaceId);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const deleteKey = [
+    'heart-moment-delete',
+    currentAccountId,
+    spaceId,
+    heartMomentId,
+  ] as const;
+  const updateKey = [
+    'heart-moment-update',
+    currentAccountId,
+    spaceId,
+    heartMomentId,
+  ] as const;
   const [createContentError, setCreateContentError] = useState(false);
   const [editContentError, setEditContentError] = useState(false);
   const [createVisibility, setCreateVisibility] =
@@ -270,6 +282,7 @@ export function HeartMomentProductPage({
   });
 
   const updateMutation = useMutation({
+    mutationKey: updateKey,
     mutationFn: async ({
       current,
       update,
@@ -417,33 +430,26 @@ export function HeartMomentProductPage({
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (heartMoment: HeartMomentDetail) => {
-      try {
-        await apis.heartMoments.deleteHeartMoment({
-          spaceId,
-          heartMomentId: heartMoment.id,
-          ifMatch: String(heartMoment.version),
-        });
-        await deleteProductReadCacheEntry(
-          currentAccountId,
-          spaceId,
-          'heartMoment',
-          heartMoment.id,
-        );
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    onSuccess: async () => {
-      queryClient.removeQueries({ queryKey });
-      await Promise.all([
-        invalidateStoryProjections(queryClient, spaceId),
-        invalidateDashboard(queryClient, spaceId),
-      ]);
-      navigate(appRoutePath('story'), { replace: true });
-    },
+  const deleteMutation = useStoryDeletion<HeartMomentDetail>({
+    active: mode === 'edit',
+    accountId: currentAccountId,
+    spaceId,
+    resourceId: heartMomentId,
+    kind: 'heartMoment',
+    version: heartMomentQuery.data?.value.version,
+    queryKey,
+    mutationKey: deleteKey,
+    conflictingMutationKeys: [updateKey, visibilityMutationKey.slice(0, 4)],
+    execute: (heartMoment) =>
+      apis.heartMoments.deleteHeartMoment({
+        spaceId,
+        heartMomentId: heartMoment.id,
+        ifMatch: String(heartMoment.version),
+      }),
+    onDeleted: () => navigate(appRoutePath('story'), { replace: true }),
   });
+  const { confirming: confirmDelete, setConfirming: setConfirmDelete } =
+    deleteMutation;
 
   if (mode === 'create') {
     function submitCreate(event: FormEvent<HTMLFormElement>) {
@@ -700,7 +706,15 @@ export function HeartMomentProductPage({
 
     function submitEdit(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
-      if (attachments.hasPending) return;
+      if (
+        attachments.hasPending ||
+        queryClient.isMutating({ mutationKey: deleteKey }) ||
+        queryClient.isMutating({ mutationKey: updateKey }) ||
+        queryClient.isMutating({
+          mutationKey: visibilityMutationKey.slice(0, 4),
+        })
+      )
+        return;
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
       const replacementAttachmentId = attachments.readyIds[0];
@@ -787,7 +801,11 @@ export function HeartMomentProductPage({
               </Link>
               <button
                 type="submit"
-                disabled={updateMutation.isPending || attachments.hasPending}
+                disabled={
+                  updateMutation.isPending ||
+                  attachments.hasPending ||
+                  deleteMutation.isBlocked
+                }
               >
                 {updateMutation.isPending
                   ? t('heartMomentProduct.saving')
@@ -804,11 +822,12 @@ export function HeartMomentProductPage({
 
           {heartMoment.capabilities.canDelete && !offline ? (
             <div style={{ marginTop: 'var(--space-8)' }}>
-              {!confirmDelete ? (
+              {!confirmDelete && !deleteMutation.isPending ? (
                 <button
                   type="button"
                   className="button-link danger-link"
                   onClick={() => setConfirmDelete(true)}
+                  disabled={deleteMutation.isBlocked}
                 >
                   {t('heartMomentProduct.delete')}
                 </button>
@@ -835,7 +854,7 @@ export function HeartMomentProductPage({
                       type="button"
                       className="danger"
                       onClick={() => deleteMutation.mutate(heartMoment)}
-                      disabled={deleteMutation.isPending}
+                      disabled={deleteMutation.isBlocked}
                     >
                       {deleteMutation.isPending
                         ? t('heartMomentProduct.deleting')
@@ -971,6 +990,7 @@ export function HeartMomentProductPage({
             }
             onClick={() => {
               if (
+                queryClient.isMutating({ mutationKey: deleteKey }) ||
                 queryClient.isMutating({
                   mutationKey: visibilityMutationKey,
                   exact: true,
@@ -995,7 +1015,7 @@ export function HeartMomentProductPage({
                   : ContentVisibility.SHARED,
               });
             }}
-            disabled={changingVisibility}
+            disabled={changingVisibility || deleteMutation.isPending}
           >
             <VisibilityGlyph
               visibility={shared ? 'OWNER_ONLY' : 'SPACE_SHARED'}

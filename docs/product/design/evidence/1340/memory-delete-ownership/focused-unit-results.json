@@ -1,0 +1,132 @@
+{
+  "numTotalTests": 31,
+  "numPassedTests": 31,
+  "numFailedTests": 0,
+  "success": true,
+  "assertions": [
+    {
+      "fullName": "Memory delete response and task ownership confirms the normal delete, revokes its original snapshot and returns once",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership admits only one synchronous confirmation",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership rejects offline deletion without reconnect replay and permits deliberate retry",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership evicts the original authorized read after leaving without navigating or posting a toast",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not remove a collected Query or navigate after success",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not remove a replacement Query or navigate after success",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership retains a later unauthorized read after confirmed deletion",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership retains a later permission read after confirmed deletion",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership retains a later notFound read after confirmed deletion",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership keeps a different Memory and its editor after route reuse",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership binds persistent revocation and settlement to the original Account after replacement",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership binds recovery to the original Space after props change",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership rechecks ownership after awaited persistent revocation",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership rechecks task ownership after awaited projection recovery",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership preserves a later replacement Query during awaited projection recovery",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership preserves a later denied read during awaited projection recovery",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not dispatch after remove during awaited cancellation",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not dispatch after version during awaited cancellation",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not dispatch after leave during awaited cancellation",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership restores global pending protection after a real leave and return without reviving navigation ownership",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not show an old failure on another Memory",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not admit an edit while deletion is pending",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not admit deletion while an edit is pending",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory editor return context preserves scoped Timeline origin for edit=true via cancel",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory editor return context preserves scoped Timeline origin for edit=true via back",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory editor return context preserves scoped Timeline origin for edit=false via back",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory detail edit action (#1014) replaces the oversized text button with a compact icon-only edit link",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory view receipt emits a receipt strictly on successful presentation, not during load or failure",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory view receipt does not damage or replace the presented page if recordStoryView POST fails",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory view receipt does not create a duplicate receipt burst on rerender or background query activity",
+      "status": "passed"
+    },
+    {
+      "fullName": "Memory view receipt produces no receipt on failed canonical detail load",
+      "status": "passed"
+    }
+  ]
+}

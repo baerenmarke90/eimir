@@ -1,0 +1,524 @@
+{
+  "client": 320,
+  "scroll": 434,
+  "overflow": [
+    {
+      "tag": "DIV",
+      "class": "",
+      "right": 320,
+      "width": 320,
+      "scroll": 434
+    },
+    {
+      "tag": "DIV",
+      "class": "product-shell",
+      "right": 320,
+      "width": 320,
+      "scroll": 434
+    },
+    {
+      "tag": "A",
+      "class": "skip-link",
+      "right": 405,
+      "width": 304,
+      "scroll": 304
+    },
+    {
+      "tag": "SPAN",
+      "class": "brand-name",
+      "right": 41,
+      "width": 1,
+      "scroll": 76
+    },
+    {
+      "tag": "DIV",
+      "class": "product-shell-body",
+      "right": 320,
+      "width": 320,
+      "scroll": 434
+    },
+    {
+      "tag": "MAIN",
+      "class": "product-main",
+      "right": 304,
+      "width": 288,
+      "scroll": 418
+    },
+    {
+      "tag": "DIV",
+      "class": "page page-reading create-page product-editor-page",
+      "right": 304,
+      "width": 288,
+      "scroll": 418
+    },
+    {
+      "tag": "A",
+      "class": "back-link",
+      "right": 433.59375,
+      "width": 418,
+      "scroll": 418
+    },
+    {
+      "tag": "HEADER",
+      "class": "page-heading  create-heading",
+      "right": 433.59375,
+      "width": 418,
+      "scroll": 418
+    },
+    {
+      "tag": "DIV",
+      "class": "",
+      "right": 433.59375,
+      "width": 418,
+      "scroll": 418
+    },
+    {
+      "tag": "P",
+      "class": "eyebrow",
+      "right": 433.59375,
+      "width": 418,
+      "scroll": 418
+    },
+    {
+      "tag": "DIV",
+      "class": "page-heading-title-container",
+      "right": 433.59375,
+      "width": 418,
+      "scroll": 418
+    },
+    {
+      "tag": "H1",
+      "class": "",
+      "right": 433.59375,
+      "width": 418,
+      "scroll": 418
+    },
+    {
+      "tag": "P",
+      "class": "",
+      "right": 433.59375,
+      "width": 418,
+      "scroll": 418
+    },
+    {
+      "tag": "SECTION",
+      "class": "form-card product-sheet",
+      "right": 433.59375,
+      "width": 416,
+      "scroll": 416
+    },
+    {
+      "tag": "H2",
+      "class": "sr-only",
+      "right": 57,
+      "width": 1,
+      "scroll": 453
+    },
+    {
+      "tag": "FORM",
+      "class": "form-grid memory-form",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "DIV",
+      "class": "field-group",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "LABEL",
+      "class": "",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "INPUT",
+      "class": "",
+      "right": 392.59375,
+      "width": 334,
+      "scroll": 377
+    },
+    {
+      "tag": "DIV",
+      "class": "field-group",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "LABEL",
+      "class": "",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "TEXTAREA",
+      "class": "",
+      "right": 392.59375,
+      "width": 334,
+      "scroll": 334
+    },
+    {
+      "tag": "DIV",
+      "class": "field-group",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "LABEL",
+      "class": "",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "INPUT",
+      "class": "",
+      "right": 392.59375,
+      "width": 334,
+      "scroll": 334
+    },
+    {
+      "tag": "FIELDSET",
+      "class": "memory-tag-choices",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "LEGEND",
+      "class": "",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "P",
+      "class": "field-help",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "DIV",
+      "class": "context-tag-entry",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "INPUT",
+      "class": "",
+      "right": 392.59375,
+      "width": 334,
+      "scroll": 334
+    },
+    {
+      "tag": "DETAILS",
+      "class": "context-tag-suggestions",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "SUMMARY",
+      "class": "",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "DIV",
+      "class": "memory-tag-list",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "LABEL",
+      "class": "memory-tag-choice",
+      "right": 392.59375,
+      "width": 334,
+      "scroll": 334
+    },
+    {
+      "tag": "SPAN",
+      "class": "",
+      "right": 367.59375,
+      "width": 286,
+      "scroll": 286
+    },
+    {
+      "tag": "LABEL",
+      "class": "memory-tag-choice",
+      "right": 337,
+      "width": 278,
+      "scroll": 278
+    },
+    {
+      "tag": "DIV",
+      "class": "memory-new-attachments-heading",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "STRONG",
+      "class": "",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "DIV",
+      "class": "field-group attachment-draft-picker",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "LABEL",
+      "class": "",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "INPUT",
+      "class": "visually-hidden-input",
+      "right": 57,
+      "width": 1,
+      "scroll": 428
+    },
+    {
+      "tag": "LABEL",
+      "class": "file-picker",
+      "right": 392.59375,
+      "width": 334,
+      "scroll": 334
+    },
+    {
+      "tag": "SPAN",
+      "class": "",
+      "right": 366,
+      "width": 167,
+      "scroll": 167
+    },
+    {
+      "tag": "STRONG",
+      "class": "",
+      "right": 366,
+      "width": 167,
+      "scroll": 167
+    },
+    {
+      "tag": "SMALL",
+      "class": "",
+      "right": 366,
+      "width": 167,
+      "scroll": 374
+    },
+    {
+      "tag": "DIV",
+      "class": "form-actions",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "A",
+      "class": "button-link secondary-link",
+      "right": 392.59375,
+      "width": 334,
+      "scroll": 334
+    },
+    {
+      "tag": "BUTTON",
+      "class": "",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "DIV",
+      "class": "",
+      "right": 392.59375,
+      "width": 336,
+      "scroll": 336
+    },
+    {
+      "tag": "SECTION",
+      "class": "memory-danger-zone memory-delete-confirmation",
+      "right": 392.59375,
+      "width": 334,
+      "scroll": 334
+    },
+    {
+      "tag": "DIV",
+      "class": "",
+      "right": 359.59375,
+      "width": 270,
+      "scroll": 270
+    },
+    {
+      "tag": "H2",
+      "class": "",
+      "right": 359.59375,
+      "width": 270,
+      "scroll": 270
+    },
+    {
+      "tag": "P",
+      "class": "",
+      "right": 359.59375,
+      "width": 270,
+      "scroll": 270
+    },
+    {
+      "tag": "DIV",
+      "class": "memory-actions",
+      "right": 359.59375,
+      "width": 270,
+      "scroll": 270
+    },
+    {
+      "tag": "BUTTON",
+      "class": "tertiary",
+      "right": 359.59375,
+      "width": 268,
+      "scroll": 268
+    },
+    {
+      "tag": "BUTTON",
+      "class": "danger",
+      "right": 359.59375,
+      "width": 270,
+      "scroll": 270
+    },
+    {
+      "tag": "DIV",
+      "class": "mobile-bottom-shell",
+      "right": 393,
+      "width": 294,
+      "scroll": 294
+    },
+    {
+      "tag": "SPAN",
+      "class": "",
+      "right": 216.1875,
+      "width": 54,
+      "scroll": 99
+    },
+    {
+      "tag": "A",
+      "class": "shell-nav-link",
+      "right": 328.390625,
+      "width": 56,
+      "scroll": 56
+    },
+    {
+      "tag": "SPAN",
+      "class": "",
+      "right": 327.390625,
+      "width": 54,
+      "scroll": 70
+    },
+    {
+      "tag": "A",
+      "class": "shell-nav-link",
+      "right": 383.984375,
+      "width": 56,
+      "scroll": 56
+    },
+    {
+      "tag": "SPAN",
+      "class": "shell-nav-icon",
+      "right": 367.1875,
+      "width": 22,
+      "scroll": 22
+    },
+    {
+      "tag": "svg",
+      "class": {},
+      "right": 366.1875,
+      "width": 20,
+      "scroll": 20
+    },
+    {
+      "tag": "circle",
+      "class": {},
+      "right": 351.1041564941406,
+      "width": 0,
+      "scroll": 0
+    },
+    {
+      "tag": "circle",
+      "class": {},
+      "right": 356.9375,
+      "width": 0,
+      "scroll": 0
+    },
+    {
+      "tag": "circle",
+      "class": {},
+      "right": 362.7708435058594,
+      "width": 0,
+      "scroll": 0
+    },
+    {
+      "tag": "circle",
+      "class": {},
+      "right": 351.1041564941406,
+      "width": 0,
+      "scroll": 0
+    },
+    {
+      "tag": "circle",
+      "class": {},
+      "right": 356.9375,
+      "width": 0,
+      "scroll": 0
+    },
+    {
+      "tag": "circle",
+      "class": {},
+      "right": 362.7708435058594,
+      "width": 0,
+      "scroll": 0
+    },
+    {
+      "tag": "circle",
+      "class": {},
+      "right": 351.1041564941406,
+      "width": 0,
+      "scroll": 0
+    },
+    {
+      "tag": "circle",
+      "class": {},
+      "right": 356.9375,
+      "width": 0,
+      "scroll": 0
+    },
+    {
+      "tag": "circle",
+      "class": {},
+      "right": 362.7708435058594,
+      "width": 0,
+      "scroll": 0
+    },
+    {
+      "tag": "SPAN",
+      "class": "",
+      "right": 382.6875,
+      "width": 53,
+      "scroll": 53
+    }
+  ]
+}

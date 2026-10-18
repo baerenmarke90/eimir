@@ -1,0 +1,288 @@
+[WebServer] (node:17) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 7 tests using 2 workers
+
+(node:51) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:52) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 390px light (14.9s)
+  ✘  2 [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 430px dark (14.5s)
+(node:237) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:245) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 1440px light (15.6s)
+  ✘  4 [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 1440px dark (15.4s)
+(node:431) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:439) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 320px dark (10.2s)
+  ✘  6 [chromium] › e2e/tests/memory-delete-ownership.spec.ts:310:3 › Memory offline delete requires a deliberate retry after reconnect in light (11.7s)
+(node:613) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  7 [chromium] › e2e/tests/memory-delete-ownership.spec.ts:310:3 › Memory offline delete requires a deliberate retry after reconnect in dark (11.6s)
+
+
+  1) [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 390px light
+
+    Error: expect(locator).toBeDisabled() failed
+
+    Locator: getByRole('button', { name: 'Wird gelöscht …', exact: true })
+    Expected: disabled
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeDisabled" with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Wird gelöscht …', exact: true })
+
+
+      248 |         .getByRole('link', { name: memoryProduct.edit, exact: true })
+      249 |         .click();
+    > 250 |       await expect(pending).toBeDisabled();
+          |                             ^
+      251 |       await expect(
+      252 |         page.getByRole('button', { name: memoryProduct.save, exact: true }),
+      253 |       ).toBeDisabled();
+        at /workspace/scratch/085539a6d3bb/eimir/web/e2e/tests/memory-delete-ownership.spec.ts:250:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../memory-delete-baseline-results/memory-delete-ownership-Me-863df-eparted-task-at-390px-light-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../memory-delete-baseline-results/memory-delete-ownership-Me-863df-eparted-task-at-390px-light-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../memory-delete-baseline-results/memory-delete-ownership-Me-863df-eparted-task-at-390px-light-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../memory-delete-baseline-results/memory-delete-ownership-Me-863df-eparted-task-at-390px-light-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 430px dark
+
+    Error: expect(page).toHaveURL(expected) failed
+
+    Expected pattern: /\/more$/
+    Received string:  "http://127.0.0.1:4173/story"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toHaveURL" with timeout 5000ms
+        13 × locator resolved to <html lang="de" data-theme="dark" data-theme-preference="system">…</html>
+           - unexpected value "http://127.0.0.1:4173/story"
+
+
+      277 |         ),
+      278 |     );
+    > 279 |     await expect(page).toHaveURL(/\/more$/);
+          |                        ^
+      280 |     expect(
+      281 |       await page.evaluate(
+      282 |         () => (window as Window & { deleteToasts?: string[] }).deleteToasts,
+        at /workspace/scratch/085539a6d3bb/eimir/web/e2e/tests/memory-delete-ownership.spec.ts:279:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../memory-delete-baseline-results/memory-delete-ownership-Me-68e00-departed-task-at-430px-dark-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../memory-delete-baseline-results/memory-delete-ownership-Me-68e00-departed-task-at-430px-dark-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../memory-delete-baseline-results/memory-delete-ownership-Me-68e00-departed-task-at-430px-dark-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../memory-delete-baseline-results/memory-delete-ownership-Me-68e00-departed-task-at-430px-dark-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 1440px light
+
+    Error: expect(page).toHaveURL(expected) failed
+
+    Expected pattern: /\/more$/
+    Received string:  "http://127.0.0.1:4173/story"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toHaveURL" with timeout 5000ms
+        13 × locator resolved to <html lang="de" data-theme="light" data-theme-preference="system">…</html>
+           - unexpected value "http://127.0.0.1:4173/story"
+
+
+      277 |         ),
+      278 |     );
+    > 279 |     await expect(page).toHaveURL(/\/more$/);
+          |                        ^
+      280 |     expect(
+      281 |       await page.evaluate(
+      282 |         () => (window as Window & { deleteToasts?: string[] }).deleteToasts,
+        at /workspace/scratch/085539a6d3bb/eimir/web/e2e/tests/memory-delete-ownership.spec.ts:279:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../memory-delete-baseline-results/memory-delete-ownership-Me-f84e8-parted-task-at-1440px-light-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../memory-delete-baseline-results/memory-delete-ownership-Me-f84e8-parted-task-at-1440px-light-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../memory-delete-baseline-results/memory-delete-ownership-Me-f84e8-parted-task-at-1440px-light-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../memory-delete-baseline-results/memory-delete-ownership-Me-f84e8-parted-task-at-1440px-light-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 1440px dark
+
+    Error: expect(page).toHaveURL(expected) failed
+
+    Expected pattern: /\/more$/
+    Received string:  "http://127.0.0.1:4173/story"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toHaveURL" with timeout 5000ms
+        13 × locator resolved to <html lang="de" data-theme="dark" data-theme-preference="system">…</html>
+           - unexpected value "http://127.0.0.1:4173/story"
+
+
+      277 |         ),
+      278 |     );
+    > 279 |     await expect(page).toHaveURL(/\/more$/);
+          |                        ^
+      280 |     expect(
+      281 |       await page.evaluate(
+      282 |         () => (window as Window & { deleteToasts?: string[] }).deleteToasts,
+        at /workspace/scratch/085539a6d3bb/eimir/web/e2e/tests/memory-delete-ownership.spec.ts:279:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../memory-delete-baseline-results/memory-delete-ownership-Me-002b6-eparted-task-at-1440px-dark-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../memory-delete-baseline-results/memory-delete-ownership-Me-002b6-eparted-task-at-1440px-dark-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../memory-delete-baseline-results/memory-delete-ownership-Me-002b6-eparted-task-at-1440px-dark-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../memory-delete-baseline-results/memory-delete-ownership-Me-002b6-eparted-task-at-1440px-dark-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 320px dark
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 320
+    Received: 434
+
+      233 |       ),
+      234 |     );
+    > 235 |     expect(widths.scroll).toBe(widths.client);
+          |                           ^
+      236 |     await expectMemoryControlsContained(page);
+      237 |     await page
+      238 |       .getByRole('link', { name: de.common.cancel, exact: true })
+        at /workspace/scratch/085539a6d3bb/eimir/web/e2e/tests/memory-delete-ownership.spec.ts:235:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../memory-delete-baseline-results/memory-delete-ownership-Me-2d50d-departed-task-at-320px-dark-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../memory-delete-baseline-results/memory-delete-ownership-Me-2d50d-departed-task-at-320px-dark-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../memory-delete-baseline-results/memory-delete-ownership-Me-2d50d-departed-task-at-320px-dark-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../memory-delete-baseline-results/memory-delete-ownership-Me-2d50d-departed-task-at-320px-dark-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › e2e/tests/memory-delete-ownership.spec.ts:310:3 › Memory offline delete requires a deliberate retry after reconnect in light
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Du bist gerade offline.', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Du bist gerade offline.', { exact: true })
+
+
+      329 |     await expect(
+      330 |       page.getByText(de.states.offline.title, { exact: true }),
+    > 331 |     ).toBeVisible();
+          |       ^
+      332 |     await expect(page.locator('#memory-edit-body')).toHaveValue(
+      333 |       'Unsaved words stay after failed deletion',
+      334 |     );
+        at /workspace/scratch/085539a6d3bb/eimir/web/e2e/tests/memory-delete-ownership.spec.ts:331:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../memory-delete-baseline-results/memory-delete-ownership-Me-0ba69-ry-after-reconnect-in-light-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../memory-delete-baseline-results/memory-delete-ownership-Me-0ba69-ry-after-reconnect-in-light-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../memory-delete-baseline-results/memory-delete-ownership-Me-0ba69-ry-after-reconnect-in-light-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../memory-delete-baseline-results/memory-delete-ownership-Me-0ba69-ry-after-reconnect-in-light-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [chromium] › e2e/tests/memory-delete-ownership.spec.ts:310:3 › Memory offline delete requires a deliberate retry after reconnect in dark
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Du bist gerade offline.', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Du bist gerade offline.', { exact: true })
+
+
+      329 |     await expect(
+      330 |       page.getByText(de.states.offline.title, { exact: true }),
+    > 331 |     ).toBeVisible();
+          |       ^
+      332 |     await expect(page.locator('#memory-edit-body')).toHaveValue(
+      333 |       'Unsaved words stay after failed deletion',
+      334 |     );
+        at /workspace/scratch/085539a6d3bb/eimir/web/e2e/tests/memory-delete-ownership.spec.ts:331:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../memory-delete-baseline-results/memory-delete-ownership-Me-45337-try-after-reconnect-in-dark-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../memory-delete-baseline-results/memory-delete-ownership-Me-45337-try-after-reconnect-in-dark-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../memory-delete-baseline-results/memory-delete-ownership-Me-45337-try-after-reconnect-in-dark-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../memory-delete-baseline-results/memory-delete-ownership-Me-45337-try-after-reconnect-in-dark-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7 failed
+    [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 390px light
+    [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 430px dark
+    [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 1440px light
+    [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 1440px dark
+    [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 320px dark
+    [chromium] › e2e/tests/memory-delete-ownership.spec.ts:310:3 › Memory offline delete requires a deliberate retry after reconnect in light
+    [chromium] › e2e/tests/memory-delete-ownership.spec.ts:310:3 › Memory offline delete requires a deliberate retry after reconnect in dark

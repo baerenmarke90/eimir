@@ -1,5 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type FormEvent, useCallback, useLayoutEffect, useState } from 'react';
+import {
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  type FormEvent,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import {
@@ -12,6 +23,7 @@ import {
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
+import { assertOnlineWrite } from '../client/connectivity';
 import { splitFirstGrapheme } from '../client/graphemeSplit';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
@@ -22,13 +34,16 @@ import {
 } from '../client/memoryProduct';
 import {
   clientProblemKind,
+  ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import {
   deleteProductReadCacheEntry,
   loadProductWithReadCache,
+  type ProductReadResult,
 } from '../client/productReadCache';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
@@ -60,6 +75,16 @@ import { storyAuthorLabel } from './storyPresentation';
 import { UiState } from './UiState';
 
 export type MemoryProductMode = 'detail' | 'edit';
+
+interface MemoryDeleteRequest {
+  readonly memory: MemoryDetail;
+  readonly accountId: string;
+  readonly spaceId: string;
+  readonly api: ReferenceApis['memories'];
+  readonly key: ReturnType<typeof authorSummaryQueryKeys.memory>;
+  readonly isCurrent: () => boolean;
+  readonly ownsTask: () => boolean;
+}
 
 function formatDateOnly(value: Date): string {
   return new Intl.DateTimeFormat(resolvedLocale(), {
@@ -127,6 +152,34 @@ export function MemoryProductPage({
   const memoryKey = authorSummaryQueryKeys.memory(spaceId, memoryId);
   const contextKey = formatAttachmentDraftContextKey(currentAccountId, spaceId);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const deleteTaskRef = useRef<object | null>(null);
+  useLayoutEffect(() => {
+    setConfirmDelete(false);
+    if (mode !== 'edit') return;
+    const owner = {
+      currentAccountId,
+      spaceId,
+      memoryId,
+      locationKey: location.key,
+    };
+    deleteTaskRef.current = owner;
+    return () => {
+      if (deleteTaskRef.current === owner) deleteTaskRef.current = null;
+    };
+  }, [mode, currentAccountId, spaceId, memoryId, location.key]);
+  const deleteKey = [
+    'memory-delete',
+    currentAccountId,
+    spaceId,
+    memoryId,
+  ] as const;
+  const updateKey = [
+    'memory-update',
+    currentAccountId,
+    spaceId,
+    memoryId,
+  ] as const;
+  const deleting = useIsMutating({ mutationKey: deleteKey }) > 0;
   const [removedAttachmentState, setRemovedAttachmentState] = useState<{
     contextKey: string;
     ids: Set<string>;
@@ -211,6 +264,7 @@ export function MemoryProductPage({
   });
 
   const updateMutation = useMutation({
+    mutationKey: updateKey,
     mutationFn: async ({
       memory,
       values,
@@ -291,31 +345,61 @@ export function MemoryProductPage({
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (memory: MemoryDetail) => {
+    mutationKey: [
+      ...deleteKey,
+      memoryQuery.data?.value.version,
+      mode,
+      location.key,
+    ],
+    networkMode: 'always',
+    retry: false,
+    onMutate: async (request: MemoryDeleteRequest) => {
+      if (!request.isCurrent() || !request.ownsTask())
+        throw new ClientProblemError('permission');
+      await queryClient.cancelQueries({ queryKey: request.key, exact: true });
+    },
+    mutationFn: async (request: MemoryDeleteRequest) => {
       try {
-        await apis.memories.deleteMemory({
-          spaceId,
-          memoryId: memory.id,
-          ifMatch: memoryIfMatch(memory),
+        if (!request.isCurrent() || !request.ownsTask())
+          throw new ClientProblemError('permission');
+        const current = queryClient.getQueryData<
+          ProductReadResult<MemoryDetail>
+        >(request.key);
+        if (current?.source !== 'network')
+          throw new ClientProblemError('offline');
+        if (!current.value.capabilities.canDelete)
+          throw new ClientProblemError('permission');
+        if (current.value.version !== request.memory.version)
+          throw new ClientProblemError('conflict', 409);
+        assertOnlineWrite();
+        await request.api.deleteMemory({
+          spaceId: request.spaceId,
+          memoryId: request.memory.id,
+          ifMatch: memoryIfMatch(request.memory),
         });
         await deleteProductReadCacheEntry(
-          currentAccountId,
-          spaceId,
+          request.accountId,
+          request.spaceId,
           'memory',
-          memory.id,
+          request.memory.id,
         );
       } catch (error) {
         throw await normalizeClientError(error);
       }
     },
-    onSuccess: async () => {
-      queryClient.removeQueries({ queryKey: memoryKey });
+    onSuccess: async (_result, request) => {
+      if (!request.isCurrent()) return;
       await Promise.all([
-        invalidateStoryProjections(queryClient, spaceId),
-        invalidateDashboard(queryClient, spaceId),
+        invalidateStoryProjections(queryClient, request.spaceId),
+        invalidateDashboard(queryClient, request.spaceId),
       ]);
-      navigate(appRoutePath('story'), { replace: true });
-      postSnackbar('snackbar.memoryDeleted');
+      if (!request.isCurrent()) return;
+      const shouldNavigate = request.ownsTask();
+      queryClient.removeQueries({ queryKey: request.key, exact: true });
+      if (shouldNavigate) {
+        navigate(appRoutePath('story'), { replace: true });
+        postSnackbar('snackbar.memoryDeleted');
+      }
     },
   });
 
@@ -423,7 +507,11 @@ export function MemoryProductPage({
 
     function submit(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
-      if (attachments.hasPending) return;
+      if (
+        attachments.hasPending ||
+        queryClient.isMutating({ mutationKey: deleteKey })
+      )
+        return;
       const data = new FormData(event.currentTarget);
       updateMutation.mutate({
         memory: editableMemory,
@@ -568,7 +656,9 @@ export function MemoryProductPage({
               </Link>
               <button
                 type="submit"
-                disabled={updateMutation.isPending || attachments.hasPending}
+                disabled={
+                  updateMutation.isPending || attachments.hasPending || deleting
+                }
               >
                 {updateMutation.isPending
                   ? t('memoryProduct.saving')
@@ -585,11 +675,12 @@ export function MemoryProductPage({
 
           {memory.capabilities.canDelete && !offline ? (
             <div style={{ marginTop: 'var(--space-8)' }}>
-              {!confirmDelete ? (
+              {!confirmDelete && !deleting ? (
                 <button
                   type="button"
                   className="button-link danger-link"
                   onClick={() => setConfirmDelete(true)}
+                  disabled={updateMutation.isPending}
                 >
                   {t('memoryProduct.delete')}
                 </button>
@@ -608,17 +699,47 @@ export function MemoryProductPage({
                       type="button"
                       className="tertiary"
                       onClick={() => setConfirmDelete(false)}
-                      disabled={deleteMutation.isPending}
+                      disabled={deleting}
                     >
                       {t('memoryProduct.deleteCancel')}
                     </button>
                     <button
                       type="button"
                       className="danger"
-                      onClick={() => deleteMutation.mutate(memory)}
-                      disabled={deleteMutation.isPending}
+                      onClick={() => {
+                        if (
+                          queryClient.isMutating({ mutationKey: deleteKey }) ||
+                          queryClient.isMutating({
+                            mutationKey: updateKey,
+                            exact: true,
+                          })
+                        )
+                          return;
+                        const key = authorSummaryQueryKeys.memory(
+                          spaceId,
+                          memory.id,
+                        );
+                        const isCurrent = captureAuthorizedQuery(
+                          queryClient,
+                          key,
+                        );
+                        const owner = deleteTaskRef.current;
+                        const ownsTask = () =>
+                          owner !== null && deleteTaskRef.current === owner;
+                        if (!isCurrent() || !ownsTask()) return;
+                        deleteMutation.mutate({
+                          memory,
+                          accountId: currentAccountId,
+                          spaceId,
+                          api: apis.memories,
+                          key,
+                          isCurrent,
+                          ownsTask,
+                        });
+                      }}
+                      disabled={deleting || updateMutation.isPending}
                     >
-                      {deleteMutation.isPending
+                      {deleting
                         ? t('memoryProduct.deleting')
                         : t('memoryProduct.deleteConfirm')}
                     </button>

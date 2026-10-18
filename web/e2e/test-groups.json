@@ -288,6 +288,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 12,
       "reason": "Concealed two-person handoff, first input, neutral reveal, restart and local-session return must remain protected in the production browser."
+    },
+    "milestone-delete-ownership.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7,
+      "reason": "Explicit destructive intent, pending return, offline no-replay and task-owned completion must remain protected in the production browser."
     }
   }
 }

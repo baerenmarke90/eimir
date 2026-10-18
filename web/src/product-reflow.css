@@ -416,3 +416,14 @@
 .settings-page .form-grid {
   grid-template-columns: minmax(0, 1fr);
 }
+
+/* Story editors: intrinsic field/confirmation widths must not expand the page. */
+.product-editor-page {
+  grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
+}
+
+.product-editor-page .form-grid,
+.product-editor-page .field-group {
+  grid-template-columns: minmax(0, 1fr);
+}

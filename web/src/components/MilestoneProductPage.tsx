@@ -1,5 +1,10 @@
 import { type FormEvent, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import {
@@ -10,8 +15,15 @@ import type { MilestoneUpdate } from '../api/generated/models/MilestoneUpdate';
 import {
   deleteProductReadCacheEntry,
   loadProductWithReadCache,
+  type ProductReadResult,
 } from '../client/productReadCache';
-import { normalizeClientError } from '../client/problemDetails';
+import {
+  ClientProblemError,
+  normalizeClientError,
+} from '../client/problemDetails';
+import { assertOnlineWrite } from '../client/connectivity';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { useTaskActivation } from '../client/useTaskActivation';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
 import type { ReferenceApis } from '../client/referenceFlow';
@@ -58,6 +70,16 @@ interface MilestoneCreateSnapshot {
   readonly milestoneCreate: MilestoneCreateValues;
 }
 
+interface MilestoneDeleteRequest {
+  readonly milestone: MilestoneDetail;
+  readonly accountId: string;
+  readonly spaceId: string;
+  readonly api: ReferenceApis['milestones'];
+  readonly key: ReturnType<typeof authorSummaryQueryKeys.milestone>;
+  readonly isCurrent: () => boolean;
+  readonly ownsTask: () => boolean;
+}
+
 function formatDateOnly(value: Date): string {
   return new Intl.DateTimeFormat(resolvedLocale(), {
     dateStyle: 'long',
@@ -97,7 +119,37 @@ export function MilestoneProductPage({
   const queryClient = useQueryClient();
   const milestoneId = params.milestoneId;
   const queryKey = authorSummaryQueryKeys.milestone(spaceId, milestoneId);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmationOwner, setConfirmationOwner] = useState<string | null>(
+    null,
+  );
+  const activationKey = JSON.stringify([
+    currentAccountId,
+    spaceId,
+    milestoneId,
+    mode,
+    location.key,
+  ]);
+  const captureDeleteOwnership = useTaskActivation(
+    mode === 'edit',
+    activationKey,
+  );
+  const confirmDelete = confirmationOwner === activationKey;
+  const setConfirmDelete = (value: boolean) =>
+    setConfirmationOwner(value ? activationKey : null);
+  const deleteKey = [
+    'milestone-delete',
+    currentAccountId,
+    spaceId,
+    milestoneId,
+  ] as const;
+  const updateKey = [
+    'milestone-update',
+    currentAccountId,
+    spaceId,
+    milestoneId,
+  ] as const;
+  const deleting = useIsMutating({ mutationKey: deleteKey }) > 0;
+  const updating = useIsMutating({ mutationKey: updateKey, exact: true }) > 0;
   const createAttemptRef =
     useRef<CreateRequestAttempt<MilestoneCreateSnapshot> | null>(null);
 
@@ -159,6 +211,7 @@ export function MilestoneProductPage({
   });
 
   const updateMutation = useMutation({
+    mutationKey: updateKey,
     mutationFn: async ({
       current,
       update,
@@ -214,30 +267,57 @@ export function MilestoneProductPage({
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (milestone: MilestoneDetail) => {
+    mutationKey: [
+      ...deleteKey,
+      milestoneQuery.data?.value.version,
+      activationKey,
+    ],
+    networkMode: 'always',
+    retry: false,
+    onMutate: async (request: MilestoneDeleteRequest) => {
+      if (!request.isCurrent() || !request.ownsTask())
+        throw new ClientProblemError('permission');
+      await queryClient.cancelQueries({ queryKey: request.key, exact: true });
+    },
+    mutationFn: async (request: MilestoneDeleteRequest) => {
       try {
-        await apis.milestones.deleteMilestone({
-          spaceId,
-          milestoneId: milestone.id,
-          ifMatch: String(milestone.version),
+        if (!request.isCurrent() || !request.ownsTask())
+          throw new ClientProblemError('permission');
+        const current = queryClient.getQueryData<
+          ProductReadResult<MilestoneDetail>
+        >(request.key);
+        if (current?.source !== 'network')
+          throw new ClientProblemError('offline');
+        if (!current.value.capabilities.canDelete)
+          throw new ClientProblemError('permission');
+        if (current.value.version !== request.milestone.version)
+          throw new ClientProblemError('conflict', 409);
+        assertOnlineWrite();
+        await request.api.deleteMilestone({
+          spaceId: request.spaceId,
+          milestoneId: request.milestone.id,
+          ifMatch: String(request.milestone.version),
         });
         await deleteProductReadCacheEntry(
-          currentAccountId,
-          spaceId,
+          request.accountId,
+          request.spaceId,
           'milestone',
-          milestone.id,
+          request.milestone.id,
         );
       } catch (error) {
         throw await normalizeClientError(error);
       }
     },
-    onSuccess: async () => {
-      queryClient.removeQueries({ queryKey });
+    onSuccess: async (_result, request) => {
+      if (!request.isCurrent()) return;
       await Promise.all([
-        invalidateStoryProjections(queryClient, spaceId),
-        invalidateDashboard(queryClient, spaceId),
+        invalidateStoryProjections(queryClient, request.spaceId),
+        invalidateDashboard(queryClient, request.spaceId),
       ]);
-      navigate(appRoutePath('story'), { replace: true });
+      if (!request.isCurrent()) return;
+      const shouldNavigate = request.ownsTask();
+      queryClient.removeQueries({ queryKey: request.key, exact: true });
+      if (shouldNavigate) navigate(appRoutePath('story'), { replace: true });
     },
   });
 
@@ -410,6 +490,11 @@ export function MilestoneProductPage({
 
     function submitEdit(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
+      if (
+        queryClient.isMutating({ mutationKey: deleteKey }) ||
+        queryClient.isMutating({ mutationKey: updateKey, exact: true })
+      )
+        return;
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
       const body = String(data.get('body') || '').trim();
@@ -452,8 +537,8 @@ export function MilestoneProductPage({
               >
                 {t('common.cancel')}
               </Link>
-              <button type="submit" disabled={updateMutation.isPending}>
-                {updateMutation.isPending
+              <button type="submit" disabled={updating || deleting}>
+                {updating
                   ? t('milestoneProduct.saving')
                   : t('milestoneProduct.save')}
               </button>
@@ -465,11 +550,12 @@ export function MilestoneProductPage({
 
           {milestone.capabilities.canDelete && !offline ? (
             <div style={{ marginTop: 'var(--space-8)' }}>
-              {!confirmDelete ? (
+              {!confirmDelete && !deleting ? (
                 <button
                   type="button"
                   className="button-link danger-link"
                   onClick={() => setConfirmDelete(true)}
+                  disabled={updating}
                 >
                   {t('milestoneProduct.delete')}
                 </button>
@@ -488,17 +574,45 @@ export function MilestoneProductPage({
                       type="button"
                       className="tertiary"
                       onClick={() => setConfirmDelete(false)}
-                      disabled={deleteMutation.isPending}
+                      disabled={deleting}
                     >
                       {t('milestoneProduct.deleteCancel')}
                     </button>
                     <button
                       type="button"
                       className="danger"
-                      onClick={() => deleteMutation.mutate(milestone)}
-                      disabled={deleteMutation.isPending}
+                      onClick={() => {
+                        if (
+                          queryClient.isMutating({ mutationKey: deleteKey }) ||
+                          queryClient.isMutating({
+                            mutationKey: updateKey,
+                            exact: true,
+                          })
+                        )
+                          return;
+                        const key = authorSummaryQueryKeys.milestone(
+                          spaceId,
+                          milestone.id,
+                        );
+                        const isCurrent = captureAuthorizedQuery(
+                          queryClient,
+                          key,
+                        );
+                        const ownsTask = captureDeleteOwnership();
+                        if (!isCurrent() || !ownsTask()) return;
+                        deleteMutation.mutate({
+                          milestone,
+                          accountId: currentAccountId,
+                          spaceId,
+                          api: apis.milestones,
+                          key,
+                          isCurrent,
+                          ownsTask,
+                        });
+                      }}
+                      disabled={deleting || updating}
                     >
-                      {deleteMutation.isPending
+                      {deleting
                         ? t('milestoneProduct.deleting')
                         : t('milestoneProduct.deleteConfirm')}
                     </button>

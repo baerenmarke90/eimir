@@ -1,5 +1,8 @@
 import {
+  type QueryClient,
+  type QueryKey,
   useInfiniteQuery,
+  useIsMutating,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
@@ -20,9 +23,12 @@ import {
   submitCreateRequest,
 } from '../client/createRequestIdentity';
 import {
+  ClientProblemError,
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
+import { captureQueryIdentity } from '../client/queryIdentity';
+import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentEditor } from './CommentEditor';
 import { ProblemState } from './ProblemState';
@@ -33,6 +39,38 @@ interface CommentCreateSnapshot {
   readonly parentKind: CommentParentKind;
   readonly parentId: string;
   readonly commentCreate: { readonly body: string };
+}
+
+/** A create can refresh an empty/loading read, but never another or denied lifetime. */
+function captureCommentRefresh(client: QueryClient, key: QueryKey) {
+  const ownsQuery = captureQueryIdentity(client, key);
+  const isCurrent = () =>
+    ownsQuery() &&
+    !['unauthorized', 'permission', 'notFound'].includes(
+      clientProblemKind(client.getQueryState(key)?.error),
+    );
+  return {
+    isCurrent,
+    async refresh(ownsParent: () => boolean = isCurrent) {
+      if (!isCurrent() || !ownsParent()) return;
+      await client.cancelQueries({ queryKey: key, exact: true });
+      if (isCurrent() && ownsParent())
+        await client.invalidateQueries({ queryKey: key, exact: true });
+    },
+  };
+}
+
+interface CommentCreateSubmission {
+  readonly api: CommentsApi;
+  readonly snapshot: CommentCreateSnapshot;
+  readonly draftSnapshot: string;
+  readonly draftRevision: number;
+  readonly ownsTask: () => boolean;
+  readonly comments: ReturnType<typeof captureCommentRefresh>;
+  readonly presence: ReturnType<typeof captureCommentRefresh>;
+  readonly attempt: {
+    current: CreateRequestAttempt<CommentCreateSnapshot> | null;
+  };
 }
 
 function createComment(
@@ -115,23 +153,23 @@ function CommentsPanelContent({
   const commentDraftRevisionRef = useRef(0);
   const createAttemptRef =
     useRef<CreateRequestAttempt<CommentCreateSnapshot> | null>(null);
+  const captureCreateOwnership = useTaskActivation(
+    composerOpen && canComment && !offline,
+  );
+  const createKey = [
+    'comment-create',
+    currentAccountId,
+    spaceId,
+    parentKind,
+    parentId,
+  ];
+  const creating = useIsMutating({ mutationKey: createKey, exact: true }) > 0;
   const queryKey = commentsQueryKey(spaceId, parentKind, parentId);
   const presenceKey = commentPresenceQueryKey(spaceId, parentKind, parentId);
   const commentsQuery = useInfiniteQuery({
     queryKey,
-    queryFn: async ({ pageParam }) => {
-      try {
-        return await listCommentsPage(
-          commentsApi,
-          parentKind,
-          spaceId,
-          parentId,
-          pageParam,
-        );
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
+    queryFn: ({ pageParam }) =>
+      listCommentsPage(commentsApi, parentKind, spaceId, parentId, pageParam),
     enabled: !offline,
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) =>
@@ -140,38 +178,32 @@ function CommentsPanelContent({
   });
 
   const createMutation = useMutation({
+    mutationKey: createKey,
     networkMode: 'always',
     retry: false,
-    mutationFn: async ({
-      body,
-    }: {
-      body: string;
-      draftSnapshot: string;
-      draftRevision: number;
-    }) => {
+    mutationFn: async (submission: CommentCreateSubmission) => {
+      if (!submission.ownsTask() || !submission.comments.isCurrent())
+        throw new ClientProblemError('permission');
       assertOnlineWrite();
-      const snapshot: CommentCreateSnapshot = {
-        spaceId,
-        parentKind,
-        parentId,
-        commentCreate: { body },
-      };
       return submitCreateRequest({
-        previousAttempt: createAttemptRef.current,
-        snapshot,
+        previousAttempt: submission.attempt.current,
+        snapshot: submission.snapshot,
         rememberAttempt: (attempt) => {
-          createAttemptRef.current = attempt;
+          submission.attempt.current = attempt;
         },
         request: (idempotencyKey) =>
-          createComment(commentsApi, snapshot, idempotencyKey),
+          createComment(submission.api, submission.snapshot, idempotencyKey),
       });
     },
     onSuccess: async (_comment, submission) => {
+      if (!submission.comments.isCurrent()) return;
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey }),
-        queryClient.invalidateQueries({ queryKey: presenceKey }),
+        submission.comments.refresh(),
+        submission.presence.refresh(submission.comments.isCurrent),
       ]);
       if (
+        submission.ownsTask() &&
+        submission.comments.isCurrent() &&
         commentDraftRevisionRef.current === submission.draftRevision &&
         commentDraftRef.current === submission.draftSnapshot
       ) {
@@ -210,8 +242,21 @@ function CommentsPanelContent({
     const draftSnapshot = commentDraftRef.current;
     const draftRevision = commentDraftRevisionRef.current;
     const body = draftSnapshot.trim();
-    if (!body) return;
-    createMutation.mutate({ body, draftSnapshot, draftRevision });
+    if (
+      !body ||
+      queryClient.isMutating({ mutationKey: createKey, exact: true })
+    )
+      return;
+    createMutation.mutate({
+      api: commentsApi,
+      snapshot: { spaceId, parentKind, parentId, commentCreate: { body } },
+      draftSnapshot,
+      draftRevision,
+      ownsTask: captureCreateOwnership(),
+      comments: captureCommentRefresh(queryClient, queryKey),
+      presence: captureCommentRefresh(queryClient, presenceKey),
+      attempt: createAttemptRef,
+    });
   }
 
   const comments =
@@ -421,10 +466,8 @@ function CommentsPanelContent({
             }}
           />
           <div className="comment-compose-actions">
-            <button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending
-                ? t('comments.sending')
-                : t('comments.send')}
+            <button type="submit" disabled={creating}>
+              {creating ? t('comments.sending') : t('comments.send')}
             </button>
             <button
               type="button"
@@ -435,7 +478,7 @@ function CommentsPanelContent({
                 setCommentDraft('');
                 setComposerOpen(false);
               }}
-              disabled={createMutation.isPending}
+              disabled={creating}
             >
               {t('comments.cancel')}
             </button>
@@ -443,7 +486,9 @@ function CommentsPanelContent({
         </form>
       ) : null}
 
-      {createMutation.error ? (
+      {createMutation.error &&
+      createMutation.variables?.ownsTask() &&
+      createMutation.variables.comments.isCurrent() ? (
         <ProblemState error={createMutation.error} />
       ) : null}
       {deleteMutation.error ? (

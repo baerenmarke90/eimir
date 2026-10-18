@@ -1,0 +1,265 @@
+{
+  "issue": 1350,
+  "baselineCommit": "16ece5654f645fa4e79adf5476b1f55c5537823e",
+  "capturedAtUtc": "2026-10-18T18:32:22.586717+00:00",
+  "inputs": {
+    "web/src/client/commentQueries.ts": {
+      "sha256": "f8ef7cb6e3313e88e52a7be4b81f05c263fb5a14b51bcc6fa8f3dd9fb7a9e409",
+      "gitBlob": "baff16322fc5fd4d535a915c0c5db5113a27a7d1"
+    },
+    "web/src/components/CommentsPanel.tsx": {
+      "sha256": "2c87c755ee05888dca52ae97f3cc7c89a61a9deb2ea011edf1bf220267dd00fd",
+      "gitBlob": "414e30dc8030ccbd482c429a4ca1c4c457a0698e"
+    },
+    "web/src/components/CommentsCreateOwnership.test.tsx": {
+      "sha256": "c4529f3ec6e39435af5beb82c6d3d5a137edb128e1aebc4f383ba53c1bc4d0b0",
+      "gitBlob": "faea4ff47e3d0871d0cba9fe1f20593d81f30b63"
+    },
+    "web/e2e/tests/comments-create-ownership.spec.ts": {
+      "sha256": "1a0896e8f2b48ae867e5d31d55a5ba90c9b9ffa154cf1b356c61bec5a98d6ad2",
+      "gitBlob": "ba59b9aef033aacc0252e1abe3898b6c377af134"
+    },
+    "web/e2e/test-groups.json": {
+      "sha256": "ace20cd32a65213f69168dc26d0b33f24dbc65b950365909f24f3d7f520a7fdc",
+      "gitBlob": "a3e828e95d326311400dc69e45b7a3525e33eed7"
+    },
+    "web/package-lock.json": {
+      "sha256": "b9fecf05a73089abbdc156f2ab6ca1cd830817d82ee10c6aaf90f06ea0d54cd1",
+      "gitBlob": "5665ee74a45824fa20964c50a93448e943fb3bd3"
+    },
+    "web/e2e/package-lock.json": {
+      "sha256": "74121b45717ab48831dce8ac72006a6955737c29d180367fa0042b1200f28c3e",
+      "gitBlob": "20750ef73dd1ca5e2af54d588b8ab8d3914724d3"
+    }
+  },
+  "bundle": {
+    "apple-touch-icon.png": "f36a50d3451e38f058e8a78a483472034cf21f1ba8fe2ee787bef870035a55a4",
+    "assets/index-mQvl-lj8.css": "0c1c4610bfa2ca295a405d037e602e8a727180f033827d219539a99e90cf5078",
+    "assets/index-pT_CUH_0.js": "ff035d51e47fe6541e6a0bfb84e9ce7337b974e6f9342374c122195833614348",
+    "assets/web-DzDFcB4m.js": "48db2c25af9dc1f569c4f8083c3e795572c8bf03e8f83230f80970743d4dc047",
+    "assets/web-O1MlsqJD.js": "24679787030741463f67e03d0a669dd88f39091c0163076953afd9aa09366bfd",
+    "fonts/OFL-InstrumentSans.txt": "9e27a72ed30eb49a08678f6a5d6ed98ec7ba5368f541637ee0683ec9134ef966",
+    "fonts/OFL-Literata.txt": "8742963604cd89dc81437811a850018fc03b2bfad686d7422c8235967c87614e",
+    "fonts/instrument-sans-latin-variable.woff2": "8b74e9bc6e415d564a5ffd32125c92ffd50b1635043e77543cb871e0a3cfcaf2",
+    "fonts/literata-latin-variable.woff2": "29de894c768689feef6ab4ef274a9a16d19bfc5b0c3cbfcdac80ef220816210c",
+    "identity/app-icon-dark.png": "4f50b0963f701a2296af543dfc40d7405fcad5af763ba70f0c86b940920463c5",
+    "identity/app-icon-light.png": "90b1c5d2b6e454f7847594df54b7a35a4a9a8be1389248bc66638b1b45f5f1f2",
+    "identity/app-icon-mono.png": "8ca72eca16d1e849a24b26cf61262f3583ca1a47c31d568675f7eafbf8cee958",
+    "identity/app-icons/v1/dark-180.png": "50bbe9d90f15ca14c68e851a011e661d4c5b9cfff41a4ba86f57a268090702c1",
+    "identity/app-icons/v1/dark-192.png": "1f01a406d4b9caf2a92a72cb3107f915353648132376613fbd9a8b90d02556fb",
+    "identity/app-icons/v1/dark-512.png": "7af751d27f0a20def2ca8fc6130598657bb8e6b9e3bc2fa9def29ad9ce5a484c",
+    "identity/app-icons/v1/dark.png": "4f50b0963f701a2296af543dfc40d7405fcad5af763ba70f0c86b940920463c5",
+    "identity/app-icons/v1/dark.webmanifest": "0cc96e3465f264f5beeca900f3ef99dab76ab77f9a3b9f36fa66eb42fefb89dc",
+    "identity/app-icons/v1/daylight-180.png": "ce626eb886a647b6837d8be279bb825e2c911700870bf34540f86496fa711296",
+    "identity/app-icons/v1/daylight-192.png": "c099f542ce1d0307f01f1937ffa6a784c9c8d4bb254e203dfae9f0ebdf4c0c0d",
+    "identity/app-icons/v1/daylight-512.png": "a10ddb3f5d88fdf7909f44901a762b3fbfe400e5196e6e3a60e24801075e309d",
+    "identity/app-icons/v1/daylight.png": "06104982b6f5a57d86ed311ec36af7b49d41ade20dc1fb60b87868d78662cfe4",
+    "identity/app-icons/v1/daylight.webmanifest": "068a0eb6f356205c6695afb1e997ae65f74efea1b68db257f57dfe13418e30bb",
+    "identity/app-icons/v1/lavender-180.png": "06ac7380b6586d572d023f0ae6d7691104dadb23e6cc4f1e06688dc2a8594f93",
+    "identity/app-icons/v1/lavender-192.png": "879c54cfbc75e5ded9395c172998628724be4eb4d314114339a46da65f5840df",
+    "identity/app-icons/v1/lavender-512.png": "7a69e0157f3ad297737e92efe6092bfe1edf483644a0d7f3aee72d6d5d995e99",
+    "identity/app-icons/v1/lavender.png": "8e88382978bd896542a287ee228652bfe794c0f7bbacc8d4e0306be945323532",
+    "identity/app-icons/v1/lavender.webmanifest": "4a8547e050a145fb576695bfb2bbf4b265fdfe6e307e53fb70ca30e3a7f9a52d",
+    "identity/app-icons/v1/midnight-180.png": "56673cbc8047775ce5d0c91aca07de2a4a1a61690fcaa5c752566482b2c798a9",
+    "identity/app-icons/v1/midnight-192.png": "6856216a6fd2f9f4e1a98bc970a952474ce3e0c7aa41cbb1117a80dd56d33005",
+    "identity/app-icons/v1/midnight-512.png": "767cd962b553142fac042b5fe4793556973e8c64ab0f82f410c87338f52115c6",
+    "identity/app-icons/v1/midnight.png": "7066a413184a815bf16b86274f5006f36900bf3e6f14aeca0f574c71da107b9f",
+    "identity/app-icons/v1/midnight.webmanifest": "27dde3575bcc947885a215f0e9670ab8b6552960ab3f28b8386f045fe259e015",
+    "identity/app-icons/v1/minimal-180.png": "12d8d9c8530f6f8c38eba7fa95d4891de072ce76127504eb6ed3d7e94453189c",
+    "identity/app-icons/v1/minimal-192.png": "8b3f15862bff247cace51a4d00f8972d4ac6c574c7f3f8c8326c8e75b812eb1c",
+    "identity/app-icons/v1/minimal-512.png": "cb6fdb308f3d3be20286cf846098eba5e4c51c5b7f716d1fd3f5940ccc476d1b",
+    "identity/app-icons/v1/minimal.png": "49d9b76d00dcaee99998b709fc50c3817d50a7e66af2051437d37dc6fbeabc96",
+    "identity/app-icons/v1/minimal.webmanifest": "ce320895d4e7b3d082a0eeff80cc791c7ecb94c301758dc78e048b52d18e2d34",
+    "identity/app-icons/v1/monochrome-180.png": "67ddb8bb653e9adad72239fe150379f0ec9b091a02f057be7ec64fe788da9a0e",
+    "identity/app-icons/v1/monochrome-192.png": "223ef024e5714e1779fc3be31bd692ef0b6a34c7c27821146e889ad282208648",
+    "identity/app-icons/v1/monochrome-512.png": "48926c0d4da1902ca71b4d278d9f50d65f58278862438e69fafd1b2a08dea218",
+    "identity/app-icons/v1/monochrome.png": "8ca72eca16d1e849a24b26cf61262f3583ca1a47c31d568675f7eafbf8cee958",
+    "identity/app-icons/v1/monochrome.webmanifest": "79cd5d4f815444e23b7cf426c97f8c3e4281ba20bd6226a117a67c56782bae22",
+    "identity/app-icons/v1/original-180.png": "f36a50d3451e38f058e8a78a483472034cf21f1ba8fe2ee787bef870035a55a4",
+    "identity/app-icons/v1/original-192.png": "a3f18f9d49159fd0cc32d17b5b2b5b495331d05f552091287f6663a10b935c38",
+    "identity/app-icons/v1/original-512.png": "c9d5aed59121da2020c4c72417e3cd0a164ed9537cf4b7fa1dd804e10ed7855a",
+    "identity/app-icons/v1/original.png": "90b1c5d2b6e454f7847594df54b7a35a4a9a8be1389248bc66638b1b45f5f1f2",
+    "identity/app-icons/v1/original.webmanifest": "03cd9f68dbffb6626ae727a09b5fa1cc15af106920d43653bc610711d77ff5e8",
+    "identity/app-icons/v1/pearl-180.png": "239f894c220211eb81146f316e73df600a15da9d121021198112af7c8df98d56",
+    "identity/app-icons/v1/pearl-192.png": "1b8b1e3b55ac524b48cb73d3839659a9f9b7dd21ad17f722f4d0ce3d5433321c",
+    "identity/app-icons/v1/pearl-512.png": "f1cdff0072e38dd4010a6b646aaafa17e8ceab82e797abb625f49a7e326a0d66",
+    "identity/app-icons/v1/pearl.png": "87796831e8d2cb889b7a85ad630af480712859114d2da76a2836d60e1a6cca73",
+    "identity/app-icons/v1/pearl.webmanifest": "fcb6f9aca3cc8370b1e88140aadd57f86354d67b5f5b65796b577a69e1c17ed8",
+    "identity/app-icons/v1/sage-180.png": "5f05167e59df8cd6db4953cc413381029791f62e014750bed8bf52774d0e6b6f",
+    "identity/app-icons/v1/sage-192.png": "b42d34a4ad344d5a57aed3c61a0dc11766bfe2c176709879d49f3e6c851458b8",
+    "identity/app-icons/v1/sage-512.png": "c7a71048a0a5bd6e82ba48f751a575822c31a6149a01281a88b5ee07b59ea58d",
+    "identity/app-icons/v1/sage.png": "faf9f5f6daac99b469724d3d4ed8f05c89e0df64238f8fa2866a360c43f43bcb",
+    "identity/app-icons/v1/sage.webmanifest": "86350197eec08e7b472da7d42ad2cc981396da551957ee46bc850a8240964e84",
+    "identity/app-icons/v1/sand-180.png": "2c453441b5a81380ae00c49f24028916be99851ccba3bfa507b484b124caa120",
+    "identity/app-icons/v1/sand-192.png": "0d71e8124c24d183d4067ef6aafc45bfb29ec9e7096652368f9d55cce480879d",
+    "identity/app-icons/v1/sand-512.png": "a68a7b19ee33480f0adf1d7c7f1fb08ffb499679581083b70b70da0000178200",
+    "identity/app-icons/v1/sand.png": "dfd0e742e228d542830f89f4da4ef92af3f53aeabbe49d9dd3595f1d22b08f24",
+    "identity/app-icons/v1/sand.webmanifest": "4441a7592f6ebd079762a3b40cd679463098b24b985ca36cb8ffaaaabb02b831",
+    "identity/app-icons/v1/sunset-180.png": "8316a3ff643f0cdbe4298f0f9e754a97c08aa360322264d6c74fc1f4a3dba5fb",
+    "identity/app-icons/v1/sunset-192.png": "a9166c86b82f50469980dd86539394d3a73d731073b7785130c55db3d17b02fd",
+    "identity/app-icons/v1/sunset-512.png": "7608223064f7301703cda9e0ad034e9721dade1984762837ba1234d5ba866800",
+    "identity/app-icons/v1/sunset.png": "6ecfd4bf178e4cf887c8e88bf0edea49538d8edd3b15fc2b1d80c3604d3d85c8",
+    "identity/app-icons/v1/sunset.webmanifest": "f11f01f635c7abcb176f850ace78adaec0b247252996ed902240531bcc35a8c6",
+    "index.html": "8b983bee5d4fd9070fdd26fc8ac54831484d43511570dec232ec2ea5d366350c",
+    "manifest.webmanifest": "e5ecac53e0c66cfacdc2213aff9addcead722a95d26f91fbb03bcf06e3c710a6",
+    "offline.css": "ab9d910da55323ae666917f43ea882fc158d1ba94d375b16ead3231c749512b1",
+    "offline.html": "4be78433b4e196e66a5a0fbca2eceade4e1dc100a2aa1faccedd928c22c3acf9",
+    "pwa-192.png": "a3f18f9d49159fd0cc32d17b5b2b5b495331d05f552091287f6663a10b935c38",
+    "pwa-512.png": "c9d5aed59121da2020c4c72417e3cd0a164ed9537cf4b7fa1dd804e10ed7855a",
+    "pwa-maskable.png": "c9d5aed59121da2020c4c72417e3cd0a164ed9537cf4b7fa1dd804e10ed7855a",
+    "service-worker.js": "62344e7e5ed69b8f47051a178b0e1b5f526094edb4485e1c976ffa2606dcf711",
+    "theme-bootstrap.js": "bf54ac9e2081eee4c0941f5f2bf8a2f64e222f9e239e5e2716f6a9c9ac6826cc"
+  },
+  "baselineBundle": {
+    "apple-touch-icon.png": "f36a50d3451e38f058e8a78a483472034cf21f1ba8fe2ee787bef870035a55a4",
+    "assets/index-NJXKpJZW.js": "4879600323f10f68c505077d4103934be221011ba8e5bd384b4343d0842fc426",
+    "assets/index-mQvl-lj8.css": "0c1c4610bfa2ca295a405d037e602e8a727180f033827d219539a99e90cf5078",
+    "assets/web-BF9SJs1B.js": "711125907c100705e5b7ecb055c95ed78c8ca2f168c9bb98f6d8e80e528be9e9",
+    "assets/web-Cb-VB80h.js": "ee7bca07a3021d0a1396cdb4252d2cfb96a2843c1b7056a2cb0cf2a82f29b3d0",
+    "fonts/OFL-InstrumentSans.txt": "9e27a72ed30eb49a08678f6a5d6ed98ec7ba5368f541637ee0683ec9134ef966",
+    "fonts/OFL-Literata.txt": "8742963604cd89dc81437811a850018fc03b2bfad686d7422c8235967c87614e",
+    "fonts/instrument-sans-latin-variable.woff2": "8b74e9bc6e415d564a5ffd32125c92ffd50b1635043e77543cb871e0a3cfcaf2",
+    "fonts/literata-latin-variable.woff2": "29de894c768689feef6ab4ef274a9a16d19bfc5b0c3cbfcdac80ef220816210c",
+    "identity/app-icon-dark.png": "4f50b0963f701a2296af543dfc40d7405fcad5af763ba70f0c86b940920463c5",
+    "identity/app-icon-light.png": "90b1c5d2b6e454f7847594df54b7a35a4a9a8be1389248bc66638b1b45f5f1f2",
+    "identity/app-icon-mono.png": "8ca72eca16d1e849a24b26cf61262f3583ca1a47c31d568675f7eafbf8cee958",
+    "identity/app-icons/v1/dark-180.png": "50bbe9d90f15ca14c68e851a011e661d4c5b9cfff41a4ba86f57a268090702c1",
+    "identity/app-icons/v1/dark-192.png": "1f01a406d4b9caf2a92a72cb3107f915353648132376613fbd9a8b90d02556fb",
+    "identity/app-icons/v1/dark-512.png": "7af751d27f0a20def2ca8fc6130598657bb8e6b9e3bc2fa9def29ad9ce5a484c",
+    "identity/app-icons/v1/dark.png": "4f50b0963f701a2296af543dfc40d7405fcad5af763ba70f0c86b940920463c5",
+    "identity/app-icons/v1/dark.webmanifest": "0cc96e3465f264f5beeca900f3ef99dab76ab77f9a3b9f36fa66eb42fefb89dc",
+    "identity/app-icons/v1/daylight-180.png": "ce626eb886a647b6837d8be279bb825e2c911700870bf34540f86496fa711296",
+    "identity/app-icons/v1/daylight-192.png": "c099f542ce1d0307f01f1937ffa6a784c9c8d4bb254e203dfae9f0ebdf4c0c0d",
+    "identity/app-icons/v1/daylight-512.png": "a10ddb3f5d88fdf7909f44901a762b3fbfe400e5196e6e3a60e24801075e309d",
+    "identity/app-icons/v1/daylight.png": "06104982b6f5a57d86ed311ec36af7b49d41ade20dc1fb60b87868d78662cfe4",
+    "identity/app-icons/v1/daylight.webmanifest": "068a0eb6f356205c6695afb1e997ae65f74efea1b68db257f57dfe13418e30bb",
+    "identity/app-icons/v1/lavender-180.png": "06ac7380b6586d572d023f0ae6d7691104dadb23e6cc4f1e06688dc2a8594f93",
+    "identity/app-icons/v1/lavender-192.png": "879c54cfbc75e5ded9395c172998628724be4eb4d314114339a46da65f5840df",
+    "identity/app-icons/v1/lavender-512.png": "7a69e0157f3ad297737e92efe6092bfe1edf483644a0d7f3aee72d6d5d995e99",
+    "identity/app-icons/v1/lavender.png": "8e88382978bd896542a287ee228652bfe794c0f7bbacc8d4e0306be945323532",
+    "identity/app-icons/v1/lavender.webmanifest": "4a8547e050a145fb576695bfb2bbf4b265fdfe6e307e53fb70ca30e3a7f9a52d",
+    "identity/app-icons/v1/midnight-180.png": "56673cbc8047775ce5d0c91aca07de2a4a1a61690fcaa5c752566482b2c798a9",
+    "identity/app-icons/v1/midnight-192.png": "6856216a6fd2f9f4e1a98bc970a952474ce3e0c7aa41cbb1117a80dd56d33005",
+    "identity/app-icons/v1/midnight-512.png": "767cd962b553142fac042b5fe4793556973e8c64ab0f82f410c87338f52115c6",
+    "identity/app-icons/v1/midnight.png": "7066a413184a815bf16b86274f5006f36900bf3e6f14aeca0f574c71da107b9f",
+    "identity/app-icons/v1/midnight.webmanifest": "27dde3575bcc947885a215f0e9670ab8b6552960ab3f28b8386f045fe259e015",
+    "identity/app-icons/v1/minimal-180.png": "12d8d9c8530f6f8c38eba7fa95d4891de072ce76127504eb6ed3d7e94453189c",
+    "identity/app-icons/v1/minimal-192.png": "8b3f15862bff247cace51a4d00f8972d4ac6c574c7f3f8c8326c8e75b812eb1c",
+    "identity/app-icons/v1/minimal-512.png": "cb6fdb308f3d3be20286cf846098eba5e4c51c5b7f716d1fd3f5940ccc476d1b",
+    "identity/app-icons/v1/minimal.png": "49d9b76d00dcaee99998b709fc50c3817d50a7e66af2051437d37dc6fbeabc96",
+    "identity/app-icons/v1/minimal.webmanifest": "ce320895d4e7b3d082a0eeff80cc791c7ecb94c301758dc78e048b52d18e2d34",
+    "identity/app-icons/v1/monochrome-180.png": "67ddb8bb653e9adad72239fe150379f0ec9b091a02f057be7ec64fe788da9a0e",
+    "identity/app-icons/v1/monochrome-192.png": "223ef024e5714e1779fc3be31bd692ef0b6a34c7c27821146e889ad282208648",
+    "identity/app-icons/v1/monochrome-512.png": "48926c0d4da1902ca71b4d278d9f50d65f58278862438e69fafd1b2a08dea218",
+    "identity/app-icons/v1/monochrome.png": "8ca72eca16d1e849a24b26cf61262f3583ca1a47c31d568675f7eafbf8cee958",
+    "identity/app-icons/v1/monochrome.webmanifest": "79cd5d4f815444e23b7cf426c97f8c3e4281ba20bd6226a117a67c56782bae22",
+    "identity/app-icons/v1/original-180.png": "f36a50d3451e38f058e8a78a483472034cf21f1ba8fe2ee787bef870035a55a4",
+    "identity/app-icons/v1/original-192.png": "a3f18f9d49159fd0cc32d17b5b2b5b495331d05f552091287f6663a10b935c38",
+    "identity/app-icons/v1/original-512.png": "c9d5aed59121da2020c4c72417e3cd0a164ed9537cf4b7fa1dd804e10ed7855a",
+    "identity/app-icons/v1/original.png": "90b1c5d2b6e454f7847594df54b7a35a4a9a8be1389248bc66638b1b45f5f1f2",
+    "identity/app-icons/v1/original.webmanifest": "03cd9f68dbffb6626ae727a09b5fa1cc15af106920d43653bc610711d77ff5e8",
+    "identity/app-icons/v1/pearl-180.png": "239f894c220211eb81146f316e73df600a15da9d121021198112af7c8df98d56",
+    "identity/app-icons/v1/pearl-192.png": "1b8b1e3b55ac524b48cb73d3839659a9f9b7dd21ad17f722f4d0ce3d5433321c",
+    "identity/app-icons/v1/pearl-512.png": "f1cdff0072e38dd4010a6b646aaafa17e8ceab82e797abb625f49a7e326a0d66",
+    "identity/app-icons/v1/pearl.png": "87796831e8d2cb889b7a85ad630af480712859114d2da76a2836d60e1a6cca73",
+    "identity/app-icons/v1/pearl.webmanifest": "fcb6f9aca3cc8370b1e88140aadd57f86354d67b5f5b65796b577a69e1c17ed8",
+    "identity/app-icons/v1/sage-180.png": "5f05167e59df8cd6db4953cc413381029791f62e014750bed8bf52774d0e6b6f",
+    "identity/app-icons/v1/sage-192.png": "b42d34a4ad344d5a57aed3c61a0dc11766bfe2c176709879d49f3e6c851458b8",
+    "identity/app-icons/v1/sage-512.png": "c7a71048a0a5bd6e82ba48f751a575822c31a6149a01281a88b5ee07b59ea58d",
+    "identity/app-icons/v1/sage.png": "faf9f5f6daac99b469724d3d4ed8f05c89e0df64238f8fa2866a360c43f43bcb",
+    "identity/app-icons/v1/sage.webmanifest": "86350197eec08e7b472da7d42ad2cc981396da551957ee46bc850a8240964e84",
+    "identity/app-icons/v1/sand-180.png": "2c453441b5a81380ae00c49f24028916be99851ccba3bfa507b484b124caa120",
+    "identity/app-icons/v1/sand-192.png": "0d71e8124c24d183d4067ef6aafc45bfb29ec9e7096652368f9d55cce480879d",
+    "identity/app-icons/v1/sand-512.png": "a68a7b19ee33480f0adf1d7c7f1fb08ffb499679581083b70b70da0000178200",
+    "identity/app-icons/v1/sand.png": "dfd0e742e228d542830f89f4da4ef92af3f53aeabbe49d9dd3595f1d22b08f24",
+    "identity/app-icons/v1/sand.webmanifest": "4441a7592f6ebd079762a3b40cd679463098b24b985ca36cb8ffaaaabb02b831",
+    "identity/app-icons/v1/sunset-180.png": "8316a3ff643f0cdbe4298f0f9e754a97c08aa360322264d6c74fc1f4a3dba5fb",
+    "identity/app-icons/v1/sunset-192.png": "a9166c86b82f50469980dd86539394d3a73d731073b7785130c55db3d17b02fd",
+    "identity/app-icons/v1/sunset-512.png": "7608223064f7301703cda9e0ad034e9721dade1984762837ba1234d5ba866800",
+    "identity/app-icons/v1/sunset.png": "6ecfd4bf178e4cf887c8e88bf0edea49538d8edd3b15fc2b1d80c3604d3d85c8",
+    "identity/app-icons/v1/sunset.webmanifest": "f11f01f635c7abcb176f850ace78adaec0b247252996ed902240531bcc35a8c6",
+    "index.html": "d15e8e851665d9686b22c62aaac07de871e39da8ee3587423b8ccf091344e709",
+    "manifest.webmanifest": "e5ecac53e0c66cfacdc2213aff9addcead722a95d26f91fbb03bcf06e3c710a6",
+    "offline.css": "ab9d910da55323ae666917f43ea882fc158d1ba94d375b16ead3231c749512b1",
+    "offline.html": "4be78433b4e196e66a5a0fbca2eceade4e1dc100a2aa1faccedd928c22c3acf9",
+    "pwa-192.png": "a3f18f9d49159fd0cc32d17b5b2b5b495331d05f552091287f6663a10b935c38",
+    "pwa-512.png": "c9d5aed59121da2020c4c72417e3cd0a164ed9537cf4b7fa1dd804e10ed7855a",
+    "pwa-maskable.png": "c9d5aed59121da2020c4c72417e3cd0a164ed9537cf4b7fa1dd804e10ed7855a",
+    "service-worker.js": "62344e7e5ed69b8f47051a178b0e1b5f526094edb4485e1c976ffa2606dcf711",
+    "theme-bootstrap.js": "bf54ac9e2081eee4c0941f5f2bf8a2f64e222f9e239e5e2716f6a9c9ac6826cc"
+  },
+  "browser": "Local production Vite preview, Playwright 1.62.1; isolated Chromium 153.0.8010.0 from @sparticuz/chromium 153.0.0, outside product dependencies. Canonical hosted Chromium 151 remains a separate merge gate.",
+  "testPolicy": "Two workers, zero retries; synthetic fixture data only; no production accounts/content.",
+  "captures": [
+    {
+      "file": "comment-create-initial-read-360-light.webp",
+      "dimensions": [
+        360,
+        900
+      ],
+      "sha256": "7cd56818e858258f5aba170c19d7249aacee26ca064fa51e76d1d9d6b3321d3a",
+      "rawPngSha256": "dc14ed698e602ecffc6510e98721604b8ba9f6324249353ad90b15b69d987ca9",
+      "inspected": true
+    },
+    {
+      "file": "comment-create-return-1440-dark.webp",
+      "dimensions": [
+        1440,
+        979
+      ],
+      "sha256": "719ea240eda8408a248dcb52d93867eac8d1842be564d19c338bfedd87b9ffeb",
+      "rawPngSha256": "8fed3fd05d2fcc550b0b9a3d7273ca83e1ca86be5f6c00807a1b7fc959991e73",
+      "inspected": true
+    },
+    {
+      "file": "comment-create-return-320-200.webp",
+      "dimensions": [
+        320,
+        2963
+      ],
+      "sha256": "8726b4ce2247860ae08b353a1d31311f4da44a07927fd63e0fa8f6aa688a3e01",
+      "rawPngSha256": "10408a309ce421fc151e41f0efb0e3eaae43975e024962095772f4b6e6a52eb2",
+      "inspected": true
+    },
+    {
+      "file": "comment-create-return-360-light.webp",
+      "dimensions": [
+        360,
+        1029
+      ],
+      "sha256": "c5111802e098abfc5f0375a0d156a4eccc02db3e907bba6a72e1b102eeea0fa9",
+      "rawPngSha256": "fd66fa37b5b248c93c994e7a3b07e635f08c59c1752a6f9769fb9faf74c7ae49",
+      "inspected": true
+    },
+    {
+      "file": "comment-create-return-390-dark.webp",
+      "dimensions": [
+        390,
+        977
+      ],
+      "sha256": "7974f575e8594fa9d539417cda46190151e14f2f46053b2c6279f48e6e2898d7",
+      "rawPngSha256": "9753f45dfb2ccc4bd36d118d2cfd675b097d7f6446792e960f68553e6a4b8b7e",
+      "inspected": true
+    },
+    {
+      "file": "comment-create-return-430-light.webp",
+      "dimensions": [
+        430,
+        979
+      ],
+      "sha256": "304cb83686cb178fbe3d1758d60807ba241b21401ab2fad1260522db6e15524f",
+      "rawPngSha256": "adca96e2be1f7446cc69fc65b67db30723c6005357b890576d1c12116a3f4624",
+      "inspected": true
+    },
+    {
+      "file": "comment-create-return-pending-390-dark.webp",
+      "dimensions": [
+        390,
+        900
+      ],
+      "sha256": "00331b0b55363307a7ed16fa430f9c003de78ca2d41ec4369949d45b27697727",
+      "rawPngSha256": "f00845d8bc19fb29d7671cba81e08c524284674d9bbe891bb822660a6583e30a",
+      "inspected": true
+    }
+  ]
+}

@@ -12,6 +12,11 @@
     "LOWER_LEVEL": "Still runs in the full regression until equivalent lower-level coverage is committed and the browser case can be removed."
   },
   "specs": {
+    "comments-create-ownership.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "Shared Story replies must admit one POST through immediate duplicate events and return, preserve new drafts and replace a stale initial read after confirmed creation."
+    },
     "comments-edit-ownership.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 11,

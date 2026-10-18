@@ -1,0 +1,10 @@
+
+ RUN  v5.0.4 /workspace/scratch/085539a6d3bb/eimir/web
+
+Not implemented: Window's scrollTo() method
+
+ Test Files  3 passed (3)
+      Tests  42 passed (42)
+   Start at  13:13:44
+   Duration  2.30s (tests 51%, environment 24%, import 13%, transform 12%)
+

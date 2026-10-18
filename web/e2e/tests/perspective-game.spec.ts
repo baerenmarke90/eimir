@@ -6,6 +6,7 @@ import { WHO_OF_US_QUESTION_IDS } from '../../src/client/whoOfUsSession';
 import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { renderedContrast } from '../support/renderedContrast';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '44444444-4444-4444-8444-444444444444';
@@ -117,12 +118,84 @@ async function installMocks(page: Page) {
   return { unexpected, writes };
 }
 
+async function openGames(page: Page) {
+  await page.goto('/games');
+  await page.getByLabel(de.login.email).fill('lea@example.org');
+  await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
+  await page.getByRole('button', { name: de.login.submit }).click();
+  const start = page.getByRole('button', {
+    name: new RegExp(games.entries.perspective.title),
+  });
+  await expect(start).toBeVisible();
+  return start;
+}
+
 async function expectReflow(page: Page) {
   const dimensions = await page.evaluate(() => ({
     width: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
   }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width + 1);
+}
+
+async function expectCardInset(page: Page) {
+  const card = page.locator('.who-of-us-card');
+  await expect(card).toBeVisible();
+  const geometry = await card.evaluate((element) => {
+    const root = getComputedStyle(document.documentElement);
+    const tokenPixels = (name: string) => {
+      const value = root.getPropertyValue(name).trim();
+      return (
+        Number.parseFloat(value) *
+        (value.endsWith('rem') ? Number.parseFloat(root.fontSize) : 1)
+      );
+    };
+    const style = getComputedStyle(element);
+    const bounds = element.getBoundingClientRect();
+    const edges = ['top', 'right', 'bottom', 'left'] as const;
+    const padding = edges.map((edge) =>
+      Number.parseFloat(style.getPropertyValue(`padding-${edge}`)),
+    );
+    const border = edges.map((edge) =>
+      Number.parseFloat(style.getPropertyValue(`border-${edge}-width`)),
+    );
+    const children = Array.from(element.children).map((child) => {
+      const box = child.getBoundingClientRect();
+      return {
+        tag: child.tagName,
+        inset: [
+          box.top - bounds.top,
+          bounds.right - box.right,
+          bounds.bottom - box.bottom,
+          box.left - bounds.left,
+        ],
+      };
+    });
+    return {
+      state: element.getAttribute('aria-labelledby'),
+      width: window.innerWidth,
+      minimum: tokenPixels('--space-5'),
+      maximum: tokenPixels('--space-8'),
+      padding,
+      border,
+      children,
+    };
+  });
+  for (const [index, padding] of geometry.padding.entries()) {
+    expect(
+      padding,
+      `${geometry.state} padding edge ${index}`,
+    ).toBeGreaterThanOrEqual(geometry.minimum);
+    expect(padding).toBeLessThanOrEqual(geometry.maximum);
+    if (geometry.width < 600) expect(padding).toBeCloseTo(geometry.minimum, 1);
+    for (const child of geometry.children) {
+      expect(
+        child.inset[index],
+        `${geometry.state} ${child.tag} inset edge ${index}`,
+      ).toBeGreaterThanOrEqual(padding + geometry.border[index] - 1);
+    }
+  }
+  return geometry;
 }
 
 async function capture(page: Page, info: TestInfo, name: string) {
@@ -139,6 +212,11 @@ const cases = [
   { width: 360, theme: 'dark', reduce: true, largeText: true },
   { width: 390, theme: 'light', reduce: false, largeText: false },
   { width: 430, theme: 'dark', reduce: true, largeText: false },
+  { width: 599, theme: 'light', reduce: true, largeText: false },
+  { width: 600, theme: 'light', reduce: true, largeText: true },
+  { width: 599, theme: 'dark', reduce: true, largeText: false },
+  { width: 600, theme: 'dark', reduce: true, largeText: true },
+  { width: 1280, theme: 'light', reduce: true, largeText: false },
   { width: 1280, theme: 'dark', reduce: true, largeText: false },
 ] as const;
 
@@ -148,22 +226,14 @@ for (const scenario of cases) {
   }, info) => {
     const network = await installMocks(page);
     const errors: string[] = [];
+    const measurements = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.setViewportSize({ width: scenario.width, height: 844 });
     await page.emulateMedia({
       colorScheme: scenario.theme,
       reducedMotion: scenario.reduce ? 'reduce' : 'no-preference',
     });
-    await page.goto('/games');
-    await page.getByLabel(de.login.email).fill('lea@example.org');
-    await page
-      .getByLabel(de.login.password)
-      .fill('a-long-enough-test-password');
-    await page.getByRole('button', { name: de.login.submit }).click();
-    const start = page.getByRole('button', {
-      name: new RegExp(games.entries.perspective.title),
-    });
-    await expect(start).toBeVisible();
+    const start = await openGames(page);
     if (scenario.largeText) {
       await page.addStyleTag({
         content: 'html { font-size: 200% !important; }',
@@ -180,6 +250,34 @@ for (const scenario of cases) {
       const question = await page
         .locator('#who-of-us-question-title')
         .innerText();
+      await expectReflow(page);
+      const questionGeometry = await expectCardInset(page);
+      if (round === 0) {
+        measurements.push(questionGeometry);
+        await capture(
+          page,
+          info,
+          `perspective-question-${scenario.width}-${scenario.theme}.png`,
+        );
+      }
+      if (round === 0 && scenario.width === 599) {
+        await page.setViewportSize({ width: 600, height: 844 });
+        measurements.push(await expectCardInset(page));
+        await expect(page.locator('#who-of-us-question-title')).toHaveText(
+          question,
+        );
+        await expectReflow(page);
+        await capture(
+          page,
+          info,
+          `perspective-question-600-${scenario.theme}-default.png`,
+        );
+        await page.setViewportSize({ width: scenario.width, height: 844 });
+        await expectCardInset(page);
+        await expect(page.locator('#who-of-us-question-title')).toHaveText(
+          question,
+        );
+      }
       await page
         .getByRole('button', {
           name: localized(copy.choiceAria, { responder: first, choice: 'Lea' }),
@@ -193,6 +291,8 @@ for (const scenario of cases) {
       await expect(page.getByText(question, { exact: true })).toHaveCount(0);
       await expect(page.locator('.who-of-us-choice')).toHaveCount(0);
       await expect(page.locator('.who-of-us-reveal-answers')).toHaveCount(0);
+      const geometry = await expectCardInset(page);
+      if (round === 0) measurements.push(geometry);
       await expectReflow(page);
       if (round === 0) {
         const axe = await new AxeBuilder({ page })
@@ -210,6 +310,7 @@ for (const scenario of cases) {
       }
       await confirm.click();
       await expect(page.getByText(question, { exact: true })).toBeVisible();
+      await expectCardInset(page);
       await expect(page.locator('.who-of-us-reveal-answers')).toHaveCount(0);
       await page
         .getByRole('button', {
@@ -232,6 +333,8 @@ for (const scenario of cases) {
         'Lea',
         round % 2 === 0 ? 'Lea' : 'Alex',
       ]);
+      const revealGeometry = await expectCardInset(page);
+      if (round === 0) measurements.push(revealGeometry);
       await expectReflow(page);
       if (round === 0 && (scenario.width === 390 || scenario.width === 1280)) {
         await capture(
@@ -260,6 +363,17 @@ for (const scenario of cases) {
         }),
       ),
     ).toBeVisible();
+    measurements.push(await expectCardInset(page));
+    await expectReflow(page);
+    await capture(
+      page,
+      info,
+      `perspective-finish-${scenario.width}-${scenario.theme}.png`,
+    );
+    fs.writeFileSync(
+      info.outputPath('card-geometry.json'),
+      `${JSON.stringify(measurements, null, 2)}\n`,
+    );
     await page.getByRole('button', { name: copy.restart }).click();
     await expect(
       page.getByText(localized(copy.round, { current: 1, total })),
@@ -279,6 +393,118 @@ for (const scenario of cases) {
     await expect(page.locator('.who-of-us-reveal-answers')).toHaveCount(0);
     await page.getByRole('button', { name: copy.back, exact: true }).click();
     await expect(start).toBeVisible();
+    expect(network.unexpected).toEqual([]);
+    expect(network.writes).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+}
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`perspective Back retains contrast, focus and keyboard return in ${theme}`, async ({
+    page,
+  }, info) => {
+    const network = await installMocks(page);
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    const start = await openGames(page);
+    const measurements = [];
+    for (const width of [320, 360, 390, 430, 1280]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.evaluate((largeText) => {
+        document.documentElement.style.fontSize = largeText ? '200%' : '';
+      }, width === 360);
+      await start.click();
+      await expect(page.locator('#who-of-us-question-title')).toBeVisible();
+      const back = page.getByRole('button', { name: copy.back, exact: true });
+      await expect(back).toBeVisible();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      const normal = await renderedContrast(back);
+      if (
+        process.env.VISUAL_EVIDENCE_DIR &&
+        (width === 390 || width === 1280)
+      ) {
+        await capture(page, info, `perspective-back-${width}-${theme}.png`);
+      }
+      expect(
+        normal.ratio,
+        `${width}px ${theme} Back text`,
+      ).toBeGreaterThanOrEqual(4.5);
+      const bounds = await back.boundingBox();
+      expect(bounds).not.toBeNull();
+      expect(bounds?.height).toBeGreaterThanOrEqual(44);
+      expect(bounds?.width).toBeGreaterThanOrEqual(44);
+      await expectReflow(page);
+
+      // Start keyboard navigation from the control's previous tab stop.
+      await back.focus();
+      await page.keyboard.press('Shift+Tab');
+      await page.keyboard.press('Tab');
+      await expect(back).toBeFocused();
+      const focusStyle = await back.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          visible: element.matches(':focus-visible'),
+          width: Number.parseFloat(style.outlineWidth),
+          style: style.outlineStyle,
+        };
+      });
+      expect(focusStyle.visible).toBe(true);
+      expect(focusStyle.width).toBeGreaterThanOrEqual(2);
+      expect(focusStyle.style).toBe('solid');
+      const focus = await renderedContrast(back, 'outline-color');
+      expect(focus.ratio).toBeGreaterThanOrEqual(3);
+      const focusedText = await renderedContrast(back);
+      expect(focusedText.ratio).toBeGreaterThanOrEqual(4.5);
+      if (width === 360 || width === 390 || width === 1280) {
+        await capture(
+          page,
+          info,
+          `perspective-back-focus-${width}-${theme}.png`,
+        );
+      }
+      await back.hover();
+      const hover = await renderedContrast(back);
+      expect(hover.ratio).toBeGreaterThanOrEqual(4.5);
+      await back.press('Enter');
+      await expect(start).toBeVisible();
+      await start.click();
+      await expect(
+        page.getByText(
+          localized(copy.round, {
+            current: 1,
+            total: WHO_OF_US_QUESTION_IDS.length,
+          }),
+        ),
+      ).toBeVisible();
+      await expect(page.locator('.who-of-us-reveal-answers')).toHaveCount(0);
+      await back.press('Space');
+      await expect(start).toBeVisible();
+      measurements.push({
+        width,
+        largeText: width === 360,
+        normal,
+        focus,
+        focusedText,
+        hover,
+        bounds,
+      });
+    }
+    const output = info.outputPath(`perspective-back-${theme}.json`);
+    fs.writeFileSync(output, `${JSON.stringify(measurements, null, 2)}\n`);
+    await info.attach(`perspective-back-${theme}`, {
+      path: output,
+      contentType: 'application/json',
+    });
+    if (process.env.VISUAL_EVIDENCE_DIR) {
+      fs.copyFileSync(
+        output,
+        path.join(
+          process.env.VISUAL_EVIDENCE_DIR,
+          `perspective-back-${theme}.json`,
+        ),
+      );
+    }
     expect(network.unexpected).toEqual([]);
     expect(network.writes).toEqual([]);
     expect(errors).toEqual([]);

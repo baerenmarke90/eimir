@@ -25,10 +25,8 @@ import {
   normalizeClientError,
 } from '../client/problemDetails';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
-import {
-  deleteProductReadCacheEntry,
-  loadProductWithReadCache,
-} from '../client/productReadCache';
+import { loadProductWithReadCache } from '../client/productReadCache';
+import { useStoryDeletion } from '../client/useStoryDeletion';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
@@ -126,7 +124,18 @@ export function MemoryProductPage({
   const memoryId = params.memoryId;
   const memoryKey = authorSummaryQueryKeys.memory(spaceId, memoryId);
   const contextKey = formatAttachmentDraftContextKey(currentAccountId, spaceId);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const deleteKey = [
+    'memory-delete',
+    currentAccountId,
+    spaceId,
+    memoryId,
+  ] as const;
+  const updateKey = [
+    'memory-update',
+    currentAccountId,
+    spaceId,
+    memoryId,
+  ] as const;
   const [removedAttachmentState, setRemovedAttachmentState] = useState<{
     contextKey: string;
     ids: Set<string>;
@@ -211,6 +220,7 @@ export function MemoryProductPage({
   });
 
   const updateMutation = useMutation({
+    mutationKey: updateKey,
     mutationFn: async ({
       memory,
       values,
@@ -290,34 +300,30 @@ export function MemoryProductPage({
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (memory: MemoryDetail) => {
-      try {
-        await apis.memories.deleteMemory({
-          spaceId,
-          memoryId: memory.id,
-          ifMatch: memoryIfMatch(memory),
-        });
-        await deleteProductReadCacheEntry(
-          currentAccountId,
-          spaceId,
-          'memory',
-          memory.id,
-        );
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    onSuccess: async () => {
-      queryClient.removeQueries({ queryKey: memoryKey });
-      await Promise.all([
-        invalidateStoryProjections(queryClient, spaceId),
-        invalidateDashboard(queryClient, spaceId),
-      ]);
+  const deleteMutation = useStoryDeletion<MemoryDetail>({
+    active: mode === 'edit',
+    accountId: currentAccountId,
+    spaceId,
+    resourceId: memoryId,
+    kind: 'memory',
+    version: memoryQuery.data?.value.version,
+    queryKey: memoryKey,
+    mutationKey: deleteKey,
+    conflictingMutationKeys: [updateKey],
+    execute: (memory) =>
+      apis.memories.deleteMemory({
+        spaceId,
+        memoryId: memory.id,
+        ifMatch: memoryIfMatch(memory),
+      }),
+    onDeleted: () => {
       navigate(appRoutePath('story'), { replace: true });
       postSnackbar('snackbar.memoryDeleted');
     },
   });
+  const deleting = deleteMutation.isPending;
+  const { confirming: confirmDelete, setConfirming: setConfirmDelete } =
+    deleteMutation;
 
   function toggleAttachmentRemoval(attachmentId: string) {
     setRemovedAttachmentIds((current) => {
@@ -423,7 +429,12 @@ export function MemoryProductPage({
 
     function submit(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
-      if (attachments.hasPending) return;
+      if (
+        attachments.hasPending ||
+        queryClient.isMutating({ mutationKey: deleteKey }) ||
+        queryClient.isMutating({ mutationKey: updateKey })
+      )
+        return;
       const data = new FormData(event.currentTarget);
       updateMutation.mutate({
         memory: editableMemory,
@@ -568,7 +579,11 @@ export function MemoryProductPage({
               </Link>
               <button
                 type="submit"
-                disabled={updateMutation.isPending || attachments.hasPending}
+                disabled={
+                  updateMutation.isPending ||
+                  attachments.hasPending ||
+                  deleteMutation.isBlocked
+                }
               >
                 {updateMutation.isPending
                   ? t('memoryProduct.saving')
@@ -585,11 +600,12 @@ export function MemoryProductPage({
 
           {memory.capabilities.canDelete && !offline ? (
             <div style={{ marginTop: 'var(--space-8)' }}>
-              {!confirmDelete ? (
+              {!confirmDelete && !deleting ? (
                 <button
                   type="button"
                   className="button-link danger-link"
                   onClick={() => setConfirmDelete(true)}
+                  disabled={deleteMutation.isBlocked}
                 >
                   {t('memoryProduct.delete')}
                 </button>
@@ -608,7 +624,7 @@ export function MemoryProductPage({
                       type="button"
                       className="tertiary"
                       onClick={() => setConfirmDelete(false)}
-                      disabled={deleteMutation.isPending}
+                      disabled={deleting}
                     >
                       {t('memoryProduct.deleteCancel')}
                     </button>
@@ -616,9 +632,9 @@ export function MemoryProductPage({
                       type="button"
                       className="danger"
                       onClick={() => deleteMutation.mutate(memory)}
-                      disabled={deleteMutation.isPending}
+                      disabled={deleteMutation.isBlocked}
                     >
-                      {deleteMutation.isPending
+                      {deleting
                         ? t('memoryProduct.deleting')
                         : t('memoryProduct.deleteConfirm')}
                     </button>

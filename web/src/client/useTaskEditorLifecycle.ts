@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useEditorHistoryEntry } from './useEditorHistoryEntry';
+import { useTaskActivation } from './useTaskActivation';
 
 export function useTaskEditorLifecycle({
   isActive = true,
@@ -17,21 +18,7 @@ export function useTaskEditorLifecycle({
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const requestDiscard = useCallback(() => setShowDiscardConfirm(true), []);
   const keepEditing = useCallback(() => setShowDiscardConfirm(false), []);
-  const ownerRef = useRef<object | null>(null);
-
-  useEffect(() => {
-    if (!isActive) return;
-    ownerRef.current = {};
-    return () => {
-      ownerRef.current = null;
-    };
-  }, [isActive]);
-
-  // Capture one activation: reopening the editor cannot revive old work.
-  const captureOwnership = useCallback(() => {
-    const owner = ownerRef.current;
-    return () => owner !== null && ownerRef.current === owner;
-  }, []);
+  const captureOwnership = useTaskActivation(isActive);
 
   const closeConfirmed = useEditorHistoryEntry({
     isActive,

@@ -6,6 +6,7 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import privateArea from '../../src/i18n/locales/privateArea';
+import { writeFile } from 'node:fs/promises';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -340,6 +341,7 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
         `/api/v1/spaces/${SPACE_ID}/plans`,
         `/api/v1/spaces/${SPACE_ID}/places`,
         `/api/v1/spaces/${SPACE_ID}/wishes`,
+        `/api/v1/spaces/${SPACE_ID}/private/notes`,
       ].includes(pathname)
     ) {
       await fulfillJson({ hasMore: false, items: [], nextCursor: null });
@@ -446,6 +448,102 @@ async function expectPrivateReferenceStructure(page: Page): Promise<void> {
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
+}
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`private overview preserves section spacing through resize and return in ${theme}`, async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(60_000);
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(() => {
+      window.localStorage.setItem('eimir.theme', 'system');
+    });
+    await page.setViewportSize({ width: 481, height: 900 });
+    const unexpectedRequests = await signInAndOpenPrivateArea(page);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+
+    for (const viewport of [
+      { width: 481, largeText: false },
+      { width: 480, largeText: false },
+      { width: 481, largeText: false },
+      { width: 480, largeText: false },
+      { width: 360, largeText: false },
+      { width: 390, largeText: false },
+      { width: 430, largeText: false },
+      { width: 1440, largeText: false },
+      { width: 360, largeText: true },
+    ]) {
+      await page.setViewportSize({ width: viewport.width, height: 900 });
+      await page.locator('html').evaluate((element, largeText) => {
+        element.style.fontSize = largeText ? '200%' : '';
+      }, viewport.largeText);
+      const name = `private-spacing-${viewport.width}-${theme}${viewport.largeText ? '-large' : ''}`;
+      const geometry = await page
+        .locator('.private-area-reference-overview')
+        .evaluate((element) => {
+          const fontSize = Number.parseFloat(
+            getComputedStyle(document.documentElement).fontSize,
+          );
+          const children = Array.from(element.children);
+          const rects = children.map((child) => child.getBoundingClientRect());
+          return {
+            width: window.innerWidth,
+            fontSize,
+            expectedGap:
+              window.innerWidth <= 480
+                ? 1.25 * fontSize
+                : Math.min(
+                    2 * fontSize,
+                    Math.max(1.25 * fontSize, window.innerWidth * 0.05),
+                  ),
+            computedGap: getComputedStyle(element).rowGap,
+            visibleGaps: rects.slice(1).map((rect, index) => ({
+              distance: rect.top - rects[index].bottom,
+              adjacentMargins:
+                Number.parseFloat(
+                  getComputedStyle(children[index]).marginBottom,
+                ) +
+                Number.parseFloat(
+                  getComputedStyle(children[index + 1]).marginTop,
+                ),
+            })),
+          };
+        });
+      await writeFile(
+        testInfo.outputPath(`${name}.json`),
+        JSON.stringify(geometry, null, 2),
+      );
+      await page.screenshot({
+        path: testInfo.outputPath(`${name}.png`),
+        fullPage: true,
+      });
+      expect
+        .soft(Number.parseFloat(geometry.computedGap))
+        .toBeCloseTo(geometry.expectedGap, 1);
+      for (const gap of geometry.visibleGaps)
+        expect
+          .soft(gap.distance)
+          .toBeCloseTo(geometry.expectedGap + gap.adjacentMargins, 1);
+      await expectPrivateReferenceStructure(page);
+      await expect(page).toHaveURL(/\/more\/private$/);
+    }
+
+    await page.locator('.private-area-destination-card').first().click();
+    await expect(page).toHaveURL(/\/more\/private\/notes$/);
+    await expect(
+      page.getByText(privateArea.notes.emptyTitle, { exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole('link', { name: privateArea.backToHub, exact: true })
+      .click();
+    await expectPrivateReferenceStructure(page);
+    await page
+      .getByRole('link', { name: privateArea.backToMore, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more$/);
+    expect(unexpectedRequests).toEqual([]);
+  });
 }
 
 for (const colorScheme of ['light', 'dark'] as const) {

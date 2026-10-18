@@ -1,0 +1,312 @@
+[
+  {
+    "width": 320,
+    "largeText": false,
+    "normal": {
+      "foreground": [
+        246,
+        247,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 15.934242667871336
+    },
+    "focus": {
+      "foreground": [
+        183,
+        200,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 10.305161317197992
+    },
+    "focusedText": {
+      "foreground": [
+        246,
+        247,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 15.934242667871336
+    },
+    "hover": {
+      "foreground": [
+        246,
+        247,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 15.934242667871336
+    },
+    "bounds": {
+      "x": 16,
+      "y": 88,
+      "width": 288,
+      "height": 44
+    }
+  },
+  {
+    "width": 360,
+    "largeText": true,
+    "normal": {
+      "foreground": [
+        246,
+        247,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 15.934242667871336
+    },
+    "focus": {
+      "foreground": [
+        183,
+        200,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 10.305161317197992
+    },
+    "focusedText": {
+      "foreground": [
+        246,
+        247,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 15.934242667871336
+    },
+    "hover": {
+      "foreground": [
+        246,
+        247,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 15.934242667871336
+    },
+    "bounds": {
+      "x": 16,
+      "y": -1009.8125,
+      "width": 328,
+      "height": 44
+    }
+  },
+  {
+    "width": 390,
+    "largeText": false,
+    "normal": {
+      "foreground": [
+        246,
+        247,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 15.934242667871336
+    },
+    "focus": {
+      "foreground": [
+        183,
+        200,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 10.305161317197992
+    },
+    "focusedText": {
+      "foreground": [
+        246,
+        247,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 15.934242667871336
+    },
+    "hover": {
+      "foreground": [
+        246,
+        247,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 15.934242667871336
+    },
+    "bounds": {
+      "x": 20,
+      "y": 88,
+      "width": 350,
+      "height": 44
+    }
+  },
+  {
+    "width": 430,
+    "largeText": false,
+    "normal": {
+      "foreground": [
+        246,
+        247,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 15.934242667871336
+    },
+    "focus": {
+      "foreground": [
+        183,
+        200,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 10.305161317197992
+    },
+    "focusedText": {
+      "foreground": [
+        246,
+        247,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 15.934242667871336
+    },
+    "hover": {
+      "foreground": [
+        246,
+        247,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 15.934242667871336
+    },
+    "bounds": {
+      "x": 20,
+      "y": 88,
+      "width": 390,
+      "height": 44
+    }
+  },
+  {
+    "width": 1280,
+    "largeText": false,
+    "normal": {
+      "foreground": [
+        246,
+        247,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 15.934242667871336
+    },
+    "focus": {
+      "foreground": [
+        183,
+        200,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 10.305161317197992
+    },
+    "focusedText": {
+      "foreground": [
+        246,
+        247,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 15.934242667871336
+    },
+    "hover": {
+      "foreground": [
+        246,
+        247,
+        255
+      ],
+      "background": [
+        23,
+        27,
+        47
+      ],
+      "ratio": 15.934242667871336
+    },
+    "bounds": {
+      "x": 208,
+      "y": 112,
+      "width": 864,
+      "height": 44
+    }
+  }
+]

@@ -1,25 +1,36 @@
-import { authorFirstName } from '../client/authorPresentation';
-import type { FormEvent } from 'react';
-import { useRef, useState } from 'react';
 import {
+  type QueryClient,
+  type QueryKey,
   useInfiniteQuery,
+  useIsMutating,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
+import type { FormEvent } from 'react';
+import { useRef, useState } from 'react';
 import type { CommentsApi } from '../api/generated/apis/CommentsApi';
 import type { CommentDetail } from '../api/generated/models/CommentDetail';
+import { authorFirstName } from '../client/authorPresentation';
 import {
+  type CommentParentKind,
   commentPresenceQueryKey,
   commentsQueryKey,
-  type CommentParentKind,
   listCommentsPage,
 } from '../client/commentQueries';
+import { assertOnlineWrite } from '../client/connectivity';
 import {
   type CreateRequestAttempt,
   submitCreateRequest,
 } from '../client/createRequestIdentity';
-import { normalizeClientError } from '../client/problemDetails';
+import {
+  ClientProblemError,
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
+import { captureQueryIdentity } from '../client/queryIdentity';
+import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { CommentEditor } from './CommentEditor';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 
@@ -28,6 +39,38 @@ interface CommentCreateSnapshot {
   readonly parentKind: CommentParentKind;
   readonly parentId: string;
   readonly commentCreate: { readonly body: string };
+}
+
+/** A create can refresh an empty/loading read, but never another or denied lifetime. */
+function captureCommentRefresh(client: QueryClient, key: QueryKey) {
+  const ownsQuery = captureQueryIdentity(client, key);
+  const isCurrent = () =>
+    ownsQuery() &&
+    !['unauthorized', 'permission', 'notFound'].includes(
+      clientProblemKind(client.getQueryState(key)?.error),
+    );
+  return {
+    isCurrent,
+    async refresh(ownsParent: () => boolean = isCurrent) {
+      if (!isCurrent() || !ownsParent()) return;
+      await client.cancelQueries({ queryKey: key, exact: true });
+      if (isCurrent() && ownsParent())
+        await client.invalidateQueries({ queryKey: key, exact: true });
+    },
+  };
+}
+
+interface CommentCreateSubmission {
+  readonly api: CommentsApi;
+  readonly snapshot: CommentCreateSnapshot;
+  readonly draftSnapshot: string;
+  readonly draftRevision: number;
+  readonly ownsTask: () => boolean;
+  readonly comments: ReturnType<typeof captureCommentRefresh>;
+  readonly presence: ReturnType<typeof captureCommentRefresh>;
+  readonly attempt: {
+    current: CreateRequestAttempt<CommentCreateSnapshot> | null;
+  };
 }
 
 function createComment(
@@ -68,15 +111,7 @@ function commentTimestamp(value: Date): string {
   }).format(value);
 }
 
-export function CommentsPanel({
-  commentsApi,
-  spaceId,
-  parentKind,
-  parentId,
-  currentAccountId,
-  canComment,
-  offline,
-}: {
+interface CommentsPanelProps {
   commentsApi: CommentsApi;
   spaceId: string;
   parentKind: CommentParentKind;
@@ -84,7 +119,31 @@ export function CommentsPanel({
   currentAccountId: string;
   canComment: boolean;
   offline: boolean;
-}) {
+}
+
+export function CommentsPanel(props: CommentsPanelProps) {
+  return (
+    <CommentsPanelContent
+      key={JSON.stringify([
+        props.currentAccountId,
+        props.spaceId,
+        props.parentKind,
+        props.parentId,
+      ])}
+      {...props}
+    />
+  );
+}
+
+function CommentsPanelContent({
+  commentsApi,
+  spaceId,
+  parentKind,
+  parentId,
+  currentAccountId,
+  canComment,
+  offline,
+}: CommentsPanelProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -94,23 +153,23 @@ export function CommentsPanel({
   const commentDraftRevisionRef = useRef(0);
   const createAttemptRef =
     useRef<CreateRequestAttempt<CommentCreateSnapshot> | null>(null);
+  const captureCreateOwnership = useTaskActivation(
+    composerOpen && canComment && !offline,
+  );
+  const createKey = [
+    'comment-create',
+    currentAccountId,
+    spaceId,
+    parentKind,
+    parentId,
+  ];
+  const creating = useIsMutating({ mutationKey: createKey, exact: true }) > 0;
   const queryKey = commentsQueryKey(spaceId, parentKind, parentId);
   const presenceKey = commentPresenceQueryKey(spaceId, parentKind, parentId);
   const commentsQuery = useInfiniteQuery({
     queryKey,
-    queryFn: async ({ pageParam }) => {
-      try {
-        return await listCommentsPage(
-          commentsApi,
-          parentKind,
-          spaceId,
-          parentId,
-          pageParam,
-        );
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
+    queryFn: ({ pageParam }) =>
+      listCommentsPage(commentsApi, parentKind, spaceId, parentId, pageParam),
     enabled: !offline,
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) =>
@@ -119,35 +178,32 @@ export function CommentsPanel({
   });
 
   const createMutation = useMutation({
-    mutationFn: async ({
-      body,
-    }: {
-      body: string;
-      draftSnapshot: string;
-      draftRevision: number;
-    }) => {
-      const snapshot: CommentCreateSnapshot = {
-        spaceId,
-        parentKind,
-        parentId,
-        commentCreate: { body },
-      };
+    mutationKey: createKey,
+    networkMode: 'always',
+    retry: false,
+    mutationFn: async (submission: CommentCreateSubmission) => {
+      if (!submission.ownsTask() || !submission.comments.isCurrent())
+        throw new ClientProblemError('permission');
+      assertOnlineWrite();
       return submitCreateRequest({
-        previousAttempt: createAttemptRef.current,
-        snapshot,
+        previousAttempt: submission.attempt.current,
+        snapshot: submission.snapshot,
         rememberAttempt: (attempt) => {
-          createAttemptRef.current = attempt;
+          submission.attempt.current = attempt;
         },
         request: (idempotencyKey) =>
-          createComment(commentsApi, snapshot, idempotencyKey),
+          createComment(submission.api, submission.snapshot, idempotencyKey),
       });
     },
     onSuccess: async (_comment, submission) => {
+      if (!submission.comments.isCurrent()) return;
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey }),
-        queryClient.invalidateQueries({ queryKey: presenceKey }),
+        submission.comments.refresh(),
+        submission.presence.refresh(submission.comments.isCurrent),
       ]);
       if (
+        submission.ownsTask() &&
+        submission.comments.isCurrent() &&
         commentDraftRevisionRef.current === submission.draftRevision &&
         commentDraftRef.current === submission.draftSnapshot
       ) {
@@ -159,8 +215,11 @@ export function CommentsPanel({
   });
 
   const deleteMutation = useMutation({
+    networkMode: 'always',
+    retry: false,
     mutationFn: async (comment: CommentDetail) => {
       try {
+        assertOnlineWrite();
         await commentsApi.deleteComment({
           spaceId,
           commentId: comment.id,
@@ -178,53 +237,35 @@ export function CommentsPanel({
     },
   });
 
-  const updateMutation = useMutation({
-    mutationFn: async ({
-      comment,
-      body,
-    }: {
-      comment: CommentDetail;
-      body: string;
-    }) => {
-      try {
-        return await commentsApi.updateComment({
-          spaceId,
-          commentId: comment.id,
-          ifMatch: String(comment.version),
-          commentUpdate: { body },
-        });
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    onSuccess: async () => {
-      setEditingId(null);
-      await queryClient.invalidateQueries({ queryKey });
-    },
-  });
-
-  function submitEdit(
-    event: FormEvent<HTMLFormElement>,
-    comment: CommentDetail,
-  ) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const body = String(data.get('editedComment') || '').trim();
-    if (!body) return;
-    updateMutation.mutate({ comment, body });
-  }
-
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const draftSnapshot = commentDraftRef.current;
     const draftRevision = commentDraftRevisionRef.current;
     const body = draftSnapshot.trim();
-    if (!body) return;
-    createMutation.mutate({ body, draftSnapshot, draftRevision });
+    if (
+      !body ||
+      queryClient.isMutating({ mutationKey: createKey, exact: true })
+    )
+      return;
+    createMutation.mutate({
+      api: commentsApi,
+      snapshot: { spaceId, parentKind, parentId, commentCreate: { body } },
+      draftSnapshot,
+      draftRevision,
+      ownsTask: captureCreateOwnership(),
+      comments: captureCommentRefresh(queryClient, queryKey),
+      presence: captureCommentRefresh(queryClient, presenceKey),
+      attempt: createAttemptRef,
+    });
   }
 
   const comments =
     commentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const canReadComments =
+    commentsQuery.data !== undefined &&
+    !['unauthorized', 'permission', 'notFound'].includes(
+      clientProblemKind(commentsQuery.error),
+    );
   const headingId = `${parentKind}-comments-heading`;
   const formId = `${parentKind}-${parentId}-comment-form`;
 
@@ -250,7 +291,7 @@ export function CommentsPanel({
         </p>
       ) : commentsQuery.isLoading ? (
         <UiState kind="loading" title={t('comments.loading')} />
-      ) : commentsQuery.error ? (
+      ) : commentsQuery.error && !canReadComments ? (
         <ProblemState
           error={commentsQuery.error}
           onRetry={() => void commentsQuery.refetch()}
@@ -281,37 +322,16 @@ export function CommentsPanel({
                   </span>
                 </div>
                 {own && editingId === comment.id ? (
-                  <form
-                    className="comment-edit-form"
-                    onSubmit={(event) => submitEdit(event, comment)}
-                  >
-                    <label htmlFor={`${parentKind}-${comment.id}-edit`}>
-                      {t('comments.inputLabel')}
-                    </label>
-                    <textarea
-                      id={`${parentKind}-${comment.id}-edit`}
-                      name="editedComment"
-                      rows={3}
-                      maxLength={2000}
-                      required
-                      defaultValue={comment.body}
-                    />
-                    <div className="comment-edit-actions">
-                      <button type="submit" disabled={updateMutation.isPending}>
-                        {updateMutation.isPending
-                          ? t('comments.saving')
-                          : t('comments.save')}
-                      </button>
-                      <button
-                        type="button"
-                        className="tertiary"
-                        onClick={() => setEditingId(null)}
-                        disabled={updateMutation.isPending}
-                      >
-                        {t('comments.cancel')}
-                      </button>
-                    </div>
-                  </form>
+                  <CommentEditor
+                    key={comment.id}
+                    comment={comment}
+                    commentsApi={commentsApi}
+                    spaceId={spaceId}
+                    parentKind={parentKind}
+                    parentId={parentId}
+                    currentAccountId={currentAccountId}
+                    onClose={() => setEditingId(null)}
+                  />
                 ) : (
                   <>
                     <p>{comment.body}</p>
@@ -376,6 +396,13 @@ export function CommentsPanel({
         </ol>
       )}
 
+      {!offline && commentsQuery.error && canReadComments ? (
+        <ProblemState
+          error={commentsQuery.error}
+          onRetry={() => void commentsQuery.refetch()}
+        />
+      ) : null}
+
       {commentsQuery.hasNextPage ? (
         <button
           type="button"
@@ -439,10 +466,8 @@ export function CommentsPanel({
             }}
           />
           <div className="comment-compose-actions">
-            <button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending
-                ? t('comments.sending')
-                : t('comments.send')}
+            <button type="submit" disabled={creating}>
+              {creating ? t('comments.sending') : t('comments.send')}
             </button>
             <button
               type="button"
@@ -453,7 +478,7 @@ export function CommentsPanel({
                 setCommentDraft('');
                 setComposerOpen(false);
               }}
-              disabled={createMutation.isPending}
+              disabled={creating}
             >
               {t('comments.cancel')}
             </button>
@@ -461,11 +486,10 @@ export function CommentsPanel({
         </form>
       ) : null}
 
-      {createMutation.error ? (
+      {createMutation.error &&
+      createMutation.variables?.ownsTask() &&
+      createMutation.variables.comments.isCurrent() ? (
         <ProblemState error={createMutation.error} />
-      ) : null}
-      {updateMutation.error ? (
-        <ProblemState error={updateMutation.error} />
       ) : null}
       {deleteMutation.error ? (
         <ProblemState error={deleteMutation.error} />

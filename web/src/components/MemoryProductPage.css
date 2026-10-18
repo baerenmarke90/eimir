@@ -3,6 +3,38 @@
   gap: var(--space-4);
 }
 
+/* Keep the existing editor and confirmation within their page at large text. */
+.product-editor-page:has(.memory-form) {
+  grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
+}
+
+.memory-form,
+.memory-form .field-group,
+.memory-delete-confirmation {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@container product-content (max-width: 17.5rem) {
+  .product-editor-page:has(.memory-form) > .product-sheet {
+    padding: var(--space-3);
+  }
+
+  .memory-delete-confirmation {
+    padding: var(--space-2);
+  }
+
+  .memory-form button,
+  .memory-form .button-link,
+  .memory-delete-confirmation button {
+    padding-inline: var(--space-2);
+  }
+
+  .memory-form .file-picker {
+    flex-wrap: wrap;
+  }
+}
+
 /* Detail return navigation lives in the persistent app bar. Keep the shared
  * return control in the component for loading/error fallbacks, but remove the
  * duplicate from the successful detail composition. */

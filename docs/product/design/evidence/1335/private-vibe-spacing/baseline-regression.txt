@@ -1,0 +1,808 @@
+[WebServer] (node:18) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 2 workers
+
+(node:53) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:52) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [chromium] › tests/private-area-reference.spec.ts:453:3 › private overview preserves section spacing through resize and return in light (6.0s)
+  ✘  1 [chromium] › tests/private-area-reference.spec.ts:453:3 › private overview preserves section spacing through resize and return in dark (6.2s)
+(node:362) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:370) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 [chromium] › tests/today-daily-vibe.spec.ts:377:3 › disabled Vibe cleanup keeps section spacing and clears only Vibe in light (5.2s)
+  ✘  4 [chromium] › tests/today-daily-vibe.spec.ts:377:3 › disabled Vibe cleanup keeps section spacing and clears only Vibe in dark (5.3s)
+
+
+  1) [chromium] › tests/private-area-reference.spec.ts:453:3 › private overview preserves section spacing through resize and return in light 
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 24.05
+    Received: NaN
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   NaN
+
+      519 |       expect
+      520 |         .soft(Number.parseFloat(geometry.computedGap))
+    > 521 |         .toBeCloseTo(geometry.expectedGap, 1);
+          |          ^
+      522 |       for (const gap of geometry.visibleGaps)
+      523 |         expect
+      524 |           .soft(gap.distance)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:521:10
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 41.650000000000006
+    Received: 17.59375
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   24.056250000000006
+
+      523 |         expect
+      524 |           .soft(gap.distance)
+    > 525 |           .toBeCloseTo(geometry.expectedGap + gap.adjacentMargins, 1);
+          |            ^
+      526 |       await expectPrivateReferenceStructure(page);
+      527 |       await expect(page).toHaveURL(/\/more\/private$/);
+      528 |     }
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:525:12
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 24.05
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   24.05
+
+      523 |         expect
+      524 |           .soft(gap.distance)
+    > 525 |           .toBeCloseTo(geometry.expectedGap + gap.adjacentMargins, 1);
+          |            ^
+      526 |       await expectPrivateReferenceStructure(page);
+      527 |       await expect(page).toHaveURL(/\/more\/private$/);
+      528 |     }
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:525:12
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 24.05
+    Received: NaN
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   NaN
+
+      519 |       expect
+      520 |         .soft(Number.parseFloat(geometry.computedGap))
+    > 521 |         .toBeCloseTo(geometry.expectedGap, 1);
+          |          ^
+      522 |       for (const gap of geometry.visibleGaps)
+      523 |         expect
+      524 |           .soft(gap.distance)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:521:10
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 41.650000000000006
+    Received: 17.59375
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   24.056250000000006
+
+      523 |         expect
+      524 |           .soft(gap.distance)
+    > 525 |           .toBeCloseTo(geometry.expectedGap + gap.adjacentMargins, 1);
+          |            ^
+      526 |       await expectPrivateReferenceStructure(page);
+      527 |       await expect(page).toHaveURL(/\/more\/private$/);
+      528 |     }
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:525:12
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 24.05
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   24.05
+
+      523 |         expect
+      524 |           .soft(gap.distance)
+    > 525 |           .toBeCloseTo(geometry.expectedGap + gap.adjacentMargins, 1);
+          |            ^
+      526 |       await expectPrivateReferenceStructure(page);
+      527 |       await expect(page).toHaveURL(/\/more\/private$/);
+      528 |     }
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:525:12
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 32
+    Received: NaN
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   NaN
+
+      519 |       expect
+      520 |         .soft(Number.parseFloat(geometry.computedGap))
+    > 521 |         .toBeCloseTo(geometry.expectedGap, 1);
+          |          ^
+      522 |       for (const gap of geometry.visibleGaps)
+      523 |         expect
+      524 |           .soft(gap.distance)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:521:10
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 49.6
+    Received: 17.59375
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   32.00625
+
+      523 |         expect
+      524 |           .soft(gap.distance)
+    > 525 |           .toBeCloseTo(geometry.expectedGap + gap.adjacentMargins, 1);
+          |            ^
+      526 |       await expectPrivateReferenceStructure(page);
+      527 |       await expect(page).toHaveURL(/\/more\/private$/);
+      528 |     }
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:525:12
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 32
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   32
+
+      523 |         expect
+      524 |           .soft(gap.distance)
+    > 525 |           .toBeCloseTo(geometry.expectedGap + gap.adjacentMargins, 1);
+          |            ^
+      526 |       await expectPrivateReferenceStructure(page);
+      527 |       await expect(page).toHaveURL(/\/more\/private$/);
+      528 |     }
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:525:12
+
+    Error: [{"element":"STRONG","class":"","text":"Geschenkideen"},{"element":"SPAN","class":"","text":"Ideen und Vorbereitungen, die dein Partner nicht sehen kann."}]
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 360
+    Received:    412
+
+      61 |         )
+      62 |       : [];
+    > 63 |   expect(dimensions.scrollWidth, JSON.stringify(overflow)).toBeLessThanOrEqual(
+         |                                                            ^
+      64 |     dimensions.clientWidth,
+      65 |   );
+      66 | }
+        at expectNoHorizontalOverflow (/workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:63:60)
+        at expectPrivateReferenceStructure (/workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:448:3)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:526:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/spacing-baseline-results/private-area-reference-pri-8a7d5--resize-and-return-in-light-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../085539a6d3bb/spacing-baseline-results/private-area-reference-pri-8a7d5--resize-and-return-in-light-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/spacing-baseline-results/private-area-reference-pri-8a7d5--resize-and-return-in-light-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../085539a6d3bb/spacing-baseline-results/private-area-reference-pri-8a7d5--resize-and-return-in-light-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/private-area-reference.spec.ts:453:3 › private overview preserves section spacing through resize and return in dark 
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 24.05
+    Received: NaN
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   NaN
+
+      519 |       expect
+      520 |         .soft(Number.parseFloat(geometry.computedGap))
+    > 521 |         .toBeCloseTo(geometry.expectedGap, 1);
+          |          ^
+      522 |       for (const gap of geometry.visibleGaps)
+      523 |         expect
+      524 |           .soft(gap.distance)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:521:10
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 41.650000000000006
+    Received: 17.59375
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   24.056250000000006
+
+      523 |         expect
+      524 |           .soft(gap.distance)
+    > 525 |           .toBeCloseTo(geometry.expectedGap + gap.adjacentMargins, 1);
+          |            ^
+      526 |       await expectPrivateReferenceStructure(page);
+      527 |       await expect(page).toHaveURL(/\/more\/private$/);
+      528 |     }
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:525:12
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 24.05
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   24.05
+
+      523 |         expect
+      524 |           .soft(gap.distance)
+    > 525 |           .toBeCloseTo(geometry.expectedGap + gap.adjacentMargins, 1);
+          |            ^
+      526 |       await expectPrivateReferenceStructure(page);
+      527 |       await expect(page).toHaveURL(/\/more\/private$/);
+      528 |     }
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:525:12
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 24.05
+    Received: NaN
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   NaN
+
+      519 |       expect
+      520 |         .soft(Number.parseFloat(geometry.computedGap))
+    > 521 |         .toBeCloseTo(geometry.expectedGap, 1);
+          |          ^
+      522 |       for (const gap of geometry.visibleGaps)
+      523 |         expect
+      524 |           .soft(gap.distance)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:521:10
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 41.650000000000006
+    Received: 17.59375
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   24.056250000000006
+
+      523 |         expect
+      524 |           .soft(gap.distance)
+    > 525 |           .toBeCloseTo(geometry.expectedGap + gap.adjacentMargins, 1);
+          |            ^
+      526 |       await expectPrivateReferenceStructure(page);
+      527 |       await expect(page).toHaveURL(/\/more\/private$/);
+      528 |     }
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:525:12
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 24.05
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   24.05
+
+      523 |         expect
+      524 |           .soft(gap.distance)
+    > 525 |           .toBeCloseTo(geometry.expectedGap + gap.adjacentMargins, 1);
+          |            ^
+      526 |       await expectPrivateReferenceStructure(page);
+      527 |       await expect(page).toHaveURL(/\/more\/private$/);
+      528 |     }
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:525:12
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 32
+    Received: NaN
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   NaN
+
+      519 |       expect
+      520 |         .soft(Number.parseFloat(geometry.computedGap))
+    > 521 |         .toBeCloseTo(geometry.expectedGap, 1);
+          |          ^
+      522 |       for (const gap of geometry.visibleGaps)
+      523 |         expect
+      524 |           .soft(gap.distance)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:521:10
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 49.6
+    Received: 17.59375
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   32.00625
+
+      523 |         expect
+      524 |           .soft(gap.distance)
+    > 525 |           .toBeCloseTo(geometry.expectedGap + gap.adjacentMargins, 1);
+          |            ^
+      526 |       await expectPrivateReferenceStructure(page);
+      527 |       await expect(page).toHaveURL(/\/more\/private$/);
+      528 |     }
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:525:12
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 32
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   32
+
+      523 |         expect
+      524 |           .soft(gap.distance)
+    > 525 |           .toBeCloseTo(geometry.expectedGap + gap.adjacentMargins, 1);
+          |            ^
+      526 |       await expectPrivateReferenceStructure(page);
+      527 |       await expect(page).toHaveURL(/\/more\/private$/);
+      528 |     }
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:525:12
+
+    Error: [{"element":"STRONG","class":"","text":"Geschenkideen"},{"element":"SPAN","class":"","text":"Ideen und Vorbereitungen, die dein Partner nicht sehen kann."}]
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 360
+    Received:    412
+
+      61 |         )
+      62 |       : [];
+    > 63 |   expect(dimensions.scrollWidth, JSON.stringify(overflow)).toBeLessThanOrEqual(
+         |                                                            ^
+      64 |     dimensions.clientWidth,
+      65 |   );
+      66 | }
+        at expectNoHorizontalOverflow (/workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:63:60)
+        at expectPrivateReferenceStructure (/workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:448:3)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/private-area-reference.spec.ts:526:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/spacing-baseline-results/private-area-reference-pri-96cff-h-resize-and-return-in-dark-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../085539a6d3bb/spacing-baseline-results/private-area-reference-pri-96cff-h-resize-and-return-in-dark-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/spacing-baseline-results/private-area-reference-pri-96cff-h-resize-and-return-in-dark-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../085539a6d3bb/spacing-baseline-results/private-area-reference-pri-96cff-h-resize-and-return-in-dark-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › tests/today-daily-vibe.spec.ts:377:3 › disabled Vibe cleanup keeps section spacing and clears only Vibe in light 
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: -12
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   12
+
+      436 |         fullPage: true,
+      437 |       });
+    > 438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+          |                                 ^
+      439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:438:33
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 32
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   32
+
+      437 |       });
+      438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+    > 439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+          |                                    ^
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+      442 |         .soft(geometry.nextGap ?? -1)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:439:36
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: -12
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   12
+
+      436 |         fullPage: true,
+      437 |       });
+    > 438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+          |                                 ^
+      439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:438:33
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 32
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   32
+
+      437 |       });
+      438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+    > 439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+          |                                    ^
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+      442 |         .soft(geometry.nextGap ?? -1)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:439:36
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: -12
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   12
+
+      436 |         fullPage: true,
+      437 |       });
+    > 438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+          |                                 ^
+      439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:438:33
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 32
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   32
+
+      437 |       });
+      438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+    > 439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+          |                                    ^
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+      442 |         .soft(geometry.nextGap ?? -1)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:439:36
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: -12
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   12
+
+      436 |         fullPage: true,
+      437 |       });
+    > 438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+          |                                 ^
+      439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:438:33
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 32
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   32
+
+      437 |       });
+      438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+    > 439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+          |                                    ^
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+      442 |         .soft(geometry.nextGap ?? -1)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:439:36
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: -24
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   24
+
+      436 |         fullPage: true,
+      437 |       });
+    > 438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+          |                                 ^
+      439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:438:33
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 64
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   64
+
+      437 |       });
+      438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+    > 439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+          |                                    ^
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+      442 |         .soft(geometry.nextGap ?? -1)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:439:36
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/spacing-baseline-results/today-daily-vibe-disabled--e01db-d-clears-only-Vibe-in-light-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../085539a6d3bb/spacing-baseline-results/today-daily-vibe-disabled--e01db-d-clears-only-Vibe-in-light-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/spacing-baseline-results/today-daily-vibe-disabled--e01db-d-clears-only-Vibe-in-light-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../085539a6d3bb/spacing-baseline-results/today-daily-vibe-disabled--e01db-d-clears-only-Vibe-in-light-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › tests/today-daily-vibe.spec.ts:377:3 › disabled Vibe cleanup keeps section spacing and clears only Vibe in dark 
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: -12
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   12
+
+      436 |         fullPage: true,
+      437 |       });
+    > 438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+          |                                 ^
+      439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:438:33
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 32
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   32
+
+      437 |       });
+      438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+    > 439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+          |                                    ^
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+      442 |         .soft(geometry.nextGap ?? -1)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:439:36
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: -12
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   12
+
+      436 |         fullPage: true,
+      437 |       });
+    > 438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+          |                                 ^
+      439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:438:33
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 32
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   32
+
+      437 |       });
+      438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+    > 439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+          |                                    ^
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+      442 |         .soft(geometry.nextGap ?? -1)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:439:36
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: -12
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   12
+
+      436 |         fullPage: true,
+      437 |       });
+    > 438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+          |                                 ^
+      439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:438:33
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 32
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   32
+
+      437 |       });
+      438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+    > 439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+          |                                    ^
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+      442 |         .soft(geometry.nextGap ?? -1)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:439:36
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: -12
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   12
+
+      436 |         fullPage: true,
+      437 |       });
+    > 438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+          |                                 ^
+      439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:438:33
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 32
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   32
+
+      437 |       });
+      438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+    > 439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+          |                                    ^
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+      442 |         .soft(geometry.nextGap ?? -1)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:439:36
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: -24
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   24
+
+      436 |         fullPage: true,
+      437 |       });
+    > 438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+          |                                 ^
+      439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:438:33
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 64
+    Received: 0
+
+    Expected precision:    1
+    Expected difference: < 0.05
+    Received difference:   64
+
+      437 |       });
+      438 |       expect.soft(geometry.top).toBeCloseTo(-0.75 * geometry.fontSize, 1);
+    > 439 |       expect.soft(geometry.bottom).toBeCloseTo(2 * geometry.fontSize, 1);
+          |                                    ^
+      440 |       expect.soft(geometry.nextGap).not.toBeNull();
+      441 |       expect
+      442 |         .soft(geometry.nextGap ?? -1)
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/today-daily-vibe.spec.ts:439:36
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/spacing-baseline-results/today-daily-vibe-disabled--cde69-nd-clears-only-Vibe-in-dark-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../085539a6d3bb/spacing-baseline-results/today-daily-vibe-disabled--cde69-nd-clears-only-Vibe-in-dark-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/spacing-baseline-results/today-daily-vibe-disabled--cde69-nd-clears-only-Vibe-in-dark-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../085539a6d3bb/spacing-baseline-results/today-daily-vibe-disabled--cde69-nd-clears-only-Vibe-in-dark-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    [chromium] › tests/private-area-reference.spec.ts:453:3 › private overview preserves section spacing through resize and return in light 
+    [chromium] › tests/private-area-reference.spec.ts:453:3 › private overview preserves section spacing through resize and return in dark 
+    [chromium] › tests/today-daily-vibe.spec.ts:377:3 › disabled Vibe cleanup keeps section spacing and clears only Vibe in light 
+    [chromium] › tests/today-daily-vibe.spec.ts:377:3 › disabled Vibe cleanup keeps section spacing and clears only Vibe in dark 

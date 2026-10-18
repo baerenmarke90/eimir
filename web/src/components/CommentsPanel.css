@@ -191,6 +191,7 @@
 
 .comment-edit-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-3);
 }
 
@@ -219,6 +220,7 @@
 
 .comment-compose-trigger {
   display: inline-flex;
+  max-width: 100%;
   min-height: 40px;
   align-items: center;
   justify-content: center;
@@ -234,6 +236,11 @@
   width: 1rem;
   height: 1rem;
   flex: 0 0 auto;
+}
+
+.comment-compose-trigger span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .comments-panel-compact .comment-list {

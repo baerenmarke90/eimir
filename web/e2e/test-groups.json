@@ -12,6 +12,11 @@
     "LOWER_LEVEL": "Still runs in the full regression until equivalent lower-level coverage is committed and the browser case can be removed."
   },
   "specs": {
+    "comments-edit-ownership.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 10,
+      "reason": "Comment editing must preserve later drafts, correct If-Match retries and separate task feedback across all three Story consumers."
+    },
     "browser-session-reload.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 3

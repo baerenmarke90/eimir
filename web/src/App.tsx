@@ -21,6 +21,7 @@ import { SpacesApi } from './api/generated/apis/SpacesApi';
 import { Configuration } from './api/generated/runtime';
 import { loadReferenceClientConfig } from './client/config';
 import { useNativeEntryLinks } from './client/nativeEntryLinks';
+import { useSessionRefresh } from './client/useSessionRefresh';
 import {
   readSensitiveEntryToken,
   stripSensitiveEntryToken,
@@ -895,8 +896,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     let cancelled = false;
 
     async function restore(activeSession: typeof session) {
+      let currentTokens = activeSession.tokens;
       try {
-        let currentTokens = activeSession.tokens;
         if (!isAccessTokenValid(currentTokens)) {
           currentTokens = await refreshSessionTokens(
             config.apiBaseUrl,
@@ -910,7 +911,12 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
         );
         const verifiedAccount = await apis.auth.meApiV1AuthMeGet();
 
-        if (cancelled) return;
+        if (
+          cancelled ||
+          loadStoredSession()?.tokens.refreshToken !==
+            currentTokens.refreshToken
+        )
+          return;
         setTokens(currentTokens);
         setAccount(verifiedAccount);
         storeSession({
@@ -918,13 +924,23 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
           tokens: currentTokens,
           spaceId: activeSession.spaceId ?? null,
         });
-      } catch {
+      } catch (error) {
         if (cancelled) return;
-        terminateSession();
-        rememberCurrentAuthReturnTarget(
-          activeSession.account.id,
-          activeSession.spaceId ?? null,
-        );
+        const normalized = await normalizeClientError(error);
+        if (normalized.status === 401 || normalized.status === 403) {
+          const current = loadStoredSession();
+          if (
+            current &&
+            current.tokens.refreshToken !== currentTokens.refreshToken
+          )
+            return;
+          terminateSession();
+          rememberCurrentAuthReturnTarget(
+            activeSession.account.id,
+            activeSession.spaceId ?? null,
+          );
+        }
+        // Transport/server failure must not discard otherwise valid credentials.
       } finally {
         if (!cancelled) {
           setIsRestoring(false);
@@ -939,33 +955,25 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     };
   }, [config.apiBaseUrl, initialStoredSession, terminateSession]);
 
+  useSessionRefresh(
+    config.apiBaseUrl,
+    tokens,
+    isRestoring,
+    setTokens,
+    terminateSession,
+  );
+
+  const previousAccessToken = useRef<string | null>(null);
   useEffect(() => {
-    if (!tokens) return;
-    let cancelled = false;
-    const refreshToken = tokens.refreshToken;
-    const expiresAtMs = new Date(tokens.accessExpiresAt).getTime();
-    const timeUntilExpiry = expiresAtMs - Date.now();
-    const refreshDelayMs = Math.max(0, timeUntilExpiry - 60_000);
-
-    const timer = setTimeout(() => {
-      void refreshSessionTokens(config.apiBaseUrl, refreshToken)
-        .then((newTokens) => {
-          if (!cancelled) setTokens(newTokens);
-        })
-        .catch((error: unknown) => {
-          if (cancelled) return;
-          const status = (error as { status?: number })?.status;
-          if (status === 401) {
-            terminateSession();
-          }
-        });
-    }, refreshDelayMs);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [config.apiBaseUrl, terminateSession, tokens]);
+    if (
+      previousAccessToken.current &&
+      tokens?.accessToken &&
+      previousAccessToken.current !== tokens.accessToken
+    ) {
+      void queryClient.invalidateQueries();
+    }
+    previousAccessToken.current = tokens?.accessToken ?? null;
+  }, [queryClient, tokens]);
 
   const serverAdminApis = useMemo(
     () => createServerAdminApis(config.apiBaseUrl, tokens?.accessToken),

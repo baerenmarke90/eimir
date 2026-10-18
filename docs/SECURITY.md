@@ -752,3 +752,19 @@ or bucket, not a compromised or malicious operator.
 Outbox payloads are separately restricted to explicitly allowed,
 non-sensitive metadata. Free-text fields and `ProtectedPayload` objects are
 rejected both by domain validation and by direct ORM binding.
+
+### Capacitor Android credential retention (#1357)
+
+The current instance-scoped session envelope is durably retained only on Android,
+in app-private no-backup storage encrypted with Android Keystore AES/GCM. The
+configured API base URL binds both the file namespace and authenticated
+ciphertext; another instance cannot decrypt that envelope. No plaintext durable
+Web-storage fallback is used, and browser/PWA credentials remain tab-scoped.
+
+The Web session facade serializes writes, persists refresh rotation before
+returning it, clears on sign-out or definitive 401, and guards late native reads
+and refresh completions against replaced sessions. A temporary network/server
+failure does not discard the credential. Foreground/reconnect checks and bounded
+transport retry maintain the existing 15-minute access / 60-day sliding refresh /
+180-day hard session-family policy. This feature does not issue non-expiring
+tokens, bypass revocation or extend the backend's absolute family lifetime.

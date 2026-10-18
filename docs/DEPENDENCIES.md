@@ -247,7 +247,12 @@ locked in `web/package-lock.json`; the Gradle modules below are resolved from
 | Apache Cordova Android framework (Capacitor plugin compatibility layer) | 14.0.1 | Maven Central | Apache-2.0 |
 
 The wrapper adds **no** Room, WorkManager, Kotlin, or Compose dependency. It
-holds no product state: session, cache, and read models live in the Web client.
+holds no independent product state: cache and read models live in the Web client.
+The current Android session envelope is retained in app-private no-backup storage
+using Android Keystore, standard AES/GCM and AtomicFile through the bounded
+`NativeSessionStorage` Capacitor adapter (#1357). No dependency is added. Web/PWA
+credentials remain sessionStorage-only, and the existing Web session facade owns
+credential rotation, logout and expiry.
 The former native read cache and its Keystore key belonged to the retired,
 non-authoritative Kotlin client and are not part of server data continuity.
 `google-services.json` is intentionally absent, so the Google Services plugin

@@ -17,6 +17,7 @@ public class MainActivity extends BridgeActivity {
                 throw new IllegalStateException("Sideload update adapter is missing", error);
             }
         }
+        registerPlugin(NativeSessionStoragePlugin.class);
         super.onCreate(savedInstanceState);
         LegacyNativeDataCleanup.run(this);
     }

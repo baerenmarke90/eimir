@@ -1,0 +1,2222 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+ RUN  v5.0.4 /workspace/scratch/305585e3758d/heart-delete-baseline/web
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx (25 tests | 22 failed) 9284ms
+   ❯ HeartMoment delete response ownership (25)
+     × does not navigate after actual departure or after returning to a new activation 180ms
+     × settles its original read without interrupting another task 122ms
+     × does not evict a replacement Query or navigate 89ms
+     × preserves a later unauthorized read 69ms
+     × preserves a later permission read 58ms
+     × preserves a later notFound read 61ms
+     × rechecks ownership after persistent revocation 61ms
+     × rechecks ownership after projection recovery 59ms
+     × does not follow a reused route to another Heart Moment 84ms
+     × keeps the submitting Account, Space and API through a scope change 66ms
+     × rejects a Query replacement during awaited cancellation before dispatch 1052ms
+     × rejects an offline confirmation and never dispatches on reconnect 1047ms
+     × preserves pending protection after leaving and returning 215ms
+     × admits only one synchronous confirmation and prevents a competing save 1059ms
+     × prevents deletion while an edit is pending 57ms
+     × rejects changed version admission after cancellation 1052ms
+     × rejects changed permission admission after cancellation 1044ms
+     × rejects changed cache admission after cancellation 1050ms
+     × rejects changed departure admission after cancellation 1105ms
+     × revokes the original persistent snapshot after its Query is removed 72ms
+     × prevents a visibility write from the real detail while deletion is pending 106ms
+     × prevents competing delete and save after a pending visibility action enters Edit 100ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 22 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > does not navigate after actual departure or after returning to a new activation
+AssertionError: expected '/story' to be '/story/heart-moments/heart-1/edit' // Object.is equality
+
+Expected: "/story/heart-moments/heart-1/edit"
+Received: "/story"
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:216:64
+    214|       .click(screen.getByRole('link', { name: 'Return to edit' }));
+    215|     await h.settle();
+    216|     expect(screen.getByLabelText('Current route').textContent).toBe(
+       |                                                                ^
+    217|       '/story/heart-moments/heart-1/edit',
+    218|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > settles its original read without interrupting another task
+TestingLibraryElementError: Unable to find an element with the text: Unrelated task. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <output
+      aria-label="Current route"
+    >
+      /story
+    </output>
+    <a
+      data-discover="true"
+      href="/other"
+    >
+      Other task
+    </a>
+    <a
+      data-discover="true"
+      href="/story/heart-moments/heart-1/edit"
+    >
+      Return to edit
+    </a>
+    <a
+      data-discover="true"
+      href="/story/heart-moments/heart-2/edit"
+    >
+      Another Heart Moment
+    </a>
+    <p>
+      Timeline result
+    </p>
+  </div>
+</body>
+ ❯ Object.getElementError ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../eimir/web/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../eimir/web/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../eimir/web/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:229:19
+    227|       .click(screen.getByRole('link', { name: 'Other task' }));
+    228|     await h.settle();
+    229|     expect(screen.getByText('Unrelated task')).toBeTruthy();
+       |                   ^
+    230|     expect(h.client.getQueryData(key)).toBeUndefined();
+    231|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > does not evict a replacement Query or navigate
+AssertionError: expected undefined to deeply equal { …(2) }
+
+- Expected:
+{
+  "source": "network",
+  "value": {
+    "attachment": null,
+    "author": {
+      "displayName": "Alex",
+      "id": "account-1",
+    },
+    "authorId": "account-1",
+    "capabilities": {
+      "canComment": true,
+      "canDelete": true,
+      "canEdit": true,
+    },
+    "createdAt": 2026-08-01T00:00:00.000Z,
+    "emotion": "LOVED",
+    "happenedOn": 2026-08-01T00:00:00.000Z,
+    "id": "heart-1",
+    "spaceId": "space-1",
+    "tags": [],
+    "text": "Replacement read",
+    "updatedAt": 2026-08-01T00:00:00.000Z,
+    "version": 1,
+    "visibility": "SHARED",
+  },
+}
+
++ Received:
+undefined
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:244:40
+    242|     });
+    243|     await h.settle();
+    244|     expect(h.client.getQueryData(key)).toEqual(
+       |                                        ^
+    245|       read({ ...heartMoment, text: 'Replacement read' }),
+    246|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > preserves a later unauthorized read
+AssertionError: expected undefined to be ClientProblemError: Client request failed… { …(4) } // Object.is equality
+
+- Expected:
+ClientProblemError {
+  "message": "Client request failed (unauthorized).",
+  "kind": "unauthorized",
+  "status": undefined,
+  "code": undefined,
+  "retryAfterSeconds": undefined,
+  "name": "ClientProblemError",
+}
+
++ Received:
+undefined
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:269:50
+    267|       });
+    268|       await h.settle();
+    269|       expect(h.client.getQueryState(key)?.error).toBe(denied);
+       |                                                  ^
+    270|       expect(screen.getByLabelText('Current route').textContent).toCon…
+    271|         '/edit',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > preserves a later permission read
+AssertionError: expected undefined to be ClientProblemError: Client request failed… { …(4) } // Object.is equality
+
+- Expected:
+ClientProblemError {
+  "message": "Client request failed (permission).",
+  "kind": "permission",
+  "status": undefined,
+  "code": undefined,
+  "retryAfterSeconds": undefined,
+  "name": "ClientProblemError",
+}
+
++ Received:
+undefined
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:269:50
+    267|       });
+    268|       await h.settle();
+    269|       expect(h.client.getQueryState(key)?.error).toBe(denied);
+       |                                                  ^
+    270|       expect(screen.getByLabelText('Current route').textContent).toCon…
+    271|         '/edit',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > preserves a later notFound read
+AssertionError: expected undefined to be ClientProblemError: Client request failed… { …(4) } // Object.is equality
+
+- Expected:
+ClientProblemError {
+  "message": "Client request failed (notFound).",
+  "kind": "notFound",
+  "status": undefined,
+  "code": undefined,
+  "retryAfterSeconds": undefined,
+  "name": "ClientProblemError",
+}
+
++ Received:
+undefined
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:269:50
+    267|       });
+    268|       await h.settle();
+    269|       expect(h.client.getQueryState(key)?.error).toBe(denied);
+       |                                                  ^
+    270|       expect(screen.getByLabelText('Current route').textContent).toCon…
+    271|         '/edit',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > rechecks ownership after persistent revocation
+AssertionError: expected undefined to deeply equal { …(2) }
+
+- Expected:
+{
+  "source": "network",
+  "value": {
+    "attachment": null,
+    "author": {
+      "displayName": "Alex",
+      "id": "account-1",
+    },
+    "authorId": "account-1",
+    "capabilities": {
+      "canComment": true,
+      "canDelete": true,
+      "canEdit": true,
+    },
+    "createdAt": 2026-08-01T00:00:00.000Z,
+    "emotion": "LOVED",
+    "happenedOn": 2026-08-01T00:00:00.000Z,
+    "id": "heart-1",
+    "spaceId": "space-1",
+    "tags": [],
+    "text": "Our shared beginning",
+    "updatedAt": 2026-08-01T00:00:00.000Z,
+    "version": 1,
+    "visibility": "SHARED",
+  },
+}
+
++ Received:
+undefined
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:289:40
+    287|     await act(async () => revoking.resolve());
+    288|     await waitFor(() => expect(h.client.isMutating()).toBe(0));
+    289|     expect(h.client.getQueryData(key)).toEqual(read());
+       |                                        ^
+    290|     expect(screen.getByLabelText('Current route').textContent).toConta…
+    291|       '/edit',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > rechecks ownership after projection recovery
+AssertionError: expected '/story' to contain '/edit'
+
+Expected: "/edit"
+Received: "/story"
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:311:64
+    309|     await waitFor(() => expect(h.client.isMutating()).toBe(0));
+    310|     expect(h.client.getQueryData(key)).toEqual(read());
+    311|     expect(screen.getByLabelText('Current route').textContent).toConta…
+       |                                                                ^
+    312|       '/edit',
+    313|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > does not follow a reused route to another Heart Moment
+AssertionError: expected undefined to be truthy
+
+- Expected:
+true
+
++ Received:
+undefined
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:327:45
+    325|       .click(screen.getByRole('link', { name: 'Another Heart Moment' }…
+    326|     await h.settle();
+    327|     expect(h.client.getQueryData(otherKey)).toBeTruthy();
+       |                                             ^
+    328|     expect(h.client.getQueryData(key)).toBeUndefined();
+    329|     expect(screen.getByLabelText('Current route').textContent).toConta…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > keeps the submitting Account, Space and API through a scope change
+AssertionError: expected undefined to be truthy
+
+- Expected:
+true
+
++ Received:
+undefined
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:355:45
+    353|       heartMoment.id,
+    354|     );
+    355|     expect(h.client.getQueryData(otherKey)).toBeTruthy();
+       |                                             ^
+    356|     expect(screen.getByLabelText('Current route').textContent).toConta…
+    357|       '/edit',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > rejects a Query replacement during awaited cancellation before dispatch
+AssertionError: expected 1 to be +0 // Object.is equality
+
+Ignored nodes: comments, script, style
+<html
+  lang="de"
+>
+  <head />
+  <body>
+    <div>
+      <output
+        aria-label="Current route"
+      >
+        /story/heart-moments/heart-1/edit
+      </output>
+      <a
+        data-discover="true"
+        href="/other"
+      >
+        Other task
+      </a>
+      <a
+        data-discover="true"
+        href="/story/heart-moments/heart-1/edit"
+      >
+        Return to edit
+      </a>
+      <a
+        data-discover="true"
+        href="/story/heart-moments/heart-2/edit"
+      >
+        Another Heart Moment
+      </a>
+      <div
+        class="page page-reading create-page product-editor-page"
+      >
+        <a
+          class="back-link"
+          data-discover="true"
+          href="/story/heart-moments/heart-1"
+        >
+          ← Zurück zum Herzmoment
+        </a>
+        <header
+          class="page-heading"
+        >
+          <div>
+            <p
+              class="eyebrow"
+            >
+              Herzmoment bearbeiten
+            </p>
+            <div
+              class="page-heading-title-container"
+            >
+              <h1>
+                Herzmoment bearbeiten
+              </h1>
+            </div>
+            <p>
+              Passe Text, Gefühl, Datum oder Bild an. Die Sichtbarkeit wird separat geändert.
+            </p>
+          </div>
+        </header>
+        <section
+          aria-labelledby="heart-moment-edit-heading"
+          class="form-card product-sheet"
+        >
+          <h2
+            class="sr-only"
+            id="heart-moment-edit-heading"
+          >
+            Herzmoment bearbeiten
+          </h2>
+          <form
+            class="form-grid"
+          >
+            <div
+              class="field-group"
+            >
+              <label
+                for="heart-moment-text"
+              >
+                Moment
+              </label>
+              <textarea
+                id="heart-moment-text"
+                maxlength="4000"
+                name="text"
+                placeholder="Was hat diesen Moment besonders gemacht?"
+                rows="5"
+              >
+                Our shared beginning
+              </textarea>
+            </div>
+            <fieldset
+              class="memory-tag-choices"
+            >
+              <legend>
+                Tags für euren Moment
+              </legend>
+              <p
+                class="field-help"
+              >
+                Beschreibt euren Moment mit euren eigenen Worten.
+              </p>
+              <label
+                for="_r_o_"
+              >
+                Eigenen Tag hinzufügen
+              </label>
+              <div
+                class="context-tag-entry"
+              >
+                <input
+                  aria-invalid="false"
+                  autocomplete="off"
+                  id="_r_o_"
+                  placeholder="Zum Beispiel: Unser Urlaub"
+                  value=""
+                />
+                <button
+                  class="secondary"
+                  type="button"
+                >
+                  Hinzufügen
+                </button>
+              </div>
+              <details
+                class="context-tag-suggestions"
+              >
+                <summary>
+                  Vorschläge
+                </summary>
+                <div
+                  class="memory-tag-list"
+                >
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Im Alltag
+                    </span>
+                  </label>
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Unterwegs
+                    </span>
+                  </label>
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Zuhause
+                    </span>
+                  </label>
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Besonderer Tag
+                    </span>
+                  </label>
+                </div>
+              </details>
+            </fieldset>
+            <fieldset
+              class="heart-emotion-picker"
+            >
+              <legend>
+                Gefühl
+              </legend>
+    ...
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:371:55
+    369|       cancel.resolve();
+    370|     });
+    371|     await waitFor(() => expect(h.client.isMutating()).toBe(0));
+       |                                                       ^
+    372|     expect(h.deleteHeartMoment).not.toHaveBeenCalled();
+    373|   });
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > rejects an offline confirmation and never dispatches on reconnect
+TestingLibraryElementError: Unable to find an element with the text: Du bist gerade offline.. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <output
+      aria-label="Current route"
+    >
+      /story/heart-moments/heart-1/edit
+    </output>
+    <a
+      data-discover="true"
+      href="/other"
+    >
+      Other task
+    </a>
+    <a
+      data-discover="true"
+      href="/story/heart-moments/heart-1/edit"
+    >
+      Return to edit
+    </a>
+    <a
+      data-discover="true"
+      href="/story/heart-moments/heart-2/edit"
+    >
+      Another Heart Moment
+    </a>
+    <div
+      class="page page-reading create-page product-editor-page"
+    >
+      <a
+        class="back-link"
+        data-discover="true"
+        href="/story/heart-moments/heart-1"
+      >
+        ← Zurück zum Herzmoment
+      </a>
+      <header
+        class="page-heading"
+      >
+        <div>
+          <p
+            class="eyebrow"
+          >
+            Herzmoment bearbeiten
+          </p>
+          <div
+            class="page-heading-title-container"
+          >
+            <h1>
+              Herzmoment bearbeiten
+            </h1>
+          </div>
+          <p>
+            Passe Text, Gefühl, Datum oder Bild an. Die Sichtbarkeit wird separat geändert.
+          </p>
+        </div>
+      </header>
+      <section
+        aria-labelledby="heart-moment-edit-heading"
+        class="form-card product-sheet"
+      >
+        <h2
+          class="sr-only"
+          id="heart-moment-edit-heading"
+        >
+          Herzmoment bearbeiten
+        </h2>
+        <form
+          class="form-grid"
+        >
+          <div
+            class="field-group"
+          >
+            <label
+              for="heart-moment-text"
+            >
+              Moment
+            </label>
+            <textarea
+              id="heart-moment-text"
+              maxlength="4000"
+              name="text"
+              placeholder="Was hat diesen Moment besonders gemacht?"
+              rows="5"
+            >
+              Our shared beginning
+            </textarea>
+          </div>
+          <fieldset
+            class="memory-tag-choices"
+          >
+            <legend>
+              Tags für euren Moment
+            </legend>
+            <p
+              class="field-help"
+            >
+              Beschreibt euren Moment mit euren eigenen Worten.
+            </p>
+            <label
+              for="_r_q_"
+            >
+              Eigenen Tag hinzufügen
+            </label>
+            <div
+              class="context-tag-entry"
+            >
+              <input
+                aria-invalid="false"
+                autocomplete="off"
+                id="_r_q_"
+                placeholder="Zum Beispiel: Unser Urlaub"
+                value=""
+              />
+              <button
+                class="secondary"
+                type="button"
+              >
+                Hinzufügen
+              </button>
+            </div>
+            <details
+              class="context-tag-suggestions"
+            >
+              <summary>
+                Vorschläge
+              </summary>
+              <div
+                class="memory-tag-list"
+              >
+                <label
+                  class="memory-tag-choice"
+                >
+                  <input
+                    type="checkbox"
+                  />
+                  <span>
+                    Im Alltag
+                  </span>
+                </label>
+                <label
+                  class="memory-tag-choice"
+                >
+                  <input
+                    type="checkbox"
+                  />
+                  <span>
+                    Unterwegs
+                  </span>
+                </label>
+                <label
+                  class="memory-tag-choice"
+                >
+                  <input
+                    type="checkbox"
+                  />
+                  <span>
+                    Zuhause
+                  </span>
+                </label>
+                <label
+                  class="memory-tag-choice"
+                >
+                  <input
+                    type="checkbox"
+                  />
+                  <span>
+                    Besonderer Tag
+                  </span>
+                </label>
+              </div>
+            </details>
+          </fieldset>
+          <fieldset
+            class="heart-emotion-picker"
+          >
+            <legend>
+              Gefühl
+            </legend>
+            <div
+              class="heart-emotion-picker-grid"
+            >
+              <label
+                class="heart-emotion-choice"
+                data-emotion="LOVED"
+                for="heart-moment-edit-emotion-loved"
+              >
+                <input
+                  checked=...
+
+Ignored nodes: comments, script, style
+<html
+  lang="de"
+>
+  <head />
+  <body>
+    <div>
+      <output
+        aria-label="Current route"
+      >
+        /story/heart-moments/heart-1/edit
+      </output>
+      <a
+        data-discover="true"
+        href="/other"
+      >
+        Other task
+      </a>
+      <a
+        data-discover="true"
+        href="/story/heart-moments/heart-1/edit"
+      >
+        Return to edit
+      </a>
+      <a
+        data-discover="true"
+        href="/story/heart-moments/heart-2/edit"
+      >
+        Another Heart Moment
+      </a>
+      <div
+        class="page page-reading create-page product-editor-page"
+      >
+        <a
+          class="back-link"
+          data-discover="true"
+          href="/story/heart-moments/heart-1"
+        >
+          ← Zurück zum Herzmoment
+        </a>
+        <header
+          class="page-heading"
+        >
+          <div>
+            <p
+              class="eyebrow"
+            >
+              Herzmoment bearbeiten
+            </p>
+            <div
+              class="page-heading-title-container"
+            >
+              <h1>
+                Herzmoment bearbeiten
+              </h1>
+            </div>
+            <p>
+              Passe Text, Gefühl, Datum oder Bild an. Die Sichtbarkeit wird separat geändert.
+            </p>
+          </div>
+        </header>
+        <section
+          aria-labelledby="heart-moment-edit-heading"
+          class="form-card product-sheet"
+        >
+          <h2
+            class="sr-only"
+            id="heart-moment-edit-heading"
+          >
+            Herzmoment bearbeiten
+          </h2>
+          <form
+            class="form-grid"
+          >
+            <div
+              class="field-group"
+            >
+              <label
+                for="heart-moment-text"
+              >
+                Moment
+              </label>
+              <textarea
+                id="heart-moment-text"
+                maxlength="4000"
+                name="text"
+                placeholder="Was hat diesen Moment besonders gemacht?"
+                rows="5"
+              >
+                Our shared beginning
+              </textarea>
+            </div>
+            <fieldset
+              class="memory-tag-choices"
+            >
+              <legend>
+                Tags für euren Moment
+              </legend>
+              <p
+                class="field-help"
+              >
+                Beschreibt euren Moment mit euren eigenen Worten.
+              </p>
+              <label
+                for="_r_q_"
+              >
+                Eigenen Tag hinzufügen
+              </label>
+              <div
+                class="context-tag-entry"
+              >
+                <input
+                  aria-invalid="false"
+                  autocomplete="off"
+                  id="_r_q_"
+                  placeholder="Zum Beispiel: Unser Urlaub"
+                  value=""
+                />
+                <button
+                  class="secondary"
+                  type="button"
+                >
+                  Hinzufügen
+                </button>
+              </div>
+              <details
+                class="context-tag-suggestions"
+              >
+                <summary>
+                  Vorschläge
+                </summary>
+                <div
+                  class="memory-tag-list"
+                >
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Im Alltag
+                    </span>
+                  </label>
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Unterwegs
+                    </span>
+                  </label>
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Zuhause
+                    </span>
+                  </label>
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Besonderer Tag
+                    </span>
+                  </label>
+                </div>
+              </details>
+            </fieldset>
+            <fieldset
+              class="heart-emotion-picker"
+            >
+              <legend>
+                Gefühl
+              </legend>
+    ...
+ ❯ Proxy.waitForWrapper ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:380:11
+    378|     onlineManager.setOnline(false);
+    379|     fireEvent.click(button);
+    380|     await waitFor(() =>
+       |           ^
+    381|       expect(screen.getByText(de.states.offline.title)).toBeTruthy(),
+    382|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > preserves pending protection after leaving and returning
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Wird gelöscht …"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "Current route":
+  <output
+    aria-label="Current route"
+  />
+
+  --------------------------------------------------
+  link:
+
+  Name "Other task":
+  <a
+    data-discover="true"
+    href="/other"
+  />
+
+  Name "Return to edit":
+  <a
+    data-discover="true"
+    href="/story/heart-moments/heart-1/edit"
+  />
+
+  Name "Another Heart Moment":
+  <a
+    data-discover="true"
+    href="/story/heart-moments/heart-2/edit"
+  />
+
+  Name "← Zurück zum Herzmoment":
+  <a
+    class="back-link"
+    data-discover="true"
+    href="/story/heart-moments/heart-1"
+  />
+
+  Name "Abbrechen":
+  <a
+    class="button-link secondary-link"
+    data-discover="true"
+    href="/story/heart-moments/heart-1"
+  />
+
+  --------------------------------------------------
+  banner:
+
+  Name "":
+  <header
+    class="page-heading"
+  />
+
+  --------------------------------------------------
+  paragraph:
+
+  Name "":
+  <p
+    class="eyebrow"
+  />
+
+  Name "":
+  <p />
+
+  Name "":
+  <p
+    class="field-help"
+  />
+
+  --------------------------------------------------
+  heading:
+
+  Name "Herzmoment bearbeiten":
+  <h1 />
+
+  Name "Herzmoment bearbeiten":
+  <h2
+    class="sr-only"
+    id="heart-moment-edit-heading"
+  />
+
+  --------------------------------------------------
+  region:
+
+  Name "Herzmoment bearbeiten":
+  <section
+    aria-labelledby="heart-moment-edit-heading"
+    class="form-card product-sheet"
+  />
+
+  --------------------------------------------------
+  textbox:
+
+  Name "Moment":
+  <textarea
+    id="heart-moment-text"
+    maxlength="4000"
+    name="text"
+    placeholder="Was hat diesen Moment besonders gemacht?"
+    rows="5"
+  />
+
+  Name "Eigenen Tag hinzufügen":
+  <input
+    aria-invalid="false"
+    autocomplete="off"
+    id="_r_u_"
+    placeholder="Zum Beispiel: Unser Urlaub"
+    value=""
+  />
+
+  --------------------------------------------------
+  group:
+
+  Name "Tags für euren Moment":
+  <fieldset
+    class="memory-tag-choices"
+  />
+
+  Name "":
+  <details
+    class="context-tag-suggestions"
+  />
+
+  Name "Gefühl":
+  <fieldset
+    class="heart-emotion-picker"
+  />
+
+  --------------------------------------------------
+  button:
+
+  Name "Hinzufügen":
+  <button
+    class="secondary"
+    type="button"
+  />
+
+  Name "Herzmoment speichern":
+  <button
+    type="submit"
+  />
+
+  Name "Löschen":
+  <button
+    class="button-link danger-link"
+    type="button"
+  />
+
+  --------------------------------------------------
+  checkbox:
+
+  Name "Im Alltag":
+  <input
+    type="checkbox"
+  />
+
+  Name "Unterwegs":
+  <input
+    type="checkbox"
+  />
+
+  Name "Zuhause":
+  <input
+    type="checkbox"
+  />
+
+  Name "Besonderer Tag":
+  <input
+    type="checkbox"
+  />
+
+  --------------------------------------------------
+  radio:
+
+  Name "Geliebt":
+  <input
+    checked=""
+    class="heart-emotion-choice-input"
+    id="heart-moment-edit-emotion-loved"
+    name="emotion"
+    type="radio"
+    value="LOVED"
+  />
+
+  Name "Gesehen":
+  <input
+    class="heart-emotion-choice-input"
+    id="heart-moment-edit-emotion-seen"
+    name="emotion"
+    type="radio"
+    value="SEEN"
+  />
+
+  Name "Wertgeschätzt":
+  <input
+    class="heart-emotion-choice-input"
+    id="heart-moment-edit-emotion-appreciated"
+    name="emotion"
+    type="radio"
+    value="APPRECIATED"
+  />
+
+  Name "Unterstützt":
+  <input
+    class="heart-emotion-choice-input"
+    id="heart-moment-edit-emotion-supported"
+    name="emotion"
+    type="radio"
+    value="SUPPORTED"
+  />
+
+  Name "Dankbar":
+  <input
+    class="heart-emotion-choice-input"
+    id="heart-moment-edit-emotion-grateful"
+    name="emotion"
+    type="radio"
+    value="GRATEFUL"
+  />
+
+  Name "Glücklich":
+  <input
+    class="heart-emotion-choice-input"
+    id="heart-moment-edit-emotion-happy"
+    name="emotion"
+    type="radio"
+    value="HAPPY"
+  />
+
+  --------------------------------------------------
+  strong:
+
+  Name "":
+  <strong />
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <output
+      aria-label="Current route"
+    >
+      /story/heart-moments/heart-1/edit
+    </output>
+    <a
+      data-discover="true"
+      href="/other"
+    >
+      Other task
+    </a>
+    <a
+      data-discover="true"
+      href="/story/heart-moments/heart-1/edit"
+    >
+      Return to edit
+    </a>
+    <a
+      data-discover="true"
+      href="/story/heart-moments/heart-2/edit"
+    >
+      Another Heart Moment
+    </a>
+    <div
+      class="page page-reading create-page product-editor-page"
+    >
+      <a
+        class="back-link"
+        data-discover="true"
+        href="/story/heart-moments/heart-1"
+      >
+        ← Zurück zum Herzmoment
+      </a>
+      <header
+        class="page-heading"
+      >
+        <div>
+          <p
+            class="eyebrow"
+          >
+            Herzmoment bearbeiten
+          </p>
+          <div
+            class="page-heading-title-container"
+          >
+            <h1>
+              Herzmoment bearbeiten
+            </h1>
+          </div>
+          <p>
+            Passe Text, Gefühl, Datum oder Bild an. Die Sichtbarkeit wird separat geändert.
+          </p>
+        </div>
+      </header>
+      <section
+        aria-labelledby="heart-moment-edit-heading"
+        class="form-card product-sheet"
+      >
+        <h2
+          class="sr-only"
+          id="heart-moment-edit-heading"
+        >
+          Herzmoment bearbeiten
+        </h2>
+        <form
+          class="form-grid"
+        >
+          <div
+            class="field-group"
+          >
+            <label
+              for="heart-moment-text"
+            >
+              Moment
+            </label>
+            <textarea
+              id="heart-moment-text"
+              maxlength="4000"
+              name="text"
+              placeholder="Was hat diesen Moment besonders gemacht?"
+              rows="5"
+            >
+              Our shared beginning
+            </textarea>
+          </div>
+          <fieldset
+            class="memory-tag-choices"
+          >
+            <legend>
+              Tags für euren Moment
+            </legend>
+            <p
+              class="field-help"
+            >
+              Beschreibt euren Moment mit euren eigenen Worten.
+            </p>
+            <label
+              for="_r_u_"
+            >
+              Eigenen Tag hinzufügen
+            </label>
+            <div
+              class="context-tag-entry"
+            >
+              <input
+                aria-invalid="false"
+                autocomplete="off"
+                id="_r_u_"
+                placeholder="Zum Beispiel: Unser Urlaub"
+                value=""
+              />
+              <button
+                class="secondary"
+                type="button"
+              >
+                Hinzufügen
+              </button>
+            </div>
+            <details
+              class="context-tag-suggestions"
+            >
+              <summary>
+                Vorschläge
+              </summary>
+              <div
+                class="memory-tag-list"
+              >
+                <label
+                  class="memory-tag-choice"
+                >
+                  <input
+                    type="checkbox"
+                  />
+                  <span>
+                    Im Alltag
+                  </span>
+                </label>
+                <label
+                  class="memory-tag-choice"
+                >
+                  <input
+                    type="checkbox"
+                  />
+                  <span>
+                    Unterwegs
+                  </span>
+                </label>
+                <label
+                  class="memory-tag-choice"
+                >
+                  <input
+                    type="checkbox"
+                  />
+                  <span>
+                    Zuhause
+                  </span>
+                </label>
+                <label
+                  class="memory-tag-choice"
+                >
+                  <input
+                    type="checkbox"
+                  />
+                  <span>
+                    Besonderer Tag
+                  </span>
+                </label>
+              </div>
+            </details>
+          </fieldset>
+          <fieldset
+            class="heart-emotion-picker"
+          >
+            <legend>
+              Gefühl
+            </legend>
+            <div
+              class="heart-emotion-picker-grid"
+            >
+              <label
+                class="heart-emotion-choice"
+                data-emotion="LOVED"
+                for="heart-moment-edit-emotion-loved"
+              >
+                <input
+                  checked=...
+ ❯ Object.getElementError ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../../eimir/web/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../../eimir/web/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../../eimir/web/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:403:15
+    401|       .click(screen.getByRole('link', { name: 'Return to edit' }));
+    402|     expect(
+    403|       (screen.getByRole('button', { name: copy.deleting }) as HTMLButt…
+       |               ^
+    404|         .disabled,
+    405|     ).toBe(true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > admits only one synchronous confirmation and prevents a competing save
+AssertionError: expected "vi.fn()" to be called 1 times, but got 2 times
+
+Ignored nodes: comments, script, style
+<html
+  lang="de"
+>
+  <head />
+  <body>
+    <div>
+      <output
+        aria-label="Current route"
+      >
+        /story/heart-moments/heart-1/edit
+      </output>
+      <a
+        data-discover="true"
+        href="/other"
+      >
+        Other task
+      </a>
+      <a
+        data-discover="true"
+        href="/story/heart-moments/heart-1/edit"
+      >
+        Return to edit
+      </a>
+      <a
+        data-discover="true"
+        href="/story/heart-moments/heart-2/edit"
+      >
+        Another Heart Moment
+      </a>
+      <div
+        class="page page-reading create-page product-editor-page"
+      >
+        <a
+          class="back-link"
+          data-discover="true"
+          href="/story/heart-moments/heart-1"
+        >
+          ← Zurück zum Herzmoment
+        </a>
+        <header
+          class="page-heading"
+        >
+          <div>
+            <p
+              class="eyebrow"
+            >
+              Herzmoment bearbeiten
+            </p>
+            <div
+              class="page-heading-title-container"
+            >
+              <h1>
+                Herzmoment bearbeiten
+              </h1>
+            </div>
+            <p>
+              Passe Text, Gefühl, Datum oder Bild an. Die Sichtbarkeit wird separat geändert.
+            </p>
+          </div>
+        </header>
+        <section
+          aria-labelledby="heart-moment-edit-heading"
+          class="form-card product-sheet"
+        >
+          <h2
+            class="sr-only"
+            id="heart-moment-edit-heading"
+          >
+            Herzmoment bearbeiten
+          </h2>
+          <form
+            class="form-grid"
+          >
+            <div
+              class="field-group"
+            >
+              <label
+                for="heart-moment-text"
+              >
+                Moment
+              </label>
+              <textarea
+                id="heart-moment-text"
+                maxlength="4000"
+                name="text"
+                placeholder="Was hat diesen Moment besonders gemacht?"
+                rows="5"
+              >
+                Our shared beginning
+              </textarea>
+            </div>
+            <fieldset
+              class="memory-tag-choices"
+            >
+              <legend>
+                Tags für euren Moment
+              </legend>
+              <p
+                class="field-help"
+              >
+                Beschreibt euren Moment mit euren eigenen Worten.
+              </p>
+              <label
+                for="_r_10_"
+              >
+                Eigenen Tag hinzufügen
+              </label>
+              <div
+                class="context-tag-entry"
+              >
+                <input
+                  aria-invalid="false"
+                  autocomplete="off"
+                  id="_r_10_"
+                  placeholder="Zum Beispiel: Unser Urlaub"
+                  value=""
+                />
+                <button
+                  class="secondary"
+                  type="button"
+                >
+                  Hinzufügen
+                </button>
+              </div>
+              <details
+                class="context-tag-suggestions"
+              >
+                <summary>
+                  Vorschläge
+                </summary>
+                <div
+                  class="memory-tag-list"
+                >
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Im Alltag
+                    </span>
+                  </label>
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Unterwegs
+                    </span>
+                  </label>
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Zuhause
+                    </span>
+                  </label>
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Besonderer Tag
+                    </span>
+                  </label>
+                </div>
+              </details>
+            </fieldset>
+            <fieldset
+              class="heart-emotion-picker"
+            >
+              <legend>
+                Gefühl
+              </legend>
+  ...
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:421:53
+    419|       screen.getByRole('button', { name: copy.save }).click();
+    420|     });
+    421|     await waitFor(() => expect(h.deleteHeartMoment).toHaveBeenCalledTi…
+       |                                                     ^
+    422|     expect(h.updateHeartMoment).not.toHaveBeenCalled();
+    423|     await h.settle();
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > prevents deletion while an edit is pending
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array [
+      Object {
+        "heartMomentId": "heart-1",
+        "ifMatch": "1",
+        "spaceId": "space-1",
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:434:37
+    432|     await waitFor(() => expect(h.updateHeartMoment).toHaveBeenCalledTi…
+    433|     await act(async () => fireEvent.click(button));
+    434|     expect(h.deleteHeartMoment).not.toHaveBeenCalled();
+       |                                     ^
+    435|   });
+    436|   it.each(['version', 'permission', 'cache', 'departure'] as const)(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > rejects changed version admission after cancellation
+AssertionError: expected 1 to be +0 // Object.is equality
+
+Ignored nodes: comments, script, style
+<html
+  lang="de"
+>
+  <head />
+  <body>
+    <div>
+      <output
+        aria-label="Current route"
+      >
+        /story/heart-moments/heart-1/edit
+      </output>
+      <a
+        data-discover="true"
+        href="/other"
+      >
+        Other task
+      </a>
+      <a
+        data-discover="true"
+        href="/story/heart-moments/heart-1/edit"
+      >
+        Return to edit
+      </a>
+      <a
+        data-discover="true"
+        href="/story/heart-moments/heart-2/edit"
+      >
+        Another Heart Moment
+      </a>
+      <div
+        class="page page-reading create-page product-editor-page"
+      >
+        <a
+          class="back-link"
+          data-discover="true"
+          href="/story/heart-moments/heart-1"
+        >
+          ← Zurück zum Herzmoment
+        </a>
+        <header
+          class="page-heading"
+        >
+          <div>
+            <p
+              class="eyebrow"
+            >
+              Herzmoment bearbeiten
+            </p>
+            <div
+              class="page-heading-title-container"
+            >
+              <h1>
+                Herzmoment bearbeiten
+              </h1>
+            </div>
+            <p>
+              Passe Text, Gefühl, Datum oder Bild an. Die Sichtbarkeit wird separat geändert.
+            </p>
+          </div>
+        </header>
+        <section
+          aria-labelledby="heart-moment-edit-heading"
+          class="form-card product-sheet"
+        >
+          <h2
+            class="sr-only"
+            id="heart-moment-edit-heading"
+          >
+            Herzmoment bearbeiten
+          </h2>
+          <form
+            class="form-grid"
+          >
+            <div
+              class="field-group"
+            >
+              <label
+                for="heart-moment-text"
+              >
+                Moment
+              </label>
+              <textarea
+                id="heart-moment-text"
+                maxlength="4000"
+                name="text"
+                placeholder="Was hat diesen Moment besonders gemacht?"
+                rows="5"
+              >
+                Our shared beginning
+              </textarea>
+            </div>
+            <fieldset
+              class="memory-tag-choices"
+            >
+              <legend>
+                Tags für euren Moment
+              </legend>
+              <p
+                class="field-help"
+              >
+                Beschreibt euren Moment mit euren eigenen Worten.
+              </p>
+              <label
+                for="_r_14_"
+              >
+                Eigenen Tag hinzufügen
+              </label>
+              <div
+                class="context-tag-entry"
+              >
+                <input
+                  aria-invalid="false"
+                  autocomplete="off"
+                  id="_r_14_"
+                  placeholder="Zum Beispiel: Unser Urlaub"
+                  value=""
+                />
+                <button
+                  class="secondary"
+                  type="button"
+                >
+                  Hinzufügen
+                </button>
+              </div>
+              <details
+                class="context-tag-suggestions"
+              >
+                <summary>
+                  Vorschläge
+                </summary>
+                <div
+                  class="memory-tag-list"
+                >
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Im Alltag
+                    </span>
+                  </label>
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Unterwegs
+                    </span>
+                  </label>
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Zuhause
+                    </span>
+                  </label>
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Besonderer Tag
+                    </span>
+                  </label>
+                </div>
+              </details>
+            </fieldset>
+            <fieldset
+              class="heart-emotion-picker"
+            >
+              <legend>
+                Gefühl
+              </legend>
+  ...
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:468:57
+    466|       }
+    467|       await act(async () => cancel.resolve());
+    468|       await waitFor(() => expect(h.client.isMutating()).toBe(0));
+       |                                                         ^
+    469|       expect(h.deleteHeartMoment).not.toHaveBeenCalled();
+    470|     },
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > rejects changed permission admission after cancellation
+AssertionError: expected 1 to be +0 // Object.is equality
+
+Ignored nodes: comments, script, style
+<html
+  lang="de"
+>
+  <head />
+  <body>
+    <div>
+      <output
+        aria-label="Current route"
+      >
+        /story/heart-moments/heart-1/edit
+      </output>
+      <a
+        data-discover="true"
+        href="/other"
+      >
+        Other task
+      </a>
+      <a
+        data-discover="true"
+        href="/story/heart-moments/heart-1/edit"
+      >
+        Return to edit
+      </a>
+      <a
+        data-discover="true"
+        href="/story/heart-moments/heart-2/edit"
+      >
+        Another Heart Moment
+      </a>
+      <div
+        class="page page-reading create-page product-editor-page"
+      >
+        <a
+          class="back-link"
+          data-discover="true"
+          href="/story/heart-moments/heart-1"
+        >
+          ← Zurück zum Herzmoment
+        </a>
+        <header
+          class="page-heading"
+        >
+          <div>
+            <p
+              class="eyebrow"
+            >
+              Herzmoment bearbeiten
+            </p>
+            <div
+              class="page-heading-title-container"
+            >
+              <h1>
+                Herzmoment bearbeiten
+              </h1>
+            </div>
+            <p>
+              Passe Text, Gefühl, Datum oder Bild an. Die Sichtbarkeit wird separat geändert.
+            </p>
+          </div>
+        </header>
+        <section
+          aria-labelledby="heart-moment-edit-heading"
+          class="form-card product-sheet"
+        >
+          <h2
+            class="sr-only"
+            id="heart-moment-edit-heading"
+          >
+            Herzmoment bearbeiten
+          </h2>
+          <form
+            class="form-grid"
+          >
+            <div
+              class="field-group"
+            >
+              <label
+                for="heart-moment-text"
+              >
+                Moment
+              </label>
+              <textarea
+                id="heart-moment-text"
+                maxlength="4000"
+                name="text"
+                placeholder="Was hat diesen Moment besonders gemacht?"
+                rows="5"
+              >
+                Our shared beginning
+              </textarea>
+            </div>
+            <fieldset
+              class="memory-tag-choices"
+            >
+              <legend>
+                Tags für euren Moment
+              </legend>
+              <p
+                class="field-help"
+              >
+                Beschreibt euren Moment mit euren eigenen Worten.
+              </p>
+              <label
+                for="_r_16_"
+              >
+                Eigenen Tag hinzufügen
+              </label>
+              <div
+                class="context-tag-entry"
+              >
+                <input
+                  aria-invalid="false"
+                  autocomplete="off"
+                  id="_r_16_"
+                  placeholder="Zum Beispiel: Unser Urlaub"
+                  value=""
+                />
+                <button
+                  class="secondary"
+                  type="button"
+                >
+                  Hinzufügen
+                </button>
+              </div>
+              <details
+                class="context-tag-suggestions"
+              >
+                <summary>
+                  Vorschläge
+                </summary>
+                <div
+                  class="memory-tag-list"
+                >
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Im Alltag
+                    </span>
+                  </label>
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Unterwegs
+                    </span>
+                  </label>
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Zuhause
+                    </span>
+                  </label>
+                  <label
+                    class="memory-tag-choice"
+                  >
+                    <input
+                      type="checkbox"
+                    />
+                    <span>
+                      Besonderer Tag
+                    </span>
+                  </label>
+                </div>
+              </details>
+            </fieldset>
+            <fieldset
+              class="heart-emotion-picker"
+            >
+              <legend>
+                Gefühl
+              </legend>
+  ...
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:468:57
+    466|       }
+    467|       await act(async () => cancel.resolve());
+    468|       await waitFor(() => expect(h.client.isMutating()).toBe(0));
+       |                                                         ^
+    469|       expect(h.deleteHeartMoment).not.toHaveBeenCalled();
+    470|     },
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > rejects changed cache admission after cancellation
+AssertionError: expected 1 to be +0 // Object.is equality
+
+Ignored nodes: comments, script, style
+<html
+  lang="de"
+>
+  <head />
+  <body>
+    <div>
+      <output
+        aria-label="Current route"
+      >
+        /story/heart-moments/heart-1/edit
+      </output>
+      <a
+        data-discover="true"
+        href="/other"
+      >
+        Other task
+      </a>
+      <a
+        data-discover="true"
+        href="/story/heart-moments/heart-1/edit"
+      >
+        Return to edit
+      </a>
+      <a
+        data-discover="true"
+        href="/story/heart-moments/heart-2/edit"
+      >
+        Another Heart Moment
+      </a>
+      <div
+        class="page page-reading"
+      >
+        <a
+          class="back-link"
+          data-discover="true"
+          href="/story/heart-moments/heart-1"
+        >
+          ← Zurück zum Herzmoment
+        </a>
+        <header
+          class="page-heading"
+        >
+          <div>
+            <p
+              class="eyebrow"
+            >
+              Herzmoment bearbeiten
+            </p>
+            <div
+              class="page-heading-title-container"
+            >
+              <h1>
+                Herzmoment bearbeiten
+              </h1>
+            </div>
+            <p>
+              Passe Text, Gefühl, Datum oder Bild an. Die Sichtbarkeit wird separat geändert.
+            </p>
+          </div>
+        </header>
+        <div
+          class="ui-state ui-state-offline"
+          role="status"
+        >
+          <span
+            aria-hidden="true"
+            class="ui-state-mark"
+          >
+            ↯
+          </span>
+          <div
+            class="ui-state-copy"
+          >
+            <strong>
+              Du bist gerade offline.
+            </strong>
+            <p>
+              Stelle die Verbindung wieder her und versuche es erneut.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:468:57
+    466|       }
+    467|       await act(async () => cancel.resolve());
+    468|       await waitFor(() => expect(h.client.isMutating()).toBe(0));
+       |                                                         ^
+    469|       expect(h.deleteHeartMoment).not.toHaveBeenCalled();
+    470|     },
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > rejects changed departure admission after cancellation
+AssertionError: expected 1 to be +0 // Object.is equality
+
+Ignored nodes: comments, script, style
+<html
+  lang="de"
+>
+  <head />
+  <body>
+    <div>
+      <output
+        aria-label="Current route"
+      >
+        /other
+      </output>
+      <a
+        data-discover="true"
+        href="/other"
+      >
+        Other task
+      </a>
+      <a
+        data-discover="true"
+        href="/story/heart-moments/heart-1/edit"
+      >
+        Return to edit
+      </a>
+      <a
+        data-discover="true"
+        href="/story/heart-moments/heart-2/edit"
+      >
+        Another Heart Moment
+      </a>
+      <p>
+        Unrelated task
+      </p>
+    </div>
+  </body>
+</html>
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:468:57
+    466|       }
+    467|       await act(async () => cancel.resolve());
+    468|       await waitFor(() => expect(h.client.isMutating()).toBe(0));
+       |                                                         ^
+    469|       expect(h.deleteHeartMoment).not.toHaveBeenCalled();
+    470|     },
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > revokes the original persistent snapshot after its Query is removed
+AssertionError: expected '/story' to contain '/edit'
+
+Expected: "/edit"
+Received: "/story"
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:485:64
+    483|     );
+    484|     expect(h.client.getQueryData(key)).toBeUndefined();
+    485|     expect(screen.getByLabelText('Current route').textContent).toConta…
+       |                                                                ^
+    486|       '/edit',
+    487|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > prevents a visibility write from the real detail while deletion is pending
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:539:56
+    537|       .click(screen.getByRole('link', { name: copy.backToHeartMoment }…
+    538|     const visibility = screen.getByRole('button', { name: copy.makePri…
+    539|     expect((visibility as HTMLButtonElement).disabled).toBe(true);
+       |                                                        ^
+    540|     await act(async () => fireEvent.click(visibility));
+    541|     expect(h.changeHeartMomentVisibility).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/22]⎯
+
+ FAIL  src/components/HeartMomentDeleteOwnership.test.tsx > HeartMoment delete response ownership > prevents competing delete and save after a pending visibility action enters Edit
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/components/HeartMomentDeleteOwnership.test.tsx:564:50
+    562|     const open = screen.getByRole('button', { name: copy.delete });
+    563|     const save = screen.getByRole('button', { name: copy.save });
+    564|     expect((open as HTMLButtonElement).disabled).toBe(true);
+       |                                                  ^
+    565|     expect((save as HTMLButtonElement).disabled).toBe(true);
+    566|     await act(async () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/22]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  22 failed | 3 passed (25)
+   Start at  00:17:49
+   Duration  11.78s (tests 80%, transform 10%, environment 6%, import 4%)

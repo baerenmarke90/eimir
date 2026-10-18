@@ -44,6 +44,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 15
     },
+    "heart-moment-delete-ownership.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8,
+      "reason": "Shared/private destructive intent, interruption ownership, competing privacy writes and offline no-replay must remain protected in the production browser."
+    },
     "hidden-file-inputs.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 2

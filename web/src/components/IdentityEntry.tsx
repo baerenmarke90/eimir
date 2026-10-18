@@ -341,7 +341,10 @@ export function IdentityEntry({
     const email = String(data.get('email'));
     void runAction(
       'magicLinkRequest',
-      () => requestMagicLink(apiBaseUrl, email),
+      () =>
+        selfServiceSignupAvailable
+          ? requestSignup(apiBaseUrl, email)
+          : requestMagicLink(apiBaseUrl, email),
       () => setMagicLinkRequested(true),
     );
   }

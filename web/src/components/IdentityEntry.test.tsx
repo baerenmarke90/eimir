@@ -210,6 +210,114 @@ describe('IdentityEntry', () => {
     expect(statusBox).toHaveFocus();
   });
 
+  it.each([false, true])(
+    'requests a Cloud email proof for a new address (invitation: %s)',
+    async (fromInvitation) => {
+      vi.spyOn(instanceStatus, 'loadInstanceAccessStatus').mockResolvedValue({
+        availability: 'available',
+        auth: {
+          localPassword: false,
+          magicLink: true,
+          oidc: false,
+          passkey: false,
+        },
+        accountCreation: 'self_service',
+        selfServiceSignupAvailable: true,
+        maintenanceMode: false,
+        registrationAvailable: true,
+      });
+      const signupSpy = vi
+        .spyOn(identityFlow, 'requestSignup')
+        .mockResolvedValue();
+      const magicLinkSpy = vi
+        .spyOn(identityFlow, 'requestMagicLink')
+        .mockResolvedValue();
+
+      render(
+        <IdentityEntry
+          apiBaseUrl={apiBaseUrl}
+          entryToken={
+            fromInvitation
+              ? { kind: 'invitation', token: 'partner-invitation-token' }
+              : null
+          }
+          onEntryTokenCleared={vi.fn()}
+          onSession={vi.fn()}
+        />,
+      );
+
+      await screen.findByRole('heading', {
+        name: de.identity.magicLinkTitle,
+      });
+      fireEvent.change(screen.getByLabelText(de.login.email), {
+        target: { value: 'new-partner@example.invalid' },
+      });
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: de.identity.magicLinkRequestSubmit,
+        }),
+      );
+
+      await screen.findByText(de.identity.mailRequestedTitle);
+      expect(signupSpy).toHaveBeenCalledWith(
+        apiBaseUrl,
+        'new-partner@example.invalid',
+      );
+      expect(magicLinkSpy).not.toHaveBeenCalled();
+      expect(screen.getByText(de.identity.mailRequestedBody)).toBeDefined();
+    },
+  );
+
+  it('retains existing-account mail requests without self-service signup', async () => {
+    vi.spyOn(instanceStatus, 'loadInstanceAccessStatus').mockResolvedValue({
+      availability: 'available',
+      auth: {
+        localPassword: true,
+        magicLink: true,
+        oidc: false,
+        passkey: false,
+      },
+      accountCreation: 'invitation',
+      selfServiceSignupAvailable: false,
+      maintenanceMode: false,
+      registrationAvailable: true,
+    });
+    const signupSpy = vi
+      .spyOn(identityFlow, 'requestSignup')
+      .mockResolvedValue();
+    const magicLinkSpy = vi
+      .spyOn(identityFlow, 'requestMagicLink')
+      .mockResolvedValue();
+
+    render(
+      <IdentityEntry
+        apiBaseUrl={apiBaseUrl}
+        entryToken={null}
+        onEntryTokenCleared={vi.fn()}
+        onSession={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: de.identity.useMagicLink }),
+    );
+    fireEvent.change(screen.getByLabelText(de.login.email), {
+      target: { value: 'existing-partner@example.invalid' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: de.identity.magicLinkRequestSubmit,
+      }),
+    );
+
+    await screen.findByText(de.identity.mailRequestedTitle);
+    expect(magicLinkSpy).toHaveBeenCalledWith(
+      apiBaseUrl,
+      'existing-partner@example.invalid',
+    );
+    expect(signupSpy).not.toHaveBeenCalled();
+  });
+
   it('consumes valid signup token and starts session', async () => {
     const onSession = vi.fn();
     const consumeSpy = vi

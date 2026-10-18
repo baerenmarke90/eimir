@@ -43,6 +43,23 @@ def successful_runs() -> list[dict]:
 
 
 class MainCheckTest(unittest.TestCase):
+    def test_required_workflows_run_for_every_main_push(self):
+        for path in sorted(channel.REQUIRED_WORKFLOWS):
+            with self.subTest(path=path):
+                lines = (ROOT / path).read_text().splitlines()
+                start = lines.index("  push:") + 1
+                push = []
+                for line in lines[start:]:
+                    if line.strip() and len(line) - len(line.lstrip()) < 4:
+                        break
+                    push.append(line.strip())
+                self.assertIn("branches: [main]", push)
+                for key in ("paths:", "paths-ignore:", "tags:", "tags-ignore:"):
+                    self.assertFalse(
+                        any(line.startswith(key) for line in push),
+                        f"{path} must not filter required main push checks",
+                    )
+
     def test_only_every_exact_main_workflow_admits_a_candidate(self):
         self.assertTrue(channel.workflow_state(successful_runs(), SOURCE))
         self.assertFalse(channel.workflow_state(successful_runs()[:-1], SOURCE))

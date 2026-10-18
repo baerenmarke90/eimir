@@ -17,6 +17,8 @@ After a push to `main`, the private-channel jobs in `.github/workflows/release-p
    Browser QA, CodeQL SAST, Self-Hosted Deployment Guard and Self-Hosted Recovery.
    Missing, pending, skipped, failed or cancelled workflows cannot admit a build.
    A newer `main` stops a waiting candidate.
+   Browser QA therefore runs for every main push, including backend-only and
+   operator changes; pull-request browser path filters remain unchanged.
 3. Reuses Release Evidence with Android excluded: build-once runtime archives,
    hashes, SPDX SBOMs and verified attestations. Nothing builds on the Docker host.
 4. Loads both archives, verifies source/version/platform labels, publishes to the

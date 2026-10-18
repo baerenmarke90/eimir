@@ -2,11 +2,73 @@ import type { AccountView } from '../api/generated/models/AccountView';
 import type { TokenView } from '../api/generated/models/TokenView';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
+import {
+  isNativeSessionStorageAvailable,
+  readNativeSessionSnapshot,
+  writeNativeSessionSnapshot,
+} from './nativeSessionStorage';
 
 export const SESSION_STORAGE_KEY = 'eimir-session-v1';
 export const LEGACY_SESSION_STORAGE_KEY = 'sidebyside-session-v1';
 
 const inFlightRefreshes = new Map<string, Promise<TokenView>>();
+let nativeWrites: Promise<void> = Promise.resolve();
+let storageRevision = 0;
+
+function persistNativeSnapshot(value: string | null): Promise<void> {
+  storageRevision += 1;
+  if (!isNativeSessionStorageAvailable()) return Promise.resolve();
+  nativeWrites = nativeWrites.then(async () => {
+    try {
+      await writeNativeSessionSnapshot(value);
+    } catch {
+      // Never retain an obsolete refresh generation or use plaintext fallback.
+      try {
+        await writeNativeSessionSnapshot(null);
+      } catch {
+        // The current in-memory/WebView session can still be used.
+      }
+    }
+  });
+  return nativeWrites;
+}
+
+export async function restoreNativeSession(): Promise<void> {
+  if (!isNativeSessionStorageAvailable()) return;
+  const existing = loadStoredSession();
+  if (existing) {
+    await storeSession(existing);
+    return;
+  }
+  const revision = storageRevision;
+  let deadline: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await nativeWrites;
+    const raw = await Promise.race([
+      readNativeSessionSnapshot(),
+      new Promise<never>((_resolve, reject) => {
+        deadline = setTimeout(
+          () => reject(new Error('Native session read timed out')),
+          5_000,
+        );
+      }),
+    ]);
+    if (revision !== storageRevision || raw === null) return;
+    if (raw.length > 16_384) {
+      await clearStoredSession();
+      return;
+    }
+    window.sessionStorage.setItem(SESSION_STORAGE_KEY, raw);
+    const restored = loadStoredSession();
+    if (!restored || !isRefreshTokenValid(restored.tokens)) {
+      await clearStoredSession();
+    }
+  } catch {
+    // No native credential is usable; never fall back to localStorage.
+  } finally {
+    clearTimeout(deadline);
+  }
+}
 
 function parseStoredDate(value: unknown): Date {
   if (value instanceof Date) return value;
@@ -50,8 +112,9 @@ export type StoredSession = {
   spaceId?: string | null;
 };
 
-export function storeSession(session: StoredSession): void {
-  if (typeof window === 'undefined' || !window.sessionStorage) return;
+export function storeSession(session: StoredSession): Promise<void> {
+  if (typeof window === 'undefined' || !window.sessionStorage)
+    return Promise.resolve();
   try {
     const serialized = JSON.stringify({
       account: session.account,
@@ -70,8 +133,10 @@ export function storeSession(session: StoredSession): void {
       spaceId: session.spaceId ?? null,
     });
     window.sessionStorage.setItem(SESSION_STORAGE_KEY, serialized);
+    return persistNativeSnapshot(serialized);
   } catch {
     // Storage might be disabled or quota exceeded in restrictive environments.
+    return Promise.resolve();
   }
 }
 
@@ -108,14 +173,16 @@ export function loadStoredSession(): StoredSession | null {
   }
 }
 
-export function clearStoredSession(): void {
-  if (typeof window === 'undefined' || !window.sessionStorage) return;
+export function clearStoredSession(): Promise<void> {
   try {
-    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
-    window.sessionStorage.removeItem(LEGACY_SESSION_STORAGE_KEY);
+    if (typeof window !== 'undefined') {
+      window.sessionStorage?.removeItem(SESSION_STORAGE_KEY);
+      window.sessionStorage?.removeItem(LEGACY_SESSION_STORAGE_KEY);
+    }
   } catch {
     // Storage might be disabled in restrictive environments.
   }
+  return persistNativeSnapshot(null);
 }
 
 export function hasStoredSession(): boolean {
@@ -161,7 +228,7 @@ export async function refreshSessionTokens(
       // into that newer session.
       const currentSession = loadStoredSession();
       if (currentSession?.tokens.refreshToken === refreshToken) {
-        storeSession({
+        await storeSession({
           account: currentSession.account,
           tokens: newTokens,
           spaceId: currentSession.spaceId,
@@ -174,7 +241,7 @@ export async function refreshSessionTokens(
       if (normalized.status === 401) {
         const currentSession = loadStoredSession();
         if (currentSession?.tokens.refreshToken === refreshToken) {
-          clearStoredSession();
+          await clearStoredSession();
         }
       }
       throw normalized;

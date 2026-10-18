@@ -19,7 +19,10 @@ import {
   type CreateRequestAttempt,
   submitCreateRequest,
 } from '../client/createRequestIdentity';
-import { normalizeClientError } from '../client/problemDetails';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentEditor } from './CommentEditor';
 import { ProblemState } from './ProblemState';
@@ -213,6 +216,11 @@ function CommentsPanelContent({
 
   const comments =
     commentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const canReadComments =
+    commentsQuery.data !== undefined &&
+    !['unauthorized', 'permission', 'notFound'].includes(
+      clientProblemKind(commentsQuery.error),
+    );
   const headingId = `${parentKind}-comments-heading`;
   const formId = `${parentKind}-${parentId}-comment-form`;
 
@@ -238,7 +246,7 @@ function CommentsPanelContent({
         </p>
       ) : commentsQuery.isLoading ? (
         <UiState kind="loading" title={t('comments.loading')} />
-      ) : commentsQuery.error ? (
+      ) : commentsQuery.error && !canReadComments ? (
         <ProblemState
           error={commentsQuery.error}
           onRetry={() => void commentsQuery.refetch()}
@@ -342,6 +350,13 @@ function CommentsPanelContent({
           })}
         </ol>
       )}
+
+      {!offline && commentsQuery.error && canReadComments ? (
+        <ProblemState
+          error={commentsQuery.error}
+          onRetry={() => void commentsQuery.refetch()}
+        />
+      ) : null}
 
       {commentsQuery.hasNextPage ? (
         <button

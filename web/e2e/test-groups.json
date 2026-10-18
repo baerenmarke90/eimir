@@ -14,7 +14,7 @@
   "specs": {
     "comments-edit-ownership.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 10,
+      "baselineTests": 11,
       "reason": "Comment editing must preserve later drafts, correct If-Match retries and separate task feedback across all three Story consumers."
     },
     "browser-session-reload.spec.ts": {

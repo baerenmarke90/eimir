@@ -46,6 +46,7 @@ async function openJourney(
   page: Page,
   scenario: (typeof cases)[number],
   secondOwn = false,
+  failFirstRefresh = false,
 ) {
   await page.setViewportSize({ width: scenario.width, height: 900 });
   await page.emulateMedia({
@@ -63,15 +64,30 @@ async function openJourney(
   const writes: { id: string; ifMatch: string | undefined; body: string }[] =
     [];
   let release!: (failed?: boolean) => void;
+  let refreshShouldFail = false;
   const held = new Promise<boolean | undefined>((resolve) => {
     release = resolve;
   });
   await page.route(
     `**/api/v1/spaces/${SPACE_ID}/${scenario.kind}/${scenario.id}/comments*`,
-    (route) =>
-      route.fulfill({
+    (route) => {
+      if (refreshShouldFail) {
+        refreshShouldFail = false;
+        return route.fulfill({
+          status: 503,
+          json: {
+            type: 'about:blank',
+            title: 'Unavailable',
+            status: 503,
+            detail: 'Unavailable',
+            code: 'UNAVAILABLE',
+          },
+        });
+      }
+      return route.fulfill({
         json: { items: comments, hasMore: false, nextCursor: null },
-      }),
+      });
+    },
   );
   await page.route(`**/api/v1/spaces/${SPACE_ID}/comments/*`, async (route) => {
     const request = route.request();
@@ -115,6 +131,7 @@ async function openJourney(
       updatedAt: '2026-10-18T12:00:00Z',
     };
     comments = comments.map((item) => (item.id === id ? updated : item));
+    if (failFirstRefresh && writes.length === 1) refreshShouldFail = true;
     await route.fulfill({ json: updated });
   });
   await signIn(page);
@@ -249,6 +266,52 @@ for (const scenario of cases) {
     });
   }
 }
+
+test('confirmed comment edit retains a newer draft when its refresh fails', async ({
+  page,
+}, info) => {
+  const state = await openJourney(page, cases[0], false, true);
+  const field = await edit(state.panel, 'Still smiling about this.');
+  await field.fill('The first submitted thought.');
+  await state.panel
+    .getByRole('button', { name: copy.save, exact: true })
+    .click();
+  await expect.poll(() => state.writes.length).toBe(1);
+  await field.fill('Keep this after the failed refresh.');
+  state.release();
+  await expect(
+    state.panel.getByText(de.states.server.title, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    state.panel.getByRole('button', { name: copy.save, exact: true }),
+  ).toBeEnabled();
+  await expect(field).toHaveValue('Keep this after the failed refresh.');
+  await accessible(page);
+  await captureScreenshot(
+    page,
+    info,
+    'comment-edit-refresh-failure-360-light.png',
+    { fullPage: true },
+  );
+  expect(state.writes).toHaveLength(1);
+  await state.panel
+    .getByRole('button', { name: copy.save, exact: true })
+    .click();
+  await expect(state.panel.getByRole('textbox')).toHaveCount(0);
+  await expect(
+    state.panel.getByText('Keep this after the failed refresh.', {
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(state.writes[1]).toEqual({
+    id: 'comment-own',
+    ifMatch: '2',
+    body: 'Keep this after the failed refresh.',
+  });
+  await page.goBack();
+  await expect(page).toHaveURL(/\/story\?tab=timeline$/);
+  expect(state.unknown).toEqual([]);
+});
 
 for (const outcome of ['success', 'failure'] as const) {
   test(`departed comment edit ${outcome} cannot consume another task`, async ({

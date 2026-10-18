@@ -1,74 +1,90 @@
-== comment-edit-final-baseline-unit ==
-    406|     await waitFor(() => expect(state.client.isMutating()).toBe(0));
-    407|     expect(invalidate).toHaveBeenCalledWith({
+== comment-edit-baseline-unit-v2 ==
+    452|     await waitFor(() => expect(state.client.isMutating()).toBe(0));
+    453|     expect(invalidate).toHaveBeenCalledWith({
        |                        ^
-    408|       queryKey: state.key,
-    409|       exact: true,
+    454|       queryKey: state.key,
+    455|       exact: true,
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/22]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/23]⎯
 
 
  Test Files  1 failed (1)
-      Tests  22 failed | 3 passed (25)
-   Start at  18:42:05
-   Duration  6.37s (tests 82%, environment 9%, transform 5%, import 4%)
+      Tests  23 failed | 6 passed (29)
+   Start at  18:50:53
+   Duration  5.98s (tests 85%, environment 10%, import 3%, transform 2%)
 
 
-== comment-edit-baseline-browser ==
+== comment-edit-refresh-characterization ==
+    285|     await waitFor(() => expect(state.client.isMutating()).toBe(0));
+    286|     expect(screen.getByRole('textbox')).toBe(field);
+       |                   ^
+    287|     expect(field.value).toBe('Keep after failed refresh');
+    288|     fireEvent.submit(form);
 
-        npx playwright show-trace ../../../eimir-comment-edit-baseline-results/comments-edit-ownership-de-e9b21-cannot-consume-another-task/trace.zip
-
-    ────────────────────────────────────────────────────────────────────────────────────────────────
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
 
 
-  6 failed
-    tests/comments-edit-ownership.spec.ts:156:5 › memories edit success preserves later words at 360 light
-    tests/comments-edit-ownership.spec.ts:156:5 › heart-moments edit success preserves later words at 390 dark
-    tests/comments-edit-ownership.spec.ts:156:5 › milestones edit success preserves later words at 430 light
-    tests/comments-edit-ownership.spec.ts:156:5 › memories edit success preserves later words at 1440 dark
-    tests/comments-edit-ownership.spec.ts:254:3 › departed comment edit success cannot consume another task
-    tests/comments-edit-ownership.spec.ts:254:3 › departed comment edit failure cannot consume another task
-  4 passed (26.7s)
+ Test Files  1 failed (1)
+      Tests  1 failed | 25 skipped (26)
+   Start at  18:49:33
+   Duration  1.12s (environment 48%, tests 23%, import 19%, transform 10%, worker 1%)
 
-== comment-edit-unit ==
+
+== comment-edit-unit-v2 ==
 npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
  RUN  v5.0.4 /tmp/eimir-comment-edit/web
 
 
  Test Files  3 passed (3)
-      Tests  61 passed (61)
-   Start at  18:42:54
-   Duration  3.98s (tests 64%, environment 25%, import 9%, transform 2%)
+      Tests  65 passed (65)
+   Start at  18:50:52
+   Duration  4.57s (tests 65%, environment 24%, import 8%, transform 3%)
 
-    Isolate  3 workers spawned · ~608ms startup each (spawn + environment, per file)
-             at least ~304ms faster with isolate: false — reuses workers across files instead of one per file
+    Isolate  3 workers spawned · ~684ms startup each (spawn + environment, per file)
+             at least ~342ms faster with isolate: false — reuses workers across files instead of one per file
 
 
-== comment-edit-browser-final ==
-[23/35] tests/momente-timeline-reference.spec.ts:80:3 › Momente > Zeitleiste Product Reference (#860) › renders 390x844 reference layout, spine, markers, cards, and captures screenshots
-[24/35] tests/momente-timeline-reference.spec.ts:232:3 › Momente > Zeitleiste Product Reference (#860) › dark mode at 390x844 captures 02-momente-timeline-390-dark.png
-[25/35] tests/momente-timeline-reference.spec.ts:281:3 › Momente > Zeitleiste Product Reference (#860) › 320px reflow produces no horizontal overflow and captures 03-momente-timeline-320-reflow.png
-[26/35] tests/momente-timeline-reference.spec.ts:349:3 › Momente > Zeitleiste Product Reference (#860) › 1440 Expanded desktop view captures 04-momente-timeline-1440-expanded.png
-[27/35] tests/momente-timeline-reference.spec.ts:397:3 › Momente > Zeitleiste Product Reference (#860) › Filter disclosure QA on mobile: collapsed vs expanded and captures 08 and 09 screenshots
-[28/35] tests/momente-timeline-reference.spec.ts:455:3 › Momente > Zeitleiste Product Reference (#860) › Detail navigation for Heart Moment and captures 10-momente-timeline-heart-moment-detail.png
-[29/35] tests/momente-timeline-reference.spec.ts:498:3 › Momente > Zeitleiste Product Reference (#860) › Detail navigation for Milestone and captures 11-momente-timeline-milestone-detail.png
-[30/35] tests/momente-timeline-reference.spec.ts:528:3 › Momente > Zeitleiste Product Reference (#860) › Story details use viewer-relative self attribution across all Story types (#1019)
-[31/35] tests/momente-timeline-reference.spec.ts:559:3 › Momente > Zeitleiste Product Reference (#860) › Timeline uses avatar-only partner attribution while detail keeps first-name provenance (#1064)
-[32/35] tests/momente-timeline-reference.spec.ts:585:3 › Momente > Zeitleiste Product Reference (#860) › shared Story detail comments keep a compact handoff across detail types and reflow states (#1024)
-[33/35] tests/momente-timeline-reference.spec.ts:669:3 › Momente > Zeitleiste Product Reference (#860) › Momente > Entdecken consumes the canonical Discover response and captures 12-momente-timeline-discover-reference.png
-[34/35] tests/momente-timeline-reference.spec.ts:704:5 › Momente > Zeitleiste Product Reference (#860) › Timeline is axe-clean at 390x844 in light mode
-[35/35] tests/momente-timeline-reference.spec.ts:704:5 › Momente > Zeitleiste Product Reference (#860) › Timeline is axe-clean at 390x844 in dark mode
-  35 passed (39.4s)
+== comment-edit-browser-v2 ==
+[24/36] tests/momente-timeline-reference.spec.ts:80:3 › Momente > Zeitleiste Product Reference (#860) › renders 390x844 reference layout, spine, markers, cards, and captures screenshots
+[25/36] tests/momente-timeline-reference.spec.ts:232:3 › Momente > Zeitleiste Product Reference (#860) › dark mode at 390x844 captures 02-momente-timeline-390-dark.png
+[26/36] tests/momente-timeline-reference.spec.ts:281:3 › Momente > Zeitleiste Product Reference (#860) › 320px reflow produces no horizontal overflow and captures 03-momente-timeline-320-reflow.png
+[27/36] tests/momente-timeline-reference.spec.ts:349:3 › Momente > Zeitleiste Product Reference (#860) › 1440 Expanded desktop view captures 04-momente-timeline-1440-expanded.png
+[28/36] tests/momente-timeline-reference.spec.ts:397:3 › Momente > Zeitleiste Product Reference (#860) › Filter disclosure QA on mobile: collapsed vs expanded and captures 08 and 09 screenshots
+[29/36] tests/momente-timeline-reference.spec.ts:455:3 › Momente > Zeitleiste Product Reference (#860) › Detail navigation for Heart Moment and captures 10-momente-timeline-heart-moment-detail.png
+[30/36] tests/momente-timeline-reference.spec.ts:498:3 › Momente > Zeitleiste Product Reference (#860) › Detail navigation for Milestone and captures 11-momente-timeline-milestone-detail.png
+[31/36] tests/momente-timeline-reference.spec.ts:528:3 › Momente > Zeitleiste Product Reference (#860) › Story details use viewer-relative self attribution across all Story types (#1019)
+[32/36] tests/momente-timeline-reference.spec.ts:559:3 › Momente > Zeitleiste Product Reference (#860) › Timeline uses avatar-only partner attribution while detail keeps first-name provenance (#1064)
+[33/36] tests/momente-timeline-reference.spec.ts:585:3 › Momente > Zeitleiste Product Reference (#860) › shared Story detail comments keep a compact handoff across detail types and reflow states (#1024)
+[34/36] tests/momente-timeline-reference.spec.ts:669:3 › Momente > Zeitleiste Product Reference (#860) › Momente > Entdecken consumes the canonical Discover response and captures 12-momente-timeline-discover-reference.png
+[35/36] tests/momente-timeline-reference.spec.ts:704:5 › Momente > Zeitleiste Product Reference (#860) › Timeline is axe-clean at 390x844 in light mode
+[36/36] tests/momente-timeline-reference.spec.ts:704:5 › Momente > Zeitleiste Product Reference (#860) › Timeline is axe-clean at 390x844 in dark mode
+  36 passed (40.3s)
 
-== comment-edit-language ==
+== comment-edit-language-v2 ==
 Migrated developer, backend, client, CI, and deployment surfaces satisfy the scoped English-language audit.
 
-== comment-edit-doc-language ==
+== comment-edit-doc-language-v2 ==
 Active engineering documentation satisfies the English-language audit.
 
-== comment-edit-inventory ==
-Browser test inventory: 62 specs, baseline 527 tests; PR-critical baseline 350 tests.
+== comment-edit-inventory-v2 ==
+Browser test inventory: 62 specs, baseline 528 tests; PR-critical baseline 351 tests.
+
+== comment-edit-pr-inventory-v2 ==
+  today-pinned-collection.spec.ts:2242:5 › offline shared reorder ends without reconnect replay at 390-light
+  today-pinned-collection.spec.ts:2242:5 › offline shared checkbox ends without reconnect replay at 1280-dark
+  today-pinned-collection.spec.ts:2242:5 › offline shared reorder ends without reconnect replay at 1280-dark
+  today-pro-insights.spec.ts:419:1 › Pro insights are absent from Today and open from More on Compact
+  today-pro-insights.spec.ts:443:1 › Pro insights reflow from More at 320px with large text, Dark and Reduced Motion
+  today-pro-insights.spec.ts:459:1 › Pro insights adapt to Expanded Web from More
+  today-pro-insights.spec.ts:472:1 › Free Spaces see a calm gated state and never request insights
+  today-recent-trace.spec.ts:207:1 › Today "Zuletzt bei euch" renders as small bordered mini-tiles, not activity-log cards or a bare text trace, and uses desktop width instead of a narrow left column
+  today-recent-trace.spec.ts:310:1 › Today "Zuletzt bei euch" mini-tiles wrap 2-4 per row on both required desktop widths
+  today-recent-trace.spec.ts:335:1 › Today "Zuletzt bei euch" mini-tiles are keyboard-focusable in order with a visible focus ring
+  today-recent-trace.spec.ts:364:1 › Today "Zuletzt bei euch" stays regression-free on mobile and in dark mode
+  today-recent-trace.spec.ts:392:1 › Today "Zuletzt bei euch" is axe-clean in dark mode
+  wish-detective.spec.ts:256:3 › Wish Detective Product Reference (#864) › 390/320 handoff keeps the secret hidden and stays accessible
+Total: 402 tests in 42 files
 
 == comment-edit-planner ==
 ✔ CLI emits only safe additional paths and returns failure without partial stdout (169.107209ms)
@@ -86,31 +102,31 @@ Browser test inventory: 62 specs, baseline 527 tests; PR-critical baseline 350 t
 ℹ todo 0
 ℹ duration_ms 564.217863
 
-== comment-edit-lint ==
-    254 │ describe('Memory view receipt', () => {
-  > 255 │   function setupReceiptTest(overrideRecordMock?: any) {
-        │                                                  ^^^
-    256 │     const recordStoryViewMock =
-    257 │       overrideRecordMock || vi.fn().mockResolvedValue(undefined);
+== comment-edit-lint-v2 ==
 
-  i any disables many type checking rules. Its use should be avoided.
+    339 │       recordStoryViewMock,
+    340 │       resolveQuery: resolveQuery!,
+  > 341 │       rejectQuery: rejectQuery!,
+        │                    ^^^^^^^^^^^^
+    342 │       memory,
+    343 │       client,
 
 
 The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
 Diagnostics not shown: 18.
-Checked 659 files in 596ms. No fixes applied.
+Checked 659 files in 578ms. No fixes applied.
 Found 25 warnings.
 Found 13 infos.
 
-== comment-edit-format-check ==
+== comment-edit-format-check-v2 ==
 npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
 > eimir-web@0.0.0 format:check
 > biome format .
 
-Checked 656 files in 221ms. No fixes applied.
+Checked 656 files in 253ms. No fixes applied.
 
-== comment-edit-cap ==
+== comment-edit-cap-v2 ==
 npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
 
 > eimir-web@0.0.0 cap:check
@@ -118,40 +134,37 @@ npm warn Unknown env config "http-proxy". This will stop working in the next maj
 
 ✅ Capacitor foundation checks passed.
 
-== comment-edit-typecheck-final ==
-npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
-
-> eimir-web@0.0.0 typecheck
-> tsc -b --pretty false
+== comment-edit-e2e-typecheck-v2 ==
 
 
-== comment-edit-e2e-typecheck ==
-
-
-== Full Web final (TZ=UTC) ==
+== comment-edit-full-unit-v2 ==
+Not implemented: Window's scrollTo() method
+Not implemented: Window's scrollTo() method
 Not implemented: Window's scrollTo() method
 Not implemented: Window's scrollTo() method
 Not implemented: Window's scrollTo() method
 
  Test Files  209 passed | 1 skipped (210)
-      Tests  1818 passed | 1 skipped (1819)
-   Start at  17:43:16
-   Duration  96.01s (tests 47%, environment 36%, import 14%, transform 2%, worker 1%)
+      Tests  1822 passed | 1 skipped (1823)
+   Start at  17:51:13
+   Duration  98.41s (tests 47%, environment 36%, import 14%, transform 3%, worker 1%)
 
-    Isolate  210 workers spawned · ~402ms startup each (spawn + environment, per file)
-             at least ~41.83s faster with isolate: false — reuses workers across files instead of one per file
+    Isolate  210 workers spawned · ~414ms startup each (spawn + environment, per file)
+             at least ~43.03s faster with isolate: false — reuses workers across files instead of one per file
 
 
-== Final-source baseline browser ==
+== comment-edit-baseline-browser-v2 ==
+        npx playwright show-trace ../../../eimir-comment-edit-baseline-v2-results/comments-edit-ownership-de-892b4-cannot-consume-another-task/trace.zip
 
     ────────────────────────────────────────────────────────────────────────────────────────────────
 
 
-  6 failed
-    tests/comments-edit-ownership.spec.ts:156:5 › memories edit success preserves later words at 360 light
-    tests/comments-edit-ownership.spec.ts:156:5 › heart-moments edit success preserves later words at 390 dark
-    tests/comments-edit-ownership.spec.ts:156:5 › milestones edit success preserves later words at 430 light
-    tests/comments-edit-ownership.spec.ts:156:5 › memories edit success preserves later words at 1440 dark
-    tests/comments-edit-ownership.spec.ts:254:3 › departed comment edit success cannot consume another task
-    tests/comments-edit-ownership.spec.ts:254:3 › departed comment edit failure cannot consume another task
-  4 passed (25.4s)
+  7 failed
+    tests/comments-edit-ownership.spec.ts:173:5 › memories edit success preserves later words at 360 light
+    tests/comments-edit-ownership.spec.ts:173:5 › heart-moments edit success preserves later words at 390 dark
+    tests/comments-edit-ownership.spec.ts:173:5 › milestones edit success preserves later words at 430 light
+    tests/comments-edit-ownership.spec.ts:173:5 › memories edit success preserves later words at 1440 dark
+    tests/comments-edit-ownership.spec.ts:270:1 › confirmed comment edit retains a newer draft when its refresh fails
+    tests/comments-edit-ownership.spec.ts:317:3 › departed comment edit success cannot consume another task
+    tests/comments-edit-ownership.spec.ts:317:3 › departed comment edit failure cannot consume another task
+  4 passed (32.6s)

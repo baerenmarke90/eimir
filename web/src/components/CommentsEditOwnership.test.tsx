@@ -11,6 +11,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CommentsApi } from '../api/generated/apis/CommentsApi';
 import type { CommentDetail } from '../api/generated/models/CommentDetail';
@@ -100,9 +101,11 @@ function setup(kind: CommentParentKind = 'memory') {
     offline: false,
   };
   const ui = () => (
-    <QueryClientProvider client={client}>
-      <CommentsPanel {...props} />
-    </QueryClientProvider>
+    <MemoryRouter>
+      <QueryClientProvider client={client}>
+        <CommentsPanel {...props} />
+      </QueryClientProvider>
+    </MemoryRouter>
   );
   const view = render(ui());
   return {
@@ -274,6 +277,49 @@ describe('comment editor task and resource ownership', () => {
 });
 
 describe('comment edit query authority', () => {
+  for (const denied of ['unauthorized', 'permission', 'notFound'] as const) {
+    it(`does not retain readable comments or the editor after a ${denied} refresh`, async () => {
+      const state = setup();
+      await edit();
+      await act(async () => {
+        await state.client
+          .fetchQuery({
+            queryKey: state.key,
+            staleTime: 0,
+            retry: false,
+            queryFn: () => Promise.reject(new ClientProblemError(denied)),
+          })
+          .catch(() => undefined);
+      });
+      await waitFor(() => expect(screen.queryByRole('textbox')).toBeNull());
+      expect(
+        screen.queryByText('Another comment', { selector: 'p' }),
+      ).toBeNull();
+      expect(
+        screen.getByText(
+          de.states[denied === 'unauthorized' ? 'session' : 'permission'].title,
+          { exact: true },
+        ),
+      ).toBeTruthy();
+    });
+  }
+
+  it('retains the newer edit when the successful PATCH is followed by a failed refresh', async () => {
+    const state = setup();
+    state.list.mockRejectedValueOnce(new ClientProblemError('server', 503));
+    const { field, form } = await submitEdit();
+    await waitFor(() => expect(state.update).toHaveBeenCalledTimes(1));
+    fireEvent.change(field, { target: { value: 'Keep after failed refresh' } });
+    await act(async () => state.response.resolve(saved));
+    await screen.findByText(de.states.server.title, { exact: true });
+    await waitFor(() => expect(state.client.isMutating()).toBe(0));
+    expect(screen.getByRole('textbox')).toBe(field);
+    expect(field.value).toBe('Keep after failed refresh');
+    fireEvent.submit(form);
+    await waitFor(() => expect(state.update).toHaveBeenCalledTimes(2));
+    expect(state.update.mock.calls[1][0].ifMatch).toBe('8');
+  });
+
   it('keeps the submitted API and identity if props change before dispatch', async () => {
     const state = setup();
     const replacementUpdate = vi.fn();

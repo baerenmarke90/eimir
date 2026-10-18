@@ -51,7 +51,42 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
             self.workflow,
         )
         self.assertIn("permissions:\n  contents: read", self.workflow)
-        self.assertEqual(self.workflow.count("packages: write"), 1)
+        self.assertEqual(self.workflow.count("packages: write"), 2)
+
+    def test_private_test_publication_cannot_select_the_product_release_jobs(
+        self,
+    ) -> None:
+        # The sole writer workflow now has a second, narrowly scoped publisher.
+        # Keep every product-release job dispatch-only and exclude private mode.
+        for name in ("evidence", "preflight", "publish"):
+            block = self.workflow.split(f"\n  {name}:\n", 1)[1]
+            block = re.split(r"\n  [a-z][a-z0-9-]*:\n", block, maxsplit=1)[0]
+            self.assertIn(
+                "if: github.event_name == 'workflow_dispatch' && !inputs.private_test_channel",
+                block,
+            )
+        self.assertIn("private_test_channel:\n", self.workflow)
+        gate = self.workflow.split("\n  test-checked-main:\n", 1)[1].split(
+            "\n  test-evidence:\n", 1
+        )[0]
+        self.assertIn("github.repository == 'baerenmarke90/eimir'", gate)
+        self.assertIn("github.event_name != 'pull_request'", gate)
+        self.assertIn("github.ref == 'refs/heads/main'", gate)
+        self.assertIn("vars.EIMIR_TEST_CHANNEL_ENABLED == 'true'", gate)
+        publisher = self.workflow.split("\n  test-publish:\n", 1)[1]
+        self.assertIn("needs: test-evidence", publisher)
+        self.assertNotIn("if: always()\n    runs-on:", publisher)
+        self.assertIn("scripts/test_deployment_channel.py publish", publisher)
+        self.assertNotIn("gh release", publisher)
+        self.assertNotIn("git tag", publisher)
+        jobs = re.findall(
+            r"(?ms)^  ([a-z][a-z0-9-]*):\n(.*?)(?=^  [a-z][a-z0-9-]*:\n|\Z)",
+            self.workflow.split("\njobs:\n", 1)[1],
+        )
+        self.assertEqual(
+            [name for name, block in jobs if "packages: write" in block],
+            ["publish", "test-publish"],
+        )
 
     def test_release_publish_is_only_workflow_with_contents_write(self) -> None:
         writers: list[str] = []

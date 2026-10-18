@@ -7,9 +7,7 @@ on:
       - ".github/workflows/web-browser-qa.yml"
   push:
     branches: [main]
-    paths:
-      - "web/**"
-      - ".github/workflows/web-browser-qa.yml"
+    # Every main revision is a test-channel candidate, including backend changes.
   workflow_dispatch:
 
 permissions:

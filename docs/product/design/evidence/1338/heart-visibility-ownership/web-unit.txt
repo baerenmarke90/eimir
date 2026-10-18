@@ -1,0 +1,38 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> eimir-web@0.0.0 test
+> npm run tokens:check && npm run pwa:check && vitest run --maxWorkers=2
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> eimir-web@0.0.0 tokens:check
+> node scripts/generate-product-roles.mjs --check && node scripts/generate-identity-roles.mjs --check
+
+Product role adapter matches design/tokens.json.
+Identity roles match design/tokens.json.
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> eimir-web@0.0.0 pwa:check
+> node scripts/check-pwa-foundation.mjs
+
+PWA foundation checks passed.
+
+ RUN  v5.0.4 /workspace/scratch/085539a6d3bb/eimir/web
+
+Not implemented: Window's scrollTo() method
+Not implemented: Window's scrollTo() method
+Not implemented: Window's scrollTo() method
+Not implemented: Window's scrollTo() method
+Not implemented: Window's scrollTo() method
+Not implemented: Window's scrollTo() method
+Not implemented: Window's scrollTo() method
+Not implemented: Window's scrollTo() method
+
+ Test Files  204 passed | 1 skipped (205)
+      Tests  1702 passed | 1 skipped (1703)
+   Start at  13:11:53
+   Duration  81.60s (tests 44%, environment 38%, import 14%, transform 3%, worker 1%)
+
+    Isolate  205 workers spawned · ~367ms startup each (spawn + environment, per file)
+             at least ~37.27s faster with isolate: false — reuses workers across files instead of one per file
+

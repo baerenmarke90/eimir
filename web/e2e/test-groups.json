@@ -42,7 +42,7 @@
     },
     "heart-moment-create-product-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 6
+      "baselineTests": 15
     },
     "hidden-file-inputs.spec.ts": {
       "disposition": "PR_CRITICAL",

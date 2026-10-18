@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   type FormEvent,
   useCallback,
@@ -26,12 +31,18 @@ import {
 } from '../client/createRequestIdentity';
 import { localDateInputValue } from '../client/dateInput';
 import { usePartnerNickname } from '../client/partnerNickname';
-import { normalizeClientError } from '../client/problemDetails';
+import {
+  ClientProblemError,
+  normalizeClientError,
+} from '../client/problemDetails';
+import { assertOnlineWrite } from '../client/connectivity';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
 import {
   deleteProductReadCacheEntry,
   loadProductWithReadCache,
+  type ProductReadResult,
 } from '../client/productReadCache';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
@@ -85,6 +96,16 @@ interface HeartMomentCreateValues {
 interface HeartMomentCreateSnapshot {
   readonly spaceId: string;
   readonly heartMomentCreate: HeartMomentCreateValues;
+}
+
+interface HeartMomentVisibilityRequest {
+  readonly current: HeartMomentDetail;
+  readonly visibility: ContentVisibilityValue;
+  readonly accountId: string;
+  readonly spaceId: string;
+  readonly queryKey: ReturnType<typeof authorSummaryQueryKeys.heartMoment>;
+  readonly api: ReferenceApis['heartMoments'];
+  readonly isCurrent: () => boolean;
 }
 
 function formatDateOnly(value: Date): string {
@@ -307,55 +328,91 @@ export function HeartMomentProductPage({
     },
   });
 
+  const visibilityMutationKey = [
+    'heart-moment-visibility',
+    currentAccountId,
+    spaceId,
+    heartMomentId,
+    heartMomentQuery.data?.value.version,
+  ] as const;
+  const visibilityWrites = useIsMutating({
+    mutationKey: visibilityMutationKey,
+    exact: true,
+  });
   const visibilityMutation = useMutation({
-    mutationFn: async ({
-      current,
-      visibility,
-    }: {
-      current: HeartMomentDetail;
-      visibility: ContentVisibilityValue;
-    }) => {
+    mutationKey: visibilityMutationKey,
+    networkMode: 'always',
+    retry: false,
+    mutationFn: async (request: HeartMomentVisibilityRequest) => {
       try {
-        return await apis.heartMoments.changeHeartMomentVisibility({
-          spaceId,
-          heartMomentId: current.id,
-          ifMatch: String(current.version),
-          heartMomentVisibilityChange: { visibility },
+        if (!request.isCurrent()) throw new ClientProblemError('permission');
+        const current = queryClient.getQueryData<
+          ProductReadResult<HeartMomentDetail>
+        >(request.queryKey);
+        if (current?.source !== 'network')
+          throw new ClientProblemError('offline');
+        if (!current.value.capabilities.canEdit)
+          throw new ClientProblemError('permission');
+        if (current.value.version !== request.current.version)
+          throw new ClientProblemError('conflict', 409);
+        assertOnlineWrite();
+        return await request.api.changeHeartMomentVisibility({
+          spaceId: request.spaceId,
+          heartMomentId: request.current.id,
+          ifMatch: String(request.current.version),
+          heartMomentVisibilityChange: { visibility: request.visibility },
         });
       } catch (error) {
         throw await normalizeClientError(error);
       }
     },
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey });
-      return { previous: queryClient.getQueryData(queryKey) };
+    onMutate: async (request) => {
+      if (!request.isCurrent()) throw new ClientProblemError('permission');
+      await queryClient.cancelQueries({
+        queryKey: request.queryKey,
+        exact: true,
+      });
     },
-    onError: (_error, _variables, context) => {
-      if (context?.previous)
-        queryClient.setQueryData(queryKey, context.previous);
-    },
-    onSuccess: async (heartMoment) => {
-      // Revoke the persistent snapshot synchronously, before any refetch:
+    onSuccess: async (heartMoment, request) => {
+      // Revoke the persistent snapshot before any refetch:
       // the privacy transition must not depend on a follow-up GET succeeding,
       // and a shared HeartMoment that just became PRIVATE must not remain
       // available as a stale IndexedDB record if that refetch never lands.
       await deleteProductReadCacheEntry(
-        currentAccountId,
-        spaceId,
+        request.accountId,
+        request.spaceId,
         'heartMoment',
-        heartMoment.id,
+        request.current.id,
       );
-      queryClient.setQueryData(queryKey, {
-        value: heartMoment,
-        source: 'network',
-      });
+      if (!request.isCurrent()) return;
+      const current = queryClient.getQueryData<
+        ProductReadResult<HeartMomentDetail>
+      >(request.queryKey);
+      if (!current) return;
+      const published = current.value.version < heartMoment.version;
+      if (published)
+        queryClient.setQueryData(request.queryKey, {
+          value: heartMoment,
+          source: 'network',
+        });
+      if (!request.isCurrent()) return;
       await Promise.all([
-        invalidateStoryProjections(queryClient, spaceId),
+        invalidateStoryProjections(queryClient, request.spaceId),
         queryClient.invalidateQueries({
-          queryKey: ['comments', spaceId, 'heartMoment', heartMoment.id],
+          queryKey: [
+            'comments',
+            request.spaceId,
+            'heartMoment',
+            request.current.id,
+          ],
         }),
-        queryClient.invalidateQueries({ queryKey }),
-        invalidateDashboard(queryClient, spaceId),
+        published
+          ? queryClient.invalidateQueries({
+              queryKey: request.queryKey,
+              exact: true,
+            })
+          : Promise.resolve(),
+        invalidateDashboard(queryClient, request.spaceId),
       ]);
     },
   });
@@ -798,7 +855,7 @@ export function HeartMomentProductPage({
   }
 
   const shared = heartMoment.visibility === ContentVisibility.SHARED;
-  const changingVisibility = visibilityMutation.isPending;
+  const changingVisibility = visibilityWrites > 0;
 
   const heartMomentEyebrow = heartMoment.happenedOn
     ? `${t('heartMomentProduct.detailEyebrow').toUpperCase()} · ${formatDateOnly(heartMoment.happenedOn)}`
@@ -912,14 +969,32 @@ export function HeartMomentProductPage({
                 ? t('heartMomentProduct.makePrivate')
                 : t('heartMomentProduct.makeShared')
             }
-            onClick={() =>
+            onClick={() => {
+              if (
+                queryClient.isMutating({
+                  mutationKey: visibilityMutationKey,
+                  exact: true,
+                })
+              )
+                return;
+              const key = authorSummaryQueryKeys.heartMoment(
+                spaceId,
+                heartMoment.id,
+              );
+              const isCurrent = captureAuthorizedQuery(queryClient, key);
+              if (!isCurrent()) return;
               visibilityMutation.mutate({
                 current: heartMoment,
+                accountId: currentAccountId,
+                spaceId,
+                queryKey: key,
+                api: apis.heartMoments,
+                isCurrent,
                 visibility: shared
                   ? ContentVisibility.PRIVATE
                   : ContentVisibility.SHARED,
-              })
-            }
+              });
+            }}
             disabled={changingVisibility}
           >
             <VisibilityGlyph

@@ -1,0 +1,853 @@
+
+ RUN  v5.0.4 /workspace/scratch/085539a6d3bb/heart-counterfactual/web
+
+ ❯ src/components/HeartMomentVisibility.test.tsx (21 tests | 20 failed) 3751ms
+   ❯ HeartMoment visibility response ownership (21)
+     × admits only one synchronous submission for the displayed version 181ms
+     × settles an offline attempt without a queued privacy write on reconnect 1045ms
+     × rejects dispatch after removal during awaited cancellation 34ms
+     × rejects dispatch after replacement during awaited cancellation 25ms
+     × binds the admitted request and settlement to their original Space 31ms
+     × revokes only the original account snapshot after session replacement 42ms
+     × preserves a newer authorized read after late failure 1038ms
+     × does not recreate a removed Query after late failure 34ms
+     × does not replace a new Query after late failure 32ms
+     × preserves a newer unauthorized read after late failure 25ms
+     × preserves a newer permission read after late failure 23ms
+     × preserves a newer notFound read after late failure 23ms
+     × preserves a newer authorized read after late success 1030ms
+     × does not recreate a removed Query after late success 22ms
+     × does not replace a new Query after late success 21ms
+     × preserves a newer unauthorized read after late success 21ms
+     × preserves a newer permission read after late success 22ms
+     × preserves a newer notFound read after late success 21ms
+     × retains an equal-version canonical projection instead of replacing its content 23ms
+     × rechecks Query ownership after asynchronous persistent-cache revocation 22ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 20 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > admits only one synchronous submission for the displayed version
+AssertionError: expected "vi.fn()" to be called 1 times, but got 2 times
+ ❯ src/components/HeartMomentVisibility.test.tsx:169:26
+    167|     });
+    168|     await waitFor(() => expect(state.change).toHaveBeenCalled());
+    169|     expect(state.change).toHaveBeenCalledTimes(1);
+       |                          ^
+    170|     await state.settle(true);
+    171|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/20]⎯
+
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > settles an offline attempt without a queued privacy write on reconnect
+AssertionError: expected 1 to be +0 // Object.is equality
+
+Ignored nodes: comments, script, style
+[36m<html[39m
+  [33mlang[39m=[32m"de"[39m
+[36m>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"page product-detail-page"[39m
+      [36m>[39m
+        [36m<header[39m
+          [33mclass[39m=[32m"page-heading"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"eyebrow"[39m
+            [36m>[39m
+              [0mHERZMOMENT · 17. Oktober 2026[0m
+            [36m</p>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"page-heading-title-container"[39m
+            [36m>[39m
+              [36m<h1>[39m
+                [0mA shared afternoon[0m
+              [36m</h1>[39m
+              [36m<a[39m
+                [33maria-label[39m=[32m"Bearbeiten"[39m
+                [33mclass[39m=[32m"list-entry-icon-button story-detail-edit-link"[39m
+                [33mdata-discover[39m=[32m"true"[39m
+                [33mhref[39m=[32m"/story/heart-moments/heart-1/edit"[39m
+                [33mtitle[39m=[32m"Bearbeiten"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"list-entry-icon"[39m
+                  [33mfocusable[39m=[32m"false"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</a>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</header>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"heart-moment-detail-container"[39m
+          [33mdata-heart-emotion[39m=[32m"LOVED"[39m
+        [36m>[39m
+          [36m<article[39m
+            [33mclass[39m=[32m"story-surface product-detail-card coffee-table-layout"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"heart-moment-detail-emotion"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-label[39m=[32m"Gefühl: Geliebt"[39m
+                [33mclass[39m=[32m"heart-emotion-badge heart-emotion-badge--detail"[39m
+                [33mdata-emotion[39m=[32m"LOVED"[39m
+                [33mrole[39m=[32m"img"[39m
+                [33mtitle[39m=[32m"Gefühl: Geliebt"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"heart-emotion-icon"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mfocusable[39m=[32m"false"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M12 20.6 4.7 13.8C1.9 11.2 2 6.9 4.8 5.1c2.3-1.5 5.2-.9 7.2 1.4 2-2.3 4.9-2.9 7.2-1.4 2.8 1.8 2.9 6.1.1 8.7L12 20.6Z"[39m
+                      [33mfill[39m=[32m"currentColor"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"sr-only"[39m
+                [36m>[39m
+                  [0mGefühl[0m
+                  [0m: [0m
+                [36m</span>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"heart-emotion-label"[39m
+                [36m>[39m
+                  [0mGeliebt[0m
+                [36m</span>[39m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"muted"[39m
+              [33mrole[39m=[32m"status"[39m
+            [36m>[39m
+              [0mSichtbarkeit wird geändert …[0m
+            [36m</p>[39m
+            [36m<footer[39m
+              [33mclass[39m=[32m"heart-moment-provenance-footer"[39m
+            [36m>[39m
+              [36m<p>[39m
+                [0mvon dir · 16.10.2026[0m
+              [36m</p>[39m
+              [36m<span[39m
+                [33maria-label[39m=[32m"Mit Partner geteilt"[39m
+                [33mclass[39m=[32m"visibility-badge visibility-shared visibility-size-small visibility-badge-subtle "[39m
+                [33mrole[39m=[32m"status"[39m
+                [33mtitle[39m=[32m"Mit Partner geteilt"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"visibility-badge-icon"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"16"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"16"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"[39m
+                    [36m/>[39m
+                    [36m<circle[39m
+                      [33mcx[39m=[32m"9"[39m
+                      [33mcy[39m=[32m"7"[39m
+                      [33mr[39m=[32m"4"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M22 21v-2a4 4 0 0 0-3-3.87"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M15 3.13a4 4 0 0 1 0 7.75"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"visibility-badge-label"[39m
+                [36m>[39m
+                  [0mGeteilt[0m
+                [36m</span>[39m
+              [36m</span>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Nur für mich behalten"[39m
+                [33mclass[39m=[32m"list-entry-icon-button tertiary heart-moment-visibility-action"[39m
+                [33mdisabled[39m=[32m""[39m
+                [33mtitle[39m=[32m"Nur für mich behalten"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"16"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"16"[39m
+                [36m>[39m
+                  [36m<rect[39m
+                    [33mheight[39m=[32m"10"[39m
+                    [33mrx[39m=[32m"2"[39m
+                    [33mwidth[39m=[32m"14"[39m
+                    [33mx[39m=[32m"5"[39m
+                    [33my[39m=[32m"11"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 11V7a4 4 0 018 0v4"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+            [36m</footer>[39m
+          [36m</article>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/components/HeartMomentVisibility.test.tsx:181:59
+    179|       }),
+    180|     );
+    181|     await waitFor(() => expect(state.client.isMutating()).toBe(0));
+       |                                                           ^
+    182|     expect(state.change).not.toHaveBeenCalled();
+    183|     await act(async () => {
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/20]⎯
+
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > rejects dispatch after removal during awaited cancellation
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > rejects dispatch after replacement during awaited cancellation
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array [
+      Object {
+        "heartMomentId": "heart-1",
+        "heartMomentVisibilityChange": Object {
+          "visibility": "PRIVATE",
+        },
+        "ifMatch": "1",
+        "spaceId": "space-1",
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ src/components/HeartMomentVisibility.test.tsx:215:32
+    213|       const current = state.client.getQueryData(KEY);
+    214|       await act(async () => cancellation.resolve());
+    215|       expect(state.change).not.toHaveBeenCalled();
+       |                                ^
+    216|       await waitFor(() => expect(state.client.isMutating()).toBe(0));
+    217|       expect(state.client.getQueryData(KEY)).toBe(current);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/20]⎯
+
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > binds the admitted request and settlement to their original Space
+AssertionError: expected [ { spaceId: 'space-2', …(3) } ] to deeply equal [ ObjectContaining{…} ]
+
+- Expected
++ Received
+
+  [
+    {
+-     "spaceId": "space-1",
++     "heartMomentId": "heart-1",
++     "heartMomentVisibilityChange": {
++       "visibility": "PRIVATE",
++     },
++     "ifMatch": "1",
++     "spaceId": "space-2",
+    },
+  ]
+
+ ❯ src/components/HeartMomentVisibility.test.tsx:243:40
+    241|     await act(async () => cancellation.resolve());
+    242|     await waitFor(() => expect(state.change).toHaveBeenCalledTimes(1));
+    243|     expect(state.change.mock.calls[0]).toEqual([
+       |                                        ^
+    244|       expect.objectContaining({ spaceId: 'space-1' }),
+    245|     ]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/20]⎯
+
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > revokes only the original account snapshot after session replacement
+AssertionError: expected "deleteProductReadCacheEntry" to be called with arguments: [ 'account-1', 'space-1', …(2) ]
+
+Received:
+
+  1st deleteProductReadCacheEntry call:
+
+  [
+-   "account-1",
++   "account-2",
+    "space-1",
+    "heartMoment",
+    "heart-1",
+  ]
+
+
+Number of calls: 1
+
+ ❯ src/components/HeartMomentVisibility.test.tsx:280:26
+    278|     await state.settle(true);
+    279|     await waitFor(() => expect(state.revoke).toHaveBeenCalled());
+    280|     expect(state.revoke).toHaveBeenCalledWith(
+       |                          ^
+    281|       'account-1',
+    282|       'space-1',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/20]⎯
+
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > preserves a newer authorized read after late failure
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > preserves a newer authorized read after late success
+AssertionError: expected true to be false // Object.is equality
+
+Ignored nodes: comments, script, style
+[36m<html[39m
+  [33mlang[39m=[32m"de"[39m
+[36m>[39m
+  [36m<head />[39m
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"page product-detail-page"[39m
+      [36m>[39m
+        [36m<header[39m
+          [33mclass[39m=[32m"page-heading"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"eyebrow"[39m
+            [36m>[39m
+              [0mHERZMOMENT · 17. Oktober 2026[0m
+            [36m</p>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"page-heading-title-container"[39m
+            [36m>[39m
+              [36m<h1>[39m
+                [0mNewer author content[0m
+              [36m</h1>[39m
+              [36m<a[39m
+                [33maria-label[39m=[32m"Bearbeiten"[39m
+                [33mclass[39m=[32m"list-entry-icon-button story-detail-edit-link"[39m
+                [33mdata-discover[39m=[32m"true"[39m
+                [33mhref[39m=[32m"/story/heart-moments/heart-1/edit"[39m
+                [33mtitle[39m=[32m"Bearbeiten"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"list-entry-icon"[39m
+                  [33mfocusable[39m=[32m"false"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</a>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</header>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"heart-moment-detail-container"[39m
+          [33mdata-heart-emotion[39m=[32m"LOVED"[39m
+        [36m>[39m
+          [36m<article[39m
+            [33mclass[39m=[32m"story-surface product-detail-card coffee-table-layout"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"heart-moment-detail-emotion"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-label[39m=[32m"Gefühl: Geliebt"[39m
+                [33mclass[39m=[32m"heart-emotion-badge heart-emotion-badge--detail"[39m
+                [33mdata-emotion[39m=[32m"LOVED"[39m
+                [33mrole[39m=[32m"img"[39m
+                [33mtitle[39m=[32m"Gefühl: Geliebt"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"heart-emotion-icon"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mfocusable[39m=[32m"false"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M12 20.6 4.7 13.8C1.9 11.2 2 6.9 4.8 5.1c2.3-1.5 5.2-.9 7.2 1.4 2-2.3 4.9-2.9 7.2-1.4 2.8 1.8 2.9 6.1.1 8.7L12 20.6Z"[39m
+                      [33mfill[39m=[32m"currentColor"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"sr-only"[39m
+                [36m>[39m
+                  [0mGefühl[0m
+                  [0m: [0m
+                [36m</span>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"heart-emotion-label"[39m
+                [36m>[39m
+                  [0mGeliebt[0m
+                [36m</span>[39m
+              [36m</span>[39m
+            [36m</div>[39m
+            [36m<p[39m
+              [33mclass[39m=[32m"muted"[39m
+              [33mrole[39m=[32m"status"[39m
+            [36m>[39m
+              [0mSichtbarkeit wird geändert …[0m
+            [36m</p>[39m
+            [36m<footer[39m
+              [33mclass[39m=[32m"heart-moment-provenance-footer"[39m
+            [36m>[39m
+              [36m<p>[39m
+                [0mvon dir · 16.10.2026[0m
+              [36m</p>[39m
+              [36m<span[39m
+                [33maria-label[39m=[32m"Nur für mich"[39m
+                [33mclass[39m=[32m"visibility-badge visibility-private visibility-size-small visibility-badge-subtle "[39m
+                [33mrole[39m=[32m"status"[39m
+                [33mtitle[39m=[32m"Nur für mich"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"visibility-badge-icon"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"16"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"16"[39m
+                  [36m>[39m
+                    [36m<rect[39m
+                      [33mheight[39m=[32m"10"[39m
+                      [33mrx[39m=[32m"2"[39m
+                      [33mwidth[39m=[32m"14"[39m
+                      [33mx[39m=[32m"5"[39m
+                      [33my[39m=[32m"11"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M8 11V7a4 4 0 018 0v4"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"visibility-badge-label"[39m
+                [36m>[39m
+                  [0mNur für mich[0m
+                [36m</span>[39m
+              [36m</span>[39m
+              [36m<button[39m
+                [33maria-label[39m=[32m"Mit Partner teilen"[39m
+                [33mclass[39m=[32m"list-entry-icon-button tertiary heart-moment-visibility-action"[39m
+                [33mdisabled[39m=[32m""[39m
+                [33mtitle[39m=[32m"Mit Partner teilen"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"16"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"16"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"[39m
+                  [36m/>[39m
+                  [36m<circle[39m
+                    [33mcx[39m=[32m"9"[39m
+                    [33mcy[39m=[32m"7"[39m
+                    [33mr[39m=[32m"4"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M22 21v-2a4 4 0 0 0-3-3.87"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M15 3.13a4 4 0 0 1 0 7.75"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+            [36m</footer>[39m
+          [36m</article>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</body>[39m
+[36m</html>[39m
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/components/HeartMomentVisibility.test.tsx:341:56
+    339|       });
+    340|       await waitFor(() =>
+    341|         expect(currentAction.hasAttribute('disabled')).toBe(false),
+       |                                                        ^
+    342|       );
+    343|       expect(
+ ❯ runWithExpensiveErrorDiagnosticsDisabled ../../eimir/web/node_modules/@testing-library/dom/dist/config.js:47:12
+ ❯ checkCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:124:77
+ ❯ Timeout.checkRealTimersCallback ../../eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:118:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/20]⎯
+
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > does not recreate a removed Query after late failure
+AssertionError: expected { …(2) } to be undefined // Object.is equality
+
+- Expected:
+undefined
+
++ Received:
+{
+  "source": "network",
+  "value": {
+    "attachment": null,
+    "author": {
+      "displayName": "Anna",
+      "id": "account-1",
+    },
+    "authorId": "account-1",
+    "capabilities": {
+      "canComment": true,
+      "canDelete": true,
+      "canEdit": true,
+    },
+    "createdAt": 2026-10-17T00:00:00.000Z,
+    "emotion": "LOVED",
+    "happenedOn": 2026-10-17T00:00:00.000Z,
+    "id": "heart-1",
+    "spaceId": "space-1",
+    "tags": [],
+    "text": "A shared afternoon",
+    "updatedAt": 2026-10-17T00:00:00.000Z,
+    "version": 1,
+    "visibility": "SHARED",
+  },
+}
+
+ ❯ src/components/HeartMomentVisibility.test.tsx:365:48
+    363|         const current = state.client.getQueryData(KEY);
+    364|         await state.settle(success);
+    365|         expect(state.client.getQueryData(KEY)).toBe(current);
+       |                                                ^
+    366|         expect(state.invalidate).not.toHaveBeenCalled();
+    367|       });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/20]⎯
+
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > does not replace a new Query after late failure
+AssertionError: expected { …(2) } to be { …(2) } // Object.is equality
+
+- Expected
++ Received
+
+@@ -16,11 +16,11 @@
+      "emotion": "LOVED",
+      "happenedOn": 2026-10-17T00:00:00.000Z,
+      "id": "heart-1",
+      "spaceId": "space-1",
+      "tags": [],
+-     "text": "Replacement session",
++     "text": "A shared afternoon",
+      "updatedAt": 2026-10-17T00:00:00.000Z,
+-     "version": 9,
++     "version": 1,
+      "visibility": "SHARED",
+    },
+  }
+
+ ❯ src/components/HeartMomentVisibility.test.tsx:365:48
+    363|         const current = state.client.getQueryData(KEY);
+    364|         await state.settle(success);
+    365|         expect(state.client.getQueryData(KEY)).toBe(current);
+       |                                                ^
+    366|         expect(state.invalidate).not.toHaveBeenCalled();
+    367|       });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/20]⎯
+
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > preserves a newer unauthorized read after late failure
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > preserves a newer unauthorized read after late success
+AssertionError: expected null to be ClientProblemError: Client request failed… { …(4) } // Object.is equality
+
+- Expected:
+ClientProblemError {
+  "message": "Client request failed (unauthorized).",
+  "kind": "unauthorized",
+  "status": undefined,
+  "code": undefined,
+  "retryAfterSeconds": undefined,
+  "name": "ClientProblemError",
+}
+
++ Received:
+null
+
+ ❯ src/components/HeartMomentVisibility.test.tsx:387:56
+    385|         expect(state.client.getQueryState(KEY)?.error).toBe(denied);
+    386|         await state.settle(success);
+    387|         expect(state.client.getQueryState(KEY)?.error).toBe(denied);
+       |                                                        ^
+    388|         expect(state.invalidate).not.toHaveBeenCalled();
+    389|       });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/20]⎯
+
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > preserves a newer permission read after late failure
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > preserves a newer permission read after late success
+AssertionError: expected null to be ClientProblemError: Client request failed… { …(4) } // Object.is equality
+
+- Expected:
+ClientProblemError {
+  "message": "Client request failed (permission).",
+  "kind": "permission",
+  "status": undefined,
+  "code": undefined,
+  "retryAfterSeconds": undefined,
+  "name": "ClientProblemError",
+}
+
++ Received:
+null
+
+ ❯ src/components/HeartMomentVisibility.test.tsx:387:56
+    385|         expect(state.client.getQueryState(KEY)?.error).toBe(denied);
+    386|         await state.settle(success);
+    387|         expect(state.client.getQueryState(KEY)?.error).toBe(denied);
+       |                                                        ^
+    388|         expect(state.invalidate).not.toHaveBeenCalled();
+    389|       });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/20]⎯
+
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > preserves a newer notFound read after late failure
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > preserves a newer notFound read after late success
+AssertionError: expected null to be ClientProblemError: Client request failed… { …(4) } // Object.is equality
+
+- Expected:
+ClientProblemError {
+  "message": "Client request failed (notFound).",
+  "kind": "notFound",
+  "status": undefined,
+  "code": undefined,
+  "retryAfterSeconds": undefined,
+  "name": "ClientProblemError",
+}
+
++ Received:
+null
+
+ ❯ src/components/HeartMomentVisibility.test.tsx:387:56
+    385|         expect(state.client.getQueryState(KEY)?.error).toBe(denied);
+    386|         await state.settle(success);
+    387|         expect(state.client.getQueryState(KEY)?.error).toBe(denied);
+       |                                                        ^
+    388|         expect(state.invalidate).not.toHaveBeenCalled();
+    389|       });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/20]⎯
+
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > does not recreate a removed Query after late success
+AssertionError: expected { …(2) } to be undefined // Object.is equality
+
+- Expected:
+undefined
+
++ Received:
+{
+  "source": "network",
+  "value": {
+    "attachment": null,
+    "author": {
+      "displayName": "Anna",
+      "id": "account-1",
+    },
+    "authorId": "account-1",
+    "capabilities": {
+      "canComment": true,
+      "canDelete": true,
+      "canEdit": true,
+    },
+    "createdAt": 2026-10-17T00:00:00.000Z,
+    "emotion": "LOVED",
+    "happenedOn": 2026-10-17T00:00:00.000Z,
+    "id": "heart-1",
+    "spaceId": "space-1",
+    "tags": [],
+    "text": "A shared afternoon",
+    "updatedAt": 2026-10-17T00:00:00.000Z,
+    "version": 2,
+    "visibility": "PRIVATE",
+  },
+}
+
+ ❯ src/components/HeartMomentVisibility.test.tsx:365:48
+    363|         const current = state.client.getQueryData(KEY);
+    364|         await state.settle(success);
+    365|         expect(state.client.getQueryData(KEY)).toBe(current);
+       |                                                ^
+    366|         expect(state.invalidate).not.toHaveBeenCalled();
+    367|       });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/20]⎯
+
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > does not replace a new Query after late success
+AssertionError: expected { …(2) } to be { …(2) } // Object.is equality
+
+- Expected
++ Received
+
+@@ -16,11 +16,11 @@
+      "emotion": "LOVED",
+      "happenedOn": 2026-10-17T00:00:00.000Z,
+      "id": "heart-1",
+      "spaceId": "space-1",
+      "tags": [],
+-     "text": "Replacement session",
++     "text": "A shared afternoon",
+      "updatedAt": 2026-10-17T00:00:00.000Z,
+-     "version": 9,
+-     "visibility": "SHARED",
++     "version": 2,
++     "visibility": "PRIVATE",
+    },
+  }
+
+ ❯ src/components/HeartMomentVisibility.test.tsx:365:48
+    363|         const current = state.client.getQueryData(KEY);
+    364|         await state.settle(success);
+    365|         expect(state.client.getQueryData(KEY)).toBe(current);
+       |                                                ^
+    366|         expect(state.invalidate).not.toHaveBeenCalled();
+    367|       });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/20]⎯
+
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > retains an equal-version canonical projection instead of replacing its content
+AssertionError: expected { …(2) } to be { …(2) } // Object.is equality
+
+- Expected
++ Received
+
+@@ -16,11 +16,11 @@
+      "emotion": "LOVED",
+      "happenedOn": 2026-10-17T00:00:00.000Z,
+      "id": "heart-1",
+      "spaceId": "space-1",
+      "tags": [],
+-     "text": "Canonical read",
++     "text": "A shared afternoon",
+      "updatedAt": 2026-10-17T00:00:00.000Z,
+      "version": 2,
+      "visibility": "PRIVATE",
+    },
+  }
+
+ ❯ src/components/HeartMomentVisibility.test.tsx:409:44
+    407|     const canonical = state.client.getQueryData(KEY);
+    408|     await state.settle(true);
+    409|     expect(state.client.getQueryData(KEY)).toBe(canonical);
+       |                                            ^
+    410|   });
+    411|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/20]⎯
+
+ FAIL  src/components/HeartMomentVisibility.test.tsx > HeartMoment visibility response ownership > rechecks Query ownership after asynchronous persistent-cache revocation
+AssertionError: expected { …(2) } to be undefined
+
+- Expected:
+undefined
+
++ Received:
+{
+  "source": "network",
+  "value": {
+    "attachment": null,
+    "author": {
+      "displayName": "Anna",
+      "id": "account-1",
+    },
+    "authorId": "account-1",
+    "capabilities": {
+      "canComment": true,
+      "canDelete": true,
+      "canEdit": true,
+    },
+    "createdAt": 2026-10-17T00:00:00.000Z,
+    "emotion": "LOVED",
+    "happenedOn": 2026-10-17T00:00:00.000Z,
+    "id": "heart-1",
+    "spaceId": "space-1",
+    "tags": [],
+    "text": "A shared afternoon",
+    "updatedAt": 2026-10-17T00:00:00.000Z,
+    "version": 2,
+    "visibility": "PRIVATE",
+  },
+}
+
+ ❯ src/components/HeartMomentVisibility.test.tsx:428:44
+    426|     await act(async () => revocation.resolve());
+    427|     await waitFor(() => expect(state.client.isMutating()).toBe(0));
+    428|     expect(state.client.getQueryData(KEY)).toBeUndefined();
+       |                                            ^
+    429|     expect(state.invalidate).not.toHaveBeenCalled();
+    430|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/20]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  20 failed | 1 passed (21)
+   Start at  13:13:46
+   Duration  4.85s (tests 80%, environment 12%, import 4%, transform 4%)
+

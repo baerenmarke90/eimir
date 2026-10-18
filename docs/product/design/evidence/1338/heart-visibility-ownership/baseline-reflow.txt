@@ -1,0 +1,53 @@
+[WebServer] (node:18) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 2 workers
+
+(node:53) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:52) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/heart-moment-create-product-reference.spec.ts:744:1 › Heart Moment Create reflows at 320px and large text without horizontal overflow (#862) (1.7s)
+  ✘  2 [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 320px dark (6.9s)
+
+
+  1) [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 320px dark 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Sichtbarkeit wird geändert …', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Sichtbarkeit wird geändert …', { exact: true })
+
+
+      506 |       fullPage: true,
+      507 |     });
+    > 508 |     await expect(pending).toBeVisible();
+          |                           ^
+      509 |     await expect(makePrivate).toBeDisabled();
+      510 |     await expect(page.locator('.comments-panel')).toHaveCount(0);
+      511 |     await expectNoHorizontalOverflow(page);
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/heart-moment-create-product-reference.spec.ts:508:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-large-baseline-results/heart-moment-create-produc-23721-iberate-retry-at-320px-dark-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../085539a6d3bb/heart-large-baseline-results/heart-moment-create-produc-23721-iberate-retry-at-320px-dark-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../085539a6d3bb/heart-large-baseline-results/heart-moment-create-produc-23721-iberate-retry-at-320px-dark-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../085539a6d3bb/heart-large-baseline-results/heart-moment-create-produc-23721-iberate-retry-at-320px-dark-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests/heart-moment-create-product-reference.spec.ts:449:3 › Heart Moment visibility retains pending through return and deliberate retry at 320px dark 
+  1 passed (8.1s)

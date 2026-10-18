@@ -1,0 +1,25 @@
+{
+  "baselineMain": "bb8ccd7b34c4c56c6b65fe296e0461b555a1d119",
+  "files": [
+    {
+      "path": "web/dist/assets/index-8tElk24A.css",
+      "sha256": "ef1476c4c60a22227c9916340b569a95aaa622da14332a666237936a4b698866"
+    },
+    {
+      "path": "web/dist/assets/index-MJSEwFmH.js",
+      "sha256": "9fceba497575c7bf950584261a3d4771ce43bd0ec6eb2c68485473d2cfc2a3ad"
+    },
+    {
+      "path": "web/dist/assets/web-CZmI7x8Y.js",
+      "sha256": "966a6f310fa71dc7e604b6ffa250680aa411949471ae47936d4dc4a5abdb6ca2"
+    },
+    {
+      "path": "web/dist/assets/web-vKKS71q2.js",
+      "sha256": "e6a8a4e0585dd64f434cb3e433b0c9b94e4958e2764a9973e559aa9bccc5f538"
+    },
+    {
+      "path": "web/src/components/HeartMomentProductPage.tsx",
+      "sha256": "8da438146b988a8f34250b9a7e362a506e94efb53419b4656fe5c0b11fc3352f"
+    }
+  ]
+}

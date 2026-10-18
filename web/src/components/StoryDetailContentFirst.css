@@ -1,5 +1,7 @@
 .product-detail-page {
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
+  overflow-wrap: anywhere;
 }
 
 .product-detail-page .page-heading {
@@ -20,21 +22,14 @@
 }
 
 /* Let the detail shrink with its page grid when text is enlarged. */
-.heart-moment-detail-container {
+.heart-moment-detail-container,
+.milestone-detail-container {
   min-width: 0;
 }
 
-.heart-moment-detail-container .product-detail-card {
+.heart-moment-detail-container .product-detail-card,
+.milestone-detail-container .product-detail-card {
   grid-template-columns: minmax(0, 1fr);
-}
-
-.heart-moment-detail-container .comment-compose-trigger {
-  max-width: 100%;
-}
-
-.heart-moment-detail-container .comment-compose-trigger span {
-  min-width: 0;
-  overflow-wrap: anywhere;
 }
 
 /* Matches the Memory detail body's own override (MemoryProductPage.css):

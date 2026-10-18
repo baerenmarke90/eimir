@@ -24,6 +24,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 4
     },
+    "comments-offline-writes.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 12,
+      "reason": "Production create/edit/delete must reject offline intent, preserve input and require deliberate retry instead of reconnect replay across all three Story comment consumers."
+    },
     "create-surface-visual-checks.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 15

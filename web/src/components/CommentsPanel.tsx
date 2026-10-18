@@ -18,6 +18,7 @@ import {
   type CreateRequestAttempt,
   submitCreateRequest,
 } from '../client/createRequestIdentity';
+import { assertOnlineWrite } from '../client/connectivity';
 import { normalizeClientError } from '../client/problemDetails';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
@@ -119,6 +120,8 @@ export function CommentsPanel({
   });
 
   const createMutation = useMutation({
+    networkMode: 'always',
+    retry: false,
     mutationFn: async ({
       body,
     }: {
@@ -126,6 +129,7 @@ export function CommentsPanel({
       draftSnapshot: string;
       draftRevision: number;
     }) => {
+      assertOnlineWrite();
       const snapshot: CommentCreateSnapshot = {
         spaceId,
         parentKind,
@@ -159,8 +163,11 @@ export function CommentsPanel({
   });
 
   const deleteMutation = useMutation({
+    networkMode: 'always',
+    retry: false,
     mutationFn: async (comment: CommentDetail) => {
       try {
+        assertOnlineWrite();
         await commentsApi.deleteComment({
           spaceId,
           commentId: comment.id,
@@ -179,6 +186,8 @@ export function CommentsPanel({
   });
 
   const updateMutation = useMutation({
+    networkMode: 'always',
+    retry: false,
     mutationFn: async ({
       comment,
       body,
@@ -187,6 +196,7 @@ export function CommentsPanel({
       body: string;
     }) => {
       try {
+        assertOnlineWrite();
         return await commentsApi.updateComment({
           spaceId,
           commentId: comment.id,

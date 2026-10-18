@@ -1,0 +1,77 @@
+Component counterfactual: unchanged runtime
+-------------------------------------------
+ ❯ src/components/CommentsOfflineWrites.test.tsx (21 tests | 21 failed) 22429ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 21 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > memory comment offline admission > create: query offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > memory comment offline admission > create: navigator offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > memory comment offline admission > update: query offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > memory comment offline admission > update: navigator offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > memory comment offline admission > delete: query offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > memory comment offline admission > delete: navigator offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > heartMoment comment offline admission > create: query offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > heartMoment comment offline admission > create: navigator offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > heartMoment comment offline admission > update: query offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > heartMoment comment offline admission > update: navigator offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > heartMoment comment offline admission > delete: query offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > heartMoment comment offline admission > delete: navigator offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > milestone comment offline admission > create: query offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > milestone comment offline admission > create: navigator offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > milestone comment offline admission > update: query offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > milestone comment offline admission > update: navigator offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > milestone comment offline admission > delete: query offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > milestone comment offline admission > delete: navigator offline settles, never replays, and permits deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > comment writes override inherited retry defaults > create reports one failed request and waits for a deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > comment writes override inherited retry defaults > update reports one failed request and waits for a deliberate retry
+ FAIL  src/components/CommentsOfflineWrites.test.tsx > comment writes override inherited retry defaults > delete reports one failed request and waits for a deliberate retry
+ Test Files  1 failed (1)
+      Tests  21 failed (21)
+   Duration  23.31s (tests 97%, environment 2%, import 1%)
+
+Focused repaired comments
+-------------------------
+ Test Files  2 passed (2)
+      Tests  36 passed (36)
+   Duration  2.53s (tests 60%, environment 26%, import 10%, transform 4%)
+
+Final identical-spec browser counterfactual: pristine production bundle
+-----------------------------------------------------------------------
+Running 12 tests using 2 workers
+  12 failed
+    e2e/tests/comments-offline-writes.spec.ts:116:5 › memories create requires deliberate online retry at 360 light
+    e2e/tests/comments-offline-writes.spec.ts:116:5 › memories update requires deliberate online retry at 360 light
+    e2e/tests/comments-offline-writes.spec.ts:116:5 › memories delete requires deliberate online retry at 360 light
+    e2e/tests/comments-offline-writes.spec.ts:116:5 › heart-moments create requires deliberate online retry at 390 dark
+    e2e/tests/comments-offline-writes.spec.ts:116:5 › heart-moments update requires deliberate online retry at 390 dark
+    e2e/tests/comments-offline-writes.spec.ts:116:5 › heart-moments delete requires deliberate online retry at 390 dark
+    e2e/tests/comments-offline-writes.spec.ts:116:5 › milestones create requires deliberate online retry at 430 light
+    e2e/tests/comments-offline-writes.spec.ts:116:5 › milestones update requires deliberate online retry at 430 light
+    e2e/tests/comments-offline-writes.spec.ts:116:5 › milestones delete requires deliberate online retry at 430 light
+    e2e/tests/comments-offline-writes.spec.ts:116:5 › memories create requires deliberate online retry at 1440 dark
+    e2e/tests/comments-offline-writes.spec.ts:116:5 › memories update requires deliberate online retry at 1440 dark
+    e2e/tests/comments-offline-writes.spec.ts:116:5 › memories delete requires deliberate online retry at 1440 dark
+
+Final production browser: new and unchanged adjacent journeys
+-------------------------------------------------------------
+Running 62 tests using 2 workers
+  62 passed (1.1m)
+
+Full Web: TZ=UTC
+----------------
+ Test Files  208 passed | 1 skipped (209)
+      Tests  1793 passed | 1 skipped (1794)
+   Duration  86.14s (tests 44%, environment 38%, import 14%, transform 3%, worker 1%)
+
+Pristine baseline: inherited Asia/Taipei fixture assumptions
+------------------------------------------------------------
+ ❯ src/client/formatRecency.test.ts (6 tests | 1 failed) 28ms
+ ❯ src/client/planningOverview.test.ts (3 tests | 1 failed) 17ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/client/formatRecency.test.ts > formatRecency > formats yesterday as Gestern
+ FAIL  src/client/planningOverview.test.ts > planning overview selectors > composes focal, later, undated, past, and completed Plan groups
+ Test Files  2 failed (2)
+      Tests  2 failed | 7 passed (9)
+   Duration  747ms (transform 78%, import 16%, tests 5%, worker 1%)
+
+Dependency audit: unchanged high threshold
+------------------------------------------
+3 moderate severity vulnerabilities

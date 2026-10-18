@@ -1,4 +1,5 @@
 import type { CommentsApi } from '../api/generated/apis/CommentsApi';
+import { normalizeClientError } from './problemDetails';
 
 export type CommentParentKind = 'memory' | 'heartMoment' | 'milestone';
 
@@ -18,7 +19,7 @@ export function commentPresenceQueryKey(
   return ['comment-presence', spaceId, parentKind, parentId] as const;
 }
 
-export function listCommentsPage(
+export async function listCommentsPage(
   commentsApi: CommentsApi,
   parentKind: CommentParentKind,
   spaceId: string,
@@ -27,21 +28,25 @@ export function listCommentsPage(
   limit = 50,
 ) {
   const common = { spaceId, cursor: cursor ?? undefined, limit };
-  switch (parentKind) {
-    case 'memory':
-      return commentsApi.listMemoryComments({
-        ...common,
-        memoryId: parentId,
-      });
-    case 'heartMoment':
-      return commentsApi.listHeartMomentComments({
-        ...common,
-        heartMomentId: parentId,
-      });
-    case 'milestone':
-      return commentsApi.listMilestoneComments({
-        ...common,
-        milestoneId: parentId,
-      });
+  try {
+    switch (parentKind) {
+      case 'memory':
+        return await commentsApi.listMemoryComments({
+          ...common,
+          memoryId: parentId,
+        });
+      case 'heartMoment':
+        return await commentsApi.listHeartMomentComments({
+          ...common,
+          heartMomentId: parentId,
+        });
+      case 'milestone':
+        return await commentsApi.listMilestoneComments({
+          ...common,
+          milestoneId: parentId,
+        });
+    }
+  } catch (error) {
+    throw await normalizeClientError(error);
   }
 }

@@ -12,6 +12,7 @@ import { InvitationsApi } from '../api/generated/apis/InvitationsApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { IssuedInvitationView } from '../api/generated/models/IssuedInvitationView';
+import * as clientConfig from '../client/config';
 import partnerConnection from '../i18n/locales/partnerConnection';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
 
@@ -124,6 +125,42 @@ afterEach(() => {
 });
 
 describe('PartnerConnectionPanel one-time invitation privacy', () => {
+  it.each([true, false])(
+    'renders and copies the public invitation origin when native is %s',
+    async (isNative) => {
+      mockReadApis();
+      vi.spyOn(clientConfig, 'isCapacitorNativePlatform').mockReturnValue(
+        isNative,
+      );
+      const token = 'one-time+token/with?symbols=1';
+      vi.spyOn(
+        InvitationsApi.prototype,
+        'createInvitationApiV1SpacesSpaceIdInvitationsPost',
+      ).mockResolvedValue(issuedInvitation('invitation-a', token));
+      const clipboardWrite = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: clipboardWrite },
+      });
+      const apiBaseUrl = 'https://instance.example.test/api-prefix';
+      renderPanel({ ...DEFAULT_PROPS, apiBaseUrl });
+
+      const field = (await issueCurrentInvitation()) as HTMLInputElement;
+      const link = new URL(field.value);
+      expect(link.origin).toBe(
+        isNative ? new URL(apiBaseUrl).origin : window.location.origin,
+      );
+      expect(link.pathname).toBe('/auth/invitation');
+      expect(link.searchParams.get('token')).toBe(token);
+      fireEvent.click(
+        screen.getByRole('button', { name: partnerConnection.copy }),
+      );
+      await waitFor(() =>
+        expect(clipboardWrite).toHaveBeenCalledWith(link.href),
+      );
+    },
+  );
+
   it('drops the issued token immediately on Space change and never restores it when switching back', async () => {
     const { listSpy } = mockReadApis();
     vi.spyOn(

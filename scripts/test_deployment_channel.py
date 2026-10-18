@@ -243,7 +243,7 @@ def required(name: str) -> str:
 
 
 def canonical_compose() -> dict:
-    # Never resolve an operator .env or the caller's EIMIR/SBS settings. Required
+    # Never resolve an operator .env or the caller's deployment settings. Required
     # local expressions are introduced after this source-default-only step.
     environment = {
         key: os.environ[key]

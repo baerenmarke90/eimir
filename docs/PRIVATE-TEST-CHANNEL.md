@@ -70,7 +70,7 @@ Use the **existing** `eimir-test` project. Expected resources:
 | --- | --- |
 | Separate database project | `eimir-test-db` |
 | Database network/alias | `eimir-test-data` / `eimir-test-postgres` |
-| Database role/database | `sidebyside` / `sidebyside` |
+| PostgreSQL role/database | `sidebyside` / `sidebyside` |
 | Proxy network | `mailcow-proxy` |
 | Media volume | `eimir-test_cloud_media_data` |
 | Forward journal volume | `eimir-test_cloud_deletion_journal_data` |

@@ -20,6 +20,7 @@ import { ProfilesApi } from './api/generated/apis/ProfilesApi';
 import { SpacesApi } from './api/generated/apis/SpacesApi';
 import { Configuration } from './api/generated/runtime';
 import { loadReferenceClientConfig } from './client/config';
+import { useNativeEntryLinks } from './client/nativeEntryLinks';
 import {
   readSensitiveEntryToken,
   stripSensitiveEntryToken,
@@ -857,6 +858,12 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   );
   const [isRestoring, setIsRestoring] = useState(() =>
     Boolean(initialStoredSession),
+  );
+  useNativeEntryLinks(
+    config.apiBaseUrl,
+    tokens !== null,
+    isRestoring,
+    setEntryToken,
   );
   const [spaceId, setSpaceId] = useState<string | null>(
     () => initialStoredSession?.spaceId ?? null,

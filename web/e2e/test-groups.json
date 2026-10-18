@@ -12,6 +12,10 @@
     "LOWER_LEVEL": "Still runs in the full regression until equivalent lower-level coverage is committed and the browser case can be removed."
   },
   "specs": {
+    "app-updates.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 6
+    },
     "browser-session-reload.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 3

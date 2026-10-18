@@ -1,4 +1,8 @@
 const de = {
+  appUpdates: {
+    longNotes: 'Eine ausführliche Beschreibung der Änderungen. ',
+    notes: 'Verbesserungen für eure Testversion.',
+  },
   pageTitle: 'Momente für uns',
   photoTitle: 'Ein Wochenende am Wasser',
   photoContext: '1. September · Lea',

@@ -121,6 +121,7 @@ export const SETTINGS_CATEGORY_IDS = [
   'appearance',
   'data',
   'account',
+  'updates',
 ] as const;
 
 export type SettingsCategoryId = (typeof SETTINGS_CATEGORY_IDS)[number];
@@ -134,6 +135,7 @@ export const SETTINGS_CATEGORY_ROUTES = {
   appearance: `${MORE_SETTINGS_ROUTE}/appearance`,
   data: `${MORE_SETTINGS_ROUTE}/data`,
   account: `${MORE_SETTINGS_ROUTE}/account`,
+  updates: `${MORE_SETTINGS_ROUTE}/updates`,
 } as const satisfies Record<SettingsCategoryId, string>;
 
 export function isSettingsCategoryId(

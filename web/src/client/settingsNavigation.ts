@@ -44,6 +44,12 @@ export const SETTINGS_CATEGORIES: readonly SettingsCategoryDefinition[] = [
     titleKey: 'profileIdentity.settingsAccount',
     descriptionKey: 'profileIdentity.settingsAccountIntro',
   },
+  {
+    id: 'updates',
+    path: SETTINGS_CATEGORY_ROUTES.updates,
+    titleKey: 'appUpdates.title',
+    descriptionKey: 'appUpdates.intro',
+  },
 ];
 
 export function settingsCategoryDefinition(

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { App } from '@capacitor/app';
 import { isCapacitorNative } from './pwa';
+import { checkAppUpdatesIfDue } from './client/appUpdates';
 
 export function handleNativeBackButton(canGoBack: boolean): void {
   if (canGoBack) {
@@ -13,6 +14,7 @@ export function handleNativeBackButton(canGoBack: boolean): void {
 export function useCapacitorShell(): void {
   useEffect(() => {
     if (!isCapacitorNative()) return;
+    checkAppUpdatesIfDue();
 
     const backSub = App.addListener('backButton', ({ canGoBack }) => {
       handleNativeBackButton(canGoBack);
@@ -20,6 +22,7 @@ export function useCapacitorShell(): void {
 
     const stateSub = App.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
+        checkAppUpdatesIfDue();
         window.dispatchEvent(new Event('focus'));
       }
     });

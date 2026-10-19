@@ -2,6 +2,8 @@ const snackbar = {
   snackbar: {
     dismiss: 'Schließen',
     spaceSwitched: 'Bereich gewechselt.',
+    identityLinkWaiting:
+      'Dein Link wartet. Speichere oder schließe zuerst deinen Entwurf.',
     memoryDeleted: 'Erinnerung gelöscht.',
     dailyEnergyConflict:
       'Der Akku-Stand hat sich inzwischen geändert. Der aktuelle Stand wurde geladen.',

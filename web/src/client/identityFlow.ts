@@ -10,6 +10,13 @@ import type { StoredSession } from './sessionPersistence';
 const WEB_DEVICE_NAME = 'eimir. Web';
 const WEB_PLATFORM = 'web';
 
+export class ActiveAccountMismatchError extends Error {
+  constructor() {
+    super('Identity entry cannot replace an active account.');
+    this.name = 'ActiveAccountMismatchError';
+  }
+}
+
 // Auth-return restoration deliberately does not happen here (#689): the
 // Account that just authenticated is known immediately, but its active
 // Space is not resolved until later membership/space-context loading

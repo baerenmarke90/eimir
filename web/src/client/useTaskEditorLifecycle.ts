@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useDocumentLeaveGuard } from './useDocumentLeaveGuard';
 import { useEditorHistoryEntry } from './useEditorHistoryEntry';
 import { useTaskActivation } from './useTaskActivation';
 
@@ -42,21 +43,7 @@ export function useTaskEditorLifecycle({
     if (!isActive) keepEditing();
   }, [isActive, keepEditing]);
 
-  useEffect(() => {
-    if (
-      typeof window === 'undefined' ||
-      !isActive ||
-      (!isDirty && !isCloseBlocked)
-    )
-      return;
-
-    const beforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', beforeUnload);
-    return () => window.removeEventListener('beforeunload', beforeUnload);
-  }, [isActive, isCloseBlocked, isDirty]);
+  useDocumentLeaveGuard(isActive && (isDirty || isCloseBlocked));
 
   return {
     captureOwnership,

@@ -20,8 +20,12 @@ same-key `0.2.0-test.2` candidate with HTTPS email entry support instead.
 The sideload manifest declares verified App Links only for the five existing
 email-proof paths on `demo.eimir.ur-cloud.de`. React validates the configured HTTPS
 origin, bounded token and exact allowed path, then passes the proof in memory to
-the existing IdentityEntry consumer. It waits for session restoration and never
-replaces an already signed-in account or interrupts its drafts. No token is
+the existing IdentityEntry consumer. The shared `useIdentityEntry` intake waits for session restoration and processes
+a same-account invitation even when already signed in. A callback for a different
+Account leaves the current session intact and revokes the newly issued session;
+external callbacks wait in memory until protected drafts/saves close. It also
+accepts the exact pre-upgrade signup invitation fragment. The obsolete separate
+`nativeEntryLinks` listener has been removed. No token is
 stored in history, native preferences or logs. Cold/warm delivery, duplicate and
 late events use one subscription boundary. Browser authentication and the
 existing OIDC callback remain independent.

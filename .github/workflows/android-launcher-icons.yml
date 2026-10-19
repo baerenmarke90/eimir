@@ -19,9 +19,13 @@ concurrency:
 
 jobs:
   launcher:
-    name: Android launcher device verification
+    name: Android launcher API ${{ matrix.api }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [28, 36]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
@@ -43,24 +47,26 @@ jobs:
       - name: Install the Android test system
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
-            'platforms;android-36' 'build-tools;36.0.0' \
-            'system-images;android-36;google_apis;x86_64'
+            'platform-tools' 'emulator' 'platforms;android-36' 'build-tools;36.0.0' \
+            'system-images;android-${{ matrix.api }};google_apis;x86_64'
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
             --force --name eimir-launcher --device pixel_5 \
-            --package 'system-images;android-36;google_apis;x86_64'
+            --package 'system-images;android-${{ matrix.api }};google_apis;x86_64'
           sudo setfacl -m "u:$USER:rw" /dev/kvm
       - name: Build, lint and test the Android adapter
         working-directory: android
         run: |
+          export PATH="$ANDROID_HOME/platform-tools:$PATH"
           ./gradlew --no-daemon --dependency-verification strict \
             :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug :app:testDebugUnitTest
       - name: Boot the emulator and verify every launcher choice
         working-directory: android
         run: |
+          export PATH="$ANDROID_HOME/platform-tools:$PATH"
           "$ANDROID_HOME/emulator/emulator" -avd eimir-launcher -no-window \
             -no-audio -no-snapshot -no-boot-anim -gpu swiftshader \
             > emulator.log 2>&1 &
-          adb wait-for-device
+          timeout 180 adb wait-for-device
           for attempt in $(seq 1 120); do
             boot=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
             if [ "$boot" = '1' ]; then break; fi
@@ -72,7 +78,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: android-launcher-verification
+          name: android-launcher-verification-api-${{ matrix.api }}
           path: |
             android/app/build/reports/
             android/app/build/outputs/androidTest-results/

@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      ANDROID_AVD_HOME: ${{ runner.temp }}/eimir-launcher-avd
+      ANDROID_AVD_HOME: /tmp/eimir-launcher-avd
     strategy:
       fail-fast: false
       matrix:

@@ -1,4 +1,10 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import type { AuthCapabilities } from '../api/generated/models/AuthCapabilities';
 import type { InstanceAccessStatusAccountCreationEnum } from '../api/generated/models/InstanceAccessStatus';
 import type { SensitiveEntryToken } from '../client/entryToken';
@@ -17,8 +23,10 @@ import {
   requestMagicLink,
   requestPasswordRecovery,
   requestSignup,
+  revokeUnacceptedSession,
   signInAndJoinInvitation,
 } from '../client/identityFlow';
+import { useTaskActivation } from '../client/useTaskActivation';
 import { ClientProblemError } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
 import { Brand } from './Brand';
@@ -103,26 +111,55 @@ export function IdentityEntry({
     null,
   );
   const processedEntryToken = useRef<string | null>(null);
+  const entryKey = JSON.stringify([
+    apiBaseUrl,
+    entryToken?.kind ?? mode,
+    entryToken?.token,
+    entryToken?.kind === 'signup' ? entryToken.invitationToken : null,
+  ]);
+  const captureOwnership = useTaskActivation(true, entryKey);
+  const pendingOwner = useRef<(() => boolean) | null>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
   const shouldFocusInput = useRef(false);
   const neutralMailStatusRef = useRef<HTMLDivElement>(null);
 
-  async function runAction<T>(
-    action: PendingAction,
-    operation: () => Promise<T>,
-    onSuccess: (result: T) => void,
-  ): Promise<void> {
-    setActiveError(null);
-    setPendingAction(action);
-    try {
-      const result = await operation();
-      setPendingAction(null);
-      onSuccess(result);
-    } catch (error) {
-      setActiveError(error);
-      setPendingAction(null);
-    }
-  }
+  const discardSession = useCallback(
+    (session: StoredSession) => {
+      void revokeUnacceptedSession(apiBaseUrl, session);
+    },
+    [apiBaseUrl],
+  );
+
+  const runAction = useCallback(
+    async <T,>(
+      action: PendingAction,
+      operation: () => Promise<T>,
+      onSuccess: (result: T) => void,
+      onStaleSuccess?: (result: T) => void,
+    ): Promise<void> => {
+      if (pendingOwner.current?.()) return;
+      const isCurrent = captureOwnership();
+      pendingOwner.current = isCurrent;
+      setActiveError(null);
+      setPendingAction(action);
+      try {
+        const result = await operation();
+        if (!isCurrent()) {
+          onStaleSuccess?.(result);
+          return;
+        }
+        setPendingAction(null);
+        onSuccess(result);
+      } catch (error) {
+        if (!isCurrent()) return;
+        setActiveError(error);
+        setPendingAction(null);
+      } finally {
+        if (pendingOwner.current === isCurrent) pendingOwner.current = null;
+      }
+    },
+    [captureOwnership],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -171,62 +208,55 @@ export function IdentityEntry({
   }, [localPasswordEnabled, mode, selfServiceSignupAvailable]);
 
   useEffect(() => {
-    if (!entryToken || processedEntryToken.current === entryToken.token) return;
-
-    if (entryToken.kind === 'magicLink') {
-      const token = entryToken.token;
-      processedEntryToken.current = token;
-      setActiveError(null);
-      setPendingAction('magicLinkConsume');
-      void consumeMagicLink(apiBaseUrl, token)
-        .then((session) => {
-          setPendingAction(null);
-          onSession(session);
-        })
-        .catch((error: unknown) => {
-          setActiveError(error);
-          setPendingAction(null);
-        });
-    } else if (entryToken.kind === 'emailVerification') {
-      const token = entryToken.token;
-      processedEntryToken.current = token;
-      setActiveError(null);
-      setVerificationSucceeded(false);
-      setPendingAction('verification');
-      void confirmEmailAddress(apiBaseUrl, token)
-        .then(() => {
-          setVerificationSucceeded(true);
-          setPendingAction(null);
-        })
-        .catch((error: unknown) => {
-          setActiveError(error);
-          setPendingAction(null);
-        });
-    } else if (entryToken.kind === 'signup') {
-      const token = entryToken.token;
-      processedEntryToken.current = token;
-      setActiveError(null);
-      setPendingAction('signupConsume');
-      const consume = entryToken.invitationToken
-        ? consumeSignup(apiBaseUrl, token, entryToken.invitationToken)
-        : consumeSignup(apiBaseUrl, token);
-      void consume
-        .then((sessionResult) => {
-          setPendingAction(null);
-          onSession({
-            account: sessionResult.account,
-            tokens: sessionResult.tokens,
-            ...(sessionResult.spaceId
-              ? { spaceId: sessionResult.spaceId }
-              : {}),
-          });
-        })
-        .catch((error: unknown) => {
-          setActiveError(error);
-          setPendingAction(null);
-        });
-    }
-  }, [apiBaseUrl, entryToken, onSession]);
+    if (!entryToken) return;
+    const isCurrent = captureOwnership();
+    // Start after StrictMode's setup/cleanup replay so a one-use proof is not
+    // consumed by an already obsolete activation.
+    void Promise.resolve().then(() => {
+      if (!isCurrent() || processedEntryToken.current === entryKey) return;
+      processedEntryToken.current = entryKey;
+      const { token } = entryToken;
+      if (entryToken.kind === 'magicLink') {
+        void runAction(
+          'magicLinkConsume',
+          () => consumeMagicLink(apiBaseUrl, token),
+          onSession,
+          discardSession,
+        );
+      } else if (entryToken.kind === 'emailVerification') {
+        setVerificationSucceeded(false);
+        void runAction(
+          'verification',
+          () => confirmEmailAddress(apiBaseUrl, token),
+          () => setVerificationSucceeded(true),
+        );
+      } else if (entryToken.kind === 'signup') {
+        void runAction(
+          'signupConsume',
+          async () => {
+            const result = await (entryToken.invitationToken
+              ? consumeSignup(apiBaseUrl, token, entryToken.invitationToken)
+              : consumeSignup(apiBaseUrl, token));
+            return {
+              account: result.account,
+              tokens: result.tokens,
+              ...(result.spaceId ? { spaceId: result.spaceId } : {}),
+            };
+          },
+          onSession,
+          discardSession,
+        );
+      }
+    });
+  }, [
+    apiBaseUrl,
+    captureOwnership,
+    discardSession,
+    entryKey,
+    entryToken,
+    onSession,
+    runAction,
+  ]);
 
   useEffect(() => {
     if (shouldFocusInput.current && mode) {
@@ -252,6 +282,7 @@ export function IdentityEntry({
     }
     setActiveError(null);
     setValidationError(null);
+    setPendingAction(null);
     shouldFocusInput.current = true;
     setMode(nextMode);
   }
@@ -283,6 +314,7 @@ export function IdentityEntry({
       () =>
         signInAndJoinInvitation(apiBaseUrl, email, password, invitationToken),
       onSession,
+      discardSession,
     );
   }
 
@@ -312,6 +344,7 @@ export function IdentityEntry({
           invitationToken,
         ),
       onSession,
+      discardSession,
     );
   }
 
@@ -339,6 +372,7 @@ export function IdentityEntry({
       'recovery',
       () => completePasswordRecovery(apiBaseUrl, recoveryToken, password),
       onSession,
+      discardSession,
     );
   }
 

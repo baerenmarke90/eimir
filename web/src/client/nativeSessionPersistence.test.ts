@@ -170,22 +170,25 @@ describe('native session retention', () => {
     expect(native.writeNativeSessionSnapshot).not.toHaveBeenCalled();
   });
 
-  it('clears durable credentials before returning a definitive refresh rejection', async () => {
-    await storeSession(session);
-    vi.spyOn(reference, 'createReferenceApis').mockReturnValue({
-      auth: {
-        refreshApiV1AuthRefreshPost: vi.fn().mockRejectedValue({ status: 401 }),
-      },
-    } as unknown as ReturnType<typeof reference.createReferenceApis>);
-    await expect(
-      refreshSessionTokens(
-        'https://instance.example',
-        session.tokens.refreshToken,
-      ),
-    ).rejects.toMatchObject({ status: 401 });
-    expect(encrypted).toBeNull();
-    expect(loadStoredSession()).toBeNull();
-  });
+  it.each([401, 403])(
+    'clears durable credentials before returning a definitive %s refresh rejection',
+    async (status) => {
+      await storeSession(session);
+      vi.spyOn(reference, 'createReferenceApis').mockReturnValue({
+        auth: {
+          refreshApiV1AuthRefreshPost: vi.fn().mockRejectedValue({ status }),
+        },
+      } as unknown as ReturnType<typeof reference.createReferenceApis>);
+      await expect(
+        refreshSessionTokens(
+          'https://instance.example',
+          session.tokens.refreshToken,
+        ),
+      ).rejects.toMatchObject({ status });
+      expect(encrypted).toBeNull();
+      expect(loadStoredSession()).toBeNull();
+    },
+  );
 
   it('clears an obsolete durable generation after a storage write failure without plaintext fallback', async () => {
     encrypted = 'obsolete-generation';

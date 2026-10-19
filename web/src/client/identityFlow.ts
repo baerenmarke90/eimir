@@ -5,7 +5,11 @@ import type { MembershipView } from '../api/generated/models/MembershipView';
 import { Configuration } from './apiConfiguration';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
-import type { StoredSession } from './sessionPersistence';
+import {
+  captureSessionOwner,
+  loadStoredSession,
+  type StoredSession,
+} from './sessionPersistence';
 
 const WEB_DEVICE_NAME = 'eimir. Web';
 const WEB_PLATFORM = 'web';
@@ -14,6 +18,26 @@ export class ActiveAccountMismatchError extends Error {
   constructor() {
     super('Identity entry cannot replace an active account.');
     this.name = 'ActiveAccountMismatchError';
+  }
+}
+
+/** Dispose of newly issued credentials that no active entry accepted. */
+export async function revokeUnacceptedSession(
+  apiBaseUrl: string,
+  session: StoredSession,
+): Promise<void> {
+  if (
+    loadStoredSession()?.tokens.refreshToken === session.tokens.refreshToken ||
+    captureSessionOwner(session.tokens.accessToken)
+  )
+    return;
+  try {
+    await createReferenceApis(
+      apiBaseUrl,
+      session.tokens.accessToken,
+    ).auth.signOutApiV1AuthSignOutPost();
+  } catch {
+    // Best effort only; never replace the original entry error or log tokens.
   }
 }
 
@@ -70,9 +94,14 @@ async function joinInvitation(
       headers: { Authorization: `Bearer ${session.tokens.accessToken}` },
     }),
   );
-  return invitations.acceptInvitationApiV1InvitationsAcceptPost({
-    acceptRequest: { token: invitationToken },
-  });
+  try {
+    return await invitations.acceptInvitationApiV1InvitationsAcceptPost({
+      acceptRequest: { token: invitationToken },
+    });
+  } catch (error) {
+    void revokeUnacceptedSession(apiBaseUrl, session);
+    throw error;
+  }
 }
 
 export async function registerFromInvitation(

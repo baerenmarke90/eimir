@@ -3,6 +3,7 @@ import type { TokenView } from '../api/generated/models/TokenView';
 import {
   captureSessionOwner,
   currentSessionTokens,
+  DEFAULT_ACCESS_TOKEN_REFRESH_BUFFER_MS,
   isAccessTokenValid,
   loadStoredSession,
   refreshSessionTokens,
@@ -49,10 +50,14 @@ export function useSessionRefresh(
 
     const refresh = () => {
       if (cancelled || refreshing) return;
-      const currentTokens = currentSessionTokens(owner);
-      if (!currentTokens || isAccessTokenValid(currentTokens)) return;
-      const requestedRefreshToken = currentTokens.refreshToken;
       clearTimeout(timer);
+      const currentTokens = currentSessionTokens(owner);
+      if (!currentTokens) return;
+      if (isAccessTokenValid(currentTokens)) {
+        schedule(currentTokens);
+        return;
+      }
+      const requestedRefreshToken = currentTokens.refreshToken;
       refreshing = true;
       void refreshSessionTokens(apiBaseUrl, requestedRefreshToken)
         .then((next) => {
@@ -67,7 +72,8 @@ export function useSessionRefresh(
           const current = loadStoredSession();
           if (current && current.tokens.refreshToken !== requestedRefreshToken)
             return;
-          if ((error as { status?: number })?.status === 401) rejectSession();
+          const status = (error as { status?: number })?.status;
+          if (status === 401 || status === 403) rejectSession();
           else timer = setTimeout(refresh, 30_000);
         })
         .finally(() => {
@@ -80,13 +86,18 @@ export function useSessionRefresh(
     const visibility = () => {
       if (document.visibilityState === 'visible') resume();
     };
-    timer = setTimeout(
-      refresh,
-      Math.max(
-        0,
-        new Date(tokens.accessExpiresAt).getTime() - Date.now() - 60_000,
-      ),
-    );
+    function schedule(current: TokenView) {
+      timer = setTimeout(
+        refresh,
+        Math.max(
+          0,
+          new Date(current.accessExpiresAt).getTime() -
+            Date.now() -
+            DEFAULT_ACCESS_TOKEN_REFRESH_BUFFER_MS,
+        ),
+      );
+    }
+    schedule(currentSessionTokens(owner) ?? tokens);
     window.addEventListener('focus', resume);
     window.addEventListener('online', resume);
     document.addEventListener('visibilitychange', visibility);

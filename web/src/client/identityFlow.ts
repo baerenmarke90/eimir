@@ -39,19 +39,27 @@ export async function signInAndJoinInvitation(
       return session;
     }
 
-    const invitations = new InvitationsApi(
-      new Configuration({
-        basePath: apiBaseUrl,
-        headers: { Authorization: `Bearer ${session.tokens.accessToken}` },
-      }),
-    );
-    await invitations.acceptInvitationApiV1InvitationsAcceptPost({
-      acceptRequest: { token: invitationToken },
-    });
+    await joinInvitation(apiBaseUrl, session, invitationToken);
     return session;
   } catch (error) {
     throw await normalizeClientError(error);
   }
+}
+
+async function joinInvitation(
+  apiBaseUrl: string,
+  session: SessionView,
+  invitationToken: string,
+): Promise<void> {
+  const invitations = new InvitationsApi(
+    new Configuration({
+      basePath: apiBaseUrl,
+      headers: { Authorization: `Bearer ${session.tokens.accessToken}` },
+    }),
+  );
+  await invitations.acceptInvitationApiV1InvitationsAcceptPost({
+    acceptRequest: { token: invitationToken },
+  });
 }
 
 export async function registerFromInvitation(
@@ -167,12 +175,16 @@ export async function confirmEmailAddress(
 export async function requestSignup(
   apiBaseUrl: string,
   email: string,
+  invitationToken?: string | null,
 ): Promise<void> {
   try {
     await createReferenceApis(
       apiBaseUrl,
     ).auth.requestSignupApiV1AuthSignupRequestPost({
-      emailRequest: { email },
+      signupEmailRequest: {
+        email,
+        ...(invitationToken ? { invitationToken } : {}),
+      },
     });
   } catch (error) {
     throw await normalizeClientError(error);
@@ -182,9 +194,10 @@ export async function requestSignup(
 export async function consumeSignup(
   apiBaseUrl: string,
   token: string,
+  invitationToken?: string,
 ): Promise<SignupSessionView> {
   try {
-    return await createReferenceApis(
+    const session = await createReferenceApis(
       apiBaseUrl,
     ).auth.consumeSignupApiV1AuthSignupConsumePost({
       signupConsumeRequest: {
@@ -193,6 +206,10 @@ export async function consumeSignup(
         platform: WEB_PLATFORM,
       },
     });
+    if (invitationToken) {
+      await joinInvitation(apiBaseUrl, session, invitationToken);
+    }
+    return session;
   } catch (error) {
     throw await normalizeClientError(error);
   }

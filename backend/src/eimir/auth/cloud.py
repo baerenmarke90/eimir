@@ -164,7 +164,12 @@ def consume_magic_link(
 
 
 def request_signup(
-    session: Session, *, email: str, mail: MailSender, client_host: str | None
+    session: Session,
+    *,
+    email: str,
+    mail: MailSender,
+    client_host: str | None,
+    invitation_token: str | None = None,
 ) -> None:
     """Start Cloud self-service onboarding by mailing a one-time proof.
 
@@ -189,6 +194,11 @@ def request_signup(
     rate_limit.record_attempt(session, ACTION_SIGNUP_REQUEST, address)
 
     _, issued = action_tokens.issue_signup_proof(session, address)
+    link = _link("auth/signup", issued.token)
+    if invitation_token:
+        # Only the browser receives this continuation. Fragments never enter
+        # HTTP request targets or referrers, and no invitation is persisted here.
+        link += f"#invitationToken={quote(invitation_token, safe='')}"
     _deliver(
         mail,
         MailMessage(
@@ -196,7 +206,7 @@ def request_signup(
             subject="Dein Link fuer eimir.",
             body=(
                 "Mit diesem Link geht es bei eimir. weiter:\n\n"
-                f"{_link('auth/signup', issued.token)}\n\n"
+                f"{link}\n\n"
                 "Er gilt 15 Minuten und genau einmal.\n\n"
                 "Wenn du ihn nicht angefordert hast, kannst du diese "
                 "Nachricht ignorieren. Ohne den Link passiert nichts."

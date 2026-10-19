@@ -70,6 +70,11 @@ class EmailRequest(ApiModel):
     email: str
 
 
+class SignupEmailRequest(EmailRequest):
+    invitation_token: str | None = None
+    """Transient continuation in the mail fragment; never persisted with the proof."""
+
+
 class MagicLinkConsumeRequest(ApiModel):
     token: str
     device_name: str = ""
@@ -308,7 +313,7 @@ def consume_magic_link(body: MagicLinkConsumeRequest, session: DbSession) -> Ses
     responses=problem_responses(403, 422, 429, 503),
 )
 def request_signup(
-    body: EmailRequest, request: Request, session: DbSession, mail: Mail
+    body: SignupEmailRequest, request: Request, session: DbSession, mail: Mail
 ) -> Response:
     """Start Cloud/Managed self-service onboarding with an emailed one-time proof.
 
@@ -319,7 +324,13 @@ def request_signup(
     self-service signup, including every Self-Hosted instance.
     """
     client_host = request.client.host if request.client is not None else None
-    cloud.request_signup(session, email=body.email, mail=mail, client_host=client_host)
+    cloud.request_signup(
+        session,
+        email=body.email,
+        mail=mail,
+        client_host=client_host,
+        invitation_token=body.invitation_token,
+    )
     return Response(status_code=status.HTTP_202_ACCEPTED)
 
 

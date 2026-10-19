@@ -268,6 +268,7 @@ export * from './SharedPhoto';
 export * from './SharedPhotoPage';
 export * from './SignInRequest';
 export * from './SignupConsumeRequest';
+export * from './SignupEmailRequest';
 export * from './SignupSessionView';
 export * from './SpaceConfigurationUpdate';
 export * from './SpaceConfigurationView';

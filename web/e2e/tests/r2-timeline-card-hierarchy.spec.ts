@@ -307,8 +307,8 @@ async function installMocks(page: Page): Promise<void> {
     ) {
       const match = pathname.match(/\/attachments\/([^/]+)\/read-access/);
       await fulfillJson({
-        method: 'DIRECT',
-        url: `/api/v1/spaces/${SPACE_ID}/attachments/${match?.[1] ?? 'att'}/file`,
+        method: 'STREAM',
+        url: `/api/v1/spaces/${SPACE_ID}/attachments/${match?.[1] ?? 'att'}/content`,
         expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
       });
       return;
@@ -316,7 +316,7 @@ async function installMocks(page: Page): Promise<void> {
     if (
       method === 'GET' &&
       pathname.includes('/attachments/') &&
-      /\/(file|thumbnail|content)$/.test(pathname)
+      pathname.endsWith('/content')
     ) {
       await route.fulfill({
         status: 200,

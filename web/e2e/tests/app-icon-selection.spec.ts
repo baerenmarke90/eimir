@@ -424,3 +424,117 @@ test('expired Pro keeps its saved choice without an upgrade prompt and permits f
     /app-icon-light\.png$/,
   );
 });
+
+test('Android applies only the saved choice and retries a native failure without another write', async ({
+  page,
+}, info) => {
+  await page.addInitScript(() => {
+    const nativeWindow = window as unknown as {
+      CapacitorCustomPlatform: { name: string };
+      Capacitor: unknown;
+      iconApplications: string[];
+    };
+    nativeWindow.CapacitorCustomPlatform = { name: 'android' };
+    nativeWindow.iconApplications = [];
+    let failSand = true;
+    nativeWindow.Capacitor = {
+      PluginHeaders: [
+        { name: 'AppIcon', methods: [{ name: 'apply', rtype: 'promise' }] },
+        {
+          name: 'NativeSessionStorage',
+          methods: ['read', 'write', 'clear'].map((name) => ({
+            name,
+            rtype: 'promise',
+          })),
+        },
+      ],
+      nativePromise: async (
+        plugin: string,
+        method: string,
+        options: { iconId?: string; value?: string },
+      ) => {
+        if (plugin === 'NativeSessionStorage') {
+          if (method === 'write')
+            sessionStorage.setItem('native-test-session', options.value ?? '');
+          if (method === 'clear')
+            sessionStorage.removeItem('native-test-session');
+          return {
+            value: sessionStorage.getItem('native-test-session') ?? undefined,
+          };
+        }
+        if (plugin !== 'AppIcon' || method !== 'apply' || !options.iconId)
+          throw new Error('Unexpected native call');
+        nativeWindow.iconApplications.push(options.iconId);
+        if (options.iconId === 'sand' && failSand) {
+          failSand = false;
+          throw new Error('Launcher unavailable');
+        }
+        return { iconId: options.iconId };
+      },
+    };
+  });
+  const writes = await installMocks(page, true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  await expect(
+    page.getByText(copy.nativeApplied, { exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: copy.all }).click();
+  const dialog = page.getByRole('dialog', { name: copy.choices });
+  await dialog.getByRole('radio', { name: 'Sand Pro', exact: true }).check();
+  expect(
+    await page.evaluate(
+      () =>
+        (window as unknown as { iconApplications: string[] }).iconApplications,
+    ),
+  ).toEqual(['original']);
+  await dialog.getByRole('button', { name: 'Sand auswählen' }).click();
+  await expect(
+    dialog.getByText(copy.nativeError, { exact: true }),
+  ).toBeVisible();
+  await capture(page, info, 'app-icons-android-native-error-390-light.png');
+  expect(writes).toEqual(['sand']);
+  await dialog.getByRole('button', { name: copy.nativeRetry }).click();
+  await expect(
+    dialog.getByText(copy.nativeApplied, { exact: true }),
+  ).toBeVisible();
+  expect(writes).toEqual(['sand']);
+  expect(
+    await page.evaluate(
+      () =>
+        (window as unknown as { iconApplications: string[] }).iconApplications,
+    ),
+  ).toEqual(['original', 'sand', 'sand']);
+  await capture(page, info, 'app-icons-android-native-applied-390-light.png');
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  for (const width of [360, 430, 1280]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(
+      dialog.getByText(copy.nativeApplied, { exact: true }),
+    ).toBeVisible();
+    await capture(
+      page,
+      info,
+      `app-icons-android-native-applied-${width}-dark.png`,
+    );
+  }
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  await expect(
+    dialog.getByText(copy.nativeApplied, { exact: true }),
+  ).toBeVisible();
+  const accessibility = await new AxeBuilder({ page })
+    .include('.app-icon-sheet')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+  expect(accessibility.violations).toEqual([]);
+  await capture(
+    page,
+    info,
+    'app-icons-android-native-applied-320-large-text.png',
+  );
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: copy.all })).toBeFocused();
+});

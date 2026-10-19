@@ -72,7 +72,7 @@ class EmailRequest(ApiModel):
 
 class SignupEmailRequest(EmailRequest):
     invitation_token: str | None = None
-    """Transient continuation in the mail fragment; never persisted with the proof."""
+    """Bound to the mailed proof as a hash; validated when the proof is redeemed."""
 
 
 class MagicLinkConsumeRequest(ApiModel):
@@ -159,6 +159,8 @@ class SignupSessionView(SessionView):
     reveals nothing to someone probing addresses. Clients use it to continue
     with name confirmation and Space creation instead of guessing.
     """
+    space_id: UUID | None = None
+    """Successfully joined invitation destination; absent for ordinary signup."""
 
 
 def _view(result: SignedIn | cloud.SignedIn | oidc.SignedIn | passkeys.SignedIn) -> SessionView:
@@ -337,9 +339,11 @@ def request_signup(
 @router.post(
     "/auth/signup/consume",
     response_model=SignupSessionView,
+    response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     responses=problem_responses(
         403,
+        409,
         422,
         429,
         503,
@@ -360,8 +364,10 @@ def consume_signup(
 
     Send the proof in the request body, never in a URL. After a successful
     redemption the client removes it from its address bar and history. A new
-    Account has no Membership: continue with `POST /spaces` or accept an
-    invitation.
+    Account joins the invitation bound to its proof atomically before a
+    session is issued. An ordinary proof has no invitation: continue with
+    `POST /spaces` or accept an invitation separately. Invalid invitations fail
+    without consuming the proof or creating an Account, session, or Membership.
     """
     client_host = request.client.host if request.client is not None else None
     result = cloud.consume_signup(
@@ -374,7 +380,10 @@ def consume_signup(
     )
     view = _view(SignedIn(account=result.account, tokens=result.tokens))
     return SignupSessionView(
-        account=view.account, tokens=view.tokens, account_created=result.account_created
+        account=view.account,
+        tokens=view.tokens,
+        account_created=result.account_created,
+        space_id=result.space_id,
     )
 
 

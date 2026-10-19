@@ -1,8 +1,8 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import type { AuthCapabilities } from '../api/generated/models/AuthCapabilities';
 import type { InstanceAccessStatusAccountCreationEnum } from '../api/generated/models/InstanceAccessStatus';
-import type { SessionView } from '../api/generated/models/SessionView';
 import type { SensitiveEntryToken } from '../client/entryToken';
+import type { StoredSession } from '../client/sessionPersistence';
 import {
   loadInstanceAccessStatus,
   type RegistrationAvailability,
@@ -73,7 +73,7 @@ export function IdentityEntry({
   apiBaseUrl: string;
   entryToken: SensitiveEntryToken | null;
   onEntryTokenCleared: () => void;
-  onSession: (session: SessionView) => void;
+  onSession: (session: StoredSession) => void;
 }) {
   const { t } = useTranslation();
   const invitationToken =
@@ -215,6 +215,9 @@ export function IdentityEntry({
           onSession({
             account: sessionResult.account,
             tokens: sessionResult.tokens,
+            ...(sessionResult.spaceId
+              ? { spaceId: sessionResult.spaceId }
+              : {}),
           });
         })
         .catch((error: unknown) => {

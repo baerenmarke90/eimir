@@ -533,7 +533,7 @@ No authorization required
 
 Consume Signup
 
-Redeem a signup proof into a normal session.  Send the proof in the request body, never in a URL. After a successful redemption the client removes it from its address bar and history. A new Account has no Membership: continue with &#x60;POST /spaces&#x60; or accept an invitation.
+Redeem a signup proof into a normal session.  Send the proof in the request body, never in a URL. After a successful redemption the client removes it from its address bar and history. A new Account joins the invitation bound to its proof atomically before a session is issued. An ordinary proof has no invitation: continue with &#x60;POST /spaces&#x60; or accept an invitation separately. Invalid invitations fail without consuming the proof or creating an Account, session, or Membership.
 
 ### Example
 
@@ -591,6 +591,7 @@ No authorization required
 |-------------|-------------|------------------|
 | **201** | Successful Response |  -  |
 | **403** | &#x60;AUTH_METHOD_DISABLED&#x60; on deployments without self-service signup, or &#x60;REGISTRATION_DISABLED&#x60; when the proof would create a new Account while the administrator does not admit new Accounts. Nothing was created. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 | **429** | Too many attempts occurred within the allowed time window. |  -  |
 | **503** | &#x60;MAINTENANCE_MODE&#x60;: no new Account is created during maintenance. |  -  |

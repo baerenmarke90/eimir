@@ -1,9 +1,11 @@
 import { InvitationsApi } from '../api/generated/apis/InvitationsApi';
 import type { SessionView } from '../api/generated/models/SessionView';
 import type { SignupSessionView } from '../api/generated/models/SignupSessionView';
+import type { MembershipView } from '../api/generated/models/MembershipView';
 import { Configuration } from '../api/generated/runtime';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
+import type { StoredSession } from './sessionPersistence';
 
 const WEB_DEVICE_NAME = 'eimir. Web';
 const WEB_PLATFORM = 'web';
@@ -22,7 +24,7 @@ export async function signInAndJoinInvitation(
   email: string,
   password: string,
   invitationToken?: string | null,
-): Promise<SessionView> {
+): Promise<StoredSession> {
   try {
     const session = await createReferenceApis(
       apiBaseUrl,
@@ -39,8 +41,12 @@ export async function signInAndJoinInvitation(
       return session;
     }
 
-    await joinInvitation(apiBaseUrl, session, invitationToken);
-    return session;
+    const membership = await joinInvitation(
+      apiBaseUrl,
+      session,
+      invitationToken,
+    );
+    return { ...session, spaceId: membership.spaceId };
   } catch (error) {
     throw await normalizeClientError(error);
   }
@@ -50,14 +56,14 @@ async function joinInvitation(
   apiBaseUrl: string,
   session: SessionView,
   invitationToken: string,
-): Promise<void> {
+): Promise<MembershipView> {
   const invitations = new InvitationsApi(
     new Configuration({
       basePath: apiBaseUrl,
       headers: { Authorization: `Bearer ${session.tokens.accessToken}` },
     }),
   );
-  await invitations.acceptInvitationApiV1InvitationsAcceptPost({
+  return invitations.acceptInvitationApiV1InvitationsAcceptPost({
     acceptRequest: { token: invitationToken },
   });
 }
@@ -206,8 +212,13 @@ export async function consumeSignup(
         platform: WEB_PLATFORM,
       },
     });
-    if (invitationToken) {
-      await joinInvitation(apiBaseUrl, session, invitationToken);
+    if (invitationToken && !session.spaceId) {
+      const membership = await joinInvitation(
+        apiBaseUrl,
+        session,
+        invitationToken,
+      );
+      return { ...session, spaceId: membership.spaceId };
     }
     return session;
   } catch (error) {

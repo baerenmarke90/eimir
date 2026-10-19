@@ -15,6 +15,7 @@ import logging
 from dataclasses import dataclass
 from datetime import timedelta
 from urllib.parse import quote
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -24,6 +25,7 @@ from eimir.administration import service as administration
 from eimir.auth import action_tokens, passkey_abuse, passwords, rate_limit, sessions
 from eimir.auth.policy import ensure_self_service_signup_supported, resolve_auth_capabilities
 from eimir.auth.sessions import IssuedTokens
+from eimir.auth.tokens import hash_token
 from eimir.config import get_settings
 from eimir.core.clock import now
 from eimir.core.errors import ValidationError
@@ -33,6 +35,7 @@ from eimir.identity.models import (
     AccountEmail,
 )
 from eimir.mail import MailMessage, MailSender, MailTransportError
+from eimir.relationship import invitations
 
 log = logging.getLogger(__name__)
 
@@ -68,6 +71,7 @@ class SignupCompleted:
     Only the holder of the mailed proof learns it, and that person controls the
     address anyway, so it discloses nothing an enumeration attempt could use.
     """
+    space_id: UUID | None = None
 
 
 def _link(path: str, token: str) -> str:
@@ -193,12 +197,12 @@ def request_signup(
     rate_limit.check(session, ACTION_SIGNUP_REQUEST, address, rate_limit.MAGIC_LINK)
     rate_limit.record_attempt(session, ACTION_SIGNUP_REQUEST, address)
 
-    _, issued = action_tokens.issue_signup_proof(session, address)
+    _, issued = action_tokens.issue_signup_proof(
+        session,
+        address,
+        invitation_token_hash=hash_token(invitation_token) if invitation_token else None,
+    )
     link = _link("auth/signup", issued.token)
-    if invitation_token:
-        # Only the browser receives this continuation. Fragments never enter
-        # HTTP request targets or referrers, and no invitation is persisted here.
-        link += f"#invitationToken={quote(invitation_token, safe='')}"
     _deliver(
         mail,
         MailMessage(
@@ -285,8 +289,10 @@ def consume_signup(
       its lifetime.
 
     A consumed, superseded, expired, or unknown proof fails with the ordinary
-    invalid-token response. Membership is not touched: a new Account has none,
-    and Space creation or invitation acceptance are separate authorized steps.
+    invalid-token response. A proof bound to an invitation accepts it in this
+    same transaction before session issuance. Failed acceptance rolls back the
+    Account, proof consumption, and Membership together. An ordinary signup
+    proof still leaves Space creation or acceptance as a separate step.
     """
     ensure_self_service_signup_supported()
     network = passkey_abuse.network_key(client_host)
@@ -295,11 +301,17 @@ def consume_signup(
 
     proof = action_tokens.consume_signup_proof(session, token)
     account, created = _signup_account(session, proof.email, display_name)
+    space_id = None
+    if proof.invitation_token_hash is not None:
+        membership = invitations.accept_by_hash(session, proof.invitation_token_hash, account)
+        space_id = membership.space_id
 
     rate_limit.clear(session, ACTION_SIGNUP_REQUEST, proof.email)
     _, issued = sessions.start_session(session, account, device_name=device_name, platform=platform)
     session.flush()
-    return SignupCompleted(account=account, tokens=issued, account_created=created)
+    return SignupCompleted(
+        account=account, tokens=issued, account_created=created, space_id=space_id
+    )
 
 
 def request_email_verification(session: Session, account: Account, *, mail: MailSender) -> None:

@@ -1,4 +1,4 @@
-"""Invitation continuation stays transient and outside HTTP callback queries."""
+"""Invitation intent is bound to the proof without a browser continuation."""
 
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -8,11 +8,12 @@ import pytest
 from sqlalchemy.orm import Session
 
 from eimir.auth import cloud
+from eimir.auth.tokens import hash_token
 from eimir.mail import MailSender
 
 
 @pytest.mark.parametrize("invitation", [None, "invite+&=#/with spaces"])
-def test_signup_mail_preserves_only_an_encoded_fragment_continuation(
+def test_signup_mail_binds_only_the_invitation_hash_to_the_proof(
     monkeypatch: pytest.MonkeyPatch, invitation: str | None
 ) -> None:
     session = Mock(spec=Session)
@@ -43,9 +44,13 @@ def test_signup_mail_preserves_only_an_encoded_fragment_continuation(
     assert parsed.netloc == "eimir.invalid"
     assert parsed.path == "/auth/signup"
     assert parse_qs(parsed.query) == {"token": ["mailbox-proof"]}
-    assert parse_qs(parsed.fragment) == (
-        {"invitationToken": [invitation]} if invitation is not None else {}
-    )
+    assert parsed.fragment == ""
+    if invitation is not None:
+        assert invitation not in message.body
     assert message.to == "partner@example.invalid"
-    issue.assert_called_once_with(session, "partner@example.invalid")
+    issue.assert_called_once_with(
+        session,
+        "partner@example.invalid",
+        invitation_token_hash=hash_token(invitation) if invitation is not None else None,
+    )
     assert session.mock_calls == []

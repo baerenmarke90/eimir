@@ -5,6 +5,7 @@ import de from '../../src/i18n/locales/de';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
+const OWN_SPACE_ID = '33333333-3333-4333-8333-333333333333';
 const TEST_NOW = '2026-09-01T10:00:00Z';
 
 async function expectNoWcagViolations(page: Page): Promise<void> {
@@ -363,19 +364,33 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
     await verifySignupEntry(page, false, testInfo);
   });
 
-  test('an invited new partner follows the mail into the shared space', async ({
+  test('an invited partner follows a proof-only mail/app callback into the shared space', async ({
     page,
   }, testInfo) => {
     await verifySignupEntry(page, true, testInfo);
+  });
+
+  test('a pre-upgrade invitation fragment still joins before loading memberships', async ({
+    page,
+  }, testInfo) => {
+    await verifySignupEntry(page, true, testInfo, { legacyFragment: true });
+  });
+
+  test('invitation completion enters the joined space while preserving an existing own space', async ({
+    page,
+  }, testInfo) => {
+    await verifySignupEntry(page, true, testInfo, { existingOwnSpace: true });
   });
 
   async function verifySignupEntry(
     page: Page,
     fromInvitation: boolean,
     testInfo: TestInfo,
+    { legacyFragment = false, existingOwnSpace = false } = {},
   ) {
     let spacesCreated = false;
     let invitationAccepted = false;
+    let signedIn = false;
 
     await page.route('**/api/v1/**', async (route) => {
       if (await fulfillDefaultAppIcon(route)) return;
@@ -423,6 +438,8 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
       }
 
       if (method === 'POST' && pathname === '/api/v1/auth/signup/consume') {
+        signedIn = true;
+        if (fromInvitation && !legacyFragment) invitationAccepted = true;
         await fulfillJson({
           account: { id: ACCOUNT_ID, displayName: 'Lea' },
           tokens: {
@@ -431,7 +448,8 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
             accessExpiresAt: '2026-09-01T12:00:00Z',
             refreshExpiresAt: '2026-09-08T12:00:00Z',
           },
-          accountCreated: fromInvitation,
+          accountCreated: fromInvitation && !existingOwnSpace,
+          ...(fromInvitation && !legacyFragment ? { spaceId: SPACE_ID } : {}),
         });
         return;
       }
@@ -447,13 +465,35 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
       }
 
       if (method === 'GET' && pathname === '/api/v1/auth/memberships') {
-        await fulfillJson([
-          {
-            accountId: ACCOUNT_ID,
-            spaceId: SPACE_ID,
-            createdAt: TEST_NOW,
-          },
-        ]);
+        await fulfillJson(
+          signedIn && (!fromInvitation || invitationAccepted)
+            ? [
+                ...(existingOwnSpace
+                  ? [
+                      {
+                        accountId: ACCOUNT_ID,
+                        spaceId: OWN_SPACE_ID,
+                        createdAt: TEST_NOW,
+                      },
+                    ]
+                  : []),
+                {
+                  accountId: ACCOUNT_ID,
+                  spaceId: SPACE_ID,
+                  createdAt: TEST_NOW,
+                },
+              ]
+            : [],
+        );
+        return;
+      }
+
+      if (method === 'GET' && pathname === `/api/v1/spaces/${OWN_SPACE_ID}`) {
+        await fulfillJson({
+          id: OWN_SPACE_ID,
+          createdAt: TEST_NOW,
+          partners: [{ id: ACCOUNT_ID, displayName: 'Lea' }],
+        });
         return;
       }
 
@@ -586,6 +626,7 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
         await route.fulfill({ status: 202 });
       });
       await page.route('**/api/v1/invitations/accept', async (route) => {
+        expect(legacyFragment).toBe(true);
         expect(route.request().headers().authorization).toBe(
           'Bearer session-access-token',
         );
@@ -620,10 +661,11 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
       });
       await page.setViewportSize({ width: 390, height: 844 });
     }
-    // Follow the mail callback, including its transient invitation fragment.
+    // New proof-only callbacks work even when the app ignores fragments.
+    // Retain coverage for links issued before server-side binding existed.
     await page.goto(
       '/auth/signup?token=secret-signup-proof' +
-        (fromInvitation ? '#invitationToken=partner-invitation' : ''),
+        (legacyFragment ? '#invitationToken=partner-invitation' : ''),
     );
 
     // Page load does not await React's passive entry cleanup. Await the actual
@@ -644,6 +686,15 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
     ).toBeVisible();
     expect(spacesCreated).toBe(false);
     expect(invitationAccepted).toBe(fromInvitation);
+    if (existingOwnSpace) {
+      expect(
+        await page.evaluate(
+          () =>
+            JSON.parse(sessionStorage.getItem('eimir-session-v1') || '{}')
+              .spaceId,
+        ),
+      ).toBe(SPACE_ID);
+    }
     expect(
       await page.evaluate(() => JSON.stringify(localStorage)),
     ).not.toContain('partner-invitation');

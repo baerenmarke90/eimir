@@ -16,7 +16,7 @@ import { AppearanceApi } from './api/generated/apis/AppearanceApi';
 import { DailyCheckInsApi } from './api/generated/apis/DailyCheckInsApi';
 import { DailyQuoteApi } from './api/generated/apis/DailyQuoteApi';
 import { EntitlementsApi } from './api/generated/apis/EntitlementsApi';
-import { ProfilesApi } from './api/generated/apis/ProfilesApi';
+import { ProfilesApi } from './client/mediaApis';
 import { SpacesApi } from './api/generated/apis/SpacesApi';
 import { Configuration } from './client/apiConfiguration';
 import { loadReferenceClientConfig } from './client/config';

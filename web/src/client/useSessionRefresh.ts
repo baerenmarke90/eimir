@@ -19,12 +19,13 @@ export function useSessionRefresh(
 ): void {
   useEffect(() => {
     if (!tokens || restoring) return;
+    const owner = captureSessionOwner(tokens.accessToken);
+    if (!owner) return;
     let cancelled = false;
     let refreshing = false;
     let rejected = false;
     let timer: ReturnType<typeof setTimeout>;
     const refreshToken = tokens.refreshToken;
-    const owner = captureSessionOwner(tokens.accessToken);
     const rejectSession = () => {
       if (!cancelled && !rejected) {
         rejected = true;
@@ -48,9 +49,7 @@ export function useSessionRefresh(
 
     const refresh = () => {
       if (cancelled || refreshing) return;
-      const currentTokens = owner
-        ? currentSessionTokens(owner)
-        : loadStoredSession()?.tokens;
+      const currentTokens = currentSessionTokens(owner);
       if (!currentTokens || isAccessTokenValid(currentTokens)) return;
       const requestedRefreshToken = currentTokens.refreshToken;
       clearTimeout(timer);

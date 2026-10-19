@@ -8,10 +8,15 @@ import {
   captureSessionOwner,
   currentSessionTokens,
   isAccessTokenValid,
+  loadStoredSession,
   pendingSessionRefresh,
   refreshSessionTokens,
   type SessionOwner,
 } from './sessionPersistence';
+import {
+  mediaCacheScopeForOwner,
+  type MediaCacheScope,
+} from './authorizedMediaCache';
 
 function requireTokens(owner: SessionOwner): TokenView {
   const tokens = currentSessionTokens(owner);
@@ -21,6 +26,8 @@ function requireTokens(owner: SessionOwner): TokenView {
 
 /** Shared generated-client adapter for one login's rotating credentials. */
 export class Configuration extends GeneratedConfiguration {
+  readonly mediaCacheScope: MediaCacheScope;
+
   constructor(parameters: ConfigurationParameters = {}) {
     const authorization = parameters.headers?.Authorization;
     const owner = authorization?.startsWith('Bearer ')
@@ -28,6 +35,11 @@ export class Configuration extends GeneratedConfiguration {
       : null;
     if (!owner) {
       super(parameters);
+      this.mediaCacheScope = mediaCacheScopeForOwner(
+        this,
+        parameters.basePath ?? '',
+        () => true,
+      );
       return;
     }
     const apiBaseUrl = parameters.basePath ?? '';
@@ -66,6 +78,17 @@ export class Configuration extends GeneratedConfiguration {
         return send(requireTokens(owner).accessToken);
       },
     });
+    this.mediaCacheScope = mediaCacheScopeForOwner(
+      owner,
+      apiBaseUrl,
+      (spaceId) => {
+        const stored = loadStoredSession();
+        return (
+          currentSessionTokens(owner) !== null &&
+          (!stored?.spaceId || stored.spaceId === spaceId)
+        );
+      },
+    );
   }
 }
 

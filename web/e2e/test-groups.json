@@ -16,6 +16,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 6
     },
+    "comments-delete-ownership.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6,
+      "reason": "Comment deletion must retain resource admission through return, prevent immediate duplicate DELETEs and preserve content on failure until deliberate retry."
+    },
     "comments-create-ownership.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 9,

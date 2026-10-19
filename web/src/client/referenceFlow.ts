@@ -1,4 +1,4 @@
-import { AttachmentsApi } from '../api/generated/apis/AttachmentsApi';
+import { AttachmentsApi } from './mediaApis';
 import { AuthApi } from '../api/generated/apis/AuthApi';
 import { CommentsApi } from '../api/generated/apis/CommentsApi';
 import { HeartMomentsApi } from '../api/generated/apis/HeartMomentsApi';
@@ -9,7 +9,6 @@ import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/Att
 import { MediaType } from '../api/generated/models/MediaType';
 import type { MemoryCreate } from '../api/generated/models/MemoryCreate';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
-import { ReadDescriptorMethodEnum } from '../api/generated/models/ReadDescriptor';
 import type { SessionView } from '../api/generated/models/SessionView';
 import type { StoryPage } from '../api/generated/models/StoryPage';
 import type { UploadDescriptor } from '../api/generated/models/UploadDescriptor';
@@ -17,6 +16,7 @@ import { UploadDescriptorMethodEnum } from '../api/generated/models/UploadDescri
 import { Configuration, createSessionFetch } from './apiConfiguration';
 import { ResponseError } from '../api/generated/runtime';
 import { i18n } from '../i18n';
+import { loadAuthorizedStoryImage } from './storyMediaLoader';
 
 export interface FlowResult {
   memory: MemoryDetail;
@@ -245,8 +245,8 @@ async function waitUntilReady(
 
 export async function loadAuthorizedMedia(
   apis: ReferenceApis,
-  apiBaseUrl: string,
-  accessToken: string,
+  _apiBaseUrl: string,
+  _accessToken: string,
   spaceId: string,
   parentType:
     | typeof AttachmentReadRequestParentTypeEnum.MEMORY
@@ -256,29 +256,14 @@ export async function loadAuthorizedMedia(
   fetchApi: typeof fetch = fetch,
   signal?: AbortSignal,
 ): Promise<string> {
-  const descriptor = await apis.attachments.createAttachmentReadAccess({
+  return loadAuthorizedStoryImage(
+    apis,
     spaceId,
+    parentType,
+    parentId,
     attachmentId,
-    attachmentReadRequest: { parentType, parentId },
-  });
-
-  const headers = new Headers();
-  if (descriptor.method === ReadDescriptorMethodEnum.STREAM) {
-    headers.set('Authorization', `Bearer ${accessToken}`);
-  }
-  const transport =
-    descriptor.method === ReadDescriptorMethodEnum.STREAM
-      ? createSessionFetch(apiBaseUrl, accessToken, fetchApi)
-      : fetchApi;
-  const response = await transport(
-    resolveTransportUrl(apiBaseUrl, descriptor.url),
-    {
-      headers,
-      ...(signal ? { signal } : {}),
-    },
+    { fetchApi, signal },
   );
-  await assertOk(response, i18n.t('flow.imageLoadFailed'));
-  return URL.createObjectURL(await response.blob());
 }
 
 export async function loadAuthorizedImage(

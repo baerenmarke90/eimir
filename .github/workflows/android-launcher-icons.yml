@@ -1,0 +1,80 @@
+name: Android launcher icons
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/android-launcher-icons.yml'
+      - 'android/**'
+      - 'web/src/client/nativeAppIcon.ts'
+      - 'web/src/client/useNativeAppIcon.ts'
+      - 'scripts/android_launcher_identity.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-launcher-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  launcher:
+    name: Android launcher device verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: '24.21.0'
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - name: Prepare the packaged Web product
+        working-directory: web
+        env:
+          VITE_EIMIR_API_BASE_URL: https://api.eimir.invalid
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run cap:build:web
+          npm run cap:sync
+      - name: Install the Android test system
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            'platforms;android-36' 'build-tools;36.0.0' \
+            'system-images;android-36;google_apis;x86_64'
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
+            --force --name eimir-launcher --device pixel_5 \
+            --package 'system-images;android-36;google_apis;x86_64'
+          sudo setfacl -m "u:$USER:rw" /dev/kvm
+      - name: Build, lint and test the Android adapter
+        working-directory: android
+        run: |
+          ./gradlew --no-daemon --dependency-verification strict \
+            :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug :app:testDebugUnitTest
+      - name: Boot the emulator and verify every launcher choice
+        working-directory: android
+        run: |
+          "$ANDROID_HOME/emulator/emulator" -avd eimir-launcher -no-window \
+            -no-audio -no-snapshot -no-boot-anim -gpu swiftshader \
+            > emulator.log 2>&1 &
+          adb wait-for-device
+          for attempt in $(seq 1 120); do
+            boot=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+            if [ "$boot" = '1' ]; then break; fi
+            sleep 2
+          done
+          test "$boot" = '1'
+          ./gradlew --no-daemon --dependency-verification strict :app:connectedDebugAndroidTest
+      - name: Upload native verification results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-launcher-verification
+          path: |
+            android/app/build/reports/
+            android/app/build/outputs/androidTest-results/
+            android/emulator.log
+          if-no-files-found: ignore

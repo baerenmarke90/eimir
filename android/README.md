@@ -7,7 +7,8 @@ This directory contains the canonical (and only) Android Gradle project for **ei
 - **Application ID (Release)**: `de.sidebyside.app`
 - **Application ID (Debug)**: `de.sidebyside.app.debug` (`applicationIdSuffix ".debug"`)
 - **Package / Namespace**: `de.eimir.app`
-- **Main Activity**: `de.eimir.app.MainActivity`
+- **Shell Activity**: `de.eimir.app.LauncherActivity` (inherits the existing bridge lifecycle)
+- **Original launcher alias**: `de.eimir.app.MainActivity` (preserved for existing installs)
 - **SDK Target**: `minSdkVersion = 26`, `compileSdkVersion = 36`, `targetSdkVersion = 36`
 
 ## Asset Synchronization

@@ -9118,6 +9118,30 @@
         "title": "SignupConsumeRequest",
         "type": "object"
       },
+      "SignupEmailRequest": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "invitationToken": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invitationtoken"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "SignupEmailRequest",
+        "type": "object"
+      },
       "SignupSessionView": {
         "properties": {
           "account": {
@@ -12354,7 +12378,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EmailRequest"
+                "$ref": "#/components/schemas/SignupEmailRequest"
               }
             }
           },

@@ -1042,10 +1042,11 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   });
 
   useEffect(() => {
-    if (!tokens || !membershipsQuery.data) {
+    if (!tokens) {
       setSpaceId(null);
       return;
     }
+    if (!membershipsQuery.data) return;
     setSpaceId((current) => {
       const resolved = resolveActiveSpaceId(membershipsQuery.data, current);
       if (resolved && account && tokens) {
@@ -1109,7 +1110,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
             onSession={(session) => {
               storeSession(session);
               setEntryToken(null);
-              setSpaceId(null);
+              setSpaceId(session.spaceId ?? null);
               setAccount(session.account);
               setTokens(session.tokens);
               queryClient.clear();

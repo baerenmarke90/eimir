@@ -126,6 +126,7 @@ describe('settings category routes', () => {
       appearance: '/more/settings/appearance',
       data: '/more/settings/data',
       account: '/more/settings/account',
+      updates: '/more/settings/updates',
     });
     expect(settingsCategoryPath('appearance')).toBe(
       '/more/settings/appearance',

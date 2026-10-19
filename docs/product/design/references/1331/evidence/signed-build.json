@@ -1,0 +1,28 @@
+{
+  "apk": "eimir-android-test-v0.2.0-test.1.apk",
+  "sha256": "e39e620f1ab5b6531fd88ef532e5c682c1e46ef2d46f1ca20316cabb9429d387",
+  "size": 7414411,
+  "build": {
+    "channel": "android-test",
+    "sourceRevision": "2ef6745a9f544f2ae9a0eab258d27be64a3cc951",
+    "dirty": false,
+    "validationOnly": false,
+    "versionName": "0.2.0-test.1",
+    "versionCode": 1,
+    "apiOrigin": "https://demo.eimir.ur-cloud.de",
+    "demoMode": false,
+    "demoResetTimer": false,
+    "testUpdates": true
+  },
+  "signingCertificateSha256": "b5009739477874fbc76b483c66ddb1502132255dd15de37f7570ee6a13b5f472",
+  "ordinaryReleaseInspection": {
+    "updaterClass": false,
+    "installPermission": false,
+    "updateProvider": false
+  },
+  "acceptance": {
+    "publicFeedPublished": false,
+    "backendDeployed": false,
+    "physicalDeviceUpgradeVerified": false
+  }
+}

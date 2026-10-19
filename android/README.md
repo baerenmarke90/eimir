@@ -63,6 +63,18 @@ EIMIR_RELEASE_KEY_PASSWORD="key-password" \
 
 Supply-chain dependencies are strictly verified against `gradle/verification-metadata.xml`.
 
+## Temporary Android test channel
+
+The opt-in `sideload` build adds a bounded APK updater to the shared Settings UI.
+The ordinary `release` source set contains neither the updater plugin nor
+`REQUEST_INSTALL_PACKAGES`. Use the dedicated build/verification helper instead
+of manually assembling a publishable test APK. It pins
+`https://demo.eimir.ur-cloud.de`, disables Demo mode and reset timers, and records
+the clean source revision in the APK.
+
+See [Android test channel runbook](../docs/ANDROID-TEST-UPDATES.md) for signing
+custody, commands, publication order, removal, and the separate device gates.
+
 ## Legacy Native Storage Cleanup
 
 The retired Kotlin/Compose client persisted a Room read cache and a remembered

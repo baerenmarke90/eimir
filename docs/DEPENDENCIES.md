@@ -266,6 +266,7 @@ stays inactive until a push-notification slice adds Firebase.
 | Gradle | 8.14.6 | gradle.org / CI setup-gradle | Apache-2.0 |
 | Google Services Gradle Plugin (inactive without `google-services.json`) | 4.5.0 | Google Maven | Apache-2.0 |
 | JUnit 4 | 4.13.2 | Maven Central | EPL-1.0 |
+| JSON-java (sideload host parser tests only; excluded from APKs) | 20250517 | Maven Central / stleary/JSON-java | Public Domain |
 | androidx.test.ext:junit | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.test.espresso:espresso-core | 3.7.0 | Google Maven | Apache-2.0 |
 

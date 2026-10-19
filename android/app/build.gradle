@@ -43,12 +43,17 @@ def requireSecret = { String property, String envVar, String legacyProp = null, 
 android {
     namespace = "de.eimir.app"
     compileSdk = rootProject.ext.compileSdkVersion
+    buildFeatures { buildConfig true }
     defaultConfig {
         applicationId "de.sidebyside.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode eimirVersionCode
         versionName eimirVersionName
+        buildConfigField 'boolean', 'EIMIR_SIDELOAD_UPDATES', 'false'
+        buildConfigField 'String', 'EIMIR_SOURCE_REVISION', '"' +
+            ((project.findProperty('eimirSourceRevision') ?: 'development') as String)
+                .replaceAll('[^a-zA-Z0-9-]', '') + '"'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -91,6 +96,14 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+        sideload {
+            initWith release
+            matchingFallbacks = ['release']
+            buildConfigField 'boolean', 'EIMIR_SIDELOAD_UPDATES', 'true'
+            if (project.findProperty('eimirUnsignedTestBuild') == 'true') {
+                signingConfig null
+            }
+        }
     }
 }
 
@@ -107,6 +120,9 @@ dependencies {
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
+    // Android supplies org.json at runtime; its already allowlisted JVM build
+    // exercises the real release parser in host tests, never in the APK.
+    testSideloadImplementation 'org.json:json:20250517'
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')

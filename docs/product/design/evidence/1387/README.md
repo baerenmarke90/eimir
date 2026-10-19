@@ -35,6 +35,10 @@ surface after returning from fullscreen:
   exercise 320 px, 200% text, touch dragging, keyboard/focus, geometry stability,
   looping, ordinary/reduced motion, Light/Dark, denied access, pagination and
   explicit offline/error states.
+- All 17 annual-archive and Timeline-reference browser cases also pass after
+  aligning their remaining legacy `DIRECT`/`file` fixture descriptors with the
+  current `STREAM`/`content` API contract. Runtime authorization and unknown
+  request assertions are preserved.
 - Browser checks use Chromium 153 through a local executable-path override;
   the repository Playwright configuration is unchanged.
 

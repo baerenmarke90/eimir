@@ -231,10 +231,12 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
         ? route.fulfill({ status: 204 })
         : route.fulfill({ contentType: 'image/jpeg', body: photo });
     }
+    if (method === 'GET' && path.endsWith(`/attachments/${ATTACHMENT}/content`))
+      return route.fulfill({ contentType: 'image/jpeg', body: photo });
     if (path.endsWith(`/attachments/${ATTACHMENT}/read-access`))
       return json({
         method: 'STREAM',
-        url: `/api/v1/spaces/${SPACE}/attachments/${ATTACHMENT}/bytes`,
+        url: `/api/v1/spaces/${SPACE}/attachments/${ATTACHMENT}/content`,
       });
     if (
       path.endsWith(`/attachments/${ATTACHMENT}/finalize`) ||

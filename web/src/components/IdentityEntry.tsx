@@ -206,7 +206,10 @@ export function IdentityEntry({
       processedEntryToken.current = token;
       setActiveError(null);
       setPendingAction('signupConsume');
-      void consumeSignup(apiBaseUrl, token)
+      const consume = entryToken.invitationToken
+        ? consumeSignup(apiBaseUrl, token, entryToken.invitationToken)
+        : consumeSignup(apiBaseUrl, token);
+      void consume
         .then((sessionResult) => {
           setPendingAction(null);
           onSession({
@@ -343,7 +346,9 @@ export function IdentityEntry({
       'magicLinkRequest',
       () =>
         selfServiceSignupAvailable
-          ? requestSignup(apiBaseUrl, email)
+          ? invitationToken
+            ? requestSignup(apiBaseUrl, email, invitationToken)
+            : requestSignup(apiBaseUrl, email)
           : requestMagicLink(apiBaseUrl, email),
       () => setMagicLinkRequested(true),
     );

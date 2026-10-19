@@ -139,6 +139,11 @@ import {
     SignupConsumeRequestToJSON,
 } from '../models/SignupConsumeRequest';
 import {
+    type SignupEmailRequest,
+    SignupEmailRequestFromJSON,
+    SignupEmailRequestToJSON,
+} from '../models/SignupEmailRequest';
+import {
     type SignupSessionView,
     SignupSessionViewFromJSON,
     SignupSessionViewToJSON,
@@ -225,7 +230,7 @@ export interface RequestRecoveryApiV1AuthRecoveryRequestPostRequest {
 }
 
 export interface RequestSignupApiV1AuthSignupRequestPostRequest {
-    emailRequest: EmailRequest;
+    signupEmailRequest: SignupEmailRequest;
 }
 
 export interface ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequest {
@@ -1251,10 +1256,10 @@ export class AuthApi extends runtime.BaseAPI {
      * Creates request options for requestSignupApiV1AuthSignupRequestPost without sending the request
      */
     async requestSignupApiV1AuthSignupRequestPostRequestOpts(requestParameters: RequestSignupApiV1AuthSignupRequestPostRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['emailRequest'] == null) {
+        if (requestParameters['signupEmailRequest'] == null) {
             throw new runtime.RequiredError(
-                'emailRequest',
-                'Required parameter "emailRequest" was null or undefined when calling requestSignupApiV1AuthSignupRequestPost().'
+                'signupEmailRequest',
+                'Required parameter "signupEmailRequest" was null or undefined when calling requestSignupApiV1AuthSignupRequestPost().'
             );
         }
 
@@ -1272,7 +1277,7 @@ export class AuthApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: EmailRequestToJSON(requestParameters['emailRequest']),
+            body: SignupEmailRequestToJSON(requestParameters['signupEmailRequest']),
         };
     }
 

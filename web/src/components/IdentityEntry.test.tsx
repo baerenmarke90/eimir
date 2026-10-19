@@ -259,10 +259,15 @@ describe('IdentityEntry', () => {
       );
 
       await screen.findByText(de.identity.mailRequestedTitle);
-      expect(signupSpy).toHaveBeenCalledWith(
-        apiBaseUrl,
-        'new-partner@example.invalid',
-      );
+      expect(signupSpy.mock.calls).toEqual([
+        fromInvitation
+          ? [
+              apiBaseUrl,
+              'new-partner@example.invalid',
+              'partner-invitation-token',
+            ]
+          : [apiBaseUrl, 'new-partner@example.invalid'],
+      ]);
       expect(magicLinkSpy).not.toHaveBeenCalled();
       expect(screen.getByText(de.identity.mailRequestedBody)).toBeDefined();
     },

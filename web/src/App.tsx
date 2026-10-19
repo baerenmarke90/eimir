@@ -844,7 +844,11 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const [entryToken, setEntryToken] = useState(() =>
-    readSensitiveEntryToken(window.location.pathname, window.location.search),
+    readSensitiveEntryToken(
+      window.location.pathname,
+      window.location.search,
+      window.location.hash,
+    ),
   );
   const [initialStoredSession] = useState(() =>
     entryToken ? null : loadStoredSession(),

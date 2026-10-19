@@ -1460,7 +1460,7 @@ No authorization required
 
 ## requestSignupApiV1AuthSignupRequestPost
 
-> requestSignupApiV1AuthSignupRequestPost(emailRequest)
+> requestSignupApiV1AuthSignupRequestPost(signupEmailRequest)
 
 Request Signup
 
@@ -1480,8 +1480,8 @@ async function example() {
   const api = new AuthApi();
 
   const body = {
-    // EmailRequest
-    emailRequest: ...,
+    // SignupEmailRequest
+    signupEmailRequest: ...,
   } satisfies RequestSignupApiV1AuthSignupRequestPostRequest;
 
   try {
@@ -1501,7 +1501,7 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **emailRequest** | [EmailRequest](EmailRequest.md) |  | |
+| **signupEmailRequest** | [SignupEmailRequest](SignupEmailRequest.md) |  | |
 
 ### Return type
 

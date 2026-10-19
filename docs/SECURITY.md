@@ -446,6 +446,18 @@ its address, which stays held until commit:
 A rejected redemption rolls back, including the consumption itself, so the proof
 stays usable until it expires. Redemption never touches Memberships.
 
+**Invitation continuation.** A Cloud signup request may carry an optional existing
+Space invitation token. It is used transiently to append an encoded
+`#invitationToken=...` fragment to the email link; it is not stored with the
+signup proof and is not sent in callback HTTP request targets or referrers. The
+Web entry reads it into memory and removes both the proof and fragment from
+the address/history. After mailbox-proof redemption, the client accepts the
+invitation through the ordinary authenticated Invitations API before entering
+the application. Invalid, expired, revoked or used invitations remain subject
+to normal server-side Membership checks; a failed acceptance grants no Space
+access. No invitation token enters client storage.
+
+
 **Duplicate Accounts cannot arise.** Every redemption for one address waits for
 the same generation lock, so two of them cannot both observe "no Account". A
 different creation path committing the same address after the lookup (for

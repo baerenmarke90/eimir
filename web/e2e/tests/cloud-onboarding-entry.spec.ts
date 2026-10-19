@@ -1,6 +1,6 @@
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -359,8 +359,23 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
 
   test('signup consume with existing account and existing membership enters existing space without FirstSpaceGate', async ({
     page,
-  }) => {
+  }, testInfo) => {
+    await verifySignupEntry(page, false, testInfo);
+  });
+
+  test('an invited new partner follows the mail into the shared space', async ({
+    page,
+  }, testInfo) => {
+    await verifySignupEntry(page, true, testInfo);
+  });
+
+  async function verifySignupEntry(
+    page: Page,
+    fromInvitation: boolean,
+    testInfo: TestInfo,
+  ) {
     let spacesCreated = false;
+    let invitationAccepted = false;
 
     await page.route('**/api/v1/**', async (route) => {
       if (await fulfillDefaultAppIcon(route)) return;
@@ -416,7 +431,7 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
             accessExpiresAt: '2026-09-01T12:00:00Z',
             refreshExpiresAt: '2026-09-08T12:00:00Z',
           },
-          accountCreated: false,
+          accountCreated: fromInvitation,
         });
         return;
       }
@@ -561,12 +576,59 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
       route.continue();
     });
 
-    // Enter via verified signup URL
-    await page.goto('/auth/signup?token=secret-signup-proof');
+    if (fromInvitation) {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.route('**/api/v1/auth/signup/request', async (route) => {
+        expect(route.request().postDataJSON()).toEqual({
+          email: 'partner@example.invalid',
+          invitationToken: 'partner-invitation',
+        });
+        await route.fulfill({ status: 202 });
+      });
+      await page.route('**/api/v1/invitations/accept', async (route) => {
+        expect(route.request().headers().authorization).toBe(
+          'Bearer session-access-token',
+        );
+        expect(route.request().postDataJSON()).toEqual({
+          token: 'partner-invitation',
+        });
+        invitationAccepted = true;
+        await route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            spaceId: SPACE_ID,
+            role: 'PARTNER',
+            status: 'ACTIVE',
+          }),
+        });
+      });
+      await page.goto('/auth/invitation?token=partner-invitation');
+      await page.getByLabel(de.login.email).fill('partner@example.invalid');
+      await page
+        .getByRole('button', { name: de.identity.magicLinkRequestSubmit })
+        .click();
+      await expect(
+        page.getByText(de.identity.mailRequestedTitle),
+      ).toBeVisible();
+      await page.screenshot({
+        path: testInfo.outputPath('mail-confirmation-compact.png'),
+      });
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.screenshot({
+        path: testInfo.outputPath('mail-confirmation-expanded.png'),
+      });
+      await page.setViewportSize({ width: 390, height: 844 });
+    }
+    // Follow the mail callback, including its transient invitation fragment.
+    await page.goto(
+      '/auth/signup?token=secret-signup-proof' +
+        (fromInvitation ? '#invitationToken=partner-invitation' : ''),
+    );
 
     // Page load does not await React's passive entry cleanup. Await the actual
     // privacy outcome rather than sampling the URL before the app has booted.
-    await expect(page).not.toHaveURL(/secret-signup-proof/);
+    await expect(page).not.toHaveURL(/secret-signup-proof|partner-invitation/);
 
     // FirstSpaceGate must NOT be displayed
     await expect(
@@ -581,7 +643,11 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
       page.getByRole('navigation', { name: de.navigation.primary }),
     ).toBeVisible();
     expect(spacesCreated).toBe(false);
-  });
+    expect(invitationAccepted).toBe(fromInvitation);
+    expect(
+      await page.evaluate(() => JSON.stringify(localStorage)),
+    ).not.toContain('partner-invitation');
+  }
 
   test('does not show "Gemeinsam starten" on self-hosted invitation-only deployment', async ({
     page,

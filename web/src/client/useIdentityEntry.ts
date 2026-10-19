@@ -1,12 +1,17 @@
+import { App } from '@capacitor/app';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { App } from '@capacitor/app';
 import { isCapacitorNative } from '../pwa';
 import {
   readSensitiveEntryToken,
-  stripSensitiveEntryToken,
   type SensitiveEntryToken,
+  stripSensitiveEntryToken,
 } from './entryToken';
+import { postSnackbar } from './snackbar';
+import {
+  isDocumentLeaveBlocked,
+  useDocumentLeaveBlocked,
+} from './useDocumentLeaveGuard';
 
 type LaunchQueueWindow = Window & {
   launchQueue?: {
@@ -18,17 +23,42 @@ type LaunchQueueWindow = Window & {
 export function readIdentityEntryUrl(
   rawUrl: string,
   expectedOrigin: string,
+  requireHttps = false,
 ): SensitiveEntryToken | null {
+  if (rawUrl.length > 8192) return null;
+  for (const character of rawUrl) {
+    const code = character.charCodeAt(0);
+    if (character === '\\' || code <= 32 || code === 127) return null;
+  }
   try {
     const url = new URL(rawUrl);
+    const expected = new URL(expectedOrigin);
     if (
       !['https:', 'http:'].includes(url.protocol) ||
-      url.origin !== new URL(expectedOrigin).origin ||
+      (requireHttps && expected.protocol !== 'https:') ||
+      url.origin !== expected.origin ||
+      expected.username ||
+      expected.password ||
       url.username ||
-      url.password
+      url.password ||
+      url.searchParams.size !== 1 ||
+      url.searchParams.getAll('token').length !== 1
     )
       return null;
-    return readSensitiveEntryToken(url.pathname, url.search, url.hash);
+    const entry = readSensitiveEntryToken(url.pathname, url.search, url.hash);
+    if (!entry || entry.token.length > 4096) return null;
+    if (url.hash) {
+      const fragment = new URLSearchParams(url.hash.slice(1));
+      if (
+        entry.kind !== 'signup' ||
+        fragment.size !== 1 ||
+        fragment.getAll('invitationToken').length !== 1 ||
+        !entry.invitationToken ||
+        entry.invitationToken.length > 4096
+      )
+        return null;
+    }
+    return entry;
   } catch {
     return null;
   }
@@ -50,15 +80,30 @@ export function useIdentityEntry(apiBaseUrl: string) {
     ),
   );
   const lastDelivery = useRef(entryToken);
+  const blocked = useDocumentLeaveBlocked();
+  const [pending, setPending] = useState<SensitiveEntryToken | null>(null);
 
   const receive = useCallback((entry: SensitiveEntryToken) => {
     const previous = lastDelivery.current;
     if (previous?.kind === entry.kind && previous.token === entry.token)
       return false;
     lastDelivery.current = entry;
+    if (isDocumentLeaveBlocked()) {
+      setPending(entry);
+      postSnackbar('snackbar.identityLinkWaiting');
+      return false;
+    }
+    setPending(null);
     setEntryToken(entry);
     return true;
   }, []);
+
+  useEffect(() => {
+    if (blocked || !pending || pending !== lastDelivery.current) return;
+    setPending(null);
+    setEntryToken(pending);
+    navigateRef.current('/', { replace: true });
+  }, [blocked, pending]);
 
   useEffect(() => {
     const entry = readSensitiveEntryToken(
@@ -79,7 +124,7 @@ export function useIdentityEntry(apiBaseUrl: string) {
     const origin = native ? apiBaseUrl : window.location.origin;
     const receiveUrl = (url: string) => {
       if (cancelled) return false;
-      const entry = readIdentityEntryUrl(url, origin);
+      const entry = readIdentityEntryUrl(url, origin, native);
       if (!entry) return false;
       if (receive(entry)) navigateRef.current('/', { replace: true });
       return true;
@@ -90,7 +135,8 @@ export function useIdentityEntry(apiBaseUrl: string) {
       const subscription = App.addListener('appUrlOpen', ({ url }) => {
         warmEntryReceived = receiveUrl(url) || warmEntryReceived;
       }).catch(() => null);
-      void App.getLaunchUrl()
+      void subscription
+        .then((listener) => (listener ? App.getLaunchUrl() : undefined))
         .then((launch) => {
           if (!warmEntryReceived && launch?.url) receiveUrl(launch.url);
         })
@@ -112,6 +158,9 @@ export function useIdentityEntry(apiBaseUrl: string) {
     };
   }, [apiBaseUrl, receive]);
 
-  const clearEntryToken = useCallback(() => setEntryToken(null), []);
+  const clearEntryToken = useCallback(() => {
+    setEntryToken(null);
+    setPending(null);
+  }, []);
   return { entryToken, clearEntryToken };
 }

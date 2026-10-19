@@ -1,7 +1,7 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -398,6 +398,26 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
     });
   });
 
+  test('a running-client callback cannot replace another active account', async ({
+    page,
+  }, testInfo) => {
+    await verifySignupEntry(page, true, testInfo, {
+      delivery: 'launch',
+      existingSession: true,
+      differentAccount: true,
+    });
+  });
+
+  test('a cold mail callback restores and protects another active account', async ({
+    page,
+  }, testInfo) => {
+    await verifySignupEntry(page, true, testInfo, {
+      existingOwnSpace: true,
+      existingSession: true,
+      differentAccount: true,
+    });
+  });
+
   async function verifySignupEntry(
     page: Page,
     fromInvitation: boolean,
@@ -407,11 +427,13 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
       existingOwnSpace = false,
       delivery = 'reload',
       existingSession = false,
+      differentAccount = false,
     }: {
       legacyFragment?: boolean;
       existingOwnSpace?: boolean;
       delivery?: 'reload' | 'router' | 'launch';
       existingSession?: boolean;
+      differentAccount?: boolean;
     } = {},
   ) {
     await page.clock.setFixedTime(new Date(TEST_NOW));
@@ -419,6 +441,7 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
     let invitationAccepted = false;
     let signedIn = existingSession;
     let signupConsumed = 0;
+    let replacementSignOuts = 0;
 
     if (delivery === 'launch') {
       await page.addInitScript(() => {
@@ -506,7 +529,12 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
         signedIn = true;
         if (fromInvitation && !legacyFragment) invitationAccepted = true;
         await fulfillJson({
-          account: { id: ACCOUNT_ID, displayName: 'Lea' },
+          account: {
+            id: differentAccount
+              ? '44444444-4444-4444-8444-444444444444'
+              : ACCOUNT_ID,
+            displayName: 'Lea',
+          },
           tokens: {
             accessToken: 'session-access-token',
             refreshToken: 'session-refresh-token',
@@ -516,6 +544,15 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
           accountCreated: fromInvitation && !existingOwnSpace,
           ...(fromInvitation && !legacyFragment ? { spaceId: SPACE_ID } : {}),
         });
+        return;
+      }
+
+      if (method === 'POST' && pathname === '/api/v1/auth/sign-out') {
+        expect(request.headers().authorization).toBe(
+          'Bearer session-access-token',
+        );
+        replacementSignOuts += 1;
+        await route.fulfill({ status: 204 });
         return;
       }
 
@@ -756,6 +793,35 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
     }
 
     await expect.poll(() => signupConsumed).toBe(1);
+
+    if (differentAccount) {
+      await expect(
+        page.getByRole('alert').getByText(de.identity.activeAccountTitle),
+      ).toBeVisible();
+      await expect.poll(() => replacementSignOuts).toBe(1);
+      const stored = await page.evaluate(() =>
+        JSON.parse(sessionStorage.getItem('eimir-session-v1') || '{}'),
+      );
+      expect(stored.account.id).toBe(ACCOUNT_ID);
+      expect(stored.tokens.accessToken).toBe('old-session-access-token');
+      expect(spacesCreated).toBe(false);
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath('active-account-compact.png'),
+      });
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.screenshot({
+        path: testInfo.outputPath('active-account-expanded.png'),
+      });
+      await page
+        .getByRole('button', { name: de.identity.returnToActiveAccount })
+        .click();
+      await expect(
+        page.getByRole('alert').getByText(de.identity.activeAccountTitle),
+      ).toHaveCount(0);
+      return;
+    }
 
     // Page load does not await React's passive entry cleanup. Await the actual
     // privacy outcome rather than sampling the URL before the app has booted.

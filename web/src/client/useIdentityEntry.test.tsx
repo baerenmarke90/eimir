@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
-import { StrictMode, type ReactNode } from 'react';
-import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
-import { BrowserRouter, useNavigate } from 'react-router-dom';
+
 import { App } from '@capacitor/app';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
+import { type ReactNode, StrictMode } from 'react';
+import { BrowserRouter, useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as platform from '../pwa';
+import { useDocumentLeaveGuard } from './useDocumentLeaveGuard';
 import { readIdentityEntryUrl, useIdentityEntry } from './useIdentityEntry';
 
 vi.mock('@capacitor/app', () => ({
@@ -72,12 +74,57 @@ describe('trusted external identity URLs', () => {
     '/auth/signup?token=proof',
     `${ORIGIN}/story?token=proof`,
     `${ORIGIN}/auth/signup`,
+    `${ORIGIN}/auth/signup?token=a&token=b`,
+    `${ORIGIN}/auth/signup?token=a&returnTo=https://evil.example`,
+    `${ORIGIN}/auth/signup?token=a#other=invite`,
+    `${ORIGIN}/auth/signup?token=a#invitationToken=x&invitationToken=y`,
+    `${ORIGIN}/auth/signup?token=a#invitationToken=x&other=y`,
+    `${ORIGIN}/auth/invitation?token=a#invitationToken=x`,
+    `${ORIGIN}/auth/signup?token=${'a'.repeat(4097)}`,
+    ` ${ORIGIN}/auth/signup?token=a`,
+    `${ORIGIN}/auth/signup?token=a\nb`,
   ])('ignores an untrusted or unrelated URL: %s', (url) => {
     expect(readIdentityEntryUrl(url, ORIGIN)).toBeNull();
+  });
+  it('requires HTTPS for native entry while allowing a local browser origin', () => {
+    const url = 'http://localhost/auth/signup?token=proof';
+    expect(readIdentityEntryUrl(url, 'http://localhost', true)).toBeNull();
+    expect(readIdentityEntryUrl(url, 'http://localhost')).toEqual({
+      kind: 'signup',
+      token: 'proof',
+    });
   });
 });
 
 describe('running identity entry lifecycle', () => {
+  it('retains an external proof without interrupting drafts until every leave guard is released', async () => {
+    vi.mocked(platform.isCapacitorNative).mockReturnValue(true);
+    window.history.replaceState(null, '', '/more/settings');
+    const view = renderHook(
+      ({ dirty, saving }) => {
+        useDocumentLeaveGuard(dirty);
+        useDocumentLeaveGuard(saving);
+        return useIdentityEntry(ORIGIN);
+      },
+      { wrapper, initialProps: { dirty: true, saving: true } },
+    );
+    act(() => nativeOpen({ url: `${ORIGIN}/auth/signup?token=proof` }));
+    expect(view.result.current.entryToken).toBeNull();
+    expect(window.location.pathname).toBe('/more/settings');
+    const beforeUnload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(beforeUnload);
+    expect(beforeUnload.defaultPrevented).toBe(true);
+    view.rerender({ dirty: false, saving: true });
+    expect(view.result.current.entryToken).toBeNull();
+    view.rerender({ dirty: false, saving: false });
+    await waitFor(() =>
+      expect(view.result.current.entryToken).toEqual({
+        kind: 'signup',
+        token: 'proof',
+      }),
+    );
+    expect(window.location.pathname).toBe('/');
+  });
   it('keeps ordinary route intake usable if native launch APIs are unavailable', async () => {
     vi.mocked(platform.isCapacitorNative).mockReturnValue(true);
     vi.mocked(App.addListener).mockRejectedValue(
@@ -144,6 +191,7 @@ describe('running identity entry lifecycle', () => {
         }),
     );
     const { result } = setup();
+    await waitFor(() => expect(App.getLaunchUrl).toHaveBeenCalled());
     act(() => nativeOpen({ url: `${ORIGIN}/auth/signup?token=newer` }));
     await act(async () =>
       resolveLaunch({ url: `${ORIGIN}/auth/signup?token=stale` }),

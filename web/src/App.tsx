@@ -20,6 +20,7 @@ import { ProfilesApi } from './api/generated/apis/ProfilesApi';
 import { SpacesApi } from './api/generated/apis/SpacesApi';
 import { Configuration } from './api/generated/runtime';
 import { loadReferenceClientConfig } from './client/config';
+import { ActiveAccountMismatchError } from './client/identityFlow';
 import { useSessionRefresh } from './client/useSessionRefresh';
 import { useIdentityEntry } from './client/useIdentityEntry';
 import { createM4ProductApis } from './client/m4Product';
@@ -842,9 +843,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const { entryToken, clearEntryToken } = useIdentityEntry(config.apiBaseUrl);
-  const [initialStoredSession] = useState(() =>
-    entryToken ? null : loadStoredSession(),
-  );
+  const [initialStoredSession] = useState(loadStoredSession);
   const [tokens, setTokens] = useState<TokenView | null>(
     () => initialStoredSession?.tokens ?? null,
   );
@@ -1039,6 +1038,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   }, [account, membershipsQuery.data, tokens]);
 
   function logout() {
+    clearEntryToken();
     if (tokens?.accessToken) {
       try {
         const apis = createReferenceApis(config.apiBaseUrl, tokens.accessToken);
@@ -1060,7 +1060,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     postSnackbar('snackbar.spaceSwitched');
   }
 
-  if (isRestoring && !entryToken) {
+  if (isRestoring) {
     return (
       <main className="setup-shell">
         <ThemeControl />
@@ -1085,6 +1085,15 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
             entryToken={entryToken}
             onEntryTokenCleared={clearEntryToken}
             onSession={(session) => {
+              if (account && session.account.id !== account.id) {
+                void createReferenceApis(
+                  config.apiBaseUrl,
+                  session.tokens.accessToken,
+                )
+                  .auth.signOutApiV1AuthSignOutPost()
+                  .catch(() => {});
+                throw new ActiveAccountMismatchError();
+              }
               storeSession(session);
               clearEntryToken();
               setSpaceId(session.spaceId ?? null);

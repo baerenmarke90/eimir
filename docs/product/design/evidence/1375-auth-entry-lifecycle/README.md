@@ -34,8 +34,10 @@ session failure cannot discard an incoming mailbox proof.
 Product Reference v1 completion/context continuity and Authentication and
 Invitation (Screen Template 10) apply. IdentityEntry, neutral mail confirmation,
 loading/error states, the product shell, session persistence and authorized Space
-selection are reused. This is a nonvisual correction: no new or materially
-changed view, copy, control, layout, motion, or token is introduced. The owning
+selection are reused. This corrects an existing flow and reuses its existing composition. A conflicting
+active-account callback uses the existing localized error/action presentation;
+links received during a protected draft use the shared Snackbar. No new layout,
+style, motion or token is introduced. The owning
 issue records the preflight before implementation; no generated composition
 is applicable to this correction.
 
@@ -65,6 +67,19 @@ harness setup exhausted the isolated network budget, which was reset only in
 the explicitly checked local dummy database before the final complete run.
 No product limit, assertion or production state was relaxed.
 
+The following safeguards reuse the current error and Snackbar composition:
+
+- [Active-account protection, Compact](active-account-compact.png)
+- [Active-account protection, Expanded](active-account-expanded.png)
+
+Screenshots are from a running-client callback with a different Account. The
+existing Account/session remains stored, the newly issued session is signed out,
+and the return action restores the existing shell. The initial stored session is
+also restored before cold-entry consumption. External links wait in memory until
+all shared document-leave guards release; unsaved drafts and in-flight saves are
+not interrupted. The guard consolidates the existing task-editor and Quiet Hours
+beforeunload ownership; there is no timer or automatic draft discard.
+
 ## Validation
 
 - 127 PostgreSQL Cloud onboarding/auth/policy/action-token tests pass, including
@@ -73,18 +88,24 @@ No product limit, assertion or production state was relaxed.
   isolation. The final added network test also passes in the seven-test alias run.
 - 19 adjacent account-deletion/history/offboarding-policy/invitation tests pass.
 - Backend unit run: 812 pass, 24 database-dependent skips.
-- Full Web unit run: 1894 pass, one existing skip; after the final unavailable
-  native-API guard, all 31 focused entry/component tests pass.
-- 14 onboarding/session/reload browser journeys pass with retries disabled.
+- Full Web unit run after the shared draft guard: 1910 pass, one existing skip.
+  Focused entry/component checks after account protection: 42 pass.
+- 16 onboarding/session/reload browser journeys pass with retries disabled,
+  including running and cold callbacks with a different active Account.
 - Ruff, mypy (296 source files), Web typecheck/build/format and OpenAPI checks
   pass. Web lint passes with pre-existing unrelated warnings.
 - The generated client uses official OpenAPI Generator 7.24.0, matching the
   repository version. Only generated endpoint documentation changes.
 
-No real recipient delivery or Android-device handoff was observed. The Android
-manifest still does not register HTTPS auth App Links, and old bundled APKs do
-not update with the Web/backend. Delivered-URL handling does not assert domain
-verification or package rollout. The complete user-reported journey remains
+No real recipient delivery or Android-device handoff was observed at this PR's
+Web/backend checkpoint. Published Android test.6 uses source `1ffa9153` on
+`codex/android-test-homescreen-icons`, with an additional sideload App Links
+manifest. Its independent `nativeEntryLinks` drops delivered callbacks when a
+session exists and rejects pre-upgrade invitation fragments. That test-channel
+listener must be replaced by this shared intake, not run alongside it. The public
+Digital Asset Links file matches the existing test signing certificate. Old
+bundled APKs do not update with Web/backend deployment. Delivered-URL handling
+does not itself prove OS verification or package rollout. The complete user-reported journey remains
 unverified until those actual installation and delivery boundaries are observed.
 
 ## Account and relationship boundaries

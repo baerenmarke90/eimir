@@ -57,6 +57,19 @@ afterEach(async () => {
 });
 
 describe('session-bound API transport', () => {
+  it('never replays a consumed refresh generation after its single-flight promise settles', async () => {
+    const fetch = vi.fn(async () =>
+      fetch.mock.calls.length === 1 ? json(rotated()) : json({}, 401),
+    );
+    vi.stubGlobal('fetch', fetch);
+    const first = await refreshSessionTokens(api, 'refresh-a');
+    // A queued focus/timer callback can still hold the previous render here.
+    const resumed = await refreshSessionTokens(api, 'refresh-a');
+    expect(resumed).toEqual(first);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(loadStoredSession()?.tokens.accessToken).toBe('access-b');
+  });
+
   it('updates existing clients and previous-render clients after rotation without a second refresh', async () => {
     const send = client();
     const fetch = vi.fn(async (url: RequestInfo | URL) =>

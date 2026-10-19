@@ -42,6 +42,14 @@ function setup(restoring = false) {
     account: { id: 'a', displayName: 'Alex' },
     tokens,
   });
+  const owner = { accountId: 'a', tokens };
+  vi.mocked(sessions.captureSessionOwner).mockReturnValue(owner);
+  vi.mocked(sessions.currentSessionTokens).mockImplementation((candidate) => {
+    const stored = sessions.loadStoredSession();
+    return candidate === owner && stored?.account.id === owner.accountId
+      ? stored.tokens
+      : null;
+  });
   vi.mocked(sessions.refreshSessionTokens).mockImplementation(async () => {
     vi.mocked(sessions.loadStoredSession).mockReturnValue({
       account: { id: 'a', displayName: 'Alex' },
@@ -62,6 +70,82 @@ function setup(restoring = false) {
 }
 
 describe('real session refresh lifecycle', () => {
+  it.each(['a', 'replacement-account'])(
+    'does not refresh a replacement login for %s when its rendered generation has no owner',
+    async (accountId) => {
+      const staleTokens = {
+        accessToken: 'obsolete-access',
+        refreshToken: 'obsolete-refresh',
+        accessExpiresAt: new Date(Date.now() + 120_000),
+        refreshExpiresAt: new Date(Date.now() + 86_400_000),
+      };
+      const replacementTokens = {
+        ...staleTokens,
+        accessToken: 'replacement-access',
+        refreshToken: 'replacement-refresh',
+        accessExpiresAt: new Date(Date.now() - 1),
+      };
+      vi.mocked(sessions.captureSessionOwner).mockReturnValue(null);
+      vi.mocked(sessions.loadStoredSession).mockReturnValue({
+        account: { id: accountId, displayName: 'Alex' },
+        tokens: replacementTokens,
+      });
+      vi.mocked(sessions.refreshSessionTokens).mockResolvedValue(
+        replacementTokens,
+      );
+      const accepted = vi.fn();
+      const rejected = vi.fn();
+      renderHook(() =>
+        useSessionRefresh(
+          'https://instance.example',
+          staleTokens,
+          false,
+          accepted,
+          rejected,
+        ),
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+        window.dispatchEvent(new Event('focus'));
+        window.dispatchEvent(new Event('online'));
+      });
+
+      expect(sessions.refreshSessionTokens).not.toHaveBeenCalled();
+      expect(accepted).not.toHaveBeenCalled();
+      expect(rejected).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not replay a stale timer or resume after request-driven rotation before React commits', async () => {
+    const { next, rejected } = setup();
+    vi.setSystemTime(new Date(Date.now() + 20 * 60_000));
+    vi.mocked(sessions.loadStoredSession).mockReturnValue({
+      account: { id: 'a', displayName: 'Alex' },
+      tokens: { ...next, accessExpiresAt: new Date(Date.now() + 900_000) },
+    });
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+      window.dispatchEvent(new Event('online'));
+    });
+    expect(sessions.refreshSessionTokens).not.toHaveBeenCalled();
+    expect(rejected).not.toHaveBeenCalled();
+  });
+
+  it('refreshes the current generation rather than its old render after suspension', async () => {
+    const { next } = setup();
+    vi.setSystemTime(new Date(Date.now() + 20 * 60_000));
+    vi.mocked(sessions.loadStoredSession).mockReturnValue({
+      account: { id: 'a', displayName: 'Alex' },
+      tokens: next,
+    });
+    await act(async () => window.dispatchEvent(new Event('focus')));
+    expect(sessions.refreshSessionTokens).toHaveBeenCalledWith(
+      'https://instance.example',
+      'refresh-b',
+    );
+  });
+
   it('receives request-triggered rotations without waiting for its timer', () => {
     const { next, accepted } = setup();
     act(() =>

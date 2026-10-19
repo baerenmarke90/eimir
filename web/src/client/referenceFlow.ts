@@ -217,17 +217,26 @@ export async function uploadAttachmentBytesWithProgress(
   options.onProgress?.(100);
 }
 
-async function waitUntilReady(
+/** Server validation may queue behind other photos; elapsed time is not failure. */
+export async function waitUntilAttachmentReady(
   apis: ReferenceApis,
   spaceId: string,
   attachmentId: string,
+  signal?: AbortSignal,
 ): Promise<void> {
-  const deadline = Date.now() + 30_000;
-  while (Date.now() < deadline) {
-    const attachment = await apis.attachments.getAttachment({
-      spaceId,
-      attachmentId,
-    });
+  let interval = 500;
+  while (true) {
+    if (signal?.aborted)
+      throw new DOMException('Upload aborted.', 'AbortError');
+    const attachment = await apis.attachments
+      .getAttachment({ spaceId, attachmentId }, { signal })
+      .catch((error: unknown) => {
+        if (signal?.aborted)
+          throw new DOMException('Upload aborted.', 'AbortError');
+        throw error;
+      });
+    if (signal?.aborted)
+      throw new DOMException('Upload aborted.', 'AbortError');
     if (attachment.status === 'READY') return;
     if (
       attachment.status === 'FAILED' ||
@@ -238,9 +247,21 @@ async function waitUntilReady(
         i18n.t('flow.processingStatus', { status: attachment.status }),
       );
     }
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise<void>((resolve, reject) => {
+      const abort = () => {
+        clearTimeout(timer);
+        reject(new DOMException('Upload aborted.', 'AbortError'));
+      };
+      const timer = setTimeout(() => {
+        signal?.removeEventListener('abort', abort);
+        resolve();
+      }, interval);
+      if (signal?.aborted) abort();
+      else signal?.addEventListener('abort', abort, { once: true });
+    });
+    // Keep a slow batch observable without hammering the metadata endpoint.
+    interval = Math.min(interval * 2, 5_000);
   }
-  throw new ReferenceFlowError(i18n.t('flow.processingTimeout'));
 }
 
 export async function loadAuthorizedMedia(
@@ -351,7 +372,7 @@ export async function runMemoryMediaStoryFlow(
       attachmentId: upload.attachment.id,
       body: {},
     });
-    await waitUntilReady(apis, spaceId, upload.attachment.id);
+    await waitUntilAttachmentReady(apis, spaceId, upload.attachment.id);
 
     const boundMemory = await apis.memories.replaceMemoryAttachments({
       spaceId,

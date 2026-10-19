@@ -141,13 +141,13 @@ for (const mode of ['proactive', 'resume', 'outage'] as const) {
       await page.goto('/story/memories/new');
       await page
         .getByLabel(de.memory.bodyLabel, { exact: true })
-        .fill('Keep this memory while I am still writing.');
+        .fill('Preserve this unfinished memory.');
       if (mode !== 'resume') {
         await page.clock.runFor(61_000);
         if (mode === 'outage') {
           await expect(
             page.getByLabel(de.memory.bodyLabel, { exact: true }),
-          ).toHaveValue('Keep this memory while I am still writing.');
+          ).toHaveValue('Preserve this unfinished memory.');
           recovered = true;
           await page.evaluate(() => window.dispatchEvent(new Event('online')));
         }
@@ -162,7 +162,7 @@ for (const mode of ['proactive', 'resume', 'outage'] as const) {
       await expect.poll(() => refreshes).toBe(1);
       await expect(
         page.getByLabel(de.memory.bodyLabel, { exact: true }),
-      ).toHaveValue('Keep this memory while I am still writing.');
+      ).toHaveValue('Preserve this unfinished memory.');
       expect(staleRequests).toEqual([]);
       if (process.env.VISUAL_EVIDENCE_DIR) {
         await page.screenshot({
@@ -174,7 +174,7 @@ for (const mode of ['proactive', 'resume', 'outage'] as const) {
         .click();
       await expect(page).toHaveURL(new RegExp(`/story/memories/${memoryId}$`));
       await expect(
-        page.getByText('Keep this memory while I am still writing.', {
+        page.getByText('Preserve this unfinished memory.', {
           exact: true,
         }),
       ).toBeVisible();

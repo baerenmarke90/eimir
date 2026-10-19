@@ -5,6 +5,7 @@ import * as sessions from './sessionPersistence';
 import { useSessionRefresh } from './useSessionRefresh';
 
 vi.mock('./sessionPersistence', () => ({
+  DEFAULT_ACCESS_TOKEN_REFRESH_BUFFER_MS: 60_000,
   captureSessionOwner: vi.fn(),
   currentSessionTokens: vi.fn(),
   isAccessTokenValid: (tokens: { accessExpiresAt: Date }) =>
@@ -170,6 +171,48 @@ describe('real session refresh lifecycle', () => {
     await act(() => vi.advanceTimersByTimeAsync(60_000));
     expect(accepted).toHaveBeenCalledWith(next);
     expect(rejected).not.toHaveBeenCalled();
+  });
+  it('keeps scheduling the canonical rotation when React still renders the previous token', async () => {
+    const { next, accepted } = setup();
+    const canonical = {
+      ...next,
+      accessExpiresAt: new Date(Date.now() + 300_000),
+    };
+    vi.mocked(sessions.loadStoredSession).mockReturnValue({
+      account: { id: 'a', displayName: 'Alex' },
+      tokens: canonical,
+    });
+    await act(() => vi.advanceTimersByTimeAsync(60_000));
+    expect(sessions.refreshSessionTokens).not.toHaveBeenCalled();
+    await act(() => vi.advanceTimersByTimeAsync(180_000));
+    expect(sessions.refreshSessionTokens).toHaveBeenCalledWith(
+      'https://instance.example',
+      'refresh-b',
+    );
+    expect(accepted).toHaveBeenCalled();
+  });
+  it('does not leave a retry timer after unmounting during a failed refresh', async () => {
+    const { unmount, rejected } = setup();
+    let fail!: (reason: unknown) => void;
+    vi.mocked(sessions.refreshSessionTokens).mockImplementation(
+      () =>
+        new Promise((_resolve, reject) => {
+          fail = reject;
+        }),
+    );
+    await act(() => vi.advanceTimersByTimeAsync(60_000));
+    unmount();
+    await act(async () => fail({ status: 503 }));
+    expect(vi.getTimerCount()).toBe(0);
+    expect(rejected).not.toHaveBeenCalled();
+  });
+  it('ends a definitively forbidden refresh instead of retrying indefinitely', async () => {
+    const { rejected } = setup();
+    vi.mocked(sessions.refreshSessionTokens).mockRejectedValue({ status: 403 });
+    await act(() => vi.advanceTimersByTimeAsync(60_000));
+    expect(rejected).toHaveBeenCalledOnce();
+    await act(() => vi.advanceTimersByTimeAsync(90_000));
+    expect(sessions.refreshSessionTokens).toHaveBeenCalledOnce();
   });
   it('retries a temporary network failure without signing out', async () => {
     const { accepted, rejected } = setup();

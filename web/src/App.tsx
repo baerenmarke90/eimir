@@ -20,7 +20,10 @@ import { ProfilesApi } from './client/mediaApis';
 import { SpacesApi } from './api/generated/apis/SpacesApi';
 import { Configuration } from './client/apiConfiguration';
 import { loadReferenceClientConfig } from './client/config';
-import { ActiveAccountMismatchError } from './client/identityFlow';
+import {
+  ActiveAccountMismatchError,
+  revokeUnacceptedSession,
+} from './client/identityFlow';
 import { useSessionRefresh } from './client/useSessionRefresh';
 import { useIdentityEntry } from './client/useIdentityEntry';
 import { createM4ProductApis } from './client/m4Product';
@@ -1094,12 +1097,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
             onEntryTokenCleared={clearEntryToken}
             onSession={(session) => {
               if (account && session.account.id !== account.id) {
-                void createReferenceApis(
-                  config.apiBaseUrl,
-                  session.tokens.accessToken,
-                )
-                  .auth.signOutApiV1AuthSignOutPost()
-                  .catch(() => {});
+                void revokeUnacceptedSession(config.apiBaseUrl, session);
                 throw new ActiveAccountMismatchError();
               }
               storeSession(session);

@@ -105,6 +105,19 @@ describe('invalidateAuthorSummaryConsumers', () => {
 });
 
 describe('planning cache contracts', () => {
+  it('marks every viewer Discover selection stale after a Story save, without affecting another Space', async () => {
+    const client = new QueryClient();
+    const own = authorSummaryQueryKeys.discover('shared', 'viewer');
+    const partner = authorSummaryQueryKeys.discover('shared', 'partner');
+    const other = authorSummaryQueryKeys.discover('other', 'viewer');
+    for (const key of [own, partner, other])
+      client.setQueryData(key, { items: [] });
+    await invalidateStoryProjections(client, 'shared');
+    expect(client.getQueryState(own)?.isInvalidated).toBe(true);
+    expect(client.getQueryState(partner)?.isInvalidated).toBe(true);
+    expect(client.getQueryState(other)?.isInvalidated).toBe(false);
+  });
+
   it('invalidates every Place consumer in one Space without a global wipe', async () => {
     const queryClient = new QueryClient();
     const keys = [

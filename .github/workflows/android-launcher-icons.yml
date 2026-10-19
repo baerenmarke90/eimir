@@ -73,7 +73,13 @@ jobs:
             sleep 2
           done
           test "$boot" = '1'
-          ./gradlew --no-daemon --dependency-verification strict :app:connectedDebugAndroidTest
+          adb -e install -r app/build/outputs/apk/debug/app-debug.apk
+          adb -e install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.LauncherIconsTest \
+            de.sidebyside.app.debug.test/androidx.test.runner.AndroidJUnitRunner \
+            | tee instrumentation.log
+          grep -Eq '^OK \([1-9][0-9]* tests?\)' instrumentation.log
       - name: Upload native verification results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -83,4 +89,5 @@ jobs:
             android/app/build/reports/
             android/app/build/outputs/androidTest-results/
             android/emulator.log
+            android/instrumentation.log
           if-no-files-found: ignore

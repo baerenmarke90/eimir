@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
 import type { TokenView } from '../api/generated/models/TokenView';
 import {
+  captureSessionOwner,
+  currentSessionTokens,
   isAccessTokenValid,
   loadStoredSession,
   refreshSessionTokens,
+  subscribeSessionRefresh,
 } from './sessionPersistence';
 
 /** Resume and transport retry must not turn access expiry into manual login. */
@@ -18,8 +21,30 @@ export function useSessionRefresh(
     if (!tokens || restoring) return;
     let cancelled = false;
     let refreshing = false;
+    let rejected = false;
     let timer: ReturnType<typeof setTimeout>;
     const refreshToken = tokens.refreshToken;
+    const owner = captureSessionOwner(tokens.accessToken);
+    const rejectSession = () => {
+      if (!cancelled && !rejected) {
+        rejected = true;
+        onRejected();
+      }
+    };
+    const unsubscribe = subscribeSessionRefresh(
+      (next, previousRefreshToken) => {
+        if (cancelled) return;
+        if (!next) {
+          if (!loadStoredSession()) rejectSession();
+        } else if (
+          previousRefreshToken === refreshToken ||
+          (owner &&
+            currentSessionTokens(owner)?.refreshToken === next.refreshToken)
+        ) {
+          onTokens(next);
+        }
+      },
+    );
 
     const refresh = () => {
       if (cancelled || refreshing) return;
@@ -37,7 +62,7 @@ export function useSessionRefresh(
           if (cancelled) return;
           const current = loadStoredSession();
           if (current && current.tokens.refreshToken !== refreshToken) return;
-          if ((error as { status?: number })?.status === 401) onRejected();
+          if ((error as { status?: number })?.status === 401) rejectSession();
           else timer = setTimeout(refresh, 30_000);
         })
         .finally(() => {
@@ -62,6 +87,7 @@ export function useSessionRefresh(
     document.addEventListener('visibilitychange', visibility);
     return () => {
       cancelled = true;
+      unsubscribe();
       clearTimeout(timer);
       window.removeEventListener('focus', resume);
       window.removeEventListener('online', resume);

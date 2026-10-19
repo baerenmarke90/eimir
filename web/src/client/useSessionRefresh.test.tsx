@@ -5,10 +5,13 @@ import * as sessions from './sessionPersistence';
 import { useSessionRefresh } from './useSessionRefresh';
 
 vi.mock('./sessionPersistence', () => ({
+  captureSessionOwner: vi.fn(),
+  currentSessionTokens: vi.fn(),
   isAccessTokenValid: (tokens: { accessExpiresAt: Date }) =>
     tokens.accessExpiresAt.getTime() > Date.now() + 60_000,
   loadStoredSession: vi.fn(),
   refreshSessionTokens: vi.fn(),
+  subscribeSessionRefresh: vi.fn(() => () => {}),
 }));
 
 beforeEach(() => {
@@ -59,6 +62,25 @@ function setup(restoring = false) {
 }
 
 describe('real session refresh lifecycle', () => {
+  it('receives request-triggered rotations without waiting for its timer', () => {
+    const { next, accepted } = setup();
+    act(() =>
+      vi
+        .mocked(sessions.subscribeSessionRefresh)
+        .mock.calls[0][0](next, 'refresh-a'),
+    );
+    expect(accepted).toHaveBeenCalledWith(next);
+  });
+  it('ends the session when request-triggered refresh is definitively rejected', () => {
+    const { rejected } = setup();
+    vi.mocked(sessions.loadStoredSession).mockReturnValue(null);
+    act(() =>
+      vi
+        .mocked(sessions.subscribeSessionRefresh)
+        .mock.calls[0][0](null, 'refresh-a'),
+    );
+    expect(rejected).toHaveBeenCalledTimes(1);
+  });
   it('refreshes proactively before expiry', async () => {
     const { next, accepted, rejected } = setup();
     await act(() => vi.advanceTimersByTimeAsync(60_000));

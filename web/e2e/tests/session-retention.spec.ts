@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import de from '../../src/i18n/locales/de';
 
 const account = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -7,6 +8,182 @@ const account = {
 };
 const spaceId = '22222222-2222-4222-8222-222222222222';
 const sessionKey = 'eimir-session-v1';
+
+for (const mode of ['proactive', 'resume', 'outage'] as const) {
+  for (const width of [390, 1280]) {
+    test(`keeps and saves a memory draft across ${mode} rotation at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 844 });
+      await page.emulateMedia({
+        reducedMotion: 'reduce',
+        colorScheme: width === 390 ? 'light' : 'dark',
+      });
+      let accessToken = 'initial-access';
+      let recovered = mode !== 'outage';
+      let refreshes = 0;
+      let saves = 0;
+      let memory: Record<string, unknown> | null = null;
+      const memoryId = '33333333-3333-4333-8333-333333333333';
+      const staleRequests: string[] = [];
+      await page.clock.install();
+      await page.route('**/api/v1/**', async (route) => {
+        const request = route.request();
+        const path = new URL(request.url()).pathname;
+        const json = (body: unknown, status = 200) =>
+          route.fulfill({ status, json: body });
+        if (path === '/api/v1/auth/refresh') {
+          if (!recovered)
+            return json({ title: 'Temporarily unavailable' }, 503);
+          refreshes += 1;
+          accessToken = 'rotated-access';
+          return json({
+            accessToken,
+            refreshToken: 'rotated-refresh',
+            accessExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+            refreshExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+          });
+        }
+        if (
+          path === '/api/v1/auth/instance-access' ||
+          path === '/api/v1/instance/status'
+        ) {
+          return json({
+            maintenanceMode: false,
+            registrationAvailable: true,
+            accountCreation: 'self_service',
+            auth: {
+              localPassword: true,
+              magicLink: true,
+              oidc: false,
+              passkey: false,
+            },
+          });
+        }
+        if (request.headers().authorization !== `Bearer ${accessToken}`) {
+          staleRequests.push(path);
+          return json(
+            {
+              code: 'AUTHENTICATION_REQUIRED',
+              title: 'Authentication required',
+            },
+            401,
+          );
+        }
+        if (await fulfillDefaultAppIcon(route)) return;
+        if (path === '/api/v1/auth/me') return json(account);
+        if (path === '/api/v1/auth/capabilities')
+          return json({ serverAdmin: false });
+        if (path === '/api/v1/auth/memberships')
+          return json([
+            {
+              accountId: account.id,
+              spaceId,
+              status: 'ACTIVE',
+              role: 'MEMBER',
+            },
+          ]);
+        if (path.includes('/profile-identity/'))
+          return json({
+            accountId: account.id,
+            displayName: 'Alex',
+            profileAttachmentId: null,
+            version: 1,
+          });
+        if (path.endsWith('/partner-nickname'))
+          return json({ nickname: null, version: 0 });
+        if (path.endsWith('/notifications/unread-count'))
+          return json({ unreadCount: 0 });
+        if (
+          path === `/api/v1/spaces/${spaceId}/memories` &&
+          request.method() === 'POST'
+        ) {
+          saves += 1;
+          memory = {
+            ...request.postDataJSON(),
+            id: memoryId,
+            spaceId,
+            authorId: account.id,
+            author: { accountId: account.id, displayName: 'Alex' },
+            attachments: [],
+            version: 1,
+            capabilities: { canEdit: true, canDelete: true },
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          return json(memory, 201);
+        }
+        if (path === `/api/v1/spaces/${spaceId}/memories/${memoryId}`)
+          return json(memory);
+        return json({ code: 'NOT_FOUND', title: 'Not found' }, 404);
+      });
+      await page.goto('/');
+      await page.evaluate(
+        ({ account, spaceId, sessionKey }) => {
+          sessionStorage.setItem(
+            sessionKey,
+            JSON.stringify({
+              account,
+              spaceId,
+              tokens: {
+                accessToken: 'initial-access',
+                refreshToken: 'initial-refresh',
+                accessExpiresAt: new Date(Date.now() + 120_000).toISOString(),
+                refreshExpiresAt: new Date(
+                  Date.now() + 86_400_000,
+                ).toISOString(),
+              },
+            }),
+          );
+        },
+        { account, spaceId, sessionKey },
+      );
+      await page.goto('/story/memories/new');
+      await page
+        .getByLabel(de.memory.bodyLabel, { exact: true })
+        .fill('Keep this memory while I am still writing.');
+      if (mode !== 'resume') {
+        await page.clock.runFor(61_000);
+        if (mode === 'outage') {
+          await expect(
+            page.getByLabel(de.memory.bodyLabel, { exact: true }),
+          ).toHaveValue('Keep this memory while I am still writing.');
+          recovered = true;
+          await page.evaluate(() => window.dispatchEvent(new Event('online')));
+        }
+      } else {
+        await page.clock.setSystemTime(new Date(Date.now() + 20 * 60_000));
+        await page.evaluate(() => {
+          document.dispatchEvent(new Event('visibilitychange'));
+          window.dispatchEvent(new Event('focus'));
+          window.dispatchEvent(new Event('online'));
+        });
+      }
+      await expect.poll(() => refreshes).toBe(1);
+      await expect(
+        page.getByLabel(de.memory.bodyLabel, { exact: true }),
+      ).toHaveValue('Keep this memory while I am still writing.');
+      expect(staleRequests).toEqual([]);
+      if (process.env.VISUAL_EVIDENCE_DIR) {
+        await page.screenshot({
+          path: `${process.env.VISUAL_EVIDENCE_DIR}/${mode}-${width}.png`,
+        });
+      }
+      await page
+        .getByRole('button', { name: de.memory.save, exact: true })
+        .click();
+      await expect(page).toHaveURL(new RegExp(`/story/memories/${memoryId}$`));
+      await expect(
+        page.getByText('Keep this memory while I am still writing.', {
+          exact: true,
+        }),
+      ).toBeVisible();
+      expect(saves).toBe(1);
+      expect(refreshes).toBe(1);
+      expect(staleRequests).toEqual([]);
+    });
+  }
+}
 
 for (const rejected of [false, true]) {
   test(`restoration keeps credentials during an outage and clears only definitive rejection: ${rejected}`, async ({
@@ -105,7 +282,11 @@ for (const rejected of [false, true]) {
       await expect(page.locator('.product-shell')).toHaveCount(0);
       return;
     }
-    await expect(page.locator('.product-shell')).toBeVisible();
+    // Cold restoration has no verified membership cache. An unavailable
+    // refresh must retain credentials and expose a recoverable server state.
+    await expect(
+      page.getByText(de.states.server.title, { exact: true }),
+    ).toBeVisible();
     expect(
       await page.evaluate(
         (key) => JSON.parse(sessionStorage.getItem(key)!).tokens.refreshToken,

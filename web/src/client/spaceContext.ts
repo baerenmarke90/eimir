@@ -1,7 +1,7 @@
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountMembershipView } from '../api/generated/models/AccountMembershipView';
 import type { SpaceView } from '../api/generated/models/SpaceView';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from './apiConfiguration';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
 

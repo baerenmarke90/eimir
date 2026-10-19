@@ -2,7 +2,7 @@ import { ActivityApi } from '../api/generated/apis/ActivityApi';
 import { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { SearchApi } from '../api/generated/apis/SearchApi';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from './apiConfiguration';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
 import type { EngagementTarget } from '../api/generated/models/EngagementTarget';
 import type { SearchKind } from '../api/generated/models/SearchKind';

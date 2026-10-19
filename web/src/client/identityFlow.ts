@@ -2,7 +2,7 @@ import { InvitationsApi } from '../api/generated/apis/InvitationsApi';
 import type { SessionView } from '../api/generated/models/SessionView';
 import type { SignupSessionView } from '../api/generated/models/SignupSessionView';
 import type { MembershipView } from '../api/generated/models/MembershipView';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from './apiConfiguration';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
 import type { StoredSession } from './sessionPersistence';

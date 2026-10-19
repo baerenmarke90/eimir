@@ -18,7 +18,7 @@ import { DailyQuoteApi } from './api/generated/apis/DailyQuoteApi';
 import { EntitlementsApi } from './api/generated/apis/EntitlementsApi';
 import { ProfilesApi } from './api/generated/apis/ProfilesApi';
 import { SpacesApi } from './api/generated/apis/SpacesApi';
-import { Configuration } from './api/generated/runtime';
+import { Configuration } from './client/apiConfiguration';
 import { loadReferenceClientConfig } from './client/config';
 import { ActiveAccountMismatchError } from './client/identityFlow';
 import { useSessionRefresh } from './client/useSessionRefresh';
@@ -27,7 +27,10 @@ import { createM4ProductApis } from './client/m4Product';
 import { createPeopleApi } from './client/peopleApi';
 import { createPrivateAreaApi } from './client/privateArea';
 import { invalidateDashboard } from './client/dashboardQueries';
-import { normalizeClientError } from './client/problemDetails';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from './client/problemDetails';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { AppIconProvider } from './client/appIconContext';
 import { clearProductReadCacheInBackground } from './client/productReadCache';
@@ -942,25 +945,29 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     };
   }, [config.apiBaseUrl, initialStoredSession, terminateSession]);
 
+  const acceptSessionTokens = useCallback(
+    (next: TokenView) => {
+      setTokens(next);
+      // Recover reads that failed while credentials were unavailable, without
+      // refetching healthy data or disturbing an active editor on every rotation.
+      void queryClient.invalidateQueries({
+        predicate: (query) =>
+          query.state.status === 'error' &&
+          ['unauthorized', 'offline', 'server'].includes(
+            clientProblemKind(query.state.error),
+          ),
+      });
+    },
+    [queryClient],
+  );
+
   useSessionRefresh(
     config.apiBaseUrl,
     tokens,
     isRestoring || entryToken !== null,
-    setTokens,
+    acceptSessionTokens,
     terminateSession,
   );
-
-  const previousAccessToken = useRef<string | null>(null);
-  useEffect(() => {
-    if (
-      previousAccessToken.current &&
-      tokens?.accessToken &&
-      previousAccessToken.current !== tokens.accessToken
-    ) {
-      void queryClient.invalidateQueries();
-    }
-    previousAccessToken.current = tokens?.accessToken ?? null;
-  }, [queryClient, tokens]);
 
   const serverAdminApis = useMemo(
     () => createServerAdminApis(config.apiBaseUrl, tokens?.accessToken),

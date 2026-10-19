@@ -12,7 +12,7 @@ import type { AttachmentsApi } from '../api/generated/apis/AttachmentsApi';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
 import { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from '../client/apiConfiguration';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { RelatedPersonDeletePolicy } from '../api/generated/models/RelatedPersonDeletePolicy';
 import type { RelatedPersonFields } from '../api/generated/models/RelatedPersonFields';

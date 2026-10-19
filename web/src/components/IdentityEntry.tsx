@@ -8,6 +8,7 @@ import {
   type RegistrationAvailability,
 } from '../client/instanceStatus';
 import {
+  ActiveAccountMismatchError,
   completePasswordRecovery,
   confirmEmailAddress,
   consumeMagicLink,
@@ -388,7 +389,18 @@ export function IdentityEntry({
 
       <div className="login-panel">
         <section className="login-card" aria-label={t('identity.entryAria')}>
-          {entryToken?.kind === 'magicLink' ? (
+          {activeError instanceof ActiveAccountMismatchError ? (
+            <>
+              <UiState
+                kind="error"
+                title={t('identity.activeAccountTitle')}
+                body={t('identity.activeAccountBody')}
+              />
+              <button type="button" onClick={discardEntryToken}>
+                {t('identity.returnToActiveAccount')}
+              </button>
+            </>
+          ) : entryToken?.kind === 'magicLink' ? (
             activeError ? (
               <>
                 <UiState
@@ -780,6 +792,7 @@ export function IdentityEntry({
             </p>
           ) : null}
           {activeError &&
+          !(activeError instanceof ActiveAccountMismatchError) &&
           entryToken?.kind !== 'magicLink' &&
           entryToken?.kind !== 'emailVerification' &&
           entryToken?.kind !== 'signup' ? (

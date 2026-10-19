@@ -31,11 +31,11 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from eimir.administration import service as administration
-from eimir.auth import action_tokens, cloud
+from eimir.auth import action_tokens, cloud, rate_limit
 from eimir.auth.tokens import hash_token
 from eimir.config import Deployment, MailTransport, get_settings
 from eimir.core.clock import now
-from eimir.identity.models import Account, AccountEmail, SignupProof
+from eimir.identity.models import Account, AccountEmail, MagicLinkToken, SignupProof
 from eimir.mail import MailMessage, MailSender
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import Membership, MembershipStatus
@@ -189,6 +189,89 @@ def in_parallel(call, count: int):  # type: ignore[no-untyped-def]
 
     with ThreadPoolExecutor(max_workers=count) as pool:
         return list(pool.map(attempt, range(count)))
+
+
+class TestLegacyCloudEntry:
+    def test_legacy_request_mails_a_signup_proof_for_an_unknown_address(
+        self, cloud_client, mailbox, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        response = cloud_client.post("/api/v1/auth/magic-link/request", json={"email": BEN})
+        assert response.status_code == 202
+        assert [message.to for message in mailbox.messages] == [BEN]
+        assert f"{PUBLIC_BASE_URL}/auth/signup?token=" in mailbox.messages[0].body
+        result = consume(cloud_client, mailbox.token_for(BEN))
+        assert result.status_code == 201
+        assert result.json()["accountCreated"] is True
+        assert accounts_with(session, BEN) == 1
+        assert active_memberships(session, UUID(result.json()["account"]["id"])) == []
+
+    def test_known_and_unknown_addresses_take_the_same_legacy_entry_path(
+        self, cloud_client, mailbox, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        account = existing_account(session, ANNA)
+        for address in (ANNA, BEN):
+            response = cloud_client.post("/api/v1/auth/magic-link/request", json={"email": address})
+            assert response.status_code == 202
+            assert response.content == b""
+        assert [message.to for message in mailbox.messages] == [ANNA, BEN]
+        assert len(list(session.scalars(select(SignupProof)))) == 2
+        assert list(session.scalars(select(MagicLinkToken))) == []
+        result = consume(cloud_client, mailbox.token_for(ANNA))
+        assert result.status_code == 201
+        assert result.json()["account"]["id"] == str(account.id)
+        assert result.json()["accountCreated"] is False
+
+    def test_the_alias_shares_generation_and_address_rate_limits(
+        self, cloud_client, mailbox
+    ) -> None:  # type: ignore[no-untyped-def]
+        cloud_client.post(SIGNUP_REQUEST, json={"email": BEN})
+        older = mailbox.token_for(BEN)
+        for index in range(4):
+            endpoint = "/api/v1/auth/magic-link/request" if index % 2 == 0 else SIGNUP_REQUEST
+            assert cloud_client.post(endpoint, json={"email": BEN}).status_code == 202
+        latest = mailbox.token_for(BEN)
+        assert consume(cloud_client, older).status_code == 422
+        for endpoint in ("/api/v1/auth/magic-link/request", SIGNUP_REQUEST):
+            assert cloud_client.post(endpoint, json={"email": BEN}).status_code == 429
+        assert consume(cloud_client, latest).status_code == 201
+
+    def test_the_alias_shares_the_actual_client_network_budget(
+        self, cloud_client, mailbox, monkeypatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        monkeypatch.setattr(cloud, "SIGNUP_NETWORK", rate_limit.Limit(2, timedelta(minutes=15)))
+        assert cloud_client.post(SIGNUP_REQUEST, json={"email": ANNA}).status_code == 202
+        assert (
+            cloud_client.post("/api/v1/auth/magic-link/request", json={"email": BEN}).status_code
+            == 202
+        )
+        assert cloud_client.post(SIGNUP_REQUEST, json={"email": CARA}).status_code == 429
+        assert [message.to for message in mailbox.messages] == [ANNA, BEN]
+
+    @pytest.mark.parametrize("maintenance", [False, True])
+    def test_alias_preserves_new_account_admission_gates(
+        self, cloud_client, mailbox, session, maintenance
+    ) -> None:  # type: ignore[no-untyped-def]
+        set_access(session, registration=False, maintenance=maintenance)
+        response = cloud_client.post("/api/v1/auth/magic-link/request", json={"email": BEN})
+        assert response.status_code == 202
+        rejected = consume(cloud_client, mailbox.token_for(BEN))
+        assert rejected.status_code == (503 if maintenance else 403)
+        assert rejected.json()["code"] == (
+            "MAINTENANCE_MODE" if maintenance else "REGISTRATION_DISABLED"
+        )
+        assert accounts_with(session, BEN) == 0
+
+    def test_self_hosted_unknown_address_still_receives_no_mail(
+        self, self_hosted_client, mailbox, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        assert (
+            self_hosted_client.post(
+                "/api/v1/auth/magic-link/request", json={"email": BEN}
+            ).status_code
+            == 202
+        )
+        assert mailbox.messages == []
+        assert list(session.scalars(select(SignupProof))) == []
 
 
 class TestNewCloudUser:
@@ -433,13 +516,20 @@ class TestProofLifecycle:
             == 422
         )
 
-        assert (
-            cloud_client.post("/api/v1/auth/magic-link/request", json={"email": ANNA}).status_code
-            == 202
-        )
-        magic_token = mailbox.token_for(ANNA)
+        email_record = session.scalar(select(AccountEmail).where(AccountEmail.email == ANNA))
+        assert email_record is not None
+        # A pre-upgrade magic token remains distinct even though Cloud requests
+        # now issue the shared signup proof through both public entry routes.
+        _, issued = action_tokens.issue_magic_link(session, email_record.id)
+        magic_token = issued.token
         assert magic_token != signup_token
         assert consume(cloud_client, magic_token).status_code == 422
+        assert (
+            cloud_client.post(
+                "/api/v1/auth/magic-link/consume", json={"token": magic_token}
+            ).status_code
+            == 201
+        )
 
     def test_security_retention_removes_only_proofs_that_cannot_be_redeemed(self, session) -> None:  # type: ignore[no-untyped-def]
         open_proof, _ = action_tokens.issue_signup_proof(session, ANNA)

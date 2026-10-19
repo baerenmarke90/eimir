@@ -20,6 +20,7 @@ import {
 } from './appIcon';
 import { normalizeClientError, ClientProblemError } from './problemDetails';
 import { captureQueryIdentity } from './queryIdentity';
+import { useNativeAppIcon } from './useNativeAppIcon';
 
 function useAppIconState({
   api,
@@ -54,6 +55,7 @@ function useAppIconState({
     retry: false,
     gcTime: 0,
   });
+  const launcher = useNativeAppIcon(preference.data?.preference.iconId);
   const capability = useQuery({
     enabled: inspectCapability,
     queryKey: capabilityKey,
@@ -73,7 +75,6 @@ function useAppIconState({
     gcTime: 0,
   });
   useEffect(() => {
-    // Personal preference affects this browser tab, never an installed launcher.
     // An unavailable refresh retains the last authorized read for this owner.
     setDocumentAppIcon(preference.data?.preference.iconId ?? 'original');
   }, [preference.data]);
@@ -121,6 +122,7 @@ function useAppIconState({
     retry: false,
   });
   return {
+    launcher,
     preference,
     capability,
     mutation,

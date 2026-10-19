@@ -21,6 +21,7 @@ export type SessionOwner = {
   accountId: string;
   tokens: TokenView;
   previousTokens?: TokenView;
+  refreshApiBaseUrl?: string;
 };
 let sessionOwner: SessionOwner | null = null;
 const refreshListeners = new Set<
@@ -182,6 +183,7 @@ export function storeSession(session: StoredSession): Promise<void> {
 function persistSession(
   session: StoredSession,
   rotatedFrom?: string,
+  refreshApiBaseUrl?: string,
 ): Promise<void> {
   if (typeof window === 'undefined' || !window.sessionStorage)
     return Promise.resolve();
@@ -220,6 +222,7 @@ function persistSession(
     ) {
       if (sessionOwner.tokens.refreshToken === rotatedFrom) {
         sessionOwner.previousTokens = sessionOwner.tokens;
+        sessionOwner.refreshApiBaseUrl = refreshApiBaseUrl;
       }
       sessionOwner.tokens = session.tokens;
     } else {
@@ -309,6 +312,18 @@ export async function refreshSessionTokens(
   const existingRefresh = inFlightRefreshes.get(refreshKey);
   if (existingRefresh) return existingRefresh;
 
+  const stored = loadStoredSession();
+  const owner = stored ? captureSessionOwner(stored.tokens.accessToken) : null;
+  if (
+    owner?.previousTokens?.refreshToken === refreshToken &&
+    owner.refreshApiBaseUrl === apiBaseUrl &&
+    currentSessionTokens(owner)
+  ) {
+    // A queued timer/resume callback may outlive the completed promise. Sending
+    // that consumed token again would correctly revoke the entire server family.
+    return owner.tokens;
+  }
+
   const refreshPromise = (async () => {
     try {
       const apis = createReferenceApis(apiBaseUrl);
@@ -329,6 +344,7 @@ export async function refreshSessionTokens(
             spaceId: currentSession.spaceId,
           },
           refreshToken,
+          apiBaseUrl,
         );
         if (
           loadStoredSession()?.tokens.refreshToken === newTokens.refreshToken

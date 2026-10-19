@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from '../client/apiConfiguration';
 import { formatRelativeTime } from '../client/formatRecency';
 import { engagementTargetPath, opaqueNextCursor } from '../client/m4Product';
 import {

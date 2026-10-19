@@ -39,6 +39,10 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 }
 
 test.describe('Cloud Onboarding Entry Flow (#622)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.clock.install({ time: new Date(TEST_NOW) });
+  });
+
   test('renders "Gemeinsam starten" CTA on Cloud and allows requesting signup proof', async ({
     page,
   }) => {

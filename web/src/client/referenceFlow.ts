@@ -14,7 +14,8 @@ import type { SessionView } from '../api/generated/models/SessionView';
 import type { StoryPage } from '../api/generated/models/StoryPage';
 import type { UploadDescriptor } from '../api/generated/models/UploadDescriptor';
 import { UploadDescriptorMethodEnum } from '../api/generated/models/UploadDescriptor';
-import { Configuration, ResponseError } from '../api/generated/runtime';
+import { Configuration, createSessionFetch } from './apiConfiguration';
+import { ResponseError } from '../api/generated/runtime';
 import { i18n } from '../i18n';
 
 export interface FlowResult {
@@ -113,7 +114,11 @@ export async function uploadAttachmentBytes(
     headers.set('Authorization', `Bearer ${accessToken}`);
   }
 
-  const response = await fetchApi(
+  const transport =
+    descriptor.method === UploadDescriptorMethodEnum.STREAM
+      ? createSessionFetch(apiBaseUrl, accessToken, fetchApi)
+      : fetchApi;
+  const response = await transport(
     resolveTransportUrl(apiBaseUrl, descriptor.uploadUrl),
     {
       method: 'PUT',
@@ -153,54 +158,63 @@ export async function uploadAttachmentBytesWithProgress(
     headers.set('Authorization', `Bearer ${accessToken}`);
   }
 
-  await new Promise<void>((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    request.open('PUT', resolveTransportUrl(apiBaseUrl, descriptor.uploadUrl));
-    headers.forEach((value, key) => {
-      request.setRequestHeader(key, value);
-    });
+  const xhrTransport: typeof fetch = (url, init) =>
+    new Promise<Response>((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open('PUT', String(url));
+      new Headers(init?.headers).forEach((value, key) => {
+        request.setRequestHeader(key, value);
+      });
 
-    request.upload.onprogress = (event) => {
-      if (!event.lengthComputable || event.total <= 0) return;
-      const progress = Math.min(
-        100,
-        Math.round((event.loaded / event.total) * 100),
-      );
-      options.onProgress?.(progress);
-    };
-    request.onload = () => {
-      if (request.status >= 200 && request.status < 300) {
-        options.onProgress?.(100);
-        resolve();
+      request.upload.onprogress = (event) => {
+        if (!event.lengthComputable || event.total <= 0) return;
+        const progress = Math.min(
+          100,
+          Math.round((event.loaded / event.total) * 100),
+        );
+        options.onProgress?.(progress);
+      };
+      request.onload = () => {
+        resolve(
+          new Response(null, {
+            status: request.status,
+            statusText: request.statusText,
+          }),
+        );
+      };
+      request.onerror = () =>
+        reject(new ReferenceFlowError(i18n.t('flow.uploadFailed')));
+      request.onabort = () =>
+        reject(new DOMException('Upload aborted.', 'AbortError'));
+
+      const abort = () => request.abort();
+      if (options.signal?.aborted) {
+        reject(new DOMException('Upload aborted.', 'AbortError'));
         return;
       }
-      const detail = `${request.status} ${request.statusText}`.trim();
-      reject(
-        new ReferenceFlowError(
-          detail
-            ? `${i18n.t('flow.uploadFailed')}: ${detail}`
-            : i18n.t('flow.uploadFailed'),
-        ),
+      options.signal?.addEventListener('abort', abort, { once: true });
+      request.addEventListener(
+        'loadend',
+        () => options.signal?.removeEventListener('abort', abort),
+        { once: true },
       );
-    };
-    request.onerror = () =>
-      reject(new ReferenceFlowError(i18n.t('flow.uploadFailed')));
-    request.onabort = () =>
-      reject(new DOMException('Upload aborted.', 'AbortError'));
-
-    const abort = () => request.abort();
-    if (options.signal?.aborted) {
-      abort();
-      return;
-    }
-    options.signal?.addEventListener('abort', abort, { once: true });
-    request.addEventListener(
-      'loadend',
-      () => options.signal?.removeEventListener('abort', abort),
-      { once: true },
-    );
-    request.send(file);
-  });
+      request.send(file);
+    });
+  const transport =
+    descriptor.method === UploadDescriptorMethodEnum.STREAM
+      ? createSessionFetch(apiBaseUrl, accessToken, xhrTransport)
+      : xhrTransport;
+  const response = await transport(
+    resolveTransportUrl(apiBaseUrl, descriptor.uploadUrl),
+    {
+      method: 'PUT',
+      headers,
+      body: file,
+      signal: options.signal,
+    },
+  );
+  await assertOk(response, i18n.t('flow.uploadFailed'));
+  options.onProgress?.(100);
 }
 
 async function waitUntilReady(
@@ -252,7 +266,11 @@ export async function loadAuthorizedMedia(
   if (descriptor.method === ReadDescriptorMethodEnum.STREAM) {
     headers.set('Authorization', `Bearer ${accessToken}`);
   }
-  const response = await fetchApi(
+  const transport =
+    descriptor.method === ReadDescriptorMethodEnum.STREAM
+      ? createSessionFetch(apiBaseUrl, accessToken, fetchApi)
+      : fetchApi;
+  const response = await transport(
     resolveTransportUrl(apiBaseUrl, descriptor.url),
     {
       headers,

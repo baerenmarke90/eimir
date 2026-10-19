@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from '../client/apiConfiguration';
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProfileIdentityPanel } from './ProfileIdentityPanel';

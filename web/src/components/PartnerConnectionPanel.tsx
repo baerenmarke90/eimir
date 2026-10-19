@@ -5,7 +5,7 @@ import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { InvitationView } from '../api/generated/models/InvitationView';
 import type { IssuedInvitationView } from '../api/generated/models/IssuedInvitationView';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from '../client/apiConfiguration';
 import { isCapacitorNativePlatform } from '../client/config';
 import { buildInvitationLink } from '../client/invitationLink';
 import { normalizeClientError } from '../client/problemDetails';

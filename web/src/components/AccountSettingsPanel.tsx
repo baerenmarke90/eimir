@@ -9,7 +9,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AccountApi } from '../api/generated/apis/AccountApi';
 import type { CapabilitiesView } from '../api/generated/models/CapabilitiesView';
 import { AccountDeletionRequestConfirmationEnum } from '../api/generated/models/AccountDeletionRequest';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from '../client/apiConfiguration';
 import {
   authenticateRecentOidc,
   authenticateRecentPasskey,

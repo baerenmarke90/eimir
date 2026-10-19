@@ -17,7 +17,7 @@ import { PreferenceSentiment } from '../api/generated/models/PreferenceSentiment
 import type { ProfilePreferenceView } from '../api/generated/models/ProfilePreferenceView';
 import { ProfileVisibility } from '../api/generated/models/ProfileVisibility';
 import type { SpaceProfileView } from '../api/generated/models/SpaceProfileView';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from '../client/apiConfiguration';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { settingsCategoryPath } from '../client/routes';
 import { normalizeClientError } from '../client/problemDetails';

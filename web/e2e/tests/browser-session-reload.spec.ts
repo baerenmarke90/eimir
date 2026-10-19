@@ -20,6 +20,9 @@ async function signIn(page: Page): Promise<void> {
 }
 
 test.describe('Browser Session Reload and Deep Route Restoration', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.clock.install({ time: new Date(TEST_NOW) });
+  });
   test('restores deep protected route on real page reload without login flash or session loss', async ({
     page,
   }) => {

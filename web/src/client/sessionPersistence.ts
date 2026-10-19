@@ -1,6 +1,7 @@
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { TokenView } from '../api/generated/models/TokenView';
 import { normalizeClientError } from './problemDetails';
+import { clearAuthorizedMediaCache } from './authorizedMediaCache';
 import { createReferenceApis } from './referenceFlow';
 import {
   isNativeSessionStorageAvailable,
@@ -185,6 +186,16 @@ function persistSession(
   if (typeof window === 'undefined' || !window.sessionStorage)
     return Promise.resolve();
   try {
+    const previous = loadStoredSession();
+    if (
+      previous?.account.id !== session.account.id ||
+      previous?.spaceId !== (session.spaceId ?? null) ||
+      (sessionOwner &&
+        sessionOwner.tokens.refreshToken !== session.tokens.refreshToken &&
+        sessionOwner.tokens.refreshToken !== rotatedFrom)
+    ) {
+      clearAuthorizedMediaCache();
+    }
     const serialized = JSON.stringify({
       account: session.account,
       tokens: {
@@ -255,6 +266,7 @@ export function loadStoredSession(): StoredSession | null {
 }
 
 export function clearStoredSession(): Promise<void> {
+  clearAuthorizedMediaCache();
   sessionOwner = null;
   try {
     if (typeof window !== 'undefined') {

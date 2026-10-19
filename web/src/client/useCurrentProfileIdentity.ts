@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ProfilesApi } from '../api/generated/apis/ProfilesApi';
+import { ProfilesApi } from './mediaApis';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from './apiConfiguration';
 import { authorSummaryQueryKeys } from './authorSummaryConsumers';

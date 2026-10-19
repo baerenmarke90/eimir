@@ -157,7 +157,12 @@ async function mocks(
         happenedOn: '2026-08-14',
         author,
         authorId: ACCOUNT,
-        attachments: [],
+        attachments: [
+          {
+            ...photos[Number(p.split('/').at(-1)!.split('-')[1])]!.attachment,
+            position: 0,
+          },
+        ],
         capabilities: { canEdit: true, canDelete: true, canComment: true },
         version: 1,
         createdAt: '2026-08-14T12:00:00Z',
@@ -269,6 +274,56 @@ test('shared photos: lazy variants, viewer Back, bounded originals and canonical
     .toBeCloseTo(top, 0);
 });
 
+test('shared photos: viewer reopen and detail return reuse image bytes while checking access again', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const reads = await mocks(page);
+  const binaries: string[] = [];
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (/\/attachments\/photo-1\/content$/.test(url.pathname)) {
+      binaries.push(url.searchParams.get('variant') ?? 'original');
+    }
+  });
+  await signIn(page);
+  const selected = page.locator('[data-photo-id="photo-1"]');
+  await expect(selected.locator('img')).toBeVisible();
+  await selected.click();
+  await expect(page.getByRole('dialog').locator('img').first()).toBeVisible();
+  await expect
+    .poll(() => binaries.filter((variant) => variant === 'original').length)
+    .toBe(1);
+  await page.getByRole('button', { name: storyProducts.gallery.close }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await selected.click();
+  await expect(page.getByRole('dialog').locator('img').first()).toBeVisible();
+  expect(binaries).toEqual(['thumbnail', 'original']);
+  await page
+    .getByRole('button', { name: sharedPhotos.source, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/story\/memories\/memory-1$/);
+  await expect(
+    page.locator('.media-gallery-carousel-content').first(),
+  ).toBeVisible();
+  expect(binaries).toEqual(['thumbnail', 'original']);
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/story\/photos$/);
+  await expect(selected.locator('img')).toBeVisible();
+  await selected.click();
+  await expect(page.getByRole('dialog').locator('img').first()).toBeVisible();
+  expect(binaries).toEqual(['thumbnail', 'original']);
+  expect(
+    reads.filter((read) => read.id === 'photo-1' && read.variant === 'original')
+      .length,
+  ).toBeGreaterThanOrEqual(4);
+  await screenshot(page, testInfo, 'media-cache-viewer-return-390.png');
+});
+
 test('shared photos: Compact/Expanded themes, 320px, 200% text and accessible gallery', async ({
   page,
 }, testInfo) => {
@@ -292,6 +347,9 @@ test('shared photos: Compact/Expanded themes, 320px, 200% text and accessible ga
       { dark, scale },
     );
     await expect(page.locator('.shared-photos-tile img').first()).toBeVisible();
+    await expect(
+      page.locator('.shared-photos-tile').nth(3).locator('img'),
+    ).toBeVisible();
     await expect
       .poll(() =>
         page.evaluate(

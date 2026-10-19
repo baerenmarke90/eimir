@@ -1,6 +1,6 @@
 import { type FormEvent, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ProfilesApi } from '../api/generated/apis/ProfilesApi';
+import { ProfilesApi } from '../client/mediaApis';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { ProfileIdentityUpdate } from '../api/generated/models/ProfileIdentityUpdate';
 import { Configuration } from '../client/apiConfiguration';

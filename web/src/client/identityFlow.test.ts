@@ -104,7 +104,7 @@ describe('identityFlow signup methods', () => {
     try {
       expect(
         await consumeSignup('https://eimir.invalid', 'proof', 'invite'),
-      ).toEqual(session);
+      ).toEqual({ ...session, spaceId: 'shared-space' });
       const [url, request] = accept.mock.calls[0];
       expect(url).toBe('https://eimir.invalid/api/v1/invitations/accept');
       expect(new Headers(request?.headers).get('Authorization')).toBe(
@@ -114,6 +114,12 @@ describe('identityFlow signup methods', () => {
       expect(consume.mock.invocationCallOrder[0]).toBeLessThan(
         accept.mock.invocationCallOrder[0],
       );
+      const boundSession = { ...session, spaceId: 'server-bound-space' };
+      consume.mockResolvedValueOnce(boundSession);
+      await expect(
+        consumeSignup('https://eimir.invalid', 'bound-proof', 'another-invite'),
+      ).resolves.toEqual(boundSession);
+      expect(accept).toHaveBeenCalledTimes(1);
       consume.mockRejectedValueOnce(new Error('Proof expired'));
       await expect(
         consumeSignup('https://eimir.invalid', 'expired', 'invite'),

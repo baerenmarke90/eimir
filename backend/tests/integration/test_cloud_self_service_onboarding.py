@@ -691,6 +691,125 @@ class TestInvitedPartner:
         assert invitation.status_code == 201
         return space, invitation.json()["token"]
 
+    @pytest.mark.parametrize("existing", [False, True])
+    def test_mailed_proof_joins_the_invited_space_without_a_client_continuation(
+        self, cloud_client, session, mailbox, existing
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Mail/app handoff must not turn an invitation into ordinary signup."""
+        from urllib.parse import parse_qs, urlsplit
+
+        space, invitation = self.founder_invitation(cloud_client, mailbox)
+        own_space = None
+        if existing:
+            partner = existing_account(session, BEN, "Ben")
+            own_space = relationship_service.create_first_space(session, partner)
+
+        requested = cloud_client.post(
+            SIGNUP_REQUEST, json={"email": BEN, "invitationToken": invitation}
+        )
+        assert requested.status_code == 202
+        message = mailbox.messages[-1]
+        link = next(line for line in message.body.splitlines() if line.startswith("https://"))
+        callback = urlsplit(link)
+        token = parse_qs(callback.query)["token"][0]
+
+        # Follow only the ordinary proof. No fragment parser or separate
+        # accept request stands in for the persisted server Membership.
+        response = consume(cloud_client, token, displayName="Ben")
+        assert response.status_code == 201, response.text
+        ben = response.json()
+        assert ben["accountCreated"] is not existing
+        assert ben["spaceId"] == space["id"]
+        headers = auth(ben["tokens"]["accessToken"])
+        memberships = cloud_client.get("/api/v1/auth/memberships", headers=headers).json()
+        expected = {space["id"]}
+        if own_space is not None:
+            expected.add(str(own_space.id))
+        assert {membership["spaceId"] for membership in memberships} == expected
+        shared = cloud_client.get(f"/api/v1/spaces/{space['id']}", headers=headers)
+        assert shared.status_code == 200
+        assert {partner["displayName"] for partner in shared.json()["partners"]} == {"Anna", "Ben"}
+        assert callback.fragment == ""
+        assert invitation not in message.body
+        proof = session.execute(
+            select(SignupProof).where(SignupProof.token_hash == hash_token(token))
+        ).scalar_one()
+        assert proof.invitation_token_hash == hash_token(invitation)
+        assert invitation not in str(proof.__dict__)
+        assert cloud_client.post("/api/v1/spaces", headers=headers).status_code == 409
+
+    @pytest.mark.parametrize("state", ["invalid", "revoked", "expired", "used", "full", "ended"])
+    def test_failed_bound_invitation_rolls_back_signup_in_the_real_request_transaction(
+        self, production_cloud, state
+    ) -> None:  # type: ignore[no-untyped-def]
+        from eimir.identity.models import DeviceSession
+        from eimir.relationship import invitations
+        from eimir.relationship.models import Invitation
+
+        client, maker, mailbox = production_cloud
+        space, invitation = self.founder_invitation(client, mailbox)
+        if state == "invalid":
+            invitation = "unknown-invitation"
+        else:
+            with maker.begin() as db:
+                issued = db.execute(
+                    select(Invitation).where(Invitation.token_hash == hash_token(invitation))
+                ).scalar_one()
+                if state == "revoked":
+                    issued.revoked_at = now()
+                elif state == "expired":
+                    issued.expires_at = now() - timedelta(seconds=1)
+                elif state == "ended":
+                    membership = active_memberships(db, issued.created_by)[0]
+                    relationship_service.end_membership(db, membership)
+                elif state in {"used", "full"}:
+                    other = existing_account(db, CARA, "Cara")
+                    if state == "used":
+                        invitations.accept(db, invitation, other)
+                    else:
+                        relationship_service.add_member(db, UUID(space["id"]), other)
+
+        response = client.post(SIGNUP_REQUEST, json={"email": BEN, "invitationToken": invitation})
+        assert response.status_code == 202
+        token = mailbox.token_for(BEN)
+        with maker() as db:
+            sessions_before = db.execute(
+                select(func.count()).select_from(DeviceSession)
+            ).scalar_one()
+        rejected = consume(client, token)
+        assert rejected.status_code == (409 if state == "full" else 422), rejected.text
+        assert rejected.json()["code"] == (
+            "SPACE_FULL" if state == "full" else "INVITATION_INVALID"
+        )
+        with maker() as db:
+            assert accounts_with(db, BEN) == 0
+            assert (
+                db.execute(select(func.count()).select_from(DeviceSession)).scalar_one()
+                == sessions_before
+            )
+            proof = db.execute(
+                select(SignupProof).where(SignupProof.token_hash == hash_token(token))
+            ).scalar_one()
+            assert proof.consumed_at is None
+
+    def test_concurrent_bound_proofs_cannot_claim_the_same_invitation_twice(
+        self, production_cloud
+    ) -> None:  # type: ignore[no-untyped-def]
+        client, maker, mailbox = production_cloud
+        space, invitation = self.founder_invitation(client, mailbox)
+        for address in (BEN, CARA):
+            response = client.post(
+                SIGNUP_REQUEST, json={"email": address, "invitationToken": invitation}
+            )
+            assert response.status_code == 202
+        tokens = [mailbox.token_for(address) for address in (BEN, CARA)]
+        responses = in_parallel(lambda index: consume(client, tokens[index]), 2)
+        assert sorted(response.status_code for response in responses) == [201, 422]
+        with maker() as db:
+            assert accounts_with(db, BEN) + accounts_with(db, CARA) == 1
+            members = relationship_service.active_memberships(db, UUID(space["id"]))
+            assert len(members) == 2
+
     def test_unknown_partner_creates_a_verified_account_and_joins(
         self, cloud_client, session, mailbox
     ) -> None:  # type: ignore[no-untyped-def]

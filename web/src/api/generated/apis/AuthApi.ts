@@ -653,7 +653,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Redeem a signup proof into a normal session.  Send the proof in the request body, never in a URL. After a successful redemption the client removes it from its address bar and history. A new Account has no Membership: continue with `POST /spaces` or accept an invitation.
+     * Redeem a signup proof into a normal session.  Send the proof in the request body, never in a URL. After a successful redemption the client removes it from its address bar and history. A new Account joins the invitation bound to its proof atomically before a session is issued. An ordinary proof has no invitation: continue with `POST /spaces` or accept an invitation separately. Invalid invitations fail without consuming the proof or creating an Account, session, or Membership.
      * Consume Signup
      */
     async consumeSignupApiV1AuthSignupConsumePostRaw(requestParameters: ConsumeSignupApiV1AuthSignupConsumePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SignupSessionView>> {
@@ -664,7 +664,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Redeem a signup proof into a normal session.  Send the proof in the request body, never in a URL. After a successful redemption the client removes it from its address bar and history. A new Account has no Membership: continue with `POST /spaces` or accept an invitation.
+     * Redeem a signup proof into a normal session.  Send the proof in the request body, never in a URL. After a successful redemption the client removes it from its address bar and history. A new Account joins the invitation bound to its proof atomically before a session is issued. An ordinary proof has no invitation: continue with `POST /spaces` or accept an invitation separately. Invalid invitations fail without consuming the proof or creating an Account, session, or Membership.
      * Consume Signup
      */
     async consumeSignupApiV1AuthSignupConsumePost(requestParameters: ConsumeSignupApiV1AuthSignupConsumePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SignupSessionView> {

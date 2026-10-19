@@ -444,18 +444,32 @@ its address, which stays held until commit:
 | Consumed, superseded, expired, or unknown proof | `422 ACTION_TOKEN_INVALID` |
 
 A rejected redemption rolls back, including the consumption itself, so the proof
-stays usable until it expires. Redemption never touches Memberships.
+stays usable until it expires. Ordinary signup does not touch Memberships.
 
 **Invitation continuation.** A Cloud signup request may carry an optional existing
-Space invitation token. It is used transiently to append an encoded
-`#invitationToken=...` fragment to the email link; it is not stored with the
-signup proof and is not sent in callback HTTP request targets or referrers. The
-Web entry reads it into memory and removes both the proof and fragment from
-the address/history. After mailbox-proof redemption, the client accepts the
-invitation through the ordinary authenticated Invitations API before entering
-the application. Invalid, expired, revoked or used invitations remain subject
-to normal server-side Membership checks; a failed acceptance grants no Space
-access. No invitation token enters client storage.
+Space invitation token. Only its SHA-256 hash is bound to the short-lived signup
+proof, following the existing OIDC invitation-request pattern. The request does
+not look up invitation validity or Account state, preserving the same neutral
+work for known and unknown addresses. Mail contains only the ordinary signup
+proof link: invitation intent survives browser/app handoffs without a fragment
+parser, another client request, or secret client storage.
+
+Redemption authenticates the mailbox owner and accepts the bound invitation
+through the canonical invitation service in the same transaction, before issuing
+a session. Expiry, revocation, single use, self-invitation, ended history and the
+two-partner capacity limit still apply under the usual Space-first locks. A failed
+acceptance rolls back the Account, proof consumption and Membership; it cannot
+fall through to first-Space creation. Existing Accounts and their other Spaces
+are retained. No invitation hash is returned by the API or accepted as an API
+bearer credential.
+
+Revision 0086 is additive. Proofs issued before the upgrade remain nullable and
+the Web client retains their existing `#invitationToken=...` continuation. New
+proofs need no fragment, including on already-installed clients that ignore it.
+The hash is pruned with its proof under existing retention. Downgrade revokes
+pending bound proofs before removing the hash column, so they cannot silently
+become ordinary signup links; their recipients must request a fresh invitation
+email after returning to a compatible version.
 
 
 **Duplicate Accounts cannot arise.** Every redemption for one address waits for

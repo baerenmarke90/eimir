@@ -20,12 +20,9 @@ import { ProfilesApi } from './api/generated/apis/ProfilesApi';
 import { SpacesApi } from './api/generated/apis/SpacesApi';
 import { Configuration } from './api/generated/runtime';
 import { loadReferenceClientConfig } from './client/config';
-import { useNativeEntryLinks } from './client/nativeEntryLinks';
+import { ActiveAccountMismatchError } from './client/identityFlow';
 import { useSessionRefresh } from './client/useSessionRefresh';
-import {
-  readSensitiveEntryToken,
-  stripSensitiveEntryToken,
-} from './client/entryToken';
+import { useIdentityEntry } from './client/useIdentityEntry';
 import { createM4ProductApis } from './client/m4Product';
 import { createPeopleApi } from './client/peopleApi';
 import { createPrivateAreaApi } from './client/privateArea';
@@ -845,16 +842,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const [entryToken, setEntryToken] = useState(() =>
-    readSensitiveEntryToken(
-      window.location.pathname,
-      window.location.search,
-      window.location.hash,
-    ),
-  );
-  const [initialStoredSession] = useState(() =>
-    entryToken ? null : loadStoredSession(),
-  );
+  const { entryToken, clearEntryToken } = useIdentityEntry(config.apiBaseUrl);
+  const [initialStoredSession] = useState(loadStoredSession);
   const [tokens, setTokens] = useState<TokenView | null>(
     () => initialStoredSession?.tokens ?? null,
   );
@@ -864,12 +853,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const [isRestoring, setIsRestoring] = useState(() =>
     Boolean(initialStoredSession),
   );
-  useNativeEntryLinks(
-    config.apiBaseUrl,
-    tokens !== null,
-    isRestoring,
-    setEntryToken,
-  );
+
   const [spaceId, setSpaceId] = useState<string | null>(
     () => initialStoredSession?.spaceId ?? null,
   );
@@ -881,7 +865,6 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
 
   const terminateSession = useCallback(() => {
     clearStoredSession();
-    setEntryToken(null);
     setSpaceId(null);
     setAccount(null);
     setTokens(null);
@@ -962,7 +945,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   useSessionRefresh(
     config.apiBaseUrl,
     tokens,
-    isRestoring,
+    isRestoring || entryToken !== null,
     setTokens,
     terminateSession,
   );
@@ -1001,15 +984,6 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     queryFn: () => loadInstanceAccessStatus(config.apiBaseUrl),
     staleTime: 60_000,
   });
-
-  useEffect(() => {
-    if (!entryToken) return;
-    window.history.replaceState(
-      window.history.state,
-      '',
-      stripSensitiveEntryToken(window.location.search),
-    );
-  }, [entryToken]);
 
   const membershipsQuery = useQuery({
     queryKey: ['account-memberships'],
@@ -1065,6 +1039,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   }, [account, membershipsQuery.data, tokens]);
 
   function logout() {
+    clearEntryToken();
     if (tokens?.accessToken) {
       try {
         const apis = createReferenceApis(config.apiBaseUrl, tokens.accessToken);
@@ -1095,7 +1070,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     );
   }
 
-  if (!tokens || !account) {
+  if (entryToken || !tokens || !account) {
     const showDemoEntry = Boolean(demoMode && !entryToken);
     return (
       <>
@@ -1104,12 +1079,24 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
           <DemoEntry />
         ) : (
           <IdentityEntry
+            key={
+              entryToken ? `${entryToken.kind}:${entryToken.token}` : 'signIn'
+            }
             apiBaseUrl={config.apiBaseUrl}
             entryToken={entryToken}
-            onEntryTokenCleared={() => setEntryToken(null)}
+            onEntryTokenCleared={clearEntryToken}
             onSession={(session) => {
+              if (account && session.account.id !== account.id) {
+                void createReferenceApis(
+                  config.apiBaseUrl,
+                  session.tokens.accessToken,
+                )
+                  .auth.signOutApiV1AuthSignOutPost()
+                  .catch(() => {});
+                throw new ActiveAccountMismatchError();
+              }
               storeSession(session);
-              setEntryToken(null);
+              clearEntryToken();
               setSpaceId(session.spaceId ?? null);
               setAccount(session.account);
               setTokens(session.tokens);

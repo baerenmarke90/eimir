@@ -10571,7 +10571,7 @@
     },
     "/api/v1/auth/magic-link/request": {
       "post": {
-        "description": "Request a passwordless sign-in link.\n\nThe response is identical whether or not the address exists. Otherwise\nthis endpoint would become an account directory.",
+        "description": "Request a passwordless entry link.\n\nCloud delegates to the same mailbox proof as /auth/signup/request, including\nfor addresses without an Account. Self-Hosted retains existing-account\nsign-in. The response never discloses whether the address has an Account.",
         "operationId": "request_magic_link_api_v1_auth_magic_link_request_post",
         "requestBody": {
           "content": {

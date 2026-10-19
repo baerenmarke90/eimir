@@ -382,15 +382,79 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
     await verifySignupEntry(page, true, testInfo, { existingOwnSpace: true });
   });
 
+  test('consumes a mail callback delivered through the running router', async ({
+    page,
+  }, testInfo) => {
+    await verifySignupEntry(page, true, testInfo, { delivery: 'router' });
+  });
+
+  test('consumes a PWA launch callback while another session is already loaded', async ({
+    page,
+  }, testInfo) => {
+    await verifySignupEntry(page, true, testInfo, {
+      delivery: 'launch',
+      existingSession: true,
+      existingOwnSpace: true,
+    });
+  });
+
   async function verifySignupEntry(
     page: Page,
     fromInvitation: boolean,
     testInfo: TestInfo,
-    { legacyFragment = false, existingOwnSpace = false } = {},
+    {
+      legacyFragment = false,
+      existingOwnSpace = false,
+      delivery = 'reload',
+      existingSession = false,
+    }: {
+      legacyFragment?: boolean;
+      existingOwnSpace?: boolean;
+      delivery?: 'reload' | 'router' | 'launch';
+      existingSession?: boolean;
+    } = {},
   ) {
+    await page.clock.setFixedTime(new Date(TEST_NOW));
     let spacesCreated = false;
     let invitationAccepted = false;
-    let signedIn = false;
+    let signedIn = existingSession;
+    let signupConsumed = 0;
+
+    if (delivery === 'launch') {
+      await page.addInitScript(() => {
+        Object.defineProperty(window, 'launchQueue', {
+          value: {
+            setConsumer(consumer: (params: { targetURL: string }) => void) {
+              Object.assign(window, { deliverTestLaunch: consumer });
+            },
+          },
+        });
+      });
+    }
+    if (existingSession) {
+      await page.addInitScript(
+        ({ accountId, spaceId }) => {
+          sessionStorage.setItem(
+            'eimir-session-v1',
+            JSON.stringify({
+              account: { id: accountId, displayName: 'Lea' },
+              tokens: {
+                accessToken: 'old-session-access-token',
+                refreshToken: 'old-session-refresh-token',
+                accessExpiresAt: new Date(
+                  Date.now() + 15 * 60_000,
+                ).toISOString(),
+                refreshExpiresAt: new Date(
+                  Date.now() + 7 * 86_400_000,
+                ).toISOString(),
+              },
+              spaceId,
+            }),
+          );
+        },
+        { accountId: ACCOUNT_ID, spaceId: OWN_SPACE_ID },
+      );
+    }
 
     await page.route('**/api/v1/**', async (route) => {
       if (await fulfillDefaultAppIcon(route)) return;
@@ -438,6 +502,7 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
       }
 
       if (method === 'POST' && pathname === '/api/v1/auth/signup/consume') {
+        signupConsumed += 1;
         signedIn = true;
         if (fromInvitation && !legacyFragment) invitationAccepted = true;
         await fulfillJson({
@@ -616,7 +681,7 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
       route.continue();
     });
 
-    if (fromInvitation) {
+    if (fromInvitation && !existingSession) {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.route('**/api/v1/auth/signup/request', async (route) => {
         expect(route.request().postDataJSON()).toEqual({
@@ -663,10 +728,34 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
     }
     // New proof-only callbacks work even when the app ignores fragments.
     // Retain coverage for links issued before server-side binding existed.
-    await page.goto(
+    const callback =
       '/auth/signup?token=secret-signup-proof' +
-        (legacyFragment ? '#invitationToken=partner-invitation' : ''),
-    );
+      (legacyFragment ? '#invitationToken=partner-invitation' : '');
+    if (delivery === 'reload') {
+      await page.goto(callback);
+    } else if (delivery === 'router') {
+      await page.evaluate((url) => {
+        window.history.pushState(null, '', url);
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      }, callback);
+    } else {
+      await page.goto('/');
+      await expect(
+        page.getByRole('heading', {
+          name: de.spaceContext.createFirstSpaceTitle,
+        }),
+      ).toBeVisible();
+      await page.evaluate((path) => {
+        const deliver = (
+          window as unknown as {
+            deliverTestLaunch: (params: { targetURL: string }) => void;
+          }
+        ).deliverTestLaunch;
+        deliver({ targetURL: new URL(path, window.location.origin).href });
+      }, callback);
+    }
+
+    await expect.poll(() => signupConsumed).toBe(1);
 
     // Page load does not await React's passive entry cleanup. Await the actual
     // privacy outcome rather than sampling the URL before the app has booted.

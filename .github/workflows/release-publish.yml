@@ -472,7 +472,8 @@ jobs:
           echo "$badging" | grep -q "package: name='de.sidebyside.app'"
           echo "$badging" | grep -q "versionCode='${ANDROID_VERSION_CODE}'"
           echo "$badging" | grep -q "versionName='${RELEASE_VERSION}'"
-          echo "$badging" | grep -q "launchable-activity: name='de.eimir.app.MainActivity'"
+          python3 ../scripts/android_launcher_identity.py "$apk" \
+            --analyzer "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
 
           analyzer="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
           test -x "$analyzer"

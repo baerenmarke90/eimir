@@ -43,6 +43,23 @@ public class LauncherIconsTest {
     }
 
     @Test
+    public void selectedLauncherStartsTheRegisteredNativeBridge() throws Exception {
+        LauncherIcons.apply(context, "sage");
+        android.app.Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
+        Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+        assertNotNull(launch);
+        android.app.Activity activity = instrumentation.startActivitySync(launch);
+        try {
+            assertTrue(activity instanceof LauncherActivity);
+            LauncherActivity shell = (LauncherActivity) activity;
+            assertNotNull(shell.getBridge().getPlugin("AppIcon"));
+            assertNotNull(shell.getBridge().getPlugin("NativeSessionStorage"));
+        } finally {
+            instrumentation.runOnMainSync(activity::finish);
+        }
+    }
+
+    @Test
     public void invalidChoiceLeavesTheExistingLauncherUnchanged() throws Exception {
         LauncherIcons.apply(context, "sage");
         assertThrows(IllegalArgumentException.class, () -> LauncherIcons.apply(context, "../other"));

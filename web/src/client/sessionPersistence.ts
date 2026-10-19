@@ -357,7 +357,7 @@ export async function refreshSessionTokens(
       return newTokens;
     } catch (error) {
       const normalized = await normalizeClientError(error);
-      if (normalized.status === 401) {
+      if (normalized.status === 401 || normalized.status === 403) {
         const currentSession = loadStoredSession();
         if (currentSession?.tokens.refreshToken === refreshToken) {
           await clearStoredSession();

@@ -98,13 +98,25 @@ state, never a false claim that the app is current.
 
 Publication is an explicit separate operation:
 
-1. Create prerelease `android-test-vX.Y.Z-test.N` at the recorded source commit.
-2. Upload the verified universal `eimir-android-test-vX.Y.Z-test.N.apk`.
-3. Upload `SHA256SUMS` and verify the downloaded APK matches it.
-4. Upload **`eimir-test-update.json` last**. Its presence is the publication
-   marker. Do not edit/replace published bytes; create a higher version instead.
-5. Fetch the public catalog and all assets, verify hashes and source identity,
+1. Create a **draft** prerelease `android-test-vX.Y.Z-test.N` at the recorded
+   source commit. Do not publish an incomplete draft.
+2. Upload the verified universal `eimir-android-test-vX.Y.Z-test.N.apk`,
+   `SHA256SUMS` and any acceptance evidence to that draft.
+3. Download the draft APK through authenticated release-asset retrieval and
+   verify its bytes, signature, source and checksum. Never forward authorization
+   headers to a different redirect host or include credentials in logs.
+4. Upload **`eimir-test-update.json` last while the release is still a draft**,
+   then verify that its source, version, size and hash bind the uploaded APK.
+5. Publish the complete draft once. GitHub's immutable-release protection locks
+   assets at publication; a missing marker cannot be added afterwards. Do not
+   disable that protection or edit/replace published bytes. If publication was
+   incomplete, create a higher version instead.
+6. Anonymously fetch the public catalog and all assets, verify hashes and source identity,
    then perform the real A → B device acceptance below.
+
+This follows [GitHub's immutable-release lifecycle](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases).
+The updater ignores drafts, so attaching the marker last within the draft and
+publishing atomically cannot expose a partially eligible update.
 
 An incomplete release without the marker is ignored. Invalid marked metadata
 fails closed. The highest compatible version code in the bounded 30-release

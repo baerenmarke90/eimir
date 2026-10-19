@@ -268,12 +268,13 @@ def package(args: argparse.Namespace) -> None:
             raise ValueError("Refusing to overwrite an existing release APK")
         shutil.copyfile(apk, destination)
     (args.output_dir / "SHA256SUMS").write_text(f"{digest}  {name}\n")
-    # This local marker is created last. Upload the APK before this marker too.
+    # Attach this marker last to a draft; immutable publication locks all assets.
     marker = args.output_dir / (MARKER + ".tmp")
     marker.write_bytes(content)
     marker.replace(args.output_dir / MARKER)
     print(
-        f"Verified {tag}; upload its APK first and {MARKER} last. No release was published."
+        f"Verified {tag}; upload its APK first and {MARKER} last to a draft, "
+        "then publish the complete draft. No release was published."
     )
 
 

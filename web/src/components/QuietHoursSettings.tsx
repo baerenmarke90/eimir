@@ -6,6 +6,7 @@ import type { QuietHoursView } from '../api/generated/models/QuietHoursView';
 import { normalizeClientError } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
 import { PreferenceSwitch } from './PreferenceSwitch';
+import { useDocumentLeaveGuard } from '../client/useDocumentLeaveGuard';
 
 const DEFAULT_START = '22:00';
 const DEFAULT_END = '07:00';
@@ -39,15 +40,7 @@ export function QuietHoursSettings({
     setEnd(quietHours.end?.slice(0, 5) ?? DEFAULT_END);
   }, [quietHours.enabled, quietHours.start, quietHours.end]);
 
-  useEffect(() => {
-    if (!isDirty || typeof window === 'undefined') return;
-    const beforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', beforeUnload);
-    return () => window.removeEventListener('beforeunload', beforeUnload);
-  }, [isDirty]);
+  useDocumentLeaveGuard(isDirty);
 
   const mutation = useMutation({
     mutationFn: async (update: QuietHoursUpdate) => {

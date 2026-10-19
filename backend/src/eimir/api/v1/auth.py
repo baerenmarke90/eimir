@@ -281,13 +281,17 @@ def me(account: CurrentAccount) -> AccountView:
     response_class=Response,
     responses=problem_responses(422, 429, 503),
 )
-def request_magic_link(body: EmailRequest, session: DbSession, mail: Mail) -> Response:
-    """Request a passwordless sign-in link.
+def request_magic_link(
+    body: EmailRequest, request: Request, session: DbSession, mail: Mail
+) -> Response:
+    """Request a passwordless entry link.
 
-    The response is identical whether or not the address exists. Otherwise
-    this endpoint would become an account directory.
+    Cloud delegates to the same mailbox proof as /auth/signup/request, including
+    for addresses without an Account. Self-Hosted retains existing-account
+    sign-in. The response never discloses whether the address has an Account.
     """
-    cloud.request_magic_link(session, email=body.email, mail=mail)
+    client_host = request.client.host if request.client is not None else None
+    cloud.request_magic_link(session, email=body.email, mail=mail, client_host=client_host)
     return Response(status_code=status.HTTP_202_ACCEPTED)
 
 

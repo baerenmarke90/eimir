@@ -23,7 +23,11 @@ from sqlalchemy.orm import Session
 
 from eimir.administration import service as administration
 from eimir.auth import action_tokens, passkey_abuse, passwords, rate_limit, sessions
-from eimir.auth.policy import ensure_self_service_signup_supported, resolve_auth_capabilities
+from eimir.auth.policy import (
+    ensure_self_service_signup_supported,
+    resolve_auth_capabilities,
+    self_service_signup_supported,
+)
 from eimir.auth.sessions import IssuedTokens
 from eimir.auth.tokens import hash_token
 from eimir.config import get_settings
@@ -104,11 +108,21 @@ def _primary_email(session: Session, address: str) -> AccountEmail | None:
     ).scalar_one_or_none()
 
 
-def request_magic_link(session: Session, *, email: str, mail: MailSender) -> None:
-    """Request a passwordless sign-in link.
+def request_magic_link(
+    session: Session, *, email: str, mail: MailSender, client_host: str | None = None
+) -> None:
+    """Request the deployment's passwordless entry link.
 
-    The response never reveals whether mail was created.
+    Older Cloud clients use this endpoint before an Account exists. Delegate
+    both known and unknown addresses to the canonical mailbox-proof flow so
+    client age cannot turn a valid request into silent non-delivery. Self-Hosted
+    retains existing-account-only sign-in. Previously issued magic tokens keep
+    their separate consumer and are never interpreted as signup proofs.
     """
+    if self_service_signup_supported():
+        request_signup(session, email=email, mail=mail, client_host=client_host)
+        return
+
     address = accounts.normalize_email(email)
     rate_limit.check(session, ACTION_MAGIC_LINK, address, rate_limit.MAGIC_LINK)
     rate_limit.record_attempt(session, ACTION_MAGIC_LINK, address)

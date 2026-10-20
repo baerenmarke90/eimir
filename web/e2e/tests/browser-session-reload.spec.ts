@@ -1,9 +1,9 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import demoDe from '../../src/i18n/locales/demo';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -375,7 +375,8 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     });
     releaseSignOut?.();
 
-    // 3. Confirm login screen is visible
+    // 3. Wait for AppShell's document navigation before observing public entry.
+    await page.waitForURL((url) => url.pathname === '/', { waitUntil: 'load' });
     await expect(page.getByLabel(de.login.email)).toBeVisible({
       timeout: 10000,
     });

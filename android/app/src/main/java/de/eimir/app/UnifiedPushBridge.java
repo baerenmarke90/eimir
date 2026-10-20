@@ -40,6 +40,17 @@ public final class UnifiedPushBridge extends Plugin {
         current = new WeakReference<>(this);
     }
 
+    @Override
+    protected void handleOnNewIntent(Intent intent) {
+        super.handleOnNewIntent(intent);
+        if (!EimirPushService.isNotificationIntent(intent)) return;
+        String accountId = activeInstance(getContext());
+        if (accountId == null) return;
+        // Authentication may still be restoring. Keep this separate from the
+        // general App URL event, whose first listener is the identity intake.
+        notifyListeners("notificationOpen", new JSObject().put("accountId", accountId), true);
+    }
+
     static String activeInstance(Context context) {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(ACTIVE_INSTANCE, null);
     }

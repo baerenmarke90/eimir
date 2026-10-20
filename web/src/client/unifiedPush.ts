@@ -43,7 +43,7 @@ type NativePushPlugin = {
     callback: (event: EndpointEvent) => void,
   ): Promise<{ remove(): Promise<void> }>;
   addListener(
-    event: 'wake',
+    event: 'wake' | 'notificationOpen',
     callback: (event: { accountId: string }) => void,
   ): Promise<{ remove(): Promise<void> }>;
   addListener(
@@ -146,21 +146,6 @@ async function loadConfiguration(
   }
 }
 
-function isInboxLaunchUrl(raw: string): boolean {
-  try {
-    const url = new URL(raw);
-    return (
-      url.protocol === 'de.sidebyside.app:' &&
-      url.hostname === 'notifications' &&
-      (url.pathname === '' || url.pathname === '/') &&
-      !url.search &&
-      !url.hash
-    );
-  } catch {
-    return false;
-  }
-}
-
 export function useUnifiedPush({
   accountId,
   apiBaseUrl,
@@ -191,13 +176,11 @@ export function useUnifiedPush({
   const errorRef = useRef<string | null>(null);
   const key = endpointIdKey(apiBaseUrl, accountId);
   const currentSpaceId = useRef(spaceId);
-  const handledLaunchUrl = useRef(false);
   const registrationAllowed = useRef(true);
   currentSpaceId.current = spaceId;
   errorRef.current = error;
 
   const openInbox = useCallback(() => {
-    handledLaunchUrl.current = true;
     if (isDocumentLeaveBlocked()) {
       setPendingInbox(key);
       postSnackbar('snackbar.notificationWaiting');
@@ -340,9 +323,9 @@ export function useUnifiedPush({
           void syncRegistered();
         },
       ),
-      App.addListener('appUrlOpen', ({ url }) => {
-        if (!live) return;
-        if (isInboxLaunchUrl(url)) openInbox();
+      nativePush.addListener('notificationOpen', (event) => {
+        if (!live || event.accountId !== accountId) return;
+        openInbox();
       }),
       App.addListener('resume', () => {
         // Returning from the system notification settings: re-check the
@@ -364,17 +347,6 @@ export function useUnifiedPush({
     void (async () => {
       try {
         await Promise.all(subscriptions);
-        if (!handledLaunchUrl.current) {
-          const launch = await App.getLaunchUrl();
-          if (
-            live &&
-            !handledLaunchUrl.current &&
-            launch?.url &&
-            isInboxLaunchUrl(launch.url)
-          ) {
-            openInbox();
-          }
-        }
         if (!live) return;
         const loaded = await loadConfiguration(notificationsApi);
         if (!live) return;

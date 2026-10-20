@@ -64,6 +64,25 @@ public class LauncherIconsTest {
     }
 
     @Test
+    public void notificationEntryAcceptsOnlyTheFixedGenericDestination() {
+        assertTrue(EimirPushService.isNotificationIntent(EimirPushService.notificationIntent(context)));
+        assertTrue(EimirPushService.isNotificationIntent(new Intent(Intent.ACTION_VIEW,
+                android.net.Uri.parse("de.sidebyside.app://notifications/"))));
+        for (String url : new String[] {
+                "https://notifications/", "de.sidebyside.app://notifications.evil/",
+                "de.sidebyside.app://user@notifications", "de.sidebyside.app://notifications/item",
+                "de.sidebyside.app://notifications?target=/today", "de.sidebyside.app://notifications#item"
+        }) {
+            assertFalse(url, EimirPushService.isNotificationIntent(new Intent(Intent.ACTION_VIEW,
+                    android.net.Uri.parse(url))));
+        }
+        assertFalse(EimirPushService.isNotificationIntent(null));
+        assertFalse(EimirPushService.isNotificationIntent(new Intent(Intent.ACTION_VIEW)));
+        assertFalse(EimirPushService.isNotificationIntent(new Intent(Intent.ACTION_MAIN,
+                android.net.Uri.parse("de.sidebyside.app://notifications"))));
+    }
+
+    @Test
     public void invalidChoiceLeavesTheExistingLauncherUnchanged() throws Exception {
         LauncherIcons.apply(context, "sage");
         assertThrows(IllegalArgumentException.class, () -> LauncherIcons.apply(context, "../other"));

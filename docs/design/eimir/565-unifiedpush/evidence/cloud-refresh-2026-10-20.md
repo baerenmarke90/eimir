@@ -143,3 +143,27 @@ backend UnifiedPush unit tests pass under the updated lock.
 After the draft-entry correction, TypeScript, lint, formatting, Capacitor/token/
 PWA checks and production build pass again. All three production-browser session
 journeys pass again without retries, with unchanged assertions and deadlines.
+
+
+## Physical follow-up preflight: retained Android entry
+
+Device testing on the same integration APK exposed a restored-Activity entry
+race: Android delivered the notification through `onNewIntent` while encrypted
+session/authentication restoration was still in progress. Capacitor's general
+`appUrlOpen` retained delivery was consumed by the earlier identity-link listener;
+`getLaunchUrl` still described the original Activity launch without the URL.
+A fully new Activity did open the inbox, so it did not cover this path.
+
+Reuse the existing EimirUnifiedPush plugin's retained, Account-tagged event
+mechanism for notification opens, just as endpoint delivery already does. Parse
+only the fixed generic notification URI in the native plugin and retain no
+content, credentials or arbitrary destination. The authenticated controller
+consumes the event after mounting and continues through its existing document-
+leave guard and inbox route. This avoids a second global URL queue, an auth
+client, polling or a timing workaround. General identity links continue through
+the existing Capacitor App intake. The existing R5/F2 contract, composition,
+status, tokens and motion remain applicable; this is a lifecycle correction,
+with no new visual feature or product-tier change. Regression checks must cover
+retained entry, another Account, draft protection and physical warm/new/restored
+Activity entry. Enlarged folded-font acceptance remains deferred at the user's
+explicit request; do not enlarge the device font again.

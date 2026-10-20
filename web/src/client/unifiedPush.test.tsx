@@ -6,17 +6,18 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { ResponseError } from '../api/generated/runtime';
 import { notificationUnreadCountQueryKey } from './notificationQueries';
-import { useDocumentLeaveGuard } from './useDocumentLeaveGuard';
 import {
   revokeDevicePushBeforeSignOut,
   stopNativePushForSignedOutAccount,
   useUnifiedPush,
 } from './unifiedPush';
+import { useDocumentLeaveGuard } from './useDocumentLeaveGuard';
 
 const native = vi.hoisted(() => {
   const listeners = new Map<string, (event: unknown) => void>();
   return {
     listeners,
+    retainedNotificationAccount: null as string | null,
     status: vi.fn(
       async (): Promise<{
         accountId: string | null;
@@ -35,6 +36,14 @@ const native = vi.hoisted(() => {
     addListener: vi.fn(
       async (event: string, callback: (value: unknown) => void) => {
         listeners.set(event, callback);
+        if (
+          event === 'notificationOpen' &&
+          native.retainedNotificationAccount
+        ) {
+          const accountId = native.retainedNotificationAccount;
+          native.retainedNotificationAccount = null;
+          callback({ accountId });
+        }
         return { remove: async () => listeners.delete(event) };
       },
     ),
@@ -128,6 +137,7 @@ beforeEach(() => {
     },
   });
   native.listeners.clear();
+  native.retainedNotificationAccount = null;
   app.listeners.clear();
   vi.clearAllMocks();
   native.status.mockReset().mockResolvedValue({
@@ -193,11 +203,7 @@ it('registers a device endpoint, refreshes the current Space, routes a tap, and 
   });
   expect(api.getUnifiedPushConfiguration).toHaveBeenCalledTimes(1);
 
-  act(() =>
-    app.listeners.get('appUrlOpen')?.({
-      url: 'de.sidebyside.app://notifications',
-    }),
-  );
+  act(() => native.listeners.get('notificationOpen')?.({ accountId }));
   expect(screen.getByTestId('route').textContent).toBe('/more/notifications');
 
   await act(async () => result.current.disable());
@@ -224,14 +230,19 @@ it('retries server cleanup on startup after device push was stopped offline', as
   expect(window.localStorage.getItem(storageKey)).toBeNull();
 });
 
-it('opens the inbox from a notification that launched a stopped app', async () => {
-  app.getLaunchUrl.mockResolvedValueOnce({
-    url: 'de.sidebyside.app://notifications',
-  });
+it('consumes a retained notification after authentication without an original launch URL', async () => {
+  native.retainedNotificationAccount = accountId;
   setup();
   await waitFor(() =>
     expect(screen.getByTestId('route').textContent).toBe('/more/notifications'),
   );
+});
+
+it('does not route a retained notification into a replacement Account', async () => {
+  native.retainedNotificationAccount = 'previous-account';
+  const { result } = setup();
+  await waitFor(() => expect(result.current.state).toBe('off'));
+  expect(screen.getByTestId('route').textContent).toBe('/today');
 });
 
 it('does not reactivate a device when registration finishes after disable', async () => {
@@ -610,18 +621,12 @@ it.each(['warm', 'cold'] as const)(
   'preserves an active draft for a %s notification entry until its shared guard releases',
   async (kind) => {
     if (kind === 'cold') {
-      app.getLaunchUrl.mockResolvedValueOnce({
-        url: 'de.sidebyside.app://notifications',
-      });
+      native.retainedNotificationAccount = accountId;
     }
     const { result, rerender } = setup('space-a', undefined, accountId, true);
     await waitFor(() => expect(result.current.state).toBe('off'));
     if (kind === 'warm') {
-      act(() =>
-        app.listeners.get('appUrlOpen')?.({
-          url: 'de.sidebyside.app://notifications',
-        }),
-      );
+      act(() => native.listeners.get('notificationOpen')?.({ accountId }));
     }
     await act(async () => undefined);
     expect(screen.getByTestId('route').textContent).toBe('/today');

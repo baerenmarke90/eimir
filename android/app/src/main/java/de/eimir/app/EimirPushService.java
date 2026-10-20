@@ -22,6 +22,7 @@ import org.unifiedpush.android.connector.data.PushMessage;
 
 /** A wake has no content or route target; authenticated Web fetches the inbox. */
 public final class EimirPushService extends PushService {
+    private static final String NOTIFICATION_URL = "de.sidebyside.app://notifications";
     private static final String CHANNEL_ID = "eimir_notifications";
     /** One generic notification at most: repeated wakes update it instead of stacking. */
     private static final int WAKE_NOTIFICATION_ID = 1;
@@ -80,8 +81,14 @@ public final class EimirPushService extends PushService {
     }
 
     static Intent notificationIntent(Context context) {
-        return new Intent(Intent.ACTION_VIEW, Uri.parse("de.sidebyside.app://notifications"), context, LauncherActivity.class)
+        return new Intent(Intent.ACTION_VIEW, Uri.parse(NOTIFICATION_URL), context, LauncherActivity.class)
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    }
+
+    static boolean isNotificationIntent(Intent intent) {
+        if (intent == null || !Intent.ACTION_VIEW.equals(intent.getAction()) || intent.getData() == null) return false;
+        String url = intent.getData().toString();
+        return NOTIFICATION_URL.equals(url) || (NOTIFICATION_URL + "/").equals(url);
     }
 
     @Override

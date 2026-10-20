@@ -1,13 +1,13 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, type Page, test, type TestInfo } from '@playwright/test';
+import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import sharedPhotos from '../../src/i18n/locales/sharedPhotos';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const SPACE = '22222222-2222-4222-8222-222222222222';
 const ACCOUNT = '11111111-1111-4111-8111-111111111111';
@@ -197,7 +197,8 @@ async function signIn(page: Page) {
   await page.getByLabel(de.login.password).fill('long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
-  await page.goto('/story/photos');
+  // Keep the authenticated document: a reload can download thumbnails twice
+  // before the session-memory byte-reuse assertions begin.
   await expect(
     page.getByRole('heading', { name: sharedPhotos.title, level: 1 }),
   ).toBeVisible();

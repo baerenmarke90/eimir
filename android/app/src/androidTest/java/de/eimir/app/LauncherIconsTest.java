@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.core.app.ActivityScenario;
 import java.util.List;
 import org.junit.After;
 import org.junit.Test;
@@ -36,6 +37,9 @@ public class LauncherIconsTest {
                     .addCategory(Intent.CATEGORY_BROWSABLE).setPackage(context.getPackageName());
             assertEquals("Authentication remains reachable for " + id,
                     "de.eimir.app.LauncherActivity", manager.resolveActivity(callback, 0).activityInfo.name);
+            ResolveInfo notification = manager.resolveActivity(EimirPushService.notificationIntent(context), 0);
+            assertNotNull("Notification remains reachable for " + id, notification);
+            assertEquals("de.eimir.app.LauncherActivity", notification.activityInfo.name);
             assertNotEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                     manager.getComponentEnabledSetting(new ComponentName(context.getPackageName(),
                             "de.eimir.app.LauncherActivity")));
@@ -45,18 +49,36 @@ public class LauncherIconsTest {
     @Test
     public void selectedLauncherStartsTheRegisteredNativeBridge() throws Exception {
         LauncherIcons.apply(context, "sage");
-        android.app.Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
         Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
         assertNotNull(launch);
-        android.app.Activity activity = instrumentation.startActivitySync(launch);
-        try {
-            assertTrue(activity instanceof LauncherActivity);
-            LauncherActivity shell = (LauncherActivity) activity;
-            assertNotNull(shell.getBridge().getPlugin("AppIcon"));
-            assertNotNull(shell.getBridge().getPlugin("NativeSessionStorage"));
-        } finally {
-            instrumentation.runOnMainSync(activity::finish);
+        try (ActivityScenario<android.app.Activity> scenario = ActivityScenario.launch(launch)) {
+            scenario.onActivity(activity -> {
+                assertTrue(activity instanceof LauncherActivity);
+                LauncherActivity shell = (LauncherActivity) activity;
+                assertNotNull(shell.getBridge().getPlugin("AppIcon"));
+                assertNotNull(shell.getBridge().getPlugin("NativeSessionStorage"));
+                assertNotNull(shell.getBridge().getPlugin("EimirUnifiedPush"));
+            });
         }
+    }
+
+    @Test
+    public void notificationEntryAcceptsOnlyTheFixedGenericDestination() {
+        assertTrue(EimirPushService.isNotificationIntent(EimirPushService.notificationIntent(context)));
+        assertTrue(EimirPushService.isNotificationIntent(new Intent(Intent.ACTION_VIEW,
+                android.net.Uri.parse("de.sidebyside.app://notifications/"))));
+        for (String url : new String[] {
+                "https://notifications/", "de.sidebyside.app://notifications.evil/",
+                "de.sidebyside.app://user@notifications", "de.sidebyside.app://notifications/item",
+                "de.sidebyside.app://notifications?target=/today", "de.sidebyside.app://notifications#item"
+        }) {
+            assertFalse(url, EimirPushService.isNotificationIntent(new Intent(Intent.ACTION_VIEW,
+                    android.net.Uri.parse(url))));
+        }
+        assertFalse(EimirPushService.isNotificationIntent(null));
+        assertFalse(EimirPushService.isNotificationIntent(new Intent(Intent.ACTION_VIEW)));
+        assertFalse(EimirPushService.isNotificationIntent(new Intent(Intent.ACTION_MAIN,
+                android.net.Uri.parse("de.sidebyside.app://notifications"))));
     }
 
     @Test

@@ -1,0 +1,164 @@
+INSTRUMENTATION_STATUS: class=de.eimir.app.LauncherIconsTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=7
+INSTRUMENTATION_STATUS: stream=
+de.eimir.app.LauncherIconsTest:
+INSTRUMENTATION_STATUS: test=selectedLauncherStartsTheRegisteredNativeBridge
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=de.eimir.app.LauncherIconsTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=7
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=selectedLauncherStartsTheRegisteredNativeBridge
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=de.eimir.app.LauncherIconsTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=7
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=invalidChoiceLeavesTheExistingLauncherUnchanged
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=de.eimir.app.LauncherIconsTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=7
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=invalidChoiceLeavesTheExistingLauncherUnchanged
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=de.eimir.app.LauncherIconsTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=7
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=everyChoiceHasExactlyOneLaunchableAliasAndPreservesAuthenticationEntry
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=de.eimir.app.LauncherIconsTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=7
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=everyChoiceHasExactlyOneLaunchableAliasAndPreservesAuthenticationEntry
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=de.eimir.app.LauncherIconsTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=7
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=notificationEntryAcceptsOnlyTheFixedGenericDestination
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=de.eimir.app.LauncherIconsTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=7
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=notificationEntryAcceptsOnlyTheFixedGenericDestination
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=de.eimir.app.UnifiedPushAccountReplacementTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=7
+INSTRUMENTATION_STATUS: stream=
+de.eimir.app.UnifiedPushAccountReplacementTest:
+INSTRUMENTATION_STATUS: test=aPermissionCallbackAfterDisableCannotReactivatePush
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=de.eimir.app.UnifiedPushAccountReplacementTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=7
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: The initial Account sends a real connector registration
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertNotNull(Assert.java:713)
+	at de.eimir.app.UnifiedPushAccountReplacementTest.prepare(UnifiedPushAccountReplacementTest.java:92)
+
+INSTRUMENTATION_STATUS: stream=
+Error in aPermissionCallbackAfterDisableCannotReactivatePush(de.eimir.app.UnifiedPushAccountReplacementTest):
+java.lang.AssertionError: The initial Account sends a real connector registration
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertNotNull(Assert.java:713)
+	at de.eimir.app.UnifiedPushAccountReplacementTest.prepare(UnifiedPushAccountReplacementTest.java:92)
+
+INSTRUMENTATION_STATUS: test=aPermissionCallbackAfterDisableCannotReactivatePush
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=de.eimir.app.UnifiedPushAccountReplacementTest
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=7
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=aCancelledEnableCannotRetireTheCurrentAccount
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=de.eimir.app.UnifiedPushAccountReplacementTest
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=7
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: The old Web document has been replaced
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at de.eimir.app.UnifiedPushAccountReplacementTest.prepare(UnifiedPushAccountReplacementTest.java:81)
+
+INSTRUMENTATION_STATUS: stream=
+Error in aCancelledEnableCannotRetireTheCurrentAccount(de.eimir.app.UnifiedPushAccountReplacementTest):
+java.lang.AssertionError: The old Web document has been replaced
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at de.eimir.app.UnifiedPushAccountReplacementTest.prepare(UnifiedPushAccountReplacementTest.java:81)
+
+INSTRUMENTATION_STATUS: test=aCancelledEnableCannotRetireTheCurrentAccount
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=de.eimir.app.UnifiedPushAccountReplacementTest
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=7
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=replacingTheOnlyAccountSelectsADistributorAfterRetiringItsRegistration
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=de.eimir.app.UnifiedPushAccountReplacementTest
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=7
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: The initial Account sends a real connector registration
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertNotNull(Assert.java:713)
+	at de.eimir.app.UnifiedPushAccountReplacementTest.prepare(UnifiedPushAccountReplacementTest.java:92)
+
+INSTRUMENTATION_STATUS: stream=
+Error in replacingTheOnlyAccountSelectsADistributorAfterRetiringItsRegistration(de.eimir.app.UnifiedPushAccountReplacementTest):
+java.lang.AssertionError: The initial Account sends a real connector registration
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertNotNull(Assert.java:713)
+	at de.eimir.app.UnifiedPushAccountReplacementTest.prepare(UnifiedPushAccountReplacementTest.java:92)
+
+INSTRUMENTATION_STATUS: test=replacingTheOnlyAccountSelectsADistributorAfterRetiringItsRegistration
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 101.329
+There were 3 failures:
+1) aPermissionCallbackAfterDisableCannotReactivatePush(de.eimir.app.UnifiedPushAccountReplacementTest)
+java.lang.AssertionError: The initial Account sends a real connector registration
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertNotNull(Assert.java:713)
+	at de.eimir.app.UnifiedPushAccountReplacementTest.prepare(UnifiedPushAccountReplacementTest.java:92)
+2) aCancelledEnableCannotRetireTheCurrentAccount(de.eimir.app.UnifiedPushAccountReplacementTest)
+java.lang.AssertionError: The old Web document has been replaced
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at de.eimir.app.UnifiedPushAccountReplacementTest.prepare(UnifiedPushAccountReplacementTest.java:81)
+3) replacingTheOnlyAccountSelectsADistributorAfterRetiringItsRegistration(de.eimir.app.UnifiedPushAccountReplacementTest)
+java.lang.AssertionError: The initial Account sends a real connector registration
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.assertTrue(Assert.java:42)
+	at org.junit.Assert.assertNotNull(Assert.java:713)
+	at de.eimir.app.UnifiedPushAccountReplacementTest.prepare(UnifiedPushAccountReplacementTest.java:92)
+
+FAILURES!!!
+Tests run: 7,  Failures: 3
+
+
+INSTRUMENTATION_CODE: -1

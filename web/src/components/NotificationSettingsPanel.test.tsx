@@ -5,6 +5,7 @@ import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { NotificationChannel } from '../api/generated/models/NotificationChannel';
 import { NotificationKind } from '../api/generated/models/NotificationKind';
 import type { NotificationPreferencesView } from '../api/generated/models/NotificationPreferencesView';
+import type { DevicePushController } from '../client/unifiedPush';
 import notificationSettings from '../i18n/locales/notificationSettings';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 
@@ -85,8 +86,13 @@ function setup(
     channel: NotificationChannel.EMAIL,
     enabled: true,
   }),
+  devicePush?: DevicePushController,
+  preferencesUnavailable = false,
 ) {
   const getOwnNotificationPreferences = vi.fn().mockResolvedValue(data);
+  if (preferencesUnavailable) {
+    getOwnNotificationPreferences.mockRejectedValue(new Error('offline'));
+  }
   const updateOwnQuietHours = vi.fn().mockResolvedValue({
     enabled: true,
     start: '22:00:00',
@@ -107,6 +113,7 @@ function setup(
         <NotificationSettingsPanel
           notificationsApi={notificationsApi}
           accountId="owner"
+          devicePush={devicePush}
         />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -114,7 +121,138 @@ function setup(
   return { update, updateOwnQuietHours, getOwnNotificationPreferences };
 }
 
+function deviceController(
+  overrides: Partial<DevicePushController> = {},
+): DevicePushController {
+  return {
+    available: true,
+    state: 'off',
+    error: null,
+    registered: false,
+    enable: vi.fn().mockResolvedValue(undefined),
+    disable: vi.fn().mockResolvedValue(undefined),
+    openSettings: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
 describe('NotificationSettingsPanel', () => {
+  it('offers system settings after permission denial without a disable action for an unregistered device', async () => {
+    const device = deviceController({
+      state: 'error',
+      error: 'NOTIFICATION_PERMISSION_DENIED',
+    });
+    setup(view(), undefined, device);
+    await screen.findByRole('switch', { name: 'Kommentare: Push' });
+    expect(
+      screen.getByText(notificationSettings.devicePermissionDenied),
+    ).toBeDefined();
+    expect(
+      screen.queryByRole('button', { name: notificationSettings.deviceEnable }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', {
+        name: notificationSettings.deviceDisable,
+      }),
+    ).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: notificationSettings.deviceOpenSettings,
+      }),
+    );
+    expect(device.openSettings).toHaveBeenCalledOnce();
+    expect(device.enable).not.toHaveBeenCalled();
+  });
+
+  it('allows disabling an existing registration while permission is blocked', async () => {
+    const device = deviceController({
+      state: 'error',
+      error: 'NOTIFICATION_PERMISSION_DENIED',
+      registered: true,
+    });
+    setup(view(), undefined, device);
+    await screen.findByRole('switch', { name: 'Kommentare: Push' });
+    fireEvent.click(
+      screen.getByRole('button', { name: notificationSettings.deviceDisable }),
+    );
+    expect(device.disable).toHaveBeenCalledOnce();
+    expect(
+      screen.getByRole('button', {
+        name: notificationSettings.deviceOpenSettings,
+      }),
+    ).toBeDefined();
+  });
+
+  it('explains a rejected distributor without offering a retry or a meaningless disable', async () => {
+    const device = deviceController({
+      state: 'error',
+      error: 'PUSH_ENDPOINT_UNSUPPORTED',
+    });
+    setup(view(), undefined, device);
+    await screen.findByRole('switch', { name: 'Kommentare: Push' });
+    expect(
+      screen.getByText(notificationSettings.deviceUnsupported),
+    ).toBeDefined();
+    expect(
+      screen.queryByRole('button', { name: notificationSettings.deviceEnable }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', {
+        name: notificationSettings.deviceDisable,
+      }),
+    ).toBeNull();
+  });
+
+  it('keeps device status retry reachable when notification preferences fail', async () => {
+    const device = deviceController({
+      state: 'error',
+      error: 'PUSH_DEVICE_STATUS_UNAVAILABLE',
+    });
+    const { getOwnNotificationPreferences } = setup(
+      view(),
+      undefined,
+      device,
+      true,
+    );
+    await waitFor(() =>
+      expect(getOwnNotificationPreferences).toHaveBeenCalledOnce(),
+    );
+    expect(
+      screen.getByText(notificationSettings.deviceStatusUnavailable),
+    ).toBeDefined();
+    fireEvent.click(
+      screen.getByRole('button', { name: notificationSettings.deviceEnable }),
+    );
+    expect(device.enable).toHaveBeenCalledOnce();
+    expect(
+      screen.queryByRole('button', {
+        name: notificationSettings.deviceDisable,
+      }),
+    ).toBeNull();
+  });
+
+  it('explains an unconfigured installation without offering activation', async () => {
+    setup(view(), undefined, deviceController({ state: 'unavailable' }));
+    await screen.findByRole('switch', { name: 'Kommentare: Push' });
+    expect(
+      screen.getByText(notificationSettings.deviceUnavailable),
+    ).toBeDefined();
+    expect(
+      screen.queryByRole('button', { name: notificationSettings.deviceEnable }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', {
+        name: notificationSettings.deviceDisable,
+      }),
+    ).toBeNull();
+  });
+
+  it('omits the device control on the Web client', async () => {
+    setup(view(), undefined, deviceController({ available: false }));
+    await screen.findByRole('switch', { name: 'Kommentare: Push' });
+    expect(screen.queryByText(notificationSettings.deviceTitle)).toBeNull();
+  });
+
   it('saves an explicit comment digest choice while transport is unavailable', async () => {
     const update = vi.fn().mockResolvedValue({
       kind: NotificationKind.COMMENT_CREATED,

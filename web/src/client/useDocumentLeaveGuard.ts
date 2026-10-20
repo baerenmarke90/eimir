@@ -13,7 +13,7 @@ const subscribe = (listener: () => void) => {
 };
 export const isDocumentLeaveBlocked = () => owners.size > 0;
 
-/** Shared document-exit ownership for browser unload and external auth entry. */
+/** Shared document-exit ownership for browser unload and external entry. */
 export function useDocumentLeaveGuard(blocked: boolean): void {
   useEffect(() => {
     if (!blocked) return;

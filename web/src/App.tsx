@@ -55,6 +55,11 @@ import {
   loadAuthorizedMedia,
 } from './client/referenceFlow';
 import { loadInstanceAccessStatus } from './client/instanceStatus';
+import {
+  stopNativePushForSignedOutAccount,
+  useUnifiedPush,
+} from './client/unifiedPush';
+import { signOutSession } from './client/signOutSession';
 import { createServerAdminApis } from './client/serverAdmin';
 import {
   ACTIVITY_ROUTE,
@@ -242,7 +247,7 @@ function AuthenticatedApp({
 }: {
   tokens: TokenView;
   account: AccountView;
-  logout: () => void;
+  logout: () => void | Promise<void>;
   apiBaseUrl: string;
   spaceId: string;
   serverAdmin: boolean;
@@ -263,6 +268,13 @@ function AuthenticatedApp({
     () => createM4ProductApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
   );
+  const devicePush = useUnifiedPush({
+    accountId: account.id,
+    apiBaseUrl,
+    notificationsApi: m4Apis.notifications,
+    queryClient,
+    spaceId,
+  });
   const planningApis = useMemo(
     () => createSharedPlanningApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
@@ -700,6 +712,7 @@ function AuthenticatedApp({
                   accessToken={tokens.accessToken}
                   account={account}
                   spaceId={spaceId}
+                  devicePush={devicePush}
                 />
               }
             />
@@ -711,6 +724,7 @@ function AuthenticatedApp({
                   accessToken={tokens.accessToken}
                   account={account}
                   spaceId={spaceId}
+                  devicePush={devicePush}
                 />
               }
             />
@@ -859,6 +873,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const [isRestoring, setIsRestoring] = useState(() =>
     Boolean(initialStoredSession),
   );
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [spaceId, setSpaceId] = useState<string | null>(
     () => initialStoredSession?.spaceId ?? null,
   );
@@ -868,14 +883,21 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   // switch (#689).
   const restoredAuthReturnForAccountId = useRef<string | null>(null);
 
+  useEffect(() => {
+    // Native hydration finishes before App mounts; absence is now authoritative.
+    if (!account && !isRestoring) stopNativePushForSignedOutAccount();
+  }, [account, isRestoring]);
+
   const terminateSession = useCallback(() => {
-    clearStoredSession();
+    stopNativePushForSignedOutAccount();
+    const cleared = clearStoredSession();
     setSpaceId(null);
     setAccount(null);
     setTokens(null);
     restoredAuthReturnForAccountId.current = null;
     queryClient.clear();
     clearProductReadCacheInBackground();
+    return cleared;
   }, [queryClient]);
 
   useEffect(() => {
@@ -1047,17 +1069,18 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     });
   }, [account, membershipsQuery.data, tokens]);
 
-  function logout() {
+  async function logout() {
     clearEntryToken();
-    if (tokens?.accessToken) {
-      try {
-        const apis = createReferenceApis(config.apiBaseUrl, tokens.accessToken);
-        void apis.auth.signOutApiV1AuthSignOutPost().catch(() => {});
-      } catch {
-        // Best effort sign-out
-      }
+    setIsSigningOut(true);
+    try {
+      await signOutSession(
+        config.apiBaseUrl,
+        tokens?.accessToken,
+        terminateSession,
+      );
+    } finally {
+      setIsSigningOut(false);
     }
-    terminateSession();
   }
 
   function selectSpace(selectedSpaceId: string) {
@@ -1070,11 +1093,14 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     postSnackbar('snackbar.spaceSwitched');
   }
 
-  if (isRestoring) {
+  if (isRestoring || isSigningOut) {
     return (
       <main className="setup-shell">
         <ThemeControl />
-        <UiState kind="loading" title={t('spaceContext.loading')} />
+        <UiState
+          kind="loading"
+          title={t(isSigningOut ? 'header.logout' : 'spaceContext.loading')}
+        />
       </main>
     );
   }

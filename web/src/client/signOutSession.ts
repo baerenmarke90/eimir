@@ -8,7 +8,7 @@ import {
 import {
   revokeDevicePushBeforeSignOut,
   stopNativePushForSignedOutAccount,
-} from './unifiedPush';
+} from './devicePush';
 
 /** Bound best-effort remote cleanup so an outage cannot prevent local sign-out. */
 export const SIGN_OUT_CLEANUP_TIMEOUT_MS = 5_000;

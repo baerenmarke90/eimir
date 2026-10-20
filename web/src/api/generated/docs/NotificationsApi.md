@@ -4,6 +4,7 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**getDevicePushConfiguration**](NotificationsApi.md#getdevicepushconfiguration) | **GET** /api/v1/push-endpoints/configuration | Get Device Push Configuration |
 | [**getNotificationUnreadCount**](NotificationsApi.md#getnotificationunreadcount) | **GET** /api/v1/spaces/{spaceId}/notifications/unread-count | Get Notification Unread Count |
 | [**getNotifications**](NotificationsApi.md#getnotifications) | **GET** /api/v1/spaces/{spaceId}/notifications | Get Notifications |
 | [**getOwnNotificationPreferences**](NotificationsApi.md#getownnotificationpreferences) | **GET** /api/v1/notification-preferences | Get Own Notification Preferences |
@@ -17,6 +18,67 @@ All URIs are relative to *http://localhost*
 | [**updateOwnNotificationPreference**](NotificationsApi.md#updateownnotificationpreference) | **PATCH** /api/v1/notification-preferences/{kind}/{channel} | Update Own Notification Preference |
 | [**updateOwnQuietHours**](NotificationsApi.md#updateownquiethours) | **PATCH** /api/v1/notification-preferences/quiet-hours | Update Own Quiet Hours |
 
+
+
+## getDevicePushConfiguration
+
+> DevicePushConfiguration getDevicePushConfiguration()
+
+Get Device Push Configuration
+
+Expose only configured public transport metadata to an authenticated device.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  NotificationsApi,
+} from '';
+import type { GetDevicePushConfigurationRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new NotificationsApi();
+
+  try {
+    const data = await api.getDevicePushConfiguration();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**DevicePushConfiguration**](DevicePushConfiguration.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **503** | A capability required for this operation is not configured on this instance. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## getNotificationUnreadCount

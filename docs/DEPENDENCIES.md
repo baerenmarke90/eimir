@@ -4,7 +4,7 @@ Every dependency is recorded with its name, version, source, and license. Every
 asset is recorded with its origin, license, and creator. Anything not listed
 here does not belong in the project.
 
-As of: 2026-09-25
+As of: 2026-10-20
 
 ## Reproducibility and verification
 
@@ -94,6 +94,15 @@ avoids custom RFC 8291 cryptography. The application supplies a restricted
 HTTPS transport for destination validation and connection pinning; it does not
 modify the upstream package.
 
+`google-auth[requests]` supplies the official service-account OAuth credentials,
+token state and refresh transport for the FCM HTTP-v1 adapter. The existing
+`httpx` client sends one bounded generic wake request per DB-worker attempt;
+no JWT/OAuth grant implementation or second notification pipeline is added.
+The maintained source is
+[google-cloud-python/packages/google-auth](https://github.com/googleapis/google-cloud-python/tree/main/packages/google-auth);
+the former standalone repository is archived. Sender credentials are operator
+files, not package assets, environment JSON or client APK material.
+
 `cbor2` is development-only: the virtual Authenticator in tests constructs
 `attestationObject` and COSE keys itself so the suite verifies real signatures
 instead of recorded example data.
@@ -133,8 +142,9 @@ in a background job under resource limits — never in the request path.
 | pyjwt[crypto] | 2.15.1 | PyPI | MIT |
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
 | pywebpush | 2.5.0 | PyPI | MPL-2.0 |
+| google-auth[requests] | 2.62.0 | PyPI | Apache 2.0 |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
-| pillow | 12.3.0 | PyPI | MIT-CMU |
+| pillow | 13.0.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |
 
 ## Backend — Development
@@ -171,6 +181,16 @@ in a background job under resource limits — never in the request path.
 | vitest | 5.0.4 | npm | MIT |
 
 ### October 2026 audit maintenance
+
+The 2026-10-20 frozen audit identified the compromised emSign trust-root advisory
+[GHSA-6q48-6c7w-9gw2](https://github.com/certifi/python-certifi/security/advisories/GHSA-6q48-6c7w-9gw2)
+in transitive `certifi` 2026.7.22. The lock now selects 2026.10.19 (upstream's
+first patched release is 2026.10.18). This trust-bundle update also protects the
+new Google OAuth/FCM HTTPS path; certificate verification remains enabled.
+The same audit exposed nine findings in existing Pillow 12.3.0, fixed in 13.0.0.
+The direct minimum and lock are updated to 13.0.0 and validated with the existing
+image/media tests. These are targeted security updates, with no audit exclusions;
+the resulting frozen audit reports no known vulnerabilities or adverse status.
 
 The lock refresh updates PyJWT to 2.15.1 and Alembic's transitive Mako to
 1.4.3. PyJWT's declared minimum also prevents restoring the vulnerable
@@ -232,7 +252,7 @@ registry or uses a hoster-controlled mirror.
 
 The Android Gradle project in `android/` contains no product UI screens. Product
 screens are the React application from `web/`, packaged as a local asset
-bundle. A small native bridge handles UnifiedPush registration, wake events,
+bundle. A small native bridge handles FCM/UnifiedPush registration, wake events,
 and content-free system notifications. Capacitor plugin versions are pinned
 exactly in `web/package.json` and locked in `web/package-lock.json`; the Gradle
 modules below are resolved from `web/node_modules` by `npx cap sync android`.
@@ -243,6 +263,9 @@ modules below are resolved from `web/node_modules` by `npx cap sync android`.
 | @capacitor/app | 8.1.1 | npm | MIT |
 | @capacitor/browser | 8.0.4 | npm | MIT |
 | org.unifiedpush.android:connector | 3.3.3 | Maven Central | Apache-2.0 |
+| com.google.firebase:firebase-bom | 35.0.2 | Google Maven | Apache-2.0 |
+| com.google.firebase:firebase-messaging | 26.0.0 (BoM-managed) | Google Maven | Apache-2.0 |
+| com.google.firebase:firebase-installations | 20.0.0 (BoM-managed) | Google Maven | Apache-2.0 |
 | androidx.appcompat:appcompat | 1.7.1 | Google Maven | Apache-2.0 |
 | androidx.coordinatorlayout:coordinatorlayout | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.core:core-splashscreen | 1.2.0 | Google Maven | Apache-2.0 |
@@ -255,12 +278,21 @@ using Android Keystore, standard AES/GCM and AtomicFile through the bounded
 `NativeSessionStorage` Capacitor adapter (#1357). No dependency is added. Web/PWA
 credentials remain sessionStorage-only, and the existing Web session facade owns
 credential rotation, logout and expiry.
-The UnifiedPush bridge remembers only the active Account ID for distributor
-callbacks; the authenticated Web client registers and revokes the server endpoint.
+The shared push bridge binds native work to an opaque activation ID and a local
+Account/API-instance snapshot; FCM's installation ID is a transport target, never
+the Account identity. The authenticated Web client owns registration/revocation.
+Firebase Messaging and Installations provide Android registration, target cleanup
+and data-only wakes. No Firebase Analytics, Crashlytics, Firebase Auth, Firestore,
+Storage or independent product UI is added. Google receives transport/installation
+metadata under the provider terms/privacy review in #565; the backend and normal
+notification API retain content/policy authority. Upstream SDK binaries and POMs
+are resolved from Google Maven under the existing strict checksum verification.
 The former native read cache and its Keystore key belonged to the retired,
 non-authoritative Kotlin client and are not part of server data continuity.
-`google-services.json` is intentionally absent, so the Google Services plugin
-stays inactive until a separate Firebase slice is configured.
+`google-services.json` is public Android Firebase application configuration; it
+contains no server sender private key. The Google Services plugin activates only
+when that configured build input is present. Official distribution and Firebase
+project/package alignment are separate from server credential installation.
 
 ## Android — Wrapper test and build
 

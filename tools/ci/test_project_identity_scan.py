@@ -24,13 +24,31 @@ class ProjectIdentityScanTest(unittest.TestCase):
         )
         self.assertEqual(classification, Classification.TEMP_COMPAT)
 
-    def test_android_application_id_is_temporary_compatibility(self) -> None:
+    def test_former_android_application_id_is_rejected_in_active_code(self) -> None:
         classification, _ = classify(
             Path("android/app/build.gradle"),
             'applicationId "de.sidebyside.app"',
             "sidebyside",
         )
-        self.assertEqual(classification, Classification.TEMP_COMPAT)
+        self.assertEqual(classification, Classification.MUST_RENAME)
+
+    def test_prior_android_evidence_retains_its_real_package(self) -> None:
+        classification, _ = classify(
+            Path("docs/CAPACITOR-ANDROID-FOUNDATION.md"),
+            "Historical APK: de.sidebyside.app",
+            "sidebyside",
+        )
+        self.assertEqual(classification, Classification.HISTORICAL_IMMUTABLE)
+
+    def test_device_evidence_keeps_package_but_active_android_does_not(self) -> None:
+        for path, expected in (
+            ("docs/product/design/evidence/r2/android/device.xml", Classification.HISTORICAL_IMMUTABLE),
+            ("docs/design/eimir/565-unifiedpush/evidence/device.log", Classification.HISTORICAL_IMMUTABLE),
+            ("android/app/src/main/AndroidManifest.xml", Classification.MUST_RENAME),
+        ):
+            with self.subTest(path=path):
+                classification, _ = classify(Path(path), "de.sidebyside.app", "sidebyside")
+                self.assertEqual(classification, expected)
 
     def test_retired_native_cache_identifiers_are_no_longer_exempt(self) -> None:
         # The Room database and Keystore alias belonged to the retired Kotlin

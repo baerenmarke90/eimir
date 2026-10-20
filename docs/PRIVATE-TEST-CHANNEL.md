@@ -33,6 +33,8 @@ After a push to `main`, the private-channel jobs in `.github/workflows/release-p
 hashes and both OCI references. Generated `compose.yaml` is JSON (valid YAML and
 Compose), exported from the canonical root Cloud profile. Only instance wiring
 changes: existing resources, secret expressions, proxy aliases and image digests.
+The FCM opt-in mount comes from the small canonical operator fragment and is
+compiled inline; the generated channel still consists of the same three files.
 No second maintained topology, bootstrap/reset service, database container or
 public host port is added. Canonical migration/readiness dependencies are retained.
 
@@ -114,6 +116,57 @@ loopback readiness. WebAuthn origins use the exact public HTTPS origin. Values
 are required rather than regenerated. Filled values, account emails, SMTP
 credentials, keys and the journal UUID never enter the generated Git branch.
 
+## Configure the selected live push transports
+
+The `eimir-test` channel explicitly requires both UnifiedPush and FCM configuration
+for #565. Generic canonical Cloud/Self-Hosted remains default-off; this selected
+instance must not appear push-ready merely because an APK contains Firebase.
+Append these operator inputs to its existing local environment:
+
+```text
+EIMIR_PUSH_VAPID_PRIVATE_KEY
+EIMIR_PUSH_VAPID_SUBJECT
+EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS
+EIMIR_PUSH_FCM_PROJECT_ID=eimir-test
+EIMIR_PUSH_FCM_ANDROID_PACKAGE=de.eimir.app
+EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE=/ABSOLUTE/PRIVATE/HOST/PATH/sender.json
+```
+
+Use the actual private VAPID key/contact and an explicit JSON list of real HTTPS
+distributor origins. A blank key or empty origins is not a live UP configuration.
+The public Firebase project number/sender ID is `607325335982`; the approved new
+Android package is `de.eimir.app`. This new installation does not imply deleting
+an old app or its data.
+
+Install the dedicated Google sender credential through the authorized private
+operator channel. It must be a regular private host file outside the checkout/Git
+Sync directory. The generated Compose maps that host source read-only to
+`/run/secrets/eimir-fcm-sender.json` in **cloud-api and cloud-worker only**, fixes the
+application `EIMIR_PUSH_FCM_CREDENTIALS_FILE` to that container path, and refuses to
+create a missing host source. Web and migrate receive neither the file nor FCM
+settings. The host-path input is not an application environment variable.
+
+UID **10001** must be able to read the file; verify effective ownership and a
+restricted file/group mode without printing bytes. Do not make it world-readable.
+Never paste credential JSON into `.env`, Compose, Git, terminal arguments,
+screenshots, issues, container images, CI logs or artifacts. The same sender file
+is accessible to API and worker as an explicit operating boundary, although only
+the worker sends. API registration and configuration reads perform no Google call.
+
+The current adapter accepts a validated service-account credential file and does
+not discover ambient ADC. The repository contains no evidenced ready-to-use WIF
+setup for this host. A renewable host identity would require an explicitly reviewed
+external-account configuration/loader path; GitHub workflow OIDC does not supply a
+continuous Arcane runtime credential. The service account must belong to the
+configured project; do not use a general Owner/Editor identity or a user's local ADC.
+
+Keep **Sync Files off**. The publisher exports only unresolved operator expressions
+and the compiled safe mount; it never reads a sender file or requires an adjacent
+credential/helper file on `deploy/eimir-test`. Do not append the optional source
+fragment again to this generated channel. If installation or authorization is not
+complete, retain the last known running instance and leave rollout pending;
+publication is not evidence that push is configured or delivered.
+
 ## Connect Arcane once
 
 Follow the upstream [Git Sync documentation](https://getarcane.app/docs/docker/git-sync)
@@ -125,7 +178,8 @@ for the installed Arcane version:
    the **existing eimir-test project**, not a new project.
 3. Branch: **deploy/eimir-test**. Compose path: **compose.yaml**.
 4. **Sync Files: off**. This runtime needs no adjacent file or lifecycle hook;
-   its local `.env` remains editable and is never published by this channel.
+   its local `.env` and separately installed private host credential remain outside
+   the sync and are never published by this channel.
 5. **Auto Sync: on**, interval **5 minutes**. **Redeploy After Sync: on**.
 6. Save and inspect the first deployment. Connect only after the preserved
    environment and exact trusted proxy setting are ready.
@@ -170,6 +224,23 @@ A successful publisher means the image pair and Git configuration exist. It does
 container logs and public smoke establish that boundary. Partial/stale builds or
 branch races cannot advance a partial pair. Registry outage may prevent pulls;
 the server never rebuilds source.
+
+Push acceptance additionally requires the selected signed `de.eimir.app` APK and
+real FCM/UP end-to-end evidence through an existing notification-producing action.
+Distinguish configured transport, accepted provider request, received wake and
+displayed/tapped notification. Record exact source/image/APK/signing identity,
+transport/distributor, Android version and scenario; never include raw FIDs,
+subscriptions, activation IDs or credentials. Cover background/process restore,
+target refresh, Account/API/provider change, permission denial/re-enable,
+disable/signout, stale/duplicate wake, Quiet Hours/digest, privacy/membership
+rechecks, provider failure and recovery. No force-stop or 100% delivery promise.
+
+For sender rotation, install replacement authority, recreate API/worker to replace
+cached credentials, verify auth and actual delivery, then revoke the old authority.
+Keep the encryption keyring and existing stores untouched. Urgent revocation may
+cause sanitized send failures while in-app notifications remain accessible;
+restoring authority does not require a database reset. FCM and UP reuse the same
+queue/policy and do not imply new events, analytics or a public Cloud launch.
 
 Plain Compose redeploy may stop the old app before a failed migration is reported.
 No zero-downtime or automatic database rollback/restore is promised. Pause Auto

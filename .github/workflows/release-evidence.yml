@@ -11,6 +11,8 @@ on:
       - "web/package-lock.json"
       - "web/scripts/build-capacitor-web.mjs"
       - "tools/ci/test_release_evidence.py"
+      - "scripts/android_firebase_configuration.py"
+      - "tools/ci/test_android_firebase_configuration.py"
       - "docs/m6/SBOM-ATTESTATIONS.md"
   workflow_dispatch:
     inputs:
@@ -25,6 +27,10 @@ on:
         type: number
       android_api_base_url:
         description: Backend API base URL baked into Android assets; required only when Android is included.
+        required: false
+        type: string
+      android_firebase_project_id:
+        description: Firebase project for direct Android FCM; empty builds UnifiedPush only.
         required: false
         type: string
       release_version:
@@ -46,10 +52,18 @@ on:
         description: Backend API base URL baked into Android assets; required only when Android is included.
         required: false
         type: string
+      android_firebase_project_id:
+        description: Firebase project for direct Android FCM; empty builds UnifiedPush only.
+        required: false
+        type: string
       release_version:
         description: SemVer product version without the v prefix.
         required: true
         type: string
+    secrets:
+      EIMIR_ANDROID_GOOGLE_SERVICES_JSON:
+        description: Public Firebase Android client configuration; never an FCM server service-account key.
+        required: false
 
 permissions:
   contents: read
@@ -79,7 +93,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Validate release-evidence contract
-        run: python3 tools/ci/test_release_evidence.py
+        run: |
+          python3 tools/ci/test_release_evidence.py
+          python3 tools/ci/test_android_firebase_configuration.py
 
       - name: Validate release inputs
         env:
@@ -88,6 +104,7 @@ jobs:
           API_BASE_URL: ${{ env.ANDROID_API_BASE_URL }}
           VERSION_CODE: ${{ env.ANDROID_VERSION_CODE }}
           VERSION_NAME: ${{ env.RELEASE_VERSION }}
+          ANDROID_FIREBASE_PROJECT_ID: ${{ inputs.android_firebase_project_id }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -130,10 +147,17 @@ jobs:
                       raise SystemExit("Android-inclusive release runs require an explicit, non-test android_api_base_url")
               print(f"Validated Android-inclusive evidence: version={raw_version}, api_base_url={canonical_url}")
           else:
-              if raw_url or raw_version_code:
+              if raw_url or raw_version_code or os.environ.get("ANDROID_FIREBASE_PROJECT_ID", "").strip():
                   raise SystemExit("Android-excluded evidence must not provide Android URL/version inputs")
               print(f"Validated Android-excluded evidence: version={raw_version}")
           PY
+
+      - name: Prepare Firebase Android build configuration
+        if: env.INCLUDE_ANDROID == 'true'
+        env:
+          ANDROID_FIREBASE_PROJECT_ID: ${{ inputs.android_firebase_project_id }}
+          EIMIR_ANDROID_GOOGLE_SERVICES_JSON: ${{ github.event_name != 'pull_request' && inputs.android_firebase_project_id != '' && secrets.EIMIR_ANDROID_GOOGLE_SERVICES_JSON || '' }}
+        run: python3 scripts/android_firebase_configuration.py prepare
 
       - name: Create evidence directories
         run: mkdir -p release-evidence/android release-evidence/sbom
@@ -241,6 +265,19 @@ jobs:
           cp -- "$apk" ../release-evidence/android/eimir-release-unsigned.apk
           cp -- "$aab" ../release-evidence/android/eimir-release-unsigned.aab
 
+      - name: Verify packaged Firebase Android configuration
+        if: env.INCLUDE_ANDROID == 'true'
+        env:
+          ANDROID_FIREBASE_PROJECT_ID: ${{ inputs.android_firebase_project_id }}
+        run: |
+          python3 scripts/android_firebase_configuration.py verify-apk \
+            release-evidence/android/eimir-release-unsigned.apk \
+            --analyzer "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
+
+      - name: Remove Firebase Android build configuration
+        if: always() && env.INCLUDE_ANDROID == 'true'
+        run: rm -f -- android/app/google-services.json
+
       - name: Verify APK and AAB packaging and runtime configuration
         if: env.INCLUDE_ANDROID == 'true'
         shell: bash
@@ -289,7 +326,7 @@ jobs:
           aapt="$ANDROID_HOME/build-tools/36.0.0/aapt"
           test -x "$aapt"
           badging=$("$aapt" dump badging release-evidence/android/eimir-release-unsigned.apk)
-          echo "$badging" | grep -q "package: name='de.sidebyside.app'"
+          echo "$badging" | grep -q "package: name='de.eimir.app'"
           echo "$badging" | grep -q "versionCode='${ANDROID_VERSION_CODE}'"
           echo "$badging" | grep -q "versionName='${RELEASE_VERSION}'"
           python3 scripts/android_launcher_identity.py release-evidence/android/eimir-release-unsigned.apk \
@@ -403,7 +440,7 @@ jobs:
               analyzer = Path(os.environ["ANDROID_HOME"]) / "cmdline-tools/latest/bin/apkanalyzer"
               launchable_activity = apk_launcher_identity(apk_path, analyzer)
 
-              if app_id != "de.sidebyside.app":
+              if app_id != "de.eimir.app":
                   raise SystemExit(f"Unexpected Android applicationId: {app_id}")
               if version_code_str != str(os.environ["ANDROID_VERSION_CODE"]):
                   raise SystemExit(f"Android versionCode mismatch: {version_code_str} != {os.environ['ANDROID_VERSION_CODE']}")

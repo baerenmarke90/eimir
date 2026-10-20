@@ -7,15 +7,16 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Response, status
+from fastapi.responses import JSONResponse
 from pydantic import ConfigDict, Field, field_validator
 
 from eimir.api.deps import CurrentAccount, DbSession
-from eimir.api.errors import problem_responses
+from eimir.api.errors import problem, problem_responses
 from eimir.api.schema import ApiModel
 from eimir.auth import rate_limit
 from eimir.core.errors import ErrorCode, NotFoundError, ServiceUnavailableError, ValidationError
 from eimir.core.ids import parse_id
-from eimir.engagement import push, unified_push
+from eimir.engagement import fcm_push, push, unified_push
 
 router = APIRouter(prefix="/push-endpoints", tags=["notifications"])
 
@@ -33,7 +34,8 @@ class PushEndpointRegistration(ApiModel):
         description=(
             "Opaque provider-specific registration value. A Web Push transport can use "
             "a compact JSON subscription containing endpoint, keys.p256dh and keys.auth; "
-            "the configured provider validates its own format. Treat this value as a secret."
+            "FCM uses compact JSON containing fid and activationId (canonical UUIDv4). "
+            "The configured provider validates its own format. Treat this value as a secret."
         ),
     )
 
@@ -53,6 +55,59 @@ class PushEndpointRegistrationResult(ApiModel):
 class UnifiedPushConfiguration(ApiModel):
     provider_key: str
     vapid_public_key: str
+
+
+class FcmConfiguration(ApiModel):
+    provider_key: str
+    project_id: str
+    android_package: str
+
+
+class DevicePushConfiguration(ApiModel):
+    unified_push: UnifiedPushConfiguration | None
+    fcm: FcmConfiguration | None
+
+
+@router.get(
+    "/configuration",
+    response_model=DevicePushConfiguration,
+    operation_id="getDevicePushConfiguration",
+    responses=problem_responses(401, 503),
+)
+def get_device_push_configuration(
+    account: CurrentAccount, response: Response
+) -> DevicePushConfiguration | JSONResponse:
+    """Expose only configured public transport metadata to an authenticated device."""
+    del account
+    response.headers["Cache-Control"] = "private, no-store"
+    unified = push.providers.get(unified_push.PROVIDER_KEY)
+    fcm = push.providers.get(fcm_push.PROVIDER_KEY)
+    result = DevicePushConfiguration(
+        unified_push=(
+            UnifiedPushConfiguration(
+                provider_key=unified_push.PROVIDER_KEY, vapid_public_key=unified.vapid_public_key
+            )
+            if isinstance(unified, unified_push.UnifiedPushProvider)
+            else None
+        ),
+        fcm=(
+            FcmConfiguration(
+                provider_key=fcm_push.PROVIDER_KEY,
+                project_id=fcm.project_id,
+                android_package=fcm.android_package,
+            )
+            if isinstance(fcm, fcm_push.FcmPushProvider)
+            else None
+        ),
+    )
+    if result.unified_push is None and result.fcm is None:
+        error = ServiceUnavailableError(
+            "Push transport is unavailable.", ErrorCode.PUSH_TRANSPORT_UNAVAILABLE
+        )
+        unavailable = problem(error.status, error.type, error.title, error.detail, error.code)
+        unavailable.headers["Cache-Control"] = "private, no-store"
+        return unavailable
+    return result
 
 
 @router.get(

@@ -76,9 +76,18 @@ class PushProvider(Protocol):
 class PushProviderError(Exception):
     """Provider failure represented only by a bounded technical code."""
 
-    def __init__(self, code: str, *, retryable: bool = True) -> None:
+    def __init__(
+        self,
+        code: str,
+        *,
+        retryable: bool = True,
+        retry_not_before: datetime | None = None,
+        retry_base: timedelta | None = None,
+    ) -> None:
         self.code = sanitize_error_code(code)
         self.retryable = retryable
+        self.retry_not_before = retry_not_before
+        self.retry_base = retry_base
         super().__init__(self.code)
 
 
@@ -94,6 +103,9 @@ class PushProviderRegistry:
 
     def get(self, provider_key: str) -> PushProvider | None:
         return self._providers.get(provider_key)
+
+    def unregister(self, provider_key: str) -> PushProvider | None:
+        return self._providers.pop(provider_key, None)
 
     def clear(self) -> None:
         self._providers.clear()
@@ -542,7 +554,9 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
             endpoint.disabled_at = clock.now()
         _record_failure(delivery, exc.code, terminal=not exc.retryable)
         if exc.retryable and delivery.attempts < MAX_PUSH_ATTEMPTS:
-            raise RetryableJobError(exc.code) from exc
+            raise RetryableJobError(
+                exc.code, retry_not_before=exc.retry_not_before, retry_base=exc.retry_base
+            ) from exc
         return
     except Exception as exc:
         code = "PROVIDER_ERROR"

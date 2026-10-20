@@ -82,8 +82,8 @@ jobs:
           adb -e install -r app/build/outputs/apk/debug/app-debug.apk
           adb -e install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           timeout 180 adb -e shell am instrument -w -r \
-            -e class de.eimir.app.LauncherIconsTest,de.eimir.app.UnifiedPushAccountReplacementTest \
-            de.sidebyside.app.debug.test/de.eimir.app.PushFixtureRunner \
+            -e class de.eimir.app.LauncherIconsTest,de.eimir.app.UnifiedPushAccountReplacementTest,de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.FcmServiceOwnershipTest,de.eimir.app.PushStorageFailureTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
           grep -Eq '^OK \([1-9][0-9]* tests?\)' instrumentation.log
       - name: Capture native fixture diagnostics

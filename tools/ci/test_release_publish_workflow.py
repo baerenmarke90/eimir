@@ -419,6 +419,8 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn('bundle_name="eimir-self-hosted-v${RELEASE_VERSION}"', bundle_step)
         self.assertIn('cp -- compose.yaml "$bundle_root/compose.yaml"', bundle_step)
         self.assertIn("deploy/self-hosted-release.env.example", bundle_step)
+        self.assertIn('cp -- deploy/push-fcm.compose.yaml', bundle_step)
+        self.assertIn('${bundle_name}/deploy/push-fcm.compose.yaml', bundle_step)
         self.assertIn("scripts/self_hosted_release.py", bundle_step)
         self.assertIn("scripts/check_runtime_environment.py", bundle_step)
         self.assertIn("scripts/_identity_environment.py", bundle_step)
@@ -481,6 +483,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         for path in (
             '"compose.yaml"',
             '"deploy/self-hosted-release.env.example"',
+            '"deploy/push-fcm.compose.yaml"',
             '"scripts/self_hosted_release.py"',
             '"scripts/check_runtime_environment.py"',
             '"scripts/_identity_environment.py"',
@@ -513,7 +516,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn('apksigner" verify "$apk"', self.workflow)
         self.assertIn('jarsigner -verify "$aab"', self.workflow)
         self.assertIn('manifest application-id "$apk"', self.workflow)
-        self.assertIn('"de.sidebyside.app"', self.workflow)
+        self.assertIn('"de.eimir.app"', self.workflow)
         self.assertIn("android/eimir-release.apk", self.workflow)
         self.assertIn("android/eimir-release.aab", self.workflow)
         self.assertIn('android["signing"] = "signed-release"', self.workflow)
@@ -579,7 +582,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
     def test_signed_artifacts_packaging_and_badging_verified(self) -> None:
         self.assertIn("dump badging", self.workflow)
         self.assertIn("build-tools/36.0.0/aapt", self.workflow)
-        self.assertIn("package: name='de.sidebyside.app'", self.workflow)
+        self.assertIn("package: name='de.eimir.app'", self.workflow)
         self.assertIn("scripts/android_launcher_identity.py", self.workflow)
         self.assertIn("cmdline-tools/latest/bin/apkanalyzer", self.workflow)
         self.assertIn("public/index.html", self.workflow)

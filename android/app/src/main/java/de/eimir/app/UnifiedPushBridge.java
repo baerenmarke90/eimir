@@ -122,6 +122,18 @@ public final class UnifiedPushBridge extends Plugin {
             call.reject("INVALID_PUSH_CONFIGURATION");
             return;
         }
+        if (!isCurrentEnable(call, request)) {
+            call.reject("PUSH_REQUEST_CANCELLED");
+            return;
+        }
+        String previous = activeInstance(getContext());
+        if (previous != null && !previous.equals(accountId)) {
+            clearActiveInstance();
+            // Removing the connector's last instance also removes its saved
+            // distributor. Select again only after retiring the old Account.
+            UnifiedPush.unregister(getContext(), previous);
+            EimirPushService.cancelWakeNotification(getContext());
+        }
         UnifiedPush.tryUseCurrentOrDefaultDistributor(getActivity(), success -> {
             if (!isCurrentEnable(call, request)) {
                 call.reject("PUSH_REQUEST_CANCELLED");
@@ -131,10 +143,6 @@ public final class UnifiedPushBridge extends Plugin {
                 pendingEnableCallId.compareAndSet(call.getCallbackId(), null);
                 call.reject("NO_PUSH_DISTRIBUTOR");
                 return Unit.INSTANCE;
-            }
-            String previous = activeInstance(getContext());
-            if (previous != null && !previous.equals(accountId)) {
-                UnifiedPush.unregister(getContext(), previous);
             }
             setActiveInstance(accountId);
             try {

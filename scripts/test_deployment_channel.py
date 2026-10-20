@@ -294,12 +294,19 @@ def fcm_sender_mount() -> dict:
     }
     for name in ("cloud-api", "cloud-worker"):
         mounts = [
-            mount for mount in enabled["services"][name].get("volumes", [])
+            copy.deepcopy(mount)
+            for mount in enabled["services"][name].get("volumes", [])
             if mount.get("target") == FCM_CREDENTIAL_TARGET
         ]
+        for mount in mounts:
+            # Compose 2.38 omits the false bool when serializing bind options.
+            # Its empty long-syntax bind still disables host-path creation;
+            # keep that safety property explicit in the exported source.
+            if mount.get("bind") == {}:
+                mount["bind"] = {"create_host_path": False}
         if mounts != [expected]:
             raise ChannelError("Canonical FCM credential mount changed; review the exporter")
-    mount = copy.deepcopy(mounts[0])
+    mount = copy.deepcopy(expected)
     mount["source"] = required("EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE")
     return mount
 

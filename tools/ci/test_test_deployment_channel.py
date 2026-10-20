@@ -423,6 +423,73 @@ class BranchPromotionTest(unittest.TestCase):
         self.assertEqual(self.calls[-1][1]["ref"], "refs/heads/deploy/eimir-test")
 
 
+class FCMSenderMountContractTest(unittest.TestCase):
+    def setUp(self):
+        channel.fcm_sender_mount.cache_clear()
+        self.addCleanup(channel.fcm_sender_mount.cache_clear)
+        self.mount = {
+            "type": "bind",
+            "source": channel._FCM_SOURCE_PLACEHOLDER,
+            "target": channel.FCM_CREDENTIAL_TARGET,
+            "read_only": True,
+            "bind": {"create_host_path": False},
+        }
+
+    def _config(self, mount):
+        return {"services": {
+            name: {"volumes": [copy.deepcopy(mount)]}
+            for name in ("cloud-api", "cloud-worker")
+        }}
+
+    def test_supported_compose_serializers_export_the_same_explicit_safe_mount(self):
+        expected = dict(self.mount, source=channel.required(
+            "EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE"
+        ))
+        for bind in ({"create_host_path": False}, {}):
+            config = self._config(dict(self.mount, bind=bind))
+            original = copy.deepcopy(config)
+            channel.fcm_sender_mount.cache_clear()
+            with self.subTest(bind=bind), patch.object(
+                channel, "canonical_compose", return_value=config
+            ):
+                self.assertEqual(channel.fcm_sender_mount(), expected)
+                self.assertEqual(config, original)
+
+    def test_changed_mount_security_or_identity_is_rejected_for_either_runtime(self):
+        changes = (
+            {"type": "volume"},
+            {"source": "/different-sender.json"},
+            {"target": "/different-target.json"},
+            {"read_only": False},
+            {"bind": {"create_host_path": True}},
+            {"bind": {"create_host_path": False, "propagation": "shared"}},
+            {"bind": None},
+            {"consistency": "cached"},
+        )
+        for name in ("cloud-api", "cloud-worker"):
+            for change in changes:
+                config = self._config(self.mount)
+                config["services"][name]["volumes"][0].update(change)
+                with self.subTest(name=name, change=change), patch.object(
+                    channel, "canonical_compose", return_value=config
+                ), self.assertRaises(channel.ChannelError):
+                    channel.fcm_sender_mount()
+            for missing in ("read_only", "bind"):
+                config = self._config(self.mount)
+                del config["services"][name]["volumes"][0][missing]
+                with self.subTest(name=name, missing=missing), patch.object(
+                    channel, "canonical_compose", return_value=config
+                ), self.assertRaises(channel.ChannelError):
+                    channel.fcm_sender_mount()
+            for mounts in ([], [self.mount, self.mount]):
+                config = self._config(self.mount)
+                config["services"][name]["volumes"] = mounts
+                with self.subTest(name=name, mounts=len(mounts)), patch.object(
+                    channel, "canonical_compose", return_value=config
+                ), self.assertRaises(channel.ChannelError):
+                    channel.fcm_sender_mount()
+
+
 @unittest.skipUnless(shutil.which("docker"), "Docker Compose CLI is required")
 class CanonicalWiringTest(unittest.TestCase):
     @classmethod

@@ -1,4 +1,4 @@
-import { ResponseError } from '../api/generated/runtime';
+import { FetchError, ResponseError } from '../api/generated/runtime';
 import {
   ClientProblemError,
   classifyProblemStatus,
@@ -6,6 +6,15 @@ import {
 } from './problemDetails';
 
 describe('ProblemDetails mapping', () => {
+  it('preserves a session preflight rejection wrapped by the generated transport', async () => {
+    const cause = new ClientProblemError('server', 503);
+    expect(await normalizeClientError(new FetchError(cause))).toBe(cause);
+    expect(
+      await normalizeClientError(
+        new FetchError(new TypeError('Connection lost')),
+      ),
+    ).toMatchObject({ kind: 'offline' });
+  });
   it('maps stable HTTP states to privacy-safe client kinds', () => {
     expect(classifyProblemStatus(401)).toBe('unauthorized');
     expect(classifyProblemStatus(403)).toBe('permission');

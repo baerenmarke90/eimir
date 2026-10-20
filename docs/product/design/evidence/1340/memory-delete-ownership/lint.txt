@@ -1,0 +1,420 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> eimir-web@0.0.0 lint
+> biome lint .
+
+src/components/ContextTagEditor.test.tsx:79:26 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+
+    77 │   expect(submit).not.toHaveBeenCalled();
+    78 │   await user.clear(input);
+  > 79 │   await user.type(input, 'x'.repeat(41) + '{Enter}');
+       │                          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    80 │   expect(screen.getByRole('alert').textContent).toBe(
+    81 │     copy.tooLong.replace('{{count}}', '40'),
+
+  i Unsafe fix: Use a template literal.
+
+     77  77 │     expect(submit).not.toHaveBeenCalled();
+     78  78 │     await user.clear(input);
+     79     │ - ··await·user.type(input,·'x'.repeat(41)·+·'{Enter}');
+         79 │ + ··await·user.type(input,·`${'x'.repeat(41)}{Enter}`);
+     80  80 │     expect(screen.getByRole('alert').textContent).toBe(
+     81  81 │       copy.tooLong.replace('{{count}}', '40'),
+
+
+src/components/ContextTagEditor.test.tsx:96:5 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+
+    94 │   await user.type(
+    95 │     screen.getByLabelText(copy.newLabel),
+  > 96 │     '🌅'.repeat(40) + '{Enter}',
+       │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    97 │   );
+    98 │   expect(screen.getByText('🌅'.repeat(40))).toBeDefined();
+
+  i Unsafe fix: Use a template literal.
+
+     94  94 │     await user.type(
+     95  95 │       screen.getByLabelText(copy.newLabel),
+     96     │ - ····'🌅'.repeat(40)·+·'{Enter}',
+         96 │ + ····`${'🌅'.repeat(40)}{Enter}`,
+     97  97 │     );
+     98  98 │     expect(screen.getByText('🌅'.repeat(40))).toBeDefined();
+
+
+src/components/CouplePresence.test.tsx:34:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+
+    32 │     expect(
+    33 │       screen.getByLabelText(
+  > 34 │         relationshipComponents.partnerAvatarConnected
+       │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  > 35 │           .replace('{{user}}', 'Philipp')
+  > 36 │           .replace('{{partner}}', 'Lea') + `. ${activeStatus}`,
+       │           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    37 │       ),
+    38 │     ).toBeDefined();
+
+  i Unsafe fix: Use a template literal.
+
+     32  32 │       expect(
+     33  33 │         screen.getByLabelText(
+     34     │ - ········relationshipComponents.partnerAvatarConnected
+         34 │ + ········`${relationshipComponents.partnerAvatarConnected
+     35  35 │             .replace('{{user}}', 'Philipp')
+     36     │ - ··········.replace('{{partner}}',·'Lea')·+·`.·${activeStatus}`,
+         36 │ + ··········.replace('{{partner}}',·'Lea')}.·${activeStatus}`,
+     37  37 │         ),
+     38  38 │       ).toBeDefined();
+
+
+src/components/CouplePresence.test.tsx:82:9 lint/style/useTemplate  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━
+
+  i Template literals are preferred over string concatenation.
+
+    80 │     expect(
+    81 │       screen.getByLabelText(
+  > 82 │         relationshipComponents.partnerAvatarConnected
+       │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  > 83 │           .replace('{{user}}', 'Philipp')
+  > 84 │           .replace('{{partner}}', 'Lea') + `. ${recentStatus}`,
+       │           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    85 │       ),
+    86 │     ).toBeDefined();
+
+  i Unsafe fix: Use a template literal.
+
+     80  80 │       expect(
+     81  81 │         screen.getByLabelText(
+     82     │ - ········relationshipComponents.partnerAvatarConnected
+         82 │ + ········`${relationshipComponents.partnerAvatarConnected
+     83  83 │             .replace('{{user}}', 'Philipp')
+     84     │ - ··········.replace('{{partner}}',·'Lea')·+·`.·${recentStatus}`,
+         84 │ + ··········.replace('{{partner}}',·'Lea')}.·${recentStatus}`,
+     85  85 │         ),
+     86  86 │       ).toBeDefined();
+
+
+src/components/HeartMomentProductPage.tsx:464:9 lint/complexity/noUselessFragments  FIXABLE  ━━━━━━━━━━
+
+  i This fragment is unnecessary.
+
+    462 │         labelledBy="heart-moment-create-heading"
+    463 │       >
+  > 464 │         <>
+        │         ^^
+  > 465 │           <form
+         ...
+  > 578 │           ) : null}
+  > 579 │         </>
+        │         ^^^
+    580 │       </StoryCreatePageShell>
+    581 │     );
+
+  i A fragment is redundant if it contains only one child, or if it is the child of a html element, and is not a keyed fragment.
+
+  i Unsafe fix: Remove the Fragment
+
+    462 462 │           labelledBy="heart-moment-create-heading"
+    463 463 │         >
+    464     │ - ········<>
+        464 │ + ········
+    465 465 │             <form
+    466 466 │               onSubmit={submitCreate}
+    ······· │
+    577 577 │               <ProblemState error={createMutation.error} />
+    578 578 │             ) : null}
+    579     │ - ········</>
+        579 │ + ········
+    580 580 │         </StoryCreatePageShell>
+    581 581 │       );
+
+
+src/components/HeartMomentProductPage.tsx:690:9 lint/complexity/noUselessFragments  FIXABLE  ━━━━━━━━━━
+
+  i This fragment is unnecessary.
+
+    688 │         sectionHeading={t('heartMomentProduct.formAria')}
+    689 │       >
+  > 690 │         <>
+        │         ^^
+  > 691 │           <form className="form-grid" onSubmit={submitEdit}>
+         ...
+  > 794 │           ) : null}
+  > 795 │         </>
+        │         ^^^
+    796 │       </StoryEditorPageShell>
+    797 │     );
+
+  i A fragment is redundant if it contains only one child, or if it is the child of a html element, and is not a keyed fragment.
+
+  i Unsafe fix: Remove the Fragment
+
+    688 688 │           sectionHeading={t('heartMomentProduct.formAria')}
+    689 689 │         >
+    690     │ - ········<>
+        690 │ + ········
+    691 691 │             <form className="form-grid" onSubmit={submitEdit}>
+    692 692 │               <HeartMomentFields heartMoment={heartMoment} />
+    ······· │
+    793 793 │               </div>
+    794 794 │             ) : null}
+    795     │ - ········</>
+        795 │ + ········
+    796 796 │         </StoryEditorPageShell>
+    797 797 │       );
+
+
+src/components/MemoryCreatePage.tsx:394:7 lint/complexity/noUselessFragments  FIXABLE  ━━━━━━━━━━━━━
+
+  i This fragment is unnecessary.
+
+    392 │       labelledBy="memory-form-heading"
+    393 │     >
+  > 394 │       <>
+        │       ^^
+  > 395 │         <h2 id="memory-form-heading" className="sr-only">
+         ...
+  > 680 │         </ShortTaskSheet>
+  > 681 │       </>
+        │       ^^^
+    682 │     </StoryCreatePageShell>
+    683 │   );
+
+  i A fragment is redundant if it contains only one child, or if it is the child of a html element, and is not a keyed fragment.
+
+  i Unsafe fix: Remove the Fragment
+
+    392 392 │         labelledBy="memory-form-heading"
+    393 393 │       >
+    394     │ - ······<>
+        394 │ + ······
+    395 395 │           <h2 id="memory-form-heading" className="sr-only">
+    396 396 │             {t('memory.formAria')}
+    ······· │
+    679 679 │             </div>
+    680 680 │           </ShortTaskSheet>
+    681     │ - ······</>
+        681 │ + ······
+    682 682 │       </StoryCreatePageShell>
+    683 683 │     );
+
+
+e2e/tests/shared-photos.spec.ts:130:18 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    128 │     }
+    129 │     if (p.endsWith('/read-access')) {
+  > 130 │       const id = p.split('/').at(-2)!;
+        │                  ^^^^^^^^^^^^^^^^^^^^
+    131 │       const body = request.postDataJSON();
+    132 │       reads.push({ id, variant: body.variant ?? 'original' });
+
+
+e2e/tests/shared-photos.spec.ts:142:28 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    140 │     }
+    141 │     if (p.includes('/attachments/') && p.endsWith('/content')) {
+  > 142 │       const index = Number(p.split('/').at(-2)!.split('-')[1]);
+        │                            ^^^^^^^^^^^^^^^^^^^^
+    143 │       return route.fulfill({
+    144 │         status: 200,
+
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+
+    140 140 │       }
+    141 141 │       if (p.includes('/attachments/') && p.endsWith('/content')) {
+    142     │ - ······const·index·=·Number(p.split('/').at(-2)!.split('-')[1]);
+        142 │ + ······const·index·=·Number(p.split('/').at(-2)?.split('-')[1]);
+    143 143 │         return route.fulfill({
+    144 144 │           status: 200,
+
+
+src/client/recentAuthentication.test.ts:96:11 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+
+    94 │       listenerCallback = cb;
+    95 │       return Promise.resolve({ remove: vi.fn() });
+  > 96 │     }) as any);
+       │           ^^^
+    97 │
+    98 │     const promise = waitForCapacitorOidcCallback('active-state');
+
+  i any disables many type checking rules. Its use should be avoided.
+
+
+src/client/recentAuthentication.test.ts:91:7 lint/correctness/noUnusedFunctionParameters  FIXABLE  ━━━━━━━━━━
+
+  ! This parameter eventName is unused.
+
+    89 │     let listenerCallback: ((event: { url: string }) => void) | undefined;
+    90 │     vi.mocked(App.addListener).mockImplementationOnce(((
+  > 91 │       eventName: string,
+       │       ^^^^^^^^^
+    92 │       cb: (event: { url: string }) => void,
+    93 │     ) => {
+
+  i Unused parameters might be the result of an incomplete refactoring.
+
+  i Unsafe fix: If this is intentional, prepend eventName with an underscore.
+
+     89  89 │       let listenerCallback: ((event: { url: string }) => void) | undefined;
+     90  90 │       vi.mocked(App.addListener).mockImplementationOnce(((
+     91     │ - ······eventName:·string,
+         91 │ + ······_eventName:·string,
+     92  92 │         cb: (event: { url: string }) => void,
+     93  93 │       ) => {
+
+
+src/components/HeartMomentProductPage.test.tsx:408:29 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+
+    406 │   it('emits a receipt strictly on successful presentation of a SHARED moment', async () => {
+    407 │     const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
+  > 408 │     let resolveQuery: (val: any) => void;
+        │                             ^^^
+    409 │     let getHeartMomentMock = vi.fn().mockReturnValue(
+    410 │       new Promise((resolve) => {
+
+  i any disables many type checking rules. Its use should be avoided.
+
+
+src/components/HeartMomentProductPage.test.tsx:417:35 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+
+    415 │       story: { recordStoryView: recordStoryViewMock },
+    416 │       heartMoments: {
+  > 417 │         getHeartMoment: (...args: any[]) => getHeartMomentMock(...args),
+        │                                   ^^^
+    418 │       },
+    419 │     } as unknown as ReferenceApis;
+
+  i any disables many type checking rules. Its use should be avoided.
+
+
+src/components/HeartMomentProductPage.test.tsx:481:5 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    480 │     // Now resolve the query with SHARED visibility
+  > 481 │     resolveQuery!({
+        │     ^^^^^^^^^^^^^
+    482 │       ...heartMoment,
+    483 │       visibility: ContentVisibility.SHARED,
+
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+
+    479 479 │
+    480 480 │       // Now resolve the query with SHARED visibility
+    481     │ - ····resolveQuery!({
+        481 │ + ····resolveQuery?.({
+    482 482 │         ...heartMoment,
+    483 483 │         visibility: ContentVisibility.SHARED,
+
+
+src/components/HeartMomentProductPage.test.tsx:409:5 lint/style/useConst  FIXABLE  ━━━━━━━━━━━━━━━━━
+
+  ! This let declares a variable that is only assigned once.
+
+    407 │     const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
+    408 │     let resolveQuery: (val: any) => void;
+  > 409 │     let getHeartMomentMock = vi.fn().mockReturnValue(
+        │     ^^^
+    410 │       new Promise((resolve) => {
+    411 │         resolveQuery = resolve;
+
+  i 'getHeartMomentMock' is never reassigned.
+
+    407 │     const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
+    408 │     let resolveQuery: (val: any) => void;
+  > 409 │     let getHeartMomentMock = vi.fn().mockReturnValue(
+        │         ^^^^^^^^^^^^^^^^^^
+    410 │       new Promise((resolve) => {
+    411 │         resolveQuery = resolve;
+
+  i Safe fix: Use const instead.
+
+    407 407 │       const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
+    408 408 │       let resolveQuery: (val: any) => void;
+    409     │ - ····let·getHeartMomentMock·=·vi.fn().mockReturnValue(
+        409 │ + ····const·getHeartMomentMock·=·vi.fn().mockReturnValue(
+    410 410 │         new Promise((resolve) => {
+    411 411 │           resolveQuery = resolve;
+
+
+src/components/MediaGallery.tsx:481:40 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    479 │                   aria-hidden="true"
+    480 │                 >
+  > 481 │                   {renderCarouselMedia(items[items.length - 1]!)}
+        │                                        ^^^^^^^^^^^^^^^^^^^^^^^^
+    482 │                 </div>
+    483 │               ) : null}
+
+
+src/components/MediaGallery.tsx:518:40 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    516 │                   aria-hidden="true"
+    517 │                 >
+  > 518 │                   {renderCarouselMedia(items[0]!)}
+        │                                        ^^^^^^^^^
+    519 │                 </div>
+    520 │               ) : null}
+
+
+src/components/MediaGallery.tsx:589:27 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    587 │                       >
+    588 │                         {renderMedia(
+  > 589 │                           items[items.length - 1]!,
+        │                           ^^^^^^^^^^^^^^^^^^^^^^^^
+    590 │                           'media-lightbox-content',
+    591 │                         )}
+
+
+src/components/MediaGallery.tsx:614:38 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+
+    612 │                         aria-hidden="true"
+    613 │                       >
+  > 614 │                         {renderMedia(items[0]!, 'media-lightbox-content')}
+        │                                      ^^^^^^^^^
+    615 │                       </div>
+    616 │                     </div>
+
+
+src/components/MemoryProductPage.test.tsx:255:50 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+
+    254 │ describe('Memory view receipt', () => {
+  > 255 │   function setupReceiptTest(overrideRecordMock?: any) {
+        │                                                  ^^^
+    256 │     const recordStoryViewMock =
+    257 │       overrideRecordMock || vi.fn().mockResolvedValue(undefined);
+
+  i any disables many type checking rules. Its use should be avoided.
+
+
+The number of diagnostics exceeds the limit allowed. Use --max-diagnostics to increase it.
+Diagnostics not shown: 18.
+Checked 647 files in 1033ms. No fixes applied.
+Found 25 warnings.
+Found 13 infos.

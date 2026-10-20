@@ -1,6 +1,6 @@
 .private-area-reference-overview {
   display: grid;
-  gap: clamp(var(--space-5), 5vw, var(--space-7));
+  gap: clamp(var(--space-5), 5vw, var(--space-8));
 }
 
 .private-area-page:has(> .private-area-reference-overview)
@@ -140,6 +140,7 @@ body.theme-vault
 .private-area-destination-copy strong {
   font-size: 1.05rem;
   line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .private-area-destination-copy > span {

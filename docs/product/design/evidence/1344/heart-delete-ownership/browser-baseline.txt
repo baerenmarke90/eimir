@@ -1,0 +1,105 @@
+{
+  "format": "Failure records extracted from Playwright test.trace artifacts; partial tee output is not used as the result.",
+  "baselineCommit": "3732eb59242fe1f3e2e7cad0c04250d5f74ff6ca",
+  "retries": 0,
+  "failed": 8,
+  "passed": 0,
+  "failures": [
+    {
+      "case": "heart-moment-delete-owners-0b1a9-HARED-intent-at-1440px-dark-chromium",
+      "traceSha256": "2b4bc3946675f7c222651a07401f556fceb8a338d4156628d43e989dac9cbe3d",
+      "message": "Error: expect(locator).toBeDisabled() failed\n\nLocator:  getByRole('button', { name: 'Herzmoment speichern', exact: true })\nExpected: disabled\nReceived: enabled\nTimeout:  5000ms\n\nCall log:\n  - Expect \"toBeDisabled\" with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Herzmoment speichern', exact: true })\n    14 × locator resolved to <button type=\"submit\">Herzmoment speichern</button>\n       - unexpected value \"enabled\"\n",
+      "stack": [
+        {
+          "file": "/workspace/scratch/305585e3758d/eimir/web/e2e/tests/heart-moment-delete-ownership.spec.ts",
+          "line": 222,
+          "column": 7
+        }
+      ]
+    },
+    {
+      "case": "heart-moment-delete-owners-2905a-SHARED-intent-at-320px-dark-chromium",
+      "traceSha256": "57951714d862a18a7db3f47c7dc3cb371b1b41d8875b2ff5731c405747365678",
+      "message": "Error: expect(locator).toBeDisabled() failed\n\nLocator:  getByRole('button', { name: 'Herzmoment speichern', exact: true })\nExpected: disabled\nReceived: enabled\nTimeout:  5000ms\n\nCall log:\n  - Expect \"toBeDisabled\" with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Herzmoment speichern', exact: true })\n    14 × locator resolved to <button type=\"submit\">Herzmoment speichern</button>\n       - unexpected value \"enabled\"\n",
+      "stack": [
+        {
+          "file": "/workspace/scratch/305585e3758d/eimir/web/e2e/tests/heart-moment-delete-ownership.spec.ts",
+          "line": 222,
+          "column": 7
+        }
+      ]
+    },
+    {
+      "case": "heart-moment-delete-owners-5e0d5-RIVATE-intent-at-390px-dark-chromium",
+      "traceSha256": "b1318ca360899b059c16205529473dace21ab5e5e446358e5023276735d50fc0",
+      "message": "Error: expect(locator).toBeDisabled() failed\n\nLocator:  getByRole('button', { name: 'Herzmoment speichern', exact: true })\nExpected: disabled\nReceived: enabled\nTimeout:  5000ms\n\nCall log:\n  - Expect \"toBeDisabled\" with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Herzmoment speichern', exact: true })\n    14 × locator resolved to <button type=\"submit\">Herzmoment speichern</button>\n       - unexpected value \"enabled\"\n",
+      "stack": [
+        {
+          "file": "/workspace/scratch/305585e3758d/eimir/web/e2e/tests/heart-moment-delete-ownership.spec.ts",
+          "line": 222,
+          "column": 7
+        }
+      ]
+    },
+    {
+      "case": "heart-moment-delete-owners-8f148-HARED-intent-at-390px-light-chromium",
+      "traceSha256": "39b7ce7689ddfa54209451efc2c0176d0ea993fbe490561fc1838494927ef39b",
+      "message": "Error: expect(locator).toBeDisabled() failed\n\nLocator:  getByRole('button', { name: 'Herzmoment speichern', exact: true })\nExpected: disabled\nReceived: enabled\nTimeout:  5000ms\n\nCall log:\n  - Expect \"toBeDisabled\" with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Herzmoment speichern', exact: true })\n    14 × locator resolved to <button type=\"submit\">Herzmoment speichern</button>\n       - unexpected value \"enabled\"\n",
+      "stack": [
+        {
+          "file": "/workspace/scratch/305585e3758d/eimir/web/e2e/tests/heart-moment-delete-ownership.spec.ts",
+          "line": 222,
+          "column": 7
+        }
+      ]
+    },
+    {
+      "case": "heart-moment-delete-owners-ac93b-tion-never-replays-in-light-chromium",
+      "traceSha256": "25b8e8b179a652aed7153448d6822b5ed0dd69007c1851e85c8249079b9b2660",
+      "message": "Error: expect(locator).toBeVisible() failed\n\nLocator: getByText('Du bist gerade offline.', { exact: true })\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeVisible\" with timeout 5000ms\n  - waiting for getByText('Du bist gerade offline.', { exact: true })\n",
+      "stack": [
+        {
+          "file": "/workspace/scratch/305585e3758d/eimir/web/e2e/tests/heart-moment-delete-ownership.spec.ts",
+          "line": 309,
+          "column": 7
+        }
+      ]
+    },
+    {
+      "case": "heart-moment-delete-owners-cfa99-SHARED-intent-at-430px-dark-chromium",
+      "traceSha256": "da4adbee2a9d210ce181d980a525f2aa9da6fb7b5d190ad6c59eaa9ff154df5d",
+      "message": "Error: expect(locator).toBeDisabled() failed\n\nLocator:  getByRole('button', { name: 'Herzmoment speichern', exact: true })\nExpected: disabled\nReceived: enabled\nTimeout:  5000ms\n\nCall log:\n  - Expect \"toBeDisabled\" with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Herzmoment speichern', exact: true })\n    14 × locator resolved to <button type=\"submit\">Herzmoment speichern</button>\n       - unexpected value \"enabled\"\n",
+      "stack": [
+        {
+          "file": "/workspace/scratch/305585e3758d/eimir/web/e2e/tests/heart-moment-delete-ownership.spec.ts",
+          "line": 222,
+          "column": 7
+        }
+      ]
+    },
+    {
+      "case": "heart-moment-delete-owners-dcc9b-etion-never-replays-in-dark-chromium",
+      "traceSha256": "aad1a94f26ff75051658e9de47dc0ed08f1034121c2fb3bd7c16190d8144c246",
+      "message": "Error: expect(locator).toBeVisible() failed\n\nLocator: getByText('Du bist gerade offline.', { exact: true })\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeVisible\" with timeout 5000ms\n  - waiting for getByText('Du bist gerade offline.', { exact: true })\n",
+      "stack": [
+        {
+          "file": "/workspace/scratch/305585e3758d/eimir/web/e2e/tests/heart-moment-delete-ownership.spec.ts",
+          "line": 309,
+          "column": 7
+        }
+      ]
+    },
+    {
+      "case": "heart-moment-delete-owners-ee78a-ARED-intent-at-1440px-light-chromium",
+      "traceSha256": "9bb12070a7dd26ca891d82b9d4884090ebae4853957a7481c1f407b87fbc8b6d",
+      "message": "Error: expect(locator).toBeDisabled() failed\n\nLocator:  getByRole('button', { name: 'Herzmoment speichern', exact: true })\nExpected: disabled\nReceived: enabled\nTimeout:  5000ms\n\nCall log:\n  - Expect \"toBeDisabled\" with timeout 5000ms\n  - waiting for getByRole('button', { name: 'Herzmoment speichern', exact: true })\n    14 × locator resolved to <button type=\"submit\">Herzmoment speichern</button>\n       - unexpected value \"enabled\"\n",
+      "stack": [
+        {
+          "file": "/workspace/scratch/305585e3758d/eimir/web/e2e/tests/heart-moment-delete-ownership.spec.ts",
+          "line": 222,
+          "column": 7
+        }
+      ]
+    }
+  ]
+}

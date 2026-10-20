@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 import { InvitationsApi } from '../api/generated/apis/InvitationsApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { InvitationView } from '../api/generated/models/InvitationView';
 import type { IssuedInvitationView } from '../api/generated/models/IssuedInvitationView';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from '../client/apiConfiguration';
+import { isCapacitorNativePlatform } from '../client/config';
 import { buildInvitationLink } from '../client/invitationLink';
 import { normalizeClientError } from '../client/problemDetails';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -142,7 +143,10 @@ function PartnerConnectionPanelForContext({
   });
 
   const issuedLink = currentIssuedInvitation
-    ? buildInvitationLink(window.location.origin, currentIssuedInvitation.token)
+    ? buildInvitationLink(
+        isCapacitorNativePlatform() ? apiBaseUrl : window.location.origin,
+        currentIssuedInvitation.token,
+      )
     : null;
 
   async function createInvitation() {

@@ -11,6 +11,9 @@ import type { GiftIdeaDetail } from '../api/generated/models/GiftIdeaDetail';
 import { GiftIdeaStatus } from '../api/generated/models/GiftIdeaStatus';
 import {
   PRIVATE_GIFT_IDEAS_PATH,
+  capturePrivateCreate,
+  capturePrivateDelete,
+  capturePrivateEdit,
   privateApiCall,
   privateAreaQueryKeys,
   privateGiftIdeaEditPath,
@@ -312,11 +315,17 @@ export function GiftIdeaCreatePage({ api, accountId, spaceId }: Props) {
       privateApiCall(() =>
         api.createGiftIdea({ spaceId, giftIdeaCreate: values }),
       ),
-    onSuccess: async (gift) => {
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.giftIdeas(accountId, spaceId),
-      });
+    onMutate: () =>
+      capturePrivateCreate(
+        queryClient,
+        privateAreaQueryKeys.giftIdeas(accountId, spaceId),
+        captureOwnership(),
+      ),
+    onSuccess: async (gift, _values, context) => {
+      await context?.refreshList();
+      if (!context?.isCurrentTask()) return;
       closeTask(() => {
+        if (!context.isCurrentTask()) return;
         navigate(privateGiftIdeaPath(gift.id), {
           replace: true,
           state: navigationState,
@@ -330,6 +339,7 @@ export function GiftIdeaCreatePage({ api, accountId, spaceId }: Props) {
     mutation.reset,
   );
   const {
+    captureOwnership,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -494,25 +504,35 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
     mutationFn: (targetGift: GiftIdeaDetail) =>
       privateApiCall(() =>
         api.deleteGiftIdea({
-          spaceId,
+          spaceId: targetGift.spaceId,
           giftIdeaId: targetGift.id,
           ifMatch: String(targetGift.version),
         }),
       ),
-    onSuccess: async () => {
-      if (giftIdeaId) {
-        queryClient.removeQueries({
-          queryKey: privateAreaQueryKeys.giftIdea(
-            accountId,
-            spaceId,
-            giftIdeaId,
-          ),
-        });
+    onMutate: (target) =>
+      capturePrivateDelete(
+        queryClient,
+        privateAreaQueryKeys.giftIdea(
+          target.ownerId,
+          target.spaceId,
+          target.id,
+        ),
+        privateAreaQueryKeys.giftIdeas(target.ownerId, target.spaceId),
+        captureDeleteOwnership(),
+      ),
+    onSuccess: async (_result, _target, context) => {
+      if (!context) return;
+      await context.refreshList();
+      if (!context.isCurrentTask()) {
+        context.remove();
+        return;
       }
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.giftIdeas(accountId, spaceId),
+      closeTask(() => {
+        const shouldNavigate = context.isCurrentTask();
+        if (context.remove() && shouldNavigate) {
+          navigate(PRIVATE_GIFT_IDEAS_PATH, { replace: true });
+        }
       });
-      closeTask(() => navigate(PRIVATE_GIFT_IDEAS_PATH, { replace: true }));
     },
   });
 
@@ -521,7 +541,7 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
       const values = giftValues(data);
       return privateApiCall(() =>
         api.updateGiftIdea({
-          spaceId,
+          spaceId: gift.spaceId,
           giftIdeaId: gift.id,
           ifMatch: String(gift.version),
           giftIdeaUpdate: {
@@ -533,15 +553,18 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
         }),
       );
     },
-    onSuccess: async (gift) => {
-      queryClient.setQueryData(
-        privateAreaQueryKeys.giftIdea(accountId, spaceId, gift.id),
-        gift,
-      );
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.giftIdeas(accountId, spaceId),
-      });
+    onMutate: ({ gift }) =>
+      capturePrivateEdit<GiftIdeaDetail>(
+        queryClient,
+        privateAreaQueryKeys.giftIdea(gift.ownerId, gift.spaceId, gift.id),
+        privateAreaQueryKeys.giftIdeas(gift.ownerId, gift.spaceId),
+      ),
+    onSuccess: async (gift, _variables, context) => {
+      if (!context?.reconcile(gift)) return;
+      await queryClient.invalidateQueries({ queryKey: context.listKey });
+      if (!context.isCurrent()) return;
       closeTask(() => {
+        if (!context.isCurrent()) return;
         navigate(privateGiftIdeaPath(gift.id), {
           replace: true,
           state: navigationState,
@@ -558,6 +581,7 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
     ? privateGiftIdeaPath(giftIdeaId)
     : PRIVATE_GIFT_IDEAS_PATH;
   const {
+    captureOwnership: captureDeleteOwnership,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -591,7 +615,7 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (mutation.isPending) return;
+    if (mutation.isPending || deleteMutation.isPending) return;
     const data = new FormData(event.currentTarget);
     const title = titleValidation.validate(String(data.get('title') || ''));
     if (title === null) return;
@@ -638,7 +662,10 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
             >
               {t('common.cancel')}
             </button>
-            <button type="submit" disabled={mutation.isPending}>
+            <button
+              type="submit"
+              disabled={mutation.isPending || deleteMutation.isPending}
+            >
               {mutation.isPending
                 ? t('privateArea.saving')
                 : t('privateArea.save')}
@@ -658,6 +685,7 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
           <DeleteConfirmation
             onDelete={() => deleteMutation.mutate(gift)}
             pending={deleteMutation.isPending}
+            disabled={mutation.isPending}
             error={deleteMutation.error}
           />
         </article>

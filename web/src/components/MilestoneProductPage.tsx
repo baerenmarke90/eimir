@@ -1,5 +1,10 @@
-import { type FormEvent, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { type FormEvent, useRef } from 'react';
+import {
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import {
@@ -7,11 +12,9 @@ import {
   MilestoneDetailToJSON,
 } from '../api/generated/models/MilestoneDetail';
 import type { MilestoneUpdate } from '../api/generated/models/MilestoneUpdate';
-import {
-  deleteProductReadCacheEntry,
-  loadProductWithReadCache,
-} from '../client/productReadCache';
+import { loadProductWithReadCache } from '../client/productReadCache';
 import { normalizeClientError } from '../client/problemDetails';
+import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
 import type { ReferenceApis } from '../client/referenceFlow';
@@ -97,7 +100,19 @@ export function MilestoneProductPage({
   const queryClient = useQueryClient();
   const milestoneId = params.milestoneId;
   const queryKey = authorSummaryQueryKeys.milestone(spaceId, milestoneId);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const deleteKey = [
+    'milestone-delete',
+    currentAccountId,
+    spaceId,
+    milestoneId,
+  ] as const;
+  const updateKey = [
+    'milestone-update',
+    currentAccountId,
+    spaceId,
+    milestoneId,
+  ] as const;
+  const updating = useIsMutating({ mutationKey: updateKey, exact: true }) > 0;
   const createAttemptRef =
     useRef<CreateRequestAttempt<MilestoneCreateSnapshot> | null>(null);
 
@@ -159,6 +174,7 @@ export function MilestoneProductPage({
   });
 
   const updateMutation = useMutation({
+    mutationKey: updateKey,
     mutationFn: async ({
       current,
       update,
@@ -213,33 +229,27 @@ export function MilestoneProductPage({
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (milestone: MilestoneDetail) => {
-      try {
-        await apis.milestones.deleteMilestone({
-          spaceId,
-          milestoneId: milestone.id,
-          ifMatch: String(milestone.version),
-        });
-        await deleteProductReadCacheEntry(
-          currentAccountId,
-          spaceId,
-          'milestone',
-          milestone.id,
-        );
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    onSuccess: async () => {
-      queryClient.removeQueries({ queryKey });
-      await Promise.all([
-        invalidateStoryProjections(queryClient, spaceId),
-        invalidateDashboard(queryClient, spaceId),
-      ]);
-      navigate(appRoutePath('story'), { replace: true });
-    },
+  const deleteMutation = useStoryDeletion<MilestoneDetail>({
+    active: mode === 'edit',
+    accountId: currentAccountId,
+    spaceId,
+    resourceId: milestoneId,
+    kind: 'milestone',
+    version: milestoneQuery.data?.value.version,
+    queryKey,
+    mutationKey: deleteKey,
+    conflictingMutationKeys: [updateKey],
+    execute: (milestone) =>
+      apis.milestones.deleteMilestone({
+        spaceId,
+        milestoneId: milestone.id,
+        ifMatch: String(milestone.version),
+      }),
+    onDeleted: () => navigate(appRoutePath('story'), { replace: true }),
   });
+  const deleting = deleteMutation.isPending;
+  const { confirming: confirmDelete, setConfirming: setConfirmDelete } =
+    deleteMutation;
 
   if (mode === 'create') {
     function submitCreate(event: FormEvent<HTMLFormElement>) {
@@ -410,6 +420,11 @@ export function MilestoneProductPage({
 
     function submitEdit(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
+      if (
+        queryClient.isMutating({ mutationKey: deleteKey }) ||
+        queryClient.isMutating({ mutationKey: updateKey, exact: true })
+      )
+        return;
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
       const body = String(data.get('body') || '').trim();
@@ -452,8 +467,8 @@ export function MilestoneProductPage({
               >
                 {t('common.cancel')}
               </Link>
-              <button type="submit" disabled={updateMutation.isPending}>
-                {updateMutation.isPending
+              <button type="submit" disabled={updating || deleting}>
+                {updating
                   ? t('milestoneProduct.saving')
                   : t('milestoneProduct.save')}
               </button>
@@ -465,11 +480,12 @@ export function MilestoneProductPage({
 
           {milestone.capabilities.canDelete && !offline ? (
             <div style={{ marginTop: 'var(--space-8)' }}>
-              {!confirmDelete ? (
+              {!confirmDelete && !deleting ? (
                 <button
                   type="button"
                   className="button-link danger-link"
                   onClick={() => setConfirmDelete(true)}
+                  disabled={updating}
                 >
                   {t('milestoneProduct.delete')}
                 </button>
@@ -488,7 +504,7 @@ export function MilestoneProductPage({
                       type="button"
                       className="tertiary"
                       onClick={() => setConfirmDelete(false)}
-                      disabled={deleteMutation.isPending}
+                      disabled={deleting}
                     >
                       {t('milestoneProduct.deleteCancel')}
                     </button>
@@ -496,9 +512,9 @@ export function MilestoneProductPage({
                       type="button"
                       className="danger"
                       onClick={() => deleteMutation.mutate(milestone)}
-                      disabled={deleteMutation.isPending}
+                      disabled={deleteMutation.isBlocked}
                     >
-                      {deleteMutation.isPending
+                      {deleting
                         ? t('milestoneProduct.deleting')
                         : t('milestoneProduct.deleteConfirm')}
                     </button>

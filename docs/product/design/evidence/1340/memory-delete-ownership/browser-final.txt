@@ -1,0 +1,32 @@
+Formatted 1 file in 30ms. Fixed 1 file.
+[WebServer] (node:46) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 20 tests using 2 workers
+
+(node:80) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:81) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 430px dark (9.9s)
+  ✓   1 [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 390px light (10.8s)
+  ✓   3 [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 1440px light (8.5s)
+  ✓   4 [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 1440px dark (7.8s)
+  ✓   6 [chromium] › e2e/tests/memory-delete-ownership.spec.ts:310:3 › Memory offline delete requires a deliberate retry after reconnect in light (5.6s)
+  ✓   7 [chromium] › e2e/tests/memory-delete-ownership.spec.ts:310:3 › Memory offline delete requires a deliberate retry after reconnect in dark (3.6s)
+  ✓   5 [chromium] › e2e/tests/memory-delete-ownership.spec.ts:152:3 › Memory deletion keeps confirmed cache settlement separate from a departed task at 320px dark (9.6s)
+  ✓   9 [chromium] › e2e/tests/momente-timeline-reference.spec.ts:232:3 › Momente > Zeitleiste Product Reference (#860) › dark mode at 390x844 captures 02-momente-timeline-390-dark.png (3.0s)
+  ✓   8 [chromium] › e2e/tests/momente-timeline-reference.spec.ts:80:3 › Momente > Zeitleiste Product Reference (#860) › renders 390x844 reference layout, spine, markers, cards, and captures screenshots (3.9s)
+  ✓  10 [chromium] › e2e/tests/momente-timeline-reference.spec.ts:281:3 › Momente > Zeitleiste Product Reference (#860) › 320px reflow produces no horizontal overflow and captures 03-momente-timeline-320-reflow.png (3.6s)
+  ✓  11 [chromium] › e2e/tests/momente-timeline-reference.spec.ts:349:3 › Momente > Zeitleiste Product Reference (#860) › 1440 Expanded desktop view captures 04-momente-timeline-1440-expanded.png (4.4s)
+  ✓  12 [chromium] › e2e/tests/momente-timeline-reference.spec.ts:397:3 › Momente > Zeitleiste Product Reference (#860) › Filter disclosure QA on mobile: collapsed vs expanded and captures 08 and 09 screenshots (5.7s)
+  ✓  13 [chromium] › e2e/tests/momente-timeline-reference.spec.ts:455:3 › Momente > Zeitleiste Product Reference (#860) › Detail navigation for Heart Moment and captures 10-momente-timeline-heart-moment-detail.png (5.6s)
+  ✓  14 [chromium] › e2e/tests/momente-timeline-reference.spec.ts:498:3 › Momente > Zeitleiste Product Reference (#860) › Detail navigation for Milestone and captures 11-momente-timeline-milestone-detail.png (4.5s)
+  ✓  15 [chromium] › e2e/tests/momente-timeline-reference.spec.ts:528:3 › Momente > Zeitleiste Product Reference (#860) › Story details use viewer-relative self attribution across all Story types (#1019) (5.0s)
+  ✓  16 [chromium] › e2e/tests/momente-timeline-reference.spec.ts:559:3 › Momente > Zeitleiste Product Reference (#860) › Timeline uses avatar-only partner attribution while detail keeps first-name provenance (#1064) (4.2s)
+  ✓  18 [chromium] › e2e/tests/momente-timeline-reference.spec.ts:669:3 › Momente > Zeitleiste Product Reference (#860) › Momente > Entdecken consumes the canonical Discover response and captures 12-momente-timeline-discover-reference.png (3.8s)
+  ✓  19 [chromium] › e2e/tests/momente-timeline-reference.spec.ts:704:5 › Momente > Zeitleiste Product Reference (#860) › Timeline is axe-clean at 390x844 in light mode (7.2s)
+  ✓  17 [chromium] › e2e/tests/momente-timeline-reference.spec.ts:585:3 › Momente > Zeitleiste Product Reference (#860) › shared Story detail comments keep a compact handoff across detail types and reflow states (#1024) (14.9s)
+  ✓  20 [chromium] › e2e/tests/momente-timeline-reference.spec.ts:704:5 › Momente > Zeitleiste Product Reference (#860) › Timeline is axe-clean at 390x844 in dark mode (4.5s)
+
+  20 passed (1.1m)

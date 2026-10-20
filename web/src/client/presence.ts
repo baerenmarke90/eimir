@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { PartnerPresenceView } from '../api/generated/models/PartnerPresenceView';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from './apiConfiguration';
 import { useApiRuntime } from './apiRuntimeContext';
 
 export const PRESENCE_HEARTBEAT_INTERVAL_MS = 60_000;

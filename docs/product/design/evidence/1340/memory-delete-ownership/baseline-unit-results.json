@@ -1,0 +1,169 @@
+{
+  "numTotalTests": 23,
+  "numPassedTests": 1,
+  "numFailedTests": 22,
+  "success": false,
+  "assertions": [
+    {
+      "fullName": "Memory delete response and task ownership confirms the normal delete, revokes its original snapshot and returns once",
+      "status": "passed",
+      "failureMessages": []
+    },
+    {
+      "fullName": "Memory delete response and task ownership admits only one synchronous confirmation",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected \"vi.fn()\" to be called 1 times, but got 2 times\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:218:22\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership rejects offline deletion without reconnect replay and permits deliberate retry",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected 1 to be +0 // Object.is equality\n\n[Rendered localized DOM omitted.]\n\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:226:55\n    at runWithExpensiveErrorDiagnosticsDisabled (/workspace/scratch/085539a6d3bb/eimir/web/node_modules/@testing-library/dom/dist/config.js:47:12)\n    at checkCallback (/workspace/scratch/085539a6d3bb/eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:124:77)\n    at Timeout.checkRealTimersCallback (/workspace/scratch/085539a6d3bb/eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:118:16)\n    at listOnTimeout (node:internal/timers:635:17)\n    at processTimers (node:internal/timers:571:7)"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership evicts the original authorized read after leaving without navigating or posting a toast",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected '/story' to be '/away' // Object.is equality\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:247:22\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not remove a collected Query or navigate after success",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected \"invalidateQueries\" to not be called at all, but actually been called 3 times\n\nReceived:\n\n  1st invalidateQueries call:\n\n    Array [\n      Object {\n        \"queryKey\": Array [\n          \"story\",\n          \"space-1\",\n        ],\n      },\n    ]\n\n  2nd invalidateQueries call:\n\n    Array [\n      Object {\n        \"queryKey\": Array [\n          \"m5-s3\",\n          \"relation-targets\",\n          \"space-1\",\n        ],\n      },\n    ]\n\n  3rd invalidateQueries call:\n\n    Array [\n      Object {\n        \"queryKey\": Array [\n          \"m5-s5\",\n          \"dashboard\",\n          \"space-1\",\n        ],\n      },\n    ]\n\n\nNumber of calls: 3\n\n    at Proxy.<anonymous> (file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/index.uwTEEBsB.js:2230:51)\n    at Proxy.<anonymous> (file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/index.uwTEEBsB.js:1958:14)\n    at Proxy.methodWrapper (file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/chai/index.js:1737:25)\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:266:32\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not remove a replacement Query or navigate after success",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected undefined to be { \u2026(2) } // Object.is equality\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:265:42\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership retains a later unauthorized read after confirmed deletion",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected undefined to be ClientProblemError: Client request failed\u2026 { \u2026(4) } // Object.is equality\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:293:50\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership retains a later permission read after confirmed deletion",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected ClientProblemError: Client request failed\u2026 { \u2026(4) } to be ClientProblemError: Client request failed\u2026 { \u2026(4) } // Object.is equality\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:293:50\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership retains a later notFound read after confirmed deletion",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected ClientProblemError: Client request failed\u2026 { \u2026(4) } to be ClientProblemError: Client request failed\u2026 { \u2026(4) } // Object.is equality\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:293:50\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership keeps a different Memory and its editor after route reuse",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected undefined to be { \u2026(2) } // Object.is equality\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:319:45\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership binds persistent revocation and settlement to the original Account after replacement",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected undefined to be { \u2026(2) } // Object.is equality\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:343:40\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership binds recovery to the original Space after props change",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected undefined to be { \u2026(2) } // Object.is equality\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:361:45\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership rechecks ownership after awaited persistent revocation",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected undefined to be { \u2026(2) } // Object.is equality\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:386:40\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership rechecks task ownership after awaited projection recovery",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected '/story' to be '/away' // Object.is equality\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:399:22\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership preserves a later replacement Query during awaited projection recovery",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected '/story' to be '/story/memories/memory-1/edit' // Object.is equality\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:438:24\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership preserves a later denied read during awaited projection recovery",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected '/story' to be '/story/memories/memory-1/edit' // Object.is equality\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:438:24\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not dispatch after remove during awaited cancellation",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected \"vi.fn()\" to not be called at all, but actually been called 1 times\n\nReceived:\n\n  1st vi.fn() call:\n\n    Array [\n      Object {\n        \"ifMatch\": \"1\",\n        \"memoryId\": \"memory-1\",\n        \"spaceId\": \"space-1\",\n      },\n    ]\n\n\nNumber of calls: 1\n\n    at Proxy.<anonymous> (file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/index.uwTEEBsB.js:2230:51)\n    at Proxy.<anonymous> (file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/index.uwTEEBsB.js:1958:14)\n    at Proxy.methodWrapper (file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/chai/index.js:1737:25)\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:462:28\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not dispatch after version during awaited cancellation",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected \"vi.fn()\" to not be called at all, but actually been called 1 times\n\nReceived:\n\n  1st vi.fn() call:\n\n    Array [\n      Object {\n        \"ifMatch\": \"1\",\n        \"memoryId\": \"memory-1\",\n        \"spaceId\": \"space-1\",\n      },\n    ]\n\n\nNumber of calls: 1\n\n    at Proxy.<anonymous> (file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/index.uwTEEBsB.js:2230:51)\n    at Proxy.<anonymous> (file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/index.uwTEEBsB.js:1958:14)\n    at Proxy.methodWrapper (file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/chai/index.js:1737:25)\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:462:28\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not dispatch after leave during awaited cancellation",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected \"vi.fn()\" to not be called at all, but actually been called 1 times\n\nReceived:\n\n  1st vi.fn() call:\n\n    Array [\n      Object {\n        \"ifMatch\": \"1\",\n        \"memoryId\": \"memory-1\",\n        \"spaceId\": \"space-1\",\n      },\n    ]\n\n\nNumber of calls: 1\n\n    at Proxy.<anonymous> (file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/index.uwTEEBsB.js:2230:51)\n    at Proxy.<anonymous> (file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/index.uwTEEBsB.js:1958:14)\n    at Proxy.methodWrapper (file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/chai/index.js:1737:25)\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:462:28\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership restores global pending protection after a real leave and return without reviving navigation ownership",
+      "status": "failed",
+      "failureMessages": [
+        "Error: Unable to find role=\"button\" and name \"memoryProduct.deleting [localized selector]\"\n\n[Rendered localized DOM omitted.]\n\n    at waitForWrapper (/workspace/scratch/085539a6d3bb/eimir/web/node_modules/@testing-library/dom/dist/wait-for.js:163:27)\n    at /workspace/scratch/085539a6d3bb/eimir/web/node_modules/@testing-library/dom/dist/query-helpers.js:86:33\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:473:34\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not show an old failure on another Memory",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected <strong></strong> to be null\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:495:56\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not admit an edit while deletion is pending",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected false to be true // Object.is equality\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:504:43\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    },
+    {
+      "fullName": "Memory delete response and task ownership does not admit deletion while an edit is pending",
+      "status": "failed",
+      "failureMessages": [
+        "AssertionError: expected false to be true // Object.is equality\n    at /workspace/scratch/085539a6d3bb/heart-counterfactual/web/src/components/MemoryDeleteOwnership.test.tsx:518:46\n    at file:///workspace/scratch/085539a6d3bb/eimir/web/node_modules/vitest/dist/chunks/run.Cm2sd7-x.js:2794:20"
+      ]
+    }
+  ],
+  "inputReportSha256": "a56b6a84a6a6294df72ed8a83a0e6561c4e7baa08288a739444ece59804ea19f",
+  "omissions": "Rendered localized DOM is omitted from failure messages; assertion text and stack are retained. Reporter timestamps and incidental environment metadata are omitted. The localized pending-button name is represented by its existing i18n key memoryProduct.deleting."
+}

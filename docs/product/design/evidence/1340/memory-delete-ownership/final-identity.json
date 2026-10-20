@@ -1,0 +1,57 @@
+{
+  "base": "bb8ccd7b34c4c56c6b65fe296e0461b555a1d119",
+  "baseTree": "6c4f8c4416d0cde847d29a19a2881f247c1b3630",
+  "capturedAt": "2026-10-17T22:26:36.856495+00:00",
+  "localBrowser": "Chrome Headless Shell 153.0.8010.0",
+  "playwright": "1.62.1",
+  "files": [
+    {
+      "path": "web/src/components/MemoryProductPage.tsx",
+      "sha256": "0816b4c08f0232c830ca0d64e2b210c8ec3c7f21845c7f9d07dba37164a138a2"
+    },
+    {
+      "path": "web/src/components/MemoryProductPage.css",
+      "sha256": "177eaba34e0c4277920684b0d9587e9ed1b1dae3ec0ff078bbc7cf6425529fba"
+    },
+    {
+      "path": "web/src/components/MemoryDeleteOwnership.test.tsx",
+      "sha256": "ef8602024a30f34bc16d34f26cafa80a39abde653a071574ba4d205ee47ec572"
+    },
+    {
+      "path": "web/e2e/tests/memory-delete-ownership.spec.ts",
+      "sha256": "a46a2de08a764453b367adb62151eeb6ac0e312a5fcaacfab5f0ba71b5855a94"
+    },
+    {
+      "path": "web/e2e/tests/momente-timeline-reference.spec.ts",
+      "sha256": "f8a006c33e2e0a583d7d89b741fb8ea7e6bc3aa83b9a4799fb4ccb40ce5fede3"
+    },
+    {
+      "path": "web/e2e/support/storyTimelineFixture.ts",
+      "sha256": "9dc93d2de871d0f75ff37d50ccf22946b3ca34216ffcabd51e74656cd0868032"
+    },
+    {
+      "path": "web/e2e/test-groups.json",
+      "sha256": "83dff763aed382b43acdaf3218f83371e3ced6314ce03bf73a2b585f39b3bdbc"
+    },
+    {
+      "path": "design/tokens.json",
+      "sha256": "b774f9082ba3dd01f4155979540006f76ec14bf5ffc85b3b4ecfd35ede839afd"
+    },
+    {
+      "path": "web/dist/assets/index-D-qjL7RM.css",
+      "sha256": "14b8258a8170aa0525045a1abfd2fb6d72beeccb9999c530e054456c83741709"
+    },
+    {
+      "path": "web/dist/assets/index-l4d5kFiE.js",
+      "sha256": "02bf61b2e22a4f26140c3153559390351350bd6ad73bb9d2b4a155914bb40793"
+    },
+    {
+      "path": "web/dist/assets/web-6vvDw2Nt.js",
+      "sha256": "94573a79e69d8bf775d3fc12e4fecc266d50937d2d2c10391533e3af7b52384c"
+    },
+    {
+      "path": "web/dist/assets/web-BXswrmOO.js",
+      "sha256": "6286cab0b63dac4ad0a835f7a60f665b08eecf67c618b7d3d54c126e9a8e918e"
+    }
+  ]
+}

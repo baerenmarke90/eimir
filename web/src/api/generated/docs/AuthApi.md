@@ -533,7 +533,7 @@ No authorization required
 
 Consume Signup
 
-Redeem a signup proof into a normal session.  Send the proof in the request body, never in a URL. After a successful redemption the client removes it from its address bar and history. A new Account has no Membership: continue with &#x60;POST /spaces&#x60; or accept an invitation.
+Redeem a signup proof into a normal session.  Send the proof in the request body, never in a URL. After a successful redemption the client removes it from its address bar and history. A new Account joins the invitation bound to its proof atomically before a session is issued. An ordinary proof has no invitation: continue with &#x60;POST /spaces&#x60; or accept an invitation separately. Invalid invitations fail without consuming the proof or creating an Account, session, or Membership.
 
 ### Example
 
@@ -591,6 +591,7 @@ No authorization required
 |-------------|-------------|------------------|
 | **201** | Successful Response |  -  |
 | **403** | &#x60;AUTH_METHOD_DISABLED&#x60; on deployments without self-service signup, or &#x60;REGISTRATION_DISABLED&#x60; when the proof would create a new Account while the administrator does not admit new Accounts. Nothing was created. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 | **429** | Too many attempts occurred within the allowed time window. |  -  |
 | **503** | &#x60;MAINTENANCE_MODE&#x60;: no new Account is created during maintenance. |  -  |
@@ -1323,7 +1324,7 @@ No authorization required
 
 Request Magic Link
 
-Request a passwordless sign-in link.  The response is identical whether or not the address exists. Otherwise this endpoint would become an account directory.
+Request a passwordless entry link.  Cloud delegates to the same mailbox proof as /auth/signup/request, including for addresses without an Account. Self-Hosted retains existing-account sign-in. The response never discloses whether the address has an Account.
 
 ### Example
 
@@ -1460,7 +1461,7 @@ No authorization required
 
 ## requestSignupApiV1AuthSignupRequestPost
 
-> requestSignupApiV1AuthSignupRequestPost(emailRequest)
+> requestSignupApiV1AuthSignupRequestPost(signupEmailRequest)
 
 Request Signup
 
@@ -1480,8 +1481,8 @@ async function example() {
   const api = new AuthApi();
 
   const body = {
-    // EmailRequest
-    emailRequest: ...,
+    // SignupEmailRequest
+    signupEmailRequest: ...,
   } satisfies RequestSignupApiV1AuthSignupRequestPostRequest;
 
   try {
@@ -1501,7 +1502,7 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **emailRequest** | [EmailRequest](EmailRequest.md) |  | |
+| **signupEmailRequest** | [SignupEmailRequest](SignupEmailRequest.md) |  | |
 
 ### Return type
 

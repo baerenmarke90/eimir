@@ -39,11 +39,11 @@ type NativePushPlugin = {
   ): Promise<{ remove(): Promise<void> }>;
   addListener(
     event: 'wake',
-    callback: () => void,
+    callback: (event: { accountId: string }) => void,
   ): Promise<{ remove(): Promise<void> }>;
   addListener(
     event: 'unavailable',
-    callback: (event: { reason: string }) => void,
+    callback: (event: { accountId: string; reason: string }) => void,
   ): Promise<{ remove(): Promise<void> }>;
 };
 
@@ -99,11 +99,20 @@ function clearEndpointId(key: string): void {
 async function revokeSavedEndpoint(
   key: string,
   notificationsApi: NotificationsApi,
+  signal?: AbortSignal,
 ): Promise<void> {
   const id = readEndpointId(key);
   if (!id) return;
   try {
-    await notificationsApi.revokeOwnPushEndpoint({ endpointId: id });
+    signal?.throwIfAborted();
+    if (signal) {
+      await notificationsApi.revokeOwnPushEndpoint(
+        { endpointId: id },
+        { signal },
+      );
+    } else {
+      await notificationsApi.revokeOwnPushEndpoint({ endpointId: id });
+    }
   } catch (error) {
     // 404: already revoked or expired on the server; nothing is left to retry.
     if (responseStatus(error) !== 404) throw error;
@@ -200,6 +209,12 @@ export function useUnifiedPush({
         endpointRegistrationSequence = endpointRegistrationSequence
           .catch(() => undefined)
           .then(async () => {
+            if (
+              !live ||
+              !registrationAllowed.current ||
+              generation !== registrationGeneration
+            )
+              return;
             const registration = await notificationsApi.registerOwnPushEndpoint(
               {
                 pushEndpointRegistration: {
@@ -218,7 +233,12 @@ export function useUnifiedPush({
               await notificationsApi.revokeOwnPushEndpoint({
                 endpointId: registration.id,
               });
-              await nativePush.disable();
+              if (
+                live &&
+                registrationAllowed.current &&
+                generation === registrationGeneration
+              )
+                await nativePush.disable();
               throw new Error('PUSH_DEVICE_STORAGE_UNAVAILABLE');
             }
             if (previous && previous !== registration.id) {
@@ -251,13 +271,12 @@ export function useUnifiedPush({
               // The backend does not accept this distributor's origin. A retry
               // cannot succeed, so stop device receipt instead of re-registering
               // on every start.
-              if (current) {
-                registrationAllowed.current = false;
-                registrationGeneration += 1;
-              }
+              if (!current) return;
+              registrationAllowed.current = false;
+              registrationGeneration += 1;
               await nativePush.disable().catch(() => undefined);
               if (live) setRegistered(false);
-              if (current) {
+              if (live && current) {
                 setError('PUSH_ENDPOINT_UNSUPPORTED');
                 setState('error');
               }
@@ -269,8 +288,8 @@ export function useUnifiedPush({
             }
           });
       }),
-      nativePush.addListener('wake', () => {
-        if (!live) return;
+      nativePush.addListener('wake', (event) => {
+        if (!live || event.accountId !== accountId) return;
         const activeSpaceId = currentSpaceId.current;
         void queryClient.invalidateQueries({
           queryKey: notificationUnreadCountQueryKey(activeSpaceId),
@@ -279,12 +298,15 @@ export function useUnifiedPush({
           queryKey: notificationsListQueryKey(activeSpaceId),
         });
       }),
-      nativePush.addListener('unavailable', ({ reason }) => {
-        if (!live) return;
-        setError(reason);
-        setState('error');
-        void syncRegistered();
-      }),
+      nativePush.addListener(
+        'unavailable',
+        ({ accountId: eventAccountId, reason }) => {
+          if (!live || eventAccountId !== accountId) return;
+          setError(reason);
+          setState('error');
+          void syncRegistered();
+        },
+      ),
       App.addListener('appUrlOpen', ({ url }) => {
         if (!live) return;
         if (isInboxLaunchUrl(url)) navigate(MORE_NOTIFICATIONS_ROUTE);
@@ -498,6 +520,7 @@ export async function revokeDevicePushBeforeSignOut(
   apiBaseUrl: string,
   accountId: string,
   notificationsApi: NotificationsApi,
+  signal?: AbortSignal,
 ): Promise<void> {
   if (!isCapacitorNative()) return;
   try {
@@ -505,6 +528,7 @@ export async function revokeDevicePushBeforeSignOut(
     await revokeSavedEndpoint(
       endpointIdKey(apiBaseUrl, accountId),
       notificationsApi,
+      signal,
     );
   } catch {
     // Retried after the next sign-in of this Account on this device.

@@ -8,6 +8,11 @@ rollback, the authoritative workflow is
 [`DEVELOPMENT-AND-RELEASE-ENVIRONMENTS.md`](DEVELOPMENT-AND-RELEASE-ENVIRONMENTS.md).
 This document defines Arcane mechanics; it does not create a competing release policy.
 
+For the opt-in private prerelease Cloud test instance, see
+[Private Test Channel](PRIVATE-TEST-CHANNEL.md). It exports the canonical Cloud
+profile into a generated digest-pinned Git Sync channel and does not replace
+released Production promotion.
+
 ## One Compose file
 
 eimir. supports exactly one tracked Docker Compose manifest: repository-root

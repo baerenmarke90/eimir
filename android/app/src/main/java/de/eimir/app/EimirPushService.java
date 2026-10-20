@@ -60,8 +60,7 @@ public final class EimirPushService extends PushService {
             NotificationManager.IMPORTANCE_DEFAULT
         ));
 
-        Intent open = new Intent(Intent.ACTION_VIEW, Uri.parse("de.sidebyside.app://notifications"), this, MainActivity.class);
-        open.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        Intent open = notificationIntent(this);
         PendingIntent tap = PendingIntent.getActivity(
             this, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
@@ -78,6 +77,11 @@ public final class EimirPushService extends PushService {
         } catch (SecurityException ignored) {
             // Permission can be revoked after the check above.
         }
+    }
+
+    static Intent notificationIntent(Context context) {
+        return new Intent(Intent.ACTION_VIEW, Uri.parse("de.sidebyside.app://notifications"), context, LauncherActivity.class)
+            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
     }
 
     @Override

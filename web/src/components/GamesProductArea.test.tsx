@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { EntitlementStatus } from '../api/generated/models/EntitlementStatus';
@@ -10,7 +10,11 @@ import {
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
 } from '../client/routes';
-import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
+import * as whoOfUsSession from '../client/whoOfUsSession';
+import type {
+  WhoOfUsParticipant,
+  WhoOfUsSession,
+} from '../client/whoOfUsSession';
 import games from '../i18n/locales/games';
 import { GAMES_COUPLE_CAPABILITY, GamesProductArea } from './GamesProductArea';
 
@@ -135,6 +139,13 @@ describe('GamesProductArea', () => {
     });
     fireEvent.click(leaChoice);
 
+    // The first DOM commit can precede useSyncExternalStore's subscription.
+    await screen.findByRole('button', {
+      name: games.whoOfUs.handoffConfirm.replace(
+        '{{name}}',
+        PARTICIPANTS[1].displayName,
+      ),
+    });
     expect(screen.queryByText(games.whoOfUs.choosePrompt)).toBeNull();
     expect(
       screen.getByText(
@@ -163,6 +174,92 @@ describe('GamesProductArea', () => {
       }),
     ).toBeTruthy();
   });
+
+  it.each([false, true])(
+    'preserves an answer at the first DOM commit and disposes the session (StrictMode=%s)',
+    async (strictMode) => {
+      const sessions: WhoOfUsSession[] = [];
+      const createSession = whoOfUsSession.createLocalWhoOfUsSession;
+      const factory = vi
+        .spyOn(whoOfUsSession, 'createLocalWhoOfUsSession')
+        .mockImplementation(() => {
+          const session = createSession();
+          vi.spyOn(session, 'dispose');
+          sessions.push(session);
+          return session;
+        });
+      let observer: MutationObserver | null = null;
+      const view = renderGames(entitlement([GAMES_COUPLE_CAPABILITY]), {
+        strictMode,
+      });
+      try {
+        const start = await screen.findByRole('button', {
+          name: new RegExp(games.entries.perspective.title),
+        });
+        let clicks = 0;
+        // Exercise the real consumer before its passive subscription can run.
+        observer = new MutationObserver(() => {
+          const choice = screen.queryByRole('button', {
+            name: games.whoOfUs.choiceAria
+              .replace('{{responder}}', PARTICIPANTS[0].displayName)
+              .replace('{{choice}}', PARTICIPANTS[0].displayName),
+          });
+          if (!choice) return;
+          observer?.disconnect();
+          clicks += 1;
+          fireEvent.click(choice);
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+        fireEvent.click(start);
+        await waitFor(() => expect(clicks).toBe(1));
+
+        const session = sessions.at(-1);
+        if (!session) throw new Error('The game did not create a session.');
+        expect(session.dispose).not.toHaveBeenCalled();
+        expect(session.getSnapshot().phase).toBe('handoff');
+        expect(session.getSnapshot().reveal).toBeNull();
+        expect(sessions).toHaveLength(strictMode ? 2 : 1);
+        for (const replaySession of sessions.slice(0, -1)) {
+          expect(replaySession.dispose).toHaveBeenCalledOnce();
+        }
+
+        const confirm = await screen.findByRole('button', {
+          name: games.whoOfUs.handoffConfirm.replace(
+            '{{name}}',
+            PARTICIPANTS[1].displayName,
+          ),
+        });
+        expect(screen.queryByText(games.whoOfUs.choosePrompt)).toBeNull();
+        expect(document.querySelector('.who-of-us-question')).toBeNull();
+        expect(document.querySelector('.who-of-us-reveal-answers')).toBeNull();
+        fireEvent.click(confirm);
+        const secondChoice = await screen.findByRole('button', {
+          name: games.whoOfUs.choiceAria
+            .replace('{{responder}}', PARTICIPANTS[1].displayName)
+            .replace('{{choice}}', PARTICIPANTS[0].displayName),
+        });
+        expect(document.querySelector('.who-of-us-reveal-answers')).toBeNull();
+        fireEvent.click(secondChoice);
+        await screen.findByText(games.whoOfUs.sameTitle);
+        expect(session.getSnapshot().reveal?.firstAnswerPartnerId).toBe(
+          PARTICIPANTS[0].id,
+        );
+
+        view.unmount();
+        for (const disposedSession of sessions) {
+          expect(disposedSession.dispose).toHaveBeenCalledOnce();
+          const snapshot = disposedSession.getSnapshot();
+          disposedSession.dispatch({ type: 'CONTINUE' });
+          disposedSession.restart();
+          expect(disposedSession.getSnapshot()).toBe(snapshot);
+        }
+      } finally {
+        observer?.disconnect();
+        view.unmount();
+        factory.mockRestore();
+      }
+    },
+  );
 
   it('marks the reveal card with a neutral same/different outcome, never a score', async () => {
     renderGames(entitlement([GAMES_COUPLE_CAPABILITY]));

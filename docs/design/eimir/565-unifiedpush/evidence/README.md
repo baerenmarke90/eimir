@@ -11,3 +11,8 @@ This is component-level visual evidence, not an Android screenshot or proof of
 Push delivery. The separate [2026-10-07 device verification](device-verification-2026-10-07.md)
 records physical Pixel captures, executed acceptance cases, automated checks,
 and the remaining limitations against implementation commit `25ef1034`.
+
+
+The [2026-10-20 integration record](cloud-refresh-2026-10-20.md) adds current
+main/session/launcher integration and a real production-browser sign-out pending
+capture. Historical device images retain their original source identity.

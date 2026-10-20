@@ -1,5 +1,7 @@
 .product-detail-page {
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
+  overflow-wrap: anywhere;
 }
 
 .product-detail-page .page-heading {
@@ -19,6 +21,17 @@
   padding: clamp(var(--space-5), 5vw, var(--space-8));
 }
 
+/* Let the detail shrink with its page grid when text is enlarged. */
+.heart-moment-detail-container,
+.milestone-detail-container {
+  min-width: 0;
+}
+
+.heart-moment-detail-container .product-detail-card,
+.milestone-detail-container .product-detail-card {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 /* Matches the Memory detail body's own override (MemoryProductPage.css):
  * same reading width and line-break fidelity, not the narrower 60ch default
  * from the shared .memory-detail-body base. */
@@ -36,14 +49,15 @@
 
 /*
  * One quiet metadata row - provenance, shared/private status and the
- * visibility action all sit on the same line, even at 390px (#1014, PR
- * #1020 follow-up). Milestone's footer stays plain centered text.
+ * visibility action share a row when space permits (#1014, #1020).
+ * Enlarged text can wrap without widening the page's grid track.
+ * Milestone's footer stays plain centered text.
  */
 .heart-moment-provenance-footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 

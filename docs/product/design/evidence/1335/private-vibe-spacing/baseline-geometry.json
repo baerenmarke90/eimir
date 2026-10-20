@@ -1,0 +1,330 @@
+[
+  {
+    "capture": "private-spacing-1440-light",
+    "width": 1440,
+    "fontSize": 16,
+    "expectedGap": 32,
+    "computedGap": "normal",
+    "visibleGaps": [
+      {
+        "distance": 17.59375,
+        "adjacentMargins": 17.6
+      },
+      {
+        "distance": 0,
+        "adjacentMargins": 0
+      }
+    ]
+  },
+  {
+    "capture": "private-spacing-360-light-large",
+    "width": 360,
+    "fontSize": 32,
+    "expectedGap": 40,
+    "computedGap": "40px",
+    "visibleGaps": [
+      {
+        "distance": 75.1875,
+        "adjacentMargins": 35.2
+      },
+      {
+        "distance": 40,
+        "adjacentMargins": 0
+      }
+    ]
+  },
+  {
+    "capture": "private-spacing-360-light",
+    "width": 360,
+    "fontSize": 16,
+    "expectedGap": 20,
+    "computedGap": "20px",
+    "visibleGaps": [
+      {
+        "distance": 37.59375,
+        "adjacentMargins": 17.6
+      },
+      {
+        "distance": 20,
+        "adjacentMargins": 0
+      }
+    ]
+  },
+  {
+    "capture": "private-spacing-390-light",
+    "width": 390,
+    "fontSize": 16,
+    "expectedGap": 20,
+    "computedGap": "20px",
+    "visibleGaps": [
+      {
+        "distance": 37.59375,
+        "adjacentMargins": 17.6
+      },
+      {
+        "distance": 20,
+        "adjacentMargins": 0
+      }
+    ]
+  },
+  {
+    "capture": "private-spacing-430-light",
+    "width": 430,
+    "fontSize": 16,
+    "expectedGap": 20,
+    "computedGap": "20px",
+    "visibleGaps": [
+      {
+        "distance": 37.59375,
+        "adjacentMargins": 17.6
+      },
+      {
+        "distance": 20,
+        "adjacentMargins": 0
+      }
+    ]
+  },
+  {
+    "capture": "private-spacing-480-light",
+    "width": 480,
+    "fontSize": 16,
+    "expectedGap": 20,
+    "computedGap": "20px",
+    "visibleGaps": [
+      {
+        "distance": 37.59375,
+        "adjacentMargins": 17.6
+      },
+      {
+        "distance": 20,
+        "adjacentMargins": 0
+      }
+    ]
+  },
+  {
+    "capture": "private-spacing-481-light",
+    "width": 481,
+    "fontSize": 16,
+    "expectedGap": 24.05,
+    "computedGap": "normal",
+    "visibleGaps": [
+      {
+        "distance": 17.59375,
+        "adjacentMargins": 17.6
+      },
+      {
+        "distance": 0,
+        "adjacentMargins": 0
+      }
+    ]
+  },
+  {
+    "capture": "private-spacing-1440-dark",
+    "width": 1440,
+    "fontSize": 16,
+    "expectedGap": 32,
+    "computedGap": "normal",
+    "visibleGaps": [
+      {
+        "distance": 17.59375,
+        "adjacentMargins": 17.6
+      },
+      {
+        "distance": 0,
+        "adjacentMargins": 0
+      }
+    ]
+  },
+  {
+    "capture": "private-spacing-360-dark-large",
+    "width": 360,
+    "fontSize": 32,
+    "expectedGap": 40,
+    "computedGap": "40px",
+    "visibleGaps": [
+      {
+        "distance": 75.1875,
+        "adjacentMargins": 35.2
+      },
+      {
+        "distance": 40,
+        "adjacentMargins": 0
+      }
+    ]
+  },
+  {
+    "capture": "private-spacing-360-dark",
+    "width": 360,
+    "fontSize": 16,
+    "expectedGap": 20,
+    "computedGap": "20px",
+    "visibleGaps": [
+      {
+        "distance": 37.59375,
+        "adjacentMargins": 17.6
+      },
+      {
+        "distance": 20,
+        "adjacentMargins": 0
+      }
+    ]
+  },
+  {
+    "capture": "private-spacing-390-dark",
+    "width": 390,
+    "fontSize": 16,
+    "expectedGap": 20,
+    "computedGap": "20px",
+    "visibleGaps": [
+      {
+        "distance": 37.59375,
+        "adjacentMargins": 17.6
+      },
+      {
+        "distance": 20,
+        "adjacentMargins": 0
+      }
+    ]
+  },
+  {
+    "capture": "private-spacing-430-dark",
+    "width": 430,
+    "fontSize": 16,
+    "expectedGap": 20,
+    "computedGap": "20px",
+    "visibleGaps": [
+      {
+        "distance": 37.59375,
+        "adjacentMargins": 17.6
+      },
+      {
+        "distance": 20,
+        "adjacentMargins": 0
+      }
+    ]
+  },
+  {
+    "capture": "private-spacing-480-dark",
+    "width": 480,
+    "fontSize": 16,
+    "expectedGap": 20,
+    "computedGap": "20px",
+    "visibleGaps": [
+      {
+        "distance": 37.59375,
+        "adjacentMargins": 17.6
+      },
+      {
+        "distance": 20,
+        "adjacentMargins": 0
+      }
+    ]
+  },
+  {
+    "capture": "private-spacing-481-dark",
+    "width": 481,
+    "fontSize": 16,
+    "expectedGap": 24.05,
+    "computedGap": "normal",
+    "visibleGaps": [
+      {
+        "distance": 17.59375,
+        "adjacentMargins": 17.6
+      },
+      {
+        "distance": 0,
+        "adjacentMargins": 0
+      }
+    ]
+  },
+  {
+    "capture": "vibe-cleanup-1440-dark",
+    "width": 1440,
+    "fontSize": 16,
+    "top": 0,
+    "bottom": 0,
+    "nextGap": 12,
+    "buttonHeight": 44
+  },
+  {
+    "capture": "vibe-cleanup-320-dark-large",
+    "width": 320,
+    "fontSize": 32,
+    "top": 0,
+    "bottom": 0,
+    "nextGap": 24,
+    "buttonHeight": 161.953125
+  },
+  {
+    "capture": "vibe-cleanup-360-dark",
+    "width": 360,
+    "fontSize": 16,
+    "top": 0,
+    "bottom": 0,
+    "nextGap": 12,
+    "buttonHeight": 44
+  },
+  {
+    "capture": "vibe-cleanup-390-dark",
+    "width": 390,
+    "fontSize": 16,
+    "top": 0,
+    "bottom": 0,
+    "nextGap": 12,
+    "buttonHeight": 44
+  },
+  {
+    "capture": "vibe-cleanup-430-dark",
+    "width": 430,
+    "fontSize": 16,
+    "top": 0,
+    "bottom": 0,
+    "nextGap": 12,
+    "buttonHeight": 44
+  },
+  {
+    "capture": "vibe-cleanup-1440-light",
+    "width": 1440,
+    "fontSize": 16,
+    "top": 0,
+    "bottom": 0,
+    "nextGap": 12,
+    "buttonHeight": 44
+  },
+  {
+    "capture": "vibe-cleanup-320-light-large",
+    "width": 320,
+    "fontSize": 32,
+    "top": 0,
+    "bottom": 0,
+    "nextGap": 24,
+    "buttonHeight": 161.953125
+  },
+  {
+    "capture": "vibe-cleanup-360-light",
+    "width": 360,
+    "fontSize": 16,
+    "top": 0,
+    "bottom": 0,
+    "nextGap": 12,
+    "buttonHeight": 44
+  },
+  {
+    "capture": "vibe-cleanup-390-light",
+    "width": 390,
+    "fontSize": 16,
+    "top": 0,
+    "bottom": 0,
+    "nextGap": 12,
+    "buttonHeight": 44
+  },
+  {
+    "capture": "vibe-cleanup-430-light",
+    "width": 430,
+    "fontSize": 16,
+    "top": 0,
+    "bottom": 0,
+    "nextGap": 12,
+    "buttonHeight": 44
+  }
+]

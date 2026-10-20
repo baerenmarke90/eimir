@@ -12,6 +12,21 @@
     "LOWER_LEVEL": "Still runs in the full regression until equivalent lower-level coverage is committed and the browser case can be removed."
   },
   "specs": {
+    "comments-delete-ownership.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6,
+      "reason": "Comment deletion must retain resource admission through return, prevent immediate duplicate DELETEs and preserve content on failure until deliberate retry."
+    },
+    "comments-create-ownership.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "Shared Story replies must admit one POST through immediate duplicate events and return, preserve new drafts and replace a stale initial read after confirmed creation."
+    },
+    "comments-edit-ownership.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 11,
+      "reason": "Comment editing must preserve later drafts, correct If-Match retries and separate task feedback across all three Story consumers."
+    },
     "browser-session-reload.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 3
@@ -23,6 +38,11 @@
     "cloud-onboarding-entry.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 4
+    },
+    "comments-offline-writes.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 12,
+      "reason": "Production create/edit/delete must reject offline intent, preserve input and require deliberate retry instead of reconnect replay across all three Story comment consumers."
     },
     "create-surface-visual-checks.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -42,7 +62,12 @@
     },
     "heart-moment-create-product-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 6
+      "baselineTests": 15
+    },
+    "heart-moment-delete-ownership.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8,
+      "reason": "Shared/private destructive intent, interruption ownership, competing privacy writes and offline no-replay must remain protected in the production browser."
     },
     "hidden-file-inputs.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -54,9 +79,13 @@
     },
     "memory-carousel-stability.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 4
+      "baselineTests": 6
     },
     "memory-create-defaults.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7
+    },
+    "memory-delete-ownership.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 7
     },
@@ -114,7 +143,7 @@
     },
     "private-area-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 25
+      "baselineTests": 72
     },
     "private-token-contrast.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -238,7 +267,7 @@
     },
     "today-daily-vibe.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 17
+      "baselineTests": 19
     },
     "today-freshness.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -279,6 +308,21 @@
     "app-icon-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 6
+    },
+    "perspective-game.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 12,
+      "reason": "Concealed two-person handoff, first input, neutral reveal, restart and local-session return must remain protected in the production browser."
+    },
+    "milestone-delete-ownership.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7,
+      "reason": "Explicit destructive intent, pending return, offline no-replay and task-owned completion must remain protected in the production browser."
+    },
+    "session-retention.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2,
+      "reason": "Real App restoration must retain credentials across temporary outages, refresh on reconnect and clear definitive rejection without requiring repeated login."
     }
   }
 }

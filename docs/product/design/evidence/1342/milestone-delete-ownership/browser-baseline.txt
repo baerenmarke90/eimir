@@ -1,0 +1,305 @@
+[WebServer] (node:19) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 7 tests using 1 worker
+
+(node:53) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:245:3 › Milestone deletion owns its task at 390px light (6.8s)
+(node:132) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:245:3 › Milestone deletion owns its task at 430px dark (6.3s)
+(node:213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:245:3 › Milestone deletion owns its task at 1440px light (6.1s)
+(node:294) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:245:3 › Milestone deletion owns its task at 1440px dark (6.2s)
+(node:377) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:245:3 › Milestone deletion owns its task at 320px dark (6.4s)
+(node:457) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  6 [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:333:3 › Milestone offline deletion requires deliberate retry in light (7.4s)
+(node:540) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  7 [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:333:3 › Milestone offline deletion requires deliberate retry in dark (7.4s)
+
+
+  1) [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:245:3 › Milestone deletion owns its task at 390px light 
+
+    Error: expect(locator).toBeDisabled() failed
+
+    Locator:  getByRole('button', { name: 'Meilenstein speichern', exact: true })
+    Expected: disabled
+    Received: enabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeDisabled" with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Meilenstein speichern', exact: true })
+        14 × locator resolved to <button type="submit">Meilenstein speichern</button>
+           - unexpected value "enabled"
+
+
+      262 |     await expect(
+      263 |       page.getByRole('button', { name: copy.save, exact: true }),
+    > 264 |     ).toBeDisabled();
+          |       ^
+      265 |     await fixture.respond(503);
+      266 |     await expect(
+      267 |       page.getByText(de.states.server.title, { exact: true }),
+        at /workspace/scratch/305585e3758d/eimir/web/e2e/tests/milestone-delete-ownership.spec.ts:264:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milestone-baseline-results/milestone-delete-ownership-cf483-wns-its-task-at-390px-light-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milestone-baseline-results/milestone-delete-ownership-cf483-wns-its-task-at-390px-light-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../milestone-baseline-results/milestone-delete-ownership-cf483-wns-its-task-at-390px-light-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../milestone-baseline-results/milestone-delete-ownership-cf483-wns-its-task-at-390px-light-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:245:3 › Milestone deletion owns its task at 430px dark 
+
+    Error: expect(locator).toBeDisabled() failed
+
+    Locator:  getByRole('button', { name: 'Meilenstein speichern', exact: true })
+    Expected: disabled
+    Received: enabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeDisabled" with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Meilenstein speichern', exact: true })
+        14 × locator resolved to <button type="submit">Meilenstein speichern</button>
+           - unexpected value "enabled"
+
+
+      262 |     await expect(
+      263 |       page.getByRole('button', { name: copy.save, exact: true }),
+    > 264 |     ).toBeDisabled();
+          |       ^
+      265 |     await fixture.respond(503);
+      266 |     await expect(
+      267 |       page.getByText(de.states.server.title, { exact: true }),
+        at /workspace/scratch/305585e3758d/eimir/web/e2e/tests/milestone-delete-ownership.spec.ts:264:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milestone-baseline-results/milestone-delete-ownership-39849-owns-its-task-at-430px-dark-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milestone-baseline-results/milestone-delete-ownership-39849-owns-its-task-at-430px-dark-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../milestone-baseline-results/milestone-delete-ownership-39849-owns-its-task-at-430px-dark-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../milestone-baseline-results/milestone-delete-ownership-39849-owns-its-task-at-430px-dark-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:245:3 › Milestone deletion owns its task at 1440px light 
+
+    Error: expect(locator).toBeDisabled() failed
+
+    Locator:  getByRole('button', { name: 'Meilenstein speichern', exact: true })
+    Expected: disabled
+    Received: enabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeDisabled" with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Meilenstein speichern', exact: true })
+        14 × locator resolved to <button type="submit">Meilenstein speichern</button>
+           - unexpected value "enabled"
+
+
+      262 |     await expect(
+      263 |       page.getByRole('button', { name: copy.save, exact: true }),
+    > 264 |     ).toBeDisabled();
+          |       ^
+      265 |     await fixture.respond(503);
+      266 |     await expect(
+      267 |       page.getByText(de.states.server.title, { exact: true }),
+        at /workspace/scratch/305585e3758d/eimir/web/e2e/tests/milestone-delete-ownership.spec.ts:264:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milestone-baseline-results/milestone-delete-ownership-74b97-ns-its-task-at-1440px-light-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milestone-baseline-results/milestone-delete-ownership-74b97-ns-its-task-at-1440px-light-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../milestone-baseline-results/milestone-delete-ownership-74b97-ns-its-task-at-1440px-light-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../milestone-baseline-results/milestone-delete-ownership-74b97-ns-its-task-at-1440px-light-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:245:3 › Milestone deletion owns its task at 1440px dark 
+
+    Error: expect(locator).toBeDisabled() failed
+
+    Locator:  getByRole('button', { name: 'Meilenstein speichern', exact: true })
+    Expected: disabled
+    Received: enabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeDisabled" with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Meilenstein speichern', exact: true })
+        14 × locator resolved to <button type="submit">Meilenstein speichern</button>
+           - unexpected value "enabled"
+
+
+      262 |     await expect(
+      263 |       page.getByRole('button', { name: copy.save, exact: true }),
+    > 264 |     ).toBeDisabled();
+          |       ^
+      265 |     await fixture.respond(503);
+      266 |     await expect(
+      267 |       page.getByText(de.states.server.title, { exact: true }),
+        at /workspace/scratch/305585e3758d/eimir/web/e2e/tests/milestone-delete-ownership.spec.ts:264:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milestone-baseline-results/milestone-delete-ownership-f5331-wns-its-task-at-1440px-dark-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milestone-baseline-results/milestone-delete-ownership-f5331-wns-its-task-at-1440px-dark-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../milestone-baseline-results/milestone-delete-ownership-f5331-wns-its-task-at-1440px-dark-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../milestone-baseline-results/milestone-delete-ownership-f5331-wns-its-task-at-1440px-dark-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:245:3 › Milestone deletion owns its task at 320px dark 
+
+    Error: expect(locator).toBeDisabled() failed
+
+    Locator:  getByRole('button', { name: 'Meilenstein speichern', exact: true })
+    Expected: disabled
+    Received: enabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeDisabled" with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Meilenstein speichern', exact: true })
+        14 × locator resolved to <button type="submit">Meilenstein speichern</button>
+           - unexpected value "enabled"
+
+
+      262 |     await expect(
+      263 |       page.getByRole('button', { name: copy.save, exact: true }),
+    > 264 |     ).toBeDisabled();
+          |       ^
+      265 |     await fixture.respond(503);
+      266 |     await expect(
+      267 |       page.getByText(de.states.server.title, { exact: true }),
+        at /workspace/scratch/305585e3758d/eimir/web/e2e/tests/milestone-delete-ownership.spec.ts:264:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milestone-baseline-results/milestone-delete-ownership-f1300-owns-its-task-at-320px-dark-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milestone-baseline-results/milestone-delete-ownership-f1300-owns-its-task-at-320px-dark-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../milestone-baseline-results/milestone-delete-ownership-f1300-owns-its-task-at-320px-dark-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../milestone-baseline-results/milestone-delete-ownership-f1300-owns-its-task-at-320px-dark-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:333:3 › Milestone offline deletion requires deliberate retry in light 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Du bist gerade offline.', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Du bist gerade offline.', { exact: true })
+
+
+      344 |     await expect(
+      345 |       page.getByText(de.states.offline.title, { exact: true }),
+    > 346 |     ).toBeVisible();
+          |       ^
+      347 |     await expect(page.getByLabel(copy.bodyLabel)).toHaveValue(
+      348 |       'Keep this offline draft.',
+      349 |     );
+        at /workspace/scratch/305585e3758d/eimir/web/e2e/tests/milestone-delete-ownership.spec.ts:346:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milestone-baseline-results/milestone-delete-ownership-d249c-s-deliberate-retry-in-light-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milestone-baseline-results/milestone-delete-ownership-d249c-s-deliberate-retry-in-light-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../milestone-baseline-results/milestone-delete-ownership-d249c-s-deliberate-retry-in-light-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../milestone-baseline-results/milestone-delete-ownership-d249c-s-deliberate-retry-in-light-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:333:3 › Milestone offline deletion requires deliberate retry in dark 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Du bist gerade offline.', { exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Du bist gerade offline.', { exact: true })
+
+
+      344 |     await expect(
+      345 |       page.getByText(de.states.offline.title, { exact: true }),
+    > 346 |     ).toBeVisible();
+          |       ^
+      347 |     await expect(page.getByLabel(copy.bodyLabel)).toHaveValue(
+      348 |       'Keep this offline draft.',
+      349 |     );
+        at /workspace/scratch/305585e3758d/eimir/web/e2e/tests/milestone-delete-ownership.spec.ts:346:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../milestone-baseline-results/milestone-delete-ownership-7391d-es-deliberate-retry-in-dark-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milestone-baseline-results/milestone-delete-ownership-7391d-es-deliberate-retry-in-dark-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../milestone-baseline-results/milestone-delete-ownership-7391d-es-deliberate-retry-in-dark-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../milestone-baseline-results/milestone-delete-ownership-7391d-es-deliberate-retry-in-dark-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7 failed
+    [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:245:3 › Milestone deletion owns its task at 390px light 
+    [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:245:3 › Milestone deletion owns its task at 430px dark 
+    [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:245:3 › Milestone deletion owns its task at 1440px light 
+    [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:245:3 › Milestone deletion owns its task at 1440px dark 
+    [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:245:3 › Milestone deletion owns its task at 320px dark 
+    [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:333:3 › Milestone offline deletion requires deliberate retry in light 
+    [chromium] › web/e2e/tests/milestone-delete-ownership.spec.ts:333:3 › Milestone offline deletion requires deliberate retry in dark 

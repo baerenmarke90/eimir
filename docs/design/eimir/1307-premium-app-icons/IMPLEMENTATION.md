@@ -1,5 +1,10 @@
 # App-icon selection — Web implementation
 
+The 2026-10-19 [Android launcher correction](ANDROID.md) adds native delivery to
+the existing selection contract. [Actual launcher and upgrade evidence](evidence/android-correction/README.md)
+supersedes the native-launcher exclusion in this historical browser-slice record.
+The Web/PWA boundary below remains separate.
+
 ## Status and authority
 
 Owner continuation and merge request on 2026-10-12 after the complete catalog

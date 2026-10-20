@@ -104,6 +104,7 @@ async function installMocks(
   let finalCompletionFailed = false;
   let collectionGetCount = 0;
   let dashboardGetCount = 0;
+  let itemCreateCount = 0;
   const itemWrites: {
     itemId: string;
     completed?: boolean;
@@ -430,7 +431,7 @@ async function installMocks(
     ) {
       const body = request.postDataJSON() as { title: string };
       const created = collectionItem(
-        '00000000-0000-0000-0000-000000000034',
+        `00000000-0000-0000-0000-${String(34 + itemCreateCount++).padStart(12, '0')}`,
         body.title,
         items.length,
       );
@@ -457,6 +458,17 @@ async function installMocks(
     dashboardGetCount: () => dashboardGetCount,
     pin: (selectedCollectionId: string | null) => {
       pinnedCollectionId = selectedCollectionId;
+    },
+    snapshot: () => structuredClone(collection()),
+    reviseItem(
+      id: string,
+      changes: Partial<MutableCollectionItem>,
+      advanceRoot = true,
+    ) {
+      const item = items.find((entry) => entry.id === id);
+      if (!item) throw new Error('Missing fixture item');
+      Object.assign(item, changes);
+      if (advanceRoot) collectionVersion += 1;
     },
     reorder(itemIds: string[]) {
       items.forEach((item) => {
@@ -508,6 +520,176 @@ async function expectNoWcagViolations(page: Page): Promise<void> {
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
     .analyze();
   expect(result.violations).toEqual([]);
+}
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' as const },
+  { name: '1280-dark', width: 1280, scheme: 'dark' as const },
+]) {
+  for (const outcome of ['success', 'failure'] as const) {
+    test(`Today quick-add preserves a newer draft after late ${outcome} (${view.name})`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: view.width, height: 844 });
+      await page.emulateMedia({
+        colorScheme: view.scheme,
+        reducedMotion: 'reduce',
+      });
+      await page.addInitScript(() =>
+        localStorage.setItem('eimir.theme', 'system'),
+      );
+      await installMocks(page, { initiallyPinned: true });
+      await signIn(page);
+      const titles: string[] = [];
+      let release!: () => void;
+      await page.route(
+        `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/items`,
+        async (route) => {
+          if (route.request().method() !== 'POST') return route.fallback();
+          titles.push(route.request().postDataJSON().title);
+          if (titles.length === 1) {
+            await new Promise<void>((resolve) => {
+              release = resolve;
+            });
+            if (outcome === 'failure') {
+              await route.fulfill({
+                status: 503,
+                contentType: 'application/problem+json',
+                body: JSON.stringify({
+                  status: 503,
+                  title: 'Service unavailable',
+                  detail: 'The write was not confirmed.',
+                }),
+              });
+              return;
+            }
+          }
+          await route.fallback();
+        },
+      );
+      const pinned = page.locator('.today-section-pinned-collection');
+      const add = pinned.getByRole('button', {
+        name: m5s5.today.pinnedCollection.addAction,
+      });
+      await add.click();
+      const dialog = page.getByRole('dialog', {
+        name: m5s5.today.pinnedCollection.addAction,
+      });
+      const input = dialog.getByLabel(m5s3.collection.itemTitle);
+      await input.fill('Butter');
+      await dialog
+        .getByRole('button', { name: m5s3.collection.addItem })
+        .click();
+      await expect.poll(() => titles.length).toBe(1);
+      await input.fill('Reis');
+      await input.press('Enter');
+      expect(titles).toEqual(['Butter']);
+      release();
+      await expect(
+        dialog.getByRole('button', { name: m5s3.collection.addItem }),
+      ).toBeEnabled();
+      await expect(input).toHaveValue('Reis');
+      await expect(input).toHaveAttribute('aria-invalid', 'false');
+      if (outcome === 'failure')
+        await expect(
+          dialog.getByText(de.states.server.title, { exact: true }),
+        ).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `today-add-draft-${outcome}-${view.name}.png`,
+        ),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await dialog
+        .getByRole('button', { name: m5s3.collection.addItem })
+        .click();
+      await expect(dialog).toHaveCount(0);
+      await expect(add).toBeFocused();
+      expect(titles).toEqual(['Butter', 'Reis']);
+      await expect(pinned.getByText('Reis', { exact: true })).toBeVisible();
+      await pinned
+        .getByRole('link', {
+          name: m5s5.today.pinnedCollection.openAriaLabel.replace(
+            '{{title}}',
+            'Einkauf',
+          ),
+        })
+        .click();
+      await expect(
+        page
+          .locator(
+            `[data-sortable-item-id="00000000-0000-0000-0000-0000000000${outcome === 'success' ? '35' : '34'}"]`,
+          )
+          .getByRole('textbox'),
+      ).toHaveValue('Reis');
+      await page.goBack();
+      await expect(pinned.getByText('Reis', { exact: true })).toBeVisible();
+      expect(titles).toEqual(['Butter', 'Reis']);
+    });
+  }
+
+  test(`Today quick-add rejects offline submission and requires deliberate retry (${view.name})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    await installMocks(page, { initiallyPinned: true });
+    await signIn(page);
+    const titles: string[] = [];
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/items`,
+      async (route) => {
+        if (route.request().method() === 'POST')
+          titles.push(route.request().postDataJSON().title);
+        await route.fallback();
+      },
+    );
+    const pinned = page.locator('.today-section-pinned-collection');
+    const add = pinned.getByRole('button', {
+      name: m5s5.today.pinnedCollection.addAction,
+    });
+    await add.click();
+    const dialog = page.getByRole('dialog', {
+      name: m5s5.today.pinnedCollection.addAction,
+    });
+    const input = dialog.getByLabel(m5s3.collection.itemTitle);
+    await input.fill('Butter');
+    await page.context().setOffline(true);
+    await dialog.getByRole('button', { name: m5s3.collection.addItem }).click();
+    await expect(
+      dialog.getByText(de.states.offline.title, { exact: true }),
+    ).toBeVisible();
+    await expect(input).toHaveValue('Butter');
+    await expect(input).toBeFocused();
+    expect(titles).toEqual([]);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`today-add-offline-${view.name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    await page.context().setOffline(false);
+    await expect(
+      page.getByText(de.states.offline.banner, { exact: true }),
+    ).toHaveCount(0);
+    await expect(input).toHaveValue('Butter');
+    expect(titles).toEqual([]);
+    await dialog.getByRole('button', { name: m5s3.collection.addItem }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(add).toBeFocused();
+    await expect(pinned.getByText('Butter', { exact: true })).toBeVisible();
+    expect(titles).toEqual(['Butter']);
+  });
 }
 
 test('shows an optimistic collection-detail check, rolls back a failed write and retries', async ({
@@ -615,6 +797,597 @@ test('shows an optimistic collection-detail check, rolls back a failed write and
     animations: 'disabled',
   });
 });
+
+for (const outcome of ['failure', 'success'] as const) {
+  test(`retains a newer shared checklist read after a late checkbox ${outcome}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const network = await installMocks(page);
+    await signIn(page);
+    const itemId = '00000000-0000-0000-0000-000000000031';
+    const writes: string[] = [];
+    let releaseWrite!: () => void;
+    let releaseRead: (() => void) | undefined;
+    let blockRecovery = false;
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}`,
+      async (route) => {
+        if (blockRecovery && route.request().method() === 'GET') {
+          await new Promise<void>((resolve) => {
+            releaseRead = resolve;
+          });
+        }
+        await route.fallback();
+      },
+    );
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/items/${itemId}`,
+      async (route) => {
+        writes.push(route.request().headers()['if-match']);
+        if (writes.length > 1) {
+          await route.fallback();
+          return;
+        }
+        await new Promise<void>((resolve) => {
+          releaseWrite = resolve;
+        });
+        await route.fulfill({
+          status: outcome === 'failure' ? 503 : 200,
+          contentType: 'application/json',
+          body: JSON.stringify(
+            outcome === 'failure'
+              ? {
+                  code: 'SERVER_ERROR',
+                  detail: 'The write was not confirmed.',
+                  status: 503,
+                  title: 'Service unavailable',
+                  type: 'about:blank',
+                }
+              : { ...collectionItem(itemId, 'Milch', 0, true), version: 2 },
+          ),
+        });
+      },
+    );
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    const row = page.locator(`[data-sortable-item-id="${itemId}"]`);
+    await row
+      .getByRole('button', {
+        name: m5s3.collection.markDone.replace('{{title}}', 'Milch'),
+      })
+      .click();
+    await expect.poll(() => Boolean(releaseWrite)).toBe(true);
+    await expect(row.getByRole('status')).toHaveText(m5s3.common.saving);
+    await expect(
+      row.getByRole('button', {
+        name: m5s3.collection.markOpen.replace('{{title}}', 'Milch'),
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    network.reviseItem(itemId, {
+      title: 'Hafermilch',
+      completed: false,
+      version: 3,
+    });
+    network.reorder([
+      '00000000-0000-0000-0000-000000000033',
+      '00000000-0000-0000-0000-000000000032',
+      itemId,
+    ]);
+    const readsBefore = network.collectionGetCount();
+    // Adding another row triggers the existing authorized detail refresh.
+    await page
+      .getByRole('textbox', { name: m5s3.collection.newItem })
+      .fill('Kaffee');
+    await page.getByRole('button', { name: m5s3.collection.addItem }).click();
+    await expect.poll(network.collectionGetCount).toBeGreaterThan(readsBefore);
+    await expect(row.getByRole('textbox')).toHaveValue('Hafermilch');
+    const markDone = m5s3.collection.markDone.replace(
+      '{{title}}',
+      'Hafermilch',
+    );
+    await expect(row.getByRole('button', { name: markDone })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    blockRecovery = true;
+    releaseWrite();
+    if (outcome === 'success')
+      await expect.poll(() => Boolean(releaseRead)).toBe(true);
+    else
+      await expect(
+        page.getByRole('button', { name: de.common.retry }),
+      ).toBeVisible();
+    // The late callback must preserve the newer read even before recovery returns.
+    await expect(row.getByRole('textbox')).toHaveValue('Hafermilch');
+    await expect(row.getByRole('button', { name: markDone })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    await expect(
+      page.locator('[data-sortable-item-id]').nth(2),
+    ).toHaveAttribute('data-sortable-item-id', itemId);
+    await expect(
+      page
+        .locator(
+          '[data-sortable-item-id="00000000-0000-0000-0000-000000000034"]',
+        )
+        .getByRole('textbox'),
+    ).toHaveValue('Kaffee');
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`shared-newer-${outcome}-390-light.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    blockRecovery = false;
+    releaseRead?.();
+    if (outcome === 'failure')
+      await page.getByRole('button', { name: de.common.retry }).click();
+    else await row.getByRole('button', { name: markDone }).click();
+    await expect.poll(() => writes.length).toBe(2);
+    expect(writes).toEqual(['1', '3']);
+    await expect(
+      row.getByRole('button', {
+        name: m5s3.collection.markOpen.replace('{{title}}', 'Hafermilch'),
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await expect(row.getByRole('status')).toHaveCount(0);
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`shared-newer-${outcome}-1280-dark.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    await page
+      .getByRole('link', { name: m5s3.common.backToCollections })
+      .click();
+    await page.goBack();
+    await expect(row.getByRole('textbox')).toHaveValue('Hafermilch');
+    await expect(
+      row.getByRole('button', {
+        name: m5s3.collection.markOpen.replace('{{title}}', 'Hafermilch'),
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(writes).toEqual(['1', '3']);
+  });
+}
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' as const },
+  { name: '1280-dark', width: 1280, scheme: 'dark' as const },
+]) {
+  for (const outcome of ['success', 'failure'] as const) {
+    test(`Today checkbox retains a newer authorized read after late ${outcome} (${view.name})`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: view.width, height: 844 });
+      await page.emulateMedia({
+        colorScheme: view.scheme,
+        reducedMotion: 'reduce',
+      });
+      await page.addInitScript(() =>
+        localStorage.setItem('eimir.theme', 'system'),
+      );
+      const network = await installMocks(page, { initiallyPinned: true });
+      await signIn(page);
+      const milk = '00000000-0000-0000-0000-000000000031';
+      const bread = '00000000-0000-0000-0000-000000000032';
+      const apples = '00000000-0000-0000-0000-000000000033';
+      let releaseWrite: (() => void) | undefined;
+      let releaseRecovery: (() => void) | undefined;
+      let holdRecovery = false;
+      let writeFinished = false;
+      const writes: string[] = [];
+      await page.route(
+        `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}`,
+        async (route) => {
+          if (holdRecovery && route.request().method() === 'GET')
+            await new Promise<void>((resolve) => {
+              releaseRecovery = resolve;
+            });
+          await route.fallback();
+        },
+      );
+      await page.route(
+        `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/items/${milk}`,
+        async (route) => {
+          if (route.request().method() !== 'PATCH') {
+            await route.fallback();
+            return;
+          }
+          writes.push(route.request().headers()['if-match']);
+          if (writes.length > 1) {
+            await route.fallback();
+            return;
+          }
+          if (outcome === 'success')
+            network.reviseItem(milk, { completed: true, version: 2 }, false);
+          const response = network
+            .snapshot()
+            .items.find((entry) => entry.id === milk);
+          await new Promise<void>((resolve) => {
+            releaseWrite = resolve;
+          });
+          await route.fulfill({
+            status: outcome === 'success' ? 200 : 503,
+            contentType: 'application/json',
+            body: JSON.stringify(
+              outcome === 'success'
+                ? response
+                : {
+                    code: 'SERVER_ERROR',
+                    detail: 'The write was not confirmed.',
+                    status: 503,
+                    title: 'Service unavailable',
+                    type: 'about:blank',
+                  },
+            ),
+          });
+          writeFinished = true;
+        },
+      );
+      const pinned = page.locator('.today-section-pinned-collection');
+      await pinned
+        .getByRole('button', {
+          name: m5s3.collection.markDone.replace('{{title}}', 'Milch'),
+        })
+        .click();
+      await expect.poll(() => Boolean(releaseWrite)).toBe(true);
+      await expect(
+        pinned.getByRole('button', {
+          name: m5s3.collection.markOpen.replace('{{title}}', 'Milch'),
+        }),
+      ).toHaveAttribute('aria-pressed', 'true');
+      network.reviseItem(
+        milk,
+        { title: 'Hafermilch', completed: false, version: 5 },
+        false,
+      );
+      network.reorder([apples, bread, milk]);
+      // The existing Add flow refreshes the authorized detail while the toggle is pending.
+      const reads = network.collectionGetCount();
+      await pinned
+        .getByRole('button', { name: m5s5.today.pinnedCollection.addAction })
+        .click();
+      const dialog = page.getByRole('dialog', {
+        name: m5s5.today.pinnedCollection.addAction,
+      });
+      await dialog.getByLabel(m5s3.collection.itemTitle).fill('Kaffee');
+      await dialog
+        .getByRole('button', { name: m5s3.collection.addItem })
+        .click();
+      await expect(dialog).toHaveCount(0);
+      await expect.poll(network.collectionGetCount).toBeGreaterThan(reads);
+      const currentToggle = pinned.getByRole('button', {
+        name: m5s3.collection.markDone.replace('{{title}}', 'Hafermilch'),
+      });
+      await expect(currentToggle).toHaveAttribute('aria-pressed', 'false');
+      holdRecovery = true;
+      releaseWrite?.();
+      await expect.poll(() => writeFinished).toBe(true);
+      if (outcome === 'failure')
+        await expect(
+          page.getByText(m5s5.today.pinnedCollection.toggleFailed, {
+            exact: true,
+          }),
+        ).toBeVisible();
+      // Recovery is held so a refetch cannot conceal a corrupt late callback.
+      await expect(currentToggle).toHaveAttribute('aria-pressed', 'false');
+      await expect(pinned.getByText('Kaffee', { exact: true })).toBeVisible();
+      await expect(
+        pinned.locator('.today-pinned-list-title').first(),
+      ).toHaveText('Äpfel');
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath(`today-newer-${outcome}-${view.name}.png`),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      holdRecovery = false;
+      releaseRecovery?.();
+      await currentToggle.click();
+      await expect.poll(() => writes.length).toBe(2);
+      expect(writes).toEqual(['1', '5']);
+      await expect(
+        pinned.getByRole('button', {
+          name: m5s3.collection.markOpen.replace('{{title}}', 'Hafermilch'),
+        }),
+      ).toHaveAttribute('aria-pressed', 'true');
+      await pinned
+        .getByRole('link', {
+          name: m5s5.today.pinnedCollection.openAriaLabel.replace(
+            '{{title}}',
+            'Einkauf',
+          ),
+        })
+        .click();
+      await expect(
+        page.locator(`[data-sortable-item-id="${milk}"]`).getByRole('textbox'),
+      ).toHaveValue('Hafermilch');
+      await page.goBack();
+      await expect(
+        pinned.getByText('Hafermilch', { exact: true }),
+      ).toBeVisible();
+      expect(writes).toEqual(['1', '5']);
+    });
+  }
+}
+
+for (const view of [
+  { name: '390-light', width: 390, height: 844, theme: 'light' as const },
+  { name: '1280-dark', width: 1280, height: 800, theme: 'dark' as const },
+]) {
+  for (const scenario of [
+    'newer order failure',
+    'newer order success',
+    'newer item success',
+  ] as const) {
+    test(`shared reorder preserves ${scenario} after reconnect (${view.name})`, async ({
+      page,
+      context,
+    }, testInfo) => {
+      await page.setViewportSize({ width: view.width, height: view.height });
+      await page.emulateMedia({
+        colorScheme: view.theme,
+        reducedMotion: 'reduce',
+      });
+      await page.clock.install();
+      const network = await installMocks(page);
+      await signIn(page);
+      const milk = '00000000-0000-0000-0000-000000000031';
+      const bread = '00000000-0000-0000-0000-000000000032';
+      const apples = '00000000-0000-0000-0000-000000000033';
+      const success = scenario !== 'newer order failure';
+      const newerOrder = scenario !== 'newer item success';
+      let releaseWrite!: () => void;
+      let releaseRecovery: (() => void) | undefined;
+      let holdRecovery = false;
+      const writes: string[] = [];
+      await page.route(
+        `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}`,
+        async (route) => {
+          if (holdRecovery && route.request().method() === 'GET') {
+            await new Promise<void>((resolve) => {
+              releaseRecovery = resolve;
+            });
+          }
+          await route.fallback();
+        },
+      );
+      await page.route(
+        `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/order`,
+        async (route) => {
+          writes.push(route.request().headers()['if-match']);
+          const { itemIds } = route.request().postDataJSON() as {
+            itemIds: string[];
+          };
+          const response =
+            success || writes.length > 1
+              ? structuredClone(network.reorder(itemIds))
+              : undefined;
+          if (writes.length === 1)
+            await new Promise<void>((resolve) => {
+              releaseWrite = resolve;
+            });
+          await route.fulfill({
+            status: success || writes.length > 1 ? 200 : 503,
+            contentType: 'application/json',
+            body: JSON.stringify(
+              success || writes.length > 1
+                ? response
+                : {
+                    code: 'SERVER_ERROR',
+                    status: 503,
+                    title: 'Write unavailable',
+                    type: 'about:blank',
+                  },
+            ),
+          });
+        },
+      );
+      await page.goto(`/plan/collections/${COLLECTION_ID}`);
+      const names = () =>
+        page
+          .locator('[data-sortable-item-id] input[name="title"]')
+          .evaluateAll((inputs) =>
+            inputs.map((input) => (input as HTMLInputElement).value),
+          );
+      const handle = page.getByRole('button', {
+        name: m5s3.collection.reorderItem.replace('{{title}}', 'Äpfel'),
+      });
+      await handle.focus();
+      await page.keyboard.press('ArrowUp');
+      await expect.poll(() => Boolean(releaseWrite)).toBe(true);
+      await expect(page.getByRole('status')).toHaveText(
+        m5s3.collection.reordering,
+      );
+      await expect.poll(names).toEqual(['Milch', 'Äpfel', 'Brot']);
+      network.reviseItem(
+        milk,
+        { title: 'Hafermilch', completed: true, version: 3 },
+        false,
+      );
+      if (newerOrder) network.reorder([apples, milk, bread]);
+      const expectedNames = newerOrder
+        ? ['Äpfel', 'Hafermilch', 'Brot']
+        : ['Hafermilch', 'Äpfel', 'Brot'];
+      const reads = network.collectionGetCount();
+      // Reconnection refreshes a stale authorized read without replaying the held write.
+      await context.setOffline(true);
+      await page.clock.fastForward(16_000);
+      await context.setOffline(false);
+      await expect.poll(network.collectionGetCount).toBeGreaterThan(reads);
+      await expect.poll(names).toEqual(expectedNames);
+      await expect(page.getByRole('status')).toHaveText(
+        m5s3.collection.reordering,
+      );
+      expect(writes).toEqual(['1']);
+      holdRecovery = true;
+      releaseWrite();
+      if (success) await expect.poll(() => Boolean(releaseRecovery)).toBe(true);
+      else
+        await expect(
+          page.getByRole('button', { name: de.common.retry }),
+        ).toBeVisible();
+      await expect.poll(names).toEqual(expectedNames);
+      const milkRow = page.locator(`[data-sortable-item-id="${milk}"]`);
+      await expect(
+        milkRow.getByRole('button', {
+          name: m5s3.collection.markOpen.replace('{{title}}', 'Hafermilch'),
+        }),
+      ).toHaveAttribute('aria-pressed', 'true');
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `shared-order-${scenario.replaceAll(' ', '-')}-${view.name}.png`,
+        ),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      holdRecovery = false;
+      releaseRecovery?.();
+      if (!success)
+        await page.getByRole('button', { name: de.common.retry }).click();
+      else {
+        await expect(handle).toBeEnabled();
+        await handle.focus();
+        await page.keyboard.press(newerOrder ? 'ArrowDown' : 'ArrowUp');
+      }
+      await expect.poll(() => writes.length).toBe(2);
+      expect(writes[1]).toBe(newerOrder && success ? '3' : '2');
+      await expect(page.getByRole('status')).toHaveCount(0);
+      await expect(
+        page.getByRole('button', { name: de.common.retry }),
+      ).toHaveCount(0);
+      await expect(milkRow.getByRole('textbox')).toHaveValue('Hafermilch');
+      await page
+        .getByRole('link', { name: m5s3.common.backToCollections })
+        .click();
+      await page.goBack();
+      await expect(milkRow.getByRole('textbox')).toHaveValue('Hafermilch');
+      expect(writes).toHaveLength(2);
+    });
+  }
+}
+
+for (const outcome of ['success', 'failure'] as const) {
+  test(`shared reorder respects a newer denied read after late ${outcome}`, async ({
+    page,
+    context,
+  }, testInfo) => {
+    await page.setViewportSize({
+      width: outcome === 'success' ? 390 : 1280,
+      height: 844,
+    });
+    await page.emulateMedia({
+      colorScheme: outcome === 'success' ? 'light' : 'dark',
+      reducedMotion: 'reduce',
+    });
+    await page.clock.install();
+    const network = await installMocks(page);
+    await signIn(page);
+    let denied = false;
+    let reads = 0;
+    let releaseWrite!: () => void;
+    let releaseRecovery: (() => void) | undefined;
+    let holdRecovery = false;
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}`,
+      async (route) => {
+        reads += 1;
+        if (holdRecovery)
+          await new Promise<void>((resolve) => {
+            releaseRecovery = resolve;
+          });
+        if (!denied) {
+          await route.fallback();
+          return;
+        }
+        await route.fulfill({
+          status: 403,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            status: 403,
+            code: 'PERMISSION_DENIED',
+            title: 'Permission denied',
+            type: 'about:blank',
+          }),
+        });
+      },
+    );
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/order`,
+      async (route) => {
+        const { itemIds } = route.request().postDataJSON() as {
+          itemIds: string[];
+        };
+        const response = structuredClone(network.reorder(itemIds));
+        await new Promise<void>((resolve) => {
+          releaseWrite = resolve;
+        });
+        await route.fulfill({
+          status: outcome === 'success' ? 200 : 503,
+          contentType: 'application/json',
+          body: JSON.stringify(
+            outcome === 'success'
+              ? response
+              : {
+                  status: 503,
+                  code: 'SERVER_ERROR',
+                  title: 'Write unavailable',
+                  type: 'about:blank',
+                },
+          ),
+        });
+      },
+    );
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    await page
+      .getByRole('button', {
+        name: m5s3.collection.reorderItem.replace('{{title}}', 'Äpfel'),
+      })
+      .focus();
+    await page.keyboard.press('ArrowUp');
+    await expect.poll(() => Boolean(releaseWrite)).toBe(true);
+    denied = true;
+    await context.setOffline(true);
+    await page.clock.fastForward(16_000);
+    await context.setOffline(false);
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Einkauf' })).toHaveCount(0);
+    const readsBefore = reads;
+    holdRecovery = true;
+    const response = page.waitForResponse((entry) =>
+      entry.url().endsWith(`/collections/${COLLECTION_ID}/order`),
+    );
+    releaseWrite();
+    await (await response).finished();
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
+    await expect(page.getByRole('heading', { name: 'Einkauf' })).toHaveCount(0);
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    expect(reads).toBe(readsBefore);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`shared-order-denied-${outcome}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    holdRecovery = false;
+    releaseRecovery?.();
+  });
+}
 
 test('keeps a shared Collection reorder in place until confirmed or rolled back', async ({
   page,

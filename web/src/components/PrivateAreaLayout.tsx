@@ -186,10 +186,12 @@ export function PrivateAreaBackToMore() {
 export function DeleteConfirmation({
   onDelete,
   pending,
+  disabled = false,
   error,
 }: {
   onDelete: () => void;
   pending: boolean;
+  disabled?: boolean;
   error: Error | null;
 }) {
   const { t } = useTranslation();
@@ -204,6 +206,7 @@ export function DeleteConfirmation({
           type="button"
           className="secondary"
           onClick={() => setConfirming(true)}
+          disabled={disabled || pending}
         >
           {t('privateArea.delete')}
         </button>
@@ -222,7 +225,11 @@ export function DeleteConfirmation({
             >
               {t('privateArea.deleteCancel')}
             </button>
-            <button type="button" onClick={onDelete} disabled={pending}>
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={pending || disabled}
+            >
               {pending
                 ? t('privateArea.deleting')
                 : t('privateArea.deleteConfirm')}

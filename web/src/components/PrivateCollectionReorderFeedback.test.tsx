@@ -316,6 +316,101 @@ it.each(['success', 'failure'] as const)(
   },
 );
 
+it.each(['success', 'failure', 'denied'] as const)(
+  'leaves a replacement private Query and its feedback untouched after reorder %s',
+  async (outcome) => {
+    const h = setup();
+    moveAlbumFirst();
+    await waitFor(() => expect(h.reorder).toHaveBeenCalledTimes(1));
+    h.queryClient.removeQueries({ queryKey: key, exact: true });
+    const replacement = {
+      ...sample(),
+      title: 'Fresh personal list',
+      version: 8,
+    };
+    act(() => h.queryClient.setQueryData(key, replacement));
+    const invalidate = vi
+      .spyOn(h.queryClient, 'invalidateQueries')
+      .mockResolvedValue();
+    const reset = vi.spyOn(h.queryClient, 'resetQueries').mockResolvedValue();
+    await act(async () =>
+      outcome === 'success'
+        ? h.write.resolve(ordered(sample(), moved, 2))
+        : h.write.reject(
+            new ClientProblemError(
+              outcome === 'denied' ? 'permission' : 'server',
+              outcome === 'denied' ? 403 : 500,
+            ),
+          ),
+    );
+    await waitFor(() => expect(h.queryClient.isMutating()).toBe(0));
+    await waitFor(() => expect(screen.queryByRole('status')).toBeNull());
+    expect(h.queryClient.getQueryData(key)).toEqual(replacement);
+    expect(invalidate).not.toHaveBeenCalled();
+    expect(reset).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: de.common.retry })).toBeNull();
+  },
+);
+
+for (const [kind, status] of [
+  ['unauthorized', 401],
+  ['permission', 403],
+  ['notFound', 404],
+] as const) {
+  it.each(['success', 'failure'] as const)(
+    `keeps a newer private ${status} read authoritative after reorder %s`,
+    async (outcome) => {
+      const h = setup();
+      moveAlbumFirst();
+      await waitFor(() => expect(h.reorder).toHaveBeenCalledTimes(1));
+      const denied = new ClientProblemError(kind, status);
+      h.get.mockRejectedValue(denied);
+      await act(async () =>
+        h.queryClient.refetchQueries({ queryKey: key, exact: true }),
+      );
+      await waitFor(() =>
+        expect(
+          screen.queryAllByLabelText(privateArea.collections.rename),
+        ).toHaveLength(0),
+      );
+      const invalidate = vi
+        .spyOn(h.queryClient, 'invalidateQueries')
+        .mockResolvedValue();
+      await act(async () =>
+        outcome === 'success'
+          ? h.write.resolve(ordered(sample(), moved, 2))
+          : h.write.reject(new ClientProblemError('server', 500)),
+      );
+      await waitFor(() => expect(h.queryClient.isMutating()).toBe(0));
+      expect(h.queryClient.getQueryState(key)?.error).toBe(denied);
+      expect(invalidate).not.toHaveBeenCalled();
+      expect(
+        screen.queryAllByLabelText(privateArea.collections.rename),
+      ).toHaveLength(0);
+    },
+  );
+}
+
+it('does not apply optimism to a private Query replaced during cancellation', async () => {
+  const h = setup();
+  const cancellation = deferred<void>();
+  vi.spyOn(h.queryClient, 'cancelQueries').mockReturnValue(
+    cancellation.promise,
+  );
+  moveAlbumFirst();
+  await waitFor(() => expect(h.queryClient.cancelQueries).toHaveBeenCalled());
+  h.queryClient.removeQueries({ queryKey: key, exact: true });
+  const replacement = { ...sample(), title: 'Fresh personal list', version: 1 };
+  act(() => h.queryClient.setQueryData(key, replacement));
+  await act(async () => cancellation.resolve());
+  await waitFor(() => expect(h.reorder).toHaveBeenCalledTimes(1));
+  expect(h.queryClient.getQueryData(key)).toEqual(replacement);
+  vi.spyOn(h.queryClient, 'invalidateQueries').mockResolvedValue();
+  await act(async () => h.write.resolve(ordered(sample(), moved, 2)));
+  await waitFor(() => expect(h.queryClient.isMutating()).toBe(0));
+  expect(h.queryClient.getQueryData(key)).toEqual(replacement);
+});
+
 it('refreshes a conflict without replay and uses the recovered root version for a new decision', async () => {
   const h = setup();
   moveAlbumFirst();

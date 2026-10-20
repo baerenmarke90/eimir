@@ -1,6 +1,13 @@
 import type { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import { ReadDescriptorMethodEnum } from '../api/generated/models/ReadDescriptor';
 import type { ReferenceApis } from './referenceFlow';
+import {
+  captureMediaCacheLease,
+  assertMediaCacheLease,
+  evictAuthorizedMedia,
+  loadCachedMediaBlob,
+} from './authorizedMediaCache';
+import { clientProblemKind, normalizeClientError } from './problemDetails';
 
 export type StoryMediaParentType = Extract<
   AttachmentReadRequestParentTypeEnum,
@@ -28,6 +35,12 @@ export async function loadAuthorizedStoryImage(
   attachmentId: string,
   options: StoryMediaLoaderOptions = {},
 ): Promise<string> {
+  const parentIdentity = ['attachment', parentType, parentId];
+  const lease = captureMediaCacheLease(
+    apis.attachments,
+    spaceId,
+    parentIdentity,
+  );
   const descriptorRequest = {
     spaceId,
     attachmentId,
@@ -37,38 +50,54 @@ export async function loadAuthorizedStoryImage(
       ...(options.variant ? { variant: options.variant } : {}),
     },
   };
-  const descriptor = options.signal
-    ? await apis.attachments.createAttachmentReadAccess(descriptorRequest, {
-        signal: options.signal,
-      })
-    : await apis.attachments.createAttachmentReadAccess(descriptorRequest);
-
-  let blob: Blob;
-  if (descriptor.method === ReadDescriptorMethodEnum.SIGNED_URL) {
-    const fetchApi = options.fetchApi ?? fetch;
-    const response = options.signal
-      ? await fetchApi(descriptor.url, { signal: options.signal })
-      : await fetchApi(descriptor.url);
-    if (!response.ok) {
-      throw Object.assign(
-        new Error(`Story media load failed: ${response.status}`),
-        { status: response.status },
-      );
-    }
-    blob = await response.blob();
-  } else {
-    const request = {
-      spaceId,
-      attachmentId,
-      ...(options.variant ? { variant: options.variant } : {}),
-    };
-    const response = options.signal
-      ? await apis.attachments.getAttachmentContentRaw(request, {
+  try {
+    const descriptor = options.signal
+      ? await apis.attachments.createAttachmentReadAccess(descriptorRequest, {
           signal: options.signal,
         })
-      : await apis.attachments.getAttachmentContentRaw(request);
-    blob = await response.raw.blob();
-  }
+      : await apis.attachments.createAttachmentReadAccess(descriptorRequest);
 
-  return (options.createObjectUrl ?? URL.createObjectURL)(blob);
+    const blob = await loadCachedMediaBlob(
+      lease,
+      [...parentIdentity, attachmentId, options.variant ?? 'original'],
+      async (signal) => {
+        if (descriptor.method === ReadDescriptorMethodEnum.SIGNED_URL) {
+          const fetchApi = options.fetchApi ?? fetch;
+          const response = await fetchApi(descriptor.url, { signal });
+          if (!response.ok) {
+            throw Object.assign(
+              new Error(`Story media load failed: ${response.status}`),
+              { status: response.status },
+            );
+          }
+          return response.blob();
+        } else {
+          const request = {
+            spaceId,
+            attachmentId,
+            ...(options.variant ? { variant: options.variant } : {}),
+          };
+          const response = await apis.attachments.getAttachmentContentRaw(
+            request,
+            { signal },
+          );
+          return response.raw.blob();
+        }
+      },
+      options.signal,
+    );
+
+    assertMediaCacheLease(lease);
+    return (options.createObjectUrl ?? URL.createObjectURL)(blob);
+  } catch (error) {
+    const problem = await normalizeClientError(error);
+    if (
+      ['unauthorized', 'permission', 'notFound'].includes(
+        clientProblemKind(problem),
+      )
+    ) {
+      evictAuthorizedMedia(lease, parentIdentity);
+    }
+    throw error;
+  }
 }

@@ -20,6 +20,21 @@ interface MemoryCreateRequestBody {
   title?: string;
 }
 
+interface PhotoBatchScenario {
+  idsByName: Record<string, string>;
+  uploaded: string[];
+  finalized: string[];
+  ready: Set<string>;
+  bound: string[];
+  creates: number;
+  discoverReads: number;
+}
+
+const PHOTO_BYTES = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jB1sAAAAASUVORK5CYII=',
+  'base64',
+);
+
 function localizedFallbackTitle(dateValue: string): string {
   const [year, month, day] = dateValue.split('-');
   return memoryProduct.createFallbackTitle.replace(
@@ -46,8 +61,25 @@ async function browserLocalToday(page: Page): Promise<string> {
   });
 }
 
-async function installApiMocks(page: Page): Promise<void> {
+async function installApiMocks(
+  page: Page,
+  photos?: PhotoBatchScenario,
+): Promise<void> {
   let savedMemory: Record<string, unknown> | null = null;
+  const attachments: string[] = [];
+  const attachment = (id: string) => ({
+    id,
+    createdAt: TEST_NOW,
+    durationSeconds: null,
+    hasThumbnail: false,
+    height: 1,
+    width: 1,
+    mediaType: 'IMAGE',
+    mimeType: 'image/png',
+    size: PHOTO_BYTES.length,
+    status: photos?.ready.has(id) ? 'READY' : 'VALIDATING',
+    version: 1,
+  });
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
@@ -60,6 +92,94 @@ async function installApiMocks(page: Page): Promise<void> {
         contentType: 'application/json',
         body: JSON.stringify(body),
       });
+
+    if (
+      photos &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/attachments` &&
+      method === 'POST'
+    ) {
+      const id = `55555555-5555-4555-8555-${String(attachments.length + 1).padStart(12, '0')}`;
+      attachments.push(id);
+      photos.idsByName[request.postDataJSON().originalName] = id;
+      await fulfillJson(
+        {
+          attachment: attachment(id),
+          method: 'STREAM',
+          requiredHeaders: { 'Content-Type': 'image/png' },
+          uploadUrl: `/api/v1/spaces/${SPACE_ID}/attachments/${id}/content`,
+        },
+        201,
+      );
+      return;
+    }
+    const photoPath = pathname.match(
+      /\/attachments\/([^/]+)(?:\/(content|finalize|read-access))?$/,
+    );
+    if (photos && photoPath && attachments.includes(photoPath[1])) {
+      const [, id, action] = photoPath;
+      if (action === 'content' && method === 'PUT') {
+        photos.uploaded.push(id);
+        await route.fulfill({ status: 204 });
+      } else if (action === 'content' && method === 'GET') {
+        await route.fulfill({ contentType: 'image/png', body: PHOTO_BYTES });
+      } else if (action === 'finalize' && method === 'POST') {
+        photos.finalized.push(id);
+        await fulfillJson(attachment(id));
+      } else if (action === 'read-access' && method === 'POST') {
+        await fulfillJson({
+          method: 'STREAM',
+          url: `/api/v1/spaces/${SPACE_ID}/attachments/${id}/content`,
+        });
+      } else if (!action && method === 'GET') {
+        await fulfillJson(attachment(id));
+      } else {
+        throw new Error(`Unexpected photo request: ${method} ${pathname}`);
+      }
+      return;
+    }
+    if (
+      photos &&
+      method === 'PUT' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}/attachments` &&
+      savedMemory
+    ) {
+      const bindings = request.postDataJSON().attachments as {
+        attachmentId: string;
+        position: number;
+      }[];
+      photos.bound = bindings.map((entry) => entry.attachmentId);
+      savedMemory = {
+        ...savedMemory,
+        version: 2,
+        attachments: bindings.map((entry) => ({
+          ...attachment(entry.attachmentId),
+          position: entry.position,
+        })),
+      };
+      await fulfillJson(savedMemory);
+      return;
+    }
+    if (
+      photos &&
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/discover`
+    ) {
+      photos.discoverReads++;
+      await fulfillJson({
+        selectionDate: TEST_NOW.slice(0, 10),
+        lead: savedMemory
+          ? { kind: 'MEMORY', effectiveDate: TEST_NOW, memory: savedMemory }
+          : null,
+        leadContext: null,
+        items: [],
+      });
+      return;
+    }
+    if (photos && method === 'GET' && pathname.endsWith('/comments')) {
+      await fulfillJson({ items: [], nextCursor: null, hasMore: false });
+      return;
+    }
 
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
@@ -173,6 +293,7 @@ async function installApiMocks(page: Page): Promise<void> {
       pathname === `/api/v1/spaces/${SPACE_ID}/memories`
     ) {
       const body = request.postDataJSON() as MemoryCreateRequestBody;
+      if (photos) photos.creates++;
       savedMemory = {
         attachments: [],
         author: { accountId: ACCOUNT_ID, displayName: 'Anna' },
@@ -248,18 +369,115 @@ async function installApiMocks(page: Page): Promise<void> {
   });
 }
 
-async function signInAndOpenMemoryCreate(page: Page): Promise<void> {
-  await installApiMocks(page);
+async function signInAndOpenMemoryCreate(
+  page: Page,
+  photos?: PhotoBatchScenario,
+): Promise<void> {
+  await installApiMocks(page, photos);
   await page.goto('/today');
   await page.getByLabel(de.login.email).fill('anna@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 
+  if (photos) {
+    await page.goto('/story');
+    await expect.poll(() => photos.discoverReads).toBe(1);
+  }
+
   await page.goto('/story/memories/new');
   await expect(
     page.getByRole('heading', { name: de.memory.heading }),
   ).toBeVisible();
+}
+
+for (const [width, colorScheme] of [
+  [390, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`a selected photo batch survives queued validation and appears in Discover (${width})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    await page.clock.install();
+    const photos: PhotoBatchScenario = {
+      idsByName: {},
+      uploaded: [],
+      finalized: [],
+      ready: new Set(),
+      bound: [],
+      creates: 0,
+      discoverReads: 0,
+    };
+    await signInAndOpenMemoryCreate(page, photos);
+    await page.getByLabel(de.memory.titleLabelOptional).fill(AUTHORED_TITLE);
+    await page
+      .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
+      .fill(AUTHORED_BODY);
+    await page.locator('#memory-create-images').setInputFiles(
+      ['one.png', 'two.png', 'three.png'].map((name) => ({
+        name,
+        mimeType: 'image/png',
+        buffer: PHOTO_BYTES,
+      })),
+    );
+    await expect.poll(() => photos.finalized.length).toBe(3);
+    expect(new Set(photos.uploaded).size).toBe(3);
+    photos.ready.add(photos.finalized[0]);
+    await page.clock.fastForward(1_000);
+    await expect(page.locator('.attachment-status-ready')).toHaveCount(1);
+    // The remaining photos are still queued on the server, not failed uploads.
+    await page.clock.fastForward(35_000);
+    await expect(page.locator('.attachment-status-validating')).toHaveCount(2);
+    await expect(page.locator('.attachment-status-failed')).toHaveCount(0);
+    for (const id of photos.finalized) photos.ready.add(id);
+    await page.clock.fastForward(5_000);
+    await expect(page.locator('.attachment-status-ready')).toHaveCount(3);
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`batch-ready-${width}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    await page.getByRole('button', { name: de.memory.save }).click();
+    await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+    expect(photos.creates).toBe(1);
+    expect(photos.bound).toEqual(
+      ['one.png', 'two.png', 'three.png'].map((name) => photos.idsByName[name]),
+    );
+    await expect(
+      page.getByRole('heading', { name: AUTHORED_TITLE, exact: true }),
+    ).toBeVisible();
+    const savedPhotos = page.locator('button.media-gallery-carousel-slide');
+    await expect(savedPhotos).toHaveCount(3);
+    await expect
+      .poll(() =>
+        savedPhotos
+          .locator('img.media-gallery-carousel-content')
+          .evaluateAll(
+            (images: HTMLImageElement[]) =>
+              images.length === 3 &&
+              images.every((image) => image.complete && image.naturalWidth > 0),
+          ),
+      )
+      .toBe(true);
+    await page.screenshot({
+      path: testInfo.outputPath(`batch-saved-${width}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    await page
+      .getByRole('link', { name: de.navigation.story, exact: true })
+      .click();
+    await expect.poll(() => photos.discoverReads).toBeGreaterThan(1);
+    await expect(page.getByText(AUTHORED_TITLE, { exact: true })).toBeVisible();
+    await page.screenshot({
+      path: testInfo.outputPath(`batch-discover-${width}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+  });
 }
 
 async function openDateEditor(page: Page): Promise<void> {

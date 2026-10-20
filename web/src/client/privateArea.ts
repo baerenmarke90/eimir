@@ -1,6 +1,8 @@
+import type { QueryClient, QueryKey } from '@tanstack/react-query';
 import { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from './apiConfiguration';
 import { normalizeClientError } from './problemDetails';
+import { captureAuthorizedQuery, captureQueryIdentity } from './queryIdentity';
 
 export const PRIVATE_AREA_ROOT_PATH = '/more/private';
 export const PRIVATE_NOTES_PATH = '/more/private/notes';
@@ -24,6 +26,69 @@ export async function privateApiCall<T>(call: () => Promise<T>): Promise<T> {
   } catch (error) {
     throw await normalizeClientError(error);
   }
+}
+
+/** The original list owns recovery; only the submitted task owns navigation. */
+export function capturePrivateCreate(
+  client: QueryClient,
+  listKey: QueryKey,
+  isCurrentTask: () => boolean,
+) {
+  const isCurrentList = captureQueryIdentity(client, listKey);
+  return {
+    isCurrentTask,
+    async refreshList() {
+      if (isCurrentList()) {
+        await client.invalidateQueries({ queryKey: listKey });
+      }
+    },
+  };
+}
+
+/** Confirmed deletion owns its original read; task exit owns navigation. */
+export function capturePrivateDelete(
+  client: QueryClient,
+  key: QueryKey,
+  listKey: QueryKey,
+  ownsTask: () => boolean,
+) {
+  const isCurrent = captureAuthorizedQuery(client, key);
+  const canRefreshList = captureAuthorizedQuery(client, listKey);
+  return {
+    isCurrentTask: () => ownsTask() && isCurrent(),
+    async refreshList() {
+      if (isCurrent() && canRefreshList()) {
+        // The list prefix also contains independently authorized details.
+        await client.invalidateQueries({ queryKey: listKey, exact: true });
+      }
+    },
+    remove() {
+      if (!isCurrent()) return false;
+      client.removeQueries({ queryKey: key, exact: true });
+      return true;
+    },
+  };
+}
+
+/** Capture the authorized read that owns a private full-resource edit. */
+export function capturePrivateEdit<T extends { version: number }>(
+  client: QueryClient,
+  key: QueryKey,
+  listKey: QueryKey,
+) {
+  const isCurrent = captureAuthorizedQuery(client, key);
+  return {
+    key,
+    listKey,
+    isCurrent,
+    reconcile(updated: T) {
+      if (!isCurrent()) return false;
+      const current = client.getQueryData<T>(key);
+      if (!current || current.version > updated.version) return false;
+      if (current.version < updated.version) client.setQueryData(key, updated);
+      return true;
+    },
+  };
 }
 
 export const privateAreaQueryKeys = {

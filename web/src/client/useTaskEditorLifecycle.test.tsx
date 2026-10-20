@@ -32,6 +32,39 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('useTaskEditorLifecycle', () => {
+  it('expires captured work on unmount', () => {
+    const { result, unmount } = renderHook(() =>
+      useTaskEditorLifecycle({ isDirty: false, onClose: vi.fn() }),
+    );
+    const isCurrent = result.current.captureOwnership();
+    expect(isCurrent()).toBe(true);
+    unmount();
+    expect(isCurrent()).toBe(false);
+  });
+
+  it('does not revive work from an earlier activation', () => {
+    const { result, rerender } = renderHook(
+      ({ active }) =>
+        useTaskEditorLifecycle({
+          isActive: active,
+          isDirty: false,
+          onClose: vi.fn(),
+        }),
+      { initialProps: { active: false } },
+    );
+    const inactive = result.current.captureOwnership();
+    expect(inactive()).toBe(false);
+    rerender({ active: true });
+    const previous = result.current.captureOwnership();
+    expect(previous()).toBe(true);
+    rerender({ active: false });
+    expect(previous()).toBe(false);
+    rerender({ active: true });
+    expect(inactive()).toBe(false);
+    expect(previous()).toBe(false);
+    expect(result.current.captureOwnership()()).toBe(true);
+  });
+
   it('closes a clean editor immediately', () => {
     const { result } = renderHook(() =>
       useTaskEditorLifecycle({

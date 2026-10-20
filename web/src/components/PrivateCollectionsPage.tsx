@@ -6,12 +6,18 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { captureCollectionOrder } from '../client/collectionOrder';
+import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
+import { captureQueryIdentity } from '../client/queryIdentity';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { PrivateCollectionDetail } from '../api/generated/models/PrivateCollectionDetail';
 import type { PrivateCollectionItemDetail } from '../api/generated/models/PrivateCollectionItemDetail';
 import {
   PRIVATE_COLLECTIONS_PATH,
+  capturePrivateCreate,
+  capturePrivateDelete,
+  capturePrivateEdit,
   privateApiCall,
   privateAreaQueryKeys,
   privateCollectionPath,
@@ -202,11 +208,17 @@ export function PrivateCollectionCreatePage({
           privateCollectionCreate: { title },
         }),
       ),
-    onSuccess: async (collection) => {
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.collections(accountId, spaceId),
-      });
+    onMutate: () =>
+      capturePrivateCreate(
+        queryClient,
+        privateAreaQueryKeys.collections(accountId, spaceId),
+        captureOwnership(),
+      ),
+    onSuccess: async (collection, _values, context) => {
+      await context?.refreshList();
+      if (!context?.isCurrentTask()) return;
       closeTask(() => {
+        if (!context.isCurrentTask()) return;
         navigate(privateCollectionPath(collection.id), {
           replace: true,
           state: navigationState,
@@ -220,6 +232,7 @@ export function PrivateCollectionCreatePage({
     mutation.reset,
   );
   const {
+    captureOwnership,
     navigationState,
     showDiscardConfirm,
     keepEditing,
@@ -313,6 +326,7 @@ function CollectionItems({
   const [pendingOrder, setPendingOrder] = useState<string[] | null>(null);
   const [pendingToggle, setPendingToggle] = useState<{
     itemId: string;
+    version: number;
     completed: boolean;
   } | null>(null);
   const collectionKey = privateAreaQueryKeys.collection(
@@ -367,46 +381,30 @@ function CollectionItems({
         scope.spaceId,
         scope.collectionId,
       );
-      await queryClient.cancelQueries({ queryKey: key, exact: true });
-      const previousItem = queryClient
-        .getQueryData<PrivateCollectionDetail>(key)
-        ?.items.find((entry) => entry.id === item.id);
-      const completed = update.completed;
-      if (completed !== undefined && previousItem) {
-        setPendingToggle({ itemId: item.id, completed });
-        queryClient.setQueryData<PrivateCollectionDetail>(key, (current) =>
-          current
-            ? {
-                ...current,
-                items: current.items.map((entry) =>
-                  entry.id === item.id ? { ...entry, completed } : entry,
-                ),
-              }
-            : current,
-        );
+      const listKey = privateAreaQueryKeys.collections(
+        scope.accountId,
+        scope.spaceId,
+      );
+      const isCurrentList = captureQueryIdentity(queryClient, listKey);
+      const patch = await captureCollectionItemUpdate<PrivateCollectionDetail>(
+        queryClient,
+        key,
+        item,
+        update,
+      );
+      if (update.completed !== undefined && patch.previousItem) {
+        setPendingToggle({
+          itemId: item.id,
+          version: item.version,
+          completed: update.completed,
+        });
       }
-      return { key, previousItem };
+      return { ...patch, listKey, isCurrentList };
     },
-    onError: async (error, { update }, context) => {
+    onError: async (error, _variables, context) => {
       setPendingToggle(null);
-      if (update.completed !== undefined && context?.previousItem) {
-        const previousItem = context.previousItem;
-        queryClient.setQueryData<PrivateCollectionDetail>(
-          context.key,
-          (current) =>
-            current
-              ? {
-                  ...current,
-                  items: current.items.map((entry) =>
-                    entry.id === previousItem.id &&
-                    entry.version === previousItem.version
-                      ? { ...entry, completed: previousItem.completed }
-                      : entry,
-                  ),
-                }
-              : current,
-        );
-      }
+      if (!context?.isCurrentQuery()) return;
+      context.rollback();
       if (
         context &&
         ['unauthorized', 'permission', 'notFound'].includes(
@@ -417,46 +415,30 @@ function CollectionItems({
       }
     },
     onSuccess: (updatedItem, _variables, context) => {
-      if (context) {
-        queryClient.setQueryData<PrivateCollectionDetail>(
-          context.key,
-          (current) =>
-            current
-              ? {
-                  ...current,
-                  items: current.items.map((entry) =>
-                    entry.id === updatedItem.id &&
-                    entry.version <= updatedItem.version
-                      ? updatedItem
-                      : entry,
-                  ),
-                }
-              : current,
-        );
-      }
+      context?.confirm(updatedItem);
       setPendingToggle(null);
     },
-    onSettled: async (_data, error, { scope }, context) => {
-      if (
-        context &&
-        !['unauthorized', 'permission', 'notFound'].includes(
-          clientProblemKind(error),
-        )
-      ) {
-        await queryClient.invalidateQueries({
-          queryKey: context.key,
-          exact: true,
-          refetchType: isClientOnline() ? 'active' : 'none',
-        });
+    onSettled: async (_data, error, _variables, context) => {
+      if (context?.isCurrentQuery()) {
+        if (
+          !['unauthorized', 'permission', 'notFound'].includes(
+            clientProblemKind(error),
+          )
+        ) {
+          await queryClient.invalidateQueries({
+            queryKey: context.key,
+            exact: true,
+            refetchType: isClientOnline() ? 'active' : 'none',
+          });
+        }
+        if (context.isCurrentQuery() && context.isCurrentList()) {
+          await queryClient.invalidateQueries({
+            queryKey: context.listKey,
+            exact: true,
+            refetchType: isClientOnline() ? 'active' : 'none',
+          });
+        }
       }
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.collections(
-          scope.accountId,
-          scope.spaceId,
-        ),
-        exact: true,
-        refetchType: isClientOnline() ? 'active' : 'none',
-      });
       itemUpdateInFlightRef.current = false;
     },
   });
@@ -494,51 +476,29 @@ function CollectionItems({
         }),
       );
     },
-    onMutate: async ({ itemIds, scope }) => {
+    onMutate: async ({ itemIds, scope, version }) => {
       const key = privateAreaQueryKeys.collection(
         scope.accountId,
         scope.spaceId,
         scope.collectionId,
       );
-      await queryClient.cancelQueries({ queryKey: key, exact: true });
-      const previous = queryClient.getQueryData<PrivateCollectionDetail>(key);
-      const positions = new Map(itemIds.map((id, position) => [id, position]));
-      queryClient.setQueryData<PrivateCollectionDetail>(key, (current) =>
-        current
-          ? {
-              ...current,
-              items: current.items.map((item) => ({
-                ...item,
-                position: positions.get(item.id) ?? item.position,
-              })),
-            }
-          : current,
+      const listKey = privateAreaQueryKeys.collections(
+        scope.accountId,
+        scope.spaceId,
       );
-      return {
+      const isCurrentList = captureQueryIdentity(queryClient, listKey);
+      const order = await captureCollectionOrder<PrivateCollectionDetail>(
+        queryClient,
         key,
-        version: previous?.version,
-        previousPositions: new Map(
-          previous?.items.map((item) => [item.id, item.position]),
-        ),
-      };
+        version,
+        itemIds,
+      );
+      return { ...order, listKey, isCurrentList };
     },
     onError: async (error, _variables, context) => {
       setPendingOrder(null);
-      if (!context) return;
-      queryClient.setQueryData<PrivateCollectionDetail>(
-        context.key,
-        (current) =>
-          current && current.version === context.version
-            ? {
-                ...current,
-                items: current.items.map((item) => ({
-                  ...item,
-                  position:
-                    context.previousPositions.get(item.id) ?? item.position,
-                })),
-              }
-            : current,
-      );
+      if (!context?.isCurrentQuery()) return;
+      context.rollback();
       if (
         ['unauthorized', 'permission', 'notFound'].includes(
           clientProblemKind(error),
@@ -548,49 +508,30 @@ function CollectionItems({
       }
     },
     onSuccess: (updated, _variables, context) => {
-      if (context) {
-        queryClient.setQueryData<PrivateCollectionDetail>(
-          context.key,
-          (current) => {
-            if (!current || current.version > updated.version) return current;
-            const currentItems = new Map(
-              current.items.map((item) => [item.id, item]),
-            );
-            return {
-              ...updated,
-              items: updated.items.map((item) => {
-                const existing = currentItems.get(item.id);
-                return existing && existing.version > item.version
-                  ? { ...existing, position: item.position }
-                  : item;
-              }),
-            };
-          },
-        );
-      }
+      context?.confirm(updated);
       setPendingOrder(null);
     },
-    onSettled: async (_data, error, { scope }, context) => {
-      if (
-        context &&
-        !['unauthorized', 'permission', 'notFound'].includes(
-          clientProblemKind(error),
-        )
-      ) {
-        await queryClient.invalidateQueries({
-          queryKey: context.key,
-          exact: true,
-          refetchType: isClientOnline() ? 'active' : 'none',
-        });
+    onSettled: async (_data, error, _variables, context) => {
+      if (context?.isCurrentQuery()) {
+        if (
+          !['unauthorized', 'permission', 'notFound'].includes(
+            clientProblemKind(error),
+          )
+        ) {
+          await queryClient.invalidateQueries({
+            queryKey: context.key,
+            exact: true,
+            refetchType: isClientOnline() ? 'active' : 'none',
+          });
+        }
+        if (context.isCurrentQuery() && context.isCurrentList()) {
+          await queryClient.invalidateQueries({
+            queryKey: context.listKey,
+            exact: true,
+            refetchType: isClientOnline() ? 'active' : 'none',
+          });
+        }
       }
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.collections(
-          scope.accountId,
-          scope.spaceId,
-        ),
-        exact: true,
-        refetchType: isClientOnline() ? 'active' : 'none',
-      });
       reorderInFlightRef.current = false;
     },
   });
@@ -697,7 +638,10 @@ function CollectionItems({
   }
 
   function renderChecklistItem(item: PrivateCollectionItemDetail) {
-    const isTogglePending = pendingToggle?.itemId === item.id;
+    const isTogglePending =
+      pendingToggle?.itemId === item.id &&
+      pendingToggle.version === item.version &&
+      updateMutation.context?.isCurrentQuery();
     const completed = isTogglePending
       ? pendingToggle.completed
       : item.completed;
@@ -871,7 +815,7 @@ function CollectionItems({
       {reorderMutation.isPending ? (
         <p role="status">{t('privateArea.collections.reordering')}</p>
       ) : null}
-      {updateMutation.error ? (
+      {updateMutation.error && updateMutation.context?.isCurrentQuery() ? (
         <ProblemState
           error={updateMutation.error}
           onRetry={async () => {
@@ -886,7 +830,11 @@ function CollectionItems({
       {deleteMutation.error ? (
         <ProblemState error={deleteMutation.error} />
       ) : null}
-      {reorderMutation.error ? (
+      {reorderMutation.error &&
+      reorderMutation.context?.isCurrentQuery() &&
+      reorderMutation.variables?.scope.accountId === accountId &&
+      reorderMutation.variables?.scope.spaceId === spaceId &&
+      reorderMutation.variables?.scope.collectionId === collection.id ? (
         <ProblemState
           error={reorderMutation.error}
           onRetry={async () => {
@@ -910,7 +858,7 @@ export function PrivateCollectionDetailPage({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { collectionId, query } = usePrivateCollection(api, accountId, spaceId);
+  const { query } = usePrivateCollection(api, accountId, spaceId);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
@@ -929,29 +877,47 @@ export function PrivateCollectionDetailPage({
   }, [collection?.title]);
 
   const updateCollectionMutation = useMutation({
-    mutationFn: (newTitle: string) => {
-      if (!collection) throw new Error('Missing collection');
+    mutationFn: ({
+      collection,
+      newTitle,
+    }: {
+      collection: PrivateCollectionDetail;
+      newTitle: string;
+    }) => {
       return privateApiCall(() =>
         api.updatePrivateCollection({
-          spaceId,
+          spaceId: collection.spaceId,
           collectionId: collection.id,
           ifMatch: String(collection.version),
           privateCollectionUpdate: { title: newTitle },
         }),
       );
     },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(
-        privateAreaQueryKeys.collection(accountId, spaceId, updated.id),
-        updated,
-      );
-      void queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.collections(accountId, spaceId),
-      });
+    onMutate: ({ collection }) =>
+      capturePrivateEdit<PrivateCollectionDetail>(
+        queryClient,
+        privateAreaQueryKeys.collection(
+          collection.ownerId,
+          collection.spaceId,
+          collection.id,
+        ),
+        privateAreaQueryKeys.collections(
+          collection.ownerId,
+          collection.spaceId,
+        ),
+      ),
+    onSuccess: (updated, _variables, context) => {
+      if (!context?.reconcile(updated)) return;
+      void queryClient.invalidateQueries({ queryKey: context.listKey });
       closeCollectionEdit(() => {
+        if (!context.isCurrent()) return;
+        const current = queryClient.getQueryData<PrivateCollectionDetail>(
+          context.key,
+        );
+        if (!current) return;
         setIsEditing(false);
         setConfirmDelete(false);
-        setTitleDraft(updated.title);
+        setTitleDraft(current.title);
         showTitleSavedForFeedbackWindow();
       });
     },
@@ -961,27 +927,35 @@ export function PrivateCollectionDetailPage({
     mutationFn: (collectionToDelete: PrivateCollectionDetail) =>
       privateApiCall(() =>
         api.deletePrivateCollection({
-          spaceId,
+          spaceId: collectionToDelete.spaceId,
           collectionId: collectionToDelete.id,
           ifMatch: String(collectionToDelete.version),
         }),
       ),
-    onSuccess: async () => {
-      if (collectionId) {
-        queryClient.removeQueries({
-          queryKey: privateAreaQueryKeys.collection(
-            accountId,
-            spaceId,
-            collectionId,
-          ),
-        });
+    onMutate: (target) =>
+      capturePrivateDelete(
+        queryClient,
+        privateAreaQueryKeys.collection(
+          target.ownerId,
+          target.spaceId,
+          target.id,
+        ),
+        privateAreaQueryKeys.collections(target.ownerId, target.spaceId),
+        captureDeleteOwnership(),
+      ),
+    onSuccess: async (_result, _target, context) => {
+      if (!context) return;
+      await context.refreshList();
+      if (!context.isCurrentTask()) {
+        context.remove();
+        return;
       }
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.collections(accountId, spaceId),
+      closeCollectionEdit(() => {
+        const shouldNavigate = context.isCurrentTask();
+        if (context.remove() && shouldNavigate) {
+          navigate(PRIVATE_COLLECTIONS_PATH, { replace: true });
+        }
       });
-      closeCollectionEdit(() =>
-        navigate(PRIVATE_COLLECTIONS_PATH, { replace: true }),
-      );
     },
   });
 
@@ -990,6 +964,7 @@ export function PrivateCollectionDetailPage({
     ? titleDraft.trim().length > 0 && titleDraft.trim() !== collection.title
     : false;
   const {
+    captureOwnership: captureDeleteOwnership,
     showDiscardConfirm: showEditDiscard,
     keepEditing: keepCollectionEditing,
     closeConfirmed: closeCollectionEdit,
@@ -1029,12 +1004,17 @@ export function PrivateCollectionDetailPage({
   function submitCollectionTitle(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (
+      !collection ||
       !isTitleDirty ||
+      deleteMutation.isPending ||
       updateCollectionMutation.isPending ||
       collectionOperationBlocked
     )
       return;
-    updateCollectionMutation.mutate(titleDraft.trim());
+    updateCollectionMutation.mutate({
+      collection,
+      newTitle: titleDraft.trim(),
+    });
   }
 
   return (
@@ -1260,21 +1240,31 @@ export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
     }) =>
       privateApiCall(() =>
         api.updatePrivateCollection({
-          spaceId,
+          spaceId: collection.spaceId,
           collectionId: collection.id,
           ifMatch: String(collection.version),
           privateCollectionUpdate: { title },
         }),
       ),
-    onSuccess: async (collection) => {
-      queryClient.setQueryData(
-        privateAreaQueryKeys.collection(accountId, spaceId, collection.id),
-        collection,
-      );
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.collections(accountId, spaceId),
-      });
+    onMutate: ({ collection }) =>
+      capturePrivateEdit<PrivateCollectionDetail>(
+        queryClient,
+        privateAreaQueryKeys.collection(
+          collection.ownerId,
+          collection.spaceId,
+          collection.id,
+        ),
+        privateAreaQueryKeys.collections(
+          collection.ownerId,
+          collection.spaceId,
+        ),
+      ),
+    onSuccess: async (collection, _variables, context) => {
+      if (!context?.reconcile(collection)) return;
+      await queryClient.invalidateQueries({ queryKey: context.listKey });
+      if (!context.isCurrent()) return;
       closeTask(() => {
+        if (!context.isCurrent()) return;
         navigate(privateCollectionPath(collection.id), {
           replace: true,
           state: navigationState,

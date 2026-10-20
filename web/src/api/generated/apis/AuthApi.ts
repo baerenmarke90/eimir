@@ -139,6 +139,11 @@ import {
     SignupConsumeRequestToJSON,
 } from '../models/SignupConsumeRequest';
 import {
+    type SignupEmailRequest,
+    SignupEmailRequestFromJSON,
+    SignupEmailRequestToJSON,
+} from '../models/SignupEmailRequest';
+import {
     type SignupSessionView,
     SignupSessionViewFromJSON,
     SignupSessionViewToJSON,
@@ -225,7 +230,7 @@ export interface RequestRecoveryApiV1AuthRecoveryRequestPostRequest {
 }
 
 export interface RequestSignupApiV1AuthSignupRequestPostRequest {
-    emailRequest: EmailRequest;
+    signupEmailRequest: SignupEmailRequest;
 }
 
 export interface ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequest {
@@ -648,7 +653,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Redeem a signup proof into a normal session.  Send the proof in the request body, never in a URL. After a successful redemption the client removes it from its address bar and history. A new Account has no Membership: continue with `POST /spaces` or accept an invitation.
+     * Redeem a signup proof into a normal session.  Send the proof in the request body, never in a URL. After a successful redemption the client removes it from its address bar and history. A new Account joins the invitation bound to its proof atomically before a session is issued. An ordinary proof has no invitation: continue with `POST /spaces` or accept an invitation separately. Invalid invitations fail without consuming the proof or creating an Account, session, or Membership.
      * Consume Signup
      */
     async consumeSignupApiV1AuthSignupConsumePostRaw(requestParameters: ConsumeSignupApiV1AuthSignupConsumePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SignupSessionView>> {
@@ -659,7 +664,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Redeem a signup proof into a normal session.  Send the proof in the request body, never in a URL. After a successful redemption the client removes it from its address bar and history. A new Account has no Membership: continue with `POST /spaces` or accept an invitation.
+     * Redeem a signup proof into a normal session.  Send the proof in the request body, never in a URL. After a successful redemption the client removes it from its address bar and history. A new Account joins the invitation bound to its proof atomically before a session is issued. An ordinary proof has no invitation: continue with `POST /spaces` or accept an invitation separately. Invalid invitations fail without consuming the proof or creating an Account, session, or Membership.
      * Consume Signup
      */
     async consumeSignupApiV1AuthSignupConsumePost(requestParameters: ConsumeSignupApiV1AuthSignupConsumePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SignupSessionView> {
@@ -1181,7 +1186,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Request a passwordless sign-in link.  The response is identical whether or not the address exists. Otherwise this endpoint would become an account directory.
+     * Request a passwordless entry link.  Cloud delegates to the same mailbox proof as /auth/signup/request, including for addresses without an Account. Self-Hosted retains existing-account sign-in. The response never discloses whether the address has an Account.
      * Request Magic Link
      */
     async requestMagicLinkApiV1AuthMagicLinkRequestPostRaw(requestParameters: RequestMagicLinkApiV1AuthMagicLinkRequestPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
@@ -1192,7 +1197,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Request a passwordless sign-in link.  The response is identical whether or not the address exists. Otherwise this endpoint would become an account directory.
+     * Request a passwordless entry link.  Cloud delegates to the same mailbox proof as /auth/signup/request, including for addresses without an Account. Self-Hosted retains existing-account sign-in. The response never discloses whether the address has an Account.
      * Request Magic Link
      */
     async requestMagicLinkApiV1AuthMagicLinkRequestPost(requestParameters: RequestMagicLinkApiV1AuthMagicLinkRequestPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
@@ -1251,10 +1256,10 @@ export class AuthApi extends runtime.BaseAPI {
      * Creates request options for requestSignupApiV1AuthSignupRequestPost without sending the request
      */
     async requestSignupApiV1AuthSignupRequestPostRequestOpts(requestParameters: RequestSignupApiV1AuthSignupRequestPostRequest): Promise<runtime.RequestOpts> {
-        if (requestParameters['emailRequest'] == null) {
+        if (requestParameters['signupEmailRequest'] == null) {
             throw new runtime.RequiredError(
-                'emailRequest',
-                'Required parameter "emailRequest" was null or undefined when calling requestSignupApiV1AuthSignupRequestPost().'
+                'signupEmailRequest',
+                'Required parameter "signupEmailRequest" was null or undefined when calling requestSignupApiV1AuthSignupRequestPost().'
             );
         }
 
@@ -1272,7 +1277,7 @@ export class AuthApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: EmailRequestToJSON(requestParameters['emailRequest']),
+            body: SignupEmailRequestToJSON(requestParameters['signupEmailRequest']),
         };
     }
 

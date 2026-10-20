@@ -1,0 +1,6 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> eimir-web@0.0.0 format:check
+> biome format .
+
+Checked 651 files in 233ms. No fixes applied.

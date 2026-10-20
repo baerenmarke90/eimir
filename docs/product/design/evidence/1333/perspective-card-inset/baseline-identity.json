@@ -1,0 +1,10 @@
+{
+  "baselineMain": "cacc2522d2ab81db3d2b60fffbcce7909e587172",
+  "sha256": {
+    "web/src/components/GamesProductArea.css": "5cce07f4e1d703a525bee00719a8396877e581f6039bab1e55ce06a03d06a2d9",
+    "web/dist/assets/index-D3qmSww_.js": "75dca61ee3ca3aaa75789effed2933be8b32ea2b31144ba00f12c5eba03310b1",
+    "web/dist/assets/web-B7yX47Pj.js": "4a26a00a0dc0da5e85312bfba3d81c2916eea0f88893b7350b46c0471944facd",
+    "web/dist/assets/index-D46K-c7Q.css": "5a0671f0169db7c9502f7709de7b79f2568b81e89a09a3ad57a6e77202b0d3f2",
+    "web/dist/assets/web-D93he7TI.js": "e3513851a6c8e6e063dce32505618ebf7aff38733bd8d5bef3d3b70fcf07b367"
+  }
+}

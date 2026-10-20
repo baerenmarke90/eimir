@@ -12,7 +12,7 @@ import { CommentsApi } from '../api/generated/apis/CommentsApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
 import type { StoryItem } from '../api/generated/models/StoryItem';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from '../client/apiConfiguration';
 import { useApiRuntime } from '../client/apiRuntimeContext';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {

@@ -6,6 +6,7 @@ import { i18n } from '../i18n';
 import {
   ReferenceFlowError,
   uploadAttachmentBytesWithProgress,
+  waitUntilAttachmentReady,
   type ReferenceApis,
 } from './referenceFlow';
 
@@ -17,34 +18,6 @@ export interface ReadyDraftAttachment {
 
 function throwIfAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw new DOMException('Upload aborted.', 'AbortError');
-}
-
-async function waitUntilReady(
-  apis: ReferenceApis,
-  spaceId: string,
-  attachmentId: string,
-  signal?: AbortSignal,
-): Promise<void> {
-  const deadline = Date.now() + 30_000;
-  while (Date.now() < deadline) {
-    throwIfAborted(signal);
-    const attachment = await apis.attachments.getAttachment({
-      spaceId,
-      attachmentId,
-    });
-    if (attachment.status === 'READY') return;
-    if (
-      attachment.status === 'FAILED' ||
-      attachment.status === 'DELETE_FAILED' ||
-      attachment.status === 'DELETING'
-    ) {
-      throw new ReferenceFlowError(
-        i18n.t('flow.processingStatus', { status: attachment.status }),
-      );
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-  throw new ReferenceFlowError(i18n.t('flow.processingTimeout'));
 }
 
 export async function uploadMemoryDraftAttachment(
@@ -97,7 +70,12 @@ export async function uploadMemoryDraftAttachment(
       attachmentId: upload.attachment.id,
       body: {},
     });
-    await waitUntilReady(apis, spaceId, upload.attachment.id, options.signal);
+    await waitUntilAttachmentReady(
+      apis,
+      spaceId,
+      upload.attachment.id,
+      options.signal,
+    );
 
     return { attachmentId: upload.attachment.id };
   } catch (error) {

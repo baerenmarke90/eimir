@@ -1,0 +1,44 @@
+[WebServer] (node:18) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:52) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › tests/perspective-game.spec.ts:293:3 › perspective Back retains contrast, focus and keyboard return in light (2.4s)
+
+
+  1) [chromium] › tests/perspective-game.spec.ts:293:3 › perspective Back retains contrast, focus and keyboard return in light
+
+    Error: 320px light Back text
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 4.5
+    Received:    1
+
+      320 |         normal.ratio,
+      321 |         `${width}px ${theme} Back text`,
+    > 322 |       ).toBeGreaterThanOrEqual(4.5);
+          |         ^
+      323 |       const bounds = await back.boundingBox();
+      324 |       expect(bounds).not.toBeNull();
+      325 |       expect(bounds?.height).toBeGreaterThanOrEqual(44);
+        at /workspace/scratch/9b980fadc2fb/eimir/web/e2e/tests/perspective-game.spec.ts:322:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../tmp/1329-baseline-browser-results/perspective-game-perspecti-30168-nd-keyboard-return-in-light-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../tmp/1329-baseline-browser-results/perspective-game-perspecti-30168-nd-keyboard-return-in-light-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../../../tmp/1329-baseline-browser-results/perspective-game-perspecti-30168-nd-keyboard-return-in-light-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace ../../../../../../tmp/1329-baseline-browser-results/perspective-game-perspecti-30168-nd-keyboard-return-in-light-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › tests/perspective-game.spec.ts:293:3 › perspective Back retains contrast, focus and keyboard return in light

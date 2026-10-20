@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ProfilesApi } from '../api/generated/apis/ProfilesApi';
+import { ProfilesApi } from '../client/mediaApis';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
@@ -17,7 +17,7 @@ import { PreferenceSentiment } from '../api/generated/models/PreferenceSentiment
 import type { ProfilePreferenceView } from '../api/generated/models/ProfilePreferenceView';
 import { ProfileVisibility } from '../api/generated/models/ProfileVisibility';
 import type { SpaceProfileView } from '../api/generated/models/SpaceProfileView';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from '../client/apiConfiguration';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { settingsCategoryPath } from '../client/routes';
 import { normalizeClientError } from '../client/problemDetails';

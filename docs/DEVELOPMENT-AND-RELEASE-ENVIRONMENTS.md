@@ -57,6 +57,11 @@ repository-root `compose.yaml`.
 - Development database only uses profile `dev-db`.
 - Cloud/Managed uses profile `cloud` with immutable digest-qualified release images.
 
+The explicitly opt-in [private test channel](PRIVATE-TEST-CHANNEL.md) exports
+that Cloud profile for prerelease integration with production runtime hardening.
+Its generated Git Sync commits select a checked image pair. They are not
+published product releases and cannot stand in for the Production gates below.
+
 Both source-build helpers reject Production. There is no supported target-host source
 build path for a released Self-Hosted installation.
 

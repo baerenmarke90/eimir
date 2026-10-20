@@ -206,7 +206,7 @@ public final class UnifiedPushBridge extends Plugin {
     static void wake(Context context, String instance) {
         if (!instance.equals(activeInstance(context))) return;
         UnifiedPushBridge plugin = current.get();
-        if (plugin != null) plugin.notifyListeners("wake", new JSObject());
+        if (plugin != null) plugin.notifyListeners("wake", new JSObject().put("accountId", instance));
     }
 
     static void unavailable(Context context, String instance, String reason) {
@@ -214,6 +214,7 @@ public final class UnifiedPushBridge extends Plugin {
         UnifiedPushBridge plugin = current.get();
         if (plugin == null) return;
         JSObject result = new JSObject();
+        result.put("accountId", instance);
         result.put("reason", reason);
         plugin.notifyListeners("unavailable", result, true);
     }

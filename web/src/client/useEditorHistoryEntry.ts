@@ -15,6 +15,17 @@ function waitForPendingEntryRemoval(): Promise<void> {
   return pendingEntryRemoval ?? Promise.resolve();
 }
 
+/** Hand the next navigation to the document without a competing cleanup Back. */
+export function releaseEditorHistoryForDocumentNavigation(): Promise<void> {
+  const state = window.history.state;
+  if (state?.[EDITOR_HISTORY_STATE_KEY]) {
+    const next = { ...state };
+    delete next[EDITOR_HISTORY_STATE_KEY];
+    window.history.replaceState(next, '', window.location.href);
+  }
+  return waitForPendingEntryRemoval();
+}
+
 function removeCurrentEntry(marker: string): Promise<void> {
   if (window.history.state?.[EDITOR_HISTORY_STATE_KEY] !== marker) {
     return Promise.resolve();

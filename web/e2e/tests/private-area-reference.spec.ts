@@ -4,7 +4,9 @@ import { expect, test, type Page, type Route } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import navigation from '../../src/i18n/locales/navigation';
 import privateArea from '../../src/i18n/locales/privateArea';
+import { writeFile } from 'node:fs/promises';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -150,6 +152,11 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
           refreshToken: 'browser-e2e-refresh-token',
         },
       });
+      return;
+    }
+
+    if (method === 'POST' && pathname === '/api/v1/auth/sign-out') {
+      await route.fulfill({ status: 204 });
       return;
     }
 
@@ -334,6 +341,7 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
         `/api/v1/spaces/${SPACE_ID}/plans`,
         `/api/v1/spaces/${SPACE_ID}/places`,
         `/api/v1/spaces/${SPACE_ID}/wishes`,
+        `/api/v1/spaces/${SPACE_ID}/private/notes`,
       ].includes(pathname)
     ) {
       await fulfillJson({ hasMore: false, items: [], nextCursor: null });
@@ -394,6 +402,30 @@ async function signInAndOpenPrivateArea(page: Page): Promise<string[]> {
   return unexpectedRequests;
 }
 
+async function signOutToPublicEntry(page: Page): Promise<void> {
+  // AppShell intentionally leaves the document on sign-out. Accept a pending
+  // editor's beforeunload prompt rather than relying on Playwright's dismissal.
+  page.on('dialog', async (dialog) => {
+    expect(dialog.type()).toBe('beforeunload');
+    await dialog.accept();
+  });
+  await page
+    .getByRole('button', { name: navigation.profileMenu, exact: true })
+    .click();
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === '/', { waitUntil: 'load' }),
+    page.getByRole('button', { name: de.header.logout, exact: true }).click(),
+  ]);
+  await expect(page.getByLabel(de.login.email)).toBeVisible();
+}
+
+async function signInAgain(page: Page): Promise<void> {
+  await page.getByLabel(de.login.email).fill('anna@example.org');
+  await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
+  await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
+}
+
 async function expectPrivateReferenceStructure(page: Page): Promise<void> {
   const banner = page.getByRole('note');
   await expect(banner).toContainText(privateArea.privacyLabel);
@@ -416,6 +448,102 @@ async function expectPrivateReferenceStructure(page: Page): Promise<void> {
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
+}
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`private overview preserves section spacing through resize and return in ${theme}`, async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(60_000);
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(() => {
+      window.localStorage.setItem('eimir.theme', 'system');
+    });
+    await page.setViewportSize({ width: 481, height: 900 });
+    const unexpectedRequests = await signInAndOpenPrivateArea(page);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+
+    for (const viewport of [
+      { width: 481, largeText: false },
+      { width: 480, largeText: false },
+      { width: 481, largeText: false },
+      { width: 480, largeText: false },
+      { width: 360, largeText: false },
+      { width: 390, largeText: false },
+      { width: 430, largeText: false },
+      { width: 1440, largeText: false },
+      { width: 360, largeText: true },
+    ]) {
+      await page.setViewportSize({ width: viewport.width, height: 900 });
+      await page.locator('html').evaluate((element, largeText) => {
+        element.style.fontSize = largeText ? '200%' : '';
+      }, viewport.largeText);
+      const name = `private-spacing-${viewport.width}-${theme}${viewport.largeText ? '-large' : ''}`;
+      const geometry = await page
+        .locator('.private-area-reference-overview')
+        .evaluate((element) => {
+          const fontSize = Number.parseFloat(
+            getComputedStyle(document.documentElement).fontSize,
+          );
+          const children = Array.from(element.children);
+          const rects = children.map((child) => child.getBoundingClientRect());
+          return {
+            width: window.innerWidth,
+            fontSize,
+            expectedGap:
+              window.innerWidth <= 480
+                ? 1.25 * fontSize
+                : Math.min(
+                    2 * fontSize,
+                    Math.max(1.25 * fontSize, window.innerWidth * 0.05),
+                  ),
+            computedGap: getComputedStyle(element).rowGap,
+            visibleGaps: rects.slice(1).map((rect, index) => ({
+              distance: rect.top - rects[index].bottom,
+              adjacentMargins:
+                Number.parseFloat(
+                  getComputedStyle(children[index]).marginBottom,
+                ) +
+                Number.parseFloat(
+                  getComputedStyle(children[index + 1]).marginTop,
+                ),
+            })),
+          };
+        });
+      await writeFile(
+        testInfo.outputPath(`${name}.json`),
+        JSON.stringify(geometry, null, 2),
+      );
+      await page.screenshot({
+        path: testInfo.outputPath(`${name}.png`),
+        fullPage: true,
+      });
+      expect
+        .soft(Number.parseFloat(geometry.computedGap))
+        .toBeCloseTo(geometry.expectedGap, 1);
+      for (const gap of geometry.visibleGaps)
+        expect
+          .soft(gap.distance)
+          .toBeCloseTo(geometry.expectedGap + gap.adjacentMargins, 1);
+      await expectPrivateReferenceStructure(page);
+      await expect(page).toHaveURL(/\/more\/private$/);
+    }
+
+    await page.locator('.private-area-destination-card').first().click();
+    await expect(page).toHaveURL(/\/more\/private\/notes$/);
+    await expect(
+      page.getByText(privateArea.notes.emptyTitle, { exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole('link', { name: privateArea.backToHub, exact: true })
+      .click();
+    await expectPrivateReferenceStructure(page);
+    await page
+      .getByRole('link', { name: privateArea.backToMore, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more$/);
+    expect(unexpectedRequests).toEqual([]);
+  });
 }
 
 for (const colorScheme of ['light', 'dark'] as const) {
@@ -685,12 +813,17 @@ async function installHeldPrivateList(page: Page, itemCount = 3) {
     updatedAt: TEST_NOW,
     capabilities: { canComment: false, canDelete: true, canEdit: true },
   }));
+  let version = 1;
+  let detailReads = 0;
+  let deniedReads = false;
+  let nextDetailRead: { started: () => void; response: Promise<void> } | null =
+    null;
   const collection = () => ({
     id: PRIVATE_COLLECTION_ID,
     ownerId: ACCOUNT_ID,
     spaceId: SPACE_ID,
     title: 'Travel preparations',
-    version: 1,
+    version,
     createdAt: TEST_NOW,
     updatedAt: TEST_NOW,
     capabilities: { canComment: false, canDelete: true, canEdit: true },
@@ -701,6 +834,7 @@ async function installHeldPrivateList(page: Page, itemCount = 3) {
     route: Route;
     release: () => void;
     completed: boolean;
+    item: (typeof items)[number];
   } | null = null;
   let failReads = false;
   const root = `/api/v1/spaces/${SPACE_ID}/private/collections`;
@@ -708,13 +842,22 @@ async function installHeldPrivateList(page: Page, itemCount = 3) {
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (request.method() === 'GET') {
+      if (path === `${root}/${PRIVATE_COLLECTION_ID}`) {
+        detailReads += 1;
+        if (nextDetailRead) {
+          const read = nextDetailRead;
+          nextDetailRead = null;
+          read.started();
+          await read.response;
+        }
+      }
       await route.fulfill({
-        status: failReads ? 503 : 200,
+        status: failReads ? (deniedReads ? 403 : 503) : 200,
         contentType: 'application/json',
         body: JSON.stringify(
           failReads
             ? {
-                status: 503,
+                status: deniedReads ? 403 : 503,
                 code: 'E2E_READ_UNAVAILABLE',
                 title: 'Read unavailable',
                 detail: 'Retry the authorized read.',
@@ -737,7 +880,12 @@ async function installHeldPrivateList(page: Page, itemCount = 3) {
         completed: body.completed,
       });
       await new Promise<void>((release) => {
-        waiting = { route, release, completed: body.completed };
+        waiting = {
+          route,
+          release,
+          completed: body.completed,
+          item: { ...items[0] },
+        };
       });
       return;
     }
@@ -746,6 +894,28 @@ async function installHeldPrivateList(page: Page, itemCount = 3) {
   return {
     writes,
     items,
+    detailReads: () => detailReads,
+    denyReads: () => {
+      failReads = true;
+      deniedReads = true;
+    },
+    reorder: () => {
+      version += 1;
+      for (const item of items)
+        item.position = items.length - 1 - item.position;
+    },
+    holdNextDetailRead: () => {
+      let started!: () => void;
+      let release!: () => void;
+      const received = new Promise<void>((resolve) => {
+        started = resolve;
+      });
+      const response = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      nextDetailRead = { started, response };
+      return { received, release };
+    },
     failReads: (fail: boolean) => {
       failReads = fail;
     },
@@ -753,16 +923,21 @@ async function installHeldPrivateList(page: Page, itemCount = 3) {
       const pending = waiting;
       if (!pending) throw new Error('No private item write is waiting.');
       waiting = null;
-      if (status === 200) {
-        items[0].completed = pending.completed;
-        items[0].version += 1;
+      const saved = {
+        ...pending.item,
+        completed: pending.completed,
+        version: pending.item.version + 1,
+      };
+      if (status === 200 && items[0].version < saved.version) {
+        items[0].completed = saved.completed;
+        items[0].version = saved.version;
       }
       await pending.route.fulfill({
         status,
         contentType: 'application/json',
         body: JSON.stringify(
           status === 200
-            ? items[0]
+            ? saved
             : {
                 status,
                 code:
@@ -926,10 +1101,159 @@ test('private checklist rolls back, refreshes a conflict and recovers a failed r
   expect(unexpectedRequests).toEqual([]);
 });
 
+for (const view of [
+  { name: '390-light', width: 390, theme: 'light' },
+  { name: '1280-dark', width: 1280, theme: 'dark' },
+] as const) {
+  for (const change of ['order', 'item'] as const) {
+    test(`private completion preserves a newer ${change} in ${view.name}`, async ({
+      page,
+      context,
+    }, testInfo) => {
+      await page.setViewportSize({ width: view.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: view.theme,
+        reducedMotion: 'reduce',
+      });
+      await page.addInitScript(() =>
+        window.localStorage.setItem('eimir.theme', 'system'),
+      );
+      await page.clock.install();
+      const unexpected = await signInAndOpenPrivateArea(page);
+      const fixture = await installHeldPrivateList(page);
+      await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
+      const row = page.locator(`[data-sortable-item-id="${PRIVATE_ITEM_ID}"]`);
+      const toggle = row.getByRole('button');
+      await toggle.click();
+      await expect.poll(() => fixture.writes.length).toBe(1);
+      if (change === 'order') fixture.reorder();
+      else
+        Object.assign(fixture.items[0], {
+          title: 'Tickets updated elsewhere',
+          version: 5,
+          completed: false,
+        });
+      await context.setOffline(true);
+      await page.clock.fastForward(16_000);
+      await context.setOffline(false);
+      await expect.poll(() => fixture.detailReads()).toBe(2);
+      if (change === 'item') {
+        await expect(row).toContainText('Tickets updated elsewhere');
+        await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+        await expect(row.getByRole('status')).toHaveCount(0);
+      }
+      const recovery = fixture.holdNextDetailRead();
+      await fixture.respond();
+      await recovery.received;
+      await expect(row.getByRole('status')).toHaveCount(0);
+      await expect(toggle).toHaveAttribute(
+        'aria-pressed',
+        change === 'order' ? 'true' : 'false',
+      );
+      if (change === 'order')
+        await expect(
+          page.locator('[data-sortable-item-id]').first(),
+        ).toHaveAttribute('data-sortable-item-id', fixture.items[2].id);
+      else await expect(row).toContainText('Tickets updated elsewhere');
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `private-completion-newer-${change}-${view.name}.png`,
+        ),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      recovery.release();
+      await expect(toggle).toBeEnabled();
+      await toggle.click();
+      await expect.poll(() => fixture.writes.length).toBe(2);
+      expect(fixture.writes[1].ifMatch).toBe(change === 'order' ? '2' : '5');
+      await fixture.respond();
+      await expect(toggle).toBeEnabled();
+      await page
+        .getByRole('link', {
+          name: privateArea.collections.detailBack,
+          exact: true,
+        })
+        .click();
+      await page
+        .getByRole('link', { name: 'Travel preparations', exact: true })
+        .click();
+      await expect(row).toBeVisible();
+      expect(fixture.writes).toHaveLength(2);
+      expect(unexpected).toEqual([]);
+    });
+  }
+}
+
+for (const outcome of ['success', 'failure'] as const) {
+  test(`private completion respects a newer denied read after late ${outcome}`, async ({
+    page,
+    context,
+  }, testInfo) => {
+    await page.setViewportSize({
+      width: outcome === 'success' ? 390 : 1280,
+      height: 900,
+    });
+    await page.emulateMedia({
+      colorScheme: outcome === 'success' ? 'light' : 'dark',
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      window.localStorage.setItem('eimir.theme', 'system'),
+    );
+    await page.clock.install();
+    const unexpected = await signInAndOpenPrivateArea(page);
+    const fixture = await installHeldPrivateList(page);
+    await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
+    await page
+      .getByRole('button', { name: privateArea.collections.markComplete })
+      .first()
+      .click();
+    await expect.poll(() => fixture.writes.length).toBe(1);
+    fixture.denyReads();
+    await context.setOffline(true);
+    await page.clock.fastForward(16_000);
+    await context.setOffline(false);
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText('Book train tickets', { exact: true }),
+    ).toHaveCount(0);
+    const before = fixture.detailReads();
+    const recovery = fixture.holdNextDetailRead();
+    await fixture.respond(outcome === 'success' ? 200 : 503);
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
+    await expect(
+      page.getByText('Book train tickets', { exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    expect(fixture.detailReads()).toBe(before);
+    expect(fixture.writes).toHaveLength(1);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`private-completion-denied-${outcome}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    recovery.release();
+    expect(unexpected).toEqual([]);
+  });
+}
+
 async function installHeldPrivateReorder(page: Page, count = 3) {
   const list = await installHeldPrivateList(page, count);
   let version = 1;
   let failReads = false;
+  let deniedReads = false;
+  let detailReads = 0;
   let nextDetailRead: {
     started: () => void;
     response: Promise<void>;
@@ -953,6 +1277,7 @@ async function installHeldPrivateReorder(page: Page, count = 3) {
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (request.method() === 'GET') {
+      if (path === `${root}/${PRIVATE_COLLECTION_ID}`) detailReads += 1;
       if (path === `${root}/${PRIVATE_COLLECTION_ID}` && nextDetailRead) {
         const read = nextDetailRead;
         nextDetailRead = null;
@@ -960,12 +1285,12 @@ async function installHeldPrivateReorder(page: Page, count = 3) {
         await read.response;
       }
       await route.fulfill({
-        status: failReads ? 503 : 200,
+        status: failReads ? (deniedReads ? 403 : 503) : 200,
         contentType: 'application/json',
         body: JSON.stringify(
           failReads
             ? {
-                status: 503,
+                status: deniedReads ? 403 : 503,
                 title: 'Read unavailable',
                 code: 'E2E_READ_UNAVAILABLE',
                 type: 'about:blank',
@@ -993,6 +1318,11 @@ async function installHeldPrivateReorder(page: Page, count = 3) {
   return {
     items: list.items,
     writes,
+    detailReads: () => detailReads,
+    denyReads: () => {
+      failReads = true;
+      deniedReads = true;
+    },
     holdNextDetailRead: () => {
       let started!: () => void;
       let release!: () => void;
@@ -1148,6 +1478,68 @@ for (const view of feedbackViews) {
       .click();
     await expect(page).toHaveURL(/\/more\/private\/collections$/);
     expect(unexpectedRequests).toEqual([]);
+  });
+}
+
+for (const outcome of ['success', 'failure'] as const) {
+  test(`private reorder respects a newer denied read after late ${outcome}`, async ({
+    page,
+    context,
+  }, testInfo) => {
+    await page.setViewportSize({
+      width: outcome === 'success' ? 390 : 1280,
+      height: 844,
+    });
+    await page.emulateMedia({
+      colorScheme: outcome === 'success' ? 'light' : 'dark',
+      reducedMotion: 'reduce',
+    });
+    await page.clock.install();
+    const unexpected = await signInAndOpenPrivateArea(page);
+    const fixture = await installHeldPrivateReorder(page);
+    await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
+    await page
+      .getByRole('button', { name: de.common.edit, exact: true })
+      .click();
+    await page
+      .getByRole('button', { name: privateArea.collections.reorderItem })
+      .nth(1)
+      .focus();
+    await page.keyboard.press('ArrowUp');
+    await expect.poll(() => fixture.writes.length).toBe(1);
+    fixture.denyReads();
+    await context.setOffline(true);
+    await page.clock.fastForward(16_000);
+    await context.setOffline(false);
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByLabel(privateArea.collections.rename)).toHaveCount(
+      0,
+    );
+    const before = fixture.detailReads();
+    const recovery = fixture.holdNextDetailRead();
+    await fixture.respond(outcome === 'success' ? 200 : 503);
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
+    await expect(page.getByLabel(privateArea.collections.rename)).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    expect(fixture.detailReads()).toBe(before);
+    expect(fixture.writes).toHaveLength(1);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`private-order-denied-${outcome}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    recovery.release();
+    expect(unexpected).toEqual([]);
   });
 }
 
@@ -1422,5 +1814,878 @@ for (const view of [
       expect(fixture.writes).toHaveLength(1);
       expect(unexpected).toEqual([]);
     });
+  }
+}
+
+const privateCreateCases = [
+  { kind: 'notes', copy: privateArea.notes },
+  { kind: 'gift-ideas', copy: privateArea.gifts },
+  { kind: 'collections', copy: privateArea.collections },
+] as const;
+
+async function installHeldPrivateCreate(page: Page, kind: string) {
+  const endpoint = `/api/v1/spaces/${SPACE_ID}/private/${kind}`;
+  const id = '77777777-7777-4777-8777-777777777777';
+  let current: Record<string, unknown> | null = null;
+  const writes: Record<string, unknown>[] = [];
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let finish!: () => void;
+  const settled = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  await page.route('**/api/v1/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (request.method() === 'POST' && path === endpoint) {
+      const submitted = request.postDataJSON() as Record<string, unknown>;
+      writes.push(submitted);
+      await gate;
+      current = {
+        id,
+        ownerId: ACCOUNT_ID,
+        spaceId: SPACE_ID,
+        capabilities: { canComment: false, canDelete: true, canEdit: true },
+        createdAt: TEST_NOW,
+        updatedAt: TEST_NOW,
+        version: 1,
+        body: '',
+        pinned: false,
+        items: [],
+        description: null,
+        recipient: null,
+        occasion: null,
+        targetOn: null,
+        priceText: null,
+        url: null,
+        status: 'IDEA',
+        ...submitted,
+      };
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify(current),
+      });
+      finish();
+      return;
+    }
+    if (request.method() === 'GET' && path === endpoint) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          hasMore: false,
+          items: current ? [current] : [],
+          nextCursor: null,
+        }),
+      });
+      return;
+    }
+    if (request.method() === 'GET' && path === `${endpoint}/${id}` && current) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(current),
+      });
+      return;
+    }
+    await route.fallback();
+  });
+  return { endpoint, id, writes, release, settled };
+}
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' },
+  { name: '1280-dark', width: 1280, scheme: 'dark' },
+] as const) {
+  for (const definition of privateCreateCases) {
+    test(`private ${definition.kind} create preserves result and return at ${view.name}`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: view.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: view.scheme,
+        reducedMotion: 'reduce',
+      });
+      await page.addInitScript(() =>
+        localStorage.setItem('eimir.theme', 'system'),
+      );
+      const unexpected = await signInAndOpenPrivateArea(page);
+      const fixture = await installHeldPrivateCreate(page, definition.kind);
+      await page
+        .getByRole('link', { name: definition.copy.title, exact: false })
+        .click();
+      await page
+        .getByRole('link', { name: definition.copy.add, exact: true })
+        .click();
+      const title = `Personal ${definition.kind} plan`;
+      await page
+        .getByLabel(definition.copy.titleLabel, { exact: true })
+        .fill(title);
+      await page
+        .getByRole('button', { name: privateArea.save, exact: true })
+        .click();
+      await expect.poll(() => fixture.writes.length).toBe(1);
+      await expect(
+        page.getByRole('button', { name: privateArea.saving, exact: true }),
+      ).toBeDisabled();
+      fixture.release();
+      await expect(page).toHaveURL(
+        new RegExp(`/more/private/${definition.kind}/${fixture.id}$`),
+      );
+      await expect(
+        page.getByRole('heading', { name: title, exact: true }),
+      ).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `private-create-${definition.kind}-saved-${view.name}.png`,
+        ),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await page
+        .getByRole('link', { name: definition.copy.detailBack, exact: true })
+        .click();
+      await expect(page).toHaveURL(
+        new RegExp(`/more/private/${definition.kind}$`),
+      );
+      await expect(
+        page.getByRole('link', { name: new RegExp(title) }),
+      ).toBeVisible();
+      expect(fixture.writes).toHaveLength(1);
+      expect(fixture.writes[0].title).toBe(title);
+      expect(unexpected).toEqual([]);
+    });
+
+    test(`private ${definition.kind} create cannot redirect a replacement task at ${view.name}`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: view.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: view.scheme,
+        reducedMotion: 'reduce',
+      });
+      await page.addInitScript(() =>
+        localStorage.setItem('eimir.theme', 'system'),
+      );
+      const unexpected = await signInAndOpenPrivateArea(page);
+      const fixture = await installHeldPrivateCreate(page, definition.kind);
+      const destination =
+        definition.kind === 'notes'
+          ? privateCreateCases[1]
+          : privateCreateCases[0];
+      await installHeldPrivateCreate(page, destination.kind);
+      await page
+        .getByRole('link', { name: definition.copy.title, exact: false })
+        .click();
+      await page
+        .getByRole('link', { name: definition.copy.add, exact: true })
+        .click();
+      await page
+        .getByLabel(definition.copy.titleLabel, { exact: true })
+        .fill('Previous task private title');
+      await page
+        .getByRole('button', { name: privateArea.save, exact: true })
+        .click();
+      await expect.poll(() => fixture.writes.length).toBe(1);
+      await page
+        .getByRole('navigation', {
+          name: privateArea.navigation.aria,
+          exact: true,
+        })
+        .getByRole('link', { name: destination.copy.title, exact: true })
+        .click();
+      await expect(
+        page.getByRole('heading', {
+          name: destination.copy.title,
+          exact: true,
+        }),
+      ).toBeVisible();
+      const destinationUrl = page.url();
+      const response = page.waitForResponse(
+        (entry) =>
+          entry.request().method() === 'POST' &&
+          new URL(entry.url()).pathname === fixture.endpoint,
+      );
+      fixture.release();
+      await (await response).finished();
+      await page.evaluate(
+        () =>
+          new Promise<void>((resolve) =>
+            requestAnimationFrame(() => resolve()),
+          ),
+      );
+      await expect(page).toHaveURL(destinationUrl);
+      await expect(
+        page.getByRole('heading', {
+          name: destination.copy.title,
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole('heading', {
+          name: 'Previous task private title',
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      await page
+        .getByRole('navigation', {
+          name: privateArea.navigation.aria,
+          exact: true,
+        })
+        .getByRole('link', { name: definition.copy.title, exact: true })
+        .click();
+      await expect(
+        page.getByRole('link', { name: /Previous task private title/ }),
+      ).toBeVisible();
+      await page
+        .getByRole('link', { name: definition.copy.add, exact: true })
+        .click();
+      await expect(page).toHaveURL(
+        new RegExp(`/more/private/${definition.kind}/new$`),
+      );
+      await expect(
+        page.getByRole('heading', {
+          name: definition.copy.createTitle,
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByLabel(definition.copy.titleLabel, { exact: true }),
+      ).toHaveValue('');
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      if (definition.kind === 'gift-ideas')
+        await page.screenshot({
+          path: testInfo.outputPath(
+            `private-create-${definition.kind}-fresh-task-${view.name}.png`,
+          ),
+          fullPage: true,
+          animations: 'disabled',
+        });
+      expect(fixture.writes).toHaveLength(1);
+      expect(unexpected).toEqual([]);
+    });
+  }
+
+  test(`private note create completes real sign-out before returning to a fresh task at ${view.name}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const unexpected = await signInAndOpenPrivateArea(page);
+    const fixture = await installHeldPrivateCreate(page, 'notes');
+    await page
+      .getByRole('link', { name: privateArea.notes.title, exact: false })
+      .click();
+    await page
+      .getByRole('link', { name: privateArea.notes.add, exact: true })
+      .click();
+    await page
+      .getByLabel(privateArea.notes.titleLabel, { exact: true })
+      .fill('Previous session private title');
+    await page
+      .getByRole('button', { name: privateArea.save, exact: true })
+      .click();
+    await expect.poll(() => fixture.writes.length).toBe(1);
+    await signOutToPublicEntry(page);
+    fixture.release();
+    await fixture.settled;
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByLabel(de.login.email)).toBeVisible();
+    await signInAgain(page);
+    await page.goto('/more/private/notes/new');
+    await expect(
+      page.getByRole('heading', {
+        name: privateArea.notes.createTitle,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByLabel(privateArea.notes.titleLabel, { exact: true }),
+    ).toHaveValue('');
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `private-create-session-ended-${view.name}.png`,
+      ),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    expect(fixture.writes).toHaveLength(1);
+    expect(unexpected).toEqual([]);
+  });
+}
+
+async function installHeldPrivateNoteEdit(page: Page) {
+  const endpoint = `/api/v1/spaces/${SPACE_ID}/private/notes/${PRIVATE_NOTE_ID}`;
+  let current = {
+    body: 'Check the quiet cabin by the lake.',
+    capabilities: { canComment: false, canDelete: true, canEdit: true },
+    createdAt: TEST_NOW,
+    id: PRIVATE_NOTE_ID,
+    ownerId: ACCOUNT_ID,
+    pinned: false,
+    spaceId: SPACE_ID,
+    title: 'Hidden cabin idea',
+    updatedAt: TEST_NOW,
+    version: 1,
+  };
+  let denyReads = false;
+  let holdReads = false;
+  let releaseReads!: () => void;
+  const readGate = new Promise<void>((resolve) => {
+    releaseReads = resolve;
+  });
+  let reads = 0;
+  const writes: { ifMatch: string | undefined; title: string }[] = [];
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let finish!: () => void;
+  const settled = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  await page.route(`**${endpoint}`, async (route) => {
+    const request = route.request();
+    if (request.method() === 'GET') {
+      reads += 1;
+      if (holdReads) await readGate;
+      await route.fulfill({
+        status: denyReads ? 404 : 200,
+        contentType: 'application/json',
+        body: JSON.stringify(
+          denyReads
+            ? {
+                code: 'PRIVATE_NOTE_NOT_FOUND',
+                detail: 'The private note is unavailable.',
+                status: 404,
+                title: 'Not found',
+                type: 'about:blank',
+              }
+            : current,
+        ),
+      });
+      return;
+    }
+    if (request.method() !== 'PATCH') {
+      await route.fallback();
+      return;
+    }
+    const update = request.postDataJSON() as {
+      title: string;
+      body: string;
+      pinned: boolean;
+    };
+    writes.push({
+      ifMatch: request.headers()['if-match'],
+      title: update.title,
+    });
+    const saved = { ...current, ...update, version: current.version + 1 };
+    await gate;
+    current = saved;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(saved),
+    });
+    finish();
+  });
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/private/notes?*`,
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          hasMore: false,
+          items: [current],
+          nextCursor: null,
+        }),
+      });
+    },
+  );
+  return {
+    writes,
+    release,
+    settled,
+    denyReads: () => {
+      denyReads = true;
+    },
+    holdReads: () => {
+      holdReads = true;
+    },
+    releaseReads,
+    get reads() {
+      return reads;
+    },
+  };
+}
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' },
+  { name: '1280-dark', width: 1280, scheme: 'dark' },
+] as const) {
+  test(`private note save retains authorized result and return at ${view.name}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const unexpected = await signInAndOpenPrivateArea(page);
+    const fixture = await installHeldPrivateNoteEdit(page);
+    await page
+      .getByRole('link', { name: privateArea.notes.title, exact: false })
+      .click();
+    await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Hidden cabin idea' }),
+    ).toBeVisible();
+    await page
+      .getByRole('link', { name: privateArea.edit, exact: true })
+      .click();
+    await page
+      .getByLabel(privateArea.notes.titleLabel)
+      .fill('Quiet cabin for autumn');
+    await page
+      .getByRole('button', { name: privateArea.save, exact: true })
+      .click();
+    await expect.poll(() => fixture.writes.length).toBe(1);
+    expect(fixture.writes).toEqual([
+      { ifMatch: '1', title: 'Quiet cabin for autumn' },
+    ]);
+    await expect(
+      page.getByRole('button', { name: privateArea.saving, exact: true }),
+    ).toBeDisabled();
+    fixture.release();
+    await expect(
+      page.getByRole('heading', { name: 'Quiet cabin for autumn' }),
+    ).toBeVisible();
+    await expect(
+      page.getByText('Check the quiet cabin by the lake.', { exact: true }),
+    ).toBeVisible();
+    await expect(page).toHaveURL(
+      new RegExp(`/more/private/notes/${PRIVATE_NOTE_ID}$`),
+    );
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`private-area-note-saved-${view.name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    await page
+      .getByRole('link', { name: privateArea.notes.detailBack, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more\/private\/notes$/);
+    await expect(
+      page.getByRole('link', { name: /Quiet cabin for autumn/ }),
+    ).toBeVisible();
+    expect(fixture.writes).toHaveLength(1);
+    expect(unexpected).toEqual([]);
+  });
+
+  test(`late private note save preserves a fresh denied read at ${view.name}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const unexpected = await signInAndOpenPrivateArea(page);
+    const fixture = await installHeldPrivateNoteEdit(page);
+    await page
+      .getByRole('link', { name: privateArea.notes.title, exact: false })
+      .click();
+    await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
+    await page
+      .getByRole('link', { name: privateArea.edit, exact: true })
+      .click();
+    await page
+      .getByLabel(privateArea.notes.titleLabel)
+      .fill('Submitted old private title');
+    await page
+      .getByRole('button', { name: privateArea.save, exact: true })
+      .click();
+    await expect.poll(() => fixture.writes.length).toBe(1);
+    fixture.denyReads();
+    await page
+      .locator('.private-area-nav')
+      .getByRole('link', {
+        name: privateArea.navigation.notes,
+        exact: true,
+      })
+      .click();
+    // Reopen after the production 15-second freshness window to obtain a new read.
+    await page.clock.setSystemTime(
+      await page.evaluate(() => Date.now() + 15_001),
+    );
+    await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    // A slow recovery must not conceal a stale save reviving denied content.
+    fixture.holdReads();
+    const response = page.waitForResponse(
+      (entry) =>
+        entry.request().method() === 'PATCH' &&
+        entry.url().endsWith(`/private/notes/${PRIVATE_NOTE_ID}`),
+    );
+    fixture.release();
+    await (await response).finished();
+    // A rendering boundary observes the completed fetch's mutation callbacks.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText('Check the quiet cabin by the lake.', { exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('heading', { name: 'Submitted old private title' }),
+    ).toHaveCount(0);
+    fixture.releaseReads();
+    const reads = fixture.reads;
+    await page
+      .getByRole('button', { name: de.common.retry, exact: true })
+      .click();
+    await expect.poll(() => fixture.reads).toBeGreaterThan(reads);
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`private-area-note-denied-${view.name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    expect(fixture.writes).toHaveLength(1);
+    expect(unexpected).toEqual([]);
+  });
+
+  test(`private note save cannot revive a signed-out session at ${view.name}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const unexpected = await signInAndOpenPrivateArea(page);
+    const fixture = await installHeldPrivateNoteEdit(page);
+    await page
+      .getByRole('link', { name: privateArea.notes.title, exact: false })
+      .click();
+    await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
+    await page
+      .getByRole('link', { name: privateArea.edit, exact: true })
+      .click();
+    await page
+      .getByLabel(privateArea.notes.titleLabel)
+      .fill('Old session private title');
+    await page
+      .getByRole('button', { name: privateArea.save, exact: true })
+      .click();
+    await expect.poll(() => fixture.writes.length).toBe(1);
+
+    fixture.denyReads();
+    await signOutToPublicEntry(page);
+    fixture.release();
+    await fixture.settled;
+    await expect(page.getByLabel(de.login.email)).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+    await signInAgain(page);
+    await page.goto(`/more/private/notes/${PRIVATE_NOTE_ID}`);
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText('Check the quiet cabin by the lake.', { exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('heading', { name: 'Old session private title' }),
+    ).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`private-area-session-ended-${view.name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    expect(fixture.writes).toEqual([
+      { ifMatch: '1', title: 'Old session private title' },
+    ]);
+    expect(unexpected).toEqual([]);
+  });
+}
+
+async function installHeldPrivateDelete(
+  page: Page,
+  kind: 'notes' | 'gift-ideas' | 'collections',
+) {
+  const id = kind === 'collections' ? PRIVATE_COLLECTION_ID : PRIVATE_NOTE_ID;
+  const endpoint = `/api/v1/spaces/${SPACE_ID}/private/${kind}`;
+  const title = `Private ${kind} to delete`;
+  const resource = {
+    id,
+    ownerId: ACCOUNT_ID,
+    spaceId: SPACE_ID,
+    title,
+    version: 1,
+    capabilities: { canComment: false, canDelete: true, canEdit: true },
+    createdAt: TEST_NOW,
+    updatedAt: TEST_NOW,
+    body: 'A personal cabin idea',
+    pinned: false,
+    description: 'A private surprise',
+    status: 'IDEA',
+    items: [],
+  };
+  const writes: string[] = [];
+  let release!: () => void;
+  let finish!: () => void;
+  let deleted = false;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const settled = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  await page.route(`**${endpoint}**`, async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (request.method() === 'DELETE' && path === `${endpoint}/${id}`) {
+      writes.push(request.headers()['if-match'] ?? 'missing');
+      await held;
+      deleted = true;
+      await route.fulfill({ status: 204 });
+      finish();
+    } else if (request.method() === 'GET' && path === endpoint) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          hasMore: false,
+          items: deleted ? [] : [resource],
+          nextCursor: null,
+        }),
+      });
+    } else if (request.method() === 'GET' && path === `${endpoint}/${id}`) {
+      await route.fulfill({
+        status: deleted ? 404 : 200,
+        contentType: 'application/json',
+        body: JSON.stringify(
+          deleted
+            ? {
+                code: 'NOT_FOUND',
+                status: 404,
+                title: 'Not found',
+                detail: 'Private resource unavailable',
+                type: 'about:blank',
+              }
+            : resource,
+        ),
+      });
+    } else await route.fallback();
+  });
+  return { id, endpoint, title, writes, release, settled };
+}
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' },
+  { name: '1280-dark', width: 1280, scheme: 'dark' },
+] as const) {
+  for (const definition of privateCreateCases) {
+    for (const leave of [false, true]) {
+      test(`private ${definition.kind} delete ${leave ? 'cannot redirect another task' : 'retains confirmed result and return'} at ${view.name}`, async ({
+        page,
+      }, testInfo) => {
+        await page.setViewportSize({ width: view.width, height: 900 });
+        await page.emulateMedia({
+          colorScheme: view.scheme,
+          reducedMotion: 'reduce',
+        });
+        await page.addInitScript(() =>
+          localStorage.setItem('eimir.theme', 'system'),
+        );
+        const unexpected = await signInAndOpenPrivateArea(page);
+        const fixture = await installHeldPrivateDelete(page, definition.kind);
+        await page
+          .getByRole('link', { name: definition.copy.title, exact: false })
+          .click();
+        await page
+          .getByRole('link', { name: new RegExp(fixture.title) })
+          .click();
+        if (definition.kind === 'collections')
+          await page
+            .getByRole('button', { name: de.common.edit, exact: true })
+            .click();
+        else
+          await page
+            .getByRole('link', { name: privateArea.edit, exact: true })
+            .click();
+        await page
+          .getByRole('button', {
+            name:
+              definition.kind === 'collections'
+                ? m5s3.common.delete
+                : privateArea.delete,
+            exact: true,
+          })
+          .click();
+        await page
+          .getByRole('button', {
+            name:
+              definition.kind === 'collections'
+                ? m5s3.common.confirmDelete
+                : privateArea.deleteConfirm,
+            exact: true,
+          })
+          .click();
+        await expect.poll(() => fixture.writes.length).toBe(1);
+        expect(fixture.writes).toEqual(['1']);
+        await expect(
+          page.getByRole('button', {
+            name:
+              definition.kind === 'collections'
+                ? m5s3.common.deleting
+                : privateArea.deleting,
+            exact: true,
+          }),
+        ).toBeDisabled();
+        if (definition.kind !== 'collections') {
+          await expect(
+            page.getByRole('button', { name: privateArea.save, exact: true }),
+          ).toBeDisabled();
+        }
+        if (definition.kind === 'notes' && !leave) {
+          await expectNoWcagViolations(page);
+          await page.screenshot({
+            path: testInfo.outputPath(
+              `private-delete-pending-${view.name}.png`,
+            ),
+            fullPage: true,
+            animations: 'disabled',
+          });
+        }
+        let destinationUrl = '';
+        const destination =
+          definition.kind === 'notes'
+            ? privateCreateCases[1]
+            : privateCreateCases[0];
+        if (leave) {
+          await installHeldPrivateDelete(page, destination.kind);
+          await page
+            .getByRole('navigation', {
+              name: privateArea.navigation.aria,
+              exact: true,
+            })
+            .getByRole('link', { name: destination.copy.title, exact: true })
+            .click();
+          await expect(
+            page.getByRole('heading', {
+              name: destination.copy.title,
+              exact: true,
+            }),
+          ).toBeVisible();
+          destinationUrl = page.url();
+        }
+        const response = page.waitForResponse(
+          (entry) =>
+            entry.request().method() === 'DELETE' &&
+            new URL(entry.url()).pathname ===
+              `${fixture.endpoint}/${fixture.id}`,
+        );
+        fixture.release();
+        expect((await response).status()).toBe(204);
+        await fixture.settled;
+        if (leave) {
+          await page.evaluate(
+            () =>
+              new Promise<void>((resolve) =>
+                requestAnimationFrame(() => resolve()),
+              ),
+          );
+          await expect(page).toHaveURL(destinationUrl);
+          await expect(
+            page.getByRole('heading', {
+              name: destination.copy.title,
+              exact: true,
+            }),
+          ).toBeVisible();
+        } else {
+          await expect(page).toHaveURL(
+            new RegExp(`/more/private/${definition.kind}$`),
+          );
+          await expect(
+            page.getByRole('heading', {
+              name: definition.copy.title,
+              exact: true,
+            }),
+          ).toBeVisible();
+          await expect(
+            page.getByRole('link', { name: new RegExp(fixture.title) }),
+          ).toHaveCount(0);
+        }
+        await expectNoHorizontalOverflow(page);
+        await expectNoWcagViolations(page);
+        if (definition.kind === 'notes')
+          await page.screenshot({
+            path: testInfo.outputPath(
+              `private-delete-${leave ? 'other-task' : 'confirmed'}-${view.name}.png`,
+            ),
+            fullPage: true,
+            animations: 'disabled',
+          });
+        if (leave) {
+          await page
+            .getByRole('navigation', {
+              name: privateArea.navigation.aria,
+              exact: true,
+            })
+            .getByRole('link', { name: definition.copy.title, exact: true })
+            .click();
+          await expect(
+            page.getByRole('heading', {
+              name: definition.copy.title,
+              exact: true,
+            }),
+          ).toBeVisible();
+          await expect(
+            page.getByRole('link', { name: new RegExp(fixture.title) }),
+          ).toHaveCount(0);
+        }
+        expect(fixture.writes).toHaveLength(1);
+        expect(unexpected).toEqual([]);
+      });
+    }
   }
 }

@@ -1,9 +1,15 @@
 name: Publish Immutable Release
 
 on:
+  push:
+    branches: [main]
   pull_request:
     paths:
       - ".github/workflows/release-publish.yml"
+      - "scripts/test_deployment_channel.py"
+      - "tools/ci/test_test_deployment_channel.py"
+      - "deploy/private-test-channel.env.example"
+      - "docs/PRIVATE-TEST-CHANNEL.md"
       - ".github/actions/attest-release-artifact/**"
       - "compose.yaml"
       - "deploy/self-hosted-release.env.example"
@@ -19,6 +25,11 @@ on:
       - "docs/m6/IMMUTABLE-RELEASES.md"
   workflow_dispatch:
     inputs:
+      private_test_channel:
+        description: Publish only the opt-in private test channel, not a product release.
+        required: true
+        default: false
+        type: boolean
       release_version:
         description: SemVer product version without the v prefix.
         required: true
@@ -82,7 +93,7 @@ jobs:
 
   evidence:
     name: Build and attest one source revision
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && !inputs.private_test_channel
     needs: contract
     uses: ./.github/workflows/release-evidence.yml
     with:
@@ -95,7 +106,7 @@ jobs:
 
   preflight:
     name: Verify immutable release inputs
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && !inputs.private_test_channel
     needs: evidence
     runs-on: ubuntu-latest
     permissions:
@@ -323,7 +334,7 @@ jobs:
 
   publish:
     name: Sign and publish immutable release
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && !inputs.private_test_channel
     needs: preflight
     runs-on: ubuntu-latest
     environment:
@@ -461,7 +472,8 @@ jobs:
           echo "$badging" | grep -q "package: name='de.sidebyside.app'"
           echo "$badging" | grep -q "versionCode='${ANDROID_VERSION_CODE}'"
           echo "$badging" | grep -q "versionName='${RELEASE_VERSION}'"
-          echo "$badging" | grep -q "launchable-activity: name='de.eimir.app.MainActivity'"
+          python3 ../scripts/android_launcher_identity.py "$apk" \
+            --analyzer "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
 
           analyzer="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
           test -x "$analyzer"
@@ -1298,3 +1310,105 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           compression-level: 0
+
+  test-channel-contract:
+    name: Private test channel contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test channel and canonical deployment contracts
+        run: |
+          python3 tools/ci/test_test_deployment_channel.py
+          python3 tools/ci/test_cloud_managed_topology.py
+          python3 tools/ci/test_release_evidence.py
+
+  test-checked-main:
+    name: Wait for checked main
+    needs: test-channel-contract
+    if: >-
+      github.repository == 'baerenmarke90/eimir' &&
+      (github.event_name == 'push' || inputs.private_test_channel == true) &&
+      github.event_name != 'pull_request' && github.ref == 'refs/heads/main' &&
+      vars.EIMIR_TEST_CHANNEL_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Require exact-source CI, browser, security and recovery workflows
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 scripts/test_deployment_channel.py wait
+          --revision "$GITHUB_SHA" --github-output "$GITHUB_OUTPUT"
+
+  test-evidence:
+    name: Build and attest test runtime pair
+    needs: test-checked-main
+    if: needs.test-checked-main.outputs.ready == 'true'
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    uses: ./.github/workflows/release-evidence.yml
+    with:
+      include_android: false
+      android_version_code: 0
+      android_api_base_url: ''
+      release_version: 0.0.0-test.${{ github.run_id }}
+
+  test-publish:
+    concurrency:
+      group: private-test-channel-publisher
+      cancel-in-progress: false
+    name: Publish images and promote one Git Sync commit
+    needs: test-evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      packages: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: release-evidence-${{ github.sha }}
+          path: release-evidence
+      - name: Verify complete archive and SBOM checksums
+        working-directory: release-evidence
+        run: sha256sum --check --strict SHA256SUMS
+      - name: Authenticate the existing GHCR packages
+        env:
+          REGISTRY_TOKEN: ${{ github.token }}
+        run: printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - name: Verify images, publish both, and atomically select the test pair
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 scripts/test_deployment_channel.py publish
+          --revision "$GITHUB_SHA" --artifact-root release-evidence --output test-channel
+      - name: Remove registry credentials
+        if: always()
+        run: docker logout ghcr.io
+      - name: Retain the exact generated operator configuration
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: private-test-channel-${{ github.sha }}
+          path: test-channel/
+          if-no-files-found: error
+          retention-days: 30

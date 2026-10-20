@@ -91,6 +91,7 @@ function createApi() {
 function setup(
   spaceId = 'space-a',
   prepare?: (api: ReturnType<typeof createApi>) => void,
+  activeAccountId = accountId,
 ) {
   const api = createApi();
   prepare?.(api);
@@ -98,7 +99,7 @@ function setup(
   const hook = renderHook(
     ({ spaceId: activeSpaceId }) =>
       useUnifiedPush({
-        accountId,
+        accountId: activeAccountId,
         apiBaseUrl,
         notificationsApi: api as unknown as NotificationsApi,
         queryClient,
@@ -179,7 +180,7 @@ it('registers a device endpoint, refreshes the current Space, routes a tap, and 
   expect(window.localStorage.getItem(storageKey)).toBe('endpoint-id');
 
   rerender({ spaceId: 'space-b' });
-  act(() => native.listeners.get('wake')?.({}));
+  act(() => native.listeners.get('wake')?.({ accountId }));
   expect(invalidation).toHaveBeenCalledWith({
     queryKey: notificationUnreadCountQueryKey('space-b'),
   });
@@ -528,4 +529,72 @@ it('lets server sign-out continue after failed endpoint cleanup and retains its 
   ).then(serverSignOut);
   expect(serverSignOut).toHaveBeenCalledOnce();
   expect(window.localStorage.getItem(storageKey)).toBe('endpoint-id');
+});
+
+it('discards an endpoint queued by a component that has already unmounted', async () => {
+  const { api, result, unmount } = setup();
+  await waitFor(() => expect(result.current.state).toBe('off'));
+  await act(async () => result.current.enable());
+  act(() => {
+    emitEndpoint();
+    unmount();
+  });
+  await act(async () => undefined);
+  expect(api.registerOwnPushEndpoint).not.toHaveBeenCalled();
+  expect(window.localStorage.getItem(storageKey)).toBeNull();
+});
+
+it('does not disable a replacement account after an obsolete endpoint is rejected', async () => {
+  let rejectRegistration: ((error: Error) => void) | undefined;
+  const previous = setup('space-a', (api) => {
+    api.registerOwnPushEndpoint.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectRegistration = reject;
+        }),
+    );
+  });
+  await waitFor(() => expect(previous.result.current.state).toBe('off'));
+  await act(async () => previous.result.current.enable());
+  emitEndpoint();
+  await waitFor(() =>
+    expect(previous.api.registerOwnPushEndpoint).toHaveBeenCalledOnce(),
+  );
+  await act(async () => previous.unmount());
+
+  const nextAccountId = 'f576091e-5811-46d6-a092-721b471c8798';
+  native.status.mockResolvedValue({
+    accountId: nextAccountId,
+    enabled: true,
+    permissionGranted: true,
+  });
+  const next = setup('space-b', undefined, nextAccountId);
+  await waitFor(() => expect(next.result.current.registered).toBe(true));
+  await act(async () => rejectRegistration?.(httpError(422)));
+  expect(native.disable).not.toHaveBeenCalled();
+  expect(next.result.current.registered).toBe(true);
+});
+
+it('ignores retained native status and wake events belonging to another account', async () => {
+  const { result, queryClient } = setup();
+  await waitFor(() => expect(result.current.state).toBe('off'));
+  const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+  act(() => {
+    native.listeners.get('wake')?.({ accountId: 'previous-account' });
+    native.listeners.get('unavailable')?.({
+      accountId: 'previous-account',
+      reason: 'UNREGISTERED',
+    });
+  });
+  expect(invalidate).not.toHaveBeenCalled();
+  expect(result.current.state).toBe('off');
+  expect(result.current.error).toBeNull();
+  act(() =>
+    native.listeners.get('unavailable')?.({
+      accountId,
+      reason: 'UNREGISTERED',
+    }),
+  );
+  expect(result.current.state).toBe('error');
+  expect(result.current.error).toBe('UNREGISTERED');
 });

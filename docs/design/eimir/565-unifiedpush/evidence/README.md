@@ -12,6 +12,11 @@ Push delivery. The separate [2026-10-07 device verification](device-verification
 records physical Pixel captures, executed acceptance cases, automated checks,
 and the remaining limitations against implementation commit `25ef1034`.
 
+The [2026-10-20 physical follow-up](device-verification-2026-10-20.md) records
+gCompat-UP delivery, two integration corrections and their exact APK identities,
+warm/cold/pending-auth entry, sign-out, original-font folded evidence and the
+remaining Account-replacement and combined enlarged-font acceptance limits.
+
 
 The [2026-10-20 integration record](cloud-refresh-2026-10-20.md) adds current
 main/session/launcher integration and a real production-browser sign-out pending

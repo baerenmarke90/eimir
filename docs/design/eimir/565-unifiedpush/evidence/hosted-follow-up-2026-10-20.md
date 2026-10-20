@@ -94,11 +94,33 @@ Four pre-existing non-null warnings in the photo fixtures remain unchanged.
 Local diagnostic logs and traces are retained separately; full CI on the new
 follow-up commits must be evaluated independently of the baseline results above.
 
+## Completed hosted browser follow-up
+
+At exact head `cac175d64a54e2b3169fafec20c1ff3fdd8db876`,
+[Browser QA](https://github.com/baerenmarke90/eimir/actions/runs/39480045916)
+passes **438 cases directly, zero retry passes**. Each PR-critical shard reports
+219 passed, with no flaky/retry result; the Playwright + axe aggregate succeeds.
+Both corrected journeys therefore pass in the complete hosted regression, and
+the separately tracked Place case also passes directly in this run. This does
+not close #1386's broader stability investigation.
+
+[Web Reference Flow](https://github.com/baerenmarke90/eimir/actions/runs/39480045808)
+reports **2052 passed, one existing skip**. Backend/integration, security,
+packaging, deployment and recovery workflows succeed. Android API 36 passes
+all seven cases. API 28 exposes two new fixture-setup failures before its
+initial registration observation; the actual connector broadcasts remain
+queued by Android's background broadcast queue. The diagnosis and corrected
+dispatch-level test are recorded separately in
+[API 28 fixture follow-up](account-replacement-api28-fixture-2026-10-20.md).
+The runtime Push correction and physical APK remain unchanged by that test fix.
+
 ## Remaining acceptance
 
-PR #1271 stays Draft. First-attempt gCompat-UP delivery after Account replacement
-still needs physical verification; a separate deterministic native ordering
-defect is documented in
+PR #1271 stays Draft. At this follow-up's preflight, first-attempt gCompat-UP
+delivery after Account replacement had not yet been repeated. The subsequent
+[connected-Pixel recheck](device-account-recheck-2026-10-20.md) passes three
+ordinary replacements on each first registration; the earlier subscription-gone
+cause remains unproven. A separate deterministic native ordering defect is documented in
 [Account-replacement follow-up](account-replacement-follow-up-2026-10-20.md).
 The combined final-APK folded/unfolded/Dark/enlarged-font acceptance remains
 incomplete. The user explicitly prohibited enlarging the font again; that

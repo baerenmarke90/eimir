@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.core.app.ActivityScenario;
 import java.util.List;
 import org.junit.After;
 import org.junit.Test;
@@ -48,18 +49,16 @@ public class LauncherIconsTest {
     @Test
     public void selectedLauncherStartsTheRegisteredNativeBridge() throws Exception {
         LauncherIcons.apply(context, "sage");
-        android.app.Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
         Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
         assertNotNull(launch);
-        android.app.Activity activity = instrumentation.startActivitySync(launch);
-        try {
-            assertTrue(activity instanceof LauncherActivity);
-            LauncherActivity shell = (LauncherActivity) activity;
-            assertNotNull(shell.getBridge().getPlugin("AppIcon"));
-            assertNotNull(shell.getBridge().getPlugin("NativeSessionStorage"));
-            assertNotNull(shell.getBridge().getPlugin("EimirUnifiedPush"));
-        } finally {
-            instrumentation.runOnMainSync(activity::finish);
+        try (ActivityScenario<android.app.Activity> scenario = ActivityScenario.launch(launch)) {
+            scenario.onActivity(activity -> {
+                assertTrue(activity instanceof LauncherActivity);
+                LauncherActivity shell = (LauncherActivity) activity;
+                assertNotNull(shell.getBridge().getPlugin("AppIcon"));
+                assertNotNull(shell.getBridge().getPlugin("NativeSessionStorage"));
+                assertNotNull(shell.getBridge().getPlugin("EimirUnifiedPush"));
+            });
         }
     }
 

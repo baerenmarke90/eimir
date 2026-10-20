@@ -49,7 +49,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode eimirVersionCode
         versionName eimirVersionName
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "de.eimir.app.PushFixtureRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61

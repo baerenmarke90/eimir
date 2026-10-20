@@ -83,9 +83,15 @@ jobs:
           adb -e install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           timeout 180 adb -e shell am instrument -w -r \
             -e class de.eimir.app.LauncherIconsTest,de.eimir.app.UnifiedPushAccountReplacementTest \
-            de.sidebyside.app.debug.test/androidx.test.runner.AndroidJUnitRunner \
+            de.sidebyside.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
           grep -Eq '^OK \([1-9][0-9]* tests?\)' instrumentation.log
+      - name: Capture native fixture diagnostics
+        if: always()
+        working-directory: android
+        run: |
+          timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -d -t 1000 -v threadtime \
+            EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
       - name: Upload native verification results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -96,4 +102,5 @@ jobs:
             android/app/build/outputs/androidTest-results/
             android/emulator.log
             android/instrumentation.log
+            android/fixture-logcat.log
           if-no-files-found: ignore

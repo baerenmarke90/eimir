@@ -1,5 +1,10 @@
 # Account-replacement lifecycle follow-up: 2026-10-20
 
+The initial API 36 fixture and APK identities below are retained as historical
+evidence. The subsequent [API 28 fixture diagnosis and dispatch-boundary
+verification](account-replacement-api28-fixture-2026-10-20.md) records the
+corrected test boundary without changing this runtime correction.
+
 ## Preflight before implementation
 
 Baseline: PR #1271 head `26b0d5c4399d8a0fdea65f096d49af0bfb52f724`,

@@ -77,7 +77,7 @@ are separate from this PR refresh.
 
 ## Local verification
 
-- **76 focused tests passed:** device Push, Notification Settings, session sign-out
+- **78 focused tests passed:** device Push, Notification Settings, session sign-out
   and AppShell. Two added endpoint-ownership regressions fail on the previous
   merged baseline before the fixes. Sign-out tests use the real generated clients
   and rotating-session facade, including account replacement, timeout/abort,
@@ -106,3 +106,40 @@ hosted Browser QA still runs the canonical repository configuration.
 
 Native compilation and fresh hosted CI are recorded on PR #1271 separately.
 Neither build success nor browser/component mocks close the physical gates above.
+
+## Additional integration preflight and correction
+
+Final review compared notification entry with the current mailbox entry and
+confirmed that direct notification navigation bypassed the shared document-leave
+guard. Warm and cold regression cases reproduce the draft loss before correction.
+Reuse the same guard/external-store contract and existing localized Snackbar;
+keep the pending handoff scoped to Account/API identity and consume it only when
+the draft/save guard releases. No new composition, token, provider or screen.
+
+The fresh Supply Chain audit also reports three upstream aiohttp 3.14.3
+advisories, fixed in 3.14.4: GHSA-494j-54xm-rwp3, GHSA-5wr8-gcqf-gqf3 and
+GHSA-2g87-pp6c-29x5. Regenerate the existing transitive lock with the pinned uv
+0.12.15; preserve the audit gate. This security maintenance has no business,
+entitlement, API, schema or new-provider impact.
+
+
+Both notification-entry regressions fail on the integration baseline and pass
+with the shared guard. The 78 focused cases include warm/cold entry without
+losing an active draft. The lock diff changes only aiohttp and its exact artifacts.
+
+Hosted checks on integration commit `be191bd15e303bd6893414c6b618049cc41394c7`
+passed Web Reference Flow (2049 tests passed, one existing skip), Android launcher
+instrumentation on API 28 and API 36,
+and Release Evidence (unsigned APK/AAB, packaging and configuration). These are
+CI/emulator results, not physical-device acceptance. The initial local Android
+attempt was blocked by network access to Gradle/Maven, before source compilation;
+it is not recorded as a passing build. The subsequent head also changes bundled
+Web entry and the backend lock, so its fresh CI remains required.
+
+Pinned uv lock verification passes; its frozen audit reports no known
+vulnerabilities or adverse project statuses across 76 packages. All five existing
+backend UnifiedPush unit tests pass under the updated lock.
+
+After the draft-entry correction, TypeScript, lint, formatting, Capacitor/token/
+PWA checks and production build pass again. All three production-browser session
+journeys pass again without retries, with unchanged assertions and deadlines.

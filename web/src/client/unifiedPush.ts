@@ -12,6 +12,11 @@ import {
   notificationUnreadCountQueryKey,
 } from './notificationQueries';
 import { MORE_NOTIFICATIONS_ROUTE } from './routes';
+import { postSnackbar } from './snackbar';
+import {
+  isDocumentLeaveBlocked,
+  useDocumentLeaveBlocked,
+} from './useDocumentLeaveGuard';
 
 type EndpointEvent = {
   accountId: string;
@@ -171,6 +176,12 @@ export function useUnifiedPush({
 }): DevicePushController {
   const native = isCapacitorNative();
   const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
+  const blocked = useDocumentLeaveBlocked();
+  const [pendingInbox, setPendingInbox] = useState<string | null>(null);
   const [state, setState] = useState<DevicePushState>(
     native ? 'loading' : 'unavailable',
   );
@@ -184,6 +195,28 @@ export function useUnifiedPush({
   const registrationAllowed = useRef(true);
   currentSpaceId.current = spaceId;
   errorRef.current = error;
+
+  const openInbox = useCallback(() => {
+    handledLaunchUrl.current = true;
+    if (isDocumentLeaveBlocked()) {
+      setPendingInbox(key);
+      postSnackbar('snackbar.notificationWaiting');
+      return;
+    }
+    setPendingInbox(null);
+    navigateRef.current(MORE_NOTIFICATIONS_ROUTE);
+  }, [key]);
+
+  useEffect(() => {
+    if (!pendingInbox) return;
+    if (pendingInbox !== key) {
+      setPendingInbox(null);
+      return;
+    }
+    if (blocked) return;
+    setPendingInbox(null);
+    navigateRef.current(MORE_NOTIFICATIONS_ROUTE);
+  }, [blocked, key, pendingInbox]);
 
   const syncRegistered = useCallback(async () => {
     try {
@@ -309,7 +342,7 @@ export function useUnifiedPush({
       ),
       App.addListener('appUrlOpen', ({ url }) => {
         if (!live) return;
-        if (isInboxLaunchUrl(url)) navigate(MORE_NOTIFICATIONS_ROUTE);
+        if (isInboxLaunchUrl(url)) openInbox();
       }),
       App.addListener('resume', () => {
         // Returning from the system notification settings: re-check the
@@ -333,11 +366,16 @@ export function useUnifiedPush({
         await Promise.all(subscriptions);
         if (!handledLaunchUrl.current) {
           const launch = await App.getLaunchUrl();
-          if (launch?.url && isInboxLaunchUrl(launch.url)) {
-            handledLaunchUrl.current = true;
-            navigate(MORE_NOTIFICATIONS_ROUTE);
+          if (
+            live &&
+            !handledLaunchUrl.current &&
+            launch?.url &&
+            isInboxLaunchUrl(launch.url)
+          ) {
+            openInbox();
           }
         }
+        if (!live) return;
         const loaded = await loadConfiguration(notificationsApi);
         if (!live) return;
         configuration.current = loaded.configuration;
@@ -413,7 +451,7 @@ export function useUnifiedPush({
     accountId,
     key,
     native,
-    navigate,
+    openInbox,
     notificationsApi,
     queryClient,
     syncRegistered,

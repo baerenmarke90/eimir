@@ -6,6 +6,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { ResponseError } from '../api/generated/runtime';
 import { notificationUnreadCountQueryKey } from './notificationQueries';
+import { useDocumentLeaveGuard } from './useDocumentLeaveGuard';
 import {
   revokeDevicePushBeforeSignOut,
   stopNativePushForSignedOutAccount,
@@ -92,20 +93,26 @@ function setup(
   spaceId = 'space-a',
   prepare?: (api: ReturnType<typeof createApi>) => void,
   activeAccountId = accountId,
+  initialBlocked = false,
 ) {
   const api = createApi();
   prepare?.(api);
   const queryClient = new QueryClient();
-  const hook = renderHook(
-    ({ spaceId: activeSpaceId }) =>
-      useUnifiedPush({
+  const hook = renderHook<
+    ReturnType<typeof useUnifiedPush>,
+    { spaceId: string; blocked?: boolean }
+  >(
+    ({ spaceId: activeSpaceId, blocked = false }) => {
+      useDocumentLeaveGuard(blocked);
+      return useUnifiedPush({
         accountId: activeAccountId,
         apiBaseUrl,
         notificationsApi: api as unknown as NotificationsApi,
         queryClient,
         spaceId: activeSpaceId,
-      }),
-    { initialProps: { spaceId }, wrapper },
+      });
+    },
+    { initialProps: { spaceId, blocked: initialBlocked }, wrapper },
   );
   return { api, queryClient, ...hook };
 }
@@ -598,3 +605,31 @@ it('ignores retained native status and wake events belonging to another account'
   expect(result.current.state).toBe('error');
   expect(result.current.error).toBe('UNREGISTERED');
 });
+
+it.each(['warm', 'cold'] as const)(
+  'preserves an active draft for a %s notification entry until its shared guard releases',
+  async (kind) => {
+    if (kind === 'cold') {
+      app.getLaunchUrl.mockResolvedValueOnce({
+        url: 'de.sidebyside.app://notifications',
+      });
+    }
+    const { result, rerender } = setup('space-a', undefined, accountId, true);
+    await waitFor(() => expect(result.current.state).toBe('off'));
+    if (kind === 'warm') {
+      act(() =>
+        app.listeners.get('appUrlOpen')?.({
+          url: 'de.sidebyside.app://notifications',
+        }),
+      );
+    }
+    await act(async () => undefined);
+    expect(screen.getByTestId('route').textContent).toBe('/today');
+    rerender({ spaceId: 'space-a', blocked: false });
+    await waitFor(() =>
+      expect(screen.getByTestId('route').textContent).toBe(
+        '/more/notifications',
+      ),
+    );
+  },
+);

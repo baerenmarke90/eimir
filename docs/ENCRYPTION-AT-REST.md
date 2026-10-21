@@ -371,7 +371,25 @@ No command prints or logs content. Run with the API environment:
 python -m eimir.security status            # counts per table: crypto_version, key ids, inconsistencies
 python -m eimir.security verify-payloads   # authenticates and schema-validates every row; non-zero on any failure
 python -m eimir.security verify-media      # authenticates every referenced object end to end
+python -m eimir.security audit-raw         # key-less: is anything persisted that is not ciphertext?
 ```
+
+`audit-raw` is the scripted version of the raw inspection below and needs no key material,
+so it can run from a host that must never hold the keys. It reads the stored form exactly
+as a dump or a bucket snapshot would expose it and prints counts only:
+
+- every protected row must be a JSON object holding exactly the five envelope keys
+  (`_enc`, `kid`, `wk`, `n`, `ct`) with `crypto_version = 2`; legacy plaintext, a scalar,
+  extra keys next to an envelope, or a scheme that disagrees with the column count as
+  `not_enveloped`;
+- referenced media objects are fetched from the provider adapter *without* the
+  encrypting wrapper and must start with the `EIMIRENC` header. `--media-sample N`
+  (default 200, `0` = all) bounds how many objects are inspected; each one is fetched
+  once, so a full pass over a large bucket costs egress and time.
+
+It exits non-zero when any plaintext is found. It proves the *form* of what is stored; it
+does not authenticate content (that is `verify-payloads` / `verify-media`, which need the
+keys) and it cannot see objects that no attachment row references.
 
 Raw inspection without keys (expect envelopes only, no titles, bodies, or text):
 
@@ -392,6 +410,7 @@ does not equal, nor contain, the original bytes.
 | `migrate-payloads` / `migrate-media` | Encrypt legacy plaintext; idempotent, resumable |
 | `rewrap-payloads` / `rewrap-media` | Re-wrap DEKs under the active KEK |
 | `verify-payloads` / `verify-media` | End-to-end authentication; non-zero on failure |
+| `audit-raw [--media-sample N]` | Key-less, read-only check that stored rows and sampled objects are ciphertext; counts only; non-zero on any plaintext |
 
 All are invoked as `python -m eimir.security <command>`.
 

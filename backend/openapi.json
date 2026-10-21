@@ -9118,6 +9118,30 @@
         "title": "SignupConsumeRequest",
         "type": "object"
       },
+      "SignupEmailRequest": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "invitationToken": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invitationtoken"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "SignupEmailRequest",
+        "type": "object"
+      },
       "SignupSessionView": {
         "properties": {
           "account": {
@@ -9126,6 +9150,18 @@
           "accountCreated": {
             "title": "Accountcreated",
             "type": "boolean"
+          },
+          "spaceId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spaceid"
           },
           "tokens": {
             "$ref": "#/components/schemas/TokenView"
@@ -10535,7 +10571,7 @@
     },
     "/api/v1/auth/magic-link/request": {
       "post": {
-        "description": "Request a passwordless sign-in link.\n\nThe response is identical whether or not the address exists. Otherwise\nthis endpoint would become an account directory.",
+        "description": "Request a passwordless entry link.\n\nCloud delegates to the same mailbox proof as /auth/signup/request, including\nfor addresses without an Account. Self-Hosted retains existing-account\nsign-in. The response never discloses whether the address has an Account.",
         "operationId": "request_magic_link_api_v1_auth_magic_link_request_post",
         "requestBody": {
           "content": {
@@ -12276,7 +12312,7 @@
     },
     "/api/v1/auth/signup/consume": {
       "post": {
-        "description": "Redeem a signup proof into a normal session.\n\nSend the proof in the request body, never in a URL. After a successful\nredemption the client removes it from its address bar and history. A new\nAccount has no Membership: continue with `POST /spaces` or accept an\ninvitation.",
+        "description": "Redeem a signup proof into a normal session.\n\nSend the proof in the request body, never in a URL. After a successful\nredemption the client removes it from its address bar and history. A new\nAccount joins the invitation bound to its proof atomically before a\nsession is issued. An ordinary proof has no invitation: continue with\n`POST /spaces` or accept an invitation separately. Invalid invitations fail\nwithout consuming the proof or creating an Account, session, or Membership.",
         "operationId": "consume_signup_api_v1_auth_signup_consume_post",
         "requestBody": {
           "content": {
@@ -12308,6 +12344,16 @@
               }
             },
             "description": "`AUTH_METHOD_DISABLED` on deployments without self-service signup, or `REGISTRATION_DISABLED` when the proof would create a new Account while the administrator does not admit new Accounts. Nothing was created."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
           },
           "422": {
             "content": {
@@ -12354,7 +12400,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EmailRequest"
+                "$ref": "#/components/schemas/SignupEmailRequest"
               }
             }
           },

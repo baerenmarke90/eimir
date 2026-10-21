@@ -1,0 +1,5 @@
+Sanitized pre-ActivityScenario failure: lifecycle/fatal-message lines only.
+10-20 21:32:09.731  2062  2062 D Capacitor: App destroyed
+10-20 21:32:09.788  2062  2062 E chromium: [ERROR:aw_browser_terminator.cc(165)] Renderer process (2100) crash detected (code -1).
+10-20 21:32:09.826   653   870 I ActivityTaskManager: START u0 {flg=0x10000000 xflg=0x4 cmp=de.sidebyside.app.debug/de.eimir.app.LauncherActivity (has extras)} with LAUNCH_SINGLE_TASK from uid 10151 (BAL_ALLOW_PERMISSION) result code=0
+10-20 21:32:10.073  2062  2122 F chromium: [FATAL:partition_alloc_support.cc(770)] Detected dangling raw_ptr in unretained with id=0x00000072002923fc:

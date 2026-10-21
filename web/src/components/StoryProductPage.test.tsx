@@ -4,6 +4,7 @@ import { createMemoryRouter, MemoryRouter } from 'react-router-dom';
 import { StoryKind } from '../api/generated/models/StoryKind';
 import { StoryOrder } from '../api/generated/models/StoryOrder';
 import type { ReferenceApis } from '../client/referenceFlow';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import {
   parseStoryFilters,
   storyCacheResourceId,
@@ -32,14 +33,17 @@ function renderStoryPage(route: string, cachedData: unknown): string {
     ],
     pageParams: [null],
   });
-  queryClient.setQueryData(['story-discover', 'account-1', 'space-1'], {
-    value: {
-      items: (cachedData as any).items || [],
-      lead: (cachedData as any).items?.[0] || null,
-      leadContext: null,
+  queryClient.setQueryData(
+    authorSummaryQueryKeys.discover('space-1', 'account-1'),
+    {
+      value: {
+        items: (cachedData as any).items || [],
+        lead: (cachedData as any).items?.[0] || null,
+        leadContext: null,
+      },
+      source: 'network',
     },
-    source: 'network',
-  });
+  );
 
   return renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>

@@ -3,9 +3,9 @@ import { createPortal } from 'react-dom';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
-import { ProfilesApi } from '../api/generated/apis/ProfilesApi';
+import { ProfilesApi } from '../client/mediaApis';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from '../client/apiConfiguration';
 import { formatRelativeTime } from '../client/formatRecency';
 import { engagementTargetPath, opaqueNextCursor } from '../client/m4Product';
 import {

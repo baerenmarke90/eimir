@@ -5,7 +5,7 @@ import {
   MemoryAttachmentBindingError,
   uploadMemoryDraftAttachment,
 } from './memoryAttachmentDraft';
-import type { ReferenceApis } from './referenceFlow';
+import { waitUntilAttachmentReady, type ReferenceApis } from './referenceFlow';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 
 function uploadingAttachment() {
@@ -25,6 +25,133 @@ function uploadingAttachment() {
 }
 
 describe('uploadMemoryDraftAttachment', () => {
+  it('cancels a pending validation read without leaving polling timers behind', async () => {
+    vi.useFakeTimers();
+    try {
+      const controller = new AbortController();
+      const getAttachment = vi.fn(
+        (_request, init: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init.signal?.addEventListener(
+              'abort',
+              () => reject(new Error('Wrapped transport cancellation')),
+              { once: true },
+            );
+          }),
+      );
+      const apis = {
+        attachments: { getAttachment },
+      } as unknown as ReferenceApis;
+      const result = waitUntilAttachmentReady(
+        apis,
+        'shared',
+        'photo',
+        controller.signal,
+      );
+      const rejected = expect(result).rejects.toMatchObject({
+        name: 'AbortError',
+      });
+      controller.abort();
+      await rejected;
+      expect(vi.getTimerCount()).toBe(0);
+      expect(getAttachment).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('cancels validation between reads and releases its next polling timer', async () => {
+    vi.useFakeTimers();
+    try {
+      const controller = new AbortController();
+      const getAttachment = vi.fn(async () => ({ status: 'VALIDATING' }));
+      const apis = {
+        attachments: { getAttachment },
+      } as unknown as ReferenceApis;
+      const result = waitUntilAttachmentReady(
+        apis,
+        'shared',
+        'photo',
+        controller.signal,
+      );
+      const rejected = expect(result).rejects.toMatchObject({
+        name: 'AbortError',
+      });
+      await vi.advanceTimersByTimeAsync(0);
+      controller.abort();
+      await rejected;
+      expect(vi.getTimerCount()).toBe(0);
+      expect(getAttachment).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('completes every selected photo when the server validates the batch sequentially beyond thirty seconds', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('XMLHttpRequest', undefined);
+    try {
+      const started = Date.now();
+      const readyAfter = [10_000, 35_000, 65_000];
+      let next = 0;
+      const apis = {
+        attachments: {
+          createAttachmentUpload: vi.fn(async () => {
+            const id = String(next++);
+            return {
+              attachment: { ...uploadingAttachment(), id },
+              method: UploadDescriptorMethodEnum.STREAM,
+              requiredHeaders: { 'Content-Type': 'image/jpeg' },
+              uploadUrl: `/api/v1/spaces/space-1/attachments/${id}/content`,
+            };
+          }),
+          finalizeAttachmentUpload: vi.fn(async () => ({})),
+          getAttachment: vi.fn(
+            async ({ attachmentId }: { attachmentId: string }) => ({
+              ...uploadingAttachment(),
+              id: attachmentId,
+              status:
+                Date.now() - started >= readyAfter[Number(attachmentId)]
+                  ? 'READY'
+                  : 'VALIDATING',
+            }),
+          ),
+        },
+      } as unknown as ReferenceApis;
+      const fetchApi = vi.fn(
+        async () => new Response(null, { status: 204 }),
+      ) as typeof fetch;
+      const results = Promise.allSettled(
+        readyAfter.map((_, index) =>
+          uploadMemoryDraftAttachment(
+            apis,
+            'https://api.example.invalid',
+            'token',
+            'space-1',
+            new File(['image'], `photo-${index}.jpg`, { type: 'image/jpeg' }),
+            undefined,
+            fetchApi,
+          ),
+        ),
+      );
+      await vi.advanceTimersByTimeAsync(70_000);
+      expect(await results).toEqual(
+        readyAfter.map((_, index) => ({
+          status: 'fulfilled',
+          value: { attachmentId: String(index) },
+        })),
+      );
+      expect(fetchApi).toHaveBeenCalledTimes(3);
+      expect(apis.attachments.createAttachmentUpload).toHaveBeenCalledTimes(3);
+      expect(apis.attachments.finalizeAttachmentUpload).toHaveBeenCalledTimes(
+        3,
+      );
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('starts upload immediately, exposes validation, and resolves only after READY', async () => {
     const phases: string[] = [];
     const attachment = uploadingAttachment();
@@ -67,10 +194,13 @@ describe('uploadMemoryDraftAttachment', () => {
       attachmentId: 'attachment-1',
       body: {},
     });
-    expect(apis.attachments.getAttachment).toHaveBeenCalledWith({
-      spaceId: 'space-1',
-      attachmentId: 'attachment-1',
-    });
+    expect(apis.attachments.getAttachment).toHaveBeenCalledWith(
+      {
+        spaceId: 'space-1',
+        attachmentId: 'attachment-1',
+      },
+      { signal: undefined },
+    );
   });
 
   it('fails when server-side validation rejects the uploaded image', async () => {

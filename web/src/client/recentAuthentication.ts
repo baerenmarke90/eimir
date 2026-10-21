@@ -4,7 +4,7 @@ import { AuthApi } from '../api/generated/apis/AuthApi';
 import type { CapabilitiesView } from '../api/generated/models/CapabilitiesView';
 import { RecentAuthenticationClient } from '../api/generated/models/RecentAuthenticationClient';
 import type { RecentAuthenticationView } from '../api/generated/models/RecentAuthenticationView';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from './apiConfiguration';
 import { isCapacitorNative } from '../pwa';
 import { ClientProblemError, normalizeClientError } from './problemDetails';
 

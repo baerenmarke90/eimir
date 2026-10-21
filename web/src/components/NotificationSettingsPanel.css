@@ -12,6 +12,18 @@
   font-size: 1rem;
 }
 
+.notification-device-push {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.notification-device-push p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
 .notification-destination {
   display: flex;
   flex-wrap: wrap;

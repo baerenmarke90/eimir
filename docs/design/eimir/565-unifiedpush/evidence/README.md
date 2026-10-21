@@ -1,0 +1,23 @@
+# UnifiedPush device control visual evidence
+
+These screenshots render the actual `NotificationSettingsPanel` component and
+its production CSS in headless Chromium, with mocked notification preferences
+and an active native Push state. They show the new device control in Compact
+(360 and 390 CSS px), Dark (390 px), Expanded (1280 px), and 320 px at 200%
+root text size. The account address and preferences are test data. The control preserves the existing settings
+hierarchy and uses the existing button and token styles.
+
+This is component-level visual evidence, not an Android screenshot or proof of
+Push delivery. The separate [2026-10-07 device verification](device-verification-2026-10-07.md)
+records physical Pixel captures, executed acceptance cases, automated checks,
+and the remaining limitations against implementation commit `25ef1034`.
+
+The [2026-10-20 physical follow-up](device-verification-2026-10-20.md) records
+gCompat-UP delivery, two integration corrections and their exact APK identities,
+warm/cold/pending-auth entry, sign-out, original-font folded evidence and the
+remaining Account-replacement and combined enlarged-font acceptance limits.
+
+
+The [2026-10-20 integration record](cloud-refresh-2026-10-20.md) adds current
+main/session/launcher integration and a real production-browser sign-out pending
+capture. Historical device images retain their original source identity.

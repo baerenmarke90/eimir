@@ -1,10 +1,11 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
+const OWN_SPACE_ID = '33333333-3333-4333-8333-333333333333';
 const TEST_NOW = '2026-09-01T10:00:00Z';
 
 async function expectNoWcagViolations(page: Page): Promise<void> {
@@ -38,6 +39,10 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 }
 
 test.describe('Cloud Onboarding Entry Flow (#622)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.clock.install({ time: new Date(TEST_NOW) });
+  });
+
   test('renders "Gemeinsam starten" CTA on Cloud and allows requesting signup proof', async ({
     page,
   }) => {
@@ -359,8 +364,124 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
 
   test('signup consume with existing account and existing membership enters existing space without FirstSpaceGate', async ({
     page,
-  }) => {
+  }, testInfo) => {
+    await verifySignupEntry(page, false, testInfo);
+  });
+
+  test('an invited partner follows a proof-only mail/app callback into the shared space', async ({
+    page,
+  }, testInfo) => {
+    await verifySignupEntry(page, true, testInfo);
+  });
+
+  test('a pre-upgrade invitation fragment still joins before loading memberships', async ({
+    page,
+  }, testInfo) => {
+    await verifySignupEntry(page, true, testInfo, { legacyFragment: true });
+  });
+
+  test('invitation completion enters the joined space while preserving an existing own space', async ({
+    page,
+  }, testInfo) => {
+    await verifySignupEntry(page, true, testInfo, { existingOwnSpace: true });
+  });
+
+  test('consumes a mail callback delivered through the running router', async ({
+    page,
+  }, testInfo) => {
+    await verifySignupEntry(page, true, testInfo, { delivery: 'router' });
+  });
+
+  test('consumes a PWA launch callback while another session is already loaded', async ({
+    page,
+  }, testInfo) => {
+    await verifySignupEntry(page, true, testInfo, {
+      delivery: 'launch',
+      existingSession: true,
+      existingOwnSpace: true,
+    });
+  });
+
+  test('a running-client callback cannot replace another active account', async ({
+    page,
+  }, testInfo) => {
+    await verifySignupEntry(page, true, testInfo, {
+      delivery: 'launch',
+      existingSession: true,
+      differentAccount: true,
+    });
+  });
+
+  test('a cold mail callback restores and protects another active account', async ({
+    page,
+  }, testInfo) => {
+    await verifySignupEntry(page, true, testInfo, {
+      existingOwnSpace: true,
+      existingSession: true,
+      differentAccount: true,
+    });
+  });
+
+  async function verifySignupEntry(
+    page: Page,
+    fromInvitation: boolean,
+    testInfo: TestInfo,
+    {
+      legacyFragment = false,
+      existingOwnSpace = false,
+      delivery = 'reload',
+      existingSession = false,
+      differentAccount = false,
+    }: {
+      legacyFragment?: boolean;
+      existingOwnSpace?: boolean;
+      delivery?: 'reload' | 'router' | 'launch';
+      existingSession?: boolean;
+      differentAccount?: boolean;
+    } = {},
+  ) {
+    await page.clock.setFixedTime(new Date(TEST_NOW));
     let spacesCreated = false;
+    let invitationAccepted = false;
+    let signedIn = existingSession;
+    let signupConsumed = 0;
+    let replacementSignOuts = 0;
+
+    if (delivery === 'launch') {
+      await page.addInitScript(() => {
+        Object.defineProperty(window, 'launchQueue', {
+          value: {
+            setConsumer(consumer: (params: { targetURL: string }) => void) {
+              Object.assign(window, { deliverTestLaunch: consumer });
+            },
+          },
+        });
+      });
+    }
+    if (existingSession) {
+      await page.addInitScript(
+        ({ accountId, spaceId }) => {
+          sessionStorage.setItem(
+            'eimir-session-v1',
+            JSON.stringify({
+              account: { id: accountId, displayName: 'Lea' },
+              tokens: {
+                accessToken: 'old-session-access-token',
+                refreshToken: 'old-session-refresh-token',
+                accessExpiresAt: new Date(
+                  Date.now() + 15 * 60_000,
+                ).toISOString(),
+                refreshExpiresAt: new Date(
+                  Date.now() + 7 * 86_400_000,
+                ).toISOString(),
+              },
+              spaceId,
+            }),
+          );
+        },
+        { accountId: ACCOUNT_ID, spaceId: OWN_SPACE_ID },
+      );
+    }
 
     await page.route('**/api/v1/**', async (route) => {
       if (await fulfillDefaultAppIcon(route)) return;
@@ -408,16 +529,34 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
       }
 
       if (method === 'POST' && pathname === '/api/v1/auth/signup/consume') {
+        signupConsumed += 1;
+        signedIn = true;
+        if (fromInvitation && !legacyFragment) invitationAccepted = true;
         await fulfillJson({
-          account: { id: ACCOUNT_ID, displayName: 'Lea' },
+          account: {
+            id: differentAccount
+              ? '44444444-4444-4444-8444-444444444444'
+              : ACCOUNT_ID,
+            displayName: 'Lea',
+          },
           tokens: {
             accessToken: 'session-access-token',
             refreshToken: 'session-refresh-token',
             accessExpiresAt: '2026-09-01T12:00:00Z',
             refreshExpiresAt: '2026-09-08T12:00:00Z',
           },
-          accountCreated: false,
+          accountCreated: fromInvitation && !existingOwnSpace,
+          ...(fromInvitation && !legacyFragment ? { spaceId: SPACE_ID } : {}),
         });
+        return;
+      }
+
+      if (method === 'POST' && pathname === '/api/v1/auth/sign-out') {
+        expect(request.headers().authorization).toBe(
+          'Bearer session-access-token',
+        );
+        replacementSignOuts += 1;
+        await route.fulfill({ status: 204 });
         return;
       }
 
@@ -432,13 +571,35 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
       }
 
       if (method === 'GET' && pathname === '/api/v1/auth/memberships') {
-        await fulfillJson([
-          {
-            accountId: ACCOUNT_ID,
-            spaceId: SPACE_ID,
-            createdAt: TEST_NOW,
-          },
-        ]);
+        await fulfillJson(
+          signedIn && (!fromInvitation || invitationAccepted)
+            ? [
+                ...(existingOwnSpace
+                  ? [
+                      {
+                        accountId: ACCOUNT_ID,
+                        spaceId: OWN_SPACE_ID,
+                        createdAt: TEST_NOW,
+                      },
+                    ]
+                  : []),
+                {
+                  accountId: ACCOUNT_ID,
+                  spaceId: SPACE_ID,
+                  createdAt: TEST_NOW,
+                },
+              ]
+            : [],
+        );
+        return;
+      }
+
+      if (method === 'GET' && pathname === `/api/v1/spaces/${OWN_SPACE_ID}`) {
+        await fulfillJson({
+          id: OWN_SPACE_ID,
+          createdAt: TEST_NOW,
+          partners: [{ id: ACCOUNT_ID, displayName: 'Lea' }],
+        });
         return;
       }
 
@@ -561,12 +722,114 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
       route.continue();
     });
 
-    // Enter via verified signup URL
-    await page.goto('/auth/signup?token=secret-signup-proof');
+    if (fromInvitation && !existingSession) {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.route('**/api/v1/auth/signup/request', async (route) => {
+        expect(route.request().postDataJSON()).toEqual({
+          email: 'partner@example.invalid',
+          invitationToken: 'partner-invitation',
+        });
+        await route.fulfill({ status: 202 });
+      });
+      await page.route('**/api/v1/invitations/accept', async (route) => {
+        expect(legacyFragment).toBe(true);
+        expect(route.request().headers().authorization).toBe(
+          'Bearer session-access-token',
+        );
+        expect(route.request().postDataJSON()).toEqual({
+          token: 'partner-invitation',
+        });
+        invitationAccepted = true;
+        await route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            spaceId: SPACE_ID,
+            role: 'PARTNER',
+            status: 'ACTIVE',
+          }),
+        });
+      });
+      await page.goto('/auth/invitation?token=partner-invitation');
+      await page.getByLabel(de.login.email).fill('partner@example.invalid');
+      await page
+        .getByRole('button', { name: de.identity.magicLinkRequestSubmit })
+        .click();
+      await expect(
+        page.getByText(de.identity.mailRequestedTitle),
+      ).toBeVisible();
+      await page.screenshot({
+        path: testInfo.outputPath('mail-confirmation-compact.png'),
+      });
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.screenshot({
+        path: testInfo.outputPath('mail-confirmation-expanded.png'),
+      });
+      await page.setViewportSize({ width: 390, height: 844 });
+    }
+    // New proof-only callbacks work even when the app ignores fragments.
+    // Retain coverage for links issued before server-side binding existed.
+    const callback =
+      '/auth/signup?token=secret-signup-proof' +
+      (legacyFragment ? '#invitationToken=partner-invitation' : '');
+    if (delivery === 'reload') {
+      await page.goto(callback);
+    } else if (delivery === 'router') {
+      await page.evaluate((url) => {
+        window.history.pushState(null, '', url);
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      }, callback);
+    } else {
+      await page.goto('/');
+      await expect(
+        page.getByRole('heading', {
+          name: de.spaceContext.createFirstSpaceTitle,
+        }),
+      ).toBeVisible();
+      await page.evaluate((path) => {
+        const deliver = (
+          window as unknown as {
+            deliverTestLaunch: (params: { targetURL: string }) => void;
+          }
+        ).deliverTestLaunch;
+        deliver({ targetURL: new URL(path, window.location.origin).href });
+      }, callback);
+    }
+
+    await expect.poll(() => signupConsumed).toBe(1);
+
+    if (differentAccount) {
+      await expect(
+        page.getByRole('alert').getByText(de.identity.activeAccountTitle),
+      ).toBeVisible();
+      await expect.poll(() => replacementSignOuts).toBe(1);
+      const stored = await page.evaluate(() =>
+        JSON.parse(sessionStorage.getItem('eimir-session-v1') || '{}'),
+      );
+      expect(stored.account.id).toBe(ACCOUNT_ID);
+      expect(stored.tokens.accessToken).toBe('old-session-access-token');
+      expect(spacesCreated).toBe(false);
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath('active-account-compact.png'),
+      });
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.screenshot({
+        path: testInfo.outputPath('active-account-expanded.png'),
+      });
+      await page
+        .getByRole('button', { name: de.identity.returnToActiveAccount })
+        .click();
+      await expect(
+        page.getByRole('alert').getByText(de.identity.activeAccountTitle),
+      ).toHaveCount(0);
+      return;
+    }
 
     // Page load does not await React's passive entry cleanup. Await the actual
     // privacy outcome rather than sampling the URL before the app has booted.
-    await expect(page).not.toHaveURL(/secret-signup-proof/);
+    await expect(page).not.toHaveURL(/secret-signup-proof|partner-invitation/);
 
     // FirstSpaceGate must NOT be displayed
     await expect(
@@ -581,7 +844,20 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
       page.getByRole('navigation', { name: de.navigation.primary }),
     ).toBeVisible();
     expect(spacesCreated).toBe(false);
-  });
+    expect(invitationAccepted).toBe(fromInvitation);
+    if (existingOwnSpace) {
+      expect(
+        await page.evaluate(
+          () =>
+            JSON.parse(sessionStorage.getItem('eimir-session-v1') || '{}')
+              .spaceId,
+        ),
+      ).toBe(SPACE_ID);
+    }
+    expect(
+      await page.evaluate(() => JSON.stringify(localStorage)),
+    ).not.toContain('partner-invitation');
+  }
 
   test('does not show "Gemeinsam starten" on self-hosted invitation-only deployment', async ({
     page,

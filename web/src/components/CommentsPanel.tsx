@@ -8,7 +8,10 @@ import {
 } from '@tanstack/react-query';
 import type { FormEvent } from 'react';
 import { useRef, useState } from 'react';
-import type { CommentsApi } from '../api/generated/apis/CommentsApi';
+import type {
+  CommentsApi,
+  DeleteCommentRequest,
+} from '../api/generated/apis/CommentsApi';
 import type { CommentDetail } from '../api/generated/models/CommentDetail';
 import { authorFirstName } from '../client/authorPresentation';
 import {
@@ -27,7 +30,10 @@ import {
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
-import { captureQueryIdentity } from '../client/queryIdentity';
+import {
+  captureAuthorizedQuery,
+  captureQueryIdentity,
+} from '../client/queryIdentity';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentEditor } from './CommentEditor';
@@ -41,7 +47,7 @@ interface CommentCreateSnapshot {
   readonly commentCreate: { readonly body: string };
 }
 
-/** A create can refresh an empty/loading read, but never another or denied lifetime. */
+/** A write can refresh its original read, but never another or denied lifetime. */
 function captureCommentRefresh(client: QueryClient, key: QueryKey) {
   const ownsQuery = captureQueryIdentity(client, key);
   const isCurrent = () =>
@@ -71,6 +77,15 @@ interface CommentCreateSubmission {
   readonly attempt: {
     current: CreateRequestAttempt<CommentCreateSnapshot> | null;
   };
+}
+
+interface CommentDeleteSubmission {
+  readonly api: CommentsApi;
+  readonly request: Readonly<DeleteCommentRequest>;
+  readonly ownsTask: () => boolean;
+  readonly isCurrent: () => boolean;
+  readonly comments: ReturnType<typeof captureCommentRefresh>;
+  readonly presence: ReturnType<typeof captureCommentRefresh>;
 }
 
 function createComment(
@@ -164,6 +179,15 @@ function CommentsPanelContent({
     parentId,
   ];
   const creating = useIsMutating({ mutationKey: createKey, exact: true }) > 0;
+  const deleteKey = [
+    'comment-delete',
+    currentAccountId,
+    spaceId,
+    parentKind,
+    parentId,
+  ];
+  const deleting = useIsMutating({ mutationKey: deleteKey, exact: true }) > 0;
+  const captureDeleteOwnership = useTaskActivation(!offline);
   const queryKey = commentsQueryKey(spaceId, parentKind, parentId);
   const presenceKey = commentPresenceQueryKey(spaceId, parentKind, parentId);
   const commentsQuery = useInfiniteQuery({
@@ -215,27 +239,43 @@ function CommentsPanelContent({
   });
 
   const deleteMutation = useMutation({
+    mutationKey: deleteKey,
     networkMode: 'always',
     retry: false,
-    mutationFn: async (comment: CommentDetail) => {
+    mutationFn: async (submission: CommentDeleteSubmission) => {
       try {
+        if (!submission.ownsTask() || !submission.isCurrent())
+          throw new ClientProblemError('permission');
         assertOnlineWrite();
-        await commentsApi.deleteComment({
-          spaceId,
-          commentId: comment.id,
-          ifMatch: String(comment.version),
-        });
+        await submission.api.deleteComment(submission.request);
       } catch (error) {
         throw await normalizeClientError(error);
       }
     },
-    onSuccess: async () => {
+    onSuccess: async (_result, submission) => {
+      if (!submission.isCurrent()) return;
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey }),
-        queryClient.invalidateQueries({ queryKey: presenceKey }),
+        submission.comments.refresh(submission.isCurrent),
+        submission.presence.refresh(submission.isCurrent),
       ]);
     },
   });
+
+  function removeComment(comment: CommentDetail) {
+    if (queryClient.isMutating({ mutationKey: deleteKey, exact: true })) return;
+    deleteMutation.mutate({
+      api: commentsApi,
+      request: {
+        spaceId,
+        commentId: comment.id,
+        ifMatch: String(comment.version),
+      },
+      ownsTask: captureDeleteOwnership(),
+      isCurrent: captureAuthorizedQuery(queryClient, queryKey),
+      comments: captureCommentRefresh(queryClient, queryKey),
+      presence: captureCommentRefresh(queryClient, presenceKey),
+    });
+  }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -379,9 +419,9 @@ function CommentsPanelContent({
                                 'details',
                               );
                               if (details) details.open = false;
-                              deleteMutation.mutate(comment);
+                              removeComment(comment);
                             }}
-                            disabled={deleteMutation.isPending}
+                            disabled={deleting}
                           >
                             {t('comments.delete')}
                           </button>
@@ -491,7 +531,9 @@ function CommentsPanelContent({
       createMutation.variables.comments.isCurrent() ? (
         <ProblemState error={createMutation.error} />
       ) : null}
-      {deleteMutation.error ? (
+      {deleteMutation.error &&
+      deleteMutation.variables?.ownsTask() &&
+      deleteMutation.variables.isCurrent() ? (
         <ProblemState error={deleteMutation.error} />
       ) : null}
     </section>

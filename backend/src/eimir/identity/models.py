@@ -355,6 +355,7 @@ class SignupProof(IdMixin, OneTimeTokenMixin, Base):
     __tablename__ = "signup_proofs"
 
     email: Mapped[str] = mapped_column(String(320), nullable=False)
+    invitation_token_hash: Mapped[str | None] = mapped_column(String(64))
 
     __table_args__ = (
         UniqueConstraint("token_hash", name="uq_signup_proofs_token_hash"),

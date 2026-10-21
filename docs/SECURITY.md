@@ -308,6 +308,15 @@ successful authentication method converges on the same `DeviceSession` output.
 | Email verification | `/auth/email/verification/request` (authenticated), `/auth/email/verification/confirm` | 24 hours |
 | Account Recovery | `/auth/recovery/request`, `/auth/recovery/consume` | 30 minutes |
 
+On Cloud/Managed, `/auth/magic-link/request` is a compatibility entry to the
+canonical signup-proof request for both known and unknown addresses. It sends
+the hosted `/auth/signup` callback and shares its address generation, address
+budget, and network budget with `/auth/signup/request`. Account admission is
+still checked when the proof is redeemed. Self-Hosted keeps existing-account-only
+magic-link requests. Previously issued magic tokens remain valid only in the
+magic-link consumer; proof tables are not interchangeable. An older request
+that supplies no invitation cannot reconstruct partner-joining intent.
+
 **No account-existence disclosure when mail delivery is available.** The
 unauthenticated Magic Link, signup, and Recovery request endpoints return `202`
 with an empty body for a known address exactly as for an unknown one. Rate limiting
@@ -320,7 +329,7 @@ dependency before address lookup, token issuance, or rate-limit reservation.
 They therefore do not create undeliverable proofs and do not turn the disabled
 mail capability into an account-existence oracle.
 
-A residual timing difference remains for Magic Link and Recovery when mail
+A residual timing difference remains for Self-Hosted Magic Link and Recovery when mail
 delivery is enabled: a mail is handed off for a known address but not for an
 unknown one. This is accepted because the endpoints are rate limited; equalizing
 it would require deliberately delaying delivery. The signup request does not have
@@ -444,7 +453,33 @@ its address, which stays held until commit:
 | Consumed, superseded, expired, or unknown proof | `422 ACTION_TOKEN_INVALID` |
 
 A rejected redemption rolls back, including the consumption itself, so the proof
-stays usable until it expires. Redemption never touches Memberships.
+stays usable until it expires. Ordinary signup does not touch Memberships.
+
+**Invitation continuation.** A Cloud signup request may carry an optional existing
+Space invitation token. Only its SHA-256 hash is bound to the short-lived signup
+proof, following the existing OIDC invitation-request pattern. The request does
+not look up invitation validity or Account state, preserving the same neutral
+work for known and unknown addresses. Mail contains only the ordinary signup
+proof link: invitation intent survives browser/app handoffs without a fragment
+parser, another client request, or secret client storage.
+
+Redemption authenticates the mailbox owner and accepts the bound invitation
+through the canonical invitation service in the same transaction, before issuing
+a session. Expiry, revocation, single use, self-invitation, ended history and the
+two-partner capacity limit still apply under the usual Space-first locks. A failed
+acceptance rolls back the Account, proof consumption and Membership; it cannot
+fall through to first-Space creation. Existing Accounts and their other Spaces
+are retained. No invitation hash is returned by the API or accepted as an API
+bearer credential.
+
+Revision 0086 is additive. Proofs issued before the upgrade remain nullable and
+the Web client retains their existing `#invitationToken=...` continuation. New
+proofs need no fragment, including on already-installed clients that ignore it.
+The hash is pruned with its proof under existing retention. Downgrade revokes
+pending bound proofs before removing the hash column, so they cannot silently
+become ordinary signup links; their recipients must request a fresh invitation
+email after returning to a compatible version.
+
 
 **Duplicate Accounts cannot arise.** Every redemption for one address waits for
 the same generation lock, so two of them cannot both observe "no Account". A
@@ -752,3 +787,19 @@ or bucket, not a compromised or malicious operator.
 Outbox payloads are separately restricted to explicitly allowed,
 non-sensitive metadata. Free-text fields and `ProtectedPayload` objects are
 rejected both by domain validation and by direct ORM binding.
+
+### Capacitor Android credential retention (#1357)
+
+The current instance-scoped session envelope is durably retained only on Android,
+in app-private no-backup storage encrypted with Android Keystore AES/GCM. The
+configured API base URL binds both the file namespace and authenticated
+ciphertext; another instance cannot decrypt that envelope. No plaintext durable
+Web-storage fallback is used, and browser/PWA credentials remain tab-scoped.
+
+The Web session facade serializes writes, persists refresh rotation before
+returning it, clears on sign-out or definitive 401, and guards late native reads
+and refresh completions against replaced sessions. A temporary network/server
+failure does not discard the credential. Foreground/reconnect checks and bounded
+transport retry maintain the existing 15-minute access / 60-day sliding refresh /
+180-day hard session-family policy. This feature does not issue non-expiring
+tokens, bypass revocation or extend the backend's absolute family lifetime.

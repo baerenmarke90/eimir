@@ -360,6 +360,13 @@ def _format_finding(path: Path, line_number: int, text: str) -> str:
 
 def _contains_marker(text: str) -> bool:
     sanitized = text.replace(ALLOWED_LEGACY_INPUT, "")
+    # Android's Activity Manager executable is an SDK command, not prose.
+    # Keep surrounding comments/text in scope rather than exempting a line.
+    sanitized = re.sub(
+        r"\badb(?:[ \t]+-e)?[ \t]+shell[ \t]+am[ \t]+instrument\b",
+        "adb shell activity-manager instrument",
+        sanitized,
+    )
     for localized_text in ALLOWED_LOCALIZED_TEXTS:
         sanitized = sanitized.replace(localized_text, "")
     return ENGINEERING_PROSE_MARKERS.search(sanitized) is not None

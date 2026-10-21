@@ -3,7 +3,7 @@ export type SensitiveEntryToken =
   | { kind: 'magicLink'; token: string }
   | { kind: 'emailVerification'; token: string }
   | { kind: 'invitation'; token: string }
-  | { kind: 'signup'; token: string };
+  | { kind: 'signup'; token: string; invitationToken?: string };
 
 const ENTRY_PATHS: Record<string, SensitiveEntryToken['kind']> = {
   '/auth/recovery': 'recovery',
@@ -16,11 +16,18 @@ const ENTRY_PATHS: Record<string, SensitiveEntryToken['kind']> = {
 export function readSensitiveEntryToken(
   pathname: string,
   search: string,
+  hash = '',
 ): SensitiveEntryToken | null {
   const kind = ENTRY_PATHS[pathname.replace(/\/$/, '')];
   if (!kind) return null;
 
   const token = new URLSearchParams(search).get('token')?.trim();
+  if (token && kind === 'signup') {
+    const invitationToken = new URLSearchParams(hash.replace(/^#/, ''))
+      .get('invitationToken')
+      ?.trim();
+    return invitationToken ? { kind, token, invitationToken } : { kind, token };
+  }
   return token ? { kind, token } : null;
 }
 

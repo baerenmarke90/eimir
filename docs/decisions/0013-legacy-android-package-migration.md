@@ -1,7 +1,7 @@
 # Decision 0013: Temporary migration from `de.sidebyside.app` to `de.eimir.app`
 
-**Status:** Proposed. Design preflight only; implementation is deferred until `de.eimir.app` is release-ready (§0)  
-**Date:** October 21, 2026  
+**Status:** Accepted (design), October 21, 2026. Design preflight only; implementation is deferred until `de.eimir.app` is release-ready (§0)  
+**Date:** October 21, 2026 (Product Owner decisions recorded the same day, see "Decisions")  
 **Owning issues:** #565 (package decision, FCM), #1331/#1332 (sideload update channel)  
 **Builds on:** [ADR 0011](0011-web-first-pwa-capacitor-mobile-delivery.md),
 `docs/CAPACITOR-ANDROID-FOUNDATION.md`, Draft PR #1392 (`codex/565-live-fcm`)  
@@ -16,8 +16,12 @@ former package stays a separate installation) or anything in PR #1392.
 
 ### Prerequisites the new app must meet first
 
-1. **Stable signing identity** for `de.eimir.app`, with custody and recovery material documented outside git.
-   Whether it reuses the existing test key decides the caller-verification form (open question 3).
+1. **Stable production signing identity** for `de.eimir.app`. The Product Owner decided that S is signed with
+   its own **production key**, not the L test key, because the app is intended to be marketed later. Key
+   custody and recovery material are documented outside git, and the public SHA-256 certificate fingerprint
+   must be final before the bridge release is built (L pins it, see §3). Whether Play App Signing is used, and
+   therefore which certificate devices actually carry, is a separate decision that this document does not
+   make; the pinned set must be re-checked if it changes.
 2. **Published, installable signed artifact** through a declared channel with exact source/hash and
    monotonic `versionCode` (#565 completion item 5).
 3. **Updater channel adapted to the new package/catalog** (#1331/#1332), with a demonstrated same-package
@@ -27,12 +31,13 @@ former package stays a separate installation) or anything in PR #1392.
 5. **Fresh authentication verified** in S against the existing Account/Space (email App Link or OIDC for the
    new package, `assetlinks.json` and redirect registration in place).
 6. **Live push acceptance for S** finished, so migration rules about push can be tested against real behavior.
-7. Product Owner confirmation of the open questions at the end of this document.
+7. The decisions at the end of this document remain valid (re-confirm only if the signing model changes).
 
 ### What to keep in mind now so the path stays open
 
 - Keep the L test release channel and its **signing key and recovery material** available. The bridge release
-  must be signed with the same key; do not rotate or retire it before the window ends.
+  must be signed with that same test key (same package `de.sidebyside.app`, so Android accepts it as an update);
+  do not rotate or retire it before the window ends. S uses a different, production key.
 - Do not remove the L catalog entries, `de.sidebyside.app` assetlinks statement, or L's API support early.
   Keep the API backward compatible for the frozen L build until the sunset date.
 - Keep `LEGACY_SESSION_STORAGE_KEY`-style aliases and the existing session facade seam
@@ -117,7 +122,7 @@ third-party dependency is required. License/ToS/cost review for third parties: n
 ### Preconditions
 
 1. S is installed through the declared channel (#565 completion item 5).
-2. L is updated once to a **bridge release** (same package, same signing key, higher `versionCode`) through the
+2. L is updated once to a **bridge release** (same package, same test signing key as L, higher `versionCode`) through the
    existing #1331 updater. The bridge adds only the "move to the new app" route, removes its own claim on the
    verified email-link paths (§4) and shows a "replaced" notice after revocation. A plain A migration needs no
    bridge.
@@ -141,7 +146,7 @@ S (IdentityEntry)               L (bridge release)                 server
    extras: challenge, state)
                                 4. verify getCallingActivity():
                                    package == de.eimir.app AND
-                                   signing cert == pinned set;
+                                   signing cert in pinned set;
                                    else RESULT_CANCELED, no UI
                                 5. confirmation sheet (names the
                                    target app, says L will be
@@ -191,9 +196,11 @@ Why this shape:
   clipboard or exported provider that a third app can observe.
 - Step 4 is the security-critical check. A hostile app can choose its own challenge, so L must refuse every
   caller other than S, identified by `getCallingActivity()` **and** its signing certificate (not by package
-  name alone). The calling component must also pass an exported-activity guard (explicit signature-level
-  permission when both apps share the test key; certificate pinning in code when they do not — see open
-  question 3). No intent extra, ticket or verifier is logged.
+  name alone). Because S and L are signed with different keys, no signature-level permission guard is
+  available; the check is **certificate pinning per package** in both directions: L pins S's production
+  certificate fingerprint(s) and compares them with the caller's signing certificates, and S pins L's test
+  certificate (`b5009739…f472`) before showing the action or launching L. A mismatch fails closed without UI
+  and without minting. No intent extra, ticket or verifier is logged.
 - The mint requires the **refresh token**, not just an access token. A stolen 15-minute access token must not
   be convertible into a long-lived session. This also keeps the endpoint independent of recent-auth, which
   would force a full re-authentication in L and defeat the purpose.
@@ -263,10 +270,11 @@ Temporary by construction:
 
 - **Classification:** `TEMPORARY_UPGRADE_MIGRATION` in the Capacitor native inventory. Everything lives behind
   the `sideload` source set in S, a bridge-only L release, a build flag (`VITE_EIMIR_LEGACY_MIGRATION`) and the
-  server flag. A tracking issue with the removal checklist is opened together with the first implementation PR.
-- **Exit criteria (any of):** both testers confirm migration and L is uninstalled; or a hard stop date set by
-  the Product Owner (proposal: 2026-12-31, to be confirmed). Exit evidence: no active L session in the
-  database for the two Accounts.
+  server flag. A tracking issue holds the exit criteria and the removal checklist.
+- **Exit criteria:** the window has **no fixed end date** (Product Owner decision). It ends when both testers
+  have migrated and L is uninstalled, or when the Product Owner declares the window closed. Exit evidence: no
+  active L session in the database for the two Accounts. The criteria and the removal checklist are kept in a
+  tracking issue.
 - **Removal:** disable the server flag; delete S's migration source set and flag; drop the table (Alembic
   downgrade/new revision) and the two endpoints unless the generic sign-in feature has adopted them; remove
   L from `assetlinks.json`; delete the `<queries>` entry; remove the bridge notice. No product data is
@@ -281,7 +289,7 @@ Temporary by construction:
 | Topic | Assessment |
 | --- | --- |
 | Ticket interception | Bound to S256 challenge, 120 s, single use, hashed at rest. Useless without the verifier, which stays in S. |
-| Impersonation of S toward L | Calling package plus signing certificate verification, signature-level exported-activity guard, explicit user confirmation naming the target app. Negative instrumentation test with a hostile caller APK is mandatory. |
+| Impersonation of S toward L | Calling package plus pinned signing-certificate verification (per package, since the apps use different keys), explicit user confirmation naming the target app. Negative instrumentation test with a hostile caller APK is mandatory. |
 | Stolen access token | Cannot mint (refresh token proof required). |
 | Account takeover through enumeration/guessing | 256-bit tickets, generic errors, rate limits per session/address/ticket hash, security events. |
 | Package visibility | S needs `<queries>` for `de.sidebyside.app` to hide the action when L is absent. It reveals only whether L is installed, only in the temporary source set. |
@@ -365,17 +373,19 @@ No work item below is scheduled before the prerequisites in §0 hold. Suggested 
 | 0 | Tracking issue from this document, manual migration guide for A, operator checks (existing push endpoints/sessions, assetlinks and OIDC redirect plan, which L builds contain UnifiedPush) | readiness gate | Delivers the guaranteed floor. |
 | 1 | Backend handoff (table, service, two endpoints, flag, rate limits, retention, OpenAPI + client, tests) | readiness gate | Flag off by default. |
 | 2 | S `sideload` migration source set and IdentityEntry action | item 1 | Visual reference first. |
-| 3 | L bridge release from a maintenance branch, published through the L catalog | item 1 | Needs the existing test signing key. |
+| 3 | L bridge release from a maintenance branch, published through the L catalog | item 1 | Signed with the existing L test key; embeds S's final production certificate fingerprint. |
 | 4 | Ops: assetlinks for both packages, flag on `eimir-test`, device acceptance record | items 1–3 | No source behavior change. |
 | 5 | Optional: push endpoint to device-session binding | separate issue | Only if wanted generally or L-owned endpoints exist. |
 | 6 | Sunset removal (checklist in §5) | exit criteria | Prepared with item 2. |
 
-## Open questions for the Product Owner
+## Decisions (Product Owner, 2026-10-21)
 
-1. Does "keep the login" mean a seamless carry-over (then PR 1–4), or is a quick fresh sign-in via A enough
-   for the two testers (then only PR 0)? Recommendation: build B, ship A first.
-2. Acceptable stop date for the window (proposal 2026-12-31)?
-3. Will S be signed with the same test key as L? Same key allows the signature-level permission guard;
-   a different key requires certificate pinning per package only. Either works; this decides the guard form.
-4. Is a hard "move" (L revoked at redemption) the wanted semantics, or should both stay signed in until the
-   user signs out of L?
+1. **Order:** deliver path A (manual guide) first, then build path B.
+2. **No fixed end date.** The migration window has no calendar deadline. Sunset criteria stay as in §5 and are
+   tracked in a tracking issue.
+3. **Signing:** `de.eimir.app` is signed with its own **production key** (the app is intended to be marketed
+   later), not with the L test key. Consequences: no signature-level guard; caller verification uses
+   certificate pinning per package; the bridge release embeds S's production certificate fingerprint and so
+   can only be built after that fingerprint is final; production-key custody must be documented. Play App
+   Signing is acknowledged as a separate, undecided question.
+4. **Hard move:** L's session is revoked when the ticket is redeemed.

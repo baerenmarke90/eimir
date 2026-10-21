@@ -63,7 +63,7 @@ app to the new one MUST be possible**; without it the tester loses the signed-in
 test APK. The migration may be temporary.
 
 Terms used below: **L** = legacy app `de.sidebyside.app` (test channel `0.2.0-test.N`, sideload updater from
-#1331); **S** = successor app `de.eimir.app`. Both can be installed side by side on one phone.
+#1331); **S** = successor app `de.eimir.app`. Both can be installed next to each other on one phone.
 
 ## 1. What lives where
 

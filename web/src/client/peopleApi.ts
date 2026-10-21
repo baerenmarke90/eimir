@@ -1,5 +1,5 @@
 import { PeopleApi } from '../api/generated/apis/PeopleApi';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from './apiConfiguration';
 
 export function createPeopleApi(
   apiBaseUrl: string,

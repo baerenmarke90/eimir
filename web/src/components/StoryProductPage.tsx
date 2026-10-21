@@ -33,6 +33,7 @@ import {
   DiscoverSelectionToJSON,
 } from '../api/generated/models/DiscoverSelection';
 import { normalizeClientError } from '../client/problemDetails';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   loadProductWithReadCache,
@@ -319,7 +320,7 @@ export function StoryProductPage({
     retry: false,
   });
   const discoverQuery = useQuery({
-    queryKey: ['story-discover', accountId, spaceId],
+    queryKey: authorSummaryQueryKeys.discover(spaceId, accountId),
     queryFn: async () => {
       return loadProductWithReadCache({
         accountId,

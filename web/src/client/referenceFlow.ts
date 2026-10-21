@@ -1,4 +1,4 @@
-import { AttachmentsApi } from '../api/generated/apis/AttachmentsApi';
+import { AttachmentsApi } from './mediaApis';
 import { AuthApi } from '../api/generated/apis/AuthApi';
 import { CommentsApi } from '../api/generated/apis/CommentsApi';
 import { HeartMomentsApi } from '../api/generated/apis/HeartMomentsApi';
@@ -9,13 +9,14 @@ import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/Att
 import { MediaType } from '../api/generated/models/MediaType';
 import type { MemoryCreate } from '../api/generated/models/MemoryCreate';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
-import { ReadDescriptorMethodEnum } from '../api/generated/models/ReadDescriptor';
 import type { SessionView } from '../api/generated/models/SessionView';
 import type { StoryPage } from '../api/generated/models/StoryPage';
 import type { UploadDescriptor } from '../api/generated/models/UploadDescriptor';
 import { UploadDescriptorMethodEnum } from '../api/generated/models/UploadDescriptor';
-import { Configuration, ResponseError } from '../api/generated/runtime';
+import { Configuration, createSessionFetch } from './apiConfiguration';
+import { ResponseError } from '../api/generated/runtime';
 import { i18n } from '../i18n';
+import { loadAuthorizedStoryImage } from './storyMediaLoader';
 
 export interface FlowResult {
   memory: MemoryDetail;
@@ -113,7 +114,11 @@ export async function uploadAttachmentBytes(
     headers.set('Authorization', `Bearer ${accessToken}`);
   }
 
-  const response = await fetchApi(
+  const transport =
+    descriptor.method === UploadDescriptorMethodEnum.STREAM
+      ? createSessionFetch(apiBaseUrl, accessToken, fetchApi)
+      : fetchApi;
+  const response = await transport(
     resolveTransportUrl(apiBaseUrl, descriptor.uploadUrl),
     {
       method: 'PUT',
@@ -153,67 +158,85 @@ export async function uploadAttachmentBytesWithProgress(
     headers.set('Authorization', `Bearer ${accessToken}`);
   }
 
-  await new Promise<void>((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    request.open('PUT', resolveTransportUrl(apiBaseUrl, descriptor.uploadUrl));
-    headers.forEach((value, key) => {
-      request.setRequestHeader(key, value);
-    });
+  const xhrTransport: typeof fetch = (url, init) =>
+    new Promise<Response>((resolve, reject) => {
+      const request = new XMLHttpRequest();
+      request.open('PUT', String(url));
+      new Headers(init?.headers).forEach((value, key) => {
+        request.setRequestHeader(key, value);
+      });
 
-    request.upload.onprogress = (event) => {
-      if (!event.lengthComputable || event.total <= 0) return;
-      const progress = Math.min(
-        100,
-        Math.round((event.loaded / event.total) * 100),
-      );
-      options.onProgress?.(progress);
-    };
-    request.onload = () => {
-      if (request.status >= 200 && request.status < 300) {
-        options.onProgress?.(100);
-        resolve();
+      request.upload.onprogress = (event) => {
+        if (!event.lengthComputable || event.total <= 0) return;
+        const progress = Math.min(
+          100,
+          Math.round((event.loaded / event.total) * 100),
+        );
+        options.onProgress?.(progress);
+      };
+      request.onload = () => {
+        resolve(
+          new Response(null, {
+            status: request.status,
+            statusText: request.statusText,
+          }),
+        );
+      };
+      request.onerror = () =>
+        reject(new ReferenceFlowError(i18n.t('flow.uploadFailed')));
+      request.onabort = () =>
+        reject(new DOMException('Upload aborted.', 'AbortError'));
+
+      const abort = () => request.abort();
+      if (options.signal?.aborted) {
+        reject(new DOMException('Upload aborted.', 'AbortError'));
         return;
       }
-      const detail = `${request.status} ${request.statusText}`.trim();
-      reject(
-        new ReferenceFlowError(
-          detail
-            ? `${i18n.t('flow.uploadFailed')}: ${detail}`
-            : i18n.t('flow.uploadFailed'),
-        ),
+      options.signal?.addEventListener('abort', abort, { once: true });
+      request.addEventListener(
+        'loadend',
+        () => options.signal?.removeEventListener('abort', abort),
+        { once: true },
       );
-    };
-    request.onerror = () =>
-      reject(new ReferenceFlowError(i18n.t('flow.uploadFailed')));
-    request.onabort = () =>
-      reject(new DOMException('Upload aborted.', 'AbortError'));
-
-    const abort = () => request.abort();
-    if (options.signal?.aborted) {
-      abort();
-      return;
-    }
-    options.signal?.addEventListener('abort', abort, { once: true });
-    request.addEventListener(
-      'loadend',
-      () => options.signal?.removeEventListener('abort', abort),
-      { once: true },
-    );
-    request.send(file);
-  });
+      request.send(file);
+    });
+  const transport =
+    descriptor.method === UploadDescriptorMethodEnum.STREAM
+      ? createSessionFetch(apiBaseUrl, accessToken, xhrTransport)
+      : xhrTransport;
+  const response = await transport(
+    resolveTransportUrl(apiBaseUrl, descriptor.uploadUrl),
+    {
+      method: 'PUT',
+      headers,
+      body: file,
+      signal: options.signal,
+    },
+  );
+  await assertOk(response, i18n.t('flow.uploadFailed'));
+  options.onProgress?.(100);
 }
 
-async function waitUntilReady(
+/** Server validation may queue behind other photos; elapsed time is not failure. */
+export async function waitUntilAttachmentReady(
   apis: ReferenceApis,
   spaceId: string,
   attachmentId: string,
+  signal?: AbortSignal,
 ): Promise<void> {
-  const deadline = Date.now() + 30_000;
-  while (Date.now() < deadline) {
-    const attachment = await apis.attachments.getAttachment({
-      spaceId,
-      attachmentId,
-    });
+  let interval = 500;
+  while (true) {
+    if (signal?.aborted)
+      throw new DOMException('Upload aborted.', 'AbortError');
+    const attachment = await apis.attachments
+      .getAttachment({ spaceId, attachmentId }, { signal })
+      .catch((error: unknown) => {
+        if (signal?.aborted)
+          throw new DOMException('Upload aborted.', 'AbortError');
+        throw error;
+      });
+    if (signal?.aborted)
+      throw new DOMException('Upload aborted.', 'AbortError');
     if (attachment.status === 'READY') return;
     if (
       attachment.status === 'FAILED' ||
@@ -224,15 +247,27 @@ async function waitUntilReady(
         i18n.t('flow.processingStatus', { status: attachment.status }),
       );
     }
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise<void>((resolve, reject) => {
+      const abort = () => {
+        clearTimeout(timer);
+        reject(new DOMException('Upload aborted.', 'AbortError'));
+      };
+      const timer = setTimeout(() => {
+        signal?.removeEventListener('abort', abort);
+        resolve();
+      }, interval);
+      if (signal?.aborted) abort();
+      else signal?.addEventListener('abort', abort, { once: true });
+    });
+    // Keep a slow batch observable without hammering the metadata endpoint.
+    interval = Math.min(interval * 2, 5_000);
   }
-  throw new ReferenceFlowError(i18n.t('flow.processingTimeout'));
 }
 
 export async function loadAuthorizedMedia(
   apis: ReferenceApis,
-  apiBaseUrl: string,
-  accessToken: string,
+  _apiBaseUrl: string,
+  _accessToken: string,
   spaceId: string,
   parentType:
     | typeof AttachmentReadRequestParentTypeEnum.MEMORY
@@ -242,25 +277,14 @@ export async function loadAuthorizedMedia(
   fetchApi: typeof fetch = fetch,
   signal?: AbortSignal,
 ): Promise<string> {
-  const descriptor = await apis.attachments.createAttachmentReadAccess({
+  return loadAuthorizedStoryImage(
+    apis,
     spaceId,
+    parentType,
+    parentId,
     attachmentId,
-    attachmentReadRequest: { parentType, parentId },
-  });
-
-  const headers = new Headers();
-  if (descriptor.method === ReadDescriptorMethodEnum.STREAM) {
-    headers.set('Authorization', `Bearer ${accessToken}`);
-  }
-  const response = await fetchApi(
-    resolveTransportUrl(apiBaseUrl, descriptor.url),
-    {
-      headers,
-      ...(signal ? { signal } : {}),
-    },
+    { fetchApi, signal },
   );
-  await assertOk(response, i18n.t('flow.imageLoadFailed'));
-  return URL.createObjectURL(await response.blob());
 }
 
 export async function loadAuthorizedImage(
@@ -348,7 +372,7 @@ export async function runMemoryMediaStoryFlow(
       attachmentId: upload.attachment.id,
       body: {},
     });
-    await waitUntilReady(apis, spaceId, upload.attachment.id);
+    await waitUntilAttachmentReady(apis, spaceId, upload.attachment.id);
 
     const boundMemory = await apis.memories.replaceMemoryAttachments({
       spaceId,

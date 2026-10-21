@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { GamesApi } from '../api/generated/apis/GamesApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { PartnerView } from '../api/generated/models/PartnerView';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from '../client/apiConfiguration';
 import { normalizeClientError } from '../client/problemDetails';
 import { appRoutePath } from '../client/routes';
 import {

@@ -20,6 +20,13 @@ const appIcon = {
   saved: 'Auswahl gespeichert.',
   browser:
     'Deine Auswahl gilt im Browser. Das Icon auf deinem Startbildschirm bleibt vorerst gleich.',
+  nativePending: 'Dein Startbildschirm-Icon wird eingestellt …',
+  nativeApplied: 'Startbildschirm-Icon eingestellt.',
+  nativeError:
+    'Deine Auswahl ist gespeichert. Das Startbildschirm-Icon konnte auf diesem Gerät noch nicht eingestellt werden.',
+  nativeRetry: 'Icon erneut anwenden',
+  nativeUpdate:
+    'Aktualisiere die eimir. App, um dein Startbildschirm-Icon zu ändern.',
   unavailable: 'Deine Auswahl ist gerade nicht verfügbar.',
   capabilityUnavailable:
     'Pro konnte gerade nicht geprüft werden. Original bleibt verfügbar.',

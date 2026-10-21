@@ -167,7 +167,7 @@ in a background job under resource limits — never in the request path.
 | @types/react-dom | 19.2.5 | npm | MIT |
 | @types/node | 24.19.1 | npm | MIT |
 | typescript | 5.9.2 | npm | Apache-2.0 |
-| vite | 8.2.2 | npm | MIT |
+| vite | 8.2.4 | npm | MIT |
 | vitest | 5.0.4 | npm | MIT |
 
 ### October 2026 audit maintenance
@@ -176,6 +176,15 @@ The lock refresh updates PyJWT to 2.15.1 and Alembic's transitive Mako to
 1.4.3. PyJWT's declared minimum also prevents restoring the vulnerable
 verification dependency during a future resolution. Both remain existing MIT
 dependencies; no authentication provider, algorithm policy or migration is added.
+
+Vite is pinned to 8.2.4, the patched 8.2 release for the upstream bundled
+`launch-editor` advisories
+[GHSA-698v-4r3x-3vcv](https://github.com/vitejs/launch-editor/security/advisories/GHSA-698v-4r3x-3vcv),
+[GHSA-r825-w8mm-5pxw](https://github.com/vitejs/launch-editor/security/advisories/GHSA-r825-w8mm-5pxw), and
+[GHSA-587h-7wmj-h5pm](https://github.com/vitejs/launch-editor/security/advisories/GHSA-587h-7wmj-h5pm).
+This keeps the existing minor line and dependency ranges; it introduces no
+provider, runtime feature or audit exception. The normal build, token, PWA and
+Capacitor foundation checks validate the patched toolchain.
 
 The Vitest 5.0.4 upgrade follows the prior 4.1.11 security refresh.
 Its updated matcher augmentation preserves the custom focus assertion and

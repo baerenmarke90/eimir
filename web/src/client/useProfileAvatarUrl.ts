@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { createOwnedObjectUrl, type OwnedObjectUrl } from './objectUrlResource';
+import {
+  captureMediaCacheLease,
+  assertMediaCacheLease,
+  loadCachedMediaBlob,
+  mediaCacheScopeForClient,
+  type MediaCacheScope,
+} from './authorizedMediaCache';
 
 interface SharedAvatarEntry {
   consumers: number;
@@ -10,8 +17,8 @@ interface SharedAvatarEntry {
   releaseTimer: ReturnType<typeof setTimeout> | null;
 }
 
-const avatarCacheByApi = new WeakMap<
-  ProfilesApi,
+const avatarCacheByScope = new WeakMap<
+  MediaCacheScope,
   Map<string, SharedAvatarEntry>
 >();
 
@@ -24,10 +31,11 @@ function avatarCacheKey(
 }
 
 function cacheFor(profilesApi: ProfilesApi): Map<string, SharedAvatarEntry> {
-  const existing = avatarCacheByApi.get(profilesApi);
+  const scope = mediaCacheScopeForClient(profilesApi);
+  const existing = avatarCacheByScope.get(scope);
   if (existing) return existing;
   const created = new Map<string, SharedAvatarEntry>();
-  avatarCacheByApi.set(profilesApi, created);
+  avatarCacheByScope.set(scope, created);
   return created;
 }
 
@@ -86,13 +94,21 @@ function acquireSharedAvatar(
   if (!currentEntry.pending && !currentEntry.resource) {
     const controller = new AbortController();
     currentEntry.controller = controller;
-    const pending = profilesApi
-      .getProfileAvatarContentRaw(
-        { accountId, spaceId },
-        { signal: controller.signal },
-      )
-      .then(async (response) => {
-        const blob = await response.raw.blob();
+    const lease = captureMediaCacheLease(profilesApi, spaceId);
+    const pending = loadCachedMediaBlob(
+      lease,
+      ['profile-avatar', accountId, profileAttachmentId],
+      async (signal) => {
+        const response = await profilesApi.getProfileAvatarContentRaw(
+          { accountId, spaceId },
+          { signal },
+        );
+        return response.raw.blob();
+      },
+      controller.signal,
+    )
+      .then((blob) => {
+        assertMediaCacheLease(lease);
         if (controller.signal.aborted) {
           throw new DOMException('Avatar load aborted', 'AbortError');
         }
@@ -129,15 +145,24 @@ export function useProfileAvatarUrl(
   accountId: string,
   profileAttachmentId: string | null | undefined,
 ): { avatarUrl: string | null; loadFailed: boolean } {
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [loadFailed, setLoadFailed] = useState(false);
+  const scope = profilesApi ? mediaCacheScopeForClient(profilesApi) : null;
+  const identity = JSON.stringify([
+    scope?.id,
+    spaceId,
+    accountId,
+    profileAttachmentId,
+  ]);
+  const [state, setState] = useState({
+    identity,
+    avatarUrl: null as string | null,
+    loadFailed: false,
+  });
 
   useEffect(() => {
     let active = true;
-    setLoadFailed(false);
 
     if (!profilesApi || !profileAttachmentId || !spaceId || !accountId) {
-      setAvatarUrl(null);
+      setState({ identity, avatarUrl: null, loadFailed: false });
       return;
     }
 
@@ -147,24 +172,31 @@ export function useProfileAvatarUrl(
       accountId,
       profileAttachmentId,
     );
-    setAvatarUrl(shared.entry.resource?.url ?? null);
+    setState({
+      identity,
+      avatarUrl: shared.entry.resource?.url ?? null,
+      loadFailed: false,
+    });
 
     void shared.promise
       .then((loadedUrl) => {
-        if (active) setAvatarUrl(loadedUrl);
+        if (active)
+          setState({ identity, avatarUrl: loadedUrl, loadFailed: false });
       })
       .catch((error: unknown) => {
         if (!active) return;
         if (error instanceof DOMException && error.name === 'AbortError')
           return;
-        setLoadFailed(true);
+        setState({ identity, avatarUrl: null, loadFailed: true });
       });
 
     return () => {
       active = false;
       shared.release();
     };
-  }, [accountId, profileAttachmentId, profilesApi, spaceId]);
+  }, [accountId, profileAttachmentId, profilesApi, spaceId, identity]);
 
-  return { avatarUrl, loadFailed };
+  return state.identity === identity && scope?.isCurrent(spaceId)
+    ? { avatarUrl: state.avatarUrl, loadFailed: state.loadFailed }
+    : { avatarUrl: null, loadFailed: false };
 }

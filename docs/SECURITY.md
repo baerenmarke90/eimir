@@ -308,6 +308,15 @@ successful authentication method converges on the same `DeviceSession` output.
 | Email verification | `/auth/email/verification/request` (authenticated), `/auth/email/verification/confirm` | 24 hours |
 | Account Recovery | `/auth/recovery/request`, `/auth/recovery/consume` | 30 minutes |
 
+On Cloud/Managed, `/auth/magic-link/request` is a compatibility entry to the
+canonical signup-proof request for both known and unknown addresses. It sends
+the hosted `/auth/signup` callback and shares its address generation, address
+budget, and network budget with `/auth/signup/request`. Account admission is
+still checked when the proof is redeemed. Self-Hosted keeps existing-account-only
+magic-link requests. Previously issued magic tokens remain valid only in the
+magic-link consumer; proof tables are not interchangeable. An older request
+that supplies no invitation cannot reconstruct partner-joining intent.
+
 **No account-existence disclosure when mail delivery is available.** The
 unauthenticated Magic Link, signup, and Recovery request endpoints return `202`
 with an empty body for a known address exactly as for an unknown one. Rate limiting
@@ -320,7 +329,7 @@ dependency before address lookup, token issuance, or rate-limit reservation.
 They therefore do not create undeliverable proofs and do not turn the disabled
 mail capability into an account-existence oracle.
 
-A residual timing difference remains for Magic Link and Recovery when mail
+A residual timing difference remains for Self-Hosted Magic Link and Recovery when mail
 delivery is enabled: a mail is handed off for a known address but not for an
 unknown one. This is accepted because the endpoints are rate limited; equalizing
 it would require deliberately delaying delivery. The signup request does not have

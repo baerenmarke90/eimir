@@ -12,6 +12,11 @@
     "LOWER_LEVEL": "Still runs in the full regression until equivalent lower-level coverage is committed and the browser case can be removed."
   },
   "specs": {
+    "comments-delete-ownership.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6,
+      "reason": "Comment deletion must retain resource admission through return, prevent immediate duplicate DELETEs and preserve content on failure until deliberate retry."
+    },
     "comments-create-ownership.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 9,
@@ -74,7 +79,7 @@
     },
     "memory-carousel-stability.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 4
+      "baselineTests": 6
     },
     "memory-create-defaults.spec.ts": {
       "disposition": "PR_CRITICAL",

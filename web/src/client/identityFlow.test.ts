@@ -1,8 +1,118 @@
 import { AuthApi } from '../api/generated/apis/AuthApi';
 import type { SignupSessionView } from '../api/generated/models/SignupSessionView';
-import { consumeSignup, requestSignup } from './identityFlow';
+import { InvitationsApi } from '../api/generated/apis/InvitationsApi';
+import {
+  consumeSignup,
+  requestSignup,
+  signInAndJoinInvitation,
+  revokeUnacceptedSession,
+} from './identityFlow';
+import {
+  clearStoredSession,
+  storeSession,
+  refreshSessionTokens,
+} from './sessionPersistence';
 
 describe('identityFlow signup methods', () => {
+  it.each(['password', 'legacyMailbox'] as const)(
+    'revokes unused %s credentials after invitation acceptance fails',
+    async (kind) => {
+      const session: SignupSessionView = {
+        account: { id: 'partner', displayName: 'Partner' },
+        tokens: {
+          accessToken: 'unused-access',
+          refreshToken: 'unused-refresh',
+          accessExpiresAt: new Date('2099-01-01'),
+          refreshExpiresAt: new Date('2099-02-01'),
+        },
+        accountCreated: false,
+      };
+      const signIn = vi
+        .spyOn(AuthApi.prototype, 'signInApiV1AuthSignInPost')
+        .mockResolvedValue(session);
+      const consume = vi
+        .spyOn(AuthApi.prototype, 'consumeSignupApiV1AuthSignupConsumePost')
+        .mockResolvedValue(session);
+      const accept = vi
+        .spyOn(
+          InvitationsApi.prototype,
+          'acceptInvitationApiV1InvitationsAcceptPost',
+        )
+        .mockRejectedValue({ status: 409, code: 'INVITATION_UNAVAILABLE' });
+      const signOut = vi
+        .spyOn(AuthApi.prototype, 'signOutApiV1AuthSignOutPost')
+        .mockRejectedValue(new Error('Transport unavailable'));
+      try {
+        await expect(
+          kind === 'password'
+            ? signInAndJoinInvitation(
+                'https://instance.example',
+                'partner@example.invalid',
+                'fictional',
+                'invite',
+              )
+            : consumeSignup('https://instance.example', 'proof', 'invite'),
+        ).rejects.toMatchObject({
+          status: 409,
+          code: 'INVITATION_UNAVAILABLE',
+        });
+        expect(signOut).toHaveBeenCalledOnce();
+      } finally {
+        signIn.mockRestore();
+        consume.mockRestore();
+        accept.mockRestore();
+        signOut.mockRestore();
+      }
+    },
+  );
+
+  it.each([false, true])(
+    'never revokes an accepted active session during stale-response cleanup (rotated: %s)',
+    async (rotated) => {
+      const memory = new Map<string, string>();
+      vi.stubGlobal('window', {
+        sessionStorage: {
+          getItem: (key: string) => memory.get(key) ?? null,
+          setItem: (key: string, value: string) => memory.set(key, value),
+          removeItem: (key: string) => memory.delete(key),
+        },
+      });
+      const session = {
+        account: { id: 'partner', displayName: 'Partner' },
+        tokens: {
+          accessToken: 'active-access',
+          refreshToken: 'active-refresh',
+          accessExpiresAt: new Date('2099-01-01'),
+          refreshExpiresAt: new Date('2099-02-01'),
+        },
+      };
+      const signOut = vi
+        .spyOn(AuthApi.prototype, 'signOutApiV1AuthSignOutPost')
+        .mockResolvedValue();
+      const refresh = vi
+        .spyOn(AuthApi.prototype, 'refreshApiV1AuthRefreshPost')
+        .mockResolvedValue({
+          ...session.tokens,
+          accessToken: 'rotated-access',
+          refreshToken: 'rotated-refresh',
+        });
+      try {
+        await storeSession(session);
+        if (rotated)
+          await refreshSessionTokens(
+            'https://instance.example',
+            session.tokens.refreshToken,
+          );
+        await revokeUnacceptedSession('https://instance.example', session);
+        expect(signOut).not.toHaveBeenCalled();
+      } finally {
+        await clearStoredSession();
+        vi.unstubAllGlobals();
+        signOut.mockRestore();
+        refresh.mockRestore();
+      }
+    },
+  );
   it('requests signup proof with proper email request body', async () => {
     const spy = vi
       .spyOn(AuthApi.prototype, 'requestSignupApiV1AuthSignupRequestPost')

@@ -68,6 +68,9 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 - **External Links:**
   - Standard Capacitor WebView behavior is preserved without invasive global click-handler DOM interception.
   - In-app navigation uses existing React router / window history.
+- **Delivered mailbox and invitation links:**
+  - The shared Web identity-entry intake reads `appUrlOpen` and `App.getLaunchUrl()` for HTTPS auth URLs from the configured API origin, as well as browser routes and PWA launch targets. Proofs remain in memory and use the existing identity flow before an older signed-in shell can take precedence.
+  - This intake only handles URLs already delivered to the wrapper. The ordinary main manifest registers the OIDC filter below. The separately published Android test channel also has a sideload manifest for five HTTPS auth paths on `demo.eimir.ur-cloud.de`; it does not establish verified App Links for arbitrary Self-Hosted domains. OS domain verification and APK distribution are separate boundaries. A Web/backend deployment cannot update a previously bundled APK.
 - **OIDC Authentication Flow:**
   - When running in native mode (`isCapacitorNative()`), OIDC login launches via `@capacitor/browser`:
     ```ts

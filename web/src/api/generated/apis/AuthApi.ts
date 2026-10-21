@@ -1186,7 +1186,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Request a passwordless sign-in link.  The response is identical whether or not the address exists. Otherwise this endpoint would become an account directory.
+     * Request a passwordless entry link.  Cloud delegates to the same mailbox proof as /auth/signup/request, including for addresses without an Account. Self-Hosted retains existing-account sign-in. The response never discloses whether the address has an Account.
      * Request Magic Link
      */
     async requestMagicLinkApiV1AuthMagicLinkRequestPostRaw(requestParameters: RequestMagicLinkApiV1AuthMagicLinkRequestPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
@@ -1197,7 +1197,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Request a passwordless sign-in link.  The response is identical whether or not the address exists. Otherwise this endpoint would become an account directory.
+     * Request a passwordless entry link.  Cloud delegates to the same mailbox proof as /auth/signup/request, including for addresses without an Account. Self-Hosted retains existing-account sign-in. The response never discloses whether the address has an Account.
      * Request Magic Link
      */
     async requestMagicLinkApiV1AuthMagicLinkRequestPost(requestParameters: RequestMagicLinkApiV1AuthMagicLinkRequestPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {

@@ -402,6 +402,21 @@ SELECT count(*) FROM pg_indexes WHERE indexname LIKE '%\_search\_fts';   -- 0
 For the bucket, fetch any object and confirm it starts with the `EIMIRENC` magic and
 does not equal, nor contain, the original bytes.
 
+### Continuous verification in CI
+
+The default CI lanes run with `EIMIR_ENCRYPTION_AT_REST=disabled`, the test and
+development default. The `Backend Encrypted Mode` workflow
+(`.github/workflows/backend-encrypted.yml`) runs the complete backend suite, unit and
+integration, with `required` and keys generated for that run only
+(`tools/ci/encryption_test_keys.py`; no key value exists in the repository). It runs
+nightly, on demand, and on pull requests that touch the encryption, media, or
+configuration code.
+
+It is **not** a required status check: a failure shows as a red run and must be
+triaged, never hidden with `continue-on-error`. Promote it to a required check once it
+has been stable for a representative period. Known failures at the time it was
+introduced are recorded in the pull request that added it.
+
 ## 15. Commands
 
 | Command | Effect |

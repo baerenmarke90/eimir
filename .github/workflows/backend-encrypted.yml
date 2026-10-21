@@ -121,6 +121,11 @@ jobs:
       - name: Random keys for this run only
         run: python ../tools/ci/encryption_test_keys.py "$GITHUB_ENV"
 
+      - name: Migrations
+        # Several migration tests assume a database at head, exactly as in the
+        # Backend Integration gate.
+        run: uv run --frozen alembic upgrade head
+
       - name: Integration tests with encryption required
         # Same deterministic sharding and no-skips guarantee as the Backend
         # Integration gate, so a silently unreachable database cannot pass.

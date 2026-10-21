@@ -297,23 +297,6 @@ async function installMocks(
   const viewer = { id: ACCOUNT_ID, displayName: 'Lea Sommer' };
   const partner = { id: PARTNER_ID, displayName: 'Alex Berger' };
 
-  await page.route('**/media/**', async (route) => {
-    const id = new URL(route.request().url()).pathname
-      .split('/')
-      .pop()
-      ?.replace('.jpg', '');
-    const file = id ? PHOTO_FOR_ATTACHMENT[id] : undefined;
-    if (!file) {
-      await route.fulfill({ status: 404, body: '' });
-      return;
-    }
-    await route.fulfill({
-      status: 200,
-      contentType: 'image/jpeg',
-      body: readFileSync(path.join(DEMO_IMAGES, file)),
-    });
-  });
-
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
@@ -532,6 +515,27 @@ async function installMocks(
       });
       return;
     }
+    // STREAM reads use the generated client's authenticated content endpoint.
+    // Keep real image bytes here so the existing rendering assertions exercise
+    // the same transport contract as the server rather than an unused URL.
+    if (
+      method === 'GET' &&
+      pathname.startsWith(`/api/v1/spaces/${SPACE_ID}/attachments/`) &&
+      pathname.endsWith('/content')
+    ) {
+      const attachmentId = pathname.split('/').slice(-2)[0];
+      const file = PHOTO_FOR_ATTACHMENT[attachmentId];
+      if (!file) {
+        await route.fulfill({ status: 404, body: '' });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'image/jpeg',
+        body: readFileSync(path.join(DEMO_IMAGES, file)),
+      });
+      return;
+    }
     if (
       method === 'POST' &&
       /\/attachments\/[^/]+\/read-access$/.test(pathname)
@@ -539,7 +543,7 @@ async function installMocks(
       const attachmentId = pathname.split('/').slice(-2)[0];
       await fulfillJson({
         method: 'STREAM',
-        url: `/media/${attachmentId}.jpg`,
+        url: `/api/v1/spaces/${SPACE_ID}/attachments/${attachmentId}/content`,
         expiresAt: null,
       });
       return;

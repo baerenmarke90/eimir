@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { AccountView } from '../api/generated/models/AccountView';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from '../client/apiConfiguration';
 import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
 import { notificationUnreadCountQueryKey } from '../client/notificationQueries';
 import {
@@ -12,6 +12,11 @@ import {
   type ProductCacheEventDetail,
 } from '../client/productReadCache';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
+import {
+  captureSessionOwner,
+  currentSessionTokens,
+  loadStoredSession,
+} from '../client/sessionPersistence';
 import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import {
   type AppRouteDefinition,
@@ -110,7 +115,7 @@ function useCachedReadTimestamp(): string | null {
 
 interface AppShellProps {
   children: ReactNode;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
   apiBaseUrl: string;
   accessToken: string;
   account: AccountView;
@@ -159,10 +164,17 @@ function AuthenticatedAppShell({
       }).format(new Date(cachedAt))
     : null;
 
+  const signingOut = useRef(false);
   function logout(): void {
+    if (signingOut.current) return;
+    signingOut.current = true;
+    const owner = captureSessionOwner(accessToken);
     const historySettled = releaseEditorHistoryForDocumentNavigation();
-    onLogout();
-    void historySettled.then(() => window.location.assign(PUBLIC_START_ROUTE));
+    const sessionSettled = Promise.resolve().then(onLogout);
+    void Promise.allSettled([historySettled, sessionSettled]).then(() => {
+      if (owner && loadStoredSession() && !currentSessionTokens(owner)) return;
+      window.location.assign(PUBLIC_START_ROUTE);
+    });
   }
 
   const location = useLocation();

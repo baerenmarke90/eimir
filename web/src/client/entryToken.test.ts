@@ -44,6 +44,24 @@ describe('sensitive identity entry tokens', () => {
     expect(readSensitiveEntryToken('/story', '?token=secret')).toBeNull();
   });
 
+  it('reads the invitation continuation only from a signup fragment', () => {
+    const hash = '#invitationToken=invite%2B%26%3D%23';
+    expect(
+      readSensitiveEntryToken('/auth/signup', '?token=proof', hash),
+    ).toEqual({
+      kind: 'signup',
+      token: 'proof',
+      invitationToken: 'invite+&=#',
+    });
+    expect(
+      readSensitiveEntryToken('/auth/magic-link', '?token=proof', hash),
+    ).toEqual({
+      kind: 'magicLink',
+      token: 'proof',
+    });
+    expect(readSensitiveEntryToken('/auth/signup', '', hash)).toBeNull();
+  });
+
   it('ignores empty tokens', () => {
     expect(
       readSensitiveEntryToken('/auth/recovery', '?token=%20%20'),

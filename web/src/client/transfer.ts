@@ -2,7 +2,7 @@ import { TransferApi } from '../api/generated/apis/TransferApi';
 import { ExportStatus } from '../api/generated/models/ExportStatus';
 import { ImportStatus } from '../api/generated/models/ImportStatus';
 import type { TransferScope } from '../api/generated/models/TransferScope';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from './apiConfiguration';
 import { normalizeClientError } from './problemDetails';
 
 export function createTransferApi(

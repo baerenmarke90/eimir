@@ -135,7 +135,10 @@ def _open_for_update(session: Session, token_hash: str) -> Invitation:
 
     service.lock_space(session, candidate.space_id)
     invitation = session.execute(
-        select(Invitation).where(Invitation.token_hash == token_hash).with_for_update()
+        select(Invitation)
+        .where(Invitation.token_hash == token_hash)
+        .with_for_update()
+        .execution_options(populate_existing=True)
     ).scalar_one_or_none()
     if invitation is None or not invitation.is_open(now()):
         raise _invalid()
@@ -170,7 +173,17 @@ def accept(session: Session, token: str, account: Account) -> Membership:
     """
     if not token:
         raise _invalid()
-    invitation = _open_for_update(session, hash_token(token))
+    return accept_by_hash(session, hash_token(token), account)
+
+
+def accept_by_hash(session: Session, token_hash: str, account: Account) -> Membership:
+    """Accept an invitation bound to an already verified server-side auth flow.
+
+    This is not an API that accepts a token hash from an untrusted client.
+    Hashes come from an existing proof/request persisted while the original
+    bearer invitation was presented. The usual lifecycle checks still apply.
+    """
+    invitation = _open_for_update(session, token_hash)
     return _accept_open(session, invitation, account)
 
 

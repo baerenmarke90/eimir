@@ -1,6 +1,6 @@
 import type { QueryClient, QueryKey } from '@tanstack/react-query';
 import { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from './apiConfiguration';
 import { normalizeClientError } from './problemDetails';
 import { captureAuthorizedQuery, captureQueryIdentity } from './queryIdentity';
 

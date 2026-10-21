@@ -1,0 +1,8 @@
+--------- beginning of main
+--------- beginning of system
+10-20 21:41:05.085  4028  4050 I EimirPushFixture: aPermissionCallbackAfterDisableCannotReactivatePush prepared; distributor=de.sidebyside.app.debug.test; registrations=0
+10-20 21:41:05.088  4028  4050 I EimirPushFixture: aPermissionCallbackAfterDisableCannotReactivatePush late permission rejected; distributor=null; registrations=0
+10-20 21:41:07.924  4028  4050 I EimirPushFixture: aCancelledEnableCannotRetireTheCurrentAccount prepared; distributor=de.sidebyside.app.debug.test; registrations=0
+10-20 21:41:07.926  4028  4050 I EimirPushFixture: aCancelledEnableCannotRetireTheCurrentAccount obsolete enable rejected; distributor=de.sidebyside.app.debug.test; registrations=0
+10-20 21:41:11.238  4028  4050 I EimirPushFixture: replacingTheOnlyAccountSelectsADistributorAfterRetiringItsRegistration prepared; distributor=de.sidebyside.app.debug.test; registrations=0
+10-20 21:41:11.292  4028  4050 I EimirPushFixture: replacingTheOnlyAccountSelectsADistributorAfterRetiringItsRegistration replacement dispatched; distributor=de.sidebyside.app.debug.test; registrations=1

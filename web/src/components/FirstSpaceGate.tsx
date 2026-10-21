@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from '../client/apiConfiguration';
 import { normalizeClientError } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
 import { Brand } from './Brand';

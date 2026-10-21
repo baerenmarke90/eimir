@@ -36,6 +36,9 @@ jobs:
       - name: Test change-scope filter logic
         run: python3 tools/ci/test_change_scope.py
 
+      - name: Test encryption test-key generator
+        run: python3 tools/ci/test_encryption_test_keys.py
+
       - name: Audit migrated engineering-language surfaces
         run: |
           python3 tools/ci/test_engineering_language_audit.py

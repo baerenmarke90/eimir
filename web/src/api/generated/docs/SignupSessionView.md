@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `account` | [AccountView](AccountView.md)
 `accountCreated` | boolean
+`spaceId` | string
 `tokens` | [TokenView](TokenView.md)
 
 ## Example
@@ -19,6 +20,7 @@ import type { SignupSessionView } from ''
 const example = {
   "account": null,
   "accountCreated": null,
+  "spaceId": null,
   "tokens": null,
 } satisfies SignupSessionView
 

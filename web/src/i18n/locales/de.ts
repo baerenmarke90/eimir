@@ -190,6 +190,10 @@ const de = {
     magicLinkRequestSubmit: 'Anmeldelink anfordern',
     magicLinkRequestPending: 'Anfrage wird gesendet …',
     magicLinkOpening: 'Anmeldelink wird geprüft …',
+    activeAccountTitle: 'Du bist mit einem anderen Konto angemeldet.',
+    activeAccountBody:
+      'Dein angemeldetes Konto bleibt erhalten. Melde dich zuerst ab und fordere dann einen neuen Link für das andere Konto an.',
+    returnToActiveAccount: 'Zum angemeldeten Konto',
     magicLinkFailedTitle: 'Dieser Anmeldelink funktioniert nicht mehr.',
     magicLinkFailedBody:
       'Fordere bei Bedarf einen neuen Anmeldelink an oder melde dich mit deinem Passwort an.',

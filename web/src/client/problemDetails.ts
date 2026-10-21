@@ -59,6 +59,7 @@ export async function normalizeClientError(
   if (error instanceof ClientProblemError) return error;
 
   if (error instanceof FetchError) {
+    if (error.cause instanceof ClientProblemError) return error.cause;
     return new ClientProblemError('offline');
   }
 

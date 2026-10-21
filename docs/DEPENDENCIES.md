@@ -134,7 +134,7 @@ in a background job under resource limits — never in the request path.
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
 | pywebpush | 2.5.0 | PyPI | MPL-2.0 |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
-| pillow | 12.3.0 | PyPI | MIT-CMU |
+| pillow | 13.0.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |
 
 ## Backend — Development
@@ -167,7 +167,7 @@ in a background job under resource limits — never in the request path.
 | @types/react-dom | 19.2.5 | npm | MIT |
 | @types/node | 24.19.1 | npm | MIT |
 | typescript | 5.9.2 | npm | Apache-2.0 |
-| vite | 8.2.2 | npm | MIT |
+| vite | 8.2.4 | npm | MIT |
 | vitest | 5.0.4 | npm | MIT |
 
 ### October 2026 audit maintenance
@@ -176,6 +176,15 @@ The lock refresh updates PyJWT to 2.15.1 and Alembic's transitive Mako to
 1.4.3. PyJWT's declared minimum also prevents restoring the vulnerable
 verification dependency during a future resolution. Both remain existing MIT
 dependencies; no authentication provider, algorithm policy or migration is added.
+
+Vite is pinned to 8.2.4, the patched 8.2 release for the upstream bundled
+`launch-editor` advisories
+[GHSA-698v-4r3x-3vcv](https://github.com/vitejs/launch-editor/security/advisories/GHSA-698v-4r3x-3vcv),
+[GHSA-r825-w8mm-5pxw](https://github.com/vitejs/launch-editor/security/advisories/GHSA-r825-w8mm-5pxw), and
+[GHSA-587h-7wmj-h5pm](https://github.com/vitejs/launch-editor/security/advisories/GHSA-587h-7wmj-h5pm).
+This keeps the existing minor line and dependency ranges; it introduces no
+provider, runtime feature or audit exception. The normal build, token, PWA and
+Capacitor foundation checks validate the patched toolchain.
 
 The Vitest 5.0.4 upgrade follows the prior 4.1.11 security refresh.
 Its updated matcher augmentation preserves the custom focus assertion and
@@ -230,28 +239,37 @@ registry or uses a hoster-controlled mirror.
 
 ## Android — Capacitor wrapper runtime
 
-The Android Gradle project in `android/` contains no product UI code. Product
+The Android Gradle project in `android/` contains no product UI screens. Product
 screens are the React application from `web/`, packaged as a local asset
-bundle. Capacitor plugin versions are pinned exactly in `web/package.json` and
-locked in `web/package-lock.json`; the Gradle modules below are resolved from
-`web/node_modules` by `npx cap sync android`.
+bundle. A small native bridge handles UnifiedPush registration, wake events,
+and content-free system notifications. Capacitor plugin versions are pinned
+exactly in `web/package.json` and locked in `web/package-lock.json`; the Gradle
+modules below are resolved from `web/node_modules` by `npx cap sync android`.
 
 | Package / platform component | Version | Source | License |
 |---|---|---|---|
 | @capacitor/android (native bridge) | 8.5.2 | npm | MIT |
 | @capacitor/app | 8.1.1 | npm | MIT |
 | @capacitor/browser | 8.0.4 | npm | MIT |
+| org.unifiedpush.android:connector | 3.3.3 | Maven Central | Apache-2.0 |
 | androidx.appcompat:appcompat | 1.7.1 | Google Maven | Apache-2.0 |
 | androidx.coordinatorlayout:coordinatorlayout | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.core:core-splashscreen | 1.2.0 | Google Maven | Apache-2.0 |
 | Apache Cordova Android framework (Capacitor plugin compatibility layer) | 14.0.1 | Maven Central | Apache-2.0 |
 
-The wrapper adds **no** Room, WorkManager, Kotlin, or Compose dependency. It
-holds no product state: session, cache, and read models live in the Web client.
+The wrapper adds **no** direct Room, WorkManager, Kotlin, or Compose dependency. It
+holds no independent product state: cache and read models live in the Web client.
+The current Android session envelope is retained in app-private no-backup storage
+using Android Keystore, standard AES/GCM and AtomicFile through the bounded
+`NativeSessionStorage` Capacitor adapter (#1357). No dependency is added. Web/PWA
+credentials remain sessionStorage-only, and the existing Web session facade owns
+credential rotation, logout and expiry.
+The UnifiedPush bridge remembers only the active Account ID for distributor
+callbacks; the authenticated Web client registers and revokes the server endpoint.
 The former native read cache and its Keystore key belonged to the retired,
 non-authoritative Kotlin client and are not part of server data continuity.
 `google-services.json` is intentionally absent, so the Google Services plugin
-stays inactive until a push-notification slice adds Firebase.
+stays inactive until a separate Firebase slice is configured.
 
 ## Android — Wrapper test and build
 

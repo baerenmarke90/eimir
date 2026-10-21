@@ -1,0 +1,55 @@
+{
+  "issue": 1382,
+  "baselineCommit": "ac74b40a346f52d745bc4563658061a500edc327",
+  "inputs": {
+    "web/src/components/CommentsPanel.tsx": {
+      "sha256": "48675efe6526c88f72a92455cc54d07caa8798a41ad22f395afc6050b6ed4bdd",
+      "gitBlob": "b1f7fc8aa5ab9492097b81f0dd52a59a5eded8fd"
+    },
+    "web/src/components/CommentsDeleteOwnership.test.tsx": {
+      "sha256": "57b4bfb256c192283192b2be8e090581abacaeeb79203afda6d8dacb0874a701",
+      "gitBlob": "4a6669d50e17493e44763112df9ed08c5d0d3eb4"
+    },
+    "web/e2e/tests/comments-delete-ownership.spec.ts": {
+      "sha256": "44d1cf5ed7be423b363c3f602cbab4488517a2aba2e0cea680306c086ed40c5b",
+      "gitBlob": "7c18929e32c3b22d74109d37c7d480ade1f3d3e2"
+    },
+    "web/e2e/test-groups.json": {
+      "sha256": "7b3c5ac85158d429751ccb8ecb01f5b3d57d087a2ebb5102272201fa0612c27e",
+      "gitBlob": "f864689150ee780bd4bc79008965d149a8fe3dbf"
+    },
+    "web/package-lock.json": {
+      "sha256": "b9fecf05a73089abbdc156f2ab6ca1cd830817d82ee10c6aaf90f06ea0d54cd1",
+      "gitBlob": "5665ee74a45824fa20964c50a93448e943fb3bd3"
+    },
+    "web/e2e/package-lock.json": {
+      "sha256": "74121b45717ab48831dce8ac72006a6955737c29d180367fa0042b1200f28c3e",
+      "gitBlob": "20750ef73dd1ca5e2af54d588b8ab8d3914724d3"
+    }
+  },
+  "browser": {
+    "playwright": "1.62.1",
+    "chromium": "153.0.8010.0",
+    "binarySha256": "53a15d6c3a3d27dfb54c4ba60278b1683136f70cf1e67e989da7dfbd3d451ef0",
+    "workers": 2,
+    "retries": 0
+  },
+  "finalBundle": {
+    "assets/index-CTLAkDQn.js": "dd78f686dbc35ccfff3801dad21a58f41f08307aa3368adb1a06a8da00b55451",
+    "assets/index-mQvl-lj8.css": "0c1c4610bfa2ca295a405d037e602e8a727180f033827d219539a99e90cf5078",
+    "assets/web-4rSJeU_y.js": "a282ff1a16ee5353637e8dc3d23cf7d92e8e0ae0b55350293a9cd05d1b4e7318",
+    "assets/web-Tn7-v0gG.js": "d00af861eb2c0a554ccaac0684295617ac82cc866fa8516241adc32457731995"
+  },
+  "baselineBundle": {
+    "assets/index-DL_IWzW-.js": "9aeeb9c51dd42a40d4776716159ff2ab6ce5fddf89223bf3b13f46490b3c60e7",
+    "assets/index-mQvl-lj8.css": "0c1c4610bfa2ca295a405d037e602e8a727180f033827d219539a99e90cf5078",
+    "assets/web-CduflPI6.js": "40e39e1681caa35c9910825b6975cb34d5122d99cd7b99f07a897b58f7901310",
+    "assets/web-knvunUp2.js": "cb93223a6dea6ea609d39413feb654abb064f6078764d00c055bc43cab497adc"
+  },
+  "captures": {
+    "comment-delete-pending-390-dark.png": "599654908bce4210916469e49680ba016cf99b7190422d674f0fc8093e7bc34d",
+    "comment-delete-complete-1440-dark.png": "0749914d0a93301fe8253e3d47b9081bf068272297c4afd508531388e9aeb5a4",
+    "comment-delete-complete-320-200.png": "48ad7023fb92299666cdf5a465369f44b43a6cecd6983436d8913b4eecb07bd8",
+    "comment-delete-error-360-light.png": "5faca85ef67122f23a8cc9cdefb235085323199660cc8d8ff1927bdc140cb2dc"
+  }
+}

@@ -1,13 +1,13 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, type Page, test, type TestInfo } from '@playwright/test';
+import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import sharedPhotos from '../../src/i18n/locales/sharedPhotos';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const SPACE = '22222222-2222-4222-8222-222222222222';
 const ACCOUNT = '11111111-1111-4111-8111-111111111111';
@@ -157,7 +157,12 @@ async function mocks(
         happenedOn: '2026-08-14',
         author,
         authorId: ACCOUNT,
-        attachments: [],
+        attachments: [
+          {
+            ...photos[Number(p.split('/').at(-1)!.split('-')[1])]!.attachment,
+            position: 0,
+          },
+        ],
         capabilities: { canEdit: true, canDelete: true, canComment: true },
         version: 1,
         createdAt: '2026-08-14T12:00:00Z',
@@ -192,7 +197,8 @@ async function signIn(page: Page) {
   await page.getByLabel(de.login.password).fill('long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
-  await page.goto('/story/photos');
+  // Keep the authenticated document: a reload can download thumbnails twice
+  // before the session-memory byte-reuse assertions begin.
   await expect(
     page.getByRole('heading', { name: sharedPhotos.title, level: 1 }),
   ).toBeVisible();
@@ -269,6 +275,56 @@ test('shared photos: lazy variants, viewer Back, bounded originals and canonical
     .toBeCloseTo(top, 0);
 });
 
+test('shared photos: viewer reopen and detail return reuse image bytes while checking access again', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const reads = await mocks(page);
+  const binaries: string[] = [];
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (/\/attachments\/photo-1\/content$/.test(url.pathname)) {
+      binaries.push(url.searchParams.get('variant') ?? 'original');
+    }
+  });
+  await signIn(page);
+  const selected = page.locator('[data-photo-id="photo-1"]');
+  await expect(selected.locator('img')).toBeVisible();
+  await selected.click();
+  await expect(page.getByRole('dialog').locator('img').first()).toBeVisible();
+  await expect
+    .poll(() => binaries.filter((variant) => variant === 'original').length)
+    .toBe(1);
+  await page.getByRole('button', { name: storyProducts.gallery.close }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await selected.click();
+  await expect(page.getByRole('dialog').locator('img').first()).toBeVisible();
+  expect(binaries).toEqual(['thumbnail', 'original']);
+  await page
+    .getByRole('button', { name: sharedPhotos.source, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/story\/memories\/memory-1$/);
+  await expect(
+    page.locator('.media-gallery-carousel-content').first(),
+  ).toBeVisible();
+  expect(binaries).toEqual(['thumbnail', 'original']);
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/story\/photos$/);
+  await expect(selected.locator('img')).toBeVisible();
+  await selected.click();
+  await expect(page.getByRole('dialog').locator('img').first()).toBeVisible();
+  expect(binaries).toEqual(['thumbnail', 'original']);
+  expect(
+    reads.filter((read) => read.id === 'photo-1' && read.variant === 'original')
+      .length,
+  ).toBeGreaterThanOrEqual(4);
+  await screenshot(page, testInfo, 'media-cache-viewer-return-390.png');
+});
+
 test('shared photos: Compact/Expanded themes, 320px, 200% text and accessible gallery', async ({
   page,
 }, testInfo) => {
@@ -292,6 +348,9 @@ test('shared photos: Compact/Expanded themes, 320px, 200% text and accessible ga
       { dark, scale },
     );
     await expect(page.locator('.shared-photos-tile img').first()).toBeVisible();
+    await expect(
+      page.locator('.shared-photos-tile').nth(3).locator('img'),
+    ).toBeVisible();
     await expect
       .poll(() =>
         page.evaluate(

@@ -1,12 +1,45 @@
 import { InvitationsApi } from '../api/generated/apis/InvitationsApi';
 import type { SessionView } from '../api/generated/models/SessionView';
 import type { SignupSessionView } from '../api/generated/models/SignupSessionView';
-import { Configuration } from '../api/generated/runtime';
+import type { MembershipView } from '../api/generated/models/MembershipView';
+import { Configuration } from './apiConfiguration';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
+import {
+  captureSessionOwner,
+  loadStoredSession,
+  type StoredSession,
+} from './sessionPersistence';
 
 const WEB_DEVICE_NAME = 'eimir. Web';
 const WEB_PLATFORM = 'web';
+
+export class ActiveAccountMismatchError extends Error {
+  constructor() {
+    super('Identity entry cannot replace an active account.');
+    this.name = 'ActiveAccountMismatchError';
+  }
+}
+
+/** Dispose of newly issued credentials that no active entry accepted. */
+export async function revokeUnacceptedSession(
+  apiBaseUrl: string,
+  session: StoredSession,
+): Promise<void> {
+  if (
+    loadStoredSession()?.tokens.refreshToken === session.tokens.refreshToken ||
+    captureSessionOwner(session.tokens.accessToken)
+  )
+    return;
+  try {
+    await createReferenceApis(
+      apiBaseUrl,
+      session.tokens.accessToken,
+    ).auth.signOutApiV1AuthSignOutPost();
+  } catch {
+    // Best effort only; never replace the original entry error or log tokens.
+  }
+}
 
 // Auth-return restoration deliberately does not happen here (#689): the
 // Account that just authenticated is known immediately, but its active
@@ -22,7 +55,7 @@ export async function signInAndJoinInvitation(
   email: string,
   password: string,
   invitationToken?: string | null,
-): Promise<SessionView> {
+): Promise<StoredSession> {
   try {
     const session = await createReferenceApis(
       apiBaseUrl,
@@ -39,18 +72,35 @@ export async function signInAndJoinInvitation(
       return session;
     }
 
-    const invitations = new InvitationsApi(
-      new Configuration({
-        basePath: apiBaseUrl,
-        headers: { Authorization: `Bearer ${session.tokens.accessToken}` },
-      }),
+    const membership = await joinInvitation(
+      apiBaseUrl,
+      session,
+      invitationToken,
     );
-    await invitations.acceptInvitationApiV1InvitationsAcceptPost({
-      acceptRequest: { token: invitationToken },
-    });
-    return session;
+    return { ...session, spaceId: membership.spaceId };
   } catch (error) {
     throw await normalizeClientError(error);
+  }
+}
+
+async function joinInvitation(
+  apiBaseUrl: string,
+  session: SessionView,
+  invitationToken: string,
+): Promise<MembershipView> {
+  const invitations = new InvitationsApi(
+    new Configuration({
+      basePath: apiBaseUrl,
+      headers: { Authorization: `Bearer ${session.tokens.accessToken}` },
+    }),
+  );
+  try {
+    return await invitations.acceptInvitationApiV1InvitationsAcceptPost({
+      acceptRequest: { token: invitationToken },
+    });
+  } catch (error) {
+    void revokeUnacceptedSession(apiBaseUrl, session);
+    throw error;
   }
 }
 
@@ -167,12 +217,16 @@ export async function confirmEmailAddress(
 export async function requestSignup(
   apiBaseUrl: string,
   email: string,
+  invitationToken?: string | null,
 ): Promise<void> {
   try {
     await createReferenceApis(
       apiBaseUrl,
     ).auth.requestSignupApiV1AuthSignupRequestPost({
-      emailRequest: { email },
+      signupEmailRequest: {
+        email,
+        ...(invitationToken ? { invitationToken } : {}),
+      },
     });
   } catch (error) {
     throw await normalizeClientError(error);
@@ -182,9 +236,10 @@ export async function requestSignup(
 export async function consumeSignup(
   apiBaseUrl: string,
   token: string,
+  invitationToken?: string,
 ): Promise<SignupSessionView> {
   try {
-    return await createReferenceApis(
+    const session = await createReferenceApis(
       apiBaseUrl,
     ).auth.consumeSignupApiV1AuthSignupConsumePost({
       signupConsumeRequest: {
@@ -193,6 +248,15 @@ export async function consumeSignup(
         platform: WEB_PLATFORM,
       },
     });
+    if (invitationToken && !session.spaceId) {
+      const membership = await joinInvitation(
+        apiBaseUrl,
+        session,
+        invitationToken,
+      );
+      return { ...session, spaceId: membership.spaceId };
+    }
+    return session;
   } catch (error) {
     throw await normalizeClientError(error);
   }

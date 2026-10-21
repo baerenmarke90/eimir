@@ -224,6 +224,13 @@ deletion. Issue #520 owns the authoritative Account deletion and retention
 lifecycle, including credentials, sessions, OWNER_ONLY data, shared history,
 media references, jobs, backups, and restore reconciliation.
 
+Account deletion is not an invitation or onboarding reset. It ends the target's
+Memberships; an ended Membership history-locks that Space against ordinary
+future invitations, even if the same mailbox later registers a new Account.
+Preserving the Space does not preserve its ability to accept that replacement
+Account. Diagnose mailbox requests, proof binding and authorized Space selection
+before proposing deletion as a way to retry onboarding.
+
 The ServerAdmin danger zone invokes that same lifecycle behind recent
 authentication, impact confirmation and exact typed target confirmation. The
 privileged audit records the operator request and projects the authoritative

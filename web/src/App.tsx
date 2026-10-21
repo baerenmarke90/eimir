@@ -16,19 +16,24 @@ import { AppearanceApi } from './api/generated/apis/AppearanceApi';
 import { DailyCheckInsApi } from './api/generated/apis/DailyCheckInsApi';
 import { DailyQuoteApi } from './api/generated/apis/DailyQuoteApi';
 import { EntitlementsApi } from './api/generated/apis/EntitlementsApi';
-import { ProfilesApi } from './api/generated/apis/ProfilesApi';
+import { ProfilesApi } from './client/mediaApis';
 import { SpacesApi } from './api/generated/apis/SpacesApi';
-import { Configuration } from './api/generated/runtime';
+import { Configuration } from './client/apiConfiguration';
 import { loadReferenceClientConfig } from './client/config';
 import {
-  readSensitiveEntryToken,
-  stripSensitiveEntryToken,
-} from './client/entryToken';
+  ActiveAccountMismatchError,
+  revokeUnacceptedSession,
+} from './client/identityFlow';
+import { useSessionRefresh } from './client/useSessionRefresh';
+import { useIdentityEntry } from './client/useIdentityEntry';
 import { createM4ProductApis } from './client/m4Product';
 import { createPeopleApi } from './client/peopleApi';
 import { createPrivateAreaApi } from './client/privateArea';
 import { invalidateDashboard } from './client/dashboardQueries';
-import { normalizeClientError } from './client/problemDetails';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from './client/problemDetails';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { AppIconProvider } from './client/appIconContext';
 import { clearProductReadCacheInBackground } from './client/productReadCache';
@@ -50,6 +55,11 @@ import {
   loadAuthorizedMedia,
 } from './client/referenceFlow';
 import { loadInstanceAccessStatus } from './client/instanceStatus';
+import {
+  stopNativePushForSignedOutAccount,
+  useUnifiedPush,
+} from './client/unifiedPush';
+import { signOutSession } from './client/signOutSession';
 import { createServerAdminApis } from './client/serverAdmin';
 import {
   ACTIVITY_ROUTE,
@@ -237,7 +247,7 @@ function AuthenticatedApp({
 }: {
   tokens: TokenView;
   account: AccountView;
-  logout: () => void;
+  logout: () => void | Promise<void>;
   apiBaseUrl: string;
   spaceId: string;
   serverAdmin: boolean;
@@ -258,6 +268,13 @@ function AuthenticatedApp({
     () => createM4ProductApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
   );
+  const devicePush = useUnifiedPush({
+    accountId: account.id,
+    apiBaseUrl,
+    notificationsApi: m4Apis.notifications,
+    queryClient,
+    spaceId,
+  });
   const planningApis = useMemo(
     () => createSharedPlanningApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
@@ -695,6 +712,7 @@ function AuthenticatedApp({
                   accessToken={tokens.accessToken}
                   account={account}
                   spaceId={spaceId}
+                  devicePush={devicePush}
                 />
               }
             />
@@ -706,6 +724,7 @@ function AuthenticatedApp({
                   accessToken={tokens.accessToken}
                   account={account}
                   spaceId={spaceId}
+                  devicePush={devicePush}
                 />
               }
             />
@@ -843,12 +862,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
-  const [entryToken, setEntryToken] = useState(() =>
-    readSensitiveEntryToken(window.location.pathname, window.location.search),
-  );
-  const [initialStoredSession] = useState(() =>
-    entryToken ? null : loadStoredSession(),
-  );
+  const { entryToken, clearEntryToken } = useIdentityEntry(config.apiBaseUrl);
+  const [initialStoredSession] = useState(loadStoredSession);
   const [tokens, setTokens] = useState<TokenView | null>(
     () => initialStoredSession?.tokens ?? null,
   );
@@ -858,6 +873,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const [isRestoring, setIsRestoring] = useState(() =>
     Boolean(initialStoredSession),
   );
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [spaceId, setSpaceId] = useState<string | null>(
     () => initialStoredSession?.spaceId ?? null,
   );
@@ -867,15 +883,21 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   // switch (#689).
   const restoredAuthReturnForAccountId = useRef<string | null>(null);
 
+  useEffect(() => {
+    // Native hydration finishes before App mounts; absence is now authoritative.
+    if (!account && !isRestoring) stopNativePushForSignedOutAccount();
+  }, [account, isRestoring]);
+
   const terminateSession = useCallback(() => {
-    clearStoredSession();
-    setEntryToken(null);
+    stopNativePushForSignedOutAccount();
+    const cleared = clearStoredSession();
     setSpaceId(null);
     setAccount(null);
     setTokens(null);
     restoredAuthReturnForAccountId.current = null;
     queryClient.clear();
     clearProductReadCacheInBackground();
+    return cleared;
   }, [queryClient]);
 
   useEffect(() => {
@@ -888,8 +910,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     let cancelled = false;
 
     async function restore(activeSession: typeof session) {
+      let currentTokens = activeSession.tokens;
       try {
-        let currentTokens = activeSession.tokens;
         if (!isAccessTokenValid(currentTokens)) {
           currentTokens = await refreshSessionTokens(
             config.apiBaseUrl,
@@ -903,7 +925,12 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
         );
         const verifiedAccount = await apis.auth.meApiV1AuthMeGet();
 
-        if (cancelled) return;
+        if (
+          cancelled ||
+          loadStoredSession()?.tokens.refreshToken !==
+            currentTokens.refreshToken
+        )
+          return;
         setTokens(currentTokens);
         setAccount(verifiedAccount);
         storeSession({
@@ -911,13 +938,23 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
           tokens: currentTokens,
           spaceId: activeSession.spaceId ?? null,
         });
-      } catch {
+      } catch (error) {
         if (cancelled) return;
-        terminateSession();
-        rememberCurrentAuthReturnTarget(
-          activeSession.account.id,
-          activeSession.spaceId ?? null,
-        );
+        const normalized = await normalizeClientError(error);
+        if (normalized.status === 401 || normalized.status === 403) {
+          const current = loadStoredSession();
+          if (
+            current &&
+            current.tokens.refreshToken !== currentTokens.refreshToken
+          )
+            return;
+          terminateSession();
+          rememberCurrentAuthReturnTarget(
+            activeSession.account.id,
+            activeSession.spaceId ?? null,
+          );
+        }
+        // Transport/server failure must not discard otherwise valid credentials.
       } finally {
         if (!cancelled) {
           setIsRestoring(false);
@@ -932,33 +969,29 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     };
   }, [config.apiBaseUrl, initialStoredSession, terminateSession]);
 
-  useEffect(() => {
-    if (!tokens) return;
-    let cancelled = false;
-    const refreshToken = tokens.refreshToken;
-    const expiresAtMs = new Date(tokens.accessExpiresAt).getTime();
-    const timeUntilExpiry = expiresAtMs - Date.now();
-    const refreshDelayMs = Math.max(0, timeUntilExpiry - 60_000);
+  const acceptSessionTokens = useCallback(
+    (next: TokenView) => {
+      setTokens(next);
+      // Recover reads that failed while credentials were unavailable, without
+      // refetching healthy data or disturbing an active editor on every rotation.
+      void queryClient.invalidateQueries({
+        predicate: (query) =>
+          query.state.status === 'error' &&
+          ['unauthorized', 'offline', 'server'].includes(
+            clientProblemKind(query.state.error),
+          ),
+      });
+    },
+    [queryClient],
+  );
 
-    const timer = setTimeout(() => {
-      void refreshSessionTokens(config.apiBaseUrl, refreshToken)
-        .then((newTokens) => {
-          if (!cancelled) setTokens(newTokens);
-        })
-        .catch((error: unknown) => {
-          if (cancelled) return;
-          const status = (error as { status?: number })?.status;
-          if (status === 401) {
-            terminateSession();
-          }
-        });
-    }, refreshDelayMs);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [config.apiBaseUrl, terminateSession, tokens]);
+  useSessionRefresh(
+    config.apiBaseUrl,
+    tokens,
+    isRestoring || entryToken !== null,
+    acceptSessionTokens,
+    terminateSession,
+  );
 
   const serverAdminApis = useMemo(
     () => createServerAdminApis(config.apiBaseUrl, tokens?.accessToken),
@@ -982,15 +1015,6 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     queryFn: () => loadInstanceAccessStatus(config.apiBaseUrl),
     staleTime: 60_000,
   });
-
-  useEffect(() => {
-    if (!entryToken) return;
-    window.history.replaceState(
-      window.history.state,
-      '',
-      stripSensitiveEntryToken(window.location.search),
-    );
-  }, [entryToken]);
 
   const membershipsQuery = useQuery({
     queryKey: ['account-memberships'],
@@ -1023,10 +1047,11 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   });
 
   useEffect(() => {
-    if (!tokens || !membershipsQuery.data) {
+    if (!tokens) {
       setSpaceId(null);
       return;
     }
+    if (!membershipsQuery.data) return;
     setSpaceId((current) => {
       const resolved = resolveActiveSpaceId(membershipsQuery.data, current);
       if (resolved && account && tokens) {
@@ -1044,16 +1069,18 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     });
   }, [account, membershipsQuery.data, tokens]);
 
-  function logout() {
-    if (tokens?.accessToken) {
-      try {
-        const apis = createReferenceApis(config.apiBaseUrl, tokens.accessToken);
-        void apis.auth.signOutApiV1AuthSignOutPost().catch(() => {});
-      } catch {
-        // Best effort sign-out
-      }
+  async function logout() {
+    clearEntryToken();
+    setIsSigningOut(true);
+    try {
+      await signOutSession(
+        config.apiBaseUrl,
+        tokens?.accessToken,
+        terminateSession,
+      );
+    } finally {
+      setIsSigningOut(false);
     }
-    terminateSession();
   }
 
   function selectSpace(selectedSpaceId: string) {
@@ -1066,16 +1093,19 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     postSnackbar('snackbar.spaceSwitched');
   }
 
-  if (isRestoring) {
+  if (isRestoring || isSigningOut) {
     return (
       <main className="setup-shell">
         <ThemeControl />
-        <UiState kind="loading" title={t('spaceContext.loading')} />
+        <UiState
+          kind="loading"
+          title={t(isSigningOut ? 'header.logout' : 'spaceContext.loading')}
+        />
       </main>
     );
   }
 
-  if (!tokens || !account) {
+  if (entryToken || !tokens || !account) {
     const showDemoEntry = Boolean(demoMode && !entryToken);
     return (
       <>
@@ -1084,13 +1114,20 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
           <DemoEntry />
         ) : (
           <IdentityEntry
+            key={
+              entryToken ? `${entryToken.kind}:${entryToken.token}` : 'signIn'
+            }
             apiBaseUrl={config.apiBaseUrl}
             entryToken={entryToken}
-            onEntryTokenCleared={() => setEntryToken(null)}
+            onEntryTokenCleared={clearEntryToken}
             onSession={(session) => {
+              if (account && session.account.id !== account.id) {
+                void revokeUnacceptedSession(config.apiBaseUrl, session);
+                throw new ActiveAccountMismatchError();
+              }
               storeSession(session);
-              setEntryToken(null);
-              setSpaceId(null);
+              clearEntryToken();
+              setSpaceId(session.spaceId ?? null);
               setAccount(session.account);
               setTokens(session.tokens);
               queryClient.clear();

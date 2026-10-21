@@ -89,6 +89,31 @@ describe('Object URL resource ownership', () => {
     expect(revokeObjectUrl).not.toHaveBeenCalled();
   });
 
+  it('never exposes the previous scope URL during the first render of a new context', async () => {
+    const load = vi.fn(async () => new Blob(['photo']));
+    const renders: Array<{ scope: string; url: string | null }> = [];
+    const hook = renderHook(
+      ({ scope }) => {
+        const state = useObjectUrlResource(scope, 'same-attachment', load);
+        renders.push({ scope, url: state.url });
+        return state;
+      },
+      { initialProps: { scope: 'account-a:space-a' } },
+    );
+    await waitFor(() =>
+      expect(hook.result.current.url).toBe('blob:resource-1'),
+    );
+    hook.rerender({ scope: 'account-b:space-b' });
+    expect(
+      renders
+        .filter((render) => render.scope === 'account-b:space-b')
+        .every((render) => render.url !== 'blob:resource-1'),
+    ).toBe(true);
+    await waitFor(() =>
+      expect(hook.result.current.url).toBe('blob:resource-2'),
+    );
+  });
+
   it('disposes a late result that resolves after unmount', async () => {
     const pending = deferred<string>();
     const load = vi.fn(() => pending.promise);

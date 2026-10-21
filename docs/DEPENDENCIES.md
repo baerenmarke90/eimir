@@ -166,9 +166,18 @@ in a background job under resource limits — never in the request path.
 | @types/react | 19.2.18 | npm | MIT |
 | @types/react-dom | 19.2.5 | npm | MIT |
 | @types/node | 24.19.1 | npm | MIT |
-| typescript | 5.9.2 | npm | Apache-2.0 |
+| typescript | 7.0.2 | npm | Apache-2.0 |
+| rolldown | 1.2.14 | npm | MIT |
 | vite | 8.2.2 | npm | MIT |
 | vitest | 5.0.4 | npm | MIT |
+
+### TypeScript 7 and the i18n key check
+
+TypeScript 7 no longer ships the JavaScript compiler API, which `web/src/i18n/i18n.test.ts` used to
+collect static translation keys. The test now parses TS/TSX with `parseSync` from `rolldown/utils`
+(oxc). `rolldown` is already installed through Vite 8; it is declared as an explicit exact-pinned
+development dependency so the test does not rely on a transitive package. The extracted keys were
+compared with the previous compiler-API result over all 262 sources (2450 keys, identical lines).
 
 ### October 2026 audit maintenance
 

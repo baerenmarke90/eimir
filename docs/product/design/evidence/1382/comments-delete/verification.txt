@@ -1,0 +1,32 @@
+eimir-delete-baseline-final.log
+ RUN  v5.0.4 /tmp/eimir-delete-baseline/web
+ ❯ src/components/CommentsDeleteOwnership.test.tsx (27 tests | 25 failed) 10209ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 25 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  25 failed | 2 passed (27)
+   Duration  11.60s (tests 89%, environment 6%, transform 3%, import 2%)
+
+eimir-delete-focused-final.log
+ RUN  v5.0.4 /workspace/scratch/c2e401f2b227/eimir/web
+ Test Files  1 passed (1)
+      Tests  27 passed (27)
+   Duration  2.25s (tests 56%, environment 28%, import 9%, transform 6%)
+
+eimir-delete-web-tests-final.log
+ RUN  v5.0.4 /workspace/scratch/c2e401f2b227/eimir/web
+ Test Files  217 passed | 1 skipped (218)
+      Tests  1963 passed | 1 skipped (1964)
+   Duration  54.87s (tests 44%, environment 35%, import 14%, transform 6%, worker 1%)
+
+eimir-delete-browser-baseline.log
+  ✓  6 ../../../workspace/scratch/c2e401f2b227/eimir/web/e2e/tests/comments-delete-ownership.spec.ts:192:1 › failed comment delete preserves both comments and requires deliberate retry (5.2s)
+    Error: expect(locator).toBeDisabled() failed
+    Error: expect(locator).toBeDisabled() failed
+    Error: expect(locator).toBeDisabled() failed
+    Error: expect(locator).toBeDisabled() failed
+  5 failed
+  1 passed (28.1s)
+
+eimir-delete-browser-final.log
+  ✓  15 e2e/tests/comments-delete-ownership.spec.ts:192:1 › failed comment delete preserves both comments and requires deliberate retry (3.7s)
+  52 passed (1.3m)

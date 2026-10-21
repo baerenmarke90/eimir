@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import Mock
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -278,6 +280,44 @@ def test_capabilities_never_promise_unimplemented_transport(client, session: Ses
     later = client.get(BASE, headers=auth(token)).json()
     assert _capability(later, "PUSH")["reason"] == "PUSH_TRANSPORT_NOT_READY"
     assert _capability(later, "PUSH")["available"] is False
+
+
+@pytest.mark.parametrize("endpoint_owner", ["owner", "other", "disabled"])
+def test_push_readiness_requires_an_active_owned_endpoint_with_a_configured_provider(
+    client, session: Session, monkeypatch: pytest.MonkeyPatch, endpoint_owner: str
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(push, "providers", push.PushProviderRegistry())
+    push.providers.register("configured", Mock(spec=push.PushProvider))
+    anna = make_account(session, "Anna")
+    ben = make_account(session, "Ben")
+    token = sign_in(session, anna)
+    # An older endpoint from an unavailable provider must not hide a usable one.
+    push.register_endpoint(
+        session, account_id=anna.id, provider_key="unconfigured", endpoint_value="older-endpoint"
+    )
+    endpoint = push.register_endpoint(
+        session,
+        account_id=ben.id if endpoint_owner == "other" else anna.id,
+        provider_key="configured",
+        endpoint_value="configured-endpoint",
+    )
+    if endpoint_owner == "disabled":
+        endpoint.disabled_at = now()
+    session.flush()
+
+    response = client.get(BASE, headers=auth(token))
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "private, no-store"
+    assert _capability(response.json(), "PUSH") == {
+        "channel": "PUSH",
+        "available": endpoint_owner == "owner",
+        "reason": None if endpoint_owner == "owner" else "PUSH_TRANSPORT_NOT_READY",
+        "destination": None,
+    }
+    push.providers.clear()
+    unavailable = client.get(BASE, headers=auth(token)).json()
+    assert _capability(unavailable, "PUSH")["available"] is False
+    assert _capability(unavailable, "PUSH")["reason"] == "PUSH_TRANSPORT_NOT_READY"
 
 
 def test_email_opt_in_requires_smtp_and_verified_primary_and_is_account_scoped(

@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
 import { isDemoModeConfigured } from './client/demoMode';
 import { identityBuildVariable } from './client/identityEnvironment';
+import { isNativeSessionStorageAvailable } from './client/nativeSessionStorage';
+import { restoreNativeSession } from './client/sessionPersistence';
 import { DemoBanner } from './components/DemoBanner';
 import { i18n } from './i18n';
 import { registerProductionServiceWorker } from './pwa';
@@ -89,12 +91,21 @@ if (!root) {
   throw new Error('Root element not found');
 }
 
-ReactDOM.createRoot(root).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <RootApp />
-      </QueryClientProvider>
-    </BrowserRouter>
-  </React.StrictMode>,
-);
+const appRoot = root;
+function mountApplication() {
+  ReactDOM.createRoot(appRoot).render(
+    <React.StrictMode>
+      <BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+          <RootApp />
+        </QueryClientProvider>
+      </BrowserRouter>
+    </React.StrictMode>,
+  );
+}
+
+if (isNativeSessionStorageAvailable()) {
+  void restoreNativeSession().then(mountApplication, mountApplication);
+} else {
+  mountApplication();
+}

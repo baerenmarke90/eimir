@@ -1,6 +1,6 @@
 import { AuthApi } from '../api/generated/apis/AuthApi';
 import { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from './apiConfiguration';
 
 export interface ServerAdminApis {
   auth: AuthApi;

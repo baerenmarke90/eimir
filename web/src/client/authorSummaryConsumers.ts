@@ -21,6 +21,10 @@ export const authorSummaryQueryKeys = {
   space: (spaceId: string) => ['space', spaceId] as const,
   spaceProfile: (spaceId: string) => ['space-profile', spaceId] as const,
   story: (spaceId: string) => ['story', spaceId] as const,
+  discover: (spaceId: string, accountId?: string) =>
+    accountId
+      ? (['story-discover', spaceId, accountId] as const)
+      : (['story-discover', spaceId] as const),
   memory: (spaceId: string, memoryId?: string) =>
     memoryId
       ? (['memory', spaceId, memoryId] as const)
@@ -85,7 +89,7 @@ export async function invalidatePlaceConsumers(
   });
 }
 
-/** Keep the Story timeline and its relation-target projection coherent. */
+/** Keep every shared Story read projection coherent after a confirmed write. */
 export async function invalidateStoryProjections(
   queryClient: QueryClient,
   spaceId: string,
@@ -93,6 +97,9 @@ export async function invalidateStoryProjections(
   await Promise.all([
     queryClient.invalidateQueries({
       queryKey: authorSummaryQueryKeys.story(spaceId),
+    }),
+    queryClient.invalidateQueries({
+      queryKey: authorSummaryQueryKeys.discover(spaceId),
     }),
     queryClient.invalidateQueries({
       queryKey: authorSummaryQueryKeys.relationTargets(spaceId),
@@ -113,6 +120,9 @@ export async function invalidateAuthorSummaryConsumers(
   accountId?: string,
 ): Promise<void> {
   const invalidations = [
+    queryClient.invalidateQueries({
+      queryKey: authorSummaryQueryKeys.discover(spaceId),
+    }),
     queryClient.invalidateQueries({
       queryKey: authorSummaryQueryKeys.profileIdentity(spaceId),
     }),

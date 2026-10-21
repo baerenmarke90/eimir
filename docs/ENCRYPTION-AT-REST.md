@@ -394,3 +394,39 @@ does not equal, nor contain, the original bytes.
 | `verify-payloads` / `verify-media` | End-to-end authentication; non-zero on failure |
 
 All are invoked as `python -m eimir.security <command>`.
+
+## 16. Acceptance status of #797
+
+This section records, against the repository state, which acceptance criteria of
+[#797](https://github.com/baerenmarke90/eimir/issues/797) hold. The implementation
+landed in PR #1177; the issue deliberately stays open until the items below are closed.
+Cloud/Managed is not certified by the G5 decision (`docs/m6/G5-GATE-REVIEW-2026-09-20-V0.1.2.md`)
+and must not go live before this table is satisfied or each open row has an explicit
+Product Owner decision.
+
+| Acceptance criterion | Status | Evidence / remaining work |
+|---|---|---|
+| Reviewed ADR defines the architecture | **Open** | Sections 1-15 are the decision record. No human review is recorded yet. |
+| Sensitive database payloads are application-encrypted in Cloud Production | Implemented | `ProtectedPayloadJSON`, `Settings` refuses non-`required` Cloud Production. Not yet observed on a live Cloud deployment. |
+| Cloud media and derived objects are encrypted under eimir.-controlled keys | Implemented | `EncryptingMediaStore` over any `MediaStore` (originals, thumbnails, derived variants, Transfer artifacts). |
+| Provider defaults are not the sole guarantee | Implemented | Section 2; provider SSE is defence in depth only. |
+| Backups and recovery artifacts are encrypted | Implemented by construction; **drill open** | Dumps and object copies hold ciphertext as stored (section 10). No restore drill has been executed against Cloud. |
+| Plaintext migration/cutover is explicit, testable, fail-closed | Implemented | Section 8, `migrate-*`/`verify-*`/`status`, integration tests. Without production user data, a reset instead of a migration is the simpler path. |
+| Key rotation and recovery are documented and tested | Rotation tested; **recovery drill open** | Section 9 and the rotation integration tests. The recovery drill is part of the live verification below. |
+| Raw DB/storage inspection shows ciphertext | Documented as manual steps; **open** | Section 14. A scripted, key-less raw check and a run against a production-like deployment are outstanding. |
+| Authorization, lifecycle, offboarding and deletion guarantees remain intact | Implemented; **CI coverage open** | The whole backend suite was run once in `required` mode (PR #1177). The default CI lanes run `disabled`; a lane that runs the integration suites encrypted is outstanding. |
+| Self-Hosted remains supported | Implemented | Section 4. |
+| No false E2EE claim | Implemented | Section 11 and `docs/SECURITY.md`. |
+
+Product Owner decisions still required before the remaining items can be built:
+
+- **Key custody:** operator-held KEK from the secret store (current) versus a managed
+  KMS/HSM behind `KeyWrapper` (provider, cost, lock-in).
+- **Row binding:** whether the ciphertext must be bound to its row identity
+  (a new scheme number and migration) before Cloud go-live.
+- **Plaintext identity columns:** `profile_preferences.topic`, account and space display
+  names, and e-mail addresses remain outside the `ProtectedPayload` contract.
+
+Deferred by Product Owner decision: the live Cloud verification (section 14 against a
+production-like deployment) and the Disaster Recovery drill (section 10) are run after the
+other items are complete. They remain mandatory before Cloud/Managed go-live.

@@ -9,7 +9,7 @@ As of: 2026-10-20
 ## Reproducibility and verification
 
 `backend/uv.lock` is the binding, cross-platform resolution of all direct and
-transitive Python dependencies. The uv version `0.12.15`, Python `3.14.6`, the
+transitive Python dependencies. The uv version `0.12.15`, Python `3.14.8`, the
 build backend, and the Python container image are pinned exactly. CI and
 container installations run exclusively in frozen/locked mode;
 `uv lock --check` prevents a stale lock file.
@@ -176,9 +176,18 @@ in a background job under resource limits — never in the request path.
 | @types/react | 19.2.18 | npm | MIT |
 | @types/react-dom | 19.2.5 | npm | MIT |
 | @types/node | 24.19.1 | npm | MIT |
-| typescript | 5.9.2 | npm | Apache-2.0 |
+| typescript | 7.0.2 | npm | Apache-2.0 |
+| rolldown | 1.2.14 | npm | MIT |
 | vite | 8.2.4 | npm | MIT |
 | vitest | 5.0.4 | npm | MIT |
+
+### TypeScript 7 and the i18n key check
+
+TypeScript 7 no longer ships the JavaScript compiler API, which `web/src/i18n/i18n.test.ts` used to
+collect static translation keys. The test now parses TS/TSX with `parseSync` from `rolldown/utils`
+(oxc). `rolldown` is already installed through Vite 8; it is declared as an explicit exact-pinned
+development dependency so the test does not rely on a transitive package. The extracted keys were
+compared with the previous compiler-API result over all 262 sources (2450 keys, identical lines).
 
 ### October 2026 audit maintenance
 
@@ -323,7 +332,7 @@ pinned to commit SHAs.
 
 | Image | Version | Source | License |
 |---|---|---|---|
-| python | 3.14.6-slim@sha256:7bec7ddcddeff7975d6ba9b4be7dd6f6b2f55e7491539145e2978f7f97ce9144 | Docker Hub | PSF-2.0 (Python), Debian packages under their respective licenses |
+| python | 3.14.8-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 | Docker Hub | PSF-2.0 (Python), Debian packages under their respective licenses |
 | postgres | 17-alpine | Docker Hub | PostgreSQL License |
 | node | 26.6.0-bookworm-slim@sha256:81502e860176e63695d769d3d1a2d3a403abc1c27c6a02169b765f3e43b60ede | Docker Hub | MIT (Node.js), Debian packages under their respective licenses |
 

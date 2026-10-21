@@ -1,6 +1,6 @@
-import ts from 'typescript';
-import de from './locales/de';
+import { parseSync } from 'rolldown/utils';
 import { DEFAULT_LOCALE, i18n, resolvedLocale } from './index';
+import de from './locales/de';
 
 const sourceFiles = import.meta.glob(
   [
@@ -13,48 +13,88 @@ const sourceFiles = import.meta.glob(
   { eager: true, import: 'default', query: '?raw' },
 ) as Record<string, string>;
 
+interface AstNode {
+  type: string;
+  start: number;
+  [property: string]: unknown;
+}
+
+function isAstNode(value: unknown): value is AstNode {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { type?: unknown }).type === 'string'
+  );
+}
+
+function staticKey(node: AstNode): string | undefined {
+  if (node.type === 'Literal' && typeof node.value === 'string') {
+    return node.value;
+  }
+  // A template literal without substitutions is a static key as well.
+  if (node.type === 'TemplateLiteral') {
+    const expressions = node.expressions as unknown[];
+    const quasis = node.quasis as Array<{ value: { cooked: string | null } }>;
+    if (expressions.length === 0 && quasis.length === 1) {
+      return quasis[0].value.cooked ?? undefined;
+    }
+  }
+  return undefined;
+}
+
+function isTranslationCallee(callee: AstNode): boolean {
+  if (callee.type === 'Identifier') {
+    return callee.name === 't';
+  }
+  if (callee.type !== 'MemberExpression' || callee.computed === true) {
+    return false;
+  }
+  const object = callee.object as AstNode;
+  const property = callee.property as AstNode;
+  return (
+    object.type === 'Identifier' &&
+    object.name === 'i18n' &&
+    property.type === 'Identifier' &&
+    property.name === 't'
+  );
+}
+
 function collectStaticTranslationKeys(
   fileName: string,
   source: string,
 ): Array<{ key: string; fileName: string; line: number }> {
-  const scriptKind = fileName.endsWith('.tsx')
-    ? ts.ScriptKind.TSX
-    : ts.ScriptKind.TS;
-  const sourceFile = ts.createSourceFile(
-    fileName,
-    source,
-    ts.ScriptTarget.Latest,
-    true,
-    scriptKind,
-  );
+  // oxc (bundled with Vite's rolldown) parses TS/TSX without the TypeScript
+  // compiler API, which TypeScript 7 no longer ships.
+  const { program, errors } = parseSync(fileName, source);
+  if (errors.length > 0) {
+    throw new Error(`${fileName}: ${errors[0].message}`);
+  }
   const keys: Array<{ key: string; fileName: string; line: number }> = [];
 
-  function visit(node: ts.Node): void {
-    if (ts.isCallExpression(node) && node.arguments.length > 0) {
-      const isTranslationCall =
-        (ts.isIdentifier(node.expression) && node.expression.text === 't') ||
-        (ts.isPropertyAccessExpression(node.expression) &&
-          ts.isIdentifier(node.expression.expression) &&
-          node.expression.expression.text === 'i18n' &&
-          node.expression.name.text === 't');
-      const firstArgument = node.arguments[0];
-
-      if (
-        isTranslationCall &&
-        (ts.isStringLiteral(firstArgument) ||
-          ts.isNoSubstitutionTemplateLiteral(firstArgument))
-      ) {
-        const { line } = sourceFile.getLineAndCharacterOfPosition(
-          firstArgument.getStart(sourceFile),
-        );
-        keys.push({ key: firstArgument.text, fileName, line: line + 1 });
+  function visit(value: unknown): void {
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+    if (!isAstNode(value)) {
+      return;
+    }
+    if (value.type === 'CallExpression') {
+      const args = value.arguments as AstNode[];
+      const key = args.length > 0 ? staticKey(args[0]) : undefined;
+      if (key !== undefined && isTranslationCallee(value.callee as AstNode)) {
+        const line = source.slice(0, args[0].start).split('\n').length;
+        keys.push({ key, fileName, line });
       }
     }
-
-    ts.forEachChild(node, visit);
+    for (const child of Object.values(value)) {
+      if (typeof child === 'object' && child !== null) {
+        visit(child);
+      }
+    }
   }
 
-  visit(sourceFile);
+  visit(program);
   return keys;
 }
 

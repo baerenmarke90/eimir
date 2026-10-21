@@ -46,15 +46,16 @@ export function MediaGallery({
   );
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const imageFocusIndex =
+    activeIndex ?? (renderPreviews ? null : carouselIndex);
   const imageResourceIds = items
     .filter((item, index) => {
       if (item.mediaType === MediaType.VIDEO) return false;
-      if (!renderPreviews) return true;
-      if (activeIndex === null) return false;
+      if (imageFocusIndex === null) return false;
       return [
-        activeIndex,
-        (activeIndex + 1) % items.length,
-        (activeIndex - 1 + items.length) % items.length,
+        imageFocusIndex,
+        (imageFocusIndex + 1) % items.length,
+        (imageFocusIndex - 1 + items.length) % items.length,
       ].includes(index);
     })
     .map((item) => item.id);

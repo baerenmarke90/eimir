@@ -48,6 +48,12 @@ export interface SignupSessionView {
     accountCreated: boolean;
     /**
      * 
+     * @type {string}
+     * @memberof SignupSessionView
+     */
+    spaceId?: string | null;
+    /**
+     * 
      * @type {TokenView}
      * @memberof SignupSessionView
      */
@@ -76,6 +82,7 @@ export function SignupSessionViewFromJSONTyped(json: any, ignoreDiscriminator: b
         
         'account': AccountViewFromJSON(json['account']),
         'accountCreated': json['accountCreated'],
+        'spaceId': json['spaceId'] === undefined ? undefined : json['spaceId'] === null ? null : json['spaceId'],
         'tokens': TokenViewFromJSON(json['tokens']),
     };
 }
@@ -93,6 +100,7 @@ export function SignupSessionViewToJSONTyped(value?: SignupSessionView | null, i
         
         'account': AccountViewToJSON(value['account']),
         'accountCreated': value['accountCreated'],
+        'spaceId': value['spaceId'],
         'tokens': TokenViewToJSON(value['tokens']),
     };
 }

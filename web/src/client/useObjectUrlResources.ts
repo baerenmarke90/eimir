@@ -88,7 +88,7 @@ export function useObjectUrlResources(
   const loadResourceRef = useRef(loadResource);
   loadResourceRef.current = loadResource;
 
-  const [state, setState] = useState<ObjectUrlResourcesState>(() => ({
+  const [, setState] = useState<ObjectUrlResourcesState>(() => ({
     urls: {},
     errors: {},
     loading: new Set(),
@@ -199,7 +199,9 @@ export function useObjectUrlResources(
     }
   }, [identitySignature]);
 
-  return state;
+  // The requested scope is authoritative during render, before effect cleanup.
+  // A context/identity switch must never expose the preceding render's URLs.
+  return snapshotState(entriesRef.current, scopeKey, resourceIds);
 }
 
 export function useObjectUrlResource(

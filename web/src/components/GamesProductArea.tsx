@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from '../client/apiConfiguration';
 import { normalizeClientError } from '../client/problemDetails';
 import {
   GAMES_MOMENTS_ROUTE,

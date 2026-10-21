@@ -18,6 +18,7 @@ from eimir.heart_moments import service as heart_service
 from eimir.heart_moments.models import HeartEmotion
 from eimir.main import create_app
 from eimir.memories import service as memory_service
+from eimir.milestones import service as milestone_service
 from eimir.outbox.models import OutboxEvent
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import Membership, MembershipStatus
@@ -281,6 +282,93 @@ def test_same_day_snapshot_is_stable_and_algorithm_change_cannot_replace_it(
 
     assert [(row.kind, row.id) for row in first.rows] == [(row.kind, row.id) for row in second.rows]
     assert snapshot.algorithm_version == "version-a"
+
+
+@pytest.mark.parametrize("kind", ["memory", "heart", "milestone"])
+def test_new_shared_content_joins_existing_daily_selections_immediately(
+    client, session: Session, discover_setup, kind: str
+) -> None:  # type: ignore[no-untyped-def]
+    for index in range(12):
+        memory = _memory(session, discover_setup, index, date(2010 + index, 3, 2))
+        memory.created_at = FIXED_NOW - timedelta(days=30)
+    session.flush()
+    before = _ordered_ids(_get(client, discover_setup).json())
+    partner_before = _ordered_ids(_get(client, discover_setup, token_key="partner_token").json())
+    assert len(before) == 8
+    if kind == "memory":
+        fresh = _memory(session, discover_setup, 100, date(1980, 1, 1))
+    elif kind == "heart":
+        fresh = _heart(
+            session, discover_setup, date(1980, 1, 1), visibility=ContentVisibility.SHARED
+        )
+    else:
+        fresh = milestone_service.create_milestone(
+            session,
+            discover_setup["context"],
+            title="New milestone",
+            body=None,
+            happened_on=date(1980, 1, 1),
+        )
+    fresh.created_at = FIXED_NOW - timedelta(seconds=1)
+    private = _heart(
+        session, discover_setup, date(2026, 9, 17), visibility=ContentVisibility.PRIVATE
+    )
+    private.created_at = FIXED_NOW
+    session.flush()
+
+    after = _ordered_ids(_get(client, discover_setup).json())
+    partner_after = _ordered_ids(_get(client, discover_setup, token_key="partner_token").json())
+    assert str(fresh.id) in after
+    assert str(fresh.id) in partner_after
+    assert str(private.id) not in after + partner_after
+    assert after[0] == before[0]
+    assert partner_after[0] == partner_before[0]
+    assert len(after) == len(set(after)) == 8
+    assert _ordered_ids(_get(client, discover_setup).json()) == after
+
+
+def test_new_content_populates_a_previously_empty_daily_selection(
+    client, session: Session, discover_setup
+) -> None:  # type: ignore[no-untyped-def]
+    assert _ordered_ids(_get(client, discover_setup).json()) == []
+    fresh = _memory(session, discover_setup, 100, date(1980, 1, 1))
+    fresh.created_at = FIXED_NOW
+    session.flush()
+    assert _ordered_ids(_get(client, discover_setup).json()) == [str(fresh.id)]
+
+
+def test_recent_additions_are_bounded_ordered_and_exclude_old_or_foreign_rows(
+    client, session: Session, discover_setup
+) -> None:  # type: ignore[no-untyped-def]
+    lead = _memory(session, discover_setup, 0, date(2020, 9, 17))
+    lead.created_at = FIXED_NOW - timedelta(days=30)
+    session.flush()
+    assert _ordered_ids(_get(client, discover_setup).json()) == [str(lead.id)]
+    fresh = []
+    for index in range(12):
+        memory = _memory(session, discover_setup, index + 1, date(1980, 1, 1))
+        memory.created_at = FIXED_NOW - timedelta(seconds=12 - index)
+        fresh.append(memory)
+    old = _memory(session, discover_setup, 100, date(1980, 1, 1))
+    old.created_at = FIXED_NOW - timedelta(hours=24, microseconds=1)
+    foreign = memory_service.create_memory(
+        session,
+        AuthorizationContext(
+            account_id=discover_setup["outsider"].id,
+            space_id=discover_setup["foreign_space"].id,
+        ),
+        title="Foreign recent memory",
+        body="Body",
+        happened_on=date(1980, 1, 1),
+    )
+    foreign.created_at = FIXED_NOW
+    session.flush()
+
+    ids = _ordered_ids(_get(client, discover_setup).json())
+    assert ids == [str(lead.id)] + [str(memory.id) for memory in reversed(fresh[-7:])]
+    assert str(old.id) not in ids
+    assert str(foreign.id) not in ids
+    assert session.scalar(select(func.count()).select_from(DiscoverSelectionSnapshot)) == 1
 
 
 def test_account_timezone_and_dst_boundaries_define_selection_date(

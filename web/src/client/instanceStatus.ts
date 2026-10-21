@@ -4,7 +4,7 @@ import type {
   InstanceAccessStatus,
   InstanceAccessStatusAccountCreationEnum,
 } from '../api/generated/models/InstanceAccessStatus';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from './apiConfiguration';
 
 export type RegistrationAvailability =
   | 'available'

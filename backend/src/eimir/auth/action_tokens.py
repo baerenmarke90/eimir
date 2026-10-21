@@ -342,7 +342,9 @@ def consume_account_recovery(session: Session, token: str) -> AccountRecoveryTok
     )
 
 
-def issue_signup_proof(session: Session, email: str) -> tuple[SignupProof, IssuedActionToken]:
+def issue_signup_proof(
+    session: Session, email: str, *, invitation_token_hash: str | None = None
+) -> tuple[SignupProof, IssuedActionToken]:
     """Issue a Cloud signup proof, superseding older open proofs for the address.
 
     The subject is the normalized address rather than an AccountEmail, because
@@ -362,6 +364,7 @@ def issue_signup_proof(session: Session, email: str) -> tuple[SignupProof, Issue
         email=email,
         token_hash=hash_token(token),
         expires_at=issued_at + SIGNUP_PROOF_LIFETIME,
+        invitation_token_hash=invitation_token_hash,
     )
     session.add(model)
     session.flush()

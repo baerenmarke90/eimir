@@ -8,7 +8,8 @@ Authoritative presentation/runtime source graph includes:
 - design/tokens.json and design-system machine-readable assets under design/
 - web/public/** (runtime brand, icons, favicons, entry scripts)
 - web/index.html (HTML entry point, meta tags, titles)
-- web/src/** EXCEPT contract-generated code in web/src/api/generated/**
+- web/src/** EXCEPT contract-generated code in web/src/api/generated/** and
+  test files (``*.test.ts[x]`` / ``*.spec.ts[x]``), which never ship to users
 
 The Capacitor Android wrapper in android/ packages the Web product and is not a
 second product UI, so it is deliberately not a Product Design surface (ADR 0011).
@@ -30,8 +31,11 @@ USER_FACING_PATTERNS: tuple[re.Pattern[str], ...] = (
 )
 
 # Contract artifacts generated from OpenAPI are API schemas, not visual UI.
+# Test files are verification code that is not part of the shipped product UI;
+# behavior they assert is covered by the production sources they exercise.
 EXCLUDED_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"^web/src/api/generated/"),
+    re.compile(r"^web/src/.*\.(test|spec)\.tsx?$"),
 )
 
 

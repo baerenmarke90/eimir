@@ -70,6 +70,11 @@ class EmailRequest(ApiModel):
     email: str
 
 
+class SignupEmailRequest(EmailRequest):
+    invitation_token: str | None = None
+    """Bound to the mailed proof as a hash; validated when the proof is redeemed."""
+
+
 class MagicLinkConsumeRequest(ApiModel):
     token: str
     device_name: str = ""
@@ -154,6 +159,8 @@ class SignupSessionView(SessionView):
     reveals nothing to someone probing addresses. Clients use it to continue
     with name confirmation and Space creation instead of guessing.
     """
+    space_id: UUID | None = None
+    """Successfully joined invitation destination; absent for ordinary signup."""
 
 
 def _view(result: SignedIn | cloud.SignedIn | oidc.SignedIn | passkeys.SignedIn) -> SessionView:
@@ -274,13 +281,17 @@ def me(account: CurrentAccount) -> AccountView:
     response_class=Response,
     responses=problem_responses(422, 429, 503),
 )
-def request_magic_link(body: EmailRequest, session: DbSession, mail: Mail) -> Response:
-    """Request a passwordless sign-in link.
+def request_magic_link(
+    body: EmailRequest, request: Request, session: DbSession, mail: Mail
+) -> Response:
+    """Request a passwordless entry link.
 
-    The response is identical whether or not the address exists. Otherwise
-    this endpoint would become an account directory.
+    Cloud delegates to the same mailbox proof as /auth/signup/request, including
+    for addresses without an Account. Self-Hosted retains existing-account
+    sign-in. The response never discloses whether the address has an Account.
     """
-    cloud.request_magic_link(session, email=body.email, mail=mail)
+    client_host = request.client.host if request.client is not None else None
+    cloud.request_magic_link(session, email=body.email, mail=mail, client_host=client_host)
     return Response(status_code=status.HTTP_202_ACCEPTED)
 
 
@@ -308,7 +319,7 @@ def consume_magic_link(body: MagicLinkConsumeRequest, session: DbSession) -> Ses
     responses=problem_responses(403, 422, 429, 503),
 )
 def request_signup(
-    body: EmailRequest, request: Request, session: DbSession, mail: Mail
+    body: SignupEmailRequest, request: Request, session: DbSession, mail: Mail
 ) -> Response:
     """Start Cloud/Managed self-service onboarding with an emailed one-time proof.
 
@@ -319,16 +330,24 @@ def request_signup(
     self-service signup, including every Self-Hosted instance.
     """
     client_host = request.client.host if request.client is not None else None
-    cloud.request_signup(session, email=body.email, mail=mail, client_host=client_host)
+    cloud.request_signup(
+        session,
+        email=body.email,
+        mail=mail,
+        client_host=client_host,
+        invitation_token=body.invitation_token,
+    )
     return Response(status_code=status.HTTP_202_ACCEPTED)
 
 
 @router.post(
     "/auth/signup/consume",
     response_model=SignupSessionView,
+    response_model_exclude_none=True,
     status_code=status.HTTP_201_CREATED,
     responses=problem_responses(
         403,
+        409,
         422,
         429,
         503,
@@ -349,8 +368,10 @@ def consume_signup(
 
     Send the proof in the request body, never in a URL. After a successful
     redemption the client removes it from its address bar and history. A new
-    Account has no Membership: continue with `POST /spaces` or accept an
-    invitation.
+    Account joins the invitation bound to its proof atomically before a
+    session is issued. An ordinary proof has no invitation: continue with
+    `POST /spaces` or accept an invitation separately. Invalid invitations fail
+    without consuming the proof or creating an Account, session, or Membership.
     """
     client_host = request.client.host if request.client is not None else None
     result = cloud.consume_signup(
@@ -363,7 +384,10 @@ def consume_signup(
     )
     view = _view(SignedIn(account=result.account, tokens=result.tokens))
     return SignupSessionView(
-        account=view.account, tokens=view.tokens, account_created=result.account_created
+        account=view.account,
+        tokens=view.tokens,
+        account_created=result.account_created,
+        space_id=result.space_id,
     )
 
 

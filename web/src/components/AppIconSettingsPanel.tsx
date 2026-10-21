@@ -18,6 +18,38 @@ export function AppIconSettingsPanel() {
   return <AppIconSettings state={state} />;
 }
 
+function PlatformFeedback({
+  state,
+}: {
+  state: NonNullable<ReturnType<typeof useAppIcon>>;
+}) {
+  const { t } = useTranslation();
+  const { status, retry } = state.launcher;
+  if (status === 'browser')
+    return <p className="app-icon-platform">{t('appIcon.browser')}</p>;
+  if (!state.preference.data && status !== 'update-required') return null;
+  return (
+    <div className="app-icon-platform" role="status">
+      <p>
+        {t(
+          status === 'update-required'
+            ? 'appIcon.nativeUpdate'
+            : status === 'error'
+              ? 'appIcon.nativeError'
+              : status === 'applied'
+                ? 'appIcon.nativeApplied'
+                : 'appIcon.nativePending',
+        )}
+      </p>
+      {status === 'error' ? (
+        <button type="button" className="button-link" onClick={retry}>
+          {t('appIcon.nativeRetry')}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function AppIconSettings({
   state,
 }: {
@@ -113,7 +145,7 @@ function AppIconSettings({
         </div>
       ) : null}
       {saved && !open ? <p role="status">{t('appIcon.saved')}</p> : null}
-      <p className="app-icon-platform">{t('appIcon.browser')}</p>
+      <PlatformFeedback state={state} />
 
       <ShortTaskSheet
         ref={sheet}
@@ -217,7 +249,7 @@ function AppIconSettings({
                     : t('appIcon.choose', { name: previewName })}
               </button>
             )}
-            <p className="app-icon-platform">{t('appIcon.browser')}</p>
+            <PlatformFeedback state={state} />
           </div>
         }
       >

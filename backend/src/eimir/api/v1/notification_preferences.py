@@ -16,6 +16,7 @@ from eimir.engagement import (
     email_delivery,
     notification_policy,
     notification_preferences,
+    push,
     quiet_hours_preferences,
 )
 from eimir.engagement.models import NotificationChannel, NotificationKind, PushEndpoint
@@ -114,11 +115,18 @@ def get_own_notification_preferences(
     email_choices = notification_preferences.own_email_choices(session, account_id=account.id)
     email_address = email_delivery.verified_primary_email(session, account.id)
     email_transport_ready = email_delivery.transport_available()
-    active_endpoint = session.execute(
-        select(PushEndpoint.id)
-        .where(PushEndpoint.account_id == account.id, PushEndpoint.disabled_at.is_(None))
-        .limit(1)
-    ).scalar_one_or_none()
+    active_endpoint_providers = (
+        session.execute(
+            select(PushEndpoint.provider_key).where(
+                PushEndpoint.account_id == account.id, PushEndpoint.disabled_at.is_(None)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    push_transport_ready = any(
+        push.providers.get(provider_key) is not None for provider_key in active_endpoint_providers
+    )
     response.headers["Cache-Control"] = "private, no-store"
     return NotificationPreferencesView(
         catalog_version=notification_policy.POLICY_VERSION,
@@ -158,10 +166,12 @@ def get_own_notification_preferences(
             ),
             NotificationChannelCapability(
                 channel=NotificationChannel.PUSH,
-                available=False,
+                available=push_transport_ready,
                 reason=(
-                    "PUSH_ENDPOINT_MISSING"
-                    if active_endpoint is None
+                    None
+                    if push_transport_ready
+                    else "PUSH_ENDPOINT_MISSING"
+                    if not active_endpoint_providers
                     else "PUSH_TRANSPORT_NOT_READY"
                 ),
             ),

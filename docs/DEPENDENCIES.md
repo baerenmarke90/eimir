@@ -134,7 +134,7 @@ in a background job under resource limits — never in the request path.
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
 | pywebpush | 2.5.0 | PyPI | MPL-2.0 |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
-| pillow | 12.3.0 | PyPI | MIT-CMU |
+| pillow | 13.0.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |
 
 ## Backend — Development

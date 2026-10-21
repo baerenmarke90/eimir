@@ -32,7 +32,7 @@ dependencies = [
     # Bildvalidierung, Metadaten-Entfernung und Thumbnails (M2-D14/D15).
     # Ein eigener Dekoder fuer JPEG/PNG/WebP waere Eigenbau an der
     # groessten Angriffsflaeche des Produkts.
-    "pillow>=12.0",
+    "pillow>=13.0",
     # HEIC/HEIF steht in der M2-D04-Allowlist und ist ohne libheif nicht
     # zu dekodieren. Registriert sich als Plugin in Pillow.
     "pillow-heif>=1.1",

@@ -152,7 +152,7 @@
     },
     "product-accessibility.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 16
+      "baselineTests": 20
     },
     "product-gutters.spec.ts": {
       "disposition": "FULL_REGRESSION",

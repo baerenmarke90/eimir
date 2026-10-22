@@ -32,7 +32,14 @@ const ATTACHMENTS = [
   },
 ] as const;
 
-function attachment(value: (typeof ATTACHMENTS)[number], position: number) {
+type ImageFixture = {
+  id: string;
+  width: number;
+  height: number;
+  svg: string;
+};
+
+function attachment(value: ImageFixture, position: number) {
   return {
     id: value.id,
     position,
@@ -303,9 +310,13 @@ async function lightboxInteractionContract(page: Page) {
   });
 }
 
-async function installApiMocks(page: Page) {
+async function installApiMocks(
+  page: Page,
+  galleryAttachments: readonly ImageFixture[] = ATTACHMENTS,
+) {
   const unexpectedRequests: string[] = [];
   const readAccessBodies: unknown[] = [];
+  const contentReads: string[] = [];
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
@@ -459,7 +470,7 @@ async function installApiMocks(page: Page) {
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}`
     ) {
-      await fulfillJson(MULTI_MEMORY);
+      await fulfillJson(memory(MEMORY_ID, galleryAttachments.map(attachment)));
       return;
     }
 
@@ -498,11 +509,14 @@ async function installApiMocks(page: Page) {
       new RegExp(`^/api/v1/spaces/${SPACE_ID}/attachments/([^/]+)/content$`),
     );
     if (method === 'GET' && contentMatch) {
-      const media = ATTACHMENTS.find((entry) => entry.id === contentMatch[1]);
+      const media = galleryAttachments.find(
+        (entry) => entry.id === contentMatch[1],
+      );
       if (!media) {
         await route.fulfill({ status: 404 });
         return;
       }
+      contentReads.push(media.id);
       await route.fulfill({
         status: 200,
         contentType: 'image/svg+xml',
@@ -545,7 +559,7 @@ async function installApiMocks(page: Page) {
     );
   });
 
-  return { unexpectedRequests, readAccessBodies };
+  return { unexpectedRequests, readAccessBodies, contentReads };
 }
 
 async function signIn(page: Page): Promise<void> {
@@ -615,6 +629,78 @@ function expectStableGeometry(
   expect(
     Math.abs(after.provenanceDocumentY - before.provenanceDocumentY),
   ).toBeLessThanOrEqual(1);
+}
+
+for (const state of [
+  { width: 390, theme: 'dark', reducedMotion: 'no-preference' },
+  { width: 1280, theme: 'light', reducedMotion: 'reduce' },
+] as const) {
+  test(`detail gallery loads originals around the current photo at ${state.width}px ${state.theme}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: state.width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: state.theme,
+      reducedMotion: state.reducedMotion,
+    });
+    const sixImages = Array.from({ length: 6 }, (_, index) => ({
+      ...ATTACHMENTS[index % ATTACHMENTS.length]!,
+      id: `10000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+    }));
+    const { contentReads, unexpectedRequests } = await installApiMocks(
+      page,
+      sixImages,
+    );
+    await page.goto('/today');
+    await signIn(page);
+    await page.goto(`/story/memories/${MEMORY_ID}`);
+    await expect(
+      page.getByRole('heading', { name: MULTI_MEMORY.title }),
+    ).toBeVisible();
+    await positionGalleryForReading(page);
+    await expectCarouselSettled(page, 0);
+    await expect
+      .poll(() => contentReads.slice().sort())
+      .toEqual([0, 1, 5].map((index) => sixImages[index]!.id).sort());
+
+    if (state.width < 600) await swipeCarousel(page, 'next');
+    else await page.getByRole('button', { name: GALLERY.next }).click();
+    await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
+      counterLabel(2, 6),
+    );
+    await expectCarouselSettled(page, 1);
+    await expect
+      .poll(() => contentReads.slice().sort())
+      .toEqual([0, 1, 2, 5].map((index) => sixImages[index]!.id).sort());
+
+    await page.getByRole('button', { name: openItemLabel(2, 6) }).click();
+    await expectLightboxSettled(page, 1);
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('.media-lightbox-counter')).toHaveText(
+      counterLabel(3, 6),
+    );
+    await expectLightboxSettled(page, 2);
+    await expect
+      .poll(() => contentReads.slice().sort())
+      .toEqual([0, 1, 2, 3, 5].map((index) => sixImages[index]!.id).sort());
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expectCarouselSettled(page, 1);
+    await expect(
+      page.locator(
+        '.media-gallery-carousel-slide.is-active .media-gallery-carousel-content',
+      ),
+    ).toBeVisible();
+    await nextFrame(page);
+    expect(contentReads).toHaveLength(5);
+    expect(unexpectedRequests).toEqual([]);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `story-gallery-window-${state.width}-${state.theme}.png`,
+      ),
+      fullPage: false,
+    });
+  });
 }
 
 test('Memory carousel keeps document and layout position stable across pointer and keyboard navigation', async ({

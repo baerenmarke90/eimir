@@ -21,8 +21,14 @@ from tests.conftest import requires_database
 @pytest.mark.integration
 @requires_database
 def test_real_alembic_migration_0039_lifecycle(
-    engine: Engine, monkeypatch: pytest.MonkeyPatch
+    engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+    encryption,  # type: ignore[no-untyped-def]
 ) -> None:
+    # The fixture rows are written as raw legacy plaintext, which is the point of a
+    # migration test. `migrating` reads them, as an installation would during cutover;
+    # `required` would (correctly) refuse to load plaintext through the ORM.
+    encryption.apply("migrating")
     test_db_url = os.environ.get("EIMIR_TEST_DATABASE_URL")
     if test_db_url:
         monkeypatch.setenv("EIMIR_DATABASE_URL", test_db_url)

@@ -291,12 +291,21 @@ async function installApiMocks(page: Page): Promise<string[]> {
     }
 
     if (
+      method === 'GET' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/attachments/${ATTACHMENT_ID}/content`
+    ) {
+      await route.fulfill({ contentType: 'image/jpeg', body: photo });
+      return;
+    }
+
+    if (
       pathname ===
       `/api/v1/spaces/${SPACE_ID}/attachments/${ATTACHMENT_ID}/read-access`
     ) {
       await fulfillJson({
         method: 'STREAM',
-        url: `/api/v1/spaces/${SPACE_ID}/attachments/${ATTACHMENT_ID}/bytes`,
+        url: `/api/v1/spaces/${SPACE_ID}/attachments/${ATTACHMENT_ID}/content`,
       });
       return;
     }

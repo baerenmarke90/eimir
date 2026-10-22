@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-20",
+  "baselineHead": "26b0d5c4399d8a0fdea65f096d49af0bfb52f724",
+  "nativeRuntimeBlob": "f7f63c6912eab3d82a7d325cfa34e107df35d0ab",
+  "qaPackage": "de.sidebyside.app.debug.pushqa",
+  "versionCode": 3,
+  "versionName": "0.2.0-pushqa.20261020-recheck-debug",
+  "apkSha256": "4f6ee0c20918f275a3cd7513774232f7cea17b8a819e6580d9c64441e5630c13",
+  "device": "Pixel 10 Pro Fold",
+  "androidApi": 36,
+  "distributor": "gCompat-UP 2.1.2",
+  "distributorOrigin": "https://fcm.googleapis.com",
+  "registrationCount": 4,
+  "distinctEndpointCount": 4,
+  "firstAttemptDomainDeliveries": 2,
+  "domainDeliveryAttempts": [
+    1,
+    1
+  ],
+  "firstAttemptReplacementTransportProbes": 2,
+  "actualBackgroundNotificationTaps": 3,
+  "replacementSequence": [
+    "Lea to Alex",
+    "Alex to Lea",
+    "Lea to Alex"
+  ],
+  "allOldEndpointsInactiveBeforeReplacement": true,
+  "allEndpointsInactiveAfterFinalSignOut": true,
+  "signOutChecks": {
+    "previousAccess401": true,
+    "previousRefresh401": true,
+    "nativeDisabled": true,
+    "realReloadRemainsSignedOut": true
+  },
+  "manualRegistrationRecoveryUsed": false,
+  "fontScaleChanged": false,
+  "earlierSubscriptionGoneRootCause": "unproven; not reproduced in this run",
+  "physicalLargeFontAcceptance": "incomplete; further enlargement prohibited by user",
+  "runtimeSource": "a91014546aa8037433bd9b24f7535f87ecfa9f41",
+  "webView": "148.0.7778.120",
+  "cleanup": {
+    "qaAppAndNewDistributorRemoved": true,
+    "personalAppsAndNtfyRemainInstalled": true,
+    "apiWorkerDatabaseAndVolumeRemoved": true,
+    "privateCredentialFilesRemoved": true,
+    "qaForwardAndReverseRemoved": true,
+    "fontScale": 1.1,
+    "nightMode": "auto",
+    "stayAwake": 0
+  }
+}

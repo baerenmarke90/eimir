@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const baseURL = 'http://127.0.0.1:4173';
+
 export default defineConfig({
   testDir: './tests',
   outputDir: './test-results',
@@ -12,7 +14,7 @@ export default defineConfig({
     timeout: 5_000,
   },
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL,
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
   },
@@ -24,7 +26,9 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm --prefix .. run dev -- --host 127.0.0.1 --port 4173',
-    url: 'http://127.0.0.1:4173',
+    url: baseURL,
+    // Native-container journeys require an explicit API origin, as shipped APKs do.
+    env: { VITE_EIMIR_API_BASE_URL: baseURL },
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

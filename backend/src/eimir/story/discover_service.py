@@ -38,6 +38,7 @@ from eimir.story.view_models import DiscoverSelectionSnapshot, StoryItemViewAggr
 ALGORITHM_VERSION = "discover-v1"
 TARGET_ITEM_COUNT = 8
 SNAPSHOT_RETENTION = timedelta(hours=48)
+RECENT_ADDITION_WINDOW = timedelta(hours=24)
 
 DATE_WINDOW_DAYS = 7
 DATE_POOL_LIMIT_PER_KIND = 12
@@ -890,7 +891,7 @@ def read_discover(
     at: datetime | None = None,
     algorithm_version: str = ALGORITHM_VERSION,
 ) -> DiscoverReadResult:
-    """Materialize or read today's snapshot, then reauthorize every reference."""
+    """Keep daily curation stable while admitting newly shared content immediately."""
     instant = clock.ensure_utc(at if at is not None else clock.now())
     selection_date = clock.today_in(account_timezone, at=instant)
     refs = _snapshot_refs(
@@ -899,10 +900,36 @@ def read_discover(
         selection_date,
         algorithm_version=algorithm_version,
     )
-    return DiscoverReadResult(
-        selection_date=selection_date,
-        rows=_reauthorize_rows(session, context, refs),
-    )
+    curated = _reauthorize_rows(session, context, refs)
+    selected = {(row.kind, row.id) for row in curated}
+    additions: list[StoryRow] = []
+    for kind, model in _MODELS.items():
+        # Existing (Space, created_at, id) indexes bound the recent descriptor
+        # reads. No protected payload, global count or per-item query is needed.
+        rows = session.execute(
+            _authorized_descriptors(kind, context)
+            .where(
+                model.created_at >= instant - RECENT_ADDITION_WINDOW,
+                model.created_at <= instant,
+            )
+            .order_by(model.created_at.desc(), model.id.desc())
+            .limit(TARGET_ITEM_COUNT)
+        ).all()
+        additions.extend(
+            StoryRow(
+                kind=kind,
+                effective_date=row.effective_date,
+                created_at=clock.ensure_utc(row.created_at),
+                id=row.id,
+            )
+            for row in rows
+            if (kind, row.id) not in selected
+        )
+    additions.sort(key=lambda row: (row.created_at, row.id), reverse=True)
+    # Preserve the authorized daily lead and existing order. Newly added rows
+    # occupy the next slots; a full or previously empty snapshot cannot hide them.
+    combined = curated[:1] + additions + curated[1:]
+    return DiscoverReadResult(selection_date=selection_date, rows=combined[:TARGET_ITEM_COUNT])
 
 
 def prune_expired_snapshots(session: Session, *, at: datetime | None = None) -> int:

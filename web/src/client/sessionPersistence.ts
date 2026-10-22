@@ -1,12 +1,129 @@
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { TokenView } from '../api/generated/models/TokenView';
 import { normalizeClientError } from './problemDetails';
+import { clearAuthorizedMediaCache } from './authorizedMediaCache';
 import { createReferenceApis } from './referenceFlow';
+import {
+  isNativeSessionStorageAvailable,
+  readNativeSessionSnapshot,
+  writeNativeSessionSnapshot,
+} from './nativeSessionStorage';
 
 export const SESSION_STORAGE_KEY = 'eimir-session-v1';
 export const LEGACY_SESSION_STORAGE_KEY = 'sidebyside-session-v1';
 
 const inFlightRefreshes = new Map<string, Promise<TokenView>>();
+let nativeWrites: Promise<void> = Promise.resolve();
+let storageRevision = 0;
+
+/** In-memory identity of one login, retained only across its own rotations. */
+export type SessionOwner = {
+  accountId: string;
+  tokens: TokenView;
+  previousTokens?: TokenView;
+  refreshApiBaseUrl?: string;
+};
+let sessionOwner: SessionOwner | null = null;
+const refreshListeners = new Set<
+  (tokens: TokenView | null, previousRefreshToken: string) => void
+>();
+
+export function captureSessionOwner(accessToken: string): SessionOwner | null {
+  const stored = loadStoredSession();
+  if (!stored) return null;
+  if (
+    !sessionOwner ||
+    sessionOwner.accountId !== stored.account.id ||
+    sessionOwner.tokens.refreshToken !== stored.tokens.refreshToken
+  ) {
+    sessionOwner = { accountId: stored.account.id, tokens: stored.tokens };
+  }
+  return sessionOwner.tokens.accessToken === accessToken ||
+    sessionOwner.previousTokens?.accessToken === accessToken
+    ? sessionOwner
+    : null;
+}
+
+export function currentSessionTokens(owner: SessionOwner): TokenView | null {
+  const stored = loadStoredSession();
+  return sessionOwner === owner &&
+    stored?.account.id === owner.accountId &&
+    stored.tokens.accessToken === owner.tokens.accessToken &&
+    stored.tokens.refreshToken === owner.tokens.refreshToken
+    ? owner.tokens
+    : null;
+}
+
+export function subscribeSessionRefresh(
+  listener: (tokens: TokenView | null, previousRefreshToken: string) => void,
+): () => void {
+  refreshListeners.add(listener);
+  return () => {
+    refreshListeners.delete(listener);
+  };
+}
+
+export function pendingSessionRefresh(
+  apiBaseUrl: string,
+  refreshToken: string,
+): Promise<TokenView> | undefined {
+  return inFlightRefreshes.get(`${apiBaseUrl}\u0000${refreshToken}`);
+}
+
+function persistNativeSnapshot(value: string | null): Promise<void> {
+  storageRevision += 1;
+  if (!isNativeSessionStorageAvailable()) return Promise.resolve();
+  nativeWrites = nativeWrites.then(async () => {
+    try {
+      await writeNativeSessionSnapshot(value);
+    } catch {
+      // Never retain an obsolete refresh generation or use plaintext fallback.
+      try {
+        await writeNativeSessionSnapshot(null);
+      } catch {
+        // The current in-memory/WebView session can still be used.
+      }
+    }
+  });
+  return nativeWrites;
+}
+
+export async function restoreNativeSession(): Promise<void> {
+  if (!isNativeSessionStorageAvailable()) return;
+  const existing = loadStoredSession();
+  if (existing) {
+    await storeSession(existing);
+    return;
+  }
+  const revision = storageRevision;
+  let deadline: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await nativeWrites;
+    const raw = await Promise.race([
+      readNativeSessionSnapshot(),
+      new Promise<never>((_resolve, reject) => {
+        deadline = setTimeout(
+          () => reject(new Error('Native session read timed out')),
+          5_000,
+        );
+      }),
+    ]);
+    if (revision !== storageRevision || raw === null) return;
+    if (raw.length > 16_384) {
+      await clearStoredSession();
+      return;
+    }
+    window.sessionStorage.setItem(SESSION_STORAGE_KEY, raw);
+    const restored = loadStoredSession();
+    if (!restored || !isRefreshTokenValid(restored.tokens)) {
+      await clearStoredSession();
+    }
+  } catch {
+    // No native credential is usable; never fall back to localStorage.
+  } finally {
+    clearTimeout(deadline);
+  }
+}
 
 function parseStoredDate(value: unknown): Date {
   if (value instanceof Date) return value;
@@ -50,9 +167,37 @@ export type StoredSession = {
   spaceId?: string | null;
 };
 
-export function storeSession(session: StoredSession): void {
-  if (typeof window === 'undefined' || !window.sessionStorage) return;
+export function storeSession(session: StoredSession): Promise<void> {
+  // Space selection or a late verified read can still carry the previous
+  // render's tokens. Metadata updates must not roll back a consumed generation.
+  if (
+    sessionOwner?.accountId === session.account.id &&
+    sessionOwner.previousTokens?.refreshToken === session.tokens.refreshToken &&
+    currentSessionTokens(sessionOwner)
+  ) {
+    session = { ...session, tokens: sessionOwner.tokens };
+  }
+  return persistSession(session);
+}
+
+function persistSession(
+  session: StoredSession,
+  rotatedFrom?: string,
+  refreshApiBaseUrl?: string,
+): Promise<void> {
+  if (typeof window === 'undefined' || !window.sessionStorage)
+    return Promise.resolve();
   try {
+    const previous = loadStoredSession();
+    if (
+      previous?.account.id !== session.account.id ||
+      previous?.spaceId !== (session.spaceId ?? null) ||
+      (sessionOwner &&
+        sessionOwner.tokens.refreshToken !== session.tokens.refreshToken &&
+        sessionOwner.tokens.refreshToken !== rotatedFrom)
+    ) {
+      clearAuthorizedMediaCache();
+    }
     const serialized = JSON.stringify({
       account: session.account,
       tokens: {
@@ -70,8 +215,23 @@ export function storeSession(session: StoredSession): void {
       spaceId: session.spaceId ?? null,
     });
     window.sessionStorage.setItem(SESSION_STORAGE_KEY, serialized);
+    if (
+      sessionOwner?.accountId === session.account.id &&
+      (sessionOwner.tokens.refreshToken === session.tokens.refreshToken ||
+        sessionOwner.tokens.refreshToken === rotatedFrom)
+    ) {
+      if (sessionOwner.tokens.refreshToken === rotatedFrom) {
+        sessionOwner.previousTokens = sessionOwner.tokens;
+        sessionOwner.refreshApiBaseUrl = refreshApiBaseUrl;
+      }
+      sessionOwner.tokens = session.tokens;
+    } else {
+      sessionOwner = { accountId: session.account.id, tokens: session.tokens };
+    }
+    return persistNativeSnapshot(serialized);
   } catch {
     // Storage might be disabled or quota exceeded in restrictive environments.
+    return Promise.resolve();
   }
 }
 
@@ -108,14 +268,18 @@ export function loadStoredSession(): StoredSession | null {
   }
 }
 
-export function clearStoredSession(): void {
-  if (typeof window === 'undefined' || !window.sessionStorage) return;
+export function clearStoredSession(): Promise<void> {
+  clearAuthorizedMediaCache();
+  sessionOwner = null;
   try {
-    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
-    window.sessionStorage.removeItem(LEGACY_SESSION_STORAGE_KEY);
+    if (typeof window !== 'undefined') {
+      window.sessionStorage?.removeItem(SESSION_STORAGE_KEY);
+      window.sessionStorage?.removeItem(LEGACY_SESSION_STORAGE_KEY);
+    }
   } catch {
     // Storage might be disabled in restrictive environments.
   }
+  return persistNativeSnapshot(null);
 }
 
 export function hasStoredSession(): boolean {
@@ -148,6 +312,18 @@ export async function refreshSessionTokens(
   const existingRefresh = inFlightRefreshes.get(refreshKey);
   if (existingRefresh) return existingRefresh;
 
+  const stored = loadStoredSession();
+  const owner = stored ? captureSessionOwner(stored.tokens.accessToken) : null;
+  if (
+    owner?.previousTokens?.refreshToken === refreshToken &&
+    owner.refreshApiBaseUrl === apiBaseUrl &&
+    currentSessionTokens(owner)
+  ) {
+    // A queued timer/resume callback may outlive the completed promise. Sending
+    // that consumed token again would correctly revoke the entire server family.
+    return owner.tokens;
+  }
+
   const refreshPromise = (async () => {
     try {
       const apis = createReferenceApis(apiBaseUrl);
@@ -161,20 +337,34 @@ export async function refreshSessionTokens(
       // into that newer session.
       const currentSession = loadStoredSession();
       if (currentSession?.tokens.refreshToken === refreshToken) {
-        storeSession({
-          account: currentSession.account,
-          tokens: newTokens,
-          spaceId: currentSession.spaceId,
-        });
+        await persistSession(
+          {
+            account: currentSession.account,
+            tokens: newTokens,
+            spaceId: currentSession.spaceId,
+          },
+          refreshToken,
+          apiBaseUrl,
+        );
+        if (
+          loadStoredSession()?.tokens.refreshToken === newTokens.refreshToken
+        ) {
+          for (const listener of refreshListeners)
+            listener(newTokens, refreshToken);
+        }
       }
 
       return newTokens;
     } catch (error) {
       const normalized = await normalizeClientError(error);
-      if (normalized.status === 401) {
+      if (normalized.status === 401 || normalized.status === 403) {
         const currentSession = loadStoredSession();
         if (currentSession?.tokens.refreshToken === refreshToken) {
-          clearStoredSession();
+          await clearStoredSession();
+          if (!loadStoredSession()) {
+            for (const listener of refreshListeners)
+              listener(null, refreshToken);
+          }
         }
       }
       throw normalized;

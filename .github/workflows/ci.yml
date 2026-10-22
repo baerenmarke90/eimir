@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PYTHON_VERSION: "3.14.6"
+  PYTHON_VERSION: "3.14.8"
   UV_VERSION: "0.12.15"
 
 jobs:
@@ -35,6 +35,9 @@ jobs:
 
       - name: Test change-scope filter logic
         run: python3 tools/ci/test_change_scope.py
+
+      - name: Test encryption test-key generator
+        run: python3 tools/ci/test_encryption_test_keys.py
 
       - name: Audit migrated engineering-language surfaces
         run: |

@@ -14,7 +14,7 @@ import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { StoryItem } from '../api/generated/models/StoryItem';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from './apiConfiguration';
 
 export interface SharedPlanningApis {
   wishes: WishesApi;

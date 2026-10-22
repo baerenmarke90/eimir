@@ -43,6 +43,18 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             path.write_text("## Summary\n", encoding="utf-8")
             self.assertEqual(check_file(path), [])
 
+    def test_android_instrumentation_command_is_not_classified_as_prose(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "android.yml"
+            path.write_text("timeout 180 adb -e shell am instrument -w -r runner\n")
+            self.assertEqual(check_file(path), [])
+
+    def test_android_command_keeps_surrounding_prose_in_scope(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "android.yml"
+            path.write_text("adb shell am instrument -w runner # wird ausgefuehrt\n")
+            self.assertEqual(len(check_file(path)), 1)
+
     def test_localized_product_fixture_is_allowed_without_excluding_test_file(
         self,
     ) -> None:

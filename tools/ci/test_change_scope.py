@@ -31,6 +31,7 @@ RECOVERY_TOOLING_PATHS = (
 )
 
 SELF_VALIDATING_LEAF_WORKFLOW_PATHS = (
+    ".github/workflows/backend-encrypted.yml",
     ".github/workflows/codeql.yml",
     ".github/workflows/g2-e2e.yml",
     ".github/workflows/incident-runbooks.yml",

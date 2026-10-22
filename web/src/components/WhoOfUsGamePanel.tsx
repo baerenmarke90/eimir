@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
-import { Configuration } from '../api/generated/runtime';
+import { Configuration } from '../client/apiConfiguration';
 import { normalizeClientError } from '../client/problemDetails';
 import {
   createLocalWhoOfUsSession,

@@ -3,6 +3,7 @@ import {
   type ClientProblemKind,
   normalizeClientError,
 } from './problemDetails';
+import { clearAuthorizedMediaCache } from './authorizedMediaCache';
 
 export type ProductCacheKind =
   | 'memory'
@@ -896,6 +897,7 @@ export async function deleteProductReadCacheEntry(
  * in that state would trust the stale marker again.
  */
 export function clearProductReadCache(): Promise<void> {
+  clearAuthorizedMediaCache();
   const marker = readCacheContextMarker();
   invalidateContext(activeContext);
   if (marker.available) invalidateContext(marker.context);

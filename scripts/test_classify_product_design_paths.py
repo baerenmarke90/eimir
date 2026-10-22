@@ -51,6 +51,17 @@ class TestClassifyProductDesignPaths(unittest.TestCase):
         self.assertFalse(is_user_facing_path("web/src/api/generated/models/DashboardView.ts"))
         self.assertFalse(is_user_facing_path("web/src/api/generated/runtime.ts"))
 
+    def test_web_test_files_are_not_user_facing(self) -> None:
+        self.assertFalse(is_user_facing_path("web/src/i18n/i18n.test.ts"))
+        self.assertFalse(is_user_facing_path("web/src/components/Brand.test.tsx"))
+        self.assertFalse(is_user_facing_path("web/src/flows/today.spec.ts"))
+        self.assertFalse(is_user_facing_path("web/src/flows/today.spec.tsx"))
+
+    def test_test_like_names_that_are_not_test_files_stay_user_facing(self) -> None:
+        self.assertTrue(is_user_facing_path("web/src/components/Contest.tsx"))
+        self.assertTrue(is_user_facing_path("web/src/components/latest.test.css"))
+        self.assertTrue(is_user_facing_path("web/src/test-utils/render.tsx"))
+
     def test_backend_paths_excluded(self) -> None:
         self.assertFalse(is_user_facing_path("backend/src/eimir/api/v1/auth.py"))
         self.assertFalse(is_user_facing_path("backend/alembic/versions/0001_initial.py"))

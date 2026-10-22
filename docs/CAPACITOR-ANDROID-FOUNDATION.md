@@ -68,6 +68,9 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 - **External Links:**
   - Standard Capacitor WebView behavior is preserved without invasive global click-handler DOM interception.
   - In-app navigation uses existing React router / window history.
+- **Delivered mailbox and invitation links:**
+  - The shared Web identity-entry intake reads `appUrlOpen` and `App.getLaunchUrl()` for HTTPS auth URLs from the configured API origin, as well as browser routes and PWA launch targets. Proofs remain in memory and use the existing identity flow before an older signed-in shell can take precedence.
+  - This intake only handles URLs already delivered to the wrapper. The ordinary main manifest registers the OIDC filter below. The separately published Android test channel also has a sideload manifest for five HTTPS auth paths on `demo.eimir.ur-cloud.de`; it does not establish verified App Links for arbitrary Self-Hosted domains. OS domain verification and APK distribution are separate boundaries. A Web/backend deployment cannot update a previously bundled APK.
 - **OIDC Authentication Flow:**
   - When running in native mode (`isCapacitorNative()`), OIDC login launches via `@capacitor/browser`:
     ```ts
@@ -200,7 +203,7 @@ app/build/outputs/apk/debug/app-debug.apk
 
 Dated plans, gate reviews, audits, and evidence records written before `#1009` may describe a native Kotlin/Jetpack Compose client, Kotlin Multiplatform, SwiftUI, Room/Keystore read caches, or "Web/Android parity". They are historical records of what was true or planned at the time and are **not** current guidance; ADR 0011 governs. In particular:
 
-- account-deletion, Space-offboarding, and logout rules that name an Android cache are satisfied by the Web client's session and read-cache clearing inside the WebView; the wrapper keeps no separate native user-data store;
+  - account-deletion, Space-offboarding, and logout rules that name an Android cache are satisfied by the Web client's session and read-cache clearing inside the WebView. The wrapper keeps no native product-data cache; the encrypted current-session credential slot described below is cleared through that same session facade;
 - the retired native read cache (Room database plus Android Keystore key) held only a non-authoritative copy of server data. Because the stable application ID preserves the old sandbox across an in-place update, `LegacyNativeDataCleanup` deletes that database, its Space preference and its Keystore key on wrapper startup without reading or migrating their contents, and stops running once all three removals have succeeded (completion marker). Server data continuity and store-upgrade continuity rest on the backend, `de.sidebyside.app` and the signing key.
 
 ### Acceptance rule
@@ -285,10 +288,47 @@ Issue `#1008` (Slice B) moved all release, signing, SBOM attestation, and public
   - `.github/workflows/release-candidate.yml`: validates release inputs (`android_api_base_url`, `release_version`), forwards them to `release-evidence.yml`, and binds the immutable release candidate manifest.
   - `.github/workflows/release-publish.yml`: verifies release preflight, builds and cryptographically signs release APK/AAB from `android/`, re-attests signed bytes, and binds release publications.
 - **Tooling & Build Steps**:
-  - Pinned Actions: Node.js `24.21.0` via `actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a` (`v4.2.0`); JDK `21` Temurin via `actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c`.
+  - Pinned Actions: Node.js `24.21.0` via `actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1` (`v7.1.0`); JDK `21` Temurin via `actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c`.
   - Pinned Gradle Wrapper: distribution SHA-256 `24fc39aedd1b68c3de8e4d46a0277c9b42d9ccdb172231a634fad54a3693e50a`; wrapper JAR SHA-256 `3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98`.
   - Web Bundle & Native Plugin Graph: built via `VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web` followed by `npm run cap:sync`.
   - Native Wrapper Drift Guard: `git diff --exit-code -- android/capacitor.settings.gradle android/app/capacitor.build.gradle` confirms no uncommitted native file drift occurs during CI.
   - Strict Dependency Verification: `android/gradle/verification-metadata.xml` holds sha256 checksums and is enforced via `--dependency-verification strict`. It is the only Android dependency verification metadata in the repository.
   - Release Signing Configuration: `android/app/build.gradle` reads properties and environment variables (`eimirReleaseKeystore`, `eimirReleaseKeystorePassword`, `eimirReleaseKeyAlias`, `eimirReleaseKeyPassword` with temporary backward compatibility fallbacks for `sbs*`).
   - Identity Extraction: release identity is directly extracted from built APK artifacts via `aapt dump badging` rather than parsing Gradle files.
+
+## Native authenticated-session retention (#1357)
+
+Android retains only the current instance-scoped session envelope through
+`NativeSessionStorage`. A non-exportable Android Keystore AES-256 key protects
+standard AES/GCM ciphertext; the configured API base URL is authenticated as
+additional data and hashes to a distinct file name. AtomicFile writes occur on
+a single background executor in app-private no-backup storage. Snapshot size is
+bounded to 16 KiB, and storage errors contain no credential or path payload.
+The existing no-backup manifest policy remains enabled.
+
+Before React mounts, the current instance's snapshot is restored into the
+existing Web session facade, with a five-second native-read budget. An existing
+WebView session is migrated without replacing it with an older native snapshot.
+Malformed or refresh-expired snapshots are cleared. Native read completion
+cannot overwrite a login/logout that happened while it was pending.
+
+Writes are serialized. Refresh rotation waits for persistence; failed persistence
+clears an obsolete durable generation and retains only the current WebView
+session. There is no plaintext localStorage fallback. Explicit logout and
+confirmed refresh rejection clear the encrypted slot through the same facade.
+Storage failure can require another sign-in after restart rather than silently
+weakening credential storage. Product data, read-cache records and owner-only
+content are never added to this slot. The legacy cache cleanup uses another key
+alias and does not erase these current session credentials.
+
+Access tokens still expire after 15 minutes and are refreshed automatically.
+Refresh is retried after temporary transport failures and checked on foreground,
+visibility and reconnect events. A temporary restore outage keeps the credential
+available; a definitive 401/403 ends the session. The backend's 60-day sliding
+inactivity window and 180-day absolute session-family limit remain authoritative,
+as do explicit revocation, replay detection and recent-auth requirements.
+
+Browser/PWA sessions retain their existing tab-scoped sessionStorage behavior.
+Real Android process restart, in-place update, logout/relaunch and Keystore
+failure acceptance must still be checked on a device; JVM cryptography and Web
+bridge tests do not establish those physical outcomes.

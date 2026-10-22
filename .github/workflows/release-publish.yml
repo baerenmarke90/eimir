@@ -413,7 +413,7 @@ jobs:
         shell: bash
         run: |
           printf '%s  %s\n' \
-            'ad16bca46cb71bb5887c546860d93992aeee35c1fdaf4a242b0a612375d937e0' \
+            '3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98' \
             'gradle/wrapper/gradle-wrapper.jar' \
             | sha256sum --check --strict -
 

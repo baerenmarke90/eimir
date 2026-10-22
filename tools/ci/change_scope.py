@@ -46,6 +46,7 @@ CANONICAL_COMPOSE_FILE = "compose.yaml"
 # this list exact is intentional: new workflows stay fail-closed until their
 # safety boundary has been reviewed explicitly.
 SELF_VALIDATING_LEAF_WORKFLOW_EXACT = (
+    ".github/workflows/backend-encrypted.yml",
     ".github/workflows/codeql.yml",
     ".github/workflows/g2-e2e.yml",
     ".github/workflows/incident-runbooks.yml",

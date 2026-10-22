@@ -109,9 +109,26 @@ describe('task origin privacy and lifetime', () => {
       key: 'router-key',
       usr: { safeFlag: true, taskReturnKey: key },
     });
-    expect(JSON.stringify(window.history.state)).not.toMatch(
-      /private-id|private-words|1250|account-a|space-a/,
+    // The generated key is random, so a UUID may legitimately contain digit
+    // runs such as 1250. Pin its shape, then scan only the remaining state.
+    expect(key).toMatch(/^task-[0-9a-f-]{36}$/);
+    expect(
+      JSON.stringify(window.history.state).replace(key as string, 'task-key'),
+    ).not.toMatch(/private-id|private-words|1250|account-a|space-a/);
+  });
+
+  it('keeps a generated key that happens to contain a sensitive-looking digit run out of the privacy scan', () => {
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(
+      '79d960cd-9944-4b5c-8709-463125031fa5',
     );
+    render(<Harness />);
+    const key = origin.captureOrigin({ selectedKey: 'memory-private-id' });
+    expect(key).toBe('task-79d960cd-9944-4b5c-8709-463125031fa5');
+    expect(JSON.stringify(window.history.state)).toContain('1250');
+    expect(window.history.state).toEqual({
+      key: 'router-key',
+      usr: { safeFlag: true, taskReturnKey: key },
+    });
   });
 
   it('retains the full loaded range as bounded metadata without another data cache', () => {

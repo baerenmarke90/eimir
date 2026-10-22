@@ -120,22 +120,30 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 
 ### Compatible security toolchain
 
-The wrapper uses Gradle **8.14.6**, AGP **8.13.0**, Capacitor **8.5.2** and
-JDK **21**. Gradle 8.14.6 is the maintained 8.x security patch for all three
-advisories also fixed in 9.8.1:
+The wrapper uses Gradle **9.8.1**, AGP **9.4.0**, Capacitor **8.5.2** and
+JDK **21**. Gradle 9.8.1 contains the fixes for three advisories also repaired
+in the 8.14.6 patch used before this migration:
 [worker authentication](https://github.com/gradle/gradle/security/advisories/GHSA-mvvg-497x-hmj8),
 [client/daemon authentication](https://github.com/gradle/gradle/security/advisories/GHSA-xwqc-3h47-hg64),
 and [repository TLS failure handling](https://github.com/gradle/gradle/security/advisories/GHSA-j5m7-59rp-24f5).
 
-Do not upgrade this wrapper independently to Gradle 9.6 or later: AGP 8.x uses
-the removed `InternalProblems` API. The
-[Capacitor 8 migration](https://capacitorjs.com/docs/updating/8-0) specifies
-AGP 8.13.0; AGP 9 migration belongs to the
-[unreleased Capacitor 9 guide](https://capacitorjs.com/docs/next/updating/9-0).
-That larger migration must review the AGP DSL, built-in Kotlin, R8 defaults,
-removed Capacitor APIs, optional Cordova graph, native plugins and physical
-lifecycle acceptance together. The 8.14.6 patch avoids requiring that migration
-for the security repair in #1303.
+Raise Gradle and AGP only together. Gradle 9.6 or later removed the
+`InternalProblems` API that AGP 8.x uses, and AGP 9.4 requires Gradle 9.6.0 or
+later according to the
+[official AGP/Gradle compatibility table](https://developer.android.com/build/releases/about-agp).
+
+The Capacitor project documents AGP 8.13.0 for
+[Capacitor 8](https://capacitorjs.com/docs/updating/8-0) and AGP 9.2.1 with
+Gradle 9.5.1 only in the [unreleased Capacitor 9 guide](https://capacitorjs.com/docs/next/updating/9-0).
+AGP 9.4.0 on Capacitor 8.5.2 is therefore a pairing Capacitor does not
+document. It is accepted for this repository because the wrapper builds and
+passes its own gates on it (debug APK, unsigned release APK/AAB, lint, unit
+tests, Android launcher tests under strict dependency verification), and the
+repository owns neither Kotlin sources nor a Capacitor fork. Review this
+decision again when Capacitor 9 is released. The one source change AGP 9
+forced is the default R8 rule file `proguard-android-optimize.txt` in
+`android/app/build.gradle`, which has no effect while `minifyEnabled` stays
+`false`.
 
 Distribution and generated wrapper-JAR checksums come from the
 [official Gradle checksum reference](https://gradle.org/release-checksums/).
@@ -289,7 +297,7 @@ Issue `#1008` (Slice B) moved all release, signing, SBOM attestation, and public
   - `.github/workflows/release-publish.yml`: verifies release preflight, builds and cryptographically signs release APK/AAB from `android/`, re-attests signed bytes, and binds release publications.
 - **Tooling & Build Steps**:
   - Pinned Actions: Node.js `24.21.0` via `actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1` (`v7.1.0`); JDK `21` Temurin via `actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c`.
-  - Pinned Gradle Wrapper: distribution SHA-256 `24fc39aedd1b68c3de8e4d46a0277c9b42d9ccdb172231a634fad54a3693e50a`; wrapper JAR SHA-256 `3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98`.
+  - Pinned Gradle Wrapper: distribution SHA-256 `5ceda8d2425eb2af196dec31b6fc1f38af2fb638fd621f86fa685805f2262224`; wrapper JAR SHA-256 `3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98`.
   - Web Bundle & Native Plugin Graph: built via `VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web` followed by `npm run cap:sync`.
   - Native Wrapper Drift Guard: `git diff --exit-code -- android/capacitor.settings.gradle android/app/capacitor.build.gradle` confirms no uncommitted native file drift occurs during CI.
   - Strict Dependency Verification: `android/gradle/verification-metadata.xml` holds sha256 checksums and is enforced via `--dependency-verification strict`. It is the only Android dependency verification metadata in the repository.

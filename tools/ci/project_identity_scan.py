@@ -50,6 +50,8 @@ LEGACY_ANDROID_EVIDENCE_FILES = {
     Path("docs/m5/ANDROID-DELIVERY-PLAN.md"),
     Path("docs/m6/README.md"),
     Path("docs/m6/DECISION-LOG.md"),
+    # The migration decision must name the legacy package it migrates from.
+    Path("docs/decisions/0013-legacy-android-package-migration.md"),
 }
 WEB_PERSISTENCE_IDENTIFIERS = (
     "sidebyside-session-v1",

@@ -44,6 +44,7 @@ class ProjectIdentityScanTest(unittest.TestCase):
         for path, expected in (
             ("docs/product/design/evidence/r2/android/device.xml", Classification.HISTORICAL_IMMUTABLE),
             ("docs/design/eimir/565-unifiedpush/evidence/device.log", Classification.HISTORICAL_IMMUTABLE),
+            ("docs/decisions/0013-legacy-android-package-migration.md", Classification.HISTORICAL_IMMUTABLE),
             ("android/app/src/main/AndroidManifest.xml", Classification.MUST_RENAME),
         ):
             with self.subTest(path=path):

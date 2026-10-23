@@ -238,6 +238,7 @@ def test_fallback_prefers_event_date_to_later_upload_date_and_uses_ready_photo_o
     assert ready.json()["retrospective"]["id"] == str(early_event.id)
     assert ready.json()["retrospective"]["previewAttachmentId"] == str(pending.id)
 
+
 def test_one_year_shared_memory_wins_over_same_day_heart_and_milestone(
     client, session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
@@ -316,12 +317,16 @@ def test_february_29_follows_canonical_annual_observance_without_false_leap_matc
 
     # The leap year has its own Feb 29. The anniversary predicate must not
     # incorrectly shift the Memory to Feb 28 when February 29 exists.
-    wrong_day = session.execute(
-        select(Memory.id).where(
-            Memory.space_id == couple["space"].id,
-            dashboard_service._historic_same_day(Memory.happened_on, date(2028, 2, 28)),
+    wrong_day = (
+        session.execute(
+            select(Memory.id).where(
+                Memory.space_id == couple["space"].id,
+                dashboard_service._historic_same_day(Memory.happened_on, date(2028, 2, 28)),
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert memory.id not in wrong_day
 
     _freeze(monkeypatch, date(2028, 2, 29))

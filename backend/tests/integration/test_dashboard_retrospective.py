@@ -85,9 +85,7 @@ def _photo(session: Session, memory: Memory, *, ready: bool) -> Attachment:
     )
     session.add(attachment)
     session.flush()
-    session.add(
-        MemoryAttachment(memory_id=memory.id, attachment_id=attachment.id, position=0)
-    )
+    session.add(MemoryAttachment(memory_id=memory.id, attachment_id=attachment.id, position=0))
     session.flush()
     return attachment
 
@@ -166,7 +164,8 @@ def test_fallback_excludes_private_partner_and_foreign_space_content(
     eligible = _memory(couple, "Visible to both", date(2024, 1, 1))
     foreign = _memory(
         couple,
-        "Foreign", date(2019, 1, 1),
+        "Foreign",
+        date(2019, 1, 1),
         owner=couple["outsider"].id,
         space=couple["foreign_space"].id,
     )

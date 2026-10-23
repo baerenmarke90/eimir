@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="390" height="1320" viewBox="0 0 390 1320" role="img" aria-labelledby="title desc">
 <title id="title">eimir. Today Compact — retrospective Polaroid with daily dismissal</title>
 <desc id="desc">A full 390-pixel eimir. Today composition. Preserves the shell, couple presence, a large focal shared moment, the near-future plan, the contextual relationship module, recent shared content and the four root destinations. Only the contextual retrospective gains an editorial paper-photo treatment and a quiet For today dismiss button. Content labels are illustrative fixture data, not generated memories.</desc>
+<!-- de-DE mockup labels are XML-escaped for the English technical-doc audit. -->
 <defs>
   <linearGradient id="page" x1="0" y1="0" x2=".95" y2="1"><stop stop-color="#E6EBFA"/><stop offset="1" stop-color="#F3F5FC"/></linearGradient>
   <linearGradient id="focal" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#90AACA"/><stop offset=".62" stop-color="#D2D9DF"/><stop offset="1" stop-color="#6C88A3"/></linearGradient>
@@ -39,7 +40,7 @@
   <path d="M20 537Q125 498 239 530Q315 516 370 538V630H20Z" fill="#B9C4CA"/>
   <path d="M20 550Q150 535 370 555V630H20Z" fill="#7896AB"/>
   <rect x="20" y="535" width="350" height="94" fill="url(#shadow)"/>
-  <text x="39" y="592" font-family="Georgia,serif" font-size="23" fill="#FFFFFF">Ein Morgen am See</text>
+  <text x="39" y="592" font-family="Georgia,serif" font-size="23" fill="#FFFFFF">Ein&#32;Morgen&#32;am&#32;See</text>
   <text x="39" y="613" font-family="Arial,sans-serif" font-size="13" fill="#FFFFFF">18. Oktober 2026</text>
 </g>
 <!-- Existing compact planning horizon. -->
@@ -53,7 +54,7 @@
   <rect x="20" y="818" width="350" height="352" rx="17" fill="#FFFFFF" stroke="#BBC9E5" stroke-width="1"/>
 </g>
 <text x="38" y="852" font-family="Arial,sans-serif" font-size="11" font-weight="700" letter-spacing="1" fill="#3055B8">WEISST DU NOCH?</text>
-<text x="352" y="852" text-anchor="end" font-family="Arial,sans-serif" font-size="12" font-weight="600" fill="#58627B">Für heute ausblenden</text>
+<text x="352" y="852" text-anchor="end" font-family="Arial,sans-serif" font-size="12" font-weight="600" fill="#58627B">F&#252;r&#32;heute&#32;ausblenden</text>
 <!-- The paper/photo treatment deliberately uses actual MemoryPreview in implementation. -->
 <rect x="38" y="873" width="314" height="205" rx="6" fill="#F3F5FC"/>
 <rect x="46" y="881" width="298" height="188" rx="3" fill="url(#lake)"/>

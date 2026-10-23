@@ -12,7 +12,7 @@ from datetime import date, datetime, timedelta
 from enum import StrEnum
 from uuid import UUID
 
-from sqlalchemy import Date, and_, cast, extract, func, select
+from sqlalchemy import Date, and_, cast, extract, func, or_, select
 from sqlalchemy.orm import InstrumentedAttribute, Session
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -170,11 +170,21 @@ def _historic_same_day(
     day: ColumnElement[date] | InstrumentedAttribute[date],
     today: date,
 ) -> ColumnElement[bool]:
-    """Match earlier years of the reader's calendar day in the database."""
+    """Match earlier anniversaries with canonical leap-day observance."""
+    matching_day = extract("day", day) == today.day
+    # Use the same annual-occurrence rule as reminders and important dates:
+    # February 29 is observed on February 28 in a non-leap year, never on
+    # February 28 when this year's February 29 actually exists.
+    if (
+        today.month == 2
+        and today.day == 28
+        and clock.annual_occurrence(today.year, 2, 29) == today
+    ):
+        matching_day = or_(matching_day, extract("day", day) == 29)
     return and_(
         day < today,
         extract("month", day) == today.month,
-        extract("day", day) == today.day,
+        matching_day,
     )
 
 
@@ -272,6 +282,12 @@ def _retrospective(
         chosen = min(
             candidates,
             key=lambda candidate: (
+                # Prefer an exactly one-year-old Memory over any other
+                # anniversary entry, as required by #452.
+                not (
+                    candidate[1].type == DashboardItemType.MEMORY
+                    and candidate[0].year == today.year - 1
+                ),
                 -candidate[0].toordinal(),
                 candidate[1].type.value,
                 str(candidate[1].id),

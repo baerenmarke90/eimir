@@ -240,7 +240,7 @@ export function PlanProductPage({
     const data = new FormData(event.currentTarget);
     const description = String(data.get('description')).trim();
     const placeId = String(data.get('placeId')).trim();
-    const experiencedOn = String(data.get('experiencedOn')).trim();
+    const experiencedOn = String(data.get('experiencedOn') ?? '').trim();
     updateMutation.mutate({
       plan,
       title: String(data.get('title')).trim(),

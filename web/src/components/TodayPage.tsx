@@ -602,7 +602,9 @@ function TodayLivingModuleCard({
             </div>
           ) : null}
           <figcaption
-            className={`today-retrospective-caption${hasMedia ? '' : ' today-retrospective-text-only'}`}
+            className={`today-retrospective-caption${
+              hasMedia ? '' : ' today-retrospective-text-only'
+            }`}
           >
             <span className="today-retrospective-title">{title}</span>
             {date ? (

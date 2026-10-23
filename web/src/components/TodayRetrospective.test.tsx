@@ -119,10 +119,7 @@ function renderToday({
                 />
               }
             />
-            <Route
-              path="/story/memories/:memoryId"
-              element={<DetailProbe />}
-            />
+            <Route path="/story/memories/:memoryId" element={<DetailProbe />} />
           </Routes>
         </TaskOriginProvider>
       </MemoryRouter>
@@ -140,13 +137,17 @@ describe('Today #452 retrospective presentation and dismissal', () => {
   it('renders only real retrospective text without a photo-shaped placeholder', async () => {
     renderToday();
     expect(await screen.findByText('Our early trip together')).not.toBeNull();
-    expect(document.querySelector('.today-living-retrospective')).not.toBeNull();
+    expect(
+      document.querySelector('.today-living-retrospective'),
+    ).not.toBeNull();
     expect(document.querySelector('.today-retrospective-photo')).not.toBeNull();
     expect(document.querySelector('.today-retrospective-media')).toBeNull();
     expect(
       screen.getByRole('button', { name: 'Für heute ausblenden' }),
     ).not.toBeNull();
-    expect(screen.getByRole('link', { name: /Erinnerung ansehen/i })).not.toBeNull();
+    expect(
+      screen.getByRole('link', { name: /Erinnerung ansehen/i }),
+    ).not.toBeNull();
     expect(screen.getByText('23. Oktober 2025')).not.toBeNull();
   });
 
@@ -155,8 +156,11 @@ describe('Today #452 retrospective presentation and dismissal', () => {
     expect(await screen.findByText('Our early trip together')).not.toBeNull();
     expect(document.querySelector('.today-retrospective-media')).not.toBeNull();
     await waitFor(() => {
-      expect(document.querySelector('.today-retrospective-media .story-media-preview'))
-        .not.toBeNull();
+      expect(
+        document.querySelector(
+          '.today-retrospective-media .story-media-preview',
+        ),
+      ).not.toBeNull();
     });
   });
 
@@ -164,7 +168,9 @@ describe('Today #452 retrospective presentation and dismissal', () => {
     const user = userEvent.setup();
     const first = renderToday();
     expect(await screen.findByText('Our early trip together')).not.toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Für heute ausblenden' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Für heute ausblenden' }),
+    );
 
     expect(screen.queryByText('Our early trip together')).toBeNull();
     expect(await screen.findByText('A new shared wish')).not.toBeNull();
@@ -198,8 +204,9 @@ describe('Today #452 retrospective presentation and dismissal', () => {
     await user.click(
       await screen.findByRole('link', { name: /Erinnerung ansehen/i }),
     );
-    expect(screen.getByRole('heading', { name: 'Canonical memory detail' }))
-      .not.toBeNull();
+    expect(
+      screen.getByRole('heading', { name: 'Canonical memory detail' }),
+    ).not.toBeNull();
     await user.click(screen.getByRole('button', { name: 'Return to Today' }));
     expect(await screen.findByText('Our early trip together')).not.toBeNull();
   });

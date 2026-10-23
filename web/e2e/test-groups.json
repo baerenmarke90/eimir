@@ -279,7 +279,7 @@
     },
     "today-living-home.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 24
+      "baselineTests": 25
     },
     "today-pro-insights.spec.ts": {
       "disposition": "PR_CRITICAL",

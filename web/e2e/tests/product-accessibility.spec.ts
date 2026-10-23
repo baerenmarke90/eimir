@@ -662,6 +662,9 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.email).fill('anna@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
+  // Wait for the session to be established. A full-page navigation right after
+  // the click can abort the in-flight sign-in and land on the login screen (#1386).
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
 async function navigateWithinApp(page: Page, path: string): Promise<void> {
@@ -1567,24 +1570,27 @@ test('Place, Collection, and Chapter editors honor browser focus and history', a
   expect(unexpectedRequests).toEqual([]);
 });
 
-test('Place coordinate guidance meets AA contrast in compact light and dark editors', async ({
-  page,
-}, testInfo) => {
-  await page.addInitScript(() => {
-    window.localStorage.setItem('eimir.theme', 'system');
-  });
-  const unexpectedRequests = await installAuthorizedApiMocks(page);
-  await page.goto('/');
-  await signIn(page);
+// Each scenario is its own test so it gets an independent timeout. The four
+// scenarios ran in one test before and needed about 80 percent of the 30 s
+// budget on hosted runners (#1386).
+const placeCoordinateGuidanceScenarios = [
+  { colorScheme: 'light' as const, width: 390, height: 844 },
+  { colorScheme: 'light' as const, width: 390, height: 520 },
+  { colorScheme: 'dark' as const, width: 390, height: 844 },
+  { colorScheme: 'light' as const, width: 1440, height: 900 },
+];
 
-  const scenarios = [
-    { colorScheme: 'light' as const, width: 390, height: 844 },
-    { colorScheme: 'light' as const, width: 390, height: 520 },
-    { colorScheme: 'dark' as const, width: 390, height: 844 },
-    { colorScheme: 'light' as const, width: 1440, height: 900 },
-  ];
+for (const { colorScheme, width, height } of placeCoordinateGuidanceScenarios) {
+  test(`Place coordinate guidance meets AA contrast in ${colorScheme} editors at ${width}x${height}`, async ({
+    page,
+  }, testInfo) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('eimir.theme', 'system');
+    });
+    const unexpectedRequests = await installAuthorizedApiMocks(page);
+    await page.goto('/');
+    await signIn(page);
 
-  for (const { colorScheme, width, height } of scenarios) {
     await page.setViewportSize({ width, height });
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
 
@@ -1621,10 +1627,10 @@ test('Place coordinate guidance meets AA contrast in compact light and dark edit
       ),
       fullPage: true,
     });
-  }
 
-  expect(unexpectedRequests).toEqual([]);
-});
+    expect(unexpectedRequests).toEqual([]);
+  });
+}
 
 for (const colorScheme of ['light', 'dark'] as const) {
   test(`shell navigation and utilities reflow in ${colorScheme} mode`, async ({

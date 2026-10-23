@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="1320" viewBox="0 0 390 1320" role="img" aria-labelledby="title desc">
+<title id="title">eimir. Today Compact — retrospective Polaroid with daily dismissal</title>
+<desc id="desc">A full 390-pixel eimir. Today composition. Preserves the shell, couple presence, a large focal shared moment, the near-future plan, the contextual relationship module, recent shared content and the four root destinations. Only the contextual retrospective gains an editorial paper-photo treatment and a quiet For today dismiss button. Content labels are illustrative fixture data, not generated memories.</desc>
+<!-- de-DE mockup labels are XML-escaped for the English technical-doc audit. -->
+<defs>
+  <linearGradient id="page" x1="0" y1="0" x2=".95" y2="1"><stop stop-color="#E6EBFA"/><stop offset="1" stop-color="#F3F5FC"/></linearGradient>
+  <linearGradient id="focal" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#90AACA"/><stop offset=".62" stop-color="#D2D9DF"/><stop offset="1" stop-color="#6C88A3"/></linearGradient>
+  <linearGradient id="lake" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#A8BECD"/><stop offset=".55" stop-color="#D2C8B5"/><stop offset="1" stop-color="#94A9BA"/></linearGradient>
+  <linearGradient id="shadow" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#17213F" stop-opacity="0"/><stop offset="1" stop-color="#17213F" stop-opacity=".74"/></linearGradient>
+  <filter id="lift" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="5" stdDeviation="9" flood-color="#19233E" flood-opacity=".13"/></filter>
+</defs>
+<rect width="390" height="1320" fill="url(#page)"/>
+<!-- Reference of existing compact shell, not a new app header. -->
+<rect width="390" height="68" fill="#E6EBFA"/>
+<text x="20" y="42" font-family="Arial,sans-serif" font-weight="700" font-size="22" fill="#3055B8">eimir.</text>
+<g stroke="#58627B" stroke-width="2" fill="none" stroke-linecap="round">
+ <circle cx="294" cy="32" r="9"/><path d="m301 39 6 6"/>
+ <path d="M342 38a13 13 0 0 0 10-18 9 9 0 0 0-11 1 13 13 0 0 0-7 17z"/>
+</g>
+<circle cx="370" cy="32" r="13" fill="#D6E1F7"/><text x="370" y="36" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#19233E">A</text>
+<text x="20" y="112" font-family="Georgia,serif" font-size="38" font-weight="700" fill="#19233E">Heute</text>
+<text x="20" y="139" font-family="Arial,sans-serif" font-size="15" fill="#58627B">Fr, 23. Oktober 2026</text>
+<g>
+  <circle cx="56" cy="206" r="33" fill="#9CCBFF" stroke="#F3F5FC" stroke-width="4"/>
+  <text x="56" y="213" text-anchor="middle" fill="#19233E" font-family="Arial,sans-serif" font-size="21" font-weight="700">A</text>
+  <circle cx="98" cy="206" r="33" fill="#D6CBE0" stroke="#F3F5FC" stroke-width="4"/>
+  <text x="98" y="213" text-anchor="middle" fill="#19233E" font-family="Arial,sans-serif" font-size="21" font-weight="700">M</text>
+  <text x="148" y="201" font-family="Georgia,serif" font-size="23" fill="#19233E">Alex &amp; Marie</text>
+  <text x="148" y="223" font-family="Arial,sans-serif" font-size="13" fill="#58627B">Gemeinsam seit 3 Jahren</text>
+  <rect x="20" y="256" width="216" height="44" rx="22" fill="#F9EAF4" stroke="#BBC9E5"/>
+  <text x="128" y="283" text-anchor="middle" font-size="14" font-weight="700" font-family="Arial,sans-serif" fill="#3055B8">An dich gedacht</text>
+</g>
+<!-- Existing prominent focal real-memory region. This graphic is a reference placeholder. -->
+<text x="20" y="344" font-family="Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="1.4" fill="#3055B8">EUER MOMENT</text>
+<text x="20" y="371" font-family="Georgia,serif" font-size="24" fill="#19233E">Zuletzt festgehalten</text>
+<clipPath id="clip-focal"><rect x="20" y="391" width="350" height="237" rx="16"/></clipPath>
+<g clip-path="url(#clip-focal)">
+  <rect x="20" y="391" width="350" height="237" fill="url(#focal)"/>
+  <path d="M20 495Q140 415 220 489L370 445V630H20Z" fill="#7C9BA9"/>
+  <path d="M20 537Q125 498 239 530Q315 516 370 538V630H20Z" fill="#B9C4CA"/>
+  <path d="M20 550Q150 535 370 555V630H20Z" fill="#7896AB"/>
+  <rect x="20" y="535" width="350" height="94" fill="url(#shadow)"/>
+  <text x="39" y="592" font-family="Georgia,serif" font-size="23" fill="#FFFFFF">A morning by the lake</text>
+  <text x="39" y="613" font-family="Arial,sans-serif" font-size="13" fill="#FFFFFF">18. Oktober 2026</text>
+</g>
+<!-- Existing compact planning horizon. -->
+<text x="20" y="678" font-family="Georgia,serif" font-size="23" fill="#19233E">Demnächst</text>
+<path d="M20 720H370" stroke="#BBC9E5"/>
+<text x="24" y="714" font-family="Arial,sans-serif" font-size="15" font-weight="700" fill="#19233E">Unser nächster Ausflug</text>
+<text x="24" y="743" font-family="Arial,sans-serif" font-size="13" fill="#58627B">Samstag · Gemeinsamer Plan</text>
+<!-- New retrospective inside the existing contextual relationship section. -->
+<text x="20" y="797" font-family="Georgia,serif" font-size="23" fill="#19233E">Gerade bei euch</text>
+<g filter="url(#lift)">
+  <rect x="20" y="818" width="350" height="352" rx="17" fill="#FFFFFF" stroke="#BBC9E5" stroke-width="1"/>
+</g>
+<text x="38" y="852" font-family="Arial,sans-serif" font-size="11" font-weight="700" letter-spacing="1" fill="#3055B8">WEISST DU NOCH?</text>
+<text x="352" y="852" text-anchor="end" font-family="Arial,sans-serif" font-size="12" font-weight="600" fill="#58627B">F&#252;r&#32;heute&#32;ausblenden</text>
+<!-- The paper/photo treatment deliberately uses actual MemoryPreview in implementation. -->
+<rect x="38" y="873" width="314" height="205" rx="6" fill="#F3F5FC"/>
+<rect x="46" y="881" width="298" height="188" rx="3" fill="url(#lake)"/>
+<path d="M46 987Q125 918 198 964T344 956V1069H46Z" fill="#7896AB"/>
+<path d="M46 1002Q175 979 344 1006V1069H46Z" fill="#AFBFC9"/>
+<path d="M46 1021Q166 1013 344 1023V1069H46Z" fill="#7C9BA9"/>
+<rect x="181" y="866" width="44" height="20" rx="2" fill="#FFD68A" opacity=".75" transform="rotate(-5 203 876)"/>
+<text x="40" y="1107" font-family="Georgia,serif" font-size="18" fill="#19233E">Unser erster Ausflug</text>
+<text x="40" y="1129" font-family="Arial,sans-serif" font-size="13" fill="#58627B">23. Oktober 2025</text>
+<text x="40" y="1153" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#3055B8">Erinnerung ansehen  →</text>
+<text x="20" y="1214" font-family="Georgia,serif" font-size="23" fill="#19233E">Zuletzt bei euch</text>
+<text x="20" y="1240" font-family="Arial,sans-serif" font-size="13" fill="#58627B">Weitere echte gemeinsame Momente …</text>
+<!-- Existing root navigation; never a fifth destination. -->
+<rect x="10" y="1256" width="370" height="57" rx="26" fill="#FFFFFF" stroke="#BBC9E5"/>
+<g font-family="Arial,sans-serif" font-size="12" text-anchor="middle">
+<text x="54" y="1289" fill="#3055B8" font-weight="700">Wir</text>
+<text x="136" y="1289" fill="#58627B">Momente</text>
+<circle cx="196" cy="1284" r="19" fill="#3055B8"/><text x="196" y="1290" font-size="24" fill="#FFFFFF">+</text>
+<text x="265" y="1289" fill="#58627B">Planen</text>
+<text x="338" y="1289" fill="#58627B">Mehr</text>
+</g>
+</svg>

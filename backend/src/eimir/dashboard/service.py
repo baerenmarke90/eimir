@@ -13,7 +13,7 @@ from enum import StrEnum
 from uuid import UUID
 
 from sqlalchemy import Date, and_, cast, extract, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import InstrumentedAttribute, Session
 from sqlalchemy.sql.elements import ColumnElement
 
 from eimir.attachments.binding import attachments_of_memories
@@ -166,7 +166,7 @@ def _relationship_duration(
     )
 
 
-def _historic_same_day(day: ColumnElement[date], today: date) -> ColumnElement[bool]:
+def _historic_same_day(day: ColumnElement[date] | InstrumentedAttribute[date], today: date) -> ColumnElement[bool]:
     """Match earlier years of the reader's calendar day in the database."""
     return and_(
         day < today,

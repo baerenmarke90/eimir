@@ -37,18 +37,24 @@ function renderEditor(status: PlanDetail['status']) {
   };
   let saved = plan;
   const requestBodies: Record<string, unknown>[] = [];
-  const updatePlan = vi.fn(async ({ planUpdate }: { planUpdate: PlanUpdate }) => {
-    // Match the generated HTTP client's serialization. An invalid Date throws
-    // before any PATCH request can be sent.
-    requestBodies.push(
-      JSON.parse(JSON.stringify(PlanUpdateToJSON(planUpdate))) as Record<
-        string,
-        unknown
-      >,
-    );
-    saved = { ...plan, description: planUpdate.description ?? null, version: 4 };
-    return saved;
-  });
+  const updatePlan = vi.fn(
+    async ({ planUpdate }: { planUpdate: PlanUpdate }) => {
+      // Match the generated HTTP client's serialization. An invalid Date throws
+      // before any PATCH request can be sent.
+      requestBodies.push(
+        JSON.parse(JSON.stringify(PlanUpdateToJSON(planUpdate))) as Record<
+          string,
+          unknown
+        >,
+      );
+      saved = {
+        ...plan,
+        description: planUpdate.description ?? null,
+        version: 4,
+      };
+      return saved;
+    },
+  );
   const apis = {
     plans: {
       getPlan: vi.fn(async () => saved),
@@ -87,9 +93,7 @@ function renderEditor(status: PlanDetail['status']) {
 }
 
 async function editDescription() {
-  fireEvent.click(
-    screen.getByRole('button', { name: i18n.t('common.edit') }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: i18n.t('common.edit') }));
   fireEvent.change(
     screen.getByRole('textbox', {
       name: i18n.t('m5s3.common.description'),

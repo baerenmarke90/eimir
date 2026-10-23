@@ -60,7 +60,9 @@ def _dashboard(client, couple, token):  # type: ignore[no-untyped-def]
     )
 
 
-def _memory(couple, title: str, day: date | None, *, owner=None, space=None):  # type: ignore[no-untyped-def]
+def _memory(  # type: ignore[no-untyped-def]
+    couple, title: str, day: date | None, *, owner=None, space=None
+):
     return Memory(
         space_id=space or couple["space"].id,
         owner_id=owner or couple["anna"].id,
@@ -229,6 +231,7 @@ def test_fallback_prefers_event_date_to_later_upload_date_and_uses_ready_photo_o
     assert first.json()["retrospective"]["previewAttachmentId"] is None
 
     pending.status = AttachmentStatus.READY.value
+    pending.ready_at = datetime(2026, 10, 23, tzinfo=UTC)
     session.flush()
     ready = _dashboard(client, couple, couple["token_a"])
     assert ready.status_code == 200

@@ -666,9 +666,11 @@ test.describe('Today R4: the living home of a relationship', () => {
     await expectNoWcagViolations(page);
     await capture(page, testInfo, 'nostalgia-1440-expanded-dark');
 
-    await paper.getByRole('button', {
-      name: m5s5.today.living.retrospectiveDismissToday,
-    }).click();
+    await paper
+      .getByRole('button', {
+        name: m5s5.today.living.retrospectiveDismissToday,
+      })
+      .click();
     await expect(paper).toHaveCount(0);
     await expect(page.locator('.today-living-milestone')).toBeVisible();
     await expect(

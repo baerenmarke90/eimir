@@ -21,21 +21,37 @@ describe('Today retrospective daily suppression', () => {
     const beforeMidnight = new Date(2026, 9, 23, 23, 59, 59);
     const afterMidnight = new Date(2026, 9, 24, 0, 0, 1);
     const sameDay = new Date(2026, 9, 23, 8, 0, 0);
-    const a = retrospectiveDismissalToken('account-a', 'space-a', beforeMidnight);
-    const b = retrospectiveDismissalToken('account-a', 'space-a', afterMidnight);
+    const a = retrospectiveDismissalToken(
+      'account-a',
+      'space-a',
+      beforeMidnight,
+    );
+    const b = retrospectiveDismissalToken(
+      'account-a',
+      'space-a',
+      afterMidnight,
+    );
 
-    expect(a).toBe(retrospectiveDismissalToken('account-a', 'space-a', sameDay));
+    expect(a).toBe(
+      retrospectiveDismissalToken('account-a', 'space-a', sameDay),
+    );
     expect(a).not.toBe(b);
     expect(a).toContain('2026-10-23');
     expect(retrospectiveDismissalToken('', 'space-a')).toBeNull();
     expect(retrospectiveDismissalToken('account-a', '')).toBeNull();
-    expect(retrospectiveDismissalToken('account-a', 'space-a', new Date(NaN))).toBeNull();
+    expect(
+      retrospectiveDismissalToken('account-a', 'space-a', new Date(NaN)),
+    ).toBeNull();
   });
 
   it('persists one no-content marker and never carries it across day/account/Space', () => {
     const day = new Date(2026, 9, 23, 14);
     const one = retrospectiveDismissalToken('account-a', 'space-a', day);
-    const otherAccount = retrospectiveDismissalToken('account-b', 'space-a', day);
+    const otherAccount = retrospectiveDismissalToken(
+      'account-b',
+      'space-a',
+      day,
+    );
     const otherSpace = retrospectiveDismissalToken('account-a', 'space-b', day);
     const tomorrow = retrospectiveDismissalToken(
       'account-a',
@@ -50,7 +66,9 @@ describe('Today retrospective daily suppression', () => {
       expect(isRetrospectiveDismissed(different)).toBe(false);
     }
     expect(window.localStorage.length).toBe(1);
-    expect(window.localStorage.getItem(TODAY_RETROSPECTIVE_DISMISSAL_KEY)).toBe(one);
+    expect(window.localStorage.getItem(TODAY_RETROSPECTIVE_DISMISSAL_KEY)).toBe(
+      one,
+    );
     expect(one).not.toContain('Memory');
 
     clearForeignRetrospectiveDismissal(otherAccount);

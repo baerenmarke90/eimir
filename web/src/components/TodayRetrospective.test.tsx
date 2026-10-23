@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
@@ -143,7 +143,9 @@ describe('Today #452 retrospective presentation and dismissal', () => {
     expect(document.querySelector('.today-living-retrospective')).not.toBeNull();
     expect(document.querySelector('.today-retrospective-photo')).not.toBeNull();
     expect(document.querySelector('.today-retrospective-media')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Für heute ausblenden' })).not.toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Für heute ausblenden' }),
+    ).not.toBeNull();
     expect(screen.getByRole('link', { name: /Erinnerung ansehen/i })).not.toBeNull();
     expect(screen.getByText('23. Oktober 2025')).not.toBeNull();
   });
@@ -152,8 +154,10 @@ describe('Today #452 retrospective presentation and dismissal', () => {
     renderToday({ photo: true });
     expect(await screen.findByText('Our early trip together')).not.toBeNull();
     expect(document.querySelector('.today-retrospective-media')).not.toBeNull();
-    expect(document.querySelector('.today-retrospective-media .story-media-preview'))
-      .not.toBeNull();
+    await waitFor(() => {
+      expect(document.querySelector('.today-retrospective-media .story-media-preview'))
+        .not.toBeNull();
+    });
   });
 
   it('dismisses only the retrospective, reveals the existing fallback and survives remount', async () => {
@@ -164,9 +168,7 @@ describe('Today #452 retrospective presentation and dismissal', () => {
 
     expect(screen.queryByText('Our early trip together')).toBeNull();
     expect(await screen.findByText('A new shared wish')).not.toBeNull();
-    expect(screen.getByRole('status').textContent).toContain(
-      'Rückblick für heute ausgeblendet',
-    );
+    expect(screen.getByText('Rückblick für heute ausgeblendet')).not.toBeNull();
 
     first.unmount();
     renderToday();

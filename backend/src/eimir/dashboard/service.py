@@ -176,9 +176,7 @@ def _historic_same_day(
     # February 29 is observed on February 28 in a non-leap year, never on
     # February 28 when this year's February 29 actually exists.
     observes_leap_day = (
-        today.month == 2
-        and today.day == 28
-        and clock.annual_occurrence(today.year, 2, 29) == today
+        today.month == 2 and today.day == 28 and clock.annual_occurrence(today.year, 2, 29) == today
     )
     if observes_leap_day:
         matching_day = or_(matching_day, extract("day", day) == 29)

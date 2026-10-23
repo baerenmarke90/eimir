@@ -2,6 +2,7 @@ import type { AccountView } from '../api/generated/models/AccountView';
 import type { TokenView } from '../api/generated/models/TokenView';
 import { normalizeClientError } from './problemDetails';
 import { clearAuthorizedMediaCache } from './authorizedMediaCache';
+import { clearRetrospectiveDismissal } from './todayRetrospectiveDismissal';
 import { createReferenceApis } from './referenceFlow';
 import {
   isNativeSessionStorageAvailable,
@@ -270,6 +271,7 @@ export function loadStoredSession(): StoredSession | null {
 
 export function clearStoredSession(): Promise<void> {
   clearAuthorizedMediaCache();
+  clearRetrospectiveDismissal();
   sessionOwner = null;
   try {
     if (typeof window !== 'undefined') {

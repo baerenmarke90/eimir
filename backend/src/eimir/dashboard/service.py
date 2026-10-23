@@ -166,7 +166,10 @@ def _relationship_duration(
     )
 
 
-def _historic_same_day(day: ColumnElement[date] | InstrumentedAttribute[date], today: date) -> ColumnElement[bool]:
+def _historic_same_day(
+    day: ColumnElement[date] | InstrumentedAttribute[date],
+    today: date,
+) -> ColumnElement[bool]:
     """Match earlier years of the reader's calendar day in the database."""
     return and_(
         day < today,

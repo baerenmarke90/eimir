@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from eimir.attachments.binding import MemoryAttachment
@@ -236,3 +237,99 @@ def test_fallback_prefers_event_date_to_later_upload_date_and_uses_ready_photo_o
     assert ready.status_code == 200
     assert ready.json()["retrospective"]["id"] == str(early_event.id)
     assert ready.json()["retrospective"]["previewAttachmentId"] == str(pending.id)
+
+
+def test_one_year_shared_memory_wins_over_same_day_heart_and_milestone(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    """The one-year Memory is the #452 priority, regardless of Story type order."""
+    day = date(2026, 10, 23)
+    _freeze(monkeypatch, day)
+    anniversary = _memory(couple, "Our day one year ago", date(2025, 10, 23))
+    older_memory = _memory(couple, "Older shared day", date(2023, 10, 23))
+    milestone = Milestone(
+        space_id=couple["space"].id,
+        owner_id=couple["anna"].id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        happened_on=date(2025, 10, 23),
+        payload=MilestonePayload(title="Competing shared milestone"),
+    )
+    heart = HeartMoment(
+        space_id=couple["space"].id,
+        owner_id=couple["ben"].id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        happened_on=date(2025, 10, 23),
+        payload=HeartMomentPayload(text="Competing shared thought", emotion=HeartEmotion.SEEN),
+    )
+    session.add_all([anniversary, older_memory, milestone, heart])
+    session.flush()
+
+    for token in (couple["token_a"], couple["token_b"]):
+        response = _dashboard(client, couple, token)
+        assert response.status_code == 200, response.text
+        assert response.json()["retrospective"]["id"] == str(anniversary.id)
+        assert response.json()["retrospective"]["type"] == "MEMORY"
+
+
+def test_without_one_year_memory_latest_other_anniversary_wins(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    day = date(2026, 10, 23)
+    _freeze(monkeypatch, day)
+    older = _memory(couple, "Older Memory", date(2022, 10, 23))
+    latest = HeartMoment(
+        space_id=couple["space"].id,
+        owner_id=couple["anna"].id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        happened_on=date(2024, 10, 23),
+        payload=HeartMomentPayload(text="Latest shared moment", emotion=HeartEmotion.SEEN),
+    )
+    session.add_all([older, latest])
+    session.flush()
+
+    for token in (couple["token_a"], couple["token_b"]):
+        response = _dashboard(client, couple, token)
+        assert response.status_code == 200, response.text
+        assert response.json()["retrospective"]["id"] == str(latest.id)
+        assert response.json()["retrospective"]["type"] == "HEART_MOMENT"
+
+
+def test_february_29_follows_canonical_annual_observance_without_false_leap_match(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    memory = _memory(couple, "Leap-day moment", date(2024, 2, 29))
+    session.add(memory)
+    session.flush()
+
+    # First anniversary: Feb 29 becomes Feb 28 in 2025, and the Memory
+    # retains the highest one-year priority under the same date rule.
+    _freeze(monkeypatch, date(2025, 2, 28))
+    response = _dashboard(client, couple, couple["token_a"])
+    assert response.status_code == 200, response.text
+    assert response.json()["retrospective"]["id"] == str(memory.id)
+
+    # Subsequent non-leap years still observe a historic Feb-29 Memory.
+    _freeze(monkeypatch, date(2027, 2, 28))
+    for token in (couple["token_a"], couple["token_b"]):
+        response = _dashboard(client, couple, token)
+        assert response.status_code == 200, response.text
+        assert response.json()["retrospective"]["id"] == str(memory.id)
+
+    # The leap year has its own Feb 29. The anniversary predicate must not
+    # incorrectly shift the Memory to Feb 28 when February 29 exists.
+    wrong_day = (
+        session.execute(
+            select(Memory.id).where(
+                Memory.space_id == couple["space"].id,
+                dashboard_service._historic_same_day(Memory.happened_on, date(2028, 2, 28)),
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert memory.id not in wrong_day
+
+    _freeze(monkeypatch, date(2028, 2, 29))
+    response = _dashboard(client, couple, couple["token_a"])
+    assert response.status_code == 200, response.text
+    assert response.json()["retrospective"]["id"] == str(memory.id)

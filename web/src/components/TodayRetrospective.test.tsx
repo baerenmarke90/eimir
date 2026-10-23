@@ -160,7 +160,7 @@ describe('Today #452 retrospective presentation and dismissal', () => {
     });
   });
 
-  it('dismisses only the retrospective, reveals the existing fallback and survives remount', async () => {
+  it('dismisses only the retrospective, reveals fallback, and survives remount', async () => {
     const user = userEvent.setup();
     const first = renderToday();
     expect(await screen.findByText('Our early trip together')).not.toBeNull();

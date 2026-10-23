@@ -28,7 +28,9 @@ export function retrospectiveDismissalToken(
 export function isRetrospectiveDismissed(token: string | null): boolean {
   if (!token || typeof window === 'undefined') return false;
   try {
-    return window.localStorage.getItem(TODAY_RETROSPECTIVE_DISMISSAL_KEY) === token;
+    return (
+      window.localStorage.getItem(TODAY_RETROSPECTIVE_DISMISSAL_KEY) === token
+    );
   } catch {
     return false;
   }
@@ -47,7 +49,9 @@ export function rememberRetrospectiveDismissal(token: string): void {
 export function clearForeignRetrospectiveDismissal(token: string | null): void {
   if (!token || typeof window === 'undefined') return;
   try {
-    const stored = window.localStorage.getItem(TODAY_RETROSPECTIVE_DISMISSAL_KEY);
+    const stored = window.localStorage.getItem(
+      TODAY_RETROSPECTIVE_DISMISSAL_KEY,
+    );
     if (stored && stored !== token) {
       window.localStorage.removeItem(TODAY_RETROSPECTIVE_DISMISSAL_KEY);
     }

@@ -1,5 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Fragment, useEffect, useState, type MouseEvent, type ReactNode } from 'react';
+import {
+  Fragment,
+  useEffect,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
@@ -905,7 +911,10 @@ export function TodayPage({
 
   // This is local presentation state only. The authorized candidate remains
   // server-owned; dismissal neither mutates nor caches a Memory.
-  const dismissalToken = retrospectiveDismissalToken(account?.id ?? '', spaceId);
+  const dismissalToken = retrospectiveDismissalToken(
+    account?.id ?? '',
+    spaceId,
+  );
   const [dismissedToken, setDismissedToken] = useState<string | null>(null);
   useEffect(() => {
     clearForeignRetrospectiveDismissal(dismissalToken);

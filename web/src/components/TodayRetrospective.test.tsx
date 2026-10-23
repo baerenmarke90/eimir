@@ -144,7 +144,9 @@ describe('Today #452 retrospective presentation and dismissal', () => {
     expect(document.querySelector('.today-retrospective-photo')).not.toBeNull();
     expect(document.querySelector('.today-retrospective-media')).toBeNull();
     expect(
-      screen.getByRole('button', { name: m5s5.today.living.retrospectiveDismissToday }),
+      screen.getByRole('button', {
+        name: m5s5.today.living.retrospectiveDismissToday,
+      }),
     ).not.toBeNull();
     expect(
       screen.getByRole('link', { name: /Erinnerung ansehen/i }),
@@ -170,12 +172,16 @@ describe('Today #452 retrospective presentation and dismissal', () => {
     const first = renderToday();
     expect(await screen.findByText('Our early trip together')).not.toBeNull();
     await user.click(
-      screen.getByRole('button', { name: m5s5.today.living.retrospectiveDismissToday }),
+      screen.getByRole('button', {
+        name: m5s5.today.living.retrospectiveDismissToday,
+      }),
     );
 
     expect(screen.queryByText('Our early trip together')).toBeNull();
     expect(await screen.findByText('A new shared wish')).not.toBeNull();
-    expect(screen.getByText(m5s5.today.living.retrospectiveDismissed)).not.toBeNull();
+    expect(
+      screen.getByText(m5s5.today.living.retrospectiveDismissed),
+    ).not.toBeNull();
 
     first.unmount();
     renderToday();

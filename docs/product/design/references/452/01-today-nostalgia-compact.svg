@@ -40,7 +40,7 @@
   <path d="M20 537Q125 498 239 530Q315 516 370 538V630H20Z" fill="#B9C4CA"/>
   <path d="M20 550Q150 535 370 555V630H20Z" fill="#7896AB"/>
   <rect x="20" y="535" width="350" height="94" fill="url(#shadow)"/>
-  <text x="39" y="592" font-family="Georgia,serif" font-size="23" fill="#FFFFFF">Ein&#32;Morgen&#32;am&#32;See</text>
+  <text x="39" y="592" font-family="Georgia,serif" font-size="23" fill="#FFFFFF">A morning by the lake</text>
   <text x="39" y="613" font-family="Arial,sans-serif" font-size="13" fill="#FFFFFF">18. Oktober 2026</text>
 </g>
 <!-- Existing compact planning horizon. -->

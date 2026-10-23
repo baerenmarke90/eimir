@@ -106,6 +106,8 @@ const m5s5 = {
       milestoneAction: 'Ansehen',
       retrospectiveLabel: 'Weißt du noch?',
       retrospectiveAction: 'Erinnerung ansehen',
+      retrospectiveDismissToday: 'Für heute ausblenden',
+      retrospectiveDismissed: 'Rückblick für heute ausgeblendet',
     },
     monthly: {
       title: 'Diesen Monat',

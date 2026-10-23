@@ -205,9 +205,12 @@ def _retrospective(
         .limit(1)
     ).scalar_one_or_none()
     if memory is not None:
-        occurred = memory.happened_on or clock.ensure_utc(memory.created_at).astimezone(
-            clock.resolve_zone(timezone_name)
-        ).date()
+        occurred = (
+            memory.happened_on
+            or clock.ensure_utc(memory.created_at)
+            .astimezone(clock.resolve_zone(timezone_name))
+            .date()
+        )
         candidates.append(
             (
                 occurred,

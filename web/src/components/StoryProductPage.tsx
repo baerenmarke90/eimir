@@ -370,7 +370,10 @@ export function StoryProductPage({
           setPaginationGeneration((generation) => generation + 1);
         }
       } else if (dashboardApi) {
-        await Promise.all([discoverQuery.refetch(), retrospectiveQuery.refetch()]);
+        await Promise.all([
+          discoverQuery.refetch(),
+          retrospectiveQuery.refetch(),
+        ]);
       } else {
         await discoverQuery.refetch();
       }
@@ -575,7 +578,7 @@ export function StoryProductPage({
     discoverQuery.data?.value.selectionDate?.getTime() ===
     retrospectiveQuery.data?.viewerLocalDate?.getTime();
   const retrospective = sameSelectionDay
-    ? retrospectiveQuery.data?.retrospective ?? null
+    ? (retrospectiveQuery.data?.retrospective ?? null)
     : null;
   const featuredId = featuredItem
     ? featuredItem.kind === 'MEMORY'
@@ -589,7 +592,10 @@ export function StoryProductPage({
     (retrospective.type === 'MEMORY' ||
       retrospective.type === 'HEART_MOMENT' ||
       retrospective.type === 'MILESTONE') &&
-    !(featuredItem?.kind === retrospective.type && featuredId === retrospective.id)
+    !(
+      featuredItem?.kind === retrospective.type &&
+      featuredId === retrospective.id
+    )
       ? retrospective
       : null;
 

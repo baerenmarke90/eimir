@@ -11,7 +11,7 @@ function candidate(overrides: Partial<DashboardItem> = {}): DashboardItem {
   return {
     id: 'lake-memory',
     type: 'MEMORY',
-    titleOrText: 'Dieser Tag am See',
+    titleOrText: 'That day by the lake',
     occurredOn: new Date('2025-08-24T00:00:00Z'),
     createdAt: null,
     scheduledAt: null,
@@ -48,11 +48,11 @@ describe('StoryRetrospective #601 / #452', () => {
     const html = renderCard(
       candidate({
         id: 'first-evening',
-        titleOrText: 'Unser erster Abend am Wasser',
+        titleOrText: 'Our first evening by the water',
         previewAttachmentId: null,
       }),
     );
-    expect(html).toContain('Unser erster Abend am Wasser');
+    expect(html).toContain('Our first evening by the water');
     expect(html).toContain('href="/story/memories/first-evening"');
     expect(html).not.toContain('momente-retrospective-media');
     expect(html).not.toContain('has-media');

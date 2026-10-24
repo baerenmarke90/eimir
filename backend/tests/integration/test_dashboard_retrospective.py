@@ -333,3 +333,37 @@ def test_february_29_follows_canonical_annual_observance_without_false_leap_matc
     response = _dashboard(client, couple, couple["token_a"])
     assert response.status_code == 200, response.text
     assert response.json()["retrospective"]["id"] == str(memory.id)
+
+
+@pytest.mark.parametrize(
+    ("instant", "berlin_day", "honolulu_day"),
+    [
+        (datetime(2026, 10, 24, 0, 10, tzinfo=UTC), date(2026, 10, 24), date(2026, 10, 23)),
+        (datetime(2026, 3, 29, 0, 30, tzinfo=UTC), date(2026, 3, 29), date(2026, 3, 28)),
+        (datetime(2026, 3, 29, 1, 30, tzinfo=UTC), date(2026, 3, 29), date(2026, 3, 28)),
+    ],
+)
+def test_viewer_local_date_matches_the_authoritative_retrospective_day(
+    client, session: Session, couple, monkeypatch, instant, berlin_day, honolulu_day
+) -> None:  # type: ignore[no-untyped-def]
+    """One UTC instant may be two Account days; DST must not split the server day."""
+    couple["anna"].timezone = "Europe/Berlin"
+    couple["ben"].timezone = "Pacific/Honolulu"
+    berlin_memory = _memory(couple, "Berlin anniversary", berlin_day.replace(year=2025))
+    honolulu_memory = _memory(
+        couple, "Honolulu anniversary", honolulu_day.replace(year=2025)
+    )
+    session.add_all([berlin_memory, honolulu_memory])
+    session.flush()
+    monkeypatch.setattr(dashboard_service.clock, "now", lambda: instant)
+
+    for token, day, anniversary in (
+        (couple["token_a"], berlin_day, berlin_memory),
+        (couple["token_b"], honolulu_day, honolulu_memory),
+    ):
+        response = _dashboard(client, couple, token)
+        assert response.status_code == 200, response.text
+        payload = response.json()
+        assert response.headers["cache-control"] == "private, no-store"
+        assert payload["viewerLocalDate"] == day.isoformat()
+        assert payload["retrospective"]["id"] == str(anniversary.id)

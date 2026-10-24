@@ -911,10 +911,15 @@ export function TodayPage({
 
   // This is local presentation state only. The authorized candidate remains
   // server-owned; dismissal neither mutates nor caches a Memory.
-  const dismissalToken = retrospectiveDismissalToken(
-    account?.id ?? '',
-    spaceId,
-  );
+  // Wait for the Account-local Dashboard day before expiring persisted state.
+  // Only legacy servers fall back to the device day during rolling upgrades.
+  const dismissalToken = dashboardQuery.data
+    ? retrospectiveDismissalToken(
+        account?.id ?? '',
+        spaceId,
+        dashboardQuery.data.viewerLocalDate,
+      )
+    : null;
   const [dismissedToken, setDismissedToken] = useState<string | null>(null);
   useEffect(() => {
     clearForeignRetrospectiveDismissal(dismissalToken);

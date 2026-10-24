@@ -8,19 +8,38 @@
 export const TODAY_RETROSPECTIVE_DISMISSAL_KEY =
   'eimir:today-retrospective-dismissed:v1';
 
-/** Match the local calendar day the person's device calls "today". */
+/**
+ * Dashboard dates are UTC-midnight carriers for the Account-local calendar
+ * day, not instants to shift into the device's time zone.
+ *
+ * During rolling upgrades, only older servers without viewerLocalDate use
+ * the previous device-local fallback. A malformed present date fails closed.
+ */
 export function retrospectiveDismissalToken(
   accountId: string,
   spaceId: string,
-  today: Date = new Date(),
+  viewerLocalDate?: Date | null,
+  legacyDeviceNow: Date = new Date(),
 ): string | null {
-  if (!accountId || !spaceId || !Number.isFinite(today.getTime())) return null;
+  if (!accountId || !spaceId) return null;
 
-  const localDay = [
-    today.getFullYear(),
-    String(today.getMonth() + 1).padStart(2, '0'),
-    String(today.getDate()).padStart(2, '0'),
-  ].join('-');
+  let localDay: string;
+  if (viewerLocalDate != null) {
+    if (
+      !(viewerLocalDate instanceof Date) ||
+      !Number.isFinite(viewerLocalDate.getTime())
+    ) {
+      return null;
+    }
+    localDay = viewerLocalDate.toISOString().slice(0, 10);
+  } else {
+    if (!Number.isFinite(legacyDeviceNow.getTime())) return null;
+    localDay = [
+      legacyDeviceNow.getFullYear(),
+      String(legacyDeviceNow.getMonth() + 1).padStart(2, '0'),
+      String(legacyDeviceNow.getDate()).padStart(2, '0'),
+    ].join('-');
+  }
 
   return JSON.stringify([accountId, spaceId, localDay]);
 }

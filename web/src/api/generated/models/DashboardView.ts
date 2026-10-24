@@ -96,6 +96,12 @@ export interface DashboardView {
      * @memberof DashboardView
      */
     upcoming: Array<DashboardItem>;
+    /**
+     * 
+     * @type {Date}
+     * @memberof DashboardView
+     */
+    viewerLocalDate?: Date | null;
 }
 
 /**
@@ -131,6 +137,7 @@ export function DashboardViewFromJSONTyped(json: any, ignoreDiscriminator: boole
         'space': DashboardSpaceSummaryFromJSON(json['space']),
         'thinkingOfYouAvailableAt': (json['thinkingOfYouAvailableAt'] == null ? null : new Date(json['thinkingOfYouAvailableAt'])),
         'upcoming': ((json['upcoming'] as Array<any>).map(DashboardItemFromJSON)),
+        'viewerLocalDate': json['viewerLocalDate'] === undefined ? undefined : json['viewerLocalDate'] === null ? null : (new Date(json['viewerLocalDate'])),
     };
 }
 
@@ -153,6 +160,7 @@ export function DashboardViewToJSONTyped(value?: DashboardView | null, ignoreDis
         'space': DashboardSpaceSummaryToJSON(value['space']),
         'thinkingOfYouAvailableAt': value['thinkingOfYouAvailableAt'] == null ? value['thinkingOfYouAvailableAt'] : value['thinkingOfYouAvailableAt'].toISOString(),
         'upcoming': ((value['upcoming'] as Array<any>).map(DashboardItemToJSON)),
+        'viewerLocalDate': value['viewerLocalDate'] == null ? value['viewerLocalDate'] : value['viewerLocalDate'].toISOString().substring(0,10),
     };
 }
 

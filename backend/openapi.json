@@ -2305,6 +2305,18 @@
             },
             "title": "Upcoming",
             "type": "array"
+          },
+          "viewerLocalDate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Viewerlocaldate"
           }
         },
         "required": [

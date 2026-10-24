@@ -17,30 +17,52 @@ afterEach(() => {
 });
 
 describe('Today retrospective daily suppression', () => {
-  it('uses a local calendar day rather than a UTC ISO instant', () => {
-    const beforeMidnight = new Date(2026, 9, 23, 23, 59, 59);
-    const afterMidnight = new Date(2026, 9, 24, 0, 0, 1);
-    const sameDay = new Date(2026, 9, 23, 8, 0, 0);
+  it('uses the server date-only calendar across different device days', () => {
+    const serverDay = new Date('2026-10-23');
+    const deviceYesterday = new Date(2026, 9, 22, 23, 59);
+    const deviceTomorrow = new Date(2026, 9, 24, 0, 1);
     const a = retrospectiveDismissalToken(
       'account-a',
       'space-a',
-      beforeMidnight,
+      serverDay,
+      deviceYesterday,
     );
     const b = retrospectiveDismissalToken(
       'account-a',
       'space-a',
-      afterMidnight,
+      serverDay,
+      deviceTomorrow,
     );
-
-    expect(a).toBe(
-      retrospectiveDismissalToken('account-a', 'space-a', sameDay),
-    );
-    expect(a).not.toBe(b);
+    expect(a).toBe(b);
     expect(a).toContain('2026-10-23');
-    expect(retrospectiveDismissalToken('', 'space-a')).toBeNull();
-    expect(retrospectiveDismissalToken('account-a', '')).toBeNull();
+    expect(
+      retrospectiveDismissalToken(
+        'account-a',
+        'space-a',
+        new Date('2026-10-24'),
+        deviceYesterday,
+      ),
+    ).not.toBe(a);
+  });
+
+  it('uses device-local dates only as the explicit older-server fallback', () => {
+    const yesterday = new Date(2026, 9, 23, 23, 59);
+    const tomorrow = new Date(2026, 9, 24, 0, 1);
+    const a = retrospectiveDismissalToken('account-a', 'space-a', undefined, yesterday);
+    const b = retrospectiveDismissalToken('account-a', 'space-a', null, tomorrow);
+    expect(a).toContain('2026-10-23');
+    expect(a).not.toBe(b);
+    expect(b).toContain('2026-10-24');
+  });
+
+  it('rejects invalid server days without silently using the device day', () => {
+    expect(retrospectiveDismissalToken('', 'space-a', new Date('2026-10-23'))).toBeNull();
+    expect(retrospectiveDismissalToken('account-a', '', new Date('2026-10-23'))).toBeNull();
     expect(
       retrospectiveDismissalToken('account-a', 'space-a', new Date(NaN)),
+    ).toBeNull();
+    expect(
+      retrospectiveDismissalToken('account-a', 'space-a', null, new Date(NaN)),
     ).toBeNull();
   });
 

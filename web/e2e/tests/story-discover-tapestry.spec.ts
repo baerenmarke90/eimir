@@ -378,7 +378,7 @@ test('Momente Discover presents the real #452 anniversary with authorized image 
     retrospective: {
       id: 'historic-lake',
       type: 'MEMORY',
-      titleOrText: 'Dieser Tag am See',
+      titleOrText: 'That day by the lake',
       occurredOn: '2025-09-17',
       createdAt: null,
       scheduledAt: null,
@@ -394,9 +394,9 @@ test('Momente Discover presents the real #452 anniversary with authorized image 
     name: de.story.retrospectiveHeading,
   });
   await expect(retrospective).toBeVisible();
-  await expect(retrospective).toContainText('Dieser Tag am See');
+  await expect(retrospective).toContainText('That day by the lake');
   await expect(
-    retrospective.getByRole('link', { name: /Dieser Tag am See/ }),
+    retrospective.getByRole('link', { name: /That day by the lake/ }),
   ).toHaveAttribute('href', '/story/memories/historic-lake');
   await expect(
     retrospective.locator('.momente-retrospective-media'),
@@ -419,7 +419,7 @@ test('Momente Discover keeps a text-only retrospective readable at 320px in dark
     retrospective: {
       id: 'first-memory',
       type: 'MEMORY',
-      titleOrText: 'Unser erster Abend am Wasser',
+      titleOrText: 'Our first evening by the water',
       occurredOn: '2023-09-17',
       createdAt: null,
       scheduledAt: null,
@@ -436,7 +436,7 @@ test('Momente Discover keeps a text-only retrospective readable at 320px in dark
   const retrospective = page.getByRole('region', {
     name: de.story.retrospectiveHeading,
   });
-  await expect(retrospective).toContainText('Unser erster Abend am Wasser');
+  await expect(retrospective).toContainText('Our first evening by the water');
   await expect(
     retrospective.locator('.momente-retrospective-media'),
   ).toHaveCount(0);

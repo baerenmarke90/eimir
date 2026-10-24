@@ -398,7 +398,9 @@ test('Momente Discover presents the real #452 anniversary with authorized image 
   await expect(
     retrospective.getByRole('link', { name: /Dieser Tag am See/ }),
   ).toHaveAttribute('href', '/story/memories/historic-lake');
-  await expect(retrospective.locator('.momente-retrospective-media')).toHaveCount(1);
+  await expect(
+    retrospective.locator('.momente-retrospective-media'),
+  ).toHaveCount(1);
   await expect(page.locator('.momente-hero-highlight')).toHaveCount(1);
   await expect(page.locator('.momente-tapestry-item')).toHaveCount(11);
   await expectNoWcagViolations(page);
@@ -435,7 +437,9 @@ test('Momente Discover keeps a text-only retrospective readable at 320px in dark
     name: de.story.retrospectiveHeading,
   });
   await expect(retrospective).toContainText('Unser erster Abend am Wasser');
-  await expect(retrospective.locator('.momente-retrospective-media')).toHaveCount(0);
+  await expect(
+    retrospective.locator('.momente-retrospective-media'),
+  ).toHaveCount(0);
   await expect(retrospective.getByRole('link')).toHaveAttribute(
     'href',
     '/story/memories/first-memory',

@@ -574,9 +574,12 @@ export function StoryProductPage({
   const locale = resolvedLocale();
   // A cached Discover selection from another account-day must never be
   // paired with a new Dashboard day or presented as today's retrospective.
+  const discoverDay = discoverQuery.data?.value.selectionDate;
+  const dashboardDay = retrospectiveQuery.data?.viewerLocalDate;
   const sameSelectionDay =
-    discoverQuery.data?.value.selectionDate?.getTime() ===
-    retrospectiveQuery.data?.viewerLocalDate?.getTime();
+    discoverDay != null &&
+    dashboardDay != null &&
+    discoverDay.getTime() === dashboardDay.getTime();
   const retrospective = sameSelectionDay
     ? (retrospectiveQuery.data?.retrospective ?? null)
     : null;

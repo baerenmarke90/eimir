@@ -48,16 +48,30 @@ describe('Today retrospective daily suppression', () => {
   it('uses device-local dates only as the explicit older-server fallback', () => {
     const yesterday = new Date(2026, 9, 23, 23, 59);
     const tomorrow = new Date(2026, 9, 24, 0, 1);
-    const a = retrospectiveDismissalToken('account-a', 'space-a', undefined, yesterday);
-    const b = retrospectiveDismissalToken('account-a', 'space-a', undefined, tomorrow);
+    const a = retrospectiveDismissalToken(
+      'account-a',
+      'space-a',
+      undefined,
+      yesterday,
+    );
+    const b = retrospectiveDismissalToken(
+      'account-a',
+      'space-a',
+      undefined,
+      tomorrow,
+    );
     expect(a).toContain('2026-10-23');
     expect(a).not.toBe(b);
     expect(b).toContain('2026-10-24');
   });
 
   it('rejects invalid server days without silently using the device day', () => {
-    expect(retrospectiveDismissalToken('', 'space-a', new Date('2026-10-23'))).toBeNull();
-    expect(retrospectiveDismissalToken('account-a', '', new Date('2026-10-23'))).toBeNull();
+    expect(
+      retrospectiveDismissalToken('', 'space-a', new Date('2026-10-23')),
+    ).toBeNull();
+    expect(
+      retrospectiveDismissalToken('account-a', '', new Date('2026-10-23')),
+    ).toBeNull();
     expect(
       retrospectiveDismissalToken('account-a', 'space-a', new Date(NaN)),
     ).toBeNull();

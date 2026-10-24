@@ -89,7 +89,7 @@ describe('Momente retrospective integration (#601)', () => {
   const retrospective = {
     id: 'historic-memory',
     type: 'MEMORY',
-    titleOrText: 'Dieser Tag am See',
+    titleOrText: 'That day by the lake',
     occurredOn: new Date('2025-08-24T00:00:00Z'),
     createdAt: null,
     scheduledAt: null,
@@ -106,7 +106,7 @@ describe('Momente retrospective integration (#601)', () => {
       dashboard,
     });
     expect(html).toContain('momente-retrospective');
-    expect(html).toContain('Dieser Tag am See');
+    expect(html).toContain('That day by the lake');
     expect(html).toContain('href="/story/memories/historic-memory"');
     expect(html).toContain('lake-ready-photo');
     expect(html).toContain('Unser aktueller Moment');

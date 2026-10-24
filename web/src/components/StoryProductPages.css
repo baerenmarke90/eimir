@@ -724,6 +724,110 @@
   line-height: 1;
 }
 
+/* #601: A quiet, optional #452 discovery moment below the existing lead.
+ * One content-led link, never a competing second full-width hero. */
+.momente-retrospective {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.momente-retrospective-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 5.5rem;
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  background: linear-gradient(
+    145deg,
+    var(--color-surface),
+    var(--color-surface-raised)
+  );
+  box-shadow: var(--shadow-soft);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
+}
+
+.momente-retrospective-link.has-media {
+  grid-template-columns: minmax(5.75rem, 8rem) minmax(0, 1fr);
+}
+
+.momente-retrospective-link:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .momente-retrospective-link:hover {
+    border-color: var(--color-brand-glow);
+    box-shadow: var(--shadow-card);
+  }
+}
+
+.momente-retrospective-media {
+  display: block;
+  min-width: 0;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--color-surface-subtle);
+}
+
+.momente-retrospective-media .story-media-preview,
+.momente-retrospective-media .story-media-skeleton,
+.momente-retrospective-media .story-media-placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  margin: 0;
+  border-radius: 0;
+  object-fit: cover;
+}
+
+.momente-retrospective-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  overflow-wrap: anywhere;
+}
+
+.momente-retrospective-kicker {
+  color: var(--color-brand-strong);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.momente-retrospective-title {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 3vw, 1.25rem);
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.momente-retrospective-date {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.momente-retrospective-action {
+  color: var(--color-brand-strong);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .momente-retrospective-link {
+    transition: none;
+  }
+}
+
 /* Keepsake / Editorial Tapestry (#790): asymmetric mixed archive */
 .momente-tapestry-section {
   display: grid;

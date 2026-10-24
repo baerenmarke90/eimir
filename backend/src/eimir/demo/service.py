@@ -638,7 +638,7 @@ def _seed_story(
             context,
             title=story.title,
             body=story.body,
-            happened_on=reference_date - timedelta(days=story.days_ago),
+            happened_on=story.date_at(reference_date),
         )
         memories[story.key] = memory
         attachments = [

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from sqlalchemy import func, select
@@ -114,7 +114,7 @@ def test_create_is_idempotent_and_representative(session: Session) -> None:
     _assert_demo_configuration(first_configuration)
     assert first_configuration.version == first_configuration_version
 
-    assert _count(session, Memory, first.space_id) == 13
+    assert _count(session, Memory, first.space_id) == 15
     assert _count(session, HeartMoment, first.space_id) == 2
     assert _count(session, Milestone, first.space_id) == 3
     assert _count(session, Wish, first.space_id) == 3
@@ -149,7 +149,9 @@ def test_create_is_idempotent_and_representative(session: Session) -> None:
     attachments = list(
         session.execute(select(Attachment).where(Attachment.space_id == first.space_id)).scalars()
     )
-    assert len(attachments) == 12
+    # The anniversary imports the same curated lake image into a different
+    # Memory, so attachment identities are distinct while source names repeat.
+    assert len(attachments) == 13
     assert {attachment.status for attachment in attachments} == {AttachmentStatus.READY.value}
 
     assert len({attachment.payload.original_name for attachment in attachments}) == 12
@@ -232,6 +234,68 @@ def test_ensure_refuses_an_unexpected_demo_configuration_manager(session: Sessio
         _seed(session)
 
 
+def test_canonical_demo_retrospective_has_annual_photo_and_text_only_first_memory(
+    session: Session,
+) -> None:
+    """Exercise the real authorized #452 selector against seeded Lea/Alex data."""
+    result = _seed(session)
+    memories = list(
+        session.execute(select(Memory).where(Memory.space_id == result.space_id)).scalars()
+    )
+    by_title = {memory.payload.title: memory for memory in memories}
+    anniversary = by_title["Dieser Tag am See"]
+    first_memory = by_title["Unser erster Abend am Wasser"]
+    assert anniversary.happened_on == date(2025, 8, 24)
+    assert first_memory.happened_on == date(2023, 8, 24)
+
+    anniversary_media = attachment_binding.attachments_of_memory(session, anniversary.id)
+    assert len(anniversary_media) == 1
+    assert anniversary_media[0].attachment.status == AttachmentStatus.READY.value
+    assert attachment_binding.attachments_of_memory(session, first_memory.id) == []
+
+    contexts = (
+        AuthorizationContext(account_id=result.lea_id, space_id=result.space_id),
+        AuthorizationContext(account_id=result.alex_id, space_id=result.space_id),
+    )
+    at_anniversary = datetime(2026, 8, 24, 12, tzinfo=UTC)
+    for context in contexts:
+        view = dashboard_service.read_dashboard(session, context, at=at_anniversary)
+        assert view.viewer_local_date == REFERENCE_DATE
+        assert view.retrospective is not None
+        assert view.retrospective.id == anniversary.id
+        assert view.retrospective.preview_attachment_id == anniversary_media[0].attachment.id
+
+    # The fallback is a Space-stable weekday, not a per-device or per-person
+    # random choice. None of the seeded anniversaries occurs on this later day.
+    fallback_day = next(
+        REFERENCE_DATE + timedelta(days=offset)
+        for offset in range(1, 8)
+        if (REFERENCE_DATE + timedelta(days=offset)).weekday() == result.space_id.int % 7
+    )
+
+    # An owner-private Heart Moment with the matching anniversary must not
+    # displace the eligible shared, text-only fallback for either partner.
+    private_heart = session.execute(
+        select(HeartMoment).where(
+            HeartMoment.space_id == result.space_id,
+            HeartMoment.owner_id == result.lea_id,
+            HeartMoment.privacy_class == "OWNER_ONLY",
+        )
+    ).scalar_one()
+    private_heart.happened_on = fallback_day.replace(year=fallback_day.year - 1)
+    session.flush()
+
+    fallback_at = datetime.combine(fallback_day, datetime.min.time(), tzinfo=UTC) + timedelta(
+        hours=12
+    )
+    for context in contexts:
+        view = dashboard_service.read_dashboard(session, context, at=fallback_at)
+        assert view.viewer_local_date == fallback_day
+        assert view.retrospective is not None
+        assert view.retrospective.id == first_memory.id
+        assert view.retrospective.preview_attachment_id is None
+
+
 def test_private_demo_content_stays_owner_only_across_read_models(session: Session) -> None:
     result = _seed(session)
     lea_context = AuthorizationContext(account_id=result.lea_id, space_id=result.space_id)
@@ -290,8 +354,8 @@ def test_reset_replaces_only_verified_demo_space(session: Session) -> None:
     result = _seed(session)
     old_space_id = result.space_id
     canonical_media = _canonical_memory_media(session, old_space_id)
-    assert len(canonical_media) == 13
-    assert sum(len(filenames) for filenames in canonical_media.values()) == 11
+    assert len(canonical_media) == 15
+    assert sum(len(filenames) for filenames in canonical_media.values()) == 12
 
     old_attachments = list(
         session.execute(select(Attachment).where(Attachment.space_id == old_space_id)).scalars()
@@ -371,7 +435,7 @@ def test_reset_replaces_only_verified_demo_space(session: Session) -> None:
     restored_attachments = list(
         session.execute(select(Attachment).where(Attachment.space_id == reset.space_id)).scalars()
     )
-    assert len(restored_attachments) == 12
+    assert len(restored_attachments) == 13
     assert len({attachment.payload.original_name for attachment in restored_attachments}) == 12
     assert _canonical_memory_media(session, reset.space_id) == canonical_media
 

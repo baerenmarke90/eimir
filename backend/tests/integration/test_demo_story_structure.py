@@ -180,3 +180,12 @@ def test_reset_restores_story_links_and_coordinate_fixture(session: Session) -> 
     assert restored_cafe.latitude is not None
     assert restored_cafe.longitude is not None
     assert _chapter_story_snapshot(session, reset) == expected_story
+
+    # Reset recreates the annual and oldest-memory fixtures from the same
+    # reference date; idempotent ensure never rewrites existing visitor content.
+    assert _memory_by_title(session, reset.space_id, "Dieser Tag am See").happened_on == date(
+        2025, 8, 24
+    )
+    assert _memory_by_title(
+        session, reset.space_id, "Unser erster Abend am Wasser"
+    ).happened_on == date(2023, 8, 24)

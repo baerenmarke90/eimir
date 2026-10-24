@@ -84,6 +84,35 @@ uv run python -m scripts.demo_space create --reference-date 2026-08-24
 Without `--reference-date`, the current local date becomes the reference date. The scenario derives
 recent memories, future plans, past milestones, and mixed open/completed states from it.
 
+### Today / Nostalgia acceptance fixtures (#1413, follow-up to #452)
+
+The canonical Demo includes two additional fictional shared Memories alongside its existing 13
+shorter-term stories. They use the ordinary Memory service and media binding, not a Demo-only
+Dashboard selector:
+
+- **Calendar-year anniversary:** the `lake-one-year-ago` fixture is dated one calendar year before the
+  reference date and carries one authorized, READY lake photo. With the reference date above
+  (`2026-08-24`), both Lea and Alex receive it in Today as the one-year retrospective
+  (`2025-08-24`), subject to each viewer's existing personal dismissal state.
+- **First-memory fallback:** the `first-evening-together` fixture is dated three calendar years
+  before the reference date (`2023-08-24` in this example) and has **no photo**. On the
+  Space's deterministic fallback weekday after `2026-08-24`, when no exact anniversary
+  is eligible, both personas receive this oldest shared Memory as a text-only retrospective.
+
+Calendar-year offsets deliberately do not assume 365 days. On a leap-day reference date,
+the previous non-leap year's seed observes February 28; a February 29 anniversary cannot
+be synthesized where the earlier calendar year has no February 29. This is not a change
+to the normal Dashboard anniversary matching contract.
+
+`ensure` remains non-destructive and does not add these two records to an already
+initialized Demo Space. The next intentional canonical `reset` seeds them; normal
+production Spaces and other Demo visitors' data are never backfilled.
+
+The private partner Heart Moment and ordinary tenant-isolation rules remain unchanged;
+integration tests explicitly verify they cannot displace the authorized candidate.
+Locked time capsules (#446) and unrevealed scratch cards (#449) do not have canonical
+resource models/seed fixtures yet and are **not** claimed as demonstrated.
+
 The explicit `create` command intentionally remains available for development and QA. Public demo
 Compose deployments use the automatic `ensure` path described below instead.
 

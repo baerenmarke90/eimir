@@ -40,7 +40,8 @@ describe('StoryRetrospective #601 / #452', () => {
     expect(html).toContain(m5s5.today.living.retrospectiveLabel);
     expect(html).toContain('href="/story/memories/lake-memory"');
     expect(html).toContain('momente-retrospective-media');
-    expect(html).toContain('ready-lake-image');
+    expect(html).toContain('data-media-deferred="true"');
+    expect(html).not.toContain('blob:authorized-preview');
     expect(html).toContain('2025-08-24');
   });
 

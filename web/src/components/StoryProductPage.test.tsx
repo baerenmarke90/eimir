@@ -108,7 +108,7 @@ describe('Momente retrospective integration (#601)', () => {
     expect(html).toContain('momente-retrospective');
     expect(html).toContain('That day by the lake');
     expect(html).toContain('href="/story/memories/historic-memory"');
-    expect(html).toContain('lake-ready-photo');
+    expect(html).toContain('data-media-deferred="true"');
     expect(html).toContain('Unser aktueller Moment');
   });
 

@@ -407,7 +407,7 @@ test('Momente Discover presents the real #452 anniversary with authorized image 
   expect(unexpectedRequests).toEqual([]);
 
   await page.screenshot({
-    path: testInfo.outputPath('601-retrospective-390-light.png'),
+    path: testInfo.outputPath('story-601-retrospective-390-light.png'),
     fullPage: true,
   });
 });
@@ -453,7 +453,7 @@ test('Momente Discover keeps a text-only retrospective readable at 320px in dark
   expect(unexpectedRequests).toEqual([]);
 
   await page.screenshot({
-    path: testInfo.outputPath('601-retrospective-text-320-dark-reduced.png'),
+    path: testInfo.outputPath('story-601-retrospective-text-320-dark-reduced.png'),
     fullPage: true,
   });
 });

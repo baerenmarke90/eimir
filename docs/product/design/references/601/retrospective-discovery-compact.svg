@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="390" height="960" viewBox="0 0 390 960" role="img" aria-labelledby="title desc">
-<title id="title">Momente Discover: Today retrospective within the existing mobile experience</title>
+<title id="title">Moments Discover: Today retrospective within the existing mobile experience</title>
 <desc id="desc">Whole-screen Compact design reference showing the existing header, peer tabs, four browse links, story lead, a small Today-backed retrospectives section, the tapestry and bottom navigation.</desc>
 <defs>
   <linearGradient id="surface" x2="0" y2="1"><stop stop-color="#fcfaf9"/><stop offset="1" stop-color="#f5f0ee"/></linearGradient>
@@ -9,41 +9,41 @@
 <rect width="390" height="960" fill="url(#surface)"/>
 <text x="21" y="34" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#493b42">eimir.</text>
 <circle cx="357" cy="29" r="16" fill="#e7c3cd"/><text x="353" y="35" font-size="16" font-family="Arial,sans-serif" fill="#653948">L</text>
-<text x="21" y="91" font-family="Arial,sans-serif" font-size="29" font-weight="700" fill="#352a30">Momente</text>
-<text x="21" y="115" font-family="Arial,sans-serif" font-size="12" fill="#746b70">Unsere besonderen Augenblicke – für immer festgehalten.</text>
+<text x="21" y="91" font-family="Arial,sans-serif" font-size="29" font-weight="700" fill="#352a30">Moments</text>
+<text x="21" y="115" font-family="Arial,sans-serif" font-size="12" fill="#746b70">Shared moments, worth keeping.</text>
 <rect x="90" y="145" width="210" height="41" rx="21" fill="#eae4e4"/>
 <rect x="94" y="149" width="104" height="33" rx="17" fill="#ffffff"/>
-<text x="116" y="170" font-size="12" font-family="Arial,sans-serif" font-weight="700" fill="#593744">Entdecken</text>
-<text x="219" y="170" font-size="12" font-family="Arial,sans-serif" fill="#736870">Zeitleiste</text>
-<text x="21" y="219" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#65575e">Durchstöbern</text>
+<text x="116" y="170" font-size="12" font-family="Arial,sans-serif" font-weight="700" fill="#593744">Discover</text>
+<text x="219" y="170" font-size="12" font-family="Arial,sans-serif" fill="#736870">Timeline</text>
+<text x="21" y="219" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#65575e">Browse</text>
 <g font-family="Arial,sans-serif" font-size="11" text-anchor="middle" fill="#665960">
- <rect x="21" y="233" width="83" height="51" rx="13" fill="#fff" stroke="#e8dddf"/><text x="62" y="264">Fotos</text>
- <rect x="110" y="233" width="82" height="51" rx="13" fill="#fff" stroke="#e8dddf"/><text x="151" y="264">Meilensteine</text>
- <rect x="198" y="233" width="82" height="51" rx="13" fill="#fff" stroke="#e8dddf"/><text x="239" y="264">Kapitel</text>
- <rect x="286" y="233" width="83" height="51" rx="13" fill="#fff" stroke="#e8dddf"/><text x="327" y="264">Jahre</text>
+ <rect x="21" y="233" width="83" height="51" rx="13" fill="#fff" stroke="#e8dddf"/><text x="62" y="264">Photos</text>
+ <rect x="110" y="233" width="82" height="51" rx="13" fill="#fff" stroke="#e8dddf"/><text x="151" y="264">Milestones</text>
+ <rect x="198" y="233" width="82" height="51" rx="13" fill="#fff" stroke="#e8dddf"/><text x="239" y="264">Chapters</text>
+ <rect x="286" y="233" width="83" height="51" rx="13" fill="#fff" stroke="#e8dddf"/><text x="327" y="264">Years</text>
 </g>
 <rect x="21" y="306" width="348" height="216" rx="20" fill="url(#rose)" stroke="#e8ccd3"/>
 <rect x="21" y="306" width="348" height="117" rx="20" fill="url(#lake)"/>
 <rect x="21" y="395" width="348" height="29" fill="#78a6a5"/>
 <path d="M42 365 Q96 350 153 366 T270 360 T351 364" stroke="#f9f3e9" stroke-width="3" fill="none" opacity=".6"/>
-<text x="40" y="453" font-family="Arial,sans-serif" font-size="11" font-weight="700" fill="#814857">AUS EUREN MOMENTEN</text>
-<text x="40" y="478" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#422f37">Ein Wochenende am Wasser</text>
-<text x="40" y="500" font-family="Arial,sans-serif" font-size="12" fill="#786b71">24. August 2026</text>
-<text x="21" y="561" font-family="Arial,sans-serif" font-size="19" font-weight="700" fill="#382b32">Rückblicke</text>
-<text x="21" y="581" font-family="Arial,sans-serif" font-size="12" fill="#796b70">Ein Moment, der euch wieder begegnet.</text>
+<text x="40" y="453" font-family="Arial,sans-serif" font-size="11" font-weight="700" fill="#814857">FROM YOUR MOMENTS</text>
+<text x="40" y="478" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#422f37">A weekend by the water</text>
+<text x="40" y="500" font-family="Arial,sans-serif" font-size="12" fill="#786b71">24 Aug 2026</text>
+<text x="21" y="561" font-family="Arial,sans-serif" font-size="19" font-weight="700" fill="#382b32">Retrospectives</text>
+<text x="21" y="581" font-family="Arial,sans-serif" font-size="12" fill="#796b70">A moment revisited.</text>
 <rect x="21" y="599" width="348" height="146" rx="18" fill="#fff" stroke="#e6d9d9"/>
 <rect x="36" y="614" width="116" height="116" rx="13" fill="url(#lake)"/>
 <path d="M39 695 Q68 670 98 693 T150 686" stroke="#edf6ed" stroke-width="3" fill="none" opacity=".7"/>
-<text x="168" y="637" font-family="Arial,sans-serif" font-size="10" font-weight="700" fill="#8a5365">WEISST DU NOCH?</text>
-<text x="168" y="662" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#42323b">Dieser Tag am See</text>
-<text x="168" y="682" font-family="Arial,sans-serif" font-size="11" fill="#786b71">24. August 2025</text>
-<text x="168" y="714" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#85495d">Erinnerung öffnen →</text>
-<text x="21" y="784" font-family="Arial,sans-serif" font-size="19" font-weight="700" fill="#382b32">Momente zum Wiederentdecken</text>
-<text x="21" y="803" font-family="Arial,sans-serif" font-size="11" fill="#7b6f73">Kleine Momente, die geblieben sind.</text>
+<text x="168" y="637" font-family="Arial,sans-serif" font-size="10" font-weight="700" fill="#8a5365">REMEMBER WHEN?</text>
+<text x="168" y="662" font-family="Arial,sans-serif" font-size="16" font-weight="700" fill="#42323b">That day by the lake</text>
+<text x="168" y="682" font-family="Arial,sans-serif" font-size="11" fill="#786b71">24 Aug 2025</text>
+<text x="168" y="714" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#85495d">Open memory →</text>
+<text x="21" y="784" font-family="Arial,sans-serif" font-size="19" font-weight="700" fill="#382b32">Moments to rediscover</text>
+<text x="21" y="803" font-family="Arial,sans-serif" font-size="11" fill="#7b6f73">Small moments worth keeping.</text>
 <rect x="21" y="820" width="167" height="76" rx="13" fill="#efe3e7" stroke="#ebdbe0"/>
-<text x="35" y="846" font-family="Arial,sans-serif" font-size="11" fill="#9a6675">HERZMOMENT</text>
-<text x="35" y="867" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#5d414b">Ein besonderer Tag</text>
+<text x="35" y="846" font-family="Arial,sans-serif" font-size="11" fill="#9a6675">HEART MOMENT</text>
+<text x="35" y="867" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#5d414b">A special day</text>
 <rect x="202" y="820" width="167" height="76" rx="13" fill="#d4e3e0"/>
 <rect x="0" y="916" width="390" height="44" fill="#fff" stroke="#e6dfe1"/>
-<g font-family="Arial,sans-serif" font-size="11" fill="#776a71" text-anchor="middle"><text x="39" y="942">Wir</text><text x="119" y="942" fill="#8f4e64" font-weight="700">Momente</text><text x="196" y="942" font-weight="700">＋</text><text x="271" y="942">Planen</text><text x="352" y="942">Mehr</text></g>
+<g font-family="Arial,sans-serif" font-size="11" fill="#776a71" text-anchor="middle"><text x="39" y="942">Us</text><text x="119" y="942" fill="#8f4e64" font-weight="700">Moments</text><text x="196" y="942" font-weight="700">＋</text><text x="271" y="942">Plans</text><text x="352" y="942">More</text></g>
 </svg>

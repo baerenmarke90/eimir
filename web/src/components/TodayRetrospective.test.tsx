@@ -31,8 +31,9 @@ const wish = {
   createdAt: new Date('2026-10-01T10:00:00Z'),
 };
 
-function dashboard(photo = false) {
+function dashboard(photo = false, viewerLocalDate = new Date('2026-10-23')) {
   return {
+    viewerLocalDate,
     space: {
       id: 'space-1',
       partner: { id: 'partner-1', displayName: 'Marie' },
@@ -70,13 +71,15 @@ function renderToday({
   spaceId = 'space-1',
   photo = false,
   hideModule = false,
+  viewerLocalDate = new Date('2026-10-23'),
 }: {
   accountId?: string;
   spaceId?: string;
   photo?: boolean;
   hideModule?: boolean;
+  viewerLocalDate?: Date;
 } = {}) {
-  const data = dashboard(photo);
+  const data = dashboard(photo, viewerLocalDate);
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -190,7 +193,11 @@ describe('Today #452 retrospective presentation and dismissal', () => {
   });
 
   it('does not apply another Account/Space dismissal and respects hidden modules', async () => {
-    const stored = retrospectiveDismissalToken('account-1', 'space-1');
+    const stored = retrospectiveDismissalToken(
+      'account-1',
+      'space-1',
+      new Date('2026-10-23'),
+    );
     if (!stored) throw new Error('Expected valid marker');
     rememberRetrospectiveDismissal(stored);
 
@@ -203,6 +210,24 @@ describe('Today #452 retrospective presentation and dismissal', () => {
     renderToday({ hideModule: true });
     expect(screen.queryByText('Our early trip together')).toBeNull();
     expect(document.querySelector('.today-section-living')).toBeNull();
+  });
+
+  it('uses the server calendar to restore and expire a dismissed retrospective', async () => {
+    const stored = retrospectiveDismissalToken(
+      'account-1',
+      'space-1',
+      new Date('2026-10-23'),
+    );
+    if (!stored) throw new Error('Expected server-day marker');
+    rememberRetrospectiveDismissal(stored);
+
+    renderToday({ viewerLocalDate: new Date('2026-10-23') });
+    expect(await screen.findByText('A new shared wish')).not.toBeNull();
+    expect(screen.queryByText('Our early trip together')).toBeNull();
+
+    cleanup();
+    renderToday({ viewerLocalDate: new Date('2026-10-24') });
+    expect(await screen.findByText('Our early trip together')).not.toBeNull();
   });
 
   it('opens the canonical Memory detail and returns with the F2 Today origin', async () => {

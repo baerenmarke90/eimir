@@ -286,6 +286,7 @@ type Scenario = {
   retrospective: unknown;
   recentShared: unknown[];
   activity: unknown[];
+  viewerLocalDate?: string | null;
 };
 
 async function installMocks(
@@ -512,6 +513,7 @@ async function installMocks(
         upcoming: scenario.upcoming,
         keepsake: scenario.keepsake,
         retrospective: scenario.retrospective,
+        viewerLocalDate: scenario.viewerLocalDate,
         recentShared: scenario.recentShared,
       });
       return;
@@ -624,6 +626,7 @@ test.describe('Today R4: the living home of a relationship', () => {
       ...RICH_SPACE,
       activity: [],
       retrospective,
+      viewerLocalDate: '2026-10-23',
       recentShared: [MOMENT, earlierMilestone, SHARED_WISH],
     });
     await signInAndOpenToday(page);
@@ -671,6 +674,13 @@ test.describe('Today R4: the living home of a relationship', () => {
         name: m5s5.today.living.retrospectiveDismissToday,
       })
       .click();
+    const storedDay = await page.evaluate(() => {
+      const marker = window.localStorage.getItem(
+        'eimir:today-retrospective-dismissed:v1',
+      );
+      return marker ? JSON.parse(marker)[2] : null;
+    });
+    expect(storedDay).toBe('2026-10-23');
     await expect(paper).toHaveCount(0);
     await expect(page.locator('.today-living-milestone')).toBeVisible();
     await expect(

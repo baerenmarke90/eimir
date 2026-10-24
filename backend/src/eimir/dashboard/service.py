@@ -86,6 +86,7 @@ class DashboardItem:
 @dataclass(frozen=True)
 class DashboardView:
     space_id: UUID
+    viewer_local_date: date
     partner: PartnerSummary | None
     relationship_duration: RelationshipDuration | None
     retrospective: DashboardItem | None
@@ -114,6 +115,7 @@ def read_dashboard(
 
     return DashboardView(
         space_id=authorization.space_id,
+        viewer_local_date=today,
         partner=_partner(session, authorization),
         relationship_duration=_relationship_duration(profile, today),
         retrospective=_retrospective(session, authorization, today, account.timezone),

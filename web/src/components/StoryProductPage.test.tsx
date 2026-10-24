@@ -115,7 +115,10 @@ describe('Momente retrospective integration (#601)', () => {
   it('does not render the same authorized content twice when it is already the featured lead', () => {
     const html = renderStoryPage(
       '/story?tab=discover',
-      { ...discover, items: [{ ...lead, memory: { ...lead.memory, id: retrospective.id } }] },
+      {
+        ...discover,
+        items: [{ ...lead, memory: { ...lead.memory, id: retrospective.id } }],
+      },
       { selectionDate, dashboard },
     );
     expect(html).not.toContain('momente-retrospective');

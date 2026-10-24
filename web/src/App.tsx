@@ -472,6 +472,7 @@ function AuthenticatedApp({
                   spaceId={spaceId}
                   loadMemoryImage={loadMemoryImage}
                   profilesApi={profilesApi}
+                  dashboardApi={m4Apis.dashboard}
                 />
               }
             />

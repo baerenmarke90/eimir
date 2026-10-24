@@ -129,7 +129,10 @@ const DISCOVER_ITEMS = [
   memoryItem('mem-7', 'Wochenendtrip nach Trier', '2026-04-28', true),
 ];
 
-async function installDiscoverApiMocks(page: Page): Promise<string[]> {
+async function installDiscoverApiMocks(
+  page: Page,
+  options: { retrospective?: Record<string, unknown> | null } = {},
+): Promise<string[]> {
   const unexpectedRequests: string[] = [];
 
   await page.route('https://fake-media.test/**', async (route) => {
@@ -262,7 +265,8 @@ async function installDiscoverApiMocks(page: Page): Promise<string[]> {
       await fulfillJson({
         recentShared: [],
         relationshipDuration: null,
-        retrospective: null,
+        viewerLocalDate: '2026-09-17',
+        retrospective: options.retrospective ?? null,
         space: { partner: ALEX, spaceId: SPACE_ID },
         upcoming: [],
       });
@@ -366,6 +370,95 @@ const canonicalItemLabels = [
   'Filmabend auf dem Sofa',
   'Wochenendtrip nach Trier',
 ];
+
+test('Momente Discover presents the real #452 anniversary with authorized image and remains accessible on mobile', async ({
+  page,
+}, testInfo) => {
+  const unexpectedRequests = await installDiscoverApiMocks(page, {
+    retrospective: {
+      id: 'historic-lake',
+      type: 'MEMORY',
+      titleOrText: 'That day by the lake',
+      occurredOn: '2025-09-17',
+      createdAt: null,
+      scheduledAt: null,
+      previewAttachmentId: 'historic-lake-ready',
+    },
+  });
+  await page.setViewportSize({ width: 390, height: 1100 });
+  await page.goto('/story?tab=discover');
+  await signIn(page);
+  await page.goto('/story?tab=discover');
+
+  const retrospective = page.getByRole('region', {
+    name: de.story.retrospectiveHeading,
+  });
+  await expect(retrospective).toBeVisible();
+  await expect(retrospective).toContainText('That day by the lake');
+  await expect(
+    retrospective.getByRole('link', { name: /That day by the lake/ }),
+  ).toHaveAttribute('href', '/story/memories/historic-lake');
+  await expect(
+    retrospective.locator('.momente-retrospective-media'),
+  ).toHaveCount(1);
+  await expect(page.locator('.momente-hero-highlight')).toHaveCount(1);
+  await expect(page.locator('.momente-tapestry-item')).toHaveCount(11);
+  await expectNoWcagViolations(page);
+  expect(unexpectedRequests).toEqual([]);
+
+  await page.screenshot({
+    path: testInfo.outputPath('story-601-retrospective-390-light.png'),
+    fullPage: true,
+  });
+});
+
+test('Momente Discover keeps a text-only retrospective readable at 320px in dark large-text mode', async ({
+  page,
+}, testInfo) => {
+  const unexpectedRequests = await installDiscoverApiMocks(page, {
+    retrospective: {
+      id: 'first-memory',
+      type: 'MEMORY',
+      titleOrText: 'Our first evening by the water',
+      occurredOn: '2023-09-17',
+      createdAt: null,
+      scheduledAt: null,
+      previewAttachmentId: null,
+    },
+  });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto('/story?tab=discover');
+  await signIn(page);
+  await page.goto('/story?tab=discover');
+  await page.addStyleTag({ content: 'html { font-size: 125%; }' });
+
+  const retrospective = page.getByRole('region', {
+    name: de.story.retrospectiveHeading,
+  });
+  await expect(retrospective).toContainText('Our first evening by the water');
+  await expect(
+    retrospective.locator('.momente-retrospective-media'),
+  ).toHaveCount(0);
+  await expect(retrospective.getByRole('link')).toHaveAttribute(
+    'href',
+    '/story/memories/first-memory',
+  );
+  const width = await page.evaluate(() => ({
+    client: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
+  }));
+  expect(width.scroll).toBeLessThanOrEqual(width.client);
+  await expectNoWcagViolations(page);
+  expect(unexpectedRequests).toEqual([]);
+
+  await page.screenshot({
+    path: testInfo.outputPath(
+      'story-601-retrospective-text-320-dark-reduced.png',
+    ),
+    fullPage: true,
+  });
+});
 
 test('Momente Discover preserves canonical backend order in its desktop CSS grid and stays axe-clean', async ({
   page,

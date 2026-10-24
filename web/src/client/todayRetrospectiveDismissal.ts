@@ -24,7 +24,7 @@ export function retrospectiveDismissalToken(
   if (!accountId || !spaceId) return null;
 
   let localDay: string;
-  if (viewerLocalDate != null) {
+  if (viewerLocalDate !== undefined) {
     if (
       !(viewerLocalDate instanceof Date) ||
       !Number.isFinite(viewerLocalDate.getTime())

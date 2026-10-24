@@ -513,7 +513,7 @@ async function installMocks(
         upcoming: scenario.upcoming,
         keepsake: scenario.keepsake,
         retrospective: scenario.retrospective,
-        viewerLocalDate: scenario.viewerLocalDate ?? null,
+        viewerLocalDate: scenario.viewerLocalDate,
         recentShared: scenario.recentShared,
       });
       return;

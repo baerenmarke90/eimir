@@ -350,9 +350,7 @@ def test_viewer_local_date_matches_the_authoritative_retrospective_day(
     couple["anna"].timezone = "Europe/Berlin"
     couple["ben"].timezone = "Pacific/Honolulu"
     berlin_memory = _memory(couple, "Berlin anniversary", berlin_day.replace(year=2025))
-    honolulu_memory = _memory(
-        couple, "Honolulu anniversary", honolulu_day.replace(year=2025)
-    )
+    honolulu_memory = _memory(couple, "Honolulu anniversary", honolulu_day.replace(year=2025))
     session.add_all([berlin_memory, honolulu_memory])
     session.flush()
     monkeypatch.setattr(dashboard_service.clock, "now", lambda: instant)

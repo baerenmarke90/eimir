@@ -14,6 +14,7 @@ Name | Type
 `space` | [DashboardSpaceSummary](DashboardSpaceSummary.md)
 `thinkingOfYouAvailableAt` | Date
 `upcoming` | [Array&lt;DashboardItem&gt;](DashboardItem.md)
+`viewerLocalDate` | Date
 
 ## Example
 
@@ -30,6 +31,7 @@ const example = {
   "space": null,
   "thinkingOfYouAvailableAt": null,
   "upcoming": null,
+  "viewerLocalDate": null,
 } satisfies DashboardView
 
 console.log(example)

@@ -453,7 +453,9 @@ test('Momente Discover keeps a text-only retrospective readable at 320px in dark
   expect(unexpectedRequests).toEqual([]);
 
   await page.screenshot({
-    path: testInfo.outputPath('story-601-retrospective-text-320-dark-reduced.png'),
+    path: testInfo.outputPath(
+      'story-601-retrospective-text-320-dark-reduced.png',
+    ),
     fullPage: true,
   });
 });

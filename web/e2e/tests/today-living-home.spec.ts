@@ -35,6 +35,7 @@ const PHOTO_FOR_ATTACHMENT: Record<string, string> = {
   'att-strip-1': 'dog-outdoors.jpg',
   'att-strip-2': 'lake-sunrise.jpg',
   'att-strip-3': 'cabin-lake.jpg',
+  'att-nostalgia': 'lake-sunrise.jpg',
 };
 
 const NOW = new Date();
@@ -285,6 +286,7 @@ type Scenario = {
   retrospective: unknown;
   recentShared: unknown[];
   activity: unknown[];
+  viewerLocalDate?: string | null;
 };
 
 async function installMocks(
@@ -511,6 +513,7 @@ async function installMocks(
         upcoming: scenario.upcoming,
         keepsake: scenario.keepsake,
         retrospective: scenario.retrospective,
+        viewerLocalDate: scenario.viewerLocalDate,
         recentShared: scenario.recentShared,
       });
       return;
@@ -595,6 +598,101 @@ async function capture(
 }
 
 test.describe('Today R4: the living home of a relationship', () => {
+  test('renders the real #452 Polaroid with accessible daily dismissal on Compact and Expanded', async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(120_000);
+    const retrospective = {
+      id: 'mem-nostalgia',
+      type: 'MEMORY',
+      titleOrText: 'A morning by the lake',
+      occurredOn: '2025-10-23',
+      createdAt: '2025-10-24T11:00:00Z',
+      scheduledAt: null,
+      previewAttachmentId: 'att-nostalgia',
+    };
+    const earlierMilestone = {
+      id: 'milestone-1',
+      type: 'MILESTONE',
+      titleOrText: 'Our shared milestone',
+      occurredOn: '2025-06-02',
+      createdAt: '2025-06-02T12:00:00Z',
+      scheduledAt: null,
+      previewAttachmentId: null,
+    };
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+    await installMocks(page, {
+      ...RICH_SPACE,
+      activity: [],
+      retrospective,
+      viewerLocalDate: '2026-10-23',
+      recentShared: [MOMENT, earlierMilestone, SHARED_WISH],
+    });
+    await signInAndOpenToday(page);
+
+    const paper = page.locator('.today-living-retrospective');
+    const media = paper.locator('.today-retrospective-media img');
+    await expect(paper).toBeVisible();
+    await expect(media).toBeVisible();
+    expect(
+      await media.evaluate((img) => (img as HTMLImageElement).naturalWidth),
+    ).toBeGreaterThan(0);
+    await expect(
+      paper.getByRole('button', {
+        name: m5s5.today.living.retrospectiveDismissToday,
+      }),
+    ).toBeVisible();
+    await expect(
+      paper.getByRole('link', {
+        name: new RegExp(m5s5.today.living.retrospectiveAction),
+      }),
+    ).toHaveAttribute('href', '/story/memories/mem-nostalgia');
+
+    await expectNormativeOrder(page);
+    await expectSingleColumnVisualOrder(page);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await capture(page, testInfo, 'nostalgia-390-light');
+
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await capture(page, testInfo, 'nostalgia-390-dark');
+
+    await page.setViewportSize({ width: 320, height: 800 });
+    await expectNoHorizontalOverflow(page);
+    await capture(page, testInfo, 'nostalgia-320-reflow');
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await capture(page, testInfo, 'nostalgia-1440-expanded-dark');
+
+    await paper
+      .getByRole('button', {
+        name: m5s5.today.living.retrospectiveDismissToday,
+      })
+      .click();
+    const storedDay = await page.evaluate(() => {
+      const marker = window.localStorage.getItem(
+        'eimir:today-retrospective-dismissed:v1',
+      );
+      return marker ? JSON.parse(marker)[2] : null;
+    });
+    expect(storedDay).toBe('2026-10-23');
+    await expect(paper).toHaveCount(0);
+    await expect(page.locator('.today-living-milestone')).toBeVisible();
+    await expect(
+      page.getByText(m5s5.today.living.retrospectiveDismissed),
+    ).toHaveCount(1);
+
+    await page.reload();
+    await expect(page.locator('.today-hero')).toBeVisible();
+    await expect(page.locator('.today-living-retrospective')).toHaveCount(0);
+    await expect(page.locator('.today-living-milestone')).toBeVisible();
+  });
+
   test('keeps partner Presence hidden and dormant across Today viewports', async ({
     page,
   }, testInfo) => {

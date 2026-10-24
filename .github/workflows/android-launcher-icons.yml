@@ -30,7 +30,7 @@ jobs:
         api: [28, 36]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24.21.0'
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
@@ -82,13 +82,19 @@ jobs:
           adb -e install -r app/build/outputs/apk/debug/app-debug.apk
           adb -e install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           timeout 180 adb -e shell am instrument -w -r \
-            -e class de.eimir.app.LauncherIconsTest \
-            de.sidebyside.app.debug.test/androidx.test.runner.AndroidJUnitRunner \
+            -e class de.eimir.app.LauncherIconsTest,de.eimir.app.UnifiedPushAccountReplacementTest \
+            de.sidebyside.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
           grep -Eq '^OK \([1-9][0-9]* tests?\)' instrumentation.log
+      - name: Capture native fixture diagnostics
+        if: always()
+        working-directory: android
+        run: |
+          timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -d -t 1000 -v threadtime \
+            EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
       - name: Upload native verification results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: android-launcher-verification-api-${{ matrix.api }}
           path: |
@@ -96,4 +102,5 @@ jobs:
             android/app/build/outputs/androidTest-results/
             android/emulator.log
             android/instrumentation.log
+            android/fixture-logcat.log
           if-no-files-found: ignore

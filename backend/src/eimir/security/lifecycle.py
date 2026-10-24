@@ -18,6 +18,7 @@ key ids only.
 from __future__ import annotations
 
 import json
+import random
 from collections import Counter
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -32,10 +33,11 @@ from eimir.db.base import Base
 from eimir.db.protected_payload import ProtectedPayloadJSON
 from eimir.db.registry import load_all_models
 from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, CRYPTO_VERSION_SERVER_AEAD
-from eimir.media.encrypted import EncryptingMediaStore
+from eimir.media.base import MediaStore
+from eimir.media.encrypted import FORMAT_VERSION, MAGIC, EncryptingMediaStore
 from eimir.security.errors import EncryptionError
 from eimir.security.keyring import EncryptionMode, KeyWrapper
-from eimir.security.payload_envelope import MARKER, PayloadProtector
+from eimir.security.payload_envelope import ENVELOPE_KEYS, MARKER, PayloadProtector
 
 DEFAULT_BATCH_SIZE = 200
 
@@ -330,6 +332,87 @@ def verify_media(session: Session, store: EncryptingMediaStore) -> MediaResult:
             else:
                 result.current += 1  # readable legacy plaintext (migrating mode)
     return result
+
+
+@dataclass
+class RawAuditReport:
+    """Result of a key-less inspection of what is persisted.
+
+    Counts only. The audit reads the stored representation exactly as a database
+    dump or a bucket snapshot would expose it and never decrypts anything.
+    """
+
+    rows: Counter[str] = field(default_factory=Counter)
+    # Rows that are not a well-formed envelope (legacy plaintext, extra keys next
+    # to the envelope, a scalar, or a scheme that disagrees with crypto_version).
+    not_enveloped: Counter[str] = field(default_factory=Counter)
+    objects_sampled: int = 0
+    objects_encrypted: int = 0
+    objects_plaintext: int = 0
+    objects_absent: int = 0
+    objects_total: int = 0
+
+    @property
+    def ok(self) -> bool:
+        return not self.not_enveloped and not self.objects_plaintext
+
+
+_ENVELOPE_KEY_LIST = ", ".join(f"'{key}'" for key in sorted(ENVELOPE_KEYS))
+
+
+def audit_raw_payloads(session: Session, report: RawAuditReport) -> None:
+    """Flag every row whose stored value is not exactly one authenticated envelope.
+
+    Needs no key. A row passes only if its payload is a JSON object holding
+    exactly the envelope keys and ``crypto_version`` names the envelope scheme.
+    Keys beside the envelope would be plaintext sitting next to ciphertext.
+    """
+    for entry in payload_tables():
+        total, bad = session.execute(
+            text(
+                f"SELECT count(*), count(*) FILTER (WHERE NOT ("
+                f"jsonb_typeof(payload) = 'object' "
+                f"AND payload ?& ARRAY[{_ENVELOPE_KEY_LIST}] "
+                f"AND (SELECT count(*) FROM jsonb_object_keys(payload)) = {len(ENVELOPE_KEYS)} "
+                f"AND crypto_version = {CRYPTO_VERSION_SERVER_AEAD})) FROM {entry.name}"
+            )
+        ).one()
+        report.rows[entry.name] = int(total)
+        if bad:
+            report.not_enveloped[entry.name] = int(bad)
+
+
+def audit_raw_media(
+    session: Session,
+    plain_store: MediaStore,
+    report: RawAuditReport,
+    *,
+    sample: int,
+    rng: random.Random | None = None,
+) -> None:
+    """Check that referenced objects start with the encryption envelope header.
+
+    ``plain_store`` must be the adapter *without* the encrypting wrapper, so the
+    audit sees what the provider holds. Only the first bytes of an object are
+    inspected; nothing is decrypted or returned. ``sample`` of ``0`` checks every
+    referenced object.
+    """
+    keys = list(_attachment_keys(session))
+    report.objects_total = len(keys)
+    if sample and len(keys) > sample:
+        keys = (rng or random.SystemRandom()).sample(keys, sample)
+    prefix = MAGIC + bytes([FORMAT_VERSION])
+    for key in keys:
+        report.objects_sampled += 1
+        if not plain_store.exists(key):
+            report.objects_absent += 1
+            continue
+        with plain_store.open(key) as handle:
+            head = handle.read(len(prefix))
+        if head == prefix:
+            report.objects_encrypted += 1
+        else:
+            report.objects_plaintext += 1
 
 
 def engine_session(engine: Engine) -> Session:

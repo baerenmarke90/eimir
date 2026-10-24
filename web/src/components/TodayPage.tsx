@@ -1,5 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Fragment, type MouseEvent, type ReactNode } from 'react';
+import {
+  Fragment,
+  useEffect,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
@@ -48,6 +54,12 @@ import {
   selectTodayFocalItem,
 } from '../client/todayComposition';
 import { useTaskOrigin } from '../client/taskOrigin';
+import {
+  clearForeignRetrospectiveDismissal,
+  isRetrospectiveDismissed,
+  rememberRetrospectiveDismissal,
+  retrospectiveDismissalToken,
+} from '../client/todayRetrospectiveDismissal';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import {
   PARTNER_PRESENCE_PRODUCT_ENABLED,
@@ -480,10 +492,12 @@ function TodayLivingModuleCard({
   partnerName,
   partnerAvatarUrl,
   loadMemoryImage,
+  onDismissRetrospective,
 }: {
   module: LivingModule;
   partnerName: string;
   partnerAvatarUrl?: string | null;
+  onDismissRetrospective?: () => void;
   loadMemoryImage?: (
     memoryId: string,
     attachmentId: string,
@@ -555,6 +569,68 @@ function TodayLivingModuleCard({
   const meta = rawDate ? formatDate(rawDate) : null;
   const previewAttachmentId = item.previewAttachmentId;
   const hasMedia = Boolean(previewAttachmentId && loadMemoryImage);
+
+  if (kind === 'retrospective') {
+    // OpenAPI date-only values are UTC-midnight carriers, not local instants.
+    // Read their encoded calendar components without shifting historic days.
+    const date = item.occurredOn
+      ? new Intl.DateTimeFormat(resolvedLocale(), {
+          dateStyle: 'long',
+          timeZone: 'UTC',
+        }).format(item.occurredOn)
+      : meta;
+    const dateTime = item.occurredOn
+      ? item.occurredOn.toISOString().slice(0, 10)
+      : rawDate?.toISOString();
+
+    return (
+      <article className="today-living today-living-retrospective eimir-motion-lift">
+        <div className="today-retrospective-header">
+          <span className="today-living-label">{label}</span>
+          {onDismissRetrospective ? (
+            <button
+              type="button"
+              className="today-retrospective-dismiss"
+              onClick={onDismissRetrospective}
+            >
+              {t('m5s5.today.living.retrospectiveDismissToday')}
+            </button>
+          ) : null}
+        </div>
+        <figure className="today-retrospective-photo">
+          {hasMedia && previewAttachmentId && loadMemoryImage ? (
+            <div className="today-retrospective-media">
+              <MemoryPreview
+                memoryId={item.id}
+                attachmentId={previewAttachmentId}
+                loadImage={loadMemoryImage}
+              />
+            </div>
+          ) : null}
+          <figcaption
+            className={`today-retrospective-caption${
+              hasMedia ? '' : ' today-retrospective-text-only'
+            }`}
+          >
+            <span className="today-retrospective-title">{title}</span>
+            {date ? (
+              <time className="today-retrospective-date" dateTime={dateTime}>
+                {date}
+              </time>
+            ) : null}
+          </figcaption>
+        </figure>
+        {path ? (
+          <TodayDestinationLink
+            to={path}
+            className="today-retrospective-action"
+          >
+            {action} →
+          </TodayDestinationLink>
+        ) : null}
+      </article>
+    );
+  }
 
   return (
     <div
@@ -833,6 +909,33 @@ export function TodayPage({
   const retrospective = dashboardQuery.data?.retrospective;
   const serverKeepsake = dashboardQuery.data?.keepsake;
 
+  // This is local presentation state only. The authorized candidate remains
+  // server-owned; dismissal neither mutates nor caches a Memory.
+  // Wait for the Account-local Dashboard day before expiring persisted state.
+  // Only legacy servers fall back to the device day during rolling upgrades.
+  const dismissalToken = dashboardQuery.data
+    ? retrospectiveDismissalToken(
+        account?.id ?? '',
+        spaceId,
+        dashboardQuery.data.viewerLocalDate,
+      )
+    : null;
+  const [dismissedToken, setDismissedToken] = useState<string | null>(null);
+  useEffect(() => {
+    clearForeignRetrospectiveDismissal(dismissalToken);
+  }, [dismissalToken]);
+  const retrospectiveDismissed = Boolean(
+    dismissalToken &&
+      (dismissedToken === dismissalToken ||
+        isRetrospectiveDismissed(dismissalToken)),
+  );
+
+  function dismissRetrospectiveToday(): void {
+    if (!dismissalToken) return;
+    rememberRetrospectiveDismissal(dismissalToken);
+    setDismissedToken(dismissalToken);
+  }
+
   // 3. Focal shared content. The authoritative Keepsake wins when present;
   // otherwise a genuine shared story item receives intentional text-first
   // treatment. No eligible photo means a different composition, never an
@@ -846,7 +949,7 @@ export function TodayPage({
   const livingModule = selectLivingModule({
     partnerId: partner?.id,
     activityItems: activityQuery.data?.items,
-    retrospective,
+    retrospective: retrospectiveDismissed ? null : retrospective,
     recentShared,
     excludeItemIds: focalItem ? [focalItem.item.id] : [],
     suppressPlanningFallback: upcoming.length > 0,
@@ -1159,8 +1262,17 @@ export function TodayPage({
               partnerName={partnerName}
               partnerAvatarUrl={partnerAvatar.avatarUrl}
               loadMemoryImage={loadMemoryImage}
+              onDismissRetrospective={
+                dismissalToken ? dismissRetrospectiveToday : undefined
+              }
             />
           </TodayModuleSection>
+        ) : null}
+
+        {dismissedToken === dismissalToken && dismissalToken ? (
+          <span role="status" className="sr-only">
+            {t('m5s5.today.living.retrospectiveDismissed')}
+          </span>
         ) : null}
 
         {activityQuery.error && relationshipSignalVisible ? (

@@ -7,13 +7,14 @@ stale copied Dashboard record behind.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import date, datetime
+from dataclasses import dataclass, replace
+from datetime import date, datetime, timedelta
 from enum import StrEnum
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import Date, and_, cast, extract, func, or_, select
+from sqlalchemy.orm import InstrumentedAttribute, Session
+from sqlalchemy.sql.elements import ColumnElement
 
 from eimir.attachments.binding import attachments_of_memories
 from eimir.attachments.models import AttachmentStatus
@@ -40,6 +41,7 @@ from eimir.wishes.models import Wish
 SECTION_LIMIT = 8
 MAX_RECOGNITION_TEXT = 160
 KEEPSAKE_SCAN_LIMIT = 50
+RETROSPECTIVE_FALLBACK_MIN_AGE_DAYS = 30
 
 
 class DashboardItemType(StrEnum):
@@ -84,6 +86,7 @@ class DashboardItem:
 @dataclass(frozen=True)
 class DashboardView:
     space_id: UUID
+    viewer_local_date: date
     partner: PartnerSummary | None
     relationship_duration: RelationshipDuration | None
     retrospective: DashboardItem | None
@@ -112,9 +115,10 @@ def read_dashboard(
 
     return DashboardView(
         space_id=authorization.space_id,
+        viewer_local_date=today,
         partner=_partner(session, authorization),
         relationship_duration=_relationship_duration(profile, today),
-        retrospective=_retrospective(session, authorization, today),
+        retrospective=_retrospective(session, authorization, today, account.timezone),
         keepsake=_keepsake(session, authorization),
         upcoming=_upcoming(
             session,
@@ -164,88 +168,161 @@ def _relationship_duration(
     )
 
 
+def _historic_same_day(
+    day: ColumnElement[date] | InstrumentedAttribute[date],
+    today: date,
+) -> ColumnElement[bool]:
+    """Match earlier anniversaries with canonical leap-day observance."""
+    matching_day = extract("day", day) == today.day
+    # Use the same annual-occurrence rule as reminders and important dates:
+    # February 29 is observed on February 28 in a non-leap year, never on
+    # February 28 when this year's February 29 actually exists.
+    observes_leap_day = (
+        today.month == 2 and today.day == 28 and clock.annual_occurrence(today.year, 2, 29) == today
+    )
+    if observes_leap_day:
+        matching_day = or_(matching_day, extract("day", day) == 29)
+    return and_(
+        day < today,
+        extract("month", day) == today.month,
+        matching_day,
+    )
+
+
 def _retrospective(
     session: Session,
     authorization: AuthorizationContext,
     today: date,
+    timezone_name: str,
 ) -> DashboardItem | None:
-    candidates: list[DashboardItem] = []
+    """Select one authorized historical moment for the existing Today slot.
 
-    memories = session.execute(
-        readable(Memory, authorization).where(Memory.happened_on.is_not(None))
-    ).scalars()
-    for memory in memories:
-        if memory.happened_on is not None and _is_prior_same_day(memory.happened_on, today):
-            candidates.append(
+    An exact calendar-day anniversary always wins. On a Space-stable weekday,
+    the oldest shared Memory can fill an otherwise empty day, provided the
+    event is at least thirty days in the past. The projection is read directly
+    from current authorized rows: deletion/permission changes cannot leave
+    persisted copies of relationship content behind.
+    """
+    timezone_name = clock.resolve_zone(timezone_name).key
+    memory_day = func.coalesce(
+        Memory.happened_on,
+        cast(func.timezone(timezone_name, Memory.created_at), Date),
+    )
+    candidates: list[tuple[date, DashboardItem]] = []
+
+    # One candidate per type, selected in PostgreSQL. Loading complete
+    # histories into the API worker on every Dashboard read is unnecessary.
+    memory = session.execute(
+        readable(Memory, authorization)
+        .where(_historic_same_day(memory_day, today))
+        .order_by(memory_day.desc(), Memory.id)
+        .limit(1)
+    ).scalar_one_or_none()
+    if memory is not None:
+        occurred = (
+            memory.happened_on
+            or clock.ensure_utc(memory.created_at)
+            .astimezone(clock.resolve_zone(timezone_name))
+            .date()
+        )
+        candidates.append(
+            (
+                occurred,
                 DashboardItem(
                     type=DashboardItemType.MEMORY,
                     id=memory.id,
                     title_or_text=_bounded(memory.payload.title),
                     occurred_on=memory.happened_on,
-                )
+                    created_at=memory.created_at,
+                ),
             )
+        )
 
-    milestones = session.execute(readable(Milestone, authorization)).scalars()
-    for milestone in milestones:
-        if _is_prior_same_day(milestone.happened_on, today):
-            candidates.append(
+    milestone = session.execute(
+        readable(Milestone, authorization)
+        .where(_historic_same_day(Milestone.happened_on, today))
+        .order_by(Milestone.happened_on.desc(), Milestone.id)
+        .limit(1)
+    ).scalar_one_or_none()
+    if milestone is not None:
+        candidates.append(
+            (
+                milestone.happened_on,
                 DashboardItem(
                     type=DashboardItemType.MILESTONE,
                     id=milestone.id,
                     title_or_text=_bounded(milestone.payload.title),
                     occurred_on=milestone.happened_on,
-                )
+                ),
             )
-
-    heart_moments = session.execute(
-        readable(HeartMoment, authorization).where(
-            HeartMoment.privacy_class == PrivacyClass.SPACE_SHARED.value
         )
-    ).scalars()
-    for heart_moment in heart_moments:
-        if _is_prior_same_day(heart_moment.happened_on, today):
-            candidates.append(
+
+    heart_moment = session.execute(
+        readable(HeartMoment, authorization)
+        .where(
+            HeartMoment.privacy_class == PrivacyClass.SPACE_SHARED.value,
+            _historic_same_day(HeartMoment.happened_on, today),
+        )
+        .order_by(HeartMoment.happened_on.desc(), HeartMoment.id)
+        .limit(1)
+    ).scalar_one_or_none()
+    if heart_moment is not None:
+        candidates.append(
+            (
+                heart_moment.happened_on,
                 DashboardItem(
                     type=DashboardItemType.HEART_MOMENT,
                     id=heart_moment.id,
                     title_or_text=_bounded(heart_moment.payload.text),
                     occurred_on=heart_moment.happened_on,
-                )
+                ),
             )
+        )
 
-    if not candidates:
-        return None
-    chosen = min(
-        candidates,
-        key=lambda item: (
-            -(item.occurred_on.year if item.occurred_on else 0),
-            item.type.value,
-            str(item.id),
-        ),
-    )
+    if candidates:
+        chosen = min(
+            candidates,
+            key=lambda candidate: (
+                # Prefer an exactly one-year-old Memory over any other
+                # anniversary entry, as required by #452.
+                not (
+                    candidate[1].type == DashboardItemType.MEMORY
+                    and candidate[0].year == today.year - 1
+                ),
+                -candidate[0].toordinal(),
+                candidate[1].type.value,
+                str(candidate[1].id),
+            ),
+        )[1]
+    else:
+        # A quiet fallback, not an always-on filler card: exactly one weekday
+        # per Space, independent of the viewer's Account or client platform.
+        if today.weekday() != authorization.space_id.int % 7:
+            return None
+
+        oldest = session.execute(
+            readable(Memory, authorization)
+            .where(memory_day < today - timedelta(days=RETROSPECTIVE_FALLBACK_MIN_AGE_DAYS))
+            .order_by(memory_day, Memory.id)
+            .limit(1)
+        ).scalar_one_or_none()
+        if oldest is None:
+            return None
+        chosen = DashboardItem(
+            type=DashboardItemType.MEMORY,
+            id=oldest.id,
+            title_or_text=_bounded(oldest.payload.title),
+            occurred_on=oldest.happened_on,
+            created_at=oldest.created_at,
+        )
+
     if chosen.type == DashboardItemType.MEMORY:
         galleries = attachments_of_memories(session, [chosen.id])
-        preview_id = None
         for bound in galleries.get(chosen.id, []):
             if bound.attachment.status == AttachmentStatus.READY:
-                preview_id = bound.attachment.id
+                chosen = replace(chosen, preview_attachment_id=bound.attachment.id)
                 break
-        if preview_id is not None:
-            chosen = DashboardItem(
-                type=chosen.type,
-                id=chosen.id,
-                title_or_text=chosen.title_or_text,
-                occurred_on=chosen.occurred_on,
-                scheduled_on=chosen.scheduled_on,
-                scheduled_at=chosen.scheduled_at,
-                created_at=chosen.created_at,
-                preview_attachment_id=preview_id,
-            )
     return chosen
-
-
-def _is_prior_same_day(value: date, today: date) -> bool:
-    return value.year < today.year and (value.month, value.day) == (today.month, today.day)
 
 
 def _keepsake(

@@ -13,10 +13,10 @@ ACTION = ROOT / ".github/actions/attest-release-artifact/action.yml"
 
 EXTERNAL_ACTION_PINS = {
     "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-    "actions/setup-node": "1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a",
+    "actions/setup-node": "949feb2413d6458794dcd2491c4babbbce0c15c1",
     "actions/setup-java": "de7274f081f381c8f8158605e0321c36c376e2e6",
     "gradle/actions/setup-gradle": "9c971963bec38e04b3d30dcc455b5382be2fdbfb",
-    "actions/upload-artifact": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+    "actions/upload-artifact": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
     "actions/download-artifact": "634f93cb2916e3fdff6788551b99b062d0335ce0",
     "actions/attest-build-provenance": "977bb373ede98d70efdf65b84cb5f73e068dcc2a",
     "actions/attest-sbom": "4651f806c01d8637787e274ac3bdf724ef169f34",
@@ -194,7 +194,7 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
 
     def test_jdk_version_and_wrapper_jar_are_pinned(self) -> None:
         self.assertIn('java-version: "21"', self.workflow)
-        self.assertIn("ad16bca46cb71bb5887c546860d93992aeee35c1fdaf4a242b0a612375d937e0", self.workflow)
+        self.assertIn("3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98", self.workflow)
         self.assertIn('node-version: "24.21.0"', self.workflow)
 
     def test_capacitor_wrapper_and_web_bundle_integration(self) -> None:

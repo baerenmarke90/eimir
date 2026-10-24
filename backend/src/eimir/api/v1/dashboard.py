@@ -63,6 +63,8 @@ class DashboardView(ApiModel):
     recent_shared: list[DashboardItem]
     shared_story_summary: DashboardSharedStorySummary
     thinking_of_you_available_at: datetime | None
+    # Additive contract: current servers return a day; older deployments omit it.
+    viewer_local_date: date | None = None
 
 
 class DashboardModulePreferenceUpdate(ApiModel):
@@ -163,6 +165,7 @@ def get_dashboard(
             milestones=shared_story_counts.milestones,
         ),
         thinking_of_you_available_at=view.thinking_of_you_available_at,
+        viewer_local_date=view.viewer_local_date,
     )
 
 

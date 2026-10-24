@@ -5,6 +5,8 @@ import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
 
 public class MainActivity extends BridgeActivity {
+    private static volatile boolean foreground;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // The constant-false branch disappears from normal release bytecode.
@@ -17,9 +19,26 @@ public class MainActivity extends BridgeActivity {
                 throw new IllegalStateException("Sideload update adapter is missing", error);
             }
         }
+        registerPlugin(UnifiedPushBridge.class);
         registerPlugin(AppIconPlugin.class);
         registerPlugin(NativeSessionStoragePlugin.class);
         super.onCreate(savedInstanceState);
         LegacyNativeDataCleanup.run(this);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        foreground = true;
+    }
+
+    @Override
+    public void onPause() {
+        foreground = false;
+        super.onPause();
+    }
+
+    static boolean isForeground() {
+        return foreground;
     }
 }

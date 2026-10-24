@@ -1,9 +1,9 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import demoDe from '../../src/i18n/locales/demo';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -220,7 +220,13 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
 
   test('stays logged out after user sign-out followed by real page reload', async ({
     page,
-  }) => {
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    let releaseSignOut: (() => void) | undefined;
+    const signOutGate = new Promise<void>((resolve) => {
+      releaseSignOut = resolve;
+    });
+    let signOutRequests = 0;
     await page.route('**/api/v1/**', async (route) => {
       if (await fulfillDefaultAppIcon(route)) return;
       const request = route.request();
@@ -318,6 +324,11 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
       }
 
       if (method === 'POST' && pathname === '/api/v1/auth/sign-out') {
+        expect(request.headers().authorization).toBe(
+          'Bearer session-access-token',
+        );
+        signOutRequests += 1;
+        await signOutGate;
         await fulfillJson({}, 204);
         return;
       }
@@ -349,7 +360,23 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     const logoutButton = page.getByRole('button', { name: de.header.logout });
     await logoutButton.click();
 
-    // 3. Confirm login screen is visible
+    // Remote cleanup still owns the original credentials and document.
+    await expect.poll(() => signOutRequests).toBe(1);
+    await expect(page.getByRole('status')).toContainText(de.header.logout);
+    await expect(
+      page.getByRole('heading', { name: m5s5.today.headerTitle, level: 1 }),
+    ).not.toBeVisible();
+    await expect(page).toHaveURL(/\/today$/);
+    expect(
+      await page.evaluate(() => sessionStorage.getItem('eimir-session-v1')),
+    ).not.toBeNull();
+    await page.screenshot({
+      path: testInfo.outputPath('sign-out-pending-390.png'),
+    });
+    releaseSignOut?.();
+
+    // 3. Wait for AppShell's document navigation before observing public entry.
+    await page.waitForURL((url) => url.pathname === '/', { waitUntil: 'load' });
     await expect(page.getByLabel(de.login.email)).toBeVisible({
       timeout: 10000,
     });

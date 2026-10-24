@@ -1,0 +1,31 @@
+  Active Ordered Broadcast background #55:
+    BroadcastRecord{e7b901d u0 org.unifiedpush.android.distributor.REGISTER} to user 0
+    Intent { act=org.unifiedpush.android.distributor.REGISTER flg=0x10 pkg=de.sidebyside.app.debug.test (has extras) }
+    caller=de.sidebyside.app.debug 0:de.sidebyside.app.debug/u0a88 pid=3073 uid=10088
+    enqueueClockTime=2026-10-20 21:17:40 dispatchClockTime=1970-01-01 01:00:00
+    dispatchTime=-- (-20746d19h17m40s582ms since enq) receiverTime=--
+    Pending #0: (manifest)
+      priority=0 preferredOrder=0 match=0x108000 specificIndex=-1 isDefault=false
+      ActivityInfo:
+        name=de.eimir.app.TestPushDistributor
+        packageName=de.sidebyside.app.debug.test
+        enabled=true exported=true directBootAware=false
+        resizeMode=RESIZE_MODE_RESIZEABLE
+  Active Ordered Broadcast background #19:
+    BroadcastRecord{c6e6dd8 u0 org.unifiedpush.android.distributor.REGISTER} to user 0
+    Intent { act=org.unifiedpush.android.distributor.REGISTER flg=0x10 pkg=de.sidebyside.app.debug.test (has extras) }
+    caller=de.sidebyside.app.debug 0:de.sidebyside.app.debug/u0a88 pid=3073 uid=10088
+    enqueueClockTime=2026-10-20 21:16:35 dispatchClockTime=1970-01-01 01:00:00
+    dispatchTime=-- (-20746d19h16m35s185ms since enq) receiverTime=--
+    Pending #0: (manifest)
+      priority=0 preferredOrder=0 match=0x108000 specificIndex=-1 isDefault=false
+      ActivityInfo:
+        name=de.eimir.app.TestPushDistributor
+        packageName=de.sidebyside.app.debug.test
+        enabled=true exported=true directBootAware=false
+        resizeMode=RESIZE_MODE_RESIZEABLE
+
+Concurrent occupied background broadcast (extras omitted):
+  #78: act=com.android.mail.ACTION_NOTIFY_DATASET_CHANGED typ=application/gm-email-ls flg=0x10 pkg=com.google.android.gm (has extras)
+    +1m12s646ms dispatch +40s90ms finish
+    enq=2026-10-20 21:15:41 disp=2026-10-20 21:16:54 fin=2026-10-20 21:17:34

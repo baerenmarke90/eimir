@@ -160,7 +160,9 @@ def test_dashboard_is_shared_only_and_private_no_store(
         "recentShared",
         "sharedStorySummary",
         "thinkingOfYouAvailableAt",
+        "viewerLocalDate",
     }
+    assert body["viewerLocalDate"] == "2026-08-30"
 
 
 def test_relationship_duration_uses_callers_calendar_day_and_can_be_disabled(

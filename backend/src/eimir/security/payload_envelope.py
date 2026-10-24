@@ -43,7 +43,7 @@ MARKER: Final = "_enc"
 _NONCE_LENGTH = 12
 _PAYLOAD_DOMAIN = b"eimir.payload.v2\x00"
 _WRAP_DOMAIN = b"eimir.payload.wrap.v2\x00"
-_ENVELOPE_KEYS = frozenset({MARKER, "kid", "wk", "n", "ct"})
+ENVELOPE_KEYS = frozenset({MARKER, "kid", "wk", "n", "ct"})
 
 
 def _b64(value: bytes) -> str:
@@ -166,7 +166,7 @@ class PayloadProtector:
         return {**stored, "kid": key_id, "wk": _b64(wrapped)}
 
     def _unwrap(self, stored: dict[str, Any], context: str) -> bytes:
-        if set(stored) != _ENVELOPE_KEYS or stored[MARKER] != CRYPTO_VERSION_SERVER_AEAD:
+        if set(stored) != ENVELOPE_KEYS or stored[MARKER] != CRYPTO_VERSION_SERVER_AEAD:
             raise DecryptionError("Encrypted payload uses an unsupported format.")
         key_id = stored.get("kid")
         if not isinstance(key_id, str):

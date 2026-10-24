@@ -15,6 +15,7 @@ import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
 import { isDemoModeConfigured } from '../client/demoMode';
+import type { DevicePushController } from '../client/unifiedPush';
 import {
   appUpdatesAvailable,
   type AppUpdatesAdapter,
@@ -55,6 +56,7 @@ export interface SettingsPageProps {
   account: AccountView;
   spaceId: string;
   updatesAdapter?: AppUpdatesAdapter;
+  devicePush?: DevicePushController;
 }
 
 export function SettingsPage(props: SettingsPageProps) {
@@ -158,6 +160,7 @@ export function SettingsPage(props: SettingsPageProps) {
         <NotificationSettingsPanel
           notificationsApi={notificationsApi}
           accountId={props.account.id}
+          devicePush={props.devicePush}
         />
         <AnniversaryReminderSettings
           rulesApi={rulesApi}

@@ -371,7 +371,25 @@ No command prints or logs content. Run with the API environment:
 python -m eimir.security status            # counts per table: crypto_version, key ids, inconsistencies
 python -m eimir.security verify-payloads   # authenticates and schema-validates every row; non-zero on any failure
 python -m eimir.security verify-media      # authenticates every referenced object end to end
+python -m eimir.security audit-raw         # key-less: is anything persisted that is not ciphertext?
 ```
+
+`audit-raw` is the scripted version of the raw inspection below and needs no key material,
+so it can run from a host that must never hold the keys. It reads the stored form exactly
+as a dump or a bucket snapshot would expose it and prints counts only:
+
+- every protected row must be a JSON object holding exactly the five envelope keys
+  (`_enc`, `kid`, `wk`, `n`, `ct`) with `crypto_version = 2`; legacy plaintext, a scalar,
+  extra keys next to an envelope, or a scheme that disagrees with the column count as
+  `not_enveloped`;
+- referenced media objects are fetched from the provider adapter *without* the
+  encrypting wrapper and must start with the `EIMIRENC` header. `--media-sample N`
+  (default 200, `0` = all) bounds how many objects are inspected; each one is fetched
+  once, so a full pass over a large bucket costs egress and time.
+
+It exits non-zero when any plaintext is found. It proves the *form* of what is stored; it
+does not authenticate content (that is `verify-payloads` / `verify-media`, which need the
+keys) and it cannot see objects that no attachment row references.
 
 Raw inspection without keys (expect envelopes only, no titles, bodies, or text):
 
@@ -384,6 +402,21 @@ SELECT count(*) FROM pg_indexes WHERE indexname LIKE '%\_search\_fts';   -- 0
 For the bucket, fetch any object and confirm it starts with the `EIMIRENC` magic and
 does not equal, nor contain, the original bytes.
 
+### Continuous verification in CI
+
+The default CI lanes run with `EIMIR_ENCRYPTION_AT_REST=disabled`, the test and
+development default. The `Backend Encrypted Mode` workflow
+(`.github/workflows/backend-encrypted.yml`) runs the complete backend suite, unit and
+integration, with `required` and keys generated for that run only
+(`tools/ci/encryption_test_keys.py`; no key value exists in the repository). It runs
+nightly, on demand, and on pull requests that touch the encryption, media, or
+configuration code.
+
+It is **not** a required status check: a failure shows as a red run and must be
+triaged, never hidden with `continue-on-error`. Promote it to a required check once it
+has been stable for a representative period. Known failures at the time it was
+introduced are recorded in the pull request that added it.
+
 ## 15. Commands
 
 | Command | Effect |
@@ -392,5 +425,42 @@ does not equal, nor contain, the original bytes.
 | `migrate-payloads` / `migrate-media` | Encrypt legacy plaintext; idempotent, resumable |
 | `rewrap-payloads` / `rewrap-media` | Re-wrap DEKs under the active KEK |
 | `verify-payloads` / `verify-media` | End-to-end authentication; non-zero on failure |
+| `audit-raw [--media-sample N]` | Key-less, read-only check that stored rows and sampled objects are ciphertext; counts only; non-zero on any plaintext |
 
 All are invoked as `python -m eimir.security <command>`.
+
+## 16. Acceptance status of #797
+
+This section records, against the repository state, which acceptance criteria of
+[#797](https://github.com/baerenmarke90/eimir/issues/797) hold. The implementation
+landed in PR #1177; the issue deliberately stays open until the items below are closed.
+Cloud/Managed is not certified by the G5 decision (`docs/m6/G5-GATE-REVIEW-2026-09-20-V0.1.2.md`)
+and must not go live before this table is satisfied or each open row has an explicit
+Product Owner decision.
+
+| Acceptance criterion | Status | Evidence / remaining work |
+|---|---|---|
+| Reviewed ADR defines the architecture | **Open** | Sections 1-15 are the decision record. No human review is recorded yet. |
+| Sensitive database payloads are application-encrypted in Cloud Production | Implemented | `ProtectedPayloadJSON`, `Settings` refuses non-`required` Cloud Production. Not yet observed on a live Cloud deployment. |
+| Cloud media and derived objects are encrypted under eimir.-controlled keys | Implemented | `EncryptingMediaStore` over any `MediaStore` (originals, thumbnails, derived variants, Transfer artifacts). |
+| Provider defaults are not the sole guarantee | Implemented | Section 2; provider SSE is defence in depth only. |
+| Backups and recovery artifacts are encrypted | Implemented by construction; **drill open** | Dumps and object copies hold ciphertext as stored (section 10). No restore drill has been executed against Cloud. |
+| Plaintext migration/cutover is explicit, testable, fail-closed | Implemented | Section 8, `migrate-*`/`verify-*`/`status`, integration tests. Without production user data, a reset instead of a migration is the simpler path. |
+| Key rotation and recovery are documented and tested | Rotation tested; **recovery drill open** | Section 9 and the rotation integration tests. The recovery drill is part of the live verification below. |
+| Raw DB/storage inspection shows ciphertext | Documented as manual steps; **open** | Section 14. A scripted, key-less raw check and a run against a production-like deployment are outstanding. |
+| Authorization, lifecycle, offboarding and deletion guarantees remain intact | Implemented; **CI coverage open** | The whole backend suite was run once in `required` mode (PR #1177). The default CI lanes run `disabled`; a lane that runs the integration suites encrypted is outstanding. |
+| Self-Hosted remains supported | Implemented | Section 4. |
+| No false E2EE claim | Implemented | Section 11 and `docs/SECURITY.md`. |
+
+Product Owner decisions still required before the remaining items can be built:
+
+- **Key custody:** operator-held KEK from the secret store (current) versus a managed
+  KMS/HSM behind `KeyWrapper` (provider, cost, lock-in).
+- **Row binding:** whether the ciphertext must be bound to its row identity
+  (a new scheme number and migration) before Cloud go-live.
+- **Plaintext identity columns:** `profile_preferences.topic`, account and space display
+  names, and e-mail addresses remain outside the `ProtectedPayload` contract.
+
+Deferred by Product Owner decision: the live Cloud verification (section 14 against a
+production-like deployment) and the Disaster Recovery drill (section 10) are run after the
+other items are complete. They remain mandatory before Cloud/Managed go-live.

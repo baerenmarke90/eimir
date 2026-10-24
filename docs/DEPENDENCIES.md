@@ -9,7 +9,7 @@ As of: 2026-09-25
 ## Reproducibility and verification
 
 `backend/uv.lock` is the binding, cross-platform resolution of all direct and
-transitive Python dependencies. The uv version `0.12.15`, Python `3.14.6`, the
+transitive Python dependencies. The uv version `0.12.15`, Python `3.14.8`, the
 build backend, and the Python container image are pinned exactly. CI and
 container installations run exclusively in frozen/locked mode;
 `uv lock --check` prevents a stale lock file.
@@ -29,8 +29,8 @@ are development-only and are never shipped with the production Web bundle.
 
 The Android application is the Capacitor wrapper in `android/` around the
 canonical Web bundle (ADR 0011). Its release CI evidence pins JDK 21, Gradle
-8.14.6 (wrapper distribution and wrapper-JAR SHA-256), Android Gradle Plugin
-8.13.0, compileSdk 36, and Build Tools 36.0.0, and resolves every Gradle
+9.8.1 (wrapper distribution and wrapper-JAR SHA-256), Android Gradle Plugin
+9.4.0, compileSdk 36, and Build Tools 36.0.0, and resolves every Gradle
 artifact under `--dependency-verification strict` against
 `android/gradle/verification-metadata.xml`. The toolchain and direct dependency
 selection therefore do not depend on local Android Studio defaults.
@@ -134,7 +134,7 @@ in a background job under resource limits — never in the request path.
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
 | pywebpush | 2.5.0 | PyPI | MPL-2.0 |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
-| pillow | 12.3.0 | PyPI | MIT-CMU |
+| pillow | 13.0.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |
 
 ## Backend — Development
@@ -153,7 +153,7 @@ in a background job under resource limits — never in the request path.
 | Package | Version | Source | License |
 |---|---|---|---|
 | @tanstack/react-query | 5.102.2 | npm | MIT |
-| i18next | 26.4.0 | npm | MIT |
+| i18next | 26.4.6 | npm | MIT |
 | react-i18next | 17.0.11 | npm | MIT |
 | react | 19.2.8 | npm | MIT |
 | react-dom | 19.2.8 | npm | MIT |
@@ -166,9 +166,18 @@ in a background job under resource limits — never in the request path.
 | @types/react | 19.2.18 | npm | MIT |
 | @types/react-dom | 19.2.5 | npm | MIT |
 | @types/node | 24.19.1 | npm | MIT |
-| typescript | 5.9.2 | npm | Apache-2.0 |
-| vite | 8.2.2 | npm | MIT |
+| typescript | 7.0.2 | npm | Apache-2.0 |
+| rolldown | 1.2.14 | npm | MIT |
+| vite | 8.2.4 | npm | MIT |
 | vitest | 5.0.4 | npm | MIT |
+
+### TypeScript 7 and the i18n key check
+
+TypeScript 7 no longer ships the JavaScript compiler API, which `web/src/i18n/i18n.test.ts` used to
+collect static translation keys. The test now parses TS/TSX with `parseSync` from `rolldown/utils`
+(oxc). `rolldown` is already installed through Vite 8; it is declared as an explicit exact-pinned
+development dependency so the test does not rely on a transitive package. The extracted keys were
+compared with the previous compiler-API result over all 262 sources (2450 keys, identical lines).
 
 ### October 2026 audit maintenance
 
@@ -176,6 +185,15 @@ The lock refresh updates PyJWT to 2.15.1 and Alembic's transitive Mako to
 1.4.3. PyJWT's declared minimum also prevents restoring the vulnerable
 verification dependency during a future resolution. Both remain existing MIT
 dependencies; no authentication provider, algorithm policy or migration is added.
+
+Vite is pinned to 8.2.4, the patched 8.2 release for the upstream bundled
+`launch-editor` advisories
+[GHSA-698v-4r3x-3vcv](https://github.com/vitejs/launch-editor/security/advisories/GHSA-698v-4r3x-3vcv),
+[GHSA-r825-w8mm-5pxw](https://github.com/vitejs/launch-editor/security/advisories/GHSA-r825-w8mm-5pxw), and
+[GHSA-587h-7wmj-h5pm](https://github.com/vitejs/launch-editor/security/advisories/GHSA-587h-7wmj-h5pm).
+This keeps the existing minor line and dependency ranges; it introduces no
+provider, runtime feature or audit exception. The normal build, token, PWA and
+Capacitor foundation checks validate the patched toolchain.
 
 The Vitest 5.0.4 upgrade follows the prior 4.1.11 security refresh.
 Its updated matcher augmentation preserves the custom focus assertion and
@@ -230,40 +248,44 @@ registry or uses a hoster-controlled mirror.
 
 ## Android — Capacitor wrapper runtime
 
-The Android Gradle project in `android/` contains no product UI code. Product
+The Android Gradle project in `android/` contains no product UI screens. Product
 screens are the React application from `web/`, packaged as a local asset
-bundle. Capacitor plugin versions are pinned exactly in `web/package.json` and
-locked in `web/package-lock.json`; the Gradle modules below are resolved from
-`web/node_modules` by `npx cap sync android`.
+bundle. A small native bridge handles UnifiedPush registration, wake events,
+and content-free system notifications. Capacitor plugin versions are pinned
+exactly in `web/package.json` and locked in `web/package-lock.json`; the Gradle
+modules below are resolved from `web/node_modules` by `npx cap sync android`.
 
 | Package / platform component | Version | Source | License |
 |---|---|---|---|
 | @capacitor/android (native bridge) | 8.5.2 | npm | MIT |
 | @capacitor/app | 8.1.1 | npm | MIT |
 | @capacitor/browser | 8.0.4 | npm | MIT |
+| org.unifiedpush.android:connector | 3.3.3 | Maven Central | Apache-2.0 |
 | androidx.appcompat:appcompat | 1.7.1 | Google Maven | Apache-2.0 |
 | androidx.coordinatorlayout:coordinatorlayout | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.core:core-splashscreen | 1.2.0 | Google Maven | Apache-2.0 |
 | Apache Cordova Android framework (Capacitor plugin compatibility layer) | 14.0.1 | Maven Central | Apache-2.0 |
 
-The wrapper adds **no** Room, WorkManager, Kotlin, or Compose dependency. It
+The wrapper adds **no** direct Room, WorkManager, Kotlin, or Compose dependency. It
 holds no independent product state: cache and read models live in the Web client.
 The current Android session envelope is retained in app-private no-backup storage
 using Android Keystore, standard AES/GCM and AtomicFile through the bounded
 `NativeSessionStorage` Capacitor adapter (#1357). No dependency is added. Web/PWA
 credentials remain sessionStorage-only, and the existing Web session facade owns
 credential rotation, logout and expiry.
+The UnifiedPush bridge remembers only the active Account ID for distributor
+callbacks; the authenticated Web client registers and revokes the server endpoint.
 The former native read cache and its Keystore key belonged to the retired,
 non-authoritative Kotlin client and are not part of server data continuity.
 `google-services.json` is intentionally absent, so the Google Services plugin
-stays inactive until a push-notification slice adds Firebase.
+stays inactive until a separate Firebase slice is configured.
 
 ## Android — Wrapper test and build
 
 | Package / tool | Version | Source | License |
 |---|---|---|---|
-| Android Gradle Plugin | 8.13.0 | Google Maven | Apache-2.0 |
-| Gradle | 8.14.6 | gradle.org / CI setup-gradle | Apache-2.0 |
+| Android Gradle Plugin | 9.4.0 | Google Maven | Apache-2.0 |
+| Gradle | 9.8.1 | gradle.org / CI setup-gradle | Apache-2.0 |
 | Google Services Gradle Plugin (inactive without `google-services.json`) | 4.5.0 | Google Maven | Apache-2.0 |
 | JUnit 4 | 4.13.2 | Maven Central | EPL-1.0 |
 | JSON-java (sideload host parser tests only; excluded from APKs) | 20250517 | Maven Central / stleary/JSON-java | Public Domain |
@@ -279,7 +301,7 @@ pinned to commit SHAs.
 
 | Image | Version | Source | License |
 |---|---|---|---|
-| python | 3.14.6-slim@sha256:7bec7ddcddeff7975d6ba9b4be7dd6f6b2f55e7491539145e2978f7f97ce9144 | Docker Hub | PSF-2.0 (Python), Debian packages under their respective licenses |
+| python | 3.14.8-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 | Docker Hub | PSF-2.0 (Python), Debian packages under their respective licenses |
 | postgres | 17-alpine | Docker Hub | PostgreSQL License |
 | node | 26.6.0-bookworm-slim@sha256:81502e860176e63695d769d3d1a2d3a403abc1c27c6a02169b765f3e43b60ede | Docker Hub | MIT (Node.js), Debian packages under their respective licenses |
 

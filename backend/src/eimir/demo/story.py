@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, timedelta
 from typing import Literal
 
 DemoPersona = Literal["lea", "alex"]
@@ -17,8 +18,28 @@ class MemoryStory:
     owner: DemoPersona
     title: str
     body: str
-    days_ago: int
+    days_ago: int | None
     asset_ids: tuple[str, ...]
+    calendar_years_ago: int | None = None
+
+    def date_at(self, reference_date: date) -> date:
+        """Preserve true annual anniversaries rather than assuming 365 days."""
+        if (self.days_ago is None) == (self.calendar_years_ago is None):
+            raise ValueError("Exactly one Demo Memory date offset is required.")
+        if self.days_ago is not None:
+            return reference_date - timedelta(days=self.days_ago)
+
+        years = self.calendar_years_ago
+        if years is None or years < 1:
+            raise ValueError("Demo Memory calendar years must be positive.")
+        target_year = reference_date.year - years
+        try:
+            return reference_date.replace(year=target_year)
+        except ValueError:
+            if reference_date.month == 2 and reference_date.day == 29:
+                # No February 29 in the earlier year: seed its Feb 28 observance.
+                return date(target_year, 2, 28)
+            raise
 
 
 @dataclass(frozen=True)
@@ -34,6 +55,30 @@ class ChapterStory:
 
 
 MEMORIES: tuple[MemoryStory, ...] = (
+    MemoryStory(
+        key="first-evening-together",
+        owner="lea",
+        title="Unser erster Abend am Wasser",
+        body=(
+            "Drei Jahre später wissen wir noch genau, wie wir dort saßen: "
+            "ohne großes Programm, mit viel Zeit füreinander."
+        ),
+        days_ago=None,
+        calendar_years_ago=3,
+        asset_ids=(),
+    ),
+    MemoryStory(
+        key="lake-one-year-ago",
+        owner="alex",
+        title="Dieser Tag am See",
+        body=(
+            "Vor einem Jahr haben wir am See Kaffee getrunken und uns "
+            "vorgenommen, viel öfter einfach loszufahren."
+        ),
+        days_ago=None,
+        calendar_years_ago=1,
+        asset_ids=("memory-lake",),
+    ),
     MemoryStory(
         key="breakfast-saarbruecken",
         owner="lea",

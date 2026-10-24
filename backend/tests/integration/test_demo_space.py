@@ -354,8 +354,8 @@ def test_reset_replaces_only_verified_demo_space(session: Session) -> None:
     result = _seed(session)
     old_space_id = result.space_id
     canonical_media = _canonical_memory_media(session, old_space_id)
-    assert len(canonical_media) == 13
-    assert sum(len(filenames) for filenames in canonical_media.values()) == 11
+    assert len(canonical_media) == 15
+    assert sum(len(filenames) for filenames in canonical_media.values()) == 12
 
     old_attachments = list(
         session.execute(select(Attachment).where(Attachment.space_id == old_space_id)).scalars()
@@ -435,7 +435,7 @@ def test_reset_replaces_only_verified_demo_space(session: Session) -> None:
     restored_attachments = list(
         session.execute(select(Attachment).where(Attachment.space_id == reset.space_id)).scalars()
     )
-    assert len(restored_attachments) == 12
+    assert len(restored_attachments) == 13
     assert len({attachment.payload.original_name for attachment in restored_attachments}) == 12
     assert _canonical_memory_media(session, reset.space_id) == canonical_media
 

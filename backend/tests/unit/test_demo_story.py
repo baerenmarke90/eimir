@@ -23,9 +23,7 @@ def test_anniversary_seed_uses_calendar_years_including_leap_boundaries() -> Non
 
 
 def test_existing_relative_demo_stories_retain_day_offsets() -> None:
-    assert _memory("breakfast-saarbruecken").date_at(date(2026, 8, 24)) == date(
-        2026, 2, 9
-    )
+    assert _memory("breakfast-saarbruecken").date_at(date(2026, 8, 24)) == date(2026, 2, 9)
 
 
 @pytest.mark.parametrize(

@@ -237,7 +237,9 @@ def test_canonical_demo_retrospective_has_annual_photo_and_text_only_first_memor
 ) -> None:
     """Exercise the real authorized #452 selector against seeded Lea/Alex data."""
     result = _seed(session)
-    memories = list(session.execute(select(Memory).where(Memory.space_id == result.space_id)).scalars())
+    memories = list(
+        session.execute(select(Memory).where(Memory.space_id == result.space_id)).scalars()
+    )
     by_title = {memory.payload.title: memory for memory in memories}
     anniversary = by_title["Dieser Tag am See"]
     first_memory = by_title["Unser erster Abend am Wasser"]

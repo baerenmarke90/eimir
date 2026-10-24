@@ -27,8 +27,7 @@ export function StoryRetrospective({
   const path = dashboardItemPath(item.type, item.id);
   if (!path) return null;
 
-  const attachmentId =
-    item.type === 'MEMORY' ? item.previewAttachmentId : null;
+  const attachmentId = item.type === 'MEMORY' ? item.previewAttachmentId : null;
   const date = item.occurredOn ?? item.createdAt ?? null;
   const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
 
@@ -39,7 +38,10 @@ export function StoryRetrospective({
     >
       <div className="momente-section-header">
         <div>
-          <h3 id="momente-retrospective-heading" className="momente-section-title">
+          <h3
+            id="momente-retrospective-heading"
+            className="momente-section-title"
+          >
             {t('story.retrospectiveHeading')}
           </h3>
           <p className="momente-section-subhead">

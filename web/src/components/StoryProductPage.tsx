@@ -14,6 +14,7 @@ import {
   useNavigate,
   useSearchParams,
 } from 'react-router-dom';
+import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
@@ -32,6 +33,7 @@ import {
   DiscoverSelectionFromJSON,
   DiscoverSelectionToJSON,
 } from '../api/generated/models/DiscoverSelection';
+import { dashboardQueryKey } from '../client/dashboardQueries';
 import { normalizeClientError } from '../client/problemDetails';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { usePartnerNickname } from '../client/partnerNickname';
@@ -65,6 +67,7 @@ import { ProblemState } from './ProblemState';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryBrowseLayer } from './StoryBrowseLayer';
+import { StoryRetrospective } from './StoryRetrospective';
 import { StoryList } from './StoryList';
 import './StoryDiscoverReveal.css';
 import './StoryTaskFilters.css';
@@ -221,6 +224,7 @@ export function StoryProductPage({
   spaceId,
   loadMemoryImage,
   profilesApi,
+  dashboardApi,
 }: {
   apis: ReferenceApis;
   accountId: string;
@@ -231,6 +235,7 @@ export function StoryProductPage({
     signal?: AbortSignal,
   ) => Promise<string>;
   profilesApi?: ProfilesApi;
+  dashboardApi?: DashboardApi;
 }) {
   const { t } = useTranslation();
   const { nicknameFor } = usePartnerNickname();
@@ -335,6 +340,21 @@ export function StoryProductPage({
     enabled: activeView === 'discover',
     retry: false,
   });
+  // Reuse Today's authorized #452 candidate and its canonical Query key.
+  // Never manufacture a nostalgic Memory from the viewer's Story items.
+  const retrospectiveQuery = useQuery({
+    queryKey: dashboardQueryKey(spaceId),
+    queryFn: async () => {
+      if (!dashboardApi) throw new Error('Dashboard API unavailable.');
+      try {
+        return await dashboardApi.getDashboard({ spaceId });
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    enabled: activeView === 'discover' && Boolean(dashboardApi),
+    retry: false,
+  });
 
   const [paginationGeneration, setPaginationGeneration] = useState(0);
   const pullRefresh = usePullToRefresh({
@@ -349,6 +369,8 @@ export function StoryProductPage({
         if (!result.isError) {
           setPaginationGeneration((generation) => generation + 1);
         }
+      } else if (dashboardApi) {
+        await Promise.all([discoverQuery.refetch(), retrospectiveQuery.refetch()]);
       } else {
         await discoverQuery.refetch();
       }
@@ -547,6 +569,29 @@ export function StoryProductPage({
   const featuredItem = discoverQuery.data?.value.lead ?? null;
   const leadContext = discoverQuery.data?.value.leadContext ?? null;
   const locale = resolvedLocale();
+  // A cached Discover selection from another account-day must never be
+  // paired with a new Dashboard day or presented as today's retrospective.
+  const sameSelectionDay =
+    discoverQuery.data?.value.selectionDate?.getTime() ===
+    retrospectiveQuery.data?.viewerLocalDate?.getTime();
+  const retrospective = sameSelectionDay
+    ? retrospectiveQuery.data?.retrospective ?? null
+    : null;
+  const featuredId = featuredItem
+    ? featuredItem.kind === 'MEMORY'
+      ? featuredItem.memory.id
+      : featuredItem.kind === 'HEART_MOMENT'
+        ? featuredItem.heartMoment.id
+        : featuredItem.milestone.id
+    : null;
+  const visibleRetrospective =
+    retrospective &&
+    (retrospective.type === 'MEMORY' ||
+      retrospective.type === 'HEART_MOMENT' ||
+      retrospective.type === 'MILESTONE') &&
+    !(featuredItem?.kind === retrospective.type && featuredId === retrospective.id)
+      ? retrospective
+      : null;
 
   const timelineMonthGroups = useMemo(
     () => groupStoryItems(timelineItems, locale),
@@ -903,6 +948,14 @@ export function StoryProductPage({
                 </div>
               </Link>
             </article>
+          ) : null}
+
+          {visibleRetrospective ? (
+            <StoryRetrospective
+              item={visibleRetrospective}
+              loadMemoryImage={loadMemoryImage}
+              onOpen={openDiscoverItem}
+            />
           ) : null}
 
           {/* 2. Keepsake / Editorial Tapestry — an asymmetric mixed archive,

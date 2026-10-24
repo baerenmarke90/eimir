@@ -149,7 +149,9 @@ def test_create_is_idempotent_and_representative(session: Session) -> None:
     attachments = list(
         session.execute(select(Attachment).where(Attachment.space_id == first.space_id)).scalars()
     )
-    assert len(attachments) == 12
+    # The anniversary imports the same curated lake image into a different
+    # Memory, so attachment identities are distinct while source names repeat.
+    assert len(attachments) == 13
     assert {attachment.status for attachment in attachments} == {AttachmentStatus.READY.value}
 
     assert len({attachment.payload.original_name for attachment in attachments}) == 12

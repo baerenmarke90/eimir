@@ -134,8 +134,14 @@ describe('Momente retrospective integration (#601)', () => {
       selectionDate,
       dashboard: { ...dashboard, retrospective: null },
     });
+    const missingCalendarContext = renderStoryPage(
+      '/story?tab=discover',
+      discover,
+      { dashboard: { retrospective } },
+    );
     expect(stale).not.toContain('momente-retrospective');
     expect(absent).not.toContain('momente-retrospective');
+    expect(missingCalendarContext).not.toContain('momente-retrospective');
     expect(stale).toContain('Unser aktueller Moment');
     expect(absent).toContain('Unser aktueller Moment');
   });

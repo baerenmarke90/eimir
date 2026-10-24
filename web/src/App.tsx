@@ -57,8 +57,8 @@ import {
 import { loadInstanceAccessStatus } from './client/instanceStatus';
 import {
   stopNativePushForSignedOutAccount,
-  useUnifiedPush,
-} from './client/unifiedPush';
+  useDevicePush,
+} from './client/devicePush';
 import { signOutSession } from './client/signOutSession';
 import { createServerAdminApis } from './client/serverAdmin';
 import {
@@ -268,7 +268,7 @@ function AuthenticatedApp({
     () => createM4ProductApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
   );
-  const devicePush = useUnifiedPush({
+  const devicePush = useDevicePush({
     accountId: account.id,
     apiBaseUrl,
     notificationsApi: m4Apis.notifications,

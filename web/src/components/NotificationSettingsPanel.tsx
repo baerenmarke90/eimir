@@ -8,7 +8,7 @@ import { NotificationKind } from '../api/generated/models/NotificationKind';
 import type { NotificationPreferencesView } from '../api/generated/models/NotificationPreferencesView';
 import { normalizeClientError } from '../client/problemDetails';
 import { settingsCategoryPath } from '../client/routes';
-import type { DevicePushController } from '../client/unifiedPush';
+import type { DevicePushController } from '../client/devicePush';
 import { useTranslation } from '../i18n';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';

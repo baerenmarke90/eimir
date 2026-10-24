@@ -36,6 +36,7 @@ dependencies = [
     # HEIC/HEIF steht in der M2-D04-Allowlist und ist ohne libheif nicht
     # zu dekodieren. Registriert sich als Plugin in Pillow.
     "pillow-heif>=1.1",
+    "google-auth[requests]>=2.62,<3",
 ]
 
 [dependency-groups]

@@ -46,8 +46,8 @@ for (const retired of [
 // 1. Check web/capacitor.config.ts
 const capConfig = readWeb('capacitor.config.ts');
 assert(
-  capConfig.includes("appId: 'de.sidebyside.app'"),
-  "capacitor.config.ts must set appId to 'de.sidebyside.app'",
+  capConfig.includes("appId: 'de.eimir.app'"),
+  "capacitor.config.ts must set appId to 'de.eimir.app'",
 );
 assert(
   capConfig.includes("appName: 'eimir.'"),
@@ -126,9 +126,9 @@ assert(
   "android/app/build.gradle must set namespace to 'de.eimir.app'",
 );
 assert(
-  buildGradle.includes('applicationId "de.sidebyside.app"') ||
-    buildGradle.includes("applicationId 'de.sidebyside.app'"),
-  "android/app/build.gradle must set base applicationId to 'de.sidebyside.app'",
+  buildGradle.includes('applicationId "de.eimir.app"') ||
+    buildGradle.includes("applicationId 'de.eimir.app'"),
+  "android/app/build.gradle must set base applicationId to 'de.eimir.app'",
 );
 assert(
   buildGradle.includes('applicationIdSuffix ".debug"') ||
@@ -151,10 +151,10 @@ assert(
   'AndroidManifest.xml must declare MainActivity',
 );
 assert(
-  manifest.includes('android:scheme="de.sidebyside.app"') &&
+  manifest.includes('android:scheme="de.eimir.app"') &&
     manifest.includes('android:host="recent-authentication"') &&
     manifest.includes('android:path="/oidc"'),
-  'AndroidManifest.xml must preserve recent-authentication OIDC callback intent filter (de.sidebyside.app://recent-authentication/oidc)',
+  'AndroidManifest.xml must preserve recent-authentication OIDC callback intent filter (de.eimir.app://recent-authentication/oidc)',
 );
 
 // 5. Check MainActivity.java package
@@ -173,8 +173,8 @@ assert(
   'strings.xml must set app_name to "eimir."',
 );
 assert(
-  stringsXml.includes('<string name="package_name">de.sidebyside.app</string>'),
-  'strings.xml must set package_name to "de.sidebyside.app"',
+  stringsXml.includes('<string name="package_name">de.eimir.app</string>'),
+  'strings.xml must set package_name to "de.eimir.app"',
 );
 
 console.log('✅ Capacitor foundation checks passed.');

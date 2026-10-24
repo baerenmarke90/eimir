@@ -87,6 +87,43 @@ instead of the original private text. A notification can appear on a locked
 screen that other people may see — possibly the partner for whom a surprise is
 intended.
 
+### Device push delivery (#565)
+
+Device push is off until the person activates it in notification settings and
+grants the OS permission. That screen discloses that the delivery provider gets
+an installation identifier and connection metadata. Firebase Messaging auto-init
+is disabled; this integration adds no Analytics, advertising, Crashlytics or
+notification-content analytics SDK. Reading availability does not create an FID.
+
+An FCM-capable Android build uses the operator's matching Firebase project;
+otherwise a configured UnifiedPush distributor can be used. An active provider
+is retained until explicitly disabled, without silent dual registration.
+Google receives the Firebase installation ID (FID), the random per-activation
+identifier, delivery timing and technical connection/service metadata (including
+the network address needed for the connection). Neither provider receives an
+Account/Space identifier, name, message text, domain object, route or URL in the
+wake payload. The FCM data payload is exactly `type= wake` plus `activationId`;
+UnifiedPush keeps its encrypted wake payload. Private notifications are fetched
+through the existing authenticated API after the wake.
+
+The backend protects the endpoint value at rest and binds it to the authenticated
+Account. Android binds callbacks and OS notification taps to Account, API origin,
+provider and a random activation. Disable, sign-out or replacement invalidates
+local ownership and pending OS notifications immediately, revokes the owned
+backend endpoint while authenticated, and retires the FCM registration and FID.
+Failed provider cleanup remains pending and blocks a new FCM activation until
+it succeeds; it must not restore local delivery permission.
+
+Provider deletion is asynchronous. Google documents FID retention until deletion
+is requested, followed by removal from live and backup systems within 180 days.
+This is not an immediate erasure or EU-only processing promise. Operators must
+include their chosen push provider and international processing in their actual
+service privacy notice. This delivery implementation does not complete the
+separate public Cloud launch/privacy gate.
+
+Sources checked 2026-10-20: [Firebase privacy information](https://firebase.google.com/support/privacy),
+[installation deletion](https://firebase.google.com/docs/projects/manage-installations#delete_a_firebase_installation).
+
 ## Analytics
 
 Allowed technical and product events include: app version, opened screen,

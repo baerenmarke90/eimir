@@ -8,11 +8,10 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        registerPlugin(UnifiedPushBridge.class);
+        registerPlugin(NativePushBridge.class);
         registerPlugin(AppIconPlugin.class);
         registerPlugin(NativeSessionStoragePlugin.class);
         super.onCreate(savedInstanceState);
-        LegacyNativeDataCleanup.run(this);
     }
 
     @Override

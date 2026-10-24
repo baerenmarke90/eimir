@@ -14,6 +14,11 @@
 
 import * as runtime from '../runtime';
 import {
+    type DevicePushConfiguration,
+    DevicePushConfigurationFromJSON,
+    DevicePushConfigurationToJSON,
+} from '../models/DevicePushConfiguration';
+import {
     type NotificationChannel,
     NotificationChannelFromJSON,
     NotificationChannelToJSON,
@@ -160,6 +165,45 @@ export interface UpdateOwnQuietHoursRequest {
  * 
  */
 export class NotificationsApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for getDevicePushConfiguration without sending the request
+     */
+    async getDevicePushConfigurationRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/push-endpoints/configuration`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Expose only configured public transport metadata to an authenticated device.
+     * Get Device Push Configuration
+     */
+    async getDevicePushConfigurationRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DevicePushConfiguration>> {
+        const requestOptions = await this.getDevicePushConfigurationRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DevicePushConfigurationFromJSON(jsonValue));
+    }
+
+    /**
+     * Expose only configured public transport metadata to an authenticated device.
+     * Get Device Push Configuration
+     */
+    async getDevicePushConfiguration(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DevicePushConfiguration> {
+        const response = await this.getDevicePushConfigurationRaw(initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getNotificationUnreadCount without sending the request

@@ -68,7 +68,7 @@
         ],
         "timeout": "5s"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:3d4041432eb917aeca575e95db597c88ea1f7a630c6490853a898898f2456322",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:91666913fc7266d5950d488bfe73575ef34fe0140b9fac5a6e0d2a1b79d67f13",
       "networks": {
         "app": {
           "aliases": [
@@ -108,7 +108,7 @@
       "environment": {
         "EIMIR_DATABASE_URL": "postgresql+psycopg://sidebyside:${POSTGRES_PASSWORD:?Set the existing instance value in Arcane}@eimir-test-postgres:5432/sidebyside"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:3d4041432eb917aeca575e95db597c88ea1f7a630c6490853a898898f2456322",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:91666913fc7266d5950d488bfe73575ef34fe0140b9fac5a6e0d2a1b79d67f13",
       "networks": {
         "app": null
       },
@@ -127,7 +127,7 @@
       "environment": {
         "EIMIR_WEB_CSP_CONNECT_ORIGINS": ""
       },
-      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:f1775683c054ee18010c2a01f9b2eff5a478310f547fabfcd415f22d08ede178",
+      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:04f4623d6382d9baec995c607adbd6aa70f4f5ff924679c45be94d60c9ea8700",
       "networks": {
         "app": {},
         "proxy": {
@@ -187,7 +187,7 @@
         "EIMIR_WEBAUTHN_RP_ID": "${EIMIR_WEBAUTHN_RP_ID:?Set the existing instance value in Arcane}",
         "EIMIR_WEBAUTHN_RP_NAME": "eimir."
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:3d4041432eb917aeca575e95db597c88ea1f7a630c6490853a898898f2456322",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:91666913fc7266d5950d488bfe73575ef34fe0140b9fac5a6e0d2a1b79d67f13",
       "networks": {
         "app": null
       },

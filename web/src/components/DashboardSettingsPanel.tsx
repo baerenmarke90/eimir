@@ -234,9 +234,7 @@ export function DashboardSettingsPanel({
                 ? current.items.map((item) =>
                     item === context.optimistic ? context.previous! : item,
                   )
-                : current.items.filter(
-                    (item) => item !== context.optimistic,
-                  ),
+                : current.items.filter((item) => item !== context.optimistic),
             };
           },
         );

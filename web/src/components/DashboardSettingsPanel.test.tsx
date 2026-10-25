@@ -273,9 +273,9 @@ describe('DashboardSettingsPanel', () => {
       fireEvent.click(screen.getByRole('radio', { name: '3' }));
       await waitFor(() =>
         expect(
-          queryClient.getQueryData<DashboardModulePreferenceList>(key)?.items.find(
-            (item) => item.moduleKey === 'upcoming',
-          )?.itemLimit,
+          queryClient
+            .getQueryData<DashboardModulePreferenceList>(key)
+            ?.items.find((item) => item.moduleKey === 'upcoming')?.itemLimit,
         ).toBe(3),
       );
       fireEvent.click(screen.getByRole('radio', { name: '1' }));
@@ -293,6 +293,63 @@ describe('DashboardSettingsPanel', () => {
       await waitFor(() =>
         screen.getByText(profileIdentity.dashboardUpcomingSaved),
       );
+    });
+
+    it('serializes only conflicting Upcoming facets while other modules remain usable', async () => {
+      const finish: Array<
+        (value: { moduleKey: string; itemLimit?: number; visible?: boolean }) => void
+      > = [];
+      const update = vi.fn().mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            finish.push(resolve);
+          }),
+      );
+      renderPanel(update);
+      const radio = screen.getByRole('radio', {
+        name: '3',
+      }) as HTMLInputElement;
+      const upcomingVisibility = screen.getByRole('checkbox', {
+        name: moduleLabel('upcoming'),
+      }) as HTMLInputElement;
+      const keepsake = screen.getByRole('checkbox', {
+        name: moduleLabel('keepsake'),
+      }) as HTMLInputElement;
+
+      fireEvent.click(radio);
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      expect(upcomingVisibility.disabled).toBe(true);
+      expect(keepsake.disabled).toBe(false);
+
+      fireEvent.click(keepsake);
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+      expect(upcomingVisibility.disabled).toBe(true);
+
+      await act(async () => {
+        finish[0]?.({ moduleKey: 'upcoming', itemLimit: 3 });
+      });
+      await waitFor(() => expect(upcomingVisibility.disabled).toBe(false));
+      expect(keepsake.disabled).toBe(true);
+
+      fireEvent.click(upcomingVisibility);
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(3));
+      expect(
+        (screen.getByRole('radio', { name: '1' }) as HTMLInputElement).disabled,
+      ).toBe(true);
+
+      await act(async () => {
+        finish[2]?.({ moduleKey: 'upcoming', visible: false });
+        finish[1]?.({ moduleKey: 'keepsake', visible: false });
+      });
+      await waitFor(() =>
+        expect(
+          (screen.getByRole('radio', { name: '1' }) as HTMLInputElement).disabled,
+        ).toBe(false),
+      );
+      expect(update).toHaveBeenCalledTimes(3);
+      expect(
+        (screen.getByRole('radio', { name: '3' }) as HTMLInputElement).checked,
+      ).toBe(true);
     });
 
     it('preserves a newer authoritative Upcoming row after a late confirmation', async () => {
@@ -325,7 +382,8 @@ describe('DashboardSettingsPanel', () => {
       });
       await waitFor(() =>
         expect(
-          (screen.getByRole('radio', { name: '1' }) as HTMLInputElement).checked,
+          (screen.getByRole('radio', { name: '1' }) as HTMLInputElement)
+            .checked,
         ).toBe(true),
       );
       expect(
@@ -404,7 +462,8 @@ describe('DashboardSettingsPanel', () => {
       );
       await waitFor(() =>
         expect(
-          (screen.getByRole('radio', { name: '1' }) as HTMLInputElement).checked,
+          (screen.getByRole('radio', { name: '1' }) as HTMLInputElement)
+            .checked,
         ).toBe(true),
       );
 
@@ -415,7 +474,9 @@ describe('DashboardSettingsPanel', () => {
       expect(
         (screen.getByRole('radio', { name: '1' }) as HTMLInputElement).checked,
       ).toBe(true);
-      expect(screen.queryByText(profileIdentity.dashboardUpcomingSaved)).toBeNull();
+      expect(
+        screen.queryByText(profileIdentity.dashboardUpcomingSaved),
+      ).toBeNull();
     });
   });
 

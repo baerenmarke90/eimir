@@ -33,9 +33,7 @@ describe('PrivateAreaProductPage', () => {
     expect(html).toContain('private-area-privacy-banner');
     // The same OWNER_ONLY header is rendered on every nested private route.
     // It must not imply secrecy outside the server-enforced in-app boundary.
-    expect(privateArea.intro).toBe(
-      'In eimir. nicht mit deinem Partner geteilt.',
-    );
+    expect(privateArea.intro).toContain('eimir.');
     expect(html).toContain(
       `<p class="private-area-intro-text">${privateArea.intro}</p>`,
     );

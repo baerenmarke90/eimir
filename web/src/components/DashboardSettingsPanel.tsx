@@ -170,8 +170,7 @@ export function DashboardSettingsPanel({
       exact: true,
       status: 'pending',
     },
-    select: (entry) =>
-      entry.state.variables as UpcomingLimitWrite | undefined,
+    select: (entry) => entry.state.variables as UpcomingLimitWrite | undefined,
   });
   const [savedModuleKey, setSavedModuleKey] =
     useState<DashboardModuleKey | null>(null);
@@ -239,9 +238,14 @@ export function DashboardSettingsPanel({
         itemLimit: write.itemLimit,
       }),
     onSuccess: (updated, write, context) => {
-      const committed = settlePreferenceFacetWrite(queryClient, write, context, {
-        itemLimit: updated.itemLimit,
-      });
+      const committed = settlePreferenceFacetWrite(
+        queryClient,
+        write,
+        context,
+        {
+          itemLimit: updated.itemLimit,
+        },
+      );
       if (
         committed &&
         activeSettingsScope.current === write.scope &&
@@ -278,11 +282,24 @@ export function DashboardSettingsPanel({
     if (
       preferencesQuery.isPending ||
       preferencesQuery.error ||
-      (upcomingWriteRef.current?.scope === settingsScope) ||
+      upcomingWriteRef.current?.scope === settingsScope ||
       queryClient.isMutating({
         mutationKey: upcomingMutationKey,
         exact: true,
-      }) > 0
+      }) > 0 ||
+      visibilityWrites.current.has(`${settingsScope}:${UPCOMING_MODULE_KEY}`) ||
+      queryClient
+        .getMutationCache()
+        .findAll({ mutationKey: visibilityMutationKey, exact: true })
+        .some(
+          (mutation) =>
+            mutation.state.status === 'pending' &&
+            (
+              mutation.state.variables as
+                | VisibilityWrite
+                | undefined
+            )?.moduleKey === UPCOMING_MODULE_KEY,
+        )
     ) {
       return;
     }
@@ -331,9 +348,14 @@ export function DashboardSettingsPanel({
     onSuccess: (updated, write, context) => {
       // A later authoritative read or another write can replace this row.
       // Only the submitted optimistic row may consume its own response.
-      const committed = settlePreferenceFacetWrite(queryClient, write, context, {
-        visible: updated.visible,
-      });
+      const committed = settlePreferenceFacetWrite(
+        queryClient,
+        write,
+        context,
+        {
+          visible: updated.visible,
+        },
+      );
       if (
         committed &&
         activeSettingsScope.current === write.scope &&
@@ -440,14 +462,17 @@ export function DashboardSettingsPanel({
   });
 
   const confirmedLimit = effectiveUpcomingItemLimit(preferencesQuery.data);
-  const pendingUpcoming = pendingUpcomingMutations.find(
-    (write) => write?.isCurrentQuery(),
+  const pendingUpcoming = pendingUpcomingMutations.find((write) =>
+    write?.isCurrentQuery(),
   );
   const activePendingLimit =
     pendingLimit?.scope === settingsScope ? pendingLimit : pendingUpcoming;
   const isLimitPending =
     Boolean(activePendingLimit) || pendingUpcomingMutations.length > 0;
   const selectedLimit = activePendingLimit?.itemLimit ?? confirmedLimit;
+  const isUpcomingVisibilityPending =
+    pendingVisibility[`${settingsScope}:${UPCOMING_MODULE_KEY}`] !== undefined ||
+    pendingVisibilityMutations.includes(UPCOMING_MODULE_KEY);
   const status = isLimitPending
     ? t('profileIdentity.dashboardUpcomingSaving')
     : savedLimitScope === settingsScope
@@ -502,7 +527,8 @@ export function DashboardSettingsPanel({
             const rowScope = `${settingsScope}:${entry.key}`;
             const isRowPending =
               pendingVisibility[rowScope] !== undefined ||
-              pendingVisibilityMutations.includes(entry.key);
+              pendingVisibilityMutations.includes(entry.key) ||
+              (entry.key === UPCOMING_MODULE_KEY && isLimitPending);
             return (
               <div
                 key={entry.key}
@@ -522,7 +548,17 @@ export function DashboardSettingsPanel({
                   checked={pendingVisibility[rowScope]?.visible ?? visible}
                   disabled={isRowPending || preferencesQuery.isPending}
                   onChange={(event) => {
-                    if (visibilityWrites.current.has(rowScope)) return;
+                    if (
+                      visibilityWrites.current.has(rowScope) ||
+                      (entry.key === UPCOMING_MODULE_KEY &&
+                        (upcomingWriteRef.current?.scope === settingsScope ||
+                          queryClient.isMutating({
+                            mutationKey: upcomingMutationKey,
+                            exact: true,
+                          }) > 0))
+                    ) {
+                      return;
+                    }
                     // The mutation cache also prevents duplicate admission
                     // across a panel unmount/remount while a request is in flight.
                     const existing = queryClient
@@ -628,6 +664,7 @@ export function DashboardSettingsPanel({
                 checked={selectedLimit === itemLimit}
                 disabled={
                   isLimitPending ||
+                  isUpcomingVisibilityPending ||
                   preferencesQuery.isPending ||
                   Boolean(preferencesQuery.error)
                 }

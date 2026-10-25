@@ -389,6 +389,7 @@ describe('DashboardSettingsPanel', () => {
       );
       screen.getByRole('alert');
     });
+
     it('keeps independent visibility toggles pending until each request settles', async () => {
       const resolveByModule = new Map<
         string,
@@ -439,8 +440,13 @@ describe('DashboardSettingsPanel', () => {
       expect(cached?.items.map((item) => item.moduleKey)).toEqual(
         DEFAULT_PREFERENCES.items.map((item) => item.moduleKey),
       );
-      expect(cached?.items.find((item) => item.moduleKey === 'keepsake')?.visible).toBe(false);
-      expect(cached?.items.find((item) => item.moduleKey === 'recent_shared')?.visible).toBe(false);
+      expect(
+        cached?.items.find((item) => item.moduleKey === 'keepsake')?.visible,
+      ).toBe(false);
+      expect(
+        cached?.items.find((item) => item.moduleKey === 'recent_shared')
+          ?.visible,
+      ).toBe(false);
     });
 
     it('does not overwrite a newer authorized read with an older toggle result', async () => {
@@ -510,6 +516,5 @@ describe('DashboardSettingsPanel', () => {
       });
       expect(queryClient.getQueryData(key)).toEqual(replacement);
     });
-
   });
 });

@@ -447,8 +447,9 @@ export function DashboardSettingsPanel({
       ) {
         return null;
       }
-      const current =
-        queryClient.getQueryData<DashboardModulePreferenceList>(write.key);
+      const current = queryClient.getQueryData<DashboardModulePreferenceList>(
+        write.key,
+      );
       if (!current) return null;
       queryClient.setQueryData<DashboardModulePreferenceList>(
         write.key,
@@ -465,8 +466,9 @@ export function DashboardSettingsPanel({
       ) {
         return;
       }
-      const current =
-        queryClient.getQueryData<DashboardModulePreferenceList>(write.key);
+      const current = queryClient.getQueryData<DashboardModulePreferenceList>(
+        write.key,
+      );
       if (
         !current ||
         orderedDashboardModuleKeys(current).some(
@@ -506,8 +508,9 @@ export function DashboardSettingsPanel({
       ) {
         return;
       }
-      const current =
-        queryClient.getQueryData<DashboardModulePreferenceList>(write.key);
+      const current = queryClient.getQueryData<DashboardModulePreferenceList>(
+        write.key,
+      );
       if (
         !current ||
         orderedDashboardModuleKeys(current).some(

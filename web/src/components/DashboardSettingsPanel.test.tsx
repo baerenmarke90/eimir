@@ -297,7 +297,11 @@ describe('DashboardSettingsPanel', () => {
 
     it('serializes only conflicting Upcoming facets while other modules remain usable', async () => {
       const finish: Array<
-        (value: { moduleKey: string; itemLimit?: number; visible?: boolean }) => void
+        (value: {
+          moduleKey: string;
+          itemLimit?: number;
+          visible?: boolean;
+        }) => void
       > = [];
       const update = vi.fn().mockImplementation(
         () =>
@@ -343,7 +347,8 @@ describe('DashboardSettingsPanel', () => {
       });
       await waitFor(() =>
         expect(
-          (screen.getByRole('radio', { name: '1' }) as HTMLInputElement).disabled,
+          (screen.getByRole('radio', { name: '1' }) as HTMLInputElement)
+            .disabled,
         ).toBe(false),
       );
       expect(update).toHaveBeenCalledTimes(3);

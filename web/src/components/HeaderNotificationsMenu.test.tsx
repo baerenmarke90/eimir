@@ -10,6 +10,7 @@ import {
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
+import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import {
   notificationUnreadCountQueryKey,
   notificationsListQueryKey,
@@ -258,6 +259,51 @@ describe('HeaderNotificationsMenu', () => {
       pages: Array<{ items: NotificationItem[] }>;
     }>(notificationsListQueryKey('space-1'));
     expect(listData?.pages[0]?.items[0]?.readAt).not.toBeNull();
+  });
+
+  it('restores the unread dot and count when an admitted preview read fails', async () => {
+    const get = vi
+      .spyOn(NotificationsApi.prototype, 'getNotifications')
+      .mockImplementation(() => new Promise(() => undefined));
+    let reject!: (error: Error) => void;
+    const mark = vi
+      .spyOn(NotificationsApi.prototype, 'markNotificationRead')
+      .mockImplementation(
+        () =>
+          new Promise<void>((_resolve, failure) => {
+            reject = failure;
+          }),
+      );
+
+    try {
+      const { queryClient } = renderNotificationMenu({ unreadCount: 1 });
+      fireEvent.click(
+        screen.getByRole('button', { name: /1 ungelesen/i }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: /Alex Partner/i }));
+      expect(
+        queryClient.getQueryData<{ unreadCount: number }>(
+          notificationUnreadCountQueryKey('space-1'),
+        )?.unreadCount,
+      ).toBe(0);
+      await waitFor(() => expect(mark).toHaveBeenCalledTimes(1));
+      await act(async () => reject(new Error('Connection lost')));
+      await waitFor(() =>
+        expect(
+          queryClient.getQueryData<{ unreadCount: number }>(
+            notificationUnreadCountQueryKey('space-1'),
+          )?.unreadCount,
+        ).toBe(1),
+      );
+      expect(
+        queryClient.getQueryData<{
+          pages: Array<{ items: NotificationItem[] }>;
+        }>(notificationsListQueryKey('space-1'))?.pages[0].items[0].readAt,
+      ).toBeNull();
+    } finally {
+      mark.mockRestore();
+      get.mockRestore();
+    }
   });
 
   it('clicking "Alle Benachrichtigungen anzeigen" navigates to /more/notifications and closes', () => {

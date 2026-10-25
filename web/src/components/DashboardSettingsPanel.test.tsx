@@ -50,6 +50,7 @@ function renderPanel(
 
   return {
     queryClient,
+    dashboardApi,
     ...render(
       <QueryClientProvider client={queryClient}>
         <DashboardSettingsPanel
@@ -498,7 +499,7 @@ describe('DashboardSettingsPanel', () => {
           resolveWrite = resolve;
         }),
       );
-      const { queryClient } = renderPanel(update);
+      const { queryClient, dashboardApi } = renderPanel(update);
       fireEvent.click(
         screen.getByRole('checkbox', { name: moduleLabel('keepsake') }),
       );
@@ -511,6 +512,12 @@ describe('DashboardSettingsPanel', () => {
             : item,
         ),
       } as DashboardModulePreferenceList;
+      // The active observer automatically re-fetches after cache removal.
+      // That authoritative replacement read must agree with the new session
+      // instead of re-introducing the fixture's earlier default response.
+      vi.mocked(dashboardApi.listDashboardModulePreferences).mockResolvedValue(
+        replacement,
+      );
       queryClient.removeQueries({ queryKey: key, exact: true });
       queryClient.setQueryData(key, replacement);
 

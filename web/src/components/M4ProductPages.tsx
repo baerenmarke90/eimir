@@ -35,7 +35,10 @@ import {
   beginNotificationRead,
   type NotificationReadAttempt,
 } from '../client/notificationRead';
-import { ClientProblemError, normalizeClientError } from '../client/problemDetails';
+import {
+  ClientProblemError,
+  normalizeClientError,
+} from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
@@ -756,7 +759,9 @@ export function NotificationsProductPage({
       return;
     const isCurrentUnread = captureAuthorizedQuery(queryClient, unreadKey);
     if (!isCurrentUnread()) return;
-    const current = queryClient.getQueryData<{ unreadCount: number }>(unreadKey);
+    const current = queryClient.getQueryData<{ unreadCount: number }>(
+      unreadKey,
+    );
     if (!current || current.unreadCount < 1) return;
     const api = apis.notifications;
     const requestedSpaceId = spaceId;

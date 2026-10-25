@@ -4,7 +4,13 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
@@ -93,7 +99,8 @@ function setup() {
   const button = () =>
     screen.getByRole('button', {
       name: new RegExp(
-        i18n.t('m5s5.notifications.markAllRead') + '|' +
+        i18n.t('m5s5.notifications.markAllRead') +
+          '|' +
           i18n.t('m5s5.notifications.markingAllRead'),
       ),
     });

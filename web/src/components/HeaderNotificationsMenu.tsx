@@ -8,9 +8,7 @@ import type { NotificationItem } from '../api/generated/models/NotificationItem'
 import { Configuration } from '../client/apiConfiguration';
 import { formatRelativeTime } from '../client/formatRecency';
 import { engagementTargetPath, opaqueNextCursor } from '../client/m4Product';
-import {
-  notificationsListQueryKey,
-} from '../client/notificationQueries';
+import { notificationsListQueryKey } from '../client/notificationQueries';
 import { getNotificationItemTitle } from '../client/notificationTitle';
 import { beginNotificationRead } from '../client/notificationRead';
 import { MORE_NOTIFICATIONS_ROUTE } from '../client/routes';

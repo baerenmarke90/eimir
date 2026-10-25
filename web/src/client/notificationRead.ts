@@ -50,13 +50,15 @@ export function beginNotificationRead(
     .find((entry) => entry.id === notificationId);
   if (!item || item.readAt) return null;
 
+  const originalItem = item;
+
   // Cancellation happens before the local projection. Dispatch awaits it,
   // but the user sees the optimistic state without waiting for the network.
   const cancellation = Promise.all([
     client.cancelQueries({ queryKey: listKey, exact: true }),
     client.cancelQueries({ queryKey: countKey, exact: true }),
   ]);
-  const optimisticItem = { ...item, readAt: new Date() };
+  const optimisticItem = { ...originalItem, readAt: new Date() };
   let admitted = false;
   if (ownsList()) {
     client.setQueryData<NotificationCache>(listKey, (current) => {
@@ -66,7 +68,7 @@ export function beginNotificationRead(
         pages: current.pages.map((page) => ({
           ...page,
           items: page.items.map((entry) => {
-            if (entry !== item || entry.readAt) return entry;
+            if (entry !== originalItem || entry.readAt) return entry;
             admitted = true;
             return optimisticItem;
           }),
@@ -119,7 +121,7 @@ export function beginNotificationRead(
           items: page.items.map((entry) => {
             if (entry !== optimisticItem) return entry;
             restored = true;
-            return item;
+            return originalItem;
           }),
         })),
       };

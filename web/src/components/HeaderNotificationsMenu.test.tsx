@@ -270,7 +270,7 @@ describe('HeaderNotificationsMenu', () => {
       .spyOn(NotificationsApi.prototype, 'markNotificationRead')
       .mockImplementation(
         () =>
-          new Promise<void>((_resolve, failure) => {
+          new Promise<NotificationItem>((_resolve, failure) => {
             reject = failure;
           }),
       );

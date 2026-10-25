@@ -1,6 +1,6 @@
 const privateArea = {
   eyebrow: 'Für mich',
-  intro: 'Nur für dich – dein Partner sieht das nicht.',
+  intro: 'In eimir. nicht mit deinem Partner geteilt.',
   privacyLabel: 'Nur für mich',
   backToMore: '← Zurück zu Mehr',
   backToHub: '← Zurück zu Nur für mich',

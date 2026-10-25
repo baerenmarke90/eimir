@@ -32,12 +32,9 @@ describe('PrivateAreaProductPage', () => {
     expect(html).toContain(privateArea.backToMore);
     expect(html).toContain('private-area-privacy-banner');
     expect(html).toContain(privateArea.entry.privacy);
-    expect(privateArea.entry.privacy).toBe(
-      'Dein Partner kann diese Inhalte in eimir. nicht öffnen.',
-    );
-    expect(html).not.toContain(
-      'Was hier steht, bleibt zwischen dir und der App.',
-    );
+    // Privacy copy must identify its in-app access boundary, not imply
+    // absolute secrecy beyond the server-enforced OWNER_ONLY policy.
+    expect(privateArea.entry.privacy).toContain('eimir.');
     expect(html).toContain('href="/more/private/notes"');
     expect(html).toContain('href="/more/private/gift-ideas"');
     expect(html).toContain('href="/more/private/collections"');

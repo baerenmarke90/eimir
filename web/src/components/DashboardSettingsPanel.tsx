@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useMutationState,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
@@ -17,7 +22,12 @@ import {
   UPCOMING_ITEM_LIMITS,
   UPCOMING_MODULE_KEY,
 } from '../client/dashboardPreferences';
-import { normalizeClientError } from '../client/problemDetails';
+import { assertOnlineWrite } from '../client/connectivity';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
@@ -27,6 +37,18 @@ export interface DashboardSettingsPanelProps {
   accountId: string;
   spaceId: string;
 }
+
+type VisibilityWrite = {
+  id: number;
+  scope: string;
+  rowScope: string;
+  moduleKey: DashboardModuleKey;
+  visible: boolean;
+  key: ReturnType<typeof dashboardPreferencesQueryKey>;
+  isCurrentQuery: () => boolean;
+  api: DashboardApi;
+  spaceId: string;
+};
 
 function patchPreference(
   old: DashboardModulePreferenceList | undefined,
@@ -58,9 +80,30 @@ export function DashboardSettingsPanel({
   const [saved, setSaved] = useState(false);
   const [savedModuleKey, setSavedModuleKey] =
     useState<DashboardModuleKey | null>(null);
+  // Each independently submitted row remains pending until its own write settles.
+  // Scoped keys prevent callbacks from an old Account/Space affecting a new task.
+  const visibilityScope = JSON.stringify([accountId, spaceId]);
+  const activeVisibilityScope = useRef(visibilityScope);
+  activeVisibilityScope.current = visibilityScope;
+  const visibilityWrites = useRef(new Map<string, VisibilityWrite>());
+  const nextVisibilityId = useRef(0);
   const [pendingVisibility, setPendingVisibility] = useState<
-    Partial<Record<DashboardModuleKey, boolean>>
+    Record<string, { id: number; visible: boolean }>
   >({});
+  const [visibilityError, setVisibilityError] = useState<{
+    scope: string;
+    error: unknown;
+  } | null>(null);
+  const visibilityMutationKey = ['dashboard-visibility', accountId, spaceId];
+  const pendingVisibilityMutations = useMutationState({
+    filters: {
+      mutationKey: visibilityMutationKey,
+      exact: true,
+      status: 'pending',
+    },
+    select: (mutation) =>
+      (mutation.state.variables as VisibilityWrite | undefined)?.moduleKey,
+  });
   const [orderAnnouncement, setOrderAnnouncement] = useState('');
   const latestOrderRequest = useRef(0);
 
@@ -108,45 +151,122 @@ export function DashboardSettingsPanel({
   });
 
   const visibilityMutation = useMutation({
-    mutationFn: async ({
-      moduleKey,
-      visible,
-    }: {
-      moduleKey: DashboardModuleKey;
-      visible: boolean;
-      previousVisible: boolean;
-    }) => {
+    mutationKey: visibilityMutationKey,
+    // Never park a preference write for replay after reconnect.
+    networkMode: 'always',
+    retry: false,
+    mutationFn: async (write: VisibilityWrite) => {
+      if (!write.isCurrentQuery()) {
+        throw new Error('Dashboard preference read is no longer authorized.');
+      }
+      assertOnlineWrite();
       try {
-        return await dashboardApi.updateDashboardModulePreference({
-          moduleKey,
-          spaceId,
-          dashboardModulePreferenceUpdate: { visible },
+        return await write.api.updateDashboardModulePreference({
+          moduleKey: write.moduleKey,
+          spaceId: write.spaceId,
+          dashboardModulePreferenceUpdate: { visible: write.visible },
         });
       } catch (error) {
         throw await normalizeClientError(error);
       }
     },
-    onSuccess: (updated) => {
-      queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
-        patchPreference(old, updated.moduleKey, { visible: updated.visible }),
+    onMutate: async (write) => {
+      if (!write.isCurrentQuery()) return null;
+      await queryClient.cancelQueries({ queryKey: write.key, exact: true });
+      if (!write.isCurrentQuery()) return null;
+      const previous = queryClient
+        .getQueryData<DashboardModulePreferenceList>(write.key)
+        ?.items.find((item) => item.moduleKey === write.moduleKey);
+      queryClient.setQueryData<DashboardModulePreferenceList>(
+        write.key,
+        (current) =>
+          current
+            ? patchPreference(current, write.moduleKey, {
+                visible: write.visible,
+              })
+            : current,
       );
-      setPendingVisibility((old) => {
-        const next = { ...old };
-        delete next[updated.moduleKey as DashboardModuleKey];
-        return next;
-      });
-      setSavedModuleKey(updated.moduleKey as DashboardModuleKey);
+      const optimistic = queryClient
+        .getQueryData<DashboardModulePreferenceList>(write.key)
+        ?.items.find((item) => item.moduleKey === write.moduleKey);
+      return { previous, optimistic };
     },
-    onError: (_error, { moduleKey, previousVisible }) => {
-      queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
-        patchPreference(old, moduleKey, { visible: previousVisible }),
-      );
-      setPendingVisibility((old) => {
-        const next = { ...old };
-        delete next[moduleKey];
+    onSuccess: (updated, write, context) => {
+      // A later authoritative read or another write can replace this row.
+      // Only the submitted optimistic row may consume its own response.
+      if (context?.optimistic && write.isCurrentQuery()) {
+        queryClient.setQueryData<DashboardModulePreferenceList>(
+          write.key,
+          (current) =>
+            current?.items.find(
+              (item) => item.moduleKey === write.moduleKey,
+            ) === context.optimistic
+              ? patchPreference(current, write.moduleKey, {
+                  visible: updated.visible,
+                })
+              : current,
+        );
+      }
+      if (
+        activeVisibilityScope.current === write.scope &&
+        write.isCurrentQuery()
+      ) {
+        setSavedModuleKey(write.moduleKey);
+      }
+    },
+    onError: async (error, write, context) => {
+      // Roll back the exact optimistic object, never a newer read or sibling.
+      if (context?.optimistic && write.isCurrentQuery()) {
+        queryClient.setQueryData<DashboardModulePreferenceList>(
+          write.key,
+          (current) => {
+            if (
+              !current ||
+              current.items.find(
+                (item) => item.moduleKey === write.moduleKey,
+              ) !== context.optimistic
+            ) {
+              return current;
+            }
+            return {
+              ...current,
+              items: context.previous
+                ? current.items.map((item) =>
+                    item === context.optimistic ? context.previous! : item,
+                  )
+                : current.items.filter(
+                    (item) => item !== context.optimistic,
+                  ),
+            };
+          },
+        );
+      }
+      if (
+        write.isCurrentQuery() &&
+        ['unauthorized', 'permission', 'notFound'].includes(
+          clientProblemKind(error),
+        )
+      ) {
+        await queryClient.resetQueries({ queryKey: write.key, exact: true });
+      }
+      if (
+        activeVisibilityScope.current === write.scope &&
+        write.isCurrentQuery()
+      ) {
+        setSavedModuleKey(null);
+        setVisibilityError({ scope: write.scope, error });
+      }
+    },
+    onSettled: (_result, _error, write) => {
+      if (visibilityWrites.current.get(write.rowScope) === write) {
+        visibilityWrites.current.delete(write.rowScope);
+      }
+      setPendingVisibility((current) => {
+        if (current[write.rowScope]?.id !== write.id) return current;
+        const next = { ...current };
+        delete next[write.rowScope];
         return next;
       });
-      setSavedModuleKey(null);
     },
   });
 
@@ -225,11 +345,15 @@ export function DashboardSettingsPanel({
         ? t('profileIdentity.dashboardUpcomingLoading')
         : null;
 
-  const visibilityStatus = visibilityMutation.isPending
-    ? t('profileIdentity.dashboardModuleSaving')
-    : savedModuleKey
-      ? t('profileIdentity.dashboardModuleSaved')
-      : null;
+  const visibilityStatus =
+    pendingVisibilityMutations.length > 0 ||
+    Object.keys(pendingVisibility).some((key) =>
+      key.startsWith(`${visibilityScope}:`),
+    )
+      ? t('profileIdentity.dashboardModuleSaving')
+      : savedModuleKey
+        ? t('profileIdentity.dashboardModuleSaved')
+        : null;
 
   return (
     <section
@@ -264,9 +388,10 @@ export function DashboardSettingsPanel({
               preferencesQuery.data,
               entry.key,
             );
+            const rowScope = `${visibilityScope}:${entry.key}`;
             const isRowPending =
-              visibilityMutation.isPending &&
-              visibilityMutation.variables?.moduleKey === entry.key;
+              pendingVisibility[rowScope] !== undefined ||
+              pendingVisibilityMutations.includes(entry.key);
             return (
               <div
                 key={entry.key}
@@ -283,30 +408,52 @@ export function DashboardSettingsPanel({
                   id={`dashboard-visible-${entry.key}`}
                   aria-label={t(entry.labelKey)}
                   type="checkbox"
-                  checked={pendingVisibility[entry.key] ?? visible}
+                  checked={pendingVisibility[rowScope]?.visible ?? visible}
                   disabled={isRowPending || preferencesQuery.isPending}
                   onChange={(event) => {
-                    const visible = event.target.checked;
-                    const previousVisible = isDashboardModuleVisible(
-                      queryClient.getQueryData<DashboardModulePreferenceList>(
-                        queryKey,
-                      ),
-                      entry.key,
-                    );
-                    queryClient.setQueryData<DashboardModulePreferenceList>(
+                    if (visibilityWrites.current.has(rowScope)) return;
+                    // The mutation cache also prevents duplicate admission
+                    // across a panel unmount/remount while a request is in flight.
+                    const existing = queryClient
+                      .getMutationCache()
+                      .findAll({
+                        mutationKey: visibilityMutationKey,
+                        exact: true,
+                      })
+                      .some(
+                        (mutation) =>
+                          mutation.state.status === 'pending' &&
+                          (
+                            mutation.state.variables as
+                              | VisibilityWrite
+                              | undefined
+                          )?.moduleKey === entry.key,
+                      );
+                    if (existing) return;
+                    const isCurrentQuery = captureAuthorizedQuery(
+                      queryClient,
                       queryKey,
-                      (old) => patchPreference(old, entry.key, { visible }),
                     );
-                    setPendingVisibility((old) => ({
-                      ...old,
-                      [entry.key]: visible,
+                    if (!isCurrentQuery()) return;
+                    const write: VisibilityWrite = {
+                      id: ++nextVisibilityId.current,
+                      scope: visibilityScope,
+                      rowScope,
+                      moduleKey: entry.key,
+                      visible: event.target.checked,
+                      key: queryKey,
+                      isCurrentQuery,
+                      api: dashboardApi,
+                      spaceId,
+                    };
+                    visibilityWrites.current.set(rowScope, write);
+                    setPendingVisibility((current) => ({
+                      ...current,
+                      [rowScope]: { id: write.id, visible: write.visible },
                     }));
                     setSavedModuleKey(null);
-                    visibilityMutation.mutate({
-                      moduleKey: entry.key,
-                      visible,
-                      previousVisible,
-                    });
+                    setVisibilityError(null);
+                    visibilityMutation.mutate(write);
                   }}
                 />
                 <ListEntryIconButton
@@ -341,8 +488,8 @@ export function DashboardSettingsPanel({
           {visibilityStatus}
         </p>
       ) : null}
-      {visibilityMutation.error ? (
-        <ProblemState error={visibilityMutation.error} />
+      {visibilityError?.scope === visibilityScope ? (
+        <ProblemState error={visibilityError.error} />
       ) : null}
 
       <fieldset

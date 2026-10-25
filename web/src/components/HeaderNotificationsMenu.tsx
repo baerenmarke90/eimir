@@ -8,11 +8,9 @@ import type { NotificationItem } from '../api/generated/models/NotificationItem'
 import { Configuration } from '../client/apiConfiguration';
 import { formatRelativeTime } from '../client/formatRecency';
 import { engagementTargetPath, opaqueNextCursor } from '../client/m4Product';
-import {
-  notificationsListQueryKey,
-  notificationUnreadCountQueryKey,
-} from '../client/notificationQueries';
+import { notificationsListQueryKey } from '../client/notificationQueries';
 import { getNotificationItemTitle } from '../client/notificationTitle';
+import { beginNotificationRead } from '../client/notificationRead';
 import { MORE_NOTIFICATIONS_ROUTE } from '../client/routes';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { useMediaQuery } from '../client/useMediaQuery';
@@ -75,7 +73,6 @@ export function HeaderNotificationsMenu({
   );
 
   const listKey = notificationsListQueryKey(spaceId);
-  const unreadKey = notificationUnreadCountQueryKey(spaceId);
 
   const notificationsQuery = useInfiniteQuery({
     queryKey: listKey,
@@ -104,36 +101,21 @@ export function HeaderNotificationsMenu({
     const path = engagementTargetPath(item.targetType, item.targetId);
 
     if (!item.readAt) {
-      // Optimistic update of unread count
-      queryClient.setQueryData<{ unreadCount: number }>(unreadKey, (old) => {
-        if (!old) return old;
-        return { unreadCount: Math.max(0, old.unreadCount - 1) };
-      });
-
-      // Optimistic update of list
-      queryClient.setQueryData<{
-        pages: Array<{ items: NotificationItem[]; nextCursor: string | null }>;
-        pageParams: unknown[];
-      }>(listKey, (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            items: page.items.map((it) =>
-              it.id === item.id ? { ...it, readAt: new Date() } : it,
-            ),
-          })),
-        };
-      });
-
-      // Perform API call
-      notificationsApi
-        .markNotificationRead({ notificationId: item.id, spaceId })
-        .catch(() => {
-          void queryClient.invalidateQueries({ queryKey: unreadKey });
-          void queryClient.invalidateQueries({ queryKey: listKey });
-        });
+      const attempt = beginNotificationRead(queryClient, spaceId, item.id);
+      if (attempt) {
+        const api = notificationsApi;
+        void attempt
+          .perform(() =>
+            api.markNotificationRead({ notificationId: item.id, spaceId }),
+          )
+          .then(
+            () => void attempt.refresh(),
+            () => {
+              attempt.rollback();
+              void attempt.refresh();
+            },
+          );
+      }
     }
 
     if (isCompact) {

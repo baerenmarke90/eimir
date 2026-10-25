@@ -57,6 +57,16 @@ type UpcomingLimitWrite = PreferenceQueryWrite & {
   spaceId: string;
 };
 
+type DashboardOrderWrite = {
+  keys: DashboardModuleKey[];
+  sequence: number;
+  scope: string;
+  key: ReturnType<typeof dashboardPreferencesQueryKey>;
+  isCurrentQuery: () => boolean;
+  api: DashboardApi;
+  spaceId: string;
+};
+
 type VisibilityWrite = {
   id: number;
   scope: string;
@@ -198,7 +208,14 @@ export function DashboardSettingsPanel({
     select: (mutation) =>
       (mutation.state.variables as VisibilityWrite | undefined)?.moduleKey,
   });
-  const [orderAnnouncement, setOrderAnnouncement] = useState('');
+  const [orderAnnouncement, setOrderAnnouncement] = useState<{
+    scope: string;
+    message: string;
+  } | null>(null);
+  const [orderError, setOrderError] = useState<{
+    scope: string;
+    error: unknown;
+  } | null>(null);
   const latestOrderRequest = useRef(0);
 
   const preferencesQuery = useQuery({
@@ -395,41 +412,120 @@ export function DashboardSettingsPanel({
 
   const orderMutation = useMutation({
     mutationKey: ['dashboard-order', accountId, spaceId],
+    // Existing serialization is required for rapid keyboard/drag reorders.
     scope: { id: `dashboard-order:${accountId}:${spaceId}` },
-    mutationFn: async ({
-      keys,
-    }: {
-      keys: DashboardModuleKey[];
-      sequence: number;
-    }) => {
+    networkMode: 'always',
+    retry: false,
+    mutationFn: async (write: DashboardOrderWrite) => {
+      if (
+        activeSettingsScope.current !== write.scope ||
+        !write.isCurrentQuery()
+      ) {
+        throw new Error('Dashboard order task is no longer authorized.');
+      }
+      assertOnlineWrite();
       try {
-        return await dashboardApi.updateDashboardModuleOrder({
-          spaceId,
-          dashboardModuleOrderUpdate: { moduleKeys: keys },
+        return await write.api.updateDashboardModuleOrder({
+          spaceId: write.spaceId,
+          dashboardModuleOrderUpdate: { moduleKeys: write.keys },
         });
       } catch (error) {
         throw await normalizeClientError(error);
       }
     },
-    onMutate: ({ keys }) => {
-      queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
-        withDashboardModuleOrder(old, keys),
+    onMutate: async (write) => {
+      if (
+        activeSettingsScope.current !== write.scope ||
+        !write.isCurrentQuery()
+      ) {
+        return null;
+      }
+      await queryClient.cancelQueries({ queryKey: write.key, exact: true });
+      if (
+        activeSettingsScope.current !== write.scope ||
+        !write.isCurrentQuery()
+      ) {
+        return null;
+      }
+      const current =
+        queryClient.getQueryData<DashboardModulePreferenceList>(write.key);
+      if (!current) return null;
+      queryClient.setQueryData<DashboardModulePreferenceList>(
+        write.key,
+        (old) => (old ? withDashboardModuleOrder(old, write.keys) : old),
       );
+      return { optimisticKeys: write.keys };
     },
-    onSuccess: (savedOrder, { sequence }) => {
-      if (sequence !== latestOrderRequest.current) return;
-      queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
-        withDashboardModuleOrder(
-          old,
-          savedOrder.items.map((item) => item.moduleKey as DashboardModuleKey),
-        ),
+    onSuccess: (savedOrder, write, context) => {
+      if (
+        !context ||
+        write.sequence !== latestOrderRequest.current ||
+        activeSettingsScope.current !== write.scope ||
+        !write.isCurrentQuery()
+      ) {
+        return;
+      }
+      const current =
+        queryClient.getQueryData<DashboardModulePreferenceList>(write.key);
+      if (
+        !current ||
+        orderedDashboardModuleKeys(current).some(
+          (key, index) => key !== context.optimisticKeys[index],
+        )
+      ) {
+        // A later authoritative read or independently submitted order wins.
+        return;
+      }
+      queryClient.setQueryData<DashboardModulePreferenceList>(
+        write.key,
+        (old) =>
+          old &&
+          orderedDashboardModuleKeys(old).every(
+            (key, index) => key === context.optimisticKeys[index],
+          )
+            ? withDashboardModuleOrder(
+                old,
+                savedOrder.items.map(
+                  (item) => item.moduleKey as DashboardModuleKey,
+                ),
+              )
+            : old,
       );
-      setOrderAnnouncement(t('profileIdentity.dashboardModuleSaved'));
+      setOrderError(null);
+      setOrderAnnouncement({
+        scope: write.scope,
+        message: t('profileIdentity.dashboardModuleSaved'),
+      });
     },
-    onError: (_error, { sequence }) => {
-      if (sequence !== latestOrderRequest.current) return;
-      setOrderAnnouncement(t('profileIdentity.dashboardOrderFailed'));
-      void queryClient.invalidateQueries({ queryKey });
+    onError: (error, write, context) => {
+      if (
+        !context ||
+        write.sequence !== latestOrderRequest.current ||
+        activeSettingsScope.current !== write.scope ||
+        !write.isCurrentQuery()
+      ) {
+        return;
+      }
+      const current =
+        queryClient.getQueryData<DashboardModulePreferenceList>(write.key);
+      if (
+        !current ||
+        orderedDashboardModuleKeys(current).some(
+          (key, index) => key !== context.optimisticKeys[index],
+        )
+      ) {
+        // Do not invalidate an independent newer read or another task.
+        return;
+      }
+      setOrderError({ scope: write.scope, error });
+      setOrderAnnouncement({
+        scope: write.scope,
+        message: t('profileIdentity.dashboardOrderFailed'),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: write.key,
+        exact: true,
+      });
     },
   });
 
@@ -439,21 +535,31 @@ export function DashboardSettingsPanel({
     animatePreview: true,
     disabled: preferencesQuery.isPending || Boolean(preferencesQuery.error),
     onReorder: (keys, moved) => {
+      const isCurrentQuery = captureAuthorizedQuery(queryClient, queryKey);
+      if (!isCurrentQuery()) return;
       const next = keys as DashboardModuleKey[];
       const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moved);
       const position = next.indexOf(moved as DashboardModuleKey) + 1;
-      orderMutation.mutate({
+      const write: DashboardOrderWrite = {
         keys: next,
         sequence: ++latestOrderRequest.current,
-      });
+        scope: settingsScope,
+        key: queryKey,
+        isCurrentQuery,
+        api: dashboardApi,
+        spaceId,
+      };
+      setOrderError(null);
+      orderMutation.mutate(write);
       if (entry) {
-        setOrderAnnouncement(
-          t('profileIdentity.dashboardOrderPosition', {
+        setOrderAnnouncement({
+          scope: settingsScope,
+          message: t('profileIdentity.dashboardOrderPosition', {
             name: t(entry.labelKey),
             position,
             total: next.length,
           }),
-        );
+        });
       }
     },
   });
@@ -621,10 +727,12 @@ export function DashboardSettingsPanel({
       </fieldset>
 
       <p className="dashboard-module-status" role="status" aria-live="polite">
-        {orderAnnouncement}
+        {orderAnnouncement?.scope === settingsScope
+          ? orderAnnouncement.message
+          : null}
       </p>
-      {orderMutation.error ? (
-        <ProblemState error={orderMutation.error} />
+      {orderError?.scope === settingsScope ? (
+        <ProblemState error={orderError.error} />
       ) : null}
 
       {visibilityStatus ? (

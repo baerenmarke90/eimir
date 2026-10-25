@@ -32,7 +32,7 @@ const privateArea = {
     title: 'Für mich',
     body: 'Notizen, Geschenkideen und Listen, die nur für dich bestimmt sind.',
     action: 'Bereich öffnen',
-    privacy: 'Was hier steht, bleibt zwischen dir und der App.',
+    privacy: 'Dein Partner kann diese Inhalte in eimir. nicht öffnen.',
   },
   notes: {
     title: 'Notizen für mich',

@@ -50,6 +50,7 @@ function renderPanel(
 
   return {
     queryClient,
+    dashboardApi,
     ...render(
       <QueryClientProvider client={queryClient}>
         <DashboardSettingsPanel
@@ -388,6 +389,142 @@ describe('DashboardSettingsPanel', () => {
         ).toBe(true),
       );
       screen.getByRole('alert');
+    });
+
+    it('keeps independent visibility toggles pending until each request settles', async () => {
+      const resolveByModule = new Map<
+        string,
+        (value: { moduleKey: string; visible: boolean }) => void
+      >();
+      const update = vi.fn(
+        ({ moduleKey }: { moduleKey: string }) =>
+          new Promise<{ moduleKey: string; visible: boolean }>((resolve) => {
+            resolveByModule.set(moduleKey, resolve);
+          }),
+      );
+      const { queryClient } = renderPanel(update);
+      const keepsake = screen.getByRole('checkbox', {
+        name: moduleLabel('keepsake'),
+      }) as HTMLInputElement;
+      const recent = screen.getByRole('checkbox', {
+        name: moduleLabel('recent_shared'),
+      }) as HTMLInputElement;
+
+      fireEvent.click(keepsake);
+      fireEvent.click(recent);
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+      expect(keepsake.checked).toBe(false);
+      expect(recent.checked).toBe(false);
+      expect(keepsake.disabled).toBe(true);
+      expect(recent.disabled).toBe(true);
+
+      await act(async () => {
+        resolveByModule.get('recent_shared')?.({
+          moduleKey: 'recent_shared',
+          visible: false,
+        });
+      });
+      await waitFor(() => expect(recent.disabled).toBe(false));
+      expect(keepsake.disabled).toBe(true);
+      expect(keepsake.checked).toBe(false);
+
+      await act(async () => {
+        resolveByModule.get('keepsake')?.({
+          moduleKey: 'keepsake',
+          visible: false,
+        });
+      });
+      await waitFor(() => expect(keepsake.disabled).toBe(false));
+      const cached = queryClient.getQueryData<DashboardModulePreferenceList>(
+        dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID),
+      );
+      expect(cached?.items.map((item) => item.moduleKey)).toEqual(
+        DEFAULT_PREFERENCES.items.map((item) => item.moduleKey),
+      );
+      expect(
+        cached?.items.find((item) => item.moduleKey === 'keepsake')?.visible,
+      ).toBe(false);
+      expect(
+        cached?.items.find((item) => item.moduleKey === 'recent_shared')
+          ?.visible,
+      ).toBe(false);
+    });
+
+    it('does not overwrite a newer authorized read with an older toggle result', async () => {
+      let resolveWrite:
+        | ((value: { moduleKey: string; visible: boolean }) => void)
+        | undefined;
+      const update = vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          resolveWrite = resolve;
+        }),
+      );
+      const { queryClient } = renderPanel(update);
+      const keepsake = screen.getByRole('checkbox', {
+        name: moduleLabel('keepsake'),
+      }) as HTMLInputElement;
+
+      fireEvent.click(keepsake);
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      const key = dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID);
+      queryClient.setQueryData<DashboardModulePreferenceList>(
+        key,
+        (current) => ({
+          items: (current?.items ?? []).map((item) =>
+            item.moduleKey === 'keepsake'
+              ? { ...item, visible: true, selectedCollectionId: 'newer-read' }
+              : item,
+          ),
+        }),
+      );
+
+      await act(async () => {
+        resolveWrite?.({ moduleKey: 'keepsake', visible: false });
+      });
+      await waitFor(() => expect(keepsake.disabled).toBe(false));
+      expect(keepsake.checked).toBe(true);
+      expect(
+        queryClient
+          .getQueryData<DashboardModulePreferenceList>(key)
+          ?.items.find((item) => item.moduleKey === 'keepsake'),
+      ).toMatchObject({ visible: true, selectedCollectionId: 'newer-read' });
+    });
+
+    it('never recreates a removed/replaced preference query from a late write', async () => {
+      let resolveWrite:
+        | ((value: { moduleKey: string; visible: boolean }) => void)
+        | undefined;
+      const update = vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          resolveWrite = resolve;
+        }),
+      );
+      const { queryClient, dashboardApi } = renderPanel(update);
+      fireEvent.click(
+        screen.getByRole('checkbox', { name: moduleLabel('keepsake') }),
+      );
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      const key = dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID);
+      const replacement = {
+        items: DEFAULT_PREFERENCES.items.map((item) =>
+          item.moduleKey === 'keepsake'
+            ? { ...item, visible: true, selectedCollectionId: 'replacement' }
+            : item,
+        ),
+      } as DashboardModulePreferenceList;
+      // The active observer automatically re-fetches after cache removal.
+      // That authoritative replacement read must agree with the new session
+      // instead of re-introducing the fixture's earlier default response.
+      vi.mocked(dashboardApi.listDashboardModulePreferences).mockResolvedValue(
+        replacement,
+      );
+      queryClient.removeQueries({ queryKey: key, exact: true });
+      queryClient.setQueryData(key, replacement);
+
+      await act(async () => {
+        resolveWrite?.({ moduleKey: 'keepsake', visible: false });
+      });
+      expect(queryClient.getQueryData(key)).toEqual(replacement);
     });
   });
 });

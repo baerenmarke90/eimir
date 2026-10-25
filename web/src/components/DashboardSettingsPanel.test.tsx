@@ -207,7 +207,9 @@ describe('DashboardSettingsPanel', () => {
           .getQueryData<DashboardModulePreferenceList>(key)
           ?.items.map((item) => item.moduleKey),
       ).toEqual(newerOrder.map((item) => item.moduleKey));
-      expect(screen.queryByText(profileIdentity.dashboardModuleSaved)).toBeNull();
+      expect(
+        screen.queryByText(profileIdentity.dashboardModuleSaved),
+      ).toBeNull();
     });
 
     it('does not recreate a removed and replaced Query from a late reorder success', async () => {
@@ -252,7 +254,9 @@ describe('DashboardSettingsPanel', () => {
         });
       });
       expect(queryClient.getQueryData(key)).toEqual(replacement);
-      expect(screen.queryByText(profileIdentity.dashboardModuleSaved)).toBeNull();
+      expect(
+        screen.queryByText(profileIdentity.dashboardModuleSaved),
+      ).toBeNull();
     });
 
     it('does not invalidate a replacement Query or display a stale reorder failure', async () => {
@@ -283,18 +287,28 @@ describe('DashboardSettingsPanel', () => {
       );
       queryClient.removeQueries({ queryKey: key, exact: true });
       queryClient.setQueryData(key, replacement);
-      await waitFor(() => expect(queryClient.getQueryData(key)).toEqual(replacement));
+      await waitFor(() =>
+        expect(queryClient.getQueryData(key)).toEqual(replacement),
+      );
       vi.mocked(dashboardApi.listDashboardModulePreferences).mockClear();
 
       await act(async () => {
         failOrder?.(new Error('request failed'));
       });
       await waitFor(() =>
-        expect(queryClient.isMutating({ mutationKey: ['dashboard-order', ACCOUNT_ID, SPACE_ID] })).toBe(0),
+        expect(
+          queryClient.isMutating({
+            mutationKey: ['dashboard-order', ACCOUNT_ID, SPACE_ID],
+          }),
+        ).toBe(0),
       );
       expect(queryClient.getQueryData(key)).toEqual(replacement);
-      expect(dashboardApi.listDashboardModulePreferences).not.toHaveBeenCalled();
-      expect(screen.queryByText(profileIdentity.dashboardOrderFailed)).toBeNull();
+      expect(
+        dashboardApi.listDashboardModulePreferences,
+      ).not.toHaveBeenCalled();
+      expect(
+        screen.queryByText(profileIdentity.dashboardOrderFailed),
+      ).toBeNull();
     });
 
     it('keeps a new Account and Space unaffected by a previous reorder failure', async () => {
@@ -338,7 +352,9 @@ describe('DashboardSettingsPanel', () => {
         failOrder?.(new Error('request failed'));
       });
       expect(queryClient.getQueryData(nextKey)).toEqual(nextPreferences);
-      expect(screen.queryByText(profileIdentity.dashboardOrderFailed)).toBeNull();
+      expect(
+        screen.queryByText(profileIdentity.dashboardOrderFailed),
+      ).toBeNull();
       expect(screen.queryByRole('alert')).toBeNull();
     });
   });

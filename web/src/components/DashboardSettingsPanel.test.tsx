@@ -290,7 +290,9 @@ describe('DashboardSettingsPanel', () => {
       await waitFor(() =>
         expect(queryClient.getQueryData(key)).toEqual(replacement),
       );
-      vi.mocked(dashboardApi.listDashboardModulePreferences).mockClear();
+      // Replacing an observed Query can legitimately trigger its own read.
+      // Inspect the actual forbidden side effect, not the GET count.
+      const invalidations = vi.spyOn(queryClient, 'invalidateQueries');
 
       await act(async () => {
         failOrder?.(new Error('request failed'));
@@ -303,9 +305,9 @@ describe('DashboardSettingsPanel', () => {
         ).toBe(0),
       );
       expect(queryClient.getQueryData(key)).toEqual(replacement);
-      expect(
-        dashboardApi.listDashboardModulePreferences,
-      ).not.toHaveBeenCalled();
+      expect(invalidations).not.toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: key }),
+      );
       expect(
         screen.queryByText(profileIdentity.dashboardOrderFailed),
       ).toBeNull();

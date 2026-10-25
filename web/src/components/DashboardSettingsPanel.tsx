@@ -294,11 +294,8 @@ export function DashboardSettingsPanel({
         .some(
           (mutation) =>
             mutation.state.status === 'pending' &&
-            (
-              mutation.state.variables as
-                | VisibilityWrite
-                | undefined
-            )?.moduleKey === UPCOMING_MODULE_KEY,
+            (mutation.state.variables as VisibilityWrite | undefined)
+              ?.moduleKey === UPCOMING_MODULE_KEY,
         )
     ) {
       return;
@@ -471,8 +468,8 @@ export function DashboardSettingsPanel({
     Boolean(activePendingLimit) || pendingUpcomingMutations.length > 0;
   const selectedLimit = activePendingLimit?.itemLimit ?? confirmedLimit;
   const isUpcomingVisibilityPending =
-    pendingVisibility[`${settingsScope}:${UPCOMING_MODULE_KEY}`] !== undefined ||
-    pendingVisibilityMutations.includes(UPCOMING_MODULE_KEY);
+    pendingVisibility[`${settingsScope}:${UPCOMING_MODULE_KEY}`] !==
+      undefined || pendingVisibilityMutations.includes(UPCOMING_MODULE_KEY);
   const status = isLimitPending
     ? t('profileIdentity.dashboardUpcomingSaving')
     : savedLimitScope === settingsScope

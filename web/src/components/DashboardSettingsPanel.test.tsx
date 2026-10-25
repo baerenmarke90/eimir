@@ -257,6 +257,168 @@ describe('DashboardSettingsPanel', () => {
     screen.getByRole('alert');
   });
 
+  describe('upcoming limit write ownership (#508)', () => {
+    it('updates the authorized cache immediately and rejects rapid duplicate intent', async () => {
+      let resolveUpdate:
+        | ((value: { moduleKey: string; itemLimit: number }) => void)
+        | undefined;
+      const update = vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          resolveUpdate = resolve;
+        }),
+      );
+      const { queryClient } = renderPanel(update);
+      const key = dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID);
+
+      fireEvent.click(screen.getByRole('radio', { name: '3' }));
+      await waitFor(() =>
+        expect(
+          queryClient.getQueryData<DashboardModulePreferenceList>(key)?.items.find(
+            (item) => item.moduleKey === 'upcoming',
+          )?.itemLimit,
+        ).toBe(3),
+      );
+      fireEvent.click(screen.getByRole('radio', { name: '1' }));
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      expect(
+        (screen.getByRole('radio', { name: '1' }) as HTMLInputElement).disabled,
+      ).toBe(true);
+      expect(
+        (screen.getByRole('radio', { name: '3' }) as HTMLInputElement).checked,
+      ).toBe(true);
+
+      await act(async () => {
+        resolveUpdate?.({ moduleKey: 'upcoming', itemLimit: 3 });
+      });
+      await waitFor(() =>
+        screen.getByText(profileIdentity.dashboardUpcomingSaved),
+      );
+    });
+
+    it('preserves a newer authoritative Upcoming row after a late confirmation', async () => {
+      let resolveUpdate:
+        | ((value: { moduleKey: string; itemLimit: number }) => void)
+        | undefined;
+      const update = vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          resolveUpdate = resolve;
+        }),
+      );
+      const { queryClient } = renderPanel(update);
+      const key = dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID);
+      fireEvent.click(screen.getByRole('radio', { name: '3' }));
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+
+      queryClient.setQueryData<DashboardModulePreferenceList>(
+        key,
+        (current) => ({
+          items: (current?.items ?? []).map((item) =>
+            item.moduleKey === 'upcoming'
+              ? { ...item, itemLimit: 1, visible: false }
+              : item,
+          ),
+        }),
+      );
+
+      await act(async () => {
+        resolveUpdate?.({ moduleKey: 'upcoming', itemLimit: 3 });
+      });
+      await waitFor(() =>
+        expect(
+          (screen.getByRole('radio', { name: '1' }) as HTMLInputElement).checked,
+        ).toBe(true),
+      );
+      expect(
+        queryClient
+          .getQueryData<DashboardModulePreferenceList>(key)
+          ?.items.find((item) => item.moduleKey === 'upcoming'),
+      ).toMatchObject({ itemLimit: 1, visible: false });
+    });
+
+    it('never writes an old response into a removed and replaced preferences Query', async () => {
+      let resolveUpdate:
+        | ((value: { moduleKey: string; itemLimit: number }) => void)
+        | undefined;
+      const update = vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          resolveUpdate = resolve;
+        }),
+      );
+      const { queryClient, dashboardApi } = renderPanel(update);
+      const key = dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID);
+      fireEvent.click(screen.getByRole('radio', { name: '3' }));
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+
+      const replacement = {
+        items: DEFAULT_PREFERENCES.items.map((item) =>
+          item.moduleKey === 'upcoming'
+            ? { ...item, itemLimit: 1, visible: false }
+            : item,
+        ),
+      } as DashboardModulePreferenceList;
+      vi.mocked(dashboardApi.listDashboardModulePreferences).mockResolvedValue(
+        replacement,
+      );
+      queryClient.removeQueries({ queryKey: key, exact: true });
+      queryClient.setQueryData(key, replacement);
+
+      await act(async () => {
+        resolveUpdate?.({ moduleKey: 'upcoming', itemLimit: 3 });
+      });
+      expect(queryClient.getQueryData(key)).toEqual(replacement);
+    });
+
+    it('keeps another Account and Space unaffected by an earlier result', async () => {
+      let resolveUpdate:
+        | ((value: { moduleKey: string; itemLimit: number }) => void)
+        | undefined;
+      const update = vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          resolveUpdate = resolve;
+        }),
+      );
+      const { queryClient, dashboardApi, rerender } = renderPanel(update);
+      const nextAccount = 'account-2';
+      const nextSpace = 'space-2';
+      const nextKey = dashboardPreferencesQueryKey(nextAccount, nextSpace);
+      const nextPreferences = {
+        items: DEFAULT_PREFERENCES.items.map((item) =>
+          item.moduleKey === 'upcoming' ? { ...item, itemLimit: 1 } : item,
+        ),
+      } as DashboardModulePreferenceList;
+
+      fireEvent.click(screen.getByRole('radio', { name: '3' }));
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      vi.mocked(dashboardApi.listDashboardModulePreferences).mockResolvedValue(
+        nextPreferences,
+      );
+      queryClient.setQueryData(nextKey, nextPreferences);
+      rerender(
+        <QueryClientProvider client={queryClient}>
+          <DashboardSettingsPanel
+            dashboardApi={dashboardApi}
+            accountId={nextAccount}
+            spaceId={nextSpace}
+          />
+        </QueryClientProvider>,
+      );
+      await waitFor(() =>
+        expect(
+          (screen.getByRole('radio', { name: '1' }) as HTMLInputElement).checked,
+        ).toBe(true),
+      );
+
+      await act(async () => {
+        resolveUpdate?.({ moduleKey: 'upcoming', itemLimit: 3 });
+      });
+      expect(queryClient.getQueryData(nextKey)).toEqual(nextPreferences);
+      expect(
+        (screen.getByRole('radio', { name: '1' }) as HTMLInputElement).checked,
+      ).toBe(true);
+      expect(screen.queryByText(profileIdentity.dashboardUpcomingSaved)).toBeNull();
+    });
+  });
+
   describe('module visibility (#817)', () => {
     it('lists every registered module with an accessible checkbox, all shown by default', () => {
       renderPanel(vi.fn());

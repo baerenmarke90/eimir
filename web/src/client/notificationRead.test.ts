@@ -115,10 +115,13 @@ it.each(['removed', 'replaced', 'denied'] as const)(
     const invalidate = vi.spyOn(h.client, 'invalidateQueries');
 
     if (mode === 'denied') {
-      h.client.getQueryCache().find({ queryKey: h.listKey, exact: true })?.setState({
-        error: new ClientProblemError('permission', 403),
-        status: 'error',
-      });
+      h.client
+        .getQueryCache()
+        .find({ queryKey: h.listKey, exact: true })
+        ?.setState({
+          error: new ClientProblemError('permission', 403),
+          status: 'error',
+        });
     } else {
       h.client.removeQueries({ queryKey: h.listKey, exact: true });
       if (mode === 'replaced')
@@ -140,7 +143,8 @@ it.each(['removed', 'replaced', 'denied'] as const)(
     await first?.refresh();
     expect(send).not.toHaveBeenCalled();
     expect(invalidate).not.toHaveBeenCalled();
-    if (mode === 'removed') expect(h.client.getQueryData(h.listKey)).toBeUndefined();
+    if (mode === 'removed')
+      expect(h.client.getQueryData(h.listKey)).toBeUndefined();
     else if (mode === 'replaced') expect(h.read('first')).toBeNull();
     else expect(h.read('first')).toBeInstanceOf(Date);
   },
@@ -151,9 +155,7 @@ it('rejects offline dispatch without reconnect replay, then allows a new intent'
   const first = beginNotificationRead(h.client, 'space-a', 'first');
   onlineManager.setOnline(false);
   const send = vi.fn(async () => undefined);
-  await expect(first?.perform(send)).rejects.toBeInstanceOf(
-    ClientProblemError,
-  );
+  await expect(first?.perform(send)).rejects.toBeInstanceOf(ClientProblemError);
   first?.rollback();
   expect(h.read('first')).toBeNull();
   expect(h.count()).toBe(2);

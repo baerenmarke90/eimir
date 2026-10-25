@@ -277,9 +277,7 @@ describe('HeaderNotificationsMenu', () => {
 
     try {
       const { queryClient } = renderNotificationMenu({ unreadCount: 1 });
-      fireEvent.click(
-        screen.getByRole('button', { name: /1 ungelesen/i }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: /1 ungelesen/i }));
       fireEvent.click(screen.getByRole('button', { name: /Alex Partner/i }));
       expect(
         queryClient.getQueryData<{ unreadCount: number }>(

@@ -466,13 +466,16 @@ describe('DashboardSettingsPanel', () => {
       fireEvent.click(keepsake);
       await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
       const key = dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID);
-      queryClient.setQueryData<DashboardModulePreferenceList>(key, (current) => ({
-        items: (current?.items ?? []).map((item) =>
-          item.moduleKey === 'keepsake'
-            ? { ...item, visible: true, selectedCollectionId: 'newer-read' }
-            : item,
-        ),
-      }));
+      queryClient.setQueryData<DashboardModulePreferenceList>(
+        key,
+        (current) => ({
+          items: (current?.items ?? []).map((item) =>
+            item.moduleKey === 'keepsake'
+              ? { ...item, visible: true, selectedCollectionId: 'newer-read' }
+              : item,
+          ),
+        }),
+      );
 
       await act(async () => {
         resolveWrite?.({ moduleKey: 'keepsake', visible: false });
@@ -480,9 +483,9 @@ describe('DashboardSettingsPanel', () => {
       await waitFor(() => expect(keepsake.disabled).toBe(false));
       expect(keepsake.checked).toBe(true);
       expect(
-        queryClient.getQueryData<DashboardModulePreferenceList>(key)?.items.find(
-          (item) => item.moduleKey === 'keepsake',
-        ),
+        queryClient
+          .getQueryData<DashboardModulePreferenceList>(key)
+          ?.items.find((item) => item.moduleKey === 'keepsake'),
       ).toMatchObject({ visible: true, selectedCollectionId: 'newer-read' });
     });
 

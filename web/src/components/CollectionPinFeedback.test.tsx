@@ -472,6 +472,66 @@ it('blocks denied preference reads and removes the invalid selected state', asyn
   expect(pinButton().getAttribute('aria-pressed')).toBe('false');
 });
 
+it.each(['success', 'failure'] as const)(
+  'keeps a newer denied preference read authoritative after late pin %s',
+  async (outcome) => {
+    const h = setup();
+    await waitFor(() =>
+      expect(pinButton().hasAttribute('disabled')).toBe(false),
+    );
+    fireEvent.click(pinButton());
+    await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+
+    // A refetch may fail with an authorization denial while retaining
+    // previously rendered data in the same TanStack Query lifetime.
+    const denied = new ClientProblemError('permission', 403);
+    h.get.mockRejectedValue(denied);
+    await act(async () =>
+      h.queryClient.refetchQueries({ queryKey: key, exact: true }),
+    );
+    expect(h.queryClient.getQueryState(key)?.error).toBe(denied);
+    const latest = cached(h);
+    const invalidate = vi.spyOn(h.queryClient, 'invalidateQueries');
+
+    await act(async () => {
+      if (outcome === 'success')
+        h.writes[0].resolve(preference(collectionId, true));
+      else h.writes[0].reject(new ClientProblemError('server', 500));
+    });
+    await waitFor(() => expect(h.queryClient.isMutating()).toBe(0));
+    expect(cached(h)).toEqual(latest);
+    expect(h.queryClient.getQueryState(key)?.error).toBe(denied);
+    expect(invalidate).not.toHaveBeenCalled();
+    expect(pinButton().getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByText(de.states.permission.title)).toBeDefined();
+  },
+);
+
+it('does not dispatch a pin when authorization is lost during cancellation', async () => {
+  const h = setup();
+  await waitFor(() => expect(pinButton().hasAttribute('disabled')).toBe(false));
+  const cancellation = deferred<void>();
+  const cancel = vi
+    .spyOn(h.queryClient, 'cancelQueries')
+    .mockReturnValue(cancellation.promise);
+  fireEvent.click(pinButton());
+  await waitFor(() => expect(cancel).toHaveBeenCalled());
+
+  const denied = new ClientProblemError('permission', 403);
+  h.get.mockRejectedValue(denied);
+  await act(async () =>
+    h.queryClient.refetchQueries({ queryKey: key, exact: true }),
+  );
+  expect(h.queryClient.getQueryState(key)?.error).toBe(denied);
+  await act(async () => cancellation.resolve());
+
+  await waitFor(() => expect(h.queryClient.isMutating()).toBe(0));
+  expect(h.update).not.toHaveBeenCalled();
+  expect(h.queryClient.getQueryState(key)?.error).toBe(denied);
+  expect(pinButton().getAttribute('aria-pressed')).toBe('false');
+  expect(screen.getByText(de.states.permission.title)).toBeDefined();
+});
+
 it('preserves a newer authoritative row when an older pin response arrives before recovery finishes', async () => {
   const h = setup();
   await waitFor(() => expect(pinButton().hasAttribute('disabled')).toBe(false));

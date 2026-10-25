@@ -162,6 +162,205 @@ describe('DashboardSettingsPanel', () => {
     );
   });
 
+  describe('module order query ownership (#508)', () => {
+    it('keeps a newer authorized server order when an older reorder finishes', async () => {
+      let finishOrder:
+        | ((value: DashboardModulePreferenceList) => void)
+        | undefined;
+      const reorder = vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          finishOrder = resolve;
+        }),
+      );
+      const { queryClient } = renderPanel(
+        vi.fn(),
+        DEFAULT_PREFERENCES,
+        reorder,
+      );
+      const key = dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID);
+      fireEvent.keyDown(
+        screen.getByRole('button', {
+          name: `${moduleLabel('keepsake')} verschieben`,
+        }),
+        { key: 'ArrowDown' },
+      );
+      await waitFor(() => expect(reorder).toHaveBeenCalledTimes(1));
+      const submitted = reorder.mock.calls[0][0].dashboardModuleOrderUpdate
+        .moduleKeys as string[];
+      const newerOrder = [
+        ...DEFAULT_PREFERENCES.items.slice().reverse(),
+      ] as DashboardModulePreferenceList['items'];
+      queryClient.setQueryData<DashboardModulePreferenceList>(key, {
+        items: newerOrder,
+      });
+
+      await act(async () => {
+        finishOrder?.({
+          items: submitted.map((moduleKey) => ({
+            moduleKey,
+            visible: true,
+          })),
+        });
+      });
+      expect(
+        queryClient
+          .getQueryData<DashboardModulePreferenceList>(key)
+          ?.items.map((item) => item.moduleKey),
+      ).toEqual(newerOrder.map((item) => item.moduleKey));
+      expect(
+        screen.queryByText(profileIdentity.dashboardModuleSaved),
+      ).toBeNull();
+    });
+
+    it('does not recreate a removed and replaced Query from a late reorder success', async () => {
+      let finishOrder:
+        | ((value: DashboardModulePreferenceList) => void)
+        | undefined;
+      const reorder = vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          finishOrder = resolve;
+        }),
+      );
+      const { queryClient, dashboardApi } = renderPanel(
+        vi.fn(),
+        DEFAULT_PREFERENCES,
+        reorder,
+      );
+      const key = dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID);
+      fireEvent.keyDown(
+        screen.getByRole('button', {
+          name: `${moduleLabel('keepsake')} verschieben`,
+        }),
+        { key: 'ArrowDown' },
+      );
+      await waitFor(() => expect(reorder).toHaveBeenCalledTimes(1));
+      const submitted = reorder.mock.calls[0][0].dashboardModuleOrderUpdate
+        .moduleKeys as string[];
+      const replacement = {
+        items: DEFAULT_PREFERENCES.items.slice().reverse(),
+      } as DashboardModulePreferenceList;
+      vi.mocked(dashboardApi.listDashboardModulePreferences).mockResolvedValue(
+        replacement,
+      );
+      queryClient.removeQueries({ queryKey: key, exact: true });
+      queryClient.setQueryData(key, replacement);
+
+      await act(async () => {
+        finishOrder?.({
+          items: submitted.map((moduleKey) => ({
+            moduleKey,
+            visible: true,
+          })),
+        });
+      });
+      expect(queryClient.getQueryData(key)).toEqual(replacement);
+      expect(
+        screen.queryByText(profileIdentity.dashboardModuleSaved),
+      ).toBeNull();
+    });
+
+    it('does not invalidate a replacement Query or display a stale reorder failure', async () => {
+      let failOrder: ((error: Error) => void) | undefined;
+      const reorder = vi.fn().mockReturnValue(
+        new Promise((_resolve, reject) => {
+          failOrder = reject;
+        }),
+      );
+      const { queryClient, dashboardApi } = renderPanel(
+        vi.fn(),
+        DEFAULT_PREFERENCES,
+        reorder,
+      );
+      const key = dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID);
+      fireEvent.keyDown(
+        screen.getByRole('button', {
+          name: `${moduleLabel('keepsake')} verschieben`,
+        }),
+        { key: 'ArrowDown' },
+      );
+      await waitFor(() => expect(reorder).toHaveBeenCalledTimes(1));
+      const replacement = {
+        items: DEFAULT_PREFERENCES.items.slice().reverse(),
+      } as DashboardModulePreferenceList;
+      vi.mocked(dashboardApi.listDashboardModulePreferences).mockResolvedValue(
+        replacement,
+      );
+      queryClient.removeQueries({ queryKey: key, exact: true });
+      queryClient.setQueryData(key, replacement);
+      await waitFor(() =>
+        expect(queryClient.getQueryData(key)).toEqual(replacement),
+      );
+      // Replacing an observed Query can legitimately trigger its own read.
+      // Inspect the actual forbidden side effect, not the GET count.
+      const invalidations = vi.spyOn(queryClient, 'invalidateQueries');
+
+      await act(async () => {
+        failOrder?.(new Error('request failed'));
+      });
+      await waitFor(() =>
+        expect(
+          queryClient.isMutating({
+            mutationKey: ['dashboard-order', ACCOUNT_ID, SPACE_ID],
+          }),
+        ).toBe(0),
+      );
+      expect(queryClient.getQueryData(key)).toEqual(replacement);
+      expect(invalidations).not.toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: key }),
+      );
+      expect(
+        screen.queryByText(profileIdentity.dashboardOrderFailed),
+      ).toBeNull();
+    });
+
+    it('keeps a new Account and Space unaffected by a previous reorder failure', async () => {
+      let failOrder: ((error: Error) => void) | undefined;
+      const reorder = vi.fn().mockReturnValue(
+        new Promise((_resolve, reject) => {
+          failOrder = reject;
+        }),
+      );
+      const { queryClient, dashboardApi, rerender } = renderPanel(
+        vi.fn(),
+        DEFAULT_PREFERENCES,
+        reorder,
+      );
+      fireEvent.keyDown(
+        screen.getByRole('button', {
+          name: `${moduleLabel('keepsake')} verschieben`,
+        }),
+        { key: 'ArrowDown' },
+      );
+      await waitFor(() => expect(reorder).toHaveBeenCalledTimes(1));
+      const nextKey = dashboardPreferencesQueryKey('account-2', 'space-2');
+      const nextPreferences = {
+        items: DEFAULT_PREFERENCES.items.slice().reverse(),
+      } as DashboardModulePreferenceList;
+      vi.mocked(dashboardApi.listDashboardModulePreferences).mockResolvedValue(
+        nextPreferences,
+      );
+      queryClient.setQueryData(nextKey, nextPreferences);
+      rerender(
+        <QueryClientProvider client={queryClient}>
+          <DashboardSettingsPanel
+            dashboardApi={dashboardApi}
+            accountId="account-2"
+            spaceId="space-2"
+          />
+        </QueryClientProvider>,
+      );
+
+      await act(async () => {
+        failOrder?.(new Error('request failed'));
+      });
+      expect(queryClient.getQueryData(nextKey)).toEqual(nextPreferences);
+      expect(
+        screen.queryByText(profileIdentity.dashboardOrderFailed),
+      ).toBeNull();
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+  });
+
   it('exposes one understandable native 1/2/3 radio group', () => {
     renderPanel(vi.fn());
 

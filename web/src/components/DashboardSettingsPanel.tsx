@@ -1,4 +1,5 @@
 import {
+  type QueryClient,
   useMutation,
   useMutationState,
   useQuery,
@@ -38,6 +39,24 @@ export interface DashboardSettingsPanelProps {
   spaceId: string;
 }
 
+type PreferenceQueryWrite = {
+  moduleKey: DashboardModuleKey;
+  key: ReturnType<typeof dashboardPreferencesQueryKey>;
+  isCurrentQuery: () => boolean;
+};
+
+type PreferenceRowContext = {
+  previous: DashboardModulePreferenceView | undefined;
+  optimistic: DashboardModulePreferenceView | undefined;
+};
+
+type UpcomingLimitWrite = PreferenceQueryWrite & {
+  scope: string;
+  itemLimit: UpcomingItemLimit;
+  api: DashboardApi;
+  spaceId: string;
+};
+
 type VisibilityWrite = {
   id: number;
   scope: string;
@@ -64,6 +83,67 @@ function patchPreference(
   if (index >= 0) items[index] = updated;
   else items.push(updated);
   return { items };
+}
+
+/** One atomic Dashboard facet write, shared by visibility and upcoming limits. */
+async function beginPreferenceFacetWrite(
+  client: QueryClient,
+  write: PreferenceQueryWrite,
+  facet: Partial<DashboardModulePreferenceView>,
+): Promise<PreferenceRowContext | null> {
+  if (!write.isCurrentQuery()) return null;
+  await client.cancelQueries({ queryKey: write.key, exact: true });
+  if (!write.isCurrentQuery()) return null;
+  const previous = client
+    .getQueryData<DashboardModulePreferenceList>(write.key)
+    ?.items.find((item) => item.moduleKey === write.moduleKey);
+  client.setQueryData<DashboardModulePreferenceList>(write.key, (current) =>
+    current ? patchPreference(current, write.moduleKey, facet) : current,
+  );
+  const optimistic = client
+    .getQueryData<DashboardModulePreferenceList>(write.key)
+    ?.items.find((item) => item.moduleKey === write.moduleKey);
+  return { previous, optimistic };
+}
+
+/** A stale result cannot replace a later read or a different Query identity. */
+function settlePreferenceFacetWrite(
+  client: QueryClient,
+  write: PreferenceQueryWrite,
+  context: PreferenceRowContext | null | undefined,
+  confirmedFacet?: Partial<DashboardModulePreferenceView>,
+): boolean {
+  if (!context?.optimistic || !write.isCurrentQuery()) return false;
+  const current = client.getQueryData<DashboardModulePreferenceList>(write.key);
+  if (
+    !current ||
+    current.items.find((item) => item.moduleKey === write.moduleKey) !==
+      context.optimistic
+  ) {
+    return false;
+  }
+  const previous = context.previous;
+  client.setQueryData<DashboardModulePreferenceList>(write.key, (data) => {
+    if (
+      !data ||
+      data.items.find((item) => item.moduleKey === write.moduleKey) !==
+        context.optimistic
+    ) {
+      return data;
+    }
+    if (confirmedFacet) {
+      return patchPreference(data, write.moduleKey, confirmedFacet);
+    }
+    return {
+      ...data,
+      items: previous
+        ? data.items.map((item) =>
+            item === context.optimistic ? previous : item,
+          )
+        : data.items.filter((item) => item !== context.optimistic),
+    };
+  });
+  return true;
 }
 
 export function DashboardSettingsPanel({
@@ -170,44 +250,18 @@ export function DashboardSettingsPanel({
         throw await normalizeClientError(error);
       }
     },
-    onMutate: async (write) => {
-      if (!write.isCurrentQuery()) return null;
-      await queryClient.cancelQueries({ queryKey: write.key, exact: true });
-      if (!write.isCurrentQuery()) return null;
-      const previous = queryClient
-        .getQueryData<DashboardModulePreferenceList>(write.key)
-        ?.items.find((item) => item.moduleKey === write.moduleKey);
-      queryClient.setQueryData<DashboardModulePreferenceList>(
-        write.key,
-        (current) =>
-          current
-            ? patchPreference(current, write.moduleKey, {
-                visible: write.visible,
-              })
-            : current,
-      );
-      const optimistic = queryClient
-        .getQueryData<DashboardModulePreferenceList>(write.key)
-        ?.items.find((item) => item.moduleKey === write.moduleKey);
-      return { previous, optimistic };
-    },
+    onMutate: (write) =>
+      beginPreferenceFacetWrite(queryClient, write, {
+        visible: write.visible,
+      }),
     onSuccess: (updated, write, context) => {
       // A later authoritative read or another write can replace this row.
       // Only the submitted optimistic row may consume its own response.
-      if (context?.optimistic && write.isCurrentQuery()) {
-        queryClient.setQueryData<DashboardModulePreferenceList>(
-          write.key,
-          (current) =>
-            current?.items.find(
-              (item) => item.moduleKey === write.moduleKey,
-            ) === context.optimistic
-              ? patchPreference(current, write.moduleKey, {
-                  visible: updated.visible,
-                })
-              : current,
-        );
-      }
+      const committed = settlePreferenceFacetWrite(queryClient, write, context, {
+        visible: updated.visible,
+      });
       if (
+        committed &&
         activeVisibilityScope.current === write.scope &&
         write.isCurrentQuery()
       ) {
@@ -216,29 +270,7 @@ export function DashboardSettingsPanel({
     },
     onError: async (error, write, context) => {
       // Roll back the exact optimistic object, never a newer read or sibling.
-      if (context?.optimistic && write.isCurrentQuery()) {
-        queryClient.setQueryData<DashboardModulePreferenceList>(
-          write.key,
-          (current) => {
-            if (
-              !current ||
-              current.items.find(
-                (item) => item.moduleKey === write.moduleKey,
-              ) !== context.optimistic
-            ) {
-              return current;
-            }
-            return {
-              ...current,
-              items: context.previous
-                ? current.items.map((item) =>
-                    item === context.optimistic ? context.previous! : item,
-                  )
-                : current.items.filter((item) => item !== context.optimistic),
-            };
-          },
-        );
-      }
+      settlePreferenceFacetWrite(queryClient, write, context);
       if (
         write.isCurrentQuery() &&
         ['unauthorized', 'permission', 'notFound'].includes(

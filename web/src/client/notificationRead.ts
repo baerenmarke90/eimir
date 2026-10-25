@@ -78,6 +78,14 @@ export function beginNotificationRead(
   }
   if (!admitted) return null;
 
+  // TanStack Query may structurally share an independently allocated row.
+  // The actual stored row, not the updater's temporary object, owns rollback.
+  const cachedOptimisticItem = client
+    .getQueryData<NotificationCache>(listKey)
+    ?.pages.flatMap((page) => page.items)
+    .find((entry) => entry.id === notificationId);
+  if (!cachedOptimisticItem || !cachedOptimisticItem.readAt) return null;
+
   let counter: CounterOwner | null = null;
   let counterGeneration = -1;
   let decremented = false;
@@ -119,7 +127,7 @@ export function beginNotificationRead(
         pages: current.pages.map((page) => ({
           ...page,
           items: page.items.map((entry) => {
-            if (entry !== optimisticItem) return entry;
+            if (entry !== cachedOptimisticItem) return entry;
             restored = true;
             return originalItem;
           }),

@@ -218,9 +218,11 @@ export function useCollectionPin({
       pendingSelection.spaceId === spaceId &&
       pendingSelection.isCurrentQuery(),
   );
-  const canReadPreferences = !['unauthorized', 'permission', 'notFound'].includes(
-    clientProblemKind(query.error),
-  );
+  const canReadPreferences = ![
+    'unauthorized',
+    'permission',
+    'notFound',
+  ].includes(clientProblemKind(query.error));
   const selectedCollectionId = !canReadPreferences
     ? null
     : isSaving

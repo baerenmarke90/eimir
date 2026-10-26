@@ -457,7 +457,12 @@ for (const dimension of ['energy', 'vibe'] as const) {
     const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
     const newer = {
       ...h.current,
-      own: { ...h.current.own, energyLevel: 90, vibe: 'GOOD' as const, version: 2 },
+      own: {
+        ...h.current.own,
+        energyLevel: 90,
+        vibe: 'GOOD' as const,
+        version: 2,
+      },
     };
     await submitWithInterruptedRead(dimension, () => {
       h.client.setQueryData(key, { projection: newer, etag: '"today:2"' });

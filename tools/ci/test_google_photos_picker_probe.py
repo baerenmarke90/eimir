@@ -91,6 +91,7 @@ class PickerProbeTest(unittest.TestCase):
             "https://photos.google.com@evil.invalid/pick",
             "https://evil.invalid@photos.google.com/pick",
             "https://photos.google.com:444/pick",
+            "https://photos.google.com:invalid/pick",
         ):
             with self.subTest(uri=value):
                 self.assertFalse(probe.valid_picker_uri(value))

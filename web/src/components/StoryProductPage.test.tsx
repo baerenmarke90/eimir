@@ -1,10 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createMemoryRouter, MemoryRouter } from 'react-router-dom';
+import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { StoryKind } from '../api/generated/models/StoryKind';
 import { StoryOrder } from '../api/generated/models/StoryOrder';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { dashboardQueryKey } from '../client/dashboardQueries';
 import {
   parseStoryFilters,
   storyCacheResourceId,
@@ -16,7 +18,11 @@ import { StoryProductPage } from './StoryProductPage';
 
 const loadMemoryImage = async () => 'blob:test-image';
 
-function renderStoryPage(route: string, cachedData: unknown): string {
+function renderStoryPage(
+  route: string,
+  cachedData: unknown,
+  options?: { dashboard?: unknown; selectionDate?: Date },
+): string {
   const query = route.includes('?') ? route.slice(route.indexOf('?') + 1) : '';
   const filters = parseStoryFilters(new URLSearchParams(query));
   const cacheKey = storyCacheResourceId(filters);
@@ -40,10 +46,14 @@ function renderStoryPage(route: string, cachedData: unknown): string {
         items: (cachedData as any).items || [],
         lead: (cachedData as any).items?.[0] || null,
         leadContext: null,
+        selectionDate: options?.selectionDate,
       },
       source: 'network',
     },
   );
+  if (options?.dashboard) {
+    queryClient.setQueryData(dashboardQueryKey('space-1'), options.dashboard);
+  }
 
   return renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>
@@ -53,11 +63,98 @@ function renderStoryPage(route: string, cachedData: unknown): string {
           accountId="account-1"
           spaceId="space-1"
           loadMemoryImage={loadMemoryImage}
+          dashboardApi={options?.dashboard ? ({} as DashboardApi) : undefined}
         />
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
+
+describe('Momente retrospective integration (#601)', () => {
+  const selectionDate = new Date('2026-08-24T00:00:00Z');
+  const lead = {
+    kind: 'MEMORY',
+    effectiveDate: selectionDate,
+    memory: {
+      id: 'discover-lead',
+      title: 'Unser aktueller Moment',
+      happenedOn: selectionDate,
+      createdAt: selectionDate,
+      attachments: [],
+      author: { id: 'author-1', displayName: 'Lea' },
+      capabilities: { canEdit: true, canDelete: true, canComment: true },
+    },
+  };
+  const discover = { items: [lead], hasMore: false, nextCursor: null };
+  const retrospective = {
+    id: 'historic-memory',
+    type: 'MEMORY',
+    titleOrText: 'That day by the lake',
+    occurredOn: new Date('2025-08-24T00:00:00Z'),
+    createdAt: null,
+    scheduledAt: null,
+    previewAttachmentId: 'lake-ready-photo',
+  };
+  const dashboard = {
+    viewerLocalDate: selectionDate,
+    retrospective,
+  };
+
+  it('shows the real Today candidate alongside Discover without reselecting Story items', () => {
+    const html = renderStoryPage('/story?tab=discover', discover, {
+      selectionDate,
+      dashboard,
+    });
+    expect(html).toContain('momente-retrospective');
+    expect(html).toContain('That day by the lake');
+    expect(html).toContain('href="/story/memories/historic-memory"');
+    expect(html).toContain('data-media-deferred="true"');
+    expect(html).toContain('Unser aktueller Moment');
+  });
+
+  it('does not render the same authorized content twice when it is already the featured lead', () => {
+    const html = renderStoryPage(
+      '/story?tab=discover',
+      {
+        ...discover,
+        items: [{ ...lead, memory: { ...lead.memory, id: retrospective.id } }],
+      },
+      { selectionDate, dashboard },
+    );
+    expect(html).not.toContain('momente-retrospective');
+    expect(html).toContain('momente-hero-highlight');
+  });
+
+  it('suppresses stale or absent candidates rather than inventing a moment', () => {
+    const stale = renderStoryPage('/story?tab=discover', discover, {
+      selectionDate: new Date('2026-08-23T00:00:00Z'),
+      dashboard,
+    });
+    const absent = renderStoryPage('/story?tab=discover', discover, {
+      selectionDate,
+      dashboard: { ...dashboard, retrospective: null },
+    });
+    const missingCalendarContext = renderStoryPage(
+      '/story?tab=discover',
+      discover,
+      { dashboard: { retrospective } },
+    );
+    expect(stale).not.toContain('momente-retrospective');
+    expect(absent).not.toContain('momente-retrospective');
+    expect(missingCalendarContext).not.toContain('momente-retrospective');
+    expect(stale).toContain('Unser aktueller Moment');
+    expect(absent).toContain('Unser aktueller Moment');
+  });
+
+  it('keeps Timeline independent from the Today retrospective', () => {
+    const html = renderStoryPage('/story?tab=timeline', discover, {
+      selectionDate,
+      dashboard,
+    });
+    expect(html).not.toContain('momente-retrospective');
+    expect(html).toContain('momente-tabs');
+  });
+});
 
 describe('StoryProductPage', () => {
   it('renders tab switcher and discovery view by default', () => {

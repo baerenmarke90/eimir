@@ -7,6 +7,8 @@ import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import notificationSettings from '../../src/i18n/locales/notificationSettings';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
+import privateArea from '../../src/i18n/locales/privateArea';
+import profiles from '../../src/i18n/locales/profiles';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -680,6 +682,244 @@ async function navigateWithinApp(page: Page, path: string): Promise<void> {
   await expect(page).toHaveURL(/\/more$/);
   await page.locator(`a[href="${path}"]`).first().click();
   await expect(page).toHaveURL(new RegExp(`${path}$`));
+}
+
+for (const view of [
+  { width: 390, height: 844, scheme: 'light' },
+  { width: 1280, height: 900, scheme: 'dark' },
+] as const) {
+  test(`private profile-note context survives create, failed edit, retry and return at ${view.width} ${view.scheme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize(view);
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const unexpected = await installAuthorizedApiMocks(page);
+    const partnerId = '44444444-4444-4444-8444-444444444444';
+    const preferenceId = '55555555-5555-4555-8555-555555555555';
+    const endpoint = `/api/v1/spaces/${SPACE_ID}/profile-preferences`;
+    let note: Record<string, unknown> | null = null;
+    let rejectEdit = true;
+    const writes: Array<{ method: string; body: unknown; ifMatch?: string }> =
+      [];
+    await page.route(`**/api/v1/spaces/${SPACE_ID}`, (route) =>
+      route.fulfill({
+        json: {
+          id: SPACE_ID,
+          createdAt: TEST_NOW,
+          partners: [
+            { id: ACCOUNT_ID, displayName: 'Anna' },
+            { id: partnerId, displayName: 'Sam' },
+          ],
+        },
+      }),
+    );
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/profiles/${partnerId}`,
+      (route) =>
+        route.fulfill({
+          json: {
+            accountId: partnerId,
+            displayName: 'Sam',
+            profileAttachmentId: null,
+            preferences: [],
+            version: 1,
+          },
+        }),
+    );
+    await page.route(`**${endpoint}**`, async (route) => {
+      const request = route.request();
+      const method = request.method();
+      const path = new URL(request.url()).pathname;
+      if (method === 'GET' && path === endpoint) {
+        await route.fulfill({ json: note ? [note] : [] });
+        return;
+      }
+      if (
+        (method === 'POST' && path === endpoint) ||
+        (method === 'PUT' && path === `${endpoint}/${preferenceId}`)
+      ) {
+        const body = request.postDataJSON();
+        writes.push({ method, body, ifMatch: request.headers()['if-match'] });
+        if (method === 'PUT' && rejectEdit) {
+          rejectEdit = false;
+          await route.fulfill({
+            status: 503,
+            json: {
+              code: 'SERVICE_UNAVAILABLE',
+              title: 'Unavailable',
+              status: 503,
+            },
+          });
+          return;
+        }
+        note = {
+          ...note,
+          ...body,
+          id: preferenceId,
+          ownerId: ACCOUNT_ID,
+          createdAt: TEST_NOW,
+          updatedAt: TEST_NOW,
+          version: method === 'POST' ? 1 : 2,
+        };
+        await route.fulfill({
+          status: method === 'POST' ? 201 : 200,
+          json: note,
+        });
+        return;
+      }
+      await route.fallback();
+    });
+    await page.goto('/more/profile');
+    await signIn(page);
+    const trigger = page.getByRole('button', {
+      name: profiles.addNoteShort,
+      exact: true,
+    });
+    await trigger.click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toHaveAccessibleDescription(privateArea.entry.privacy);
+    await expect(dialog.getByRole('note')).toHaveText(
+      privateArea.entry.privacy,
+    );
+    // The description must resolve inside the modal, not to the background badge.
+    const descriptionId = await dialog.getAttribute('aria-describedby');
+    expect(await dialog.getByRole('note').getAttribute('id')).toBe(
+      descriptionId,
+    );
+    await expect(dialog.getByLabel(profiles.categoryLabel)).toBeFocused();
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: info.outputPath(
+        `private-area-profile-note-create-${view.width}-${view.scheme}.png`,
+      ),
+    });
+    await dialog.getByLabel(profiles.topicLabel).fill('A birthday idea');
+    await dialog
+      .getByLabel(profiles.valueLabel)
+      .fill('A quiet cabin by the lake');
+    await dialog
+      .getByRole('button', { name: profiles.create, exact: true })
+      .click();
+    await expect(dialog).toHaveCount(0);
+    const saved = page.getByRole('button', { name: /A birthday idea/ });
+    await expect(saved).toContainText('A quiet cabin by the lake');
+    expect(writes[0]).toMatchObject({
+      method: 'POST',
+      body: {
+        accountId: partnerId,
+        visibility: 'PRIVATE_PARTNER_NOTE',
+        topic: 'A birthday idea',
+        value: 'A quiet cabin by the lake',
+      },
+    });
+    await saved.click();
+    await expect(dialog).toHaveAccessibleDescription(privateArea.entry.privacy);
+    await dialog
+      .getByLabel(profiles.valueLabel)
+      .fill('Book the cabin for autumn');
+    await dialog
+      .getByRole('button', { name: profiles.saveChanges, exact: true })
+      .click();
+    await expect(dialog.getByRole('alert')).toBeVisible();
+    await expect(dialog.getByLabel(profiles.valueLabel)).toHaveValue(
+      'Book the cabin for autumn',
+    );
+    await expect(dialog).toHaveAccessibleDescription(privateArea.entry.privacy);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: info.outputPath(
+        `private-area-profile-note-error-${view.width}-${view.scheme}.png`,
+      ),
+    });
+    await dialog
+      .getByRole('button', { name: profiles.saveChanges, exact: true })
+      .click();
+    await expect(dialog).toHaveCount(0);
+    await expect(saved).toContainText('Book the cabin for autumn');
+    expect(
+      writes.slice(1).map(({ method, ifMatch }) => ({ method, ifMatch })),
+    ).toEqual([
+      { method: 'PUT', ifMatch: '1' },
+      { method: 'PUT', ifMatch: '1' },
+    ]);
+    await saved.click();
+    await expect(dialog).toHaveAccessibleDescription(privateArea.entry.privacy);
+    if (view.width === 390) {
+      for (const width of [360, 430, 320]) {
+        await page.setViewportSize({ width, height: 844 });
+        await page.locator('html').evaluate(
+          (element, scale) => {
+            element.style.fontSize = scale;
+          },
+          width === 320 ? '200%' : '100%',
+        );
+        await expectNoHorizontalOverflow(page);
+        const dialogWidth = await dialog.evaluate((element) => ({
+          client: element.clientWidth,
+          scroll: element.scrollWidth,
+        }));
+        expect(dialogWidth.scroll).toBeLessThanOrEqual(dialogWidth.client);
+        await expectNoWcagViolations(page);
+        await page.screenshot({
+          path: info.outputPath(
+            `private-area-profile-note-reflow-${width}.png`,
+          ),
+        });
+        if (width === 320) {
+          const notice = dialog.getByRole('note');
+          const noticeShape = await notice.evaluate((element) => {
+            const style = getComputedStyle(element);
+            return {
+              radius: Number.parseFloat(style.borderTopLeftRadius),
+              height: element.getBoundingClientRect().height,
+            };
+          });
+          expect(noticeShape.radius).toBeLessThan(noticeShape.height / 4);
+          const save = dialog.getByRole('button', {
+            name: profiles.saveChanges,
+            exact: true,
+          });
+          await save.focus();
+          await expect(save).toBeFocused();
+          await expect(save).toBeInViewport();
+          await page.screenshot({
+            path: info.outputPath(
+              'private-area-profile-note-large-text-actions.png',
+            ),
+          });
+        }
+      }
+      await page.locator('html').evaluate((element) => {
+        element.style.fontSize = '';
+      });
+      await page.setViewportSize({ width: view.width, height: view.height });
+    }
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(saved).toBeFocused();
+    await page.screenshot({
+      path: info.outputPath(
+        `private-area-profile-note-saved-${view.width}-${view.scheme}.png`,
+      ),
+    });
+    await page
+      .getByRole('button', { name: profiles.addPreferenceShort, exact: true })
+      .click();
+    // Shared SELF_PROFILE preferences must never inherit the owner-only promise.
+    await expect(dialog).not.toHaveAttribute('aria-describedby');
+    await expect(dialog.getByRole('note')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(page).toHaveURL(/\/more\/profile$/);
+    expect(writes).toHaveLength(3);
+    expect(unexpected).toEqual([]);
+  });
 }
 
 test('compact sign-in is keyboard operable, wraps German copy, and is axe-clean', async ({

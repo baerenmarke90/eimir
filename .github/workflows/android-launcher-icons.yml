@@ -8,6 +8,10 @@ on:
       - 'web/src/client/nativeAppIcon.ts'
       - 'web/src/client/useNativeAppIcon.ts'
       - 'scripts/android_launcher_identity.py'
+      - 'scripts/android_adaptive_icon_resources.py'
+      - 'scripts/test_android_adaptive_icon_resources.py'
+      - 'docs/design/eimir/1307-premium-app-icons/build-android-icons.py'
+      - 'docs/design/eimir/1307-premium-app-icons/source-crops.json'
   workflow_dispatch:
 
 permissions:
@@ -38,6 +42,10 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - name: Validate all Android icon resources and aliases
+        run: |
+          python3 scripts/test_android_launcher_identity.py
+          python3 scripts/test_android_adaptive_icon_resources.py
       - name: Prepare the packaged Web product
         working-directory: web
         env:

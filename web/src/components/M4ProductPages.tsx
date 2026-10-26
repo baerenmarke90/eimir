@@ -7,6 +7,7 @@ import {
 } from 'react';
 import {
   useInfiniteQuery,
+  useIsMutating,
   useMutation,
   useQuery,
   useQueryClient,
@@ -18,6 +19,7 @@ import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { SearchKind } from '../api/generated/models/SearchKind';
 import type { SearchResult } from '../api/generated/models/SearchResult';
 import { authorDisplayName } from '../client/authorPresentation';
+import { assertOnlineWrite } from '../client/connectivity';
 import {
   engagementTargetPath,
   opaqueNextCursor,
@@ -29,7 +31,15 @@ import {
   notificationUnreadCountQueryKey,
 } from '../client/notificationQueries';
 import { getNotificationItemTitle } from '../client/notificationTitle';
-import { normalizeClientError } from '../client/problemDetails';
+import {
+  beginNotificationRead,
+  type NotificationReadAttempt,
+} from '../client/notificationRead';
+import {
+  ClientProblemError,
+  normalizeClientError,
+} from '../client/problemDetails';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -674,87 +684,94 @@ export function NotificationsProductPage({
     retry: false,
   });
 
-  async function refreshNotifications() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: listKey }),
-      queryClient.invalidateQueries({ queryKey: unreadKey }),
-    ]);
-  }
-
+  type MarkReadSubmission = {
+    attempt: NotificationReadAttempt;
+    send: () => Promise<unknown>;
+  };
   const markOne = useMutation({
-    mutationFn: (notificationId: string) =>
-      apiCall(() =>
-        apis.notifications.markNotificationRead({ notificationId, spaceId }),
-      ),
-    onMutate: async (notificationId: string) => {
-      await Promise.all([
-        queryClient.cancelQueries({ queryKey: listKey }),
-        queryClient.cancelQueries({ queryKey: unreadKey }),
-      ]);
-
-      // Track only whether *this* notification actually transitioned to read,
-      // not a snapshot of the whole cache: two notifications can be marked
-      // read in quick succession while both requests are still in flight, and
-      // restoring a stale whole-cache snapshot on one's failure would also
-      // wipe out the other's already-applied (and possibly already
-      // successful) optimistic update.
-      let markedReadNow = false;
-      queryClient.setQueryData<{
-        pages: Array<{ items: NotificationItem[]; nextCursor: string | null }>;
-        pageParams: unknown[];
-      }>(listKey, (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            items: page.items.map((it) => {
-              if (it.id !== notificationId || it.readAt) return it;
-              markedReadNow = true;
-              return { ...it, readAt: new Date() };
-            }),
-          })),
-        };
-      });
-
-      if (markedReadNow) {
-        queryClient.setQueryData<{ unreadCount: number }>(unreadKey, (old) => {
-          if (!old) return old;
-          return { unreadCount: Math.max(0, old.unreadCount - 1) };
-        });
+    networkMode: 'always',
+    retry: false,
+    mutationFn: async ({ attempt, send }: MarkReadSubmission) => {
+      try {
+        await attempt.perform(send);
+      } catch (error) {
+        throw await normalizeClientError(error);
       }
-
-      return { markedReadNow };
     },
-    onError: (_err, notificationId, context) => {
-      if (!context?.markedReadNow) return;
-      queryClient.setQueryData<{
-        pages: Array<{ items: NotificationItem[]; nextCursor: string | null }>;
-        pageParams: unknown[];
-      }>(listKey, (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            items: page.items.map((it) =>
-              it.id === notificationId ? { ...it, readAt: null } : it,
-            ),
-          })),
-        };
-      });
-      queryClient.setQueryData<{ unreadCount: number }>(unreadKey, (old) => {
-        if (!old) return old;
-        return { unreadCount: old.unreadCount + 1 };
-      });
+    onError: (_error, { attempt }) => attempt.rollback(),
+    onSettled: (_result, _error, { attempt }) => {
+      void attempt.refresh();
     },
-    onSettled: refreshNotifications,
   });
+  function markNotificationRead(notificationId: string) {
+    const attempt = beginNotificationRead(queryClient, spaceId, notificationId);
+    if (!attempt) return;
+    const api = apis.notifications;
+    markOne.mutate({
+      attempt,
+      send: () => api.markNotificationRead({ notificationId, spaceId }),
+    });
+  }
+  type MarkAllSubmission = {
+    spaceId: string;
+    isCurrentUnread: () => boolean;
+    isCurrentList: () => boolean;
+    send: () => Promise<unknown>;
+  };
+  // Bulk read is intentionally server-confirmed, unlike reversible single-row
+  // optimism. A pending bulk intent survives route remounts in the same Space.
+  const markAllKey = [
+    'notification-mark-all',
+    currentAccountId ?? null,
+    spaceId,
+  ] as const;
+  const isMarkAllPending =
+    useIsMutating({ mutationKey: markAllKey, exact: true }) > 0;
   const markAll = useMutation({
-    mutationFn: () =>
-      apiCall(() => apis.notifications.markAllNotificationsRead({ spaceId })),
-    onSuccess: refreshNotifications,
+    mutationKey: markAllKey,
+    networkMode: 'always',
+    retry: false,
+    mutationFn: ({ isCurrentUnread, send }: MarkAllSubmission) => {
+      if (!isCurrentUnread()) throw new ClientProblemError('permission');
+      assertOnlineWrite();
+      return apiCall(send);
+    },
+    onSuccess: async (_result, submission) => {
+      if (!submission.isCurrentUnread()) return;
+      const refreshes = [
+        queryClient.invalidateQueries({
+          queryKey: notificationUnreadCountQueryKey(submission.spaceId),
+          exact: true,
+        }),
+      ];
+      if (submission.isCurrentList())
+        refreshes.push(
+          queryClient.invalidateQueries({
+            queryKey: notificationsListQueryKey(submission.spaceId),
+            exact: true,
+          }),
+        );
+      await Promise.all(refreshes);
+    },
   });
+  function markAllNotificationsRead() {
+    if (queryClient.isMutating({ mutationKey: markAllKey, exact: true }) > 0)
+      return;
+    const isCurrentUnread = captureAuthorizedQuery(queryClient, unreadKey);
+    if (!isCurrentUnread()) return;
+    const current = queryClient.getQueryData<{ unreadCount: number }>(
+      unreadKey,
+    );
+    if (!current || current.unreadCount < 1) return;
+    const api = apis.notifications;
+    const requestedSpaceId = spaceId;
+    markAll.mutate({
+      spaceId: requestedSpaceId,
+      isCurrentUnread,
+      isCurrentList: captureAuthorizedQuery(queryClient, listKey),
+      send: () => api.markAllNotificationsRead({ spaceId: requestedSpaceId }),
+    });
+  }
 
   const items =
     notificationsQuery.data?.pages.flatMap((page) => page.items) ?? [];
@@ -808,10 +825,10 @@ export function NotificationsProductPage({
             <button
               type="button"
               className="secondary"
-              onClick={() => markAll.mutate()}
-              disabled={markAll.isPending || unreadCount === 0}
+              onClick={markAllNotificationsRead}
+              disabled={isMarkAllPending || unreadCount === 0}
             >
-              {markAll.isPending
+              {isMarkAllPending
                 ? t('m5s5.notifications.markingAllRead')
                 : t('m5s5.notifications.markAllRead')}
             </button>
@@ -834,8 +851,14 @@ export function NotificationsProductPage({
           onRetry={() => void unreadQuery.refetch()}
         />
       ) : null}
-      {markOne.error ? <ProblemState error={markOne.error} /> : null}
-      {markAll.error ? <ProblemState error={markAll.error} /> : null}
+      {markOne.error && markOne.variables?.attempt.isCurrentList() ? (
+        <ProblemState error={markOne.error} />
+      ) : null}
+      {markAll.error &&
+      markAll.variables?.isCurrentUnread() &&
+      markAll.variables.spaceId === spaceId ? (
+        <ProblemState error={markAll.error} />
+      ) : null}
 
       {notificationsQuery.data && items.length === 0 ? (
         <UiState
@@ -855,9 +878,10 @@ export function NotificationsProductPage({
                 spaceId={spaceId}
                 profilesApi={profilesApi}
                 currentAccountId={currentAccountId}
-                onMarkRead={(id) => markOne.mutate(id)}
+                onMarkRead={markNotificationRead}
                 isMarkingRead={
-                  markOne.isPending && markOne.variables === item.id
+                  markOne.isPending &&
+                  markOne.variables?.attempt.notificationId === item.id
                 }
                 onOpen={(event, path) => {
                   if (!isPlainPrimaryClick(event)) return;

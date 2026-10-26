@@ -96,15 +96,27 @@ and automatic checks run on foreground/start at most once per six hours. Manual
 checks can retry immediately. API throttling/offline is an actionable unavailable
 state, never a false claim that the app is current.
 
-Publication is an explicit separate operation:
+Publication is an explicit separate operation. GitHub makes this repository's
+published releases immutable, so the complete asset set must be assembled while
+the release is still a draft:
 
-1. Create prerelease `android-test-vX.Y.Z-test.N` at the recorded source commit.
-2. Upload the verified universal `eimir-android-test-vX.Y.Z-test.N.apk`.
-3. Upload `SHA256SUMS` and verify the downloaded APK matches it.
-4. Upload **`eimir-test-update.json` last**. Its presence is the publication
-   marker. Do not edit/replace published bytes; create a higher version instead.
-5. Fetch the public catalog and all assets, verify hashes and source identity,
-   then perform the real A → B device acceptance below.
+1. Create a **draft prerelease** `android-test-vX.Y.Z-test.N` at the recorded
+   source commit. Do not publish an empty release.
+2. Upload the verified universal `eimir-android-test-vX.Y.Z-test.N.apk`,
+   `SHA256SUMS` and bounded acceptance evidence to that draft.
+3. Download the draft APK through authenticated asset access and compare its
+   bytes with the verified local APK and checksum.
+4. Upload **`eimir-test-update.json` last, while still a draft**. Download and
+   verify its bytes, source revision and APK binding too.
+5. After the required checks and release review, publish the complete draft
+   atomically as a prerelease. Never try to append the marker after publication.
+6. Fetch the anonymous public catalog and all assets, verify hashes and source
+   identity, then perform the real A → B device acceptance below.
+
+Do not edit/replace published bytes or weaken immutability to repair an
+incomplete release. Publish a verified higher version instead. The source and
+signing preparation for `0.2.0-test.14` is recorded in
+[the test.14 handoff](releases/android-test-0.2.0-test.14.md).
 
 An incomplete release without the marker is ignored. Invalid marked metadata
 fails closed. The highest compatible version code in the bounded 30-release

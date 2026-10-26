@@ -2,6 +2,7 @@ import {
   type FormEvent,
   type RefObject,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -449,6 +450,7 @@ export function PreferenceDialog({
   restoreFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const { t } = useTranslation();
+  const privacyNoticeId = useId();
   const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLSelectElement>(null);
@@ -525,6 +527,7 @@ export function PreferenceDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="pref-dialog-heading"
+        aria-describedby={privateNote ? privacyNoticeId : undefined}
         onAnimationEnd={(event) => {
           if (
             event.target !== event.currentTarget ||
@@ -559,6 +562,9 @@ export function PreferenceDialog({
           className="form-grid"
           onSubmit={submit}
         >
+          {privateNote ? (
+            <PrivatePartnerNotesPrivacyNotice id={privacyNoticeId} />
+          ) : null}
           <div className="field-group">
             <label
               htmlFor={`preference-category-${privateNote ? 'private' : 'self'}`}
@@ -1010,7 +1016,19 @@ export function PartnerProfileSection({
   );
 }
 
-/** Private partner notes section with visually explicit privacy indicator (+ Notiz). */
+function PrivatePartnerNotesPrivacyNotice({ id }: { id?: string }) {
+  const { t } = useTranslation();
+  return (
+    <div id={id} className="private-partner-notes-badge" role="note">
+      <span className="private-partner-notes-icon" aria-hidden="true">
+        <DestinationIcon icon="private" />
+      </span>
+      <span>{t('privateArea.entry.privacy')}</span>
+    </div>
+  );
+}
+
+/** Private partner notes section with visually explicit privacy indicator. */
 export function PrivatePartnerNotesSection({
   profilesApi,
   spaceId,
@@ -1027,12 +1045,7 @@ export function PrivatePartnerNotesSection({
   const { t } = useTranslation();
   return (
     <div className="private-partner-notes-wrapper">
-      <div className="private-partner-notes-badge" role="note">
-        <span className="private-partner-notes-icon" aria-hidden="true">
-          <DestinationIcon icon="private" />
-        </span>
-        <span>{t('privateArea.entry.privacy')}</span>
-      </div>
+      <PrivatePartnerNotesPrivacyNotice />
       <PreferenceManager
         profilesApi={profilesApi}
         spaceId={spaceId}

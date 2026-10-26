@@ -361,6 +361,26 @@ export async function installMocks(
       return;
     }
 
+    // Discover uses the same authorized Dashboard read as Today for #452.
+    // No historic candidate is available in these timeline/delete scenarios.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/dashboard`
+    ) {
+      await fulfillJson({
+        recentShared: [],
+        relationshipDuration: null,
+        retrospective: null,
+        space: {
+          partner: options.asPartner ? ME : PARTNER,
+          spaceId: SPACE_ID,
+        },
+        upcoming: [],
+        viewerLocalDate: '2026-09-17',
+      });
+      return;
+    }
+
     if (
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/discover`

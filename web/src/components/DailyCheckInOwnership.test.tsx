@@ -404,6 +404,74 @@ it('retries a failed Vibe removal as a clear rather than resaving the visible ch
   await waitFor(() => expect(h.client.isMutating()).toBe(0));
 });
 
+async function submitWithInterruptedRead(
+  dimension: 'energy' | 'vibe',
+  interrupt: () => void,
+) {
+  if (dimension === 'energy') {
+    const slider = await energy();
+    act(() => {
+      fireEvent.change(slider, { target: { value: '80' } });
+      fireEvent.blur(slider);
+      interrupt();
+    });
+    return;
+  }
+
+  fireEvent.click(
+    await screen.findByRole('button', { name: dailyVibe.chooseAria }),
+  );
+  const sheet = screen.getByRole('dialog', { name: dailyVibe.sheetTitle });
+  fireEvent.click(
+    within(sheet).getByRole('button', { name: dailyVibe.values.GOOD }),
+  );
+  act(() => {
+    fireEvent.click(within(sheet).getByRole('button', { name: dailyVibe.share }));
+    interrupt();
+  });
+}
+
+for (const dimension of ['energy', 'vibe'] as const) {
+  it(`does not dispatch a stale ${dimension} write after a denied original Today read`, async () => {
+    const h = setup();
+    h.mount();
+    const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
+    await submitWithInterruptedRead(dimension, () => {
+      h.client.getQueryCache().find({ queryKey: key, exact: true })?.setState({
+        error: new ClientProblemError('permission', 403),
+        status: 'error',
+      });
+    });
+
+    await waitFor(() => expect(h.client.isMutating()).toBe(0));
+    expect(h.update).not.toHaveBeenCalled();
+    expect(h.client.getQueryState(key)?.status).toBe('error');
+    expect(h.client.getQueryState(key)?.error).toMatchObject({
+      kind: 'permission',
+    });
+  });
+
+  it(`preserves a newer same-Query Today read before dispatching ${dimension}`, async () => {
+    const h = setup();
+    h.mount();
+    const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
+    const newer = {
+      ...h.current,
+      own: { ...h.current.own, energyLevel: 90, vibe: 'GOOD' as const, version: 2 },
+    };
+    await submitWithInterruptedRead(dimension, () => {
+      h.client.setQueryData(key, { projection: newer, etag: '"today:2"' });
+    });
+
+    await waitFor(() => expect(h.client.isMutating()).toBe(0));
+    expect(h.update).not.toHaveBeenCalled();
+    expect(h.client.getQueryData(key)).toMatchObject({
+      etag: '"today:2"',
+      projection: { own: { energyLevel: 90, vibe: 'GOOD' } },
+    });
+  });
+}
+
 it('fails a connectivity race without a paused write or automatic reconnect PATCH', async () => {
   const h = setup();
   h.mount();

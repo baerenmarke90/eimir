@@ -3,14 +3,21 @@
 
 from __future__ import annotations
 
+import os
 import sys
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scripts.verify_product_design_review import (
+    AUTOMATED_DEPENDENCY_AUTHOR,
     REQUIRED_DESIGN_REVIEW_ITEMS,
+    is_exempt_dependency_update,
+    main,
     verify_impact_decision,
     verify_mandatory_design_review,
 )
@@ -148,6 +155,59 @@ class TestMandatoryDesignReview(unittest.TestCase):
             "- [X] designed FROM Compact/Smartphone Outward",
         )
         self.assertEqual(verify_mandatory_design_review(body), [])
+
+
+class TestAutomatedDependencyExemption(unittest.TestCase):
+    def test_only_the_exact_bot_without_a_ui_change_is_exempt(self) -> None:
+        self.assertTrue(is_exempt_dependency_update(AUTOMATED_DEPENDENCY_AUTHOR, ui_changed=False))
+        for author in (
+            AUTOMATED_DEPENDENCY_AUTHOR,
+            "dependabot",
+            "Dependabot[bot]",
+            "dependabot[bot] ",
+            "app/dependabot",
+            "renovate[bot]",
+            "baerenmarke90",
+            "",
+            None,
+        ):
+            with self.subTest(author=author, ui_changed=True):
+                self.assertFalse(is_exempt_dependency_update(author, ui_changed=True))
+        for author in ("dependabot", "Dependabot[bot]", "dependabot[bot] ", "renovate[bot]", "", None):
+            with self.subTest(author=author, ui_changed=False):
+                self.assertFalse(is_exempt_dependency_update(author, ui_changed=False))
+
+    @staticmethod
+    def run_main(*, body: str, author: str, ui_changed: str) -> tuple[int, str]:
+        environment = {"PR_BODY": body, "PR_AUTHOR": author, "UI_CHANGED": ui_changed}
+        output = StringIO()
+        with mock.patch.dict(os.environ, environment, clear=False), redirect_stdout(output):
+            return main(), output.getvalue()
+
+    def test_dependabot_pr_with_default_body_passes_when_no_ui_path_changed(self) -> None:
+        code, output = self.run_main(body="Bumps x from 1 to 2.", author="dependabot[bot]", ui_changed="false")
+        self.assertEqual(code, 0)
+        self.assertIn("Automated dependency update", output)
+
+    def test_dependabot_pr_that_changed_a_ui_path_still_needs_the_declaration(self) -> None:
+        code, _ = self.run_main(body="Bumps x from 1 to 2.", author="dependabot[bot]", ui_changed="true")
+        self.assertEqual(code, 1)
+
+    def test_other_authors_keep_the_gate_even_without_a_ui_change(self) -> None:
+        for author in ("baerenmarke90", "", "Dependabot[bot]"):
+            with self.subTest(author=author):
+                code, _ = self.run_main(body="no checkboxes", author=author, ui_changed="false")
+                self.assertEqual(code, 1)
+
+    def test_regular_pr_flow_is_unchanged(self) -> None:
+        code, _ = self.run_main(
+            body="- [x] No user-facing UI / UX impact", author="baerenmarke90", ui_changed="false"
+        )
+        self.assertEqual(code, 0)
+        code, _ = self.run_main(
+            body=_checked_design_review_body(), author="baerenmarke90", ui_changed="true"
+        )
+        self.assertEqual(code, 0)
 
 
 if __name__ == "__main__":

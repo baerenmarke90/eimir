@@ -105,11 +105,16 @@ def authorize_desktop(client_secrets_file: str) -> str:
     if not isinstance(installed, dict) or not installed.get("client_id"):
         raise ProbeError("Expected Google OAuth Desktop client JSON, not Web credentials.")
     try:
-        auth_host = urllib.parse.urlsplit(installed["auth_uri"]).hostname
-        token_host = urllib.parse.urlsplit(installed["token_uri"]).hostname
+        auth_url = urllib.parse.urlsplit(installed["auth_uri"])
+        token_url = urllib.parse.urlsplit(installed["token_uri"])
     except (KeyError, ValueError, TypeError):
         raise ProbeError("OAuth client JSON has invalid Google endpoints.") from None
-    if auth_host != "accounts.google.com" or token_host != "oauth2.googleapis.com":
+    if (
+        auth_url.scheme != "https"
+        or auth_url.hostname != "accounts.google.com"
+        or token_url.scheme != "https"
+        or token_url.hostname != "oauth2.googleapis.com"
+    ):
         raise ProbeError("OAuth client JSON does not target Google's official endpoints.")
 
     try:
@@ -141,7 +146,10 @@ def authorize_desktop(client_secrets_file: str) -> str:
 def valid_picker_uri(uri: object) -> bool:
     if not isinstance(uri, str):
         return False
-    parts = urllib.parse.urlsplit(uri)
+    try:
+        parts = urllib.parse.urlsplit(uri)
+    except ValueError:
+        return False
     return (
         parts.scheme == "https"
         and parts.hostname == "photos.google.com"

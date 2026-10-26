@@ -52,7 +52,7 @@ class ReleaseManifestTest(unittest.TestCase):
             "artifacts": evidence_artifacts,
             "android": {
                 "included": True,
-                "applicationId": "de.sidebyside.app",
+                "applicationId": "de.eimir.app",
                 "versionName": "0.1.0",
                 "versionCode": 7,
                 "signing": "unsigned-evidence-only",
@@ -147,7 +147,7 @@ class ReleaseManifestTest(unittest.TestCase):
         source, artifacts, android = release_manifest.validate_evidence(self.evidence, "0.1.0")
         self.assertEqual(source, "a" * 40)
         self.assertEqual({item["id"] for item in artifacts}, release_manifest.REQUIRED_ARTIFACTS)
-        self.assertEqual(android["applicationId"], "de.sidebyside.app")
+        self.assertEqual(android["applicationId"], "de.eimir.app")
 
     def test_mixed_android_version_is_rejected(self) -> None:
         self.evidence["android"]["versionName"] = "0.1.1"
@@ -348,7 +348,7 @@ class ReleaseManifestTest(unittest.TestCase):
         _, _, android = release_manifest.validate_evidence(self.evidence, "0.1.0")
         self.assertEqual(android["launchableActivity"], "de.eimir.app.MainActivity")
 
-        self.evidence["android"]["launchableActivity"] = "de.sidebyside.app.MainActivity"
+        self.evidence["android"]["launchableActivity"] = "invalid.app.MainActivity"
         with self.assertRaisesRegex(release_manifest.ManifestError, "launchableActivity"):
             release_manifest.validate_evidence(self.evidence, "0.1.0")
 

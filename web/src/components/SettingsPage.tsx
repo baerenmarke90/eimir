@@ -15,7 +15,7 @@ import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
 import { isDemoModeConfigured } from '../client/demoMode';
-import type { DevicePushController } from '../client/unifiedPush';
+import type { DevicePushController } from '../client/devicePush';
 import {
   appRoutePath,
   isSettingsCategoryId,

@@ -33,11 +33,13 @@ public class LauncherIconsTest {
             assertEquals(LauncherIcons.COMPONENTS.get(id), activities.get(0).activityInfo.name);
             assertEquals("de.eimir.app.LauncherActivity", activities.get(0).activityInfo.targetActivity);
             Intent callback = new Intent(Intent.ACTION_VIEW,
-                    android.net.Uri.parse("de.sidebyside.app://recent-authentication/oidc"))
+                    android.net.Uri.parse("de.eimir.app://recent-authentication/oidc"))
                     .addCategory(Intent.CATEGORY_BROWSABLE).setPackage(context.getPackageName());
             assertEquals("Authentication remains reachable for " + id,
                     "de.eimir.app.LauncherActivity", manager.resolveActivity(callback, 0).activityInfo.name);
-            ResolveInfo notification = manager.resolveActivity(EimirPushService.notificationIntent(context), 0);
+            ResolveInfo notification = manager.resolveActivity(NativePushNotifications.notificationIntent(context, new PushActivation(
+            "17b4a730-e98c-4af3-b19e-5fae9485200c", "https://example.invalid", "unifiedpush",
+            "0f94bddd-bede-4676-a343-7202f117fef9", null)), 0);
             assertNotNull("Notification remains reachable for " + id, notification);
             assertEquals("de.eimir.app.LauncherActivity", notification.activityInfo.name);
             assertNotEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
@@ -57,28 +59,30 @@ public class LauncherIconsTest {
                 LauncherActivity shell = (LauncherActivity) activity;
                 assertNotNull(shell.getBridge().getPlugin("AppIcon"));
                 assertNotNull(shell.getBridge().getPlugin("NativeSessionStorage"));
-                assertNotNull(shell.getBridge().getPlugin("EimirUnifiedPush"));
+                assertNotNull(shell.getBridge().getPlugin("EimirPush"));
             });
         }
     }
 
     @Test
     public void notificationEntryAcceptsOnlyTheFixedGenericDestination() {
-        assertTrue(EimirPushService.isNotificationIntent(EimirPushService.notificationIntent(context)));
-        assertTrue(EimirPushService.isNotificationIntent(new Intent(Intent.ACTION_VIEW,
-                android.net.Uri.parse("de.sidebyside.app://notifications/"))));
+        assertTrue(NativePushNotifications.isNotificationIntent(NativePushNotifications.notificationIntent(context, new PushActivation(
+            "17b4a730-e98c-4af3-b19e-5fae9485200c", "https://example.invalid", "unifiedpush",
+            "0f94bddd-bede-4676-a343-7202f117fef9", null))));
+        assertTrue(NativePushNotifications.isNotificationIntent(new Intent(Intent.ACTION_VIEW,
+                android.net.Uri.parse("de.eimir.app://notifications/"))));
         for (String url : new String[] {
-                "https://notifications/", "de.sidebyside.app://notifications.evil/",
-                "de.sidebyside.app://user@notifications", "de.sidebyside.app://notifications/item",
-                "de.sidebyside.app://notifications?target=/today", "de.sidebyside.app://notifications#item"
+                "https://notifications/", "de.eimir.app://notifications.evil/",
+                "de.eimir.app://user@notifications", "de.eimir.app://notifications/item",
+                "de.eimir.app://notifications?target=/today", "de.eimir.app://notifications#item"
         }) {
-            assertFalse(url, EimirPushService.isNotificationIntent(new Intent(Intent.ACTION_VIEW,
+            assertFalse(url, NativePushNotifications.isNotificationIntent(new Intent(Intent.ACTION_VIEW,
                     android.net.Uri.parse(url))));
         }
-        assertFalse(EimirPushService.isNotificationIntent(null));
-        assertFalse(EimirPushService.isNotificationIntent(new Intent(Intent.ACTION_VIEW)));
-        assertFalse(EimirPushService.isNotificationIntent(new Intent(Intent.ACTION_MAIN,
-                android.net.Uri.parse("de.sidebyside.app://notifications"))));
+        assertFalse(NativePushNotifications.isNotificationIntent(null));
+        assertFalse(NativePushNotifications.isNotificationIntent(new Intent(Intent.ACTION_VIEW)));
+        assertFalse(NativePushNotifications.isNotificationIntent(new Intent(Intent.ACTION_MAIN,
+                android.net.Uri.parse("de.eimir.app://notifications"))));
     }
 
     @Test

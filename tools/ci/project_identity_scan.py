@@ -45,15 +45,14 @@ GUARD_FILES = {
     Path("tools/ci/test_project_identity_scan.py"),
 }
 
-ANDROID_IMMUTABLE_IDENTIFIERS = ("de.sidebyside.app",)
-LEGACY_ANDROID_CLEANUP_FILES = {
-    Path("android/app/src/main/java/de/eimir/app/LegacyNativeDataCleanup.java"),
-    Path("tools/ci/test_project_identity_migration.py"),
+LEGACY_ANDROID_EVIDENCE_FILES = {
+    Path("docs/CAPACITOR-ANDROID-FOUNDATION.md"),
+    Path("docs/m5/ANDROID-DELIVERY-PLAN.md"),
+    Path("docs/m6/README.md"),
+    Path("docs/m6/DECISION-LOG.md"),
+    # The migration decision must name the legacy package it migrates from.
+    Path("docs/decisions/0013-legacy-android-package-migration.md"),
 }
-LEGACY_ANDROID_CLEANUP_IDENTIFIERS = (
-    "sidebyside-read-cache.db",
-    "sidebyside_owner_only_read_cache",
-)
 WEB_PERSISTENCE_IDENTIFIERS = (
     "sidebyside-session-v1",
     "sidebyside-auth-return-v1",
@@ -150,18 +149,14 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
             "the negative brand regression assertion intentionally names a rejected spelling",
         )
 
-    if any(identifier in normalized for identifier in ANDROID_IMMUTABLE_IDENTIFIERS):
+    android_evidence = path in LEGACY_ANDROID_EVIDENCE_FILES or (
+        "evidence" in path.parts
+        and any(_under(path, prefix) for prefix in (Path("docs/product/design"), Path("docs/design")))
+    )
+    if android_evidence and "de.sidebyside.app" in normalized:
         return (
-            Classification.TEMP_COMPAT,
-            "the released Android application and OIDC callback identity cannot change in-place",
-        )
-
-    if path in LEGACY_ANDROID_CLEANUP_FILES and any(
-        identifier in normalized for identifier in LEGACY_ANDROID_CLEANUP_IDENTIFIERS
-    ):
-        return (
-            Classification.TEMP_COMPAT,
-            "the one-way Android upgrade cleanup must name retired local-storage identifiers so it can delete them",
+            Classification.HISTORICAL_IMMUTABLE,
+            "prior APK evidence and superseded Android decisions retain their original package identity",
         )
 
     if any(identifier in normalized for identifier in WEB_PERSISTENCE_IDENTIFIERS):

@@ -83,7 +83,12 @@ def _run_job(job_id: Any, kind: str, payload: dict[str, Any]) -> None:
                 # Controlled retry errors contain a stable technical code only.
                 # The handler transaction remains valid so safe attempt metadata
                 # can commit together with the queue backoff state.
-                queue.fail(job, exc.code)
+                queue.fail(
+                    job,
+                    exc.code,
+                    retry_not_before=exc.retry_not_before,
+                    retry_base=exc.retry_base,
+                )
                 log.warning(
                     "job retry scheduled",
                     extra={"job_id": str(job_id), "kind": kind, "error_code": exc.code},

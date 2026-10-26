@@ -256,7 +256,7 @@ export function parseOidcCallbackUrl(
   try {
     const callback = new URL(rawUrl);
     if (
-      callback.protocol === 'de.sidebyside.app:' &&
+      callback.protocol === 'de.eimir.app:' &&
       callback.host === 'recent-authentication' &&
       callback.pathname === '/oidc'
     ) {

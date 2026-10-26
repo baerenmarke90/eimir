@@ -57,6 +57,16 @@ x-shared-runtime-environment: &shared-runtime-environment
   EIMIR_SMTP_PASSWORD: "${EIMIR_SMTP_PASSWORD:-${SBS_SMTP_PASSWORD:-}}"
   EIMIR_SMTP_STARTTLS: "${EIMIR_SMTP_STARTTLS:-${SBS_SMTP_STARTTLS:-true}}"
 
+# Only API/worker configure transports. In particular, migration/bootstrap must
+# not inherit a partial FCM setup or a sender credential path they cannot read.
+x-push-runtime-environment: &push-runtime-environment
+  EIMIR_PUSH_VAPID_PRIVATE_KEY: "${EIMIR_PUSH_VAPID_PRIVATE_KEY:-}"
+  EIMIR_PUSH_VAPID_SUBJECT: "${EIMIR_PUSH_VAPID_SUBJECT:-}"
+  EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS: '${EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS:-[]}'
+  EIMIR_PUSH_FCM_PROJECT_ID: "${EIMIR_PUSH_FCM_PROJECT_ID:-}"
+  EIMIR_PUSH_FCM_ANDROID_PACKAGE: "${EIMIR_PUSH_FCM_ANDROID_PACKAGE:-}"
+  EIMIR_PUSH_FCM_CREDENTIALS_FILE: "${EIMIR_PUSH_FCM_CREDENTIALS_FILE:-}"
+
 x-self-hosted-runtime-environment: &self-hosted-runtime-environment
   <<: [*self-hosted-database-environment, *shared-runtime-environment]
   EIMIR_ENVIRONMENT: "${EIMIR_ENVIRONMENT:-${SBS_ENVIRONMENT:-development}}"
@@ -67,9 +77,6 @@ x-self-hosted-runtime-environment: &self-hosted-runtime-environment
   EIMIR_ALLOWED_HOSTS: '${EIMIR_ALLOWED_HOSTS:-${SBS_ALLOWED_HOSTS:-["localhost","127.0.0.1"]}}'
   EIMIR_PUBLIC_BASE_URL: "${EIMIR_PUBLIC_BASE_URL:-${SBS_PUBLIC_BASE_URL:-http://localhost:8080}}"
   EIMIR_MAIL_TRANSPORT: "${EIMIR_MAIL_TRANSPORT:-${SBS_MAIL_TRANSPORT:-log}}"
-  EIMIR_PUSH_VAPID_PRIVATE_KEY: "${EIMIR_PUSH_VAPID_PRIVATE_KEY:-}"
-  EIMIR_PUSH_VAPID_SUBJECT: "${EIMIR_PUSH_VAPID_SUBJECT:-}"
-  EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS: '${EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS:-[]}'
 
 x-cloud-runtime-environment: &cloud-runtime-environment
   <<: *shared-runtime-environment
@@ -241,7 +248,7 @@ services:
     <<: [*self-hosted-backend-image, *api-healthcheck]
     restart: unless-stopped
     environment:
-      <<: *self-hosted-runtime-environment
+      <<: [*self-hosted-runtime-environment, *push-runtime-environment]
       EIMIR_BOOTSTRAP_TOKEN: "${EIMIR_BOOTSTRAP_TOKEN:-${SBS_BOOTSTRAP_TOKEN:-}}"
       FORWARDED_ALLOW_IPS: "${TRUSTED_PROXY_IPS:-127.0.0.1}"
     volumes:
@@ -265,7 +272,7 @@ services:
     restart: unless-stopped
     command: ["python", "-m", "eimir.jobs.runner"]
     environment:
-      <<: *self-hosted-runtime-environment
+      <<: [*self-hosted-runtime-environment, *push-runtime-environment]
     volumes:
       - media_data:/var/lib/eimir/media
     networks:
@@ -307,7 +314,7 @@ services:
     <<: [*cloud-backend-image, *api-healthcheck]
     restart: unless-stopped
     environment:
-      <<: *cloud-runtime-environment
+      <<: [*cloud-runtime-environment, *push-runtime-environment]
       FORWARDED_ALLOW_IPS: "${TRUSTED_PROXY_IPS:-}"
     volumes:
       - cloud_media_data:/var/lib/eimir/media
@@ -324,7 +331,7 @@ services:
     restart: unless-stopped
     command: ["python", "-m", "eimir.jobs.runner"]
     environment:
-      <<: *cloud-runtime-environment
+      <<: [*cloud-runtime-environment, *push-runtime-environment]
     volumes:
       - cloud_media_data:/var/lib/eimir/media
       - cloud_deletion_journal_data:/var/lib/eimir/deletion-journal

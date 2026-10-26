@@ -31,6 +31,7 @@ type Request = {
   etag: string;
   update: DailyCheckInUpdate;
   isOwned: () => boolean;
+  isOriginalRead: () => boolean;
   queryIsCurrent: () => boolean;
   perform: () => Promise<DailyCheckInSnapshot>;
 };
@@ -132,7 +133,9 @@ export function useDailyCheckInWrite({
     networkMode: 'always',
     retry: false,
     onMutate: async (request) => {
-      if (canReconcile(request) && request.queryIsCurrent()) {
+      // Cancel a background refetch even while it is fetching. Admission
+      // belongs to the original authorized data, not the fetchStatus.
+      if (canReconcile(request) && request.isOriginalRead()) {
         await client.cancelQueries({
           queryKey: dailyCheckInTodayQueryKey(
             request.accountId,
@@ -238,11 +241,14 @@ export function useDailyCheckInWrite({
     const input = { ...update };
     const queryIsCurrent = captureAuthorizedQuery(client, queryKey);
     const snapshotIdentity = new WeakRef(admitted);
-    const isStartingReadCurrent = () =>
+    const isOriginalRead = () =>
       queryIsCurrent() &&
-      hasReadyProjection(client, queryKey) &&
       snapshotIdentity.deref() === client.getQueryData(queryKey);
-    if (!isStartingReadCurrent()) return false;
+    // An active polling/refetch read can be cancelled by onMutate. Do not
+    // discard an otherwise valid user tap just because fetchStatus is busy.
+    if (!isOriginalRead()) return false;
+    const isStartingReadCurrent = () =>
+      isOriginalRead() && hasReadyProjection(client, queryKey);
     mutation.mutate({
       accountId,
       spaceId,
@@ -251,6 +257,7 @@ export function useDailyCheckInWrite({
       etag,
       update: input,
       isOwned: () => activeScope.current === scope,
+      isOriginalRead,
       queryIsCurrent: isStartingReadCurrent,
       perform: () => updateDailyCheckInToday(api, spaceId, etag, input),
     });

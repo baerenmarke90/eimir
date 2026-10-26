@@ -17,8 +17,8 @@ No photos enter eimir. storage, no provider keys enter the Web bundle, and no st
 
 ## One-time prerequisites (operator, not the end user)
 
-- Dedicated publicly reachable HTTPS subdomain with valid TLS, e.g. https://photos-probe.example.org (illustrative ONLY; not a deployed address). Configure a trusted reverse proxy that **does not log OAuth callback query strings**.
-- Google Cloud project with Google Photos Picker API enabled; OAuth consent configured with a dedicated test user and **Web application OAuth client**. Register the exact HTTPS redirect URI, for example https://photos-probe.example.org/oauth/callback.
+- Dedicated publicly reachable **https://fotos-test.reiswienudel.de** with valid TLS (**selected, not yet deployed**). Configure a trusted reverse proxy that **does not log OAuth callback query strings**.
+- Google Cloud project with Google Photos Picker API enabled; OAuth consent configured with a dedicated test user and **Web application OAuth client**. Register the exact HTTPS redirect URI **https://fotos-test.reiswienudel.de/oauth/callback**.
 - Google's OAuth **Web client JSON** in a protected file or secret volume outside the repository and container image, and a separately generated unpredictable operator access secret (at least 32 characters). No credentials in Git, chat or GitHub Actions logs.
 - Python 3.12+ on the operator's test server, with developer-only Google OAuth SDK google-auth-oauthlib==1.5.0 (Apache-2.0). This dependency is not part of production eimir.
 - One account containing only synthetic test photos and the ability to complete Google OAuth from a normal browser. Do not use personal photos.
@@ -32,7 +32,7 @@ python3 -m venv /opt/eimir-google-picker-probe-venv
 /opt/eimir-google-picker-probe-venv/bin/pip install "google-auth-oauthlib==1.5.0"
 
 export EIMIR_GOOGLE_PHOTOS_PROBE_ENABLED=1
-export EIMIR_GOOGLE_PHOTOS_PROBE_ORIGIN="https://photos-probe.example.org"
+export EIMIR_GOOGLE_PHOTOS_PROBE_ORIGIN="https://fotos-test.reiswienudel.de"
 export EIMIR_GOOGLE_PHOTOS_PROBE_WEB_CLIENT_FILE="/run/secrets/google-photos-web-client.json"
 export EIMIR_GOOGLE_PHOTOS_PROBE_OPERATOR_KEY="REPLACE_WITH_PRIVATE_RANDOM_256_BIT_VALUE"
 
@@ -49,14 +49,14 @@ Codex can implement and test this service in its cloud coding environment. **A n
 
 This is the preferred **temporary test** option when the operator already runs Docker and Nginx Proxy Manager (NPM) on the **same Docker engine**. It leaves eimir.'s canonical compose.yaml, the Arcane private test stack, and normal Cloud releases untouched. No additional tracked Compose manifest or paid PaaS is required.
 
-The proposed name **photos-probe.example.org** below is **not an actual deployed address**. Replace it with a subdomain in a DNS zone you control that resolves to your existing TLS reverse proxy. The exact hostname must match in NPM, the Google OAuth Web client and the probe environment.
+**Chosen operator test hostname:** **fotos-test.reiswienudel.de**. This is the intended hostname, **not a claim that DNS, TLS, NPM or the probe service is already configured**. Create or verify its DNS record to the existing TLS reverse proxy. Use exactly the same hostname in NPM, the Google OAuth Web client and the probe environment. Do not redirect the main reiswienudel.de website or modify the eimir. production domain.
 
-1. In Google Cloud Console enable the **Google Photos Picker API**, configure OAuth test users, and create an OAuth **Web application** client (distinct from the optional Desktop client). Register precisely **https://photos-probe.example.org/oauth/callback** as its authorized redirect URI, then download the Web client JSON. Use one dedicated synthetic JPEG in the test account.
+1. In Google Cloud Console enable the **Google Photos Picker API**, configure OAuth test users, and create an OAuth **Web application** client (distinct from the optional Desktop client). Register precisely **https://fotos-test.reiswienudel.de/oauth/callback** as its authorized redirect URI, then download the Web client JSON. Use one dedicated synthetic JPEG in the test account.
 2. On your Docker host place the OAuth JSON **outside Git**, readable only by non-root UID/GID **10001** (e.g. **/opt/eimir-google-photos-probe/google-web-client.json**, owner 10001:10001, mode 0400). Create a host-local **/opt/eimir-google-photos-probe/probe.env** (mode 0600) containing the four operator settings below. Generate the 64-character operator secret locally with **openssl rand -hex 32**, and never share it through GitHub, chat or copied shell logs. Do not mount any eimir. database, media or production secrets.
 
 ~~~dotenv
 EIMIR_GOOGLE_PHOTOS_PROBE_ENABLED=1
-EIMIR_GOOGLE_PHOTOS_PROBE_ORIGIN=https://photos-probe.example.org
+EIMIR_GOOGLE_PHOTOS_PROBE_ORIGIN=https://fotos-test.reiswienudel.de
 EIMIR_GOOGLE_PHOTOS_PROBE_WEB_CLIENT_FILE=/run/secrets/google-photos-web-client.json
 EIMIR_GOOGLE_PHOTOS_PROBE_OPERATOR_KEY=REPLACE_WITH_64_RANDOM_HEX_CHARACTERS
 ~~~
@@ -84,7 +84,7 @@ docker run --rm --name eimir-google-photos-probe \
 
    The test image runs as **UID 10001**, so the OAuth file must be readable by that UID. The host env file must be readable by the operator launching Docker (Docker injects its variables). Container-network mode depends on NPM remaining online. If NPM runs on a *different* host, do **not** use this same-namespace recipe or expose port 8787 publicly: secure an isolated internal proxy connection first.
 
-5. In NPM create a new **Proxy Host** for **photos-probe.example.org**. Set upstream scheme **http**, hostname **127.0.0.1**, port **8787**; enable a trusted TLS certificate and force HTTPS. The generated NPM server block already writes its own access/error logs. **Do not** try to suppress those error logs by appending another `error_log` at server level: NGINX writes to **both** when configured at the same level. Instead, the test vhost's **Advanced** field must disable normal access logs and define an **exact callback location** with an overriding location-level error log and the same NPM proxy include:
+5. In NPM create a new **Proxy Host** for **fotos-test.reiswienudel.de**. Set upstream scheme **http**, hostname **127.0.0.1**, port **8787**; enable a trusted TLS certificate and force HTTPS. The generated NPM server block already writes its own access/error logs. **Do not** try to suppress those error logs by appending another `error_log` at server level: NGINX writes to **both** when configured at the same level. Instead, the test vhost's **Advanced** field must disable normal access logs and define an **exact callback location** with an overriding location-level error log and the same NPM proxy include:
 
 ~~~nginx
 access_log off;

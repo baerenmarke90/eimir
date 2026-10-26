@@ -442,10 +442,12 @@ describe('StoryProductPage', () => {
     expect(html).toContain('Summer Lake Vacation');
 
     // #858 follow-up: `Diesen Monat -> Alle anzeigen` links here, so
-    // Zeitleiste must be the active tab immediately on landing, not just the
+    // The diary must be the active tab immediately on landing, not just the
     // rendered content.
     expect(html).toMatch(
-      /aria-selected="true" class="momente-tab-btn active"[^>]*>[\s\S]*?Zeitleiste/,
+      new RegExp(
+        `aria-selected="true" class="momente-tab-btn active"[^>]*>[\\s\\S]*?${de.story.tabTimeline}`,
+      ),
     );
   });
 

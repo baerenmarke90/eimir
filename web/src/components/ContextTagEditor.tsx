@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react';
+import { useId, useRef, useState, useImperativeHandle, type Ref } from 'react';
 import { useTranslation } from '../i18n';
 import './MemoryTagChoices.css';
 
@@ -7,6 +7,10 @@ const MAX_LABEL_LENGTH = 40;
 const normalize = (value: string) =>
   value.trim().split(/\s+/u).join(' ').normalize('NFC');
 
+export interface ContextTagEditorHandle {
+  commitDraft(): string[] | null;
+}
+
 export function ContextTagEditor({
   selected,
   onChange,
@@ -14,6 +18,9 @@ export function ContextTagEditor({
   labelForTag,
   disabled = false,
   onDraftChange,
+  draftValue,
+  onDraftValueChange,
+  ref,
 }: {
   selected: readonly string[];
   onChange: (tags: string[]) => void;
@@ -21,14 +28,22 @@ export function ContextTagEditor({
   labelForTag: (tag: string) => string;
   disabled?: boolean;
   onDraftChange?: (dirty: boolean) => void;
+  draftValue?: string;
+  onDraftValueChange?: (value: string) => void;
+  ref?: Ref<ContextTagEditorHandle>;
 }) {
   const { t } = useTranslation();
   const id = useId();
-  const [draft, setDraft] = useState('');
+  const [localDraft, setLocalDraft] = useState('');
+  const draft = draftValue ?? localDraft;
+  function setDraft(value: string) {
+    setLocalDraft(value);
+    onDraftValueChange?.(value);
+  }
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const addRef = useRef<HTMLButtonElement>(null);
-  function commit(allowEmpty = false) {
+  function commit(allowEmpty = false): string[] | null {
     const value = normalize(draft);
     const message = !value
       ? allowEmpty
@@ -43,11 +58,24 @@ export function ContextTagEditor({
             : '';
     setError(message);
     inputRef.current?.setCustomValidity(value ? message : '');
-    if (message || !value) return;
-    onChange([...selected, value]);
+    if (message) return null;
+    if (!value) return [...selected];
+    const result = [...selected, value];
+    onChange(result);
     setDraft('');
     onDraftChange?.(false);
+    return result;
   }
+  useImperativeHandle(ref, () => ({
+    commitDraft() {
+      const result = commit(true);
+      if (result === null) {
+        inputRef.current?.focus();
+        inputRef.current?.reportValidity();
+      }
+      return result;
+    },
+  }));
   return (
     <fieldset className="memory-tag-choices" disabled={disabled}>
       <legend>{t('contextTags.label')}</legend>

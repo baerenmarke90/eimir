@@ -28,6 +28,7 @@ export type AttachmentDraftAction =
   | { type: 'ready'; id: string; attempt: number; attachmentId: string }
   | { type: 'failed'; id: string; attempt: number; error: string }
   | { type: 'remove'; id: string }
+  | { type: 'move'; id: string; offset: -1 | 1 }
   | { type: 'clear' };
 
 function updateCurrentAttempt(
@@ -110,6 +111,14 @@ export function attachmentDraftReducer(
       );
     case 'remove':
       return drafts.filter((draft) => draft.id !== action.id);
+    case 'move': {
+      const from = drafts.findIndex((draft) => draft.id === action.id);
+      const to = from + action.offset;
+      if (from < 0 || to < 0 || to >= drafts.length) return drafts;
+      const result = [...drafts];
+      [result[from], result[to]] = [result[to], result[from]];
+      return result;
+    }
     case 'clear':
       return [];
   }

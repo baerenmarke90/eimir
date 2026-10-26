@@ -1,3 +1,4 @@
+import { showMemoryDetails } from '../support/memoryDiary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -311,6 +312,7 @@ test.describe('R1 Memory Create evidence', () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 900 });
     await openMemoryCreate(page);
+    await showMemoryDetails(page);
     await page
       .getByLabel(de.memory.titleLabelOptional, { exact: true })
       .fill('Unser Tag am See');
@@ -343,6 +345,7 @@ test.describe('R1 Memory Create evidence', () => {
       await page
         .getByLabel(de.memory.bodyLabel, { exact: true })
         .fill('Wir haben heute den ganzen Nachmittag am See verbracht.');
+      await showMemoryDetails(page);
       await page
         .getByLabel(de.memory.titleLabelOptional, { exact: true })
         .fill('Unser Tag am See');

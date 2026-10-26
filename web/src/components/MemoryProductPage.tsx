@@ -12,7 +12,6 @@ import {
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
-import { splitFirstGrapheme } from '../client/graphemeSplit';
 import {
   type MemoryEditValues,
   memoryDateInputValue,
@@ -660,8 +659,6 @@ export function MemoryProductPage({
     ? `${t('memoryProduct.detailEyebrow').toUpperCase()} · ${formatDateOnly(memory.happenedOn)}`
     : t('memoryProduct.detailEyebrow').toUpperCase();
 
-  const bodyText = memory.body || t('memoryProduct.noBody');
-  const { first: bodyDropCap, rest: bodyRest } = splitFirstGrapheme(bodyText);
   const provenanceAuthor = storyAuthorLabel(
     memory.author,
     currentAccountId,
@@ -708,12 +705,19 @@ export function MemoryProductPage({
       containerClassName="memory-detail-container"
       articleClassName="memory-detail-card"
     >
-      <p className="memory-detail-body">
-        {bodyDropCap ? (
-          <span className="drop-cap-letter">{bodyDropCap}</span>
-        ) : null}
-        {bodyRest}
-      </p>
+      {memory.body.trim() ? (
+        <div className="memory-diary-prose">
+          {memory.body.split(/\r?\n[\t ]*\r?\n/).map((paragraph, index) => (
+            <p
+              className="memory-detail-body"
+              // biome-ignore lint/suspicious/noArrayIndexKey: Read-only paragraphs have no state or reorder interaction.
+              key={index}
+            >
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      ) : null}
 
       {(memory.tags ?? []).length > 0 ? (
         <section aria-label={t('memory.tagsLabel')}>

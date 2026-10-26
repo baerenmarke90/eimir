@@ -1,7 +1,7 @@
 Adds the shared diary under Moments: write with a visible date, add and reorder photos, and optionally add a title or tags. Saved entries open in a calmer reading view with natural paragraphs.
 
-Unsaved text, dates, tags and selected photos can be recovered on the same device for up to seven days without changes. Local drafts are separate from sharing an entry with your partner. Interrupted saves preserve their original request identity to avoid duplicate entries.
+Unsaved text, dates, tags and selected photos can be recovered on the same device for up to seven days without changes. A local draft is shared with your partner only when you save the entry. Interrupted saves can be resumed without creating a second entry.
 
-Includes the merged diary implementation and its completed browser-test correction from PR #1458, together with the existing App Updates channel and previous client improvements.
+The existing App Updates feature and previous client improvements remain available.
 
-Install Build 16 through App Updates. The package, original signing identity and persistent test installation remain the same. Actual device installation, session continuity and OS email-link handling still require practical acceptance.
+Install Build 16 through App Updates, then open Moments to try the diary.

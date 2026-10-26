@@ -19,7 +19,7 @@ import {
   ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
-import { captureQueryIdentity } from '../client/queryIdentity';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
 
 type Dimension = 'energy' | 'vibe';
@@ -91,9 +91,12 @@ export function useDailyCheckInWrite({
     request.isOwned() &&
     dayContext(currentSnapshot(client, request)) === request.contextId;
   const refreshCurrent = async (request: Request) => {
-    if (!canReconcile(request)) return;
+    const key = dailyCheckInTodayQueryKey(request.accountId, request.spaceId);
+    // A late result cannot refetch a denied or removed private projection.
+    if (!canReconcile(request) || !captureAuthorizedQuery(client, key)())
+      return;
     await client.refetchQueries({
-      queryKey: dailyCheckInTodayQueryKey(request.accountId, request.spaceId),
+      queryKey: key,
       exact: true,
       type: 'active',
     });
@@ -129,7 +132,7 @@ export function useDailyCheckInWrite({
     networkMode: 'always',
     retry: false,
     onMutate: async (request) => {
-      if (canReconcile(request)) {
+      if (canReconcile(request) && request.queryIsCurrent()) {
         await client.cancelQueries({
           queryKey: dailyCheckInTodayQueryKey(
             request.accountId,
@@ -143,6 +146,10 @@ export function useDailyCheckInWrite({
     mutationFn: async (request) => {
       if (!isLive(request) || !request.isOwned())
         throw new ClientProblemError('unauthorized');
+      // Cancellation is asynchronous; the original authorized read or its
+      // validator may have been replaced before the deliberate write starts.
+      if (!request.queryIsCurrent())
+        throw new ClientProblemError('permission');
       assertOnlineWrite();
       let confirmed: DailyCheckInSnapshot;
       try {
@@ -178,7 +185,9 @@ export function useDailyCheckInWrite({
       // Returning void prevents the mutation cache from retaining partner data.
     },
     onError: async (error, request) => {
-      if (!canReconcile(request)) return;
+      // An intervening authoritative read (including denial) owns its cache;
+      // an older failed request must not reset or refetch it.
+      if (!canReconcile(request) || !request.queryIsCurrent()) return;
       if (error.code === 'SPACE_MODULE_DISABLED') {
         await Promise.all([
           refreshCurrent(request),
@@ -228,8 +237,13 @@ export function useDailyCheckInWrite({
       return false;
     const etag = admitted.etag;
     const input = { ...update };
-    const queryIsCurrent = captureQueryIdentity(client, queryKey);
+    const queryIsCurrent = captureAuthorizedQuery(client, queryKey);
     const snapshotIdentity = new WeakRef(admitted);
+    const isStartingReadCurrent = () =>
+      queryIsCurrent() &&
+      hasReadyProjection(client, queryKey) &&
+      snapshotIdentity.deref() === client.getQueryData(queryKey);
+    if (!isStartingReadCurrent()) return false;
     mutation.mutate({
       accountId,
       spaceId,
@@ -238,10 +252,7 @@ export function useDailyCheckInWrite({
       etag,
       update: input,
       isOwned: () => activeScope.current === scope,
-      queryIsCurrent: () =>
-        queryIsCurrent() &&
-        hasReadyProjection(client, queryKey) &&
-        snapshotIdentity.deref() === client.getQueryData(queryKey),
+      queryIsCurrent: isStartingReadCurrent,
       perform: () => updateDailyCheckInToday(api, spaceId, etag, input),
     });
     return true;

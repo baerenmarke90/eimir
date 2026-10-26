@@ -867,7 +867,9 @@ for (const view of [
         expect(dialogWidth.scroll).toBeLessThanOrEqual(dialogWidth.client);
         await expectNoWcagViolations(page);
         await page.screenshot({
-          path: info.outputPath(`private-area-profile-note-reflow-${width}.png`),
+          path: info.outputPath(
+            `private-area-profile-note-reflow-${width}.png`,
+          ),
         });
         if (width === 320) {
           const save = dialog.getByRole('button', {
@@ -878,7 +880,9 @@ for (const view of [
           await expect(save).toBeFocused();
           await expect(save).toBeInViewport();
           await page.screenshot({
-            path: info.outputPath('private-area-profile-note-large-text-actions.png'),
+            path: info.outputPath(
+              'private-area-profile-note-large-text-actions.png',
+            ),
           });
         }
       }

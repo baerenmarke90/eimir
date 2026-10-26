@@ -148,8 +148,7 @@ export function useDailyCheckInWrite({
         throw new ClientProblemError('unauthorized');
       // Cancellation is asynchronous; the original authorized read or its
       // validator may have been replaced before the deliberate write starts.
-      if (!request.queryIsCurrent())
-        throw new ClientProblemError('permission');
+      if (!request.queryIsCurrent()) throw new ClientProblemError('permission');
       assertOnlineWrite();
       let confirmed: DailyCheckInSnapshot;
       try {

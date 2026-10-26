@@ -1,3 +1,6 @@
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { readFileSync } from 'node:fs';
+import { showMemoryDetails } from '../support/memoryDiary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
@@ -28,6 +31,7 @@ interface PhotoBatchScenario {
   bound: string[];
   creates: number;
   discoverReads: number;
+  photoBytes?: Buffer;
 }
 
 const PHOTO_BYTES = Buffer.from(
@@ -72,11 +76,11 @@ async function installApiMocks(
     createdAt: TEST_NOW,
     durationSeconds: null,
     hasThumbnail: false,
-    height: 1,
-    width: 1,
+    height: photos?.photoBytes ? 800 : 1,
+    width: photos?.photoBytes ? 1200 : 1,
     mediaType: 'IMAGE',
-    mimeType: 'image/png',
-    size: PHOTO_BYTES.length,
+    mimeType: photos?.photoBytes ? 'image/jpeg' : 'image/png',
+    size: (photos?.photoBytes ?? PHOTO_BYTES).length,
     status: photos?.ready.has(id) ? 'READY' : 'VALIDATING',
     version: 1,
   });
@@ -121,7 +125,10 @@ async function installApiMocks(
         photos.uploaded.push(id);
         await route.fulfill({ status: 204 });
       } else if (action === 'content' && method === 'GET') {
-        await route.fulfill({ contentType: 'image/png', body: PHOTO_BYTES });
+        await route.fulfill({
+          contentType: photos.photoBytes ? 'image/jpeg' : 'image/png',
+          body: photos.photoBytes ?? PHOTO_BYTES,
+        });
       } else if (action === 'finalize' && method === 'POST') {
         photos.finalized.push(id);
         await fulfillJson(attachment(id));
@@ -411,6 +418,7 @@ for (const [width, colorScheme] of [
       discoverReads: 0,
     };
     await signInAndOpenMemoryCreate(page, photos);
+    await showMemoryDetails(page);
     await page.getByLabel(de.memory.titleLabelOptional).fill(AUTHORED_TITLE);
     await page
       .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
@@ -526,6 +534,7 @@ test('custom Memory tags survive create, reload, edit and removal (#1290)', asyn
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
+  await showMemoryDetails(page);
   const input = page.getByLabel(contextTags.newLabel);
   await input.fill('  Ostsee   2026  ');
   await input.press('Enter');
@@ -616,6 +625,7 @@ test('text-only with the default date saves a non-empty localized fallback title
   page,
 }) => {
   await signInAndOpenMemoryCreate(page);
+  await showMemoryDetails(page);
   await page.getByText(contextTags.suggestions, { exact: true }).click();
   await page.getByText(de.memory.tagLabels.home, { exact: true }).click();
   await page
@@ -667,6 +677,7 @@ test('text-only with a cleared date and whitespace title falls back using local 
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
+  await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional).fill('   ');
   await openDateEditor(page);
   await page.getByLabel(de.memory.dateLabel).fill('');
@@ -684,6 +695,7 @@ test('an authored title is kept while the selected happenedOn date is submitted'
   page,
 }) => {
   await signInAndOpenMemoryCreate(page);
+  await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional).fill(AUTHORED_TITLE);
   await openDateEditor(page);
   await page.getByLabel(de.memory.dateLabel).fill('2025-12-24');
@@ -707,6 +719,7 @@ test('Memory Create defaults render without overflow and capture product visual 
   // Return to the closed date-summary state before capturing visual
   // evidence, so the screenshots reflect what the page actually renders
   // by default rather than the transient date-editing state.
+  await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional).click();
   await expectNoHorizontalOverflow(page);
   await page.screenshot({
@@ -731,4 +744,371 @@ test('Memory Create defaults render without overflow and capture product visual 
     path: testInfo.outputPath('shell-memory-create-defaults-expanded.png'),
     fullPage: true,
   });
+});
+
+for (const [width, colorScheme] of [
+  [390, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`diary restores text, date, pending label and selected files after reload (${width})`, async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    const photos: PhotoBatchScenario = {
+      idsByName: {},
+      uploaded: [],
+      finalized: [],
+      ready: new Set(),
+      bound: [],
+      creates: 0,
+      discoverReads: 0,
+      photoBytes: readFileSync(
+        new URL(
+          '../../../backend/demo_assets/images/cabin-lake.jpg',
+          import.meta.url,
+        ),
+      ),
+    };
+    await signInAndOpenMemoryCreate(page, photos);
+    await expect(
+      page.getByLabel(de.memory.bodyLabel, { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByLabel(de.memory.titleLabelOptional)).toBeHidden();
+    const text =
+      'A quiet afternoon together.\n\nWe want to remember the little details.';
+    await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(text);
+    await openDateEditor(page);
+    await page.getByLabel(de.memory.dateLabel).fill('2025-12-24');
+    await showMemoryDetails(page);
+    await page.getByLabel(de.memory.titleLabelOptional).fill(AUTHORED_TITLE);
+    await page.locator('#memory-create-images').setInputFiles(
+      ['one.png', 'two.png'].map((name) => ({
+        name,
+        mimeType: 'image/png',
+        buffer: photos.photoBytes!,
+      })),
+    );
+    await expect.poll(() => photos.finalized.length).toBe(2);
+    for (const id of photos.finalized) photos.ready.add(id);
+    await expect(page.locator('.attachment-status-ready')).toHaveCount(2);
+    await page
+      .getByRole('button', {
+        name: de.memory.photoMoveLater.replace('{{name}}', 'one.png'),
+      })
+      .click();
+    await page.getByLabel(contextTags.newLabel).fill('An unfinished label');
+    await expect(page.locator('.memory-draft-status')).toHaveText(
+      de.memory.diary.draft.saved,
+    );
+    await page.locator('.memory-task-heading').scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: testInfo.outputPath(`diary-compose-${width}-${colorScheme}.png`),
+      fullPage: true,
+    });
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: de.memory.diary.resumeTitle }),
+    ).toBeVisible();
+    expect(photos.creates).toBe(0);
+    await page
+      .getByRole('button', { name: de.memory.diary.resume, exact: true })
+      .click();
+    await expect(
+      page.getByLabel(de.memory.bodyLabel, { exact: true }),
+    ).toHaveValue(text);
+    await expect(page.getByLabel(de.memory.titleLabelOptional)).toHaveValue(
+      AUTHORED_TITLE,
+    );
+    await expect(page.getByLabel(contextTags.newLabel)).toHaveValue(
+      'An unfinished label',
+    );
+    await expect(page.locator('.attachment-status-ready')).toHaveCount(2);
+    // READY file identity is restored; recovery must not upload a second copy.
+    expect(photos.uploaded).toHaveLength(2);
+    await page.getByLabel(de.memory.bodyLabel, { exact: true }).click();
+    const request = await submitAndReadCreateRequest(page);
+    expect(request.body).toBe(text);
+    expect(request.happenedOn).toBe('2025-12-24');
+    expect(request.tags).toEqual(['An unfinished label']);
+    await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+    await expect(page.locator('.memory-diary-prose > p')).toHaveText(
+      text.split('\n\n'),
+    );
+    expect(photos.creates).toBe(1);
+    expect(photos.bound).toEqual(
+      ['two.png', 'one.png'].map((name) => photos.idsByName[name]),
+    );
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`diary-read-${width}-${colorScheme}.png`),
+      fullPage: true,
+    });
+    await page.goto('/story/memories/new');
+    await expect(
+      page.getByRole('heading', { name: de.memory.heading }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: de.memory.diary.resumeTitle }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByLabel(de.memory.bodyLabel, { exact: true }),
+    ).toHaveValue('');
+  });
+}
+
+test('diary replays the original request identity after reloading an uncertain create', async ({
+  page,
+}) => {
+  await signInAndOpenMemoryCreate(page);
+  const requests: { body: unknown; key: string | undefined }[] = [];
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/memories`, async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fallback();
+      return;
+    }
+    requests.push({
+      body: route.request().postDataJSON(),
+      key: route.request().headers()['idempotency-key'],
+    });
+    await route.abort('failed');
+  });
+  await page
+    .getByLabel(de.memory.bodyLabel, { exact: true })
+    .fill(AUTHORED_BODY);
+  await page.getByRole('button', { name: de.memory.save }).click();
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
+  ).toBeVisible();
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.reload();
+  await page
+    .getByRole('button', { name: de.memory.diary.resume, exact: true })
+    .click();
+  await expect(
+    page.getByLabel(de.memory.bodyLabel, { exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByRole('button', { name: taskBoundary.verify, exact: true })
+    .click();
+  await expect.poll(() => requests.length).toBe(2);
+  expect(requests[0].key).toBeTruthy();
+  expect(requests[1]).toEqual(requests[0]);
+});
+
+test('diary draft storage isolates account, instance and Space; invalidates old writers and expires files', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const result = await page.evaluate(async () => {
+    const modulePath = '/src/client/memoryDiaryDraft.ts';
+    const { MemoryDiaryDraftStore, MEMORY_DRAFT_MAX_AGE_MS } = await import(
+      modulePath
+    );
+    const writer = new MemoryDiaryDraftStore(
+      'https://one.example',
+      'account-a',
+      'space-a',
+    );
+    await writer.load();
+    const value = {
+      title: '',
+      body: 'Owner-local words',
+      tags: [],
+      happenedOn: '2026-10-26',
+      files: [
+        {
+          file: new File(['private pixels'], 'photo.jpg', {
+            type: 'image/jpeg',
+          }),
+        },
+      ],
+      attempt: null,
+      partial: null,
+    };
+    await writer.save(value);
+    const isolated = [];
+    for (const scope of [
+      ['https://two.example', 'account-a', 'space-a'],
+      ['https://one.example', 'account-b', 'space-a'],
+      ['https://one.example', 'account-a', 'space-b'],
+    ]) {
+      isolated.push(await new MemoryDiaryDraftStore(...scope).load());
+    }
+    const replacement = new MemoryDiaryDraftStore(
+      'https://one.example',
+      'account-a',
+      'space-a',
+    );
+    const recovered = await replacement.load();
+    await replacement.save(value);
+    let oldWriterDenied = false;
+    try {
+      await writer.save(value);
+    } catch {
+      oldWriterDenied = true;
+    }
+    const fileText = await recovered.files[0].file.text();
+    const originalNow = Date.now;
+    Date.now = () => originalNow() + MEMORY_DRAFT_MAX_AGE_MS + 1;
+    const expired = await new MemoryDiaryDraftStore(
+      'https://one.example',
+      'account-a',
+      'space-a',
+    ).load();
+    Date.now = originalNow;
+    await replacement.load();
+    await replacement.save(value);
+    const sessionPath = '/src/client/sessionPersistence.ts';
+    const { clearStoredSession } = await import(sessionPath);
+    await clearStoredSession();
+    let revokedDenied = false;
+    try {
+      await replacement.save(value);
+    } catch {
+      revokedDenied = true;
+    }
+    const purged = await new MemoryDiaryDraftStore(
+      'https://one.example',
+      'account-a',
+      'space-a',
+    ).load();
+    return {
+      isolated,
+      fileText,
+      oldWriterDenied,
+      expired,
+      revokedDenied,
+      purged,
+    };
+  });
+  expect(result).toEqual({
+    isolated: [null, null, null],
+    fileText: 'private pixels',
+    oldWriterDenied: true,
+    expired: null,
+    revokedDenied: true,
+    purged: null,
+  });
+});
+
+test('diary recovery retries only attachment binding for an already created entry', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const photos: PhotoBatchScenario = {
+    idsByName: {},
+    uploaded: [],
+    finalized: [],
+    ready: new Set(),
+    bound: [],
+    creates: 0,
+    discoverReads: 0,
+  };
+  await signInAndOpenMemoryCreate(page, photos);
+  await page
+    .getByLabel(de.memory.bodyLabel, { exact: true })
+    .fill(AUTHORED_BODY);
+  await page.locator('#memory-create-images').setInputFiles({
+    name: 'photo.png',
+    mimeType: 'image/png',
+    buffer: PHOTO_BYTES,
+  });
+  await expect.poll(() => photos.finalized.length).toBe(1);
+  photos.ready.add(photos.finalized[0]);
+  await expect(page.locator('.attachment-status-ready')).toHaveCount(1);
+  let bindings = 0;
+  await page.route(`**/memories/${MEMORY_ID}/attachments`, async (route) => {
+    bindings++;
+    if (bindings === 1) await route.abort('failed');
+    else await route.fallback();
+  });
+  await page.getByRole('button', { name: de.memory.save }).click();
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.partialTitle }),
+  ).toBeVisible();
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.reload();
+  await page
+    .getByRole('button', { name: de.memory.diary.resume, exact: true })
+    .click();
+  await page
+    .getByRole('button', { name: taskBoundary.retryPhotos, exact: true })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+  expect(photos.creates).toBe(1);
+  expect(bindings).toBe(2);
+  expect(photos.bound).toEqual([photos.idsByName['photo.png']]);
+});
+
+test('erasing a diary draft does not resurrect old words on reload', async ({
+  page,
+}) => {
+  await signInAndOpenMemoryCreate(page);
+  const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
+  await body.fill(AUTHORED_BODY);
+  await expect(page.locator('.memory-draft-status')).toHaveText(
+    de.memory.diary.draft.saved,
+  );
+  await body.fill('');
+  await expect(page.locator('.memory-draft-status')).toHaveCount(0);
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: de.memory.diary.resumeTitle }),
+  ).toHaveCount(0);
+  await expect(body).toHaveValue('');
+});
+
+test('diary restores a file whose unbound server upload has expired', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const photos: PhotoBatchScenario = {
+    idsByName: {},
+    uploaded: [],
+    finalized: [],
+    ready: new Set(),
+    bound: [],
+    creates: 0,
+    discoverReads: 0,
+  };
+  await signInAndOpenMemoryCreate(page, photos);
+  await page
+    .getByLabel(de.memory.bodyLabel, { exact: true })
+    .fill(AUTHORED_BODY);
+  await page.locator('#memory-create-images').setInputFiles({
+    name: 'photo.png',
+    mimeType: 'image/png',
+    buffer: PHOTO_BYTES,
+  });
+  await expect.poll(() => photos.finalized.length).toBe(1);
+  const expiredId = photos.finalized[0];
+  photos.ready.add(expiredId);
+  await expect(page.locator('.memory-draft-status')).toHaveText(
+    de.memory.diary.draft.saved,
+  );
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.reload();
+  await page
+    .getByRole('button', { name: de.memory.diary.resume, exact: true })
+    .click();
+  await page.route(`**/attachments/${expiredId}`, async (route) => {
+    await route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        code: 'NOT_FOUND',
+        status: 404,
+        title: 'Not found',
+      }),
+    });
+  });
+  await page.getByRole('button', { name: de.memory.save }).click();
+  await expect.poll(() => photos.finalized.length).toBe(2);
+  photos.ready.add(photos.finalized[1]);
+  await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+  expect(photos.creates).toBe(1);
+  expect(photos.bound).toEqual([photos.finalized[1]]);
 });

@@ -1,3 +1,4 @@
+import { showMemoryDetails } from '../support/memoryDiary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
@@ -331,6 +332,7 @@ async function openMemory(page: Page) {
 }
 
 async function fillMemory(page: Page, withPhoto = false) {
+  await showMemoryDetails(page);
   await page
     .getByLabel(de.memory.titleLabelOptional, { exact: true })
     .fill(TITLE);
@@ -1131,6 +1133,7 @@ test('authored draft text never enters task history or browser key-value storage
   await signIn(page);
   await openMemory(page);
   const privateDraft = 'Ephemeral private draft 958 for storage exclusion';
+  await showMemoryDetails(page);
   await page
     .getByLabel(de.memory.titleLabelOptional, { exact: true })
     .fill(privateDraft);
@@ -1337,6 +1340,7 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   );
   // Return to the closed date-summary state before the readability
   // screenshot, so it reflects what the page renders by default.
+  await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional, { exact: true }).click();
   await testInfo.attach('large-text-readability', {
     body: JSON.stringify({ labels: readableLabels, dateSpace }, null, 2),

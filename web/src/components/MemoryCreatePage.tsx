@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -22,6 +23,7 @@ import {
   completeMemoryAttachmentBinding,
   createMemoryWithReadyAttachments,
   MemoryAttachmentBindingError,
+  uploadMemoryDraftAttachment,
 } from '../client/memoryAttachmentDraft';
 import {
   canStillReconcile,
@@ -37,10 +39,13 @@ import { createReferenceApis } from '../client/referenceFlow';
 import { memoryDetailPath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
+import { useMemoryDiaryDraft } from '../client/useMemoryDiaryDraft';
+import type { MemoryDiaryDraft } from '../client/memoryDiaryDraft';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { DestinationIcon } from './DestinationIcon';
+import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
@@ -75,9 +80,13 @@ export function MemoryCreatePage({
   const [body, setBody] = useState('');
   const [tags, setTags] = useState<MemoryTag[]>([]);
   const [tagDraftDirty, setTagDraftDirty] = useState(false);
+  const [tagDraftText, setTagDraftText] = useState('');
   const [happenedOn, setHappenedOn] = useState(initialDate);
   const [invalidDate, setInvalidDate] = useState(false);
   const [dateEditorOpen, setDateEditorOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const bodyInputRef = useRef<HTMLTextAreaElement>(null);
+  const tagEditorRef = useRef<ContextTagEditorHandle>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState(false);
   const [problem, setProblem] = useState<ClientProblemError | null>(null);
@@ -90,6 +99,8 @@ export function MemoryCreatePage({
   const [verifyUnavailable, setVerifyUnavailable] = useState(false);
   const [deletedAfterSave, setDeletedAfterSave] = useState(false);
   const attemptRef = useRef<MemoryCreateAttempt | null>(null);
+  const recoveredDraft = useRef(false);
+  const recoveryUpload = useRef<AbortController | null>(null);
   const outcomeHeadingRef = useRef<HTMLHeadingElement>(null);
   const outcomeNoticeRef = useRef<HTMLElement>(null);
   const [partial, setPartial] = useState<MemoryAttachmentBindingError | null>(
@@ -104,6 +115,7 @@ export function MemoryCreatePage({
     session.active = true;
     return () => {
       session.active = false;
+      recoveryUpload.current?.abort();
     };
   }, []);
   useEffect(() => {
@@ -156,6 +168,63 @@ export function MemoryCreatePage({
   const hasUserContent = Boolean(
     title.trim() || body.trim() || attachments.items.length,
   );
+  const draftSnapshot = useMemo<MemoryDiaryDraft>(
+    () => ({
+      title,
+      body,
+      tags,
+      tagDraft: tagDraftText,
+      happenedOn,
+      files: attachments.items.map(({ file, attachmentId, status }) => ({
+        file,
+        attachmentId: status === 'ready' ? attachmentId : undefined,
+      })),
+      attempt: null,
+      partial: null,
+    }),
+    [title, body, tags, tagDraftText, happenedOn, attachments.items],
+  );
+  const diaryDraft = useMemoryDiaryDraft({
+    apiBaseUrl,
+    accountId,
+    spaceId,
+    snapshot: draftSnapshot,
+    dirty,
+    suspended: pending || uncertain || Boolean(partial),
+  });
+  useLayoutEffect(() => {
+    const field = bodyInputRef.current;
+    if (!field || field.value !== body) return;
+    field.style.height = 'auto';
+    field.style.height = `${field.scrollHeight}px`;
+  }, [body]);
+
+  async function resumeDraft() {
+    const draft = diaryDraft.recovery;
+    if (!draft || !(await diaryDraft.checkpoint(draft, true))) return;
+    setTitle(draft.title);
+    setBody(draft.body);
+    setTags(draft.tags);
+    setTagDraftText(draft.tagDraft ?? '');
+    setTagDraftDirty(Boolean(draft.tagDraft));
+    setHappenedOn(draft.happenedOn);
+    setDetailsOpen(Boolean(draft.title || draft.tags.length || draft.tagDraft));
+    attachments.restore(draft.files);
+    recoveredDraft.current = true;
+    attemptRef.current = draft.attempt;
+    setUncertain(Boolean(draft.attempt));
+    setVerifiable(!draft.attempt || canStillReconcile(draft.attempt));
+    if (draft.partial)
+      setPartial(
+        new MemoryAttachmentBindingError(
+          draft.partial.memory,
+          draft.partial.attachmentIds,
+          new Error('Restored attachment binding'),
+        ),
+      );
+    diaryDraft.acceptRecovery();
+  }
+
   // null when happenedOn cannot be parsed (e.g. an out-of-range year the
   // native date input accepted via direct keyboard entry): the editable
   // input stays shown rather than risking a throw from the summary format.
@@ -191,10 +260,12 @@ export function MemoryCreatePage({
     requestTaskClose();
   }
 
-  function openResult(memory: MemoryDetail, photosUnconfirmed = false) {
+  async function openResult(memory: MemoryDetail, photosUnconfirmed = false) {
     if (!owner.current.active || exitAction.current) return;
     owner.current.pending = true;
     setPending(true);
+    await diaryDraft.clear();
+    if (!owner.current.active) return;
     queryClient.setQueryData(
       authorSummaryQueryKeys.memory(spaceId, memory.id),
       { value: memory, source: 'network' },
@@ -231,7 +302,7 @@ export function MemoryCreatePage({
       const memory = await work();
       if (!session.active) return;
       attemptRef.current = null;
-      openResult(memory);
+      await openResult(memory);
     } catch (error) {
       if (!session.active) return;
       if (error instanceof MemoryAttachmentBindingError) {
@@ -239,6 +310,11 @@ export function MemoryCreatePage({
         attemptRef.current = null;
         setUncertain(false);
         setPartial(error);
+        await diaryDraft.checkpoint({
+          ...draftSnapshot,
+          partial: { memory: error.memory, attachmentIds: error.attachmentIds },
+          attempt: null,
+        });
         setProblem(await normalizeClientError(error.cause));
         return;
       }
@@ -285,6 +361,8 @@ export function MemoryCreatePage({
   async function save() {
     if (
       !hasUserContent ||
+      diaryDraft.recovery ||
+      diaryDraft.status === 'conflict' ||
       owner.current.pending ||
       uncertain ||
       attachments.hasPending ||
@@ -295,16 +373,28 @@ export function MemoryCreatePage({
       setOfflineAttempt(true);
       return;
     }
+    const submittedTags = tagEditorRef.current?.commitDraft();
+    if (submittedTags === null) return;
     if (partial) {
       await run(
-        () =>
-          completeMemoryAttachmentBinding(
+        async () => {
+          const recovered = await recoverReadyFiles(partial.attachmentIds);
+          if (
+            !(await diaryDraft.checkpoint({
+              ...draftSnapshot,
+              files: recovered.files,
+              partial: { memory: partial.memory, attachmentIds: recovered.ids },
+            }))
+          )
+            throw new Error('Draft ownership unavailable');
+          return completeMemoryAttachmentBinding(
             apis,
             spaceId,
             partial.memory,
-            partial.attachmentIds,
+            recovered.ids,
             true,
-          ),
+          );
+        },
         { verification: false },
       );
       return;
@@ -332,20 +422,83 @@ export function MemoryCreatePage({
               date: formatDateInputValue(date, resolvedLocale()),
             }),
         body,
-        tags: [...tags],
+        tags: [...(submittedTags ?? tags)],
         happenedOn: submittedDate,
       },
       [...attachments.readyIds],
     );
     attemptRef.current = attempt;
-    await run(() => submitAttempt(attempt, false), { verification: false });
+    await run(
+      async () => {
+        return submitAttempt(attempt, false);
+      },
+      { verification: false },
+    );
   }
-  function submitAttempt(attempt: MemoryCreateAttempt, reconcile: boolean) {
+  async function recoverReadyFiles(originalIds: readonly string[]) {
+    const ids = [...originalIds];
+    const files = draftSnapshot.files.map((entry) => ({ ...entry }));
+    if (!recoveredDraft.current) return { ids, files };
+    for (const [index, draft] of attachments.items.entries()) {
+      if (!owner.current.active) throw new Error('Draft task ended');
+      try {
+        const metadata = await apis.attachments.getAttachment({
+          spaceId,
+          attachmentId: ids[index],
+        });
+        if (metadata.status === 'READY') continue;
+      } catch (error) {
+        if ((await normalizeClientError(error)).kind !== 'notFound')
+          throw error;
+      }
+      // Unbound server uploads expire after 60 minutes. The local File is
+      // retained for seven days, so replace only a confirmed missing upload.
+      if (!owner.current.active) throw new Error('Draft task ended');
+      const controller = new AbortController();
+      recoveryUpload.current = controller;
+      let replacement: { attachmentId: string };
+      try {
+        replacement = await uploadMemoryDraftAttachment(
+          apis,
+          apiBaseUrl,
+          accessToken,
+          spaceId,
+          draft.file,
+          undefined,
+          fetch,
+          { signal: controller.signal },
+        );
+      } finally {
+        if (recoveryUpload.current === controller)
+          recoveryUpload.current = null;
+      }
+      if (!owner.current.active) throw new Error('Draft task ended');
+      ids[index] = replacement.attachmentId;
+      files[index].attachmentId = replacement.attachmentId;
+      attachments.replaceReadyId(draft, replacement.attachmentId);
+    }
+    return { ids, files };
+  }
+
+  async function submitAttempt(
+    attempt: MemoryCreateAttempt,
+    reconcile: boolean,
+  ) {
+    const recovered = await recoverReadyFiles(attempt.attachmentIds);
+    const verifiedAttempt = { ...attempt, attachmentIds: recovered.ids };
+    attemptRef.current = verifiedAttempt;
+    const allowed = await diaryDraft.checkpoint({
+      ...draftSnapshot,
+      files: recovered.files,
+      attempt: verifiedAttempt,
+    });
+    if (!owner.current.active || !allowed)
+      throw new Error('Draft ownership unavailable');
     return createMemoryWithReadyAttachments(
       apis,
       spaceId,
       attempt.snapshot,
-      attempt.attachmentIds,
+      recovered.ids,
       { idempotencyKey: attempt.idempotencyKey, reconcile },
     ).then((result) => result.memory);
   }
@@ -383,7 +536,6 @@ export function MemoryCreatePage({
             }
             eyebrow={t('memory.eyebrow')}
             title={t('memory.heading')}
-            description={t('memory.intro')}
             className="create-heading"
           />
         </div>
@@ -395,56 +547,38 @@ export function MemoryCreatePage({
         <h2 id="memory-form-heading" className="sr-only">
           {t('memory.formAria')}
         </h2>
+        {diaryDraft.recovery ? (
+          <section
+            className="inline-message memory-draft-recovery"
+            aria-label={t('memory.diary.resumeTitle')}
+          >
+            <h2>{t('memory.diary.resumeTitle')}</h2>
+            <p>{t('memory.diary.resumeBody')}</p>
+            <div className="memory-actions">
+              <button type="button" onClick={() => void resumeDraft()}>
+                {t('memory.diary.resume')}
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => void diaryDraft.discardRecovery()}
+              >
+                {t('memory.diary.startNew')}
+              </button>
+            </div>
+          </section>
+        ) : null}
         <form onSubmit={submit} className="immersive-create-form">
           <fieldset
             className="memory-task-fields"
-            disabled={pending || Boolean(partial) || uncertain}
+            disabled={
+              pending ||
+              Boolean(partial) ||
+              uncertain ||
+              Boolean(diaryDraft.recovery)
+            }
           >
             <legend className="sr-only">{t('memory.formAria')}</legend>
-
-            <div className="immersive-create-media">
-              <AttachmentDraftPicker
-                id="memory-create-images"
-                attachments={attachments}
-                multiple
-              />
-            </div>
-
-            <div className="field-group immersive-create-narrative">
-              <label htmlFor="body">{t('memory.bodyLabel')}</label>
-              <textarea
-                id="body"
-                name="body"
-                value={body}
-                onChange={(event) => {
-                  setBody(event.target.value);
-                  const field = event.target;
-                  field.style.height = 'auto';
-                  field.style.height = `${field.scrollHeight}px`;
-                }}
-                rows={2}
-                placeholder={t('memory.bodyPlaceholder')}
-              />
-            </div>
-
-            <MemoryTagChoices
-              selected={tags}
-              onChange={setTags}
-              onDraftChange={setTagDraftDirty}
-            />
-
-            <div className="field-group immersive-create-title-field">
-              <label htmlFor="title">{t('memory.titleLabelOptional')}</label>
-              <input
-                id="title"
-                name="title"
-                maxLength={200}
-                placeholder={t('memory.titlePlaceholder')}
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                className="immersive-create-title-input"
-              />
-            </div>
 
             <div className="field-group immersive-create-date-field">
               <span id="happenedOn-label">{t('memory.dateLabel')}</span>
@@ -490,6 +624,55 @@ export function MemoryCreatePage({
               <p className="field-help">{t('memory.dateHelp')}</p>
             </div>
 
+            <div className="field-group immersive-create-narrative">
+              <label htmlFor="body">{t('memory.bodyLabel')}</label>
+              <textarea
+                ref={bodyInputRef}
+                id="body"
+                name="body"
+                value={body}
+                onChange={(event) => setBody(event.target.value)}
+                rows={6}
+                placeholder={t('memory.bodyPlaceholder')}
+              />
+            </div>
+
+            <div className="immersive-create-media">
+              <AttachmentDraftPicker
+                id="memory-create-images"
+                attachments={attachments}
+                multiple
+              />
+            </div>
+
+            <details
+              className="memory-diary-details"
+              open={detailsOpen}
+              onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
+            >
+              <summary>{t('memory.diary.optionalDetails')}</summary>
+              <MemoryTagChoices
+                editorRef={tagEditorRef}
+                selected={tags}
+                onChange={setTags}
+                onDraftChange={setTagDraftDirty}
+                draftValue={tagDraftText}
+                onDraftValueChange={setTagDraftText}
+              />
+
+              <div className="field-group immersive-create-title-field">
+                <label htmlFor="title">{t('memory.titleLabelOptional')}</label>
+                <input
+                  id="title"
+                  name="title"
+                  maxLength={200}
+                  placeholder={t('memory.titlePlaceholder')}
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  className="immersive-create-title-input"
+                />
+              </div>
+            </details>
             <div
               className="sharing-note immersive-sharing-note"
               role="note"
@@ -504,6 +687,15 @@ export function MemoryCreatePage({
               </div>
             </div>
           </fieldset>
+          {dirty &&
+          !diaryDraft.recovery &&
+          !pending &&
+          !uncertain &&
+          !partial ? (
+            <p className="memory-draft-status" role="status">
+              {t(`memory.diary.draft.${diaryDraft.status}`)}
+            </p>
+          ) : null}
           <div className="form-actions">
             <button
               type="button"
@@ -517,6 +709,8 @@ export function MemoryCreatePage({
               type="submit"
               disabled={
                 !hasUserContent ||
+                Boolean(diaryDraft.recovery) ||
+                diaryDraft.status === 'conflict' ||
                 pending ||
                 uncertain ||
                 attachments.hasPending ||
@@ -659,10 +853,25 @@ export function MemoryCreatePage({
             >
               {t('taskBoundary.keepEditing')}
             </button>
+            {!partial && !uncertain && diaryDraft.status === 'saved' ? (
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => {
+                  confirmRef.current?.closeForNavigation(() => {
+                    keepDiscardEditing();
+                    closeTask();
+                  });
+                }}
+              >
+                {t('memory.diary.keepDraft')}
+              </button>
+            ) : null}
             <button
               type="button"
               className="danger"
               onClick={() => {
+                void diaryDraft.clear();
                 const checkTimeline =
                   discardDestinationRef.current === 'timeline';
                 confirmRef.current?.closeForNavigation(() => {

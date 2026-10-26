@@ -7,6 +7,7 @@ import {
 } from 'react';
 import {
   useInfiniteQuery,
+  useIsMutating,
   useMutation,
   useQuery,
   useQueryClient,
@@ -18,6 +19,7 @@ import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { SearchKind } from '../api/generated/models/SearchKind';
 import type { SearchResult } from '../api/generated/models/SearchResult';
 import { authorDisplayName } from '../client/authorPresentation';
+import { assertOnlineWrite } from '../client/connectivity';
 import {
   engagementTargetPath,
   opaqueNextCursor,
@@ -33,7 +35,11 @@ import {
   beginNotificationRead,
   type NotificationReadAttempt,
 } from '../client/notificationRead';
-import { normalizeClientError } from '../client/problemDetails';
+import {
+  ClientProblemError,
+  normalizeClientError,
+} from '../client/problemDetails';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -678,13 +684,6 @@ export function NotificationsProductPage({
     retry: false,
   });
 
-  async function refreshNotifications() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: listKey }),
-      queryClient.invalidateQueries({ queryKey: unreadKey }),
-    ]);
-  }
-
   type MarkReadSubmission = {
     attempt: NotificationReadAttempt;
     send: () => Promise<unknown>;
@@ -713,11 +712,66 @@ export function NotificationsProductPage({
       send: () => api.markNotificationRead({ notificationId, spaceId }),
     });
   }
+  type MarkAllSubmission = {
+    spaceId: string;
+    isCurrentUnread: () => boolean;
+    isCurrentList: () => boolean;
+    send: () => Promise<unknown>;
+  };
+  // Bulk read is intentionally server-confirmed, unlike reversible single-row
+  // optimism. A pending bulk intent survives route remounts in the same Space.
+  const markAllKey = [
+    'notification-mark-all',
+    currentAccountId ?? null,
+    spaceId,
+  ] as const;
+  const isMarkAllPending =
+    useIsMutating({ mutationKey: markAllKey, exact: true }) > 0;
   const markAll = useMutation({
-    mutationFn: () =>
-      apiCall(() => apis.notifications.markAllNotificationsRead({ spaceId })),
-    onSuccess: refreshNotifications,
+    mutationKey: markAllKey,
+    networkMode: 'always',
+    retry: false,
+    mutationFn: ({ isCurrentUnread, send }: MarkAllSubmission) => {
+      if (!isCurrentUnread()) throw new ClientProblemError('permission');
+      assertOnlineWrite();
+      return apiCall(send);
+    },
+    onSuccess: async (_result, submission) => {
+      if (!submission.isCurrentUnread()) return;
+      const refreshes = [
+        queryClient.invalidateQueries({
+          queryKey: notificationUnreadCountQueryKey(submission.spaceId),
+          exact: true,
+        }),
+      ];
+      if (submission.isCurrentList())
+        refreshes.push(
+          queryClient.invalidateQueries({
+            queryKey: notificationsListQueryKey(submission.spaceId),
+            exact: true,
+          }),
+        );
+      await Promise.all(refreshes);
+    },
   });
+  function markAllNotificationsRead() {
+    if (queryClient.isMutating({ mutationKey: markAllKey, exact: true }) > 0)
+      return;
+    const isCurrentUnread = captureAuthorizedQuery(queryClient, unreadKey);
+    if (!isCurrentUnread()) return;
+    const current = queryClient.getQueryData<{ unreadCount: number }>(
+      unreadKey,
+    );
+    if (!current || current.unreadCount < 1) return;
+    const api = apis.notifications;
+    const requestedSpaceId = spaceId;
+    markAll.mutate({
+      spaceId: requestedSpaceId,
+      isCurrentUnread,
+      isCurrentList: captureAuthorizedQuery(queryClient, listKey),
+      send: () => api.markAllNotificationsRead({ spaceId: requestedSpaceId }),
+    });
+  }
 
   const items =
     notificationsQuery.data?.pages.flatMap((page) => page.items) ?? [];
@@ -771,10 +825,10 @@ export function NotificationsProductPage({
             <button
               type="button"
               className="secondary"
-              onClick={() => markAll.mutate()}
-              disabled={markAll.isPending || unreadCount === 0}
+              onClick={markAllNotificationsRead}
+              disabled={isMarkAllPending || unreadCount === 0}
             >
-              {markAll.isPending
+              {isMarkAllPending
                 ? t('m5s5.notifications.markingAllRead')
                 : t('m5s5.notifications.markAllRead')}
             </button>
@@ -800,7 +854,11 @@ export function NotificationsProductPage({
       {markOne.error && markOne.variables?.attempt.isCurrentList() ? (
         <ProblemState error={markOne.error} />
       ) : null}
-      {markAll.error ? <ProblemState error={markAll.error} /> : null}
+      {markAll.error &&
+      markAll.variables?.isCurrentUnread() &&
+      markAll.variables.spaceId === spaceId ? (
+        <ProblemState error={markAll.error} />
+      ) : null}
 
       {notificationsQuery.data && items.length === 0 ? (
         <UiState

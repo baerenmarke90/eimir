@@ -144,6 +144,13 @@ For every subsequent version, increase `versionCode` and replace
 Packaging then requires the same certificate and package and a strictly greater
 version code. Keep the original signing material available for the entire test.
 
+Treat a build number as consumed once any signed APK with that number has been
+shared or installed, including private or unpublished candidates. A corrected APK
+needs a higher code even when the earlier APK never appeared in GitHub Releases.
+Different source revisions with the same installed/published code are not offered
+as upgrades; [test.15](releases/android-test-0.2.0-test.15.md) corrects that earlier
+Build 14 distribution collision without weakening the updater's version policy.
+
 ## Public release assets
 
 The native catalog reads the public `baerenmarke90/eimir` GitHub Releases list,

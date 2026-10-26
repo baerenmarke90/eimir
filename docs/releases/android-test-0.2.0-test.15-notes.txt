@@ -1,0 +1,5 @@
+Reissues the checked current Android test client as Build 15 so App Updates can offer it to devices that already have the earlier, privately installed Build 14. The updater requires a strictly higher build number; two different APK sources must not share a build number once either has been distributed.
+
+Includes the checked test.14 improvements to Daily Check-in ownership, private profile-note editing context and all eleven Android home-screen icon variants, plus the existing notifications, planning, shared photo/history browsing and dependency fixes. Known-offline Wish completion sends no request; reconnect does not silently repeat a failed action.
+
+This delivery correction changes version and release metadata. It keeps the existing package, original signing certificate, persistent Cloud API and regular mode. Update through App Updates. Session/data continuity, external mail/invitation links and installed-device launcher appearance still require practical device acceptance.

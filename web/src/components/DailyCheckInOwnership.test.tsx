@@ -757,6 +757,30 @@ it('preserves a newer authorized module/privacy projection even when the owner v
   expect(screen.queryByText('Private old partner context')).toBeNull();
 });
 
+it('does not reset a newer authorized Today read after an old write fails with 403', async () => {
+  const h = setup();
+  h.mount();
+  await saveEnergy();
+  await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+  const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
+  const newer = {
+    ...h.current,
+    own: { ...h.current.own, energyLevel: 90, version: 2 },
+  };
+  h.get.mockResolvedValue(response(newer, '"today:3"'));
+  await act(async () =>
+    h.client.setQueryData(key, { projection: newer, etag: '"today:3"' }),
+  );
+  const reads = h.get.mock.calls.length;
+  await act(async () => h.reject(new ClientProblemError('permission', 403)));
+  await waitFor(() => expect(h.client.isMutating()).toBe(0));
+  expect(h.get).toHaveBeenCalledTimes(reads);
+  expect(h.client.getQueryData(key)).toMatchObject({
+    etag: '"today:3"',
+    projection: { own: { energyLevel: 90 } },
+  });
+});
+
 it('does not turn a newer denied read into a successful private projection when an older write completes', async () => {
   const h = setup();
   h.current.own.vibe = 'GOOD';
@@ -774,6 +798,7 @@ it('does not turn a newer denied read into a successful private projection when 
     h.client.refetchQueries({ queryKey: key, exact: true }),
   );
   expect(h.client.getQueryState(key)?.status).toBe('error');
+  const deniedReads = h.get.mock.calls.length;
   await act(async () =>
     h.resolve(
       response(
@@ -786,6 +811,7 @@ it('does not turn a newer denied read into a successful private projection when 
     ),
   );
   await waitFor(() => expect(h.client.isMutating()).toBe(0));
+  expect(h.get).toHaveBeenCalledTimes(deniedReads);
   expect(h.client.getQueryState(key)?.status).toBe('error');
   expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
 });

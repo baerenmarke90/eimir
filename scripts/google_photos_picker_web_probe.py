@@ -117,6 +117,7 @@ class ActiveProbe:
     access_token: str | None = None
     picker_session_id: str | None = None
     picker_uri: str | None = None
+    expiry_timer: threading.Timer | None = None
 
 
 def response(
@@ -198,6 +199,8 @@ class CloudProbe:
     def _cleanup(self) -> bool:
         active = self.active
         self.active = None
+        if active is not None and active.expiry_timer is not None:
+            active.expiry_timer.cancel()
         if active is None or not active.access_token or not active.picker_session_id:
             return True
         session_url = (
@@ -208,6 +211,13 @@ class CloudProbe:
         except ProbeError:
             return False
         return True
+
+    def _expire(self, cookie: str) -> None:
+        with self.lock:
+            if self.active is not None and hmac.compare_digest(
+                self.active.cookie, cookie
+            ):
+                self._cleanup()
 
     def _render_picker(self, active: ActiveProbe, message: str) -> tuple:
         if active.picker_uri is None:
@@ -274,6 +284,10 @@ class CloudProbe:
                     started_at=now,
                 )
                 self.active = active
+                timer = threading.Timer(LIFETIME, self._expire, args=(active.cookie,))
+                timer.daemon = True
+                active.expiry_timer = timer
+                timer.start()
                 return response(
                     "303 See Other", "Continue with Google consent.",
                     cookie=active.cookie, location=uri
@@ -324,10 +338,11 @@ class CloudProbe:
                         not isinstance(identifier, str)
                         or not identifier
                         or len(identifier) > 1000
-                        or not valid_picker_uri(picker_uri)
                     ):
                         raise CloudProbeError("Google returned an invalid picker session.")
                     active.picker_session_id = identifier
+                    if not valid_picker_uri(picker_uri):
+                        raise CloudProbeError("Google returned an invalid picker URL.")
                     active.picker_uri = picker_uri
                 except Exception:
                     # Neither OAuth exceptions nor API payloads may enter output.

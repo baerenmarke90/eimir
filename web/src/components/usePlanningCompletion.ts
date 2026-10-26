@@ -7,7 +7,10 @@ import {
 } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { assertOnlineWrite } from '../client/connectivity';
-import { dashboardQueryKey, invalidateDashboard } from '../client/dashboardQueries';
+import {
+  dashboardQueryKey,
+  invalidateDashboard,
+} from '../client/dashboardQueries';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import {
   ClientProblemError,

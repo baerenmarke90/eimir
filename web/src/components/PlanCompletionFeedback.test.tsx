@@ -370,10 +370,13 @@ it('does not dispatch a Plan completion after its initiating read becomes denied
   const form = completeButton().closest('form') as HTMLFormElement;
   act(() => {
     fireEvent.submit(form);
-    h.queryClient.getQueryCache().find({ queryKey: h.key, exact: true })?.setState({
-      error: new ClientProblemError('permission', 403),
-      status: 'error',
-    });
+    h.queryClient
+      .getQueryCache()
+      .find({ queryKey: h.key, exact: true })
+      ?.setState({
+        error: new ClientProblemError('permission', 403),
+        status: 'error',
+      });
   });
   await waitFor(() =>
     expect(

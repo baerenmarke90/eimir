@@ -440,10 +440,13 @@ it('rejects a Wish fulfillment after original Query access is denied while cance
   await screen.findByText('Northern lights');
   act(() => {
     fireEvent.click(action());
-    h.queryClient.getQueryCache().find({ queryKey: h.key, exact: true })?.setState({
-      error: new ClientProblemError('permission', 403),
-      status: 'error',
-    });
+    h.queryClient
+      .getQueryCache()
+      .find({ queryKey: h.key, exact: true })
+      ?.setState({
+        error: new ClientProblemError('permission', 403),
+        status: 'error',
+      });
   });
   await waitFor(() =>
     expect(

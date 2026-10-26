@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import fnmatch
+import re
 import unittest
+from pathlib import Path
 
-from change_scope import SCOPES, classify_paths
+from change_scope import SCOPES, SELF_VALIDATING_RELEASE_PUBLICATION_EXACT, classify_paths
+
+ROOT = Path(__file__).resolve().parents[2]
+RELEASE_PUBLISH_WORKFLOW = ROOT / ".github/workflows/release-publish.yml"
 
 ACCOUNT_DELETION_RECOVERY_RUNTIME_PATHS = (
     "backend/src/eimir/identity/deletion.py",
@@ -258,9 +264,70 @@ class ChangeScopeTest(unittest.TestCase):
 
     def test_non_allowlisted_workflow_changes_stay_fail_closed(self) -> None:
         for path in (
-            ".github/workflows/release-publish.yml",
             ".github/workflows/runtime-environment-drift-guard.yml",
             ".github/workflows/future.yml",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(all(classify_paths([path]).values()))
+
+    @staticmethod
+    def release_publish_pull_request_paths() -> list[str]:
+        text = RELEASE_PUBLISH_WORKFLOW.read_text(encoding="utf-8")
+        block = text.split("  pull_request:\n    paths:\n", 1)[1].split("\n  workflow_dispatch:", 1)[0]
+        return re.findall(r'^      - "([^"]+)"$', block, re.MULTILINE)
+
+    def test_release_publication_family_does_not_enable_core_gates(self) -> None:
+        for path in SELF_VALIDATING_RELEASE_PUBLICATION_EXACT:
+            with self.subTest(path=path):
+                self.assert_scope([path], enabled=set())
+        self.assert_scope(list(SELF_VALIDATING_RELEASE_PUBLICATION_EXACT), enabled=set())
+        self.assert_scope(
+            [*SELF_VALIDATING_RELEASE_PUBLICATION_EXACT, "docs/m6/IMMUTABLE-RELEASES.md"],
+            enabled=set(),
+        )
+
+    def test_release_publication_family_is_actually_validated_by_its_own_workflow(self) -> None:
+        # Skipping the core gates is only safe while a pull request touching these
+        # files still triggers release-publish.yml, which runs their tests.
+        patterns = self.release_publish_pull_request_paths()
+        self.assertIn(".github/workflows/release-publish.yml", patterns)
+        workflow = RELEASE_PUBLISH_WORKFLOW.read_text(encoding="utf-8")
+        for path in SELF_VALIDATING_RELEASE_PUBLICATION_EXACT:
+            with self.subTest(path=path):
+                self.assertTrue((ROOT / path).is_file(), "stale allowlist entry")
+                self.assertTrue(
+                    any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns),
+                    "not covered by the workflow's pull_request.paths",
+                )
+                if path.startswith("tools/ci/test_"):
+                    self.assertIn(f"python3 {path}", workflow, "test is not run by the workflow")
+
+    def test_release_publication_family_keeps_other_scopes_in_mixed_prs(self) -> None:
+        self.assert_scope(
+            [".github/workflows/release-publish.yml", "backend/tests/test_config.py"],
+            enabled={"backend"},
+        )
+        self.assert_scope(
+            ["scripts/image_archive_config.py", "backend/alembic/versions/0001_x.py"],
+            enabled={"backend", "backend_integration", "recovery"},
+        )
+
+    def test_release_publication_family_cannot_hide_unknown_or_ci_changes(self) -> None:
+        for other in ("future-build-system/config.toml", "tools/ci/change_scope.py"):
+            with self.subTest(other=other):
+                result = classify_paths([".github/workflows/release-publish.yml", other])
+                self.assertTrue(all(result.values()))
+
+    def test_files_shared_with_other_consumers_stay_fail_closed(self) -> None:
+        # release_manifest.py is also used by release-candidate.yml and the
+        # project-identity scan; the manifest test is run by both workflows.
+        for path in (
+            "scripts/release_manifest.py",
+            "tools/ci/test_release_manifest.py",
+            ".github/workflows/release-candidate.yml",
+            ".github/workflows/release-evidence.yml",
+            "scripts/self_hosted_release.py",
+            "tools/ci/test_change_scope.py",
         ):
             with self.subTest(path=path):
                 self.assertTrue(all(classify_paths([path]).values()))

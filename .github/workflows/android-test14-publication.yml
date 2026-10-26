@@ -1,0 +1,256 @@
+name: Android test.14 protected publication
+
+on:
+  push:
+    branches: ['release/android-test.14-20261026']
+    paths: ['.github/workflows/android-test14-publication.yml']
+
+permissions:
+  contents: read
+  checks: read
+
+concurrency:
+  group: android-test14-publication
+  cancel-in-progress: false
+
+env:
+  SOURCE: 11a24139e372d5f97fc0d1fde276066f208c1123
+  CERTIFICATE: b5009739477874fbc76b483c66ddb1502132255dd15de37f7570ee6a13b5f472
+  TAG: android-test-v0.2.0-test.14
+  APK: eimir-android-test-v0.2.0-test.14.apk
+  GH_REPO: baerenmarke90/eimir
+
+jobs:
+  preflight:
+    name: Verify fixed test.14 source without secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.SOURCE }}
+          persist-credentials: false
+      - name: Confirm exact source and required checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$SOURCE"
+          test -z "$(git status --porcelain)"
+          gh api "repos/$GH_REPO/commits/$SOURCE/check-runs?per_page=100" > "$RUNNER_TEMP/checks.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          checks = json.loads((Path(os.environ['RUNNER_TEMP']) / 'checks.json').read_text())
+          latest = {}
+          for check in sorted(checks['check_runs'], key=lambda row: row['id']):
+              latest[check['name']] = check
+          required = {
+              'Secret Scan', 'Backend', 'Backend Integration', 'Supply Chain',
+              'Self-Hosted Start', 'API Clients', 'Web Reference Flow',
+              'Reuse Review', 'Product Design Review', 'CodeQL',
+              'CodeQL (javascript-typescript)', 'CodeQL (python)',
+              'Backup, Restore, and Upgrade', 'Network and Port Guard',
+              'Install, upgrade, rollback and Demo rehearsal',
+              'PR-critical 1/2', 'PR-critical 2/2', 'Changed browser specs',
+              'Playwright + axe', 'Android launcher API 28', 'Android launcher API 36',
+              'Release publication contract', 'Private test channel contract',
+              'Build artifacts and SPDX SBOMs', 'Provenance',
+              *[f'Backend Integration Shard {n}/4' for n in range(1, 5)],
+          }
+          bad = sorted(name for name in required if
+              latest.get(name, {}).get('conclusion') != 'success' or
+              latest.get(name, {}).get('status') != 'completed')
+          if checks['total_count'] > 100 or bad:
+              raise SystemExit(f'Exact-source checks incomplete or unsuccessful: {bad}')
+          print(f'All {len(required)} required named source checks pass.')
+          PY
+          PYTHONPATH=scripts python3 -m unittest \
+            scripts.test_android_test_release scripts.test_android_launcher_identity \
+            scripts.test_android_adaptive_icon_resources
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.21.0'
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - name: Validate the actual sideload build before requesting signing
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
+          npm --prefix web ci --ignore-scripts --no-audit --no-fund
+          python3 scripts/android_test_release.py build --unsigned \
+            --version-name 0.2.0-test.14 --version-code 14 \
+            --output-dir "$RUNNER_TEMP/validation-only"
+          cd android
+          ./gradlew --no-daemon --dependency-verification strict \
+            :app:lintSideload :app:testSideloadUnitTest
+      - name: Record reviewable preflight result
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          Verified fixed APK source: \`$SOURCE\`.
+          Required source checks, Android source tests, unsigned sideload assembly,
+          sideload lint and unit tests passed. This validation APK is not publishable.
+          The next job requires the existing android-test-release Environment review.
+          After approval it verifies the original signer, builds/signs test.14,
+          verifies test.13 upgrade compatibility, stages and checks all draft assets,
+          publishes the complete prerelease, and verifies anonymous public bytes.
+          Physical-device upgrade and App Links acceptance remain unverified.
+          EOF
+
+  publish:
+    name: Sign, verify and publish test.14
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: android-test-release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.SOURCE }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.21.0'
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          cache-read-only: true
+      - name: Prepare clean source and original previous APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$SOURCE"
+          test -z "$(git status --porcelain)"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
+          npm --prefix web ci --ignore-scripts --no-audit --no-fund
+          mkdir -p "$RUNNER_TEMP/previous"
+          gh release download android-test-v0.2.0-test.13 \
+            --pattern eimir-android-test-v0.2.0-test.13.apk --pattern SHA256SUMS \
+            --dir "$RUNNER_TEMP/previous"
+          (cd "$RUNNER_TEMP/previous" && sha256sum --check SHA256SUMS)
+      - name: Decode the protected keystore and confirm its public certificate
+        env:
+          KEYSTORE_BASE64: ${{ secrets.EIMIR_RELEASE_KEYSTORE_BASE64 }}
+          EIMIR_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.EIMIR_RELEASE_KEYSTORE_PASSWORD }}
+          EIMIR_RELEASE_KEY_ALIAS: ${{ secrets.EIMIR_RELEASE_KEY_ALIAS }}
+        run: |
+          umask 077
+          python3 - <<'PY'
+          import base64, hashlib, os, subprocess
+          from pathlib import Path
+          key = Path(os.environ['RUNNER_TEMP']) / 'eimir-test-release.jks'
+          key.write_bytes(base64.b64decode(''.join(os.environ['KEYSTORE_BASE64'].split()), validate=True))
+          certificate = subprocess.check_output([
+              'keytool', '-exportcert', '-keystore', str(key),
+              '-alias', os.environ['EIMIR_RELEASE_KEY_ALIAS'],
+              '-storepass:env', 'EIMIR_RELEASE_KEYSTORE_PASSWORD',
+          ], stderr=subprocess.PIPE)
+          if hashlib.sha256(certificate).hexdigest() != os.environ['CERTIFICATE']:
+              raise SystemExit('Protected keystore certificate is not the original eimir test signer')
+          print('Original eimir test signing certificate confirmed.')
+          PY
+      - name: Build the signed same-package test.14 APK
+        env:
+          EIMIR_RELEASE_KEYSTORE: ${{ runner.temp }}/eimir-test-release.jks
+          EIMIR_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.EIMIR_RELEASE_KEYSTORE_PASSWORD }}
+          EIMIR_RELEASE_KEY_ALIAS: ${{ secrets.EIMIR_RELEASE_KEY_ALIAS }}
+          EIMIR_RELEASE_KEY_PASSWORD: ${{ secrets.EIMIR_RELEASE_KEY_PASSWORD }}
+        run: |
+          python3 scripts/android_test_release.py build \
+            --version-name 0.2.0-test.14 --version-code 14 --output-dir "$RUNNER_TEMP/build"
+      - name: Verify actual signatures, identity and upgrade compatibility
+        run: |
+          python3 scripts/android_test_release.py package \
+            --apk "$RUNNER_TEMP/build/$APK" \
+            --previous-apk "$RUNNER_TEMP/previous/eimir-android-test-v0.2.0-test.13.apk" \
+            --certificate-sha256 "$CERTIFICATE" \
+            --notes-file docs/releases/android-test-0.2.0-test.14-notes.txt \
+            --output-dir "$RUNNER_TEMP/release"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'release'
+          marker = json.loads((root / 'eimir-test-update.json').read_text())
+          assert marker['sourceRevision'] == os.environ['SOURCE']
+          assert marker['versionCode'] == 14 and marker['versionName'] == '0.2.0-test.14'
+          (root / 'native-acceptance.md').write_text(
+              '# Android test.14 automated release verification\n\n'
+              f"APK source: `{os.environ['SOURCE']}`.\n\n"
+              f"Orchestration: `{os.environ['GITHUB_SHA']}`; "
+              f"run https://github.com/{os.environ['GH_REPO']}/actions/runs/{os.environ['GITHUB_RUN_ID']}.\n\n"
+              f"Certificate SHA-256: `{os.environ['CERTIFICATE']}`.\n\n"
+              f"APK SHA-256: `{marker['asset']['sha256']}`; bytes: {marker['asset']['size']}.\n\n"
+              'Passed: fixed-source required CI, Android source tests, unsigned sideload build, '
+              'sideload lint/unit tests, protected original-certificate check, signed assembly, '
+              'apksigner verification of both test.13 and test.14, same package de.sidebyside.app, '
+              'increasing versionCode 13 to 14, minSdk 26, non-debuggable APK, embedded clean-source '
+              'identity, persistent API origin, Demo/reset disabled and native updater present.\n\n'
+              'Earlier API-36 launcher run encountered an OS focus-loss ANR; one unchanged isolated '
+              'rerun passed. See PR #1443 for retained diagnostics and exact source evidence.\n\n'
+              'Pending: physical-device in-place update, session/Space/data continuity, all-eleven '
+              'launcher choices on the installed APK, OS App Links, offline/retry and accessibility '
+              'acceptance. Automated signing does not establish these results or store readiness.\n'
+          )
+          PY
+      - name: Stage a complete draft, verify downloaded bytes, then publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo 'Refusing to overwrite an existing release or draft.' >&2
+            exit 1
+          fi
+          gh release create "$TAG" --draft --prerelease --latest=false --target "$SOURCE" \
+            --title 'eimir. Android 0.2.0-test.14' \
+            --notes-file docs/releases/android-test-0.2.0-test.14-notes.txt
+          gh release upload "$TAG" "$RUNNER_TEMP/release/$APK" \
+            "$RUNNER_TEMP/release/SHA256SUMS" "$RUNNER_TEMP/release/native-acceptance.md"
+          gh release download "$TAG" --dir "$RUNNER_TEMP/draft-check"
+          for asset in "$APK" SHA256SUMS native-acceptance.md; do
+            cmp "$RUNNER_TEMP/release/$asset" "$RUNNER_TEMP/draft-check/$asset"
+          done
+          gh release upload "$TAG" "$RUNNER_TEMP/release/eimir-test-update.json"
+          gh release download "$TAG" --pattern eimir-test-update.json --dir "$RUNNER_TEMP/draft-marker-check"
+          cmp "$RUNNER_TEMP/release/eimir-test-update.json" "$RUNNER_TEMP/draft-marker-check/eimir-test-update.json"
+          gh release view "$TAG" --json isDraft,isPrerelease,targetCommitish,assets > "$RUNNER_TEMP/draft.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          data = json.loads((Path(os.environ['RUNNER_TEMP']) / 'draft.json').read_text())
+          assert data['isDraft'] and data['isPrerelease'] and data['targetCommitish'] == os.environ['SOURCE']
+          assert {a['name'] for a in data['assets']} == {
+              os.environ['APK'], 'SHA256SUMS', 'native-acceptance.md', 'eimir-test-update.json'}
+          PY
+          gh release edit "$TAG" --draft=false --prerelease --latest=false
+      - name: Verify the anonymous updater catalog and every public asset
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          from pathlib import Path
+          base = f"https://api.github.com/repos/{os.environ['GH_REPO']}"
+          def fetch(url):
+              request = urllib.request.Request(url, headers={'User-Agent': 'eimir-test-release-verification'})
+              with urllib.request.urlopen(request, timeout=90) as response:
+                  return response.read()
+          catalog = json.loads(fetch(base + '/releases?per_page=30'))
+          release = next(r for r in catalog if r['tag_name'] == os.environ['TAG'])
+          assert not release['draft'] and release['prerelease']
+          assert release['target_commitish'] == os.environ['SOURCE']
+          expected = {os.environ['APK'], 'SHA256SUMS', 'native-acceptance.md', 'eimir-test-update.json'}
+          assert {a['name'] for a in release['assets']} == expected
+          for asset in release['assets']:
+              downloaded = fetch(asset['browser_download_url'])
+              local = (Path(os.environ['RUNNER_TEMP']) / 'release' / asset['name']).read_bytes()
+              assert downloaded == local, f"Public asset mismatch: {asset['name']}"
+          print('Anonymous 30-release updater catalog and all four public assets verified.')
+          PY
+          echo "Published and verified: https://github.com/$GH_REPO/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
+      - name: Delete temporary signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/eimir-test-release.jks"

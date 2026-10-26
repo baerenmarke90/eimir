@@ -9,17 +9,13 @@ OAuth, not an eimir. media importer and not a policy approval.
 from __future__ import annotations
 
 import argparse
-import base64
-import hashlib
-import http.server
 import json
-import os
 import re
-import secrets
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from pathlib import Path
 import webbrowser
 
 API = "https://photospicker.googleapis.com/v1"
@@ -92,103 +88,54 @@ def request_json(
         raise ProbeError("Provider returned invalid JSON.") from None
 
 
-def authorization_url(
-    client_id: str, redirect_uri: str, state: str, verifier: str
-) -> str:
-    challenge = base64.urlsafe_b64encode(
-        hashlib.sha256(verifier.encode("ascii")).digest()
-    ).rstrip(b"=").decode("ascii")
-    return AUTH + "?" + urllib.parse.urlencode(
-        {
-            "client_id": client_id,
-            "redirect_uri": redirect_uri,
-            "response_type": "code",
-            "scope": SCOPE,
-            "state": state,
-            "code_challenge": challenge,
-            "code_challenge_method": "S256",
-            "access_type": "online",
-        }
-    )
+def authorize_desktop(client_secrets_file: str) -> str:
+    """Delegate PKCE, CSRF state, loopback callback and token exchange to Google."""
+    path = Path(client_secrets_file).expanduser().resolve()
+    repository = Path(__file__).resolve().parents[1]
+    if path.is_relative_to(repository):
+        raise ProbeError("Keep the OAuth Desktop client JSON outside this repository.")
+    if not path.is_file():
+        raise ProbeError("OAuth Desktop client JSON file not found.")
+    try:
+        config = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        raise ProbeError("Cannot read valid OAuth Desktop client JSON.") from None
 
+    installed = config.get("installed") if isinstance(config, dict) else None
+    if not isinstance(installed, dict) or not installed.get("client_id"):
+        raise ProbeError("Expected Google OAuth Desktop client JSON, not Web credentials.")
+    try:
+        auth_host = urllib.parse.urlsplit(installed["auth_uri"]).hostname
+        token_host = urllib.parse.urlsplit(installed["token_uri"]).hostname
+    except (KeyError, ValueError, TypeError):
+        raise ProbeError("OAuth client JSON has invalid Google endpoints.") from None
+    if auth_host != "accounts.google.com" or token_host != "oauth2.googleapis.com":
+        raise ProbeError("OAuth client JSON does not target Google's official endpoints.")
 
-def parse_callback(query: str, expected_state: str) -> str:
-    values = urllib.parse.parse_qs(query, keep_blank_values=True)
-    if values.get("state") != [expected_state]:
-        raise ProbeError("OAuth callback state mismatch.")
-    if "error" in values:
-        raise ProbeError("Google access was denied or cancelled.")
-    codes = values.get("code")
-    if not codes or len(codes) != 1 or not codes[0] or len(codes[0]) > 4096:
-        raise ProbeError("OAuth callback did not supply one valid code.")
-    return codes[0]
+    try:
+        from google_auth_oauthlib.flow import InstalledAppFlow
+    except ImportError:
+        raise ProbeError("Install developer-only google-auth-oauthlib==1.5.0.") from None
 
-
-def authorize_desktop(client_id: str, client_secret: str | None = None) -> str:
-    """Use the approved desktop-app loopback/PKCE flow, not a Capacitor WebView."""
-    state = secrets.token_urlsafe(32)
-    verifier = secrets.token_urlsafe(64)
-    callback: dict[str, str] = {}
-
-    class Handler(http.server.BaseHTTPRequestHandler):
-        def do_GET(self):
-            location = urllib.parse.urlsplit(self.path)
-            try:
-                if location.path != "/auth/callback":
-                    raise ProbeError("Unknown callback path.")
-                callback["code"] = parse_callback(location.query, state)
-                message = b"Authorization received. Return to the terminal."
-                status = 200
-            except ProbeError as exc:
-                if location.path == "/auth/callback" and "state mismatch" not in str(exc):
-                    callback["error"] = str(exc)
-                message = b"Authorization was not accepted. Return to the terminal."
-                status = 400
-            self.send_response(status)
-            self.send_header("Content-Type", "text/plain; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Referrer-Policy", "no-referrer")
-            self.send_header("X-Content-Type-Options", "nosniff")
-            self.end_headers()
-            self.wfile.write(message)
-
-        def log_message(self, format, *args):
-            pass  # Never log OAuth query parameters.
-
-    with http.server.HTTPServer(("127.0.0.1", 0), Handler) as server:
-        server.timeout = 1
-        redirect_uri = f"http://127.0.0.1:{server.server_port}/auth/callback"
-        if not webbrowser.open(authorization_url(client_id, redirect_uri, state, verifier)):
-            raise ProbeError("No desktop browser could be opened for consent.")
-        deadline = time.monotonic() + MAX_WAIT_SECONDS
-        while time.monotonic() < deadline and not callback:
-            server.handle_request()
-
-    if callback.get("error"):
-        raise ProbeError(callback["error"])
-    if not callback.get("code"):
-        raise ProbeError("OAuth browser consent timed out.")
-
-    payload = {
-        "client_id": client_id,
-        "code": callback["code"],
-        "code_verifier": verifier,
-        "redirect_uri": redirect_uri,
-        "grant_type": "authorization_code",
-    }
-    if client_secret:
-        payload["client_secret"] = client_secret
-    response = request_json(
-        TOKEN,
-        method="POST",
-        body=urllib.parse.urlencode(payload).encode("ascii"),
-        content_type="application/x-www-form-urlencoded",
-    )
-    access_token = response.get("access_token")
-    if not isinstance(access_token, str) or not access_token:
-        raise ProbeError("Google did not return an OAuth access token.")
-    # Never request offline access, persist refresh tokens or print access tokens.
-    return access_token
+    try:
+        flow = InstalledAppFlow.from_client_config(
+            config, scopes=[SCOPE], autogenerate_code_verifier=True
+        )
+        credentials = flow.run_local_server(
+            host="127.0.0.1",
+            port=0,
+            open_browser=True,
+            timeout_seconds=MAX_WAIT_SECONDS,
+            access_type="online",
+            authorization_prompt_message=None,
+        )
+    except Exception:
+        # OAuth-library exceptions can embed codes, URLs and account details.
+        raise ProbeError("Desktop OAuth was cancelled, rejected or timed out.") from None
+    if not isinstance(credentials.token, str) or not credentials.token:
+        raise ProbeError("Google did not issue a usable access token.")
+    # No refresh-token cache, token serialization or eimir. session linkage.
+    return credentials.token
 
 
 def valid_picker_uri(uri: object) -> bool:
@@ -315,22 +262,14 @@ def run_picker(token: str) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--client-id",
-        default=os.environ.get("EIMIR_GOOGLE_PHOTOS_TEST_OAUTH_CLIENT_ID", ""),
-        help="Google Cloud OAuth Desktop client ID (public identifier)",
+        "--client-secrets-file",
+        required=True,
+        help="Path OUTSIDE the repo to Google Cloud's OAuth Desktop client JSON",
     )
     args = parser.parse_args()
-    if not args.client_id:
-        parser.error(
-            "Set EIMIR_GOOGLE_PHOTOS_TEST_OAUTH_CLIENT_ID to an OAuth Desktop "
-            "client ID from a Google Cloud project with Photos Picker API enabled."
-        )
     print("Developer-only read-only probe. No Google photos will be saved to eimir.")
     try:
-        token = authorize_desktop(
-            args.client_id,
-            os.environ.get("EIMIR_GOOGLE_PHOTOS_TEST_OAUTH_CLIENT_SECRET") or None,
-        )
+        token = authorize_desktop(args.client_secrets_file)
         return run_picker(token)
     except ProbeError as exc:
         print(f"FAIL: {exc}")

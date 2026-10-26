@@ -58,6 +58,7 @@ def test_the_place_surface_is_crud_plus_typed_relations() -> None:
         COLLECTION,
         DETAIL,
         *RELATION_PATHS,
+        *(f"/api/v1/spaces/{{spaceId}}/{slug}/{{targetId}}/places" for slug in RELATION_SLUGS),
     }
 
 
@@ -94,6 +95,7 @@ def test_create_needs_only_a_name() -> None:
         "address",
         "latitude",
         "longitude",
+        "mapUrl",
     }
     assert schema["required"] == ["name"]
 
@@ -114,8 +116,8 @@ def test_detail_exposes_the_stored_coordinates() -> None:
     )
 
 
-def test_the_contract_promises_no_map_feature() -> None:
-    """M3 provides domain behavior and stored Place data, not map features.
+def test_the_contract_promises_no_provider_lookup_or_geospatial_search() -> None:
+    """Place data and deliberate map links do not introduce a lookup service.
 
     There is no geocoding, provider ID, radius search, or distance sorting. All
     of those would introduce a provider concern requiring a separate reuse
@@ -128,7 +130,6 @@ def test_the_contract_promises_no_map_feature() -> None:
         "provider",
         "providerId",
         "placeId_external",
-        "mapUrl",
         "geocoded",
         "formattedAddress",
         "distance",

@@ -410,7 +410,8 @@
       "mediaType",
       "originalName",
       "expectedMimeType",
-      "expectedSize"
+      "expectedSize",
+      "photoLocationCandidate"
     ],
     "AttachmentFinalize": [],
     "AttachmentReadRequest": [

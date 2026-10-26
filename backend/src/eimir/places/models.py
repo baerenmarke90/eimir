@@ -18,6 +18,7 @@ from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
 from eimir.db.protected_payload import ProtectedPayloadJSON
 from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, ProtectedPayload
+from eimir.places.map_links import MapUrl
 
 COORDINATE_PLACES = 6
 """Number of persisted decimal places (M3-D06).
@@ -44,6 +45,8 @@ class PlacePayload(ProtectedPayload):
     name: str
     description: str | None = None
     address: str | None = None
+    photo_location: bool = False
+    map_url: MapUrl | None = None
 
 
 class Place(

@@ -7,6 +7,9 @@ All URIs are relative to *http://localhost*
 | [**linkPlaceHeartMoment**](PlaceRelationsApi.md#linkplaceheartmoment) | **PUT** /api/v1/spaces/{spaceId}/places/{placeId}/heart-moments/{targetId} | Link Place Heart-Moments |
 | [**linkPlaceMemory**](PlaceRelationsApi.md#linkplacememory) | **PUT** /api/v1/spaces/{spaceId}/places/{placeId}/memories/{targetId} | Link Place Memories |
 | [**linkPlaceMilestone**](PlaceRelationsApi.md#linkplacemilestone) | **PUT** /api/v1/spaces/{spaceId}/places/{placeId}/milestones/{targetId} | Link Place Milestones |
+| [**listHeartMomentPlaces**](PlaceRelationsApi.md#listheartmomentplaces) | **GET** /api/v1/spaces/{spaceId}/heart-moments/{targetId}/places | List Heart-Moments Places |
+| [**listMemoryPlaces**](PlaceRelationsApi.md#listmemoryplaces) | **GET** /api/v1/spaces/{spaceId}/memories/{targetId}/places | List Memories Places |
+| [**listMilestonePlaces**](PlaceRelationsApi.md#listmilestoneplaces) | **GET** /api/v1/spaces/{spaceId}/milestones/{targetId}/places | List Milestones Places |
 | [**listPlaceHeartMoments**](PlaceRelationsApi.md#listplaceheartmoments) | **GET** /api/v1/spaces/{spaceId}/places/{placeId}/heart-moments | List Place Heart-Moments |
 | [**listPlaceMemories**](PlaceRelationsApi.md#listplacememories) | **GET** /api/v1/spaces/{spaceId}/places/{placeId}/memories | List Place Memories |
 | [**listPlaceMilestones**](PlaceRelationsApi.md#listplacemilestones) | **GET** /api/v1/spaces/{spaceId}/places/{placeId}/milestones | List Place Milestones |
@@ -229,6 +232,216 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **204** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## listHeartMomentPlaces
+
+> LinkedPlaces listHeartMomentPlaces(targetId, spaceId)
+
+List Heart-Moments Places
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PlaceRelationsApi,
+} from '';
+import type { ListHeartMomentPlacesRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PlaceRelationsApi();
+
+  const body = {
+    // string
+    targetId: targetId_example,
+    // string
+    spaceId: spaceId_example,
+  } satisfies ListHeartMomentPlacesRequest;
+
+  try {
+    const data = await api.listHeartMomentPlaces(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **targetId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**LinkedPlaces**](LinkedPlaces.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## listMemoryPlaces
+
+> LinkedPlaces listMemoryPlaces(targetId, spaceId)
+
+List Memories Places
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PlaceRelationsApi,
+} from '';
+import type { ListMemoryPlacesRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PlaceRelationsApi();
+
+  const body = {
+    // string
+    targetId: targetId_example,
+    // string
+    spaceId: spaceId_example,
+  } satisfies ListMemoryPlacesRequest;
+
+  try {
+    const data = await api.listMemoryPlaces(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **targetId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**LinkedPlaces**](LinkedPlaces.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## listMilestonePlaces
+
+> LinkedPlaces listMilestonePlaces(targetId, spaceId)
+
+List Milestones Places
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PlaceRelationsApi,
+} from '';
+import type { ListMilestonePlacesRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PlaceRelationsApi();
+
+  const body = {
+    // string
+    targetId: targetId_example,
+    // string
+    spaceId: spaceId_example,
+  } satisfies ListMilestonePlacesRequest;
+
+  try {
+    const data = await api.listMilestonePlaces(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **targetId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**LinkedPlaces**](LinkedPlaces.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 

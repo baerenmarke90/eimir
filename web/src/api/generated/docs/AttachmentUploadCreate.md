@@ -10,6 +10,7 @@ Name | Type
 `expectedSize` | number
 `mediaType` | [MediaType](MediaType.md)
 `originalName` | string
+`photoLocationCandidate` | boolean
 
 ## Example
 
@@ -22,6 +23,7 @@ const example = {
   "expectedSize": null,
   "mediaType": null,
   "originalName": null,
+  "photoLocationCandidate": null,
 } satisfies AttachmentUploadCreate
 
 console.log(example)

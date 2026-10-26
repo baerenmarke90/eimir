@@ -172,6 +172,7 @@ def create_upload(
     original_name: str,
     expected_mime_type: str,
     expected_size: int,
+    photo_location_candidate: bool = False,
 ) -> Attachment:
     """Register an upload.
 
@@ -200,7 +201,9 @@ def create_upload(
         media_type=media_type.value,
         declared_mime_type=rule.mime_type,
         declared_size=expected_size,
-        payload=AttachmentPayload(original_name=name),
+        payload=AttachmentPayload(
+            original_name=name, photo_location_candidate=photo_location_candidate
+        ),
     )
     session.add(attachment)
     _flush(session)
@@ -550,7 +553,17 @@ def validate(session: Session, attachment_id: UUID) -> None:
         return
 
     try:
-        processed = images.process(raw, rule)
+        from eimir.identity.models import Account
+
+        owner = session.get(Account, attachment.owner_id)
+        processed = images.process(
+            raw,
+            rule,
+            extract_photo_location=bool(
+                attachment.payload.photo_location_candidate and owner and owner.auto_photo_locations
+            ),
+            preserve_metadata=attachment.payload.photo_location_candidate,
+        )
     except images.ImageRejectedError as error:
         _fail(attachment, error.code)
         return
@@ -565,6 +578,7 @@ def validate(session: Session, attachment_id: UUID) -> None:
         original_name=attachment.payload.original_name,
         captured_at=processed.captured_at,
         orientation=processed.orientation,
+        photo_coordinates=processed.photo_coordinates,
     )
 
     if processed.thumbnail is not None:

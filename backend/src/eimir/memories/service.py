@@ -390,6 +390,17 @@ def replace_attachments(
 
     memory.updated_at = now()
     _flush(session)
+    from eimir.places.photo_locations import keep_photo_places
+    from eimir.relations.service import PLACE_MEMORIES
+
+    keep_photo_places(
+        session,
+        context,
+        target_id=memory.id,
+        privacy_class=memory.privacy_class,
+        kind=PLACE_MEMORIES,
+        attachments=[attachment for attachment in attachments if attachment.id not in previous],
+    )
     _record(session, memory, context.account_id, EventType.MEMORY_UPDATED)
     _flush(session)
     return memory

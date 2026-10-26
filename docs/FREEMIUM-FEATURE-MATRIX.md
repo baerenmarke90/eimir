@@ -1,10 +1,10 @@
 # eimir. - Freemium Feature Matrix
 
 **Status:** authoritative product-tier and roadmap baseline  
-**Version:** 1.4
+**Version:** 1.5
 
 **Audit date:** 2026-09-21  
-**Revision:** 2026-10-12 — clarified alternative app-icon selection; no entitlement implementation
+**Revision:** 2026-10-26 — selected-photo place association remains Free/Core under #1459; no new entitlement
 
 **Audited `main` baseline:** `dfc87cd`  
 **Strategic decisions:** #262 (Finalized), #876 (consumer packaging/pricing), #1151 (Today Pro Foundation)  
@@ -89,6 +89,7 @@ Capabilities essential for Security, Privacy, Accessibility, Tenant Isolation, a
 | **Comments on shared entries** | M2, M5 | **Free/Core** | Whole feature Free | Identical | In-app communication around shared memories is basic functionality. |
 | **Wish & Plan lifecycle** | M3, M5 | **Free/Core** | Whole feature Free | Identical | Shared bucket list and couple planning are everyday core tools. |
 | **Place CRUD & Coordinates** | M3, M5 | **Mixed** | **Free:** Place CRUD, pin locations, content links.<br>**Premium:** Interactive journey routes, clustering, heatmaps. | Identical | Storing places is basic utility; advanced geospatial analytics are Premium. |
+| **Selected-photo place association (#1459)** | M5 | **Free/Core** | Default-on account preference, GPS extraction from selected moment photos, basic place links and manual correction | Identical | Reuses local media processing and ordinary Places; no paid map API, tracking, managed inference or entitlement. Grouping one incoming photo batch is basic pin creation, not Premium journey clustering. |
 | **Chapters & Story grouping** | M3, M5 | **Mixed** | **Free:** Chapter CRUD, grouping, typed relations.<br>**Premium:** Bespoke magazine layouts, custom covers, narrative export. | Identical | Grouping content is organizational; high-end curation & design are Premium. |
 | **Shared Collections & Checklists** | M3, M5 | **Free/Core** | Whole feature Free | Identical | Packing lists and shared couple checklists are core utility. |
 | **Private Area (Notes & Gift Ideas)** | M3, M5 | **Free/Core** | Whole feature Free | Identical | A safe private individual space is necessary for authentic relationship use. |

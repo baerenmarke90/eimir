@@ -15,7 +15,9 @@ Name | Type
 `id` | string
 `latitude` | number
 `longitude` | number
+`mapUrl` | string
 `name` | string
+`photoLocation` | boolean
 `spaceId` | string
 `updatedAt` | Date
 `version` | number
@@ -36,7 +38,9 @@ const example = {
   "id": null,
   "latitude": null,
   "longitude": null,
+  "mapUrl": null,
   "name": null,
+  "photoLocation": null,
   "spaceId": null,
   "updatedAt": null,
   "version": null,

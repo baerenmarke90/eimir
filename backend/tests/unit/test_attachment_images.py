@@ -38,16 +38,17 @@ def _with_metadata(
     return buffer.getvalue()
 
 
-def test_location_and_device_metadata_do_not_survive() -> None:
+def test_primary_image_preserves_readable_exif_after_validated_rewrite() -> None:
     raw = _with_metadata()
     assert MANUFACTURER.encode() in raw
 
-    result = images.process(raw, _rule())
+    result = images.process(raw, _rule(), preserve_metadata=True)
 
-    assert MANUFACTURER.encode() not in result.content
-    assert SOFTWARE.encode() not in result.content
-    assert COMMENT.encode() not in result.content
-    assert Image.open(io.BytesIO(result.content)).getexif() == {}
+    saved = Image.open(io.BytesIO(result.content)).getexif()
+    assert saved[0x010F] == MANUFACTURER
+    assert saved[0x0131] == SOFTWARE
+    assert saved[0x9286] == COMMENT
+    assert saved.get_ifd(0x8825)[1] == "N"
 
 
 def test_the_allowlist_is_extracted_before_stripping() -> None:
@@ -55,19 +56,18 @@ def test_the_allowlist_is_extracted_before_stripping() -> None:
     assert result.captured_at is not None
     assert result.captured_at.year == 2025
     assert result.orientation == 3
+    assert Image.open(io.BytesIO(result.content)).getexif() == {}
 
 
-def test_unknown_segments_do_not_survive_either() -> None:
-    """Allowlist, not blacklist: an unknown field is removed as well."""
+def test_readable_exif_fields_survive_without_promoting_them_to_api_metadata() -> None:
     image = Image.new("RGB", (16, 16))
     exif = Image.Exif()
     exif[0x9C9E] = "unbekanntes Feld"  # XPAuthor - not on the allowlist
     buffer = io.BytesIO()
     image.save(buffer, "JPEG", exif=exif.tobytes())
 
-    result = images.process(buffer.getvalue(), _rule())
-    assert "unbekanntes Feld".encode("utf-16-le") not in result.content
-    assert Image.open(io.BytesIO(result.content)).getexif() == {}
+    result = images.process(buffer.getvalue(), _rule(), preserve_metadata=True)
+    assert Image.open(io.BytesIO(result.content)).getexif()[0x9C9E] == "unbekanntes Feld"
 
 
 def test_dimensions_come_from_the_decoder() -> None:

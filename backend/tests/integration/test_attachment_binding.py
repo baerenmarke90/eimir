@@ -62,6 +62,7 @@ def ready_attachment(
     session,
     *,
     token_key: str = "token_a",
+    photo_location_candidate: bool = False,
 ) -> str:  # type: ignore[no-untyped-def]
     content = image_bytes()
     created = client.post(
@@ -71,6 +72,7 @@ def ready_attachment(
             "originalName": "bild.jpg",
             "expectedMimeType": "image/jpeg",
             "expectedSize": len(content),
+            "photoLocationCandidate": photo_location_candidate,
         },
         headers=auth(couple[token_key]),
     ).json()

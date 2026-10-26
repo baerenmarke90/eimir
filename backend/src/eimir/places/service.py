@@ -167,6 +167,8 @@ def create_place(
     address: str | None,
     latitude: float | Decimal | None,
     longitude: float | Decimal | None,
+    photo_location: bool = False,
+    map_url: str | None = None,
 ) -> Place:
     coordinates = normalize_coordinates(latitude, longitude)
     place = Place(
@@ -179,6 +181,8 @@ def create_place(
             name=_normalize_name(name),
             description=description,
             address=address,
+            photo_location=photo_location,
+            map_url=map_url,
         ),
     )
     session.add(place)
@@ -208,6 +212,7 @@ def update_place(
     address: str | None,
     latitude: float | Decimal | None,
     longitude: float | Decimal | None,
+    map_url: str | None = None,
 ) -> Place:
     """Apply a correction to a place.
 
@@ -238,11 +243,13 @@ def update_place(
     if "address" in changed_fields:
         next_address = address
 
-    if {"name", "description", "address"} & changed_fields:
+    if {"name", "description", "address", "map_url"} & changed_fields:
         place.payload = PlacePayload(
             name=next_name,
             description=next_description,
             address=next_address,
+            photo_location=place.payload.photo_location and "name" not in changed_fields,
+            map_url=map_url if "map_url" in changed_fields else place.payload.map_url,
         )
 
     _flush(session)

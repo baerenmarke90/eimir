@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import de from '../i18n/locales/de';
+import photoLocations from '../i18n/locales/photoLocations';
 import profileIdentity from '../i18n/locales/profileIdentity';
 import { SettingsIndex } from './SettingsIndex';
 
@@ -16,6 +17,7 @@ describe('SettingsIndex', () => {
       ['/more/settings/relationship', profileIdentity.settingsRelationship],
       ['/more/settings/notifications', profileIdentity.settingsNotifications],
       ['/more/settings/today', profileIdentity.settingsToday],
+      ['/more/settings/memories', photoLocations.settingsTitle],
       ['/more/settings/appearance', de.theme.label],
       ['/more/settings/data', profileIdentity.settingsData],
       ['/more/settings/account', profileIdentity.settingsAccount],

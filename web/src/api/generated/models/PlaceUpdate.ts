@@ -52,6 +52,12 @@ export interface PlaceUpdate {
      * @type {string}
      * @memberof PlaceUpdate
      */
+    mapUrl?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlaceUpdate
+     */
     name?: string;
 }
 
@@ -76,6 +82,7 @@ export function PlaceUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolean
         'description': json['description'] === undefined ? undefined : json['description'] === null ? null : json['description'],
         'latitude': json['latitude'] === undefined ? undefined : json['latitude'] === null ? null : json['latitude'],
         'longitude': json['longitude'] === undefined ? undefined : json['longitude'] === null ? null : json['longitude'],
+        'mapUrl': json['mapUrl'] === undefined ? undefined : json['mapUrl'] === null ? null : json['mapUrl'],
         'name': json['name'] == null ? undefined : json['name'],
     };
 }
@@ -95,6 +102,7 @@ export function PlaceUpdateToJSONTyped(value?: PlaceUpdate | null, ignoreDiscrim
         'description': value['description'],
         'latitude': value['latitude'],
         'longitude': value['longitude'],
+        'mapUrl': value['mapUrl'],
         'name': value['name'],
     };
 }

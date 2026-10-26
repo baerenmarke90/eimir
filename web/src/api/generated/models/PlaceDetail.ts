@@ -93,7 +93,19 @@ export interface PlaceDetail {
      * @type {string}
      * @memberof PlaceDetail
      */
+    mapUrl?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlaceDetail
+     */
     name: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PlaceDetail
+     */
+    photoLocation?: boolean;
     /**
      * 
      * @type {string}
@@ -153,7 +165,9 @@ export function PlaceDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean
         'id': json['id'],
         'latitude': json['latitude'],
         'longitude': json['longitude'],
+        'mapUrl': json['mapUrl'] === undefined ? undefined : json['mapUrl'] === null ? null : json['mapUrl'],
         'name': json['name'],
+        'photoLocation': json['photoLocation'] == null ? undefined : json['photoLocation'],
         'spaceId': json['spaceId'],
         'updatedAt': (new Date(json['updatedAt'])),
         'version': json['version'],
@@ -180,7 +194,9 @@ export function PlaceDetailToJSONTyped(value?: PlaceDetail | null, ignoreDiscrim
         'id': value['id'],
         'latitude': value['latitude'],
         'longitude': value['longitude'],
+        'mapUrl': value['mapUrl'],
         'name': value['name'],
+        'photoLocation': value['photoLocation'],
         'spaceId': value['spaceId'],
         'updatedAt': value['updatedAt'].toISOString(),
         'version': value['version'],

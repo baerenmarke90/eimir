@@ -11,6 +11,7 @@ Name | Type
 `description` | string
 `latitude` | number
 `longitude` | number
+`mapUrl` | string
 `name` | string
 
 ## Example
@@ -24,6 +25,7 @@ const example = {
   "description": null,
   "latitude": null,
   "longitude": null,
+  "mapUrl": null,
   "name": null,
 } satisfies PlaceUpdate
 

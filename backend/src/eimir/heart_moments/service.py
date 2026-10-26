@@ -144,6 +144,8 @@ def create_heart_moment(
         _bind(session, context, heart_moment, attachment_id)
     session.add(heart_moment)
     _flush(session)
+    if attachment_id is not None:
+        _keep_photo_place(session, context, heart_moment, attachment_id)
     _record(
         session,
         heart_moment,
@@ -293,10 +295,13 @@ def update_heart_moment(
             text=next_text, emotion=next_emotion, tags=next_tags
         )
 
+    previous_attachment_id = heart_moment.attachment_id
     if "attachment_id" in changed_fields:
         _rebind(session, context, heart_moment, attachment_id)
 
     _flush(session)
+    if attachment_id is not None and attachment_id != previous_attachment_id:
+        _keep_photo_place(session, context, heart_moment, attachment_id)
     _record(
         session,
         heart_moment,
@@ -533,6 +538,28 @@ def list_heart_moments(
             heart_moment_id=last.id,
         )
     return HeartMomentPageResult(items=items, next_cursor=next_cursor, has_more=has_more)
+
+
+def _keep_photo_place(
+    session: Session,
+    context: AuthorizationContext,
+    heart_moment: HeartMoment,
+    attachment_id: UUID,
+) -> None:
+    from eimir.attachments.models import Attachment
+    from eimir.places.photo_locations import keep_photo_places
+    from eimir.relations.service import PLACE_HEART_MOMENTS
+
+    attachment = session.get(Attachment, attachment_id)
+    if attachment is not None:
+        keep_photo_places(
+            session,
+            context,
+            target_id=heart_moment.id,
+            privacy_class=heart_moment.privacy_class,
+            kind=PLACE_HEART_MOMENTS,
+            attachments=[attachment],
+        )
 
 
 def _bind(

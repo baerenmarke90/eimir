@@ -126,7 +126,11 @@ describe('PlaceProductPage read presentation', () => {
     const details = summary.closest('details');
     expect(details).not.toBeNull();
     expect(details?.open).toBe(false);
-    expect(screen.getByText(i18n.t('m5s3.place.noMap'))).toBeTruthy();
+    expect(
+      screen
+        .getByRole('link', { name: i18n.t('photoLocations.maps') })
+        .getAttribute('href'),
+    ).toContain('query=Park+road');
   });
 });
 

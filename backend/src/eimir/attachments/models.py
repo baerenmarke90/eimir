@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import ClassVar
 from uuid import UUID
 
+from pydantic import Field
 from sqlalchemy import (
     BigInteger,
     CheckConstraint,
@@ -49,21 +50,30 @@ class MediaType(StrEnum):
     VIDEO = "VIDEO"
 
 
+class PhotoCoordinates(ProtectedPayload):
+    """Validated GPS from a selected photo, never public attachment metadata."""
+
+    latitude: float = Field(ge=-90, le=90, allow_inf_nan=False)
+    longitude: float = Field(ge=-180, le=180, allow_inf_nan=False)
+
+
 class AttachmentPayload(ProtectedPayload):
     """File information retained without promoting it to server metadata.
 
     ``original_name`` exists only for support and is never used for paths,
     authorization, or content type (Media Pipeline, section 5).
 
-    ``captured_at`` and ``orientation`` form the M2-D14 allowlist. Everything
-    else is discarded during ingest. They remain inside the protected payload
-    rather than columns so capture time does not accidentally become sortable,
-    indexable server metadata.
+    Extracted capture fields and optional photo coordinates stay inside the
+    protected payload, never searchable or observable server metadata. The
+    primary image may retain readable EXIF; thumbnails remain metadata-free.
+    Photo GPS staging is consumed once during binding, including private binds.
     """
 
     original_name: str
     captured_at: datetime | None = None
     orientation: int | None = None
+    photo_location_candidate: bool = False
+    photo_coordinates: PhotoCoordinates | None = None
 
 
 class Attachment(

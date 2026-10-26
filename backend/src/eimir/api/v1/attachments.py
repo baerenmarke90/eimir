@@ -47,6 +47,7 @@ class AttachmentUploadCreate(ApiModel):
     original_name: str = Field(min_length=1, max_length=255)
     expected_mime_type: str = Field(min_length=1, max_length=128)
     expected_size: int = Field(gt=0)
+    photo_location_candidate: bool = False
 
 
 class AttachmentFinalize(ApiModel):
@@ -198,6 +199,7 @@ def create_attachment_upload(
         original_name=body.original_name,
         expected_mime_type=body.expected_mime_type,
         expected_size=body.expected_size,
+        photo_location_candidate=body.photo_location_candidate,
     )
     _no_store(response)
 

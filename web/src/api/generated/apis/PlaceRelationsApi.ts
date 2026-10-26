@@ -14,6 +14,11 @@
 
 import * as runtime from '../runtime';
 import {
+    type LinkedPlaces,
+    LinkedPlacesFromJSON,
+    LinkedPlacesToJSON,
+} from '../models/LinkedPlaces';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
@@ -38,6 +43,21 @@ export interface LinkPlaceMemoryRequest {
 
 export interface LinkPlaceMilestoneRequest {
     placeId: string;
+    targetId: string;
+    spaceId: string;
+}
+
+export interface ListHeartMomentPlacesRequest {
+    targetId: string;
+    spaceId: string;
+}
+
+export interface ListMemoryPlacesRequest {
+    targetId: string;
+    spaceId: string;
+}
+
+export interface ListMilestonePlacesRequest {
     targetId: string;
     spaceId: string;
 }
@@ -258,6 +278,165 @@ export class PlaceRelationsApi extends runtime.BaseAPI {
      */
     async linkPlaceMilestone(requestParameters: LinkPlaceMilestoneRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.linkPlaceMilestoneRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for listHeartMomentPlaces without sending the request
+     */
+    async listHeartMomentPlacesRequestOpts(requestParameters: ListHeartMomentPlacesRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['targetId'] == null) {
+            throw new runtime.RequiredError(
+                'targetId',
+                'Required parameter "targetId" was null or undefined when calling listHeartMomentPlaces().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling listHeartMomentPlaces().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/heart-moments/{targetId}/places`;
+        urlPath = urlPath.replace('{targetId}', encodeURIComponent(String(requestParameters['targetId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * List Heart-Moments Places
+     */
+    async listHeartMomentPlacesRaw(requestParameters: ListHeartMomentPlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LinkedPlaces>> {
+        const requestOptions = await this.listHeartMomentPlacesRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => LinkedPlacesFromJSON(jsonValue));
+    }
+
+    /**
+     * List Heart-Moments Places
+     */
+    async listHeartMomentPlaces(requestParameters: ListHeartMomentPlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LinkedPlaces> {
+        const response = await this.listHeartMomentPlacesRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listMemoryPlaces without sending the request
+     */
+    async listMemoryPlacesRequestOpts(requestParameters: ListMemoryPlacesRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['targetId'] == null) {
+            throw new runtime.RequiredError(
+                'targetId',
+                'Required parameter "targetId" was null or undefined when calling listMemoryPlaces().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling listMemoryPlaces().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/memories/{targetId}/places`;
+        urlPath = urlPath.replace('{targetId}', encodeURIComponent(String(requestParameters['targetId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * List Memories Places
+     */
+    async listMemoryPlacesRaw(requestParameters: ListMemoryPlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LinkedPlaces>> {
+        const requestOptions = await this.listMemoryPlacesRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => LinkedPlacesFromJSON(jsonValue));
+    }
+
+    /**
+     * List Memories Places
+     */
+    async listMemoryPlaces(requestParameters: ListMemoryPlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LinkedPlaces> {
+        const response = await this.listMemoryPlacesRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listMilestonePlaces without sending the request
+     */
+    async listMilestonePlacesRequestOpts(requestParameters: ListMilestonePlacesRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['targetId'] == null) {
+            throw new runtime.RequiredError(
+                'targetId',
+                'Required parameter "targetId" was null or undefined when calling listMilestonePlaces().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling listMilestonePlaces().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/milestones/{targetId}/places`;
+        urlPath = urlPath.replace('{targetId}', encodeURIComponent(String(requestParameters['targetId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * List Milestones Places
+     */
+    async listMilestonePlacesRaw(requestParameters: ListMilestonePlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<LinkedPlaces>> {
+        const requestOptions = await this.listMilestonePlacesRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => LinkedPlacesFromJSON(jsonValue));
+    }
+
+    /**
+     * List Milestones Places
+     */
+    async listMilestonePlaces(requestParameters: ListMilestonePlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<LinkedPlaces> {
+        const response = await this.listMilestonePlacesRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**

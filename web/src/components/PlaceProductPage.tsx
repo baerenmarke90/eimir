@@ -1,20 +1,13 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  type FormEvent,
+  type RefObject,
   useEffect,
   useRef,
   useState,
-  type FormEvent,
-  type RefObject,
 } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
-import { normalizeClientError } from '../client/problemDetails';
-import {
-  planningIfMatch,
-  type SharedPlanningApis,
-} from '../client/sharedPlanning';
-import { MORE_PLACES_ROUTE } from '../client/routes';
-import { useTaskOrigin } from '../client/taskOrigin';
 import {
   authorSummaryQueryKeys,
   invalidatePlaceConsumers,
@@ -24,9 +17,17 @@ import {
   type InfiniteItemsData,
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
+import { placeDisplayName, placeMapsUrl } from '../client/photoLocations';
+import { normalizeClientError } from '../client/problemDetails';
+import { MORE_PLACES_ROUTE } from '../client/routes';
+import {
+  planningIfMatch,
+  type SharedPlanningApis,
+} from '../client/sharedPlanning';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
-import { PageHeader } from './PageHeader';
 import { ListEntryIconButton } from './ListEntryActions';
+import { PageHeader } from './PageHeader';
 import {
   PlanningDiscardConfirmation,
   usePlanningEditorLifecycle,
@@ -54,7 +55,7 @@ type PlaceDraft = {
 
 function placeDraft(place: PlaceDetail): PlaceDraft {
   return {
-    name: place.name,
+    name: placeDisplayName(place),
     description: place.description ?? '',
     address: place.address ?? '',
     latitude: place.latitude?.toString() ?? '',
@@ -432,7 +433,7 @@ export function PlaceProductPage({
           </button>
         }
         eyebrow={t('m5s3.place.detailEyebrow')}
-        title={place.name}
+        title={placeDisplayName(place)}
         titleEditor={
           isEditing ? (
             <input
@@ -507,6 +508,14 @@ export function PlaceProductPage({
 
         <section className="planning-subsection">
           <h2>{t('m5s3.place.locationHeading')}</h2>
+          <a
+            href={placeMapsUrl(place)}
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            {t('photoLocations.maps')}
+          </a>
+          <p className="field-help">{t('photoLocations.mapsHint')}</p>
           <p>
             <strong>{t('m5s3.place.address')}:</strong>{' '}
             {place.address || t('m5s3.place.noAddress')}
@@ -523,7 +532,6 @@ export function PlaceProductPage({
             ) : (
               <p className="planning-meta">{t('m5s3.place.nameOnly')}</p>
             )}
-            <p className="planning-meta">{t('m5s3.place.noMap')}</p>
           </details>
         </section>
       </div>

@@ -41,11 +41,11 @@ import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { DestinationIcon } from './DestinationIcon';
+import { type MemoryTag, MemoryTagChoices } from './MemoryTagChoices';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryCreatePageShell } from './StoryFormPageShell';
-import { MemoryTagChoices, type MemoryTag } from './MemoryTagChoices';
 import './MemoryCreatePage.css';
 
 /** One in-memory task. Account/Space/entry keys are supplied by the route owner. */
@@ -406,6 +406,7 @@ export function MemoryCreatePage({
               <AttachmentDraftPicker
                 id="memory-create-images"
                 attachments={attachments}
+                photoLocationHint
                 multiple
               />
             </div>

@@ -24,6 +24,16 @@ import {
     AccountDeletionRequestToJSON,
 } from '../models/AccountDeletionRequest';
 import {
+    type PhotoLocationPreferences,
+    PhotoLocationPreferencesFromJSON,
+    PhotoLocationPreferencesToJSON,
+} from '../models/PhotoLocationPreferences';
+import {
+    type PhotoLocationPreferencesUpdate,
+    PhotoLocationPreferencesUpdateFromJSON,
+    PhotoLocationPreferencesUpdateToJSON,
+} from '../models/PhotoLocationPreferencesUpdate';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
@@ -31,6 +41,11 @@ import {
 
 export interface DeleteOwnAccountApiV1AccountDeletionPostRequest {
     accountDeletionRequest: AccountDeletionRequest;
+}
+
+export interface UpdatePhotoLocationPreferencesRequest {
+    ifMatch: string;
+    photoLocationPreferencesUpdate: PhotoLocationPreferencesUpdate;
 }
 
 /**
@@ -84,6 +99,101 @@ export class AccountApi extends runtime.BaseAPI {
      */
     async deleteOwnAccountApiV1AccountDeletionPost(requestParameters: DeleteOwnAccountApiV1AccountDeletionPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AccountDeletionAccepted> {
         const response = await this.deleteOwnAccountApiV1AccountDeletionPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getPhotoLocationPreferences without sending the request
+     */
+    async getPhotoLocationPreferencesRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/account/photo-location-preferences`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Photo Location Preferences
+     */
+    async getPhotoLocationPreferencesRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PhotoLocationPreferences>> {
+        const requestOptions = await this.getPhotoLocationPreferencesRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PhotoLocationPreferencesFromJSON(jsonValue));
+    }
+
+    /**
+     * Photo Location Preferences
+     */
+    async getPhotoLocationPreferences(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PhotoLocationPreferences> {
+        const response = await this.getPhotoLocationPreferencesRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updatePhotoLocationPreferences without sending the request
+     */
+    async updatePhotoLocationPreferencesRequestOpts(requestParameters: UpdatePhotoLocationPreferencesRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling updatePhotoLocationPreferences().'
+            );
+        }
+
+        if (requestParameters['photoLocationPreferencesUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'photoLocationPreferencesUpdate',
+                'Required parameter "photoLocationPreferencesUpdate" was null or undefined when calling updatePhotoLocationPreferences().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/account/photo-location-preferences`;
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PhotoLocationPreferencesUpdateToJSON(requestParameters['photoLocationPreferencesUpdate']),
+        };
+    }
+
+    /**
+     * Update Photo Location Preferences
+     */
+    async updatePhotoLocationPreferencesRaw(requestParameters: UpdatePhotoLocationPreferencesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PhotoLocationPreferences>> {
+        const requestOptions = await this.updatePhotoLocationPreferencesRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PhotoLocationPreferencesFromJSON(jsonValue));
+    }
+
+    /**
+     * Update Photo Location Preferences
+     */
+    async updatePhotoLocationPreferences(requestParameters: UpdatePhotoLocationPreferencesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PhotoLocationPreferences> {
+        const response = await this.updatePhotoLocationPreferencesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

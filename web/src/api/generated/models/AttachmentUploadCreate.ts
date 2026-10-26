@@ -51,6 +51,12 @@ export interface AttachmentUploadCreate {
      * @memberof AttachmentUploadCreate
      */
     originalName: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof AttachmentUploadCreate
+     */
+    photoLocationCandidate?: boolean;
 }
 
 
@@ -80,6 +86,7 @@ export function AttachmentUploadCreateFromJSONTyped(json: any, ignoreDiscriminat
         'expectedSize': json['expectedSize'],
         'mediaType': MediaTypeFromJSON(json['mediaType']),
         'originalName': json['originalName'],
+        'photoLocationCandidate': json['photoLocationCandidate'] == null ? undefined : json['photoLocationCandidate'],
     };
 }
 
@@ -98,6 +105,7 @@ export function AttachmentUploadCreateToJSONTyped(value?: AttachmentUploadCreate
         'expectedSize': value['expectedSize'],
         'mediaType': MediaTypeToJSON(value['mediaType']),
         'originalName': value['originalName'],
+        'photoLocationCandidate': value['photoLocationCandidate'],
     };
 }
 

@@ -22,6 +22,7 @@ from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.places import service
+from eimir.places.map_links import MapUrl
 from eimir.places.models import Place
 
 router = APIRouter(tags=["places"])
@@ -51,6 +52,7 @@ class PlaceCreate(ApiModel):
     address: str | SkipJsonSchema[None] = None
     latitude: float | SkipJsonSchema[None] = None
     longitude: float | SkipJsonSchema[None] = None
+    map_url: MapUrl | SkipJsonSchema[None] = None
 
     @field_validator("name")
     @classmethod
@@ -83,6 +85,7 @@ class PlaceUpdate(ApiModel):
     address: str | None = None
     latitude: float | None = None
     longitude: float | None = None
+    map_url: MapUrl | None = None
 
     @model_validator(mode="after")
     def _validate_patch(self) -> Self:
@@ -104,6 +107,8 @@ class PlaceDetail(ApiModel):
     address: str | None
     latitude: float | None
     longitude: float | None
+    photo_location: bool = False
+    map_url: str | None = None
     version: int
     created_at: datetime
     updated_at: datetime
@@ -134,6 +139,8 @@ def place_detail(
         address=place.payload.address,
         latitude=_as_number(place.latitude),
         longitude=_as_number(place.longitude),
+        photo_location=place.payload.photo_location,
+        map_url=place.payload.map_url,
         version=place.version,
         created_at=place.created_at,
         updated_at=place.updated_at,
@@ -170,6 +177,7 @@ def create_place(
         address=body.address,
         latitude=body.latitude,
         longitude=body.longitude,
+        map_url=body.map_url,
     )
     response.headers["ETag"] = etag_for(place.version)
     return place_detail(session, authorization, place)
@@ -241,6 +249,7 @@ def update_place(
         address=body.address,
         latitude=body.latitude,
         longitude=body.longitude,
+        map_url=body.map_url,
     )
     response.headers["ETag"] = etag_for(place.version)
     return place_detail(session, authorization, place)

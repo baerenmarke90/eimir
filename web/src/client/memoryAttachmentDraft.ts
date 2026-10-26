@@ -48,6 +48,7 @@ export async function uploadMemoryDraftAttachment(
         expectedSize: file.size,
         mediaType: MediaType.IMAGE,
         originalName: file.name,
+        photoLocationCandidate: true,
       },
     });
     createdAttachment = {

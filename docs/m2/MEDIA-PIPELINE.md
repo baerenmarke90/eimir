@@ -168,11 +168,13 @@ Before stripping, exactly this allowlist is extracted and stored as ProtectedPay
 | width, height | already determined for limit checking |
 | duration (video only) | already determined for limit checking |
 
-Everything else is discarded: GPS and other location information, device and serial numbers, software, author and copyright fields, Comment and description fields, previews embedded in the container, and **every unlisted or unknown segment**. The rule is an allowlist, not a blacklist of known location fields — containers may carry position in vendor-specific and future segments.
+Historical M2 default: everything else is discarded. [ADR 0014](../decisions/0014-selected-photo-locations.md), explicitly approved on 2026-10-26, adds a bounded exception for marked Memory/HeartMoment photo uploads: readable EXIF and ICC profiles may remain in the rewritten primary image, including GPS/device/capture metadata. Thumbnails remain metadata-free, and unrelated uploads retain the historical metadata-removal behavior. This is independent of the account's automatic place-association switch.
 
-Only the sanitized file is stored. Uploaded original bytes are not retained permanently; M2 has no path that serves Media with embedded metadata. Media that cannot be safely sanitized fails closed as `FAILED` and is never stored unstripped.
+Only a file rewritten from validated pixels is stored; raw uploaded bytes are not retained permanently. Marked moment-photo originals can serve preserved metadata under the same parent authorization as the image. Broken or unencodable optional metadata may be omitted; invalid pixels/format/size still fail closed. Removing a Place relation does not scrub GPS from the photo file.
 
 The extracted allowlist is ProtectedPayload and is not projected into API metadata outside the parent context, logs, Events, metrics, or Search indexes.
+
+Marked selected-photo uploads may additionally extract finite/ranged GPS into owner-scoped protected staging when the current account setting is on (default true). Shared parent binding consumes it once into canonical Places/typed relations. Private binds discard it without creating shared Places; unrelated uploads never extract GPS. Disabling association preserves existing Places and primary image metadata. See ADR 0014 for concurrency, grouping, manual precedence and export boundaries.
 
 ### 7.2 Derived variants (M2-D15)
 

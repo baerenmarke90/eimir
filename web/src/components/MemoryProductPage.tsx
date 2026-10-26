@@ -13,20 +13,18 @@ import {
 } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { splitFirstGrapheme } from '../client/graphemeSplit';
-import { usePartnerNickname } from '../client/partnerNickname';
 import {
   type MemoryEditValues,
   memoryDateInputValue,
   memoryIfMatch,
   memoryUpdatePayload,
 } from '../client/memoryProduct';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
-import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { loadProductWithReadCache } from '../client/productReadCache';
-import { useStoryDeletion } from '../client/useStoryDeletion';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
@@ -34,11 +32,13 @@ import {
   memoryEditPath,
 } from '../client/routes';
 import { postSnackbar } from '../client/snackbar';
+import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
 import {
   formatAttachmentDraftContextKey,
   useAttachmentDrafts,
 } from '../client/useAttachmentDrafts';
+import { useStoryDeletion } from '../client/useStoryDeletion';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
@@ -46,9 +46,10 @@ import { MediaGallery } from './MediaGallery';
 import { MemoryPreview } from './MemoryPreview';
 import {
   MEMORY_TAGS,
-  MemoryTagChoices,
   type MemoryTag,
+  MemoryTagChoices,
 } from './MemoryTagChoices';
+import { MomentPlaces } from './MomentPlaces';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
@@ -565,6 +566,7 @@ export function MemoryProductPage({
             <AttachmentDraftPicker
               id="memory-edit-images"
               attachments={attachments}
+              photoLocationHint
               multiple
             />
 
@@ -741,6 +743,17 @@ export function MemoryProductPage({
           />
         </section>
       ) : null}
+
+      <MomentPlaces
+        key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${memory.id}`}
+        apiBaseUrl={apiBaseUrl}
+        accessToken={accessToken}
+        accountId={currentAccountId}
+        spaceId={spaceId}
+        targetId={memory.id}
+        kind="memory"
+        offline={offline}
+      />
 
       <CommentsPanel
         commentsApi={apis.comments}

@@ -323,6 +323,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 2,
       "reason": "Real App restoration must retain credentials across temporary outages, refresh on reconnect and clear definitive rejection without requiring repeated login."
+    },
+    "photo-locations.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7,
+      "reason": "Default-on photo-location settings, persistence/failure recovery, place correction/removal, explicit external links and Compact accessibility/reflow."
     }
   }
 }

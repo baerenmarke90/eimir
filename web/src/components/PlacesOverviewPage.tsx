@@ -1,9 +1,9 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import {
@@ -14,6 +14,7 @@ import {
   type DeleteFocusTarget,
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
+import { placeDisplayName } from '../client/photoLocations';
 import { normalizeClientError } from '../client/problemDetails';
 import { appRoutePath, placeDetailPath } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
@@ -168,7 +169,7 @@ export function PlacesOverviewPage({
                   to={placeDetailPath(place.id)}
                 >
                   <div className="planning-card-copy">
-                    <h3>{place.name}</h3>
+                    <h3>{placeDisplayName(place)}</h3>
                     {place.address ? (
                       <p className="planning-meta">{place.address}</p>
                     ) : place.latitude != null && place.longitude != null ? (

@@ -77,6 +77,9 @@ class Account(IdMixin, TimestampMixin, VersionMixin, Base):
     birthday: Mapped[date | None] = mapped_column(Date)
     locale: Mapped[str] = mapped_column(String(16), nullable=False, default="de-DE")
     timezone: Mapped[str] = mapped_column(String(64), nullable=False, default="Europe/Berlin")
+    auto_photo_locations: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
     quiet_hours_start: Mapped[time | None] = mapped_column(Time(timezone=False))
     quiet_hours_end: Mapped[time | None] = mapped_column(Time(timezone=False))
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

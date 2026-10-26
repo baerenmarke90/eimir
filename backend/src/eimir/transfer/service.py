@@ -494,6 +494,10 @@ def build_export_archive(
             account_document["personalAppearance"] = {
                 "appIconId": preference.icon_id if preference else "original",
             }
+            own_account = session.get(Account, authorization.account_id)
+            account_document["personalPhotoLocations"] = {
+                "enabled": bool(own_account and own_account.auto_photo_locations),
+            }
         # Personal appearance is export-only metadata. Import never activates
         # paid choices or changes an installation based on untrusted bundles.
         add_bytes(archive, "accounts.json", json_bytes(account_document), checksums)

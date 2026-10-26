@@ -117,6 +117,7 @@ export const MORE_SETTINGS_ROUTE = '/more/settings';
 export const SETTINGS_CATEGORY_IDS = [
   'relationship',
   'notifications',
+  'memories',
   'today',
   'appearance',
   'data',
@@ -130,6 +131,7 @@ export const MORE_SETTINGS_CATEGORY_ROUTE_PATTERN = `${MORE_SETTINGS_ROUTE}/:set
 export const SETTINGS_CATEGORY_ROUTES = {
   relationship: `${MORE_SETTINGS_ROUTE}/relationship`,
   notifications: `${MORE_SETTINGS_ROUTE}/notifications`,
+  memories: `${MORE_SETTINGS_ROUTE}/memories`,
   today: `${MORE_SETTINGS_ROUTE}/today`,
   appearance: `${MORE_SETTINGS_ROUTE}/appearance`,
   data: `${MORE_SETTINGS_ROUTE}/data`,

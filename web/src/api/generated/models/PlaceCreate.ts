@@ -48,6 +48,12 @@ export interface PlaceCreate {
      * @type {string}
      * @memberof PlaceCreate
      */
+    mapUrl?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlaceCreate
+     */
     name: string;
 }
 
@@ -73,6 +79,7 @@ export function PlaceCreateFromJSONTyped(json: any, ignoreDiscriminator: boolean
         'description': json['description'] == null ? undefined : json['description'],
         'latitude': json['latitude'] == null ? undefined : json['latitude'],
         'longitude': json['longitude'] == null ? undefined : json['longitude'],
+        'mapUrl': json['mapUrl'] == null ? undefined : json['mapUrl'],
         'name': json['name'],
     };
 }
@@ -92,6 +99,7 @@ export function PlaceCreateToJSONTyped(value?: PlaceCreate | null, ignoreDiscrim
         'description': value['description'],
         'latitude': value['latitude'],
         'longitude': value['longitude'],
+        'mapUrl': value['mapUrl'],
         'name': value['name'],
     };
 }

@@ -18,14 +18,19 @@ just created or already existed is irrelevant to the caller, and returning
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Response, status
+from sqlalchemy import select
 
+from eimir.api.authors import resolve_author_summaries
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
+from eimir.api.v1.places import PlaceDetail, place_detail
+from eimir.authorization import PrivacyClass, require_readable
+from eimir.places.models import Place
 from eimir.relations import service
 from eimir.relations.service import RelationKind
 
@@ -43,6 +48,12 @@ class RelationTargets(ApiModel):
     items: list[UUID]
 
 
+class LinkedPlaces(ApiModel):
+    """Canonical place details reachable only through an authorized target."""
+
+    items: list[PlaceDetail]
+
+
 def _register(kind: RelationKind, *, singular: str, plural: str) -> None:
     """Register the three routes for one relation kind.
 
@@ -52,6 +63,45 @@ def _register(kind: RelationKind, *, singular: str, plural: str) -> None:
     """
     collection = f"/spaces/{{spaceId}}/places/{{placeId}}/{kind.slug}"
     item = f"{collection}/{{targetId}}"
+
+    @router.get(
+        f"/spaces/{{spaceId}}/{kind.slug}/{{targetId}}/places",
+        response_model=LinkedPlaces,
+        operation_id=f"list{singular}Places",
+        responses=problem_responses(401, 404),
+        name=f"list_{kind.slug}_places",
+    )
+    def list_places_for_target(
+        authorization: Authorization,
+        session: DbSession,
+        target_id: Annotated[str, Path(alias="targetId")],
+    ) -> LinkedPlaces:
+        target = cast(
+            "service.RelatableTarget",
+            require_readable(session, kind.target, authorization, target_id),
+        )
+        if kind.shared_target_only and target.privacy_class != PrivacyClass.SPACE_SHARED.value:
+            return LinkedPlaces(items=[])
+        table = kind.relation.__table__
+        found = list(
+            session.scalars(
+                select(Place)
+                .join(table, table.c.place_id == Place.id)
+                .where(
+                    table.c[kind.target_column] == target.id,
+                    table.c.space_id == authorization.space_id,
+                    Place.space_id == authorization.space_id,
+                )
+                .order_by(table.c.created_at, Place.id)
+            )
+        )
+        creators = resolve_author_summaries(session, {place.owner_id for place in found})
+        return LinkedPlaces(
+            items=[
+                place_detail(session, authorization, place, creator=creators.get(place.owner_id))
+                for place in found
+            ]
+        )
 
     @router.get(
         collection,

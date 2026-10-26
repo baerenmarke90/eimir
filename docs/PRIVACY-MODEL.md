@@ -59,7 +59,7 @@ often more sensitive than the day itself.
 
 ## Location
 
-Location features are **off** by default. They require explicit opt-in.
+Live location, presence and location-history features are **off** by default and require explicit opt-in. The separately approved selected-photo association default is documented below.
 
 Four concepts are kept strictly separate:
 
@@ -76,6 +76,8 @@ no location data in normal logs, and can be revoked at any time.
 
 Optional partner distance remains off until deliberately enabled and does not
 create a persistent history.
+
+Selected-photo place association is a separate default-on account preference under [ADR 0014](decisions/0014-selected-photo-locations.md). Only marked Memory/HeartMoment uploads extract GPS, and only shared parents create shared Places. The primary photo preserves readable EXIF/ICC metadata when possible, including location metadata; thumbnails remain metadata-free. Disabling automatic association or removing a Place relation does not scrub metadata from the photo. Provider navigation happens only after activating a Maps link.
 
 ## Notifications
 

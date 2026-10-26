@@ -15,10 +15,12 @@ export function AttachmentDraftPicker({
   id,
   attachments,
   multiple = true,
+  photoLocationHint = false,
 }: {
   id: string;
   attachments: AttachmentDraftPickerController;
   multiple?: boolean;
+  photoLocationHint?: boolean;
 }) {
   const { t } = useTranslation();
 
@@ -54,6 +56,10 @@ export function AttachmentDraftPicker({
           <small>{t('memory.photoFormats')}</small>
         </span>
       </label>
+
+      {photoLocationHint ? (
+        <p className="field-help">{t('photoLocations.captureHint')}</p>
+      ) : null}
 
       {attachments.items.length > 0 ? (
         <ul

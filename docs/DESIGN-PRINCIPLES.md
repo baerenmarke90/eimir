@@ -262,7 +262,7 @@ Avoid nested cards and uniform card walls. The [system direction](./product/desi
 - Every shareable entity displays its current visibility state.
 - Changes explain their effect before confirmation.
 - Private content is not leaked into previews, notifications, or analytics.
-- Location is off by default and activated only in context.
+- Live location, presence and location history are off by default and activated only in context. Selected-photo place association has an explicitly approved default-on account setting; see [ADR 0014](decisions/0014-selected-photo-locations.md).
 
 ### Feedback and system states
 

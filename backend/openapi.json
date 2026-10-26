@@ -612,6 +612,11 @@
             "minLength": 1,
             "title": "Originalname",
             "type": "string"
+          },
+          "photoLocationCandidate": {
+            "default": false,
+            "title": "Photolocationcandidate",
+            "type": "boolean"
           }
         },
         "required": [
@@ -3465,6 +3470,23 @@
         "title": "IssuedInvitationView",
         "type": "object"
       },
+      "LinkedPlaces": {
+        "description": "Canonical place details reachable only through an authorized target.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PlaceDetail"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "LinkedPlaces",
+        "type": "object"
+      },
       "MagicLinkConsumeRequest": {
         "properties": {
           "deviceName": {
@@ -4991,6 +5013,38 @@
         "title": "PersonRelationship",
         "type": "string"
       },
+      "PhotoLocationPreferences": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "version"
+        ],
+        "title": "PhotoLocationPreferences",
+        "type": "object"
+      },
+      "PhotoLocationPreferencesUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "PhotoLocationPreferencesUpdate",
+        "type": "object"
+      },
       "PhotoParentType": {
         "enum": [
           "MEMORY",
@@ -5017,6 +5071,11 @@
           "longitude": {
             "title": "Longitude",
             "type": "number"
+          },
+          "mapUrl": {
+            "maxLength": 2048,
+            "title": "Mapurl",
+            "type": "string"
           },
           "name": {
             "title": "Name",
@@ -5096,9 +5155,25 @@
             ],
             "title": "Longitude"
           },
+          "mapUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mapurl"
+          },
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "photoLocation": {
+            "default": false,
+            "title": "Photolocation",
+            "type": "boolean"
           },
           "spaceId": {
             "format": "uuid",
@@ -5213,6 +5288,18 @@
               }
             ],
             "title": "Longitude"
+          },
+          "mapUrl": {
+            "anyOf": [
+              {
+                "maxLength": 2048,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mapurl"
           },
           "name": {
             "title": "Name",
@@ -10423,6 +10510,109 @@
           }
         },
         "summary": "Delete the authenticated Account",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/api/v1/account/photo-location-preferences": {
+      "get": {
+        "operationId": "getPhotoLocationPreferences",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoLocationPreferences"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          }
+        },
+        "summary": "Photo Location Preferences",
+        "tags": [
+          "account"
+        ]
+      },
+      "put": {
+        "operationId": "updatePhotoLocationPreferences",
+        "parameters": [
+          {
+            "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoLocationPreferencesUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoLocationPreferences"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Photo Location Preferences",
         "tags": [
           "account"
         ]
@@ -20203,6 +20393,67 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/heart-moments/{targetId}/places": {
+      "get": {
+        "operationId": "listHeartMomentPlaces",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "targetId",
+            "required": true,
+            "schema": {
+              "title": "Targetid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkedPlaces"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "List Heart-Moments Places",
+        "tags": [
+          "place-relations"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/important-dates": {
       "get": {
         "operationId": "list_important_dates_api_v1_spaces__spaceId__important_dates_get",
@@ -21753,6 +22004,67 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/memories/{targetId}/places": {
+      "get": {
+        "operationId": "listMemoryPlaces",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "targetId",
+            "required": true,
+            "schema": {
+              "title": "Targetid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkedPlaces"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "List Memories Places",
+        "tags": [
+          "place-relations"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/milestones": {
       "get": {
         "operationId": "listMilestones",
@@ -22514,6 +22826,67 @@
         "summary": "Create Milestone Comment",
         "tags": [
           "comments"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/milestones/{targetId}/places": {
+      "get": {
+        "operationId": "listMilestonePlaces",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "targetId",
+            "required": true,
+            "schema": {
+              "title": "Targetid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkedPlaces"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "List Milestones Places",
+        "tags": [
+          "place-relations"
         ]
       }
     },

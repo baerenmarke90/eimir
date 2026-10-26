@@ -27,6 +27,12 @@ export const SETTINGS_CATEGORIES: readonly SettingsCategoryDefinition[] = [
     descriptionKey: 'profileIdentity.settingsTodayIntro',
   },
   {
+    id: 'memories',
+    path: SETTINGS_CATEGORY_ROUTES.memories,
+    titleKey: 'photoLocations.settingsTitle',
+    descriptionKey: 'photoLocations.settingsIntro',
+  },
+  {
     id: 'appearance',
     path: SETTINGS_CATEGORY_ROUTES.appearance,
     titleKey: 'theme.label',

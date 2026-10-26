@@ -3,6 +3,8 @@
 **Status:** Runnable developer test harness, NOT a completed live provider test, production approval or eimir. media upload.
 **Scope:** One explicitly selected synthetic photo, read and discarded in memory. No photo is saved to eimir., disk or logs.
 
+**Browser-only cloud alternative:** [Operator HTTPS Web OAuth probe](1444-google-picker-cloud.md). The desktop script below remains an optional fallback; users of the separate cloud test do not need to run Python locally.
+
 This follows [the feasibility review](1444-photo-import-feasibility.md) and validates the genuine Google OAuth / Picker / byte-download path before an actual product integration.
 
 ## Prerequisites outside Git

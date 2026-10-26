@@ -426,7 +426,9 @@ async function submitWithInterruptedRead(
     within(sheet).getByRole('button', { name: dailyVibe.values.GOOD }),
   );
   act(() => {
-    fireEvent.click(within(sheet).getByRole('button', { name: dailyVibe.share }));
+    fireEvent.click(
+      within(sheet).getByRole('button', { name: dailyVibe.share }),
+    );
     interrupt();
   });
 }
@@ -437,10 +439,13 @@ for (const dimension of ['energy', 'vibe'] as const) {
     h.mount();
     const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
     await submitWithInterruptedRead(dimension, () => {
-      h.client.getQueryCache().find({ queryKey: key, exact: true })?.setState({
-        error: new ClientProblemError('permission', 403),
-        status: 'error',
-      });
+      h.client
+        .getQueryCache()
+        .find({ queryKey: key, exact: true })
+        ?.setState({
+          error: new ClientProblemError('permission', 403),
+          status: 'error',
+        });
     });
 
     await waitFor(() => expect(h.client.isMutating()).toBe(0));

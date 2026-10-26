@@ -332,12 +332,10 @@ export function useAttachmentDrafts({
     [pump],
   );
 
-  const addFiles = useCallback(
-    (files: FileList | readonly File[] | null) => {
-      if (!files) return;
+  const restore = useCallback(
+    (selected: readonly { file: File; attachmentId?: string }[]) => {
       const currentContext = committedContextKey.current;
       const currentGen = currentGeneration.current;
-      const selected = Array.from(files);
       const remainingCapacity = Math.max(
         0,
         maxAttachments - draftCount.current,
@@ -345,7 +343,7 @@ export function useAttachmentDrafts({
       const accepted = selected.slice(0, remainingCapacity);
       setRejectedCount(selected.length - accepted.length);
 
-      for (const file of accepted) {
+      for (const { file, attachmentId } of accepted) {
         const id = globalThis.crypto.randomUUID();
         const previewResource = createOwnedObjectUrl(file);
         const previewUrl = previewResource.url;
@@ -361,16 +359,24 @@ export function useAttachmentDrafts({
               id,
               file,
               previewUrl,
-              status: 'uploading',
+              status: attachmentId ? 'ready' : 'uploading',
               attempt: 0,
-              progress: 0,
+              progress: attachmentId ? 100 : 0,
+              attachmentId,
             },
           },
         });
-        enqueue(id, file);
+        if (!attachmentId) enqueue(id, file);
       }
     },
     [enqueue, maxAttachments],
+  );
+
+  const addFiles = useCallback(
+    (files: FileList | readonly File[] | null) => {
+      if (files) restore(Array.from(files, (file) => ({ file })));
+    },
+    [restore],
   );
 
   // A picker can finish after capacity or transport props changed. Use the
@@ -460,12 +466,39 @@ export function useAttachmentDrafts({
   }, []);
 
   const readyIds = useMemo(() => readyAttachmentIds(items), [items]);
+  const replaceReadyId = useCallback(
+    (draft: AttachmentDraft, attachmentId: string) => {
+      dispatch({
+        type: 'draft_action',
+        contextKey: committedContextKey.current,
+        generation: currentGeneration.current,
+        action: {
+          type: 'ready',
+          id: draft.id,
+          attempt: draft.attempt,
+          attachmentId,
+        },
+      });
+    },
+    [],
+  );
+  const move = useCallback((id: string, offset: -1 | 1) => {
+    dispatch({
+      type: 'draft_action',
+      contextKey: committedContextKey.current,
+      generation: currentGeneration.current,
+      action: { type: 'move', id, offset },
+    });
+  }, []);
   const hasPending = useMemo(() => hasPendingAttachments(items), [items]);
 
   return {
     items,
     addFiles,
     beginSelection,
+    restore,
+    replaceReadyId,
+    move,
     cancel,
     remove,
     retry,

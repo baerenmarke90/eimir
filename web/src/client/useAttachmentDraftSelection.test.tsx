@@ -172,6 +172,34 @@ describe('asynchronous attachment selection ownership (#1444)', () => {
     expect(upload).toHaveBeenCalledTimes(1);
   });
 
+  it('retains diary restoration and reordering while applying current selection capacity', () => {
+    const { result, upload } = setup({ maxAttachments: 2 });
+    const selection = result.current.beginSelection();
+    act(() =>
+      result.current.restore([
+        { file: photo('recovered.jpg'), attachmentId: 'existing-ready' },
+      ]),
+    );
+    act(() => selection.commit([photo('selected.jpg'), photo('excess.jpg')]));
+    expect(result.current.items.map((item) => item.file.name)).toEqual([
+      'recovered.jpg',
+      'selected.jpg',
+    ]);
+    expect(result.current.rejectedCount).toBe(1);
+    expect(upload).toHaveBeenCalledTimes(1);
+    expect(result.current.readyIds).toEqual(['existing-ready']);
+    const selectedId = result.current.items[1].id;
+    act(() => result.current.move(selectedId, -1));
+    expect(result.current.items.map((item) => item.file.name)).toEqual([
+      'selected.jpg',
+      'recovered.jpg',
+    ]);
+    act(() =>
+      result.current.replaceReadyId(result.current.items[1], 'renewed-ready'),
+    );
+    expect(result.current.readyIds).toEqual(['renewed-ready']);
+  });
+
   it('old upload completions cannot release the new generation queue slots', async () => {
     const { result, pending, upload } = setup();
     act(() => result.current.addFiles([photo('old.jpg')]));

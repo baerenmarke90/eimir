@@ -1,4 +1,5 @@
 import type { AttachmentDraft } from '../client/attachmentDraftState';
+import { useState } from 'react';
 import { useTranslation } from '../i18n';
 
 export interface AttachmentDraftPickerController {
@@ -7,6 +8,7 @@ export interface AttachmentDraftPickerController {
   cancel: (id: string) => void;
   remove: (id: string) => void;
   retry: (draft: AttachmentDraft) => void;
+  move?: (id: string, offset: -1 | 1) => void;
   hasPending: boolean;
   rejectedCount?: number;
 }
@@ -21,6 +23,23 @@ export function AttachmentDraftPicker({
   multiple?: boolean;
 }) {
   const { t } = useTranslation();
+  const [moved, setMoved] = useState('');
+  function moveFile(
+    attachment: AttachmentDraft,
+    index: number,
+    offset: -1 | 1,
+  ) {
+    const position = index + offset;
+    if (position < 0 || position >= attachments.items.length) return;
+    attachments.move?.(attachment.id, offset);
+    setMoved(
+      t('memory.photoMoved', {
+        name: attachment.file.name,
+        position: position + 1,
+        count: attachments.items.length,
+      }),
+    );
+  }
 
   return (
     <div className="field-group attachment-draft-picker">
@@ -43,7 +62,7 @@ export function AttachmentDraftPicker({
       />
       <label className="file-picker" htmlFor={id}>
         <span className="file-picker-icon" aria-hidden="true">
-          ＋
+          +
         </span>
         <span>
           <strong>
@@ -60,7 +79,7 @@ export function AttachmentDraftPicker({
           className="attachment-draft-list"
           aria-label={t('memory.photoDraftsAria')}
         >
-          {attachments.items.map((attachment) => {
+          {attachments.items.map((attachment, index) => {
             const statusText =
               attachment.status === 'uploading'
                 ? t('memory.photoUploading')
@@ -115,6 +134,34 @@ export function AttachmentDraftPicker({
                   ) : null}
                 </div>
                 <div className="attachment-draft-actions">
+                  {multiple &&
+                  attachments.move &&
+                  attachments.items.length > 1 ? (
+                    <>
+                      <button
+                        type="button"
+                        className="tertiary"
+                        aria-disabled={index === 0}
+                        onClick={() => moveFile(attachment, index, -1)}
+                        aria-label={t('memory.photoMoveEarlier', {
+                          name: attachment.file.name,
+                        })}
+                      >
+                        {t('memory.photoEarlier')}
+                      </button>
+                      <button
+                        type="button"
+                        className="tertiary"
+                        aria-disabled={index === attachments.items.length - 1}
+                        onClick={() => moveFile(attachment, index, 1)}
+                        aria-label={t('memory.photoMoveLater', {
+                          name: attachment.file.name,
+                        })}
+                      >
+                        {t('memory.photoLater')}
+                      </button>
+                    </>
+                  ) : null}
                   {attachment.status === 'failed' ? (
                     <button
                       type="button"
@@ -152,6 +199,11 @@ export function AttachmentDraftPicker({
         <p className="field-help" role="status" aria-live="polite">
           {t('memory.photoPendingSave')}
         </p>
+      ) : null}
+      {moved ? (
+        <span className="sr-only" role="status">
+          {moved}
+        </span>
       ) : null}
       {attachments.rejectedCount ? (
         <p className="field-help" role="alert" aria-live="assertive">

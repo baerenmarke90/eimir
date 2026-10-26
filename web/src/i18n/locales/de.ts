@@ -241,15 +241,15 @@ const de = {
     intro:
       'Erinnerungen, Herzensmomente und Meilensteine – euer ruhiges Zuhause für die Dinge, die bleiben.',
     timelineTitle: 'Momente',
-    timelineIntro: 'Unsere besonderen Augenblicke – für immer festgehalten.',
+    timelineIntro: 'Eure Geschichte – die kleinen und die großen Momente.',
     addMemory: 'Erinnerung',
-    timelineKicker: 'Zeitleiste',
+    timelineKicker: 'Tagebuch',
     timelineHeading: 'Gemeinsame Geschichte',
     discoverKicker: 'Entdecken',
     discoverHeading: 'Momente zum Wiederentdecken',
     discoverSubhead: 'Kleine Momente, die für immer geblieben sind.',
     tabDiscover: 'Entdecken',
-    tabTimeline: 'Zeitleiste',
+    tabTimeline: 'Tagebuch',
     viewToggleAria: 'Ansicht wählen',
     browseTitle: 'Durchstöbern',
     browseMilestones: 'Meilensteine',
@@ -329,16 +329,35 @@ const de = {
   },
   memory: {
     backToStory: '← Zurück zu Momente',
-    eyebrow: 'Moment festhalten',
-    heading: 'Neue Erinnerung',
-    intro:
-      'Foto oder ein paar Worte reichen. Titel und weitere Details sind optional.',
+    eyebrow: 'Euer Tagebuch',
+    heading: 'Neuer Tagebucheintrag',
+    intro: 'Ein Gedanke, ein Foto oder eure ganze Geschichte.',
     formAria: 'Erinnerung erstellen',
     titleLabel: 'Titel',
     titleLabelOptional: 'Titel (optional)',
     titlePlaceholder: 'Zum Beispiel: Unser Tag am See',
-    bodyLabel: 'Erinnerung',
-    bodyPlaceholder: 'Was möchtet ihr von diesem Moment behalten?',
+    bodyLabel: 'Euer Tag in Worten',
+    bodyPlaceholder: 'Was möchtest du von diesem Tag festhalten?',
+    diary: {
+      optionalDetails: 'Titel und Stichworte',
+      resumeTitle: 'Dein Entwurf wartet auf dich',
+      resumeBody:
+        'Auf diesem Gerät liegt ein noch nicht abgeschlossener Eintrag. Möchtest du ihn fortsetzen?',
+      resume: 'Entwurf fortsetzen',
+      startNew: 'Entwurf verwerfen und neu beginnen',
+      keepDraft: 'Entwurf behalten und schließen',
+      draft: {
+        loading: 'Entwurfssicherung wird vorbereitet …',
+        idle: 'Noch nicht gemeinsam gespeichert.',
+        saving: 'Entwurf wird auf diesem Gerät gesichert …',
+        saved:
+          'Entwurf auf diesem Gerät gesichert · noch nicht gemeinsam gespeichert. Wird nach 7 Tagen ohne Änderung entfernt.',
+        unavailable:
+          'Entwurf nur hier geöffnet. Die Sicherung auf diesem Gerät ist nicht verfügbar. Speichere den Eintrag vor dem Schließen.',
+        conflict:
+          'Dieser Entwurf wurde in einem anderen Fenster fortgesetzt. Öffne ihn erneut, bevor du weiterschreibst oder speicherst.',
+      },
+    },
     tagsLabel: 'Was passt zu diesem Moment?',
     tagsHelp:
       'Optional · Wähle aus, was euch später an diesen Moment erinnert.',
@@ -349,7 +368,7 @@ const de = {
       special_day: 'Besonderer Tag',
     },
     dateLabel: 'Datum',
-    dateHelp: 'Optional – wenn der Moment an einem bestimmten Tag war.',
+    dateHelp: 'Auch vergangene Tage sind möglich.',
     dateChangeAction: 'Ändern',
     photoLabel: 'Fotos',
     photoSelected: 'Foto ausgewählt',
@@ -366,6 +385,11 @@ const de = {
     photoFailedNotSaved:
       'Dieses Foto wird nicht gespeichert, solange der Upload fehlgeschlagen ist.',
     photoRemove: 'Entfernen',
+    photoEarlier: 'Nach vorn',
+    photoLater: 'Nach hinten',
+    photoMoveEarlier: '{{name}} nach vorn verschieben',
+    photoMoveLater: '{{name}} nach hinten verschieben',
+    photoMoved: '{{name}} an Position {{position}} von {{count}}.',
     photoPendingSave:
       'Warte, bis alle laufenden Foto-Uploads abgeschlossen sind.',
     photoLimitReached_one:
@@ -373,10 +397,10 @@ const de = {
     photoLimitReached_other:
       '{{count}} Fotos wurden nicht hinzugefügt, weil das Limit pro Erinnerung erreicht ist.',
     visibilityAria: 'Sichtbarkeit',
-    sharedTitle: 'Für euch beide sichtbar',
+    sharedTitle: 'Beim Speichern für euch beide sichtbar',
     sharedBody:
       'Diese Erinnerung ist für beide Personen in eurem gemeinsamen Space sichtbar.',
-    save: 'Erinnerung speichern',
+    save: 'Eintrag speichern',
     saving: 'Wird gespeichert …',
     processing: 'Erinnerung wird gespeichert und die Story aktualisiert …',
     saveErrorTitle: 'Die Erinnerung konnte nicht gespeichert werden.',

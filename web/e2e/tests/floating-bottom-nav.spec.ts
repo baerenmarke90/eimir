@@ -1,3 +1,4 @@
+import { showMemoryDetails } from '../support/memoryDiary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expectToday } from '../support/today';
 import AxeBuilder from '@axe-core/playwright';
@@ -1086,6 +1087,7 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
 
     await page.setViewportSize({ width: 390, height: 500 });
     await page.goto('/story/memories/new');
+    await showMemoryDetails(page);
     const titleInput = page.getByLabel(de.memory.titleLabelOptional);
     await titleInput.focus();
     await page.screenshot({

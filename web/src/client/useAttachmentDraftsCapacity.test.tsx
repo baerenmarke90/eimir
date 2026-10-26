@@ -136,10 +136,7 @@ describe('useAttachmentDrafts capacity bounding and upload queue (#701)', () => 
       await Promise.all(calls.map((call) => call.promise));
     });
 
-    expect(result.current.readyIds).toEqual([
-      'ready-first',
-      'ready-second',
-    ]);
+    expect(result.current.readyIds).toEqual(['ready-first', 'ready-second']);
 
     act(() => {
       rerender({ ...initialProps, spaceId: 'space-b' });

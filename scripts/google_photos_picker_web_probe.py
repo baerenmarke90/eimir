@@ -326,7 +326,8 @@ class CloudProbe:
                     active.flow.fetch_token(
                         authorization_response=(
                             self.origin + "/oauth/callback?" + query
-                        )
+                        ),
+                        timeout=20,
                     )
                     token = active.flow.credentials.token
                     if not isinstance(token, str) or not token:

@@ -1,6 +1,6 @@
 # #1444 — HTTPS Google Photos Picker test, browser-only operator flow
 
-**Status:** Standalone operator test harness, not an eimir. product feature or evidence of a successful provider transfer. On 2026-10-26 the operator reported an isolated Docker/NPM deployment; a read-only public `GET /` confirmed the form and the old `Referrer-Policy: no-referrer` header. Google authorization, photo transfer and remote cleanup have not been verified.
+**Status:** Standalone operator test harness, not an eimir. product feature. On 2026-10-26 the operator confirmed a real Web OAuth/Picker run: **one synthetic image transferred and discarded (3,000,825 bytes), with remote session deletion reported successful**. This is operator-reported live evidence, not an independently observed run from the coding session. API status codes and MIME type were not supplied and are not inferred. No credentials, account identity, media or Picker/callback values are recorded. Production policy/verification, #797 acceptance and return-to-draft/device gates remain open.
 
 This is an **alternative** to the local Desktop test in [1444-google-picker-probe.md](1444-google-picker-probe.md). The person performing consent needs only a browser. Codex Cloud can develop and run offline tests, but Codex task containers **do not automatically provide a public, stable HTTPS OAuth callback**. For a genuine Google login deploy the optional service to an **operator-controlled, publicly reachable HTTPS test host**, separate from eimir. production.
 
@@ -167,6 +167,7 @@ The public root must now report `Referrer-Policy: same-origin` and the login for
 - Cookie: Secure, HttpOnly, SameSite=Lax, short-lived, random. OAuth callback state is checked before exchanging any token; only one callback is consumed.
 - POST operations use an independent CSRF token; operator login is rate-limited and no GET URL conveys the access secret.
 - OAuth tokens and Picker session IDs remain in a single volatile process. Expiry triggers session cleanup. No DB, file, analytics or browser cache.
+- The SDK token exchange has an explicit 20-second timeout so an unavailable OAuth endpoint cannot indefinitely hold the single-user session lock.
 - Strict trusted Google OAuth, Picker and media hosts; no cross-host redirects with bearer tokens; bounded JSON and photo-byte reads; no automatic retries or background synchronization.
 - Reverse proxy must redact/suppress OAuth callback URLs from logs. Shut down the test service and revoke the test grant afterward.
 - Production remains blocked by Google's actual permitted-use/persistent sharing approval, Web/Capacitor device acceptance and [#797](https://github.com/baerenmarke90/eimir/issues/797).
@@ -179,6 +180,8 @@ python3 tools/ci/test_google_photos_picker_probe.py
 ~~~
 
 These deterministic tests run in GitHub CI **without secrets/network**. They prove callback state, cookie, CSRF, host restrictions, selected photo transfer boundary and cleanup logic **only under mocks**.
+
+The operator's successful 2026-10-26 live result above is separate from those mocked tests. It establishes synthetic byte-transfer/cleanup evidence only; it does not establish CORS/client-Blob compatibility, durable-copy/partner-sharing approval, production OAuth verification or mobile acceptance. Stopping/removing the temporary service and test vhost, revoking the test grant and retiring the operator secret remain operator cleanup steps; their completion was not reported.
 
 After a real browser test, record the date, OAuth Web client type, successful or denied consent, selected test photo download and remote session cleanup status in #1444. Never include Google codes, client secrets, access tokens, Picker URLs, photos or account identities.
 

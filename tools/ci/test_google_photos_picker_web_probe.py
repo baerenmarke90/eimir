@@ -272,6 +272,21 @@ class CloudPickerProbeTest(unittest.TestCase):
         self.assertEqual(cross[0], "403 Forbidden")
         self.flow.fetch_token.assert_not_called()
 
+    def test_token_exchange_timeout_clears_session_and_redacts_failure(self):
+        cookie = self.begin()
+        sensitive = "https://oauth2.googleapis.com/token?code=private-code"
+        self.flow.fetch_token.side_effect = TimeoutError(sensitive)
+        with patch.object(cloud, "request_json") as upstream:
+            failed = self.callback(cookie)
+        self.assertEqual(failed[0], "303 See Other")
+        self.assertEqual(header(failed[1], "Location"), "/")
+        self.assertIn("Max-Age=0", header(failed[1], "Set-Cookie"))
+        self.assertEqual(self.flow.fetch_token.call_args.kwargs["timeout"], 20)
+        self.assertIsNone(self.app.active)
+        self.assertNotIn(sensitive, failed[2].decode())
+        self.assertNotIn("temporary-provider-bearer", failed[2].decode())
+        upstream.assert_not_called()
+
     def test_one_selected_photo_succeeds_and_cleans_remote_session(self):
         cookie = self.begin()
         calls = []

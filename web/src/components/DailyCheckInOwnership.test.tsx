@@ -404,6 +404,121 @@ it('retries a failed Vibe removal as a clear rather than resaving the visible ch
   await waitFor(() => expect(h.client.isMutating()).toBe(0));
 });
 
+it('keeps a valid Energy tap during a cancellable background Today refresh', async () => {
+  const h = setup();
+  h.mount();
+  const slider = await energy();
+  const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
+  let releaseRead: (value: ReturnType<typeof response>) => void = () => {};
+  h.get.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        releaseRead = resolve;
+      }),
+  );
+  void h.client.refetchQueries({ queryKey: key, exact: true });
+  await waitFor(() =>
+    expect(h.client.getQueryState(key)?.fetchStatus).toBe('fetching'),
+  );
+
+  fireEvent.change(slider, { target: { value: '80' } });
+  fireEvent.blur(slider);
+  await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+  expect(h.update.mock.calls[0][0].ifMatch).toBe('"today:1"');
+
+  const confirmed = {
+    ...h.current,
+    own: { ...h.current.own, energyLevel: 80, version: 2 },
+  };
+  await act(async () => {
+    releaseRead(response(h.current));
+    h.resolve(response(confirmed, '"today:2"'));
+  });
+  await waitFor(() => expect(h.client.isMutating()).toBe(0));
+  expect(h.client.getQueryData(key)).toMatchObject({
+    etag: '"today:2"',
+    projection: { own: { energyLevel: 80 } },
+  });
+});
+
+async function submitWithInterruptedRead(
+  dimension: 'energy' | 'vibe',
+  interrupt: () => void,
+) {
+  if (dimension === 'energy') {
+    const slider = await energy();
+    act(() => {
+      fireEvent.change(slider, { target: { value: '80' } });
+      fireEvent.blur(slider);
+      interrupt();
+    });
+    return;
+  }
+
+  fireEvent.click(
+    await screen.findByRole('button', { name: dailyVibe.chooseAria }),
+  );
+  const sheet = screen.getByRole('dialog', { name: dailyVibe.sheetTitle });
+  fireEvent.click(
+    within(sheet).getByRole('button', { name: dailyVibe.values.GOOD }),
+  );
+  act(() => {
+    fireEvent.click(
+      within(sheet).getByRole('button', { name: dailyVibe.share }),
+    );
+    interrupt();
+  });
+}
+
+for (const dimension of ['energy', 'vibe'] as const) {
+  it(`does not dispatch a stale ${dimension} write after a denied original Today read`, async () => {
+    const h = setup();
+    h.mount();
+    const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
+    await submitWithInterruptedRead(dimension, () => {
+      h.client
+        .getQueryCache()
+        .find({ queryKey: key, exact: true })
+        ?.setState({
+          error: new ClientProblemError('permission', 403),
+          status: 'error',
+        });
+    });
+
+    await waitFor(() => expect(h.client.isMutating()).toBe(0));
+    expect(h.update).not.toHaveBeenCalled();
+    expect(h.client.getQueryState(key)?.status).toBe('error');
+    expect(h.client.getQueryState(key)?.error).toMatchObject({
+      kind: 'permission',
+    });
+  });
+
+  it(`preserves a newer same-Query Today read before dispatching ${dimension}`, async () => {
+    const h = setup();
+    h.mount();
+    const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
+    const newer = {
+      ...h.current,
+      own: {
+        ...h.current.own,
+        energyLevel: 90,
+        vibe: 'GOOD' as const,
+        version: 2,
+      },
+    };
+    await submitWithInterruptedRead(dimension, () => {
+      h.client.setQueryData(key, { projection: newer, etag: '"today:2"' });
+    });
+
+    await waitFor(() => expect(h.client.isMutating()).toBe(0));
+    expect(h.update).not.toHaveBeenCalled();
+    expect(h.client.getQueryData(key)).toMatchObject({
+      etag: '"today:2"',
+      projection: { own: { energyLevel: 90, vibe: 'GOOD' } },
+    });
+  });
+}
+
 it('fails a connectivity race without a paused write or automatic reconnect PATCH', async () => {
   const h = setup();
   h.mount();
@@ -679,6 +794,30 @@ it('preserves a newer authorized module/privacy projection even when the owner v
   expect(screen.queryByText('Private old partner context')).toBeNull();
 });
 
+it('does not reset a newer authorized Today read after an old write fails with 403', async () => {
+  const h = setup();
+  h.mount();
+  await saveEnergy();
+  await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+  const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
+  const newer = {
+    ...h.current,
+    own: { ...h.current.own, energyLevel: 90, version: 2 },
+  };
+  h.get.mockResolvedValue(response(newer, '"today:3"'));
+  await act(async () =>
+    h.client.setQueryData(key, { projection: newer, etag: '"today:3"' }),
+  );
+  const reads = h.get.mock.calls.length;
+  await act(async () => h.reject(new ClientProblemError('permission', 403)));
+  await waitFor(() => expect(h.client.isMutating()).toBe(0));
+  expect(h.get).toHaveBeenCalledTimes(reads);
+  expect(h.client.getQueryData(key)).toMatchObject({
+    etag: '"today:3"',
+    projection: { own: { energyLevel: 90 } },
+  });
+});
+
 it('does not turn a newer denied read into a successful private projection when an older write completes', async () => {
   const h = setup();
   h.current.own.vibe = 'GOOD';
@@ -696,6 +835,7 @@ it('does not turn a newer denied read into a successful private projection when 
     h.client.refetchQueries({ queryKey: key, exact: true }),
   );
   expect(h.client.getQueryState(key)?.status).toBe('error');
+  const deniedReads = h.get.mock.calls.length;
   await act(async () =>
     h.resolve(
       response(
@@ -708,6 +848,7 @@ it('does not turn a newer denied read into a successful private projection when 
     ),
   );
   await waitFor(() => expect(h.client.isMutating()).toBe(0));
+  expect(h.get).toHaveBeenCalledTimes(deniedReads);
   expect(h.client.getQueryState(key)?.status).toBe('error');
   expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
 });

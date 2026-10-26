@@ -8,6 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 RUN python -m pip install --no-cache-dir "google-auth-oauthlib==1.5.0"
+RUN mkdir -p /run/secrets
 
 WORKDIR /opt/eimir-photos-probe
 COPY --chown=10001:10001 google_photos_picker_probe.py google_photos_picker_web_probe.py ./scripts/

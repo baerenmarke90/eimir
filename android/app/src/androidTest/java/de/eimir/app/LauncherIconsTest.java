@@ -7,6 +7,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.content.pm.ActivityInfo;
+import android.graphics.Rect;
+import android.graphics.drawable.AdaptiveIconDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.core.app.ActivityScenario;
 import java.util.List;
@@ -43,6 +48,33 @@ public class LauncherIconsTest {
             assertNotEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                     manager.getComponentEnabledSetting(new ComponentName(context.getPackageName(),
                             "de.eimir.app.LauncherActivity")));
+        }
+    }
+
+    @Test
+    public void everyChoiceOverscansThePlatformMaskInsteadOfShowingAnInsetBadge() throws Exception {
+        PackageManager manager = context.getPackageManager();
+        float density = context.getResources().getDisplayMetrics().density;
+        int viewportPx = Math.round(108 * density);
+        int expectedLayerPx = Math.round(132 * density);
+        for (String id : LauncherIcons.COMPONENTS.keySet()) {
+            ComponentName alias = new ComponentName(
+                    context.getPackageName(), LauncherIcons.COMPONENTS.get(id));
+            ActivityInfo info = manager.getActivityInfo(alias, PackageManager.MATCH_DISABLED_COMPONENTS);
+            Drawable icon = context.getDrawable(info.getIconResource());
+            assertTrue(id + " must be an adaptive icon", icon instanceof AdaptiveIconDrawable);
+            Drawable foreground = ((AdaptiveIconDrawable) icon).getForeground();
+            assertTrue(id + " needs the mask-safe foreground", foreground instanceof LayerDrawable);
+            LayerDrawable layers = (LayerDrawable) foreground;
+            assertEquals(id, 1, layers.getNumberOfLayers());
+            layers.setBounds(0, 0, viewportPx, viewportPx);
+            Rect artwork = layers.getDrawable(0).getBounds();
+            assertEquals(id + " width", expectedLayerPx, artwork.width());
+            assertEquals(id + " height", expectedLayerPx, artwork.height());
+            assertTrue(id + " left overscan", artwork.left < 0);
+            assertTrue(id + " right overscan", artwork.right > viewportPx);
+            assertTrue(id + " top overscan", artwork.top < 0);
+            assertTrue(id + " bottom overscan", artwork.bottom > viewportPx);
         }
     }
 

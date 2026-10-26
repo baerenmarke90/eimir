@@ -872,10 +872,14 @@ for (const view of [
           ),
         });
         if (width === 320) {
-          const noticeShape = await dialog.getByRole('note').evaluate((element) => ({
-            radius: Number.parseFloat(getComputedStyle(element).borderTopLeftRadius),
-            height: element.getBoundingClientRect().height,
-          }));
+          const notice = dialog.getByRole('note');
+          const noticeShape = await notice.evaluate((element) => {
+            const style = getComputedStyle(element);
+            return {
+              radius: Number.parseFloat(style.borderTopLeftRadius),
+              height: element.getBoundingClientRect().height,
+            };
+          });
           expect(noticeShape.radius).toBeLessThan(noticeShape.height / 4);
           const save = dialog.getByRole('button', {
             name: profiles.saveChanges,

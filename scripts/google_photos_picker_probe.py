@@ -148,12 +148,13 @@ def valid_picker_uri(uri: object) -> bool:
         return False
     try:
         parts = urllib.parse.urlsplit(uri)
+        port = parts.port
     except ValueError:
         return False
     return (
         parts.scheme == "https"
         and parts.hostname == "photos.google.com"
-        and parts.port is None
+        and port is None
         and parts.username is None
         and parts.password is None
         and parts.fragment == ""

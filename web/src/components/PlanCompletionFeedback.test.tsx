@@ -348,6 +348,45 @@ it.each(['completion', 'schedule'])(
   },
 );
 
+it('keeps a newer authorized Plan read over a late completion response in the same Query', async () => {
+  const h = setup();
+  await openAndSubmit(h);
+  const newer = plan({ title: 'Updated while waiting', version: 7 });
+  h.setServer(newer);
+  act(() => h.queryClient.setQueryData(h.key, newer));
+
+  await act(async () => h.writes[0].resolve(confirmed(true)));
+  expect(h.queryClient.getQueryData<PlanDetail>(h.key)?.version).toBe(7);
+  expect(h.queryClient.getQueryData<PlanDetail>(h.key)?.title).toBe(
+    'Updated while waiting',
+  );
+  expect(screen.queryByText(m5s3.plan.sharedAchievementTitle)).toBeNull();
+});
+
+it('does not dispatch a Plan completion after its initiating read becomes denied during cancellation', async () => {
+  const h = setup();
+  await screen.findByText('Picnic in the park');
+  fireEvent.change(dateField(), { target: { value: DAY } });
+  const form = completeButton().closest('form') as HTMLFormElement;
+  act(() => {
+    fireEvent.submit(form);
+    h.queryClient.getQueryCache().find({ queryKey: h.key, exact: true })?.setState({
+      error: new ClientProblemError('permission', 403),
+      status: 'error',
+    });
+  });
+  await waitFor(() =>
+    expect(
+      h.queryClient.isMutating({
+        mutationKey: ['plan-complete', SPACE, PLAN_ID],
+        exact: true,
+      }),
+    ).toBe(0),
+  );
+  expect(h.completePlanRaw).not.toHaveBeenCalled();
+  expect(h.queryClient.getQueryData<PlanDetail>(h.key)?.status).toBe('PLANNED');
+});
+
 it('does not celebrate a late completion after the initiating cache is replaced in the same Space', async () => {
   const h = setup();
   await openAndSubmit(h);

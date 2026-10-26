@@ -121,21 +121,21 @@ it('fails an offline attempt without pausing it for automatic reconnect submissi
   const h = setup();
   const title = screen.getByLabelText(m5s3.wish.planTitle);
   fireEvent.change(title, { target: { value: 'Future trip' } });
-  h.completeWish.mockRejectedValueOnce(new ClientProblemError('offline'));
   onlineManager.setOnline(false);
   fireEvent.click(action());
 
   await screen.findByText(de.states.offline.title);
-  expect(h.completeWish).toHaveBeenCalledTimes(1);
+  // A deliberate offline tap never reaches the API, nor queues a future write.
+  expect(h.completeWish).not.toHaveBeenCalled();
   expect(screen.queryByText(m5s3.wish.completePending)).toBeNull();
   expect(title.closest('fieldset')?.disabled).toBe(false);
   expect((title as HTMLInputElement).value).toBe('Future trip');
 
   await act(async () => onlineManager.setOnline(true));
-  expect(h.completeWish).toHaveBeenCalledTimes(1);
+  expect(h.completeWish).not.toHaveBeenCalled();
   expect(h.queryClient.getQueryData<WishDetail>(h.key)?.status).toBe('OPEN');
   fireEvent.click(action());
-  await waitFor(() => expect(h.completeWish).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(h.completeWish).toHaveBeenCalledTimes(1));
   h.setServer(fulfilled());
   await act(async () => h.writes[0].resolve(fulfilled()));
   await screen.findByRole('button', { name: m5s3.wish.createMemory });
@@ -418,6 +418,45 @@ it('reconciles an unmounted completion without offering a transient continuation
     screen.queryByRole('button', { name: m5s3.wish.createMemory }),
   ).toBeNull();
 });
+it('preserves a newer authorized Wish read when the pending fulfillment resolves', async () => {
+  const h = setup();
+  await submit(h);
+  const newer = wish({ title: 'Newer authoritative wish', version: 7 });
+  h.setServer(newer);
+  act(() => h.queryClient.setQueryData(h.key, newer));
+
+  await act(async () => h.writes[0].resolve(fulfilled()));
+  expect(h.queryClient.getQueryData<WishDetail>(h.key)?.version).toBe(7);
+  expect(h.queryClient.getQueryData<WishDetail>(h.key)?.title).toBe(
+    'Newer authoritative wish',
+  );
+  expect(
+    screen.queryByRole('button', { name: m5s3.wish.createMemory }),
+  ).toBeNull();
+});
+
+it('rejects a Wish fulfillment after original Query access is denied while cancellation settles', async () => {
+  const h = setup();
+  await screen.findByText('Northern lights');
+  act(() => {
+    fireEvent.click(action());
+    h.queryClient.getQueryCache().find({ queryKey: h.key, exact: true })?.setState({
+      error: new ClientProblemError('permission', 403),
+      status: 'error',
+    });
+  });
+  await waitFor(() =>
+    expect(
+      h.queryClient.isMutating({
+        mutationKey: ['wish-complete', SPACE, ID],
+        exact: true,
+      }),
+    ).toBe(0),
+  );
+  expect(h.completeWish).not.toHaveBeenCalled();
+  expect(h.queryClient.getQueryData<WishDetail>(h.key)?.status).toBe('OPEN');
+});
+
 it('ignores a late result when the initiating query was replaced in the same Space', async () => {
   const h = setup();
   await submit(h);

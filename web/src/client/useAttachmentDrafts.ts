@@ -302,7 +302,7 @@ export function useAttachmentDrafts({
   );
 
   const addFiles = useCallback(
-    (files: FileList | null) => {
+    (files: FileList | readonly File[] | null) => {
       if (!files) return;
       const currentContext = committedContextKey.current;
       const currentGen = currentGeneration.current;

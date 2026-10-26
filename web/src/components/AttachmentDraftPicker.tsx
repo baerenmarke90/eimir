@@ -3,7 +3,7 @@ import { useTranslation } from '../i18n';
 
 export interface AttachmentDraftPickerController {
   items: AttachmentDraft[];
-  addFiles: (files: FileList | null) => void;
+  addFiles: (files: FileList | readonly File[] | null) => void;
   cancel: (id: string) => void;
   remove: (id: string) => void;
   retry: (draft: AttachmentDraft) => void;

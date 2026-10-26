@@ -15,6 +15,8 @@ import json
 import os
 import re
 import subprocess
+import tarfile
+import tempfile
 import time
 from pathlib import Path
 
@@ -195,6 +197,51 @@ def evidence_records(root: Path, source: str) -> dict[str, dict]:
     return result
 
 
+def archive_config_digest(path: Path, expected_tag: str | None = None) -> str:
+    """Hash Docker save's exact config bytes, independent of image-store IDs."""
+    try:
+        with tarfile.open(path, mode="r:") as archive:
+
+            def read_member(name: str) -> bytes:
+                members = [item for item in archive.getmembers() if item.name == name]
+                if (
+                    len(members) != 1
+                    or not members[0].isfile()
+                    or members[0].size > 1024 * 1024
+                ):
+                    raise ChannelError("Image archive member is ambiguous or invalid")
+                stream = archive.extractfile(members[0])
+                if stream is None:
+                    raise ChannelError("Image archive member cannot be read")
+                with stream:
+                    return stream.read()
+
+            manifest = json.loads(read_member("manifest.json"))
+            if (
+                not isinstance(manifest, list)
+                or len(manifest) != 1
+                or not isinstance(manifest[0], dict)
+            ):
+                raise ChannelError("Image archive must contain exactly one image")
+            image = manifest[0]
+            if expected_tag is not None and image.get("RepoTags") != [expected_tag]:
+                raise ChannelError("Image archive tag does not match the evidence")
+            config_path = image.get("Config")
+            if not isinstance(config_path, str) or not re.fullmatch(
+                r"(?:[0-9a-f]{64}\.json|blobs/sha256/[0-9a-f]{64})", config_path
+            ):
+                raise ChannelError("Image archive config path is invalid")
+            digest = hashlib.sha256(read_member(config_path)).hexdigest()
+            claimed = config_path.removeprefix("blobs/sha256/").removesuffix(".json")
+            if digest != claimed:
+                raise ChannelError("Image archive config digest does not match its bytes")
+            return "sha256:" + digest
+    except (OSError, tarfile.TarError, ValueError) as exc:
+        if isinstance(exc, ChannelError):
+            raise
+        raise ChannelError("Image archive config cannot be verified") from exc
+
+
 def publish_image(
     root: Path, record: dict, source: str, version: str, attempt: str
 ) -> str:
@@ -203,6 +250,7 @@ def publish_image(
     local = f"eimir-{role}:evidence-{source}"
     repository = f"ghcr.io/{REPOSITORY}-{role}"
     target = f"{repository}:test-{source}-{attempt}"
+    config_digest = archive_config_digest(root / record["path"], local)
     run(["docker", "load", "--input", str(root / record["path"])], timeout=600)
     inspected = json.loads(run(["docker", "image", "inspect", local]))[0]
     labels = inspected["Config"]["Labels"]
@@ -218,23 +266,38 @@ def publish_image(
             "Runtime image source/version/platform labels do not match evidence"
         )
     run(["docker", "tag", local, target])
-    pushed = run(["docker", "push", target], timeout=600)
+    # Containerd archives can retain a provenance index. Deploy only the runtime
+    # platform; the original archives and GitHub attestations remain unchanged.
+    pushed = run(["docker", "push", "--platform", "linux/amd64", target], timeout=600)
     digests = re.findall(r"digest: (sha256:[0-9a-f]{64})", pushed)
     if len(set(digests)) != 1:
         raise ChannelError("Registry push did not report one unambiguous image digest")
     pinned = f"{repository}@{digests[0]}"
     manifest = json.loads(run(["docker", "manifest", "inspect", pinned]))
     if (
-        "manifests" in manifest
-        or manifest.get("config", {}).get("digest") != inspected["Id"]
+        not isinstance(manifest, dict)
+        or manifest.get("schemaVersion") != 2
+        or manifest.get("mediaType") not in {
+            "application/vnd.oci.image.manifest.v1+json",
+            "application/vnd.docker.distribution.manifest.v2+json",
+        }
+        or "manifests" in manifest
+        or not isinstance(manifest.get("layers"), list)
+        or not isinstance(manifest.get("config"), dict)
+        or manifest.get("config", {}).get("digest") != config_digest
     ):
         raise ChannelError(
             "Registry digest is not the exact built single-image manifest"
         )
     run(["docker", "pull", pinned], timeout=600)
-    pulled = json.loads(run(["docker", "image", "inspect", pinned]))[0]
-    if pulled["Id"] != inspected["Id"]:
-        raise ChannelError("Registry pull-back differs from the evidence image")
+    with tempfile.TemporaryDirectory(prefix="eimir-channel-pullback-") as temporary:
+        pulled_archive = Path(temporary) / "image.tar"
+        run(
+            ["docker", "image", "save", "--output", str(pulled_archive), pinned],
+            timeout=600,
+        )
+        if archive_config_digest(pulled_archive) != config_digest:
+            raise ChannelError("Registry pull-back differs from the evidence image")
     return pinned
 
 

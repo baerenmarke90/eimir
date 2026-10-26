@@ -16,34 +16,37 @@ does not accept that draft foundation for main or certify public/store launch.
 | Demo mode / reset timer | Both disabled |
 | Source branch | `release/android-test.14-20261026` |
 
-The branch integrates `main@d5d541a1b90e651a9e62d347dffda94e7ba4f8f5`
-and the #508 offline-browser contract repair into the existing unpublished
+The branch integrates `main@18225f97cafde42523bca691ff0470d64029377f`,
+including the merged #508 offline-browser contract repair, into the unpublished
 `release/android-test.14-20261024` channel source (`c6ed91ee`). The build helper
 embeds the full clean checkout SHA; the release must target that exact SHA.
 Do not infer the APK source from main, an older test.14 build or these notes.
 
 The candidate contains #1439 Daily Check-in ownership, #1440 private profile-note
-context/reflow and #1441 all-eleven launcher-mask corrections. It retains the
-test updater and shared identity intake. Do not include the unrelated draft FCM
-candidate #1392 or migrate the installed package to `de.eimir.app` (#1395).
+context/reflow and #1441 all-eleven launcher-mask corrections. It also inherits
+the shared selected-File array contract and the #1448 Cloud publisher repair.
+It retains the test updater and shared identity intake. Do not include the
+unrelated draft FCM candidate #1392 or migrate the installed package to
+`de.eimir.app` (#1395).
 
 ## Preparation boundary
 
-This is a source preparation, not a signed APK or published update. The preparing
-workspace has no existing test signing environment, Java 21 or Android SDK 36.
+This is a source preparation, not a signed APK or published update. The original
+test signing environment is unavailable in the preparing workspace and GitHub
+Actions has no configured release-keystore secrets.
 No replacement key, debug signature, install marker or APK is fabricated.
 The existing durable key must be supplied privately through the supported
-environment; never attach it to GitHub or put it in this document.
+environment; never commit it, attach it to an issue/release or put it here.
 
 The main CI failure was a stale browser expectation: `assertOnlineWrite`
 correctly prevents known-offline dispatch, but the old Wish case expected one
 request. The repair asserts zero before/reconnect and one deliberate retry,
 with a separate held-request transport-disconnect case. Runtime completion and
-authorization contracts are unchanged. Merge/accept the bounded #508 repair
-through [PR #1442](https://github.com/baerenmarke90/eimir/pull/1442); this
-candidate does not merge main or close #508.
+authorization contracts are unchanged. The bounded repair was merged through
+[PR #1442](https://github.com/baerenmarke90/eimir/pull/1442). This Android source
+preparation does not close the broader #508 acceptance work.
 
-## Preparation evidence
+## Earlier preparation evidence (`9bce39fb`)
 
 - #1442 head `68c64cced72ba4bd88066113b1a9d474fe41f093`: all 18 Wish
   completion browser scenarios passed without a retry in the
@@ -62,6 +65,23 @@ candidate does not merge main or close #508.
   Historical native evidence stays bound to its original APK/source. Full
   integrated Web/Android checks and final signing checks remain required on the
   source selected for the release.
+
+These results belong to the earlier candidate. The refreshed merge of
+`main@18225f97` requires its own exact-head hosted checks before signing. A
+successful Cloud publisher is separate from a signed APK and from a deployed
+instance's Web/API revision smoke check.
+
+## Refreshed source checks
+
+- `TZ=UTC npm test`: 2,128 tests passed, one existing skip; 231 passing files.
+- All 12 Android release-producer/launcher/resource source tests passed.
+  The channel suite passed 24 cases; five Docker Compose cases require the
+  hosted Docker environment.
+- Capacitor foundation, tokens/PWA, TypeScript, production Vite build, Biome
+  lint and formatting passed. Existing lint/build warnings remain unchanged.
+- Hosted CI/browser/native resource checks must pass on the refreshed commit
+  before signing. Local source checks do not establish signed assembly,
+  same-signer installation, real-device behavior or Cloud rollout acceptance.
 
 ## Signing handoff
 

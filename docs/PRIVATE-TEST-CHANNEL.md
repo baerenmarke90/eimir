@@ -23,7 +23,12 @@ After a push to `main`, the private-channel jobs in `.github/workflows/release-p
    hashes, SPDX SBOMs and verified attestations. Nothing builds on the Docker host.
 4. Loads both archives, verifies source/version/platform labels, publishes to the
    existing GHCR backend/Web packages and checks the exact registry manifests and
-   pulled-back image identities.
+   pulled-back image identities. Docker pushes only `linux/amd64`, so containerd
+   provenance indexes are not deployment references. The single registry
+   manifest's config digest must match the exact config bytes in the verified
+   build archive and a fresh pull-back save archive. Docker image IDs are not
+   used as config digests because their meaning depends on the image store.
+   Original evidence archives, SBOMs and GitHub attestations remain intact.
 5. Publishes one generated commit on `deploy/eimir-test` after both images exist.
    Current `main` and CI are rechecked before promotion. Ref updates are never
    forced, so a concurrent writer is refused.

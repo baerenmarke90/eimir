@@ -70,3 +70,33 @@ quotas, provider costs and entitlement enforcement are unchanged.
 The test-channel sideload App Links must target the permanently enabled shell,
 not the selectable Original alias. Preserve package/signing identity and use a
 higher version code for delivery; never replace published APK bytes.
+
+## All-variant home-screen mask correction — 2026-10-26
+
+The owner reported an installed Android home-screen regression: Lavender
+appeared as an undersized pre-rounded tile within the OS launcher mask.
+The same original resource contract affected all eleven choices. The existing
+generator puts every exact approved poster tile into the central 288px of a
+transparent 432px foreground. Android's effective mask is 72dp inside a 108dp
+canvas; the old tile covered that viewport without overscan, making the
+source tile's rounded boundary visible.
+
+Every choice now references a generated, centered \`132dp\` foreground
+\`layer-list\`. The original 288/432 bitmap tile therefore spans \`88dp\`,
+overscanning the mask by 8dp per side. This retains the exact approved artwork
+and lets the Android launcher decide the final outer mask (round/squircle/etc.)
+without displaying another rounded square inside it. It does not force a
+square icon on launchers whose system mask is circular.
+
+The build-time generator remains the source of all eleven resources.
+\`python3 scripts/test_android_adaptive_icon_resources.py\` checks alias mapping,
+resource XML, dimensions and matching source images for every choice; the API
+28/36 native launcher workflow validates the compiled drawable geometry and
+existing selection/session entry behaviour. No Java/React production logic,
+permissions, origin, package/signing identity, provider or dependency changes.
+
+**Still required:** a signed higher-version test APK with the same existing
+package/signer, in-place data/session upgrade, and visual inspection of every
+choice on the owner's real launcher (home, app drawer, system mask/theme modes).
+Static validation or an emulator alone cannot close #1307. Previously captured
+native screenshots are evidence of the old build, not this correction.

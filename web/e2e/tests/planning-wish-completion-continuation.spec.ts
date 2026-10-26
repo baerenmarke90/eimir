@@ -654,11 +654,10 @@ test('keyboard completion keeps action focus while pending then focuses confirme
   ).toBeFocused();
 });
 
-test('offline completion fails visibly and reconnect requires an explicit new attempt', async ({
+test('offline completion sends no request and reconnect requires an explicit new attempt', async ({
   page,
 }) => {
-  const options = { offline: true };
-  const mocks = await installMocks(page, options);
+  const mocks = await installMocks(page);
   await openWish(page, visualScenarios[0]);
   const title = page.getByLabel(m5s3.wish.planTitle);
   await title.fill('Future trip');
@@ -666,19 +665,60 @@ test('offline completion fails visibly and reconnect requires an explicit new at
   await page
     .getByRole('button', { name: m5s3.wish.complete, exact: true })
     .click();
-  await expect(page.getByText(de.states.offline.title)).toBeVisible();
+  const error = page.locator('.wish-operations').getByRole('status');
+  await expect(error.getByText(de.states.offline.title)).toBeVisible();
   await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
   await expect(title).toBeEnabled();
   await expect(title).toHaveValue('Future trip');
-  expect(mocks.requestCount()).toBe(1);
+  // The shared dispatch guard rejects known-offline intent before HTTP.
+  expect(mocks.requestCount()).toBe(0);
 
-  options.offline = false;
   await page.context().setOffline(false);
-  await expect(page.getByText(de.states.offline.title)).toBeVisible();
-  expect(mocks.requestCount()).toBe(1);
+  await expect(error.getByText(de.states.offline.title)).toBeVisible();
+  expect(mocks.requestCount()).toBe(0);
   await page
     .getByRole('button', { name: m5s3.wish.complete, exact: true })
     .click();
+  await expect(
+    page.getByRole('button', { name: m5s3.wish.createMemory }),
+  ).toBeVisible();
+  expect(mocks.requestCount()).toBe(1);
+});
+
+test('a disconnected completion request preserves input and retries only deliberately', async ({
+  page,
+}) => {
+  const held = heldResponse();
+  const options = { hold: held.hold, offline: true };
+  const mocks = await installMocks(page, options);
+  await openWish(page, visualScenarios[0]);
+  const title = page.getByLabel(m5s3.wish.planTitle);
+  await title.fill('Future trip');
+  const complete = page.getByRole('button', {
+    name: m5s3.wish.complete,
+    exact: true,
+  });
+  await complete.click();
+  await expect.poll(mocks.requestCount).toBe(1);
+  await expect(page.getByText(m5s3.wish.completePending)).toBeVisible();
+  // Connectivity was available at dispatch; this request fails in transport.
+  held.release();
+  const error = page.locator('.wish-operations').getByRole('status');
+  await expect(error.getByText(de.states.offline.title)).toBeVisible();
+  await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
+  await expect(title).toBeEnabled();
+  await expect(title).toHaveValue('Future trip');
+  await expect(
+    page.getByRole('button', { name: m5s3.wish.createMemory }),
+  ).toHaveCount(0);
+  expect(mocks.requestCount()).toBe(1);
+
+  await page.context().setOffline(true);
+  options.offline = false;
+  await page.context().setOffline(false);
+  await expect(error.getByText(de.states.offline.title)).toBeVisible();
+  expect(mocks.requestCount()).toBe(1);
+  await complete.click();
   await expect(
     page.getByRole('button', { name: m5s3.wish.createMemory }),
   ).toBeVisible();

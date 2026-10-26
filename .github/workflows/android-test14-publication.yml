@@ -82,9 +82,29 @@ jobs:
           python3 scripts/android_test_release.py build --unsigned \
             --version-name 0.2.0-test.14 --version-code 14 \
             --output-dir "$RUNNER_TEMP/validation-only"
+          cat > "$RUNNER_TEMP/sideload-test.init.gradle" <<'GRADLE'
+          gradle.beforeProject { project ->
+              project.pluginManager.withPlugin('com.android.application') {
+                  def components = project.extensions.getByName('androidComponents')
+                  components.beforeVariants(components.selector().withBuildType('sideload')) { variant ->
+                      variant.enableUnitTest = true
+                  }
+              }
+          }
+          GRADLE
           cd android
           ./gradlew --no-daemon --dependency-verification strict \
+            --init-script "$RUNNER_TEMP/sideload-test.init.gradle" \
             :app:lintSideload :app:testSideloadUnitTest
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          suites = [ET.parse(p).getroot() for p in Path('app/build/test-results/testSideloadUnitTest').glob('TEST-*.xml')]
+          expected = {'de.eimir.app.updates.UpdateCatalogTest', 'de.eimir.app.updates.UpdatePolicyTest'}
+          assert expected <= {s.get('name') for s in suites}, 'Sideload policy/catalog tests did not execute'
+          assert all(int(s.get('tests', 0)) > 0 and int(s.get('failures', 0)) == 0 and int(s.get('errors', 0)) == 0 for s in suites)
+          print(f'Sideload JVM tests passed: {sum(int(s.get("tests")) for s in suites)}')
+          PY
       - name: Record reviewable preflight result
         run: |
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF

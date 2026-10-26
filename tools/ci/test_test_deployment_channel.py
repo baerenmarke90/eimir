@@ -5,11 +5,14 @@ from __future__ import annotations
 
 import base64
 import copy
+import hashlib
+import io
 import json
 import os
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 from pathlib import Path
@@ -171,6 +174,30 @@ class EvidenceAndImageTest(unittest.TestCase):
             self.index["artifacts"].append(record)
         self.write_index()
 
+    def write_image_archive(self, path, *, legacy=False, config=None, tag=None):
+        if config is None:
+            config = json.dumps(self.inspect()["Config"]).encode()
+        digest = hashlib.sha256(config).hexdigest()
+        config_path = digest + ".json" if legacy else "blobs/sha256/" + digest
+        manifest = [{"Config": config_path, "RepoTags": [tag] if tag else None}]
+        with tarfile.open(path, mode="w") as archive:
+            for name, content in (
+                ("manifest.json", json.dumps(manifest).encode()),
+                (config_path, config),
+            ):
+                member = tarfile.TarInfo(name)
+                member.size = len(content)
+                archive.addfile(member, io.BytesIO(content))
+        return "sha256:" + digest
+
+    def prepare_image_archive(self, *, legacy=False):
+        self.config_digest = self.write_image_archive(
+            self.root / self.index["artifacts"][0]["path"],
+            legacy=legacy,
+            tag=f"eimir-backend:evidence-{SOURCE}",
+        )
+        self.image_id = self.config_digest if legacy else "sha256:" + "a" * 64
+
     def write_index(self):
         (self.root / "evidence-index.json").write_text(json.dumps(self.index))
 
@@ -212,7 +239,7 @@ class EvidenceAndImageTest(unittest.TestCase):
 
     def inspect(self):
         return {
-            "Id": "sha256:" + "a" * 64,
+            "Id": getattr(self, "image_id", "sha256:" + "a" * 64),
             "Os": "linux",
             "Architecture": "amd64",
             "Config": {
@@ -232,26 +259,43 @@ class EvidenceAndImageTest(unittest.TestCase):
             return "test: digest: sha256:" + "b" * 64 + " size: 1000\n"
         if arguments[1:3] == ["manifest", "inspect"]:
             return json.dumps(
-                {"config": {"digest": self.inspect()["Id"]}, "layers": []}
+                {
+                    "schemaVersion": 2,
+                    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                    "config": {"digest": self.config_digest},
+                    "layers": [],
+                }
             )
+        if arguments[1:3] == ["image", "save"]:
+            self.write_image_archive(Path(arguments[4]))
         return ""
 
     def test_registry_digest_and_pull_back_are_verified(self):
-        with patch.object(channel, "run", side_effect=self.image_run) as run:
-            pinned = channel.publish_image(
-                self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
-            )
-            self.assertEqual(
-                pinned, "ghcr.io/baerenmarke90/eimir-backend@sha256:" + "b" * 64
-            )
-            self.assertTrue(
-                any(
-                    call.args[0][:2] == ["docker", "pull"]
-                    for call in run.call_args_list
+        for legacy in (False, True):
+            self.prepare_image_archive(legacy=legacy)
+            with (
+                self.subTest(legacy=legacy),
+                patch.object(channel, "run", side_effect=self.image_run) as run,
+            ):
+                pinned = channel.publish_image(
+                    self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
                 )
-            )
+                self.assertEqual(
+                    pinned, "ghcr.io/baerenmarke90/eimir-backend@sha256:" + "b" * 64
+                )
+                calls = [call.args[0] for call in run.call_args_list]
+                self.assertIn(["docker", "pull", pinned], calls)
+                self.assertTrue(
+                    any(args[:4] == ["docker", "push", "--platform", "linux/amd64"] for args in calls)
+                )
+                self.assertTrue(
+                    any(args[:3] == ["docker", "image", "save"] for args in calls)
+                )
+                # Containerd IDs can identify a manifest/index instead of config.
+                self.assertEqual(self.inspect()["Id"] == self.config_digest, legacy)
 
     def test_wrong_image_source_fails_before_push(self):
+        self.prepare_image_archive()
         inspect = self.inspect()
         inspect["Config"]["Labels"]["org.opencontainers.image.revision"] = PREVIOUS
         with (
@@ -266,9 +310,16 @@ class EvidenceAndImageTest(unittest.TestCase):
         self.assertEqual(run.call_count, 2)
 
     def test_registry_index_or_different_config_is_refused(self):
+        self.prepare_image_archive()
         for manifest in (
+            [],
             {"manifests": []},
-            {"config": {"digest": "sha256:" + "c" * 64}},
+            {
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                "config": {"digest": "sha256:" + "c" * 64},
+                "layers": [],
+            },
         ):
 
             def changed(arguments, *, manifest=manifest, **kwargs):
@@ -284,6 +335,59 @@ class EvidenceAndImageTest(unittest.TestCase):
                 channel.publish_image(
                     self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
                 )
+
+    def test_different_pull_back_config_is_refused(self):
+        self.prepare_image_archive()
+
+        def changed(arguments, **kwargs):
+            if arguments[1:3] == ["image", "save"]:
+                self.write_image_archive(Path(arguments[4]), config=b"different config")
+                return ""
+            return self.image_run(arguments, **kwargs)
+
+        with (
+            patch.object(channel, "run", side_effect=changed),
+            self.assertRaisesRegex(channel.ChannelError, "pull-back differs"),
+        ):
+            channel.publish_image(
+                self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
+            )
+
+    def test_ambiguous_corrupt_linked_or_unexpected_config_is_refused(self):
+        config = b"image config"
+        digest = hashlib.sha256(config).hexdigest()
+        name = "blobs/sha256/" + digest
+        base = {"Config": name, "RepoTags": [f"eimir-backend:evidence-{SOURCE}"]}
+        for change in ("multiple", "corrupt", "link", "duplicate", "traversal", "tag"):
+            record = copy.deepcopy(base)
+            if change == "traversal":
+                record["Config"] = "../" + name
+            if change == "tag":
+                record["RepoTags"] = ["unrelated:image"]
+            manifest = [record, record] if change == "multiple" else [record]
+            archive_path = self.root / self.index["artifacts"][0]["path"]
+            with tarfile.open(archive_path, mode="w") as archive:
+                for member_name, content in (
+                    ("manifest.json", json.dumps(manifest).encode()),
+                    (name, b"wrong bytes" if change == "corrupt" else config),
+                ):
+                    member = tarfile.TarInfo(member_name)
+                    member.size = len(content)
+                    if change == "link" and member_name == name:
+                        member.type = tarfile.SYMTYPE
+                        member.linkname = "/private"
+                    archive.addfile(member, io.BytesIO(content))
+                    if change == "duplicate" and member_name == name:
+                        archive.addfile(member, io.BytesIO(content))
+            with (
+                self.subTest(change=change),
+                patch.object(channel, "run") as run,
+                self.assertRaises(channel.ChannelError),
+            ):
+                channel.publish_image(
+                    self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
+                )
+            run.assert_not_called()
 
     def test_partial_publication_never_advances_the_branch(self):
         with (

@@ -56,6 +56,25 @@ SELF_VALIDATING_LEAF_WORKFLOW_EXACT = (
     ".github/workflows/web-s8.yml",
 )
 
+# The immutable release publisher validates itself: ``release-publish.yml`` runs
+# these tests in its own pull-request jobs and its ``pull_request.paths`` filter
+# lists every path below (enforced by test_change_scope.py). None of them is
+# consumed by a core CI gate, so changing only them must not wake Backend,
+# Self-Hosted or Supply Chain. Files shared with other consumers, such as
+# ``scripts/release_manifest.py`` (also used by the release candidate and the
+# project-identity scan), are deliberately absent and stay fail-closed. The
+# entry must precede the blanket ``tools/ci/`` rule below.
+SELF_VALIDATING_RELEASE_PUBLICATION_EXACT = (
+    ".github/workflows/release-publish.yml",
+    "scripts/image_archive_config.py",
+    "scripts/test_deployment_channel.py",
+    "scripts/verify_release_asset_set.py",
+    "tools/ci/test_image_archive_config.py",
+    "tools/ci/test_release_publish_workflow.py",
+    "tools/ci/test_test_deployment_channel.py",
+    "tools/ci/test_verify_release_asset_set.py",
+)
+
 # Account-deletion recovery authority is intentionally classified by semantic
 # module namespace plus a small exact set of orchestration/retention owners
 # outside that namespace. ``deletion.py`` is the historical root module; every
@@ -132,6 +151,10 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
     for raw_path in paths:
         path = raw_path.strip().replace("\\", "/")
         if not path:
+            continue
+
+        # Exact allowlist only; a mixed PR still classifies its other paths.
+        if path in SELF_VALIDATING_RELEASE_PUBLICATION_EXACT:
             continue
 
         # The classifier and its owning workflow define the safety boundary.

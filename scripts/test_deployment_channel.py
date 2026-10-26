@@ -15,11 +15,11 @@ import json
 import os
 import re
 import subprocess
-import tarfile
 import tempfile
 import time
 from pathlib import Path
 
+import image_archive_config
 import release_manifest
 
 REPOSITORY = "baerenmarke90/eimir"
@@ -200,46 +200,9 @@ def evidence_records(root: Path, source: str) -> dict[str, dict]:
 def archive_config_digest(path: Path, expected_tag: str | None = None) -> str:
     """Hash Docker save's exact config bytes, independent of image-store IDs."""
     try:
-        with tarfile.open(path, mode="r:") as archive:
-
-            def read_member(name: str) -> bytes:
-                members = [item for item in archive.getmembers() if item.name == name]
-                if (
-                    len(members) != 1
-                    or not members[0].isfile()
-                    or members[0].size > 1024 * 1024
-                ):
-                    raise ChannelError("Image archive member is ambiguous or invalid")
-                stream = archive.extractfile(members[0])
-                if stream is None:
-                    raise ChannelError("Image archive member cannot be read")
-                with stream:
-                    return stream.read()
-
-            manifest = json.loads(read_member("manifest.json"))
-            if (
-                not isinstance(manifest, list)
-                or len(manifest) != 1
-                or not isinstance(manifest[0], dict)
-            ):
-                raise ChannelError("Image archive must contain exactly one image")
-            image = manifest[0]
-            if expected_tag is not None and image.get("RepoTags") != [expected_tag]:
-                raise ChannelError("Image archive tag does not match the evidence")
-            config_path = image.get("Config")
-            if not isinstance(config_path, str) or not re.fullmatch(
-                r"(?:[0-9a-f]{64}\.json|blobs/sha256/[0-9a-f]{64})", config_path
-            ):
-                raise ChannelError("Image archive config path is invalid")
-            digest = hashlib.sha256(read_member(config_path)).hexdigest()
-            claimed = config_path.removeprefix("blobs/sha256/").removesuffix(".json")
-            if digest != claimed:
-                raise ChannelError("Image archive config digest does not match its bytes")
-            return "sha256:" + digest
-    except (OSError, tarfile.TarError, ValueError) as exc:
-        if isinstance(exc, ChannelError):
-            raise
-        raise ChannelError("Image archive config cannot be verified") from exc
+        return image_archive_config.archive_config_digest(path, expected_tag)
+    except image_archive_config.ArchiveConfigError as exc:
+        raise ChannelError(str(exc)) from exc
 
 
 def publish_image(

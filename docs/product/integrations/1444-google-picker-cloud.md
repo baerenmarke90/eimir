@@ -45,6 +45,58 @@ The probe **refuses startup** unless explicitly enabled and configured with an H
 
 Codex can implement and test this service in its cloud coding environment. **A normal Codex task is not itself the deployed HTTPS callback server**. A separately configured operator test host and Google Console Web client are still necessary. This PR does not provision or deploy any public endpoint.
 
+## Existing Docker + Nginx Proxy Manager (no new hosting provider)
+
+This is the preferred **temporary test** option when the operator already runs Docker and Nginx Proxy Manager (NPM) on the **same Docker engine**. It leaves eimir.'s canonical compose.yaml, the Arcane private test stack, and normal Cloud releases untouched. No additional tracked Compose manifest or paid PaaS is required.
+
+The proposed name **photos-probe.example.org** below is **not an actual deployed address**. Replace it with a subdomain in a DNS zone you control that resolves to your existing TLS reverse proxy. The exact hostname must match in NPM, the Google OAuth Web client and the probe environment.
+
+1. In Google Cloud Console enable the **Google Photos Picker API**, configure OAuth test users, and create an OAuth **Web application** client (distinct from the optional Desktop client). Register precisely **https://photos-probe.example.org/oauth/callback** as its authorized redirect URI, then download the Web client JSON. Use one dedicated synthetic JPEG in the test account.
+2. On your Docker host place the OAuth JSON **outside Git**, readable only by non-root UID/GID **10001** (e.g. **/opt/eimir-google-photos-probe/google-web-client.json**, owner 10001:10001, mode 0400). Create a host-local **/opt/eimir-google-photos-probe/probe.env** (mode 0600) containing the four operator settings below. Generate the 64-character operator secret locally with **openssl rand -hex 32**, and never share it through GitHub, chat or copied shell logs. Do not mount any eimir. database, media or production secrets.
+
+~~~dotenv
+EIMIR_GOOGLE_PHOTOS_PROBE_ENABLED=1
+EIMIR_GOOGLE_PHOTOS_PROBE_ORIGIN=https://photos-probe.example.org
+EIMIR_GOOGLE_PHOTOS_PROBE_WEB_CLIENT_FILE=/run/secrets/google-photos-web-client.json
+EIMIR_GOOGLE_PHOTOS_PROBE_OPERATOR_KEY=REPLACE_WITH_64_RANDOM_HEX_CHARACTERS
+~~~
+
+3. From the exact accepted #1451 repository revision on that Docker host, build the standalone image:
+
+~~~bash
+docker build -f tools/ops/google-photos-picker-probe.Dockerfile \
+  -t eimir-google-photos-probe:local .
+~~~
+
+4. Identify the running NPM container via **docker ps**. Share its network namespace to keep the test app's **127.0.0.1:8787** listener reachable by NPM **without publishing a Docker host port**:
+
+~~~bash
+NPM_CONTAINER=REPLACE_WITH_RUNNING_NPM_CONTAINER_NAME
+docker run --rm --name eimir-google-photos-probe \
+  --network "container:$NPM_CONTAINER" \
+  --read-only --cap-drop ALL --security-opt no-new-privileges \
+  --pids-limit 128 --memory 256m \
+  --tmpfs /tmp:rw,nosuid,nodev,size=16m \
+  --env-file /opt/eimir-google-photos-probe/probe.env \
+  --mount type=bind,src=/opt/eimir-google-photos-probe/google-web-client.json,dst=/run/secrets/google-photos-web-client.json,readonly \
+  eimir-google-photos-probe:local
+~~~
+
+   The test image runs as **UID 10001**, so the OAuth file must be readable by that UID. The host env file must be readable by the operator launching Docker (Docker injects its variables). Container-network mode depends on NPM remaining online. If NPM runs on a *different* host, do **not** use this same-namespace recipe or expose port 8787 publicly: secure an isolated internal proxy connection first.
+
+5. In NPM create a new **Proxy Host** for **photos-probe.example.org**. Set upstream scheme **http**, hostname **127.0.0.1**, port **8787**; enable a trusted TLS certificate and force HTTPS. Configure the test vhost's **Advanced** directives to prevent Google OAuth callback codes from reaching NPM logs:
+
+~~~nginx
+access_log off;
+error_log /dev/null crit;
+~~~
+
+   Verify these rules against the **effective nginx configuration** and all external/CDN/WAF/ingress/monitoring log layers. No layer may log the OAuth callback query string, request body, test bearer data or photo metadata. Do not turn on unrelated request tracing or connect the test host to the public eimir. app routes.
+
+6. Open the dedicated HTTPS test address in the browser, submit your locally generated operator secret, authorize Google's limited Picker scope, and select **one synthetic photo**. Return to the test page and explicitly finish. The consenting browser user installs **nothing**. Check the sanitized result and remote-session cleanup, stop/remove the temporary container, remove the dedicated NPM vhost, revoke the Google test grant and retire the operator secret.
+
+This is a **one-off operator test sidecar**, not a new eimir. Cloud service, a public photo importer or a persistent part of Arcane's eimir. Git Sync stack. The repository does **not** create the DNS name, Google OAuth client, secret volume or NPM vhost by itself.
+
 ## Safety and cleanup
 
 - Cookie: Secure, HttpOnly, SameSite=Lax, short-lived, random. OAuth callback state is checked before exchanging any token; only one callback is consumed.

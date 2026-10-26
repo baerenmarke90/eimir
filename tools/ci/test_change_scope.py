@@ -6,10 +6,9 @@ import re
 import unittest
 from pathlib import Path
 
-from change_scope import SCOPES, SELF_VALIDATING_RELEASE_PUBLICATION_EXACT, classify_paths
+from change_scope import SCOPES, SELF_VALIDATING_TOOLING_OWNERS, classify_paths
 
 ROOT = Path(__file__).resolve().parents[2]
-RELEASE_PUBLISH_WORKFLOW = ROOT / ".github/workflows/release-publish.yml"
 
 ACCOUNT_DELETION_RECOVERY_RUNTIME_PATHS = (
     "backend/src/eimir/identity/deletion.py",
@@ -271,38 +270,42 @@ class ChangeScopeTest(unittest.TestCase):
                 self.assertTrue(all(classify_paths([path]).values()))
 
     @staticmethod
-    def release_publish_pull_request_paths() -> list[str]:
-        text = RELEASE_PUBLISH_WORKFLOW.read_text(encoding="utf-8")
+    def pull_request_paths(workflow: str) -> list[str]:
+        text = (ROOT / workflow).read_text(encoding="utf-8")
         block = text.split("  pull_request:\n    paths:\n", 1)[1].split("\n  workflow_dispatch:", 1)[0]
-        return re.findall(r'^      - "([^"]+)"$', block, re.MULTILINE)
+        return re.findall(r"""^      - ["']([^"']+)["']$""", block, re.MULTILINE)
 
-    def test_release_publication_family_does_not_enable_core_gates(self) -> None:
-        for path in SELF_VALIDATING_RELEASE_PUBLICATION_EXACT:
+    def test_self_validating_tooling_does_not_enable_core_gates(self) -> None:
+        for path in SELF_VALIDATING_TOOLING_OWNERS:
             with self.subTest(path=path):
                 self.assert_scope([path], enabled=set())
-        self.assert_scope(list(SELF_VALIDATING_RELEASE_PUBLICATION_EXACT), enabled=set())
+        self.assert_scope(list(SELF_VALIDATING_TOOLING_OWNERS), enabled=set())
         self.assert_scope(
-            [*SELF_VALIDATING_RELEASE_PUBLICATION_EXACT, "docs/m6/IMMUTABLE-RELEASES.md"],
+            [*SELF_VALIDATING_TOOLING_OWNERS, "docs/m6/IMMUTABLE-RELEASES.md"],
             enabled=set(),
         )
 
-    def test_release_publication_family_is_actually_validated_by_its_own_workflow(self) -> None:
+    def test_self_validating_tooling_is_actually_validated_by_its_owner(self) -> None:
         # Skipping the core gates is only safe while a pull request touching these
-        # files still triggers release-publish.yml, which runs their tests.
-        patterns = self.release_publish_pull_request_paths()
-        self.assertIn(".github/workflows/release-publish.yml", patterns)
-        workflow = RELEASE_PUBLISH_WORKFLOW.read_text(encoding="utf-8")
-        for path in SELF_VALIDATING_RELEASE_PUBLICATION_EXACT:
-            with self.subTest(path=path):
+        # files still triggers the owning workflow, which runs their tests.
+        for path, owner in SELF_VALIDATING_TOOLING_OWNERS.items():
+            with self.subTest(path=path, owner=owner):
                 self.assertTrue((ROOT / path).is_file(), "stale allowlist entry")
                 self.assertTrue(
-                    any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns),
-                    "not covered by the workflow's pull_request.paths",
+                    owner in SELF_VALIDATING_TOOLING_OWNERS
+                    and SELF_VALIDATING_TOOLING_OWNERS[owner] == owner,
+                    "owner must be an allowlisted workflow that owns itself",
                 )
-                if path.startswith("tools/ci/test_"):
-                    self.assertIn(f"python3 {path}", workflow, "test is not run by the workflow")
+                patterns = self.pull_request_paths(owner)
+                self.assertTrue(
+                    any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns),
+                    "not covered by the owner's pull_request.paths",
+                )
+                if Path(path).name.startswith("test_"):
+                    workflow = (ROOT / owner).read_text(encoding="utf-8")
+                    self.assertIn(f"python3 {path}", workflow, "test is not run by its owner")
 
-    def test_release_publication_family_keeps_other_scopes_in_mixed_prs(self) -> None:
+    def test_self_validating_tooling_keeps_other_scopes_in_mixed_prs(self) -> None:
         self.assert_scope(
             [".github/workflows/release-publish.yml", "backend/tests/test_config.py"],
             enabled={"backend"},
@@ -312,20 +315,21 @@ class ChangeScopeTest(unittest.TestCase):
             enabled={"backend", "backend_integration", "recovery"},
         )
 
-    def test_release_publication_family_cannot_hide_unknown_or_ci_changes(self) -> None:
+    def test_self_validating_tooling_cannot_hide_unknown_or_ci_changes(self) -> None:
         for other in ("future-build-system/config.toml", "tools/ci/change_scope.py"):
             with self.subTest(other=other):
-                result = classify_paths([".github/workflows/release-publish.yml", other])
+                result = classify_paths(["scripts/android_launcher_identity.py", other])
                 self.assertTrue(all(result.values()))
 
     def test_files_shared_with_other_consumers_stay_fail_closed(self) -> None:
         # release_manifest.py is also used by release-candidate.yml and the
         # project-identity scan; the manifest test is run by both workflows.
+        # android_test_release.py is not referenced or tested by any workflow.
         for path in (
             "scripts/release_manifest.py",
+            "scripts/android_test_release.py",
             "tools/ci/test_release_manifest.py",
             ".github/workflows/release-candidate.yml",
-            ".github/workflows/release-evidence.yml",
             "scripts/self_hosted_release.py",
             "tools/ci/test_change_scope.py",
         ):

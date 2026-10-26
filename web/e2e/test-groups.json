@@ -178,7 +178,7 @@
     },
     "r1-memory-capture-evidence.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 11
+      "baselineTests": 19
     },
     "r2-momente-timeline-evidence.spec.ts": {
       "disposition": "FULL_REGRESSION",

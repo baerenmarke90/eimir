@@ -3,6 +3,7 @@ import type { TokenView } from '../api/generated/models/TokenView';
 import { normalizeClientError } from './problemDetails';
 import { clearAuthorizedMediaCache } from './authorizedMediaCache';
 import { clearRetrospectiveDismissal } from './todayRetrospectiveDismissal';
+import { clearMemoryDiaryDrafts } from './memoryDiaryDraft';
 import { createReferenceApis } from './referenceFlow';
 import {
   isNativeSessionStorageAvailable,
@@ -198,6 +199,7 @@ function persistSession(
         sessionOwner.tokens.refreshToken !== rotatedFrom)
     ) {
       clearAuthorizedMediaCache();
+      clearMemoryDiaryDrafts();
     }
     const serialized = JSON.stringify({
       account: session.account,
@@ -271,6 +273,7 @@ export function loadStoredSession(): StoredSession | null {
 
 export function clearStoredSession(): Promise<void> {
   clearAuthorizedMediaCache();
+  clearMemoryDiaryDrafts();
   clearRetrospectiveDismissal();
   sessionOwner = null;
   try {

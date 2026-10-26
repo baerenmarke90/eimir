@@ -39,6 +39,12 @@ jobs:
       - name: Test encryption test-key generator
         run: python3 tools/ci/test_encryption_test_keys.py
 
+      - name: Test Google Photos Picker read-only probe
+        run: python3 tools/ci/test_google_photos_picker_probe.py
+
+      - name: Test cloud Google Photos Picker OAuth callback
+        run: python3 tools/ci/test_google_photos_picker_web_probe.py
+
       - name: Audit migrated engineering-language surfaces
         run: |
           python3 tools/ci/test_engineering_language_audit.py

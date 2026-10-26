@@ -10,7 +10,9 @@ on:
       - "scripts/android_test_release_plan.py"
       - "scripts/test_android_test_release_plan.py"
       - "scripts/test_deployment_channel.py"
+      - "scripts/image_archive_config.py"
       - "tools/ci/test_test_deployment_channel.py"
+      - "tools/ci/test_image_archive_config.py"
       - "deploy/private-test-channel.env.example"
       - "docs/PRIVATE-TEST-CHANNEL.md"
       - ".github/actions/attest-release-artifact/**"
@@ -92,6 +94,7 @@ jobs:
         run: |
           python3 tools/ci/test_release_manifest.py
           python3 tools/ci/test_release_publish_workflow.py
+          python3 tools/ci/test_image_archive_config.py
           python3 tools/ci/test_verify_release_asset_set.py
           python3 scripts/test_android_test_release_plan.py
 
@@ -735,6 +738,10 @@ jobs:
           version_tag="v${RELEASE_VERSION}"
           source_tag="sha-${SOURCE_REVISION}"
           transport_tag="publish-${SOURCE_REVISION}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          # Containerd image stores can keep a provenance index beside the runtime
+          # image. Publish only the runtime platform; the original evidence archives,
+          # SBOMs and GitHub attestations stay untouched.
+          runtime_platform="linux/amd64"
 
           # GHCR does not provide server-side immutable tags. The sha-/v aliases below
           # are discoverability only and are never trusted as release identity. The
@@ -765,6 +772,7 @@ jobs:
 
           require_single_manifest() {
             local digest_ref="$1"
+            local expected_config_digest="${2:-}"
             local output
             local status
 
@@ -777,7 +785,7 @@ jobs:
               return 1
             fi
 
-            if ! MANIFEST_JSON="$output" python3 - <<'PY'
+            if ! MANIFEST_JSON="$output" EXPECTED_CONFIG_DIGEST="$expected_config_digest" python3 - <<'PY'
           import json
           import os
 
@@ -799,6 +807,9 @@ jobs:
               raise SystemExit(f"unsupported registry manifest media type: {media_type!r}")
           if not isinstance(manifest.get("config"), dict) or not isinstance(manifest.get("layers"), list):
               raise SystemExit("registry digest is not a single image manifest")
+          expected_config = os.environ["EXPECTED_CONFIG_DIGEST"]
+          if expected_config and manifest["config"].get("digest") != expected_config:
+              raise SystemExit("registry manifest config differs from the evidence archive")
           PY
             then
               echo "Registry digest ${digest_ref} is not a supported single-image manifest; refusing publication." >&2
@@ -845,13 +856,14 @@ jobs:
           push_single_digest() {
             local ref="$1"
             local repository="$2"
+            local expected_config_digest="${3:-}"
             local output
             local status
             local digest
             local digest_ref
 
             set +e
-            output=$(docker push "$ref" 2>&1)
+            output=$(docker push --platform "$runtime_platform" "$ref" 2>&1)
             status=$?
             set -e
             printf '%s\n' "$output" >&2
@@ -861,7 +873,7 @@ jobs:
             fi
             digest=$(extract_registry_digest "$output") || return 1
             digest_ref="${repository}@${digest}"
-            require_single_manifest "$digest_ref" || return 1
+            require_single_manifest "$digest_ref" "$expected_config_digest" || return 1
             printf '%s\n' "$digest_ref"
           }
 
@@ -916,16 +928,19 @@ jobs:
             local repository="$3"
             local result_file="$4"
 
-            docker load --input "$archive" >/dev/null
-            local local_id
-            local remote_id
+            # Docker image IDs are store dependent (config digest in the legacy store,
+            # manifest or index digest under containerd). The exact config bytes inside
+            # the verified evidence archive are the store-independent identity.
+            local evidence_config
+            local pullback_archive
+            local pullback_config
             local transport_ref
             local transport_digest_ref
             local source_ref
             local version_ref
             local digest
-            local_id=$(docker image inspect "$source_image" --format '{{.Id}}')
-            test -n "$local_id"
+            evidence_config=$(python3 scripts/image_archive_config.py "$archive" --tag "$source_image")
+            docker load --input "$archive" >/dev/null
 
             # The image must describe its own identity: the labels were baked in
             # by the #193 evidence build and are part of the attested digest.
@@ -934,10 +949,14 @@ jobs:
 
             transport_ref="${repository}:${transport_tag}"
             docker tag "$source_image" "$transport_ref"
-            transport_digest_ref=$(push_single_digest "$transport_ref" "$repository")
+            transport_digest_ref=$(push_single_digest "$transport_ref" "$repository" "$evidence_config")
             docker pull "$transport_digest_ref" >/dev/null
-            remote_id=$(docker image inspect "$transport_digest_ref" --format '{{.Id}}')
-            if [ "$remote_id" != "$local_id" ]; then
+            pullback_archive="${RUNNER_TEMP}/$(basename "$archive").pullback"
+            rm -f "$pullback_archive"
+            docker image save --output "$pullback_archive" "$transport_digest_ref"
+            pullback_config=$(python3 scripts/image_archive_config.py "$pullback_archive")
+            rm -f "$pullback_archive"
+            if [ "$pullback_config" != "$evidence_config" ]; then
               echo "Published registry digest does not resolve to the release image bytes." >&2
               exit 1
             fi

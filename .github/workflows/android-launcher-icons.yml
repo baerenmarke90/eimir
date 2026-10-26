@@ -10,6 +10,7 @@ on:
       - 'scripts/android_launcher_identity.py'
       - 'scripts/android_adaptive_icon_resources.py'
       - 'scripts/test_android_adaptive_icon_resources.py'
+      - 'scripts/test_android_launcher_identity.py'
       - 'docs/design/eimir/1307-premium-app-icons/build-android-icons.py'
       - 'docs/design/eimir/1307-premium-app-icons/source-crops.json'
   workflow_dispatch:

@@ -796,7 +796,7 @@ for (const view of [
     await expectNoWcagViolations(page);
     await page.screenshot({
       path: info.outputPath(
-        `private-note-create-${view.width}-${view.scheme}.png`,
+        `private-area-profile-note-create-${view.width}-${view.scheme}.png`,
       ),
     });
     await dialog.getByLabel(profiles.topicLabel).fill('A birthday idea');
@@ -834,7 +834,7 @@ for (const view of [
     await expectNoWcagViolations(page);
     await page.screenshot({
       path: info.outputPath(
-        `private-note-error-${view.width}-${view.scheme}.png`,
+        `private-area-profile-note-error-${view.width}-${view.scheme}.png`,
       ),
     });
     await dialog
@@ -867,7 +867,7 @@ for (const view of [
         expect(dialogWidth.scroll).toBeLessThanOrEqual(dialogWidth.client);
         await expectNoWcagViolations(page);
         await page.screenshot({
-          path: info.outputPath(`private-note-reflow-${width}.png`),
+          path: info.outputPath(`private-area-profile-note-reflow-${width}.png`),
         });
         if (width === 320) {
           const save = dialog.getByRole('button', {
@@ -878,7 +878,7 @@ for (const view of [
           await expect(save).toBeFocused();
           await expect(save).toBeInViewport();
           await page.screenshot({
-            path: info.outputPath('private-note-large-text-actions.png'),
+            path: info.outputPath('private-area-profile-note-large-text-actions.png'),
           });
         }
       }
@@ -892,7 +892,7 @@ for (const view of [
     await expect(saved).toBeFocused();
     await page.screenshot({
       path: info.outputPath(
-        `private-note-saved-${view.width}-${view.scheme}.png`,
+        `private-area-profile-note-saved-${view.width}-${view.scheme}.png`,
       ),
     });
     await page

@@ -4,10 +4,15 @@
 from __future__ import annotations
 
 import io
+import json
 import sys
+import tempfile
+import types
 import unittest
 import urllib.parse
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
@@ -15,32 +20,68 @@ import google_photos_picker_probe as probe  # noqa: E402
 
 
 class PickerProbeTest(unittest.TestCase):
-    def test_oauth_pkce_url_and_state(self) -> None:
-        url = probe.authorization_url(
-            "desktop-client", "http://127.0.0.1:65432/auth/callback",
-            "unique-state", "v" * 64
-        )
-        parts = urllib.parse.urlsplit(url)
-        query = urllib.parse.parse_qs(parts.query)
-        self.assertEqual(parts.hostname, "accounts.google.com")
-        self.assertEqual(query["scope"], [probe.SCOPE])
-        self.assertEqual(query["state"], ["unique-state"])
-        self.assertEqual(query["code_challenge_method"], ["S256"])
-        self.assertEqual(query["access_type"], ["online"])
-        self.assertNotIn("code_verifier", query)
-        self.assertNotEqual(query["code_challenge"], ["v" * 64])
+    def test_oauth_requires_credentials_outside_repo(self) -> None:
+        with self.assertRaisesRegex(probe.ProbeError, "outside this repository"):
+            probe.authorize_desktop(str(Path(__file__).resolve()))
 
-    def test_oauth_callback_rejects_state_mismatch_and_denial(self) -> None:
-        self.assertEqual(
-            probe.parse_callback("state=expected&code=opaque-code", "expected"),
-            "opaque-code"
+    def test_official_google_oauth_flow_is_scoped_pkce_and_online_only(self) -> None:
+        config = {
+            "installed": {
+                "client_id": "desktop-test",
+                "client_secret": "test-only-secret",
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+        }
+        fake_flow = SimpleNamespace(
+            run_local_server=Mock(return_value=SimpleNamespace(token="test-access-token"))
         )
-        with self.assertRaisesRegex(probe.ProbeError, "state mismatch"):
-            probe.parse_callback("state=wrong&code=opaque-code", "expected")
-        with self.assertRaisesRegex(probe.ProbeError, "denied"):
-            probe.parse_callback("state=expected&error=access_denied", "expected")
-        with self.assertRaisesRegex(probe.ProbeError, "one valid code"):
-            probe.parse_callback("state=expected&code=one&code=two", "expected")
+        fake_sdk = SimpleNamespace(
+            from_client_config=Mock(return_value=fake_flow)
+        )
+        fake_package = types.ModuleType("google_auth_oauthlib")
+        fake_module = types.ModuleType("google_auth_oauthlib.flow")
+        fake_module.InstalledAppFlow = fake_sdk
+
+        with tempfile.TemporaryDirectory() as folder:
+            client_file = Path(folder) / "desktop.json"
+            client_file.write_text(json.dumps(config), encoding="utf-8")
+            with patch.dict(
+                sys.modules,
+                {"google_auth_oauthlib": fake_package,
+                 "google_auth_oauthlib.flow": fake_module},
+            ):
+                self.assertEqual(
+                    probe.authorize_desktop(str(client_file)), "test-access-token"
+                )
+        fake_sdk.from_client_config.assert_called_once_with(
+            config, scopes=[probe.SCOPE], autogenerate_code_verifier=True
+        )
+        self.assertEqual(
+            fake_flow.run_local_server.call_args.kwargs,
+            {
+                "host": "127.0.0.1",
+                "port": 0,
+                "open_browser": True,
+                "timeout_seconds": probe.MAX_WAIT_SECONDS,
+                "access_type": "online",
+                "authorization_prompt_message": None,
+            },
+        )
+
+    def test_oauth_rejects_non_google_token_endpoint(self) -> None:
+        config = {
+            "installed": {
+                "client_id": "desktop-test",
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://attacker.invalid/token",
+            }
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            client_file = Path(folder) / "desktop.json"
+            client_file.write_text(json.dumps(config), encoding="utf-8")
+            with self.assertRaisesRegex(probe.ProbeError, "official endpoints"):
+                probe.authorize_desktop(str(client_file))
 
     def test_external_uri_must_be_exact_google_photos_host(self) -> None:
         self.assertTrue(probe.valid_picker_uri("https://photos.google.com/photo-picker/test"))

@@ -1,6 +1,5 @@
 import {
   useCallback,
-  useEffect,
   useLayoutEffect,
   useMemo,
   useReducer,
@@ -8,15 +7,15 @@ import {
   useState,
 } from 'react';
 import {
+  type AttachmentDraft,
+  type AttachmentDraftAction,
   attachmentDraftReducer,
   hasPendingAttachments,
   readyAttachmentIds,
-  type AttachmentDraft,
-  type AttachmentDraftAction,
 } from './attachmentDraftState';
 import {
-  uploadMemoryDraftAttachment,
   type DraftUploadPhase,
+  uploadMemoryDraftAttachment,
 } from './memoryAttachmentDraft';
 import { createOwnedObjectUrl, type OwnedObjectUrl } from './objectUrlResource';
 import type { ReferenceApis } from './referenceFlow';
@@ -45,6 +44,14 @@ export interface AttachmentDraftOptions {
    * natively (e.g. a single-file picker).
    */
   maxAttachments?: number;
+}
+
+/** Volatile handoff for one asynchronous picker result, never provider state. */
+export interface AttachmentDraftSelection {
+  readonly signal: AbortSignal;
+  /** True means delivered to the existing capacity/upload flow, not saved. */
+  commit: (files: readonly File[]) => boolean;
+  cancel: () => void;
 }
 
 export function formatAttachmentDraftContextKey(
@@ -116,6 +123,12 @@ function abortAndRevoke(
   previewUrls.clear();
 }
 
+function abortSelections(selections: Set<AbortController>): void {
+  const pending = [...selections];
+  selections.clear();
+  for (const controller of pending) controller.abort();
+}
+
 export function useAttachmentDrafts({
   apis,
   apiBaseUrl,
@@ -132,6 +145,8 @@ export function useAttachmentDrafts({
   const nextAttempt = useRef(0);
   const previewUrls = useRef(new Map<string, OwnedObjectUrl>());
   const uploads = useRef(new Map<string, AbortController>());
+  const selections = useRef(new Set<AbortController>());
+  const selectionEndpoint = useRef(apiBaseUrl);
   const mounted = useRef(true);
   // Bounded automatic-upload orchestration (#701): draftCount tracks
   // reserved capacity synchronously (state/`items` only updates on the next
@@ -153,6 +168,7 @@ export function useAttachmentDrafts({
     if (committedContextKey.current !== contextKey) {
       committedContextKey.current = contextKey;
       currentGeneration.current += 1;
+      abortSelections(selections.current);
       abortAndRevoke(uploads.current, previewUrls.current);
       draftCount.current = 0;
       queue.current = [];
@@ -166,10 +182,18 @@ export function useAttachmentDrafts({
     }
   }, [contextKey]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (selectionEndpoint.current !== apiBaseUrl) {
+      selectionEndpoint.current = apiBaseUrl;
+      abortSelections(selections.current);
+    }
+  }, [apiBaseUrl]);
+
+  useLayoutEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      abortSelections(selections.current);
       abortAndRevoke(uploads.current, previewUrls.current);
     };
   }, []);
@@ -274,9 +298,14 @@ export function useAttachmentDrafts({
           });
         })
         .finally(() => {
-          // Release the queue slot even for a removed/aborted/stale-context
-          // draft: the slot belongs to the upload lifecycle, not to whether
-          // its result was still relevant.
+          // A reset already released the previous generation's slots. A late
+          // completion must never release a slot from the new draft's queue.
+          if (
+            !mounted.current ||
+            uploadGeneration !== currentGeneration.current ||
+            uploadContextKey !== committedContextKey.current
+          )
+            return;
           activeUploads.current = Math.max(0, activeUploads.current - 1);
           pump();
         });
@@ -291,7 +320,9 @@ export function useAttachmentDrafts({
       uploadAttachmentFn,
     ],
   );
-  runUploadRef.current = runUpload;
+  useLayoutEffect(() => {
+    runUploadRef.current = runUpload;
+  }, [runUpload]);
 
   const enqueue = useCallback(
     (id: string, file: File) => {
@@ -342,6 +373,50 @@ export function useAttachmentDrafts({
     [enqueue, maxAttachments],
   );
 
+  // A picker can finish after capacity or transport props changed. Use the
+  // latest committed ingress only after validating its launch ownership.
+  const addSelectedFiles = useRef(addFiles);
+  useLayoutEffect(() => {
+    addSelectedFiles.current = addFiles;
+  }, [addFiles]);
+
+  const beginSelection = useCallback((): AttachmentDraftSelection => {
+    const selectionContext = committedContextKey.current;
+    const selectionGeneration = currentGeneration.current;
+    const endpoint = selectionEndpoint.current;
+    const controller = new AbortController();
+    let settled = false;
+    const cancelSelection = () => {
+      settled = true;
+      selections.current.delete(controller);
+      controller.abort();
+    };
+    if (mounted.current) selections.current.add(controller);
+    else cancelSelection();
+
+    return {
+      signal: controller.signal,
+      cancel: cancelSelection,
+      commit(files) {
+        if (
+          settled ||
+          controller.signal.aborted ||
+          !mounted.current ||
+          selectionContext !== committedContextKey.current ||
+          endpoint !== selectionEndpoint.current ||
+          selectionGeneration !== currentGeneration.current
+        ) {
+          cancelSelection();
+          return false;
+        }
+        settled = true;
+        selections.current.delete(controller);
+        addSelectedFiles.current(files);
+        return true;
+      },
+    };
+  }, []);
+
   const cancel = useCallback((id: string) => {
     uploads.current.get(id)?.abort();
     uploads.current.delete(id);
@@ -371,6 +446,7 @@ export function useAttachmentDrafts({
 
   const clear = useCallback(() => {
     currentGeneration.current += 1;
+    abortSelections(selections.current);
     abortAndRevoke(uploads.current, previewUrls.current);
     draftCount.current = 0;
     queue.current = [];
@@ -389,6 +465,7 @@ export function useAttachmentDrafts({
   return {
     items,
     addFiles,
+    beginSelection,
     cancel,
     remove,
     retry,

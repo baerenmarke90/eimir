@@ -1086,6 +1086,7 @@ test('diary restores a file whose unbound server upload has expired', async ({
   await expect.poll(() => photos.finalized.length).toBe(1);
   const expiredId = photos.finalized[0];
   photos.ready.add(expiredId);
+  await expect(page.locator('.attachment-status-ready')).toHaveCount(1);
   await expect(page.locator('.memory-draft-status')).toHaveText(
     de.memory.diary.draft.saved,
   );

@@ -404,6 +404,43 @@ it('retries a failed Vibe removal as a clear rather than resaving the visible ch
   await waitFor(() => expect(h.client.isMutating()).toBe(0));
 });
 
+it('keeps a valid Energy tap during a cancellable background Today refresh', async () => {
+  const h = setup();
+  h.mount();
+  const slider = await energy();
+  const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
+  let releaseRead: (value: ReturnType<typeof response>) => void = () => {};
+  h.get.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        releaseRead = resolve;
+      }),
+  );
+  void h.client.refetchQueries({ queryKey: key, exact: true });
+  await waitFor(() =>
+    expect(h.client.getQueryState(key)?.fetchStatus).toBe('fetching'),
+  );
+
+  fireEvent.change(slider, { target: { value: '80' } });
+  fireEvent.blur(slider);
+  await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+  expect(h.update.mock.calls[0][0].ifMatch).toBe('"today:1"');
+
+  const confirmed = {
+    ...h.current,
+    own: { ...h.current.own, energyLevel: 80, version: 2 },
+  };
+  await act(async () => {
+    releaseRead(response(h.current));
+    h.resolve(response(confirmed, '"today:2"'));
+  });
+  await waitFor(() => expect(h.client.isMutating()).toBe(0));
+  expect(h.client.getQueryData(key)).toMatchObject({
+    etag: '"today:2"',
+    projection: { own: { energyLevel: 80 } },
+  });
+});
+
 async function submitWithInterruptedRead(
   dimension: 'energy' | 'vibe',
   interrupt: () => void,

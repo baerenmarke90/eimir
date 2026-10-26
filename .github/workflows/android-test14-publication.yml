@@ -82,6 +82,10 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-36' 'build-tools;36.0.0'
           gh release download android-test-v0.2.0-test.13 \
             --pattern eimir-android-test-v0.2.0-test.13.apk --dir "$RUNNER_TEMP/signer-preflight"
+          mkdir -p "$RUNNER_TEMP/eimir-verification-sdk/build-tools"
+          ln -s "$ANDROID_HOME/build-tools/36.0.0" "$RUNNER_TEMP/eimir-verification-sdk/build-tools/36.0.0"
+          export ANDROID_HOME="$RUNNER_TEMP/eimir-verification-sdk"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
           PYTHONPATH=scripts python3 - <<'PY'
           import os, re
           from pathlib import Path
@@ -93,7 +97,7 @@ jobs:
           print(output)
           certificates = re.findall(r'^Signer #[0-9]+ certificate SHA-256 digest: ([0-9a-fA-F]{64})$', output, re.MULTILINE)
           print(f'Legacy parser certificates: {certificates}')
-          assert certificates == [os.environ['CERTIFICATE']], 'Published test.13 signer output requires investigation before signing'
+          assert certificates == [os.environ['CERTIFICATE']], 'Published test.13 signer must match before signing'
           PY
       - name: Validate the actual sideload build before requesting signing
         run: |
@@ -206,6 +210,10 @@ jobs:
             --version-name 0.2.0-test.14 --version-code 14 --output-dir "$RUNNER_TEMP/build"
       - name: Verify actual signatures, identity and upgrade compatibility
         run: |
+          mkdir -p "$RUNNER_TEMP/eimir-verification-sdk/build-tools"
+          ln -s "$ANDROID_HOME/build-tools/36.0.0" "$RUNNER_TEMP/eimir-verification-sdk/build-tools/36.0.0"
+          export ANDROID_HOME="$RUNNER_TEMP/eimir-verification-sdk"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
           PYTHONPATH=scripts python3 - <<'PY'
           import os
           from pathlib import Path
@@ -235,6 +243,7 @@ jobs:
               f"APK SHA-256: `{marker['asset']['sha256']}`; bytes: {marker['asset']['size']}.\n\n"
               'Passed: fixed-source required CI, Android source tests, unsigned sideload build, '
               'sideload lint/unit tests, protected original-certificate check, signed assembly, '
+              'verification with explicitly pinned Android build-tools 36.0.0, '
               'apksigner verification of both test.13 and test.14, same package de.sidebyside.app, '
               'increasing versionCode 13 to 14, minSdk 26, non-debuggable APK, embedded clean-source '
               'identity, persistent API origin, Demo/reset disabled and native updater present.\n\n'

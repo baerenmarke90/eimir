@@ -61,11 +61,11 @@ EIMIR_GOOGLE_PHOTOS_PROBE_WEB_CLIENT_FILE=/run/secrets/google-photos-web-client.
 EIMIR_GOOGLE_PHOTOS_PROBE_OPERATOR_KEY=REPLACE_WITH_64_RANDOM_HEX_CHARACTERS
 ~~~
 
-3. From the exact accepted #1451 repository revision on that Docker host, build the standalone image:
+3. From the exact accepted #1451 repository revision on that Docker host, build the standalone image. **Use the narrow `scripts/` directory as Docker build context** rather than the repository root, so private `.env` files and checkout data are not sent to the Docker builder:
 
 ~~~bash
 docker build -f tools/ops/google-photos-picker-probe.Dockerfile \
-  -t eimir-google-photos-probe:local .
+  -t eimir-google-photos-probe:local scripts
 ~~~
 
 4. Identify the running NPM container via **docker ps**. Share its network namespace to keep the test app's **127.0.0.1:8787** listener reachable by NPM **without publishing a Docker host port**:

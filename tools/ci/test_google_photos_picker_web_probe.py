@@ -55,6 +55,21 @@ class CloudPickerProbeTest(unittest.TestCase):
     def request(self, method, path, **kwargs):
         return self.app.handle(method, path, **kwargs)
 
+    def http_request(self, method, path, *, body=b"", **headers):
+        env = {
+            "HTTP_HOST": urllib.parse.urlsplit(ORIGIN).netloc,
+            "REQUEST_METHOD": method,
+            "PATH_INFO": path,
+            "CONTENT_LENGTH": str(len(body)),
+            "wsgi.input": io.BytesIO(body),
+            **headers,
+        }
+        sent = []
+        chunks = self.app(env, lambda status, response_headers: sent.append(
+            (status, response_headers)
+        ))
+        return *sent[0], b"".join(chunks)
+
     def begin(self):
         result = self.request(
             "POST", "/start",
@@ -63,6 +78,7 @@ class CloudPickerProbeTest(unittest.TestCase):
         )
         self.assertEqual(result[0], "303 See Other")
         self.assertEqual(header(result[1], "Location"), OAUTH_URL)
+        self.assertEqual(header(result[1], "Referrer-Policy"), "no-referrer")
         self.assertIn("SameSite=Lax", header(result[1], "Set-Cookie"))
         self.assertIn("Secure", header(result[1], "Set-Cookie"))
         self.assertIn("HttpOnly", header(result[1], "Set-Cookie"))
@@ -120,6 +136,108 @@ class CloudPickerProbeTest(unittest.TestCase):
         )
         self.assertEqual(locked[0], "429 Too Many Requests")
         self.flow.authorization_url.assert_not_called()
+
+    def test_form_pages_preserve_origin_without_exposing_callback_referrers(self):
+        home = self.request("GET", "/")
+        self.assertEqual(header(home[1], "Referrer-Policy"), "same-origin")
+        self.assertEqual(
+            header(home[1], "Content-Security-Policy"),
+            "default-src 'none'; form-action 'self' " + OAUTH_URL
+            + "; base-uri 'none'; frame-ancestors 'none'",
+        )
+        cookie = self.begin()
+        mismatch = self.callback(cookie, "state=foreign&code=opaque-auth-code")
+        self.assertEqual(header(mismatch[1], "Referrer-Policy"), "no-referrer")
+        with patch.object(
+            cloud, "request_json",
+            side_effect=[
+                {"id": "session", "pickerUri": GOOGLE_PICKER},
+                {"mediaItemsSet": False},
+            ],
+        ):
+            callback = self.callback(cookie)
+            self.assertEqual(callback[0], "303 See Other")
+            self.assertEqual(header(callback[1], "Referrer-Policy"), "no-referrer")
+            self.assertNotIn(OAUTH_URL, header(callback[1], "Content-Security-Policy"))
+            for path in ("/", "/select"):
+                page = self.request("GET", path, cookie=cookie)
+                self.assertEqual(header(page[1], "Referrer-Policy"), "same-origin")
+                self.assertNotIn(OAUTH_URL, header(page[1], "Content-Security-Policy"))
+            pending = self.request(
+                "POST", "/check", cookie=cookie, request_origin=ORIGIN,
+                body=urllib.parse.urlencode({"csrf": self.app.active.csrf}).encode(),
+            )
+            self.assertIn("not complete", pending[2].decode())
+            self.assertEqual(header(pending[1], "Referrer-Policy"), "same-origin")
+
+    def test_opaque_and_foreign_origins_cannot_start_oauth(self):
+        body = urllib.parse.urlencode({"operator_key": ADMIN_KEY}).encode()
+        for origin in ("null", "https://attacker.invalid", ORIGIN.replace("https:", "http:")):
+            with self.subTest(origin=origin):
+                rejected = self.http_request(
+                    "POST", "/start", body=body, HTTP_ORIGIN=origin,
+                    HTTP_REFERER=ORIGIN + "/",
+                    HTTP_X_FORWARDED_HOST=urllib.parse.urlsplit(ORIGIN).netloc,
+                    HTTP_X_FORWARDED_PROTO="https",
+                )
+                self.assertEqual(rejected[0], "403 Forbidden")
+                self.assertIn("Cross-origin request rejected.", rejected[2].decode())
+                self.assertIsNone(self.app.active)
+        self.flow.authorization_url.assert_not_called()
+        self.assertEqual(self.app.failed_logins, 0)
+        accepted = self.http_request("POST", "/start", body=body, HTTP_ORIGIN=ORIGIN)
+        self.assertEqual(accepted[0], "303 See Other")
+        self.flow.authorization_url.assert_called_once()
+
+    def test_cross_origin_session_forms_cannot_use_valid_cookie_and_csrf(self):
+        cookie = self.begin()
+        with patch.object(
+            cloud, "request_json", return_value={"id": "session", "pickerUri": GOOGLE_PICKER}
+        ):
+            self.callback(cookie)
+        active = self.app.active
+        body = urllib.parse.urlencode({"csrf": active.csrf}).encode()
+        with patch.object(cloud, "request_json") as upstream:
+            for path in ("/check", "/cancel"):
+                for origin in ("null", "https://attacker.invalid"):
+                    with self.subTest(path=path, origin=origin):
+                        rejected = self.http_request(
+                            "POST", path, body=body,
+                            HTTP_COOKIE=cookie, HTTP_ORIGIN=origin,
+                        )
+                        self.assertEqual(rejected[0], "403 Forbidden")
+                        self.assertIs(self.app.active, active)
+            upstream.assert_not_called()
+
+    def test_proxy_headers_and_google_referrer_do_not_replace_host_or_oauth_binding(self):
+        invalid_host = self.http_request(
+            "GET", "/", HTTP_HOST="attacker.invalid",
+            HTTP_X_FORWARDED_HOST=urllib.parse.urlsplit(ORIGIN).netloc,
+            HTTP_X_FORWARDED_PROTO="https", HTTP_ORIGIN=ORIGIN,
+        )
+        self.assertEqual(invalid_host[0], "400 Bad Request")
+        cookie = self.begin()
+        callback_headers = {
+            "QUERY_STRING": "state=expected-state&code=opaque-auth-code",
+            "HTTP_REFERER": "https://accounts.google.com/",
+        }
+        no_cookie = self.http_request("GET", "/oauth/callback", **callback_headers)
+        self.assertEqual(no_cookie[0], "403 Forbidden")
+        mismatch = self.http_request(
+            "GET", "/oauth/callback", **{**callback_headers,
+                "HTTP_COOKIE": cookie, "QUERY_STRING": "state=foreign&code=opaque"},
+        )
+        self.assertEqual(mismatch[0], "403 Forbidden")
+        self.flow.fetch_token.assert_not_called()
+        with patch.object(
+            cloud, "request_json", return_value={"id": "session", "pickerUri": GOOGLE_PICKER}
+        ):
+            callback = self.http_request(
+                "GET", "/oauth/callback", HTTP_COOKIE=cookie, **callback_headers
+            )
+        self.assertEqual(callback[0], "303 See Other")
+        self.assertEqual(header(callback[1], "Referrer-Policy"), "no-referrer")
+        self.flow.fetch_token.assert_called_once()
 
     def test_google_sdk_owns_web_oauth_pkce(self):
         fake_sdk = SimpleNamespace(

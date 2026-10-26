@@ -128,15 +128,21 @@ def response(
     clear_cookie: bool = False,
     location: str | None = None,
     extra: str = "",
+    form_page: bool = False,
+    oauth_form: bool = False,
 ) -> tuple[str, list[tuple[str, str]], bytes]:
     headers = [
         ("Cache-Control", "no-store, max-age=0"),
         ("Pragma", "no-cache"),
-        ("Referrer-Policy", "no-referrer"),
+        # no-referrer makes browser form POSTs send Origin: null (Fetch §3.2).
+        # Keep the real origin on our forms, and suppress callback URL referrers.
+        ("Referrer-Policy", "same-origin" if form_page else "no-referrer"),
         ("X-Content-Type-Options", "nosniff"),
         ("X-Frame-Options", "DENY"),
-        ("Content-Security-Policy", "default-src 'none'; form-action 'self'; "
-         "base-uri 'none'; frame-ancestors 'none'"),
+        # Browsers also check form-action on the /start -> Google redirect.
+        ("Content-Security-Policy", "default-src 'none'; form-action 'self'"
+         + (" https://accounts.google.com/o/oauth2/v2/auth" if oauth_form else "")
+         + "; base-uri 'none'; frame-ancestors 'none'"),
         ("Content-Type", "text/html; charset=utf-8"),
     ]
     if cookie is not None:
@@ -230,7 +236,7 @@ class CloudProbe:
             + form("/check", "I have finished selecting", active.csrf)
             + form("/cancel", "Cancel and delete test session", active.csrf)
         )
-        return response("200 OK", message, extra=extra)
+        return response("200 OK", message, extra=extra, form_page=True)
 
     def handle(
         self, method: str, path: str, *, query: str = "",
@@ -256,7 +262,8 @@ class CloudProbe:
                     "type='password' required autocomplete='off'></label>"
                     "<button type='submit'>Start read-only test</button></form>"
                 )
-                return response("200 OK", "Operator-only test; no photo is stored.", extra=extra)
+                return response("200 OK", "Operator-only test; no photo is stored.",
+                                extra=extra, form_page=True, oauth_form=True)
 
             if method == "POST" and path == "/start":
                 values = urllib.parse.parse_qs(body.decode("utf-8", errors="replace"))

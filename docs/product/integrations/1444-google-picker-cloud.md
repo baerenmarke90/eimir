@@ -1,6 +1,6 @@
 # #1444 — HTTPS Google Photos Picker test, browser-only operator flow
 
-**Status:** Code/test preflight only. Not deployed, not authorized with a Google account, not an eimir. product feature, and not evidence of a successful provider transfer.
+**Status:** Standalone operator test harness, not an eimir. product feature or evidence of a successful provider transfer. On 2026-10-26 the operator reported an isolated Docker/NPM deployment; a read-only public `GET /` confirmed the form and the old `Referrer-Policy: no-referrer` header. Google authorization, photo transfer and remote cleanup have not been verified.
 
 This is an **alternative** to the local Desktop test in [1444-google-picker-probe.md](1444-google-picker-probe.md). The person performing consent needs only a browser. Codex Cloud can develop and run offline tests, but Codex task containers **do not automatically provide a public, stable HTTPS OAuth callback**. For a genuine Google login deploy the optional service to an **operator-controlled, publicly reachable HTTPS test host**, separate from eimir. production.
 
@@ -17,7 +17,7 @@ No photos enter eimir. storage, no provider keys enter the Web bundle, and no st
 
 ## One-time prerequisites (operator, not the end user)
 
-- Dedicated publicly reachable **https://fotos-test.reiswienudel.de** with valid TLS (**selected, not yet deployed**). Configure a trusted reverse proxy that **does not log OAuth callback query strings**.
+- Dedicated publicly reachable **https://fotos-test.reiswienudel.de** with valid TLS. Configure a trusted reverse proxy that **does not log OAuth callback query strings**.
 - Google Cloud project with Google Photos Picker API enabled; OAuth consent configured with a dedicated test user and **Web application OAuth client**. Register the exact HTTPS redirect URI **https://fotos-test.reiswienudel.de/oauth/callback**.
 - Google's OAuth **Web client JSON** in a protected file or secret volume outside the repository and container image, and a separately generated unpredictable operator access secret (at least 32 characters). No credentials in Git, chat or GitHub Actions logs.
 - Python 3.12+ on the operator's test server, with developer-only Google OAuth SDK google-auth-oauthlib==1.5.0 (Apache-2.0). This dependency is not part of production eimir.
@@ -49,7 +49,7 @@ Codex can implement and test this service in its cloud coding environment. **A n
 
 This is the preferred **temporary test** option when the operator already runs Docker and Nginx Proxy Manager (NPM) on the **same Docker engine**. It leaves eimir.'s canonical compose.yaml, the Arcane private test stack, and normal Cloud releases untouched. No additional tracked Compose manifest or paid PaaS is required.
 
-**Chosen operator test hostname:** **fotos-test.reiswienudel.de**. This is the intended hostname, **not a claim that DNS, TLS, NPM or the probe service is already configured**. Create or verify its DNS record to the existing TLS reverse proxy. Use exactly the same hostname in NPM, the Google OAuth Web client and the probe environment. Do not redirect the main reiswienudel.de website or modify the eimir. production domain.
+**Chosen operator test hostname:** **fotos-test.reiswienudel.de**. Verify its DNS record to the existing TLS reverse proxy. Use exactly the same hostname in NPM, the Google OAuth Web client and the probe environment. Do not redirect the main reiswienudel.de website or modify the eimir. production domain.
 
 1. In Google Cloud Console enable the **Google Photos Picker API**, configure OAuth test users, and create an OAuth **Web application** client (distinct from the optional Desktop client). Register precisely **https://fotos-test.reiswienudel.de/oauth/callback** as its authorized redirect URI, then download the Web client JSON. Use one dedicated synthetic JPEG in the test account.
 2. On your Docker host place the OAuth JSON **outside Git**, readable only by non-root UID/GID **10001** (e.g. **/opt/eimir-google-photos-probe/google-web-client.json**, owner 10001:10001, mode 0400). Create a host-local **/opt/eimir-google-photos-probe/probe.env** (mode 0600) containing the four operator settings below. Generate the 64-character operator secret locally with **openssl rand -hex 32**, and never share it through GitHub, chat or copied shell logs. Do not mount any eimir. database, media or production secrets.
@@ -100,6 +100,67 @@ location = /oauth/callback {
 6. Open the dedicated HTTPS test address in the browser, submit your locally generated operator secret, authorize Google's limited Picker scope, and select **one synthetic photo**. Return to the test page and explicitly finish. The consenting browser user installs **nothing**. Check the sanitized result and remote-session cleanup, stop/remove the temporary container, remove the dedicated NPM vhost, revoke the Google test grant and retire the operator secret.
 
 This is a **one-off operator test sidecar**, not a new eimir. Cloud service, a public photo importer or a persistent part of Arcane's eimir. Git Sync stack. The repository does **not** create the DNS name, Google OAuth client, secret volume or NPM vhost by itself.
+
+## Form-origin failure and isolated rebuild
+
+The original form response set `Referrer-Policy: no-referrer`. For a normal HTML form POST, [Fetch's Origin-header algorithm](https://fetch.spec.whatwg.org/#append-a-request-origin-header) then serializes `Origin` as the literal `null`, even when the form submits to its own HTTPS origin. The app correctly rejects that non-matching origin before operator authentication or OAuth. This reproduces **Cross-origin request rejected.** on `POST /start` and would also affect `/check` and `/cancel`.
+
+The fix uses `same-origin` only on form pages. This preserves the real origin on local POSTs while suppressing external referrers. Callback, redirect and other non-form responses retain `no-referrer` so callback codes/state cannot become a referrer, including to another local path. The login form's CSP additionally names Google's HTTPS authorization URL because browsers can apply `form-action` to the subsequent 303 redirect. Its effective redirect boundary is HTTPS plus the exact `accounts.google.com` host; CSP does not enforce source paths after redirects. Picker forms retain `form-action 'self'`. See the [CSP navigation checks](https://www.w3.org/TR/CSP3/#directive-form-action).
+
+Origin checks, form CSRF, Secure/HttpOnly/SameSite cookies, OAuth state/PKCE and callback replay protection are unchanged. In particular, **never allow `Origin: null`, rewrite/erase `Origin` at NPM, trust a Google `Referer` instead of state, or add wildcard CORS headers**. OAuth's cross-site GET callback normally has no Origin; its cookie, state and one-time SDK flow still bind it to the initiating browser.
+
+The [NPM proxy include](https://github.com/NginxProxyManager/nginx-proxy-manager/blob/develop/docker/rootfs/etc/nginx/conf.d/include/proxy.conf) preserves Host and forwards proxy metadata without replacing Origin. The app compares the configured external HTTPS origin with `HTTP_ORIGIN`; it does not derive that origin from the internal HTTP transport, `X-Forwarded-Proto` or `Referer`. A Host mismatch produces **Invalid test host.**, a different failure. A successful `nginx -t` and the exact callback log-suppression location validate syntax/log handling, not browser POST semantics. Keep the existing callback location unchanged.
+
+To replace only the operator's existing test container, set `PROBE_REVISION` to the full reviewed fix commit from PR #1451, then run this block on the Docker host. It exports only tracked source into a temporary directory, runs offline tests, builds a new image **before stopping the old test container**, and reuses the existing private files. It does not switch/reset the host checkout, run Compose/Arcane, restart NPM, publish a port or print credentials. Cancel any active synthetic-photo session before a deliberate restart; process memory does not survive replacement.
+
+~~~bash
+export PROBE_REVISION=REPLACE_WITH_FULL_REVIEWED_FIX_COMMIT
+bash <<'BASH'
+set -euo pipefail
+set +x
+umask 077
+cd /root/eimir-google-picker-src
+[[ "${PROBE_REVISION:-}" =~ ^[0-9a-f]{40}$ ]]
+git fetch --no-tags origin test/1444-google-picker-live-probe
+git merge-base --is-ancestor "$PROBE_REVISION" FETCH_HEAD
+PROBE_BUILD_DIR=$(mktemp -d /tmp/eimir-google-picker-build.XXXXXX)
+trap 'rm -rf "$PROBE_BUILD_DIR"' EXIT
+git archive "$PROBE_REVISION" scripts \
+  tools/ops/google-photos-picker-probe.Dockerfile \
+  tools/ci/test_google_photos_picker_probe.py \
+  tools/ci/test_google_photos_picker_web_probe.py \
+  | tar -x -C "$PROBE_BUILD_DIR"
+python3 "$PROBE_BUILD_DIR/tools/ci/test_google_photos_picker_probe.py"
+python3 "$PROBE_BUILD_DIR/tools/ci/test_google_photos_picker_web_probe.py"
+PROBE_IMAGE="eimir-google-photos-probe:fix-${PROBE_REVISION:0:12}"
+docker build --pull --no-cache \
+  -f "$PROBE_BUILD_DIR/tools/ops/google-photos-picker-probe.Dockerfile" \
+  -t "$PROBE_IMAGE" "$PROBE_BUILD_DIR/scripts"
+test -f /opt/eimir-google-photos-probe/probe.env
+test -f /opt/eimir-google-photos-probe/google-web-client.json
+test "$(docker inspect --format '{{.State.Running}}' npm)" = true
+if docker container inspect --format '{{.Id}}' eimir-google-photos-probe >/dev/null 2>&1; then
+  docker stop --time 20 eimir-google-photos-probe >/dev/null
+fi
+if docker container inspect --format '{{.Id}}' eimir-google-photos-probe >/dev/null 2>&1; then
+  docker rm eimir-google-photos-probe >/dev/null
+fi
+docker run -d --rm --name eimir-google-photos-probe \
+  --network container:npm \
+  --read-only --cap-drop ALL --security-opt no-new-privileges \
+  --pids-limit 128 --memory 256m \
+  --tmpfs /tmp:rw,nosuid,nodev,size=16m \
+  --env-file /opt/eimir-google-photos-probe/probe.env \
+  --mount type=bind,src=/opt/eimir-google-photos-probe/google-web-client.json,dst=/run/secrets/google-photos-web-client.json,readonly \
+  "$PROBE_IMAGE"
+curl --fail --silent --show-error --max-time 20 \
+  --retry 5 --retry-delay 1 --retry-connrefused \
+  --dump-header - --output /dev/null https://fotos-test.reiswienudel.de/ \
+  | awk 'tolower($0) ~ /^(http\/|referrer-policy:|content-security-policy:)/'
+BASH
+~~~
+
+The public root must now report `Referrer-Policy: same-origin` and the login form's CSP must contain the Google HTTPS authorization URL. Reload the root page before submitting the operator secret so the browser receives the corrected policy. If the old header persists, check the deployed image/extra ingress headers without dumping environment files, full container inspection, callback URLs or browser cookies. A passing root/header check proves deployment of this fix only; real consent, selected photo transfer and provider-session deletion still need separate operator verification.
 
 ## Safety and cleanup
 

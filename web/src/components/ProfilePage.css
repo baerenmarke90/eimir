@@ -6,6 +6,15 @@
   margin: 0 auto;
 }
 
+.profile-page,
+.profile-preferences-section,
+.profile-preferences-groups,
+.profile-preference-category-group,
+.profile-partner-block,
+.private-partner-notes-wrapper {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .partner-nickname {
   display: grid;
   gap: var(--space-2);
@@ -267,6 +276,8 @@
 
 .profile-preference-chip {
   display: inline-flex;
+  max-width: 100%;
+  flex-wrap: wrap;
   min-height: 44px;
   align-items: center;
   gap: var(--space-2);
@@ -338,6 +349,10 @@
   transform: scale(1);
   animation: preference-modal-enter var(--duration-transition)
     var(--easing-enter);
+}
+
+.preference-modal-dialog .form-grid {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .preference-modal-backdrop[data-presence="exiting"] {
@@ -443,6 +458,8 @@
 }
 
 .preference-modal-header h3 {
+  min-width: 0;
+  overflow-wrap: anywhere;
   margin: 0;
   font-size: 1.25rem;
 }
@@ -484,6 +501,7 @@
 
 .preference-modal-submit-row {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
   margin-left: auto;
 }
@@ -570,6 +588,7 @@
 .private-partner-notes-badge {
   display: inline-flex;
   width: fit-content;
+  max-width: 100%;
   min-height: 44px;
   align-items: center;
   gap: var(--space-2);
@@ -584,6 +603,7 @@
 
 .private-partner-notes-icon {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
 }
 

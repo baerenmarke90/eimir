@@ -198,7 +198,7 @@ describe('Memory capture mutation ownership', () => {
     enterTitle();
     submit();
     submit();
-    expect(fixture.create).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(fixture.create).toHaveBeenCalledTimes(1));
     expect(titleInput().closest('fieldset')?.disabled).toBe(true);
     expect(screen.getByText(taskBoundary.pending)).toBeTruthy();
     expect(screen.queryByText('Actual result destination')).toBeNull();

@@ -1,4 +1,5 @@
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { showMemoryDetails } from '../support/memoryDiary';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -442,7 +443,7 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
       action: () => navigation.quickCreateMemory,
       urlPattern: /\/story\/memories\/new$/,
       heading: () => de.memory.heading,
-      primaryFieldSelector: '#title',
+      primaryFieldSelector: '#body',
     },
     {
       action: () => navigation.quickCreateHeartMoment,
@@ -495,6 +496,14 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
       await expect(primaryField).toBeInViewport();
       await expect(primaryField).not.toBeFocused();
       await assertNothingUnexpectedlyFocused(page);
+
+      if (destination.primaryFieldSelector === '#body') {
+        const title = page.getByLabel(de.memory.titleLabelOptional);
+        await expect(title).toBeHidden();
+        await showMemoryDetails(page);
+        await expect(title).toBeVisible();
+        await expect(title).toBeEnabled();
+      }
     });
   }
 
@@ -631,7 +640,17 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
     await expect(
       page.getByRole('heading', { name: de.memory.heading }),
     ).toBeVisible();
-    await expect(page.locator('#title')).toBeVisible();
+    const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
+    await expect(body).toBeVisible();
+    await expect(body).toBeInViewport();
+    await expect(body).toBeEnabled();
+    await expect(body).not.toBeFocused();
+    await assertNothingUnexpectedlyFocused(page);
+    const title = page.getByLabel(de.memory.titleLabelOptional);
+    await expect(title).toBeHidden();
+    await showMemoryDetails(page);
+    await expect(title).toBeVisible();
+    await expect(title).toBeEnabled();
   });
 });
 

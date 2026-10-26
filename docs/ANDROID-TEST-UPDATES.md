@@ -38,6 +38,65 @@ do not establish them. See [email entry preflight](product/design/references/133
 
 ## Build and signing identity
 
+### Unattended GitHub test delivery
+
+The sole writer workflow, `.github/workflows/release-publish.yml`, owns repeatable
+Android test delivery. Its test jobs run automatically on pushes to the existing
+allowlisted channel branch `release/android-test.14-20261026`. The branch name is
+retained as an access boundary; subsequent test version numbers come from the plan,
+not from that branch name. Product release and private Web/API publishing retain
+their separate existing guards.
+
+Configure the next test release by committing `.github/android-test-release.json`
+on that branch after the intended APK source has passed its required checks:
+
+```json
+{
+  "schemaVersion": 1,
+  "sourceRevision": "<full checked 40-character commit SHA>",
+  "versionName": "0.2.0-test.15",
+  "versionCode": 15,
+  "previousVersionName": "0.2.0-test.14",
+  "notesFile": "docs/releases/android-test-0.2.0-test.15-notes.txt"
+}
+```
+
+The notes file must already exist in the selected source. Use a strictly higher
+versionCode and the corresponding `test.N` suffix. Never put credentials, keys,
+arbitrary URLs or alternative signing identities in this plan. The package,
+origin and original certificate stay fixed. Plan validation rejects unknown fields,
+moving refs, unsafe notes paths, inconsistent versions and noninteger codes.
+
+The owner explicitly authorized unattended publication on 2026-10-26. The
+`android-test-release` Environment now has no required reviewer; its exact branch
+allowlist and all four signing secrets remain in use. No production Environment
+approval setting was changed. Do not broaden this allowlist implicitly.
+
+For a new plan, the workflow checks the exact APK source, verifies the predecessor,
+builds the unsigned validation variant, runs sideload lint and actual policy/catalog
+JVM tests, confirms the original keystore certificate, signs the release APK and
+verifies the actual package/signature/version/source identity. APK inspection uses
+an SDK view containing **only build-tools 36.0.0**: a runner may also have 37 installed,
+whose human-readable signer output is incompatible with the existing helper parser.
+
+It then follows the draft-first/marker-last publication sequence below. Anonymous
+verification downloads all four public files, checks GitHub asset digests and byte
+counts, binds marker/checksum to the APK, and checks the embedded regular-mode source
+identity. Only transient missing-publication/HTTP propagation responses are retried
+within a 90-second retry window; deterministic identity or hash failures stop at once.
+
+If an identical plan is already published, the unprivileged job verifies its immutable
+public assets and completes without signing, rebuilding, rewriting or requesting
+secrets. A conflicting/incomplete publication fails closed. This makes routine later
+pushes and verification retries safe. A published APK is never replaced to fix a
+verification race; real content corrections require a new higher version.
+
+Only explicitly selected test releases are automated. This does not publish every
+main commit as an Android APK, accept a draft foundation into main, or certify
+physical-device upgrade/data continuity, OS App Links or public/store readiness.
+
+### Local build and signing
+
 Requirements: clean committed checkout, locked Web dependencies installed, Java
 21, Android SDK 36 and build tools, Python 3, and the existing Gradle wrapper.
 No release workflow dispatch is needed. Normal required PR CI remains intact.

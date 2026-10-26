@@ -100,26 +100,32 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
             r"(?ms)^  ([a-z][a-z0-9-]*):\n(.*?)(?=^  [a-z][a-z0-9-]*:\n|\Z)",
             self.workflow.split("\njobs:\n", 1)[1],
         ))
-        preflight = jobs["android-test14-preflight"]
-        publisher = jobs["android-test14-publish"]
+        preflight = jobs["android-test-preflight"]
+        publisher = jobs["android-test-publish"]
         for block in (preflight, publisher):
             self.assertIn("github.repository == 'baerenmarke90/eimir'", block)
             self.assertIn("github.event_name == 'push'", block)
             self.assertIn("github.ref == 'refs/heads/release/android-test.14-20261026'", block)
-            self.assertIn("SOURCE: 11a24139e372d5f97fc0d1fde276066f208c1123", block)
+            self.assertIn("ref: ${{ env.SOURCE }}", block)
             self.assertIn('eimir-verification-sdk/build-tools/36.0.0', block)
             self.assertNotIn("packages: write", block)
         self.assertIn("needs: contract", preflight)
         self.assertIn("contents: read", preflight)
         self.assertNotIn("secrets.", preflight)
-        self.assertIn("needs: android-test14-preflight", publisher)
+        self.assertIn("scripts/android_test_release_plan.py admit", preflight)
+        self.assertIn('--github-output "$GITHUB_OUTPUT" --github-env "$GITHUB_ENV"', preflight)
+        self.assertIn("if: steps.plan.outputs.ready == 'true'", preflight)
+        self.assertIn("needs: android-test-preflight", publisher)
+        self.assertIn("needs.android-test-preflight.outputs.ready == 'true'", publisher)
+        self.assertIn("SOURCE: ${{ needs.android-test-preflight.outputs.source }}", publisher)
+        self.assertIn("VERSION_CODE: ${{ needs.android-test-preflight.outputs.version_code }}", publisher)
         self.assertIn("environment: android-test-release", publisher)
         self.assertIn("contents: write", publisher)
         self.assertIn("--previous-apk", publisher)
         self.assertIn('rm -f "$RUNNER_TEMP/eimir-test-release.jks"', publisher)
 
     def test_android_test_marker_and_download_checks_precede_publication(self) -> None:
-        publisher = self.workflow.split("\n  android-test14-publish:\n", 1)[1].split(
+        publisher = self.workflow.split("\n  android-test-publish:\n", 1)[1].split(
             "\n  test-channel-contract:\n", 1
         )[0]
         apk_upload = 'gh release upload "$TAG" "$RUNNER_TEMP/release/$APK"'
@@ -132,6 +138,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertLess(publisher.index(marker_upload), publisher.index(marker_compare))
         self.assertLess(publisher.index(marker_compare), publisher.index(publish))
         self.assertLess(publisher.index(publish), publisher.index("Verify the anonymous updater catalog"))
+        self.assertIn('--expected-root "$RUNNER_TEMP/release"', publisher)
 
     def test_protected_publication_is_globally_serialized(self) -> None:
         self.assertIn(

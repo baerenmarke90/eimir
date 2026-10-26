@@ -1,7 +1,35 @@
-# Android test.14 preparation — 2026-10-26
+# Android test.14 — published 2026-10-26
 
 Owner: #1331 / #1332. This prepares the existing private sideload channel; it
 does not accept that draft foundation for main or certify public/store launch.
+
+## Published artifact checkpoint
+
+The complete immutable prerelease is available at
+[android-test-v0.2.0-test.14](https://github.com/baerenmarke90/eimir/releases/tag/android-test-v0.2.0-test.14).
+The APK source is `11a24139e372d5f97fc0d1fde276066f208c1123`; publication
+orchestration is `e10c9e5448a47b954ef1f33f3d315470c34d72e9`,
+[run 40337010184](https://github.com/baerenmarke90/eimir/actions/runs/40337010184).
+
+- APK: `eimir-android-test-v0.2.0-test.14.apk`, **9,876,726 bytes**.
+- SHA-256: `badc86ad1dfe59dc7db1a189254e0993694cc946c166cb20bb3651783aa1dcfc`.
+- Both test.13 and test.14 actual signatures match the original certificate below;
+  package remains `de.sidebyside.app`, with versionCode increasing from 13 to 14.
+- All four draft assets were downloaded and compared before atomic publication.
+  A later independent anonymous check downloaded all four public assets, matched
+  their exact GitHub SHA-256 digests/byte counts, checked marker/checksum/APK binding
+  and embedded clean-source, updater, regular origin and Demo-disabled identity.
+- The immediate post-publication catalog read raced GitHub propagation and ended
+  with `StopIteration`. The published bytes were retained. The reusable public
+  verifier now retries only transient publication visibility within a bounded window;
+  deterministic identity/hash failures remain fatal.
+
+The owner explicitly authorized removing mandatory review only from
+`android-test-release`; the exact existing channel branch allowlist is retained.
+Future test releases use the [validated plan and unattended workflow](../ANDROID-TEST-UPDATES.md#unattended-github-test-delivery).
+Physical-device update/data continuity, launcher appearance and OS App Links still
+require the device acceptance listed below. Earlier preparation evidence is
+retained in the following sections.
 
 ## Identity and source
 
@@ -29,11 +57,11 @@ It retains the test updater and shared identity intake. Do not include the
 unrelated draft FCM candidate #1392 or migrate the installed package to
 `de.eimir.app` (#1395).
 
-## Preparation boundary
+## Earlier preparation boundary
 
-This is a source preparation, not a signed APK or published update. The original
-test signing environment is unavailable in the preparing workspace and GitHub
-Actions has no configured release-keystore secrets.
+At the source-preparation checkpoint, no signed APK or published update existed.
+The original test signing environment was unavailable in the preparing workspace
+and GitHub Actions had no configured release-keystore secrets.
 No replacement key, debug signature, install marker or APK is fabricated.
 The existing durable key must be supplied privately through the supported
 environment; never commit it, attach it to an issue/release or put it here.

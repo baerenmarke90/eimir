@@ -601,6 +601,12 @@
   font-weight: 600;
 }
 
+.preference-modal-dialog .private-partner-notes-badge {
+  width: 100%;
+  align-items: flex-start;
+  border-radius: var(--radius-small);
+}
+
 .private-partner-notes-icon {
   display: inline-flex;
   flex-shrink: 0;

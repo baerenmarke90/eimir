@@ -872,6 +872,11 @@ for (const view of [
           ),
         });
         if (width === 320) {
+          const noticeShape = await dialog.getByRole('note').evaluate((element) => ({
+            radius: Number.parseFloat(getComputedStyle(element).borderTopLeftRadius),
+            height: element.getBoundingClientRect().height,
+          }));
+          expect(noticeShape.radius).toBeLessThan(noticeShape.height / 4);
           const save = dialog.getByRole('button', {
             name: profiles.saveChanges,
             exact: true,

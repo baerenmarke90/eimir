@@ -19,6 +19,44 @@ from tests.integration.test_attachment_binding import couple as couple
 pytestmark = [pytest.mark.integration, requires_database]
 
 
+@pytest.fixture
+def required_location_encryption(encryption):  # type: ignore[no-untyped-def]
+    """Configure real payload/media protection before client and couple creation."""
+    return encryption.apply("required")
+
+
+def test_selected_photo_location_works_with_required_encryption(
+    required_location_encryption, client, couple, session
+):  # type: ignore[no-untyped-def]
+    import json
+
+    from sqlalchemy import text
+
+    from eimir.domain.payload import CRYPTO_VERSION_SERVER_AEAD
+
+    photo = binding.ready_attachment(client, couple, session)
+    raw, crypto_version = session.execute(
+        text("SELECT payload::text, crypto_version FROM photo_location_drafts WHERE id = :id"),
+        {"id": UUID(photo)},
+    ).one()
+    assert crypto_version == CRYPTO_VERSION_SERVER_AEAD
+    assert json.loads(raw)["_enc"] == CRYPTO_VERSION_SERVER_AEAD
+    assert "latitude" not in raw and "longitude" not in raw
+    session.expire_all()
+    draft = session.get(PhotoLocationDraft, UUID(photo))
+    assert draft is not None and draft.payload.latitude == 52.516667
+
+    memory = binding.memory(client, couple)
+    saved = attach(client, couple, memory, [photo])
+    assert saved.status_code == 200
+    assert session.get(PhotoLocationDraft, UUID(photo)) is None
+    shared = places(client, couple, memory["id"], token_key="token_b")
+    assert shared.status_code == 200
+    assert [(item["latitude"], item["longitude"]) for item in shared.json()["items"]] == [
+        (52.516667, 13.4)
+    ]
+
+
 def test_cancel_discards_location_before_provider_cleanup(client, couple, session):  # type: ignore[no-untyped-def]
     photo = binding.ready_attachment(client, couple, session)
     assert session.get(PhotoLocationDraft, UUID(photo)) is not None

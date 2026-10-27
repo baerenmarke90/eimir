@@ -219,7 +219,18 @@ public class PhotoFileChooserTest {
         assertEquals(1, rejected.get());
         assertEquals(0, callbacks.get());
         instrumentation.sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
-        assertTrue(cancelled.await(10, TimeUnit.SECONDS));
+        if (!cancelled.await(2, TimeUnit.SECONDS)) {
+            // Some platform picker sheets consume the first Back to collapse
+            // their own selection surface. Only a still-active system picker
+            // permits a second genuine Back event; never bypass the chooser.
+            AccessibilityNodeInfo root = instrumentation.getUiAutomation().getRootInActiveWindow();
+            captureNativeDiagnostics("native-photo-after-back");
+            assertTrue("Back did not close the picker and the system picker must still be active",
+                root != null && isSystemPhotoPicker(root.getPackageName()));
+            instrumentation.sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
+        }
+        assertTrue("System Back must settle the pending photo chooser",
+            cancelled.await(10, TimeUnit.SECONDS));
         instrumentation.runOnMainSync(chooser::dispose);
         assertEquals(1, callbacks.get());
     }
@@ -245,14 +256,6 @@ public class PhotoFileChooserTest {
         String token = "Photo taken";
         // Exercise the actual Chromium File handoff, not just our native callback.
         WebView view = activity.getBridge().getWebView();
-        CountDownLatch photoDocumentLoaded = new CountDownLatch(1);
-        activity.getBridge().addWebViewListener(new com.getcapacitor.WebViewListener() {
-            @Override public void onPageLoaded(WebView loaded) {
-                if ("https://localhost/native-photo-fixture".equals(loaded.getUrl())) {
-                    photoDocumentLoaded.countDown();
-                }
-            }
-        });
         instrumentation.runOnMainSync(() -> {
             view.getSettings().setJavaScriptEnabled(true);
             view.loadDataWithBaseURL("https://localhost/native-photo-fixture",
@@ -267,8 +270,8 @@ public class PhotoFileChooserTest {
                 + "window.selectedPhotoBytes=btoa(binary);}catch(error){window.photoReadError=error.name;}};"
                 + "</script>", "text/html", "UTF-8", null);
         });
-        assertTrue("Chromium finishes the actual file-input document",
-            photoDocumentLoaded.await(15, TimeUnit.SECONDS));
+        // The actual DOM is the readiness contract. WebViewListener.onPageLoaded
+        // may report a redirected/normalized URL or not fire for loadDataWithBaseURL.
         awaitPhotoInput(view);
         instrumentation.getUiAutomation().executeAndWaitForEvent(() ->
             androidx.test.espresso.Espresso.onView(

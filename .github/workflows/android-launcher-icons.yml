@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/android-launcher-icons.yml'
       - 'android/**'
+      - 'web/src/client/selectedPhotoLocation.e2e.test.ts'
+      - 'scripts/test_android_photo_pipeline.sh'
       - 'web/src/client/nativeAppIcon.ts'
       - 'web/src/client/useNativeAppIcon.ts'
       - 'scripts/android_launcher_identity.py'
@@ -26,7 +28,7 @@ jobs:
   launcher:
     name: Android launcher API ${{ matrix.api }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       ANDROID_AVD_HOME: /tmp/eimir-launcher-avd
     strategy:
@@ -114,6 +116,13 @@ jobs:
             adb -e exec-out run-as de.sidebyside.app.debug cat files/native-photo-picker.png > native-photo-picker.png
             test -s native-photo-picker.png
           fi
+      - name: Actual Android File through Web upload, API, worker and shared Place
+        if: matrix.api == 36
+        run: |
+          adb_path="$ANDROID_HOME/platform-tools/adb"
+          "$adb_path" -e exec-out run-as de.sidebyside.app.debug cat files/native-selected-photo.jpg > android/native-selected-photo.jpg
+          test -s android/native-selected-photo.jpg
+          bash scripts/test_android_photo_pipeline.sh
       - name: Capture native fixture diagnostics
         if: always()
         working-directory: android
@@ -141,4 +150,5 @@ jobs:
             android/native-photo-result.txt
             android/native-selected-photo.jpg
             android/external-photo-owner.log
+            android/native-photo-pipeline.log
           if-no-files-found: ignore

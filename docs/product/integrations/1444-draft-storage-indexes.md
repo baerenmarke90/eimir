@@ -8,9 +8,10 @@ the scoped selection handoff in #1460 remains separate.
 
 `MemoryDiaryDraftStore.load()` and logout cleanup use `getAll()` on the draft
 store. Each record includes its selected Files. Opening one composer's draft
-therefore transfers every retained draft's words and photos into JavaScript,
+therefore clones every retained record and its File objects into JavaScript,
 including other Account/Space/API-instance scopes, merely to inspect metadata.
-The configured attachment limits permit substantial selected-photo payloads.
+Native Blob/File byte backing is browser-managed; this finding establishes
+unnecessary payload-record cloning, not a measured heap-size or latency saving.
 The returned result is scoped, but the read and cleanup work are not.
 
 Use the existing IndexedDB database and record identity. Add expiration/epoch

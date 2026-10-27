@@ -53,12 +53,12 @@ This inventory defines the Web/Mobile-Web freshness contract. Pull-to-refresh (P
 
 The QueryClient defaults explicitly keep:
 
-- `staleTime: 15_000`
+- `staleTime: 60_000`
 - `refetchOnMount: true`
 - `refetchOnWindowFocus: true`
 - `refetchOnReconnect: true`
 
-This means stale data naturally revalidates on route re-entry/remount, browser/PWA focus regain and reconnect without invalidating every cache entry. React Query stale-time and request deduplication remain authoritative.
+This means stale data naturally revalidates on route re-entry/remount, browser/PWA focus regain and reconnect without invalidating every cache entry. The one-minute freshness window avoids request bursts on short Android app resumes and route hops, while explicit mutation invalidation and pull-to-refresh still update immediately. Domains requiring tighter freshness (such as presence, daily activity and notifications) retain their own polling and always-revalidate settings. React Query stale-time and request deduplication remain authoritative.
 
 ## Default for new surfaces
 

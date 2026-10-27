@@ -27,6 +27,7 @@ beforeAll(() => {
 });
 
 import { ClientProblemError } from '../client/problemDetails';
+import photoPlaceCopy from '../i18n/locales/photoPlaces';
 import { MomentPlaces } from './MomentPlaces';
 import { PhotoLocationSettings } from './PhotoLocationSettings';
 
@@ -84,7 +85,7 @@ it('waits for the real preference and confirms only after the server accepts it'
   await waitFor(() =>
     expect(control.getAttribute('aria-checked')).toBe('false'),
   );
-  expect(await screen.findByText('Gespeichert')).toBeTruthy();
+  expect(await screen.findByText(photoPlaceCopy.saved)).toBeTruthy();
 });
 
 it('does not queue an offline preference change or change its confirmed value', async () => {
@@ -134,7 +135,7 @@ it('refreshes a concurrent preference without claiming the failed write succeede
       'false',
     ),
   );
-  expect(screen.queryByText('Gespeichert')).toBeNull();
+  expect(screen.queryByText(photoPlaceCopy.saved)).toBeNull();
 });
 
 it('opens a map only as an explicit link and requires deliberate unlink confirmation', async () => {
@@ -150,7 +151,7 @@ it('opens a map only as an explicit link and requires deliberate unlink confirma
   });
   const place = {
     id: 'p',
-    name: 'Foto-Ort',
+    name: 'Photo location',
     latitude: 0,
     longitude: 0,
   } as PlaceDetail;
@@ -171,20 +172,22 @@ it('opens a map only as an explicit link and requires deliberate unlink confirma
       offline={false}
     />,
   );
-  expect(await screen.findByRole('link', { name: 'Foto-Ort' })).toBeTruthy();
-  expect(screen.queryByRole('link', { name: /Google Maps/ })).toBeNull();
+  expect(await screen.findByRole('link', { name: place.name })).toBeTruthy();
+  expect(screen.queryByRole('link', { name: photoPlaceCopy.maps })).toBeNull();
   expect(unlink).not.toHaveBeenCalled();
   fireEvent.click(
-    screen.getByRole('button', { name: 'Aktionen für Foto-Ort' }),
+    screen.getByRole('button', {
+      name: photoPlaceCopy.actions.replace('{{name}}', place.name),
+    }),
   );
-  const map = await screen.findByRole('link', { name: /Google Maps/ });
+  const map = await screen.findByRole('link', { name: photoPlaceCopy.maps });
   expect(map.getAttribute('href')).toBe(
     'https://www.google.com/maps/search/?api=1&query=0%2C0',
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Zuordnung entfernen' }));
+  fireEvent.click(screen.getByRole('button', { name: photoPlaceCopy.remove }));
   expect(unlink).not.toHaveBeenCalled();
   list.mockResolvedValue({ items: [], nextCursor: null, hasMore: false });
-  fireEvent.click(screen.getByRole('button', { name: 'Zuordnung entfernen' }));
+  fireEvent.click(screen.getByRole('button', { name: photoPlaceCopy.remove }));
   await waitFor(() =>
     expect(unlink).toHaveBeenCalledWith({
       spaceId: 's',

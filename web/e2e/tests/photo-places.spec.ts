@@ -3,6 +3,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import m5s3 from '../../src/i18n/locales/m5s3';
+import photoPlaceCopy from '../../src/i18n/locales/photoPlaces';
+import profileIdentity from '../../src/i18n/locales/profileIdentity';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import localeFixture from '../fixtures/locales/de';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -29,22 +35,42 @@ test('canonical Place correction returns to the originating saved moment', async
   const state = await installPhotoPlaces(page);
   await signIn(page);
   await page.goto('/story/memories/mem-canal');
-  await page.getByRole('link', { name: 'Foto-Ort', exact: true }).click();
-  await expect(
-    page.getByRole('heading', { name: 'Foto-Ort', exact: true }),
-  ).toBeVisible();
-  await page.getByRole('button', { name: 'Bearbeiten', exact: true }).click();
-  await page.getByLabel('Name', { exact: true }).fill('Unser See');
   await page
-    .getByRole('button', { name: 'Änderungen speichern', exact: true })
+    .getByRole('link', {
+      name: localeFixture.photoPlaces.initialName,
+      exact: true,
+    })
     .click();
   await expect(
-    page.getByRole('heading', { name: 'Unser See', exact: true }),
+    page.getByRole('heading', {
+      name: localeFixture.photoPlaces.initialName,
+      exact: true,
+    }),
   ).toBeVisible();
-  await page.getByRole('button', { name: /Zurück/ }).click();
+  await page
+    .getByRole('button', { name: m5s3.common.edit, exact: true })
+    .click();
+  await page
+    .getByLabel(m5s3.place.name, { exact: true })
+    .fill(localeFixture.photoPlaces.correctedName);
+  await page
+    .getByRole('button', { name: m5s3.common.saveChanges, exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', {
+      name: localeFixture.photoPlaces.correctedName,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: false })
+    .click();
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
   await expect(
-    page.getByRole('link', { name: 'Unser See', exact: true }),
+    page.getByRole('link', {
+      name: localeFixture.photoPlaces.correctedName,
+      exact: true,
+    }),
   ).toBeVisible();
   expect(state.writes).toEqual(['edit']);
   expect(state.unexpected).toEqual([]);
@@ -59,7 +85,7 @@ test('photo places retain 320px reflow with 200% body text', async ({
   await signIn(page);
   await page.goto('/more/settings/memories');
   await expect(
-    page.getByRole('switch', { name: 'Orte automatisch ergänzen' }),
+    page.getByRole('switch', { name: photoPlaceCopy.setting }),
   ).toHaveAttribute('aria-checked', 'true');
   await page.addStyleTag({ content: 'body { font-size: 200% !important; }' });
   expect(
@@ -69,7 +95,10 @@ test('photo places retain 320px reflow with 200% body text', async ({
   ).toBe(true);
   await page.goto('/story/memories/mem-canal');
   await expect(
-    page.getByRole('link', { name: 'Foto-Ort', exact: true }),
+    page.getByRole('link', {
+      name: localeFixture.photoPlaces.initialName,
+      exact: true,
+    }),
   ).toBeVisible();
   await page.addStyleTag({ content: 'body { font-size: 200% !important; }' });
   expect(
@@ -100,7 +129,7 @@ async function installPhotoPlaces(page: Page) {
     spaceId: SPACE_ID,
     createdBy: ACCOUNT_ID,
     creator: ME,
-    name: 'Foto-Ort',
+    name: localeFixture.photoPlaces.initialName,
     description: null,
     address: null,
     latitude: 52.516667,
@@ -151,8 +180,8 @@ async function installPhotoPlaces(page: Page) {
           spaceId: SPACE_ID,
           authorId: ACCOUNT_ID,
           author: ME,
-          title: 'Unser Nachmittag am See',
-          body: 'Wir haben uns Zeit genommen und sind bis zum Abend geblieben.',
+          title: localeFixture.photoPlaces.title,
+          body: localeFixture.photoPlaces.body,
           tags: [],
           happenedOn: '2026-10-26',
           createdAt: '2026-10-27T10:00:00Z',
@@ -225,14 +254,15 @@ for (const colorScheme of ['light', 'dark'] as const) {
       const state = await installPhotoPlaces(page);
       const external: string[] = [];
       page.on('request', (req) => {
-        if (new URL(req.url()).hostname.endsWith('google.com'))
+        const hostname = new URL(req.url()).hostname;
+        if (hostname === 'google.com' || hostname.endsWith('.google.com'))
           external.push(req.url());
       });
       await signIn(page);
       await page.goto('/more/settings');
       await page.locator('a[href="/more/settings/memories"]').click();
       const control = page.getByRole('switch', {
-        name: 'Orte automatisch ergänzen',
+        name: photoPlaceCopy.setting,
       });
       await expect(control).toHaveAttribute('aria-checked', 'true');
       await captureScreenshot(
@@ -244,20 +274,23 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await control.click();
       await expect(control).toHaveAttribute('aria-checked', 'false');
       await expect(
-        page.getByText('Gespeichert', { exact: true }),
+        page.getByText(photoPlaceCopy.saved, { exact: true }),
       ).toBeVisible();
       await expect(
-        page.getByRole('link', { name: 'Zurück zu Einstellungen' }),
+        page.getByRole('link', { name: profileIdentity.settingsBackToIndex }),
       ).toBeVisible();
       await page.goto('/story/memories/mem-canal');
       await expect(
-        page.getByRole('heading', { name: 'Unser Nachmittag am See' }),
+        page.getByRole('heading', { name: localeFixture.photoPlaces.title }),
       ).toBeVisible();
       await expect(
-        page.getByRole('link', { name: 'Foto-Ort', exact: true }),
+        page.getByRole('link', {
+          name: localeFixture.photoPlaces.initialName,
+          exact: true,
+        }),
       ).toBeVisible();
       await expect(
-        page.getByRole('img', { name: 'Foto zu diesem Eintrag' }).first(),
+        page.getByRole('img', { name: storyProducts.gallery.imageAlt }).first(),
       ).toBeVisible();
       await captureScreenshot(
         page,
@@ -271,10 +304,17 @@ for (const colorScheme of ['light', 'dark'] as const) {
           () => document.documentElement.scrollWidth <= innerWidth + 1,
         ),
       ).toBe(true);
-      await page.getByRole('button', { name: 'Aktionen für Foto-Ort' }).click();
+      await page
+        .getByRole('button', {
+          name: photoPlaceCopy.actions.replace(
+            '{{name}}',
+            localeFixture.photoPlaces.initialName,
+          ),
+        })
+        .click();
       const dialog = page.getByRole('dialog');
       await expect(
-        dialog.getByRole('link', { name: /Google Maps/ }),
+        dialog.getByRole('link', { name: photoPlaceCopy.maps }),
       ).toHaveAttribute(
         'href',
         'https://www.google.com/maps/search/?api=1&query=52.516667%2C13.4',
@@ -286,14 +326,17 @@ for (const colorScheme of ['light', 'dark'] as const) {
           `1459-actions-${colorScheme}.png`,
           { fullPage: true },
         );
-      await dialog.getByRole('button', { name: 'Zuordnung entfernen' }).click();
+      await dialog.getByRole('button', { name: photoPlaceCopy.remove }).click();
       await expect(
-        dialog.getByText(/Der Ort bleibt gespeichert/),
+        dialog.getByText(photoPlaceCopy.removeHint, { exact: true }),
       ).toBeVisible();
       expect(state.writes).toEqual(['preference']);
-      await dialog.getByRole('button', { name: 'Zuordnung entfernen' }).click();
+      await dialog.getByRole('button', { name: photoPlaceCopy.remove }).click();
       await expect(
-        page.getByRole('link', { name: 'Foto-Ort', exact: true }),
+        page.getByRole('link', {
+          name: localeFixture.photoPlaces.initialName,
+          exact: true,
+        }),
       ).toHaveCount(0);
       expect(state.writes).toEqual(['preference', 'unlink']);
       expect(external).toEqual([]);

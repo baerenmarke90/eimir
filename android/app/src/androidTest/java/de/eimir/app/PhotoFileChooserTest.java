@@ -41,6 +41,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.TimeoutException;
 import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /** Real Android grants/document handoff, separate from browser-upload fixtures. */
@@ -50,8 +52,8 @@ public class PhotoFileChooserTest {
     private ActivityScenario<LauncherActivity> scenario;
     private LauncherActivity activity;
     private PhotoFileChooser chooser;
-    private Uri fixture;
-    private File source;
+    private static Uri fixture;
+    private static File source;
 
     private static FileChooserParams parameters(int mode, boolean capture, String... types) {
         return new FileChooserParams() {
@@ -67,8 +69,66 @@ public class PhotoFileChooserTest {
     @After
     public void cleanup() {
         if (scenario != null) scenario.close();
+    }
+
+    @AfterClass
+    public static void removeGalleryFixture() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         if (fixture != null) context.getContentResolver().delete(fixture, null, null);
         if (source != null) source.delete();
+    }
+
+    @BeforeClass
+    public static void prepareGalleryFixtureBeforeAnyRecentPickerQuery() throws Exception {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return;
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        String name = "gps-" + UUID.randomUUID().toString().substring(0, 8) + ".jpg";
+        source = new File(context.getCacheDir(), name);
+        try (OutputStream output = new FileOutputStream(source)) {
+            Bitmap.createBitmap(320, 240, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.JPEG, 95, output);
+        }
+        ExifInterface exif = new ExifInterface(source.getPath());
+        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, "N");
+        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, "52/1,31/1,0/1");
+        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, "E");
+        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, "13/1,24/1,0/1");
+        exif.saveAttributes();
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, name);
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+        values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/eimir-native-fixtures");
+        values.put(MediaStore.Images.Media.IS_PENDING, 1);
+        fixture = context.getContentResolver().insert(
+            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values);
+        assertNotNull(fixture);
+        try (InputStream input = new java.io.FileInputStream(source);
+                OutputStream output = context.getContentResolver().openOutputStream(fixture)) {
+            assertNotNull(output);
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+        }
+        values.clear();
+        values.put(MediaStore.Images.Media.IS_PENDING, 0);
+        context.getContentResolver().update(fixture, values, null, null);
+        String ownedPath;
+        try (android.database.Cursor row = context.getContentResolver().query(fixture,
+                new String[] {MediaStore.Images.Media.DATA}, null, null, null)) {
+            assertNotNull(row);
+            assertTrue(row.moveToFirst());
+            ownedPath = row.getString(0);
+        }
+        assertNotNull(ownedPath);
+        CountDownLatch indexed = new CountDownLatch(1);
+        AtomicReference<Uri> scanned = new AtomicReference<>();
+        android.media.MediaScannerConnection.scanFile(context, new String[] {ownedPath},
+            new String[] {"image/jpeg"}, (path, uri) -> { scanned.set(uri); indexed.countDown(); });
+        assertTrue("The owned gallery fixture finishes indexing", indexed.await(10, TimeUnit.SECONDS));
+        assertNotNull(scanned.get());
+        assertEquals(android.content.ContentUris.parseId(fixture),
+            android.content.ContentUris.parseId(scanned.get()));
+        // DocumentsProvider recents do not promise change notifications. The item
+        // must exist before the cancellation tests first open/cache that task.
     }
 
     @Test
@@ -200,35 +260,7 @@ public class PhotoFileChooserTest {
     @Test
     public void actualSystemDocumentSelectionRetainsThePhotosExifLocation() throws Exception {
         launchWithPhotoLocationPermission();
-        String token = "gps-" + UUID.randomUUID().toString().substring(0, 8);
-        String name = token + ".jpg";
-        source = new File(context.getCacheDir(), name);
-        try (OutputStream output = new FileOutputStream(source)) {
-            Bitmap.createBitmap(32, 24, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.JPEG, 95, output);
-        }
-        ExifInterface exif = new ExifInterface(source.getPath());
-        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, "N");
-        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, "52/1,31/1,0/1");
-        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, "E");
-        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, "13/1,24/1,0/1");
-        exif.saveAttributes();
-        ContentValues values = new ContentValues();
-        values.put(MediaStore.Images.Media.DISPLAY_NAME, name);
-        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-        values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/eimir-native-fixtures");
-        values.put(MediaStore.Images.Media.IS_PENDING, 1);
-        fixture = context.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
-        assertNotNull(fixture);
-        try (InputStream input = new java.io.FileInputStream(source);
-                OutputStream output = context.getContentResolver().openOutputStream(fixture)) {
-            assertNotNull(output);
-            byte[] buffer = new byte[8192];
-            int count;
-            while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
-        }
-        values.clear();
-        values.put(MediaStore.Images.Media.IS_PENDING, 0);
-        context.getContentResolver().update(fixture, values, null, null);
+        String token = source.getName().replace(".jpg", "");
         assertTrue("Authorized MediaStore selection explicitly requires original metadata",
             MediaStore.getRequireOriginal(PhotoFileChooser.originalUri(context, fixture)));
         // Exercise the actual Chromium File handoff, not just our native callback.
@@ -368,10 +400,18 @@ public class PhotoFileChooserTest {
             try { automation.waitForIdle(100, 1000); } catch (TimeoutException busy) { /* Await provider content. */ }
             AccessibilityNodeInfo root = automation.getRootInActiveWindow();
             if (root == null) continue;
-            List<AccessibilityNodeInfo> matches = root.findAccessibilityNodeInfosByText(name);
-            for (AccessibilityNodeInfo match : matches) {
-                String resource = match.getViewIdResourceName();
-                if (resource == null || !resource.endsWith("/preview_icon")) return match;
+            java.util.ArrayDeque<AccessibilityNodeInfo> nodes = new java.util.ArrayDeque<>();
+            nodes.add(root);
+            for (int count = 0; count < 500 && !nodes.isEmpty(); count++) {
+                AccessibilityNodeInfo node = nodes.remove();
+                CharSequence text = node.getText();
+                CharSequence description = node.getContentDescription();
+                if (node.isVisibleToUser() && ((text != null && text.toString().startsWith(name))
+                        || (description != null && description.toString().startsWith(name)))) return node;
+                for (int i = 0; i < node.getChildCount(); i++) {
+                    AccessibilityNodeInfo child = node.getChild(i);
+                    if (child != null) nodes.add(child);
+                }
             }
         } while (SystemClock.uptimeMillis() < deadline);
         return null;

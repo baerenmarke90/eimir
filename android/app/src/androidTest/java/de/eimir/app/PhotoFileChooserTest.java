@@ -25,7 +25,6 @@ import android.webkit.WebChromeClient.FileChooserParams;
 import android.webkit.WebView;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.platform.app.InstrumentationRegistry;
-import com.getcapacitor.WebViewListener;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -226,15 +225,11 @@ public class PhotoFileChooserTest {
         values.clear();
         values.put(MediaStore.Images.Media.IS_PENDING, 0);
         context.getContentResolver().update(fixture, values, null, null);
+        assertTrue("Authorized MediaStore selection explicitly requires original metadata",
+            MediaStore.getRequireOriginal(PhotoFileChooser.originalUri(context, fixture)));
         // Exercise the actual Chromium File handoff, not just our native callback.
         WebView view = activity.getBridge().getWebView();
-        CountDownLatch loaded = new CountDownLatch(1);
         instrumentation.runOnMainSync(() -> {
-            activity.getBridge().addWebViewListener(new WebViewListener() {
-                @Override public void onPageLoaded(WebView page) {
-                    if ("https://localhost/native-photo-fixture".equals(page.getUrl())) loaded.countDown();
-                }
-            });
             view.getSettings().setJavaScriptEnabled(true);
             view.loadDataWithBaseURL("https://localhost/native-photo-fixture",
                 "<meta name='viewport' content='width=device-width,initial-scale=1'>"
@@ -245,7 +240,7 @@ public class PhotoFileChooserTest {
                 + "let binary='';for(const value of bytes)binary+=String.fromCharCode(value);"
                 + "window.selectedPhotoBytes=btoa(binary);};</script>", "text/html", "UTF-8", null);
         });
-        assertTrue("The deterministic file-input document loads", loaded.await(10, TimeUnit.SECONDS));
+        awaitPhotoInput(view);
         instrumentation.getUiAutomation().executeAndWaitForEvent(() ->
             androidx.test.espresso.Espresso.onView(
                 androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom(WebView.class))
@@ -281,18 +276,33 @@ public class PhotoFileChooserTest {
     private byte[] selectedFileBytes(WebView view) throws Exception {
         long deadline = SystemClock.uptimeMillis() + 10000;
         do {
-            CountDownLatch read = new CountDownLatch(1);
-            AtomicReference<String> response = new AtomicReference<>();
-            instrumentation.runOnMainSync(() -> view.evaluateJavascript("window.selectedPhotoBytes||''", value -> {
-                response.set(value);
-                read.countDown();
-            }));
-            assertTrue("Chromium answers the file-read probe", read.await(3, TimeUnit.SECONDS));
-            String encoded = new org.json.JSONArray("[" + response.get() + "]").getString(0);
+            String encoded = new org.json.JSONArray("[" + javascriptValue(view,
+                "window.selectedPhotoBytes||''") + "]").getString(0);
             if (!encoded.isEmpty()) return android.util.Base64.decode(encoded, android.util.Base64.DEFAULT);
             instrumentation.waitForIdleSync();
         } while (SystemClock.uptimeMillis() < deadline);
         throw new AssertionError("The selected image never reached the Web File intake");
+    }
+
+    private void awaitPhotoInput(WebView view) throws Exception {
+        long deadline = SystemClock.uptimeMillis() + 10000;
+        do {
+            if ("true".equals(javascriptValue(view,
+                    "document.getElementById('photo')?.type==='file'"))) return;
+            instrumentation.waitForIdleSync();
+        } while (SystemClock.uptimeMillis() < deadline);
+        throw new AssertionError("The deterministic file-input DOM never became ready");
+    }
+
+    private String javascriptValue(WebView view, String expression) throws Exception {
+        CountDownLatch read = new CountDownLatch(1);
+        AtomicReference<String> response = new AtomicReference<>();
+        instrumentation.runOnMainSync(() -> view.evaluateJavascript(expression, value -> {
+            response.set(value);
+            read.countDown();
+        }));
+        assertTrue("Chromium answers the fixture probe", read.await(3, TimeUnit.SECONDS));
+        return response.get();
     }
 
     private AccessibilityNodeInfo findDocument(String name) throws Exception {

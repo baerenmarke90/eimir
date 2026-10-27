@@ -83,7 +83,7 @@
     },
     "memory-create-defaults.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 27
+      "baselineTests": 28
     },
     "memory-diary-storage.spec.ts": {
       "disposition": "PR_CRITICAL",

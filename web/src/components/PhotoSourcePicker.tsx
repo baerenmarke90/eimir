@@ -156,7 +156,14 @@ export function PhotoSourcePicker({
     lifetime.current = owner;
     setAvailability(null);
     setOpen(false);
+    setLinking(false);
+    setOrigin('');
     setKey('');
+    setConsent(false);
+    setView(null);
+    setSelected([]);
+    setMessage('');
+    setBusy(false);
     void apiRef.current
       .getPhotoSources({ spaceId }, { signal: owner.signal })
       .then((value) => {
@@ -181,11 +188,13 @@ export function PhotoSourcePicker({
   }
 
   async function refreshAvailability() {
+    const owner = lifetime.current;
     const value = await apiRef.current.getPhotoSources(
       { spaceId },
-      { signal: lifetime.current.signal },
+      { signal: owner.signal },
     );
-    if (!lifetime.current.signal.aborted) setAvailability(value);
+    if (lifetime.current === owner && !owner.signal.aborted)
+      setAvailability(value);
   }
 
   async function connect() {
@@ -241,6 +250,7 @@ export function PhotoSourcePicker({
         },
         { signal: owner.signal },
       );
+      if (owner.signal.aborted) return;
       await refreshAvailability();
       if (!owner.signal.aborted) setMessage(t('photoSources.disconnected'));
     } catch (error) {

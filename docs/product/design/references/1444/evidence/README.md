@@ -21,10 +21,15 @@ result. It asserts that unsaved source selection never creates a diary entry,
 that existing words remain, and that both photos bind on Save. Axe reports no
 violations on all four selection surfaces; reduced motion is enabled.
 
+A separate Google fixture exercises the real application browser handoff and
+polling path, then stages two selected copies and explicitly saves them. The
+authorization window/provider responses are synthetic; no Google sign-in is
+simulated as live evidence.
+
 Additional browser coverage closes an in-flight original request and rejects
 late bytes, preserves authored words, and allows disconnect after Pro expiry.
-The 320 px/200% text case checks the active sheet's own reflow and offline import
-feedback. The inert underlying diary is outside that sheet reflow assertion.
+The 320 px/200% text case checks full-page reflow and offline import
+feedback, including the source action's wrapping Pro mark.
 The existing diary create/recovery suite continues to cover local picking and
 expired unbound-upload recovery. Real provider accounts and installed devices
 are operational acceptance, explicitly deferred by the Product Owner.

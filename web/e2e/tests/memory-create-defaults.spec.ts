@@ -26,6 +26,7 @@ interface MemoryCreateRequestBody {
 }
 
 interface PhotoSourceScenario {
+  googleAvailable?: boolean;
   connected: boolean;
   canImport: boolean;
   links: { origin: string; apiKey: string; consent: boolean }[];
@@ -171,6 +172,57 @@ for (const [width, colorScheme] of [
   });
 }
 
+test('Google browser authorization returns selected copies to the unsaved diary', async ({
+  page,
+}) => {
+  const source = sourceScenario();
+  source.googleAvailable = true;
+  const photos = emptyPhotoBatch();
+  const externalUrls: string[] = [];
+  await page.exposeFunction('recordPhotoAuthorization', (url: string) =>
+    externalUrls.push(url),
+  );
+  await page.addInitScript(() => {
+    window.open = () =>
+      ({
+        closed: false,
+        opener: null,
+        close() {},
+        location: {
+          replace(url: string) {
+            void (
+              window as unknown as {
+                recordPhotoAuthorization(url: string): Promise<void>;
+              }
+            ).recordPhotoAuthorization(url);
+          },
+        },
+      }) as unknown as Window;
+  });
+  await signInAndOpenMemoryCreate(page, photos, source);
+  await page
+    .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
+    .fill(AUTHORED_BODY);
+  await page.getByRole('button', { name: photoSources.more }).click();
+  const sheet = page.getByRole('dialog', { name: photoSources.title });
+  await sheet.getByLabel(photoSources.google, { exact: true }).check();
+  await sheet.getByLabel(photoSources.accept, { exact: true }).check();
+  await sheet.getByRole('button', { name: photoSources.continue }).click();
+  await expect(sheet).toBeHidden({ timeout: 15_000 });
+  expect(externalUrls).toEqual(['https://accounts.google.com/authorize']);
+  await expect(
+    page.getByText(de.memory.photoReady, { exact: true }),
+  ).toHaveCount(2);
+  expect(source.originals).toBe(2);
+  expect(photos.creates).toBe(0);
+  await expect(
+    page.getByRole('textbox', { name: de.memory.bodyLabel, exact: true }),
+  ).toHaveValue(AUTHORED_BODY);
+  await page.getByRole('button', { name: de.memory.save }).click();
+  await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+  expect(photos.bound).toHaveLength(2);
+});
+
 test('closing a pending source transfer keeps authored words and rejects late photo bytes', async ({
   page,
 }) => {
@@ -242,11 +294,7 @@ test('offline source import at narrow large text preserves the diary draft', asy
   await sheet.getByLabel(photoSources.accept, { exact: true }).check();
   await sheet.getByRole('button', { name: photoSources.continue }).click();
   await sheet.getByLabel('Foto 1', { exact: true }).check();
-  const reflow = await sheet.evaluate((element) => ({
-    width: element.clientWidth,
-    content: element.scrollWidth,
-  }));
-  expect(reflow.content).toBeLessThanOrEqual(reflow.width);
+  await expectNoHorizontalOverflow(page);
   await context.setOffline(true);
   await sheet.getByRole('button', { name: photoSources.import }).click();
   await expect(
@@ -328,7 +376,7 @@ async function installApiMocks(
     ) {
       await fulfillJson({
         enabled: Boolean(source),
-        googleAvailable: false,
+        googleAvailable: source?.googleAvailable ?? false,
         immichConnected: source?.connected ?? false,
         immichConnectionToken: source?.connected
           ? 'linked-connection:1'
@@ -356,13 +404,29 @@ async function installApiMocks(
       await fulfillJson(
         {
           id: 'selected-session',
-          source: 'immich',
-          status: 'READY',
+          source: source.googleAvailable ? 'google' : 'immich',
+          status: source.googleAvailable ? 'AUTHORIZING' : 'READY',
+          authorizationUrl: source.googleAvailable
+            ? 'https://accounts.google.com/authorize'
+            : undefined,
           items: [{ id: 'selected-one' }, { id: 'selected-two' }],
           hasMore: false,
         },
         201,
       );
+      return;
+    }
+    if (
+      source &&
+      pathname.endsWith('/photo-selections/selected-session/poll')
+    ) {
+      await fulfillJson({
+        id: 'selected-session',
+        source: 'google',
+        status: 'READY',
+        items: [{ id: 'selected-one' }, { id: 'selected-two' }],
+        hasMore: false,
+      });
       return;
     }
     if (

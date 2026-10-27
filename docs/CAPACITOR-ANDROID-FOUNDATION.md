@@ -225,10 +225,39 @@ Mobile Web is the normative product reference. React product work reaches the An
 | File | Classification | Owner / purpose |
 |---|---|---|
 | `android/app/src/main/java/de/eimir/app/MainActivity.java` | NATIVE_CAPABILITY_REQUIRED | Capacitor `BridgeActivity` host; starts the one-shot cleanup. No product logic. |
+| `android/app/src/main/java/de/eimir/app/PhotoFileChooser.java` | NATIVE_CAPABILITY_REQUIRED | Selected-photo original-file handoff (#1471): optional photo-metadata permission, read-only document grants, original MediaStore access, cancellation and Activity ownership. No independent upload or location-tracking pipeline. |
 | `android/app/src/main/java/de/eimir/app/LegacyNativeDataCleanup.java` | NATIVE_CAPABILITY_REQUIRED / TEMPORARY_UPGRADE_MIGRATION | Deletes the retired Kotlin client's Room database, Space preference and Keystore key after an in-place update. One-shot: writes a completion marker after all three removals succeed; retries only while one fails. Temporary: remove in a later cleanup once no installation that predates the wrapper can remain (no issue tracks that yet). |
 | `AndroidManifest.xml`, `res/**`, Gradle files | NATIVE_CAPABILITY_REQUIRED | Launcher, OIDC deep link, FileProvider, icons/splash, build and verification metadata. |
 
 ## 9. Reuse-Before-Build Assessment
+
+### Selected-photo locations (#1471)
+
+Android may redact EXIF GPS from ordinary WebView GET_CONTENT selections before
+the backend receives their bytes. Image inputs on Android 10+ therefore use the
+shared `PhotoFileChooser` adapter. It requests `ACCESS_MEDIA_LOCATION` in the
+existing selection task, then opens `ACTION_OPEN_DOCUMENT` with read-only,
+selected-file grants. `MediaStore.getMediaUri` maps supported document providers
+to the same authorized item; `setRequireOriginal` requests its original bytes.
+Resolution/open checks run on Capacitor's background handler and retain a
+selected readable file when a provider cannot resolve an original. No native
+cache, media scan, persistent grant or library-wide storage permission is added.
+
+Declining the optional permission keeps ordinary selection available and does
+not upgrade URIs. The Activity does not repeatedly ask after a decline; Android
+app permissions remain the route for changing a previously refused OS grant.
+The account preference, private/shared policy and sanitized media storage remain
+server-authoritative; OS metadata permission never enables live location or
+bypasses the account switch. Camera capture and non-image inputs still use
+Capacitor. A wrapper/APK update is required for existing installations.
+
+The preflight, official platform sources and generated composition are in
+[Android photo-location import](product/design/references/android-photo-location-import/README.md).
+`PhotoFileChooserTest` supplies native contracts and a real Android document-picker
+round trip with a GPS-bearing JPEG; the existing API 28/36 native job owns the
+build/lint/instrumentation proof. Browser File fixtures alone do not establish
+this platform behavior. The screenshot is synthetic system-picker evidence,
+not a claim that every OEM/provider has been physically accepted.
 
 | Existing Component | Reused / Adapted | Rationale |
 |---|---|---|

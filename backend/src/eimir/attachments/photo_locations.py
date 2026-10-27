@@ -19,6 +19,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from eimir.attachments.models import Attachment, PhotoLocationDraft, PhotoLocationPayload
+from eimir.attachments.photo_location_labels import initial_photo_place_name
 from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.core.errors import ConflictError, UnauthenticatedError
 from eimir.db.locks import lock_subject
@@ -146,7 +147,7 @@ def bind(
     locale = session.execute(
         select(Account.locale).where(Account.id == context.account_id)
     ).scalar_one()
-    name = "Foto-Ort" if locale.lower().startswith("de") else "Photo location"
+    name = initial_photo_place_name(locale)
     seen: set[tuple[float, float]] = set()
     for payload in drafts:
         pair = (payload.latitude, payload.longitude)

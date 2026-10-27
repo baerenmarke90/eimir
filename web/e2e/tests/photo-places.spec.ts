@@ -21,6 +21,73 @@ const PHOTO = fs.readFileSync(
 );
 const PLACE_ID = '66666666-6666-4666-8666-666666666666';
 
+test('canonical Place correction returns to the originating saved moment', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const state = await installPhotoPlaces(page);
+  await signIn(page);
+  await page.goto('/story/memories/mem-canal');
+  await page.getByRole('link', { name: 'Foto-Ort', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Foto-Ort', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Bearbeiten', exact: true }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Unser See');
+  await page
+    .getByRole('button', { name: 'Änderungen speichern', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Unser See', exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: /Zurück/ }).click();
+  await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+  await expect(
+    page.getByRole('link', { name: 'Unser See', exact: true }),
+  ).toBeVisible();
+  expect(state.writes).toEqual(['edit']);
+  expect(state.unexpected).toEqual([]);
+});
+
+test('photo places retain 320px reflow with 200% body text', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  const state = await installPhotoPlaces(page);
+  await signIn(page);
+  await page.goto('/more/settings/memories');
+  await expect(
+    page.getByRole('switch', { name: 'Orte automatisch ergänzen' }),
+  ).toHaveAttribute('aria-checked', 'true');
+  await page.addStyleTag({ content: 'body { font-size: 200% !important; }' });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth + 1,
+    ),
+  ).toBe(true);
+  await page.goto('/story/memories/mem-canal');
+  await expect(
+    page.getByRole('link', { name: 'Foto-Ort', exact: true }),
+  ).toBeVisible();
+  await page.addStyleTag({ content: 'body { font-size: 200% !important; }' });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth + 1,
+    ),
+  ).toBe(true);
+  expect(
+    await page
+      .locator('.moment-places')
+      .evaluate((node) => node.scrollWidth <= node.clientWidth + 1),
+  ).toBe(true);
+  await captureScreenshot(page, testInfo, '1459-large-text-320-dark.png', {
+    fullPage: true,
+  });
+  expect(state.unexpected).toEqual([]);
+});
+
 async function installPhotoPlaces(page: Page) {
   const unexpected = await installMocks(page, {
     strict: true,
@@ -179,7 +246,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(
         page.getByText('Gespeichert', { exact: true }),
       ).toBeVisible();
-      await expect(page.getByRole('link', {name: 'Zurück zu Einstellungen'})).toBeVisible();
+      await expect(
+        page.getByRole('link', { name: 'Zurück zu Einstellungen' }),
+      ).toBeVisible();
       await page.goto('/story/memories/mem-canal');
       await expect(
         page.getByRole('heading', { name: 'Unser Nachmittag am See' }),
@@ -187,7 +256,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(
         page.getByRole('link', { name: 'Foto-Ort', exact: true }),
       ).toBeVisible();
-      await expect(page.locator('.media-gallery img').first()).toBeVisible();
+      await expect(
+        page.getByRole('img', { name: 'Foto zu diesem Eintrag' }).first(),
+      ).toBeVisible();
       await captureScreenshot(
         page,
         testInfo,

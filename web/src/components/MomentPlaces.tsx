@@ -48,6 +48,7 @@ export function MomentPlaces({
   const unlinkInFlight = useRef(false);
   const [selected, setSelected] = useState<PlaceDetail | null>(null);
   const [confirm, setConfirm] = useState(false);
+  const [removed, setRemoved] = useState(false);
   const config = useMemo(
     () =>
       new Configuration({
@@ -103,6 +104,7 @@ export function MomentPlaces({
     },
     onSuccess: (admitted) => {
       if (!admitted()) return;
+      setRemoved(true);
       setSelected(null);
       void client.invalidateQueries({ queryKey: key });
       void client.invalidateQueries({
@@ -120,7 +122,8 @@ export function MomentPlaces({
   const mapUrl = selected
     ? photoPlaceMapUrl(selected.latitude, selected.longitude)
     : null;
-  if (!query.isPending && !query.error && items.length === 0) return null;
+  if (!query.isPending && !query.error && items.length === 0 && !removed)
+    return null;
   return (
     <section
       className="moment-places"
@@ -129,6 +132,9 @@ export function MomentPlaces({
       <h2 ref={heading} tabIndex={-1} id={`moment-places-${targetId}`}>
         {t('photoPlaces.title')}
       </h2>
+      {removed && items.length === 0 ? (
+        <p role="status">{t('photoPlaces.removed')}</p>
+      ) : null}
       {query.isPending ? (
         <p className="muted" role="status">
           {t(offline ? 'photoPlaces.offline' : 'photoPlaces.placesLoading')}
@@ -173,13 +179,14 @@ export function MomentPlaces({
             <button
               type="button"
               className="tertiary"
+              aria-label={t('photoPlaces.actions', { name: place.name })}
               onClick={() => {
                 setSelected(place);
                 setConfirm(false);
                 mutation.reset();
               }}
             >
-              {t('photoPlaces.actions', { name: place.name })}
+              {t('photoPlaces.actionButton')}
             </button>
           </li>
         ))}
@@ -203,7 +210,7 @@ export function MomentPlaces({
         restoreFocusRef={heading}
       >
         {selected ? (
-          <>
+          <div className="moment-place-actions">
             {confirm ? (
               <>
                 <p>{t('photoPlaces.removeHint')}</p>
@@ -235,7 +242,7 @@ export function MomentPlaces({
             ) : (
               <>
                 <Link
-                  className="button-link"
+                  className="button-link secondary-link"
                   to={placeDetailPath(selected.id)}
                   onClick={(event) => {
                     event.preventDefault();
@@ -250,7 +257,7 @@ export function MomentPlaces({
                 </Link>
                 {mapUrl ? (
                   <a
-                    className="button-link"
+                    className="button-link secondary-link"
                     href={mapUrl}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -271,7 +278,7 @@ export function MomentPlaces({
             )}
             {offline ? <p role="status">{t('photoPlaces.offline')}</p> : null}
             {mutation.error ? <ProblemState error={mutation.error} /> : null}
-          </>
+          </div>
         ) : null}
       </ShortTaskSheet>
     </section>

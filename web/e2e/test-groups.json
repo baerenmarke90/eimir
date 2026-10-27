@@ -331,7 +331,7 @@
     },
     "photo-places.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 8,
+      "baselineTests": 10,
       "reason": "Default-on account consent, saved shared-photo context, explicit map navigation, deliberate unlink and Compact/Expanded Light/Dark accessibility."
     }
   }

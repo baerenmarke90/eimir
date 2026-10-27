@@ -16,6 +16,7 @@ const photoPlaces = {
   placesLoading: 'Orte werden geladen …',
   more: 'Weitere Orte laden',
   actions: 'Aktionen für {{name}}',
+  actionButton: 'Aktionen',
   edit: 'Ort ansehen und bearbeiten',
   maps: 'In Google Maps öffnen (extern)',
   remove: 'Zuordnung entfernen',

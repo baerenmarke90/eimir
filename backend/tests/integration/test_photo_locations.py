@@ -19,6 +19,45 @@ from tests.integration.test_attachment_binding import couple as couple
 pytestmark = [pytest.mark.integration, requires_database]
 
 
+def test_shared_heart_moment_creates_places_and_off_keeps_existing_history(client, couple, session):  # type: ignore[no-untyped-def]
+    photo = binding.ready_attachment(client, couple, session)
+    result = binding.heart_moment(client, couple, visibility="SHARED", attachment_id=photo)
+    assert result.status_code == 201
+    target = result.json()["id"]
+    assert session.get(PhotoLocationDraft, UUID(photo)) is None
+    assert (
+        len(places(client, couple, target, "heart-moments", token_key="token_b").json()["items"])
+        == 1
+    )
+    assert set_enabled(client, couple, False, 0).status_code == 200
+    assert len(places(client, couple, target, "heart-moments").json()["items"]) == 1
+    partner = client.get(
+        "/api/v1/account/photo-location-preference", headers=auth(couple["token_b"])
+    )
+    assert partner.json() == {"enabled": True, "version": 0}
+    second = binding.ready_attachment(client, couple, session)
+    assert session.get(PhotoLocationDraft, UUID(second)) is None
+
+
+def test_manual_correction_blocks_future_automatic_association(client, couple, session):  # type: ignore[no-untyped-def]
+    first = binding.ready_attachment(client, couple, session)
+    memory = binding.memory(client, couple)
+    saved = attach(client, couple, memory, [first]).json()
+    place = places(client, couple, memory["id"]).json()["items"][0]
+    corrected = client.patch(
+        f"{binding.base_path(couple['space'].id)}/places/{place['id']}",
+        json={"name": "Our chosen place", "latitude": 0, "longitude": 0},
+        headers=binding.if_match(couple["token_a"], place["version"]),
+    )
+    assert corrected.status_code == 200
+    second = binding.ready_attachment(client, couple, session)
+    assert attach(client, couple, saved, [first, second]).status_code == 200
+    result = places(client, couple, memory["id"]).json()["items"]
+    assert len(result) == 1 and result[0]["name"] == "Our chosen place"
+    assert (result[0]["latitude"], result[0]["longitude"]) == (0, 0)
+    assert session.get(PhotoLocationDraft, UUID(second)) is None
+
+
 @pytest.fixture(autouse=True)
 def gps_photo(monkeypatch):  # type: ignore[no-untyped-def]
     image = Image.new("RGB", (32, 24), (10, 20, 30))

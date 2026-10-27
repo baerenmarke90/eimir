@@ -22,3 +22,8 @@
 .moment-places a {
   overflow-wrap: anywhere;
 }
+
+.moment-place-actions {
+  display: grid;
+  gap: var(--space-3);
+}

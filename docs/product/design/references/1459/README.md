@@ -13,7 +13,7 @@ The photo and authored words remain the focal content. Places appear as quiet se
 
 Compact is primary (320/360/390/430); Expanded keeps the same constrained reading width and hierarchy. No table, map dashboard or nested cards. Back follows category → settings index → More; detail/edit return retains the original moment. No automatic keyboard. The immediate switch waits for authoritative account state, disables while pending, announces confirmation, keeps the confirmed value on failure, refreshes conflicts, and blocks offline writes. Empty GPS is ordinary absence. Loading, error/retry, offline and success remain inline. Keyboard names/focus, text reflow, Light/Dark and reduced motion reuse existing contracts; motion never conveys the only state.
 
-The generated composition is guidance: preserve the runtime More navigation highlight and current plain Settings rows (do not copy decorative generated row icons). The switch is default ON, so final copy explicitly describes automatic behavior and that OFF affects future photos. The image's illustrative “Auf Wunsch” wording is not the final copy.
+The generated composition is guidance: preserve the runtime More navigation highlight and current plain Settings rows (do not copy decorative generated row icons). The switch is default ON, so final copy explicitly describes automatic behavior and that OFF affects future photos. The image's illustrative optional phrasing is not the final product copy.
 
 ## Reuse review
 

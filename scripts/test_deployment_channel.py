@@ -240,7 +240,8 @@ def publish_image(
     if (
         not isinstance(manifest, dict)
         or manifest.get("schemaVersion") != 2
-        or manifest.get("mediaType") not in {
+        or manifest.get("mediaType")
+        not in {
             "application/vnd.oci.image.manifest.v1+json",
             "application/vnd.docker.distribution.manifest.v2+json",
         }
@@ -322,6 +323,11 @@ def export_compose(canonical: dict, backend: str, web: str) -> dict:
         "EIMIR_SMTP_STARTTLS": "true",
         "EIMIR_SMTP_USERNAME": required("EIMIR_MAIL_FROM"),
         "EIMIR_OIDC_CONNECTIONS": "[]",
+        # Optional personal-source configuration is supplied by the instance,
+        # never frozen to source defaults or the publishing runner's values.
+        "EIMIR_PHOTO_SOURCES_ENABLED": "${EIMIR_PHOTO_SOURCES_ENABLED:-true}",
+        "EIMIR_GOOGLE_PHOTOS_CLIENT_ID": "${EIMIR_GOOGLE_PHOTOS_CLIENT_ID:-}",
+        "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}",
     }
     for name in (
         "EIMIR_CURSOR_SIGNING_KEY",

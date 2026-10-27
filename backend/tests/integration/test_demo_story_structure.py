@@ -14,11 +14,13 @@ from eimir.chapters.models import Chapter
 from eimir.config import Environment
 from eimir.demo import create_demo_space, reset_demo_space
 from eimir.demo.story import CHAPTERS, MEMORIES
+from eimir.heart_moments.models import HeartMoment
 from eimir.memories import service as memory_service
 from eimir.memories.models import Memory
 from eimir.places import service as place_service
 from eimir.places.models import Place
 from eimir.relations import service as relation_service
+from eimir.relations.models import PlaceMemory
 from tests.conftest import requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -90,6 +92,40 @@ def test_completed_demo_preserves_mixed_place_and_memory_media_coverage(session:
     } == {"cabin-lake.jpg", "books-cozy-evening.jpg"}
 
 
+def test_completed_demo_has_authored_tags_and_manual_memory_place_links(session: Session) -> None:
+    result = _seed(session)
+    assert _memory_by_title(session, result.space_id, "Frühstück in Saarbrücken").payload.tags == [
+        "Frühstück", "Unterwegs"
+    ]
+    assert _memory_by_title(session, result.space_id, "Spaziergang am See").payload.tags == [
+        "Am See", "Spaziergang"
+    ]
+    assert _memory_by_title(session, result.space_id, "Filmabend auf dem Sofa").payload.tags == []
+
+    moments = list(session.execute(select(HeartMoment).where(HeartMoment.space_id == result.space_id)).scalars())
+    shared = next(moment for moment in moments if moment.payload.text == "Danke, dass du heute einfach zugehört hast.")
+    private = next(moment for moment in moments if moment.payload.text == "Vorfreude auf eine kleine Überraschung für Alex.")
+    assert shared.payload.tags == ["Dankbarkeit", "Miteinander"]
+    assert private.payload.tags == ["Überraschung"]
+
+    place_names = {
+        place.id: place.payload.name
+        for place in session.execute(select(Place).where(Place.space_id == result.space_id)).scalars()
+    }
+    memory_titles = {
+        memory.id: memory.payload.title
+        for memory in session.execute(select(Memory).where(Memory.space_id == result.space_id)).scalars()
+    }
+    links = list(
+        session.execute(select(PlaceMemory).where(PlaceMemory.space_id == result.space_id)).scalars()
+    )
+    assert {(place_names[link.place_id], memory_titles[link.memory_id]) for link in links} == {
+        ("Café am Markt", "Frühstück in Saarbrücken"),
+        ("Waldsee", "Spaziergang am See"),
+    }
+    assert all(not link.photo_generated for link in links)
+
+
 def test_completed_demo_links_every_chapter_to_its_declared_story(session: Session) -> None:
     result = _seed(session)
     snapshot = _chapter_story_snapshot(session, result)
@@ -113,10 +149,11 @@ def test_existing_demo_ensure_does_not_require_unchanged_story_titles(session: S
         context,
         movie_night.id,
         expected_version=movie_night.version,
-        changed_fields=frozenset({"title"}),
+        changed_fields=frozenset({"title", "tags"}),
         title="Unser Besucher-Filmabend",
         body=None,
         happened_on=None,
+        tags=["Besucher-Moment"],
     )
 
     ensured = create_demo_space(
@@ -132,6 +169,7 @@ def test_existing_demo_ensure_does_not_require_unchanged_story_titles(session: S
     changed = session.get(Memory, movie_night.id)
     assert changed is not None
     assert changed.payload.title == "Unser Besucher-Filmabend"
+    assert changed.payload.tags == ["Besucher-Moment"]
 
 
 def test_reset_restores_story_links_and_coordinate_fixture(session: Session) -> None:
@@ -170,6 +208,15 @@ def test_reset_restores_story_links_and_coordinate_fixture(session: Session) -> 
     )
     assert _chapter_story_snapshot(session, result) != expected_story
 
+    breakfast = _memory_by_title(session, result.space_id, "Frühstück in Saarbrücken")
+    relation_service.unlink(
+        session,
+        context,
+        cafe.id,
+        breakfast.id,
+        relation_service.PLACE_MEMORIES,
+    )
+
     reset = reset_demo_space(
         session,
         environment=Environment.TEST,
@@ -180,6 +227,14 @@ def test_reset_restores_story_links_and_coordinate_fixture(session: Session) -> 
     assert restored_cafe.latitude is not None
     assert restored_cafe.longitude is not None
     assert _chapter_story_snapshot(session, reset) == expected_story
+    restored_breakfast = _memory_by_title(session, reset.space_id, "Frühstück in Saarbrücken")
+    assert restored_breakfast.payload.tags == ["Frühstück", "Unterwegs"]
+    assert session.execute(
+        select(PlaceMemory).where(
+            PlaceMemory.place_id == restored_cafe.id,
+            PlaceMemory.memory_id == restored_breakfast.id,
+        )
+    ).scalar_one().photo_generated is False
 
     # Reset recreates the annual and oldest-memory fixtures from the same
     # reference date; idempotent ensure never rewrites existing visitor content.

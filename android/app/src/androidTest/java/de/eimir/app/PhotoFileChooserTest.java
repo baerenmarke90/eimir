@@ -240,9 +240,12 @@ public class PhotoFileChooserTest {
                 + "<input id='photo' type='file' accept='image/jpeg' aria-label='Choose photo' "
                 + "style='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:240px;height:60px'>"
                 + "<script>document.getElementById('photo').onchange=async(e)=>{"
+                + "window.photoFileEvents=(window.photoFileEvents||0)+1;"
+                + "window.photoSelectedCount=e.target.files.length;try{"
                 + "const bytes=new Uint8Array(await e.target.files[0].arrayBuffer());"
                 + "let binary='';for(const value of bytes)binary+=String.fromCharCode(value);"
-                + "window.selectedPhotoBytes=btoa(binary);};</script>", "text/html", "UTF-8", null);
+                + "window.selectedPhotoBytes=btoa(binary);}catch(error){window.photoReadError=error.name;}};"
+                + "</script>", "text/html", "UTF-8", null);
         });
         awaitPhotoInput(view);
         instrumentation.getUiAutomation().executeAndWaitForEvent(() ->
@@ -254,7 +257,7 @@ public class PhotoFileChooserTest {
                 && event.getPackageName().toString().endsWith(".documentsui"), 15000);
         // Document UIs may omit or ellipsize the extension in their displayed title.
         AccessibilityNodeInfo document = findDocument(token);
-        capturePickerDiagnostics();
+        captureNativeDiagnostics("native-photo-picker");
         assertNotNull("The real Android document picker exposes the selected fixture", document);
         tapSystemDocument(document);
         byte[] uploadedBytes = selectedFileBytes(view);
@@ -270,10 +273,10 @@ public class PhotoFileChooserTest {
         }
     }
 
-    private void capturePickerDiagnostics() throws Exception {
+    private void captureNativeDiagnostics(String label) throws Exception {
         Bitmap screenshot = instrumentation.getUiAutomation().takeScreenshot();
         assertNotNull(screenshot);
-        try (OutputStream proof = new FileOutputStream(new File(context.getFilesDir(), "native-photo-picker.png"))) {
+        try (OutputStream proof = new FileOutputStream(new File(context.getFilesDir(), label + ".png"))) {
             screenshot.compress(Bitmap.CompressFormat.PNG, 100, proof);
         }
         java.util.ArrayDeque<AccessibilityNodeInfo> nodes = new java.util.ArrayDeque<>();
@@ -289,7 +292,7 @@ public class PhotoFileChooserTest {
                 if (child != null) nodes.add(child);
             }
         }
-        java.nio.file.Files.write(new File(context.getFilesDir(), "native-photo-picker.txt").toPath(),
+        java.nio.file.Files.write(new File(context.getFilesDir(), label + ".txt").toPath(),
             hierarchy.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
@@ -301,7 +304,10 @@ public class PhotoFileChooserTest {
             if (!encoded.isEmpty()) return android.util.Base64.decode(encoded, android.util.Base64.DEFAULT);
             instrumentation.waitForIdleSync();
         } while (SystemClock.uptimeMillis() < deadline);
-        throw new AssertionError("The selected image never reached the Web File intake");
+        captureNativeDiagnostics("native-photo-result");
+        throw new AssertionError("The selected image never reached the Web File intake: "
+            + javascriptValue(view, "JSON.stringify({handler:typeof document.getElementById('photo').onchange,"
+                + "events:window.photoFileEvents,count:window.photoSelectedCount,error:window.photoReadError})"));
     }
 
     private void awaitPhotoInput(WebView view) throws Exception {
@@ -335,18 +341,23 @@ public class PhotoFileChooserTest {
         long downTime = SystemClock.uptimeMillis();
         MotionEvent down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN,
             bounds.exactCenterX(), bounds.exactCenterY(), 0);
-        MotionEvent up = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP,
-            bounds.exactCenterX(), bounds.exactCenterY(), 0);
         down.setSource(InputDevice.SOURCE_TOUCHSCREEN);
-        up.setSource(InputDevice.SOURCE_TOUCHSCREEN);
         try {
             assertTrue("Android accepts the document touch-down",
                 instrumentation.getUiAutomation().injectInputEvent(down, true));
-            assertTrue("Android accepts the document touch-up",
-                instrumentation.getUiAutomation().injectInputEvent(up, true));
+            // This is the platform's gesture duration, not a provider/content wait.
+            SystemClock.sleep(android.view.ViewConfiguration.getTapTimeout());
+            MotionEvent up = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP,
+                bounds.exactCenterX(), bounds.exactCenterY(), 0);
+            up.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+            try {
+                assertTrue("Android accepts the document touch-up",
+                    instrumentation.getUiAutomation().injectInputEvent(up, true));
+            } finally {
+                up.recycle();
+            }
         } finally {
             down.recycle();
-            up.recycle();
         }
     }
 

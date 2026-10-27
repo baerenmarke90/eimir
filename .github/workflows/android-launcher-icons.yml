@@ -105,7 +105,7 @@ jobs:
         run: |
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -d -t 1000 -v threadtime \
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
-          for proof in native-photo-picker.png native-photo-picker.txt; do
+          for proof in native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt; do
             "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.sidebyside.app.debug \
               cat "files/$proof" > "$proof" 2>/dev/null || rm -f "$proof"
           done
@@ -122,4 +122,6 @@ jobs:
             android/fixture-logcat.log
             android/native-photo-picker.png
             android/native-photo-picker.txt
+            android/native-photo-result.png
+            android/native-photo-result.txt
           if-no-files-found: ignore

@@ -227,12 +227,13 @@ def test_reset_restores_story_links_and_coordinate_fixture(session: Session) -> 
     assert _chapter_story_snapshot(session, reset) == expected_story
     restored_breakfast = _memory_by_title(session, reset.space_id, "Frühstück in Saarbrücken")
     assert restored_breakfast.payload.tags == ["Frühstück", "Unterwegs"]
-    assert session.execute(
+    restored_link = session.execute(
         select(PlaceMemory).where(
             PlaceMemory.place_id == restored_cafe.id,
             PlaceMemory.memory_id == restored_breakfast.id,
         )
-    ).scalar_one().photo_generated is False
+    ).scalar_one()
+    assert restored_link.photo_generated is False
 
     # Reset recreates the annual and oldest-memory fixtures from the same
     # reference date; idempotent ensure never rewrites existing visitor content.

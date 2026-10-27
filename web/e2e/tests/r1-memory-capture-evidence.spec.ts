@@ -1,3 +1,4 @@
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { showMemoryDetails } from '../support/memoryDiary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import path from 'node:path';
@@ -51,6 +52,7 @@ async function installApiMocks(page: Page): Promise<void> {
   let savedMemory: Record<string, unknown> | null = null;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;

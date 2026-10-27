@@ -34,6 +34,7 @@ from eimir.api.v1 import (
     milestones,
     notification_preferences,
     people,
+    photo_sources,
     place_relations,
     places,
     plans,
@@ -73,6 +74,7 @@ normal_router.include_router(session_context.router)
 normal_router.include_router(demo.router)
 normal_router.include_router(invitations.router)
 normal_router.include_router(attachments.router)
+normal_router.include_router(photo_sources.router)
 normal_router.include_router(story.router)
 normal_router.include_router(search.router)
 normal_router.include_router(dashboard.router)

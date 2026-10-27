@@ -16,6 +16,7 @@ import pytest
 from pydantic import SecretStr
 
 from eimir.providers import immich_photos as photos
+from eimir.providers import photo_transport as transport
 
 ORIGIN = "https://photos.example.org"
 ASSET = "5f2e03cf-ce5a-4b96-bb04-c944d203224b"
@@ -93,9 +94,9 @@ def setup_transport(
     lookup = Mock(return_value=[(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("8.8.8.8", 443))])
     context = Mock()
     context.wrap_socket.side_effect = lambda stream, **_: stream
-    monkeypatch.setattr(photos.socket, "socket", factory)
-    monkeypatch.setattr(photos.socket, "getaddrinfo", lookup)
-    monkeypatch.setattr(photos.ssl, "create_default_context", Mock(return_value=context))
+    monkeypatch.setattr(transport.socket, "socket", factory)
+    monkeypatch.setattr(transport.socket, "getaddrinfo", lookup)
+    monkeypatch.setattr(transport.ssl, "create_default_context", Mock(return_value=context))
     return sockets, factory, lookup, context
 
 
@@ -388,17 +389,17 @@ def test_dns_wait_is_bounded_without_unbounded_resolver_queue(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     future: Future[Any] = Future()
-    monkeypatch.setattr(photos, "_DNS_SECONDS", 0.001)
-    monkeypatch.setattr(photos, "_DNS_WORKERS", Mock(submit=Mock(return_value=future)))
-    monkeypatch.setattr(photos, "_DNS_SLOTS", threading.BoundedSemaphore(1))
+    monkeypatch.setattr(transport, "_DNS_SECONDS", 0.001)
+    monkeypatch.setattr(transport, "_DNS_WORKERS", Mock(submit=Mock(return_value=future)))
+    monkeypatch.setattr(transport, "_DNS_SLOTS", threading.BoundedSemaphore(1))
     with pytest.raises(photos.ImmichPhotoError, match="PHOTO_SOURCE_TIMEOUT"):
-        photos._resolve_public_address("photos.example.org", time.monotonic() + 1)
+        transport._resolve_public_address("photos.example.org", time.monotonic() + 1)
     assert future.cancelled()
     slots = threading.BoundedSemaphore(1)
     slots.acquire()
-    monkeypatch.setattr(photos, "_DNS_SLOTS", slots)
+    monkeypatch.setattr(transport, "_DNS_SLOTS", slots)
     with pytest.raises(photos.ImmichPhotoError, match="PHOTO_SOURCE_UNAVAILABLE"):
-        photos._resolve_public_address("photos.example.org", time.monotonic() + 1)
+        transport._resolve_public_address("photos.example.org", time.monotonic() + 1)
 
 
 def test_watchdog_interrupts_stalled_headers_with_absolute_deadline(
@@ -421,13 +422,13 @@ def test_watchdog_interrupts_stalled_headers_with_absolute_deadline(
 
 def test_total_deadline_also_covers_body_trickle(monkeypatch: pytest.MonkeyPatch) -> None:
     setup_transport(monkeypatch, [http_response(metadata())])
-    original_read = photos.http.client.HTTPResponse.read1
+    original_read = transport.http.client.HTTPResponse.read1
 
     def slow_read(self: Any, size: int = -1) -> bytes:
         time.sleep(0.025)
         return original_read(self, size)
 
-    monkeypatch.setattr(photos.http.client.HTTPResponse, "read1", slow_read)
+    monkeypatch.setattr(transport.http.client.HTTPResponse, "read1", slow_read)
     monkeypatch.setattr(photos, "_TOTAL_SECONDS", 0.01)
     with pytest.raises(photos.ImmichPhotoError, match="PHOTO_SOURCE_TIMEOUT"):
         reader().read_selected_photo(ASSET)

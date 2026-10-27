@@ -117,6 +117,7 @@ def engine() -> Iterator[Engine]:
     from eimir.milestones import models as _milestones  # noqa: F401
     from eimir.outbox import models as _outbox  # noqa: F401
     from eimir.people import models as _people  # noqa: F401
+    from eimir.photo_sources import models as _photo_sources  # noqa: F401
     from eimir.places import models as _places  # noqa: F401
     from eimir.plans import models as _plans  # noqa: F401
     from eimir.private_collections import models as _private_collections  # noqa: F401

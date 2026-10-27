@@ -29,6 +29,7 @@ from eimir.identity import deletion_jobs as account_deletion_jobs
 from eimir.jobs import maintenance
 from eimir.jobs.worker import run_once
 from eimir.observability import configure_logging
+from eimir.photo_sources import retention as photo_source_retention
 from eimir.relationship import retention as space_retention
 from eimir.reminders import runtime as reminder_runtime
 from eimir.transfer import jobs as transfer_jobs
@@ -69,6 +70,7 @@ def _ensure_maintenance() -> None:
             daily_checkin_retention.ensure_scheduled(session)
             transfer_jobs.ensure_scheduled(session)
             space_retention.ensure_scheduled(session)
+            photo_source_retention.ensure_scheduled(session)
     except Exception:
         log.exception("could not schedule maintenance")
 
@@ -90,6 +92,7 @@ def main() -> None:
     name = f"{socket.gethostname()}-{os.getpid()}"
     log.info("worker started", extra={"worker": name})
 
+    photo_source_retention.register_handlers()
     maintenance.register_handlers()
     media_cleanup.register_handlers()
     account_media.register_handlers()

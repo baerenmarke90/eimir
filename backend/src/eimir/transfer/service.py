@@ -27,6 +27,7 @@ from eimir.identity.models import Account, AccountEmail
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.queue import enqueue
 from eimir.media import build_storage_key, get_media_store
+from eimir.photo_sources.models import PhotoConnection
 from eimir.relationship.models import Membership, MembershipStatus, SpaceProfile
 from eimir.transfer.archive import (
     MAX_COMPRESSED_BYTES,
@@ -494,6 +495,17 @@ def build_export_archive(
             account_document["personalAppearance"] = {
                 "appIconId": preference.icon_id if preference else "original",
             }
+            connections = session.scalars(
+                select(PhotoConnection).where(
+                    PhotoConnection.account_id == authorization.account_id
+                )
+            ).all()
+            account_document["personalPhotoSources"] = [
+                {"source": row.provider, "origin": row.payload.origin}
+                for row in connections
+                if row.payload.account_id == authorization.account_id
+            ]
+        # Connection credentials and transient selections are never portable.
         # Personal appearance is export-only metadata. Import never activates
         # paid choices or changes an installation based on untrusted bundles.
         add_bytes(archive, "accounts.json", json_bytes(account_document), checksums)

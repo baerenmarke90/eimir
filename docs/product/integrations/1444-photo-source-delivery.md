@@ -13,16 +13,19 @@ Apple and Android. Apple/iCloud and eligible Android cloud providers are exposed
 by their system picker; no Apple login, blanket permission or new native bridge.
 Use the Google Photos Picker API, online-only OAuth and a temporary selection,
 not the Library API or background sync. Immich has no delegated external picker
-OAuth: provision an explicitly owned per-Account credential in the operator
-layer, verify the external account, and allow a bounded temporary selection.
-Never accept a normal user's API key, arbitrary URL or foreign library account.
+OAuth: link the user's own Immich service to their Account and allow a bounded temporary
+selection after verifying the external account. On 2026-10-27 the Product Owner
+explicitly required a personal service address as a Pro feature, superseding
+the earlier operator-only origin setup for this capability. A personal address
+is not unrestricted network trust; retain pinned HTTPS/public-address checks.
+No shared operator library, partner credential reuse or Immich password collection.
 
 Reuse the existing attachment selection handle, bounded upload queue, validation,
 READY, parent binding, diary recovery, problem/i18n layer, ShortTaskSheet,
 object-URL ownership and entitlement service. No second upload/gallery domain,
 universal provider framework, client token store or recurring synchronization.
 
-External provider capabilities use `integration.external_sync` (Premium), the
+Business/freemium impact reviewed: external provider capabilities use `integration.external_sync` (Premium), the
 existing external-integration matrix boundary, on Cloud and Self-Hosted alike.
 Ordinary device/system selection stays Free/Core. Provider setup is optional;
 unconfigured deployments keep their functioning local picker. Downgrade or
@@ -67,7 +70,7 @@ persist source URLs or credentials in a browser or diary draft. Copied Files
 enter the disclosed existing owner-local recovery lifecycle, without provider
 identifiers. Imported bytes still pass ordinary image validation and binding.
 
-Immich origins and credentials are operator-owned, account-scoped and secret;
+Immich origins and credentials are personally linked, account-scoped and secret;
 the external account must match. Reuse the pinned public-HTTPS transport from
 #1461, fixed endpoints, no redirects/proxy, existing 25 MiB limit and deadlines.
 No unrestricted LAN/SSRF opt-out. Bound concurrent work, requests, page size and
@@ -95,3 +98,65 @@ credential storage, explicit selected-item-only transfer, partial/cancel and
 late completion, normal upload/READY/Save behavior, unconfigured fallback and
 Premium enforcement with meaningful unit, PostgreSQL/API and browser coverage.
 Required CI and branch protections remain mandatory before merge.
+
+## Personal Immich setup and lifecycle
+
+From the diary photo action, open More photo sources, link Immich, enter the
+user's own **public HTTPS root address** and a dedicated revocable API key, then
+confirm personal access. The reviewed v3.3.5 permissions are `user.read`,
+`asset.read`, `asset.view`, and `asset.download`. These are read permissions,
+not per-photo scopes: the key can access the external account's library; eimir.
+shows owned still images and transfers only the deliberately chosen originals.
+Use a separate key, never an administrator key or an Immich password. Account
+identity is verified before listing and asset ownership before reading bytes.
+
+Supported addresses are DNS hostnames on standard HTTPS port 443, without path,
+query, alternate port, userinfo, redirect or fragment. LAN-only addresses,
+private DNS answers and self-signed certificates are deliberately unsupported.
+This is the same security boundary on Cloud and Self-Hosted; no arbitrary proxy
+or SSRF exception is introduced. The service must be reachable from the backend.
+
+Connections are personal to the Account, not shared with a partner. Origins and
+keys use protected server payloads. Keys never enter exports, diagnostics or
+shared projections; only the caller's origin is included in personal export. Strong `If-Match` tokens include row identity plus version to reject
+stale replacement/disconnect, including unlink/recreate. Disconnect and account
+deletion erase the credential and local selections. Existing imported attachments
+are independent copies and remain available after disconnect or downgrade.
+
+Selection sessions expire after ten minutes. Delayed cleanup removes provider
+references and attempts Google session deletion; periodic recovery every five
+minutes also removes expired or revoked-device tasks if an expiry job was lost.
+Cleanup and disconnect do not require Pro. New transfers do. The worker must run
+for bounded physical retention; expiry always blocks access immediately.
+
+## Operator configuration and rollout
+
+Apply migration `0087` before deploying API/worker changes and back up the database
+using the existing encrypted backup/key procedure. Use the existing encrypted
+payload mode (`EIMIR_ENCRYPTION_AT_REST=required`) and an HTTPS public base URL.
+Immich then needs no shared operator origin/key. `EIMIR_PHOTO_SOURCES_ENABLED=false`
+can disable new source tasks without removing local picking or disconnect.
+
+Google additionally needs `EIMIR_GOOGLE_PHOTOS_CLIENT_ID` and
+`EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET` from the operator's approved Web OAuth app.
+Register exactly `${EIMIR_PUBLIC_BASE_URL}/api/v1/photo-sources/google/callback`
+(without a doubled slash), enable the Photos Picker API and configure the
+permitted testing audience or complete Google's required verification. The only
+requested scope is `photospicker.mediaitems.readonly`; no offline refresh token.
+Do not log callback query strings, SDK token bodies, personal keys or media URLs
+at the ingress proxy or application. Google is hidden when unconfigured.
+
+Reuse review: official Google Picker/OAuth protocols and `google-auth-oauthlib`
+(Apache-2.0), platform Browser/system file input, existing encrypted payloads,
+entitlements, attachment pipeline, queue and sheet primitives. Immich is only
+called over its documented API; no AGPL server source or SDK is bundled. Both
+providers remain optional on Cloud/Self-Hosted. Operators own provider policy,
+OAuth app approval, availability and third-party rate/bandwidth costs. Bounded
+requests, pages, 25 MiB originals and existing storage quotas apply; no promise
+of free provider service or new storage allowance is introduced.
+
+Release acceptance follows the owner's requested sequence: automated repository
+checks before merge, then actual Google/Immich accounts and installed devices in
+the running deployment. Browser fixtures prove product behavior, not real
+provider approval or physical-device compatibility. See the visual/test evidence
+under `../design/references/1444/evidence/README.md`.

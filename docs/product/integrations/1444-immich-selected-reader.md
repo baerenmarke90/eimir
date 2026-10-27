@@ -1,5 +1,7 @@
 # #1444 — Internal Immich selected-photo reader
 
+Historical preparation slice. The current product implementation, personal Immich setup decision and operational contract are recorded in [the delivery contract](1444-photo-source-delivery.md); earlier operator-only/unregistered limitations below describe that earlier slice.
+
 Review: 2026-10-26, `main@fe59df8c41848d156c4dd8367ae5b2f1c6d423b2`.
 Owner: [#1444](https://github.com/baerenmarke90/eimir/issues/1444).
 

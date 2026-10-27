@@ -105,6 +105,10 @@ jobs:
         run: |
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -d -t 1000 -v threadtime \
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
+          for proof in native-photo-picker.png native-photo-picker.txt; do
+            "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.sidebyside.app.debug \
+              cat "files/$proof" > "$proof" 2>/dev/null || rm -f "$proof"
+          done
       - name: Upload native verification results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -117,4 +121,5 @@ jobs:
             android/instrumentation.log
             android/fixture-logcat.log
             android/native-photo-picker.png
+            android/native-photo-picker.txt
           if-no-files-found: ignore

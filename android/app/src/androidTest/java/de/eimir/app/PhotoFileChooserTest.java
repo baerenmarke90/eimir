@@ -197,7 +197,8 @@ public class PhotoFileChooserTest {
     @Test
     public void actualSystemDocumentSelectionRetainsThePhotosExifLocation() throws Exception {
         launchWithPhotoLocationPermission();
-        String name = "eimir-gps-fixture-" + UUID.randomUUID().toString().substring(0, 8) + ".jpg";
+        String token = "gps-" + UUID.randomUUID().toString().substring(0, 8);
+        String name = token + ".jpg";
         source = new File(context.getCacheDir(), name);
         try (OutputStream output = new FileOutputStream(source)) {
             Bitmap.createBitmap(32, 24, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.JPEG, 95, output);
@@ -248,13 +249,10 @@ public class PhotoFileChooserTest {
             event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getPackageName() != null
                 && event.getPackageName().toString().endsWith(".documentsui"), 15000);
-        AccessibilityNodeInfo document = findDocument(name);
+        // Document UIs may omit or ellipsize the extension in their displayed title.
+        AccessibilityNodeInfo document = findDocument(token);
+        capturePickerDiagnostics();
         assertNotNull("The real Android document picker exposes the selected fixture", document);
-        Bitmap screenshot = instrumentation.getUiAutomation().takeScreenshot();
-        assertNotNull(screenshot);
-        try (OutputStream proof = new FileOutputStream(new File(context.getFilesDir(), "native-photo-picker.png"))) {
-            screenshot.compress(Bitmap.CompressFormat.PNG, 100, proof);
-        }
         for (int level = 0; level < 6 && document != null && !document.isClickable(); level++) {
             document = document.getParent();
         }
@@ -271,6 +269,29 @@ public class PhotoFileChooserTest {
             assertEquals(52.516667, location[0], 0.00001);
             assertEquals(13.4, location[1], 0.00001);
         }
+    }
+
+    private void capturePickerDiagnostics() throws Exception {
+        Bitmap screenshot = instrumentation.getUiAutomation().takeScreenshot();
+        assertNotNull(screenshot);
+        try (OutputStream proof = new FileOutputStream(new File(context.getFilesDir(), "native-photo-picker.png"))) {
+            screenshot.compress(Bitmap.CompressFormat.PNG, 100, proof);
+        }
+        java.util.ArrayDeque<AccessibilityNodeInfo> nodes = new java.util.ArrayDeque<>();
+        AccessibilityNodeInfo root = instrumentation.getUiAutomation().getRootInActiveWindow();
+        if (root != null) nodes.add(root);
+        StringBuilder hierarchy = new StringBuilder();
+        for (int count = 0; count < 500 && !nodes.isEmpty(); count++) {
+            AccessibilityNodeInfo node = nodes.remove();
+            hierarchy.append(node.getViewIdResourceName()).append(" | ")
+                .append(node.getText()).append(" | ").append(node.getContentDescription()).append('\n');
+            for (int i = 0; i < node.getChildCount(); i++) {
+                AccessibilityNodeInfo child = node.getChild(i);
+                if (child != null) nodes.add(child);
+            }
+        }
+        java.nio.file.Files.write(new File(context.getFilesDir(), "native-photo-picker.txt").toPath(),
+            hierarchy.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     private byte[] selectedFileBytes(WebView view) throws Exception {

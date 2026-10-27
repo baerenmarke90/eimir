@@ -13,12 +13,15 @@ import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.view.KeyEvent;
+import android.view.InputDevice;
+import android.view.MotionEvent;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.webkit.WebChromeClient.FileChooserParams;
@@ -253,11 +256,7 @@ public class PhotoFileChooserTest {
         AccessibilityNodeInfo document = findDocument(token);
         capturePickerDiagnostics();
         assertNotNull("The real Android document picker exposes the selected fixture", document);
-        for (int level = 0; level < 6 && document != null && !document.isClickable(); level++) {
-            document = document.getParent();
-        }
-        assertNotNull("The document has an actionable system control", document);
-        assertTrue(document.performAction(AccessibilityNodeInfo.ACTION_CLICK));
+        tapSystemDocument(document);
         byte[] uploadedBytes = selectedFileBytes(view);
         assertArrayEquals("The existing Web File intake receives the original bytes",
             java.nio.file.Files.readAllBytes(source.toPath()), uploadedBytes);
@@ -326,6 +325,31 @@ public class PhotoFileChooserTest {
         return response.get();
     }
 
+    private void tapSystemDocument(AccessibilityNodeInfo document) {
+        assertTrue("The identified document is visible", document.isVisibleToUser());
+        Rect bounds = new Rect();
+        document.getBoundsInScreen(bounds);
+        assertFalse("The identified document has touch bounds", bounds.isEmpty());
+        // DocumentsUI grid tiles expose identity/bounds without ACTION_CLICK.
+        // Inject the same touchscreen gesture a person uses at that identified item.
+        long downTime = SystemClock.uptimeMillis();
+        MotionEvent down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN,
+            bounds.exactCenterX(), bounds.exactCenterY(), 0);
+        MotionEvent up = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP,
+            bounds.exactCenterX(), bounds.exactCenterY(), 0);
+        down.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+        up.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+        try {
+            assertTrue("Android accepts the document touch-down",
+                instrumentation.getUiAutomation().injectInputEvent(down, true));
+            assertTrue("Android accepts the document touch-up",
+                instrumentation.getUiAutomation().injectInputEvent(up, true));
+        } finally {
+            down.recycle();
+            up.recycle();
+        }
+    }
+
     private AccessibilityNodeInfo findDocument(String name) throws Exception {
         UiAutomation automation = instrumentation.getUiAutomation();
         long deadline = SystemClock.uptimeMillis() + 10000;
@@ -334,7 +358,10 @@ public class PhotoFileChooserTest {
             AccessibilityNodeInfo root = automation.getRootInActiveWindow();
             if (root == null) continue;
             List<AccessibilityNodeInfo> matches = root.findAccessibilityNodeInfosByText(name);
-            if (!matches.isEmpty()) return matches.get(0);
+            for (AccessibilityNodeInfo match : matches) {
+                String resource = match.getViewIdResourceName();
+                if (resource == null || !resource.endsWith("/preview_icon")) return match;
+            }
         } while (SystemClock.uptimeMillis() < deadline);
         return null;
     }

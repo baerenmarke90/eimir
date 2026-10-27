@@ -85,6 +85,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 7
     },
+    "memory-diary-storage.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "Real IndexedDB/File upgrade, scoped payload reads, metadata-only expiry/logout and rejected late-open connection ownership."
+    },
     "memory-delete-ownership.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 7

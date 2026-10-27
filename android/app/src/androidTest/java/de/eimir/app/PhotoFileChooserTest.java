@@ -80,6 +80,10 @@ public class PhotoFileChooserTest {
         String selected = InstrumentationRegistry.getArguments().getString("externalPhotoUri");
         assertNotNull("CI seeds a shell-owned camera photo, never an app-owned fixture", selected);
         fixture = Uri.parse(selected);
+        if (Build.VERSION.SDK_INT >= 37) {
+            assertTrue("The current system image genuinely supports picker metadata consent",
+                PhotoFileChooser.supportsPickerMetadata());
+        }
         source = new File(context.getCacheDir(), "external-gps-camera.jpg");
         try (InputStream input = InstrumentationRegistry.getInstrumentation().getContext()
                     .getAssets().open("external-gps-camera.jpg");
@@ -171,8 +175,10 @@ public class PhotoFileChooserTest {
 
     private void launchWithPhotoLocationPermission() throws Exception {
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q);
-        instrumentation.getUiAutomation().grantRuntimePermission(context.getPackageName(),
-            Manifest.permission.ACCESS_MEDIA_LOCATION);
+        if (!PhotoFileChooser.supportsPickerMetadata()) {
+            instrumentation.getUiAutomation().grantRuntimePermission(context.getPackageName(),
+                Manifest.permission.ACCESS_MEDIA_LOCATION);
+        }
         scenario = ActivityScenario.launch(new Intent(context, LauncherActivity.class)
             .putExtra(RecordingLauncherActivity.RECORD_DISPATCH, true)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));

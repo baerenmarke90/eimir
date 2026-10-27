@@ -34,7 +34,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api: [28, 36]
+        include:
+          - api: 28
+            image: android-28
+            tag: google_apis
+          - api: 36
+            image: android-36
+            tag: google_apis
+          - api: '37.1'
+            image: android-37.1
+            tag: google_apis_ps16k
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -61,12 +70,12 @@ jobs:
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             'platform-tools' 'emulator' 'platforms;android-36' 'build-tools;36.0.0' \
-            'system-images;android-${{ matrix.api }};google_apis;x86_64'
+            'system-images;${{ matrix.image }};${{ matrix.tag }};x86_64'
           mkdir -p "$ANDROID_AVD_HOME"
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
             --force --name eimir-launcher --device pixel_5 \
             --path "$ANDROID_AVD_HOME/eimir-launcher.avd" \
-            --package 'system-images;android-${{ matrix.api }};google_apis;x86_64'
+            --package 'system-images;${{ matrix.image }};${{ matrix.tag }};x86_64'
           test -s "$ANDROID_AVD_HOME/eimir-launcher.ini"
           sudo setfacl -m "u:$USER:rw" /dev/kvm
       - name: Build, lint and test the Android adapter
@@ -94,7 +103,7 @@ jobs:
           adb -e install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           # Seed under shell's UID: eimir must not own/read this image before selection.
           external_photo_uri=''
-          if [ '${{ matrix.api }}' -ge 29 ]; then
+          if [ '${{ matrix.api }}' != '28' ]; then
             adb -e shell mkdir -p /sdcard/DCIM/Camera
             adb -e push app/src/androidTest/assets/external-gps-camera.jpg /sdcard/DCIM/Camera/external-gps-camera.jpg
             inserted=$(adb -e shell content insert --uri content://media/external_primary/images/media \
@@ -112,7 +121,7 @@ jobs:
             de.sidebyside.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
           grep -Eq '^OK \([1-9][0-9]* tests?\)' instrumentation.log
-          if [ '${{ matrix.api }}' -ge 29 ]; then
+          if [ '${{ matrix.api }}' != '28' ]; then
             adb -e exec-out run-as de.sidebyside.app.debug cat files/native-photo-picker.png > native-photo-picker.png
             test -s native-photo-picker.png
           fi

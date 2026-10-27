@@ -22,6 +22,7 @@ export * from './MemoriesApi';
 export * from './MilestonesApi';
 export * from './NotificationsApi';
 export * from './PeopleApi';
+export * from './PhotoSourcesApi';
 export * from './PlaceRelationsApi';
 export * from './PlacesApi';
 export * from './PlansApi';

@@ -1,5 +1,7 @@
 # #1444 — Selected photo sources: implementation preflight
 
+Historical preparation slice. The current product implementation, personal Immich setup decision and operational contract are recorded in [the delivery contract](1444-photo-source-delivery.md); earlier operator-only/unregistered limitations below describe that earlier slice.
+
 **Review date:** 2026-10-26.
 **Reviewed baseline:** `main@fe59df8c41848d156c4dd8367ae5b2f1c6d423b2` after concurrent #1458 diary merge; the initial 3955f444 composition is superseded.
 **Owner:** [#1444](https://github.com/baerenmarke90/eimir/issues/1444). Related: [#1451](https://github.com/baerenmarke90/eimir/pull/1451), [#220](https://github.com/baerenmarke90/eimir/issues/220), [#601](https://github.com/baerenmarke90/eimir/issues/601), [#797](https://github.com/baerenmarke90/eimir/issues/797).

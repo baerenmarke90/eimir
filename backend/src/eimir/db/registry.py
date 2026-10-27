@@ -32,6 +32,7 @@ MODEL_MODULES = (
     "eimir.milestones.models",
     "eimir.outbox.models",
     "eimir.people.models",
+    "eimir.photo_sources.models",
     "eimir.places.models",
     "eimir.plans.models",
     "eimir.private_collections.models",

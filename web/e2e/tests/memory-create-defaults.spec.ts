@@ -1,12 +1,14 @@
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { readFileSync } from 'node:fs';
-import { showMemoryDetails } from '../support/memoryDiary';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { expect, test, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { expect, type Page, test } from '@playwright/test';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
+import photoSources from '../../src/i18n/locales/photoSources';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import taskSheets from '../../src/i18n/locales/taskSheets';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { showMemoryDetails } from '../support/memoryDiary';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -21,6 +23,18 @@ interface MemoryCreateRequestBody {
   happenedOn?: string | null;
   tags?: string[];
   title?: string;
+}
+
+interface PhotoSourceScenario {
+  googleAvailable?: boolean;
+  connected: boolean;
+  canImport: boolean;
+  links: { origin: string; apiKey: string; consent: boolean }[];
+  starts: number;
+  originals: number;
+  cancelled: number;
+  disconnected: number;
+  waitForOriginal?: () => Promise<void>;
 }
 
 interface PhotoBatchScenario {
@@ -38,6 +52,264 @@ const PHOTO_BYTES = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jB1sAAAAASUVORK5CYII=',
   'base64',
 );
+
+function sourceScenario(
+  connected = false,
+  canImport = true,
+): PhotoSourceScenario {
+  return {
+    connected,
+    canImport,
+    links: [],
+    starts: 0,
+    originals: 0,
+    cancelled: 0,
+    disconnected: 0,
+  };
+}
+
+function emptyPhotoBatch(): PhotoBatchScenario {
+  return {
+    photoBytes: readFileSync(
+      new URL(
+        '../../../backend/demo_assets/images/cabin-lake.jpg',
+        import.meta.url,
+      ),
+    ),
+    idsByName: {},
+    uploaded: [],
+    finalized: [],
+    ready: new Set(),
+    bound: [],
+    creates: 0,
+    discoverReads: 0,
+  };
+}
+
+for (const [width, colorScheme] of [
+  [360, 'dark'],
+  [390, 'light'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`personal Immich link selects, stages and saves through the diary (${width})`, async ({
+    page,
+  }, testInfo) => {
+    const source = sourceScenario();
+    const photos = emptyPhotoBatch();
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    await signInAndOpenMemoryCreate(page, photos, source);
+    await page
+      .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
+      .fill(AUTHORED_BODY);
+    await page.getByRole('button', { name: photoSources.more }).click();
+    const sheet = page.getByRole('dialog', { name: photoSources.title });
+    await sheet
+      .getByRole('button', { name: photoSources.link, exact: true })
+      .click();
+    const link = page.getByRole('dialog', { name: photoSources.linkTitle });
+    await link
+      .getByLabel(photoSources.address, { exact: true })
+      .fill('https://my-photos.example');
+    await link
+      .getByLabel(photoSources.key, { exact: true })
+      .fill('synthetic-private-key');
+    await expect(
+      link.getByRole('button', { name: photoSources.connect, exact: true }),
+    ).toBeDisabled();
+    await link.getByLabel(photoSources.linkConsent, { exact: true }).check();
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `photo-source-link-${width}-${colorScheme}.png`,
+      ),
+      fullPage: true,
+    });
+    await link
+      .getByRole('button', { name: photoSources.connect, exact: true })
+      .click();
+    await expect(sheet).toBeVisible();
+    expect(source.links).toEqual([
+      {
+        origin: 'https://my-photos.example',
+        apiKey: 'synthetic-private-key',
+        consent: true,
+      },
+    ]);
+    await sheet.getByLabel(photoSources.accept, { exact: true }).check();
+    await sheet.getByRole('button', { name: photoSources.continue }).click();
+    await sheet.getByLabel('Foto 1', { exact: true }).check();
+    await sheet.getByLabel('Foto 2', { exact: true }).check();
+    await expect(sheet.locator('.photo-source-choice img')).toHaveCount(2);
+    await expectNoHorizontalOverflow(page);
+    const accessibility = await new AxeBuilder({ page })
+      .include('.photo-source-sheet')
+      .analyze();
+    expect(accessibility.violations).toEqual([]);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `photo-source-selection-${width}-${colorScheme}.png`,
+      ),
+      fullPage: true,
+    });
+    await sheet.getByRole('button', { name: photoSources.import }).click();
+    await expect(sheet).toBeHidden();
+    await expect(page.locator('.attachment-draft-item')).toHaveCount(2);
+    await expect(
+      page.getByText(de.memory.photoReady, { exact: true }),
+    ).toHaveCount(2);
+    expect(source.originals).toBe(2);
+    expect(photos.uploaded).toHaveLength(2);
+    expect(photos.finalized).toHaveLength(2);
+    expect(photos.creates).toBe(0);
+    await expect(
+      page.getByRole('textbox', { name: de.memory.bodyLabel, exact: true }),
+    ).toHaveValue(AUTHORED_BODY);
+    await page.getByRole('button', { name: de.memory.save }).click();
+    await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+    expect(photos.creates).toBe(1);
+    expect(photos.bound).toHaveLength(2);
+  });
+}
+
+test('Google browser authorization returns selected copies to the unsaved diary', async ({
+  page,
+}) => {
+  const source = sourceScenario();
+  source.googleAvailable = true;
+  const photos = emptyPhotoBatch();
+  const externalUrls: string[] = [];
+  await page.exposeFunction('recordPhotoAuthorization', (url: string) =>
+    externalUrls.push(url),
+  );
+  await page.addInitScript(() => {
+    window.open = () =>
+      ({
+        closed: false,
+        opener: null,
+        close() {},
+        location: {
+          replace(url: string) {
+            void (
+              window as unknown as {
+                recordPhotoAuthorization(url: string): Promise<void>;
+              }
+            ).recordPhotoAuthorization(url);
+          },
+        },
+      }) as unknown as Window;
+  });
+  await signInAndOpenMemoryCreate(page, photos, source);
+  await page
+    .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
+    .fill(AUTHORED_BODY);
+  await page.getByRole('button', { name: photoSources.more }).click();
+  const sheet = page.getByRole('dialog', { name: photoSources.title });
+  await sheet.getByLabel(photoSources.google, { exact: true }).check();
+  await sheet.getByLabel(photoSources.accept, { exact: true }).check();
+  await sheet.getByRole('button', { name: photoSources.continue }).click();
+  await expect(sheet).toBeHidden({ timeout: 15_000 });
+  expect(externalUrls).toEqual(['https://accounts.google.com/authorize']);
+  await expect(
+    page.getByText(de.memory.photoReady, { exact: true }),
+  ).toHaveCount(2);
+  expect(source.originals).toBe(2);
+  expect(photos.creates).toBe(0);
+  await expect(
+    page.getByRole('textbox', { name: de.memory.bodyLabel, exact: true }),
+  ).toHaveValue(AUTHORED_BODY);
+  await page.getByRole('button', { name: de.memory.save }).click();
+  await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+  expect(photos.bound).toHaveLength(2);
+});
+
+test('closing a pending source transfer keeps authored words and rejects late photo bytes', async ({
+  page,
+}) => {
+  const source = sourceScenario(true);
+  let finish!: () => void;
+  source.waitForOriginal = () =>
+    new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+  const photos = emptyPhotoBatch();
+  await signInAndOpenMemoryCreate(page, photos, source);
+  await page
+    .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
+    .fill(AUTHORED_BODY);
+  await page.getByRole('button', { name: photoSources.more }).click();
+  const sheet = page.getByRole('dialog', { name: photoSources.title });
+  await sheet.getByLabel(photoSources.accept, { exact: true }).check();
+  await sheet.getByRole('button', { name: photoSources.continue }).click();
+  await sheet.getByLabel('Foto 1', { exact: true }).check();
+  await sheet.getByRole('button', { name: photoSources.import }).click();
+  await expect.poll(() => source.originals).toBe(1);
+  await sheet
+    .locator('.photo-source-footer')
+    .getByRole('button', { name: taskSheets.close, exact: true })
+    .click();
+  finish();
+  await expect(sheet).toBeHidden();
+  await expect(
+    page.getByRole('textbox', { name: de.memory.bodyLabel, exact: true }),
+  ).toHaveValue(AUTHORED_BODY);
+  await expect(page.locator('.attachment-draft-item')).toHaveCount(0);
+  expect(photos.uploaded).toHaveLength(0);
+  expect(photos.creates).toBe(0);
+});
+
+test('Pro expiry retains the personal link and permits disconnect without importing', async ({
+  page,
+}) => {
+  const source = sourceScenario(true, false);
+  await signInAndOpenMemoryCreate(page, emptyPhotoBatch(), source);
+  await page.getByRole('button', { name: photoSources.more }).click();
+  const sheet = page.getByRole('dialog', { name: photoSources.title });
+  await expect(sheet.getByText(photoSources.proRequired)).toBeVisible();
+  await expect(
+    sheet.getByRole('button', { name: photoSources.continue }),
+  ).toHaveCount(0);
+  await sheet.getByRole('button', { name: photoSources.disconnect }).click();
+  await expect(
+    sheet.getByText(photoSources.disconnected, { exact: true }),
+  ).toBeVisible();
+  expect(source.disconnected).toBe(1);
+  expect(source.starts).toBe(0);
+});
+
+test('offline source import at narrow large text preserves the diary draft', async ({
+  page,
+  context,
+}) => {
+  const source = sourceScenario(true);
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await signInAndOpenMemoryCreate(page, emptyPhotoBatch(), source);
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+  await page
+    .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
+    .fill(AUTHORED_BODY);
+  await page.getByRole('button', { name: photoSources.more }).click();
+  const sheet = page.getByRole('dialog', { name: photoSources.title });
+  await sheet.getByLabel(photoSources.accept, { exact: true }).check();
+  await sheet.getByRole('button', { name: photoSources.continue }).click();
+  await sheet.getByLabel('Foto 1', { exact: true }).check();
+  await expectNoHorizontalOverflow(page);
+  await context.setOffline(true);
+  await sheet.getByRole('button', { name: photoSources.import }).click();
+  await expect(
+    sheet.getByText(photoSources.offline, { exact: true }),
+  ).toBeVisible();
+  expect(source.originals).toBe(0);
+  await context.setOffline(false);
+  await sheet
+    .locator('.photo-source-footer')
+    .getByRole('button', { name: taskSheets.close, exact: true })
+    .click();
+  await expect(
+    page.getByRole('textbox', { name: de.memory.bodyLabel, exact: true }),
+  ).toHaveValue(AUTHORED_BODY);
+});
 
 function localizedFallbackTitle(dateValue: string): string {
   const [year, month, day] = dateValue.split('-');
@@ -68,6 +340,7 @@ async function browserLocalToday(page: Page): Promise<string> {
 async function installApiMocks(
   page: Page,
   photos?: PhotoBatchScenario,
+  source?: PhotoSourceScenario,
 ): Promise<void> {
   let savedMemory: Record<string, unknown> | null = null;
   const attachments: string[] = [];
@@ -96,6 +369,91 @@ async function installApiMocks(
         contentType: 'application/json',
         body: JSON.stringify(body),
       });
+
+    if (
+      pathname === `/api/v1/spaces/${SPACE_ID}/photo-sources` &&
+      method === 'GET'
+    ) {
+      await fulfillJson({
+        enabled: Boolean(source),
+        googleAvailable: source?.googleAvailable ?? false,
+        immichConnected: source?.connected ?? false,
+        immichConnectionToken: source?.connected
+          ? 'linked-connection:1'
+          : 'account:immich:absent',
+        canImport: source?.canImport ?? false,
+        immichOrigin: source?.connected ? 'https://my-photos.example' : null,
+      });
+      return;
+    }
+    if (source && pathname.endsWith('/photo-sources/immich')) {
+      if (method === 'PUT') {
+        source.links.push(request.postDataJSON());
+        source.connected = true;
+      }
+      if (method === 'DELETE') {
+        source.disconnected++;
+        source.connected = false;
+      }
+      await route.fulfill({ status: 204 });
+      return;
+    }
+    if (source && pathname === `/api/v1/spaces/${SPACE_ID}/photo-selections`) {
+      source.starts++;
+      expect(request.postDataJSON().consent).toBe(true);
+      await fulfillJson(
+        {
+          id: 'selected-session',
+          source: source.googleAvailable ? 'google' : 'immich',
+          status: source.googleAvailable ? 'AUTHORIZING' : 'READY',
+          authorizationUrl: source.googleAvailable
+            ? 'https://accounts.google.com/authorize'
+            : undefined,
+          items: [{ id: 'selected-one' }, { id: 'selected-two' }],
+          hasMore: false,
+        },
+        201,
+      );
+      return;
+    }
+    if (
+      source &&
+      pathname.endsWith('/photo-selections/selected-session/poll')
+    ) {
+      await fulfillJson({
+        id: 'selected-session',
+        source: 'google',
+        status: 'READY',
+        items: [{ id: 'selected-one' }, { id: 'selected-two' }],
+        hasMore: false,
+      });
+      return;
+    }
+    if (
+      source &&
+      pathname.includes('/photo-selections/selected-session/items/')
+    ) {
+      if (new URL(request.url()).searchParams.get('thumbnail') !== 'true') {
+        source.originals++;
+        await source.waitForOriginal?.();
+      }
+      await route
+        .fulfill({
+          contentType: photos?.photoBytes ? 'image/jpeg' : 'image/png',
+          body: photos?.photoBytes ?? PHOTO_BYTES,
+        })
+        .catch(() => {});
+      return;
+    }
+    if (
+      source &&
+      pathname.endsWith('/photo-selections/selected-session') &&
+      method === 'DELETE'
+    ) {
+      source.cancelled++;
+      await route.fulfill({ status: 204 });
+      return;
+    }
 
     if (
       photos &&
@@ -131,6 +489,7 @@ async function installApiMocks(
         });
       } else if (action === 'finalize' && method === 'POST') {
         photos.finalized.push(id);
+        if (source) photos.ready.add(id);
         await fulfillJson(attachment(id));
       } else if (action === 'read-access' && method === 'POST') {
         await fulfillJson({
@@ -379,8 +738,9 @@ async function installApiMocks(
 async function signInAndOpenMemoryCreate(
   page: Page,
   photos?: PhotoBatchScenario,
+  source?: PhotoSourceScenario,
 ): Promise<void> {
-  await installApiMocks(page, photos);
+  await installApiMocks(page, photos, source);
   await page.goto('/today');
   await page.getByLabel(de.login.email).fill('anna@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
@@ -399,7 +759,9 @@ async function signInAndOpenMemoryCreate(
 }
 
 for (const [width, colorScheme] of [
+  [360, 'dark'],
   [390, 'light'],
+  [430, 'light'],
   [1280, 'dark'],
 ] as const) {
   test(`a selected photo batch survives queued validation and appears in Discover (${width})`, async ({
@@ -640,7 +1002,7 @@ test('text-only with the default date saves a non-empty localized fallback title
   expect(requestBody.happenedOn).toBe(expectedDate);
   expect(requestBody.title).toBe(localizedFallbackTitle(expectedDate));
   expect(requestBody.title?.trim()).not.toBe('');
-  await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
+  await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
   await expect(
     page.getByRole('heading', {
       level: 1,
@@ -747,7 +1109,9 @@ test('Memory Create defaults render without overflow and capture product visual 
 });
 
 for (const [width, colorScheme] of [
+  [360, 'dark'],
   [390, 'light'],
+  [430, 'light'],
   [1280, 'dark'],
 ] as const) {
   test(`diary restores text, date, pending label and selected files after reload (${width})`, async ({

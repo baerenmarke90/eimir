@@ -1,3 +1,4 @@
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { showMemoryDetails } from '../support/memoryDiary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { readFile } from 'node:fs/promises';
@@ -98,6 +99,7 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
   };
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname;

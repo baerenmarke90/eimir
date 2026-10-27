@@ -4999,6 +4999,189 @@
         "title": "PhotoParentType",
         "type": "string"
       },
+      "PhotoSelectionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "consent": {
+            "const": true,
+            "title": "Consent",
+            "type": "boolean"
+          },
+          "maxItems": {
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Maxitems",
+            "type": "integer"
+          },
+          "source": {
+            "enum": [
+              "google",
+              "immich"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "maxItems",
+          "consent"
+        ],
+        "title": "PhotoSelectionCreate",
+        "type": "object"
+      },
+      "PhotoSelectionItemView": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "PhotoSelectionItemView",
+        "type": "object"
+      },
+      "PhotoSelectionView": {
+        "properties": {
+          "authorizationUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorizationurl"
+          },
+          "hasMore": {
+            "title": "Hasmore",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PhotoSelectionItemView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "pickerUri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pickeruri"
+          },
+          "pollAfterSeconds": {
+            "default": 5,
+            "title": "Pollafterseconds",
+            "type": "integer"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "status",
+          "items",
+          "hasMore"
+        ],
+        "title": "PhotoSelectionView",
+        "type": "object"
+      },
+      "PhotoSourceAvailability": {
+        "properties": {
+          "canImport": {
+            "title": "Canimport",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "googleAvailable": {
+            "title": "Googleavailable",
+            "type": "boolean"
+          },
+          "immichConnected": {
+            "title": "Immichconnected",
+            "type": "boolean"
+          },
+          "immichConnectionToken": {
+            "title": "Immichconnectiontoken",
+            "type": "string"
+          },
+          "immichOrigin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Immichorigin"
+          }
+        },
+        "required": [
+          "enabled",
+          "googleAvailable",
+          "immichConnected",
+          "immichConnectionToken",
+          "canImport"
+        ],
+        "title": "PhotoSourceAvailability",
+        "type": "object"
+      },
+      "PhotoSourceConnectionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "apiKey": {
+            "format": "password",
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Apikey",
+            "type": "string",
+            "writeOnly": true
+          },
+          "consent": {
+            "const": true,
+            "title": "Consent",
+            "type": "boolean"
+          },
+          "origin": {
+            "maxLength": 512,
+            "minLength": 10,
+            "title": "Origin",
+            "type": "string"
+          }
+        },
+        "required": [
+          "origin",
+          "apiKey",
+          "consent"
+        ],
+        "title": "PhotoSourceConnectionCreate",
+        "type": "object"
+      },
       "PlaceCreate": {
         "additionalProperties": false,
         "properties": {
@@ -23060,6 +23243,636 @@
         "summary": "Send Partner Quick Action",
         "tags": [
           "notifications"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photo-selections": {
+      "post": {
+        "operationId": "startPhotoSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSelectionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoSelectionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Start",
+        "tags": [
+          "photo-sources"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}": {
+      "delete": {
+        "operationId": "cancelPhotoSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "selectionId",
+            "required": true,
+            "schema": {
+              "title": "Selectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Cancel",
+        "tags": [
+          "photo-sources"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}": {
+      "post": {
+        "operationId": "readSelectedPhoto",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "selectionId",
+            "required": true,
+            "schema": {
+              "title": "Selectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "title": "Itemid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "thumbnail",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Thumbnail",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Read",
+        "tags": [
+          "photo-sources"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/poll": {
+      "post": {
+        "operationId": "pollPhotoSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "selectionId",
+            "required": true,
+            "schema": {
+              "title": "Selectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "more",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "More",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoSelectionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Poll",
+        "tags": [
+          "photo-sources"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photo-sources": {
+      "get": {
+        "operationId": "getPhotoSources",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoSourceAvailability"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Sources",
+        "tags": [
+          "photo-sources"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photo-sources/immich": {
+      "delete": {
+        "operationId": "disconnectImmichPhotoSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Disconnect",
+        "tags": [
+          "photo-sources"
+        ]
+      },
+      "put": {
+        "operationId": "connectImmichPhotoSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSourceConnectionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Connect",
+        "tags": [
+          "photo-sources"
         ]
       }
     },

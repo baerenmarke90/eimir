@@ -234,6 +234,8 @@ For client work in particular, user-facing text, date/number formatting, and plu
 
 Normal couples must not need to configure technical infrastructure. API keys, technical URLs, provider selection, tokens, and server details belong in the backend or hoster/admin layer.
 
+The Product Owner decision for #1444 (2026-10-27) permits a narrow exception: a Pro user may link their own Immich HTTPS service address. The personal, revocable read-only credential required by Immich is handled in the dedicated consent/setup task, never as a shared operator credential or general infrastructure settings surface. See `docs/product/integrations/1444-photo-source-delivery.md`. Other integrations retain the rule above.
+
 ## Do not weaken existing gates
 
 Reuse, business-model, product-design, or cross-cutting decisions must never weaken Clean-Room, security, privacy, tenant-isolation, provenance, licensing, or engineering-language rules.

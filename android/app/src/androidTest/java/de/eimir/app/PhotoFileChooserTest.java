@@ -199,7 +199,7 @@ public class PhotoFileChooserTest {
                 parameters(FileChooserParams.MODE_OPEN, false, "image/jpeg"))),
             event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getPackageName() != null
-                && event.getPackageName().toString().contains("providers.media"), 15000);
+                && isSystemPhotoPicker(event.getPackageName()), 15000);
     }
 
     @Test
@@ -245,6 +245,14 @@ public class PhotoFileChooserTest {
         String token = "Photo taken";
         // Exercise the actual Chromium File handoff, not just our native callback.
         WebView view = activity.getBridge().getWebView();
+        CountDownLatch photoDocumentLoaded = new CountDownLatch(1);
+        activity.getBridge().addWebViewListener(new com.getcapacitor.WebViewListener() {
+            @Override public void onPageLoaded(WebView loaded) {
+                if ("https://localhost/native-photo-fixture".equals(loaded.getUrl())) {
+                    photoDocumentLoaded.countDown();
+                }
+            }
+        });
         instrumentation.runOnMainSync(() -> {
             view.getSettings().setJavaScriptEnabled(true);
             view.loadDataWithBaseURL("https://localhost/native-photo-fixture",
@@ -259,6 +267,8 @@ public class PhotoFileChooserTest {
                 + "window.selectedPhotoBytes=btoa(binary);}catch(error){window.photoReadError=error.name;}};"
                 + "</script>", "text/html", "UTF-8", null);
         });
+        assertTrue("Chromium finishes the actual file-input document",
+            photoDocumentLoaded.await(15, TimeUnit.SECONDS));
         awaitPhotoInput(view);
         instrumentation.getUiAutomation().executeAndWaitForEvent(() ->
             androidx.test.espresso.Espresso.onView(
@@ -266,20 +276,20 @@ public class PhotoFileChooserTest {
                 .perform(androidx.test.espresso.action.ViewActions.click()),
             event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getPackageName() != null
-                && (event.getPackageName().toString().contains("providers.media")
+                && (isSystemPhotoPicker(event.getPackageName())
                     || event.getPackageName().toString().contains("permissioncontroller")), 15000);
         AccessibilityNodeInfo root = instrumentation.getUiAutomation().getRootInActiveWindow();
         if (root != null && root.getPackageName() != null
                 && root.getPackageName().toString().contains("permissioncontroller")) {
             captureNativeDiagnostics("native-photo-permission");
-            AccessibilityNodeInfo allow = findDocument("Allow");
+            AccessibilityNodeInfo allow = findDocument("Allow all");
             assertNotNull("Android exposes the optional metadata permission decision", allow);
             instrumentation.getUiAutomation().executeAndWaitForEvent(() -> {
                 try { tapSystemDocument(allow); }
                 catch (Exception failure) { throw new AssertionError(failure); }
             }, event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getPackageName() != null
-                && event.getPackageName().toString().contains("providers.media"), 15000);
+                && isSystemPhotoPicker(event.getPackageName()), 15000);
         }
         // Match the actual diary input's complete MIME list and multiple mode.
         AccessibilityNodeInfo document = findDocument(token);
@@ -302,6 +312,11 @@ public class PhotoFileChooserTest {
             assertEquals(52.516667, location[0], 0.00001);
             assertEquals(13.4, location[1], 0.00001);
         }
+    }
+
+    private static boolean isSystemPhotoPicker(CharSequence packageName) {
+        return packageName != null && (packageName.toString().contains("providers.media")
+            || packageName.toString().endsWith(".photopicker"));
     }
 
     private void captureNativeDiagnostics(String label) throws Exception {
@@ -399,7 +414,7 @@ public class PhotoFileChooserTest {
                 AccessibilityNodeInfo node = nodes.remove();
                 CharSequence text = node.getText();
                 CharSequence description = node.getContentDescription();
-                if (node.isVisibleToUser() && ((text != null && ("Allow".equals(name)
+                if (node.isVisibleToUser() && ((text != null && ("Allow all".equals(name)
                         ? text.toString().equals(name) : text.toString().startsWith(name)))
                         || (description != null && description.toString().startsWith(name)))) return node;
                 for (int i = 0; i < node.getChildCount(); i++) {

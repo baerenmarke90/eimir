@@ -467,7 +467,7 @@ export function MemoryCreatePage({
           draft.file,
           undefined,
           fetch,
-          { signal: controller.signal },
+          { signal: controller.signal, preserveMetadata: true },
         );
       } finally {
         if (recoveryUpload.current === controller)

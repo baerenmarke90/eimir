@@ -147,7 +147,7 @@ Server-side checks:
 5. parser can safely open the Media under resource limits,
 6. Attachment belongs to the expected Space/owner and the state transition is allowed,
 7. Provider/object integrity is sufficiently confirmed for the adapter,
-8. metadata allowlist is extracted and the object is then stored sanitized (M2-D14).
+8. the projection allowlist is extracted and validated pixels are rewritten (M2-D14, with the selected-moment metadata exception in ADR 0014).
 
 Only after all eight steps is `READY` set. A Provider upload or passed format check alone does not mean `READY`.
 
@@ -157,9 +157,9 @@ On error: `FAILED` with a stable non-sensitive error code; object is marked for 
 
 A malware scanner is not defined as a universal security guarantee for M2. Uploads are treated exclusively as Media and are never executed server-side. A later AV/content-scan extension may extend the state machine but must still set `READY` only after all mandatory checks.
 
-### 7.1 Metadata removal (M2-D14)
+### 7.1 Metadata handling (M2-D14 / ADR 0014)
 
-Before stripping, exactly this allowlist is extracted and stored as ProtectedPayload:
+Before rewriting, exactly this projection allowlist is extracted and stored as ProtectedPayload:
 
 | Field | Purpose |
 |---|---|
@@ -168,9 +168,9 @@ Before stripping, exactly this allowlist is extracted and stored as ProtectedPay
 | width, height | already determined for limit checking |
 | duration (video only) | already determined for limit checking |
 
-Everything else is discarded: GPS and other location information, device and serial numbers, software, author and copyright fields, Comment and description fields, previews embedded in the container, and **every unlisted or unknown segment**. The rule is an allowlist, not a blacklist of known location fields — containers may carry position in vendor-specific and future segments.
+Historical/default behavior discards everything else. [ADR 0014](../decisions/0014-moment-photo-metadata-preservation.md), following the explicit Product Owner instruction, adds a bounded exception for selected Memory/HeartMoment photos: readable EXIF and ICC profiles may remain in the rewritten primary image, including GPS/capture/device metadata. Unrelated uploads and thumbnail derivatives keep their clean behavior. Unknown raw container segments are not copied wholesale.
 
-Only the sanitized file is stored. Uploaded original bytes are not retained permanently; M2 has no path that serves Media with embedded metadata. Media that cannot be safely sanitized fails closed as `FAILED` and is never stored unstripped.
+Only a file rewritten from validated pixels is stored; raw uploaded bytes are not retained permanently. Marked moment-photo primary files may serve retained metadata through their existing parent-authorized read path. Corrupt or unencodable optional metadata may be omitted without rejecting usable pixels. Invalid pixels/format/dimensions still fail closed. Disabling automatic Place association or removing a relation does not scrub metadata from the primary photo file.
 
 The extracted allowlist is ProtectedPayload and is not projected into API metadata outside the parent context, logs, Events, metrics, or Search indexes.
 
@@ -185,7 +185,7 @@ M2 creates at most **one** variant per Attachment:
 
 Transcoding, multiple resolution levels, audio extraction, and adaptive streaming are **not** part of M2.
 
-- Variants are generated server-side in the same validation job, **after** applying M2-D14, and therefore contain no embedded metadata themselves.
+- Variants are generated server-side in the same validation job and contain no embedded metadata, including when ADR 0014 permits metadata in the primary file.
 - A variant has no independent Authorization. It follows exactly its Attachment and therefore the parent; a parent Privacy transition blocks the variant as well.
 - Clients do not choose variant Keys. The server names variants through controlled suffixes according to the pattern in section 5.
 - If variant generation fails, the Attachment remains usable and is served without a variant. A missing Thumbnail is a presentation issue, not a Security issue, and does not set the Attachment to `FAILED`.

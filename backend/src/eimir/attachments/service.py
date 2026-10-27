@@ -173,6 +173,7 @@ def create_upload(
     original_name: str,
     expected_mime_type: str,
     expected_size: int,
+    preserve_metadata: bool = False,
 ) -> Attachment:
     """Register an upload.
 
@@ -201,7 +202,7 @@ def create_upload(
         media_type=media_type.value,
         declared_mime_type=rule.mime_type,
         declared_size=expected_size,
-        payload=AttachmentPayload(original_name=name),
+        payload=AttachmentPayload(original_name=name, preserve_metadata=preserve_metadata),
     )
     session.add(attachment)
     _flush(session)
@@ -557,7 +558,12 @@ def validate(session: Session, attachment_id: UUID) -> None:
 
     extract_location, location_version = photo_locations.extraction_preference(session, attachment)
     try:
-        processed = images.process(raw, rule, extract_location=extract_location)
+        processed = images.process(
+            raw,
+            rule,
+            extract_location=extract_location,
+            preserve_metadata=attachment.payload.preserve_metadata,
+        )
     except images.ImageRejectedError as error:
         _fail(attachment, error.code)
         return

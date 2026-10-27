@@ -31,6 +31,7 @@ export async function uploadMemoryDraftAttachment(
   options: {
     signal?: AbortSignal;
     onProgress?: (progress: number) => void;
+    preserveMetadata?: boolean;
   } = {},
 ): Promise<ReadyDraftAttachment> {
   if (!file.type.startsWith('image/'))
@@ -48,6 +49,7 @@ export async function uploadMemoryDraftAttachment(
         expectedSize: file.size,
         mediaType: MediaType.IMAGE,
         originalName: file.name,
+        preserveMetadata: options.preserveMetadata ?? false,
       },
     });
     createdAttachment = {

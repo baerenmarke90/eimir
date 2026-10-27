@@ -8,7 +8,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Path, Request, Response, status
 from fastapi.responses import StreamingResponse
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, StrictBool, model_validator
 
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
@@ -47,6 +47,13 @@ class AttachmentUploadCreate(ApiModel):
     original_name: str = Field(min_length=1, max_length=255)
     expected_mime_type: str = Field(min_length=1, max_length=128)
     expected_size: int = Field(gt=0)
+    preserve_metadata: StrictBool = Field(
+        default=False,
+        description=(
+            "Retain readable EXIF/ICC in the validated primary image; "
+            "independent of Place association."
+        ),
+    )
 
 
 class AttachmentFinalize(ApiModel):
@@ -198,6 +205,7 @@ def create_attachment_upload(
         original_name=body.original_name,
         expected_mime_type=body.expected_mime_type,
         expected_size=body.expected_size,
+        preserve_metadata=body.preserve_metadata,
     )
     _no_store(response)
 

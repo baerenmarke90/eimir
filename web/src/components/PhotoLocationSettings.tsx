@@ -99,6 +99,7 @@ export function PhotoLocationSettings({
           }}
         />
       ) : null}
+      <p className="muted">{t('photoPlaces.metadata')}</p>
       {query.isPending ? (
         <p role="status">
           {t(isClientOnline() ? 'photoPlaces.loading' : 'photoPlaces.offline')}

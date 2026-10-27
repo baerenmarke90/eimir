@@ -357,6 +357,7 @@ export async function runMemoryMediaStoryFlow(
         expectedSize: file.size,
         mediaType: MediaType.IMAGE,
         originalName: file.name,
+        preserveMetadata: true,
       },
     });
 

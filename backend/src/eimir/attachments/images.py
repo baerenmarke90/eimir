@@ -8,8 +8,8 @@ Three rules apply:
 
 - Nothing declared by the file is trusted. Format, dimensions, and type come
   from the decoder rather than request headers or client declarations.
-- Only allowlisted information leaves this boundary. Metadata is discarded and
-  explicitly reconstructed field by field rather than filtered in place.
+- Server projections use an explicit allowlist. Selected moment primary files
+  may retain readable EXIF/ICC under ADR 0014; unknown raw segments are discarded.
 - Data that cannot be processed safely fails; it is never stored on a
   best-effort basis.
 """
@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 import pillow_heif
-from PIL import ExifTags, Image, ImageFile, UnidentifiedImageError
+from PIL import ExifTags, Image, ImageFile, ImageOps, UnidentifiedImageError
 
 from eimir.attachments.limits import MediaRule
 
@@ -152,12 +152,11 @@ def _extract_allowlist(image: Image.Image) -> tuple[datetime | None, int | None]
     return captured_at, orientation
 
 
-def _rebuild_without_metadata(image: Image.Image, pillow_format: str) -> bytes:
-    """Rewrite from pixels instead of deleting selected metadata fields.
+def _rebuild_image(image: Image.Image, pillow_format: str, *, preserve_metadata: bool) -> bytes:
+    """Rewrite pixels, optionally retaining readable EXIF and ICC.
 
-    A fresh image object constructed from pixel data carries no manufacturer
-    block, embedded preview, or unknown segment, including fields the server
-    does not know about.
+    Never copy raw unknown container segments. Bad optional metadata may be
+    omitted without rejecting usable pixels. Clean derivatives stay separate.
     """
     clean = Image.new(image.mode, image.size)
     # Use paste rather than putdata(list(...)): the latter would build a Python
@@ -169,18 +168,35 @@ def _rebuild_without_metadata(image: Image.Image, pillow_format: str) -> bytes:
     options: dict[str, object] = {}
     if pillow_format == "JPEG":
         options["quality"] = 92
-    clean.save(target, format=pillow_format, **options)
+    metadata: dict[str, object] = {}
+    if preserve_metadata:
+        try:
+            exif = image.getexif()
+            if exif:
+                metadata["exif"] = exif.tobytes()
+        except Exception:
+            pass
+        profile = image.info.get("icc_profile")
+        if isinstance(profile, bytes):
+            metadata["icc_profile"] = profile
+    try:
+        clean.save(target, format=pillow_format, **options, **metadata)
+    except (OSError, ValueError, TypeError):
+        if not metadata:
+            raise
+        target = io.BytesIO()
+        clean.save(target, format=pillow_format, **options)
     return target.getvalue()
 
 
-def _thumbnail(image: Image.Image) -> bytes | None:
+def _thumbnail(image: Image.Image, *, apply_orientation: bool = False) -> bytes | None:
     """Create a thumbnail, or return none.
 
     Thumbnail failure is a presentation problem rather than a security failure
     under M2-D15 and must not reject the attachment itself.
     """
     try:
-        thumbnail = image.copy()
+        thumbnail = ImageOps.exif_transpose(image) if apply_orientation else image.copy()
         thumbnail.thumbnail((THUMBNAIL_EDGE, THUMBNAIL_EDGE))
         if thumbnail.mode not in ("RGB", "L"):
             thumbnail = thumbnail.convert("RGB")
@@ -191,7 +207,9 @@ def _thumbnail(image: Image.Image) -> bytes | None:
         return None
 
 
-def process(data: bytes, rule: MediaRule, *, extract_location: bool = False) -> ProcessedImage:
+def process(
+    data: bytes, rule: MediaRule, *, extract_location: bool = False, preserve_metadata: bool = False
+) -> ProcessedImage:
     """Validate, sanitize, and resize an uploaded image.
 
     The bytes are already fully available. Decoding necessarily materializes
@@ -229,7 +247,7 @@ def process(data: bytes, rule: MediaRule, *, extract_location: bool = False) -> 
     coordinates = _extract_coordinates(image) if extract_location else None
 
     try:
-        content = _rebuild_without_metadata(image, detected_format)
+        content = _rebuild_image(image, detected_format, preserve_metadata=preserve_metadata)
     except (OSError, ValueError) as error:
         # If the image cannot be sanitized safely, fail it rather than storing
         # the original unsanitized data (M2-D14).
@@ -242,6 +260,8 @@ def process(data: bytes, rule: MediaRule, *, extract_location: bool = False) -> 
         captured_at=captured_at,
         orientation=orientation,
         content=content,
-        thumbnail=_thumbnail(image),
+        thumbnail=_thumbnail(image, apply_orientation=True)
+        if preserve_metadata
+        else _thumbnail(image),
         coordinates=coordinates,
     )

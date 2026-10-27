@@ -265,6 +265,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
         name: photoPlaceCopy.setting,
       });
       await expect(control).toHaveAttribute('aria-checked', 'true');
+      await expect(
+        page.getByText(photoPlaceCopy.metadata, { exact: true }),
+      ).toBeVisible();
       await captureScreenshot(
         page,
         testInfo,

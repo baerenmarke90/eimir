@@ -144,6 +144,13 @@ def create_heart_moment(
         _bind(session, context, heart_moment, attachment_id)
     session.add(heart_moment)
     _flush(session)
+    if attachment_id is not None:
+        from eimir.attachments import photo_locations
+        from eimir.attachments.models import Attachment
+
+        attachment = session.get(Attachment, attachment_id)
+        assert attachment is not None
+        photo_locations.bind(session, context, heart_moment, [attachment], heart=True)
     _record(
         session,
         heart_moment,
@@ -581,6 +588,11 @@ def _rebind(
         heart_moment.attachment_id = None
     else:
         _bind(session, context, heart_moment, attachment_id)
+        from eimir.attachments import photo_locations
+
+        attachment = session.get(Attachment, attachment_id)
+        assert attachment is not None
+        photo_locations.bind(session, context, heart_moment, [attachment], heart=True)
 
     if previous_id is not None:
         detached = session.get(Attachment, previous_id)

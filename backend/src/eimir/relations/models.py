@@ -15,7 +15,15 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    func,
+    text,
+)
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -55,6 +63,10 @@ class PlaceMemory(_PlaceRelationColumns, Base):
     """A memory that took place at a location."""
 
     __tablename__ = "place_memories"
+
+    photo_generated: Mapped[bool] = mapped_column(
+        nullable=False, default=False, server_default=text("false")
+    )
 
     memory_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
 
@@ -112,6 +124,10 @@ class PlaceHeartMoment(_PlaceRelationColumns, Base):
     """A shared HeartMoment that took place at a location."""
 
     __tablename__ = "place_heart_moments"
+
+    photo_generated: Mapped[bool] = mapped_column(
+        nullable=False, default=False, server_default=text("false")
+    )
 
     heart_moment_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
     target_privacy_class: Mapped[str] = mapped_column(

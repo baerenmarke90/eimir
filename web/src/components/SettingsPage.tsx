@@ -9,23 +9,23 @@ import {
 import { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
-import { RulesApi } from '../api/generated/apis/RulesApi';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
+import { RulesApi } from '../api/generated/apis/RulesApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
 import { isDemoModeConfigured } from '../client/demoMode';
-import type { DevicePushController } from '../client/unifiedPush';
 import {
   appRoutePath,
   isSettingsCategoryId,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_SETTINGS_ROUTE,
+  type SettingsCategoryId,
   settingsCategoryIdFromHash,
   settingsCategoryPath,
-  type SettingsCategoryId,
 } from '../client/routes';
 import { settingsCategoryDefinition } from '../client/settingsNavigation';
+import type { DevicePushController } from '../client/unifiedPush';
 import { useTranslation } from '../i18n';
 import { AccountSettingsPanel } from './AccountSettingsPanel';
 import {
@@ -37,6 +37,7 @@ import { DashboardSettingsPanel } from './DashboardSettingsPanel';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
+import { PhotoLocationSettings } from './PhotoLocationSettings';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
 import { SettingsIndex } from './SettingsIndex';
@@ -188,6 +189,15 @@ export function SettingsPage(props: SettingsPageProps) {
       >
         <ProfileAppearancePanel id="settings-appearance-panel" />
       </div>
+    );
+  } else if (categoryId === 'memories') {
+    categoryContent = (
+      <PhotoLocationSettings
+        key={`${props.apiBaseUrl}:${props.account.id}`}
+        apiBaseUrl={props.apiBaseUrl}
+        accessToken={props.accessToken}
+        accountId={props.account.id}
+      />
     );
   } else if (categoryId === 'data') {
     categoryContent = (

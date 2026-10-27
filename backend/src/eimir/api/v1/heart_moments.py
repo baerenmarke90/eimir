@@ -11,7 +11,7 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
-from eimir.api.deps import Authorization, DbSession
+from eimir.api.deps import Authorization, DbSession, PhotoBindingAuthorization
 from eimir.api.errors import problem_responses
 from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
@@ -196,7 +196,7 @@ def _heart_moment_detail(
     },
 )
 def create_heart_moment(
-    authorization: Authorization,
+    authorization: PhotoBindingAuthorization,
     session: DbSession,
     response: Response,
     body: HeartMomentCreate,
@@ -279,7 +279,7 @@ def get_heart_moment(
     },
 )
 def update_heart_moment(
-    authorization: Authorization,
+    authorization: PhotoBindingAuthorization,
     session: DbSession,
     response: Response,
     body: HeartMomentUpdate,

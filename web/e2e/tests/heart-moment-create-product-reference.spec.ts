@@ -1,3 +1,4 @@
+import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { readFile, writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
@@ -81,6 +82,7 @@ async function installApiMocks(page: Page): Promise<string[]> {
   };
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillEmptyMomentPlaces(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;

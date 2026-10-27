@@ -111,6 +111,15 @@ async function installFixture(page: Page) {
     const items = deleted
       ? []
       : [{ kind: 'MILESTONE', effectiveDate: milestone.createdAt, milestone }];
+    if (local === '/dashboard' && method === 'GET')
+      return json({
+        recentShared: [],
+        relationshipDuration: null,
+        retrospective: null,
+        space: { partner, spaceId },
+        upcoming: [],
+        viewerLocalDate: '2026-10-17',
+      });
     if (local === '/timeline' && method === 'GET')
       return json({ items, hasMore: false, nextCursor: null });
     if (local === '/discover' && method === 'GET')

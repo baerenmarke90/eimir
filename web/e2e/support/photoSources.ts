@@ -1,12 +1,27 @@
 import type { Route } from '@playwright/test';
 
-/** The optional provider service is unconfigured in unrelated diary journeys.
- * Admit only its availability GET. Provider writes and every other unknown
- * request keep the owning fixture's strict failure behavior.
- */
+/** Empty canonical context in journeys without linked places; writes remain strict. */
+export async function fulfillEmptyMomentPlaces(route: Route): Promise<boolean> {
+  const request = route.request();
+  if (
+    request.method() === 'GET' &&
+    /^\/api\/v1\/spaces\/[^/]+\/moments\/(memories|heart-moments)\/[^/]+\/places$/.test(
+      new URL(request.url()).pathname,
+    )
+  ) {
+    await route.fulfill({
+      json: { items: [], nextCursor: null, hasMore: false },
+    });
+    return true;
+  }
+  return false;
+}
+
+/** Optional provider availability in unrelated journeys; every other read/write stays strict. */
 export async function fulfillUnconfiguredPhotoSources(
   route: Route,
 ): Promise<boolean> {
+  if (await fulfillEmptyMomentPlaces(route)) return true;
   const request = route.request();
   if (
     request.method() !== 'GET' ||

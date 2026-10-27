@@ -13,6 +13,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, Path, Request
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from eimir.administration import service as administration
@@ -130,6 +131,33 @@ def authorization_context(tenant: Tenant) -> AuthorizationContext:
 
 
 Authorization = Annotated[AuthorizationContext, Depends(authorization_context)]
+
+
+def photo_binding_authorization(
+    session: DbSession,
+    account: CurrentAccount,
+    space_id: Annotated[str, Path(alias="spaceId")],
+) -> AuthorizationContext:
+    """Acquire the Account lifecycle barrier before a capture's Membership.
+
+    Automatic Place insertion later needs Account FK key checks. Taking this
+    key-share lock after Membership would invert deletion's Account ->
+    Membership order. Scope this to photo-binding writes, which never upgrade
+    the Account lock. Do not flush pending device activity before the barrier:
+    deletion revokes those same device rows while holding Account.
+    """
+    with session.no_autoflush:
+        active = session.execute(
+            select(Account.id)
+            .where(Account.id == account.id, Account.disabled_at.is_(None))
+            .with_for_update(read=True, key_share=True)
+        ).scalar_one_or_none()
+    if active is None:
+        raise NotFoundError("Space not found.", SpaceErrorCode.NOT_FOUND)
+    return authorization_context(tenant_context(session, account, space_id))
+
+
+PhotoBindingAuthorization = Annotated[AuthorizationContext, Depends(photo_binding_authorization)]
 
 
 def ensure_capability(

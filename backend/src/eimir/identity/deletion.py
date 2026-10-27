@@ -253,6 +253,9 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
     _delete_account_rows(session, AppIconPreference, account_id, AppIconPreference.account_id)
     _delete_account_rows(session, PhotoSelection, account_id, PhotoSelection.account_id)
     _delete_account_rows(session, PhotoConnection, account_id, PhotoConnection.account_id)
+    from eimir.attachments.photo_locations import discard_owner
+
+    discard_owner(session, account_id)
 
     # Recipient-scoped notification state and provider endpoints are not
     # historical shared content. PushDelivery rows cascade from either side.

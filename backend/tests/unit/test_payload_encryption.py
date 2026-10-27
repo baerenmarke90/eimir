@@ -37,6 +37,7 @@ PINNED_CONTEXTS = {
     "milestones": "MilestonePayload",
     "partner_nicknames": "PartnerNicknamePayload",
     "photo_source_connections": "PhotoConnectionPayload",
+    "photo_location_drafts": "PhotoLocationPayload",
     "photo_source_selections": "PhotoSelectionPayload",
     "places": "PlacePayload",
     "plans": "PlanPayload",

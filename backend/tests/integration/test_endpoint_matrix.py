@@ -533,6 +533,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="WISH_NOT_FOUND",
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/places"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/moments/{kind}/{targetId}/places",
+        resource_absence="RELATION_TARGET_NOT_FOUND",
+        placeholders=("targetId",),
+    ),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/places", body=PLACE),
     Endpoint(
         "GET",
@@ -956,6 +962,8 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     ("POST", "/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/start"),
     ("POST", "/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/callback"),
     ("POST", "/api/v1/account/deletion"),
+    ("GET", "/api/v1/account/photo-location-preference"),
+    ("PUT", "/api/v1/account/photo-location-preference"),
     ("GET", "/api/v1/notification-preferences"),
     ("PATCH", "/api/v1/notification-preferences/quiet-hours"),
     ("PATCH", "/api/v1/notification-preferences/{kind}/{channel}"),
@@ -1155,6 +1163,7 @@ def scenario(client, session: Session):  # type: ignore[no-untyped-def]
             # The target is a typed relation. A memory is enough for all three
             # relation types because this matrix checks occur before target resolution.
             "targetId": memory["id"],
+            "kind": "memories",
             "attachmentId": attachment["attachment"]["id"],
         },
     }

@@ -201,7 +201,11 @@ def _json_value(value: Any) -> Any:
 
 
 def _json_row(row: Mapping[str, Any]) -> dict[str, Any]:
-    return {_snake_to_camel(key): _json_value(value) for key, value in row.items()}
+    return {
+        _snake_to_camel(key): _json_value(value)
+        for key, value in row.items()
+        if key != "photo_generated"
+    }
 
 
 def _table(session: Session, name: str, metadata: MetaData) -> Table:
@@ -1363,6 +1367,9 @@ def _prepare_row(
     ids: Mapping[UUID, UUID],
 ) -> dict[str, Any]:
     row = _row_snake(raw)
+    # Imported links are intentional canonical content, never future automation authority.
+    if "photo_generated" in table.c:
+        row["photo_generated"] = False
     result: dict[str, Any] = {}
     for name, value in row.items():
         if name not in table.c:

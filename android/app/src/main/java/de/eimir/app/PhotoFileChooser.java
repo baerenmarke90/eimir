@@ -60,8 +60,7 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
             new ActivityResultContracts.RequestPermission(), granted -> {
                 Selection selection = pending;
                 if (selection == null || disposed) return;
-                if (granted) openMediaPicker(selection);
-                else ordinarySelection(selection);
+                openMediaPicker(selection);
             });
         mediaPicker = bridge.registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -107,7 +106,7 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
             locationPermission.launch(Manifest.permission.ACCESS_MEDIA_LOCATION);
         } else {
             // A declined optional permission must not make every picker ask again.
-            ordinarySelection(selection);
+            openMediaPicker(selection);
         }
         return true;
     }
@@ -169,7 +168,9 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
         }
         // Keep the original media picker on older devices. GET_CONTENT picker
         // grants support authorized originals; old ACTION_PICK_IMAGES grants do not.
-        Intent intent = params.createIntent();
+        // Chromium may use */* for a list of image MIME types. Keep the image
+        // category explicit so Android routes it to the media picker.
+        Intent intent = params.createIntent().setType("image/*");
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,
             params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
         intent.putExtra(Intent.EXTRA_MIME_TYPES, params.getAcceptTypes().clone());

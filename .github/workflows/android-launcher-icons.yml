@@ -102,18 +102,24 @@ jobs:
           adb -e install -r app/build/outputs/apk/debug/app-debug.apk
           adb -e install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           # Seed under shell's UID: eimir must not own/read this image before selection.
-          external_photo_uri=''
+          external_photo_uri=not-applicable
           if [ '${{ matrix.api }}' != '28' ]; then
             adb -e shell mkdir -p /sdcard/DCIM/Camera
             adb -e push app/src/androidTest/assets/external-gps-camera.jpg /sdcard/DCIM/Camera/external-gps-camera.jpg
-            inserted=$(adb -e shell content insert --uri content://media/external_primary/images/media \
-              --bind _data:s:/sdcard/DCIM/Camera/external-gps-camera.jpg \
-              --bind _display_name:s:external-gps-camera.jpg --bind mime_type:s:image/jpeg)
-            external_photo_uri=$(sed -n 's/^Inserted \(content:\/\/[^[:space:]]*\).*$/\1/p' <<< "$inserted" | tr -d '\r')
-            test -n "$external_photo_uri"
-            adb -e shell content query --uri "$external_photo_uri" --projection owner_package_name \
-              | tee external-photo-owner.log
-            grep -F 'owner_package_name=com.android.shell' external-photo-owner.log
+            adb -e shell content insert --uri content://media/external_primary/images/media \
+              --bind _data:s:/storage/emulated/0/DCIM/Camera/external-gps-camera.jpg \
+              --bind _display_name:s:external-gps-camera.jpg --bind mime_type:s:image/jpeg
+            adb -e shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
+              -d file:///storage/emulated/0/DCIM/Camera/external-gps-camera.jpg
+            # Android's content insert command does not print its returned URI.
+            # Resolve the sole synthetic fixture through a shell-owned query.
+            adb -e shell content query --uri content://media/external_primary/images/media \
+              --projection _id:_display_name:owner_package_name | tee external-photo-owner.log
+            external_photo_id=$(grep -F '_display_name=external-gps-camera.jpg' external-photo-owner.log \
+              | sed -n 's/.*_id=\([0-9]*\),.*/\1/p' | tr -d '\r')
+            [[ "$external_photo_id" =~ ^[0-9]+$ ]]
+            external_photo_uri="content://media/external_primary/images/media/$external_photo_id"
+            ! grep -F 'owner_package_name=de.sidebyside.app' external-photo-owner.log
           fi
           timeout 180 adb -e shell am instrument -w -r \
             -e externalPhotoUri "$external_photo_uri" \
@@ -138,9 +144,13 @@ jobs:
         run: |
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -d -t 1000 -v threadtime \
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
-          for proof in native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-selected-photo.jpg; do
-            "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.sidebyside.app.debug \
-              sh -c "test -f files/$proof && cat files/$proof" > "$proof" 2>/dev/null || rm -f "$proof"
+          for proof in native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-selected-photo.jpg; do
+            if "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.sidebyside.app.debug test -f "files/$proof"; then
+              "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.sidebyside.app.debug \
+                cat "files/$proof" > "$proof"
+            else
+              rm -f "$proof"
+            fi
           done
       - name: Upload native verification results
         if: always()
@@ -160,4 +170,6 @@ jobs:
             android/native-selected-photo.jpg
             android/external-photo-owner.log
             android/native-photo-pipeline.log
+            android/native-photo-confirmation.png
+            android/native-photo-confirmation.txt
           if-no-files-found: ignore

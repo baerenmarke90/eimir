@@ -67,3 +67,8 @@ Additional primary sources, reviewed 2026-10-27:
 - https://developer.android.com/jetpack/androidx/releases/photopicker
 - https://android.googlesource.com/platform/packages/providers/MediaProvider/+/refs/heads/main/src/com/android/providers/media/PickerUriResolver.java
 - https://github.com/androidx/androidx/blob/androidx-main/photopicker/photopicker-activity/src/main/kotlin/androidx/photopicker/activity/PickVisualMedia.kt
+
+
+### Confirmed-save cache correction
+
+The main baseline also keeps a recently read empty MomentPlaces result fresh after attaching a photo: existing Memory/HeartMoment saves invalidate Story projections but omit Places. A real QueryClient/component regression at the one-minute freshness window fails before the repair. Reuse the existing Space-scoped Place consumer invalidation inside the canonical Story save boundary so the result immediately shows server-confirmed automatic associations. Other Spaces remain untouched. This changes no layout, copy, token, request contract or consent decision; it completes R1 save/observe/return feedback within the same reference composition.

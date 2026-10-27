@@ -173,7 +173,7 @@ public class PhotoFileChooserTest {
         }
     }
 
-    private void launchWithPhotoLocationPermission() throws Exception {
+    private void launchForPhotoSelection() throws Exception {
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q);
         if (!PhotoFileChooser.supportsPickerMetadata()) {
             instrumentation.getUiAutomation().grantRuntimePermission(context.getPackageName(),
@@ -201,7 +201,7 @@ public class PhotoFileChooserTest {
 
     @Test
     public void systemCancellationKeepsTheActiveChooserAndCompletesItOnce() throws Exception {
-        launchWithPhotoLocationPermission();
+        launchForPhotoSelection();
         AtomicInteger callbacks = new AtomicInteger();
         CountDownLatch cancelled = new CountDownLatch(1);
         openPicker(result -> {
@@ -223,7 +223,7 @@ public class PhotoFileChooserTest {
 
     @Test
     public void destroyingTheActivityCancelsItsPickerOwner() throws Exception {
-        launchWithPhotoLocationPermission();
+        launchForPhotoSelection();
         AtomicInteger callbacks = new AtomicInteger();
         openPicker(result -> { assertNull(result); callbacks.incrementAndGet(); });
         scenario.close();
@@ -236,7 +236,7 @@ public class PhotoFileChooserTest {
 
     @Test
     public void actualForeignOwnedPhotoSelectionRetainsItsExifLocation() throws Exception {
-        launchWithPhotoLocationPermission();
+        launchForPhotoSelection();
         String token = "Photo taken";
         // Exercise the actual Chromium File handoff, not just our native callback.
         WebView view = activity.getBridge().getWebView();
@@ -244,7 +244,7 @@ public class PhotoFileChooserTest {
             view.getSettings().setJavaScriptEnabled(true);
             view.loadDataWithBaseURL("https://localhost/native-photo-fixture",
                 "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-                + "<input id='photo' type='file' accept='image/jpeg' aria-label='Choose photo' "
+                + "<input id='photo' type='file' accept='image/jpeg,image/png,image/webp,image/heic,image/heif' multiple aria-label='Choose photo' "
                 + "style='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:240px;height:60px'>"
                 + "<script>document.getElementById('photo').onchange=async(e)=>{"
                 + "window.photoFileEvents=(window.photoFileEvents||0)+1;"
@@ -262,13 +262,15 @@ public class PhotoFileChooserTest {
             event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getPackageName() != null
                 && event.getPackageName().toString().contains("providers.media"), 15000);
-        // Document UIs may omit or ellipsize the extension in their displayed title.
+        // Match the actual diary input's complete MIME list and multiple mode.
         AccessibilityNodeInfo document = findDocument(token);
         captureNativeDiagnostics("native-photo-picker");
         assertNotNull("The real Android photo picker exposes the foreign-owned fixture", document);
         tapSystemDocument(document);
-        // A single-item Photo Picker may confirm immediately; a consent-capable
-        // picker can additionally display its platform-owned metadata controls.
+        AccessibilityNodeInfo add = findDocument("Add");
+        captureNativeDiagnostics("native-photo-confirmation");
+        assertNotNull("Multiple selection has Android's explicit Add confirmation", add);
+        tapSystemDocument(add);
         byte[] uploadedBytes = selectedFileBytes(view);
         java.nio.file.Files.write(new File(context.getFilesDir(), "native-selected-photo.jpg").toPath(), uploadedBytes);
         assertArrayEquals("The existing Web File intake receives the original bytes",

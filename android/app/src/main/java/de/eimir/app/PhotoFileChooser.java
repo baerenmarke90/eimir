@@ -15,6 +15,7 @@ import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient.FileChooserParams;
 import android.webkit.WebView;
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.Bridge;
@@ -29,7 +30,11 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
     private static final int MAX_RESULT_URIS = 1000;
     private final Bridge bridge;
     private final ActivityResultLauncher<String> locationPermission;
-    private final ActivityResultLauncher<Intent> documents;
+    // Documented Intent protocol; avoid adopting the alpha photopicker artifact.
+    static final String REQUEST_LOCATION_METADATA = "android.provider.extra.REQUEST_LOCATION_METADATA_ACCESS";
+    static final String FALLBACK_REQUEST_LOCATION_METADATA =
+        "androidx.activity.result.contract.extra.PICK_IMAGES_REQUEST_LOCATION_METADATA_ACCESS";
+    private final ActivityResultLauncher<Intent> mediaPicker;
     private Selection pending;
     private boolean askedLocationPermission;
     private volatile boolean disposed;
@@ -38,11 +43,13 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
         final WebView view;
         final ValueCallback<Uri[]> callback;
         final FileChooserParams params;
+        final boolean pickerMetadata;
 
-        Selection(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+        Selection(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params, boolean pickerMetadata) {
             this.view = view;
             this.callback = callback;
             this.params = params;
+            this.pickerMetadata = pickerMetadata;
         }
     }
 
@@ -53,10 +60,10 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
             new ActivityResultContracts.RequestPermission(), granted -> {
                 Selection selection = pending;
                 if (selection == null || disposed) return;
-                if (granted) openDocuments(selection);
+                if (granted) openMediaPicker(selection);
                 else ordinarySelection(selection);
             });
-        documents = bridge.registerForActivityResult(
+        mediaPicker = bridge.registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(), result -> {
                 Selection selection = pending;
                 if (selection == null || disposed) return;
@@ -71,7 +78,10 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
                     Uri[] originals = new Uri[selected.length];
                     for (int i = 0; i < selected.length; i++) {
                         if (disposed) return;
-                        originals[i] = originalUri(bridge.getContext(), selected[i]);
+                        // The modern picker owns its metadata consent. Its grant must
+                        // never be upgraded with ACCESS_MEDIA_LOCATION.
+                        originals[i] = selection.pickerMetadata ? selected[i]
+                            : originalUri(bridge.getContext(), selected[i]);
                     }
                     bridge.getActivity().runOnUiThread(() -> complete(selection, originals));
                 });
@@ -88,10 +98,10 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || !isPhotoSelection(params)) {
             return super.onShowFileChooser(view, callback, params);
         }
-        Selection selection = new Selection(view, callback, params);
+        Selection selection = new Selection(view, callback, params, supportsPickerMetadata());
         pending = selection;
-        if (hasLocationPermission(bridge.getContext())) {
-            openDocuments(selection);
+        if (selection.pickerMetadata || hasLocationPermission(bridge.getContext())) {
+            openMediaPicker(selection);
         } else if (!askedLocationPermission) {
             askedLocationPermission = true;
             locationPermission.launch(Manifest.permission.ACCESS_MEDIA_LOCATION);
@@ -102,9 +112,9 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
         return true;
     }
 
-    private void openDocuments(Selection selection) {
+    private void openMediaPicker(Selection selection) {
         try {
-            documents.launch(documentIntent(selection.params));
+            mediaPicker.launch(mediaIntent(bridge.getContext(), selection.params, selection.pickerMetadata));
         } catch (android.content.ActivityNotFoundException unavailable) {
             ordinarySelection(selection);
         }
@@ -142,15 +152,28 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
         return true;
     }
 
-    static Intent documentIntent(FileChooserParams params) {
-        String[] types = params.getAcceptTypes();
-        return new Intent(Intent.ACTION_OPEN_DOCUMENT)
-            .addCategory(Intent.CATEGORY_OPENABLE)
-            .setType(types.length == 1 ? types[0] : "image/*")
-            .putExtra(Intent.EXTRA_MIME_TYPES, types.clone())
-            .putExtra(Intent.EXTRA_ALLOW_MULTIPLE,
-                params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE)
-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+    static boolean supportsPickerMetadata() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+            && android.os.ext.SdkExtensions.getExtensionVersion(Build.VERSION_CODES.TIRAMISU) >= 23;
+    }
+
+    static Intent mediaIntent(Context context, FileChooserParams params, boolean pickerMetadata) {
+        if (pickerMetadata) {
+            PickVisualMediaRequest request = new PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE).build();
+            Intent intent = params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE
+                ? new ActivityResultContracts.PickMultipleVisualMedia().createIntent(context, request)
+                : new ActivityResultContracts.PickVisualMedia().createIntent(context, request);
+            return intent.putExtra(REQUEST_LOCATION_METADATA, true)
+                .putExtra(FALLBACK_REQUEST_LOCATION_METADATA, true);
+        }
+        // Keep the original media picker on older devices. GET_CONTENT picker
+        // grants support authorized originals; old ACTION_PICK_IMAGES grants do not.
+        Intent intent = params.createIntent();
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,
+            params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, params.getAcceptTypes().clone());
+        return intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
     }
 
     static Uri[] selectedUris(Intent data, int mode) {

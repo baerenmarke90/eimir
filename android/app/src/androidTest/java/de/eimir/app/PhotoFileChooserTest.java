@@ -7,7 +7,6 @@ import android.Manifest;
 import android.app.Instrumentation;
 import android.app.UiAutomation;
 import android.content.ClipData;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
@@ -32,7 +31,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -43,7 +41,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-/** Real Android grants/document handoff, separate from browser-upload fixtures. */
+/** Real foreign-owned Android photo grants and Chromium File handoff. */
 public class PhotoFileChooserTest {
     private final Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
     private final Context context = instrumentation.getTargetContext();
@@ -72,65 +70,33 @@ public class PhotoFileChooserTest {
     @AfterClass
     public static void removeGalleryFixture() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        if (fixture != null) context.getContentResolver().delete(fixture, null, null);
         if (source != null) source.delete();
     }
 
     @BeforeClass
-    public static void prepareGalleryFixtureBeforeAnyRecentPickerQuery() throws Exception {
+    public static void useForeignOwnedGalleryFixture() throws Exception {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return;
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        String name = "gps-" + UUID.randomUUID().toString().substring(0, 8) + ".jpg";
-        source = new File(context.getCacheDir(), name);
-        try (OutputStream output = new FileOutputStream(source)) {
-            Bitmap.createBitmap(320, 240, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.JPEG, 95, output);
-        }
-        ExifInterface exif = new ExifInterface(source.getPath());
-        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, "N");
-        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, "52/1,31/1,0/1");
-        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, "E");
-        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, "13/1,24/1,0/1");
-        exif.saveAttributes();
-        ContentValues values = new ContentValues();
-        values.put(MediaStore.Images.Media.DISPLAY_NAME, name);
-        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-        values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/eimir-native-fixtures");
-        values.put(MediaStore.Images.Media.IS_PENDING, 1);
-        fixture = context.getContentResolver().insert(
-            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values);
-        assertNotNull(fixture);
-        try (InputStream input = new java.io.FileInputStream(source);
-                OutputStream output = context.getContentResolver().openOutputStream(fixture)) {
-            assertNotNull(output);
+        String selected = InstrumentationRegistry.getArguments().getString("externalPhotoUri");
+        assertNotNull("CI seeds a shell-owned camera photo, never an app-owned fixture", selected);
+        fixture = Uri.parse(selected);
+        source = new File(context.getCacheDir(), "external-gps-camera.jpg");
+        try (InputStream input = InstrumentationRegistry.getInstrumentation().getContext()
+                    .getAssets().open("external-gps-camera.jpg");
+                OutputStream output = new FileOutputStream(source)) {
             byte[] buffer = new byte[8192];
             int count;
             while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
         }
-        values.clear();
-        values.put(MediaStore.Images.Media.IS_PENDING, 0);
-        context.getContentResolver().update(fixture, values, null, null);
-        String ownedPath;
-        try (android.database.Cursor row = context.getContentResolver().query(fixture,
-                new String[] {MediaStore.Images.Media.DATA}, null, null, null)) {
-            assertNotNull(row);
-            assertTrue(row.moveToFirst());
-            ownedPath = row.getString(0);
+        try (InputStream ignored = context.getContentResolver().openInputStream(fixture)) {
+            fail("The target app must not own or read the external photo before user selection");
+        } catch (SecurityException expected) {
+            // This is the ownership boundary absent from the previous acceptance.
         }
-        assertNotNull(ownedPath);
-        CountDownLatch indexed = new CountDownLatch(1);
-        AtomicReference<Uri> scanned = new AtomicReference<>();
-        android.media.MediaScannerConnection.scanFile(context, new String[] {ownedPath},
-            new String[] {"image/jpeg"}, (path, uri) -> { scanned.set(uri); indexed.countDown(); });
-        assertTrue("The owned gallery fixture finishes indexing", indexed.await(10, TimeUnit.SECONDS));
-        assertNotNull(scanned.get());
-        assertEquals(android.content.ContentUris.parseId(fixture),
-            android.content.ContentUris.parseId(scanned.get()));
-        // DocumentsProvider recents do not promise change notifications. The item
-        // must exist before the cancellation tests first open/cache that task.
     }
 
     @Test
-    public void onlyOrdinaryImageInputsUseTheOriginalDocumentPath() {
+    public void onlyOrdinaryImageInputsUseTheMediaPicker() {
         assertTrue(PhotoFileChooser.isPhotoSelection(parameters(FileChooserParams.MODE_OPEN_MULTIPLE,
             false, "image/jpeg", "image/heic", "image/webp")));
         assertFalse(PhotoFileChooser.isPhotoSelection(parameters(FileChooserParams.MODE_OPEN, true, "image/*")));
@@ -138,16 +104,23 @@ public class PhotoFileChooserTest {
         assertFalse(PhotoFileChooser.isPhotoSelection(parameters(FileChooserParams.MODE_OPEN, false, "")));
         assertFalse(PhotoFileChooser.isPhotoSelection(parameters(FileChooserParams.MODE_OPEN, false,
             "image/jpeg", "application/pdf")));
-        Intent intent = PhotoFileChooser.documentIntent(parameters(FileChooserParams.MODE_OPEN_MULTIPLE,
-            false, "image/jpeg", "image/heic"));
-        assertEquals(Intent.ACTION_OPEN_DOCUMENT, intent.getAction());
-        assertTrue(intent.hasCategory(Intent.CATEGORY_OPENABLE));
+        Intent intent = PhotoFileChooser.mediaIntent(context, parameters(FileChooserParams.MODE_OPEN_MULTIPLE,
+            false, "image/jpeg", "image/heic"), false);
+        assertEquals(Intent.ACTION_GET_CONTENT, intent.getAction());
+        assertFalse(intent.hasCategory(Intent.CATEGORY_OPENABLE));
         assertTrue(intent.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false));
         assertArrayEquals(new String[] {"image/jpeg", "image/heic"},
             intent.getStringArrayExtra(Intent.EXTRA_MIME_TYPES));
         assertEquals(Intent.FLAG_GRANT_READ_URI_PERMISSION, intent.getFlags());
-        assertFalse(PhotoFileChooser.documentIntent(parameters(FileChooserParams.MODE_OPEN, false,
-            "image/jpeg")).getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, true));
+        assertFalse(PhotoFileChooser.mediaIntent(context, parameters(FileChooserParams.MODE_OPEN, false,
+            "image/jpeg"), false).getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, true));
+        Intent modern = PhotoFileChooser.mediaIntent(context,
+            parameters(FileChooserParams.MODE_OPEN_MULTIPLE, false, "image/jpeg"), true);
+        assertTrue(modern.getBooleanExtra(PhotoFileChooser.REQUEST_LOCATION_METADATA, false));
+        assertTrue(modern.getBooleanExtra(PhotoFileChooser.FALLBACK_REQUEST_LOCATION_METADATA, false));
+        if (Build.VERSION.SDK_INT >= 33) {
+            assertEquals("android.provider.action.PICK_IMAGES", modern.getAction());
+        }
     }
 
     @Test
@@ -217,7 +190,7 @@ public class PhotoFileChooserTest {
                 parameters(FileChooserParams.MODE_OPEN, false, "image/jpeg"))),
             event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getPackageName() != null
-                && event.getPackageName().toString().endsWith(".documentsui"), 15000);
+                && event.getPackageName().toString().contains("providers.media"), 15000);
     }
 
     @Test
@@ -256,11 +229,9 @@ public class PhotoFileChooserTest {
     }
 
     @Test
-    public void actualSystemDocumentSelectionRetainsThePhotosExifLocation() throws Exception {
+    public void actualForeignOwnedPhotoSelectionRetainsItsExifLocation() throws Exception {
         launchWithPhotoLocationPermission();
-        String token = source.getName().replace(".jpg", "");
-        assertTrue("Authorized MediaStore selection explicitly requires original metadata",
-            MediaStore.getRequireOriginal(PhotoFileChooser.originalUri(context, fixture)));
+        String token = "Photo taken";
         // Exercise the actual Chromium File handoff, not just our native callback.
         WebView view = activity.getBridge().getWebView();
         instrumentation.runOnMainSync(() -> {
@@ -284,13 +255,16 @@ public class PhotoFileChooserTest {
                 .perform(androidx.test.espresso.action.ViewActions.click()),
             event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getPackageName() != null
-                && event.getPackageName().toString().endsWith(".documentsui"), 15000);
+                && event.getPackageName().toString().contains("providers.media"), 15000);
         // Document UIs may omit or ellipsize the extension in their displayed title.
         AccessibilityNodeInfo document = findDocument(token);
         captureNativeDiagnostics("native-photo-picker");
-        assertNotNull("The real Android document picker exposes the selected fixture", document);
+        assertNotNull("The real Android photo picker exposes the foreign-owned fixture", document);
         tapSystemDocument(document);
+        // A single-item Photo Picker may confirm immediately; a consent-capable
+        // picker can additionally display its platform-owned metadata controls.
         byte[] uploadedBytes = selectedFileBytes(view);
+        java.nio.file.Files.write(new File(context.getFilesDir(), "native-selected-photo.jpg").toPath(), uploadedBytes);
         assertArrayEquals("The existing Web File intake receives the original bytes",
             java.nio.file.Files.readAllBytes(source.toPath()), uploadedBytes);
         try (InputStream input = new java.io.ByteArrayInputStream(uploadedBytes)) {

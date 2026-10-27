@@ -60,10 +60,10 @@ export function MomentPlaces({
   const api = useMemo(() => new PlacesApi(config), [config]);
   const relations = useMemo(() => new PlaceRelationsApi(config), [config]);
   const key = [
-    'moment-places',
+    ...authorSummaryQueryKeys.places(spaceId),
+    'moment',
     apiBaseUrl,
     accountId,
-    spaceId,
     kind,
     targetId,
   ] as const;
@@ -106,7 +106,6 @@ export function MomentPlaces({
       if (!admitted()) return;
       setRemoved(true);
       setSelected(null);
-      void client.invalidateQueries({ queryKey: key });
       void client.invalidateQueries({
         queryKey: authorSummaryQueryKeys.places(spaceId),
       });

@@ -40,12 +40,13 @@ def preference(session: Session, account_id: UUID) -> tuple[bool, int]:
 def set_preference(
     session: Session, account_id: UUID, *, enabled: bool, expected_version: int
 ) -> tuple[bool, int]:
-    account = session.execute(
-        select(Account)
-        .where(Account.id == account_id, Account.disabled_at.is_(None))
-        .with_for_update(key_share=True)
-        .execution_options(populate_existing=True)
-    ).scalar_one_or_none()
+    with session.no_autoflush:
+        account = session.execute(
+            select(Account)
+            .where(Account.id == account_id, Account.disabled_at.is_(None))
+            .with_for_update(key_share=True)
+            .execution_options(populate_existing=True)
+        ).scalar_one_or_none()
     if account is None:
         raise UnauthenticatedError("Authentication required.", "AUTHENTICATION_REQUIRED")
     lock_subject(session, "photo-locations", str(account_id))

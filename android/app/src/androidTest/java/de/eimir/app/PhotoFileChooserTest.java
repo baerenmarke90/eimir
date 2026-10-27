@@ -378,7 +378,15 @@ public class PhotoFileChooserTest {
             response.set(value);
             read.countDown();
         }));
-        assertTrue("Chromium answers the fixture probe", read.await(3, TimeUnit.SECONDS));
+        if (!read.await(10, TimeUnit.SECONDS)) {
+            captureNativeDiagnostics("native-photo-dom");
+            AtomicReference<String> state = new AtomicReference<>();
+            instrumentation.runOnMainSync(() -> state.set("url=" + view.getUrl()
+                + ", progress=" + view.getProgress() + ", attached=" + view.isAttachedToWindow()
+                + ", visible=" + view.isShown() + ", focus=" + view.hasWindowFocus()
+                + ", javascript=" + view.getSettings().getJavaScriptEnabled()));
+            throw new AssertionError("Chromium must answer the fixture probe: " + state.get());
+        }
         return response.get();
     }
 

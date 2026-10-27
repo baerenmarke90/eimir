@@ -109,7 +109,7 @@ jobs:
             adb -e shell content insert --uri content://media/external_primary/images/media \
               --bind _data:s:/storage/emulated/0/DCIM/Camera/external-gps-camera.jpg \
               --bind _display_name:s:external-gps-camera.jpg --bind mime_type:s:image/jpeg
-            adb -e shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
+            adb -e shell cmd activity broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
               -d file:///storage/emulated/0/DCIM/Camera/external-gps-camera.jpg
             # Android's content insert command does not print its returned URI.
             # Resolve the sole synthetic fixture through a shell-owned query.
@@ -144,7 +144,9 @@ jobs:
         run: |
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -d -t 1000 -v threadtime \
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
-          for proof in native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-selected-photo.jpg; do
+          timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b crash -d -t 200 \
+            > native-crash.log 2>&1 || true
+          for proof in native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-selected-photo.jpg; do
             if "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.sidebyside.app.debug test -f "files/$proof"; then
               "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.sidebyside.app.debug \
                 cat "files/$proof" > "$proof"
@@ -163,6 +165,7 @@ jobs:
             android/emulator.log
             android/instrumentation.log
             android/fixture-logcat.log
+            android/native-crash.log
             android/native-photo-picker.png
             android/native-photo-picker.txt
             android/native-photo-result.png
@@ -172,4 +175,6 @@ jobs:
             android/native-photo-pipeline.log
             android/native-photo-confirmation.png
             android/native-photo-confirmation.txt
+            android/native-photo-permission.png
+            android/native-photo-permission.txt
           if-no-files-found: ignore

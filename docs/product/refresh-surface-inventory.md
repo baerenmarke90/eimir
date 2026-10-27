@@ -58,7 +58,7 @@ The QueryClient defaults explicitly keep:
 - `refetchOnWindowFocus: true`
 - `refetchOnReconnect: true`
 
-This means stale data naturally revalidates on route re-entry/remount, browser/PWA focus regain and reconnect without invalidating every cache entry. The one-minute freshness window avoids request bursts on short Android app resumes and route hops, while explicit mutation invalidation and pull-to-refresh still update immediately. Domains requiring tighter freshness (such as presence, check-ins and notifications) retain their own polling and always-revalidate settings. React Query stale-time and request deduplication remain authoritative.
+This means stale data naturally revalidates on route re-entry/remount, browser/PWA focus regain and reconnect without invalidating every cache entry. The one-minute freshness window avoids request bursts on short Android app resumes and route hops, while explicit mutation invalidation and pull-to-refresh still update immediately. Domains requiring tighter freshness (such as presence, daily activity and notifications) retain their own polling and always-revalidate settings. React Query stale-time and request deduplication remain authoritative.
 
 ## Default for new surfaces
 

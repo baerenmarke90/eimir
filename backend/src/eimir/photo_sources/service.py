@@ -61,6 +61,19 @@ def enabled() -> bool:
     )
 
 
+def google_import_available() -> bool:
+    # #1467: browser-bound OAuth and encrypted device recovery must land first.
+    # Operator credentials or flags cannot bypass these unresolved safeguards.
+    return False
+
+
+def _guard_google_import(provider: str) -> None:
+    if provider == "google" and not google_import_available():
+        raise ServiceUnavailableError(
+            "This photo source is unavailable.", "PHOTO_SOURCE_UNAVAILABLE"
+        )
+
+
 def _guard(session: Session, auth: AuthorizationContext, *, lock: bool = True) -> None:
     if not enabled():
         raise ServiceUnavailableError(
@@ -174,6 +187,7 @@ def start(
     maximum: int,
 ) -> tuple[PhotoSelection, str | None]:
     _guard(session, auth)
+    _guard_google_import(provider)
     rate_limit.check(
         session,
         "photo-source-start",
@@ -260,6 +274,8 @@ def owned(
         device.id,
     ):
         raise NotFoundError("Photo selection not found.", "PHOTO_SOURCE_NOT_FOUND")
+    if commercial:
+        _guard_google_import(row.provider)
     return row
 
 
@@ -278,6 +294,7 @@ def _load_immich_page(session: Session, row: PhotoSelection, page: int) -> None:
 
 
 def advance(session: Session, row: PhotoSelection, *, more: bool = False) -> None:
+    _guard_google_import(row.provider)
     rate_limit.check(
         session,
         "photo-source-poll",
@@ -320,6 +337,8 @@ def advance(session: Session, row: PhotoSelection, *, more: bool = False) -> Non
 
 
 def callback(session: Session, state: str, code: str | None) -> str | None:
+    if not google_import_available():
+        return None
     # Discover only ownership metadata first. Match the existing lifecycle lock
     # order: Membership -> entitlement -> selection. Locking the selection
     # before Membership can deadlock with offboarding/account cleanup.
@@ -402,6 +421,7 @@ def callback(session: Session, state: str, code: str | None) -> str | None:
 def read_item(
     session: Session, row: PhotoSelection, item_id: str, *, thumbnail: bool
 ) -> SelectedPhoto:
+    _guard_google_import(row.provider)
     rate_limit.check(
         session,
         "photo-source-read",

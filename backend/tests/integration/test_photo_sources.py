@@ -1,17 +1,25 @@
 """Real authentication, tenant/device ownership, Pro and credential lifecycle."""
 
 from datetime import timedelta
-from uuid import UUID
+from unittest.mock import Mock
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import select, text
 
+from eimir.auth.sessions import resolve
+from eimir.auth.tokens import hash_token
 from eimir.config import get_settings
 from eimir.core.clock import now
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import Capability, EntitlementSourceType, EntitlementStatus
 from eimir.photo_sources import service
-from eimir.photo_sources.models import PhotoConnection, PhotoSelection
+from eimir.photo_sources.models import (
+    PhotoConnection,
+    PhotoSelection,
+    PhotoSelectionPayload,
+    SelectedPhotoItem,
+)
 from eimir.providers.immich_photos import SelectedPhoto
 from eimir.relationship.service import add_member
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
@@ -195,52 +203,131 @@ def test_expiry_fails_closed_and_job_erases_the_provider_payload(client, session
     assert session.scalar(select(PhotoSelection)) is None
 
 
-def test_google_callback_consumes_state_once_and_keeps_tokens_out_of_browser(
-    client, session, owners, monkeypatch
+@pytest.mark.parametrize("feature_enabled", [True, False])
+def test_google_security_gate_refuses_new_imports_despite_operator_configuration(
+    client, session, owners, monkeypatch, feature_enabled
 ):
     grant(session, owners)
-    monkeypatch.setattr(
-        service.google_photos,
-        "authorization",
-        lambda: ("https://accounts.google.com/authorize", "private-state", "private-verifier"),
-    )
-    calls = []
-
-    def exchange(code, state, verifier):
-        calls.append((code, state, verifier))
-        return "synthetic-google-token"
-
-    class Picker:
-        def __init__(self, token):
-            assert token == "synthetic-google-token"
-
-        def create(self, maximum):
-            return {"id": "private-picker", "pickerUri": "https://photos.google.com/picker"}
-
-        def delete(self, identifier):
-            assert identifier == "private-picker"
-
-    monkeypatch.setattr(service.google_photos, "exchange", exchange)
-    monkeypatch.setattr(service.google_photos, "GooglePhotoPicker", Picker)
+    monkeypatch.setenv("EIMIR_PHOTO_SOURCES_ENABLED", str(feature_enabled).lower())
+    monkeypatch.setenv("EIMIR_GOOGLE_PHOTOS_CLIENT_ID", "synthetic-client-id")
+    monkeypatch.setenv("EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET", "synthetic-client-secret")
+    get_settings.cache_clear()
+    authorization = Mock()
+    monkeypatch.setattr(service.google_photos, "authorization", authorization)
+    availability = client.get(path(owners) + "/photo-sources", headers=owners["a"])
+    assert availability.status_code == 200
+    assert availability.json()["enabled"] is feature_enabled
+    assert availability.json()["googleAvailable"] is False
+    assert availability.json()["canImport"] is True
     selection = client.post(
         path(owners) + "/photo-selections",
         headers=owners["a"],
         json={"source": "google", "maxItems": 2, "consent": True},
     )
-    assert selection.status_code == 201
+    assert selection.status_code == 503
+    authorization.assert_not_called()
+    assert session.scalar(select(PhotoSelection)) is None
+
+
+def legacy_google_selection(session, owners, status="READY"):
+    token = owners["a"]["Authorization"].removeprefix("Bearer ")
+    device, _ = resolve(session, token)
+    identifier = uuid4()
+    authorizing = status == "AUTHORIZING"
+    row = PhotoSelection(
+        id=identifier,
+        account_id=owners["anna"].id,
+        space_id=owners["space"].id,
+        device_session_id=device.id,
+        provider="google",
+        status=status,
+        state_hash=hash_token("private-state") if authorizing else None,
+        expires_at=now() + timedelta(minutes=10),
+        next_poll_at=now(),
+        payload=PhotoSelectionPayload(
+            selection_id=identifier,
+            account_id=owners["anna"].id,
+            space_id=owners["space"].id,
+            device_session_id=device.id,
+            oauth_state="private-state" if authorizing else None,
+            code_verifier="private-verifier" if authorizing else None,
+            access_token=None if authorizing else "synthetic-google-token",
+            provider_session_id=None if authorizing else "private-picker",
+            items=[
+                SelectedPhotoItem(
+                    id="selected-local-item",
+                    source_id="synthetic-provider-item",
+                    mime_type="image/jpeg",
+                    source_url="https://lh3.googleusercontent.com/synthetic",
+                )
+            ],
+        ),
+    )
+    session.add(row)
+    session.flush()
+    return row
+
+
+def test_google_gate_rejects_legacy_callback_poll_and_read_without_provider_access(
+    client, session, owners, monkeypatch
+):
+    grant(session, owners)
+    pending = legacy_google_selection(session, owners, "AUTHORIZING")
+    ready = legacy_google_selection(session, owners)
+    exchange = Mock()
+    picker = Mock()
+    monkeypatch.setattr(service.google_photos, "exchange", exchange)
+    monkeypatch.setattr(service.google_photos, "GooglePhotoPicker", picker)
     callback = "/api/v1/photo-sources/google/callback?state=private-state&code=one-use-code"
     response = client.get(callback, follow_redirects=False)
-    assert response.status_code == 303
-    assert response.headers["Location"] == "https://photos.google.com/picker"
+    assert response.status_code == 200
+    assert "Location" not in response.headers
     assert client.get(callback, follow_redirects=False).status_code == 200
-    assert len(calls) == 1
-    row = session.get(PhotoSelection, UUID(selection.json()["id"]))
-    assert row.payload.oauth_state is None and row.payload.code_verifier is None
-    assert row.status == "PICKING"
-    assert (
-        client.delete(path(owners) + f"/photo-selections/{row.id}", headers=owners["a"]).status_code
-        == 204
-    )
+    for row in (pending, ready):
+        target = path(owners) + f"/photo-selections/{row.id}"
+        assert client.post(target + "/poll", headers=owners["a"]).status_code == 503
+        assert (
+            client.post(target + "/items/selected-local-item", headers=owners["a"]).status_code
+            == 503
+        )
+    exchange.assert_not_called()
+    picker.assert_not_called()
+    assert pending.status == "AUTHORIZING"
+
+
+@pytest.mark.parametrize("cleanup", ["cancel", "expiry", "revocation"])
+def test_google_gate_preserves_legacy_cleanup_after_disable_and_downgrade(
+    client, session, owners, monkeypatch, cleanup
+):
+    from eimir.identity.models import DeviceSession
+    from eimir.photo_sources.retention import cleanup as periodic_cleanup
+
+    entitlement = grant(session, owners)
+    row = legacy_google_selection(session, owners)
+    picker = Mock()
+    constructor = Mock(return_value=picker)
+    monkeypatch.setattr(service.google_photos, "GooglePhotoPicker", constructor)
+    entitlements.revoke_grant(session, entitlement.id)
+    monkeypatch.setenv("EIMIR_PHOTO_SOURCES_ENABLED", "false")
+    get_settings.cache_clear()
+    if cleanup == "cancel":
+        assert (
+            client.delete(
+                path(owners) + f"/photo-selections/{row.id}", headers=owners["a"]
+            ).status_code
+            == 204
+        )
+    elif cleanup == "expiry":
+        row.expires_at = now() - timedelta(seconds=1)
+        session.flush()
+        service.expire(session, {"selection_id": str(row.id)})
+    else:
+        session.get(DeviceSession, row.device_session_id).revoked_at = now()
+        session.flush()
+        periodic_cleanup(session, {})
+    constructor.assert_called_once_with("synthetic-google-token")
+    picker.delete.assert_called_once_with("private-picker")
+    assert session.scalar(select(PhotoSelection).where(PhotoSelection.id == row.id)) is None
 
 
 def test_stale_disconnect_cannot_erase_a_replaced_or_recreated_link(client, session, owners):

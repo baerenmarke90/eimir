@@ -5,6 +5,7 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query';
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -27,6 +28,10 @@ beforeAll(() => {
 });
 
 import { ClientProblemError } from '../client/problemDetails';
+import {
+  authorSummaryQueryKeys,
+  invalidateStoryProjections,
+} from '../client/authorSummaryConsumers';
 import photoPlaceCopy from '../i18n/locales/photoPlaces';
 import { MomentPlaces } from './MomentPlaces';
 import { PhotoLocationSettings } from './PhotoLocationSettings';
@@ -195,4 +200,55 @@ it('opens a map only as an explicit link and requires deliberate unlink confirma
       placeId: 'p',
     }),
   );
+});
+
+it('reveals an automatically added Place after saving a photo into a recently opened moment', async () => {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: 60_000 } },
+  });
+  const otherSpace = [
+    ...authorSummaryQueryKeys.places('other'),
+    'moment',
+    'private',
+  ];
+  client.setQueryData(otherSpace, {
+    pages: [{ items: [] }],
+    pageParams: [undefined],
+  });
+  const list = vi
+    .spyOn(PlacesApi.prototype, 'listMomentPlaces')
+    .mockResolvedValue({ items: [], nextCursor: null, hasMore: false });
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <MomentPlaces
+          apiBaseUrl="http://example.test"
+          accessToken="token"
+          accountId="a"
+          spaceId="s"
+          targetId="existing-memory"
+          kind="memories"
+          offline={false}
+        />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(
+    screen.queryByRole('heading', { name: photoPlaceCopy.title }),
+  ).toBeNull();
+  const place = {
+    id: 'new-photo-place',
+    name: 'New photo location',
+    latitude: 52.516667,
+    longitude: 13.4,
+  } as PlaceDetail;
+  list.mockResolvedValue({ items: [place], nextCursor: null, hasMore: false });
+  // Memory and shared HeartMoment saves already call this projection boundary.
+  // A fresh cached empty result must not hide the newly bound photo's Place.
+  await act(() => invalidateStoryProjections(client, 's'));
+  expect(await screen.findByRole('link', { name: place.name })).toBeTruthy();
+  expect(list).toHaveBeenCalledTimes(2);
+  expect(client.getQueryState(otherSpace)?.isInvalidated).toBe(false);
 });

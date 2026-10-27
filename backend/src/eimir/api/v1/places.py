@@ -21,8 +21,10 @@ from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
+from eimir.core.ids import parse_id
 from eimir.places import service
 from eimir.places.models import Place
+from eimir.relations.service import target_not_found
 
 router = APIRouter(tags=["places"])
 
@@ -266,3 +268,34 @@ def delete_place(
         expected_version=expected_version,
     )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/spaces/{spaceId}/moments/{kind}/{targetId}/places",
+    response_model=PlacePage,
+    operation_id="listMomentPlaces",
+    responses=problem_responses(400, 401, 404, 422),
+)
+def list_moment_places(
+    authorization: Authorization,
+    session: DbSession,
+    kind: Annotated[str, Path(pattern="^(memories|heart-moments)$")],
+    target_id: Annotated[str, Path(alias="targetId")],
+    cursor: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+) -> PlacePage:
+    parsed_target = parse_id(target_id)
+    if parsed_target is None:
+        raise target_not_found()
+    page = service.list_places(
+        session, authorization, cursor=cursor, limit=limit, related_to=(kind, parsed_target)
+    )
+    creators = resolve_author_summaries(session, {place.owner_id for place in page.items})
+    return PlacePage(
+        items=[
+            place_detail(session, authorization, place, creators.get(place.owner_id))
+            for place in page.items
+        ],
+        next_cursor=page.next_cursor,
+        has_more=page.has_more,
+    )

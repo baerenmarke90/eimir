@@ -19,7 +19,7 @@ from datetime import UTC, datetime, timedelta
 from typing import BinaryIO
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -30,6 +30,7 @@ from eimir.attachments.models import (
     AttachmentPayload,
     AttachmentStatus,
     MediaType,
+    PhotoLocationDraft,
 )
 from eimir.authorization import (
     AuthorizationContext,
@@ -479,6 +480,7 @@ def delete_attachment(
 
 
 def mark_for_deletion(session: Session, attachment: Attachment) -> None:
+    session.execute(delete(PhotoLocationDraft).where(PhotoLocationDraft.id == attachment.id))
     attachment.status = AttachmentStatus.DELETING.value
 
 
@@ -488,6 +490,8 @@ def purge(session: Session, attachment: Attachment) -> bool:
     Storage failure must not reverse domain-visible deletion. On failure the row
     remains DELETE_FAILED for retry and never becomes visible again.
     """
+    # Sensitive staging does not inherit a provider deletion failure's retry lifetime.
+    session.execute(delete(PhotoLocationDraft).where(PhotoLocationDraft.id == attachment.id))
     store = get_media_store()
     variants = [ORIGINAL_VARIANT]
     if attachment.has_thumbnail:
@@ -549,13 +553,17 @@ def validate(session: Session, attachment_id: UUID) -> None:
         _fail(attachment, ErrorCode.ATTACHMENT_TOO_LARGE)
         return
 
+    from eimir.attachments import photo_locations
+
+    extract_location, location_version = photo_locations.extraction_preference(session, attachment)
     try:
-        processed = images.process(raw, rule)
+        processed = images.process(raw, rule, extract_location=extract_location)
     except images.ImageRejectedError as error:
         _fail(attachment, error.code)
         return
 
     store.put(storage_key, io.BytesIO(processed.content), processed.mime_type)
+    photo_locations.stage(session, attachment, processed.coordinates, location_version)
 
     attachment.mime_type = processed.mime_type
     attachment.size = len(processed.content)

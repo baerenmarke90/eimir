@@ -336,7 +336,7 @@ def replace_attachments(
     """
     from eimir.attachments import binding
 
-    memory = require_writable(session, Memory, context, memory_id)
+    memory = require_writable_locked(session, Memory, context, memory_id)
     _ensure_expected_version(memory, expected_version)
 
     positions = [position for _, position in entries]
@@ -387,6 +387,10 @@ def replace_attachments(
             # The last reference was removed. It becomes domain-unreferenced
             # immediately and provider cleanup remains asynchronous (M2-D11).
             attachment_service.mark_for_deletion(session, detached)
+
+    from eimir.attachments import photo_locations
+
+    photo_locations.bind(session, context, memory, attachments)
 
     memory.updated_at = now()
     _flush(session)

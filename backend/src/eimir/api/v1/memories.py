@@ -11,7 +11,7 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
-from eimir.api.deps import Authorization, DbSession
+from eimir.api.deps import Authorization, DbSession, PhotoBindingAuthorization
 from eimir.api.errors import problem_responses
 from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
@@ -322,7 +322,7 @@ def delete_memory(
     },
 )
 def replace_memory_attachments(
-    authorization: Authorization,
+    authorization: PhotoBindingAuthorization,
     session: DbSession,
     response: Response,
     body: MemoryAttachmentSet,

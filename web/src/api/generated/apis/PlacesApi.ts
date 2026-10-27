@@ -55,6 +55,14 @@ export interface GetPlaceRequest {
     spaceId: string;
 }
 
+export interface ListMomentPlacesRequest {
+    kind: string;
+    targetId: string;
+    spaceId: string;
+    cursor?: string | null;
+    limit?: number;
+}
+
 export interface ListPlacesRequest {
     spaceId: string;
     cursor?: string | null;
@@ -241,6 +249,75 @@ export class PlacesApi extends runtime.BaseAPI {
      */
     async getPlace(requestParameters: GetPlaceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlaceDetail> {
         const response = await this.getPlaceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listMomentPlaces without sending the request
+     */
+    async listMomentPlacesRequestOpts(requestParameters: ListMomentPlacesRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['kind'] == null) {
+            throw new runtime.RequiredError(
+                'kind',
+                'Required parameter "kind" was null or undefined when calling listMomentPlaces().'
+            );
+        }
+
+        if (requestParameters['targetId'] == null) {
+            throw new runtime.RequiredError(
+                'targetId',
+                'Required parameter "targetId" was null or undefined when calling listMomentPlaces().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling listMomentPlaces().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/moments/{kind}/{targetId}/places`;
+        urlPath = urlPath.replace('{kind}', encodeURIComponent(String(requestParameters['kind'])));
+        urlPath = urlPath.replace('{targetId}', encodeURIComponent(String(requestParameters['targetId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * List Moment Places
+     */
+    async listMomentPlacesRaw(requestParameters: ListMomentPlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlacePage>> {
+        const requestOptions = await this.listMomentPlacesRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PlacePageFromJSON(jsonValue));
+    }
+
+    /**
+     * List Moment Places
+     */
+    async listMomentPlaces(requestParameters: ListMomentPlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlacePage> {
+        const response = await this.listMomentPlacesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -332,6 +332,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 2,
       "reason": "Real App restoration must retain credentials across temporary outages, refresh on reconnect and clear definitive rejection without requiring repeated login."
+    },
+    "photo-places.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 10,
+      "reason": "Default-on account consent, saved shared-photo context, explicit map navigation, deliberate unlink and Compact/Expanded Light/Dark accessibility."
     }
   }
 }

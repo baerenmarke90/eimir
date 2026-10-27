@@ -3,6 +3,12 @@ const de = {
     longNotes: 'Eine ausführliche Beschreibung der Änderungen. ',
     notes: 'Verbesserungen für eure Testversion.',
   },
+  photoPlaces: {
+    title: 'Unser Nachmittag am See',
+    body: 'Wir haben uns Zeit genommen und sind bis zum Abend geblieben.',
+    initialName: 'Foto-Ort',
+    correctedName: 'Unser See',
+  },
   pageTitle: 'Momente für uns',
   photoTitle: 'Ein Wochenende am Wasser',
   photoContext: '1. September · Lea',

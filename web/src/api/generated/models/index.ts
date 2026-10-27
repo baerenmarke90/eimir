@@ -158,6 +158,8 @@ export * from './PasskeyRegistrationRequest';
 export * from './PasskeyView';
 export * from './PasswordRequest';
 export * from './PersonRelationship';
+export * from './PhotoLocationPreference';
+export * from './PhotoLocationPreferenceUpdate';
 export * from './PhotoParentType';
 export * from './PhotoSelectionCreate';
 export * from './PhotoSelectionItemView';

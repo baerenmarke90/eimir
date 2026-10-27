@@ -80,6 +80,12 @@ class Account(IdMixin, TimestampMixin, VersionMixin, Base):
     quiet_hours_start: Mapped[time | None] = mapped_column(Time(timezone=False))
     quiet_hours_end: Mapped[time | None] = mapped_column(Time(timezone=False))
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    photo_locations_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
+    photo_locations_version: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0, server_default=text("0")
+    )
 
     __table_args__ = (
         CheckConstraint(

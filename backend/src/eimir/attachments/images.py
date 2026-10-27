@@ -17,11 +17,12 @@ Three rules apply:
 from __future__ import annotations
 
 import io
-from dataclasses import dataclass
+import math
+from dataclasses import dataclass, field
 from datetime import datetime
 
 import pillow_heif
-from PIL import Image, ImageFile, UnidentifiedImageError
+from PIL import ExifTags, Image, ImageFile, UnidentifiedImageError
 
 from eimir.attachments.limits import MediaRule
 
@@ -81,6 +82,37 @@ class ProcessedImage:
     orientation: int | None
     content: bytes
     thumbnail: bytes | None
+    coordinates: tuple[float, float] | None = field(default=None, repr=False)
+
+
+def _gps_coordinate(value: object, reference: object, positive: str, negative: str) -> float:
+    if (
+        reference not in (positive, negative)
+        or not isinstance(value, (tuple, list))
+        or len(value) != 3
+    ):
+        raise ValueError("Invalid GPS coordinate")
+    degrees, minutes, seconds = (float(part) for part in value)
+    if not all(math.isfinite(part) for part in (degrees, minutes, seconds)):
+        raise ValueError("Invalid GPS coordinate")
+    if degrees < 0 or not 0 <= minutes < 60 or not 0 <= seconds < 60:
+        raise ValueError("Invalid GPS coordinate")
+    coordinate = degrees + minutes / 60 + seconds / 3600
+    return coordinate if reference == positive else -coordinate
+
+
+def _extract_coordinates(image: Image.Image) -> tuple[float, float] | None:
+    """Read a complete valid GPS pair through Pillow; malformed EXIF is ordinary absence."""
+    try:
+        gps = image.getexif().get_ifd(ExifTags.IFD.GPSInfo)
+        latitude = _gps_coordinate(gps.get(2), gps.get(1), "N", "S")
+        longitude = _gps_coordinate(gps.get(4), gps.get(3), "E", "W")
+        if abs(latitude) > 90 or abs(longitude) > 180:
+            return None
+        return round(latitude, 6), round(longitude, 6)
+    except Exception:
+        # Never propagate parser text or reject otherwise valid pixels for optional GPS.
+        return None
 
 
 def _guard_decompression_bomb(rule: MediaRule) -> None:
@@ -159,7 +191,7 @@ def _thumbnail(image: Image.Image) -> bytes | None:
         return None
 
 
-def process(data: bytes, rule: MediaRule) -> ProcessedImage:
+def process(data: bytes, rule: MediaRule, *, extract_location: bool = False) -> ProcessedImage:
     """Validate, sanitize, and resize an uploaded image.
 
     The bytes are already fully available. Decoding necessarily materializes
@@ -194,6 +226,7 @@ def process(data: bytes, rule: MediaRule) -> ProcessedImage:
         raise ImageRejectedError("IMAGE_TOO_LARGE")
 
     captured_at, orientation = _extract_allowlist(image)
+    coordinates = _extract_coordinates(image) if extract_location else None
 
     try:
         content = _rebuild_without_metadata(image, detected_format)
@@ -210,4 +243,5 @@ def process(data: bytes, rule: MediaRule) -> ProcessedImage:
         orientation=orientation,
         content=content,
         thumbnail=_thumbnail(image),
+        coordinates=coordinates,
     )

@@ -1,12 +1,7 @@
 import type { Route } from '@playwright/test';
 
-/** Optional provider availability and empty canonical photo places in unrelated journeys.
- * Admit only these reads. Provider writes and every other unknown
- * request keep the owning fixture's strict failure behavior.
- */
-export async function fulfillUnconfiguredPhotoSources(
-  route: Route,
-): Promise<boolean> {
+/** Empty canonical context in journeys without linked places; writes remain strict. */
+export async function fulfillEmptyMomentPlaces(route: Route): Promise<boolean> {
   const request = route.request();
   if (
     request.method() === 'GET' &&
@@ -19,6 +14,15 @@ export async function fulfillUnconfiguredPhotoSources(
     });
     return true;
   }
+  return false;
+}
+
+/** Optional provider availability in unrelated journeys; every other read/write stays strict. */
+export async function fulfillUnconfiguredPhotoSources(
+  route: Route,
+): Promise<boolean> {
+  if (await fulfillEmptyMomentPlaces(route)) return true;
+  const request = route.request();
   if (
     request.method() !== 'GET' ||
     !/^\/api\/v1\/spaces\/[^/]+\/photo-sources$/.test(

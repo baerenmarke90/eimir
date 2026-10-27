@@ -119,6 +119,22 @@ loopback readiness. WebAuthn origins use the exact public HTTPS origin. Values
 are required rather than regenerated. Filled values, account emails, SMTP
 credentials, keys and the journal UUID never enter the generated Git branch.
 
+## Optional personal photo sources
+
+The generated API/worker environment retains instance-local expressions for
+`EIMIR_PHOTO_SOURCES_ENABLED` (default true), `EIMIR_GOOGLE_PHOTOS_CLIENT_ID`
+and `EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET` (both empty by default). Publishing never
+reads or freezes these operator values into Git. Existing local picking and
+source disconnect remain available when new source tasks are disabled.
+
+Append the existing approved Google Web OAuth app values to the existing Arcane
+environment, without replacing any current key or setting. Register the exact
+`${EIMIR_PUBLIC_BASE_URL}/api/v1/photo-sources/google/callback` redirect (one slash).
+This is the product callback; the older standalone probe callback is separate.
+Google stays hidden until configured and still requires the operator's appropriate
+testing audience/verification. Personal Immich requires no shared operator key.
+See [the source contract](product/integrations/1444-photo-source-delivery.md).
+
 ## Connect Arcane once
 
 Follow the upstream [Git Sync documentation](https://getarcane.app/docs/docker/git-sync)

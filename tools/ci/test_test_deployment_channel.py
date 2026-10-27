@@ -286,7 +286,10 @@ class EvidenceAndImageTest(unittest.TestCase):
                 calls = [call.args[0] for call in run.call_args_list]
                 self.assertIn(["docker", "pull", pinned], calls)
                 self.assertTrue(
-                    any(args[:4] == ["docker", "push", "--platform", "linux/amd64"] for args in calls)
+                    any(
+                        args[:4] == ["docker", "push", "--platform", "linux/amd64"]
+                        for args in calls
+                    )
                 )
                 self.assertTrue(
                     any(args[:3] == ["docker", "image", "save"] for args in calls)
@@ -525,6 +528,49 @@ class BranchPromotionTest(unittest.TestCase):
         ]
         self.assertEqual(commits[0]["parents"], [])
         self.assertEqual(self.calls[-1][1]["ref"], "refs/heads/deploy/eimir-test")
+
+
+class OptionalPhotoConfigurationTest(unittest.TestCase):
+    def test_photo_settings_are_instance_expressions_and_never_runner_values(self):
+        canonical = {
+            "services": {
+                name: {
+                    "environment": {
+                        "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "source-placeholder"
+                    }
+                }
+                for name in channel.CLOUD_SERVICES
+            }
+        }
+        with patch.dict(
+            os.environ,
+            {
+                "EIMIR_PHOTO_SOURCES_ENABLED": "false",
+                "EIMIR_GOOGLE_PHOTOS_CLIENT_ID": "runner-client",
+                "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "runner-secret",
+            },
+        ):
+            exported = channel.export_compose(canonical, BACKEND, WEB)
+        for name in ("cloud-api", "cloud-worker"):
+            env = exported["services"][name]["environment"]
+            self.assertEqual(
+                env["EIMIR_PHOTO_SOURCES_ENABLED"],
+                "${EIMIR_PHOTO_SOURCES_ENABLED:-true}",
+            )
+            self.assertEqual(
+                env["EIMIR_GOOGLE_PHOTOS_CLIENT_ID"],
+                "${EIMIR_GOOGLE_PHOTOS_CLIENT_ID:-}",
+            )
+            self.assertEqual(
+                env["EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET"],
+                "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}",
+            )
+        self.assertNotIn("runner-client", json.dumps(exported))
+        self.assertNotIn("runner-secret", json.dumps(exported))
+        self.assertNotIn(
+            "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET",
+            exported["services"]["cloud-migrate"]["environment"],
+        )
 
 
 @unittest.skipUnless(shutil.which("docker"), "Docker Compose CLI is required")

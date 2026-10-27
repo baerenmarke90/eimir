@@ -79,7 +79,9 @@ describe('membership revalidation continuity', () => {
   it('does not infer authorization when no previously valid membership exists', () => {
     const error = new ClientProblemError('offline');
     expect(canReuseMembershipsAfterRefreshFailure([], error)).toBe(false);
-    expect(canReuseMembershipsAfterRefreshFailure(undefined, error)).toBe(false);
+    expect(canReuseMembershipsAfterRefreshFailure(undefined, error)).toBe(
+      false,
+    );
     expect(
       canReuseMembershipsAfterRefreshFailure([membership('space-a')], null),
     ).toBe(false);

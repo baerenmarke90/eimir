@@ -149,7 +149,7 @@ jobs:
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b crash -d -t 200 \
             > native-crash.log 2>&1 || true
-          for proof in native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-selected-photo.jpg; do
+          for proof in native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg; do
             if "$ANDROID_HOME/platform-tools/adb" -e shell run-as de.sidebyside.app.debug test -f "files/$proof"; then
               "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.sidebyside.app.debug \
                 cat "files/$proof" > "$proof"
@@ -182,4 +182,8 @@ jobs:
             android/native-photo-permission.txt
             android/native-photo-after-back.png
             android/native-photo-after-back.txt
+            android/native-photo-dom.png
+            android/native-photo-dom.txt
+            android/native-photo-location-consent.png
+            android/native-photo-location-consent.txt
           if-no-files-found: ignore

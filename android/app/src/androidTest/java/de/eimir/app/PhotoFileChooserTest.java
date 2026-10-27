@@ -256,22 +256,21 @@ public class PhotoFileChooserTest {
         String token = "Photo taken";
         // Exercise the actual Chromium File handoff, not just our native callback.
         WebView view = activity.getBridge().getWebView();
-        instrumentation.runOnMainSync(() -> {
-            view.getSettings().setJavaScriptEnabled(true);
-            view.loadDataWithBaseURL("https://localhost/native-photo-fixture",
-                "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-                + "<input id='photo' type='file' accept='image/jpeg,image/png,image/webp,image/heic,image/heif' multiple aria-label='Choose photo' "
-                + "style='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:240px;height:60px'>"
-                + "<script>document.getElementById('photo').onchange=async(e)=>{"
-                + "window.photoFileEvents=(window.photoFileEvents||0)+1;"
-                + "window.photoSelectedCount=e.target.files.length;try{"
-                + "const bytes=new Uint8Array(await e.target.files[0].arrayBuffer());"
-                + "let binary='';for(const value of bytes)binary+=String.fromCharCode(value);"
-                + "window.selectedPhotoBytes=btoa(binary);}catch(error){window.photoReadError=error.name;}};"
-                + "</script>", "text/html", "UTF-8", null);
-        });
-        // The actual DOM is the readiness contract. WebViewListener.onPageLoaded
-        // may report a redirected/normalized URL or not fire for loadDataWithBaseURL.
+        // The test Activity already loaded its JavaScript-enabled blank page.
+        // Inject the real file input there: navigating to a synthetic localhost
+        // path can stall the API 37.1 Chromium fixture behind Capacitor routing.
+        String fixtureScript = "(function(){"
+            + "document.body.innerHTML=`<input id='photo' type='file' accept='image/jpeg,image/png,image/webp,image/heic,image/heif' multiple aria-label='Choose photo' "
+            + "style='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:240px;height:60px'>`;"
+            + "document.getElementById('photo').onchange=async(e)=>{"
+            + "window.photoFileEvents=(window.photoFileEvents||0)+1;"
+            + "window.photoSelectedCount=e.target.files.length;try{"
+            + "const bytes=new Uint8Array(await e.target.files[0].arrayBuffer());"
+            + "let binary='';for(const value of bytes)binary+=String.fromCharCode(value);"
+            + "window.selectedPhotoBytes=btoa(binary);}catch(error){window.photoReadError=error.name;}};"
+            + "return document.getElementById('photo').type==='file';})()";
+        assertEquals("Chromium creates the live multiple-photo input", "true",
+            javascriptValue(view, fixtureScript));
         awaitPhotoInput(view);
         instrumentation.getUiAutomation().executeAndWaitForEvent(() ->
             androidx.test.espresso.Espresso.onView(
@@ -293,6 +292,14 @@ public class PhotoFileChooserTest {
             }, event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getPackageName() != null
                 && isSystemPhotoPicker(event.getPackageName()), 15000);
+        }
+        if (PhotoFileChooser.supportsPickerMetadata()) {
+            // This is the actual SDK-extension-23 picker consent, not a shell
+            // grant of ACCESS_MEDIA_LOCATION or an original-URI override.
+            AccessibilityNodeInfo includeLocation = findDocument("Include location");
+            captureNativeDiagnostics("native-photo-location-consent");
+            assertNotNull("The system picker asks to include the selected photos' location", includeLocation);
+            tapSystemDocument(includeLocation);
         }
         // Match the actual diary input's complete MIME list and multiple mode.
         AccessibilityNodeInfo document = findDocument(token);
@@ -378,7 +385,15 @@ public class PhotoFileChooserTest {
             response.set(value);
             read.countDown();
         }));
-        assertTrue("Chromium answers the fixture probe", read.await(3, TimeUnit.SECONDS));
+        if (!read.await(10, TimeUnit.SECONDS)) {
+            captureNativeDiagnostics("native-photo-dom");
+            AtomicReference<String> state = new AtomicReference<>();
+            instrumentation.runOnMainSync(() -> state.set("url=" + view.getUrl()
+                + ", progress=" + view.getProgress() + ", attached=" + view.isAttachedToWindow()
+                + ", visible=" + view.isShown() + ", focus=" + view.hasWindowFocus()
+                + ", javascript=" + view.getSettings().getJavaScriptEnabled()));
+            throw new AssertionError("Chromium must answer the fixture probe: " + state.get());
+        }
         return response.get();
     }
 
@@ -417,7 +432,7 @@ public class PhotoFileChooserTest {
                 AccessibilityNodeInfo node = nodes.remove();
                 CharSequence text = node.getText();
                 CharSequence description = node.getContentDescription();
-                if (node.isVisibleToUser() && ((text != null && ("Allow all".equals(name)
+                if (node.isVisibleToUser() && ((text != null && (("Allow all".equals(name) || "Include location".equals(name))
                         ? text.toString().equals(name) : text.toString().startsWith(name)))
                         || (description != null && description.toString().startsWith(name)))) return node;
                 for (int i = 0; i < node.getChildCount(); i++) {

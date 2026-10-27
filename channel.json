@@ -9,8 +9,8 @@
         "migrate"
       ],
       "sbom": "sbom/backend-runtime.spdx.json",
-      "sbomSha256": "e4e9f1293c2062a2c229e972f7423000339be70634f55a2c319f4a1f215bf2d0",
-      "sha256": "ef6abddb03101fef28d0d9cce8003dde5a33e42b1254561c1a9a337dcc29cfc9"
+      "sbomSha256": "69679b55308043c8b336f5d736d4c4cd33daa748063da67be65b94bbc585b5bb",
+      "sha256": "b6431845e0f995f666f8bae2d31a00a5d7d073eb0d77a66b8726757b4890fd9e"
     },
     {
       "id": "web-runtime",
@@ -19,17 +19,17 @@
         "web"
       ],
       "sbom": "sbom/web-runtime.spdx.json",
-      "sbomSha256": "aafac0026b3fd4084c6855e7824f57d0b65911779d3f2bd097930b7d5d2fa8dd",
-      "sha256": "3220740a5e5c7376da55ad793eb85fdd0d2a0fa24f3d582b206988f790166ed3"
+      "sbomSha256": "7dc2b10e2c727bfdebddf4e80f0ef8cec085649d40994bff4f405a1b1a6b35fb",
+      "sha256": "64b0488bfc47c544c7af802b6aa4fdfa3f6ddf81d040ca4f7b800d3b77f8a270"
     }
   ],
   "canonicalComposeSha256": "d3161612d045783b94976dd8a0192869f188ae97061fbb16cd4bb416d890026e",
-  "evidenceRun": "https://github.com/baerenmarke90/eimir/actions/runs/40520366029",
+  "evidenceRun": "https://github.com/baerenmarke90/eimir/actions/runs/40545512107",
   "images": {
-    "backend": "ghcr.io/baerenmarke90/eimir-backend@sha256:0b9ac5b192b83d847151d231d3f63158a04b131220422327384047f4fd36f8e4",
-    "web": "ghcr.io/baerenmarke90/eimir-web@sha256:d64aa87e97c3ca4f076f0763ea655c735771d85e6140d191db06b6543af94ace"
+    "backend": "ghcr.io/baerenmarke90/eimir-backend@sha256:c99f9d430eb07e54e83d5b95dfb77c87ecf1dfa8c2bd9c2ba71ff3df014c680d",
+    "web": "ghcr.io/baerenmarke90/eimir-web@sha256:ee2270381b6e629996a1c8af91c2dec2729a2623404e4fb9eedba0e73f44ea0d"
   },
   "kind": "eimir-private-test-channel",
   "schemaVersion": 1,
-  "sourceRevision": "af99e946d96ad8ba49209dda41c83d5e5e94b7ed"
+  "sourceRevision": "42632cf1f175bbc9410b1ec045e124fd18d0c606"
 }

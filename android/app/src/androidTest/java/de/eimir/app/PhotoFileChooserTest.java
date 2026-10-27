@@ -293,6 +293,14 @@ public class PhotoFileChooserTest {
                 && event.getPackageName() != null
                 && isSystemPhotoPicker(event.getPackageName()), 15000);
         }
+        if (PhotoFileChooser.supportsPickerMetadata()) {
+            // This is the actual SDK-extension-23 picker consent, not a shell
+            // grant of ACCESS_MEDIA_LOCATION or an original-URI override.
+            AccessibilityNodeInfo includeLocation = findDocument("Include location");
+            captureNativeDiagnostics("native-photo-location-consent");
+            assertNotNull("The system picker asks to include the selected photos' location", includeLocation);
+            tapSystemDocument(includeLocation);
+        }
         // Match the actual diary input's complete MIME list and multiple mode.
         AccessibilityNodeInfo document = findDocument(token);
         captureNativeDiagnostics("native-photo-picker");
@@ -424,7 +432,7 @@ public class PhotoFileChooserTest {
                 AccessibilityNodeInfo node = nodes.remove();
                 CharSequence text = node.getText();
                 CharSequence description = node.getContentDescription();
-                if (node.isVisibleToUser() && ((text != null && ("Allow all".equals(name)
+                if (node.isVisibleToUser() && ((text != null && (("Allow all".equals(name) || "Include location".equals(name))
                         ? text.toString().equals(name) : text.toString().startsWith(name)))
                         || (description != null && description.toString().startsWith(name)))) return node;
                 for (int i = 0; i < node.getChildCount(); i++) {

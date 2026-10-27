@@ -102,22 +102,40 @@ def test_completed_demo_has_authored_tags_and_manual_memory_place_links(session:
     ]
     assert _memory_by_title(session, result.space_id, "Filmabend auf dem Sofa").payload.tags == []
 
-    moments = list(session.execute(select(HeartMoment).where(HeartMoment.space_id == result.space_id)).scalars())
-    shared = next(moment for moment in moments if moment.payload.text == "Danke, dass du heute einfach zugehört hast.")
-    private = next(moment for moment in moments if moment.payload.text == "Vorfreude auf eine kleine Überraschung für Alex.")
+    moments = list(
+        session.execute(
+            select(HeartMoment).where(HeartMoment.space_id == result.space_id)
+        ).scalars()
+    )
+    shared = next(
+        moment
+        for moment in moments
+        if moment.payload.text == "Danke, dass du heute einfach zugehört hast."
+    )
+    private = next(
+        moment
+        for moment in moments
+        if moment.payload.text == "Vorfreude auf eine kleine Überraschung für Alex."
+    )
     assert shared.payload.tags == ["Dankbarkeit", "Miteinander"]
     assert private.payload.tags == ["Überraschung"]
 
     place_names = {
         place.id: place.payload.name
-        for place in session.execute(select(Place).where(Place.space_id == result.space_id)).scalars()
+        for place in session.execute(
+            select(Place).where(Place.space_id == result.space_id)
+        ).scalars()
     }
     memory_titles = {
         memory.id: memory.payload.title
-        for memory in session.execute(select(Memory).where(Memory.space_id == result.space_id)).scalars()
+        for memory in session.execute(
+            select(Memory).where(Memory.space_id == result.space_id)
+        ).scalars()
     }
     links = list(
-        session.execute(select(PlaceMemory).where(PlaceMemory.space_id == result.space_id)).scalars()
+        session.execute(
+            select(PlaceMemory).where(PlaceMemory.space_id == result.space_id)
+        ).scalars()
     )
     assert {(place_names[link.place_id], memory_titles[link.memory_id]) for link in links} == {
         ("Café am Markt", "Frühstück in Saarbrücken"),

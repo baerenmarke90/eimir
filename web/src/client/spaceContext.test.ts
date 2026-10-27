@@ -1,5 +1,9 @@
 import type { AccountMembershipView } from '../api/generated/models/AccountMembershipView';
-import { resolveActiveSpaceId } from './spaceContext';
+import { ClientProblemError } from './problemDetails';
+import {
+  canReuseMembershipsAfterRefreshFailure,
+  resolveActiveSpaceId,
+} from './spaceContext';
 
 function membership(spaceId: string): AccountMembershipView {
   return { spaceId, role: 'PARTNER', status: 'ACTIVE' };
@@ -39,5 +43,45 @@ describe('authorized Space context', () => {
       ),
     ).toBeNull();
     expect(resolveActiveSpaceId([], 'space-removed')).toBeNull();
+  });
+});
+
+describe('membership revalidation continuity', () => {
+  it('reuses a previously authorized membership after transient failures', () => {
+    for (const kind of ['offline', 'server', 'rateLimit'] as const) {
+      expect(
+        canReuseMembershipsAfterRefreshFailure(
+          [membership('space-a')],
+          new ClientProblemError(kind),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it('fails closed for permission loss or ambiguous refresh failures', () => {
+    for (const kind of [
+      'unauthorized',
+      'permission',
+      'notFound',
+      'validation',
+      'conflict',
+      'unknown',
+    ] as const) {
+      expect(
+        canReuseMembershipsAfterRefreshFailure(
+          [membership('space-a')],
+          new ClientProblemError(kind),
+        ),
+      ).toBe(false);
+    }
+  });
+
+  it('does not infer authorization when no previously valid membership exists', () => {
+    const error = new ClientProblemError('offline');
+    expect(canReuseMembershipsAfterRefreshFailure([], error)).toBe(false);
+    expect(canReuseMembershipsAfterRefreshFailure(undefined, error)).toBe(false);
+    expect(
+      canReuseMembershipsAfterRefreshFailure([membership('space-a')], null),
+    ).toBe(false);
   });
 });

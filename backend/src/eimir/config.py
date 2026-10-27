@@ -274,6 +274,11 @@ class Settings(IdentityCompatibleSettings):
     # without code changes.
     oidc_connections: list[OidcConnection] = Field(default_factory=list)
 
+    # Optional selected-photo integration. Secrets belong to the operator.
+    photo_sources_enabled: bool = True
+    google_photos_client_id: str = ""
+    google_photos_client_secret: SecretStr | None = None
+
     # The relying party is the application for which a passkey is valid. When
     # unset it is derived from the public address; a passkey for "app.example"
     # must not be valid for "evil.example".
@@ -361,6 +366,24 @@ class Settings(IdentityCompatibleSettings):
         if self.encryption_at_rest is not None:
             return self.encryption_at_rest
         return EncryptionMode.DISABLED
+
+    @model_validator(mode="after")
+    def photo_sources_require_encryption(self) -> Self:
+        if (
+            self.photo_sources_enabled
+            and self.google_photos_client_id
+            and self.encryption_mode is not EncryptionMode.REQUIRED
+        ):
+            raise ValueError("Photo sources require EIMIR_ENCRYPTION_AT_REST=required.")
+        if (
+            self.photo_sources_enabled
+            and self.google_photos_client_id
+            and not self.public_base_url.startswith("https://")
+        ):
+            raise ValueError("Photo sources require an HTTPS public base URL.")
+        if bool(self.google_photos_client_id) != bool(self.google_photos_client_secret):
+            raise ValueError("Google Photos requires both operator OAuth client fields.")
+        return self
 
     @property
     def is_production(self) -> bool:

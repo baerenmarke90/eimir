@@ -117,7 +117,7 @@ Capabilities essential for Security, Privacy, Accessibility, Tenant Isolation, a
 | **Backup, Restore & Instance Migration** | M6 | **Free/Core** | Whole feature Free | Self-Hosted focused | Data ownership and recovery are foundational for Self-Hosted users. |
 | **Account Deletion & Space Offboarding** | M6 | **Non-paywallable** | Non-paywallable (#518, #520) | Identical | GDPR compliance and data sovereignty can never be gated. |
 | **Observability, Structured Logging & Redaction** | M6 | **Non-paywallable** | Non-paywallable (#189) | Identical | Operational diagnostics and privacy scrubbing are core infrastructure. |
-| **External Integrations (Immich, Dawarich, CalSync)** | M8 | **Premium** | Premium only | Identical | Maintained third-party platform integrations and sync pipelines. |
+| **External Integrations (Immich, Google Photos Picker, Dawarich, CalSync)** | M8 | **Premium** | Premium only | Identical | Maintained third-party platform integrations and sync pipelines. #1444 selected-photo sources use `integration.external_sync`; Immich is personally linked to the user's own HTTPS service (Product Owner, 2026-10-27). Ordinary local/system photo selection remains Free/Core. Downgrade preserves imported photos and permits disconnect. |
 
 ---
 

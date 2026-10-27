@@ -1,3 +1,4 @@
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { expect, test } from '@playwright/test';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import de from '../../src/i18n/locales/de';
@@ -71,6 +72,7 @@ for (const mode of ['proactive', 'resume', 'outage'] as const) {
           );
         }
         if (await fulfillDefaultAppIcon(route)) return;
+        if (await fulfillUnconfiguredPhotoSources(route)) return;
         if (path === '/api/v1/auth/me') return json(account);
         if (path === '/api/v1/auth/capabilities')
           return json({ serverAdmin: false });
@@ -193,6 +195,7 @@ for (const rejected of [false, true]) {
     let refreshes = 0;
     await page.route('**/api/v1/**', async (route) => {
       if (await fulfillDefaultAppIcon(route)) return;
+      if (await fulfillUnconfiguredPhotoSources(route)) return;
       const path = new URL(route.request().url()).pathname;
       const json = (body: unknown, status = 200) =>
         route.fulfill({ status, json: body });

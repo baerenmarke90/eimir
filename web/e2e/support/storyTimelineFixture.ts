@@ -1,3 +1,4 @@
+import { fulfillUnconfiguredPhotoSources } from './photoSources';
 import { fulfillDefaultAppIcon } from './appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -179,6 +180,7 @@ export async function installMocks(
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;

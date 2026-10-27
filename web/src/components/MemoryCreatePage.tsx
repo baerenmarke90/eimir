@@ -3,8 +3,8 @@ import {
   type FormEvent,
   useCallback,
   useEffect,
-  useMemo,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -31,6 +31,7 @@ import {
   type MemoryCreateAttempt,
   startMemoryCreateAttempt,
 } from '../client/memoryCreateIdentity';
+import type { MemoryDiaryDraft } from '../client/memoryDiaryDraft';
 import {
   type ClientProblemError,
   normalizeClientError,
@@ -40,17 +41,17 @@ import { memoryDetailPath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
 import { useMemoryDiaryDraft } from '../client/useMemoryDiaryDraft';
-import type { MemoryDiaryDraft } from '../client/memoryDiaryDraft';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
-import { DestinationIcon } from './DestinationIcon';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
+import { DestinationIcon } from './DestinationIcon';
+import { type MemoryTag, MemoryTagChoices } from './MemoryTagChoices';
 import { PageHeader } from './PageHeader';
+import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryCreatePageShell } from './StoryFormPageShell';
-import { MemoryTagChoices, type MemoryTag } from './MemoryTagChoices';
 import './MemoryCreatePage.css';
 
 /** One in-memory task. Account/Space/entry keys are supplied by the route owner. */
@@ -642,6 +643,17 @@ export function MemoryCreatePage({
                 id="memory-create-images"
                 attachments={attachments}
                 multiple
+              />
+              <PhotoSourcePicker
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={accountId}
+                spaceId={spaceId}
+                remaining={Math.max(
+                  0,
+                  MAX_MEMORY_ATTACHMENTS - attachments.items.length,
+                )}
+                beginSelection={attachments.beginSelection}
               />
             </div>
 

@@ -22,6 +22,7 @@ interface DraftRecord {
 }
 
 const DATABASE = 'eimir-memory-drafts-v1';
+const DATABASE_VERSION = 2;
 const STORE = 'drafts';
 const EPOCH_KEY = 'eimir-memory-drafts-epoch-v1';
 export const MEMORY_DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -44,13 +45,52 @@ function database(): Promise<IDBDatabase> {
       reject(new Error('Draft storage unavailable'));
       return;
     }
-    const request = indexedDB.open(DATABASE, 1);
-    request.onupgradeneeded = () =>
-      request.result.createObjectStore(STORE, { keyPath: 'key' });
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(new Error('Draft storage unavailable'));
-    request.onblocked = () => reject(new Error('Draft storage blocked'));
+    let rejected = false;
+    const fail = (message: string) => {
+      rejected = true;
+      reject(new Error(message));
+    };
+    const request = indexedDB.open(DATABASE, DATABASE_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE))
+        db.createObjectStore(STORE, { keyPath: 'key' });
+      const store = (request.transaction as IDBTransaction).objectStore(STORE);
+      for (const name of ['epoch', 'expiresAt']) {
+        if (!store.indexNames.contains(name)) store.createIndex(name, name);
+      }
+    };
+    request.onsuccess = () => {
+      const db = request.result;
+      db.onversionchange = () => db.close();
+      // A blocked open can succeed after its caller has already fallen back.
+      // That abandoned connection must not block a later upgrade or erase.
+      if (rejected) db.close();
+      else resolve(db);
+    };
+    request.onerror = () => fail('Draft storage unavailable');
+    request.onblocked = () => fail('Draft storage blocked');
   });
+}
+
+/** Inspect index keys without cloning retained text or File payloads. */
+function deleteDraftKeys(
+  store: IDBObjectStore,
+  index: 'epoch' | 'expiresAt',
+  matches: (key: IDBValidKey) => boolean,
+  complete: () => void = () => {},
+  range?: IDBKeyRange,
+): void {
+  const request = store.index(index).openKeyCursor(range);
+  request.onsuccess = () => {
+    const cursor = request.result;
+    if (!cursor) {
+      complete();
+      return;
+    }
+    if (matches(cursor.key)) store.delete(cursor.primaryKey);
+    cursor.continue();
+  };
 }
 
 export class MemoryDraftOwnershipError extends Error {
@@ -91,23 +131,45 @@ export class MemoryDiaryDraftStore {
       return await new Promise((resolve, reject) => {
         const tx = db.transaction(STORE, 'readwrite');
         const store = tx.objectStore(STORE);
-        const request = store.getAll();
         let result: MemoryDiaryDraft | null = null;
-        request.onsuccess = () => {
+        let pendingSweeps = 2;
+        const readOwnedDraft = () => {
           if (!this.current()) {
             tx.abort();
             return;
           }
-          this.owner = null;
-          for (const record of request.result as DraftRecord[]) {
-            if (record.epoch !== this.epoch || record.expiresAt <= Date.now()) {
-              store.delete(record.key);
-            } else if (record.key === this.key) {
+          if (--pendingSweeps !== 0) return;
+          // Finish metadata deletions before reading: an expired requested
+          // draft must not load its retained Files just to be discarded.
+          const request = store.get(this.key);
+          request.onsuccess = () => {
+            if (!this.current()) {
+              tx.abort();
+              return;
+            }
+            this.owner = null;
+            const record = request.result as DraftRecord | undefined;
+            if (record?.epoch === this.epoch && record.expiresAt > Date.now()) {
               this.owner = record.owner;
               result = record.value;
+            } else if (record) {
+              store.delete(this.key);
             }
-          }
+          };
         };
+        deleteDraftKeys(
+          store,
+          'epoch',
+          (key) => key !== this.epoch,
+          readOwnedDraft,
+        );
+        deleteDraftKeys(
+          store,
+          'expiresAt',
+          () => true,
+          readOwnedDraft,
+          IDBKeyRange.upperBound(Date.now()),
+        );
         tx.oncomplete = () => resolve(result);
         tx.onabort = tx.onerror = () => reject(new Error('Draft read failed'));
       });
@@ -194,15 +256,9 @@ export function clearMemoryDiaryDrafts(): void {
               reject(new Error('Draft purge failed'));
             return;
           }
-          const request = store.getAll();
-          request.onsuccess = () => {
-            // A new login may already have acquired a new lease while this
-            // asynchronous purge was opening the database. Keep its records.
-            const activeEpoch = epoch();
-            for (const record of request.result as DraftRecord[]) {
-              if (record.epoch !== activeEpoch) store.delete(record.key);
-            }
-          };
+          // A new login may have saved while this purge was opening the
+          // database. Read the active epoch at traversal, never before open.
+          deleteDraftKeys(store, 'epoch', (key) => key !== epoch());
           tx.oncomplete = () => resolve();
           tx.onabort = tx.onerror = () =>
             reject(new Error('Draft purge failed'));

@@ -116,6 +116,15 @@ attention under the existing policy: no known security finding in the lock,
 Dependabot updates are not left unresolved, and processing runs exclusively
 in a background job under resource limits — never in the request path.
 
+`google-auth-oauthlib` is the official maintained Web OAuth client for the
+optional Google Photos Picker (#1444, 2026-10-27). It supplies PKCE/state and
+OAuth protocol handling instead of a custom token-flow implementation. Its
+Apache-2.0 license is recorded below using the package metadata spelling so the
+inventory gate can verify it exactly. The locked transitive Google auth,
+requests-oauthlib and oauthlib dependencies remain in `backend/uv.lock`; no
+upstream server code or Immich SDK is bundled. The application requests online
+Picker-only access and bounds transport without persisting refresh tokens.
+
 ## Backend — Runtime
 
 | Package | Version | Source | License |
@@ -130,6 +139,7 @@ in a background job under resource limits — never in the request path.
 | uuid6 | 2025.0.1 | PyPI | MIT |
 | argon2-cffi | 25.1.0 | PyPI | MIT |
 | httpx | 0.28.1 | PyPI | BSD-3-Clause |
+| google-auth-oauthlib | 1.5.0 | PyPI | Apache 2.0 |
 | pyjwt[crypto] | 2.15.1 | PyPI | MIT |
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
 | pywebpush | 2.5.0 | PyPI | MPL-2.0 |
@@ -344,8 +354,8 @@ This assessment is not legal advice.
 
 The repository now contains project-specific image and SVG assets. They were
 created for eimir. or its Roadmap and M2 handoff; assets of unclear
-third-party or predecessor origin continue to be excluded. The product images
-are explicitly mockups, not screenshots of an already finished application.
+third-party or predecessor origin continue to be excluded. The store preview images
+are explicitly mockups. Runtime QA screenshots are identified separately below.
 
 No separate public license is currently granted for files marked below as
 **project assets**. This classification does not change the still-open license
@@ -353,6 +363,8 @@ decision for the project's own source code.
 
 | Asset | Origin | Creator | License |
 |---|---|---|---|
+| `docs/product/design/references/1444/photo-source-sheet-delivery.png` | Generated whole-diary/source-sheet preflight for #1444, 2026-10-27 | eimir. project workflow using ImageGen | project asset; no separate public license grant |
+| `docs/product/design/references/1444/evidence/photo-source-*.png` (eight named files in its README) | Actual local browser renders of the project UI using synthetic account data and the existing cabin/lake demo fixture | eimir. project workflow; embedded photo by Darkmoon_Art (Pixabay 3374201) | UI screenshots: project asset, no separate public license grant; embedded photo: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
 | `docs/assets/playstore/app-icon.png` | eimir. product preview | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/assets/playstore/feature-graphic.png` | eimir. product preview | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/assets/playstore/screen-01-onboarding.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |

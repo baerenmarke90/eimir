@@ -3,14 +3,13 @@ import { initReactI18next } from 'react-i18next';
 import accountSettings from './locales/accountSettings';
 import appIcon from './locales/appIcon';
 import appUpdates from './locales/appUpdates';
-import de from './locales/de';
-import taskBoundary from './locales/taskBoundary';
-import taskSheets from './locales/taskSheets';
-import demo from './locales/demo';
+import contextTags from './locales/contextTags';
 import dailyEnergy from './locales/dailyEnergy';
 import dailyInsights from './locales/dailyInsights';
 import dailyQuote from './locales/dailyQuote';
 import dailyVibe from './locales/dailyVibe';
+import de from './locales/de';
+import demo from './locales/demo';
 import games from './locales/games';
 import importantDates from './locales/importantDates';
 import m5s3 from './locales/m5s3';
@@ -21,17 +20,19 @@ import navigation from './locales/navigation';
 import notificationSettings from './locales/notificationSettings';
 import partnerConnection from './locales/partnerConnection';
 import people from './locales/people';
+import photoSources from './locales/photoSources';
 import privateArea from './locales/privateArea';
+import productTour from './locales/productTour';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
-import productTour from './locales/productTour';
-import serverAdmin from './locales/serverAdmin';
-import snackbar from './locales/snackbar';
 import relationshipComponents from './locales/relationshipComponents';
+import serverAdmin from './locales/serverAdmin';
+import sharedPhotos from './locales/sharedPhotos';
+import snackbar from './locales/snackbar';
 import spaceOffboarding from './locales/spaceOffboarding';
 import storyProducts from './locales/storyProducts';
-import contextTags from './locales/contextTags';
-import sharedPhotos from './locales/sharedPhotos';
+import taskBoundary from './locales/taskBoundary';
+import taskSheets from './locales/taskSheets';
 
 export const DEFAULT_LOCALE = 'de';
 
@@ -81,6 +82,7 @@ if (!i18n.isInitialized) {
           ...storyProducts,
           contextTags,
           sharedPhotos,
+          photoSources,
         },
       },
     },
@@ -109,5 +111,5 @@ if (!i18n.isInitialized) {
 syncDocumentLanguage();
 i18n.on('languageChanged', syncDocumentLanguage);
 
-export { i18n };
 export { useTranslation } from 'react-i18next';
+export { i18n };

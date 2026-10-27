@@ -46,6 +46,7 @@ class Endpoint:
     placeholders: tuple[str, ...] = field(default=())
     fixture_aliases: dict[str, str] = field(default_factory=dict)
     query: dict[str, str] = field(default_factory=dict)
+    verification_template: str | None = None
 
     def __str__(self) -> str:
         return f"{self.method} {self.template}"
@@ -142,6 +143,41 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/appearance/app-icon",
         body={"iconId": "original"},
         if_match=True,
+    ),
+    # Own enabled/Pro selection IDs and credentials are exercised in test_photo_sources.
+    # This matrix additionally proves every route rejects anonymous/foreign Spaces.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/photo-sources"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/photo-sources/immich",
+        body={"origin": "https://my-photos.example", "apiKey": "synthetic-key", "consent": True},
+        if_match=True,
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/photo-sources/immich",
+        if_match=True,
+        verification_template="/api/v1/spaces/{spaceId}/photo-sources",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/photo-selections",
+        body={"source": "immich", "maxItems": 2, "consent": True},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/poll",
+        fixture_aliases={"selectionId": "memoryId"},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}",
+        fixture_aliases={"selectionId": "memoryId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}",
+        fixture_aliases={"selectionId": "memoryId", "itemId": "attachmentId"},
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/configuration"),
     Endpoint(
@@ -1292,7 +1328,14 @@ def test_without_if_match_does_not_write(scenario, endpoint: Endpoint) -> None: 
             )
             assert afterwards.status_code == 200
         else:
-            afterwards = scenario["client"].get(path, headers=scenario["owner_headers"])
+            verification_path = (
+                endpoint.verification_template.format(**scenario["ids"])
+                if endpoint.verification_template
+                else path
+            )
+            afterwards = scenario["client"].get(
+                verification_path, headers=scenario["owner_headers"]
+            )
             assert afterwards.status_code == 200
 
 

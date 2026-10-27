@@ -58,6 +58,7 @@ def test_the_place_surface_is_crud_plus_typed_relations() -> None:
         COLLECTION,
         DETAIL,
         *RELATION_PATHS,
+        "/api/v1/spaces/{spaceId}/moments/{kind}/{targetId}/places",
     }
 
 

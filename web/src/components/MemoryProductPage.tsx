@@ -48,6 +48,7 @@ import {
   type MemoryTag,
   MemoryTagChoices,
 } from './MemoryTagChoices';
+import { MomentPlaces } from './MomentPlaces';
 import { PageHeader } from './PageHeader';
 import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { ProblemState } from './ProblemState';
@@ -760,6 +761,16 @@ export function MemoryProductPage({
         </section>
       ) : null}
 
+      <MomentPlaces
+        key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${memory.id}`}
+        apiBaseUrl={apiBaseUrl}
+        accessToken={accessToken}
+        accountId={currentAccountId}
+        spaceId={spaceId}
+        targetId={memory.id}
+        kind="memories"
+        offline={offline}
+      />
       <CommentsPanel
         commentsApi={apis.comments}
         spaceId={spaceId}

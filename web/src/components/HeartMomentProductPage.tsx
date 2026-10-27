@@ -24,48 +24,49 @@ import {
   authorSummaryQueryKeys,
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
-import { invalidateDashboard } from '../client/dashboardQueries';
+import { assertOnlineWrite } from '../client/connectivity';
 import {
   type CreateRequestAttempt,
   submitCreateRequest,
 } from '../client/createRequestIdentity';
+import { invalidateDashboard } from '../client/dashboardQueries';
 import { localDateInputValue } from '../client/dateInput';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
-import { assertOnlineWrite } from '../client/connectivity';
-import { captureAuthorizedQuery } from '../client/queryIdentity';
-import { useStoryDeletion } from '../client/useStoryDeletion';
-import { useStoryViewReceipt } from '../client/storyViewReceipt';
-import { useTaskOrigin } from '../client/taskOrigin';
 import {
   deleteProductReadCacheEntry,
   loadProductWithReadCache,
   type ProductReadResult,
 } from '../client/productReadCache';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
   heartMomentDetailPath,
   heartMomentEditPath,
 } from '../client/routes';
+import { useStoryViewReceipt } from '../client/storyViewReceipt';
+import { useTaskOrigin } from '../client/taskOrigin';
 import {
   formatAttachmentDraftContextKey,
   useAttachmentDrafts,
 } from '../client/useAttachmentDrafts';
+import { useStoryDeletion } from '../client/useStoryDeletion';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { PRODUCT_NAME } from './Brand';
 import { CommentsPanel } from './CommentsPanel';
 import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
 import {
-  HeartMomentTagChoices,
   HEART_MOMENT_TAGS,
   type HeartMomentTag,
+  HeartMomentTagChoices,
 } from './HeartMomentTagChoices';
 import { MediaGallery } from './MediaGallery';
+import { MomentPlaces } from './MomentPlaces';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -76,8 +77,8 @@ import {
   StoryEditorPageShell,
 } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
-import { VisibilityBadge, VisibilityGlyph } from './VisibilityBadge';
 import { UiState } from './UiState';
+import { VisibilityBadge, VisibilityGlyph } from './VisibilityBadge';
 
 export type HeartMomentProductMode = 'create' | 'detail' | 'edit';
 
@@ -937,6 +938,18 @@ export function HeartMomentProductPage({
         <ProblemState error={visibilityMutation.error} />
       ) : null}
 
+      {shared && !changingVisibility ? (
+        <MomentPlaces
+          key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${heartMoment.id}`}
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          accountId={currentAccountId}
+          spaceId={spaceId}
+          targetId={heartMoment.id}
+          kind="heart-moments"
+          offline={offline}
+        />
+      ) : null}
       {changingVisibility ? (
         <p className="muted" role="status">
           {t('heartMomentProduct.visibilityChanging')}

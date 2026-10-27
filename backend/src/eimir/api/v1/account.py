@@ -5,17 +5,65 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Response, status
 from pydantic import ConfigDict
 
+from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import CurrentAccount, CurrentSession, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
+from eimir.attachments import photo_locations
 from eimir.auth import recent_auth
 from eimir.identity.deletion_models import AccountDeletionStatus
 from eimir.identity.deletion_self_service import accept_self_deletion
 
 router = APIRouter(prefix="/account", tags=["account"])
+
+
+class PhotoLocationPreference(ApiModel):
+    enabled: bool
+    version: int
+
+
+class PhotoLocationPreferenceUpdate(ApiModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    enabled: bool
+
+
+@router.get(
+    "/photo-location-preference",
+    response_model=PhotoLocationPreference,
+    operation_id="getPhotoLocationPreference",
+    responses=problem_responses(401),
+)
+def get_photo_location_preference(
+    account: CurrentAccount, session: DbSession, response: Response
+) -> PhotoLocationPreference:
+    enabled, version = photo_locations.preference(session, account.id)
+    response.headers["ETag"] = etag_for(version)
+    response.headers["Cache-Control"] = "no-store"
+    return PhotoLocationPreference(enabled=enabled, version=version)
+
+
+@router.put(
+    "/photo-location-preference",
+    response_model=PhotoLocationPreference,
+    operation_id="setPhotoLocationPreference",
+    responses=problem_responses(401, 409, 422),
+)
+def set_photo_location_preference(
+    payload: PhotoLocationPreferenceUpdate,
+    account: CurrentAccount,
+    session: DbSession,
+    response: Response,
+    expected_version: IfMatchVersion,
+) -> PhotoLocationPreference:
+    enabled, version = photo_locations.set_preference(
+        session, account.id, enabled=payload.enabled, expected_version=expected_version
+    )
+    response.headers["ETag"] = etag_for(version)
+    response.headers["Cache-Control"] = "no-store"
+    return PhotoLocationPreference(enabled=enabled, version=version)
 
 
 class AccountDeletionRequest(ApiModel):

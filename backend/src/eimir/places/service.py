@@ -24,7 +24,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -218,6 +218,25 @@ def update_place(
     place = require_writable_locked(session, Place, context, place_id)
     _ensure_expected_version(place, expected_version)
 
+    from eimir.db.locks import lock_subject
+    from eimir.relations.models import PlaceHeartMoment, PlaceMemory
+
+    for relation, target_column in (
+        (PlaceMemory, "memory_id"),
+        (PlaceHeartMoment, "heart_moment_id"),
+    ):
+        table = relation.__table__
+        identifiers = (
+            session.execute(select(table.c[target_column]).where(table.c.place_id == place.id))
+            .scalars()
+            .all()
+        )
+        for target_id in sorted(identifiers, key=str):
+            lock_subject(session, "photo-place-target", str(target_id))
+        session.execute(
+            update(relation).where(table.c.place_id == place.id).values(photo_generated=False)
+        )
+
     coordinates_touched = bool({"latitude", "longitude"} & changed_fields)
     if coordinates_touched:
         coordinates = normalize_coordinates(
@@ -281,8 +300,13 @@ def delete_place(
     _flush(session)
 
 
-def _cursor_binding(context: AuthorizationContext) -> dict[str, Any]:
-    return {"collection": "places", "spaceId": str(context.space_id)}
+def _cursor_binding(
+    context: AuthorizationContext, related_to: tuple[str, UUID] | None = None
+) -> dict[str, Any]:
+    binding = {"collection": "places", "spaceId": str(context.space_id)}
+    if related_to is not None:
+        binding.update(targetType=related_to[0], targetId=str(related_to[1]))
+    return binding
 
 
 def _encode_cursor(
@@ -290,9 +314,10 @@ def _encode_cursor(
     context: AuthorizationContext,
     created_at: datetime,
     place_id: UUID,
+    related_to: tuple[str, UUID] | None = None,
 ) -> str:
     return cursor_codec.encode(
-        binding=_cursor_binding(context),
+        binding=_cursor_binding(context, related_to),
         position={
             "createdAt": created_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
             "id": str(place_id),
@@ -300,8 +325,10 @@ def _encode_cursor(
     )
 
 
-def _decode_cursor(token: str, *, context: AuthorizationContext) -> tuple[datetime, UUID]:
-    position = cursor_codec.decode(token, binding=_cursor_binding(context))
+def _decode_cursor(
+    token: str, *, context: AuthorizationContext, related_to: tuple[str, UUID] | None = None
+) -> tuple[datetime, UUID]:
+    position = cursor_codec.decode(token, binding=_cursor_binding(context, related_to))
     created_raw = position.get("createdAt")
     place_raw = position.get("id")
     if not isinstance(created_raw, str) or not isinstance(place_raw, str):
@@ -322,6 +349,7 @@ def list_places(
     *,
     cursor: str | None,
     limit: int,
+    related_to: tuple[str, UUID] | None = None,
 ) -> PlacePageResult:
     """Return newest places first.
 
@@ -331,8 +359,19 @@ def list_places(
     ProtectedPayload boundary.
     """
     statement = readable(Place, context)
+    if related_to is not None:
+        from eimir.relations import service as relations
+
+        kind = relations.kind_for(related_to[0])
+        if kind not in (relations.PLACE_MEMORIES, relations.PLACE_HEART_MOMENTS):
+            raise relations.target_not_found()
+        relations._require_relatable_target(session, context, kind, related_to[1])
+        table = kind.relation.__table__
+        statement = statement.join(table, table.c.place_id == Place.id).where(
+            table.c[kind.target_column] == related_to[1], table.c.space_id == context.space_id
+        )
     if cursor is not None:
-        created_at, place_id = _decode_cursor(cursor, context=context)
+        created_at, place_id = _decode_cursor(cursor, context=context, related_to=related_to)
         statement = statement.where(
             or_(
                 Place.created_at < created_at,
@@ -351,6 +390,7 @@ def list_places(
             context=context,
             created_at=last.created_at,
             place_id=last.id,
+            related_to=related_to,
         )
     return PlacePageResult(items=items, next_cursor=next_cursor, has_more=has_more)
 

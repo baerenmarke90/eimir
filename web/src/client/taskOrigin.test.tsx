@@ -53,7 +53,9 @@ afterEach(() => {
 describe('task origin privacy and lifetime', () => {
   it('allowlists local primary routes and serializes only non-sensitive Timeline scope', () => {
     expect(taskOriginPath('//other.example', '')).toBeNull();
-    expect(taskOriginPath('/story/memories/secret', '')).toBeNull();
+    expect(taskOriginPath('/story/memories/memory-1', '?body=private')).toBe(
+      '/story/memories/memory-1',
+    );
     expect(taskOriginPath('/more/private', '')).toBeNull();
     expect(taskOriginPath('/plan/plans/plan-1', '?title=private')).toBe(
       '/plan/plans/plan-1',

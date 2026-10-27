@@ -68,9 +68,12 @@ export function taskOriginPath(
   const secondaryDetail = /^\/plan\/(places|chapters)\/(?!new$)[^/]+$/.test(
     pathname,
   );
+  const momentDetail =
+    /^\/story\/(memories|heart-moments)\/(?!new$)[^/]+$/.test(pathname);
   if (
     !planningDetail &&
     !secondaryDetail &&
+    !momentDetail &&
     ![
       '/today',
       '/story',

@@ -337,7 +337,6 @@ function AuthenticatedAppShell({
 
       <div className="product-shell-body">
         <main
-          key={location.pathname}
           id="main-content"
           className="product-main"
           tabIndex={-1}

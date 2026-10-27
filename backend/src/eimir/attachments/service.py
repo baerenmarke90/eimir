@@ -19,7 +19,7 @@ from datetime import UTC, datetime, timedelta
 from typing import BinaryIO
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -30,6 +30,7 @@ from eimir.attachments.models import (
     AttachmentPayload,
     AttachmentStatus,
     MediaType,
+    PhotoLocationDraft,
 )
 from eimir.authorization import (
     AuthorizationContext,
@@ -479,6 +480,9 @@ def delete_attachment(
 
 
 def mark_for_deletion(session: Session, attachment: Attachment) -> None:
+    session.execute(
+        delete(PhotoLocationDraft).where(PhotoLocationDraft.attachment_id == attachment.id)
+    )
     attachment.status = AttachmentStatus.DELETING.value
 
 
@@ -488,6 +492,10 @@ def purge(session: Session, attachment: Attachment) -> bool:
     Storage failure must not reverse domain-visible deletion. On failure the row
     remains DELETE_FAILED for retry and never becomes visible again.
     """
+    # Sensitive staging does not inherit a provider deletion failure's retry lifetime.
+    session.execute(
+        delete(PhotoLocationDraft).where(PhotoLocationDraft.attachment_id == attachment.id)
+    )
     store = get_media_store()
     variants = [ORIGINAL_VARIANT]
     if attachment.has_thumbnail:

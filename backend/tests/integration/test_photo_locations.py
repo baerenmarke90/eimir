@@ -9,7 +9,7 @@ import pytest
 from PIL import Image
 from sqlalchemy import select
 
-from eimir.attachments.models import PhotoLocationDraft
+from eimir.attachments.models import Attachment, PhotoLocationDraft
 from eimir.outbox.models import OutboxEvent
 from eimir.places.models import Place
 from tests.conftest import auth, requires_database
@@ -17,6 +17,19 @@ from tests.integration import test_attachment_binding as binding
 from tests.integration.test_attachment_binding import couple as couple
 
 pytestmark = [pytest.mark.integration, requires_database]
+
+
+def test_cancel_discards_location_before_provider_cleanup(client, couple, session):  # type: ignore[no-untyped-def]
+    photo = binding.ready_attachment(client, couple, session)
+    assert session.get(PhotoLocationDraft, UUID(photo)) is not None
+    attachment = session.get(Attachment, UUID(photo))
+    assert attachment is not None
+    removed = client.delete(
+        f"{binding.base_path(couple['space'].id)}/attachments/{photo}",
+        headers=binding.if_match(couple["token_a"], attachment.version),
+    )
+    assert removed.status_code in (202, 204)
+    assert session.get(PhotoLocationDraft, UUID(photo)) is None
 
 
 @pytest.mark.parametrize("account_action", ["photo_binding", "preference"])

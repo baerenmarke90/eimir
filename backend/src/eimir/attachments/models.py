@@ -217,7 +217,8 @@ class PhotoLocationDraft(Base):
 
     __tablename__ = "photo_location_drafts"
 
-    attachment_id: Mapped[UUID] = mapped_column(
+    # Reuse the Attachment identity and the payload lifecycle's canonical `id` column.
+    id: Mapped[UUID] = mapped_column(
         postgresql.UUID(as_uuid=True),
         ForeignKey("attachments.id", ondelete="CASCADE"),
         primary_key=True,

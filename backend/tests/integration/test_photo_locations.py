@@ -200,6 +200,7 @@ def test_shared_commit_creates_once_and_never_exposes_staged_gps(client, couple,
         f"{binding.base_path(couple['space'].id)}/attachments/{first}",
         headers=auth(couple["token_a"]),
     )
+    assert projected.status_code == 200
     assert "latitude" not in projected.text and "longitude" not in projected.text
     memory = binding.memory(client, couple)
     saved = attach(client, couple, memory, [first, second])
@@ -213,6 +214,13 @@ def test_shared_commit_creates_once_and_never_exposes_staged_gps(client, couple,
     retried = attach(client, couple, saved.json(), [first, second])
     assert retried.status_code == 200
     assert len(places(client, couple, memory["id"]).json()["items"]) == 1
+    unlinked = client.delete(
+        f"{binding.base_path(couple['space'].id)}/places/{place['id']}/memories/{memory['id']}",
+        headers=auth(couple["token_a"]),
+    )
+    assert unlinked.status_code == 204
+    assert attach(client, couple, retried.json(), [first, second]).status_code == 200
+    assert places(client, couple, memory["id"]).json()["items"] == []
     events = session.execute(select(OutboxEvent)).scalars().all()
     assert all("52.516667" not in str(event.payload) for event in events)
 
@@ -236,6 +244,7 @@ def test_private_binding_discards_gps_before_later_sharing(client, couple, sessi
     assert created.status_code == 201
     heart = created.json()
     assert session.get(PhotoLocationDraft, UUID(staged)) is None
+    assert session.execute(select(Place)).scalars().all() == []
     assert places(client, couple, heart["id"], "heart-moments").status_code == 404
     shared = client.patch(
         f"{binding.base_path(couple['space'].id)}/heart-moments/{heart['id']}/visibility",

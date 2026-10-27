@@ -84,7 +84,7 @@ def stage(
         return
     session.add(
         PhotoLocationDraft(
-            attachment_id=attachment.id,
+            id=attachment.id,
             owner_id=attachment.owner_id,
             preference_version=version,
             payload=PhotoLocationPayload(

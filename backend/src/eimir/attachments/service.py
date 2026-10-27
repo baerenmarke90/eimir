@@ -480,9 +480,7 @@ def delete_attachment(
 
 
 def mark_for_deletion(session: Session, attachment: Attachment) -> None:
-    session.execute(
-        delete(PhotoLocationDraft).where(PhotoLocationDraft.attachment_id == attachment.id)
-    )
+    session.execute(delete(PhotoLocationDraft).where(PhotoLocationDraft.id == attachment.id))
     attachment.status = AttachmentStatus.DELETING.value
 
 
@@ -493,9 +491,7 @@ def purge(session: Session, attachment: Attachment) -> bool:
     remains DELETE_FAILED for retry and never becomes visible again.
     """
     # Sensitive staging does not inherit a provider deletion failure's retry lifetime.
-    session.execute(
-        delete(PhotoLocationDraft).where(PhotoLocationDraft.attachment_id == attachment.id)
-    )
+    session.execute(delete(PhotoLocationDraft).where(PhotoLocationDraft.id == attachment.id))
     store = get_media_store()
     variants = [ORIGINAL_VARIANT]
     if attachment.has_thumbnail:

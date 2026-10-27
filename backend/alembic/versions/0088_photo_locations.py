@@ -40,7 +40,7 @@ def upgrade() -> None:
     op.create_table(
         "photo_location_drafts",
         sa.Column(
-            "attachment_id",
+            "id",
             postgresql.UUID(as_uuid=True),
             sa.ForeignKey("attachments.id", ondelete="CASCADE"),
             primary_key=True,

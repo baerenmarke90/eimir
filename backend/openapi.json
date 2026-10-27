@@ -22854,7 +22854,6 @@
             "name": "targetId",
             "required": true,
             "schema": {
-              "format": "uuid",
               "title": "Targetid",
               "type": "string"
             }

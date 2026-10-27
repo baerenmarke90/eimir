@@ -252,7 +252,7 @@ async function example() {
     // string
     kind: kind_example,
     // string
-    targetId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
+    targetId: targetId_example,
     // string
     spaceId: spaceId_example,
     // string (optional)

@@ -353,8 +353,8 @@ This assessment is not legal advice.
 
 The repository now contains project-specific image and SVG assets. They were
 created for eimir. or its Roadmap and M2 handoff; assets of unclear
-third-party or predecessor origin continue to be excluded. The product images
-are explicitly mockups, not screenshots of an already finished application.
+third-party or predecessor origin continue to be excluded. The store preview images
+are explicitly mockups. Runtime QA screenshots are identified separately below.
 
 No separate public license is currently granted for files marked below as
 **project assets**. This classification does not change the still-open license
@@ -362,6 +362,8 @@ decision for the project's own source code.
 
 | Asset | Origin | Creator | License |
 |---|---|---|---|
+| `docs/product/design/references/1444/photo-source-sheet-delivery.png` | Generated whole-diary/source-sheet preflight for #1444, 2026-10-27 | eimir. project workflow using ImageGen | project asset; no separate public license grant |
+| `docs/product/design/references/1444/evidence/photo-source-*.png` (eight named files in its README) | Actual local browser renders of the project UI using synthetic account data and the existing cabin/lake demo fixture | eimir. project workflow; embedded photo by Darkmoon_Art (Pixabay 3374201) | UI screenshots: project asset, no separate public license grant; embedded photo: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
 | `docs/assets/playstore/app-icon.png` | eimir. product preview | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/assets/playstore/feature-graphic.png` | eimir. product preview | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/assets/playstore/screen-01-onboarding.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |

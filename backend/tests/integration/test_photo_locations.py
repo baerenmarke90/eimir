@@ -89,6 +89,7 @@ def test_real_gps_becomes_shared_canonical_place_and_staging_is_consumed(client,
     places = result.json()["items"]
     assert len(places) == 1  # Nearby photos in one batch do not create a pile of duplicate pins.
     assert places[0]["photoLocation"] is True
+    assert places[0]["name"] == "Aufnahmeort"
     assert (places[0]["latitude"], places[0]["longitude"]) == (52.5, 13.4)
     assert linked(client, couple, parent["id"], token_key="token_b").json() == result.json()
     assert session.get(Attachment, UUID(identifiers[0])).payload.photo_coordinates is None
@@ -254,6 +255,28 @@ def test_supported_map_links_round_trip_without_network_lookup(client, couple, v
     )
     assert response.status_code == 201, response.text
     assert response.json()["mapUrl"] == value
+
+
+def test_location_correction_clears_a_stale_link_but_renaming_preserves_it(client, couple):  # type: ignore[no-untyped-def]
+    base = media.base_path(couple["space"].id)
+    url = "https://maps.app.goo.gl/Example123"
+    place = client.post(
+        f"{base}/places", json={"name": "A spot", "mapUrl": url}, headers=auth(couple["token_a"])
+    ).json()
+    renamed = client.patch(
+        f"{base}/places/{place['id']}",
+        json={"name": "Our spot"},
+        headers=media.if_match(couple["token_a"], place["version"]),
+    )
+    assert renamed.status_code == 200
+    assert renamed.json()["mapUrl"] == url
+    corrected = client.patch(
+        f"{base}/places/{place['id']}",
+        json={"latitude": 48, "longitude": 11},
+        headers=media.if_match(couple["token_a"], renamed.json()["version"]),
+    )
+    assert corrected.status_code == 200
+    assert corrected.json()["mapUrl"] is None
 
 
 @pytest.mark.parametrize(

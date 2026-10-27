@@ -17,6 +17,7 @@ from eimir.attachments.models import Attachment, PhotoCoordinates
 from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.identity.models import Account
 from eimir.places import service as places
+from eimir.places.localized_names import photo_place_name
 from eimir.relations import service as relations
 
 
@@ -60,10 +61,10 @@ def keep_photo_places(
             attachment.payload = attachment.payload.model_copy(update={"photo_coordinates": None})
     if not coordinates or privacy_class != PrivacyClass.SPACE_SHARED.value:
         return
-    enabled = session.scalar(
-        select(Account.auto_photo_locations).where(Account.id == context.account_id)
-    )
-    if not enabled:
+    preference = session.execute(
+        select(Account.auto_photo_locations, Account.locale).where(Account.id == context.account_id)
+    ).one_or_none()
+    if preference is None or not preference.auto_photo_locations:
         return
     table = kind.relation.__table__
     if (
@@ -87,7 +88,7 @@ def keep_photo_places(
         place = places.create_place(
             session,
             context,
-            name="Photo location",
+            name=photo_place_name(preference.locale),
             description=None,
             address=None,
             latitude=coordinate.latitude,

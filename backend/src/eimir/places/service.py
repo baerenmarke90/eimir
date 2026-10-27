@@ -224,10 +224,15 @@ def update_place(
     _ensure_expected_version(place, expected_version)
 
     coordinates_touched = bool({"latitude", "longitude"} & changed_fields)
+    location_changed = False
     if coordinates_touched:
         coordinates = normalize_coordinates(
             latitude if "latitude" in changed_fields else place.latitude,
             longitude if "longitude" in changed_fields else place.longitude,
+        )
+        location_changed = (place.latitude, place.longitude) != (
+            coordinates.latitude,
+            coordinates.longitude,
         )
         place.latitude = coordinates.latitude
         place.longitude = coordinates.longitude
@@ -242,14 +247,17 @@ def update_place(
         next_description = description
     if "address" in changed_fields:
         next_address = address
+        location_changed = location_changed or next_address != place.payload.address
 
-    if {"name", "description", "address", "map_url"} & changed_fields:
+    if {"name", "description", "address", "map_url"} & changed_fields or location_changed:
         place.payload = PlacePayload(
             name=next_name,
             description=next_description,
             address=next_address,
             photo_location=place.payload.photo_location and "name" not in changed_fields,
-            map_url=map_url if "map_url" in changed_fields else place.payload.map_url,
+            map_url=map_url
+            if "map_url" in changed_fields
+            else (None if location_changed else place.payload.map_url),
         )
 
     _flush(session)

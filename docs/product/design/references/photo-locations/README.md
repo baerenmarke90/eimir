@@ -2,6 +2,8 @@
 
 Baseline main: `3955f44435f880fb9424602f7a2dcfbd17726148` (2026-10-26).
 
+Integration baseline: `e54fe0b843fa8e774d600d1bb71bba71ddd5a4a4`, after diary PR #1458 and the internal Immich reader. The accepted diary composition and recovery/upload lifecycle were preserved while integrating the location hint and detail section. [Refreshed Compact composition](compact-current-main.png) and its [exact Imagegen prompt](image-prompt-current-main.txt) represent the current unframed diary reading composition and the subsequent metadata-preservation decision. The original pre-implementation reference remains available for provenance.
+
 ## Product Owner decision
 
 An account-wide **Automatically add places** setting is enabled by default. Selected photos with usable GPS coordinates automatically supply places when saved to shared Memories or shared HeartMoments. There is no per-entry confirmation. Manual places take precedence. Disable stops future extraction and association; existing places remain editable, removable and exportable. Missing GPS never blocks a moment. This selected-photo decision supersedes older blanket opt-in wording only for this feature. Live location, presence, history and background tracking remain off and out of scope.

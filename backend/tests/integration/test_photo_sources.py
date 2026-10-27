@@ -310,3 +310,26 @@ def test_periodic_cleanup_recovers_lost_expiry_jobs_and_revoked_sessions(client,
     cleanup(session, {})
     assert session.scalar(select(PhotoSelection)) is None
     assert session.scalar(select(PhotoConnection)) is not None
+
+
+def test_missing_match_headers_cannot_replace_or_disconnect_link(client, session, owners):
+    grant(session, owners)
+    assert link(client, owners).status_code == 204
+    endpoint = path(owners) + "/photo-sources/immich"
+    before = client.get(path(owners) + "/photo-sources", headers=owners["a"]).json()
+    assert (
+        client.put(
+            endpoint,
+            headers=owners["a"],
+            json={
+                "origin": "https://my-photos.example",
+                "apiKey": "synthetic-private-key",
+                "consent": True,
+            },
+        ).status_code
+        == 422
+    )
+    assert client.delete(endpoint, headers=owners["a"]).status_code == 422
+    after = client.get(path(owners) + "/photo-sources", headers=owners["a"]).json()
+    assert after == before
+    assert after["immichConnected"] is True

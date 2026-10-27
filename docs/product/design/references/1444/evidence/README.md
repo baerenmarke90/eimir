@@ -37,7 +37,9 @@ are operational acceptance, explicitly deferred by the Product Owner.
 Local tooling: Chromium 153 (environment-compatible executable), Playwright
 1.62.1, normal browser security. CI uses the repository-pinned browser/runtime;
 local screenshots are not physical-device certification. Provider adapters use
-offline fixtures locally. The eight PostgreSQL integration cases cover encrypted
+offline fixtures locally. The nine PostgreSQL integration cases cover encrypted
 personal ownership, device/Space binding, Pro downgrade/disconnect, state replay,
-expiry, stale unlink/recreate, export/deletion and revoked-device cleanup; hosted
+expiry, stale unlink/recreate, export/deletion, missing concurrency headers and revoked-device cleanup. The
+central endpoint matrix additionally exercises all seven new routes for anonymous,
+foreign and malformed Space access; hosted
 PostgreSQL CI is required before merge. No live provider approval is inferred.

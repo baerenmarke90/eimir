@@ -6,6 +6,7 @@ import com.getcapacitor.Plugin;
 
 public class MainActivity extends BridgeActivity {
     private static volatile boolean foreground;
+    private PhotoFileChooser photoFileChooser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,7 +24,17 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(AppIconPlugin.class);
         registerPlugin(NativeSessionStoragePlugin.class);
         super.onCreate(savedInstanceState);
+        if (getBridge() != null) {
+            photoFileChooser = new PhotoFileChooser(getBridge());
+            getBridge().getWebView().setWebChromeClient(photoFileChooser);
+        }
         LegacyNativeDataCleanup.run(this);
+    }
+
+    @Override
+    public void onDestroy() {
+        if (photoFileChooser != null) photoFileChooser.dispose();
+        super.onDestroy();
     }
 
     @Override

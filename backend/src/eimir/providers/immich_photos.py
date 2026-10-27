@@ -104,8 +104,14 @@ class ImmichSelectedPhotoReader:
             )
         )
         try:
-            return UUID(value["id"])
-        except (KeyError, ValueError, TypeError):
+            identifier = value.get("id")
+            if not isinstance(identifier, str):
+                raise ValueError
+            account = UUID(identifier)
+            if str(account) != identifier:
+                raise ValueError
+            return account
+        except ValueError:
             raise ImmichPhotoError("PHOTO_SOURCE_RESPONSE_INVALID") from None
 
     @staticmethod
@@ -157,6 +163,7 @@ class ImmichSelectedPhotoReader:
                 item.get("type") != "IMAGE"
                 or item.get("isTrashed") is not False
                 or item.get("isOffline") is not False
+                or not isinstance(mime, str)
                 or mime not in _EXTENSIONS
             ):
                 continue

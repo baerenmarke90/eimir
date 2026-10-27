@@ -312,6 +312,52 @@ def test_invalid_json_is_sanitized(monkeypatch: pytest.MonkeyPatch, body: bytes)
 
 
 @pytest.mark.parametrize(
+    "identifier",
+    [[], {"private": "provider-detail"}, True, 123, None, ASSET.upper(), "private-invalid-id"],
+)
+def test_account_identity_requires_canonical_string_uuid_and_redacts_invalid_types(
+    monkeypatch: pytest.MonkeyPatch, identifier: object
+) -> None:
+    sockets, factory, _, _ = setup_transport(
+        monkeypatch, [http_response(json.dumps({"id": identifier}).encode())]
+    )
+    with pytest.raises(photos.ImmichPhotoError) as failure:
+        reader().account_id()
+    assert str(failure.value) == "PHOTO_SOURCE_RESPONSE_INVALID"
+    assert failure.value.__suppress_context__
+    assert factory.call_count == 1
+    assert bytes(sockets[0].sent).startswith(b"GET /api/users/me HTTP/1.1\r\n")
+
+
+def test_verified_account_identity_accepts_a_canonical_uuid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    setup_transport(monkeypatch, [http_response(json.dumps({"id": ASSET}).encode())])
+    assert str(reader().account_id()) == ASSET
+
+
+@pytest.mark.parametrize("mime", [[], {"private": "provider-detail"}, True, 123, None])
+def test_listing_skips_malformed_mime_fields_without_hiding_supported_owned_photos(
+    monkeypatch: pytest.MonkeyPatch, mime: object
+) -> None:
+    owned = json.loads(metadata(ownerId=ASSET))
+    malformed = {**owned, "originalMimeType": mime}
+    sockets, factory, _, _ = setup_transport(
+        monkeypatch,
+        [
+            http_response(json.dumps({"id": ASSET}).encode()),
+            http_response(json.dumps({"assets": {"items": [malformed, owned]}}).encode()),
+        ],
+    )
+    items, next_page = reader().list_photos(ASSET, 1)
+    assert items == [(ASSET, "image/jpeg")]
+    assert next_page is None
+    assert factory.call_count == 2
+    assert bytes(sockets[1].sent).startswith(b"POST /api/search/metadata HTTP/1.1\r\n")
+    assert all(b"/original" not in stream.sent for stream in sockets)
+
+
+@pytest.mark.parametrize(
     "headers",
     [
         {"Content-Encoding": "gzip"},

@@ -97,7 +97,8 @@ public class PhotoFileChooserTest {
         ClipData clips = ClipData.newRawUri("selected", first);
         clips.addItem(new ClipData.Item(second));
         clips.addItem(new ClipData.Item(first));
-        Intent result = new Intent().setClipData(clips);
+        Intent result = new Intent();
+        result.setClipData(clips);
         assertArrayEquals(new Uri[] {first, second},
             PhotoFileChooser.selectedUris(result, FileChooserParams.MODE_OPEN_MULTIPLE));
         assertArrayEquals(new Uri[] {first}, PhotoFileChooser.selectedUris(result, FileChooserParams.MODE_OPEN));
@@ -203,7 +204,10 @@ public class PhotoFileChooserTest {
             Bitmap.createBitmap(32, 24, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.JPEG, 95, output);
         }
         ExifInterface exif = new ExifInterface(source.getPath());
-        exif.setLatLong(52.516667, 13.4);
+        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, "N");
+        exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, "52/1,31/1,0/1");
+        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, "E");
+        exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, "13/1,24/1,0/1");
         exif.saveAttributes();
         ContentValues values = new ContentValues();
         values.put(MediaStore.Images.Media.DISPLAY_NAME, name);
@@ -265,10 +269,12 @@ public class PhotoFileChooserTest {
         assertArrayEquals("The existing Web File intake receives the original bytes",
             java.nio.file.Files.readAllBytes(source.toPath()), uploadedBytes);
         try (InputStream input = new java.io.ByteArrayInputStream(uploadedBytes)) {
-            double[] location = new ExifInterface(input).getLatLong();
-            assertNotNull("GPS survives the actual native system selection", location);
-            assertEquals(52.516667, location[0], 0.000001);
-            assertEquals(13.4, location[1], 0.000001);
+            float[] location = new float[2];
+            assertTrue("GPS survives the actual native system selection",
+                new ExifInterface(input).getLatLong(location));
+            // The platform reader returns floats; the original-byte assertion above is exact.
+            assertEquals(52.516667, location[0], 0.00001);
+            assertEquals(13.4, location[1], 0.00001);
         }
     }
 

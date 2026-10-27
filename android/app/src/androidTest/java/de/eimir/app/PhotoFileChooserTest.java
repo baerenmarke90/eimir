@@ -20,8 +20,6 @@ import android.os.Build;
 import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.view.KeyEvent;
-import android.view.InputDevice;
-import android.view.MotionEvent;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.webkit.WebChromeClient.FileChooserParams;
@@ -317,7 +315,9 @@ public class PhotoFileChooserTest {
         StringBuilder hierarchy = new StringBuilder();
         for (int count = 0; count < 500 && !nodes.isEmpty(); count++) {
             AccessibilityNodeInfo node = nodes.remove();
-            hierarchy.append(node.getViewIdResourceName()).append(" | ")
+            Rect bounds = new Rect();
+            node.getBoundsInScreen(bounds);
+            hierarchy.append(bounds).append(" | ").append(node.getViewIdResourceName()).append(" | ")
                 .append(node.getText()).append(" | ").append(node.getContentDescription()).append('\n');
             for (int i = 0; i < node.getChildCount(); i++) {
                 AccessibilityNodeInfo child = node.getChild(i);
@@ -363,33 +363,25 @@ public class PhotoFileChooserTest {
         return response.get();
     }
 
-    private void tapSystemDocument(AccessibilityNodeInfo document) {
+    private void tapSystemDocument(AccessibilityNodeInfo document) throws Exception {
         assertTrue("The identified document is visible", document.isVisibleToUser());
         Rect bounds = new Rect();
         document.getBoundsInScreen(bounds);
         assertFalse("The identified document has touch bounds", bounds.isEmpty());
-        // DocumentsUI grid tiles expose identity/bounds without ACTION_CLICK.
-        // Inject the same touchscreen gesture a person uses at that identified item.
-        long downTime = SystemClock.uptimeMillis();
-        MotionEvent down = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN,
-            bounds.exactCenterX(), bounds.exactCenterY(), 0);
-        down.setSource(InputDevice.SOURCE_TOUCHSCREEN);
-        try {
-            assertTrue("Android accepts the document touch-down",
-                instrumentation.getUiAutomation().injectInputEvent(down, true));
-            // This is the platform's gesture duration, not a provider/content wait.
-            SystemClock.sleep(android.view.ViewConfiguration.getTapTimeout());
-            MotionEvent up = MotionEvent.obtain(downTime, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP,
-                bounds.exactCenterX(), bounds.exactCenterY(), 0);
-            up.setSource(InputDevice.SOURCE_TOUCHSCREEN);
-            try {
-                assertTrue("Android accepts the document touch-up",
-                    instrumentation.getUiAutomation().injectInputEvent(up, true));
-            } finally {
-                up.recycle();
+        // Reuse Android's input command for the real cross-process gesture.
+        // Only the identified item's integer screen bounds enter this command.
+        String command = "input touchscreen tap " + bounds.centerX() + " " + bounds.centerY();
+        try (InputStream output = new android.os.ParcelFileDescriptor.AutoCloseInputStream(
+                instrumentation.getUiAutomation().executeShellCommand(command))) {
+            java.io.ByteArrayOutputStream diagnostics = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int count;
+            while ((count = output.read(buffer)) != -1) {
+                diagnostics.write(buffer, 0, count);
+                assertTrue("System input output stays bounded", diagnostics.size() <= 8192);
             }
-        } finally {
-            down.recycle();
+            assertEquals("Android accepts the identified document tap", "",
+                diagnostics.toString("UTF-8").trim());
         }
     }
 

@@ -306,10 +306,14 @@ public class PhotoFileChooserTest {
         captureNativeDiagnostics("native-photo-picker");
         assertNotNull("The real Android photo picker exposes the foreign-owned fixture", document);
         tapSystemDocument(document);
-        AccessibilityNodeInfo add = findDocument("Add");
+        // SDK-extension-23 pickers label the final selection action "Done";
+        // older system photo pickers use "Add". Both are explicit confirmation.
+        String confirmLabel = PhotoFileChooser.supportsPickerMetadata() ? "Done" : "Add";
+        AccessibilityNodeInfo confirm = findDocument(confirmLabel);
         captureNativeDiagnostics("native-photo-confirmation");
-        assertNotNull("Multiple selection has Android's explicit Add confirmation", add);
-        tapSystemDocument(add);
+        assertNotNull("The system picker requires explicit selection confirmation: " + confirmLabel,
+            confirm);
+        tapSystemDocument(confirm);
         byte[] uploadedBytes = selectedFileBytes(view);
         java.nio.file.Files.write(new File(context.getFilesDir(), "native-selected-photo.jpg").toPath(), uploadedBytes);
         assertArrayEquals("The existing Web File intake receives the original bytes",

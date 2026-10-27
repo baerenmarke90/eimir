@@ -22,8 +22,10 @@ import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.webkit.WebChromeClient.FileChooserParams;
+import android.webkit.WebView;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.platform.app.InstrumentationRegistry;
+import com.getcapacitor.WebViewListener;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -220,9 +222,33 @@ public class PhotoFileChooserTest {
         values.clear();
         values.put(MediaStore.Images.Media.IS_PENDING, 0);
         context.getContentResolver().update(fixture, values, null, null);
-        AtomicReference<Uri[]> returned = new AtomicReference<>();
-        CountDownLatch selected = new CountDownLatch(1);
-        openPicker(result -> { returned.set(result); selected.countDown(); });
+        // Exercise the actual Chromium File handoff, not just our native callback.
+        WebView view = activity.getBridge().getWebView();
+        CountDownLatch loaded = new CountDownLatch(1);
+        instrumentation.runOnMainSync(() -> {
+            activity.getBridge().addWebViewListener(new WebViewListener() {
+                @Override public void onPageLoaded(WebView page) {
+                    if ("https://localhost/native-photo-fixture".equals(page.getUrl())) loaded.countDown();
+                }
+            });
+            view.getSettings().setJavaScriptEnabled(true);
+            view.loadDataWithBaseURL("https://localhost/native-photo-fixture",
+                "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+                + "<input id='photo' type='file' accept='image/jpeg' aria-label='Choose photo' "
+                + "style='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:240px;height:60px'>"
+                + "<script>document.getElementById('photo').onchange=async(e)=>{"
+                + "const bytes=new Uint8Array(await e.target.files[0].arrayBuffer());"
+                + "let binary='';for(const value of bytes)binary+=String.fromCharCode(value);"
+                + "window.selectedPhotoBytes=btoa(binary);};</script>", "text/html", "UTF-8", null);
+        });
+        assertTrue("The deterministic file-input document loads", loaded.await(10, TimeUnit.SECONDS));
+        instrumentation.getUiAutomation().executeAndWaitForEvent(() ->
+            androidx.test.espresso.Espresso.onView(
+                androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom(WebView.class))
+                .perform(androidx.test.espresso.action.ViewActions.click()),
+            event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                && event.getPackageName() != null
+                && event.getPackageName().toString().endsWith(".documentsui"), 15000);
         AccessibilityNodeInfo document = findDocument(name);
         assertNotNull("The real Android document picker exposes the selected fixture", document);
         Bitmap screenshot = instrumentation.getUiAutomation().takeScreenshot();
@@ -235,18 +261,32 @@ public class PhotoFileChooserTest {
         }
         assertNotNull("The document has an actionable system control", document);
         assertTrue(document.performAction(AccessibilityNodeInfo.ACTION_CLICK));
-        assertTrue("The platform selection returns to the production callback", selected.await(10, TimeUnit.SECONDS));
-        assertNotNull(returned.get());
-        assertEquals(1, returned.get().length);
-        assertTrue("Original MediaStore access is requested only after the explicit grant",
-            MediaStore.getRequireOriginal(returned.get()[0]));
-        try (InputStream input = context.getContentResolver().openInputStream(returned.get()[0])) {
-            assertNotNull(input);
+        byte[] uploadedBytes = selectedFileBytes(view);
+        assertArrayEquals("The existing Web File intake receives the original bytes",
+            java.nio.file.Files.readAllBytes(source.toPath()), uploadedBytes);
+        try (InputStream input = new java.io.ByteArrayInputStream(uploadedBytes)) {
             double[] location = new ExifInterface(input).getLatLong();
             assertNotNull("GPS survives the actual native system selection", location);
             assertEquals(52.516667, location[0], 0.000001);
             assertEquals(13.4, location[1], 0.000001);
         }
+    }
+
+    private byte[] selectedFileBytes(WebView view) throws Exception {
+        long deadline = SystemClock.uptimeMillis() + 10000;
+        do {
+            CountDownLatch read = new CountDownLatch(1);
+            AtomicReference<String> response = new AtomicReference<>();
+            instrumentation.runOnMainSync(() -> view.evaluateJavascript("window.selectedPhotoBytes||''", value -> {
+                response.set(value);
+                read.countDown();
+            }));
+            assertTrue("Chromium answers the file-read probe", read.await(3, TimeUnit.SECONDS));
+            String encoded = new org.json.JSONArray("[" + response.get() + "]").getString(0);
+            if (!encoded.isEmpty()) return android.util.Base64.decode(encoded, android.util.Base64.DEFAULT);
+            instrumentation.waitForIdleSync();
+        } while (SystemClock.uptimeMillis() < deadline);
+        throw new AssertionError("The selected image never reached the Web File intake");
     }
 
     private AccessibilityNodeInfo findDocument(String name) throws Exception {

@@ -94,49 +94,29 @@ def test_completed_demo_preserves_mixed_place_and_memory_media_coverage(session:
 
 def test_completed_demo_has_authored_tags_and_manual_memory_place_links(session: Session) -> None:
     result = _seed(session)
-    assert _memory_by_title(session, result.space_id, "Frühstück in Saarbrücken").payload.tags == [
-        "Frühstück", "Unterwegs"
-    ]
-    assert _memory_by_title(session, result.space_id, "Spaziergang am See").payload.tags == [
-        "Am See", "Spaziergang"
-    ]
-    assert _memory_by_title(session, result.space_id, "Filmabend auf dem Sofa").payload.tags == []
+    breakfast = _memory_by_title(session, result.space_id, "Frühstück in Saarbrücken")
+    lake_walk = _memory_by_title(session, result.space_id, "Spaziergang am See")
+    movie_night = _memory_by_title(session, result.space_id, "Filmabend auf dem Sofa")
+    assert breakfast.payload.tags == ["Frühstück", "Unterwegs"]
+    assert lake_walk.payload.tags == ["Am See", "Spaziergang"]
+    assert movie_night.payload.tags == []
 
-    moments = list(
-        session.execute(
-            select(HeartMoment).where(HeartMoment.space_id == result.space_id)
-        ).scalars()
-    )
-    shared = next(
-        moment
-        for moment in moments
-        if moment.payload.text == "Danke, dass du heute einfach zugehört hast."
-    )
-    private = next(
-        moment
-        for moment in moments
-        if moment.payload.text == "Vorfreude auf eine kleine Überraschung für Alex."
-    )
+    moments = session.scalars(
+        select(HeartMoment).where(HeartMoment.space_id == result.space_id)
+    ).all()
+    moments_by_text = {moment.payload.text: moment for moment in moments}
+    shared = moments_by_text["Danke, dass du heute einfach zugehört hast."]
+    private = moments_by_text["Vorfreude auf eine kleine Überraschung für Alex."]
     assert shared.payload.tags == ["Dankbarkeit", "Miteinander"]
     assert private.payload.tags == ["Überraschung"]
 
-    place_names = {
-        place.id: place.payload.name
-        for place in session.execute(
-            select(Place).where(Place.space_id == result.space_id)
-        ).scalars()
-    }
-    memory_titles = {
-        memory.id: memory.payload.title
-        for memory in session.execute(
-            select(Memory).where(Memory.space_id == result.space_id)
-        ).scalars()
-    }
-    links = list(
-        session.execute(
-            select(PlaceMemory).where(PlaceMemory.space_id == result.space_id)
-        ).scalars()
-    )
+    places = session.scalars(select(Place).where(Place.space_id == result.space_id)).all()
+    memories = session.scalars(select(Memory).where(Memory.space_id == result.space_id)).all()
+    links = session.scalars(
+        select(PlaceMemory).where(PlaceMemory.space_id == result.space_id)
+    ).all()
+    place_names = {place.id: place.payload.name for place in places}
+    memory_titles = {memory.id: memory.payload.title for memory in memories}
     assert {(place_names[link.place_id], memory_titles[link.memory_id]) for link in links} == {
         ("Café am Markt", "Frühstück in Saarbrücken"),
         ("Waldsee", "Spaziergang am See"),

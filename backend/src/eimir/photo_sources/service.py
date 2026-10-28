@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from eimir.api.deps import ensure_capability
 from eimir.auth import rate_limit
-from eimir.auth.tokens import hash_token
+from eimir.auth.tokens import hash_token, tokens_equal
 from eimir.authorization import AuthorizationContext
 from eimir.config import get_settings
 from eimir.core.clock import now
@@ -32,6 +32,7 @@ from eimir.db.locks import lock_subject
 from eimir.entitlements.models import Capability
 from eimir.identity.models import Account, DeviceSession
 from eimir.jobs import queue
+from eimir.photo_sources.browser_binding import valid_proof
 from eimir.photo_sources.models import (
     PhotoConnection,
     PhotoConnectionPayload,
@@ -50,6 +51,7 @@ EXPIRE_JOB = "photo_selection_expire"
 _SLOTS = threading.BoundedSemaphore(4)
 _LIFETIME = timedelta(minutes=10)
 _CAPABILITY = Capability.INTEGRATION_EXTERNAL_SYNC.value
+GOOGLE_RECOVERY_POLICY = "memory-only-v1"
 
 
 def enabled() -> bool:
@@ -62,13 +64,20 @@ def enabled() -> bool:
 
 
 def google_import_available() -> bool:
-    # #1467: browser-bound OAuth and encrypted device recovery must land first.
-    # Operator credentials or flags cannot bypass these unresolved safeguards.
+    # #1467: native browser handoff, device recovery and enablement acceptance
+    # remain open. Operator credentials or flags cannot bypass this decision.
     return False
 
 
 def _guard_google_import(provider: str) -> None:
     if provider == "google" and not google_import_available():
+        raise ServiceUnavailableError(
+            "This photo source is unavailable.", "PHOTO_SOURCE_UNAVAILABLE"
+        )
+
+
+def _guard_recovery_policy(row: PhotoSelection) -> None:
+    if row.provider == "google" and row.payload.media_recovery_policy != GOOGLE_RECOVERY_POLICY:
         raise ServiceUnavailableError(
             "This photo source is unavailable.", "PHOTO_SOURCE_UNAVAILABLE"
         )
@@ -185,9 +194,18 @@ def start(
     device: DeviceSession,
     provider: Provider,
     maximum: int,
+    *,
+    browser_binding: str | None = None,
+    media_recovery_policy: str | None = None,
 ) -> tuple[PhotoSelection, str | None]:
     _guard(session, auth)
     _guard_google_import(provider)
+    if provider == "google" and (
+        not valid_proof(browser_binding) or media_recovery_policy != GOOGLE_RECOVERY_POLICY
+    ):
+        raise ServiceUnavailableError(
+            "This photo source is unavailable.", "PHOTO_SOURCE_UNAVAILABLE"
+        )
     rate_limit.check(
         session,
         "photo-source-start",
@@ -220,6 +238,7 @@ def start(
             space_id=auth.space_id,
             device_session_id=device.id,
             max_items=maximum,
+            media_recovery_policy=media_recovery_policy if provider == "google" else None,
         ),
     )
     url: str | None = None
@@ -228,7 +247,11 @@ def start(
             url, state, verifier = google_photos.authorization()
             row.state_hash = hash_token(state)
             row.payload = row.payload.model_copy(
-                update={"oauth_state": state, "code_verifier": verifier}
+                update={
+                    "oauth_state": state,
+                    "code_verifier": verifier,
+                    "browser_binding_hash": hash_token(browser_binding or ""),
+                }
             )
         else:
             linked = connection(session, auth.account_id)
@@ -276,6 +299,7 @@ def owned(
         raise NotFoundError("Photo selection not found.", "PHOTO_SOURCE_NOT_FOUND")
     if commercial:
         _guard_google_import(row.provider)
+        _guard_recovery_policy(row)
     return row
 
 
@@ -295,6 +319,7 @@ def _load_immich_page(session: Session, row: PhotoSelection, page: int) -> None:
 
 def advance(session: Session, row: PhotoSelection, *, more: bool = False) -> None:
     _guard_google_import(row.provider)
+    _guard_recovery_policy(row)
     rate_limit.check(
         session,
         "photo-source-poll",
@@ -336,8 +361,14 @@ def advance(session: Session, row: PhotoSelection, *, more: bool = False) -> Non
             row.next_poll_at = now() + timedelta(seconds=min(60, max(3, seconds)))
 
 
-def callback(session: Session, state: str, code: str | None) -> str | None:
-    if not google_import_available():
+def callback(
+    session: Session,
+    state: str,
+    code: str | None,
+    *,
+    browser_binding: str | None = None,
+) -> str | None:
+    if not google_import_available() or not state or not valid_proof(browser_binding):
         return None
     # Discover only ownership metadata first. Match the existing lifecycle lock
     # order: Membership -> entitlement -> selection. Locking the selection
@@ -349,6 +380,7 @@ def callback(session: Session, state: str, code: str | None) -> str | None:
             PhotoSelection.space_id,
             PhotoSelection.device_session_id,
         ).where(
+            PhotoSelection.provider == "google",
             PhotoSelection.state_hash == hash_token(state),
             PhotoSelection.expires_at > now(),
             PhotoSelection.status == "AUTHORIZING",
@@ -362,6 +394,7 @@ def callback(session: Session, state: str, code: str | None) -> str | None:
         not account
         or not account.is_active
         or not device
+        or device.account_id != account.id
         or device.revoked_at
         or device.expires_at <= now()
         or device.absolute_expires_at <= now()
@@ -376,6 +409,7 @@ def callback(session: Session, state: str, code: str | None) -> str | None:
         select(PhotoSelection)
         .where(
             PhotoSelection.id == metadata.id,
+            PhotoSelection.provider == "google",
             PhotoSelection.state_hash == hash_token(state),
             PhotoSelection.expires_at > now(),
             PhotoSelection.status == "AUTHORIZING",
@@ -384,8 +418,17 @@ def callback(session: Session, state: str, code: str | None) -> str | None:
     ).scalar_one_or_none()
     if row is None:
         return None
-    row.state_hash = None  # consumed even if the provider denies or fails
     data = row.payload
+    # State and stored Account/DeviceSession metadata do not prove which
+    # browser returned. A wrong browser must not exchange or consume the task.
+    # Legacy rows have no proof and deliberately cannot complete authorization.
+    if (
+        data.media_recovery_policy != GOOGLE_RECOVERY_POLICY
+        or not data.browser_binding_hash
+        or not tokens_equal(data.browser_binding_hash, hash_token(browser_binding or ""))
+    ):
+        return None
+    row.state_hash = None  # consumed even if the provider denies or fails
     try:
         if (
             data.account_id != row.account_id
@@ -406,15 +449,23 @@ def callback(session: Session, state: str, code: str | None) -> str | None:
                     "picker_uri": google_photos.picker_uri(created["pickerUri"]),
                     "oauth_state": None,
                     "code_verifier": None,
+                    "browser_binding_hash": None,
                 }
             )
             row.status = "PICKING"
+            session.flush()
             return row.payload.picker_uri
     except (PhotoSourceError, DomainError):
         row.status = "FAILED"
         row.payload = data.model_copy(
-            update={"oauth_state": None, "code_verifier": None, "access_token": None}
+            update={
+                "oauth_state": None,
+                "code_verifier": None,
+                "browser_binding_hash": None,
+                "access_token": None,
+            }
         )
+        session.flush()
         return None
 
 
@@ -422,6 +473,7 @@ def read_item(
     session: Session, row: PhotoSelection, item_id: str, *, thumbnail: bool
 ) -> SelectedPhoto:
     _guard_google_import(row.provider)
+    _guard_recovery_policy(row)
     rate_limit.check(
         session,
         "photo-source-read",

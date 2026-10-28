@@ -306,7 +306,7 @@ export function PhotoSourcePicker({
             { signal: current.request.signal },
           );
           current.ticket.signal.throwIfAborted();
-          files.push(photoFile(blob, files.length));
+          files.push(photoFile(blob, files.length, ready.source === 'google'));
         } catch (error) {
           if (current.request.signal.aborted || current.ticket.signal.aborted)
             throw error;
@@ -365,6 +365,8 @@ export function PhotoSourcePicker({
             source,
             maxItems: Math.min(20, remaining),
             consent: true,
+            mediaRecoveryPolicy:
+              source === 'google' ? 'memory-only-v1' : undefined,
           },
         },
         { signal: current.request.signal },
@@ -657,7 +659,13 @@ export function PhotoSourcePicker({
             ) : null}
             {canImport ? (
               <>
-                <p>{t('photoSources.consent')}</p>
+                <p>
+                  {t(
+                    source === 'google'
+                      ? 'photoSources.googleConsent'
+                      : 'photoSources.consent',
+                  )}
+                </p>
                 <label className="photo-source-consent">
                   <input
                     type="checkbox"

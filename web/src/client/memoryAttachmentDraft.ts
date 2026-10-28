@@ -3,6 +3,7 @@ import type { MemoryCreate } from '../api/generated/models/MemoryCreate';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { ClientProblemError } from './problemDetails';
 import { i18n } from '../i18n';
+import { selectedPhotoUnavailable } from './selectedMediaRetention';
 import {
   ReferenceFlowError,
   uploadAttachmentBytesWithProgress,
@@ -34,6 +35,8 @@ export async function uploadMemoryDraftAttachment(
     preserveMetadata?: boolean;
   } = {},
 ): Promise<ReadyDraftAttachment> {
+  if (selectedPhotoUnavailable(file))
+    throw new ReferenceFlowError(i18n.t('memory.diary.photoUnavailable'));
   if (!file.type.startsWith('image/'))
     throw new ReferenceFlowError(i18n.t('flow.imageOnly'));
   if (file.size === 0) throw new ReferenceFlowError(i18n.t('flow.imageEmpty'));

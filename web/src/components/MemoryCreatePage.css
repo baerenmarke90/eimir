@@ -201,3 +201,16 @@
   grid-column: 1 / -1;
   justify-content: flex-start;
 }
+
+@media (max-width: 430px) {
+  .memory-task-page .immersive-create-media .attachment-draft-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .memory-task-page .attachment-draft-meta,
+  .memory-task-page .attachment-draft-actions button {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    overflow-wrap: anywhere;
+  }
+}

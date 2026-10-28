@@ -50,6 +50,8 @@ class PhotoSelectionPayload(ProtectedPayload):
     space_id: UUID
     device_session_id: UUID
     oauth_state: str | None = Field(default=None, repr=False)
+    browser_binding_hash: str | None = Field(default=None, repr=False)
+    media_recovery_policy: str | None = None
     code_verifier: str | None = Field(default=None, repr=False)
     access_token: str | None = Field(default=None, repr=False)
     provider_session_id: str | None = Field(default=None, repr=False)

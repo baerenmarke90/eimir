@@ -8,6 +8,8 @@ const photoSources = {
     'Verknüpfe eure Fotodienste und übernimm ausgewählte Fotos mit eimir. Pro.',
   consent:
     'Nur ausgewählte Fotos werden in deinen Entwurf kopiert. Auf diesem Gerät können sie bis zu 7 Tage gesichert werden. Beim Speichern des Eintrags sind sie für euch beide sichtbar.',
+  googleConsent:
+    'Nur ausgewählte Fotos werden in deinen geöffneten Entwurf und in den geschützten Server-Zwischenspeicher kopiert. Auf diesem Gerät werden keine dauerhaften Google-Fotokopien angelegt. Nach einem Neustart müssen nicht mehr verfügbare Fotos erneut ausgewählt werden. Erst beim Speichern des Eintrags sind sie für euch beide sichtbar.',
   accept: 'Ausgewählte Fotos in meinen Entwurf übernehmen',
   continue: 'Weiter zur Auswahl',
   waiting:

@@ -3,6 +3,9 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import memoryProduct from '../../src/i18n/locales/memoryProduct';
+import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
+import AxeBuilder from '@axe-core/playwright';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -38,6 +41,7 @@ type ImageFixture = {
   width: number;
   height: number;
   svg: string;
+  isSensitive?: boolean;
 };
 
 function attachment(value: ImageFixture, position: number) {
@@ -48,6 +52,7 @@ function attachment(value: ImageFixture, position: number) {
     mediaType: 'IMAGE',
     mimeType: 'image/jpeg',
     hasThumbnail: true,
+    isSensitive: value.isSensitive ?? false,
     width: value.width,
     height: value.height,
     size: value.svg.length,
@@ -318,6 +323,9 @@ async function installApiMocks(
   const unexpectedRequests: string[] = [];
   const readAccessBodies: unknown[] = [];
   const contentReads: string[] = [];
+  let currentMemory = memory(MEMORY_ID, galleryAttachments.map(attachment));
+  if (galleryAttachments.some((item) => item.isSensitive))
+    currentMemory.body = 'A quiet evening together by the water.';
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
@@ -472,10 +480,46 @@ async function installApiMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}`
     ) {
-      await fulfillJson(memory(MEMORY_ID, galleryAttachments.map(attachment)));
+      await fulfillJson(currentMemory);
       return;
     }
 
+    if (
+      method === 'PATCH' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}`
+    ) {
+      currentMemory = {
+        ...currentMemory,
+        ...request.postDataJSON(),
+        version: currentMemory.version + 1,
+      };
+      await fulfillJson(currentMemory);
+      return;
+    }
+    if (
+      method === 'PUT' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}/attachments`
+    ) {
+      const entries = request.postDataJSON().attachments as {
+        attachmentId: string;
+        position: number;
+        isSensitive?: boolean;
+      }[];
+      currentMemory = {
+        ...currentMemory,
+        version: currentMemory.version + 1,
+        attachments: entries.map((entry) => ({
+          ...currentMemory.attachments.find(
+            (item) => item.id === entry.attachmentId,
+          )!,
+          position: entry.position,
+          isSensitive: entry.isSensitive ?? false,
+        })),
+      };
+      await fulfillJson(currentMemory);
+      return;
+    }
     if (
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/memories/${SINGLE_MEMORY_ID}`
@@ -1047,4 +1091,225 @@ test('Single-image Memory keeps the stable frame without carousel navigation', a
     .evaluate((element) => element.getBoundingClientRect().height);
   expect(frameHeight).toBeGreaterThan(0);
   expect(unexpectedRequests).toEqual([]);
+});
+
+test('sensitive media remains local to one item and conceals on return and actual backgrounding', async ({
+  page,
+  context,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installApiMocks(
+    page,
+    ATTACHMENTS.map((item, index) => ({ ...item, isSensitive: index !== 1 })),
+  );
+  await page.goto('/');
+  await signIn(page);
+  await page.goto(`/story/memories/${MEMORY_ID}`);
+  await expect(
+    page.getByRole('heading', { name: MULTI_MEMORY.title }),
+  ).toBeVisible();
+  const active = page.locator('.media-gallery-carousel-slide.is-active');
+  await expect(active.locator('.sensitive-media-cover')).toBeVisible();
+  await expect(active.locator('img')).toHaveAttribute('alt', '');
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .include('.media-gallery-carousel')
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  const reveal = page.getByRole('button', {
+    name: sensitiveMedia.show,
+    exact: true,
+  });
+  const box = await reveal.boundingBox();
+  expect(box?.height).toBeGreaterThanOrEqual(44);
+  await reveal.focus();
+  await page.keyboard.press('Enter');
+  await expect(
+    page.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
+  ).toBeFocused();
+  await expect(active.locator('.sensitive-media-cover')).toHaveCount(0);
+  await active.click();
+  const dialog = page.getByRole('dialog');
+  await expect(
+    dialog.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: '../../docs/product/design/references/1477/runtime-lightbox-revealed-390.png',
+  });
+  await page.keyboard.press('ArrowRight');
+  await expect(
+    page.locator(
+      '.media-lightbox-slide[data-lightbox-index="1"] .sensitive-media-cover',
+    ),
+  ).toHaveCount(0);
+  await page.keyboard.press('ArrowRight');
+  await expect(
+    dialog.getByRole('button', { name: sensitiveMedia.show, exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  // Ordinary window focus changes must retain the inline reveal.
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await expect(
+    page.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
+  ).toBeVisible();
+  const other = await context.newPage();
+  await other.goto('about:blank');
+  await other.bringToFront();
+  await page.bringToFront();
+  // Headless tabs do not always dispatch document visibility: also exercise
+  // the exact hidden boundary deterministically, with actual browser DOM.
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      value: 'hidden',
+    });
+    document.dispatchEvent(new Event('visibilitychange'));
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      value: 'visible',
+    });
+  });
+  await expect(
+    page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: sensitiveMedia.show, exact: true })
+    .click();
+  await page.reload();
+  await expect(
+    page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
+  ).toBeVisible();
+});
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`sensitive media reflows in ${theme} and retains readable controls`, async ({
+    page,
+  }) => {
+    await page.addInitScript(
+      (theme) => localStorage.setItem('eimir.theme', theme),
+      theme,
+    );
+    await installApiMocks(
+      page,
+      ATTACHMENTS.map((item, index) => ({ ...item, isSensitive: index === 0 })),
+    );
+    await page.goto('/');
+    await signIn(page);
+    await page.goto(`/story/memories/${MEMORY_ID}`);
+    await page.emulateMedia({ colorScheme: theme });
+    for (const width of [320, 360, 390, 430, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expectCarouselSettled(page, 0);
+      const reveal = page.getByRole('button', {
+        name: sensitiveMedia.show,
+        exact: true,
+      });
+      await expect(reveal).toBeVisible();
+      const box = await reveal.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.x).toBeGreaterThanOrEqual(0);
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(width);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      if (width === 1280) {
+        await page.reload();
+        await expectCarouselSettled(page, 0);
+      }
+      await reveal.scrollIntoViewIfNeeded();
+      await nextFrame(page);
+      await page.screenshot({
+        path: `../../docs/product/design/references/1477/runtime-${theme}-${width}.png`,
+        fullPage: width < 840,
+      });
+    }
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+    await expect(
+      page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: `../../docs/product/design/references/1477/runtime-${theme}-320-large-text.png`,
+      fullPage: true,
+    });
+  });
+}
+
+test('sensitive photo editing retains a failed classification draft and saves on deliberate retry', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installApiMocks(
+    page,
+    ATTACHMENTS.map((item, index) => ({ ...item, isSensitive: index === 0 })),
+  );
+  await page.goto('/');
+  await signIn(page);
+  await page.goto(`/story/memories/${MEMORY_ID}/edit`);
+  const mark = page
+    .getByRole('checkbox', { name: sensitiveMedia.mark, exact: true })
+    .first();
+  await expect(mark).toBeChecked();
+  await mark.uncheck();
+  await page.screenshot({
+    path: '../../docs/product/design/references/1477/runtime-edit-390.png',
+    fullPage: true,
+  });
+  let rejectNext = true;
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}/attachments`,
+    async (route) => {
+      if (route.request().method() === 'PUT' && rejectNext) {
+        rejectNext = false;
+        await route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            code: 'SAVE_FAILED',
+            status: 500,
+            title: 'Save failed',
+          }),
+        });
+      } else await route.fallback();
+    },
+  );
+  await page
+    .getByRole('button', {
+      name: memoryProduct.save,
+      exact: true,
+    })
+    .click();
+  await expect(mark).not.toBeChecked();
+  await expect(page).toHaveURL(/edit$/);
+  await page
+    .getByRole('button', {
+      name: memoryProduct.save,
+      exact: true,
+    })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+  await expect(
+    page.locator(
+      '.media-gallery-carousel-slide.is-active .sensitive-media-cover',
+    ),
+  ).toHaveCount(0);
+  await page.reload();
+  await expect(
+    page.locator(
+      '.media-gallery-carousel-slide.is-active .media-gallery-carousel-content',
+    ),
+  ).toBeVisible();
 });

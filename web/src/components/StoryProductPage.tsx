@@ -904,6 +904,7 @@ export function StoryProductPage({
                           : ''
                       }
                       attachmentId={featuredMedia.id}
+                      isSensitive={featuredMedia.isSensitive}
                       loadImage={loadMemoryImage}
                       loadingMode="immediate"
                     />
@@ -1075,6 +1076,7 @@ export function StoryProductPage({
                               <MemoryPreview
                                 memoryId={entry.memoryId}
                                 attachmentId={entry.firstAttachment.id}
+                                isSensitive={entry.firstAttachment.isSensitive}
                                 loadImage={loadMemoryImage}
                                 loadingMode="near-viewport"
                               />

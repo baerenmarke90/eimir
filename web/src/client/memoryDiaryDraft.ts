@@ -8,9 +8,13 @@ export interface MemoryDiaryDraft {
   tags: string[];
   tagDraft?: string;
   happenedOn: string;
-  files: { file: File; attachmentId?: string }[];
+  files: { file: File; attachmentId?: string; isSensitive?: boolean }[];
   attempt: MemoryCreateAttempt | null;
-  partial: { memory: MemoryDetail; attachmentIds: readonly string[] } | null;
+  partial: {
+    memory: MemoryDetail;
+    attachmentIds: readonly string[];
+    attachmentSensitivity?: readonly boolean[];
+  } | null;
 }
 
 interface DraftRecord {

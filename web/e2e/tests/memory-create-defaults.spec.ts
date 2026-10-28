@@ -350,6 +350,7 @@ async function installApiMocks(
     createdAt: TEST_NOW,
     durationSeconds: null,
     hasThumbnail: false,
+    isSensitive: false,
     height: photos?.photoBytes ? 800 : 1,
     width: photos?.photoBytes ? 1200 : 1,
     mediaType: 'IMAGE',

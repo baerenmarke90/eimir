@@ -14,6 +14,7 @@ const labels = storyProducts.gallery;
 const images: GalleryMediaItem[] = Array.from({ length: 6 }, (_, index) => ({
   id: String(index),
   mediaType: 'IMAGE',
+  isSensitive: false,
 }));
 
 beforeEach(() => {
@@ -129,7 +130,9 @@ it('keeps empty, short and mixed-media galleries bounded without loading videos'
   view.rerender(<MediaGallery items={images.slice(0, 2)} loadMedia={load} />);
   await waitFor(() => expect(load).toHaveBeenCalledTimes(2));
   const mixed = images.map((item, index) =>
-    index === 1 ? { ...item, mediaType: 'VIDEO' as const } : item,
+    index === 1
+      ? { ...item, mediaType: 'VIDEO' as const, isSensitive: false }
+      : item,
   );
   view.rerender(<MediaGallery items={mixed} loadMedia={load} />);
   await waitFor(() => expect(load).toHaveBeenCalledTimes(3));

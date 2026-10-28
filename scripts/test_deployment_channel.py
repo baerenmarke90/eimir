@@ -141,6 +141,65 @@ def candidate_ready(source: str) -> bool:
     )
 
 
+def completion_matches_source(event: dict, source: str) -> bool:
+    """Admit only an owning-repository main push completion for this checkout."""
+    if not isinstance(event, dict):
+        return False
+    completed = event.get("workflow_run")
+    if not isinstance(completed, dict):
+        return False
+    origin = completed.get("head_repository")
+    if not isinstance(origin, dict):
+        return False
+    return (
+        event.get("action") == "completed"
+        and completed.get("path") in REQUIRED_WORKFLOWS
+        and completed.get("event") == "push"
+        and completed.get("head_branch") == "main"
+        and completed.get("head_sha") == source
+        and origin.get("full_name") == REPOSITORY
+        and completed.get("status") == "completed"
+        and completed.get("conclusion") == "success"
+    )
+
+
+def channel_already_selected(source: str) -> bool:
+    """Avoid rebuilding an already selected pair after repeated completions."""
+    try:
+        parent = revision(
+            gh_api(f"repos/{REPOSITORY}/git/ref/heads/{CHANNEL_BRANCH}")["object"]["sha"]
+        )
+    except GitHubError as error:
+        if error.missing:
+            return False
+        raise
+    current = gh_api(f"repos/{REPOSITORY}/contents/channel.json?ref={parent}")
+    identity = json.loads(base64.b64decode(current["content"], validate=False))
+    if identity.get("kind") != CHANNEL_KIND or identity.get("schemaVersion") != 1:
+        raise ChannelError("Existing deployment branch is not an owned test channel")
+    return revision(identity["sourceRevision"]) == source
+
+
+def check_for_publication(source: str, event_name: str, event: dict) -> bool:
+    """Check once; later main workflow completions retry unfinished candidates."""
+    if event_name == "workflow_run":
+        if not completion_matches_source(event, source):
+            print("Completion does not admit this exact main checkout")
+            return False
+    elif event_name != "workflow_dispatch":
+        raise ChannelError("Test checks require a main completion or manual retry")
+    if latest_main() != source:
+        print("Candidate was superseded on main; keeping the current channel")
+        return False
+    if not candidate_ready(source):
+        print("Required main workflows are unfinished; awaiting another completion")
+        return False
+    if channel_already_selected(source):
+        print("This source is already selected; preserving its exact image pair")
+        return False
+    return True
+
+
 def wait_for_checks(source: str, timeout: int) -> bool:
     deadline = time.monotonic() + timeout
     while True:
@@ -502,6 +561,9 @@ def publish(source: str, artifact_root: Path, output: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
+    check = subparsers.add_parser("check")
+    check.add_argument("--revision", required=True)
+    check.add_argument("--github-output", type=Path, required=True)
     wait = subparsers.add_parser("wait")
     wait.add_argument("--revision", required=True)
     wait.add_argument("--timeout", type=int, default=3600)
@@ -519,10 +581,19 @@ def main() -> int:
             )
         if os.environ.get("GITHUB_REF") != "refs/heads/main":
             raise ChannelError("Test publication is restricted to main")
-        if args.command == "wait":
-            if not 1 <= args.timeout <= 3600:
-                raise ChannelError("Check timeout must be between 1 and 3600 seconds")
-            ready = wait_for_checks(source, args.timeout)
+        if args.command in {"check", "wait"}:
+            if args.command == "check":
+                event_name = os.environ.get("GITHUB_EVENT_NAME", "")
+                event = (
+                    json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+                    if event_name == "workflow_run"
+                    else {}
+                )
+                ready = check_for_publication(source, event_name, event)
+            else:
+                if not 1 <= args.timeout <= 3600:
+                    raise ChannelError("Check timeout must be between 1 and 3600 seconds")
+                ready = wait_for_checks(source, args.timeout)
             with args.github_output.open("a") as stream:
                 stream.write(f"ready={str(ready).lower()}\n")
         else:
@@ -541,3 +612,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

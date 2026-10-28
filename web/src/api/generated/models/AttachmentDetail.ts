@@ -58,6 +58,12 @@ export interface AttachmentDetail {
      */
     id: string;
     /**
+     * Manual sensitive-content classification; never an access-control boundary.
+     * @type {boolean}
+     * @memberof AttachmentDetail
+     */
+    isSensitive?: boolean;
+    /**
      * 
      * @type {MediaType}
      * @memberof AttachmentDetail
@@ -130,6 +136,7 @@ export function AttachmentDetailFromJSONTyped(json: any, ignoreDiscriminator: bo
         'hasThumbnail': json['hasThumbnail'],
         'height': json['height'],
         'id': json['id'],
+        'isSensitive': json['isSensitive'] == null ? undefined : json['isSensitive'],
         'mediaType': MediaTypeFromJSON(json['mediaType']),
         'mimeType': json['mimeType'],
         'size': json['size'],
@@ -155,6 +162,7 @@ export function AttachmentDetailToJSONTyped(value?: AttachmentDetail | null, ign
         'hasThumbnail': value['hasThumbnail'],
         'height': value['height'],
         'id': value['id'],
+        'isSensitive': value['isSensitive'],
         'mediaType': MediaTypeToJSON(value['mediaType']),
         'mimeType': value['mimeType'],
         'size': value['size'],

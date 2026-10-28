@@ -8,6 +8,7 @@ Content update payload.  ``visibility`` is intentionally absent: changing visibi
 Name | Type
 ------------ | -------------
 `attachmentId` | string
+`attachmentIsSensitive` | boolean
 `emotion` | [HeartEmotion](HeartEmotion.md)
 `happenedOn` | Date
 `tags` | Array&lt;string&gt;
@@ -21,6 +22,7 @@ import type { HeartMomentUpdate } from ''
 // TODO: Update the object below with actual values
 const example = {
   "attachmentId": null,
+  "attachmentIsSensitive": null,
   "emotion": null,
   "happenedOn": null,
   "tags": null,

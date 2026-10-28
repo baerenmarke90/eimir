@@ -94,6 +94,7 @@ describe('Momente retrospective integration (#601)', () => {
     createdAt: null,
     scheduledAt: null,
     previewAttachmentId: 'lake-ready-photo',
+    previewIsSensitive: false,
   };
   const dashboard = {
     viewerLocalDate: selectionDate,
@@ -169,7 +170,9 @@ describe('StoryProductPage', () => {
             notes: 'Wonderful sunset together',
             occurredOn: new Date('2026-08-26T00:00:00Z'),
             createdAt: new Date('2026-08-26T00:00:00Z'),
-            attachments: [{ id: 'att-1', mediaType: 'image/jpeg' }],
+            attachments: [
+              { id: 'att-1', mediaType: 'image/jpeg', isSensitive: false },
+            ],
             author: { id: 'author-1', displayName: 'Alex' },
             creator: { id: 'author-1', displayName: 'Alex' },
             capabilities: { canComment: true, canDelete: true, canEdit: true },
@@ -211,7 +214,9 @@ describe('StoryProductPage', () => {
             notes: 'Wonderful sunset together',
             occurredOn: new Date('2026-08-26T00:00:00Z'),
             createdAt: new Date('2026-08-26T00:00:00Z'),
-            attachments: [{ id: 'att-1', mediaType: 'image/jpeg' }],
+            attachments: [
+              { id: 'att-1', mediaType: 'image/jpeg', isSensitive: false },
+            ],
             author: { id: 'author-1', displayName: 'Alex' },
             creator: { id: 'author-1', displayName: 'Alex' },
             capabilities: { canComment: true, canDelete: true, canEdit: true },
@@ -275,7 +280,9 @@ describe('StoryProductPage', () => {
               notes: 'Wonderful sunset together',
               occurredOn: new Date('2026-08-26T00:00:00Z'),
               createdAt: new Date('2026-08-26T00:00:00Z'),
-              attachments: [{ id: 'att-1', mediaType: 'image/jpeg' }],
+              attachments: [
+                { id: 'att-1', mediaType: 'image/jpeg', isSensitive: false },
+              ],
               author: { id: 'author-1', displayName: 'Alex' },
               creator: { id: 'author-1', displayName: 'Alex' },
               capabilities: {
@@ -294,7 +301,9 @@ describe('StoryProductPage', () => {
               notes: 'Fresh air, quiet trail',
               occurredOn: new Date('2026-08-20T00:00:00Z'),
               createdAt: new Date('2026-08-20T00:00:00Z'),
-              attachments: [{ id: 'att-2', mediaType: 'image/jpeg' }],
+              attachments: [
+                { id: 'att-2', mediaType: 'image/jpeg', isSensitive: false },
+              ],
               author: { id: 'author-1', displayName: 'Alex' },
               creator: { id: 'author-1', displayName: 'Alex' },
               capabilities: {
@@ -354,7 +363,9 @@ describe('StoryProductPage', () => {
             notes: 'Wonderful sunset together',
             occurredOn: new Date('2026-08-26T00:00:00Z'),
             createdAt: new Date('2026-08-26T00:00:00Z'),
-            attachments: [{ id: 'att-1', mediaType: 'image/jpeg' }],
+            attachments: [
+              { id: 'att-1', mediaType: 'image/jpeg', isSensitive: false },
+            ],
             author: { id: 'author-1', displayName: 'Alex Winter' },
             creator: { id: 'author-1', displayName: 'Alex Winter' },
             capabilities: { canComment: true, canDelete: true, canEdit: true },

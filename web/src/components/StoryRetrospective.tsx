@@ -59,6 +59,7 @@ export function StoryRetrospective({
             <MemoryPreview
               memoryId={item.id}
               attachmentId={attachmentId}
+              isSensitive={item.previewIsSensitive}
               loadImage={loadMemoryImage}
               loadingMode="near-viewport"
             />

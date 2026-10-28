@@ -74,6 +74,7 @@ const UPCOMING = [
     occurredOn: null,
     createdAt: inDays(-3),
     previewAttachmentId: null,
+    previewIsSensitive: false,
   },
   {
     id: 'plan-2',
@@ -83,6 +84,7 @@ const UPCOMING = [
     occurredOn: null,
     createdAt: inDays(-2),
     previewAttachmentId: null,
+    previewIsSensitive: false,
   },
   {
     id: 'plan-3',
@@ -92,6 +94,7 @@ const UPCOMING = [
     occurredOn: inDaysDate(25),
     createdAt: inDays(-9),
     previewAttachmentId: null,
+    previewIsSensitive: false,
   },
 ];
 
@@ -103,6 +106,7 @@ const MOMENT = {
   createdAt: thisMonth(2),
   scheduledAt: null,
   previewAttachmentId: 'att-moment',
+  previewIsSensitive: false,
 };
 
 const STRIP_PHOTOS = [1, 2, 3].map((n) => ({
@@ -113,6 +117,7 @@ const STRIP_PHOTOS = [1, 2, 3].map((n) => ({
   createdAt: thisMonth(3 + n),
   scheduledAt: null,
   previewAttachmentId: `att-strip-${n}`,
+  previewIsSensitive: false,
 }));
 
 const SHARED_WISH = {
@@ -123,6 +128,7 @@ const SHARED_WISH = {
   createdAt: inDays(-40),
   scheduledAt: null,
   previewAttachmentId: null,
+  previewIsSensitive: false,
 };
 
 const TRACE_ONLY = {
@@ -133,6 +139,7 @@ const TRACE_ONLY = {
   createdAt: thisMonth(3),
   scheduledAt: null,
   previewAttachmentId: null,
+  previewIsSensitive: false,
 };
 
 const RICH_SPACE = {
@@ -612,6 +619,7 @@ test.describe('Today R4: the living home of a relationship', () => {
       createdAt: '2025-10-24T11:00:00Z',
       scheduledAt: null,
       previewAttachmentId: 'att-nostalgia',
+      previewIsSensitive: false,
     };
     const earlierMilestone = {
       id: 'milestone-1',
@@ -621,6 +629,7 @@ test.describe('Today R4: the living home of a relationship', () => {
       createdAt: '2025-06-02T12:00:00Z',
       scheduledAt: null,
       previewAttachmentId: null,
+      previewIsSensitive: false,
     };
     await page.setViewportSize({ width: 390, height: 844 });
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });

@@ -27,6 +27,75 @@ const PHOTO = fs.readFileSync(
 );
 const PLACE_ID = '66666666-6666-4666-8666-666666666666';
 
+test('the visible address opens the pinned map directly and retains the saved moment', async ({
+  page,
+  context,
+}) => {
+  await context.route('https://www.google.com/maps/**', (route) =>
+    route.fulfill({
+      contentType: 'text/html',
+      body: '<title>Fixture map</title>',
+    }),
+  );
+  const state = await installPhotoPlaces(page);
+  await signIn(page);
+  await page.goto('/story/memories/mem-canal');
+  const address = page.getByRole('link', {
+    name: photoPlaceCopy.mapAddress.replace(
+      '{{address}}',
+      localeFixture.photoPlaces.resolvedAddress,
+    ),
+  });
+  await expect(address).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  const popupPromise = page.waitForEvent('popup');
+  await address.click();
+  const popup = await popupPromise;
+  await expect(popup).toHaveURL(
+    'https://www.google.com/maps/search/?api=1&query=52.516667%2C13.4',
+  );
+  await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+  expect(state.writes).toEqual([]);
+  expect(state.unexpected).toEqual([]);
+  await popup.close();
+});
+
+test('a pending photo location becomes a readable address without another upload', async ({
+  page,
+}) => {
+  const state = await installPhotoPlaces(page, true);
+  await signIn(page);
+  await page.goto('/story/memories/mem-canal');
+  await expect(
+    page.getByText(photoPlaceCopy.locationFallback, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', {
+      name: photoPlaceCopy.mapAddress.replace(
+        '{{address}}',
+        photoPlaceCopy.locationFallback,
+      ),
+    }),
+  ).toHaveAttribute(
+    'href',
+    'https://www.google.com/maps/search/?api=1&query=52.516667%2C13.4',
+  );
+  state.resolvePlace();
+  await expect(
+    page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', {
+      name: photoPlaceCopy.mapAddress.replace(
+        '{{address}}',
+        localeFixture.photoPlaces.resolvedAddress,
+      ),
+    }),
+  ).toBeVisible();
+  expect(state.writes).toEqual([]);
+  expect(state.unexpected).toEqual([]);
+});
+
 test('canonical Place correction returns to the originating saved moment', async ({
   page,
 }) => {
@@ -36,14 +105,20 @@ test('canonical Place correction returns to the originating saved moment', async
   await signIn(page);
   await page.goto('/story/memories/mem-canal');
   await page
-    .getByRole('link', {
-      name: localeFixture.photoPlaces.initialName,
-      exact: true,
+    .getByRole('button', {
+      name: photoPlaceCopy.actions.replace(
+        '{{name}}',
+        localeFixture.photoPlaces.resolvedName,
+      ),
     })
+    .click();
+  await page
+    .getByRole('dialog')
+    .getByRole('link', { name: photoPlaceCopy.edit })
     .click();
   await expect(
     page.getByRole('heading', {
-      name: localeFixture.photoPlaces.initialName,
+      name: localeFixture.photoPlaces.resolvedName,
       exact: true,
     }),
   ).toBeVisible();
@@ -67,10 +142,7 @@ test('canonical Place correction returns to the originating saved moment', async
     .click();
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
   await expect(
-    page.getByRole('link', {
-      name: localeFixture.photoPlaces.correctedName,
-      exact: true,
-    }),
+    page.getByText(localeFixture.photoPlaces.correctedName, { exact: true }),
   ).toBeVisible();
   expect(state.writes).toEqual(['edit']);
   expect(state.unexpected).toEqual([]);
@@ -95,10 +167,7 @@ test('photo places retain 320px reflow with 200% body text', async ({
   ).toBe(true);
   await page.goto('/story/memories/mem-canal');
   await expect(
-    page.getByRole('link', {
-      name: localeFixture.photoPlaces.initialName,
-      exact: true,
-    }),
+    page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),
   ).toBeVisible();
   await page.addStyleTag({ content: 'body { font-size: 200% !important; }' });
   expect(
@@ -111,13 +180,13 @@ test('photo places retain 320px reflow with 200% body text', async ({
       .locator('.moment-places')
       .evaluate((node) => node.scrollWidth <= node.clientWidth + 1),
   ).toBe(true);
-  await captureScreenshot(page, testInfo, '1459-large-text-320-dark.png', {
+  await captureScreenshot(page, testInfo, '1478-large-text-320-dark.png', {
     fullPage: true,
   });
   expect(state.unexpected).toEqual([]);
 });
 
-async function installPhotoPlaces(page: Page) {
+async function installPhotoPlaces(page: Page, pending = false) {
   const unexpected = await installMocks(page, {
     strict: true,
     withDetailComments: true,
@@ -129,9 +198,12 @@ async function installPhotoPlaces(page: Page) {
     spaceId: SPACE_ID,
     createdBy: ACCOUNT_ID,
     creator: ME,
-    name: localeFixture.photoPlaces.initialName,
+    name: pending
+      ? localeFixture.photoPlaces.initialName
+      : localeFixture.photoPlaces.resolvedName,
     description: null,
-    address: null,
+    address: pending ? null : localeFixture.photoPlaces.resolvedAddress,
+    geocodingSource: pending ? null : 'openstreetmap',
     latitude: 52.516667,
     longitude: 13.4,
     version: 1,
@@ -193,9 +265,11 @@ async function installPhotoPlaces(page: Page) {
               id: 'att-photo-place',
               position: 0,
               status: 'READY',
+              isSensitive: false,
               mediaType: 'IMAGE',
               mimeType: 'image/jpeg',
               hasThumbnail: true,
+              isSensitive: false,
               width: 1200,
               height: 750,
               size: PHOTO.length,
@@ -241,7 +315,19 @@ async function installPhotoPlaces(page: Page) {
     }
     await route.fallback();
   });
-  return { unexpected, writes };
+  return {
+    unexpected,
+    writes,
+    resolvePlace() {
+      place = {
+        ...place,
+        name: localeFixture.photoPlaces.resolvedName,
+        address: localeFixture.photoPlaces.resolvedAddress,
+        geocodingSource: 'openstreetmap',
+        version: place.version + 1,
+      };
+    },
+  };
 }
 
 for (const colorScheme of ['light', 'dark'] as const) {
@@ -268,7 +354,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await captureScreenshot(
         page,
         testInfo,
-        `1459-settings-${width}-${colorScheme}.png`,
+        `1478-settings-${width}-${colorScheme}.png`,
         { fullPage: true },
       );
       await control.click();
@@ -284,18 +370,21 @@ for (const colorScheme of ['light', 'dark'] as const) {
         page.getByRole('heading', { name: localeFixture.photoPlaces.title }),
       ).toBeVisible();
       await expect(
-        page.getByRole('link', {
-          name: localeFixture.photoPlaces.initialName,
-          exact: true,
-        }),
+        page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),
       ).toBeVisible();
       await expect(
         page.getByRole('img', { name: storyProducts.gallery.imageAlt }).first(),
       ).toBeVisible();
+      await page
+        .locator('.moment-places')
+        .evaluate((node) => node.scrollIntoView({ block: 'center' }));
+      await page
+        .getByRole('heading', { name: photoPlaceCopy.title, exact: true })
+        .focus();
       await captureScreenshot(
         page,
         testInfo,
-        `1459-moment-${width}-${colorScheme}.png`,
+        `1478-moment-${width}-${colorScheme}.png`,
         { fullPage: true },
       );
       expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
@@ -308,7 +397,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         .getByRole('button', {
           name: photoPlaceCopy.actions.replace(
             '{{name}}',
-            localeFixture.photoPlaces.initialName,
+            localeFixture.photoPlaces.resolvedName,
           ),
         })
         .click();
@@ -323,7 +412,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await captureScreenshot(
           page,
           testInfo,
-          `1459-actions-${colorScheme}.png`,
+          `1478-actions-${colorScheme}.png`,
           { fullPage: true },
         );
       await dialog.getByRole('button', { name: photoPlaceCopy.remove }).click();
@@ -333,10 +422,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       expect(state.writes).toEqual(['preference']);
       await dialog.getByRole('button', { name: photoPlaceCopy.remove }).click();
       await expect(
-        page.getByRole('link', {
-          name: localeFixture.photoPlaces.initialName,
-          exact: true,
-        }),
+        page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),
       ).toHaveCount(0);
       expect(state.writes).toEqual(['preference', 'unlink']);
       expect(external).toEqual([]);

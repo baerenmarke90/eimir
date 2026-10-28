@@ -450,6 +450,7 @@ def _media_rows(
                 "hasThumbnail": bool(item.get("has_thumbnail")),
                 "capturedAt": _json_value((item.get("payload") or {}).get("captured_at")),
                 "orientation": (item.get("payload") or {}).get("orientation"),
+                "isSensitive": (item.get("payload") or {}).get("is_sensitive", False),
             }
         )
     found = {UUID(item["sourceId"]) for item in result}
@@ -1089,6 +1090,10 @@ def _validate_media(
             referenced.add(_uuid(row["avatar_attachment_id"], ErrorCode.TRANSFER_RELATION_INVALID))
     indexed: set[UUID] = set()
     for item in media:
+        if "isSensitive" in item and type(item["isSensitive"]) is not bool:
+            raise TransferArchiveError(
+                "Transfer media classification is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
         source_id = _uuid(item.get("sourceId"), ErrorCode.TRANSFER_RELATION_INVALID)
         owner_id = _uuid(item.get("ownerSourceId"), ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
         if source_id in indexed or source_id not in referenced or owner_id not in source_member_ids:
@@ -1511,6 +1516,7 @@ def apply_import_bundle(
                         "original_name": "eimir-transfer",
                         "captured_at": item.get("capturedAt"),
                         "orientation": item.get("orientation"),
+                        "is_sensitive": item.get("isSensitive", False),
                     },
                     "version": 1,
                 }

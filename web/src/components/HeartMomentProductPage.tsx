@@ -1,3 +1,4 @@
+import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import {
   useIsMutating,
   useMutation,
@@ -55,7 +56,9 @@ import {
   useAttachmentDrafts,
 } from '../client/useAttachmentDrafts';
 import { useStoryDeletion } from '../client/useStoryDeletion';
+import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { PRODUCT_NAME } from './Brand';
 import { CommentsPanel } from './CommentsPanel';
@@ -92,6 +95,7 @@ interface HeartMomentCreateValues {
   readonly happenedOn: Date;
   readonly visibility: ContentVisibilityValue;
   readonly attachmentId?: string;
+  readonly attachmentIsSensitive?: boolean;
   readonly tags: string[];
 }
 
@@ -176,6 +180,11 @@ export function HeartMomentProductPage({
   const [editContentError, setEditContentError] = useState(false);
   const [createVisibility, setCreateVisibility] =
     useState<ContentVisibilityValue>(ContentVisibility.SHARED);
+  const sensitivityKey = JSON.stringify([contextKey, heartMomentId, mode]);
+  const [sensitivityDraft, setSensitivityDraft] = useState<{
+    key: string;
+    value: boolean;
+  } | null>(null);
   const createAttemptRef =
     useRef<CreateRequestAttempt<HeartMomentCreateSnapshot> | null>(null);
   const [removeExistingPhotoState, setRemoveExistingPhotoState] = useState<{
@@ -250,13 +259,29 @@ export function HeartMomentProductPage({
       heartMomentQuery.data.value.visibility === 'SHARED',
   });
 
+  const captureCreateOwnership = useTaskActivation(
+    mode === 'create',
+    JSON.stringify([apiBaseUrl, contextKey, location.key]),
+  );
+  const captureEditOwnership = useTaskActivation(
+    mode === 'edit',
+    JSON.stringify([apiBaseUrl, contextKey, heartMomentId, location.key]),
+  );
+
   const createMutation = useMutation({
-    mutationFn: async (values: HeartMomentCreateValues) => {
+    mutationFn: async ({
+      values,
+      isCurrent,
+    }: {
+      values: HeartMomentCreateValues;
+      isCurrent: () => boolean;
+    }) => {
+      if (!isCurrent()) throw new ClientProblemError('permission');
       const snapshot: HeartMomentCreateSnapshot = {
         spaceId,
         heartMomentCreate: values,
       };
-      return submitCreateRequest({
+      const saved = await submitCreateRequest({
         previousAttempt: createAttemptRef.current,
         snapshot,
         rememberAttempt: (attempt) => {
@@ -268,13 +293,21 @@ export function HeartMomentProductPage({
             idempotencyKey,
           }),
       });
+      protectSensitiveMediaProjections(
+        queryClient,
+        saved.spaceId,
+        saved.attachment ? [saved.attachment] : [],
+      );
+      return saved;
     },
-    onSuccess: async (heartMoment) => {
+    onSuccess: async (heartMoment, request) => {
+      if (!request.isCurrent()) return;
       attachments.clear();
       await Promise.all([
         invalidateStoryProjections(queryClient, spaceId),
         invalidateDashboard(queryClient, spaceId),
       ]);
+      if (!request.isCurrent()) return;
       navigate(heartMomentDetailPath(heartMoment.id), {
         replace: true,
         state: { saved: true, taskOriginKey: originKey },
@@ -287,23 +320,39 @@ export function HeartMomentProductPage({
     mutationFn: async ({
       current,
       update,
+      isCurrent,
     }: {
+      isCurrent: () => boolean;
       current: HeartMomentDetail;
       update: HeartMomentUpdate;
     }) => {
       try {
-        return await apis.heartMoments.updateHeartMoment({
+        if (!isCurrent()) throw new ClientProblemError('permission');
+        const saved = await apis.heartMoments.updateHeartMoment({
           spaceId,
           heartMomentId: current.id,
           ifMatch: String(current.version),
           heartMomentUpdate: update,
         });
+        const observed = queryClient.getQueryData<{ value: HeartMomentDetail }>(
+          queryKey,
+        );
+        if (observed && observed.value.version > saved.version)
+          throw new ClientProblemError('conflict', 409);
+        protectSensitiveMediaProjections(
+          queryClient,
+          saved.spaceId,
+          saved.attachment ? [saved.attachment] : [],
+        );
+        return saved;
       } catch (error) {
         throw await normalizeClientError(error);
       }
     },
-    onMutate: async ({ current, update }) => {
+    onMutate: async ({ current, update, isCurrent }) => {
+      if (!isCurrent()) throw new ClientProblemError('permission');
       await queryClient.cancelQueries({ queryKey });
+      if (!isCurrent()) throw new ClientProblemError('permission');
       const previous = queryClient.getQueryData(queryKey);
       queryClient.setQueryData(queryKey, {
         value: {
@@ -319,13 +368,22 @@ export function HeartMomentProductPage({
       });
       return { previous };
     },
-    onError: (_error, _variables, context) => {
-      if (context?.previous)
+    onError: (_error, variables, context) => {
+      if (!variables.isCurrent()) return;
+      const observed = queryClient.getQueryData<{ value: HeartMomentDetail }>(
+        queryKey,
+      );
+      if (
+        context?.previous &&
+        (!observed || observed.value.version <= variables.current.version)
+      )
         queryClient.setQueryData(queryKey, context.previous);
     },
-    onSuccess: async (heartMoment) => {
+    onSuccess: async (heartMoment, request) => {
+      if (!request.isCurrent()) return;
       attachments.clear();
       setRemoveExistingPhoto(false);
+      setSensitivityDraft(null);
       queryClient.setQueryData(queryKey, {
         value: heartMoment,
         source: 'network',
@@ -335,6 +393,7 @@ export function HeartMomentProductPage({
         queryClient.invalidateQueries({ queryKey }),
         invalidateDashboard(queryClient, spaceId),
       ]);
+      if (!request.isCurrent()) return;
       navigate(heartMomentDetailPath(heartMoment.id), {
         replace: true,
         state: { taskOriginKey: originKey },
@@ -467,12 +526,20 @@ export function HeartMomentProductPage({
       }
       setCreateContentError(false);
       createMutation.mutate({
-        text,
-        tags,
-        emotion: String(data.get('emotion')) as HeartEmotionValue,
-        happenedOn: new Date(`${happenedOn}T00:00:00Z`),
-        visibility: String(data.get('visibility')) as ContentVisibilityValue,
-        attachmentId: attachments.readyIds[0],
+        values: {
+          text,
+          tags,
+          emotion: String(data.get('emotion')) as HeartEmotionValue,
+          happenedOn: new Date(`${happenedOn}T00:00:00Z`),
+          visibility: String(data.get('visibility')) as ContentVisibilityValue,
+          attachmentId: attachments.readyIds[0],
+          attachmentIsSensitive: attachments.readyIds.length
+            ? (attachments.items.find(
+                (item) => item.attachmentId === attachments.readyIds[0],
+              )?.isSensitive ?? false)
+            : undefined,
+        },
+        isCurrent: captureCreateOwnership(),
       });
     }
 
@@ -533,6 +600,7 @@ export function HeartMomentProductPage({
             <div className="heart-moment-create-media">
               <AttachmentDraftPicker
                 id="heart-moment-create-photo"
+                disabled={createMutation.isPending}
                 attachments={attachments}
                 multiple={false}
               />
@@ -739,7 +807,21 @@ export function HeartMomentProductPage({
         update.attachmentId = replacementAttachmentId;
       else if (removeExistingPhoto) update.attachmentId = null;
 
-      updateMutation.mutate({ current: heartMoment, update });
+      if (replacementAttachmentId)
+        update.attachmentIsSensitive =
+          attachments.items.find(
+            (item) => item.attachmentId === replacementAttachmentId,
+          )?.isSensitive ?? false;
+      else if (heartMoment.attachment && !removeExistingPhoto)
+        update.attachmentIsSensitive =
+          data.get('attachmentIsSensitive') === 'on';
+      const ownsTask = captureEditOwnership();
+      const ownsRead = captureAuthorizedQuery(queryClient, queryKey);
+      updateMutation.mutate({
+        current: heartMoment,
+        update,
+        isCurrent: () => ownsTask() && ownsRead(),
+      });
     }
 
     return (
@@ -770,12 +852,29 @@ export function HeartMomentProductPage({
                     {
                       id: heartMoment.attachment.id,
                       mediaType: heartMoment.attachment.mediaType,
+                      isSensitive:
+                        sensitivityDraft?.key === sensitivityKey
+                          ? sensitivityDraft.value
+                          : heartMoment.attachment.isSensitive,
                     },
                   ]}
                   loadMedia={(attachmentId, signal) =>
                     loadAttachment(heartMoment.id, attachmentId, signal)
                   }
-                  resourceScopeKey={`heart-moment:${heartMoment.id}`}
+                  resourceScopeKey={`heart-moment:${currentAccountId}:${spaceId}:${mode}:${heartMoment.id}`}
+                />
+                <SensitiveMediaCheckbox
+                  name="attachmentIsSensitive"
+                  showHelp
+                  checked={
+                    sensitivityDraft?.key === sensitivityKey
+                      ? sensitivityDraft.value
+                      : (heartMoment.attachment.isSensitive ?? true)
+                  }
+                  onChange={(value) =>
+                    setSensitivityDraft({ key: sensitivityKey, value })
+                  }
+                  disabled={updateMutation.isPending}
                 />
                 <button
                   type="button"
@@ -788,6 +887,7 @@ export function HeartMomentProductPage({
             ) : null}
             <AttachmentDraftPicker
               id="heart-moment-edit-photo"
+              disabled={updateMutation.isPending}
               attachments={attachments}
               multiple={false}
             />
@@ -924,12 +1024,13 @@ export function HeartMomentProductPage({
               {
                 id: heartMoment.attachment.id,
                 mediaType: heartMoment.attachment.mediaType,
+                isSensitive: heartMoment.attachment.isSensitive,
               },
             ]}
             loadMedia={(attachmentId, signal) =>
               loadAttachment(heartMoment.id, attachmentId, signal)
             }
-            resourceScopeKey={`heart-moment:${heartMoment.id}`}
+            resourceScopeKey={`heart-moment:${currentAccountId}:${spaceId}:${mode}:${heartMoment.id}`}
           />
         </section>
       ) : null}

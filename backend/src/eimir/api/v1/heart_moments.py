@@ -40,6 +40,7 @@ class HeartMomentCreate(ApiModel):
     visibility: ContentVisibility
     happened_on: date
     attachment_id: UUID | None = None
+    attachment_is_sensitive: bool | None = Field(default=None, strict=True)
     tags: HeartMomentTags = Field(default_factory=list)
 
     _unique_tags = field_validator("tags")(unique_tags)
@@ -54,6 +55,8 @@ class HeartMomentCreate(ApiModel):
     def _has_content(self) -> Self:
         if not self.text and not self.tags and self.attachment_id is None:
             raise ValueError("a thought, context tag or photo is required")
+        if self.attachment_is_sensitive is not None and self.attachment_id is None:
+            raise ValueError("attachmentIsSensitive requires an attachment")
         return self
 
 
@@ -71,6 +74,7 @@ class HeartMomentUpdate(ApiModel):
     emotion: HeartEmotion | None = None
     happened_on: date | None = None
     attachment_id: UUID | None = None
+    attachment_is_sensitive: bool | None = Field(default=None, strict=True)
     tags: HeartMomentTags | None = None
 
     _unique_tags = field_validator("tags")(unique_tags)
@@ -169,6 +173,7 @@ def _heart_moment_detail(
                 width=attachment.width,
                 height=attachment.height,
                 has_thumbnail=attachment.has_thumbnail,
+                is_sensitive=attachment.payload.is_sensitive,
             )
             if attachment is not None
             else None
@@ -211,6 +216,7 @@ def create_heart_moment(
         visibility=body.visibility,
         happened_on=body.happened_on,
         attachment_id=body.attachment_id,
+        attachment_is_sensitive=body.attachment_is_sensitive,
         tags=body.tags,
     )
     if not result.created:
@@ -296,6 +302,7 @@ def update_heart_moment(
         emotion=body.emotion,
         happened_on=body.happened_on,
         attachment_id=body.attachment_id,
+        attachment_is_sensitive=body.attachment_is_sensitive,
         tags=body.tags,
     )
     response.headers["ETag"] = etag_for(heart_moment.version)

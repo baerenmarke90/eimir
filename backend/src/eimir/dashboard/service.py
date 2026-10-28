@@ -81,6 +81,7 @@ class DashboardItem:
     scheduled_at: datetime | None = None
     created_at: datetime | None = None
     preview_attachment_id: UUID | None = None
+    preview_is_sensitive: bool = False
 
 
 @dataclass(frozen=True)
@@ -320,7 +321,11 @@ def _retrospective(
         galleries = attachments_of_memories(session, [chosen.id])
         for bound in galleries.get(chosen.id, []):
             if bound.attachment.status == AttachmentStatus.READY:
-                chosen = replace(chosen, preview_attachment_id=bound.attachment.id)
+                chosen = replace(
+                    chosen,
+                    preview_attachment_id=bound.attachment.id,
+                    preview_is_sensitive=bound.attachment.payload.is_sensitive,
+                )
                 break
     return chosen
 
@@ -343,9 +348,11 @@ def _keepsake(
     galleries = attachments_of_memories(session, [memory.id for memory in memories])
     for memory in memories:
         preview_id = None
+        preview_sensitive = False
         for bound in galleries.get(memory.id, []):
             if bound.attachment.status == AttachmentStatus.READY:
                 preview_id = bound.attachment.id
+                preview_sensitive = bound.attachment.payload.is_sensitive
                 break
         if preview_id is not None:
             return DashboardItem(
@@ -355,6 +362,7 @@ def _keepsake(
                 occurred_on=memory.happened_on,
                 created_at=memory.created_at,
                 preview_attachment_id=preview_id,
+                preview_is_sensitive=preview_sensitive,
             )
     return None
 
@@ -522,9 +530,11 @@ def _recent_shared(
 
     for memory in memories:
         preview_id = None
+        preview_sensitive = False
         for bound in memory_galleries.get(memory.id, []):
             if bound.attachment.status == AttachmentStatus.READY:
                 preview_id = bound.attachment.id
+                preview_sensitive = bound.attachment.payload.is_sensitive
                 break
         candidates.append(
             DashboardItem(
@@ -534,6 +544,7 @@ def _recent_shared(
                 occurred_on=memory.happened_on,
                 created_at=memory.created_at,
                 preview_attachment_id=preview_id,
+                preview_is_sensitive=preview_sensitive,
             )
         )
 

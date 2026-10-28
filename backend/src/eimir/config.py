@@ -224,6 +224,17 @@ class Settings(IdentityCompatibleSettings):
 
     media_store: MediaStoreBackend = MediaStoreBackend.LOCAL
     media_root: str = "./data/media"
+    # Operator-owned Photon origin; an empty value disables reverse lookup.
+    # Only canonical saved photo coordinates and language reach this service.
+    photo_place_geocoding_url: str = "https://photon.komoot.io"
+
+    @field_validator("photo_place_geocoding_url")
+    @classmethod
+    def _photo_place_geocoding_origin(cls, value: str) -> str:
+        from eimir.providers.photon import validate_photon_url
+
+        return validate_photon_url(value)
+
     s3_endpoint: str = ""
     s3_region: str = "us-east-1"
     s3_bucket: str = ""

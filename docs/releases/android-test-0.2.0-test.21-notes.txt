@@ -1,0 +1,5 @@
+Foto-Orte zeigen jetzt den ermittelten Ortsnamen und die Adresse. Ein Tippen öffnet direkt die Karte am Aufnahmeort. Bereits gespeicherte, automatisch angelegte Foto-Orte werden im Hintergrund ergänzt, sofern automatische Orte aktiviert sind und passende Adressdaten verfügbar sind. Eigene Korrekturen bleiben erhalten.
+
+Enthält außerdem die neue Kennzeichnung sensibler Bilder und das Ausblenden ihrer Vorschaubilder. Der Schutz gilt auch für Momente und Rückblicke; die Freigabe bleibt unter deiner Kontrolle.
+
+Build 21 lässt sich über App-Updates über die vorhandene Installation installieren. Konten, Erinnerungen und Einstellungen bleiben bestehen. Die Ergänzung der Adressen benötigt die aktualisierte Cloud-Version und kann kurz dauern.

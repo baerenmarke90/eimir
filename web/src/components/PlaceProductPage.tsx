@@ -1,20 +1,13 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  type FormEvent,
+  type RefObject,
   useEffect,
   useRef,
   useState,
-  type FormEvent,
-  type RefObject,
 } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
-import { normalizeClientError } from '../client/problemDetails';
-import {
-  planningIfMatch,
-  type SharedPlanningApis,
-} from '../client/sharedPlanning';
-import { MORE_PLACES_ROUTE } from '../client/routes';
-import { useTaskOrigin } from '../client/taskOrigin';
 import {
   authorSummaryQueryKeys,
   invalidatePlaceConsumers,
@@ -24,9 +17,16 @@ import {
   type InfiniteItemsData,
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
+import { normalizeClientError } from '../client/problemDetails';
+import { MORE_PLACES_ROUTE } from '../client/routes';
+import {
+  planningIfMatch,
+  type SharedPlanningApis,
+} from '../client/sharedPlanning';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
-import { PageHeader } from './PageHeader';
 import { ListEntryIconButton } from './ListEntryActions';
+import { PageHeader } from './PageHeader';
 import {
   PlanningDiscardConfirmation,
   usePlanningEditorLifecycle,
@@ -511,6 +511,18 @@ export function PlaceProductPage({
             <strong>{t('m5s3.place.address')}:</strong>{' '}
             {place.address || t('m5s3.place.noAddress')}
           </p>
+          {place.geocodingSource === 'openstreetmap' ? (
+            <p className="planning-meta">
+              <a
+                href="https://www.openstreetmap.org/copyright"
+                target="_blank"
+                rel="noopener noreferrer"
+                referrerPolicy="no-referrer"
+              >
+                © OpenStreetMap
+              </a>
+            </p>
+          ) : null}
           <details className="planning-technical-details">
             <summary>{t('m5s3.place.technicalDetails')}</summary>
             {place.latitude != null && place.longitude != null ? (

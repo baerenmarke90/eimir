@@ -46,6 +46,12 @@ export interface MemoryAttachmentSummary {
      */
     id: string;
     /**
+     * Manual sensitive-content classification; never an access-control boundary.
+     * @type {boolean}
+     * @memberof MemoryAttachmentSummary
+     */
+    isSensitive?: boolean;
+    /**
      * 
      * @type {MediaType}
      * @memberof MemoryAttachmentSummary
@@ -114,6 +120,7 @@ export function MemoryAttachmentSummaryFromJSONTyped(json: any, ignoreDiscrimina
         'hasThumbnail': json['hasThumbnail'],
         'height': json['height'],
         'id': json['id'],
+        'isSensitive': json['isSensitive'] == null ? undefined : json['isSensitive'],
         'mediaType': MediaTypeFromJSON(json['mediaType']),
         'mimeType': json['mimeType'],
         'position': json['position'],
@@ -137,6 +144,7 @@ export function MemoryAttachmentSummaryToJSONTyped(value?: MemoryAttachmentSumma
         'hasThumbnail': value['hasThumbnail'],
         'height': value['height'],
         'id': value['id'],
+        'isSensitive': value['isSensitive'],
         'mediaType': MediaTypeToJSON(value['mediaType']),
         'mimeType': value['mimeType'],
         'position': value['position'],

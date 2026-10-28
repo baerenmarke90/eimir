@@ -28,6 +28,13 @@ import storyProducts from '../i18n/locales/storyProducts';
 import de from '../i18n/locales/de';
 import { HeartMomentProductPage } from './HeartMomentProductPage';
 
+vi.mock('../client/photoPlaces', async (original) => ({
+  ...(await original<object>()),
+  photoPlacesRequest: vi
+    .fn()
+    .mockResolvedValue({ items: [], hasMore: false, nextCursor: null }),
+}));
+
 const { revoke } = vi.hoisted(() => ({ revoke: vi.fn() }));
 vi.mock('../client/productReadCache', async (original) => ({
   ...(await original<object>()),
@@ -68,9 +75,12 @@ function Position() {
   return <output aria-label="Current route">{useLocation().pathname}</output>;
 }
 
-function setup() {
+function setup(mode: 'edit' | 'create' = 'edit') {
   const pending = deferred();
   const deleteHeartMoment = vi.fn(() => pending.promise);
+  const createHeartMoment = vi.fn(
+    () => new Promise<HeartMomentDetail>(() => {}),
+  );
   const updateHeartMoment = vi.fn(
     () => new Promise<HeartMomentDetail>(() => {}),
   );
@@ -91,6 +101,7 @@ function setup() {
         .mockResolvedValue({ items: [], hasMore: false, nextCursor: null }),
     },
     heartMoments: {
+      createHeartMoment,
       deleteHeartMoment,
       updateHeartMoment,
       changeHeartMomentVisibility,
@@ -100,12 +111,32 @@ function setup() {
   let scope = { accountId: 'account-1', spaceId: 'space-1', apis };
   const tree = () => (
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/story/heart-moments/heart-1/edit']}>
+      <MemoryRouter
+        initialEntries={[
+          mode === 'create'
+            ? '/story/heart-moments/new'
+            : '/story/heart-moments/heart-1/edit',
+        ]}
+      >
         <Position />
         <Link to="/other">Other task</Link>
         <Link to="/story/heart-moments/heart-1/edit">Return to edit</Link>
         <Link to="/story/heart-moments/heart-2/edit">Another Heart Moment</Link>
         <Routes>
+          <Route
+            path="/story/heart-moments/new"
+            element={
+              <HeartMomentProductPage
+                apiBaseUrl="https://example.test"
+                accessToken="test-token"
+                loadAttachment={async () => 'unused-photo'}
+                mode="create"
+                apis={scope.apis}
+                spaceId={scope.spaceId}
+                currentAccountId={scope.accountId}
+              />
+            }
+          />
           <Route
             path="/story/heart-moments/:heartMomentId/edit"
             element={
@@ -161,6 +192,7 @@ function setup() {
     client,
     pending,
     deleteHeartMoment,
+    createHeartMoment,
     updateHeartMoment,
     changeHeartMomentVisibility,
     apis,
@@ -570,4 +602,88 @@ describe('HeartMoment delete response ownership', () => {
     expect(h.deleteHeartMoment).not.toHaveBeenCalled();
     expect(h.updateHeartMoment).not.toHaveBeenCalled();
   });
+});
+
+describe('HeartMoment save response ownership for sensitive-media editing', () => {
+  it('preserves a replacement Account read after a late save', async () => {
+    const h = setup();
+    const response = deferred<HeartMomentDetail>();
+    h.updateHeartMoment.mockReturnValueOnce(response.promise);
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: copy.save }));
+    await waitFor(() => expect(h.updateHeartMoment).toHaveBeenCalledTimes(1));
+    h.setScope({ accountId: 'account-2' });
+    const replacement = {
+      ...heartMoment,
+      text: 'Replacement access snapshot',
+      version: 99,
+      capabilities: { ...heartMoment.capabilities, canEdit: false },
+    };
+    act(() => h.client.setQueryData(key, read(replacement)));
+    await act(async () =>
+      response.resolve({ ...heartMoment, text: 'Late save', version: 2 }),
+    );
+    await waitFor(() => expect(h.client.isMutating()).toBe(0));
+    expect(h.client.getQueryData(key)).toEqual(read(replacement));
+    expect(screen.getByLabelText('Current route').textContent).toBe(
+      '/story/heart-moments/heart-1/edit',
+    );
+  });
+
+  it('retains a newer authoritative version when an older save response arrives', async () => {
+    const h = setup();
+    const response = deferred<HeartMomentDetail>();
+    h.updateHeartMoment.mockReturnValueOnce(response.promise);
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: copy.save }));
+    await waitFor(() => expect(h.updateHeartMoment).toHaveBeenCalledTimes(1));
+    const newer = {
+      ...heartMoment,
+      text: 'Newer authoritative text',
+      version: 99,
+    };
+    act(() => h.client.setQueryData(key, read(newer)));
+    await act(async () => response.resolve({ ...heartMoment, version: 2 }));
+    await waitFor(() => expect(h.client.isMutating()).toBe(0));
+    expect(h.client.getQueryData(key)).toEqual(read(newer));
+    expect(screen.getByLabelText('Current route').textContent).toBe(
+      '/story/heart-moments/heart-1/edit',
+    );
+  });
+});
+
+describe('HeartMoment create response ownership', () => {
+  it.each(['account', 'route'] as const)(
+    'ignores a late create response after a %s change',
+    async (change) => {
+      const h = setup('create');
+      const response = deferred<HeartMomentDetail>();
+      h.createHeartMoment.mockReturnValueOnce(response.promise);
+      const user = userEvent.setup();
+      await user.type(screen.getByLabelText(copy.textLabel), 'Original draft');
+      await user.click(screen.getByRole('button', { name: copy.save }));
+      await waitFor(() => expect(h.createHeartMoment).toHaveBeenCalledTimes(1));
+      if (change === 'account') {
+        h.setScope({ accountId: 'account-2' });
+        await user.clear(screen.getByLabelText(copy.textLabel));
+        await user.type(
+          screen.getByLabelText(copy.textLabel),
+          'Replacement draft',
+        );
+      } else {
+        await user.click(screen.getByRole('link', { name: 'Other task' }));
+      }
+      await act(async () => response.resolve(heartMoment));
+      await waitFor(() => expect(h.client.isMutating()).toBe(0));
+      expect(screen.getByLabelText('Current route').textContent).toBe(
+        change === 'account' ? '/story/heart-moments/new' : '/other',
+      );
+      if (change === 'account')
+        expect(
+          (screen.getByLabelText(copy.textLabel) as HTMLTextAreaElement).value,
+        ).toBe('Replacement draft');
+    },
+  );
 });

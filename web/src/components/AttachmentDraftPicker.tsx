@@ -1,4 +1,5 @@
 import type { AttachmentDraft } from '../client/attachmentDraftState';
+import { SensitiveMediaCheckbox, SensitiveMediaCover } from './SensitiveMedia';
 import { useState } from 'react';
 import { useTranslation } from '../i18n';
 
@@ -10,6 +11,7 @@ export interface AttachmentDraftPickerController {
   retry: (draft: AttachmentDraft) => void;
   move?: (id: string, offset: -1 | 1) => void;
   hasPending: boolean;
+  setSensitive?: (id: string, value: boolean) => void;
   rejectedCount?: number;
 }
 
@@ -17,10 +19,12 @@ export function AttachmentDraftPicker({
   id,
   attachments,
   multiple = true,
+  disabled = false,
 }: {
   id: string;
   attachments: AttachmentDraftPickerController;
   multiple?: boolean;
+  disabled?: boolean;
 }) {
   const { t } = useTranslation();
   const [moved, setMoved] = useState('');
@@ -75,6 +79,9 @@ export function AttachmentDraftPicker({
       </label>
 
       {attachments.items.length > 0 ? (
+        <p className="field-help">{t('sensitiveMedia.help')}</p>
+      ) : null}
+      {attachments.items.length > 0 ? (
         <ul
           className="attachment-draft-list"
           aria-label={t('memory.photoDraftsAria')}
@@ -92,19 +99,32 @@ export function AttachmentDraftPicker({
             return (
               <li className="attachment-draft-item" key={attachment.id}>
                 <div className="attachment-preview-wrap">
-                  <img
-                    className="attachment-preview"
-                    src={attachment.previewUrl}
-                    alt={t('memory.photoPreviewAlt', {
-                      name: attachment.file.name,
-                    })}
-                  />
+                  {attachment.isSensitive ? (
+                    <SensitiveMediaCover />
+                  ) : (
+                    <img
+                      className="attachment-preview"
+                      src={attachment.previewUrl}
+                      alt={t('memory.photoPreviewAlt', {
+                        name: attachment.file.name,
+                      })}
+                    />
+                  )}
                   <span className="attachment-preview-label">
                     {t('memory.photoLocalPreview')}
                   </span>
                 </div>
                 <div className="attachment-draft-meta">
                   <strong>{attachment.file.name}</strong>
+                  {attachments.setSensitive ? (
+                    <SensitiveMediaCheckbox
+                      checked={attachment.isSensitive === true}
+                      disabled={disabled}
+                      onChange={(value) =>
+                        attachments.setSensitive?.(attachment.id, value)
+                      }
+                    />
+                  ) : null}
                   <span
                     className={`attachment-status attachment-status-${attachment.status}`}
                     role={attachment.status === 'failed' ? 'alert' : 'status'}

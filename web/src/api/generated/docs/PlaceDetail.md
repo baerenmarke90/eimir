@@ -12,6 +12,7 @@ Name | Type
 `createdBy` | string
 `creator` | [AuthorSummary](AuthorSummary.md)
 `description` | string
+`geocodingSource` | string
 `id` | string
 `latitude` | number
 `longitude` | number
@@ -33,6 +34,7 @@ const example = {
   "createdBy": null,
   "creator": null,
   "description": null,
+  "geocodingSource": null,
   "id": null,
   "latitude": null,
   "longitude": null,

@@ -89,6 +89,18 @@ SELF_VALIDATING_TOOLING_OWNERS = {
     "scripts/test_android_launcher_identity.py": ANDROID_LAUNCHER_WORKFLOW,
 }
 
+# These exact tools are tested by the unconditional Change Detection preflight,
+# before it classifies any diff. They do not build or configure product runtimes.
+# Keep their owner tests explicit; new CI tools and changes to the classifier or
+# its workflow still enable every expensive gate until reviewed.
+PREFLIGHT_TOOLING_TESTS = {
+    "tools/ci/project_identity_scan.py": "tools/ci/test_project_identity_scan.py",
+    "tools/ci/test_project_identity_scan.py": "tools/ci/test_project_identity_scan.py",
+    "tools/ci/engineering_language_audit.py": "tools/ci/test_engineering_language_audit.py",
+    "tools/ci/documentation_language_audit.py": "tools/ci/test_engineering_language_audit.py",
+    "tools/ci/test_engineering_language_audit.py": "tools/ci/test_engineering_language_audit.py",
+}
+
 # Account-deletion recovery authority is intentionally classified by semantic
 # module namespace plus a small exact set of orchestration/retention owners
 # outside that namespace. ``deletion.py`` is the historical root module; every
@@ -168,7 +180,7 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
             continue
 
         # Exact allowlist only; a mixed PR still classifies its other paths.
-        if path in SELF_VALIDATING_TOOLING_OWNERS:
+        if path in SELF_VALIDATING_TOOLING_OWNERS or path in PREFLIGHT_TOOLING_TESTS:
             continue
 
         # The classifier and its owning workflow define the safety boundary.
@@ -331,3 +343,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

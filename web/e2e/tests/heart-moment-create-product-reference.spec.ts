@@ -76,6 +76,7 @@ async function installApiMocks(page: Page): Promise<string[]> {
     width: 1200,
     height: 800,
     hasThumbnail: true,
+    isSensitive: false,
     createdAt: TEST_NOW,
     updatedAt: TEST_NOW,
     position: 0,

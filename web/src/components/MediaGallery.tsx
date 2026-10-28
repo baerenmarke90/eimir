@@ -14,11 +14,17 @@ import {
 import { useObjectUrlResources } from '../client/useObjectUrlResources';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
+import {
+  SensitiveMediaCover,
+  SensitiveMediaControl,
+  useSensitiveMediaReveals,
+} from './SensitiveMedia';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 
 export interface GalleryMediaItem {
   id: string;
   mediaType: MediaTypeValue;
+  isSensitive?: boolean;
 }
 
 export function MediaGallery({
@@ -44,7 +50,17 @@ export function MediaGallery({
   const itemIdentity = JSON.stringify(
     items.map((item) => [item.id, item.mediaType]),
   );
+  const reveals = useSensitiveMediaReveals(
+    JSON.stringify([
+      resourceScopeKey,
+      items.map((item) => [item.id, item.isSensitive]),
+    ]),
+  );
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const carouselIndexRef = useRef(0);
+  useLayoutEffect(() => {
+    carouselIndexRef.current = carouselIndex;
+  }, [carouselIndex]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const imageFocusIndex =
     activeIndex ?? (renderPreviews ? null : carouselIndex);
@@ -135,6 +151,18 @@ export function MediaGallery({
     track.scrollLeft = firstSlide.offsetLeft;
   }, [itemIdentity, items.length]);
 
+  useLayoutEffect(() => {
+    const track = carouselTrack.current;
+    if (!track || items.length < 2 || typeof ResizeObserver === 'undefined')
+      return;
+    const observer = new ResizeObserver(() => {
+      const slide = carouselSlides.current[carouselIndexRef.current];
+      if (slide) track.scrollLeft = slide.offsetLeft;
+    });
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, [items.length]);
+
   useEffect(
     () => () => {
       if (carouselScrollFrame.current !== null) {
@@ -162,6 +190,19 @@ export function MediaGallery({
     if (!track || !slide) return;
     track.scrollLeft = slide.offsetLeft;
   }, [lightboxOpen, items.length]);
+
+  useLayoutEffect(() => {
+    const track = lightboxTrack.current;
+    if (!lightboxOpen || !track || typeof ResizeObserver === 'undefined')
+      return;
+    const observer = new ResizeObserver(() => {
+      const current = activeIndexRef.current;
+      const slide = current === null ? null : lightboxSlides.current[current];
+      if (slide) track.scrollLeft = slide.offsetLeft;
+    });
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, [lightboxOpen]);
 
   const changeActive = useCallback(
     (delta: number) => {
@@ -417,6 +458,12 @@ export function MediaGallery({
         />
       );
     }
+    if (item.isSensitive !== false && !reveals.isRevealed(item.id))
+      return (
+        <SensitiveMediaCover>
+          {item.isSensitive === true ? <img src={url} alt="" /> : null}
+        </SensitiveMediaCover>
+      );
     return <img className={className} src={url} alt={t('gallery.imageAlt')} />;
   }
 
@@ -438,6 +485,12 @@ export function MediaGallery({
         />
       );
     }
+    if (item.isSensitive !== false && !reveals.isRevealed(item.id))
+      return (
+        <SensitiveMediaCover>
+          {item.isSensitive === true ? <img src={url} alt="" /> : null}
+        </SensitiveMediaCover>
+      );
     return (
       <span className="media-gallery-carousel-visual">
         <img
@@ -499,10 +552,16 @@ export function MediaGallery({
                     data-carousel-index={index}
                     tabIndex={isActive ? 0 : -1}
                     onClick={() => openLightbox(index)}
-                    aria-label={t('gallery.openItem', {
-                      index: index + 1,
-                      count: items.length,
-                    })}
+                    aria-label={
+                      (item.isSensitive !== false &&
+                      !reveals.isRevealed(item.id)
+                        ? t('sensitiveMedia.label') + '. '
+                        : '') +
+                      t('gallery.openItem', {
+                        index: index + 1,
+                        count: items.length,
+                      })
+                    }
                   >
                     {renderCarouselMedia(item)}
                   </button>
@@ -553,6 +612,12 @@ export function MediaGallery({
               </>
             ) : null}
           </div>
+          {items[carouselIndex]?.isSensitive === true ? (
+            <SensitiveMediaControl
+              revealed={reveals.isRevealed(items[carouselIndex]!.id)}
+              onToggle={() => reveals.toggle(items[carouselIndex]!.id)}
+            />
+          ) : null}
         </section>
       )}
 
@@ -619,6 +684,12 @@ export function MediaGallery({
                     renderMedia(activeItem, 'media-lightbox-content')
                   )}
 
+                  {activeItem.isSensitive === true ? (
+                    <SensitiveMediaControl
+                      revealed={reveals.isRevealed(activeItem.id)}
+                      onToggle={() => reveals.toggle(activeItem.id)}
+                    />
+                  ) : null}
                   {items.length > 1 ? (
                     <span className="media-lightbox-counter" aria-live="polite">
                       {t('gallery.counter', {

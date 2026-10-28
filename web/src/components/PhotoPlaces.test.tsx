@@ -27,11 +27,11 @@ beforeAll(() => {
   };
 });
 
-import { ClientProblemError } from '../client/problemDetails';
 import {
   authorSummaryQueryKeys,
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
+import { ClientProblemError } from '../client/problemDetails';
 import photoPlaceCopy from '../i18n/locales/photoPlaces';
 import { MomentPlaces } from './MomentPlaces';
 import { PhotoLocationSettings } from './PhotoLocationSettings';
@@ -177,12 +177,21 @@ it('opens a map only as an explicit link and requires deliberate unlink confirma
       offline={false}
     />,
   );
-  expect(await screen.findByRole('link', { name: place.name })).toBeTruthy();
+  expect(
+    await screen.findByText(
+      place.name === 'Photo location'
+        ? photoPlaceCopy.locationFallback
+        : place.name,
+    ),
+  ).toBeTruthy();
   expect(screen.queryByRole('link', { name: photoPlaceCopy.maps })).toBeNull();
   expect(unlink).not.toHaveBeenCalled();
   fireEvent.click(
     screen.getByRole('button', {
-      name: photoPlaceCopy.actions.replace('{{name}}', place.name),
+      name: photoPlaceCopy.actions.replace(
+        '{{name}}',
+        photoPlaceCopy.locationFallback,
+      ),
     }),
   );
   const map = await screen.findByRole('link', { name: photoPlaceCopy.maps });
@@ -200,6 +209,77 @@ it('opens a map only as an explicit link and requires deliberate unlink confirma
       placeId: 'p',
     }),
   );
+});
+
+it('shows the resolved address as a direct coordinate map link before opening any menu', async () => {
+  const place = {
+    id: 'resolved',
+    name: 'Riverside cafe',
+    address: 'River Lane 12, Berlin',
+    latitude: 52.516667,
+    longitude: 13.4,
+    geocodingSource: 'openstreetmap',
+  } as PlaceDetail;
+  vi.spyOn(PlacesApi.prototype, 'listMomentPlaces').mockResolvedValue({
+    items: [place],
+    nextCursor: null,
+    hasMore: false,
+  });
+  wrapper(
+    <MomentPlaces
+      apiBaseUrl="http://example.test"
+      accessToken="token"
+      accountId="a"
+      spaceId="s"
+      targetId="m"
+      kind="memories"
+      offline={false}
+    />,
+  );
+  const address = await screen.findByRole('link', {
+    name: photoPlaceCopy.mapAddress.replace('{{address}}', place.address ?? ''),
+  });
+  expect(address.textContent).toBe(place.address);
+  expect(address.getAttribute('href')).toBe(
+    'https://www.google.com/maps/search/?api=1&query=52.516667%2C13.4',
+  );
+  expect(address.getAttribute('target')).toBe('_blank');
+  expect(address.getAttribute('referrerpolicy')).toBe('no-referrer');
+  expect(screen.getByText(place.name).tagName).toBe('STRONG');
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(
+    screen.getByRole('link', { name: '© OpenStreetMap' }).getAttribute('href'),
+  ).toBe('https://www.openstreetmap.org/copyright');
+  expect(screen.queryByRole('link', { name: photoPlaceCopy.edit })).toBeNull();
+});
+
+it('does not invent a map destination for an address without coordinates', async () => {
+  vi.spyOn(PlacesApi.prototype, 'listMomentPlaces').mockResolvedValue({
+    items: [
+      {
+        id: 'name-only',
+        name: 'Our place',
+        address: 'Our own address',
+        latitude: null,
+        longitude: null,
+      } as PlaceDetail,
+    ],
+    nextCursor: null,
+    hasMore: false,
+  });
+  wrapper(
+    <MomentPlaces
+      apiBaseUrl="http://example.test"
+      accessToken="token"
+      accountId="a"
+      spaceId="s"
+      targetId="m"
+      kind="memories"
+      offline
+    />,
+  );
+  expect(await screen.findByText('Our own address')).toBeTruthy();
+  expect(screen.queryByRole('link')).toBeNull();
 });
 
 it('reveals an automatically added Place after saving a photo into a recently opened moment', async () => {
@@ -248,7 +328,13 @@ it('reveals an automatically added Place after saving a photo into a recently op
   // Memory and shared HeartMoment saves already call this projection boundary.
   // A fresh cached empty result must not hide the newly bound photo's Place.
   await act(() => invalidateStoryProjections(client, 's'));
-  expect(await screen.findByRole('link', { name: place.name })).toBeTruthy();
+  expect(
+    await screen.findByText(
+      place.name === 'Photo location'
+        ? photoPlaceCopy.locationFallback
+        : place.name,
+    ),
+  ).toBeTruthy();
   expect(list).toHaveBeenCalledTimes(2);
   expect(client.getQueryState(otherSpace)?.isInvalidated).toBe(false);
 });

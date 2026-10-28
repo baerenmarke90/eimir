@@ -1,10 +1,10 @@
 # eimir. - Freemium Feature Matrix
 
 **Status:** authoritative product-tier and roadmap baseline  
-**Version:** 1.4
+**Version:** 1.5
 
 **Audit date:** 2026-09-21  
-**Revision:** 2026-10-12 — clarified alternative app-icon selection; no entitlement implementation
+**Revision:** 2026-10-28 — explicitly includes manual sensitive-media classification and local reveal/hide (#1477); no entitlement change
 
 **Audited `main` baseline:** `dfc87cd`  
 **Strategic decisions:** #262 (Finalized), #876 (consumer packaging/pricing), #1151 (Today Pro Foundation)  
@@ -81,7 +81,7 @@ Capabilities essential for Security, Privacy, Accessibility, Tenant Isolation, a
 | **Image attachment upload & storage** | M2, M5 | **Free/Core** | Functional feature Free | **Self-Hosted:** Unmetered (operator storage).<br>**Cloud:** Subject to Space storage quota. | Image uploading is core to memories; Cloud storage has operational byte costs. |
 | **Shared photo gallery (#601)** | M2, M5 | **Free/Core** | Browse existing shared images, fullscreen viewing and canonical moment links | Identical | Another read view of shared relationship history; no new entitlement or upload quota. |
 | **Cloud storage quota** | M2, M6 | **Mixed** | **Current planning hypothesis, not final launch commitment:** Free 5 GB per Space; Premium 50 GB per Space, potentially expandable via add-ons. | Cloud only (Self-Hosted is unmetered) | Managed storage and bandwidth create real recurring infrastructure cost; final quotas/add-ons require cost validation. |
-| **Media privacy & attachment validation** | M2 | **Non-paywallable** | Non-paywallable | Identical | Security checks and media validation must execute identically for all users. |
+| **Media privacy & attachment validation** | M2 | **Non-paywallable** | Non-paywallable | Identical | Security checks, media validation, per-attachment sensitive classification and accessible blur/reveal must execute identically for all users (#1477). |
 | **HeartMoments & Shared emotional reactions** | M2, M5 | **Free/Core** | Whole feature Free | Identical | Everyday emotional connection must remain frictionless. |
 | **Authored Memory / HeartMoment tags (#1290)** | M2, M5 | **Free/Core** | Create, remove and edit custom context labels on existing moments | Identical | Labels are part of the protected parent content; eight labels of forty Unicode codepoints are validation bounds, not history quotas. Existing tags and export remain available without entitlement changes. |
 | **HeartMoment `PRIVATE` / `OWNER_ONLY` enforcement** | M2 | **Non-paywallable** | Non-paywallable | Identical | Partner privacy can never depend on commercial tier. |
@@ -89,7 +89,7 @@ Capabilities essential for Security, Privacy, Accessibility, Tenant Isolation, a
 | **Comments on shared entries** | M2, M5 | **Free/Core** | Whole feature Free | Identical | In-app communication around shared memories is basic functionality. |
 | **Wish & Plan lifecycle** | M3, M5 | **Free/Core** | Whole feature Free | Identical | Shared bucket list and couple planning are everyday core tools. |
 | **Place CRUD & Coordinates** | M3, M5 | **Mixed** | **Free:** Place CRUD, pin locations, content links.<br>**Premium:** Interactive journey routes, clustering, heatmaps. | Identical | Storing places is basic utility; advanced geospatial analytics are Premium. |
-| **Automatic selected-photo places (#1459)** | M2, M3, M5 | **Free/Core** | Account-wide default-on setting; valid selected-photo GPS creates basic canonical Places and shared moment links at save. Manual choices win; OFF affects future work and preserves history. Private HeartMoments never create shared Places. | Identical | No geocoder, tracking, inference, paid API or advanced spatial analytics. Google/Immich source selection keeps its separate Premium integration boundary. |
+| **Automatic selected-photo places (#1459)** | M2, M3, M5 | **Free/Core** | Account-wide default-on setting; valid selected-photo GPS creates basic canonical Places and shared moment links at save. Manual choices win; OFF affects future work and preserves history. Private HeartMoments never create shared Places. | Identical | Basic asynchronous name/address lookup and direct coordinate maps are Free/Core (#1478, Product Owner 2026-10-28), including untouched historical photo Places. A replaceable backend Photon adapter supplies OSM attribution; public-service requests are bounded and operators may replace/disable it. No tracking, inference, paid mandatory API or advanced spatial analytics. Google/Immich source selection keeps its separate Premium integration boundary. |
 | **Chapters & Story grouping** | M3, M5 | **Mixed** | **Free:** Chapter CRUD, grouping, typed relations.<br>**Premium:** Bespoke magazine layouts, custom covers, narrative export. | Identical | Grouping content is organizational; high-end curation & design are Premium. |
 | **Shared Collections & Checklists** | M3, M5 | **Free/Core** | Whole feature Free | Identical | Packing lists and shared couple checklists are core utility. |
 | **Private Area (Notes & Gift Ideas)** | M3, M5 | **Free/Core** | Whole feature Free | Identical | A safe private individual space is necessary for authentic relationship use. |

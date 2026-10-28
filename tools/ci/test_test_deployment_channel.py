@@ -45,6 +45,139 @@ def successful_runs() -> list[dict]:
     ]
 
 
+def completion_event() -> dict:
+    return {"action": "completed", "workflow_run": successful_runs()[0]}
+
+
+class CompletionAdmissionTest(unittest.TestCase):
+    def test_every_required_main_completion_can_retry_the_exact_source(self):
+        for completed in successful_runs():
+            with self.subTest(path=completed["path"]):
+                self.assertTrue(
+                    channel.completion_matches_source(
+                        {"action": "completed", "workflow_run": completed}, SOURCE
+                    )
+                )
+
+    def test_untrusted_or_unrelated_completions_never_query_github(self):
+        for mutation in (
+            {"event": "pull_request"},
+            {"event": "workflow_dispatch"},
+            {"head_branch": "feature"},
+            {"head_sha": PREVIOUS},
+            {"head_repository": {"full_name": "other/eimir"}},
+            {"head_repository": None},
+            {"head_repository": "not-a-repository"},
+            {"path": ".github/workflows/same-name.yml"},
+            {"status": "in_progress"},
+            {"conclusion": "failure"},
+            {"conclusion": "cancelled"},
+            {"conclusion": "skipped"},
+        ):
+            event = completion_event()
+            event["workflow_run"].update(mutation)
+            with self.subTest(mutation=mutation), patch.object(channel, "gh_api") as api:
+                self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", event))
+                api.assert_not_called()
+        for event in ({}, [], {"action": "requested", "workflow_run": successful_runs()[0]}):
+            with self.subTest(event=event), patch.object(channel, "gh_api") as api:
+                self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", event))
+                api.assert_not_called()
+
+    def test_missing_checks_return_immediately_without_polling(self):
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=False) as ready,
+            patch.object(channel, "channel_already_selected") as selected,
+            patch.object(channel.time, "sleep") as sleep,
+        ):
+            self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", completion_event()))
+            ready.assert_called_once_with(SOURCE)
+            selected.assert_not_called()
+            sleep.assert_not_called()
+
+    def test_current_checked_source_is_admitted_once_and_manual_retry_is_available(self):
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=True),
+            patch.object(channel, "channel_already_selected", side_effect=[False, True, False]),
+        ):
+            self.assertTrue(channel.check_for_publication(SOURCE, "workflow_run", completion_event()))
+            self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", completion_event()))
+            self.assertTrue(channel.check_for_publication(SOURCE, "workflow_dispatch", {}))
+
+    def test_superseded_source_and_failed_checks_cannot_admit_a_build(self):
+        with (
+            patch.object(channel, "latest_main", return_value=PREVIOUS),
+            patch.object(channel, "candidate_ready") as ready,
+        ):
+            self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", completion_event()))
+            ready.assert_not_called()
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", side_effect=channel.ChannelError("failed checks")),
+            self.assertRaises(channel.ChannelError),
+        ):
+            channel.check_for_publication(SOURCE, "workflow_run", completion_event())
+
+    def test_other_trigger_types_cannot_admit_a_build(self):
+        for event_name in ("push", "pull_request", "schedule", ""):
+            with (
+                self.subTest(event_name=event_name),
+                patch.object(channel, "gh_api") as api,
+                self.assertRaises(channel.ChannelError),
+            ):
+                channel.check_for_publication(SOURCE, event_name, {})
+            api.assert_not_called()
+
+    def test_selected_channel_requires_owned_metadata_and_real_missing_branch(self):
+        identity = {"kind": channel.CHANNEL_KIND, "schemaVersion": 1, "sourceRevision": SOURCE}
+        for current, expected in ((SOURCE, True), (PREVIOUS, False)):
+            identity["sourceRevision"] = current
+            with patch.object(channel, "gh_api", side_effect=[
+                {"object": {"sha": PREVIOUS}},
+                {"content": base64.b64encode(json.dumps(identity).encode()).decode()},
+            ]):
+                self.assertEqual(channel.channel_already_selected(SOURCE), expected)
+        with patch.object(channel, "gh_api", side_effect=channel.GitHubError("missing", missing=True)):
+            self.assertFalse(channel.channel_already_selected(SOURCE))
+        with (
+            patch.object(channel, "gh_api", side_effect=channel.GitHubError("network")),
+            self.assertRaises(channel.GitHubError),
+        ):
+            channel.channel_already_selected(SOURCE)
+        identity["kind"] = "unowned"
+        with (
+            patch.object(channel, "gh_api", side_effect=[
+                {"object": {"sha": PREVIOUS}},
+                {"content": base64.b64encode(json.dumps(identity).encode()).decode()},
+            ]),
+            self.assertRaises(channel.ChannelError),
+        ):
+            channel.channel_already_selected(SOURCE)
+
+    def test_cli_reads_completion_payload_and_writes_readiness(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            event_path = Path(temporary) / "event.json"
+            output = Path(temporary) / "output"
+            event_path.write_text(json.dumps(completion_event()))
+            environment = {
+                "GITHUB_REPOSITORY": channel.REPOSITORY,
+                "GITHUB_REF": "refs/heads/main",
+                "GITHUB_EVENT_NAME": "workflow_run",
+                "GITHUB_EVENT_PATH": str(event_path),
+            }
+            with (
+                patch.dict(os.environ, environment),
+                patch.object(channel, "latest_main", return_value=SOURCE),
+                patch.object(channel, "candidate_ready", return_value=True),
+                patch.object(channel, "channel_already_selected", return_value=False),
+                patch.object(sys, "argv", ["channel", "check", "--revision", SOURCE, "--github-output", str(output)]),
+            ):
+                self.assertEqual(channel.main(), 0)
+            self.assertEqual(output.read_text(), "ready=true\n")
+
+
 class MainCheckTest(unittest.TestCase):
     def test_required_workflows_run_for_every_main_push(self):
         for path in sorted(channel.REQUIRED_WORKFLOWS):
@@ -698,3 +831,4 @@ class CanonicalWiringTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

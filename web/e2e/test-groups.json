@@ -83,7 +83,7 @@
     },
     "memory-carousel-stability.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 6
+      "baselineTests": 10
     },
     "memory-create-defaults.spec.ts": {
       "disposition": "PR_CRITICAL",

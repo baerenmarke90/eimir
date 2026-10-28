@@ -9,6 +9,7 @@ import dailyInsights from './locales/dailyInsights';
 import dailyQuote from './locales/dailyQuote';
 import dailyVibe from './locales/dailyVibe';
 import de from './locales/de';
+import sensitiveMedia from './locales/sensitiveMedia';
 import demo from './locales/demo';
 import games from './locales/games';
 import importantDates from './locales/importantDates';
@@ -52,6 +53,7 @@ if (!i18n.isInitialized) {
       de: {
         translation: {
           ...de,
+          sensitiveMedia,
           taskBoundary,
           taskSheets,
           accountSettings,

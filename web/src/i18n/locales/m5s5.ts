@@ -53,7 +53,6 @@ const m5s5 = {
     itemFallback: 'Gemeinsamer Eintrag',
   },
   today: {
-    headerTitle: 'Heute',
     roles: {
       hero: 'Paar-Präsenz',
       relationshipSignal: 'Bei euch passiert',

@@ -105,6 +105,7 @@ import {
 import { createSharedPlanningApis } from './client/sharedPlanning';
 import { postSnackbar } from './client/snackbar';
 import {
+  canReuseMembershipsAfterRefreshFailure,
   loadAuthorizedMemberships,
   loadAuthorizedSpaces,
   resolveActiveSpaceId,
@@ -1175,14 +1176,20 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   }
 
   const memberships = membershipsQuery.data ?? [];
+  const membershipErrorBlocksApp =
+    membershipsQuery.error !== null &&
+    !canReuseMembershipsAfterRefreshFailure(
+      membershipsQuery.data,
+      membershipsQuery.error,
+    );
   if (
     membershipsQuery.isPending ||
-    membershipsQuery.error ||
+    membershipErrorBlocksApp ||
     memberships.length === 0
   ) {
     if (
       !membershipsQuery.isPending &&
-      !membershipsQuery.error &&
+      !membershipErrorBlocksApp &&
       memberships.length === 0
     ) {
       if (instanceStatusQuery.isPending) {
@@ -1220,7 +1227,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
         <ThemeControl />
         <SpaceContextGate
           loading={membershipsQuery.isPending}
-          error={membershipsQuery.error}
+          error={membershipErrorBlocksApp ? membershipsQuery.error : null}
           onRetry={() => void membershipsQuery.refetch()}
         />
       </>

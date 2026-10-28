@@ -14,6 +14,7 @@ function uploadingAttachment() {
     createdAt: new Date('2026-08-29T20:00:00Z'),
     durationSeconds: null,
     hasThumbnail: false,
+    isSensitive: false,
     height: null,
     mediaType: 'IMAGE',
     mimeType: 'image/jpeg',
@@ -569,4 +570,53 @@ describe('createMemoryWithReadyAttachments', () => {
     expect(apis.memories.createMemory).toHaveBeenCalledTimes(1);
     expect(apis.memories.replaceMemoryAttachments).not.toHaveBeenCalled();
   });
+});
+
+it('binds the exact submitted classification with the initial shared gallery and preserves it on failure', async () => {
+  const memory = {
+    id: 'confirmed',
+    version: 1,
+    attachments: [],
+  } as unknown as MemoryDetail;
+  const failure = new Error('write failed');
+  const apis = {
+    memories: { replaceMemoryAttachments: vi.fn().mockRejectedValue(failure) },
+  } as unknown as ReferenceApis;
+  await expect(
+    completeMemoryAttachmentBinding(apis, 'space', memory, ['photo'], false, [
+      true,
+    ]),
+  ).rejects.toMatchObject({ attachmentSensitivity: [true], cause: failure });
+  expect(apis.memories.replaceMemoryAttachments).toHaveBeenCalledWith({
+    spaceId: 'space',
+    memoryId: 'confirmed',
+    ifMatch: '1',
+    memoryAttachmentSet: {
+      attachments: [{ attachmentId: 'photo', position: 0, isSensitive: true }],
+    },
+  });
+});
+
+it('does not report a completed bind when its classification differs after a lost response', async () => {
+  const memory = {
+    id: 'confirmed',
+    version: 1,
+    attachments: [],
+  } as unknown as MemoryDetail;
+  const apis = {
+    memories: {
+      getMemory: vi.fn().mockResolvedValue({
+        ...memory,
+        version: 2,
+        attachments: [{ id: 'photo', position: 0, isSensitive: false }],
+      }),
+      replaceMemoryAttachments: vi.fn(),
+    },
+  } as unknown as ReferenceApis;
+  await expect(
+    completeMemoryAttachmentBinding(apis, 'space', memory, ['photo'], true, [
+      true,
+    ]),
+  ).rejects.toMatchObject({ cause: { kind: 'conflict' } });
+  expect(apis.memories.replaceMemoryAttachments).not.toHaveBeenCalled();
 });

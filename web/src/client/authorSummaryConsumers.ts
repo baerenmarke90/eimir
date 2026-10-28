@@ -104,6 +104,9 @@ export async function invalidateStoryProjections(
     queryClient.invalidateQueries({
       queryKey: authorSummaryQueryKeys.relationTargets(spaceId),
     }),
+    // A confirmed photo bind can create a Place in the same transaction.
+    // Invalidate fresh empty moment results before returning from the editor.
+    invalidatePlaceConsumers(queryClient, spaceId),
   ]);
 }
 

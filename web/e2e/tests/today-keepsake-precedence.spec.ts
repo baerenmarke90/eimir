@@ -231,6 +231,7 @@ const genericKeepsake = {
   occurredOn: '2026-09-06T12:00:00Z',
   createdAt: TEST_NOW,
   previewAttachmentId: null,
+  previewIsSensitive: false,
 };
 
 const dateSpecificRetrospective = {

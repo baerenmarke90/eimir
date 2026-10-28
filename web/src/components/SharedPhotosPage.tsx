@@ -249,6 +249,7 @@ export function SharedPhotosPage({
             items={photos.map((photo) => ({
               id: photoResourceId(photo),
               mediaType: photo.attachment.mediaType,
+              isSensitive: photo.attachment.isSensitive,
             }))}
             loadMedia={(id, signal) => {
               const photo = photos.find((item) => photoResourceId(item) === id);
@@ -286,6 +287,7 @@ export function SharedPhotosPage({
                           <MemoryPreview
                             memoryId={photo.parentId}
                             attachmentId={photo.attachment.id}
+                            isSensitive={photo.attachment.isSensitive}
                             resourceScopeKey={`${scope}:${photo.parentType}:${photo.parentId}:preview`}
                             loadingMode="near-viewport"
                             loadImage={(_parent, _attachment, signal) =>

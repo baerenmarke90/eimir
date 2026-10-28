@@ -1218,7 +1218,7 @@ for (const view of [
       const reads = network.collectionGetCount();
       // Reconnection refreshes a stale authorized read without replaying the held write.
       await context.setOffline(true);
-      await page.clock.fastForward(16_000);
+      await page.clock.fastForward(61_000);
       await context.setOffline(false);
       await expect.poll(network.collectionGetCount).toBeGreaterThan(reads);
       await expect.poll(names).toEqual(expectedNames);
@@ -1356,7 +1356,7 @@ for (const outcome of ['success', 'failure'] as const) {
     await expect.poll(() => Boolean(releaseWrite)).toBe(true);
     denied = true;
     await context.setOffline(true);
-    await page.clock.fastForward(16_000);
+    await page.clock.fastForward(61_000);
     await context.setOffline(false);
     await expect(
       page.getByText(de.states.permission.title, { exact: true }),

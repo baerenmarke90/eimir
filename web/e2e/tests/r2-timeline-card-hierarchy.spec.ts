@@ -90,6 +90,7 @@ function attachment(id: string, position: number) {
     mediaType: 'IMAGE',
     mimeType: 'image/jpeg',
     hasThumbnail: true,
+    isSensitive: false,
     width: 800,
     height: 500,
     size: 1,

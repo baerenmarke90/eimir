@@ -47,7 +47,8 @@ registerProductionServiceWorker();
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 15_000,
+      // Quiet ordinary reads on short app resumes; live domains override this.
+      staleTime: 60_000,
       retry: false,
       refetchOnMount: true,
       refetchOnWindowFocus: true,

@@ -42,6 +42,12 @@ export interface HeartMomentCreate {
     attachmentId?: string | null;
     /**
      * 
+     * @type {boolean}
+     * @memberof HeartMomentCreate
+     */
+    attachmentIsSensitive?: boolean | null;
+    /**
+     * 
      * @type {HeartEmotion}
      * @memberof HeartMomentCreate
      */
@@ -96,6 +102,7 @@ export function HeartMomentCreateFromJSONTyped(json: any, ignoreDiscriminator: b
     return {
         
         'attachmentId': json['attachmentId'] === undefined ? undefined : json['attachmentId'] === null ? null : json['attachmentId'],
+        'attachmentIsSensitive': json['attachmentIsSensitive'] === undefined ? undefined : json['attachmentIsSensitive'] === null ? null : json['attachmentIsSensitive'],
         'emotion': HeartEmotionFromJSON(json['emotion']),
         'happenedOn': (new Date(json['happenedOn'])),
         'tags': json['tags'] == null ? undefined : json['tags'],
@@ -116,6 +123,7 @@ export function HeartMomentCreateToJSONTyped(value?: HeartMomentCreate | null, i
     return {
         
         'attachmentId': value['attachmentId'],
+        'attachmentIsSensitive': value['attachmentIsSensitive'],
         'emotion': HeartEmotionToJSON(value['emotion']),
         'happenedOn': value['happenedOn'].toISOString().substring(0,10),
         'tags': value['tags'],

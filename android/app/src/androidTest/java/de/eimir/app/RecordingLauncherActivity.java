@@ -20,7 +20,9 @@ public final class RecordingLauncherActivity extends LauncherActivity {
         super.onCreate(state);
         WebView webView = getBridge().getWebView();
         webView.stopLoading();
-        webView.getSettings().setJavaScriptEnabled(false);
+        // This test-only blank page has no application scripts, but the native
+        // photo test must exercise an actual JavaScript-enabled Chromium input.
+        webView.getSettings().setJavaScriptEnabled(true);
         getBridge().addWebViewListener(new WebViewListener() {
             @Override
             public void onPageLoaded(WebView view) {

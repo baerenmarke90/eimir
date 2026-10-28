@@ -8,19 +8,29 @@ Android APK publication remains the separate #1331/#1332 channel.
 
 ## Automatic publication
 
-After a push to `main`, the private-channel jobs in `.github/workflows/release-publish.yml`:
+After a push to `main`, the private-channel jobs in `.github/workflows/release-publish.yml`
+are triggered by successful completions of the required main workflows:
 
-1. Runs the channel contracts. Publication additionally requires the repository
+1. Publication requires the repository
    Actions variable `EIMIR_TEST_CHANNEL_ENABLED=true`, the owning repository and
    its `main` ref. Pull requests never receive publishing permissions.
-2. Waits up to one hour for the exact revision's newest push runs of CI, Web
+2. Checks once for the exact revision's newest push runs of CI, Web
    Browser QA, CodeQL SAST, Self-Hosted Deployment Guard and Self-Hosted Recovery.
    Missing, pending, skipped, failed or cancelled workflows cannot admit a build.
-   A newer `main` stops a waiting candidate.
+   An unfinished candidate exits without building; the next required workflow
+   completion retries it. No runner waits for other workflows. Completion events
+   must originate from an owning-repository main push and match the exact checkout;
+   PRs, forks, other branches and superseded revisions cannot admit publication.
+   A revision already selected on the channel is not rebuilt on duplicate events.
+   Completion queues are separated by source revision and event origin, so a late
+   older or fork completion cannot evict the current candidate. Final publication
+   retains pending candidates, remains globally serialized, and rechecks current
+   main and all required checks before it can advance the channel.
    Browser QA therefore runs for every main push, including backend-only and
    operator changes; pull-request browser path filters remain unchanged.
-3. Reuses Release Evidence with Android excluded: build-once runtime archives,
-   hashes, SPDX SBOMs and verified attestations. Nothing builds on the Docker host.
+3. Runs the channel contracts, then reuses Release Evidence with Android excluded:
+   build-once runtime archives, hashes, SPDX SBOMs and verified attestations.
+   Nothing builds on the Docker host.
 4. Loads both archives, verifies source/version/platform labels, publishes to the
    existing GHCR backend/Web packages and checks the exact registry manifests and
    pulled-back image identities. Docker pushes only `linux/amd64`, so containerd
@@ -48,7 +58,7 @@ Merge the implementation PR through ordinary required checks. Then:
 1. Under repository **Settings → Secrets and variables → Actions → Variables**,
    add `EIMIR_TEST_CHANNEL_ENABLED` with value `true`. It is not a secret.
 2. Set the variable before merging to let the first main push publish the channel.
-   For an immediate retry, run **Actions → Publish Immutable Release → Run workflow**,
+   To retry after checks finish, run **Actions → Publish Immutable Release → Run workflow**,
    branch **main**, with **private_test_channel=true**, release version `0.0.0`,
    and **confirm_publish=false**. The private selector excludes all product-release
    jobs; the placeholder version is unused. Subsequent main pushes are automatic.
@@ -211,3 +221,4 @@ GitHub; runtime data and secrets stay local to the operator.
 No business/freemium impact: no Free/Core or Premium classification, entitlement,
 quota, ownership, export or downgrade behavior changes. No end-user provider
 setup is added. Released Self-Hosted/Production contracts remain unchanged.
+

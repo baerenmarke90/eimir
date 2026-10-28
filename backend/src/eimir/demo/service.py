@@ -639,6 +639,7 @@ def _seed_story(
             title=story.title,
             body=story.body,
             happened_on=story.date_at(reference_date),
+            tags=list(story.tags),
         )
         memories[story.key] = memory
         attachments = [
@@ -658,6 +659,7 @@ def _seed_story(
         alex_context,
         text="Danke, dass du heute einfach zugehört hast.",
         emotion=HeartEmotion.APPRECIATED,
+        tags=["Dankbarkeit", "Miteinander"],
         visibility=ContentVisibility.SHARED,
         happened_on=reference_date - timedelta(days=3),
     )
@@ -667,6 +669,7 @@ def _seed_story(
         lea_context,
         text=PRIVATE_CANARY_LEA,
         emotion=HeartEmotion.GRATEFUL,
+        tags=["Überraschung"],
         visibility=ContentVisibility.PRIVATE,
         happened_on=reference_date - timedelta(days=2),
         attachment_id=private_image.id,

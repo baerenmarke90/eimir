@@ -29,6 +29,7 @@ function memoryItem(id: string, title: string, happenedOn: string) {
           mediaType: 'IMAGE',
           mimeType: 'image/jpeg',
           hasThumbnail: true,
+          isSensitive: false,
           width: 800,
           height: 800,
           size: 1,

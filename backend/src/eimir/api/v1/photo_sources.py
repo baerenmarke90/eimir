@@ -96,7 +96,11 @@ def sources(
     )
     return PhotoSourceAvailability(
         enabled=service.enabled(),
-        google_available=service.enabled() and bool(settings.google_photos_client_id),
+        google_available=(
+            service.enabled()
+            and service.google_import_available()
+            and bool(settings.google_photos_client_id)
+        ),
         immich_connected=linked is not None,
         immich_connection_token=service.connection_token(linked, authorization.account_id),
         immich_origin=linked.payload.origin if linked else None,

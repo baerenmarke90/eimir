@@ -152,10 +152,12 @@ button,
   text-decoration: none;
 }
 
-button:hover:not(:disabled),
-.button-link:hover {
-  filter: brightness(0.96);
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  button:hover:not(:disabled),
+  .button-link:hover {
+    filter: brightness(0.96);
+    transform: translateY(-1px);
+  }
 }
 
 button:active:not(:disabled),

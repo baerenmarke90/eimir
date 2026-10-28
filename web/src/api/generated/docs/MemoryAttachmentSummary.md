@@ -10,6 +10,7 @@ Name | Type
 `hasThumbnail` | boolean
 `height` | number
 `id` | string
+`isSensitive` | boolean
 `mediaType` | [MediaType](MediaType.md)
 `mimeType` | string
 `position` | number
@@ -27,6 +28,7 @@ const example = {
   "hasThumbnail": null,
   "height": null,
   "id": null,
+  "isSensitive": null,
   "mediaType": null,
   "mimeType": null,
   "position": null,

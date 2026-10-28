@@ -6,7 +6,12 @@ import re
 import unittest
 from pathlib import Path
 
-from change_scope import SCOPES, SELF_VALIDATING_TOOLING_OWNERS, classify_paths
+from change_scope import (
+    PREFLIGHT_TOOLING_TESTS,
+    SCOPES,
+    SELF_VALIDATING_TOOLING_OWNERS,
+    classify_paths,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -248,6 +253,41 @@ class ChangeScopeTest(unittest.TestCase):
     def test_filter_changes_fail_closed(self) -> None:
         self.assertTrue(all(classify_paths(["tools/ci/change_scope.py"]).values()))
 
+    def test_preflight_tools_do_not_enable_unrelated_runtime_gates(self) -> None:
+        for path in PREFLIGHT_TOOLING_TESTS:
+            with self.subTest(path=path):
+                self.assert_scope([path], enabled=set())
+
+    def test_preflight_tools_are_tested_before_scope_selection(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        preflight = workflow.split("\n  changes:\n", 1)[1].split("\n  backend:\n", 1)[0]
+        before_selection = preflight.split("      - name: Determine relevant change scopes", 1)[0]
+        self.assertNotIn("    if:", preflight)
+        self.assertNotIn("        if:", before_selection)
+        for path, test in PREFLIGHT_TOOLING_TESTS.items():
+            with self.subTest(path=path):
+                self.assertTrue((ROOT / path).is_file(), "stale preflight entry")
+                self.assertTrue((ROOT / test).is_file(), "missing owner test")
+                self.assertIn(f"python3 {test}", before_selection)
+
+    def test_preflight_tools_preserve_mixed_diff_safety(self) -> None:
+        tools = list(PREFLIGHT_TOOLING_TESTS)
+        self.assert_scope(
+            [*tools, "backend/src/eimir/memories/service.py"],
+            enabled={"backend", "backend_integration"},
+        )
+        self.assert_scope(
+            [*tools, "compose.yaml"],
+            enabled={"self_hosted", "deployment_guard", "recovery"},
+        )
+        for path in (
+            "tools/ci/change_scope.py",
+            "tools/ci/test_change_scope.py",
+            "tools/ci/future.py",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(all(classify_paths([*tools, path]).values()))
+
     def test_ci_workflow_changes_fail_closed(self) -> None:
         self.assertTrue(all(classify_paths([".github/workflows/ci.yml"]).values()))
 
@@ -358,3 +398,4 @@ class ChangeScopeTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

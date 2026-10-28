@@ -1134,7 +1134,7 @@ for (const view of [
           completed: false,
         });
       await context.setOffline(true);
-      await page.clock.fastForward(16_000);
+      await page.clock.fastForward(61_000);
       await context.setOffline(false);
       await expect.poll(() => fixture.detailReads()).toBe(2);
       if (change === 'item') {
@@ -1214,7 +1214,7 @@ for (const outcome of ['success', 'failure'] as const) {
     await expect.poll(() => fixture.writes.length).toBe(1);
     fixture.denyReads();
     await context.setOffline(true);
-    await page.clock.fastForward(16_000);
+    await page.clock.fastForward(61_000);
     await context.setOffline(false);
     await expect(
       page.getByText(de.states.permission.title, { exact: true }),
@@ -1509,7 +1509,7 @@ for (const outcome of ['success', 'failure'] as const) {
     await expect.poll(() => fixture.writes.length).toBe(1);
     fixture.denyReads();
     await context.setOffline(true);
-    await page.clock.fastForward(16_000);
+    await page.clock.fastForward(61_000);
     await context.setOffline(false);
     await expect(
       page.getByText(de.states.permission.title, { exact: true }),
@@ -2337,9 +2337,9 @@ for (const view of [
         exact: true,
       })
       .click();
-    // Reopen after the production 15-second freshness window to obtain a new read.
+    // Reopen after the documented one-minute freshness window to obtain a new read.
     await page.clock.setSystemTime(
-      await page.evaluate(() => Date.now() + 15_001),
+      await page.evaluate(() => Date.now() + 60_001),
     );
     await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
     await expect(

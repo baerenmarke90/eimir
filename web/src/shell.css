@@ -608,9 +608,11 @@
     transform var(--duration-feedback) var(--easing-standard);
 }
 
-.shell-nav-link:hover {
-  background: var(--color-surface-subtle);
-  color: var(--color-text);
+@media (hover: hover) and (pointer: fine) {
+  .shell-nav-link:hover {
+    background: var(--color-surface-subtle);
+    color: var(--color-text);
+  }
 }
 
 .shell-nav-link:focus-visible {
@@ -816,7 +818,12 @@
   color: var(--color-brand);
 }
 
-.mobile-bottom-nav .shell-nav-link:hover,
+@media (hover: hover) and (pointer: fine) {
+  .mobile-bottom-nav .shell-nav-link:hover {
+    color: var(--color-text);
+  }
+}
+
 .mobile-bottom-nav .shell-nav-link:focus-visible {
   color: var(--color-text);
 }

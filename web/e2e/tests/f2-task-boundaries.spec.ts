@@ -93,6 +93,7 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
     width: 1200,
     height: 800,
     hasThumbnail: true,
+    isSensitive: false,
     createdAt: NOW,
     updatedAt: NOW,
     position: 0,

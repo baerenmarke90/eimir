@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
+import { SensitiveMediaCover } from './SensitiveMedia';
 import { useTranslation } from '../i18n';
 
 export function MemoryPreview({
@@ -8,8 +9,10 @@ export function MemoryPreview({
   loadImage,
   loadingMode = 'immediate',
   resourceScopeKey,
+  isSensitive,
 }: {
   memoryId: string;
+  isSensitive?: boolean;
   attachmentId: string;
   loadImage: (
     memoryId: string,
@@ -54,11 +57,14 @@ export function MemoryPreview({
 
   const mediaResource = useObjectUrlResource(
     resourceScopeKey ?? `story-preview:${memoryId}`,
-    shouldLoad ? attachmentId : null,
+    shouldLoad && isSensitive === false ? attachmentId : null,
     (_resourceId, signal) => loadImage(memoryId, attachmentId, signal),
   );
   const url = mediaResource.url;
   const failed = mediaResource.error !== null;
+
+  if (isSensitive !== false)
+    return <SensitiveMediaCover className="story-media-preview" />;
 
   if (failed) {
     return (

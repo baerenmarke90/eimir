@@ -132,6 +132,16 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
             "side-by-side is used as generic responsive-layout terminology",
         )
 
+    if (
+        path == Path("docs/product/design/references/1477/image-prompt.txt")
+        and match == "side by side"
+        and "complete compact smartphone screens side by side" in normalized
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact generated-reference prompt describes two adjacent screens, not a project name",
+        )
+
     if "side by side" in normalized and any(
         layout_term in normalized
         for layout_term in ("row", "photograph", "representation", "muted role")

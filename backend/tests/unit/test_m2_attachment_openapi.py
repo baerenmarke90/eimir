@@ -42,7 +42,7 @@ def test_the_detail_exposes_only_contracted_public_fields() -> None:
     detail = schema["components"]["schemas"]["AttachmentDetail"]  # type: ignore[index]
     contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
 
-    allowed = set(contract["attachmentPublicFields"]) | {"hasThumbnail"}
+    allowed = set(contract["attachmentPublicFields"]) | {"hasThumbnail", "isSensitive"}
     assert set(detail["properties"]) <= allowed
     assert set(contract["attachmentPublicFields"]) - {"durationSeconds"} <= set(
         detail["properties"]

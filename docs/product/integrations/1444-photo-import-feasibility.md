@@ -4,6 +4,12 @@
 **Type:** Source/API/policy/repository feasibility review; **no live OAuth authorization, native device test, implementation, or Google policy approval** performed.  
 **Repository baseline:** `main@d9a53a1cb73f5332a42ed57c72b150d5886ffaec`.  
 **Owner:** [#1444](https://github.com/baerenmarke90/eimir/issues/1444).  
+
+**Latest delivery status:** later runtime delivery adds the existing-composer
+Immich source under its encrypted-state, HTTPS, ownership and Premium boundaries.
+Application Google import is hard-gated by [#1467](https://github.com/baerenmarke90/eimir/issues/1467)
+pending browser-bound OAuth and safe device-media recovery. The historical
+feasibility/preparation review below is not a runtime enablement decision.
 **Related:** [#601](https://github.com/baerenmarke90/eimir/issues/601) (existing shared gallery), [#1005](https://github.com/baerenmarke90/eimir/issues/1005) / ADR 0011 (Web + Capacitor), [#220](https://github.com/baerenmarke90/eimir/issues/220) (existing uploads), [#797](https://github.com/baerenmarke90/eimir/issues/797) (Cloud encryption at rest).
 
 **Implementation follow-up (2026-10-26):** [selected Google/Immich sources preflight](1444-selected-photo-sources.md) updates the historical review below. The operator reported successful synthetic Google Web Picker transfer/discard (3,000,825 bytes) and remote session deletion; #1451 merged as `970a3886`. Application payload/media encryption already exists, while #797's security/operational acceptance remains open. The authoritative matrix classifies Immich external integrations as Premium; the earlier Free/Core recommendation below cannot override it. No production Google or Immich source is enabled.

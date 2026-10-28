@@ -337,7 +337,13 @@ export function useAttachmentDrafts({
   );
 
   const restore = useCallback(
-    (selected: readonly { file: File; attachmentId?: string }[]) => {
+    (
+      selected: readonly {
+        file: File;
+        attachmentId?: string;
+        isSensitive?: boolean;
+      }[],
+    ) => {
       const currentContext = committedContextKey.current;
       const currentGen = currentGeneration.current;
       const remainingCapacity = Math.max(
@@ -347,7 +353,7 @@ export function useAttachmentDrafts({
       const accepted = selected.slice(0, remainingCapacity);
       setRejectedCount(selected.length - accepted.length);
 
-      for (const { file, attachmentId } of accepted) {
+      for (const { file, attachmentId, isSensitive } of accepted) {
         const id = globalThis.crypto.randomUUID();
         const previewResource = createOwnedObjectUrl(file);
         const previewUrl = previewResource.url;
@@ -367,6 +373,7 @@ export function useAttachmentDrafts({
               attempt: 0,
               progress: attachmentId ? 100 : 0,
               attachmentId,
+              isSensitive: isSensitive ?? false,
             },
           },
         });
@@ -508,6 +515,13 @@ export function useAttachmentDrafts({
     retry,
     clear,
     readyIds,
+    setSensitive: (id: string, value: boolean) =>
+      dispatch({
+        type: 'draft_action',
+        contextKey: committedContextKey.current,
+        generation: currentGeneration.current,
+        action: { type: 'sensitive', id, value },
+      }),
     hasPending,
     rejectedCount,
     contextKey,

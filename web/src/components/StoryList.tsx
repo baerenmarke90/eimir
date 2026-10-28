@@ -341,6 +341,7 @@ export function StoryList({
                     <MemoryPreview
                       memoryId={imageEntityId}
                       attachmentId={imageAttachment.id}
+                      isSensitive={imageAttachment.isSensitive}
                       loadImage={imageLoader}
                       loadingMode={
                         progressiveReveal ? 'near-viewport' : 'immediate'

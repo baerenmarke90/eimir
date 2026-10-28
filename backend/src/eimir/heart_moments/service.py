@@ -30,11 +30,11 @@ from eimir.authorization import (
     privacy_for,
     readable,
     require_readable,
-    require_writable,
     require_writable_locked,
     visibility_of,
 )
 from eimir.core import cursor as cursor_codec
+from eimir.core.clock import now
 from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
 from eimir.create_receipts import service as create_receipts
 from eimir.create_receipts.models import CreateReceiptResourceType
@@ -128,6 +128,7 @@ def create_heart_moment(
     visibility: ContentVisibility,
     happened_on: date,
     attachment_id: UUID | None = None,
+    attachment_is_sensitive: bool | None = None,
     tags: HeartMomentTags | None = None,
 ) -> HeartMoment:
     normalized_text = _normalize_text(text)
@@ -142,6 +143,7 @@ def create_heart_moment(
     )
     if attachment_id is not None:
         _bind(session, context, heart_moment, attachment_id)
+        _set_attachment_sensitive(session, heart_moment, attachment_is_sensitive)
     session.add(heart_moment)
     _flush(session)
     if attachment_id is not None:
@@ -172,6 +174,7 @@ def create_heart_moment_once(
     visibility: ContentVisibility,
     happened_on: date,
     attachment_id: UUID | None = None,
+    attachment_is_sensitive: bool | None = None,
     tags: HeartMomentTags | None = None,
 ) -> HeartMomentCreateResult:
     """Create a HeartMoment, or return the one an earlier request with this identity created.
@@ -190,6 +193,7 @@ def create_heart_moment_once(
             visibility=visibility,
             happened_on=happened_on,
             attachment_id=attachment_id,
+            attachment_is_sensitive=attachment_is_sensitive,
             tags=tags,
         )
         return HeartMomentCreateResult(heart_moment, created=True)
@@ -208,6 +212,8 @@ def create_heart_moment_once(
         # Keep the original receipt fingerprint for older untagged clients.
         fingerprint_content["v"] = 2
         fingerprint_content["tags"] = selected_tags
+    if attachment_is_sensitive is not None:
+        fingerprint_content["attachment_is_sensitive"] = attachment_is_sensitive
     request_fingerprint = create_receipts.fingerprint(_RECEIPT_RESOURCE_TYPE, fingerprint_content)
     receipt_id = create_receipts.claim(
         session,
@@ -239,6 +245,7 @@ def create_heart_moment_once(
         visibility=visibility,
         happened_on=happened_on,
         attachment_id=attachment_id,
+        attachment_is_sensitive=attachment_is_sensitive,
         tags=selected_tags,
     )
     create_receipts.attach(session, receipt_id, heart_moment.id)
@@ -264,6 +271,7 @@ def update_heart_moment(
     emotion: HeartEmotion | None,
     happened_on: date | None,
     attachment_id: UUID | None = None,
+    attachment_is_sensitive: bool | None = None,
     tags: HeartMomentTags | None = None,
 ) -> HeartMoment:
     """Change content but explicitly not visibility.
@@ -272,7 +280,7 @@ def update_heart_moment(
     destructive. It remains a separate operation and cannot happen as a side
     effect of a text update.
     """
-    heart_moment = require_writable(session, HeartMoment, context, heart_moment_id)
+    heart_moment = require_writable_locked(session, HeartMoment, context, heart_moment_id)
     _ensure_expected_version(heart_moment, expected_version)
 
     next_text = heart_moment.payload.text
@@ -302,6 +310,10 @@ def update_heart_moment(
 
     if "attachment_id" in changed_fields:
         _rebind(session, context, heart_moment, attachment_id)
+
+    if "attachment_is_sensitive" in changed_fields:
+        _set_attachment_sensitive(session, heart_moment, attachment_is_sensitive)
+        heart_moment.updated_at = now()
 
     _flush(session)
     _record(
@@ -598,3 +610,19 @@ def _rebind(
         detached = session.get(Attachment, previous_id)
         if detached is not None:
             attachment_service.mark_for_deletion(session, detached)
+
+
+def _set_attachment_sensitive(
+    session: Session, heart_moment: HeartMoment, value: bool | None
+) -> None:
+    from eimir.attachments import binding
+
+    if value is None:
+        return
+    if heart_moment.attachment_id is None:
+        raise ValidationError("Sensitivity requires an attachment.", "ATTACHMENT_REQUIRED")
+    # Keep a combined content/classification edit in one parent version step.
+    with session.no_autoflush:
+        locked = binding.lock_for_binding(session, [heart_moment.attachment_id])
+    attachment = locked[heart_moment.attachment_id]
+    binding.set_sensitive(attachment, value)

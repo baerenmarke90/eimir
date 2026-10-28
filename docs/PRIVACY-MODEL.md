@@ -87,6 +87,38 @@ no location data in normal logs, and can be revoked at any time.
 Optional partner distance remains off until deliberately enabled and does not
 create a persistent history.
 
+### Selected-photo places and readable addresses (#1459 / #1478)
+
+The later Product Owner decision for #1459 makes selected-photo Place association
+default ON under an account-wide revocable preference; it does not enable device
+tracking, LocationHistory, Presence or inference. #1478 additionally permits
+asynchronous reverse lookup of canonical shared photo coordinates, including
+untouched historical automatic Places. Private HeartMoments never enter this path.
+
+The backend Photon adapter sends only the saved coordinate pair and a language
+code to the configured origin. By default this is `https://photon.komoot.io`; the
+service sees these coordinates and the backend IP. No photograph, EXIF blob,
+Memory title, account/Space identity or authorization credential is transmitted.
+This is a concrete third-party data flow, not an anonymous or on-device claim.
+The existing setting explains the flow; operators may replace the origin with
+their own Photon instance or disable lookup with an empty value. An operator
+must review its own recipient/privacy and availability obligations before a
+managed launch; the public demo has no SLA.
+
+The job holds current owner/Membership, preference, Place and shared-target
+authorization against concurrent changes before egress. Manual correction,
+unlink, private transitions, disabled Accounts and ended Memberships stop later
+work. OFF prevents pending lookups and future extraction; it preserves previously
+saved history and cannot retract a lookup already delivered to the service.
+The ordinary job payload contains canonical IDs only. No cross-couple location
+cache is created. Lookup results live in the existing protected Place payload,
+including OSM source attribution, with the same encryption, export, backup and
+deletion boundary. Provider failure retains the original coordinate/map action.
+
+Opening an external map remains a separate deliberate action. Its destination
+receives the original saved coordinates, with no account token or referrer. The
+browser makes no map, geocoder, tile or preview request merely to read a Memory.
+
 ## Notifications
 
 Push notifications contain **no** sensitive text by default.

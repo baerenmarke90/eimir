@@ -1,5 +1,13 @@
 # Selected photo sources: delivery contract
 
+**Current security gate (#1467): application Google import is unavailable.**
+Configured OAuth credentials and deployment flags cannot enable it. Browser-bound
+OAuth completion and a reviewed encrypted/nonpersistent device-media recovery
+design must land first. New and legacy Google transfers/callbacks fail closed;
+cancel/expiry/revocation cleanup remains available. Immich and device selection
+retain the behavior below. See [the gate and remaining acceptance](1444-google-security-gate.md).
+The original rollout instructions below do not override this gate.
+
 Preflight: 2026-10-27, main `8c78c2eabc4a20dbdc71f067677cdc123fb4d293`.
 Owner: #1444. The Product Owner authorized completion of #1460, #1462,
 #1375, #1444 and #1461; real-provider and device acceptance follows in the
@@ -139,6 +147,8 @@ can disable new source tasks without removing local picking or disconnect.
 
 Google additionally needs `EIMIR_GOOGLE_PHOTOS_CLIENT_ID` and
 `EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET` from the operator's approved Web OAuth app.
+These settings are retained for compatibility/future reviewed enablement; they
+currently do **not** make Google available while #1467's hard gate is present.
 Register exactly `${EIMIR_PUBLIC_BASE_URL}/api/v1/photo-sources/google/callback`
 (without a doubled slash), enable the Photos Picker API and configure the
 permitted testing audience or complete Google's required verification. The only

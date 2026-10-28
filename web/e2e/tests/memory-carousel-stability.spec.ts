@@ -3,6 +3,17 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import memoryProduct from '../../src/i18n/locales/memoryProduct';
+import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
+import AxeBuilder from '@axe-core/playwright';
+import {
+  installNativeAppLifecycle,
+  nativeAppState,
+} from '../support/nativeAppLifecycle';
+import {
+  installMediaOwnershipMetrics,
+  mediaOwnershipMetrics,
+} from '../support/mediaOwnershipMetrics';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -38,6 +49,7 @@ type ImageFixture = {
   width: number;
   height: number;
   svg: string;
+  isSensitive?: boolean;
 };
 
 function attachment(value: ImageFixture, position: number) {
@@ -48,6 +60,7 @@ function attachment(value: ImageFixture, position: number) {
     mediaType: 'IMAGE',
     mimeType: 'image/jpeg',
     hasThumbnail: true,
+    isSensitive: value.isSensitive ?? false,
     width: value.width,
     height: value.height,
     size: value.svg.length,
@@ -318,6 +331,9 @@ async function installApiMocks(
   const unexpectedRequests: string[] = [];
   const readAccessBodies: unknown[] = [];
   const contentReads: string[] = [];
+  let currentMemory = memory(MEMORY_ID, galleryAttachments.map(attachment));
+  if (galleryAttachments.some((item) => item.isSensitive))
+    currentMemory.body = 'A quiet evening together by the water.';
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
@@ -472,10 +488,46 @@ async function installApiMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}`
     ) {
-      await fulfillJson(memory(MEMORY_ID, galleryAttachments.map(attachment)));
+      await fulfillJson(currentMemory);
       return;
     }
 
+    if (
+      method === 'PATCH' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}`
+    ) {
+      currentMemory = {
+        ...currentMemory,
+        ...request.postDataJSON(),
+        version: currentMemory.version + 1,
+      };
+      await fulfillJson(currentMemory);
+      return;
+    }
+    if (
+      method === 'PUT' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}/attachments`
+    ) {
+      const entries = request.postDataJSON().attachments as {
+        attachmentId: string;
+        position: number;
+        isSensitive?: boolean;
+      }[];
+      currentMemory = {
+        ...currentMemory,
+        version: currentMemory.version + 1,
+        attachments: entries.map((entry) => ({
+          ...currentMemory.attachments.find(
+            (item) => item.id === entry.attachmentId,
+          )!,
+          position: entry.position,
+          isSensitive: entry.isSensitive ?? false,
+        })),
+      };
+      await fulfillJson(currentMemory);
+      return;
+    }
     if (
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/memories/${SINGLE_MEMORY_ID}`
@@ -1014,6 +1066,136 @@ test('Memory carousel is effectively static with reduced motion and reflows at 2
   });
 });
 
+for (const width of [390, 1280]) {
+  for (const failure of [200, 429, 503, 'offline', 401, 403, 404] as const) {
+    test(`native resume preserves photo ownership or blocks revoked access: ${failure} at ${width}px`, async ({
+      page,
+    }, info) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: width === 390 ? 'light' : 'dark',
+        reducedMotion: 'reduce',
+      });
+      await page.clock.install();
+      await installNativeAppLifecycle(page);
+      await installMediaOwnershipMetrics(page);
+      const { unexpectedRequests, contentReads, readAccessBodies } =
+        await installApiMocks(page);
+      let revalidating = false;
+      let membershipReads = 0;
+      await page.route('**/api/v1/auth/memberships', async (route) => {
+        membershipReads += 1;
+        if (revalidating && failure === 'offline')
+          return route.abort('internetdisconnected');
+        return route.fulfill({
+          status: revalidating && typeof failure === 'number' ? failure : 200,
+          json:
+            revalidating && failure !== 200
+              ? { code: 'MEMBERSHIP_REFRESH_FAILED', title: 'Unavailable' }
+              : [{ role: 'MEMBER', spaceId: SPACE_ID, status: 'ACTIVE' }],
+        });
+      });
+      await page.route('**/api/v1/auth/refresh', (route) =>
+        route.fulfill({
+          status: 401,
+          json: { code: 'AUTHENTICATION_REQUIRED', title: 'Revoked session' },
+        }),
+      );
+      await page.goto('/');
+      await signIn(page);
+      await openMemory(page);
+      await positionGalleryForReading(page);
+      const photo = page
+        .locator('.media-gallery-carousel-slide.is-active img')
+        .last();
+      await expect(photo).toHaveAttribute('src', /^blob:/);
+      await expect.poll(() => contentReads.length).toBe(3);
+      const originalPhoto = await photo.elementHandle();
+      const originalShell = await page
+        .locator('.product-shell')
+        .elementHandle();
+      const originalUrl = await photo.getAttribute('src');
+      if (!originalUrl || !originalPhoto || !originalShell)
+        throw new Error(
+          'Loaded photo and shell must exist before interruption',
+        );
+      const before = await geometry(page);
+      const requestsBefore = membershipReads;
+      const descriptorsBefore = readAccessBodies.length;
+      const ownershipBefore = await mediaOwnershipMetrics(page);
+
+      // The bridge must not need a document visibility event. Fresh reads stay
+      // quiet even when a user briefly switches applications repeatedly.
+      for (let cycle = 0; cycle < 3; cycle += 1) {
+        await nativeAppState(page, false);
+        await nativeAppState(page, true);
+      }
+      await nextFrame(page);
+      expect(membershipReads).toBe(requestsBefore);
+      expect(contentReads).toHaveLength(3);
+
+      await nativeAppState(page, false);
+      await page.clock.fastForward(65_000);
+      revalidating = true;
+      await nativeAppState(page, true);
+      await expect.poll(() => membershipReads).toBe(requestsBefore + 1);
+
+      const denied =
+        typeof failure === 'number' && [401, 403, 404].includes(failure);
+      if (denied) {
+        await expect(page.locator('.product-shell')).toHaveCount(0);
+        await expect(page.locator('.media-gallery-carousel')).toHaveCount(0);
+        await expect
+          .poll(async () => (await mediaOwnershipMetrics(page)).active)
+          .toBe(0);
+      } else {
+        await nextFrame(page);
+        await expect(photo).toHaveAttribute('src', originalUrl);
+        expect(
+          await photo.evaluate((node, old) => node === old, originalPhoto),
+        ).toBe(true);
+        expect(
+          await page
+            .locator('.product-shell')
+            .evaluate((node, old) => node === old, originalShell),
+        ).toBe(true);
+        expectStableGeometry(before, await geometry(page));
+        expect(contentReads).toHaveLength(3);
+        expect(readAccessBodies).toHaveLength(descriptorsBefore);
+        expect(await mediaOwnershipMetrics(page)).toEqual(ownershipBefore);
+        if (failure === 503) {
+          await page.screenshot({
+            path: info.outputPath(`resume-${width}.png`),
+          });
+        }
+      }
+      expect(unexpectedRequests).toEqual([]);
+      await info.attach('resume-transport-metrics', {
+        contentType: 'application/json',
+        body: Buffer.from(
+          JSON.stringify(
+            {
+              width,
+              failure,
+              shortResumeCycles: 3,
+              staleMembershipReads: membershipReads - requestsBefore,
+              initialPhotoTransports: 3,
+              additionalPhotoTransports: contentReads.length - 3,
+              additionalDescriptors:
+                readAccessBodies.length - descriptorsBefore,
+              authorizationBlocked: denied,
+              objectUrlsBefore: ownershipBefore,
+              objectUrlsAfter: await mediaOwnershipMetrics(page),
+            },
+            null,
+            2,
+          ),
+        ),
+      });
+    });
+  }
+}
+
 test('Single-image Memory keeps the stable frame without carousel navigation', async ({
   page,
 }) => {
@@ -1047,4 +1229,225 @@ test('Single-image Memory keeps the stable frame without carousel navigation', a
     .evaluate((element) => element.getBoundingClientRect().height);
   expect(frameHeight).toBeGreaterThan(0);
   expect(unexpectedRequests).toEqual([]);
+});
+
+test('sensitive media remains local to one item and conceals on return and actual backgrounding', async ({
+  page,
+  context,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await installApiMocks(
+    page,
+    ATTACHMENTS.map((item, index) => ({ ...item, isSensitive: index !== 1 })),
+  );
+  await page.goto('/');
+  await signIn(page);
+  await page.goto(`/story/memories/${MEMORY_ID}`);
+  await expect(
+    page.getByRole('heading', { name: MULTI_MEMORY.title }),
+  ).toBeVisible();
+  const active = page.locator('.media-gallery-carousel-slide.is-active');
+  await expect(active.locator('.sensitive-media-cover')).toBeVisible();
+  await expect(active.locator('img')).toHaveAttribute('alt', '');
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .include('.media-gallery-carousel')
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  const reveal = page.getByRole('button', {
+    name: sensitiveMedia.show,
+    exact: true,
+  });
+  const box = await reveal.boundingBox();
+  expect(box?.height).toBeGreaterThanOrEqual(44);
+  await reveal.focus();
+  await page.keyboard.press('Enter');
+  await expect(
+    page.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
+  ).toBeFocused();
+  await expect(active.locator('.sensitive-media-cover')).toHaveCount(0);
+  await active.click();
+  const dialog = page.getByRole('dialog');
+  await expect(
+    dialog.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: '../../docs/product/design/references/1477/runtime-lightbox-revealed-390.png',
+  });
+  await page.keyboard.press('ArrowRight');
+  await expect(
+    page.locator(
+      '.media-lightbox-slide[data-lightbox-index="1"] .sensitive-media-cover',
+    ),
+  ).toHaveCount(0);
+  await page.keyboard.press('ArrowRight');
+  await expect(
+    dialog.getByRole('button', { name: sensitiveMedia.show, exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  // Ordinary window focus changes must retain the inline reveal.
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await expect(
+    page.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
+  ).toBeVisible();
+  const other = await context.newPage();
+  await other.goto('about:blank');
+  await other.bringToFront();
+  await page.bringToFront();
+  // Headless tabs do not always dispatch document visibility: also exercise
+  // the exact hidden boundary deterministically, with actual browser DOM.
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      value: 'hidden',
+    });
+    document.dispatchEvent(new Event('visibilitychange'));
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      value: 'visible',
+    });
+  });
+  await expect(
+    page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: sensitiveMedia.show, exact: true })
+    .click();
+  await page.reload();
+  await expect(
+    page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
+  ).toBeVisible();
+});
+
+for (const theme of ['light', 'dark'] as const) {
+  test(`sensitive media reflows in ${theme} and retains readable controls`, async ({
+    page,
+  }) => {
+    await page.addInitScript(
+      (theme) => localStorage.setItem('eimir.theme', theme),
+      theme,
+    );
+    await installApiMocks(
+      page,
+      ATTACHMENTS.map((item, index) => ({ ...item, isSensitive: index === 0 })),
+    );
+    await page.goto('/');
+    await signIn(page);
+    await page.goto(`/story/memories/${MEMORY_ID}`);
+    await page.emulateMedia({ colorScheme: theme });
+    for (const width of [320, 360, 390, 430, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expectCarouselSettled(page, 0);
+      const reveal = page.getByRole('button', {
+        name: sensitiveMedia.show,
+        exact: true,
+      });
+      await expect(reveal).toBeVisible();
+      const box = await reveal.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(box?.x).toBeGreaterThanOrEqual(0);
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(width);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      if (width === 1280) {
+        await page.reload();
+        await expectCarouselSettled(page, 0);
+      }
+      await reveal.scrollIntoViewIfNeeded();
+      await nextFrame(page);
+      await page.screenshot({
+        path: `../../docs/product/design/references/1477/runtime-${theme}-${width}.png`,
+        fullPage: width < 840,
+      });
+    }
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+    await expect(
+      page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: `../../docs/product/design/references/1477/runtime-${theme}-320-large-text.png`,
+      fullPage: true,
+    });
+  });
+}
+
+test('sensitive photo editing retains a failed classification draft and saves on deliberate retry', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installApiMocks(
+    page,
+    ATTACHMENTS.map((item, index) => ({ ...item, isSensitive: index === 0 })),
+  );
+  await page.goto('/');
+  await signIn(page);
+  await page.goto(`/story/memories/${MEMORY_ID}/edit`);
+  const mark = page
+    .getByRole('checkbox', { name: sensitiveMedia.mark, exact: true })
+    .first();
+  await expect(mark).toBeChecked();
+  await mark.uncheck();
+  await page.screenshot({
+    path: '../../docs/product/design/references/1477/runtime-edit-390.png',
+    fullPage: true,
+  });
+  let rejectNext = true;
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}/attachments`,
+    async (route) => {
+      if (route.request().method() === 'PUT' && rejectNext) {
+        rejectNext = false;
+        await route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            code: 'SAVE_FAILED',
+            status: 500,
+            title: 'Save failed',
+          }),
+        });
+      } else await route.fallback();
+    },
+  );
+  await page
+    .getByRole('button', {
+      name: memoryProduct.save,
+      exact: true,
+    })
+    .click();
+  await expect(mark).not.toBeChecked();
+  await expect(page).toHaveURL(/edit$/);
+  await page
+    .getByRole('button', {
+      name: memoryProduct.save,
+      exact: true,
+    })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+  await expect(
+    page.locator(
+      '.media-gallery-carousel-slide.is-active .sensitive-media-cover',
+    ),
+  ).toHaveCount(0);
+  await page.reload();
+  await expect(
+    page.locator(
+      '.media-gallery-carousel-slide.is-active .media-gallery-carousel-content',
+    ),
+  ).toBeVisible();
 });

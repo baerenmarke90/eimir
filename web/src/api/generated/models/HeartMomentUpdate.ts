@@ -39,6 +39,12 @@ export interface HeartMomentUpdate {
     attachmentId?: string | null;
     /**
      * 
+     * @type {boolean}
+     * @memberof HeartMomentUpdate
+     */
+    attachmentIsSensitive?: boolean | null;
+    /**
+     * 
      * @type {HeartEmotion}
      * @memberof HeartMomentUpdate
      */
@@ -83,6 +89,7 @@ export function HeartMomentUpdateFromJSONTyped(json: any, ignoreDiscriminator: b
     return {
         
         'attachmentId': json['attachmentId'] === undefined ? undefined : json['attachmentId'] === null ? null : json['attachmentId'],
+        'attachmentIsSensitive': json['attachmentIsSensitive'] === undefined ? undefined : json['attachmentIsSensitive'] === null ? null : json['attachmentIsSensitive'],
         'emotion': json['emotion'] === undefined ? undefined : json['emotion'] === null ? null : HeartEmotionFromJSON(json['emotion']),
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
         'tags': json['tags'] === undefined ? undefined : json['tags'] === null ? null : json['tags'],
@@ -102,6 +109,7 @@ export function HeartMomentUpdateToJSONTyped(value?: HeartMomentUpdate | null, i
     return {
         
         'attachmentId': value['attachmentId'],
+        'attachmentIsSensitive': value['attachmentIsSensitive'],
         'emotion': HeartEmotionToJSON(value['emotion']),
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
         'tags': value['tags'],

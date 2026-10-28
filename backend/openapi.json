@@ -405,6 +405,12 @@
             "title": "Id",
             "type": "string"
           },
+          "isSensitive": {
+            "default": false,
+            "description": "Manual sensitive-content classification; never an access-control boundary.",
+            "title": "Issensitive",
+            "type": "boolean"
+          },
           "mediaType": {
             "$ref": "#/components/schemas/MediaType"
           },
@@ -535,6 +541,12 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "isSensitive": {
+            "default": false,
+            "description": "Manual sensitive-content classification; never an access-control boundary.",
+            "title": "Issensitive",
+            "type": "boolean"
           },
           "mediaType": {
             "$ref": "#/components/schemas/MediaType"
@@ -1994,6 +2006,11 @@
             ],
             "title": "Previewattachmentid"
           },
+          "previewIsSensitive": {
+            "default": false,
+            "title": "Previewissensitive",
+            "type": "boolean"
+          },
           "scheduledAt": {
             "anyOf": [
               {
@@ -2982,6 +2999,17 @@
             ],
             "title": "Attachmentid"
           },
+          "attachmentIsSensitive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachmentissensitive"
+          },
           "emotion": {
             "$ref": "#/components/schemas/HeartEmotion"
           },
@@ -3157,6 +3185,17 @@
               }
             ],
             "title": "Attachmentid"
+          },
+          "attachmentIsSensitive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachmentissensitive"
           },
           "emotion": {
             "anyOf": [
@@ -3543,6 +3582,17 @@
             "title": "Attachmentid",
             "type": "string"
           },
+          "isSensitive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issensitive"
+          },
           "position": {
             "minimum": 0.0,
             "title": "Position",
@@ -3595,6 +3645,12 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "isSensitive": {
+            "default": false,
+            "description": "Manual sensitive-content classification; never an access-control boundary.",
+            "title": "Issensitive",
+            "type": "boolean"
           },
           "mediaType": {
             "$ref": "#/components/schemas/MediaType"
@@ -5289,6 +5345,17 @@
               }
             ],
             "title": "Description"
+          },
+          "geocodingSource": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Geocodingsource"
           },
           "id": {
             "format": "uuid",

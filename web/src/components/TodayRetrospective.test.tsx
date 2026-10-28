@@ -22,6 +22,7 @@ const memory = {
   createdAt: new Date('2025-11-01T10:00:00Z'),
   scheduledAt: null,
   previewAttachmentId: null as string | null,
+  previewIsSensitive: false,
 };
 
 const wish = {
@@ -45,6 +46,7 @@ function dashboard(photo = false, viewerLocalDate = new Date('2026-10-23')) {
     retrospective: {
       ...memory,
       previewAttachmentId: photo ? 'attachment-1' : null,
+      previewIsSensitive: false,
     },
     thinkingOfYouAvailableAt: null,
   };

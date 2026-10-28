@@ -270,7 +270,11 @@ export function useAttachmentDrafts({
         file,
         updatePhase,
         fetchApi,
-        { signal: controller.signal, onProgress: updateProgress },
+        {
+          signal: controller.signal,
+          onProgress: updateProgress,
+          preserveMetadata: true,
+        },
       )
         .then(({ attachmentId }) => {
           uploads.current.delete(id);

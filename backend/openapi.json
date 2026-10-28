@@ -624,6 +624,12 @@
             "minLength": 1,
             "title": "Originalname",
             "type": "string"
+          },
+          "preserveMetadata": {
+            "default": false,
+            "description": "Retain readable EXIF/ICC in the validated primary image; independent of Place association.",
+            "title": "Preservemetadata",
+            "type": "boolean"
           }
         },
         "required": [

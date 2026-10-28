@@ -1009,7 +1009,10 @@ test('text-only with the default date saves a non-empty localized fallback title
   await expect(
     page.getByRole('heading', {
       level: 1,
-      name: localizedFallbackTitle(expectedDate),
+      name: new Intl.DateTimeFormat('de-DE', {
+        dateStyle: 'long',
+        timeZone: 'UTC',
+      }).format(new Date(`${expectedDate}T00:00:00Z`)),
       exact: true,
     }),
   ).toBeVisible();

@@ -100,6 +100,21 @@ def require_readable[ResourceT: PrivateResourceMixin](
     return found
 
 
+def require_readable_locked[ResourceT: PrivateResourceMixin](
+    session: Session,
+    model: type[ResourceT],
+    context: AuthorizationContext,
+    resource_id: UUID | str,
+) -> ResourceT:
+    """Hold an authorized readable parent for a reader-owned child mutation."""
+    found = require_readable(session, model, context, resource_id)
+    try:
+        session.refresh(found, with_for_update=True)
+    except InvalidRequestError as error:
+        raise absence_of(model).error() from error
+    return found
+
+
 def require_readable_shared[ResourceT: PrivateResourceMixin](
     session: Session,
     model: type[ResourceT],

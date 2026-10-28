@@ -33,6 +33,7 @@ export function MomentPlaces({
   targetId,
   kind,
   offline,
+  compact = false,
 }: {
   apiBaseUrl: string;
   accessToken: string;
@@ -41,6 +42,7 @@ export function MomentPlaces({
   targetId: string;
   kind: 'memories' | 'heart-moments';
   offline: boolean;
+  compact?: boolean;
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -146,10 +148,15 @@ export function MomentPlaces({
     return null;
   return (
     <section
-      className="moment-places"
+      className={`moment-places${compact ? ' moment-places-compact' : ''}`}
       aria-labelledby={`moment-places-${targetId}`}
     >
-      <h2 ref={heading} tabIndex={-1} id={`moment-places-${targetId}`}>
+      <h2
+        className={compact ? 'sr-only' : undefined}
+        ref={heading}
+        tabIndex={-1}
+        id={`moment-places-${targetId}`}
+      >
         {t('photoPlaces.title')}
       </h2>
       {removed && items.length === 0 ? (

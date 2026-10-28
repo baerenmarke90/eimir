@@ -265,6 +265,9 @@ function AuthenticatedAppShell({
               >
                 <path d="m15 18-6-6 6-6" />
               </svg>
+              {location.pathname.startsWith('/story/memories/') ? (
+                <span>{t('navigation.story')}</span>
+              ) : null}
             </button>
           ) : (
             <Brand to={DEFAULT_APP_ROUTE} ariaLabel={t('brand.homeAria')} />

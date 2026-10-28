@@ -21,6 +21,7 @@ import notificationSettings from './locales/notificationSettings';
 import partnerConnection from './locales/partnerConnection';
 import people from './locales/people';
 import photoPlaces from './locales/photoPlaces';
+import photoReactions from './locales/photoReactions';
 import photoSources from './locales/photoSources';
 import privateArea from './locales/privateArea';
 import productTour from './locales/productTour';
@@ -85,6 +86,7 @@ if (!i18n.isInitialized) {
           sharedPhotos,
           photoSources,
           photoPlaces,
+          photoReactions,
         },
       },
     },

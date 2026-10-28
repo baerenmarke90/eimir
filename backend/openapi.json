@@ -3670,6 +3670,13 @@
             "title": "Position",
             "type": "integer"
           },
+          "reactions": {
+            "items": {
+              "$ref": "#/components/schemas/PhotoReactionSummary"
+            },
+            "title": "Reactions",
+            "type": "array"
+          },
           "size": {
             "anyOf": [
               {
@@ -5092,6 +5099,60 @@
         ],
         "title": "PhotoParentType",
         "type": "string"
+      },
+      "PhotoReaction": {
+        "enum": [
+          "LOVE",
+          "LAUGH",
+          "SURPRISE",
+          "SAD",
+          "CELEBRATE",
+          "LIKE"
+        ],
+        "title": "PhotoReaction",
+        "type": "string"
+      },
+      "PhotoReactionSet": {
+        "additionalProperties": false,
+        "properties": {
+          "reaction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PhotoReaction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "reaction"
+        ],
+        "title": "PhotoReactionSet",
+        "type": "object"
+      },
+      "PhotoReactionSummary": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "own": {
+            "title": "Own",
+            "type": "boolean"
+          },
+          "reaction": {
+            "$ref": "#/components/schemas/PhotoReaction"
+          }
+        },
+        "required": [
+          "reaction",
+          "count",
+          "own"
+        ],
+        "title": "PhotoReactionSummary",
+        "type": "object"
       },
       "PhotoSelectionCreate": {
         "additionalProperties": false,
@@ -21897,6 +21958,115 @@
           }
         },
         "summary": "Replace Memory Attachments",
+        "tags": [
+          "memories"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/memories/{memoryId}/attachments/{attachmentId}/reaction": {
+      "put": {
+        "description": "Set or remove the caller's preset photo reaction; retries are idempotent.",
+        "operationId": "setMemoryPhotoReaction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memoryId",
+            "required": true,
+            "schema": {
+              "title": "Memoryid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "attachmentId",
+            "required": true,
+            "schema": {
+              "title": "Attachmentid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoReactionSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryDetail"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Memory Photo Reaction",
         "tags": [
           "memories"
         ]

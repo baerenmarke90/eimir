@@ -77,7 +77,9 @@ permissions:
   attestations: write
 
 concurrency:
-  group: publish-release-${{ github.event_name == 'workflow_dispatch' && 'protected' || github.ref }}
+  # Late completions must not evict a queued candidate from another source or
+  # origin. Product releases retain their single protected publication queue.
+  group: publish-release-${{ github.event_name == 'workflow_dispatch' && 'protected' || github.event.workflow_run.head_sha && format('{0}-{1}-{2}', github.event.workflow_run.head_repository.full_name, github.event.workflow_run.event, github.event.workflow_run.head_sha) || github.ref }}
   cancel-in-progress: false
 
 env:
@@ -1407,6 +1409,8 @@ jobs:
     concurrency:
       group: private-test-channel-publisher
       cancel-in-progress: false
+      # Preserve pending candidates across revisions; each rechecks current main.
+      queue: max
     name: Publish images and promote one Git Sync commit
     needs: test-evidence
     runs-on: ubuntu-latest

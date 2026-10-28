@@ -22,6 +22,10 @@ are triggered by successful completions of the required main workflows:
    must originate from an owning-repository main push and match the exact checkout;
    PRs, forks, other branches and superseded revisions cannot admit publication.
    A revision already selected on the channel is not rebuilt on duplicate events.
+   Completion queues are separated by source revision and event origin, so a late
+   older or fork completion cannot evict the current candidate. Final publication
+   retains pending candidates, remains globally serialized, and rechecks current
+   main and all required checks before it can advance the channel.
    Browser QA therefore runs for every main push, including backend-only and
    operator changes; pull-request browser path filters remain unchanged.
 3. Runs the channel contracts, then reuses Release Evidence with Android excluded:

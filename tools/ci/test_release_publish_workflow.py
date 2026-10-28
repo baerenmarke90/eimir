@@ -76,6 +76,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn("vars.EIMIR_TEST_CHANNEL_ENABLED == 'true'", gate)
         publisher = self.workflow.split("\n  test-publish:\n", 1)[1]
         self.assertIn("needs: test-evidence", publisher)
+        self.assertIn("queue: max", publisher)
         self.assertNotIn("if: always()\n    runs-on:", publisher)
         self.assertIn("scripts/test_deployment_channel.py publish", publisher)
         self.assertNotIn("gh release", publisher)
@@ -125,7 +126,10 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
 
     def test_protected_publication_is_globally_serialized(self) -> None:
         self.assertIn(
-            "group: publish-release-${{ github.event_name == 'workflow_dispatch' && 'protected' || github.ref }}",
+            "group: publish-release-${{ github.event_name == 'workflow_dispatch' && 'protected' || "
+            "github.event.workflow_run.head_sha && format('{0}-{1}-{2}', "
+            "github.event.workflow_run.head_repository.full_name, github.event.workflow_run.event, "
+            "github.event.workflow_run.head_sha) || github.ref }}",
             self.workflow,
         )
         self.assertIn("cancel-in-progress: false", self.workflow)

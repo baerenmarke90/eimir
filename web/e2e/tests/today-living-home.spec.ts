@@ -827,26 +827,28 @@ test.describe('Today R4: the living home of a relationship', () => {
         return node ? Math.round(node.getBoundingClientRect().top) : null;
       };
       return {
-        dateTitle: top('.today-date-title'),
+        removedDateHeading: document.querySelectorAll('.today-date-heading')
+          .length,
+        headings: document.querySelectorAll('.today-content h1').length,
         avatar: top('.partner-avatar-pair-action'),
+        avatarDiameter: document
+          .querySelector('.today-hero .partner-avatar-primary')
+          ?.getBoundingClientRect().width,
         relationshipTitle: top('.couple-presence-title'),
         moment: top('.today-section-moment'),
         momentImage: top('.today-moment-media'),
       };
     });
 
-    // #1155 put the date first; #1206 made the avatar pair the relationship
-    // action before the names. Keep both near the top, with the full identity
-    // visible in the first part of the phone viewport.
-    expect(metrics.dateTitle).not.toBeNull();
-    expect(metrics.dateTitle as number).toBeLessThan(120);
+    // Photo-first Wir: no date masthead, larger portraits and a single H1.
+    // The focal Memory must still enter the first phone viewport.
+    expect(metrics.removedDateHeading).toBe(0);
+    expect(metrics.headings).toBe(1);
+    expect(metrics.avatarDiameter).toBeGreaterThanOrEqual(115);
     expect(metrics.avatar).not.toBeNull();
-    expect(metrics.avatar as number).toBeLessThan(260);
-    expect(metrics.avatar as number).toBeGreaterThan(
-      metrics.dateTitle as number,
-    );
+    expect(metrics.avatar as number).toBeLessThan(200);
     expect(metrics.relationshipTitle).not.toBeNull();
-    expect(metrics.relationshipTitle as number).toBeLessThan(320);
+    expect(metrics.relationshipTitle as number).toBeLessThan(385);
     expect(metrics.relationshipTitle as number).toBeGreaterThan(
       metrics.avatar as number,
     );
@@ -1303,6 +1305,18 @@ test.describe('Today R4: the living home of a relationship', () => {
 
     await expectNoWcagViolations(page);
     await capture(page, testInfo, '320-reflow');
+
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+    const heroBounds = await page
+      .locator('.today-hero .partner-avatar-pair')
+      .evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, viewport: innerWidth };
+      });
+    expect(heroBounds.left).toBeGreaterThanOrEqual(0);
+    expect(heroBounds.right).toBeLessThanOrEqual(heroBounds.viewport);
   });
 
   test('keeps hero and `Demnächst` from consuming a small-height phone screen', async ({
@@ -1379,6 +1393,12 @@ test.describe('Today R4: the living home of a relationship', () => {
       await settleMotion(page);
       await expectNormativeOrder(page);
       await expectNoHorizontalOverflow(page);
+      const diameter = await page
+        .locator('.today-hero .partner-avatar-primary')
+        .evaluate((node) => node.getBoundingClientRect().width);
+      expect(diameter).toBeGreaterThanOrEqual(
+        viewport.width >= 768 ? 140 : 105,
+      );
       await capture(page, testInfo, viewport.name);
     }
   });

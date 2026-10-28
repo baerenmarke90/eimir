@@ -16,10 +16,7 @@ import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
 import m5s5 from '../i18n/locales/m5s5';
-import {
-  formatRelationshipDuration,
-  TodayPage,
-} from './TodayPage';
+import { formatRelationshipDuration, TodayPage } from './TodayPage';
 
 /**
  * By default this seeds an already-resolved (empty-override) Dashboard

@@ -18,7 +18,6 @@ import de from '../i18n/locales/de';
 import m5s5 from '../i18n/locales/m5s5';
 import {
   formatRelationshipDuration,
-  formatTodayHeaderDate,
   TodayPage,
 } from './TodayPage';
 
@@ -82,11 +81,6 @@ function renderTodayPage(
 }
 
 describe('TodayPage', () => {
-  it('formats the Today date in the compact reference hierarchy', () => {
-    const label = formatTodayHeaderDate(new Date('2026-09-21T12:00:00.000Z'));
-    expect(label).toContain('21. September 2026');
-  });
-
   it('renders couple presence hero, days together, the partner quick-actions trigger, and the composed modules', () => {
     const html = renderTodayPage({
       space: {
@@ -124,9 +118,11 @@ describe('TodayPage', () => {
       },
     });
 
-    expect(html).toContain('today-date-heading');
-    expect(html).toContain('today-date-title');
-    expect(html).toContain('Heute');
+    expect(html).not.toContain('today-date-heading');
+    expect(html).not.toContain('today-date-value');
+    expect(html).toMatch(
+      /<h1[^>]*class="couple-presence-title"[^>]*>Alex &amp; Marie<\/h1>/,
+    );
     expect(html).toContain('Marie');
     expect(html).toContain('420');
     expect(html).toContain('partner-avatar-pair-action');
@@ -2513,11 +2509,12 @@ describe('formatRelationshipDuration', () => {
         const hidden = renderWithVisibility({ relationship_presence: false });
 
         expect(shown).toContain('today-hero');
+        expect(shown).toMatch(/<h1[^>]*class="couple-presence-title"/);
         expect(hidden).not.toContain('today-hero');
+        expect(hidden).toContain('<h1 class="sr-only">Wir</h1>');
 
-        // Exactly one <h1> either way: the real heading inside the hero, or
-        // the quiet sr-only fallback that takes its place - never zero,
-        // never two.
+        // Exactly one H1: the couple names, or the sr-only fallback
+        // when the optional relationship module is hidden.
         const h1Count = (html: string) =>
           (html.match(/<h1[\s>]/g) ?? []).length;
         expect(h1Count(shown)).toBe(1);

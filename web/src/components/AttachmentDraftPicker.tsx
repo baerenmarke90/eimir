@@ -2,6 +2,8 @@ import type { AttachmentDraft } from '../client/attachmentDraftState';
 import { SensitiveMediaCheckbox, SensitiveMediaCover } from './SensitiveMedia';
 import { useState } from 'react';
 import { useTranslation } from '../i18n';
+import { selectedPhotoUnavailable } from '../client/selectedMediaRetention';
+import { EimirIcon } from './EimirIcon';
 
 export interface AttachmentDraftPickerController {
   items: AttachmentDraft[];
@@ -87,8 +89,10 @@ export function AttachmentDraftPicker({
           aria-label={t('memory.photoDraftsAria')}
         >
           {attachments.items.map((attachment, index) => {
-            const statusText =
-              attachment.status === 'uploading'
+            const unavailable = selectedPhotoUnavailable(attachment.file);
+            const statusText = unavailable
+              ? t('memory.diary.photoMissing')
+              : attachment.status === 'uploading'
                 ? t('memory.photoUploading')
                 : attachment.status === 'validating'
                   ? t('memory.photoValidating')
@@ -99,7 +103,15 @@ export function AttachmentDraftPicker({
             return (
               <li className="attachment-draft-item" key={attachment.id}>
                 <div className="attachment-preview-wrap">
-                  {attachment.isSensitive ? (
+                  {unavailable ? (
+                    <span
+                      className="attachment-preview attachment-preview-placeholder"
+                      role="img"
+                      aria-label={t('memory.diary.photoMissing')}
+                    >
+                      <EimirIcon name="foto" />
+                    </span>
+                  ) : attachment.isSensitive ? (
                     <SensitiveMediaCover />
                   ) : (
                     <img
@@ -110,9 +122,11 @@ export function AttachmentDraftPicker({
                       })}
                     />
                   )}
-                  <span className="attachment-preview-label">
-                    {t('memory.photoLocalPreview')}
-                  </span>
+                  {!unavailable ? (
+                    <span className="attachment-preview-label">
+                      {t('memory.photoLocalPreview')}
+                    </span>
+                  ) : null}
                 </div>
                 <div className="attachment-draft-meta">
                   <strong>{attachment.file.name}</strong>
@@ -149,7 +163,9 @@ export function AttachmentDraftPicker({
                       <small className="attachment-draft-error">
                         {attachment.error}
                       </small>
-                      <small>{t('memory.photoFailedNotSaved')}</small>
+                      {!unavailable ? (
+                        <small>{t('memory.photoFailedNotSaved')}</small>
+                      ) : null}
                     </>
                   ) : null}
                 </div>
@@ -188,7 +204,11 @@ export function AttachmentDraftPicker({
                       className="secondary"
                       onClick={() => attachments.retry(attachment)}
                     >
-                      {t('common.retry')}
+                      {t(
+                        unavailable
+                          ? 'memory.diary.photoRetry'
+                          : 'common.retry',
+                      )}
                     </button>
                   ) : null}
                   {attachment.status === 'uploading' ||

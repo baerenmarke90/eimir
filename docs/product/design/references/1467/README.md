@@ -67,3 +67,33 @@ that words/save status persist, Google copies remain only in the open task and
 available protected photos can be loaded again after restart. Preserve all
 remaining composition. The actual localized implementation remains authoritative
 for precise recovery/error semantics.
+
+## Implemented behavioral and visual evidence
+
+The source/API generation admits future Google tasks only with the memory-only
+recovery contract. Real IndexedDB tests prove that new Google and resumed legacy
+photo bytes are absent from checkpoints while ordinary new device Files, text,
+positions, sensitivity, server IDs and exact save identity retain their contracts.
+Legacy records are unchanged until explicit Resume/Discard; Resume migrates
+their checkpoint and retains current File objects in the open task.
+
+Runtime evidence from actual components and synthetic API fixtures:
+
+- [320px Light, 200% text](recovery-320-light.png)
+- [360px Dark](recovery-360-dark.png)
+- [390px Light](recovery-390-light.png)
+- [430px Dark](recovery-430-dark.png)
+- [1280px Light](recovery-1280-light.png)
+
+Each missing-slot journey resumes two ordered photos, retains authored words,
+blocks Save while one is unavailable, retries its protected server read, saves
+once and opens the canonical result without a replacement upload. Reflow and
+Axe critical/serious checks pass. A separate lost-response journey reloads an
+uncertain create with a missing photo, reuses the exact idempotency identity,
+confirms the existing Memory and exposes the known partial-binding outcome.
+Provider/installed-device acceptance is not inferred from these fixtures.
+
+A local quota-failure journey also proves that volatile-photo Save requires a
+successful exact-operation journal checkpoint: no POST, no invented uncertain
+outcome, retained words, and one create after storage works again. Ordinary new
+device Files retain their previous persistence/fallback behavior.

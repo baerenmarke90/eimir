@@ -51,6 +51,7 @@ EXPIRE_JOB = "photo_selection_expire"
 _SLOTS = threading.BoundedSemaphore(4)
 _LIFETIME = timedelta(minutes=10)
 _CAPABILITY = Capability.INTEGRATION_EXTERNAL_SYNC.value
+GOOGLE_RECOVERY_POLICY = "memory-only-v1"
 
 
 def enabled() -> bool:
@@ -70,6 +71,13 @@ def google_import_available() -> bool:
 
 def _guard_google_import(provider: str) -> None:
     if provider == "google" and not google_import_available():
+        raise ServiceUnavailableError(
+            "This photo source is unavailable.", "PHOTO_SOURCE_UNAVAILABLE"
+        )
+
+
+def _guard_recovery_policy(row: PhotoSelection) -> None:
+    if row.provider == "google" and row.payload.media_recovery_policy != GOOGLE_RECOVERY_POLICY:
         raise ServiceUnavailableError(
             "This photo source is unavailable.", "PHOTO_SOURCE_UNAVAILABLE"
         )
@@ -188,10 +196,13 @@ def start(
     maximum: int,
     *,
     browser_binding: str | None = None,
+    media_recovery_policy: str | None = None,
 ) -> tuple[PhotoSelection, str | None]:
     _guard(session, auth)
     _guard_google_import(provider)
-    if provider == "google" and not valid_proof(browser_binding):
+    if provider == "google" and (
+        not valid_proof(browser_binding) or media_recovery_policy != GOOGLE_RECOVERY_POLICY
+    ):
         raise ServiceUnavailableError(
             "This photo source is unavailable.", "PHOTO_SOURCE_UNAVAILABLE"
         )
@@ -227,6 +238,7 @@ def start(
             space_id=auth.space_id,
             device_session_id=device.id,
             max_items=maximum,
+            media_recovery_policy=media_recovery_policy if provider == "google" else None,
         ),
     )
     url: str | None = None
@@ -287,6 +299,7 @@ def owned(
         raise NotFoundError("Photo selection not found.", "PHOTO_SOURCE_NOT_FOUND")
     if commercial:
         _guard_google_import(row.provider)
+        _guard_recovery_policy(row)
     return row
 
 
@@ -306,6 +319,7 @@ def _load_immich_page(session: Session, row: PhotoSelection, page: int) -> None:
 
 def advance(session: Session, row: PhotoSelection, *, more: bool = False) -> None:
     _guard_google_import(row.provider)
+    _guard_recovery_policy(row)
     rate_limit.check(
         session,
         "photo-source-poll",
@@ -408,8 +422,10 @@ def callback(
     # State and stored Account/DeviceSession metadata do not prove which
     # browser returned. A wrong browser must not exchange or consume the task.
     # Legacy rows have no proof and deliberately cannot complete authorization.
-    if not data.browser_binding_hash or not tokens_equal(
-        data.browser_binding_hash, hash_token(browser_binding or "")
+    if (
+        data.media_recovery_policy != GOOGLE_RECOVERY_POLICY
+        or not data.browser_binding_hash
+        or not tokens_equal(data.browser_binding_hash, hash_token(browser_binding or ""))
     ):
         return None
     row.state_hash = None  # consumed even if the provider denies or fails
@@ -457,6 +473,7 @@ def read_item(
     session: Session, row: PhotoSelection, item_id: str, *, thumbnail: bool
 ) -> SelectedPhoto:
     _guard_google_import(row.provider)
+    _guard_recovery_policy(row)
     rate_limit.check(
         session,
         "photo-source-read",

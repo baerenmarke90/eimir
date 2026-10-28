@@ -27,7 +27,14 @@ export type AttachmentDraftAction =
       status: 'uploading' | 'validating';
     }
   | { type: 'ready'; id: string; attempt: number; attachmentId: string }
-  | { type: 'failed'; id: string; attempt: number; error: string }
+  | {
+      type: 'failed';
+      id: string;
+      attempt: number;
+      error: string;
+      keepAttachmentId?: boolean;
+    }
+  | { type: 'recovered'; id: string; file: File; previewUrl: string }
   | { type: 'sensitive'; id: string; value: boolean }
   | { type: 'remove'; id: string }
   | { type: 'move'; id: string; offset: -1 | 1 }
@@ -107,9 +114,24 @@ export function attachmentDraftReducer(
         (draft) => ({
           ...draft,
           status: 'failed',
-          attachmentId: undefined,
+          attachmentId: action.keepAttachmentId
+            ? draft.attachmentId
+            : undefined,
           error: action.error,
         }),
+      );
+    case 'recovered':
+      return drafts.map((draft) =>
+        draft.id === action.id
+          ? {
+              ...draft,
+              file: action.file,
+              previewUrl: action.previewUrl,
+              status: 'ready',
+              progress: 100,
+              error: undefined,
+            }
+          : draft,
       );
     case 'sensitive':
       return drafts.map((draft) =>

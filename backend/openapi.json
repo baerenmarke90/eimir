@@ -5107,6 +5107,18 @@
             "title": "Maxitems",
             "type": "integer"
           },
+          "mediaRecoveryPolicy": {
+            "anyOf": [
+              {
+                "const": "memory-only-v1",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mediarecoverypolicy"
+          },
           "source": {
             "enum": [
               "google",

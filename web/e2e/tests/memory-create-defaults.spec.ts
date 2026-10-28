@@ -1,5 +1,6 @@
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import contextTags from '../../src/i18n/locales/contextTags';
@@ -39,6 +40,7 @@ interface PhotoSourceScenario {
 }
 
 interface PhotoBatchScenario {
+  loseCreateResponse?: boolean;
   idsByName: Record<string, string>;
   uploaded: string[];
   finalized: string[];
@@ -216,6 +218,27 @@ test('Google browser authorization returns selected copies to the unsaved diary'
   ).toHaveCount(2);
   expect(source.originals).toBe(2);
   expect(photos.creates).toBe(0);
+  await expect(page.locator('.memory-draft-status')).toHaveText(
+    de.memory.diary.draft.memoryOnly,
+  );
+  const persisted = await page.evaluate(async () => {
+    const request = indexedDB.open('eimir-memory-drafts-v1');
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      request.onsuccess = () => resolve(request.result);
+    });
+    const tx = db.transaction('drafts', 'readonly');
+    const records = tx.objectStore('drafts').getAll();
+    const result = await new Promise<{ value: { files: object[] } }[]>(
+      (resolve) => {
+        tx.oncomplete = () => resolve(records.result);
+      },
+    );
+    db.close();
+    return result.flatMap((row) =>
+      row.value.files.map((entry: object) => 'file' in entry),
+    );
+  });
+  expect(persisted).toEqual([false, false]);
   await expect(
     page.getByRole('textbox', { name: de.memory.bodyLabel, exact: true }),
   ).toHaveValue(AUTHORED_BODY);
@@ -344,6 +367,7 @@ async function installApiMocks(
   source?: PhotoSourceScenario,
 ): Promise<void> {
   let savedMemory: Record<string, unknown> | null = null;
+  let savedCreateKey: string | undefined;
   const attachments: string[] = [];
   const attachment = (id: string) => ({
     id,
@@ -404,6 +428,10 @@ async function installApiMocks(
     if (source && pathname === `/api/v1/spaces/${SPACE_ID}/photo-selections`) {
       source.starts++;
       expect(request.postDataJSON().consent).toBe(true);
+      if (source.googleAvailable)
+        expect(request.postDataJSON().mediaRecoveryPolicy).toBe(
+          'memory-only-v1',
+        );
       await fulfillJson(
         {
           id: 'selected-session',
@@ -661,7 +689,13 @@ async function installApiMocks(
       method === 'POST' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/memories`
     ) {
+      const identity = request.headers()['idempotency-key'];
+      if (savedMemory && identity && identity === savedCreateKey) {
+        await fulfillJson(savedMemory);
+        return;
+      }
       const body = request.postDataJSON() as MemoryCreateRequestBody;
+      savedCreateKey = identity;
       if (photos) photos.creates++;
       savedMemory = {
         attachments: [],
@@ -678,7 +712,9 @@ async function installApiMocks(
         updatedAt: TEST_NOW,
         version: 1,
       };
-      await fulfillJson(savedMemory, 201);
+      if (photos?.loseCreateResponse && photos.creates === 1)
+        await route.abort('failed');
+      else await fulfillJson(savedMemory, 201);
       return;
     }
 
@@ -1479,4 +1515,218 @@ test('diary restores a file whose unbound server upload has expired', async ({
   await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
   expect(photos.creates).toBe(1);
   expect(photos.bound).toEqual([photos.finalized[1]]);
+});
+
+async function stageRecoveryPhotos(page: Page, photos: PhotoBatchScenario) {
+  const photoBytes = photos.photoBytes;
+  if (!photoBytes) throw new Error('Recovery fixture needs photo bytes');
+  await signInAndOpenMemoryCreate(page, photos);
+  await page
+    .getByLabel(de.memory.bodyLabel, { exact: true })
+    .fill(AUTHORED_BODY);
+  await page.locator('#memory-create-images').setInputFiles(
+    ['first.jpg', 'second.jpg'].map((name) => ({
+      name,
+      mimeType: 'image/jpeg',
+      buffer: photoBytes,
+    })),
+  );
+  await expect.poll(() => photos.finalized.length).toBe(2);
+  for (const id of photos.finalized) photos.ready.add(id);
+  await expect(page.locator('.attachment-status-ready')).toHaveCount(2);
+  await expect(page.locator('.memory-draft-status')).toHaveText(
+    de.memory.diary.draft.saved,
+  );
+  await page.evaluate(
+    async ([account, space]) => {
+      const draftPath = '/src/client/memoryDiaryDraft.ts';
+      const retentionPath = '/src/client/selectedMediaRetention.ts';
+      const { MemoryDiaryDraftStore } = await import(draftPath);
+      const { retainPhotoInMemory } = await import(retentionPath);
+      const store = new MemoryDiaryDraftStore(location.origin, account, space);
+      const value = await store.load();
+      for (const entry of value.files) retainPhotoInMemory(entry.file);
+      await store.save(value);
+    },
+    [ACCOUNT_ID, SPACE_ID],
+  );
+}
+
+for (const [width, colorScheme] of [
+  [320, 'light'],
+  [360, 'dark'],
+  [390, 'light'],
+  [430, 'dark'],
+  [1280, 'light'],
+] as const) {
+  test(`memory-only recovery keeps missing photo positions and can retry (${width})`, async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    const photos = emptyPhotoBatch();
+    await stageRecoveryPhotos(page, photos);
+    const originalIds = [...photos.finalized];
+    const missingPath = `**/attachments/${originalIds[1]}`;
+    const unavailable = async (route: import('@playwright/test').Route) =>
+      route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: 'NOT_FOUND',
+          status: 404,
+          title: 'Not found',
+        }),
+      });
+    await page.route(missingPath, unavailable);
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.reload();
+    await page
+      .getByRole('button', { name: de.memory.diary.resume, exact: true })
+      .click();
+    await expect(page.locator('.attachment-draft-item')).toHaveCount(2);
+    await expect(page.locator('.attachment-status-ready')).toHaveCount(1);
+    await expect(page.locator('.attachment-status-failed')).toHaveText(
+      de.memory.diary.photoMissing,
+    );
+    await expect(
+      page.getByLabel(de.memory.bodyLabel, { exact: true }),
+    ).toHaveValue(AUTHORED_BODY);
+    await expect(
+      page.getByRole('button', { name: de.memory.save, exact: true }),
+    ).toBeDisabled();
+    if (width === 320)
+      await page.addStyleTag({
+        content: 'html { font-size: 200% !important; }',
+      });
+    await expectNoHorizontalOverflow(page);
+    const axe = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      .analyze();
+    expect(
+      axe.violations.filter((v) =>
+        ['critical', 'serious'].includes(v.impact ?? ''),
+      ),
+    ).toEqual([]);
+    await page.screenshot({
+      path: fileURLToPath(
+        new URL(
+          `../../../docs/product/design/references/1467/recovery-${width}-${colorScheme}.png`,
+          import.meta.url,
+        ),
+      ),
+      fullPage: true,
+    });
+    await page.unroute(missingPath, unavailable);
+    await page
+      .getByRole('button', { name: de.memory.diary.photoRetry, exact: true })
+      .click();
+    await expect(page.locator('.attachment-status-ready')).toHaveCount(2);
+    await page
+      .getByRole('button', { name: de.memory.save, exact: true })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+    expect(photos.creates).toBe(1);
+    expect(photos.finalized).toEqual(originalIds);
+    expect(photos.bound).toEqual(originalIds);
+  });
+}
+
+test('an uncertain create is reconciled before a missing volatile photo can change its identity', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const photos = emptyPhotoBatch();
+  photos.loseCreateResponse = true;
+  await stageRecoveryPhotos(page, photos);
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.reload();
+  await page
+    .getByRole('button', { name: de.memory.diary.resume, exact: true })
+    .click();
+  await expect(page.locator('.attachment-status-ready')).toHaveCount(2);
+  const identities: string[] = [];
+  page.on('request', (request) => {
+    if (
+      request.method() === 'POST' &&
+      new URL(request.url()).pathname.endsWith('/memories')
+    )
+      identities.push(request.headers()['idempotency-key']);
+  });
+  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
+  ).toBeVisible();
+  expect(photos.creates).toBe(1);
+  await page.route(`**/attachments/${photos.finalized[1]}`, (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 'NOT_FOUND', status: 404 }),
+    }),
+  );
+  await page.route(`**/memories/${MEMORY_ID}/attachments`, (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 'NOT_FOUND', status: 404 }),
+    }),
+  );
+  await page.reload();
+  await page
+    .getByRole('button', { name: de.memory.diary.resume, exact: true })
+    .click();
+  await expect(page.locator('.attachment-status-failed')).toHaveCount(1);
+  await page
+    .getByRole('button', { name: taskBoundary.verify, exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.partialTitle }),
+  ).toBeVisible();
+  expect(photos.creates).toBe(1);
+  expect(identities).toHaveLength(2);
+  expect(identities[0]).toBe(identities[1]);
+  await page
+    .getByRole('button', { name: taskBoundary.openSaved, exact: true })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+});
+
+test('a failed local checkpoint cannot start a volatile-photo Save or invent an uncertain result', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const photos = emptyPhotoBatch();
+  await stageRecoveryPhotos(page, photos);
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.reload();
+  await page
+    .getByRole('button', { name: de.memory.diary.resume, exact: true })
+    .click();
+  await expect(page.locator('.attachment-status-ready')).toHaveCount(2);
+  const restore = await page.evaluateHandle(() => {
+    const put = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = () => {
+      throw new DOMException('Synthetic quota failure', 'QuotaExceededError');
+    };
+    return () => {
+      IDBObjectStore.prototype.put = put;
+    };
+  });
+  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await expect(
+    page.getByText(de.memory.diary.recoveryRequired, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByLabel(de.memory.bodyLabel, { exact: true }),
+  ).toHaveValue(AUTHORED_BODY);
+  expect(photos.creates).toBe(0);
+  await restore.evaluate((restore) => restore());
+  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+  expect(photos.creates).toBe(1);
 });

@@ -5,14 +5,16 @@ Baseline: `main@ee6064fda6466258636e1e0446539336edb06a86` (2026-10-28).
 
 ## Delivery boundary
 
-The browser-proof implementation below is ready for code/security review. The
-nonpersistent recovery contract is a concrete implementation proposal, not
-shipped recovery behavior or an independent security approval. Google remains
+The browser-proof and nonpersistent selected-media recovery implementations
+below are ready for code/security review. This is repository implementation,
+not independent approval, deployment or real-provider acceptance. Google remains
 unconditionally unavailable. No configuration flag, operator credential or
 Premium grant changes that decision. Do not close #1467 with this slice.
 
-No Memory-detail, gallery, shared authorization, export or generated-client
-change is included; those are being changed independently by #1485/#1486.
+Memory-detail, gallery, shared authorization and export remain outside this
+slice. The additive PhotoSelectionCreate recovery-policy field updates OpenAPI
+and its generated model; regenerate against the combined baseline when
+integrating alongside #1485/#1486.
 
 ## Reuse and alternatives
 
@@ -105,12 +107,13 @@ in a URL and observes completion only through its existing authenticated task.
 This adds a browser sign-in when necessary and requires a separate product/
 security preflight; it is not an implemented native bridge in this slice.
 
-## Proposed nonpersistent selected-photo recovery
+## Implemented nonpersistent selected-photo recovery
 
-Select a **memory-only copied-file path plus server attachment references** for
-the next recovery slice. Do not add an ad-hoc persistent browser encryption key.
-This proposal changes recovery guarantees and therefore needs its own current-
-screen preflight, localized disclosure and behavioral acceptance before code.
+Google copies use a **memory-only File path plus authorized server attachment
+references**. No persistent browser encryption key is introduced. The current-
+screen generated reference and Mobile Interaction Contract were committed and
+[recorded on #1467](https://github.com/baerenmarke90/eimir/issues/1467#issuecomment-6470260243)
+before UI implementation. See [the reference and runtime evidence](../design/references/1467/README.md).
 
 ### Ingress and checkpoint contract
 
@@ -127,17 +130,22 @@ screen preflight, localized disclosure and behavioral acceptance before code.
 4. Persist authored text/date/tags, the exact create attempt/idempotency key,
    submitted body, ordered attachment IDs, sensitivity and partial-binding state
    together. Removing bytes must not remove or rewrite an uncertain operation.
-5. On resume, resolve READY references through current owner/Space authorization.
+5. Before a volatile-photo Save, require a successful local checkpoint of the
+   exact operation journal. Storage/quota failure sends no create request,
+   keeps editable work and offers retry/removal; never call that an unknown
+   server outcome. Ordinary device-file fallback keeps its existing behavior.
+6. On resume, resolve READY references through current owner/Space authorization.
    A missing/expired staging upload or unfinished volatile file requires explicit
    reselection/removal; no empty placeholder upload or invented success. Keep
    authored work and do not create a second Memory while the old result is unknown.
-6. Confirm/reconcile the exact original Memory operation before considering a new
+7. Confirm/reconcile the exact original Memory operation before considering a new
    create identity. A confirmed Memory with failed photo association stays a
    partial-binding task. Reselection must not silently rewrite its original
    uncertainty journal or the attachment-to-sensitivity ordering.
 
-New transfers must require the reviewed client recovery-contract generation
-at task creation and retain it on the task; old clients/tasks cannot use a
+New Google tasks require `mediaRecoveryPolicy: "memory-only-v1"` and retain it
+in the protected task payload. Callback, poll and item reads reject old tasks
+without that policy; cleanup remains available. Old clients/tasks cannot use a
 future server enablement to fall back to the old raw-File checkpoint. This is
 a compatibility admission rule, not proof that an untrusted client is secure.
 All supported client builds still need actual device/browser storage inspection.
@@ -149,11 +157,13 @@ names, MIME types, hashes or EXIF, delete all drafts on upgrade, or claim to
 encrypt old copies by merely changing future writes. Keep the current literal
 Google gate while legacy-state handling is incomplete.
 
-The recovery slice must offer the owner an explicit resume/save or discard
-choice for an old draft, retain authored text and the exact uncertainty journal,
-and migrate bytes only under the reviewed retention contract. Unknown-origin
-Files are treated conservatively as volatile once that migration is accepted.
-No background purge is authorized by this proposal. Existing explicit discard,
+The existing recovery prompt now explains the changed photo retention before
+its explicit Resume or Discard actions. Loading an unversioned draft preserves
+its Files. Resume writes a version-3 checkpoint containing descriptors for all
+unknown-origin Files, while retaining their existing File objects in task-owned
+memory, authored text and exact uncertainty journal. No file position is dropped.
+The transaction retains the existing writer lease and epoch checks. No background
+purge of unknown-provenance drafts is introduced. Existing explicit discard,
 logout/owner invalidation and recovery expiry retain their current behavior.
 The seven-day expiry is enforced when storage is opened; it is not a physical
 deletion timer while a browser or an old APK is closed. Never advertise otherwise.
@@ -172,10 +182,12 @@ deletion timer while a browser or an old APK is closed. Never advertise otherwis
 
 ## Product, business and cross-cutting result
 
-This browser-proof slice changes no visible composition, controls, copy, route
-or native capability: the existing unavailable Google presentation remains.
-It needs no new visual reference. The proposed recovery UI is not implemented
-here and cannot bypass the mandatory visual/Mobile Interaction Contract gates.
+The accepted R1/F2 diary composition remains. Recovery adds honest missing-photo
+slots, protected-read retry, explicit legacy-Resume disclosure and memory-only
+draft status, plus source-specific consent. The generated Compact reference
+preceded UI code; five final runtime captures cover 320/360/390/430/1280px,
+Light/Dark, reduced motion and 200% text at 320px. The narrow photo layout stacks
+within the available width. Google still uses the unavailable presentation.
 
 Business/freemium impact reviewed: external integration remains Premium via
 `integration.external_sync`, device selection stays Free/Core, and cancellation,
@@ -187,30 +199,36 @@ Security/privacy: proof is ephemeral, host-only and hashed inside the existing
 encrypted payload; old/mismatched browser state cannot exchange. No content,
 token, proof or provider URL enters observability. Concurrency preserves the
 Membership -> entitlement -> selection lock order and consumed-state boundary.
-Resilience retains fail-closed callbacks and independent cleanup. API JSON,
-OpenAPI, generated clients and database columns/migrations remain unchanged;
-the protected payload field defaults to absent for legacy rows. Existing
-localization, accessibility and reduced-motion behavior are untouched.
+Resilience retains fail-closed callbacks and independent cleanup. The API adds
+only the optional recovery-policy contract, required for future Google admission.
+No database column/migration changes; new protected fields default to absent.
+UI text uses i18n; existing semantic components, focus and reduced motion remain.
+The IndexedDB database version/indexes remain; a per-record format 3 distinguishes
+byte-free checkpoints without destructively upgrading unopened drafts.
 
 ## Local validation
 
-- All 1,009 backend unit tests passed, including 22 new browser-proof cases.
-- All 24 Photo Source PostgreSQL/API cases passed against an isolated local
-  PostgreSQL instance, including 10 new cases. The concurrent callback case
-  uses real request commits and two requests: one exchange, one 303, one 200.
-- Ruff lint/format, strict mypy for the six affected source modules, OpenAPI
-  contract comparison and engineering/documentation language audits passed.
-- These are synthetic-provider tests. HTTP clients with separate cookie jars
-  do not establish actual browser, Google, native-device or deployment acceptance.
+- All 1,012 backend unit tests and 25 Photo Source PostgreSQL/API tests passed.
+  Concurrency uses real request commits and proves exactly one token exchange.
+- All 2,183 Web unit/component tests passed (two existing skips).
+- All 28 pre-existing diary browser journeys, seven new recovery journeys and six
+  real IndexedDB/storage journeys passed. The new journeys cover five widths,
+  missing-photo retry, byte absence, legacy migration, unknown create response
+  and exact identity preservation. A quota-failure journey proves that a missing
+  durable save journal prevents POST without inventing an uncertain result,
+  retains work and permits a later safe retry. Five viewport journeys also passed Axe
+  checks without critical/serious WCAG findings.
+- Ruff lint/format, strict source mypy, Web typecheck/build, OpenAPI comparison
+  and exact generated-client comparison passed. Language audits are required
+  on the final commit. No assertion, timeout, workflow or gate was weakened.
+- All provider responses are synthetic. Browser fixtures are not real Google,
+  native-device, operator/deployment or Cloud acceptance.
 
 ## Remaining enablement acceptance
 
-- Independent security/code review of the browser-proof implementation.
-- Real same-origin HTTPS browser tests, cookie policy/expiry and two-user-agent
-  rejection; native/cross-origin support remains separately gated.
-- Implement and accept the selected-media/legacy recovery contract above, with
-  honest localized consent and all Save/uncertain-result cases.
-- Review actual Google application use, provider policy/verification and ingress
-  logging; synthetic SDK/API fixtures are not provider acceptance.
-- Installed-device/deployment acceptance and #797's separate Cloud operational
-  acceptance. A repository merge is not a deployment or go-live certificate.
+- Independent security/code review of browser binding and device recovery.
+- Real same-origin HTTPS provider return, cookie policy/expiry and user-agent
+  rejection in the actual deployment; native/cross-origin transport stays gated.
+- Installed-device interruption, old-client/legacy-state and storage inspection.
+- Google policy/app verification, operator ingress logging and #797's separate
+  Cloud operational acceptance. A repository merge is not deployment/go-live.

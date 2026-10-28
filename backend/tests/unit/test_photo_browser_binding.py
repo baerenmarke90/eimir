@@ -74,7 +74,13 @@ def flow(monkeypatch):
 def start(flow):
     proof = generate_token()
     row, url = service.start(
-        flow.session, flow.authorization, flow.device, "google", 2, browser_binding=proof
+        flow.session,
+        flow.authorization,
+        flow.device,
+        "google",
+        2,
+        browser_binding=proof,
+        media_recovery_policy=service.GOOGLE_RECOVERY_POLICY,
     )
     metadata = SimpleNamespace(
         id=row.id,
@@ -91,7 +97,13 @@ def start(flow):
 def test_start_requires_an_independent_well_formed_proof(flow, proof):
     with pytest.raises(ServiceUnavailableError):
         service.start(
-            flow.session, flow.authorization, flow.device, "google", 2, browser_binding=proof
+            flow.session,
+            flow.authorization,
+            flow.device,
+            "google",
+            2,
+            browser_binding=proof,
+            media_recovery_policy=service.GOOGLE_RECOVERY_POLICY,
         )
     service.google_photos.authorization.assert_not_called()
     flow.session.add.assert_not_called()
@@ -184,7 +196,12 @@ def test_two_http_browser_jars_cannot_complete_each_others_selection(flow):
     ):
         response = initiating.post(
             f"/api/v1/spaces/{flow.authorization.space_id}/photo-selections",
-            json={"source": "google", "maxItems": 2, "consent": True},
+            json={
+                "source": "google",
+                "maxItems": 2,
+                "consent": True,
+                "mediaRecoveryPolicy": "memory-only-v1",
+            },
         )
         assert response.status_code == 201
         row = flow.session.add.call_args.args[0]
@@ -225,3 +242,32 @@ def test_payload_default_does_not_upgrade_a_legacy_task_into_a_bound_one():
     )
     assert payload.browser_binding_hash is None
     assert PhotoSelection(provider="immich", payload=payload).payload.browser_binding_hash is None
+
+
+@pytest.mark.parametrize("policy", [None, "raw-file-v0"])
+def test_a_browser_proof_does_not_admit_an_old_recovery_client(flow, policy):
+    with pytest.raises(ServiceUnavailableError):
+        service.start(
+            flow.session,
+            flow.authorization,
+            flow.device,
+            "google",
+            2,
+            browser_binding=generate_token(),
+            media_recovery_policy=policy,
+        )
+    service.google_photos.authorization.assert_not_called()
+    flow.session.add.assert_not_called()
+
+
+def test_legacy_recovery_task_cannot_callback_or_transfer_but_can_be_cancelled(flow):
+    proof, row, _ = start(flow)
+    row.payload = row.payload.model_copy(update={"media_recovery_policy": None})
+    assert service.callback(flow.session, flow.state, "code", browser_binding=proof) is None
+    flow.exchange.assert_not_called()
+    with pytest.raises(ServiceUnavailableError):
+        service.advance(flow.session, row)
+    with pytest.raises(ServiceUnavailableError):
+        service.read_item(flow.session, row, "item", thumbnail=False)
+    service.remove(flow.session, row)
+    flow.session.delete.assert_called_once_with(row)

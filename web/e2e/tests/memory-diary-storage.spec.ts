@@ -210,7 +210,11 @@ test('logout cleans metadata without loading photos and preserves a later login'
     await purgeOpened;
     const newWriter = new MemoryDiaryDraftStore(...currentScope);
     await newWriter.load();
-    await newWriter.save({ ...value, body: 'New login work' });
+    await newWriter.save({
+      ...value,
+      legacyMedia: false,
+      body: 'New login work',
+    });
     releasePurge();
     const recovered = await newWriter.load();
     const oldWriterDenied = await oldWriter.save(value).then(
@@ -234,6 +238,132 @@ test('logout cleans metadata without loading photos and preserves a later login'
     body: 'New login work',
     photo: 'private pixels 1',
     oldWriterDenied: true,
+  });
+});
+
+test('memory-only photos checkpoint no bytes and preserve ordering and uncertain-save identity', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const result = await page.evaluate(async (currentScope) => {
+    const draftPath = '/src/client/memoryDiaryDraft.ts';
+    const retentionPath = '/src/client/selectedMediaRetention.ts';
+    const { MemoryDiaryDraftStore } = await import(draftPath);
+    const { retainPhotoInMemory, selectedPhotoUnavailable } = await import(
+      retentionPath
+    );
+    const store = new MemoryDiaryDraftStore(...currentScope);
+    await store.load();
+    const local = new File(['device pixels'], 'local.jpg', {
+      type: 'image/jpeg',
+    });
+    const external = retainPhotoInMemory(
+      new File(['provider private pixels'], 'external.jpg', {
+        type: 'image/jpeg',
+      }),
+    );
+    const attempt = {
+      idempotencyKey: 'one-exact-save',
+      startedAt: Date.now(),
+      snapshot: {
+        title: 'Exact',
+        body: 'Words',
+        happenedOn: new Date(),
+        tags: [],
+      },
+      attachmentIds: ['external-id', 'local-id'],
+      attachmentSensitivity: [true, false],
+    };
+    await store.save({
+      title: 'Exact',
+      body: 'Words',
+      tags: [],
+      happenedOn: '2026-10-28',
+      files: [
+        { file: external, attachmentId: 'external-id', isSensitive: true },
+        { file: local, attachmentId: 'local-id' },
+      ],
+      attempt,
+      partial: null,
+    });
+    const readRaw = async () => {
+      const request = indexedDB.open('eimir-memory-drafts-v1');
+      const db = await new Promise<IDBDatabase>((resolve) => {
+        request.onsuccess = () => resolve(request.result);
+      });
+      const tx = db.transaction('drafts', 'readonly');
+      const get = tx.objectStore('drafts').get(JSON.stringify(currentScope));
+      const raw = await new Promise<{ value: { files: { file?: File }[] } }>(
+        (resolve) => {
+          tx.oncomplete = () => resolve(get.result);
+        },
+      );
+      db.close();
+      return raw;
+    };
+    const raw = await readRaw();
+    const recovered = await store.load();
+    await store.save(recovered);
+    const secondRaw = await readRaw();
+    return {
+      hasProviderFile: 'file' in raw.value.files[0],
+      localBytes: await raw.value.files[1].file?.text(),
+      names: recovered.files.map((x: { file: File }) => x.file.name),
+      missing: selectedPhotoUnavailable(recovered.files[0].file),
+      recoveredBytes: recovered.files[0].file.size,
+      attempt: recovered.attempt.idempotencyKey,
+      ids: recovered.attempt.attachmentIds,
+      sensitivity: recovered.attempt.attachmentSensitivity,
+      resavedProviderFile: 'file' in secondRaw.value.files[0],
+      inMemoryBytes: await external.text(),
+    };
+  }, scope);
+  expect(result).toEqual({
+    hasProviderFile: false,
+    localBytes: 'device pixels',
+    names: ['external.jpg', 'local.jpg'],
+    missing: true,
+    recoveredBytes: 0,
+    attempt: 'one-exact-save',
+    ids: ['external-id', 'local-id'],
+    sensitivity: [true, false],
+    resavedProviderFile: false,
+    inMemoryBytes: 'provider private pixels',
+  });
+});
+
+test('legacy photo bytes remain until explicit resume migrates without losing authored work', async ({
+  page,
+}) => {
+  const legacy = await seedLegacyDatabase(page);
+  await legacy.evaluate((db) => db.close());
+  const result = await page.evaluate(async (currentScope) => {
+    const path = '/src/client/memoryDiaryDraft.ts';
+    const { MemoryDiaryDraftStore } = await import(path);
+    const store = new MemoryDiaryDraftStore(...currentScope);
+    const draft = await store.load();
+    const original = await draft.files[0].file.text();
+    const legacyMedia = draft.legacyMedia;
+    await store.save(draft); // the explicit Resume checkpoint
+    const resumed = await store.load();
+    return {
+      original,
+      legacyMedia,
+      afterResumeBytes: resumed.files.map((x: { file: File }) => x.file.size),
+      body: resumed.body,
+      ids: resumed.files.map((x: { attachmentId?: string }) => x.attachmentId),
+      legacyAfter: resumed.legacyMedia,
+      retainedInMemory: await draft.files[0].file.text(),
+    };
+  }, scope);
+  expect(result).toEqual({
+    original: 'private pixels 1',
+    legacyMedia: true,
+    afterResumeBytes: [0, 0],
+    body: 'Owner-local words',
+    ids: ['ready-1', 'ready-2'],
+    legacyAfter: false,
+    retainedInMemory: 'private pixels 1',
   });
 });
 

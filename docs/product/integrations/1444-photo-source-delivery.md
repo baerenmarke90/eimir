@@ -74,9 +74,10 @@ bound to Account, Space and DeviceSession, encrypted with the existing server
 payload protector, expires after ten minutes and is never a shared projection.
 All access still proves active authorization; callback state is one-use.
 Expiration, cancel and session revocation remove token/media references. Do not
-persist source URLs or credentials in a browser or diary draft. Copied Files
-enter the disclosed existing owner-local recovery lifecycle, without provider
-identifiers. Imported bytes still pass ordinary image validation and binding.
+persist source URLs or credentials in a browser or diary draft. Immich copies retain the disclosed owner-local File recovery. Google copies
+use task-owned memory plus byte-free local descriptors and protected server
+attachment references under `mediaRecoveryPolicy: "memory-only-v1"`; old clients
+and tasks cannot use future Google enablement. See the #1467 recovery contract. Imported bytes still pass ordinary image validation and binding.
 
 Immich origins and credentials are personally linked, account-scoped and secret;
 the external account must match. Reuse the pinned public-HTTPS transport from

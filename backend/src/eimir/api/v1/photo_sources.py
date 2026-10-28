@@ -50,6 +50,7 @@ class PhotoSelectionCreate(ApiModel):
     source: Literal["google", "immich"]
     max_items: int = Field(ge=1, le=20)
     consent: Literal[True]
+    media_recovery_policy: Literal["memory-only-v1"] | None = None
 
 
 class PhotoSelectionItemView(ApiModel):
@@ -158,7 +159,13 @@ def start(
 ) -> PhotoSelectionView:
     proof = generate_token() if body.source == "google" else None
     row, url = service.start(
-        session, authorization, device, body.source, body.max_items, browser_binding=proof
+        session,
+        authorization,
+        device,
+        body.source,
+        body.max_items,
+        browser_binding=proof,
+        media_recovery_policy=body.media_recovery_policy,
     )
     response.headers.update(_HEADERS)
     if proof and row.payload.oauth_state:

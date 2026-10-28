@@ -222,7 +222,12 @@ def test_google_security_gate_refuses_new_imports_despite_operator_configuration
     selection = client.post(
         path(owners) + "/photo-selections",
         headers=owners["a"],
-        json={"source": "google", "maxItems": 2, "consent": True},
+        json={
+            "source": "google",
+            "maxItems": 2,
+            "consent": True,
+            "mediaRecoveryPolicy": "memory-only-v1",
+        },
     )
     assert selection.status_code == 503
     authorization.assert_not_called()
@@ -452,10 +457,34 @@ def begin_google(browser, owners):
     response = browser.post(
         path(owners) + "/photo-selections",
         headers=owners["a"],
-        json={"source": "google", "maxItems": 2, "consent": True},
+        json={
+            "source": "google",
+            "maxItems": 2,
+            "consent": True,
+            "mediaRecoveryPolicy": "memory-only-v1",
+        },
     )
     assert response.status_code == 201, response.text
     return UUID(response.json()["id"])
+
+
+def test_google_admission_requires_the_new_client_recovery_contract(
+    client, session, owners, synthetic_google
+):
+    states, exchange, _ = synthetic_google
+    grant(session, owners)
+    base = {"source": "google", "maxItems": 2, "consent": True}
+    old_client = client.post(path(owners) + "/photo-selections", headers=owners["a"], json=base)
+    assert old_client.status_code == 503
+    unsupported = client.post(
+        path(owners) + "/photo-selections",
+        headers=owners["a"],
+        json={**base, "mediaRecoveryPolicy": "raw-file-v0"},
+    )
+    assert unsupported.status_code == 422
+    assert states == []
+    exchange.assert_not_called()
+    assert session.scalar(select(PhotoSelection)) is None
 
 
 def google_callback(browser, state, code="synthetic-code"):
@@ -605,7 +634,12 @@ def test_concurrent_google_callbacks_exchange_only_once_with_real_request_commit
     started = browser.post(
         f"/api/v1/spaces/{space_id}/photo-selections",
         headers=headers,
-        json={"source": "google", "maxItems": 2, "consent": True},
+        json={
+            "source": "google",
+            "maxItems": 2,
+            "consent": True,
+            "mediaRecoveryPolicy": "memory-only-v1",
+        },
     )
     assert started.status_code == 201, started.text
     # This test targets real transaction serialization; separate HTTPS cookie

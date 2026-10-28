@@ -339,6 +339,14 @@ const de = {
     bodyLabel: 'Euer Tag in Worten',
     bodyPlaceholder: 'Was möchtest du von diesem Tag festhalten?',
     diary: {
+      legacyMedia:
+        'Ältere Fotos werden beim Fortsetzen nur in diesem geöffneten Entwurf behalten. Deine Worte, die Fotoreihenfolge und der Speicherstatus bleiben erhalten. Verfügbare Serverfotos können nach einem Neustart erneut geladen werden.',
+      photoMissing: 'Foto erneut auswählen',
+      photoUnavailable:
+        'Dieses Foto konnte nicht wieder geladen werden. Versuche es erneut oder entferne es und wähle es neu aus. Deine Worte bleiben erhalten.',
+      photoRetry: 'Erneut laden',
+      recoveryRequired:
+        'Der Speicherstatus dieser Fotoauswahl konnte auf diesem Gerät nicht gesichert werden. Für diesen Speicherschritt wurde keine Anfrage gesendet. Deine Worte bleiben hier erhalten. Versuche es erneut oder entferne diese Fotos vor dem Speichern.',
       optionalDetails: 'Titel und Stichworte',
       resumeTitle: 'Dein Entwurf wartet auf dich',
       resumeBody:
@@ -347,6 +355,10 @@ const de = {
       startNew: 'Entwurf verwerfen und neu beginnen',
       keepDraft: 'Entwurf behalten und schließen',
       draft: {
+        memoryOnlyUnavailable:
+          'Dein Entwurf bleibt hier geöffnet. Die Sicherung des Speicherstatus ist auf diesem Gerät gerade nicht verfügbar. Versuche es erneut, bevor du diesen Eintrag speicherst.',
+        memoryOnly:
+          'Deine Worte und dein Speicherstatus sind auf diesem Gerät gesichert. Ausgewählte externe oder ältere Fotos bleiben nur im geöffneten Entwurf. Nach einem Neustart können verfügbare Serverfotos erneut geladen werden.',
         loading: 'Entwurfssicherung wird vorbereitet …',
         idle: 'Noch nicht gemeinsam gespeichert.',
         saving: 'Entwurf wird auf diesem Gerät gesichert …',

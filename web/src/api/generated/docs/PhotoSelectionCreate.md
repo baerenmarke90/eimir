@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `consent` | boolean
 `maxItems` | number
+`mediaRecoveryPolicy` | string
 `source` | string
 
 ## Example
@@ -19,6 +20,7 @@ import type { PhotoSelectionCreate } from ''
 const example = {
   "consent": null,
   "maxItems": null,
+  "mediaRecoveryPolicy": null,
   "source": null,
 } satisfies PhotoSelectionCreate
 

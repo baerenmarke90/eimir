@@ -269,7 +269,6 @@ async function installPhotoPlaces(page: Page, pending = false) {
               mediaType: 'IMAGE',
               mimeType: 'image/jpeg',
               hasThumbnail: true,
-              isSensitive: false,
               width: 1200,
               height: 750,
               size: PHOTO.length,

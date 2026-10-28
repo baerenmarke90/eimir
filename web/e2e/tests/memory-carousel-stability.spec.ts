@@ -804,9 +804,7 @@ for (const state of [
       await page.evaluate(() => {
         document.documentElement.style.fontSize = '200%';
       });
-      await page
-        .getByRole('button', { name: photoReactions.open })
-        .click();
+      await page.getByRole('button', { name: photoReactions.open }).click();
       const enlarged = page.getByRole('group', { name: 'Reaktion auswählen' });
       await expect(enlarged.getByRole('button')).toHaveCount(6);
       for (const choice of await enlarged.getByRole('button').all()) {

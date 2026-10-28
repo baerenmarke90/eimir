@@ -60,6 +60,12 @@ The QueryClient defaults explicitly keep:
 
 This means stale data naturally revalidates on route re-entry/remount, browser/PWA focus regain and reconnect without invalidating every cache entry. The one-minute freshness window avoids request bursts on short Android app resumes and route hops, while explicit mutation invalidation and pull-to-refresh still update immediately. Domains requiring tighter freshness (such as presence, daily activity and notifications) retain their own polling and always-revalidate settings. React Query stale-time and request deduplication remain authoritative.
 
+Inside Capacitor, the native App background/foreground callback updates Query's
+`focusManager` directly. Its separate synthetic `window.focus` event serves
+session refresh/presence only; Query v5's browser listener uses visibility changes.
+Neither native resume nor a picker return invalidates all queries or bypasses
+per-domain freshness. See [#1470 continuity acceptance](../m5/1470-continuity-acceptance.md).
+
 ## Default for new surfaces
 
 A new authenticated dynamic vertical surface should be treated as **PTR enabled** by default when it has no active draft/editor or competing primary gesture. Add it to `surfaceRefreshDecision()` and rely on active mounted queries. If the surface needs extra refresh semantics (for example pagination generation), keep the shared gesture primitive but own the callback at the surface level and document why.

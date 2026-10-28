@@ -59,7 +59,14 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
   - If at root or history is exhausted, invokes `App.exitApp()`.
 - **App Resume (`App.addListener('appStateChange', ...)`):**
   - Listens for `isActive === true`.
-  - Dispatches `window.dispatchEvent(new Event('focus'))`, which naturally triggers TanStack Query's window focus refetching mechanism (`refetchOnWindowFocus`) across active query caches.
+  - Updates TanStack Query's `focusManager` on background/foreground transitions.
+    Query v5 listens to browser visibility changes, not synthetic window focus;
+    the native callback must therefore notify the framework directly. Fresh
+    ordinary reads remain quiet under their 60-second freshness policy, stale
+    active reads revalidate, and explicit live-domain policies remain intact.
+  - Also dispatches `window.dispatchEvent(new Event('focus'))` on resume for the
+    existing session-refresh and presence consumers. Disposed callbacks are
+    ignored and cleanup restores the framework's default browser focus check.
 
 ---
 

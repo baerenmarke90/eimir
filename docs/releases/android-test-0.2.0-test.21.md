@@ -1,6 +1,6 @@
 # Android test.21 — readable photo places and sensitive-media controls
 
-Deliver the accepted main revision `624458354c651b39c19f97a82f04eda1a93a5314`, including #1478/#1480 photo-place address resolution and direct map links, #1477/#1479 sensitive-media controls, and #1481 CI improvements, through the existing private Android channel. Preserve the existing test-only updater foundation; never merge that foundation into main.
+Deliver the accepted main revision `49595d8eb4bff1b423751616aab171dd43419b71`, including #1478/#1480 photo-place address resolution and direct map links, #1477/#1479 sensitive-media controls, #1481 CI improvements, and #1470/#1482 native resume continuity, through the existing private Android channel. Preserve the existing test-only updater foundation; never merge that foundation into main.
 
 Prepare an immutable integrated source containing these notes and the source-bound [update notes](android-test-0.2.0-test.21-notes.txt). Keep the plan on immutable test.20 until all 29 required named checks succeed on that exact integrated source, including native launcher acceptance and actual sideload lint/policy/catalog tests. Then select `0.2.0-test.21` / versionCode `21`, with immutable test.20 as the predecessor. No previously shared build number may be reused.
 
@@ -15,3 +15,5 @@ Business/freemium impact reviewed: this delivery changes no entitlement or prici
 Physical-device installation continuity, OEM/provider-specific selection, App Links and store readiness require device acceptance; CI and anonymous asset verification do not establish those claims.
 
 Acceptance fixture repairs explicitly classify synthetic foundation photos as non-sensitive, require actual rendered image geometry, and refresh Android accessibility-node state immediately before real system taps. Retained API 37.1 diagnostics show its consent banner moving the photo after discovery but before the gesture. Original file bytes, GPS, permission consent, external ownership and full API/worker/Place assertions remain mandatory; no production/native product code changes.
+
+The native lifecycle merge retains throttled App Updates checks on mount/foreground together with Query focus-manager delivery, session focus, disposed-callback protection and browser-focus restoration. Combined observer tests prove fresh/stale query behavior and both updater lifecycle calls. The accepted #1470 physical-device acceptance remains open; packaging does not certify it.

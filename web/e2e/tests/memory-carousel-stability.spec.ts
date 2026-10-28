@@ -6,6 +6,14 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import AxeBuilder from '@axe-core/playwright';
+import {
+  installNativeAppLifecycle,
+  nativeAppState,
+} from '../support/nativeAppLifecycle';
+import {
+  installMediaOwnershipMetrics,
+  mediaOwnershipMetrics,
+} from '../support/mediaOwnershipMetrics';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -1057,6 +1065,136 @@ test('Memory carousel is effectively static with reduced motion and reflows at 2
     fullPage: true,
   });
 });
+
+for (const width of [390, 1280]) {
+  for (const failure of [200, 429, 503, 'offline', 401, 403, 404] as const) {
+    test(`native resume preserves photo ownership or blocks revoked access: ${failure} at ${width}px`, async ({
+      page,
+    }, info) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: width === 390 ? 'light' : 'dark',
+        reducedMotion: 'reduce',
+      });
+      await page.clock.install();
+      await installNativeAppLifecycle(page);
+      await installMediaOwnershipMetrics(page);
+      const { unexpectedRequests, contentReads, readAccessBodies } =
+        await installApiMocks(page);
+      let revalidating = false;
+      let membershipReads = 0;
+      await page.route('**/api/v1/auth/memberships', async (route) => {
+        membershipReads += 1;
+        if (revalidating && failure === 'offline')
+          return route.abort('internetdisconnected');
+        return route.fulfill({
+          status: revalidating && typeof failure === 'number' ? failure : 200,
+          json:
+            revalidating && failure !== 200
+              ? { code: 'MEMBERSHIP_REFRESH_FAILED', title: 'Unavailable' }
+              : [{ role: 'MEMBER', spaceId: SPACE_ID, status: 'ACTIVE' }],
+        });
+      });
+      await page.route('**/api/v1/auth/refresh', (route) =>
+        route.fulfill({
+          status: 401,
+          json: { code: 'AUTHENTICATION_REQUIRED', title: 'Revoked session' },
+        }),
+      );
+      await page.goto('/');
+      await signIn(page);
+      await openMemory(page);
+      await positionGalleryForReading(page);
+      const photo = page
+        .locator('.media-gallery-carousel-slide.is-active img')
+        .last();
+      await expect(photo).toHaveAttribute('src', /^blob:/);
+      await expect.poll(() => contentReads.length).toBe(3);
+      const originalPhoto = await photo.elementHandle();
+      const originalShell = await page
+        .locator('.product-shell')
+        .elementHandle();
+      const originalUrl = await photo.getAttribute('src');
+      if (!originalUrl || !originalPhoto || !originalShell)
+        throw new Error(
+          'Loaded photo and shell must exist before interruption',
+        );
+      const before = await geometry(page);
+      const requestsBefore = membershipReads;
+      const descriptorsBefore = readAccessBodies.length;
+      const ownershipBefore = await mediaOwnershipMetrics(page);
+
+      // The bridge must not need a document visibility event. Fresh reads stay
+      // quiet even when a user briefly switches applications repeatedly.
+      for (let cycle = 0; cycle < 3; cycle += 1) {
+        await nativeAppState(page, false);
+        await nativeAppState(page, true);
+      }
+      await nextFrame(page);
+      expect(membershipReads).toBe(requestsBefore);
+      expect(contentReads).toHaveLength(3);
+
+      await nativeAppState(page, false);
+      await page.clock.fastForward(65_000);
+      revalidating = true;
+      await nativeAppState(page, true);
+      await expect.poll(() => membershipReads).toBe(requestsBefore + 1);
+
+      const denied =
+        typeof failure === 'number' && [401, 403, 404].includes(failure);
+      if (denied) {
+        await expect(page.locator('.product-shell')).toHaveCount(0);
+        await expect(page.locator('.media-gallery-carousel')).toHaveCount(0);
+        await expect
+          .poll(async () => (await mediaOwnershipMetrics(page)).active)
+          .toBe(0);
+      } else {
+        await nextFrame(page);
+        await expect(photo).toHaveAttribute('src', originalUrl);
+        expect(
+          await photo.evaluate((node, old) => node === old, originalPhoto),
+        ).toBe(true);
+        expect(
+          await page
+            .locator('.product-shell')
+            .evaluate((node, old) => node === old, originalShell),
+        ).toBe(true);
+        expectStableGeometry(before, await geometry(page));
+        expect(contentReads).toHaveLength(3);
+        expect(readAccessBodies).toHaveLength(descriptorsBefore);
+        expect(await mediaOwnershipMetrics(page)).toEqual(ownershipBefore);
+        if (failure === 503) {
+          await page.screenshot({
+            path: info.outputPath(`resume-${width}.png`),
+          });
+        }
+      }
+      expect(unexpectedRequests).toEqual([]);
+      await info.attach('resume-transport-metrics', {
+        contentType: 'application/json',
+        body: Buffer.from(
+          JSON.stringify(
+            {
+              width,
+              failure,
+              shortResumeCycles: 3,
+              staleMembershipReads: membershipReads - requestsBefore,
+              initialPhotoTransports: 3,
+              additionalPhotoTransports: contentReads.length - 3,
+              additionalDescriptors:
+                readAccessBodies.length - descriptorsBefore,
+              authorizationBlocked: denied,
+              objectUrlsBefore: ownershipBefore,
+              objectUrlsAfter: await mediaOwnershipMetrics(page),
+            },
+            null,
+            2,
+          ),
+        ),
+      });
+    });
+  }
+}
 
 test('Single-image Memory keeps the stable frame without carousel navigation', async ({
   page,

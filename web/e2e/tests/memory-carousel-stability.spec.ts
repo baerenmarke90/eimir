@@ -1226,7 +1226,7 @@ for (const theme of ['light', 'dark'] as const) {
       await nextFrame(page);
       await page.screenshot({
         path: `../../docs/product/design/references/1477/runtime-${theme}-${width}.png`,
-        fullPage: true,
+        fullPage: width < 840,
       });
     }
     await page.setViewportSize({ width: 320, height: 900 });

@@ -621,6 +621,8 @@ def _set_attachment_sensitive(
         return
     if heart_moment.attachment_id is None:
         raise ValidationError("Sensitivity requires an attachment.", "ATTACHMENT_REQUIRED")
-    locked = binding.lock_for_binding(session, [heart_moment.attachment_id])
+    # Keep a combined content/classification edit in one parent version step.
+    with session.no_autoflush:
+        locked = binding.lock_for_binding(session, [heart_moment.attachment_id])
     attachment = locked[heart_moment.attachment_id]
     binding.set_sensitive(attachment, value)

@@ -675,11 +675,11 @@ class TestSensitiveMedia:
         )
         edited = client.patch(
             path,
-            json={"attachmentIsSensitive": False},
+            json={"text": "Updated thought", "attachmentIsSensitive": False},
             headers=if_match(couple["token_a"], shared.json()["version"]),
         )
         assert edited.status_code == 200
-        assert edited.json()["version"] > shared.json()["version"]
+        assert edited.json()["version"] == shared.json()["version"] + 1
         assert edited.json()["attachment"]["isSensitive"] is False
         stale = client.patch(
             path,
@@ -758,3 +758,51 @@ class TestSensitiveMedia:
             build_storage_key(target.id, imported.id, "original")
         ) as original:
             assert original.read()
+
+    def test_classification_failure_rolls_back_before_first_shared_binding(
+        self, client, couple, session, monkeypatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        from eimir.attachments import binding
+        from eimir.core.errors import ConflictError, ErrorCode
+
+        first = ready_attachment(client, couple, session)
+        second = ready_attachment(client, couple, session)
+        created = memory(client, couple)
+        original = binding.set_sensitive
+        calls = 0
+
+        def fail_second(attachment: Attachment, value: bool | None) -> None:
+            nonlocal calls
+            calls += 1
+            original(attachment, value)
+            if calls == 2:
+                raise ConflictError(
+                    "Simulated classification conflict.", ErrorCode.RESOURCE_VERSION_CONFLICT
+                )
+
+        monkeypatch.setattr(binding, "set_sensitive", fail_second)
+        root = base_path(couple["space"].id)
+        result = client.put(
+            f"{root}/memories/{created['id']}/attachments",
+            json={
+                "attachments": [
+                    {"attachmentId": first, "position": 0, "isSensitive": True},
+                    {"attachmentId": second, "position": 1, "isSensitive": True},
+                ]
+            },
+            headers=if_match(couple["token_a"], created["version"]),
+        )
+        assert result.status_code == 409
+        assert (
+            client.get(f"{root}/memories/{created['id']}", headers=auth(couple["token_b"])).json()[
+                "attachments"
+            ]
+            == []
+        )
+        for photo in [first, second]:
+            assert (
+                client.get(f"{root}/attachments/{photo}", headers=auth(couple["token_a"])).json()[
+                    "isSensitive"
+                ]
+                is False
+            )

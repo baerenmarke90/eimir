@@ -5,6 +5,7 @@ import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
+import photoReactions from '../../src/i18n/locales/photoReactions';
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import {
@@ -804,7 +805,7 @@ for (const state of [
         document.documentElement.style.fontSize = '200%';
       });
       await page
-        .getByRole('button', { name: 'Auf dieses Foto reagieren' })
+        .getByRole('button', { name: photoReactions.open })
         .click();
       const enlarged = page.getByRole('group', { name: 'Reaktion auswählen' });
       await expect(enlarged.getByRole('button')).toHaveCount(6);
@@ -1477,7 +1478,7 @@ test('sensitive media remains local to one item and conceals on return and actua
     page.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
   ).toBeFocused();
   await expect(active.locator('.sensitive-media-cover')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Foto im Vollbild öffnen' }).click();
+  await page.getByRole('button', { name: photoReactions.fullscreen }).click();
   const dialog = page.getByRole('dialog');
   await expect(
     dialog.getByRole('button', { name: sensitiveMedia.hide, exact: true }),

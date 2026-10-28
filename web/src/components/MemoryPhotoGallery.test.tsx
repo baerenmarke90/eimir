@@ -16,6 +16,7 @@ import { MemoryRouter } from 'react-router-dom';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
+import photoReactions from '../i18n/locales/photoReactions';
 import { MemoryPhotoGallery } from './MemoryPhotoGallery';
 
 const key = authorSummaryQueryKeys.memory('space', 'memory');
@@ -165,7 +166,7 @@ it('shows a chip only after confirmed persistence and permits removal', async ()
     .mockResolvedValueOnce({ ...fixture(), version: 3 });
   const { view, memory } = setup(save);
   fireEvent.click(
-    screen.getByRole('button', { name: 'Auf dieses Foto reagieren' }),
+    screen.getByRole('button', { name: photoReactions.open }),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Liebe' }));
   expect(view.container.querySelector('.memory-photo-reactions')).toBeNull();
@@ -217,7 +218,7 @@ it('retains the previous server state on failure and ignores completion after a 
     );
   const { memory, client, changeScope } = setup(save);
   fireEvent.click(
-    screen.getByRole('button', { name: 'Auf dieses Foto reagieren' }),
+    screen.getByRole('button', { name: photoReactions.open }),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Liebe' }));
   await waitFor(() =>

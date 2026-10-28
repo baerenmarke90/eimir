@@ -4,7 +4,7 @@
   --shell-floating-nav-footprint: calc(
     var(--shell-floating-nav-height) +
     var(--shell-floating-nav-offset) +
-    env(safe-area-inset-bottom, 0px)
+    var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
   );
   --shell-content-bottom-clearance: calc(
     var(--shell-floating-nav-footprint) +
@@ -573,10 +573,19 @@
 }
 
 .product-main {
+  --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
+
   width: calc(100% - 2 * var(--page-gutter));
   margin: 0 auto;
   padding: clamp(var(--space-6), 4vw, var(--space-10)) 0
     var(--shell-content-bottom-clearance);
+}
+
+/* Native focus/scroll alignment must clear the fixed bar as well as the
+   document's final content. Padding alone does not protect an end-aligned
+   focused control from the overlaid navigation. */
+.product-main :focus {
+  scroll-margin-block-end: var(--shell-focus-bottom-clearance);
 }
 
 .shell-nav {
@@ -618,6 +627,19 @@
 .shell-nav-link:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+/* Persistent destinations respond at contact, including touch without hover. */
+.shell-nav-link:active,
+.mobile-bottom-nav .shell-nav-link:active {
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+
+.shell-nav-link {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .shell-nav-icon {
@@ -713,7 +735,7 @@
   transform: translateX(-50%);
   bottom: calc(
     var(--shell-floating-nav-offset) +
-    env(safe-area-inset-bottom, 0px)
+    var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
   );
   width: calc(100% - var(--space-6));
   max-width: 28rem;
@@ -1015,6 +1037,8 @@
   }
 
   .product-main {
+    --shell-focus-bottom-clearance: 0px;
+
     width: min(var(--content-max), calc(100% - 4rem));
     padding-bottom: var(--space-16);
   }

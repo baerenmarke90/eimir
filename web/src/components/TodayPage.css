@@ -15,30 +15,6 @@
   padding-top: 0;
 }
 
-.today-date-heading {
-  display: grid;
-  gap: 0.1rem;
-  margin: 0 0 var(--space-4);
-  padding: var(--space-1) 0 var(--space-2);
-}
-
-.today-date-title {
-  margin: 0;
-  color: var(--color-text);
-  font-family: var(--font-display);
-  font-size: clamp(2.15rem, 10vw, 3.25rem);
-  font-weight: 650;
-  line-height: 0.98;
-  letter-spacing: -0.035em;
-}
-
-.today-date-value {
-  color: var(--color-text-secondary);
-  font-size: 0.96rem;
-  font-weight: 500;
-  line-height: 1.35;
-}
-
 .today-hero.couple-presence-card {
   position: relative;
   display: flex;
@@ -47,10 +23,10 @@
   margin-bottom: var(--space-section);
   border: none;
   border-radius: 0;
-  padding: var(--space-2) 0 0;
+  padding: var(--space-4) 0 var(--space-4);
   background: transparent;
   box-shadow: none;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 /*
@@ -75,9 +51,9 @@
      wider pushes the document's scroll width past the viewport and breaks
      WCAG 2.2 SC 1.4.10 reflow at 320 CSS px. */
   inset: calc(-1 * var(--space-8)) calc(-1 * var(--space-4)) auto;
-  height: 16rem;
+  height: 19rem;
   background: radial-gradient(
-    120% 80% at 30% 0%,
+    105% 95% at 50% 0%,
     var(--color-brand-glow),
     transparent 70%
   );
@@ -87,33 +63,58 @@
 
 @media (min-width: 768px) {
   .today-hero.couple-presence-card {
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    padding: var(--space-5) 0 var(--space-6);
+    padding: var(--space-6) 0;
   }
 }
 
+/* Reuse the shared avatar primitive: only the Wir hero uses larger overlapping
+   portraits, quiet surface rings and a soft shadow. */
 .today-hero .partner-avatar-pair {
-  box-shadow: 0 4px 18px var(--color-shadow-card);
   border-radius: var(--radius-pill);
 }
 
-/* Energy owns the lower avatar edge. Keep the existing online-presence pip
-   readable by moving it to the upper edge only while avatar Energy is present. */
-.today-hero .couple-presence-avatar-anchor.has-adornment .partner-presence-pip {
-  top: 2px;
-  right: 2px;
+.today-hero .partner-avatar-pair-hero .partner-avatar {
+  width: min(clamp(6.75rem, 32vw, 8.25rem), 37vw);
+  height: min(clamp(6.75rem, 32vw, 8.25rem), 37vw);
+  font-size: clamp(1.9rem, 7vw, 2.5rem);
+  box-shadow:
+    0 0 0 3px var(--color-surface),
+    0 12px 28px var(--color-shadow-card);
+}
+
+.today-hero .partner-avatar-pair-hero .partner-avatar-secondary,
+.today-hero .partner-avatar-pair-hero .partner-avatar-waiting {
+  margin-left: -1.65rem;
+}
+
+@media (min-width: 768px) {
+  .today-hero .partner-avatar-pair-hero .partner-avatar {
+    width: 9rem;
+    height: 9rem;
+    font-size: 2.65rem;
+  }
+}
+
+/* Energy owns the lower avatar edge. Keep both presence marker variants away
+   from the battery when Energy is available. */
+.today-hero .couple-presence-avatar-anchor.has-adornment .partner-presence-pip,
+.today-hero
+  .couple-presence-avatar-anchor.has-adornment
+  .partner-presence-avatar-state {
+  top: 3px;
+  right: 3px;
   bottom: auto;
 }
 
 .today-hero .couple-presence-title {
   color: var(--color-text);
   font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3.8vw, 2.5rem);
-  font-weight: 750;
-  line-height: 1.15;
-  letter-spacing: -0.025em;
+  font-size: clamp(1.95rem, 5vw, 3rem);
+  font-weight: 700;
+  line-height: 1.13;
+  letter-spacing: -0.03em;
 }
 
 .today-hero-duration-link {
@@ -128,16 +129,14 @@
 }
 
 /*
- * On a phone the connection status and the relationship duration never fit on
- * one line, and letting them wrap inside a horizontal flex row left the "·"
- * separator stranded at the end of the first line with the duration pushed
- * off to the right. Two quiet left-aligned lines read as one calm identity
- * block instead. The duration keeps its 44 px target height.
+ * On narrow phones center status and duration on separate lines rather
+ * than letting a separator strand itself at the end of a wrapping row.
+ * The linked duration keeps its existing 44px touch target.
  */
 @container product-content (max-width: 30rem) {
   .today-hero .couple-presence-meta {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 0;
   }
 

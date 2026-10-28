@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -402,10 +403,135 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   );
 }
 
+async function expectAnchoredNavigation(page: Page, safeArea = 0) {
+  const navigation = page.locator('.mobile-bottom-shell');
+  await expect(navigation).toBeInViewport({ ratio: 1 });
+  const geometry = await navigation.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      top: rect.top,
+      bottomGap: window.innerHeight - rect.bottom,
+      offset:
+        Number.parseFloat(
+          getComputedStyle(element).getPropertyValue('--space-3'),
+        ) *
+        Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
+      zoom:
+        Number.parseFloat(getComputedStyle(document.documentElement).zoom) || 1,
+    };
+  });
+  expect(
+    Math.abs(geometry.bottomGap - (geometry.offset + safeArea) * geometry.zoom),
+  ).toBeLessThanOrEqual(1);
+  return geometry;
+}
+
 test.describe('Global header document flow and persistent bottom navigation', () => {
   test.beforeAll(() => {
     if (!fs.existsSync(EVIDENCE_DIR)) {
       fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
+    }
+  });
+
+  test('bottom navigation stays viewport-anchored across scroll, safe areas and route return (#1489)', async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+
+    for (const width of [360, 390, 430]) {
+      await page.setViewportSize({ width, height: 740 });
+      await page.addStyleTag({
+        content: ':root { --safe-area-inset-bottom: 24px; }',
+      });
+      for (const destination of [
+        '/today',
+        '/story?tab=timeline',
+        '/plan',
+        '/more',
+      ]) {
+        await page
+          .locator(`.mobile-bottom-nav a[href="${destination.split('?')[0]}"]`)
+          .click();
+        await expect(page).toHaveURL(new RegExp(destination.split('?')[0]));
+        await page.evaluate(() => window.scrollTo(0, 0));
+        const initial = await expectAnchoredNavigation(page, 24);
+        await addScrollFixture(page);
+        for (const top of [700, 660, 1800, 0]) {
+          await page.evaluate(
+            (top) => window.scrollTo({ top, behavior: 'instant' }),
+            top,
+          );
+          const current = await expectAnchoredNavigation(page, 24);
+          expect(Math.abs(current.top - initial.top)).toBeLessThanOrEqual(1);
+          if (
+            width === 390 &&
+            destination.startsWith('/story') &&
+            top === 700
+          ) {
+            await page.screenshot({
+              path: testInfo.outputPath('anchored-390-story-scrolled.png'),
+            });
+          }
+        }
+        await page.screenshot({
+          path: testInfo.outputPath(
+            `anchored-${width}-${destination.split('?')[0].slice(1)}.png`,
+          ),
+        });
+        await expectNoHorizontalOverflow(page);
+      }
+      await page.goBack();
+      await expectAnchoredNavigation(page, 24);
+    }
+  });
+
+  test('focused end-aligned content clears the fixed navigation (#1489)', async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 700 });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await addScrollFixture(page);
+    await page.evaluate(() => {
+      const target = document.createElement('button');
+      target.dataset.shellClearanceAction = 'true';
+      target.textContent = 'Browser focus clearance fixture';
+      document.querySelector('main')?.appendChild(target);
+    });
+    const target = page.locator('[data-shell-clearance-action]');
+    for (const state of [
+      { width: 360, height: 640, theme: 'light', text: '100%', zoom: '1' },
+      { width: 390, height: 420, theme: 'dark', text: '100%', zoom: '1' },
+      { width: 430, height: 740, theme: 'dark', text: '100%', zoom: '1' },
+      { width: 320, height: 640, theme: 'light', text: '200%', zoom: '1' },
+      { width: 1280, height: 900, theme: 'light', text: '100%', zoom: '4' },
+    ]) {
+      await page.setViewportSize({ width: state.width, height: state.height });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.evaluate((state) => {
+        document.documentElement.dataset.theme = state.theme;
+        document.documentElement.style.fontSize = state.text;
+        document.documentElement.style.zoom = state.zoom;
+      }, state);
+      await target.focus();
+      await target.evaluate((element) =>
+        element.scrollIntoView({ block: 'end', behavior: 'instant' }),
+      );
+      await expect(target).toBeFocused();
+      const bar = await expectAnchoredNavigation(page);
+      const box = await target.boundingBox();
+      if (!box) throw new Error('Focused clearance action has no geometry.');
+      expect(box.y + box.height).toBeLessThanOrEqual(bar.top - 1);
+      await expectNoHorizontalOverflow(page);
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `focused-action-${state.width}-${state.height}-${state.theme}.png`,
+        ),
+      });
     }
   });
 
@@ -715,4 +841,121 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     await expect(bottomShell).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
+});
+
+for (const variant of [
+  { width: 360, theme: 'light', view: 'timeline', reduced: false },
+  { width: 390, theme: 'dark', view: 'discover', reduced: true },
+  { width: 430, theme: 'light', view: 'timeline', reduced: true },
+  { width: 1280, theme: 'light', view: 'discover', reduced: false },
+] as const) {
+  test(`primary destinations restore ${variant.view} and Planning mode at ${variant.width}px ${variant.theme}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: variant.width, height: 740 });
+    await page.emulateMedia({
+      reducedMotion: variant.reduced ? 'reduce' : 'no-preference',
+    });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await page.evaluate((theme) => {
+      document.documentElement.dataset.theme = theme;
+    }, variant.theme);
+    const nav = page.locator(
+      variant.width >= 840 ? '.shell-nav' : '.mobile-bottom-nav',
+    );
+    await nav.locator('a[href^="/story"]').click();
+    if (variant.view === 'timeline')
+      await page.getByRole('tab', { name: de.story.tabTimeline }).click();
+    await expect(page.locator('.momente-tab-btn.active')).toHaveText(
+      variant.view === 'timeline' ? de.story.tabTimeline : de.story.tabDiscover,
+    );
+    await expect(
+      page.getByText('Cooked fresh pasta together', { exact: true }).first(),
+    ).toBeVisible();
+    const targetY = await page.evaluate(() => {
+      const top = Math.min(
+        550,
+        document.documentElement.scrollHeight - window.innerHeight,
+      );
+      window.scrollTo({ top, behavior: 'instant' });
+      return top;
+    });
+    expect(targetY).toBeGreaterThan(100);
+    await expect
+      .poll(async () =>
+        Math.abs((await page.evaluate(() => window.scrollY)) - targetY),
+      )
+      .toBeLessThan(2);
+    const storyY = await page.evaluate(() => window.scrollY);
+    // At Expanded the existing header is in document flow; scroll it into view
+    // only when activating via keyboard, which must not rewrite saved position.
+    if (variant.width >= 840) {
+      await nav
+        .locator('a[href="/plan"]')
+        .evaluate((element: HTMLAnchorElement) => element.click());
+    } else await nav.locator('a[href="/plan"]').click();
+    await expect(page).toHaveURL(/\/plan$/);
+    await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
+    await nav.locator('a[href^="/story"]').click();
+    await expect(page.locator('.momente-tab-btn.active')).toHaveText(
+      variant.view === 'timeline' ? de.story.tabTimeline : de.story.tabDiscover,
+    );
+    await expect
+      .poll(async () =>
+        Math.abs((await page.evaluate(() => window.scrollY)) - storyY),
+      )
+      .toBeLessThan(3);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `restored-${variant.width}-${variant.theme}.png`,
+      ),
+    });
+    await expectNoHorizontalOverflow(page);
+    // The current root is a reselect action, not another route/history entry.
+    const historyLength = await page.evaluate(() => history.length);
+    await nav
+      .locator('a[href^="/story"]')
+      .evaluate((element: HTMLAnchorElement) => element.click());
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeLessThan(2);
+    expect(await page.evaluate(() => history.length)).toBe(historyLength);
+    await nav.locator('a[href="/plan"]').click();
+    await expect(
+      page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await page.goBack();
+    await expect(page).toHaveURL(/\/story/);
+    await expect(page.locator('.momente-tab-btn.active')).toHaveText(
+      variant.view === 'timeline' ? de.story.tabTimeline : de.story.tabDiscover,
+    );
+  });
+}
+
+test('native primary tab switching replaces root history but keeps nested task return', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 740 });
+  await installNativeAppLifecycle(page);
+  await installApiMocks(page);
+  await page.goto('/login');
+  await signIn(page);
+  const nav = page.locator('.mobile-bottom-nav');
+  const historyLength = await page.evaluate(() => history.length);
+  for (const root of ['/story', '/plan', '/more', '/today', '/plan', '/more']) {
+    await nav.locator(`a[href^="${root}"]`).click();
+    await expect(page).toHaveURL(new RegExp(`${root}$`));
+    expect(await page.evaluate(() => history.length)).toBe(historyLength);
+  }
+  await page.locator('.mobile-quick-create .quick-create-trigger').click();
+  await page
+    .locator('.quick-create-mobile-item[href="/story/memories/new"]')
+    .click();
+  await expect(page).toHaveURL(/\/story\/memories\/new$/);
+  await expect(page.locator('.mobile-bottom-shell')).toHaveCount(0);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/more$/);
+  await expect(nav).toBeVisible();
 });

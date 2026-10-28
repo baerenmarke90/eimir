@@ -1,0 +1,11 @@
+eimir. 0.2.0-test.23
+
+Die neue Wir-Seite ist jetzt enthalten: größere, überlappende Paarfotos, zentrierte Namen und Beziehungsdauer. Der zusätzliche Heute-Kopf mit Datum entfällt. Foto-Aktionen, Status und Energie bleiben erreichbar.
+
+Die Hauptnavigation bleibt beim Scrollen unten erreichbar. Momente und Planen merken sich beim Wechsel die gewählte Ansicht, Filter, geladene Bereiche und Scrollposition. Erneutes Antippen des geöffneten Hauptbereichs führt nach oben.
+
+Android-Zurück läuft nicht mehr durch sämtliche Tabwechsel. Detailansichten, Bearbeitung und geschützte Entwürfe behalten ihren eigenen Rückweg. Beim Antippen der Navigation gibt es unmittelbare sichtbare Rückmeldung.
+
+Die bisherigen Verbesserungen für Fotos, sensible Bilder, Anmeldesitzung, Rückkehr aus dem Hintergrund und Erinnerungsdetails sind weiterhin enthalten.
+
+Über Einstellungen → App-Updates installieren. Die bestehende App nicht deinstallieren und keine App-Daten löschen.

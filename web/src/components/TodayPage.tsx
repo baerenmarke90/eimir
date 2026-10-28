@@ -177,21 +177,6 @@ function formatDate(value: Date | null): string | null {
   }).format(value);
 }
 
-export function formatTodayHeaderDate(value: Date): string {
-  const locale = resolvedLocale();
-  const weekday = new Intl.DateTimeFormat(locale, {
-    weekday: 'short',
-  })
-    .format(value)
-    .replace(/\.$/, '');
-  const date = new Intl.DateTimeFormat(locale, {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(value);
-  return `${weekday}, ${date}`;
-}
-
 export type TodayCardVariant = 'recent' | 'retrospective' | 'keepsake';
 
 /**
@@ -1062,7 +1047,6 @@ export function TodayPage({
   );
 
   const showMomentSection = Boolean(!isSparse && focalItem);
-  const todayDate = formatTodayHeaderDate(new Date());
 
   const renderRelationshipHero = (
     avatarAction?: CouplePresenceAvatarAction,
@@ -1070,7 +1054,7 @@ export function TodayPage({
   ) => (
     <CouplePresence
       className="today-hero"
-      headingLevel="h2"
+      headingLevel="h1"
       spaceTitle={
         partner
           ? t('m5s5.dashboard.partner', {
@@ -1130,8 +1114,8 @@ export function TodayPage({
       <>
         {/* ROLE: Hero / Couple Presence — the permanent emotional entry
               point, shown for every space including a new/sparse one, unless
-              the user hid the `relationship_presence` module. The Today date
-              heading above remains the stable page-level H1 either way. */}
+              the user hid the `relationship_presence` module. The couple's
+              names become the page H1; hidden modules retain a semantic fallback. */}
         {relationshipPresenceVisible ? (
           supportGesturesEnabled && partner && account?.id ? (
             <PartnerQuickActions
@@ -1386,10 +1370,9 @@ export function TodayPage({
 
       {contentReady && dashboardQuery.data ? (
         <div className="today-content">
-          <header className="today-date-heading">
-            <h1 className="today-date-title">{t('m5s5.today.headerTitle')}</h1>
-            <time className="today-date-value">{todayDate}</time>
-          </header>
+          {!relationshipPresenceVisible ? (
+            <h1 className="sr-only">{t('navigation.today')}</h1>
+          ) : null}
 
           {isSparse ? (
             <>

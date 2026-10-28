@@ -14,6 +14,7 @@ Name | Type
 `mediaType` | [MediaType](MediaType.md)
 `mimeType` | string
 `position` | number
+`reactions` | [Array&lt;PhotoReactionSummary&gt;](PhotoReactionSummary.md)
 `size` | number
 `status` | string
 `width` | number
@@ -32,6 +33,7 @@ const example = {
   "mediaType": null,
   "mimeType": null,
   "position": null,
+  "reactions": null,
   "size": null,
   "status": null,
   "width": null,

@@ -34,6 +34,10 @@ export function MediaGallery({
   renderPreviews,
   renderCaption,
   dismissWithHistory = false,
+  directSensitiveToggle = false,
+  onPhotoLongPress,
+  renderPhotoActions,
+  renderPhotoReactions,
 }: {
   items: GalleryMediaItem[];
   loadMedia: (attachmentId: string, signal?: AbortSignal) => Promise<string>;
@@ -45,6 +49,14 @@ export function MediaGallery({
     close: (afterClose?: () => void) => void,
   ) => ReactNode;
   dismissWithHistory?: boolean;
+  directSensitiveToggle?: boolean;
+  onPhotoLongPress?: (id: string) => void;
+  renderPhotoActions?: (
+    item: GalleryMediaItem,
+    openFullScreen: () => void,
+    revealed: boolean,
+  ) => ReactNode;
+  renderPhotoReactions?: (item: GalleryMediaItem) => ReactNode;
 }) {
   const { t } = useTranslation();
   const itemIdentity = JSON.stringify(
@@ -57,6 +69,24 @@ export function MediaGallery({
     ]),
   );
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const photoPress = useRef<{
+    timer?: ReturnType<typeof setTimeout>;
+    x: number;
+    y: number;
+    suppressClick: boolean;
+    pressed: boolean;
+  }>({ x: 0, y: 0, suppressClick: false, pressed: false });
+  const cancelPhotoPress = useCallback((suppressClick = false) => {
+    clearTimeout(photoPress.current.timer);
+    photoPress.current.timer = undefined;
+    photoPress.current.pressed = false;
+    if (suppressClick) photoPress.current.suppressClick = true;
+  }, []);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Cancel a pending gesture when its authorized media identity changes.
+  useEffect(
+    () => () => cancelPhotoPress(),
+    [resourceScopeKey, itemIdentity, cancelPhotoPress],
+  );
   const carouselIndexRef = useRef(0);
   useLayoutEffect(() => {
     carouselIndexRef.current = carouselIndex;
@@ -314,6 +344,7 @@ export function MediaGallery({
   }
 
   function handleCarouselScroll(track: HTMLDivElement) {
+    cancelPhotoPress(true);
     if (carouselScrollFrame.current === null) {
       carouselScrollFrame.current = window.requestAnimationFrame(() => {
         carouselScrollFrame.current = null;
@@ -550,17 +581,87 @@ export function MediaGallery({
                       isActive ? ' is-active' : ''
                     }`}
                     data-carousel-index={index}
+                    aria-hidden={!isActive}
                     tabIndex={isActive ? 0 : -1}
-                    onClick={() => openLightbox(index)}
+                    onPointerDown={(event) => {
+                      photoPress.current.suppressClick = false;
+                      if (
+                        !onPhotoLongPress ||
+                        event.button !== 0 ||
+                        item.mediaType !== MediaType.IMAGE ||
+                        !urls[item.id]
+                      )
+                        return;
+                      cancelPhotoPress();
+                      photoPress.current = {
+                        x: event.clientX,
+                        y: event.clientY,
+                        suppressClick: false,
+                        pressed: true,
+                      };
+                      photoPress.current.timer = setTimeout(() => {
+                        photoPress.current.suppressClick = true;
+                        onPhotoLongPress(item.id);
+                      }, 450);
+                    }}
+                    onPointerMove={(event) => {
+                      if (!photoPress.current.pressed) return;
+                      if (
+                        Math.hypot(
+                          event.clientX - photoPress.current.x,
+                          event.clientY - photoPress.current.y,
+                        ) > 10
+                      )
+                        cancelPhotoPress(true);
+                    }}
+                    onPointerUp={() => cancelPhotoPress()}
+                    onPointerCancel={() => cancelPhotoPress(true)}
+                    onPointerLeave={() => cancelPhotoPress()}
+                    onContextMenu={(event) => {
+                      if (
+                        !onPhotoLongPress ||
+                        item.mediaType !== MediaType.IMAGE ||
+                        !urls[item.id]
+                      )
+                        return;
+                      event.preventDefault();
+                      cancelPhotoPress(true);
+                      onPhotoLongPress(item.id);
+                    }}
+                    onClick={(event) => {
+                      cancelPhotoPress();
+                      if (
+                        onPhotoLongPress &&
+                        event.detail !== 0 &&
+                        photoPress.current.suppressClick
+                      ) {
+                        photoPress.current.suppressClick = false;
+                        return;
+                      }
+                      if (directSensitiveToggle && item.isSensitive === true)
+                        reveals.toggle(item.id);
+                      else openLightbox(index);
+                    }}
+                    aria-pressed={
+                      directSensitiveToggle && item.isSensitive === true
+                        ? reveals.isRevealed(item.id)
+                        : undefined
+                    }
                     aria-label={
-                      (item.isSensitive !== false &&
-                      !reveals.isRevealed(item.id)
-                        ? t('sensitiveMedia.label') + '. '
-                        : '') +
-                      t('gallery.openItem', {
-                        index: index + 1,
-                        count: items.length,
-                      })
+                      directSensitiveToggle && item.isSensitive === true
+                        ? t(
+                            reveals.isRevealed(item.id)
+                              ? 'sensitiveMedia.hide'
+                              : 'sensitiveMedia.show',
+                          )
+                        : (item.isSensitive !== false &&
+                          !reveals.isRevealed(item.id)
+                            ? t('sensitiveMedia.label') + '. '
+                            : '') +
+                          t('gallery.openItem', {
+                            index: index + 1,
+                            count: items.length,
+                          })
                     }
                   >
                     {renderCarouselMedia(item)}
@@ -611,13 +712,35 @@ export function MediaGallery({
                 </button>
               </>
             ) : null}
+            {directSensitiveToggle &&
+            items[carouselIndex]?.isSensitive === true &&
+            reveals.isRevealed(items[carouselIndex]!.id) ? (
+              <div
+                className="media-gallery-privacy-indicator"
+                aria-hidden="true"
+              >
+                <SensitiveMediaCover />
+              </div>
+            ) : null}
+            {items[carouselIndex]
+              ? renderPhotoActions?.(
+                  items[carouselIndex]!,
+                  () => openLightbox(carouselIndex),
+                  items[carouselIndex]?.isSensitive === false ||
+                    reveals.isRevealed(items[carouselIndex]!.id),
+                )
+              : null}
           </div>
-          {items[carouselIndex]?.isSensitive === true ? (
+          {!directSensitiveToggle &&
+          items[carouselIndex]?.isSensitive === true ? (
             <SensitiveMediaControl
               revealed={reveals.isRevealed(items[carouselIndex]!.id)}
               onToggle={() => reveals.toggle(items[carouselIndex]!.id)}
             />
           ) : null}
+          {items[carouselIndex]
+            ? renderPhotoReactions?.(items[carouselIndex]!)
+            : null}
         </section>
       )}
 

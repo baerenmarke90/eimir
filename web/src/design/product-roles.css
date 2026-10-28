@@ -12,6 +12,9 @@
   --font-utility-heading:
     600 1.75rem / 1.2 "Instrument Sans", "Arial", sans-serif;
   --tracking-utility-heading: -0.01em;
+  --font-memory-detail-heading:
+    500 1.5625rem / 1.25 "Instrument Sans", "Arial", sans-serif;
+  --tracking-memory-detail-heading: -0.024em;
   --font-section-heading:
     600 1.375rem / 1.25 "Instrument Sans", "Arial", sans-serif;
   --tracking-section-heading: 0em;
@@ -25,7 +28,7 @@
   --tracking-navigation-label: 0.02em;
   --font-action-label: 600 1rem / 1.5 "Instrument Sans", "Arial", sans-serif;
   --tracking-action-label: 0em;
-  --sensitive-media-blur: 48px;
+  --sensitive-media-blur: 12px;
   --radius-media: 1rem;
   --radius-content: 1.25rem;
   --radius-sheet-top: 1.5rem;
@@ -42,15 +45,18 @@
   --easing-exit: cubic-bezier(0.4, 0, 1, 1);
   --elevation-overlay: 0px 8px 32px 0px var(--color-shadow-overlay);
   --color-link-text: #3055b8;
+  --memory-detail-background: #f7f8fc;
 }
 
 :root[data-theme="dark"] {
   --color-link-text: #b7c8ff;
+  --memory-detail-background: #151a28;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
     --color-link-text: #b7c8ff;
+    --memory-detail-background: #151a28;
   }
 }
 

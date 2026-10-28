@@ -46,6 +46,14 @@
   width: 1.35rem;
   height: 1.35rem;
 }
+.shell-detail-back:has(span) {
+  width: auto;
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  color: var(--color-link-text);
+  font: var(--font-supporting-copy);
+}
 
 .memory-product-page .page-heading {
   margin-bottom: 0;
@@ -60,7 +68,48 @@
 
 .memory-detail-card {
   display: grid;
-  gap: var(--space-6);
+  gap: var(--space-4);
+}
+
+.memory-media-context {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+.memory-media-context:empty {
+  display: none;
+}
+.memory-product-page .page-heading h1 {
+  font: var(--font-memory-detail-heading);
+  letter-spacing: var(--tracking-memory-detail-heading);
+}
+
+body:has(.memory-product-page) {
+  background: var(--memory-detail-background);
+}
+.product-shell:has(.memory-product-page) {
+  --color-background: var(--memory-detail-background);
+}
+.memory-product-page .comments-panel {
+  padding-block-start: var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+}
+.memory-product-page .comment-compose-trigger {
+  padding-inline: var(--space-1);
+  font-weight: 400;
+}
+.memory-product-page .memory-provenance-footer {
+  margin-block-start: 0;
+  padding-block-start: 0;
+  border-top: 0;
+}
+.memory-product-page .memory-provenance-footer p {
+  font: var(--font-supporting-copy);
+}
+.memory-product-page .page-heading p:not(.eyebrow) {
+  margin-block: var(--space-2) 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
 }
 
 .memory-meta-grid {

@@ -966,6 +966,38 @@ def _validate_relations(
             )
 
 
+def _validate_photo_reactions(
+    tables: dict[str, list[dict[str, Any]]], source_member_ids: set[UUID]
+) -> None:
+    """Embedded protected references obey the same graph boundary as relation rows."""
+    from eimir.memories.models import MemoryPayload
+
+    bound: dict[UUID, set[UUID]] = {}
+    for raw in tables.get("memory_attachments", []):
+        row = _row_snake(raw)
+        memory_id = _uuid(row.get("memory_id"), ErrorCode.TRANSFER_RELATION_INVALID)
+        photo_id = _uuid(row.get("attachment_id"), ErrorCode.TRANSFER_RELATION_INVALID)
+        bound.setdefault(memory_id, set()).add(photo_id)
+    for raw in tables.get("memories", []):
+        row = _row_snake(raw)
+        memory_id = _uuid(row.get("id"), ErrorCode.TRANSFER_RELATION_INVALID)
+        try:
+            payload = MemoryPayload.model_validate(row.get("payload"))
+        except ValueError as error:
+            raise TransferArchiveError(
+                "Transfer domain schema is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+            ) from error
+        for reaction in payload.photo_reactions:
+            if reaction.account_id not in source_member_ids:
+                raise TransferArchiveError(
+                    "Transfer member mapping is invalid.", ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID
+                )
+            if reaction.attachment_id not in bound.get(memory_id, set()):
+                raise TransferArchiveError(
+                    "Transfer relation is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
+
+
 def _active_target_mapping(
     session: Session,
     target_space: UUID,
@@ -1267,6 +1299,7 @@ def validate_import_bundle(
         )
     ids = _validate_ids_and_privacy(scope, personal_owner, tables, source_members)
     _validate_relations(tables, ids)
+    _validate_photo_reactions(tables, source_members)
     _validate_media(
         scope,
         personal_owner,
@@ -1381,6 +1414,22 @@ def _prepare_row(
             raise TransferArchiveError(
                 "Transfer domain schema is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
             )
+        if table.name == "memories" and name == "payload" and isinstance(value, dict):
+            value = dict(value)
+            value["photo_reactions"] = [
+                {
+                    **reaction,
+                    "account_id": str(
+                        graph.mapping[
+                            _uuid(reaction["account_id"], ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
+                        ]
+                    ),
+                    "attachment_id": str(
+                        ids[_uuid(reaction["attachment_id"], ErrorCode.TRANSFER_RELATION_INVALID)]
+                    ),
+                }
+                for reaction in value.get("photo_reactions", [])
+            ]
         if name == "space_id":
             value = authorization.space_id
         elif name in ACCOUNT_REFERENCE_COLUMNS:

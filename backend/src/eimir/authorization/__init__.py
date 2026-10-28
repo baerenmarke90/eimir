@@ -25,6 +25,7 @@ from __future__ import annotations
 from eimir.authorization.guard import (
     readable,
     require_readable,
+    require_readable_locked,
     require_readable_shared,
     require_writable,
     require_writable_locked,
@@ -62,6 +63,7 @@ __all__ = [
     "privacy_for",
     "readable",
     "require_readable",
+    "require_readable_locked",
     "require_readable_shared",
     "require_writable",
     "require_writable_locked",

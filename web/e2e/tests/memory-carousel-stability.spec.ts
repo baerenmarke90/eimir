@@ -5,6 +5,7 @@ import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
+import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import {
   installNativeAppLifecycle,
@@ -621,6 +622,213 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page).toHaveURL(/\/today$/);
+}
+
+async function installApprovedMemoryDetail(page: Page) {
+  const photo = { ...ATTACHMENTS[0], isSensitive: true };
+  const mocks = await installApiMocks(page, [photo]);
+  let current = {
+    ...memory(MEMORY_ID, [attachment(photo, 0)]),
+    title: 'Erinnerung vom 27.10.2026',
+    happenedOn: '2026-10-27',
+    body: '',
+    attachments: [
+      {
+        ...attachment(photo, 0),
+        reactions: [] as { reaction: string; count: number; own: boolean }[],
+      },
+    ],
+  };
+  const writes: unknown[] = [];
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}`,
+    (route) => route.fulfill({ json: current }),
+  );
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/moments/memories/${MEMORY_ID}/places*`,
+    (route) =>
+      route.fulfill({
+        json: {
+          items: [
+            {
+              id: '77777777-7777-4777-8777-777777777777',
+              spaceId: SPACE_ID,
+              createdBy: ACCOUNT_ID,
+              creator: { id: ACCOUNT_ID, displayName: 'Lea' },
+              name: 'Beispielort',
+              address: 'Musterstraße 1, 12345 Beispielort',
+              latitude: 0,
+              longitude: 0,
+              description: null,
+              geocodingSource: 'openstreetmap',
+              version: 1,
+              createdAt: TEST_NOW,
+              updatedAt: TEST_NOW,
+              capabilities: {
+                canEdit: true,
+                canDelete: true,
+                canComment: false,
+              },
+            },
+          ],
+          hasMore: false,
+          nextCursor: null,
+        },
+      }),
+  );
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/attachments/${photo.id}/content*`,
+    (route) =>
+      route.fulfill({
+        contentType: 'image/jpeg',
+        body: readFileSync(
+          new URL(
+            '../../../backend/demo_assets/images/forest-path.jpg',
+            import.meta.url,
+          ),
+        ),
+      }),
+  );
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}/attachments/${photo.id}/reaction`,
+    async (route) => {
+      const body = route.request().postDataJSON() as {
+        reaction: string | null;
+      };
+      writes.push(body);
+      current = {
+        ...current,
+        version: current.version + 1,
+        attachments: [
+          {
+            ...current.attachments[0]!,
+            reactions: body.reaction
+              ? [{ reaction: body.reaction, count: 1, own: true }]
+              : [],
+          },
+        ],
+      };
+      await route.fulfill({ json: current });
+    },
+  );
+  return { ...mocks, writes };
+}
+
+for (const state of [
+  { width: 320, theme: 'dark' },
+  { width: 360, theme: 'light' },
+  { width: 390, theme: 'light' },
+  { width: 430, theme: 'dark' },
+  { width: 1280, theme: 'light' },
+] as const) {
+  test(`approved Memory composition keeps location 12px from media at ${state.width}px ${state.theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: state.width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: state.theme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(
+      (theme) => localStorage.setItem('eimir.theme', theme),
+      state.theme,
+    );
+    const { unexpectedRequests, writes } =
+      await installApprovedMemoryDetail(page);
+    await page.goto('/');
+    await signIn(page);
+    await page.goto(`/story/memories/${MEMORY_ID}`);
+    await expect(
+      page.getByRole('heading', { name: '27. Oktober 2026', level: 1 }),
+    ).toBeVisible();
+    await expect(page.locator('.moment-place-context strong')).toHaveText(
+      'Beispielort',
+    );
+    await expect(page.locator('.moment-places h2')).toHaveClass('sr-only');
+    await expect(page.locator('.memory-photo-reactions')).toHaveCount(0);
+    const gap = await page.evaluate(
+      () =>
+        document.querySelector('.moment-places')!.getBoundingClientRect().top -
+        document
+          .querySelector('.media-gallery-carousel-viewport')!
+          .getBoundingClientRect().bottom,
+    );
+    expect(gap).toBeCloseTo(12, 0);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    const photo = page.getByRole('button', {
+      name: sensitiveMedia.show,
+      exact: true,
+    });
+    await expect(photo.locator('.sensitive-media-blurred img')).toHaveAttribute(
+      'src',
+      /^blob:/,
+    );
+    await page.screenshot({
+      path: `../../docs/product/design/references/1485/approved-${state.theme}-${state.width}.png`,
+      fullPage: true,
+    });
+    await photo.hover();
+    await page.mouse.down();
+    await page.waitForTimeout(500);
+    await page.mouse.up();
+    const picker = page.getByRole('group', { name: 'Reaktion auswählen' });
+    await expect(picker).toBeVisible();
+    await expect(picker.getByRole('button')).toHaveCount(6);
+    await expect(photo).toHaveAttribute('aria-pressed', 'false');
+    await page.screenshot({
+      path: info.outputPath('preset-picker.png'),
+      fullPage: true,
+    });
+    await picker.getByRole('button', { name: 'Liebe', exact: true }).click();
+    await expect(
+      page.getByRole('button', { name: /Liebe: 1 Reaktion.*entfernen/ }),
+    ).toBeVisible();
+    expect(writes).toEqual([{ reaction: 'LOVE' }]);
+    await page.reload();
+    const chip = page.getByRole('button', {
+      name: /Liebe: 1 Reaktion.*entfernen/,
+    });
+    await expect(chip).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
+    ).toHaveAttribute('aria-pressed', 'false');
+    await chip.click();
+    await expect(page.locator('.memory-photo-reactions')).toHaveCount(0);
+    expect(writes).toEqual([{ reaction: 'LOVE' }, { reaction: null }]);
+    if (state.width === 320) {
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '200%';
+      });
+      await page
+        .getByRole('button', { name: 'Auf dieses Foto reagieren' })
+        .click();
+      const enlarged = page.getByRole('group', { name: 'Reaktion auswählen' });
+      await expect(enlarged.getByRole('button')).toHaveCount(6);
+      for (const choice of await enlarged.getByRole('button').all()) {
+        const target = await choice.boundingBox();
+        expect(target?.width).toBeGreaterThanOrEqual(44);
+        expect(target?.height).toBeGreaterThanOrEqual(44);
+      }
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      await page.keyboard.press('Escape');
+    }
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .include('.memory-media-context')
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    expect(unexpectedRequests).toEqual([]);
+  });
 }
 
 async function openMemory(
@@ -1269,13 +1477,13 @@ test('sensitive media remains local to one item and conceals on return and actua
     page.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
   ).toBeFocused();
   await expect(active.locator('.sensitive-media-cover')).toHaveCount(0);
-  await active.click();
+  await page.getByRole('button', { name: 'Foto im Vollbild öffnen' }).click();
   const dialog = page.getByRole('dialog');
   await expect(
     dialog.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
   ).toBeVisible();
   await page.screenshot({
-    path: '../../docs/product/design/references/1477/runtime-lightbox-revealed-390.png',
+    path: '../../docs/product/design/references/1485/runtime-lightbox-revealed-390.png',
   });
   await page.keyboard.press('ArrowRight');
   await expect(
@@ -1363,7 +1571,7 @@ for (const theme of ['light', 'dark'] as const) {
       await reveal.scrollIntoViewIfNeeded();
       await nextFrame(page);
       await page.screenshot({
-        path: `../../docs/product/design/references/1477/runtime-${theme}-${width}.png`,
+        path: `../../docs/product/design/references/1485/runtime-${theme}-${width}.png`,
         fullPage: width < 840,
       });
     }
@@ -1380,7 +1588,7 @@ for (const theme of ['light', 'dark'] as const) {
       ),
     ).toBe(true);
     await page.screenshot({
-      path: `../../docs/product/design/references/1477/runtime-${theme}-320-large-text.png`,
+      path: `../../docs/product/design/references/1485/runtime-${theme}-320-large-text.png`,
       fullPage: true,
     });
   });

@@ -41,11 +41,25 @@ export const EIMIR_ICON_NAMES = [
   'aktivitaet',
   'hinzufuegen',
   'notes',
+  'eye-off',
+  'smile-plus',
+  'expand',
 ] as const;
 export type EimirIconName = (typeof EIMIR_ICON_NAMES)[number];
 export type EimirIconVariant = 'outline' | 'filled' | 'duotone';
 
 const OUTLINE: Record<EimirIconName, ReactNode> = {
+  'eye-off': (
+    <>
+      <path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.2A10.7 10.7 0 0 1 12 5c6 0 10 7 10 7a17 17 0 0 1-3.2 3.8M6.2 6.2A18.4 18.4 0 0 0 2 12s4 7 10 7a10.9 10.9 0 0 0 5.1-1.3" />
+    </>
+  ),
+  'smile-plus': (
+    <>
+      <path d="M21 12a9 9 0 1 1-9-9M16 3h6m-3-3v6M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" />
+    </>
+  ),
+  expand: <path d="M8 3H3v5m13-5h5v5M3 16v5h5m8 0h5v-5" />,
   wir: (
     <>
       <circle className="cool" cx="9" cy="12" r="6.5" />

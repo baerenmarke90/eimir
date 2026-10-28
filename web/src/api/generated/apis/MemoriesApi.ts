@@ -39,6 +39,11 @@ import {
     MemoryUpdateToJSON,
 } from '../models/MemoryUpdate';
 import {
+    type PhotoReactionSet,
+    PhotoReactionSetFromJSON,
+    PhotoReactionSetToJSON,
+} from '../models/PhotoReactionSet';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
@@ -73,6 +78,13 @@ export interface ReplaceMemoryAttachmentsRequest {
     spaceId: string;
     ifMatch: string;
     memoryAttachmentSet: MemoryAttachmentSet;
+}
+
+export interface SetMemoryPhotoReactionRequest {
+    memoryId: string;
+    attachmentId: string;
+    spaceId: string;
+    photoReactionSet: PhotoReactionSet;
 }
 
 export interface UpdateMemoryRequest {
@@ -394,6 +406,79 @@ export class MemoriesApi extends runtime.BaseAPI {
      */
     async replaceMemoryAttachments(requestParameters: ReplaceMemoryAttachmentsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MemoryDetail> {
         const response = await this.replaceMemoryAttachmentsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for setMemoryPhotoReaction without sending the request
+     */
+    async setMemoryPhotoReactionRequestOpts(requestParameters: SetMemoryPhotoReactionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['memoryId'] == null) {
+            throw new runtime.RequiredError(
+                'memoryId',
+                'Required parameter "memoryId" was null or undefined when calling setMemoryPhotoReaction().'
+            );
+        }
+
+        if (requestParameters['attachmentId'] == null) {
+            throw new runtime.RequiredError(
+                'attachmentId',
+                'Required parameter "attachmentId" was null or undefined when calling setMemoryPhotoReaction().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling setMemoryPhotoReaction().'
+            );
+        }
+
+        if (requestParameters['photoReactionSet'] == null) {
+            throw new runtime.RequiredError(
+                'photoReactionSet',
+                'Required parameter "photoReactionSet" was null or undefined when calling setMemoryPhotoReaction().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/memories/{memoryId}/attachments/{attachmentId}/reaction`;
+        urlPath = urlPath.replace('{memoryId}', encodeURIComponent(String(requestParameters['memoryId'])));
+        urlPath = urlPath.replace('{attachmentId}', encodeURIComponent(String(requestParameters['attachmentId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PhotoReactionSetToJSON(requestParameters['photoReactionSet']),
+        };
+    }
+
+    /**
+     * Set or remove the caller\'s preset photo reaction; retries are idempotent.
+     * Set Memory Photo Reaction
+     */
+    async setMemoryPhotoReactionRaw(requestParameters: SetMemoryPhotoReactionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MemoryDetail>> {
+        const requestOptions = await this.setMemoryPhotoReactionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MemoryDetailFromJSON(jsonValue));
+    }
+
+    /**
+     * Set or remove the caller\'s preset photo reaction; retries are idempotent.
+     * Set Memory Photo Reaction
+     */
+    async setMemoryPhotoReaction(requestParameters: SetMemoryPhotoReactionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MemoryDetail> {
+        const response = await this.setMemoryPhotoReactionRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Product copy of the native test client. German is the product's only
+     supported locale (web/src/i18n), so the default resources are German. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="de">
+    <string name="app_name">eimir. native</string>
+    <string name="brand_name">eimir.</string>
+    <string name="test_build_badge">Native Testversion</string>
+
+    <!-- Navigation -->
+    <string name="nav_today">Wir</string>
+    <string name="nav_moments">Momente</string>
+    <string name="nav_plan">Planen</string>
+    <string name="nav_more">Mehr</string>
+    <string name="nav_create">Neu festhalten</string>
+    <string name="nav_search">Suche</string>
+    <string name="nav_notifications">Benachrichtigungen</string>
+    <string name="nav_notifications_unread">Benachrichtigungen, %1$d ungelesen</string>
+    <string name="shortcut_new_memory">Neue Erinnerung</string>
+
+    <!-- Quick create -->
+    <string name="create_title">Was möchtest du hinzufügen?</string>
+    <string name="create_group_moments">Momente</string>
+    <string name="create_group_planning">Planen</string>
+    <string name="create_group_private">Nur für mich</string>
+    <string name="create_memory">Erinnerung</string>
+    <string name="create_memory_sub">Einen gemeinsamen Moment festhalten</string>
+    <string name="create_wish">Wunsch</string>
+    <string name="create_wish_sub">Etwas, das ihr gemeinsam erleben möchtet</string>
+    <string name="create_plan">Plan</string>
+    <string name="create_plan_sub">Etwas, das ihr konkret angehen wollt</string>
+    <string name="create_private_note">Notiz</string>
+    <string name="create_private_note_sub">Ein Gedanke nur für dich</string>
+
+    <!-- Common actions -->
+    <string name="action_retry">Erneut versuchen</string>
+    <string name="action_back">Zurück</string>
+    <string name="action_close">Schließen</string>
+    <string name="action_save">Speichern</string>
+    <string name="action_cancel">Abbrechen</string>
+    <string name="action_delete">Löschen</string>
+    <string name="action_edit">Bearbeiten</string>
+    <string name="action_more">Weitere Aktionen</string>
+    <string name="action_share">Teilen</string>
+    <string name="action_discard">Verwerfen</string>
+    <string name="action_keep_editing">Weiter bearbeiten</string>
+    <string name="action_open_map">In Karten öffnen</string>
+    <string name="action_send">Senden</string>
+    <string name="action_done">Fertig</string>
+
+    <!-- States and errors -->
+    <string name="error_offline">Keine Verbindung. Es wurde nichts gespeichert.</string>
+    <string name="error_session_ended">Deine Anmeldung ist abgelaufen. Bitte melde dich erneut an.</string>
+    <string name="error_unavailable">Dieser Inhalt ist nicht verfügbar.</string>
+    <string name="error_conflict">Das wurde inzwischen anderswo geändert. Lade neu und versuche es noch einmal.</string>
+    <string name="error_premium">Diese Funktion gehört zu eimir. Pro.</string>
+    <string name="error_rate_limited">Zu viele Versuche. Bitte warte einen Moment.</string>
+    <string name="error_maintenance">eimir. wird gerade gewartet. Bitte versuche es später.</string>
+    <string name="error_invalid">Das hat so nicht geklappt. Bitte prüfe deine Eingabe.</string>
+    <string name="error_server">Der Server antwortet gerade nicht richtig. Bitte versuche es später.</string>
+    <string name="error_unexpected">Etwas ist schiefgelaufen.</string>
+    <string name="state_stale">Nicht aktuell – %1$s</string>
+    <string name="state_offline_banner">Offline – du siehst zuletzt geladene Inhalte.</string>
+    <string name="discard_title">Änderungen verwerfen?</string>
+    <string name="discard_body">Was du eingegeben hast, wurde noch nicht gespeichert.</string>
+    <string name="delete_confirm_body">Das kann nicht rückgängig gemacht werden.</string>
+
+    <!-- Sign-in -->
+    <string name="signin_eyebrow">Anmelden ohne Passwort</string>
+    <string name="signin_title">Willkommen zurück</string>
+    <string name="signin_body">Wir senden dir einen einmal verwendbaren, zeitlich begrenzten Link, sofern die Adresse für diese Anmeldeart verwendet werden kann.</string>
+    <string name="signin_email_label">E-Mail-Adresse</string>
+    <string name="signin_request">Anmeldelink anfordern</string>
+    <string name="signin_requesting">Anfrage wird gesendet …</string>
+    <string name="signin_sent_title">Prüfe dein Postfach</string>
+    <string name="signin_sent_body">Wenn %1$s für diesen Zugang verwendet werden kann, wurde ein zeitlich begrenzter Link gesendet.</string>
+    <string name="signin_open_link_title">So kommt der Link in diese App</string>
+    <string name="signin_open_link_body">Tippe im Mailprogramm lange auf den Link, wähle „Teilen“ und dann „eimir. native“. Oder kopiere den Link und füge ihn hier ein.</string>
+    <string name="signin_paste_label">Anmeldelink einfügen</string>
+    <string name="signin_paste_action">Aus Zwischenablage einfügen</string>
+    <string name="signin_use_link">Mit diesem Link anmelden</string>
+    <string name="signin_link_invalid">Das ist kein Anmeldelink dieser eimir.-Instanz.</string>
+    <string name="signin_consuming">Anmeldelink wird geprüft …</string>
+    <string name="signin_link_failed">Dieser Anmeldelink funktioniert nicht mehr. Fordere bei Bedarf einen neuen an.</string>
+    <string name="signin_other_address">Andere Adresse verwenden</string>
+    <string name="signin_ended">Du wurdest abgemeldet, weil deine Anmeldung abgelaufen ist oder beendet wurde.</string>
+    <string name="signin_instance">Verbunden mit %1$s</string>
+    <string name="signin_replace_title">Mit einem anderen Konto anmelden?</string>
+    <string name="signin_replace_body">Du bist bereits angemeldet. Wenn du fortfährst, wird diese Anmeldung durch den neuen Link ersetzt.</string>
+    <string name="signin_replace_confirm">Neu anmelden</string>
+    <string name="signin_signup_title">Wie sollen wir dich nennen?</string>
+    <string name="signin_signup_body">Der Name wird nur verwendet, wenn mit diesem Link ein neues Konto entsteht.</string>
+    <string name="signin_signup_name">Dein Name</string>
+    <string name="signin_signup_confirm">Weiter</string>
+    <string name="space_choose_title">Welchen Bereich möchtest du öffnen?</string>
+    <string name="space_with">Mit %1$s</string>
+    <string name="space_alone">Noch ohne Partner</string>
+    <string name="space_awaiting_title">Noch kein gemeinsamer Bereich</string>
+    <string name="space_awaiting_body">Öffne die Einladung deines Partners über diese App oder erstelle euren Bereich in der eimir.-App. Danach geht es hier weiter.</string>
+    <string name="space_check_again">Erneut prüfen</string>
+    <string name="action_sign_out">Abmelden</string>
+
+    <!-- Today -->
+    <string name="today_together_days">Seit %1$s Tagen zusammen</string>
+    <string name="today_together_years">Seit %1$d Jahren und %2$d Monaten zusammen</string>
+    <string name="today_together_months">Seit %1$d Monaten zusammen</string>
+    <string name="today_partner_active">gerade aktiv</string>
+    <string name="today_partner_recent">vor Kurzem da</string>
+    <string name="today_thinking_action">An %1$s denken</string>
+    <string name="today_thinking_sent">Dein Gedanke ist bei %1$s angekommen.</string>
+    <string name="today_thinking_wait">Wieder möglich ab %1$s</string>
+    <string name="today_keepsake">Erinnerung für heute</string>
+    <string name="today_retrospective">Weißt du noch?</string>
+    <string name="today_upcoming">Demnächst</string>
+    <string name="today_recent">Zuletzt bei euch</string>
+    <string name="today_story">Eure Geschichte</string>
+    <string name="today_story_counts">%1$d Erinnerungen · %2$d Herzmomente · %3$d Meilensteine</string>
+    <string name="today_empty_title">Euer Album beginnt hier</string>
+    <string name="today_empty_body">Haltet euren ersten gemeinsamen Moment fest.</string>
+    <string name="today_alone">Dein Partner ist noch nicht dabei.</string>
+
+    <!-- Moments -->
+    <string name="story_timeline">Zeitleiste</string>
+    <string name="story_discover">Entdecken</string>
+    <string name="story_photos">Fotos</string>
+    <string name="story_filter">Filter</string>
+    <string name="story_filter_title">Zeitleiste filtern</string>
+    <string name="story_filter_all_years">Alle Jahre</string>
+    <string name="story_filter_types">Inhalte</string>
+    <string name="story_filter_order">Reihenfolge</string>
+    <string name="story_filter_newest">Neueste zuerst</string>
+    <string name="story_filter_oldest">Älteste zuerst</string>
+    <string name="story_filter_apply">Anwenden</string>
+    <string name="story_filter_reset">Zurücksetzen</string>
+    <string name="story_scope_all">Alle Momente</string>
+    <string name="story_kind_memory">Erinnerungen</string>
+    <string name="story_kind_heart">Herzmomente</string>
+    <string name="story_kind_milestone">Meilensteine</string>
+    <string name="story_empty_title">Noch keine Momente</string>
+    <string name="story_empty_body">Was ihr festhaltet, erscheint hier in eurer Zeitleiste.</string>
+    <string name="story_no_match">Keine Momente in dieser Auswahl.</string>
+    <string name="story_end">Das ist der Anfang eurer Geschichte.</string>
+    <string name="story_photos_count">%1$d Fotos</string>
+    <string name="story_photo_count">%1$d Fotos</string>
+    <string name="story_by">von %1$s</string>
+    <string name="story_former_member">Ehemaliges Mitglied</string>
+    <string name="story_years_ago">Vor %1$d Jahren</string>
+    <string name="story_discover_more">Zur Zeitleiste</string>
+    <string name="story_milestone_label">Meilenstein</string>
+    <string name="story_heart_label">Herzmoment</string>
+    <string name="audience_shared">Für uns beide</string>
+    <string name="audience_private">Nur für mich</string>
+
+    <!-- Memory detail -->
+    <string name="memory_comments">Kommentare</string>
+    <string name="memory_comment_placeholder">Etwas dazu schreiben …</string>
+    <string name="memory_comment_empty">Noch keine Kommentare.</string>
+    <string name="memory_comment_edit">Kommentar bearbeiten</string>
+    <string name="memory_comment_delete">Kommentar löschen?</string>
+    <string name="memory_comment_edited">bearbeitet</string>
+    <string name="memory_places">Ort</string>
+    <string name="memory_place_resolving">Ort wird ermittelt …</string>
+    <string name="memory_place_source">Ortsangabe ungefähr · © OpenStreetMap</string>
+    <string name="memory_delete_title">Erinnerung löschen?</string>
+    <string name="memory_open_gallery">Foto %1$d von %2$d öffnen</string>
+    <string name="gallery_position">%1$d von %2$d</string>
+    <string name="gallery_share_failed">Das Foto konnte nicht geteilt werden.</string>
+    <string name="sensitive_label">Sensibler Inhalt</string>
+    <string name="sensitive_show">Bild anzeigen</string>
+    <string name="sensitive_hide">Wieder verbergen</string>
+    <string name="sensitive_mark">Als sensibel markieren</string>
+    <string name="sensitive_help">Wird zunächst unscharf angezeigt. Die Freigabe bleibt unverändert.</string>
+
+    <!-- Memory editor -->
+    <string name="editor_new_memory">Neue Erinnerung</string>
+    <string name="editor_edit_memory">Erinnerung bearbeiten</string>
+    <string name="editor_add_photos">Fotos hinzufügen</string>
+    <string name="editor_add_more_photos">Weitere Fotos</string>
+    <string name="editor_story_label">Was ist passiert?</string>
+    <string name="editor_story_placeholder">Erzähl von eurem Moment …</string>
+    <string name="editor_title_label">Titel</string>
+    <string name="editor_title_placeholder">Gib dem Moment einen Namen</string>
+    <string name="editor_date">Datum</string>
+    <string name="editor_date_change">Ändern</string>
+    <string name="editor_audience">Für euch beide sichtbar</string>
+    <string name="editor_tags_label">Stichworte</string>
+    <string name="editor_tags_placeholder">Mit Komma trennen</string>
+    <string name="editor_photo_remove">Foto entfernen</string>
+    <string name="editor_photo_retry">Erneut hochladen</string>
+    <string name="editor_photo_uploading">Wird hochgeladen … %1$d %%</string>
+    <string name="editor_photo_validating">Wird geprüft …</string>
+    <string name="editor_photo_failed">Hochladen fehlgeschlagen</string>
+    <string name="editor_photo_location_hint">Ortsangaben aus Fotos werden gemäß deiner Einstellung übernommen.</string>
+    <string name="editor_save">Erinnerung speichern</string>
+    <string name="editor_saving">Wird gespeichert …</string>
+    <string name="editor_needs_content">Füge ein Foto, einen Titel oder ein paar Worte hinzu.</string>
+    <string name="editor_wait_uploads">Warte, bis alle Fotos hochgeladen sind.</string>
+    <string name="editor_partial">Die Erinnerung ist gespeichert, aber die Fotos konnten nicht zugeordnet werden.</string>
+    <string name="editor_partial_retry">Fotos erneut zuordnen</string>
+    <string name="editor_photos_reorder_hint">Halte ein Foto gedrückt, um es zu verschieben.</string>
+    <string name="editor_move_earlier">Nach vorne</string>
+    <string name="editor_move_later">Nach hinten</string>
+    <string name="editor_location_permission_title">Fotoorte übernehmen?</string>
+    <string name="editor_location_permission_body">Damit eimir. den Ort deiner ausgewählten Fotos erkennen kann, braucht die App einmalig Zugriff auf Standortangaben in Fotos. Es werden nur die Fotos gelesen, die du auswählst.</string>
+    <string name="editor_location_permission_allow">Weiter</string>
+    <string name="editor_location_permission_skip">Ohne Ort</string>
+    <string name="memory_title_untitled">Ohne Titel</string>
+    <string name="editor_fallback_title">Erinnerung vom %1$s</string>
+
+    <!-- Planning -->
+    <string name="plan_plans">Pläne</string>
+    <string name="plan_wishes">Wünsche</string>
+    <string name="plan_next">Als Nächstes</string>
+    <string name="plan_later">Später</string>
+    <string name="plan_undated">Ohne Datum</string>
+    <string name="plan_completed">Erlebt</string>
+    <string name="plan_show_completed">Erlebte anzeigen</string>
+    <string name="plan_hide_completed">Erlebte ausblenden</string>
+    <string name="plan_add_plan">Plan hinzufügen</string>
+    <string name="plan_add_wish">Wunsch hinzufügen</string>
+    <string name="plan_empty_title">Worauf freut ihr euch?</string>
+    <string name="plan_empty_body">Haltet fest, was ihr gemeinsam vorhabt.</string>
+    <string name="wish_empty_title">Noch keine Wünsche</string>
+    <string name="wish_empty_body">Was möchtet ihr irgendwann gemeinsam erleben?</string>
+    <string name="wish_planned">Schon geplant</string>
+    <string name="wish_completed">Erfüllt</string>
+    <string name="wish_make_plan">Daraus einen Plan machen</string>
+    <string name="wish_complete">Als erfüllt markieren</string>
+    <string name="wish_delete_title">Wunsch löschen?</string>
+    <string name="wish_title_label">Euer Wunsch</string>
+    <string name="wish_title_placeholder">Zum Beispiel: Einmal Polarlichter sehen</string>
+    <string name="wish_new">Neuer Wunsch</string>
+    <string name="wish_edit">Wunsch bearbeiten</string>
+    <string name="plan_new">Neuer Plan</string>
+    <string name="plan_edit">Plan bearbeiten</string>
+    <string name="plan_title_label">Was habt ihr vor?</string>
+    <string name="plan_title_placeholder">Zum Beispiel: Wochenende am Meer</string>
+    <string name="plan_description_label">Details</string>
+    <string name="plan_description_placeholder">Was gehört dazu?</string>
+    <string name="plan_date_label">Wann?</string>
+    <string name="plan_date_none">Noch kein Datum</string>
+    <string name="plan_date_set">Datum wählen</string>
+    <string name="plan_date_clear">Datum entfernen</string>
+    <string name="plan_schedule">Datum festlegen</string>
+    <string name="plan_unschedule">Datum entfernen</string>
+    <string name="plan_complete">Als erlebt markieren</string>
+    <string name="plan_completed_on">Erlebt am %1$s</string>
+    <string name="plan_return_to_wish">Zurück zu den Wünschen</string>
+    <string name="plan_delete_title">Plan löschen?</string>
+    <string name="plan_from_wish">Aus einem Wunsch entstanden</string>
+    <string name="plan_today">Heute</string>
+    <string name="plan_tomorrow">Morgen</string>
+    <string name="plan_in_days">In %1$d Tagen</string>
+    <string name="plan_save">Plan speichern</string>
+    <string name="wish_save">Wunsch speichern</string>
+    <string name="plan_created_by">Angelegt von %1$s</string>
+
+    <!-- More -->
+    <string name="more_personal">Für dich</string>
+    <string name="more_shared">Gemeinsam</string>
+    <string name="more_utility">App</string>
+    <string name="more_profile">Profil</string>
+    <string name="more_private">Nur für mich</string>
+    <string name="more_private_sub">Notizen, die nur du siehst</string>
+    <string name="more_places">Orte</string>
+    <string name="more_people">Menschen</string>
+    <string name="more_photos">Alle Fotos</string>
+    <string name="more_notifications">Benachrichtigungen</string>
+    <string name="more_activity">Unsere Aktivitäten</string>
+    <string name="more_settings">Einstellungen</string>
+    <string name="more_search">Suche</string>
+    <string name="more_about">Über diese Testversion</string>
+
+    <string name="profile_title">Profil</string>
+    <string name="profile_birthday">Geburtstag: %1$s</string>
+    <string name="profile_preferences">Vorlieben</string>
+    <string name="profile_no_preferences">Noch keine Vorlieben festgehalten.</string>
+    <string name="profile_partner">Dein Partner</string>
+    <string name="profile_web_edit">Profilfoto und Vorlieben bearbeitest du derzeit in der eimir.-App.</string>
+
+    <string name="notifications_title">Benachrichtigungen</string>
+    <string name="notifications_mark_all">Alle als gelesen markieren</string>
+    <string name="notifications_empty">Keine Benachrichtigungen.</string>
+    <string name="notification_comment">%1$s hat kommentiert</string>
+    <string name="notification_thinking">%1$s denkt an dich</string>
+    <string name="notification_kiss">%1$s schickt dir einen Kuss</string>
+    <string name="notification_check_in">%1$s hat eingecheckt</string>
+    <string name="notification_reminder">Erinnerung</string>
+    <string name="notification_someone">Jemand</string>
+
+    <string name="activity_title">Unsere Aktivitäten</string>
+    <string name="activity_empty">Noch keine Aktivitäten.</string>
+    <string name="activity_memory_created">%1$s hat eine Erinnerung festgehalten</string>
+    <string name="activity_milestone_created">%1$s hat einen Meilenstein festgehalten</string>
+    <string name="activity_heart_created">%1$s hat einen Herzmoment geteilt</string>
+    <string name="activity_wish_created">%1$s hat einen Wunsch notiert</string>
+    <string name="activity_plan_created">%1$s hat einen Plan angelegt</string>
+    <string name="activity_plan_completed">%1$s hat einen Plan als erlebt markiert</string>
+    <string name="activity_place_created">%1$s hat einen Ort gespeichert</string>
+    <string name="activity_chapter_created">%1$s hat ein Kapitel angelegt</string>
+    <string name="activity_collection_created">%1$s hat eine Liste angelegt</string>
+    <string name="activity_comment_created">%1$s hat kommentiert</string>
+
+    <string name="places_title">Orte</string>
+    <string name="places_empty">Noch keine Orte gespeichert.</string>
+    <string name="place_delete_title">Ort löschen?</string>
+    <string name="place_no_coordinates">Für diesen Ort sind keine Koordinaten gespeichert.</string>
+
+    <string name="people_title">Menschen</string>
+    <string name="people_empty">Noch keine Menschen gespeichert.</string>
+    <string name="people_birthday">Geburtstag %1$s</string>
+    <string name="relationship_child">Kind</string>
+    <string name="relationship_parent">Elternteil</string>
+    <string name="relationship_sibling">Geschwister</string>
+    <string name="relationship_friend">Freundschaft</string>
+    <string name="relationship_other">Andere Beziehung</string>
+
+    <string name="private_title">Nur für mich</string>
+    <string name="private_owner_only">Nur du kannst diese Notizen sehen. Dein Partner erfährt nicht, dass es sie gibt.</string>
+    <string name="private_empty">Noch keine privaten Notizen.</string>
+    <string name="private_new">Neue Notiz</string>
+    <string name="private_edit">Notiz bearbeiten</string>
+    <string name="private_title_label">Titel</string>
+    <string name="private_body_label">Notiz</string>
+    <string name="private_pinned">Angeheftet</string>
+    <string name="private_delete_title">Notiz löschen?</string>
+
+    <string name="search_placeholder">Erinnerungen, Pläne, Orte …</string>
+    <string name="search_empty">Keine Treffer.</string>
+    <string name="search_hint">Suche in euren gemeinsamen und deinen privaten Inhalten.</string>
+    <string name="search_private">Nur für dich</string>
+
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_photo_location">Orte aus Fotos übernehmen</string>
+    <string name="settings_photo_location_body">Wenn ein Foto Standortangaben enthält, ordnet eimir. der Erinnerung einen ungefähren Ort zu.</string>
+    <string name="settings_appearance">Darstellung</string>
+    <string name="settings_appearance_body">Hell und Dunkel folgen der Systemeinstellung deines Geräts.</string>
+    <string name="settings_account">Konto</string>
+    <string name="settings_signed_in_as">Angemeldet als %1$s</string>
+    <string name="settings_switch_space">Bereich wechseln</string>
+    <string name="settings_web_only">Weitere Einstellungen, Datenexport und Kontolöschung findest du in der eimir.-App.</string>
+    <string name="settings_open_link_settings">Links für diese App zulassen</string>
+    <string name="settings_open_link_settings_body">Erlaubt Android, Anmelde- und Einladungslinks direkt in dieser App zu öffnen.</string>
+    <string name="settings_pro">eimir. Pro</string>
+    <string name="settings_pro_active">Für euren Bereich aktiv</string>
+    <string name="settings_pro_inactive">Nicht aktiv</string>
+
+    <string name="about_title">Über diese Testversion</string>
+    <string name="about_body">Dies ist eine experimentelle native Android-Testversion von eimir. Sie nutzt dieselben Konten und Daten wie die eimir.-App, wird aber separat installiert.</string>
+    <string name="about_version">Version %1$s (%2$d)</string>
+    <string name="about_package">Paket %1$s</string>
+    <string name="about_source">Quellstand %1$s</string>
+    <string name="about_server">Server %1$s</string>
+    <string name="about_licenses">Schriften: Literata und Instrument Sans, SIL Open Font License 1.1</string>
+
+    <!-- Heart moments -->
+    <string name="emotion_loved">Geliebt</string>
+    <string name="emotion_seen">Gesehen</string>
+    <string name="emotion_appreciated">Wertgeschätzt</string>
+    <string name="emotion_supported">Unterstützt</string>
+    <string name="emotion_grateful">Dankbar</string>
+    <string name="emotion_happy">Glücklich</string>
+    <string name="place_fallback">Aufnahmeort</string>
+    <string name="place_view_map">Auf Karte ansehen</string>
+    <string name="place_map_unavailable">Keine Karten-App gefunden.</string>
+
+    <!-- Profile preferences -->
+    <string name="pref_category_food">Essen &amp; Lieblingsgerichte</string>
+    <string name="pref_category_drink">Getränke</string>
+    <string name="pref_category_flowers">Blumen &amp; Pflanzen</string>
+    <string name="pref_category_movies">Filme</string>
+    <string name="pref_category_series">Serien</string>
+    <string name="pref_category_music">Musik</string>
+    <string name="pref_category_hobbies">Hobbys &amp; Interessen</string>
+    <string name="pref_category_activities">Unternehmungen</string>
+    <string name="pref_category_travel">Reisen</string>
+    <string name="pref_category_restaurants">Restaurants &amp; Cafés</string>
+    <string name="pref_category_colors">Farben &amp; Stil</string>
+    <string name="pref_category_other">Sonstiges</string>
+    <string name="pref_sentiment_love">Liebe ich</string>
+    <string name="pref_sentiment_like">Mag ich</string>
+    <string name="pref_sentiment_neutral">Neutral</string>
+    <string name="pref_sentiment_dislike">Mag ich eher nicht</string>
+    <string name="pref_sentiment_avoid">Bitte vermeiden</string>
+    <string name="profile_partner_preferences">Vorlieben von %1$s</string>
+</resources>

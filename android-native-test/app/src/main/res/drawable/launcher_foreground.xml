@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The eimir. mark from the Capacitor app plus a small "test" ring, so the
+     experimental native build is distinguishable on the home screen. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/app_icon_foreground" android:width="132dp" android:height="132dp" android:gravity="center" />
+    <item android:width="18dp" android:height="18dp" android:gravity="center" android:left="48dp" android:top="48dp">
+        <shape android:shape="oval">
+            <solid android:color="#72D8C4" />
+            <stroke android:width="2dp" android:color="#FFFFFF" />
+        </shape>
+    </item>
+</layer-list>

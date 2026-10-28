@@ -1,7 +1,7 @@
 # eimir. - Freemium Feature Matrix
 
 **Status:** authoritative product-tier and roadmap baseline  
-**Version:** 1.6
+**Version:** 1.7
 
 **Audit date:** 2026-09-21  
 **Revision:** 2026-10-29 — PO-approved special-Plan countdown (#504, Free/Core) and additive Pro relationship passport (#497)
@@ -105,7 +105,7 @@ Capabilities essential for Security, Privacy, Accessibility, Tenant Isolation, a
 | **Essential data portability / Transfer Bundle & account export** | M5, M6 | **Non-paywallable** | Essential machine-readable export of the user's authorized account/Space data and own media remains available independent of Premium. Value-added narrative/print/rendered artifacts are classified separately. | Identical | Data ownership and the right to leave with one's authorized data cannot depend on a paid tier. |
 | **Official Web & Android client access** | M5 | **Free/Core** | Whole client access Free | Identical | Accessing the application via official native clients is never paywalled. |
 | **Standard Light/Dark/System appearance and baseline app icon** | M5 | **Free/Core** | Whole feature Free | Identical | Standard platform accessibility, dark mode and the default app identity are basic expectations. |
-| **Bespoke Themes, Covers & UI Personalization** | M5, M7 | **Premium** | Premium only; includes user-selectable alternative app icons (#1307, `theme.bespoke_packs`) | Identical | Artistic color palettes, custom card styles, bespoke widgets and optional app-icon choices. The default icon and automatic Light/Dark adaptation remain Free/Core. New alternative selections require Pro; an already saved personal icon remains readable and effective after expiry. |
+| **Bespoke Themes, Covers & UI Personalization** | M5, M7 | **Premium** | Optional presentation choices; includes alternative app icons (#1307) and personal Wir designs (#1494), using `theme.bespoke_packs` | Identical | Artistic color palettes, custom card styles, bespoke widgets and optional app-icon choices. The default icon, Geborgen (`warm`) Wir design and automatic Light/Dark adaptation remain Free/Core. Klar & modern (`modern`) and Klassisch (`classic`, the previous composition) are optional Pro selections. All underlying Today content/actions and module preferences remain Free/Core. New alternative selections require Pro; an already saved personal icon or Wir design remains readable and effective after expiry. Returning to the default is always Free. Wir designs are personal to the Account within its Space and participate in personal export; untrusted imports do not activate paid cosmetics. |
 | **Accessibility essentials & i18n localization** | M1–M5 | **Non-paywallable** | Non-paywallable | Identical | Inclusive accessibility and locale support are baseline engineering standards. |
 | **Short Audio / Voice Notes** | M7 | **Free/Core** | Whole feature Free (storage applies in Cloud) | Identical | Voice snippets add emotional intimacy to memories (#512). |
 | **Daily Questions & Shared Answers** | M7 | **Mixed** | **Free:** Daily questions & basic answer history.<br>**Premium:** 5-Year Reflection Mirror (#516), deep category packs, cross-year comparison. | Identical | Daily bonding is free; long-term analytical mirroring is Premium. |

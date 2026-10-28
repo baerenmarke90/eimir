@@ -1,3 +1,4 @@
+import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useCallback, useLayoutEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -20,6 +21,7 @@ import {
 } from '../client/memoryProduct';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
+  ClientProblemError,
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
@@ -38,7 +40,10 @@ import {
   useAttachmentDrafts,
 } from '../client/useAttachmentDrafts';
 import { useStoryDeletion } from '../client/useStoryDeletion';
+import { useTaskActivation } from '../client/useTaskActivation';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
 import { MediaGallery } from './MediaGallery';
@@ -137,6 +142,13 @@ export function MemoryProductPage({
     spaceId,
     memoryId,
   ] as const;
+  const sensitiveDraftKey = JSON.stringify([contextKey, memoryId, mode]);
+  const [sensitiveDraft, setSensitiveDraft] = useState<{
+    key: string;
+    values: Record<string, boolean>;
+  }>({ key: sensitiveDraftKey, values: {} });
+  const sensitiveValues =
+    sensitiveDraft.key === sensitiveDraftKey ? sensitiveDraft.values : {};
   const [removedAttachmentState, setRemovedAttachmentState] = useState<{
     contextKey: string;
     ids: Set<string>;
@@ -220,16 +232,24 @@ export function MemoryProductPage({
     maxAttachments: MAX_MEMORY_ATTACHMENTS - keptBoundAttachmentCount,
   });
 
+  const captureSaveOwnership = useTaskActivation(
+    mode === 'edit',
+    JSON.stringify([apiBaseUrl, contextKey, memoryId, location.key]),
+  );
+
   const updateMutation = useMutation({
     mutationKey: updateKey,
     mutationFn: async ({
       memory,
       values,
+      isCurrent,
     }: {
+      isCurrent: () => boolean;
       memory: MemoryDetail;
       values: MemoryEditValues;
     }) => {
       try {
+        if (!isCurrent()) throw new ClientProblemError('permission');
         let updated = await apis.memories.updateMemory({
           spaceId,
           memoryId: memory.id,
@@ -237,8 +257,11 @@ export function MemoryProductPage({
           memoryUpdate: memoryUpdatePayload(values),
         });
 
+        if (!isCurrent()) throw new ClientProblemError('permission');
         const attachmentsChanged =
-          attachments.readyIds.length > 0 || removedAttachmentIds.size > 0;
+          attachments.readyIds.length > 0 ||
+          removedAttachmentIds.size > 0 ||
+          Object.keys(sensitiveValues).length > 0;
         if (attachmentsChanged) {
           const existing = [...updated.attachments]
             .sort((left, right) => left.position - right.position)
@@ -253,17 +276,36 @@ export function MemoryProductPage({
               attachments: attachmentIds.map((attachmentId, position) => ({
                 attachmentId,
                 position,
+                isSensitive:
+                  sensitiveValues[attachmentId] ??
+                  attachments.items.find(
+                    (item) => item.attachmentId === attachmentId,
+                  )?.isSensitive ??
+                  updated.attachments.find((item) => item.id === attachmentId)
+                    ?.isSensitive,
               })),
             },
           });
         }
+        const observed = queryClient.getQueryData<{ value: MemoryDetail }>(
+          memoryKey,
+        );
+        if (observed && observed.value.version > updated.version)
+          throw new ClientProblemError('conflict', 409);
+        protectSensitiveMediaProjections(
+          queryClient,
+          updated.spaceId,
+          updated.attachments,
+        );
         return updated;
       } catch (error) {
         throw await normalizeClientError(error);
       }
     },
-    onMutate: async ({ memory, values }) => {
+    onMutate: async ({ memory, values, isCurrent }) => {
+      if (!isCurrent()) throw new ClientProblemError('permission');
       await queryClient.cancelQueries({ queryKey: memoryKey });
+      if (!isCurrent()) throw new ClientProblemError('permission');
       const previous = queryClient.getQueryData(memoryKey);
       queryClient.setQueryData(memoryKey, {
         value: {
@@ -280,12 +322,21 @@ export function MemoryProductPage({
       });
       return { previous };
     },
-    onError: (_error, _variables, context) => {
-      if (context?.previous)
+    onError: (_error, variables, context) => {
+      if (!variables.isCurrent()) return;
+      const observed = queryClient.getQueryData<{ value: MemoryDetail }>(
+        memoryKey,
+      );
+      if (
+        context?.previous &&
+        (!observed || observed.value.version <= variables.memory.version)
+      )
         queryClient.setQueryData(memoryKey, context.previous);
       void queryClient.invalidateQueries({ queryKey: memoryKey });
     },
-    onSuccess: async (memory) => {
+    onSuccess: async (memory, request) => {
+      if (!request.isCurrent()) return;
+      setSensitiveDraft({ key: sensitiveDraftKey, values: {} });
       attachments.clear();
       setRemovedAttachmentIds(new Set());
       queryClient.setQueryData(memoryKey, { value: memory, source: 'network' });
@@ -294,6 +345,7 @@ export function MemoryProductPage({
         queryClient.invalidateQueries({ queryKey: memoryKey }),
         invalidateDashboard(queryClient, spaceId),
       ]);
+      if (!request.isCurrent()) return;
       navigate(memoryDetailPath(memory.id), {
         replace: true,
         state: { taskOriginKey: originKey },
@@ -437,8 +489,11 @@ export function MemoryProductPage({
       )
         return;
       const data = new FormData(event.currentTarget);
+      const ownsTask = captureSaveOwnership();
+      const ownsRead = captureAuthorizedQuery(queryClient, memoryKey);
       updateMutation.mutate({
         memory: editableMemory,
+        isCurrent: () => ownsTask() && ownsRead(),
         values: {
           title: String(data.get('title') || ''),
           body: String(data.get('body') || ''),
@@ -513,7 +568,8 @@ export function MemoryProductPage({
               <fieldset className="memory-existing-attachments">
                 <legend>{t('memoryProduct.existingPhotosHeading')}</legend>
                 <p className="field-help">
-                  {t('memoryProduct.existingPhotosHelp')}
+                  {t('memoryProduct.existingPhotosHelp')}{' '}
+                  {t('sensitiveMedia.help')}
                 </p>
                 <ul className="memory-edit-attachment-list">
                   {readyAttachments.map((attachment) => {
@@ -528,9 +584,32 @@ export function MemoryProductPage({
                         <MemoryPreview
                           memoryId={memory.id}
                           attachmentId={attachment.id}
+                          isSensitive={
+                            sensitiveValues[attachment.id] ??
+                            attachment.isSensitive
+                          }
                           loadImage={loadMemoryImage}
                         />
                         <div className="memory-edit-attachment-actions">
+                          <SensitiveMediaCheckbox
+                            checked={
+                              sensitiveValues[attachment.id] ??
+                              attachment.isSensitive ??
+                              true
+                            }
+                            disabled={removed || updateMutation.isPending}
+                            onChange={(value) =>
+                              setSensitiveDraft((current) => ({
+                                key: sensitiveDraftKey,
+                                values: {
+                                  ...(current.key === sensitiveDraftKey
+                                    ? current.values
+                                    : {}),
+                                  [attachment.id]: value,
+                                },
+                              }))
+                            }
+                          />
                           {removed ? (
                             <span role="status">
                               {t('memoryProduct.photoMarkedForRemoval')}
@@ -565,6 +644,7 @@ export function MemoryProductPage({
             </div>
             <AttachmentDraftPicker
               id="memory-edit-images"
+              disabled={updateMutation.isPending}
               attachments={attachments}
               multiple
             />
@@ -752,11 +832,12 @@ export function MemoryProductPage({
             items={readyAttachments.map((attachment) => ({
               id: attachment.id,
               mediaType: attachment.mediaType,
+              isSensitive: attachment.isSensitive,
             }))}
             loadMedia={(attachmentId, signal) =>
               loadMemoryImage(memory.id, attachmentId, signal)
             }
-            resourceScopeKey={`memory:${memory.id}`}
+            resourceScopeKey={`memory:${currentAccountId}:${spaceId}:${mode}:${memory.id}`}
           />
         </section>
       ) : null}

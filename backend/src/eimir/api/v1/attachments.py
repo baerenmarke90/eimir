@@ -90,6 +90,10 @@ class AttachmentDetail(ApiModel):
     height: int | None
     duration_seconds: int | None
     has_thumbnail: bool
+    is_sensitive: bool = Field(
+        default=False,
+        description="Manual sensitive-content classification; never an access-control boundary.",
+    )
     version: int
     created_at: datetime
 
@@ -110,6 +114,10 @@ class AttachmentSummary(ApiModel):
     width: int | None
     height: int | None
     has_thumbnail: bool
+    is_sensitive: bool = Field(
+        default=False,
+        description="Manual sensitive-content classification; never an access-control boundary.",
+    )
 
 
 class UploadDescriptor(ApiModel):
@@ -137,6 +145,7 @@ def _detail(attachment: Attachment) -> AttachmentDetail:
         height=attachment.height,
         duration_seconds=attachment.duration_seconds,
         has_thumbnail=attachment.has_thumbnail,
+        is_sensitive=attachment.payload.is_sensitive,
         version=attachment.version,
         created_at=attachment.created_at,
     )

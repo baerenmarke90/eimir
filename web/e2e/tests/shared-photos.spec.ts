@@ -35,6 +35,7 @@ const photos = Array.from({ length: 44 }, (_, index) => ({
     width: 800,
     height: 600,
     hasThumbnail: true,
+    isSensitive: false,
   },
 }));
 

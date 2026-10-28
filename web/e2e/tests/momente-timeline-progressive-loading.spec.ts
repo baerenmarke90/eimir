@@ -51,6 +51,7 @@ function memory(index: number, withMedia = false) {
               mediaType: 'IMAGE',
               mimeType: 'image/svg+xml',
               hasThumbnail: true,
+              isSensitive: false,
               width: 800,
               height: 520,
               size: SVG.length,

@@ -571,6 +571,7 @@ def validate(session: Session, attachment_id: UUID) -> None:
     attachment.height = processed.height
     attachment.payload = AttachmentPayload(
         original_name=attachment.payload.original_name,
+        is_sensitive=attachment.payload.is_sensitive,
         captured_at=processed.captured_at,
         orientation=processed.orientation,
     )

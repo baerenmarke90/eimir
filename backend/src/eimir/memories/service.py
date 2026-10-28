@@ -326,6 +326,7 @@ def replace_attachments(
     *,
     expected_version: int,
     entries: list[tuple[UUID, int]],
+    sensitivity: dict[UUID, bool | None] | None = None,
 ) -> Memory:
     """Replace the complete attachment gallery of a memory.
 
@@ -352,6 +353,7 @@ def replace_attachments(
             "ATTACHMENT_POSITION_INVALID",
         )
 
+    previous = {bound.attachment.id for bound in binding.attachments_of_memory(session, memory.id)}
     locked = binding.lock_for_binding(session, identifiers)
     attachments = []
     for attachment_id in identifiers:
@@ -359,12 +361,14 @@ def replace_attachments(
             locked.get(attachment_id),
             space_id=context.space_id,
             account_id=context.account_id,
+            already_bound=attachment_id in previous,
         )
         binding.ensure_unlinked(session, attachment_id, allow=("MEMORY", memory.id))
         attachments.append(attachment)
     binding.ensure_within_limits(attachments)
+    for attachment in attachments:
+        binding.set_sensitive(attachment, (sensitivity or {}).get(attachment.id))
 
-    previous = {bound.attachment.id for bound in binding.attachments_of_memory(session, memory.id)}
     session.execute(
         delete(binding.MemoryAttachment).where(binding.MemoryAttachment.memory_id == memory.id)
     )

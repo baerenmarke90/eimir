@@ -176,10 +176,13 @@ export function MemoryCreatePage({
       tags,
       tagDraft: tagDraftText,
       happenedOn,
-      files: attachments.items.map(({ file, attachmentId, status }) => ({
-        file,
-        attachmentId: status === 'ready' ? attachmentId : undefined,
-      })),
+      files: attachments.items.map(
+        ({ file, attachmentId, status, isSensitive }) => ({
+          file,
+          isSensitive: isSensitive ?? false,
+          attachmentId: status === 'ready' ? attachmentId : undefined,
+        }),
+      ),
       attempt: null,
       partial: null,
     }),
@@ -221,6 +224,7 @@ export function MemoryCreatePage({
           draft.partial.memory,
           draft.partial.attachmentIds,
           new Error('Restored attachment binding'),
+          draft.partial.attachmentSensitivity,
         ),
       );
     diaryDraft.acceptRecovery();
@@ -313,7 +317,11 @@ export function MemoryCreatePage({
         setPartial(error);
         await diaryDraft.checkpoint({
           ...draftSnapshot,
-          partial: { memory: error.memory, attachmentIds: error.attachmentIds },
+          partial: {
+            memory: error.memory,
+            attachmentIds: error.attachmentIds,
+            attachmentSensitivity: error.attachmentSensitivity,
+          },
           attempt: null,
         });
         setProblem(await normalizeClientError(error.cause));
@@ -384,7 +392,11 @@ export function MemoryCreatePage({
             !(await diaryDraft.checkpoint({
               ...draftSnapshot,
               files: recovered.files,
-              partial: { memory: partial.memory, attachmentIds: recovered.ids },
+              partial: {
+                memory: partial.memory,
+                attachmentIds: recovered.ids,
+                attachmentSensitivity: partial.attachmentSensitivity,
+              },
             }))
           )
             throw new Error('Draft ownership unavailable');
@@ -394,6 +406,7 @@ export function MemoryCreatePage({
             partial.memory,
             recovered.ids,
             true,
+            partial.attachmentSensitivity,
           );
         },
         { verification: false },
@@ -415,19 +428,24 @@ export function MemoryCreatePage({
     setDeletedAfterSave(false);
     // One identity per user-initiated save; it is reused only to verify an
     // unknown outcome of this exact snapshot.
-    const attempt = startMemoryCreateAttempt(
-      {
-        title: title.trim()
-          ? title
-          : t('memoryProduct.createFallbackTitle', {
-              date: formatDateInputValue(date, resolvedLocale()),
-            }),
-        body,
-        tags: [...(submittedTags ?? tags)],
-        happenedOn: submittedDate,
-      },
-      [...attachments.readyIds],
-    );
+    const attempt = {
+      ...startMemoryCreateAttempt(
+        {
+          title: title.trim()
+            ? title
+            : t('memoryProduct.createFallbackTitle', {
+                date: formatDateInputValue(date, resolvedLocale()),
+              }),
+          body,
+          tags: [...(submittedTags ?? tags)],
+          happenedOn: submittedDate,
+        },
+        [...attachments.readyIds],
+      ),
+      attachmentSensitivity: attachments.items
+        .filter((item) => item.status === 'ready')
+        .map((item) => item.isSensitive === true),
+    };
     attemptRef.current = attempt;
     await run(
       async () => {
@@ -500,7 +518,11 @@ export function MemoryCreatePage({
       spaceId,
       attempt.snapshot,
       recovered.ids,
-      { idempotencyKey: attempt.idempotencyKey, reconcile },
+      {
+        idempotencyKey: attempt.idempotencyKey,
+        reconcile,
+        attachmentSensitivity: attempt.attachmentSensitivity,
+      },
     ).then((result) => result.memory);
   }
   async function verify() {

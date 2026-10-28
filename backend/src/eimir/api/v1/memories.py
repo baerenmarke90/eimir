@@ -81,6 +81,7 @@ class MemoryAttachmentEntry(ApiModel):
 
     attachment_id: UUID
     position: int = Field(ge=0)
+    is_sensitive: bool | None = Field(default=None, strict=True)
 
 
 class MemoryAttachmentSet(ApiModel):
@@ -154,6 +155,7 @@ def _memory_detail(
                 width=entry.attachment.width,
                 height=entry.attachment.height,
                 has_thumbnail=entry.attachment.has_thumbnail,
+                is_sensitive=entry.attachment.payload.is_sensitive,
                 position=entry.position,
             )
             for entry in bound_attachments
@@ -340,6 +342,7 @@ def replace_memory_attachments(
         memory_id,
         expected_version=expected_version,
         entries=[(entry.attachment_id, entry.position) for entry in body.attachments],
+        sensitivity={entry.attachment_id: entry.is_sensitive for entry in body.attachments},
     )
     response.headers["ETag"] = etag_for(memory.version)
     return _memory_detail(session, authorization, memory)

@@ -10,6 +10,7 @@ Name | Type
 `id` | string
 `occurredOn` | Date
 `previewAttachmentId` | string
+`previewIsSensitive` | boolean
 `scheduledAt` | Date
 `scheduledOn` | Date
 `titleOrText` | string
@@ -26,6 +27,7 @@ const example = {
   "id": null,
   "occurredOn": null,
   "previewAttachmentId": null,
+  "previewIsSensitive": null,
   "scheduledAt": null,
   "scheduledOn": null,
   "titleOrText": null,

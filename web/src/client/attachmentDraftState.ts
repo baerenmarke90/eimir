@@ -12,6 +12,7 @@ export interface AttachmentDraft {
   attempt: number;
   progress: number;
   attachmentId?: string;
+  isSensitive?: boolean;
   error?: string;
 }
 
@@ -27,6 +28,7 @@ export type AttachmentDraftAction =
     }
   | { type: 'ready'; id: string; attempt: number; attachmentId: string }
   | { type: 'failed'; id: string; attempt: number; error: string }
+  | { type: 'sensitive'; id: string; value: boolean }
   | { type: 'remove'; id: string }
   | { type: 'move'; id: string; offset: -1 | 1 }
   | { type: 'clear' };
@@ -108,6 +110,12 @@ export function attachmentDraftReducer(
           attachmentId: undefined,
           error: action.error,
         }),
+      );
+    case 'sensitive':
+      return drafts.map((draft) =>
+        draft.id === action.id
+          ? { ...draft, isSensitive: action.value }
+          : draft,
       );
     case 'remove':
       return drafts.filter((draft) => draft.id !== action.id);

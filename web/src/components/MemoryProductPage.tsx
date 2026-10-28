@@ -21,6 +21,7 @@ import {
 } from '../client/memoryProduct';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
+  ClientProblemError,
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
@@ -39,6 +40,8 @@ import {
   useAttachmentDrafts,
 } from '../client/useAttachmentDrafts';
 import { useStoryDeletion } from '../client/useStoryDeletion';
+import { useTaskActivation } from '../client/useTaskActivation';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
@@ -229,16 +232,24 @@ export function MemoryProductPage({
     maxAttachments: MAX_MEMORY_ATTACHMENTS - keptBoundAttachmentCount,
   });
 
+  const captureSaveOwnership = useTaskActivation(
+    mode === 'edit',
+    JSON.stringify([apiBaseUrl, contextKey, memoryId, location.key]),
+  );
+
   const updateMutation = useMutation({
     mutationKey: updateKey,
     mutationFn: async ({
       memory,
       values,
+      isCurrent,
     }: {
+      isCurrent: () => boolean;
       memory: MemoryDetail;
       values: MemoryEditValues;
     }) => {
       try {
+        if (!isCurrent()) throw new ClientProblemError('permission');
         let updated = await apis.memories.updateMemory({
           spaceId,
           memoryId: memory.id,
@@ -246,6 +257,7 @@ export function MemoryProductPage({
           memoryUpdate: memoryUpdatePayload(values),
         });
 
+        if (!isCurrent()) throw new ClientProblemError('permission');
         const attachmentsChanged =
           attachments.readyIds.length > 0 ||
           removedAttachmentIds.size > 0 ||
@@ -275,13 +287,25 @@ export function MemoryProductPage({
             },
           });
         }
+        const observed = queryClient.getQueryData<{ value: MemoryDetail }>(
+          memoryKey,
+        );
+        if (observed && observed.value.version > updated.version)
+          throw new ClientProblemError('conflict', 409);
+        protectSensitiveMediaProjections(
+          queryClient,
+          updated.spaceId,
+          updated.attachments,
+        );
         return updated;
       } catch (error) {
         throw await normalizeClientError(error);
       }
     },
-    onMutate: async ({ memory, values }) => {
+    onMutate: async ({ memory, values, isCurrent }) => {
+      if (!isCurrent()) throw new ClientProblemError('permission');
       await queryClient.cancelQueries({ queryKey: memoryKey });
+      if (!isCurrent()) throw new ClientProblemError('permission');
       const previous = queryClient.getQueryData(memoryKey);
       queryClient.setQueryData(memoryKey, {
         value: {
@@ -298,17 +322,20 @@ export function MemoryProductPage({
       });
       return { previous };
     },
-    onError: (_error, _variables, context) => {
-      if (context?.previous)
+    onError: (_error, variables, context) => {
+      if (!variables.isCurrent()) return;
+      const observed = queryClient.getQueryData<{ value: MemoryDetail }>(
+        memoryKey,
+      );
+      if (
+        context?.previous &&
+        (!observed || observed.value.version <= variables.memory.version)
+      )
         queryClient.setQueryData(memoryKey, context.previous);
       void queryClient.invalidateQueries({ queryKey: memoryKey });
     },
-    onSuccess: async (memory) => {
-      protectSensitiveMediaProjections(
-        queryClient,
-        spaceId,
-        memory.attachments,
-      );
+    onSuccess: async (memory, request) => {
+      if (!request.isCurrent()) return;
       setSensitiveDraft({ key: sensitiveDraftKey, values: {} });
       attachments.clear();
       setRemovedAttachmentIds(new Set());
@@ -318,6 +345,7 @@ export function MemoryProductPage({
         queryClient.invalidateQueries({ queryKey: memoryKey }),
         invalidateDashboard(queryClient, spaceId),
       ]);
+      if (!request.isCurrent()) return;
       navigate(memoryDetailPath(memory.id), {
         replace: true,
         state: { taskOriginKey: originKey },
@@ -461,8 +489,11 @@ export function MemoryProductPage({
       )
         return;
       const data = new FormData(event.currentTarget);
+      const ownsTask = captureSaveOwnership();
+      const ownsRead = captureAuthorizedQuery(queryClient, memoryKey);
       updateMutation.mutate({
         memory: editableMemory,
+        isCurrent: () => ownsTask() && ownsRead(),
         values: {
           title: String(data.get('title') || ''),
           body: String(data.get('body') || ''),

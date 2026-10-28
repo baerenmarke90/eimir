@@ -46,3 +46,17 @@ it('updates matching thumbnails and Today projections without revealing another 
   });
   expect(client.getQueryData(['story', 'two'])).toEqual(before);
 });
+
+it('never clears a marked preview when an older unmark response arrives', () => {
+  const client = new QueryClient();
+  const newer = {
+    attachment: { id: 'photo', mediaType: 'IMAGE', isSensitive: true },
+    previewAttachmentId: 'photo',
+    previewIsSensitive: true,
+  };
+  client.setQueryData(['story', 'space'], newer);
+  protectSensitiveMediaProjections(client, 'space', [
+    { id: 'photo', isSensitive: false },
+  ]);
+  expect(client.getQueryData(['story', 'space'])).toEqual(newer);
+});

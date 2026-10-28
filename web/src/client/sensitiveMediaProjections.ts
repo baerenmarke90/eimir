@@ -28,17 +28,19 @@ export function protectSensitiveMediaProjections(
     );
     if (
       typeof record.id === 'string' &&
-      flags.has(record.id) &&
+      flags.get(record.id) === true &&
       'mediaType' in record
     )
-      next.isSensitive = flags.get(record.id);
+      next.isSensitive = true;
     if (
       typeof record.previewAttachmentId === 'string' &&
-      flags.has(record.previewAttachmentId)
+      flags.get(record.previewAttachmentId) === true
     )
-      next.previewIsSensitive = flags.get(record.previewAttachmentId);
+      next.previewIsSensitive = true;
     return next;
   };
+  // A late unmark response must never clear a newer mark in another read
+  // projection. Unmarking becomes visible through authoritative revalidation.
   client.setQueriesData(scope, update);
   // Revoke pending disk writes as well as old persisted projections. A failed
   // disk clear cannot revive the invalidated generation after reload.

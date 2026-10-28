@@ -50,6 +50,11 @@ Reveal data is never persisted or transmitted. Reduced motion retains all action
 Confirmed writes cancel stale in-flight reads and update affected in-memory media
 and Today projections before return navigation. Persisted read-cache generations
 are revoked so stale disk snapshots and pending disk writes cannot undo the mark.
+Late save callbacks retain captured Account/Space/task ownership and cannot
+clear a replacement draft, navigate a departed task, overwrite a newer version,
+or dispatch the second Memory gallery write after that task loses ownership.
+Only confirmed marks proactively conceal other projections; a late unmark cannot
+clear a newer mark. Unmarking is reflected by fresh authoritative revalidation.
 The next authorized read repopulates the cache. The existing bounded byte cache is
 not a classification authority. No media/classification telemetry is introduced.
 

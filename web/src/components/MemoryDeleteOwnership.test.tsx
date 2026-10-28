@@ -523,3 +523,44 @@ describe('Memory delete response and task ownership', () => {
     );
   });
 });
+
+describe('Memory save response ownership for sensitive-media editing', () => {
+  it('does not publish a late save into a replacement Account read', async () => {
+    const s = setup();
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: memoryProduct.save }));
+    await waitFor(() => expect(s.update).toHaveBeenCalledTimes(1));
+    s.switchScope({ accountId: 'account-2' });
+    const replacement = {
+      ...memory,
+      title: 'Replacement access snapshot',
+      version: 99,
+      capabilities: { ...memory.capabilities, canEdit: false },
+    };
+    act(() =>
+      s.client.setQueryData(key, { value: replacement, source: 'network' }),
+    );
+    await act(async () =>
+      s.updateResponse.resolve({ ...memory, title: 'Late save', version: 2 }),
+    );
+    await waitFor(() => expect(s.client.isMutating()).toBe(0));
+    expect(s.client.getQueryData(key)).toEqual({
+      value: replacement,
+      source: 'network',
+    });
+    expect(s.path()).toBe('/story/memories/memory-1/edit');
+  });
+
+  it('does not navigate away from a later task after a save response', async () => {
+    const s = setup();
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: memoryProduct.save }));
+    await waitFor(() => expect(s.update).toHaveBeenCalledTimes(1));
+    await s.leave();
+    await act(async () => s.updateResponse.resolve({ ...memory, version: 2 }));
+    await waitFor(() => expect(s.client.isMutating()).toBe(0));
+    expect(s.path()).toBe('/away');
+  });
+});

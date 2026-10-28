@@ -8,6 +8,10 @@ permissions:
   contents: read
   issues: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   reuse-review:
     name: Reuse Review
@@ -112,3 +116,4 @@ jobs:
           fi
 
           echo "Required reuse documentation sections are present."
+

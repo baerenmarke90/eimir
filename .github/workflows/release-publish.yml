@@ -1,7 +1,14 @@
 name: Publish Immutable Release
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - CI
+      - Web Browser QA
+      - CodeQL SAST
+      - Self-Hosted Deployment Guard
+      - Self-Hosted Recovery
+    types: [completed]
     branches: [main]
   pull_request:
     paths:
@@ -81,6 +88,7 @@ env:
 jobs:
   contract:
     name: Release publication contract
+    if: github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -1332,6 +1340,10 @@ jobs:
 
   test-channel-contract:
     name: Private test channel contract
+    needs: test-checked-main
+    if: >-
+      always() &&
+      (github.event_name != 'workflow_run' || needs.test-checked-main.outputs.ready == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -1347,15 +1359,18 @@ jobs:
           python3 tools/ci/test_release_evidence.py
 
   test-checked-main:
-    name: Wait for checked main
-    needs: test-channel-contract
+    name: Check completed main
     if: >-
       github.repository == 'baerenmarke90/eimir' &&
-      (github.event_name == 'push' || inputs.private_test_channel == true) &&
+      ((github.event_name == 'workflow_run' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_repository.full_name == github.repository) ||
+       (github.event_name == 'workflow_dispatch' && inputs.private_test_channel == true)) &&
       github.event_name != 'pull_request' && github.ref == 'refs/heads/main' &&
       vars.EIMIR_TEST_CHANNEL_ENABLED == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 65
+    timeout-minutes: 5
     permissions:
       contents: read
       actions: read
@@ -1365,17 +1380,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Require exact-source CI, browser, security and recovery workflows
+      - name: Check exact-source CI, browser, security and recovery workflows once
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
-          python3 scripts/test_deployment_channel.py wait
+          python3 scripts/test_deployment_channel.py check
           --revision "$GITHUB_SHA" --github-output "$GITHUB_OUTPUT"
 
   test-evidence:
     name: Build and attest test runtime pair
-    needs: test-checked-main
+    needs: [test-checked-main, test-channel-contract]
     if: needs.test-checked-main.outputs.ready == 'true'
     permissions:
       contents: read
@@ -1431,3 +1446,4 @@ jobs:
           path: test-channel/
           if-no-files-found: error
           retention-days: 30
+

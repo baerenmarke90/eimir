@@ -147,6 +147,21 @@ body:has(.memory-product-page) {
   overflow-wrap: anywhere;
 }
 
+/* Restore the original inline editorial initial without floating or altering stored prose. */
+.memory-detail-card .drop-cap-letter {
+  color: var(--color-brand);
+  font-family: var(--font-display);
+  font-size: 1.3em;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+@media (min-width: 641px) {
+  .memory-detail-card .drop-cap-letter {
+    font-size: 1.6em;
+  }
+}
+
 .memory-section-head {
   margin-bottom: var(--space-4);
 }

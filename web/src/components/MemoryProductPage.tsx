@@ -14,6 +14,7 @@ import {
 } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { formatDateInputValue } from '../client/dateInput';
+import { splitFirstGrapheme } from '../client/graphemeSplit';
 import {
   type MemoryEditValues,
   memoryDateInputValue,
@@ -824,15 +825,25 @@ export function MemoryProductPage({
     >
       {memory.body.trim() ? (
         <div className="memory-diary-prose">
-          {memory.body.split(/\r?\n[\t ]*\r?\n/).map((paragraph, index) => (
-            <p
-              className="memory-detail-body"
-              // biome-ignore lint/suspicious/noArrayIndexKey: Read-only paragraphs have no state or reorder interaction.
-              key={index}
-            >
-              {paragraph}
-            </p>
-          ))}
+          {memory.body.split(/\r?\n[\t ]*\r?\n/).map((paragraph, index) => {
+            const initial = index === 0 ? splitFirstGrapheme(paragraph) : null;
+            return (
+              <p
+                className="memory-detail-body"
+                // biome-ignore lint/suspicious/noArrayIndexKey: Read-only paragraphs have no state or reorder interaction.
+                key={index}
+              >
+                {initial ? (
+                  <>
+                    <span className="drop-cap-letter">{initial.first}</span>
+                    {initial.rest}
+                  </>
+                ) : (
+                  paragraph
+                )}
+              </p>
+            );
+          })}
         </div>
       ) : null}
 

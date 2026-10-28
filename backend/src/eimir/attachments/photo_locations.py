@@ -165,3 +165,6 @@ def bind(
             longitude=payload.longitude,
         )
         relations.link(session, context, place.id, target_id, kind, automatic=True)
+        from eimir.places.photo_enrichment import schedule_place
+
+        schedule_place(session, place)

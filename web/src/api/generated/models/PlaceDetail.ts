@@ -75,6 +75,12 @@ export interface PlaceDetail {
      * @type {string}
      * @memberof PlaceDetail
      */
+    geocodingSource?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlaceDetail
+     */
     id: string;
     /**
      * 
@@ -150,6 +156,7 @@ export function PlaceDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean
         'createdBy': json['createdBy'],
         'creator': AuthorSummaryFromJSON(json['creator']),
         'description': json['description'],
+        'geocodingSource': json['geocodingSource'] === undefined ? undefined : json['geocodingSource'] === null ? null : json['geocodingSource'],
         'id': json['id'],
         'latitude': json['latitude'],
         'longitude': json['longitude'],
@@ -177,6 +184,7 @@ export function PlaceDetailToJSONTyped(value?: PlaceDetail | null, ignoreDiscrim
         'createdBy': value['createdBy'],
         'creator': AuthorSummaryToJSON(value['creator']),
         'description': value['description'],
+        'geocodingSource': value['geocodingSource'],
         'id': value['id'],
         'latitude': value['latitude'],
         'longitude': value['longitude'],

@@ -5340,6 +5340,17 @@
             ],
             "title": "Description"
           },
+          "geocodingSource": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Geocodingsource"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",

@@ -262,6 +262,9 @@ def update_place(
             name=next_name,
             description=next_description,
             address=next_address,
+            geocoding_source=(
+                place.payload.geocoding_source if next_address == place.payload.address else None
+            ),
         )
 
     _flush(session)

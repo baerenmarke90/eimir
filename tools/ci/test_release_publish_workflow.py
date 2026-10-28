@@ -76,6 +76,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn("vars.EIMIR_TEST_CHANNEL_ENABLED == 'true'", gate)
         publisher = self.workflow.split("\n  test-publish:\n", 1)[1]
         self.assertIn("needs: test-evidence", publisher)
+        self.assertIn("queue: max", publisher)
         self.assertNotIn("if: always()\n    runs-on:", publisher)
         self.assertIn("scripts/test_deployment_channel.py publish", publisher)
         self.assertNotIn("gh release", publisher)
@@ -96,9 +97,39 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
                 writers.append(path.name)
         self.assertEqual(writers, ["release-publish.yml"])
 
+    def test_private_channel_checks_completions_without_a_waiting_runner(self) -> None:
+        triggers = self.workflow.split("\non:\n", 1)[1].split("\npermissions:\n", 1)[0]
+        self.assertNotIn("\n  push:", triggers)
+        completion = triggers.split("  workflow_run:\n", 1)[1].split("\n  pull_request:", 1)[0]
+        self.assertIn("types: [completed]", completion)
+        self.assertIn("branches: [main]", completion)
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import test_deployment_channel as channel
+
+        expected_names = {
+            (ROOT / path).read_text().splitlines()[0].removeprefix("name: ")
+            for path in channel.REQUIRED_WORKFLOWS
+        }
+        self.assertEqual(set(re.findall(r"^      - (.+)$", completion, re.MULTILINE)), expected_names)
+        gate = self.workflow.split("\n  test-checked-main:\n", 1)[1].split("\n  test-evidence:\n", 1)[0]
+        self.assertIn("timeout-minutes: 5", gate)
+        self.assertIn("scripts/test_deployment_channel.py check", gate)
+        self.assertNotIn("scripts/test_deployment_channel.py wait", gate)
+        self.assertIn("github.event.workflow_run.event == 'push'", gate)
+        self.assertIn("github.event.workflow_run.head_repository.full_name == github.repository", gate)
+        self.assertIn("persist-credentials: false", gate)
+        self.assertNotIn("contents: write", gate)
+        self.assertNotIn("packages: write", gate)
+        evidence = self.workflow.split("\n  test-evidence:\n", 1)[1].split("\n  test-publish:\n", 1)[0]
+        self.assertIn("needs: [test-checked-main, test-channel-contract]", evidence)
+        self.assertIn("needs.test-checked-main.outputs.ready == 'true'", evidence)
+
     def test_protected_publication_is_globally_serialized(self) -> None:
         self.assertIn(
-            "group: publish-release-${{ github.event_name == 'workflow_dispatch' && 'protected' || github.ref }}",
+            "group: publish-release-${{ github.event_name == 'workflow_dispatch' && 'protected' || "
+            "github.event.workflow_run.head_sha && format('{0}-{1}-{2}', "
+            "github.event.workflow_run.head_repository.full_name, github.event.workflow_run.event, "
+            "github.event.workflow_run.head_sha) || github.ref }}",
             self.workflow,
         )
         self.assertIn("cancel-in-progress: false", self.workflow)
@@ -859,3 +890,4 @@ class RuntimeImagePublicationBehaviorTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

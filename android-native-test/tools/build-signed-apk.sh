@@ -50,6 +50,7 @@ java_home="${JAVA_HOME:-/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Content
 apk="app/build/outputs/apk/release/app-release.apk"
 build_tools="$(ls -d "${ANDROID_HOME:-$HOME/Library/Android/sdk}"/build-tools/* | sort -V | tail -1)"
 "$build_tools/apksigner" verify --print-certs "$apk" | grep -E 'Signer #1 certificate (DN|SHA-256)'
-"$build_tools/aapt2" dump badging "$apk" | head -1
+badging="$("$build_tools/aapt2" dump badging "$apk")"
+echo "${badging%%$'\n'*}"
 echo "source revision: $revision"
 shasum -a 256 "$apk"

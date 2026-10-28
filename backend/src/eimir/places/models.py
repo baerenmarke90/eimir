@@ -44,6 +44,7 @@ class PlacePayload(ProtectedPayload):
     name: str
     description: str | None = None
     address: str | None = None
+    geocoding_source: str | None = None
 
 
 class Place(

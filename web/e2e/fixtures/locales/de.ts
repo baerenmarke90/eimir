@@ -3,6 +3,8 @@ const de = {
     title: 'Unser Nachmittag am See',
     body: 'Wir haben uns Zeit genommen und sind bis zum Abend geblieben.',
     initialName: 'Foto-Ort',
+    resolvedName: 'Ufercafé',
+    resolvedAddress: 'Am Ufer 12, 10100 Berlin',
     correctedName: 'Unser See',
   },
   pageTitle: 'Momente für uns',

@@ -104,6 +104,7 @@ class PlaceDetail(ApiModel):
     name: str
     description: str | None
     address: str | None
+    geocoding_source: str | None = None
     latitude: float | None
     longitude: float | None
     version: int
@@ -134,6 +135,7 @@ def place_detail(
         name=place.payload.name,
         description=place.payload.description,
         address=place.payload.address,
+        geocoding_source=place.payload.geocoding_source,
         latitude=_as_number(place.latitude),
         longitude=_as_number(place.longitude),
         version=place.version,

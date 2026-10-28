@@ -1,4 +1,5 @@
 import {
+  type InfiniteData,
   useInfiniteQuery,
   useMutation,
   useQueryClient,
@@ -8,6 +9,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PlaceRelationsApi } from '../api/generated/apis/PlaceRelationsApi';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
+import type { PlacePage } from '../api/generated/models/PlacePage';
 import { Configuration } from '../client/apiConfiguration';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
@@ -18,6 +20,7 @@ import { placeDetailPath } from '../client/routes';
 import { postSnackbar } from '../client/snackbar';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './MomentPlaces.css';
@@ -49,6 +52,10 @@ export function MomentPlaces({
   const [selected, setSelected] = useState<PlaceDetail | null>(null);
   const [confirm, setConfirm] = useState(false);
   const [removed, setRemoved] = useState(false);
+  const isPlaceholder = (name: string) =>
+    name === t('photoPlaces.initialName') || name === 'Photo location';
+  const readableName = (place: PlaceDetail) =>
+    isPlaceholder(place.name) ? t('photoPlaces.locationFallback') : place.name;
   const config = useMemo(
     () =>
       new Configuration({
@@ -67,10 +74,24 @@ export function MomentPlaces({
     kind,
     targetId,
   ] as const;
-  const query = useInfiniteQuery({
+  const query = useInfiniteQuery<
+    PlacePage,
+    Error,
+    InfiniteData<PlacePage, string | undefined>,
+    typeof key,
+    string | undefined
+  >({
     queryKey: key,
     initialPageParam: undefined as string | undefined,
     retry: false,
+    refetchInterval: (current) =>
+      !offline &&
+      current.state.dataUpdateCount + current.state.errorUpdateCount < 20 &&
+      current.state.data?.pages.some((page) =>
+        page.items.some((place) => isPlaceholder(place.name) && !place.address),
+      )
+        ? 3_000
+        : false,
     queryFn: ({ pageParam, signal }) =>
       photoPlacesRequest(() =>
         api.listMomentPlaces(
@@ -152,43 +173,60 @@ export function MomentPlaces({
         </>
       ) : null}
       <ul>
-        {items.map((place) => (
-          <li key={place.id}>
-            <Link
-              to={placeDetailPath(place.id)}
-              onClick={(event) => {
-                if (
-                  event.button ||
-                  event.metaKey ||
-                  event.ctrlKey ||
-                  event.shiftKey ||
-                  event.altKey
-                )
-                  return;
-                const taskOriginKey = captureOrigin();
-                if (!taskOriginKey) return;
-                event.preventDefault();
-                void navigate(placeDetailPath(place.id), {
-                  state: { taskOriginKey },
-                });
-              }}
-            >
-              {place.name}
-            </Link>
-            <button
-              type="button"
-              className="tertiary"
-              aria-label={t('photoPlaces.actions', { name: place.name })}
-              onClick={() => {
-                setSelected(place);
-                setConfirm(false);
-                mutation.reset();
-              }}
-            >
-              {t('photoPlaces.actionButton')}
-            </button>
-          </li>
-        ))}
+        {items.map((place) => {
+          const destination = photoPlaceMapUrl(place.latitude, place.longitude);
+          const name = readableName(place);
+          return (
+            <li key={place.id}>
+              <EimirIcon name="orte" className="moment-place-pin" />
+              <div className="moment-place-context">
+                <strong>{name}</strong>
+                {destination ? (
+                  <a
+                    className="moment-place-address"
+                    href={destination}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    referrerPolicy="no-referrer"
+                    aria-label={t('photoPlaces.mapAddress', {
+                      address: place.address || name,
+                    })}
+                  >
+                    {place.address || t('photoPlaces.viewMap')}
+                  </a>
+                ) : place.address ? (
+                  <span>{place.address}</span>
+                ) : null}
+                {place.geocodingSource === 'openstreetmap' ? (
+                  <a
+                    className="moment-place-attribution"
+                    href="https://www.openstreetmap.org/copyright"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    referrerPolicy="no-referrer"
+                  >
+                    © OpenStreetMap
+                  </a>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                className="tertiary moment-place-overflow"
+                aria-label={t('photoPlaces.actions', { name })}
+                title={t('photoPlaces.actions', { name })}
+                aria-haspopup="dialog"
+                aria-expanded={selected?.id === place.id}
+                onClick={() => {
+                  setSelected(place);
+                  setConfirm(false);
+                  mutation.reset();
+                }}
+              >
+                <span aria-hidden="true">⋯</span>
+              </button>
+            </li>
+          );
+        })}
       </ul>
       {query.hasNextPage ? (
         <button
@@ -203,7 +241,7 @@ export function MomentPlaces({
       <ShortTaskSheet
         ref={sheet}
         open={selected !== null && !denied}
-        title={selected?.name ?? t('photoPlaces.title')}
+        title={selected ? readableName(selected) : t('photoPlaces.title')}
         onClose={() => setSelected(null)}
         isCloseBlocked={mutation.isPending}
         restoreFocusRef={heading}

@@ -76,8 +76,8 @@
 }
 
 .today-hero .partner-avatar-pair-hero .partner-avatar {
-  width: clamp(6.75rem, 32vw, 8.25rem);
-  height: clamp(6.75rem, 32vw, 8.25rem);
+  width: min(clamp(6.75rem, 32vw, 8.25rem), 37vw);
+  height: min(clamp(6.75rem, 32vw, 8.25rem), 37vw);
   font-size: clamp(1.9rem, 7vw, 2.5rem);
   box-shadow:
     0 0 0 3px var(--color-surface),

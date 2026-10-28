@@ -22,6 +22,13 @@ platform primitives. No new dependency, provider, service, persistence or cache
 is proposed. Existing component licenses and Cloud/Self-Hosted support continue;
 there is no additional data recipient, configuration or recurring cost.
 
+Primary-source verification: the installed Query focus manager listens to
+`visibilitychange`, whereas the existing native bridge emits only `focus`.
+[TanStack's focus integration contract](https://tanstack.com/query/latest/docs/framework/react/guides/window-focus-refetching)
+documents `focusManager.setFocused` for a native lifecycle and `undefined` to
+restore default browser detection. Use that existing API; no timer, global cache
+invalidation or replacement event manager is needed.
+
 ### Product design and Mobile Interaction Contract
 
 Product Reference v1 R1/R2 and the App Shell, Story Detail and capture templates
@@ -67,6 +74,10 @@ No API, schema, migration, infrastructure or backup change is planned.
 - Capture representative Compact/Expanded, Light/Dark behavior where relevant.
 
 ## Evidence boundary
+
+[Executed browser/unit checks and sanitized media measurements](../product/design/evidence/1470/README.md)
+record the follow-up's actual results and distinguish them from the open native
+acceptance below.
 
 Browser interception and plugin callbacks establish client regression evidence,
 not an actual provider, deployed worker or physical Android result. A physical

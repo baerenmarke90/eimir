@@ -157,6 +157,14 @@ jobs:
               rm -f "$proof"
             fi
           done
+      - name: Capture failed instrumentation process diagnostics
+        if: failure()
+        working-directory: android
+        run: |
+          timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b all -d -t 4000 -v threadtime \
+            > native-all-logcat.log 2>&1 || true
+          timeout 15 "$ANDROID_HOME/platform-tools/adb" -e shell dumpsys activity exit-info de.sidebyside.app.debug \
+            > native-exit-info.log 2>&1 || true
       - name: Upload native verification results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -169,6 +177,8 @@ jobs:
             android/instrumentation.log
             android/fixture-logcat.log
             android/native-crash.log
+            android/native-all-logcat.log
+            android/native-exit-info.log
             android/native-photo-picker.png
             android/native-photo-picker.txt
             android/native-photo-result.png

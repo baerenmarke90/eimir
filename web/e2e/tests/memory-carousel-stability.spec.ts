@@ -4,6 +4,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
+import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import AxeBuilder from '@axe-core/playwright';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -1119,7 +1120,7 @@ test('sensitive media remains local to one item and conceals on return and actua
     ).violations,
   ).toEqual([]);
   const reveal = page.getByRole('button', {
-    name: 'Bild anzeigen',
+    name: sensitiveMedia.show,
     exact: true,
   });
   const box = await reveal.boundingBox();
@@ -1127,13 +1128,13 @@ test('sensitive media remains local to one item and conceals on return and actua
   await reveal.focus();
   await page.keyboard.press('Enter');
   await expect(
-    page.getByRole('button', { name: 'Wieder verbergen', exact: true }),
+    page.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
   ).toBeFocused();
   await expect(active.locator('.sensitive-media-cover')).toHaveCount(0);
   await active.click();
   const dialog = page.getByRole('dialog');
   await expect(
-    dialog.getByRole('button', { name: 'Wieder verbergen', exact: true }),
+    dialog.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
   ).toBeVisible();
   await page.screenshot({
     path: '../../docs/product/design/references/1477/runtime-lightbox-revealed-390.png',
@@ -1146,14 +1147,14 @@ test('sensitive media remains local to one item and conceals on return and actua
   ).toHaveCount(0);
   await page.keyboard.press('ArrowRight');
   await expect(
-    dialog.getByRole('button', { name: 'Bild anzeigen', exact: true }),
+    dialog.getByRole('button', { name: sensitiveMedia.show, exact: true }),
   ).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   // Ordinary window focus changes must retain the inline reveal.
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
   await expect(
-    page.getByRole('button', { name: 'Wieder verbergen', exact: true }),
+    page.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
   ).toBeVisible();
   const other = await context.newPage();
   await other.goto('about:blank');
@@ -1173,14 +1174,14 @@ test('sensitive media remains local to one item and conceals on return and actua
     });
   });
   await expect(
-    page.getByRole('button', { name: 'Bild anzeigen', exact: true }),
+    page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
   ).toBeVisible();
   await page
-    .getByRole('button', { name: 'Bild anzeigen', exact: true })
+    .getByRole('button', { name: sensitiveMedia.show, exact: true })
     .click();
   await page.reload();
   await expect(
-    page.getByRole('button', { name: 'Bild anzeigen', exact: true }),
+    page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
   ).toBeVisible();
 });
 
@@ -1204,7 +1205,7 @@ for (const theme of ['light', 'dark'] as const) {
       await page.setViewportSize({ width, height: 900 });
       await expectCarouselSettled(page, 0);
       const reveal = page.getByRole('button', {
-        name: 'Bild anzeigen',
+        name: sensitiveMedia.show,
         exact: true,
       });
       await expect(reveal).toBeVisible();
@@ -1233,7 +1234,7 @@ for (const theme of ['light', 'dark'] as const) {
       document.documentElement.style.fontSize = '200%';
     });
     await expect(
-      page.getByRole('button', { name: 'Bild anzeigen', exact: true }),
+      page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
     ).toBeVisible();
     expect(
       await page.evaluate(
@@ -1259,7 +1260,7 @@ test('sensitive photo editing retains a failed classification draft and saves on
   await signIn(page);
   await page.goto(`/story/memories/${MEMORY_ID}/edit`);
   const mark = page
-    .getByRole('checkbox', { name: 'Als sensibel markieren', exact: true })
+    .getByRole('checkbox', { name: sensitiveMedia.mark, exact: true })
     .first();
   await expect(mark).toBeChecked();
   await mark.uncheck();

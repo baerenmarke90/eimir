@@ -60,6 +60,15 @@
   color: var(--color-text-secondary);
 }
 
-.sensitive-media-cover.story-media-preview { display: grid; }
-.sensitive-media-label { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
-.attachment-preview-wrap .sensitive-media-label { padding: var(--space-1); font: var(--font-supporting-copy); }
+.sensitive-media-cover.story-media-preview {
+  display: grid;
+}
+.sensitive-media-label {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.attachment-preview-wrap .sensitive-media-label {
+  padding: var(--space-1);
+  font: var(--font-supporting-copy);
+}

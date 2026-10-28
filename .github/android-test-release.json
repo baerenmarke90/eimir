@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "sourceRevision": "f9e06a0ba08843bbb4ab66b64cb25641ada841af",
-  "versionName": "0.2.0-test.22",
-  "versionCode": 22,
-  "previousVersionName": "0.2.0-test.21",
-  "notesFile": "docs/releases/android-test-0.2.0-test.22-notes.txt"
+  "sourceRevision": "16cf147315c10ce37341560c4738e097645254d3",
+  "versionName": "0.2.0-test.23",
+  "versionCode": 23,
+  "previousVersionName": "0.2.0-test.22",
+  "notesFile": "docs/releases/android-test-0.2.0-test.23-notes.txt"
 }

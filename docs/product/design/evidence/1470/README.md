@@ -24,9 +24,13 @@ there is no global invalidation, document reload or alternative media cache.
 - Browser group: **49 passed, 0 failed, 0 flaky, 0 skipped**: native resume,
   carousel/sensitive media, photo-place/map/correction, session rotation and
   draft retention/save, browser reload/deep-route restoration and sign-out.
-- TypeScript, production build, token/PWA checks and scoped format/lint passed.
+- TypeScript, production build, token/PWA checks and format/lint passed.
   Existing bundler and lint warnings remain; no new runtime dependency.
 - Browser inventory and engineering-language/identity checks passed.
+
+The hosted full lint check exposed a duplicate `isSensitive: false` field in
+the merged photo-place fixture. Removing the repeated identical property repairs
+that integration error without changing the fixture or product behavior.
 
 The membership-outage cases preserve the exact editor DOM node and authored
 text, then save once and open the confirmed Memory. The native-resume cases

@@ -141,7 +141,10 @@ before UI implementation. See [the reference and runtime evidence](../design/ref
 7. Confirm/reconcile the exact original Memory operation before considering a new
    create identity. A confirmed Memory with failed photo association stays a
    partial-binding task. Reselection must not silently rewrite its original
-   uncertainty journal or the attachment-to-sensitivity ordering.
+   uncertainty journal or the attachment-to-sensitivity ordering. A missing local
+   preview does not block retrying unchanged known attachment IDs in their
+   original positions when current server metadata confirms READY. Metadata
+   transport failures retain the confirmed partial task, never an unknown create.
 
 New Google tasks require `mediaRecoveryPolicy: "memory-only-v1"` and retain it
 in the protected task payload. Callback, poll and item reads reject old tasks
@@ -211,10 +214,13 @@ byte-free checkpoints without destructively upgrading unopened drafts.
 - All 1,012 backend unit tests and 25 Photo Source PostgreSQL/API tests passed.
   Concurrency uses real request commits and proves exactly one token exchange.
 - All 2,183 Web unit/component tests passed (two existing skips).
-- All 28 pre-existing diary browser journeys, seven new recovery journeys and six
+- All 28 pre-existing diary browser journeys, eight new recovery journeys and six
   real IndexedDB/storage journeys passed. The new journeys cover five widths,
   missing-photo retry, byte absence, legacy migration, unknown create response
-  and exact identity preservation. A quota-failure journey proves that a missing
+  and exact identity preservation. A known-partial journey additionally proves
+  repeated read/binding failures retain the same Memory, ordered attachment IDs
+  and sensitivity without replacement uploads or another create. A quota-failure
+  journey proves that a missing
   durable save journal prevents POST without inventing an uncertain result,
   retains work and permits a later safe retry. Five viewport journeys also passed Axe
   checks without critical/serious WCAG findings.

@@ -90,7 +90,11 @@ blocks Save while one is unavailable, retries its protected server read, saves
 once and opens the canonical result without a replacement upload. Reflow and
 Axe critical/serious checks pass. A separate lost-response journey reloads an
 uncertain create with a missing photo, reuses the exact idempotency identity,
-confirms the existing Memory and exposes the known partial-binding outcome.
+confirms the existing Memory and completes its original photo binding after
+the outage ends. A known-created partial journey covers repeated metadata and
+binding failures: the existing retry stays available without a local preview,
+while edits remain locked and the exact photo IDs, order and sensitivity are
+preserved. No second Memory or replacement upload is created.
 Provider/installed-device acceptance is not inferred from these fixtures.
 
 A local quota-failure journey also proves that volatile-photo Save requires a

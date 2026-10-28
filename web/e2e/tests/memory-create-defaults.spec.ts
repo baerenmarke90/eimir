@@ -1550,6 +1550,8 @@ async function stageRecoveryPhotos(page: Page, photos: PhotoBatchScenario) {
     },
     [ACCOUNT_ID, SPACE_ID],
   );
+  // Uploads finish concurrently; recovery must preserve selection order.
+  return ['first.jpg', 'second.jpg'].map((name) => photos.idsByName[name]);
 }
 
 for (const [width, colorScheme] of [
@@ -1566,8 +1568,7 @@ for (const [width, colorScheme] of [
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
     const photos = emptyPhotoBatch();
-    await stageRecoveryPhotos(page, photos);
-    const originalIds = [...photos.finalized];
+    const originalIds = await stageRecoveryPhotos(page, photos);
     const missingPath = `**/attachments/${originalIds[1]}`;
     const unavailable = async (route: import('@playwright/test').Route) =>
       route.fulfill({
@@ -1628,7 +1629,8 @@ for (const [width, colorScheme] of [
       .click();
     await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
     expect(photos.creates).toBe(1);
-    expect(photos.finalized).toEqual(originalIds);
+    expect(photos.finalized).toHaveLength(2);
+    expect(new Set(photos.finalized)).toEqual(new Set(originalIds));
     expect(photos.bound).toEqual(originalIds);
   });
 }
@@ -1639,7 +1641,7 @@ test('an uncertain create is reconciled before a missing volatile photo can chan
   test.setTimeout(60_000);
   const photos = emptyPhotoBatch();
   photos.loseCreateResponse = true;
-  await stageRecoveryPhotos(page, photos);
+  const originalIds = await stageRecoveryPhotos(page, photos);
   page.on('dialog', (dialog) => dialog.accept());
   await page.reload();
   await page
@@ -1659,7 +1661,7 @@ test('an uncertain create is reconciled before a missing volatile photo can chan
     page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
   ).toBeVisible();
   expect(photos.creates).toBe(1);
-  await page.route(`**/attachments/${photos.finalized[1]}`, (route) =>
+  await page.route(`**/attachments/${originalIds[1]}`, (route) =>
     route.fulfill({
       status: 404,
       contentType: 'application/json',
@@ -1687,10 +1689,103 @@ test('an uncertain create is reconciled before a missing volatile photo can chan
   expect(photos.creates).toBe(1);
   expect(identities).toHaveLength(2);
   expect(identities[0]).toBe(identities[1]);
+  await page.unroute(`**/attachments/${originalIds[1]}`);
+  await page.unroute(`**/memories/${MEMORY_ID}/attachments`);
   await page
-    .getByRole('button', { name: taskBoundary.openSaved, exact: true })
+    .getByRole('button', { name: taskBoundary.retryPhotos, exact: true })
     .click();
   await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+  expect(photos.creates).toBe(1);
+  expect(photos.bound).toEqual(originalIds);
+});
+
+test('known-created recovery can bind original photos after transient read failures without another create', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const photos = emptyPhotoBatch();
+  const originalIds = await stageRecoveryPhotos(page, photos);
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.reload();
+  await page
+    .getByRole('button', { name: de.memory.diary.resume, exact: true })
+    .click();
+  await expect(page.locator('.attachment-status-ready')).toHaveCount(2);
+  await page
+    .locator('.attachment-draft-item')
+    .first()
+    .getByRole('checkbox')
+    .check();
+  let bindings = 0;
+  const bindingBodies: unknown[] = [];
+  await page.route(`**/memories/${MEMORY_ID}/attachments`, async (route) => {
+    bindings++;
+    bindingBodies.push(route.request().postDataJSON());
+    if (bindings < 3) await route.abort('failed');
+    else await route.fallback();
+  });
+  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.partialTitle }),
+  ).toBeVisible();
+  let readsUnavailable = true;
+  await page.route(`**/attachments/${originalIds[1]}`, async (route) => {
+    if (readsUnavailable)
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: 'UNAVAILABLE', status: 503 }),
+      });
+    else await route.fallback();
+  });
+  await page.reload();
+  await page
+    .getByRole('button', { name: de.memory.diary.resume, exact: true })
+    .click();
+  await expect(page.locator('.attachment-status-failed')).toHaveCount(1);
+  const retry = page.getByRole('button', {
+    name: taskBoundary.retryPhotos,
+    exact: true,
+  });
+  await expect(retry).toBeEnabled();
+  await retry.click();
+  await expect(retry).toBeEnabled();
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.partialTitle }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
+  ).toHaveCount(0);
+  expect(bindings).toBe(1);
+  readsUnavailable = false;
+  await retry.click();
+  await expect.poll(() => bindings).toBe(2);
+  await expect(retry).toBeEnabled();
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.partialTitle }),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel(de.memory.bodyLabel, { exact: true }),
+  ).toBeDisabled();
+  await expect(page.locator('#memory-create-images')).toBeDisabled();
+  await expect(
+    page.locator('.attachment-draft-item').first().getByRole('checkbox'),
+  ).toBeChecked();
+  await retry.click();
+  await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+  expect(photos.creates).toBe(1);
+  expect(photos.finalized).toHaveLength(2);
+  expect(new Set(photos.finalized)).toEqual(new Set(originalIds));
+  expect(photos.bound).toEqual(originalIds);
+  expect(bindingBodies).toEqual(
+    Array.from({ length: 3 }, () => ({
+      attachments: originalIds.map((attachmentId, position) => ({
+        attachmentId,
+        position,
+        isSensitive: position === 0,
+      })),
+    })),
+  );
 });
 
 test('a failed local checkpoint cannot start a volatile-photo Save or invent an uncertain result', async ({

@@ -169,6 +169,18 @@ export function MemoryCreatePage({
     accountId,
     maxAttachments: MAX_MEMORY_ATTACHMENTS,
   });
+  // A missing local preview must not block the exact known-created binding.
+  // The retry still checks current server metadata before using these IDs.
+  const hasBlockingPhotoFailure = attachments.items.some(
+    (item, index) =>
+      item.status === 'failed' &&
+      !(
+        partial &&
+        partial.attachmentIds.length === attachments.items.length &&
+        selectedPhotoUnavailable(item.file) &&
+        item.attachmentId === partial.attachmentIds[index]
+      ),
+  );
   const dirty = Boolean(
     title ||
       body ||
@@ -382,6 +394,13 @@ export function MemoryCreatePage({
       }
       const normalized = await normalizeClientError(error);
       if (!session.active) return;
+      if (partial) {
+        // A failed metadata read cannot make a confirmed Memory unknown.
+        // Keep its binding retry available without another create identity.
+        setProblem(normalized);
+        setUncertain(false);
+        return;
+      }
       const outcomeUnknown = ['offline', 'server', 'unknown'].includes(
         normalized.kind,
       );
@@ -428,7 +447,7 @@ export function MemoryCreatePage({
       owner.current.pending ||
       uncertain ||
       attachments.hasPending ||
-      attachments.items.some((item) => item.status === 'failed')
+      hasBlockingPhotoFailure
     )
       return;
     if (!navigator.onLine) {
@@ -835,7 +854,7 @@ export function MemoryCreatePage({
                 pending ||
                 uncertain ||
                 attachments.hasPending ||
-                attachments.items.some((item) => item.status === 'failed')
+                hasBlockingPhotoFailure
               }
             >
               {pending

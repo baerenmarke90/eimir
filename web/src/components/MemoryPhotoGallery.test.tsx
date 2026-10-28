@@ -165,9 +165,7 @@ it('shows a chip only after confirmed persistence and permits removal', async ()
     )
     .mockResolvedValueOnce({ ...fixture(), version: 3 });
   const { view, memory } = setup(save);
-  fireEvent.click(
-    screen.getByRole('button', { name: photoReactions.open }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: photoReactions.open }));
   fireEvent.click(screen.getByRole('button', { name: 'Liebe' }));
   expect(view.container.querySelector('.memory-photo-reactions')).toBeNull();
   await waitFor(() =>
@@ -217,9 +215,7 @@ it('retains the previous server state on failure and ignores completion after a 
         }),
     );
   const { memory, client, changeScope } = setup(save);
-  fireEvent.click(
-    screen.getByRole('button', { name: photoReactions.open }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: photoReactions.open }));
   fireEvent.click(screen.getByRole('button', { name: 'Liebe' }));
   await waitFor(() =>
     expect(

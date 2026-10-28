@@ -42,7 +42,7 @@ const PROSE_CASES = [
   {
     id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
     title: 'Kleiner Anfang',
-    body: 'wir haben den Morgen genossen.\n\nSpäter sind wir spazieren gegangen.',
+    body: 'we enjoyed the morning together.\n\nLater we went for a walk.',
   },
 ] as const;
 

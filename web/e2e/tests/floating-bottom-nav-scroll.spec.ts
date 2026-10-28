@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -840,4 +841,121 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     await expect(bottomShell).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
+});
+
+for (const variant of [
+  { width: 360, theme: 'light', view: 'timeline', reduced: false },
+  { width: 390, theme: 'dark', view: 'discover', reduced: true },
+  { width: 430, theme: 'light', view: 'timeline', reduced: true },
+  { width: 1280, theme: 'light', view: 'discover', reduced: false },
+] as const) {
+  test(`primary destinations restore ${variant.view} and Planning mode at ${variant.width}px ${variant.theme}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: variant.width, height: 740 });
+    await page.emulateMedia({
+      reducedMotion: variant.reduced ? 'reduce' : 'no-preference',
+    });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await page.evaluate((theme) => {
+      document.documentElement.dataset.theme = theme;
+    }, variant.theme);
+    const nav = page.locator(
+      variant.width >= 840 ? '.shell-nav' : '.mobile-bottom-nav',
+    );
+    await nav.locator('a[href^="/story"]').click();
+    if (variant.view === 'timeline')
+      await page.getByRole('tab', { name: de.story.tabTimeline }).click();
+    await expect(page.locator('.momente-tab-btn.active')).toHaveText(
+      variant.view === 'timeline' ? de.story.tabTimeline : de.story.tabDiscover,
+    );
+    await expect(
+      page.getByText('Cooked fresh pasta together', { exact: true }).first(),
+    ).toBeVisible();
+    const targetY = await page.evaluate(() => {
+      const top = Math.min(
+        550,
+        document.documentElement.scrollHeight - window.innerHeight,
+      );
+      window.scrollTo({ top, behavior: 'instant' });
+      return top;
+    });
+    expect(targetY).toBeGreaterThan(100);
+    await expect
+      .poll(async () =>
+        Math.abs((await page.evaluate(() => window.scrollY)) - targetY),
+      )
+      .toBeLessThan(2);
+    const storyY = await page.evaluate(() => window.scrollY);
+    // At Expanded the existing header is in document flow; scroll it into view
+    // only when activating via keyboard, which must not rewrite saved position.
+    if (variant.width >= 840) {
+      await nav
+        .locator('a[href="/plan"]')
+        .evaluate((element: HTMLAnchorElement) => element.click());
+    } else await nav.locator('a[href="/plan"]').click();
+    await expect(page).toHaveURL(/\/plan$/);
+    await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
+    await nav.locator('a[href^="/story"]').click();
+    await expect(page.locator('.momente-tab-btn.active')).toHaveText(
+      variant.view === 'timeline' ? de.story.tabTimeline : de.story.tabDiscover,
+    );
+    await expect
+      .poll(async () =>
+        Math.abs((await page.evaluate(() => window.scrollY)) - storyY),
+      )
+      .toBeLessThan(3);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `restored-${variant.width}-${variant.theme}.png`,
+      ),
+    });
+    await expectNoHorizontalOverflow(page);
+    // The current root is a reselect action, not another route/history entry.
+    const historyLength = await page.evaluate(() => history.length);
+    await nav
+      .locator('a[href^="/story"]')
+      .evaluate((element: HTMLAnchorElement) => element.click());
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeLessThan(2);
+    expect(await page.evaluate(() => history.length)).toBe(historyLength);
+    await nav.locator('a[href="/plan"]').click();
+    await expect(
+      page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await page.goBack();
+    await expect(page).toHaveURL(/\/story/);
+    await expect(page.locator('.momente-tab-btn.active')).toHaveText(
+      variant.view === 'timeline' ? de.story.tabTimeline : de.story.tabDiscover,
+    );
+  });
+}
+
+test('native primary tab switching replaces root history but keeps nested task return', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 740 });
+  await installNativeAppLifecycle(page);
+  await installApiMocks(page);
+  await page.goto('/login');
+  await signIn(page);
+  const nav = page.locator('.mobile-bottom-nav');
+  const historyLength = await page.evaluate(() => history.length);
+  for (const root of ['/story', '/plan', '/more', '/today', '/plan', '/more']) {
+    await nav.locator(`a[href^="${root}"]`).click();
+    await expect(page).toHaveURL(new RegExp(`${root}$`));
+    expect(await page.evaluate(() => history.length)).toBe(historyLength);
+  }
+  await page.locator('.mobile-quick-create .quick-create-trigger').click();
+  await page
+    .locator('.quick-create-mobile-item[href="/story/memories/new"]')
+    .click();
+  await expect(page).toHaveURL(/\/story\/memories\/new$/);
+  await expect(page.locator('.mobile-bottom-shell')).toHaveCount(0);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/more$/);
+  await expect(nav).toBeVisible();
 });

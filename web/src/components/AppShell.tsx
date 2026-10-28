@@ -12,6 +12,7 @@ import {
   type ProductCacheEventDetail,
 } from '../client/productReadCache';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
+import { isCapacitorNative } from '../pwa';
 import {
   captureSessionOwner,
   currentSessionTokens,
@@ -47,10 +48,44 @@ function NavigationLink({ route }: { route: AppRouteDefinition }) {
   const location = useLocation();
   const activeArea = activeNavigationArea(location.pathname);
   const isActive = activeArea === route.id;
+  const { captureOrigin, primaryDestination } = useTaskOrigin();
+  const destination = primaryDestination(route.path);
+  const isRoot = PRIMARY_APP_ROUTES.some(
+    (candidate) => candidate.path === location.pathname,
+  );
 
   return (
     <Link
-      to={route.path}
+      to={destination.to}
+      state={
+        destination.returnKey
+          ? { taskReturnKey: destination.returnKey }
+          : undefined
+      }
+      replace={isCapacitorNative() && isRoot}
+      onClick={(event) => {
+        if (
+          event.defaultPrevented ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        )
+          return;
+        if (location.pathname === route.path) {
+          event.preventDefault();
+          window.scrollTo({
+            top: 0,
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)')
+              .matches
+              ? 'instant'
+              : 'smooth',
+          });
+          return;
+        }
+        if (isRoot) captureOrigin();
+      }}
       className={`shell-nav-link${isActive ? ' shell-nav-link-active' : ''}`}
       aria-current={isActive ? 'page' : undefined}
     >

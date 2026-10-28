@@ -629,6 +629,19 @@
   outline-offset: 2px;
 }
 
+/* Persistent destinations respond at contact, including touch without hover. */
+.shell-nav-link:active,
+.mobile-bottom-nav .shell-nav-link:active {
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+
+.shell-nav-link {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
 .shell-nav-icon {
   display: grid;
   width: 1.5rem;

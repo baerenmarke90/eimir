@@ -98,3 +98,54 @@ The stronger browser cases fail on the baseline before runtime edits:
 
 The existing tests passed because `toBeVisible()` proves rendering, not viewport
 containment, and did not compare focused-content geometry with the fixed bar.
+
+## Implementation and browser evidence
+
+The shared bar offset and document-end footprint now consume the existing
+effective `--safe-area-inset-bottom` value, with `env()` as fallback. The inset
+is counted once in each calculation, not added twice. Focused main-content
+controls use native scroll margin to clear the complete navigation footprint;
+Expanded resets that margin and container-Compact restores it for root zoom.
+There is no scroll listener, hidden state, new scroll owner or route rewrite.
+
+The tested runtime file identities are Git blobs
+`b77e41650c11909ac55846f8d6a71fe095e367e3` (`shell.css`) and
+`210eab25c0000af4964b0b75a677d72bcd9f5b4a` (`product-reflow.css`), on the baseline
+above. The implementation PR records the exact published commit.
+
+| Evidence | Actual browser state |
+| --- | --- |
+| [360 Light](./compact-light-360.webp), [390 Light](./compact-light-390.webp), [430 Light](./compact-light-430.webp) | All root destinations retain the same bar position with a 24 px effective safe area, including after down/up scroll and route return. |
+| [Scrolled Timeline](./scrolled-timeline-390.webp) | Actual relationship-history content scrolls; the bar remains fully in the viewport. |
+| [390 Dark](./compact-dark-390.webp) | Existing sparse/loading product state and themed navigation. |
+| [Focused action, short Dark viewport](./focus-clearance-short-dark.webp) | Synthetic browser-focus fixture stays above the bar after end alignment. This is a layout proof, not a new product button. |
+| [Quick Create Dark](./quick-create-dark.webp) | Existing modal layer remains above the navigation with inactive background and reachable actions. |
+| [Large text](./large-text-390.webp) | Existing navigation remains usable at enlarged text. |
+| [Focused composer](./focused-composer-390.webp) | Focused capture retains its own actions without competing root navigation in a constrained-height viewport. |
+| [Expanded](./expanded-1280.webp) | Existing horizontal header; no mobile bar. |
+
+Screenshots were exported losslessly to WebP from Chromium 151 browser runs.
+The new geometry cases also cover 320 px with 200% text, 390×420 constrained
+height, reduced motion, and 1280 px with 400% root zoom. Runtime screenshots
+were visually inspected; the scroll/focus/route assertions establish behavior.
+
+Local validation:
+
+- 58 shell, layout and token unit/component tests passed.
+- 18 navigation/scroll/Quick Create/forced-colors browser journeys passed,
+  including axe checks, route activation, focused capture and Expanded/reflow.
+- The two #1489 cases passed again after final test formatting/evidence export.
+- TypeScript, full Web lint and formatting, token/PWA checks and production
+  build passed; changed files are lint-clean. The existing unrelated test
+  non-null-assertion warnings and dependency bundler directives are unchanged.
+- The scoped repository engineering-language audit passed.
+
+Commands: `npx vitest run src/components/AppShell.test.tsx src/webLayout.test.ts
+src/productRoles.test.ts` from `web`; `npx playwright test
+floating-bottom-nav-scroll.spec.ts floating-bottom-nav.spec.ts
+theme-forced-colors.spec.ts --workers=2` from `web/e2e`; `npm run typecheck`,
+`npm run lint`, `npm run format:check`, `npm run build` from `web`.
+
+Hosted PR gates and Product Owner review remain distinct from local proof.
+No physical-device or native-keyboard acceptance, merge, deployment or release
+is claimed by this implementation evidence.

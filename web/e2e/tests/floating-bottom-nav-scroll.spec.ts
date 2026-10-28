@@ -402,10 +402,135 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   );
 }
 
+async function expectAnchoredNavigation(page: Page, safeArea = 0) {
+  const navigation = page.locator('.mobile-bottom-shell');
+  await expect(navigation).toBeInViewport({ ratio: 1 });
+  const geometry = await navigation.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      top: rect.top,
+      bottomGap: window.innerHeight - rect.bottom,
+      offset:
+        Number.parseFloat(
+          getComputedStyle(element).getPropertyValue('--space-3'),
+        ) *
+        Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
+      zoom:
+        Number.parseFloat(getComputedStyle(document.documentElement).zoom) || 1,
+    };
+  });
+  expect(
+    Math.abs(geometry.bottomGap - (geometry.offset + safeArea) * geometry.zoom),
+  ).toBeLessThanOrEqual(1);
+  return geometry;
+}
+
 test.describe('Global header document flow and persistent bottom navigation', () => {
   test.beforeAll(() => {
     if (!fs.existsSync(EVIDENCE_DIR)) {
       fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
+    }
+  });
+
+  test('bottom navigation stays viewport-anchored across scroll, safe areas and route return (#1489)', async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+
+    for (const width of [360, 390, 430]) {
+      await page.setViewportSize({ width, height: 740 });
+      await page.addStyleTag({
+        content: ':root { --safe-area-inset-bottom: 24px; }',
+      });
+      for (const destination of [
+        '/today',
+        '/story?tab=timeline',
+        '/plan',
+        '/more',
+      ]) {
+        await page
+          .locator(`.mobile-bottom-nav a[href="${destination.split('?')[0]}"]`)
+          .click();
+        await expect(page).toHaveURL(new RegExp(destination.split('?')[0]));
+        await page.evaluate(() => window.scrollTo(0, 0));
+        const initial = await expectAnchoredNavigation(page, 24);
+        await addScrollFixture(page);
+        for (const top of [700, 660, 1800, 0]) {
+          await page.evaluate(
+            (top) => window.scrollTo({ top, behavior: 'instant' }),
+            top,
+          );
+          const current = await expectAnchoredNavigation(page, 24);
+          expect(Math.abs(current.top - initial.top)).toBeLessThanOrEqual(1);
+          if (
+            width === 390 &&
+            destination.startsWith('/story') &&
+            top === 700
+          ) {
+            await page.screenshot({
+              path: testInfo.outputPath('anchored-390-story-scrolled.png'),
+            });
+          }
+        }
+        await page.screenshot({
+          path: testInfo.outputPath(
+            `anchored-${width}-${destination.split('?')[0].slice(1)}.png`,
+          ),
+        });
+        await expectNoHorizontalOverflow(page);
+      }
+      await page.goBack();
+      await expectAnchoredNavigation(page, 24);
+    }
+  });
+
+  test('focused end-aligned content clears the fixed navigation (#1489)', async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 700 });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await addScrollFixture(page);
+    await page.evaluate(() => {
+      const target = document.createElement('button');
+      target.dataset.shellClearanceAction = 'true';
+      target.textContent = 'Browser focus clearance fixture';
+      document.querySelector('main')?.appendChild(target);
+    });
+    const target = page.locator('[data-shell-clearance-action]');
+    for (const state of [
+      { width: 360, height: 640, theme: 'light', text: '100%', zoom: '1' },
+      { width: 390, height: 420, theme: 'dark', text: '100%', zoom: '1' },
+      { width: 430, height: 740, theme: 'dark', text: '100%', zoom: '1' },
+      { width: 320, height: 640, theme: 'light', text: '200%', zoom: '1' },
+      { width: 1280, height: 900, theme: 'light', text: '100%', zoom: '4' },
+    ]) {
+      await page.setViewportSize({ width: state.width, height: state.height });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.evaluate((state) => {
+        document.documentElement.dataset.theme = state.theme;
+        document.documentElement.style.fontSize = state.text;
+        document.documentElement.style.zoom = state.zoom;
+      }, state);
+      await target.focus();
+      await target.evaluate((element) =>
+        element.scrollIntoView({ block: 'end', behavior: 'instant' }),
+      );
+      await expect(target).toBeFocused();
+      const bar = await expectAnchoredNavigation(page);
+      const box = await target.boundingBox();
+      if (!box) throw new Error('Focused clearance action has no geometry.');
+      expect(box.y + box.height).toBeLessThanOrEqual(bar.top - 1);
+      await expectNoHorizontalOverflow(page);
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `focused-action-${state.width}-${state.height}-${state.theme}.png`,
+        ),
+      });
     }
   });
 

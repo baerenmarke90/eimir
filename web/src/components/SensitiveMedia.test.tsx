@@ -129,8 +129,8 @@ it('resets on pagehide, scope change, reclassification and leaving/reentering', 
   expect(screen.getByRole('button', { name: 'Bild anzeigen' })).toBeTruthy();
 });
 
-it('conceals sensitive and unknown thumbnails without loading or describing their content', () => {
-  const loadImage = vi.fn();
+it('loads marked previews only behind blur and keeps unknown classification opaque', async () => {
+  const loadImage = vi.fn().mockResolvedValue('blob:marked');
   const view = render(
     <MemoryPreview
       memoryId="memory"
@@ -141,6 +141,13 @@ it('conceals sensitive and unknown thumbnails without loading or describing thei
   );
   expect(screen.getByText('Sensibler Inhalt')).toBeTruthy();
   expect(screen.queryByRole('img')).toBeNull();
+  await waitFor(() =>
+    expect(
+      view.container.querySelector('.sensitive-media-blurred img'),
+    ).not.toBeNull(),
+  );
+  expect(screen.queryByRole('img')).toBeNull();
+  loadImage.mockClear();
   view.rerender(
     <MemoryPreview
       memoryId="memory"

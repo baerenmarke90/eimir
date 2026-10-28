@@ -75,6 +75,7 @@ import { DailyQuoteCard } from './DailyQuoteCard';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
+import { PreviewCardLink } from './PreviewCardLink';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { SharedStorySummary } from './SharedStorySummary';
@@ -196,11 +197,13 @@ function TodayDestinationLink({
   className,
   ariaLabel,
   children,
+  previewControls = false,
 }: {
   to: string;
   className?: string;
   ariaLabel?: string;
   children: ReactNode;
+  previewControls?: boolean;
 }) {
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
@@ -221,15 +224,16 @@ function TodayDestinationLink({
     void navigate(to, { state: { taskOriginKey } });
   }
 
+  const DestinationLink = previewControls ? PreviewCardLink : Link;
   return (
-    <Link
+    <DestinationLink
       to={to}
       className={className}
       aria-label={ariaLabel}
       onClick={openFromToday}
     >
       {children}
-    </Link>
+    </DestinationLink>
   );
 }
 
@@ -420,6 +424,7 @@ function TodayMomentFeature({
             memoryId={item.id}
             attachmentId={previewAttachmentId}
             isSensitive={item.previewIsSensitive}
+            allowReveal
             loadImage={loadMemoryImage}
           />
         ) : null}
@@ -457,6 +462,7 @@ function TodayMomentFeature({
       <TodayDestinationLink
         to={path}
         className="today-moment today-moment-link"
+        previewControls={hasImage && item.previewIsSensitive === true}
       >
         {feature}
       </TodayDestinationLink>

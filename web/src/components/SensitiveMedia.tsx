@@ -1,16 +1,18 @@
 import { useLayoutEffect, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
+import { focusManager } from '@tanstack/react-query';
 import { useTranslation } from '../i18n';
 import './SensitiveMedia.css';
 import { EimirIcon } from './EimirIcon';
 
 /** Deliberately volatile: never serialize reveal state with media or navigation. */
-export function useSensitiveMediaReveals(identity: string) {
+export function useSensitiveMediaReveals(identity: string, enabled = true) {
   const [state, setState] = useState<{ identity: string; ids: Set<string> }>(
     () => ({ identity, ids: new Set() }),
   );
   useLayoutEffect(() => {
     setState({ identity, ids: new Set() });
+    if (!enabled) return;
     const conceal = () =>
       flushSync(() => setState({ identity, ids: new Set() }));
     const visibility = () => {
@@ -18,14 +20,18 @@ export function useSensitiveMediaReveals(identity: string) {
     };
     document.addEventListener('visibilitychange', visibility);
     window.addEventListener('pagehide', conceal);
+    const unsubscribeFocus = focusManager.subscribe((focused) => {
+      if (!focused) conceal();
+    });
     return () => {
       document.removeEventListener('visibilitychange', visibility);
       window.removeEventListener('pagehide', conceal);
+      unsubscribeFocus();
     };
-  }, [identity]);
+  }, [identity, enabled]);
   return {
     isRevealed: (id: string) =>
-      state.identity === identity && state.ids.has(id),
+      enabled && state.identity === identity && state.ids.has(id),
     toggle: (id: string) =>
       setState((current) => {
         const ids = new Set(current.identity === identity ? current.ids : []);
@@ -39,9 +45,11 @@ export function useSensitiveMediaReveals(identity: string) {
 export function SensitiveMediaCover({
   children,
   className = '',
+  showLabel = true,
 }: {
   children?: ReactNode;
   className?: string;
+  showLabel?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -51,10 +59,12 @@ export function SensitiveMediaCover({
           {children}
         </span>
       ) : null}
-      <span className="sensitive-media-label">
-        <EimirIcon name="eye-off" />
-        <span className="sr-only">{t('sensitiveMedia.label')}</span>
-      </span>
+      {showLabel ? (
+        <span className="sensitive-media-label">
+          <EimirIcon name="privatsphaere" />
+          <span className="sr-only">{t('sensitiveMedia.label')}</span>
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -62,20 +72,22 @@ export function SensitiveMediaCover({
 export function SensitiveMediaControl({
   revealed,
   onToggle,
+  className = '',
 }: {
   revealed: boolean;
   onToggle: () => void;
+  className?: string;
 }) {
   const { t } = useTranslation();
   return (
     <button
       type="button"
-      className="sensitive-media-control secondary"
+      className={`sensitive-media-control secondary ${className}`}
       aria-pressed={revealed}
       aria-label={t(revealed ? 'sensitiveMedia.hide' : 'sensitiveMedia.show')}
       onClick={onToggle}
     >
-      <EimirIcon name="eye-off" />
+      <EimirIcon name="privatsphaere" />
     </button>
   );
 }

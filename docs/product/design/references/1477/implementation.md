@@ -29,9 +29,13 @@ each photo group. Pending saves disable classification editing.
 
 The canonical gallery conceals before media can render clearly, including ambient
 backdrops, adjacent slides and loop clones. A strong filtered still with neutral
-cover is used in the gallery. Card/grid/Today previews use an opaque neutral
-fallback and do not load sensitive images. Preview links retain their normal
-canonical destination. No additional format, store, provider or dependency.
+cover is used in the gallery. Following the Product Owner correction in #1493,
+explicitly marked card/Today previews load behind the same shared blur. Unknown
+classification still uses an opaque fallback without requesting the photo. The
+Wir focal card and diary cards expose an independent Privacy icon button; the
+rest of each card retains its normal canonical detail destination. Other preview
+links keep navigation without a reveal action. See [the overview contract](../1493/README.md).
+No additional format, store, provider or dependency.
 
 Reveal/hide uses a semantic 44-CSS-pixel button, visible focus and pressed state.
 Hidden images have no accessible description. Deliberate reveal restores normal

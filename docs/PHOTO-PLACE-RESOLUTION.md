@@ -53,6 +53,8 @@ reconstruct previously stripped photo metadata.
 
 #1477 owns Attachment classification, binding flags, capture/recovery and media
 reveal. This change adds no field to those contracts and changes no gallery.
+The synthetic photo-place browser fixture explicitly marks its photo unmarked,
+so it also respects #1477's unknown-classification concealment boundary.
 The only attachment-path addition schedules a job after an automatic Place link
 has been committed to the current transaction. Both changes share the authoritative
 OpenAPI snapshot and feature matrix; regenerate the complete schema after combining

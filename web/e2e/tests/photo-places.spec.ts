@@ -265,6 +265,7 @@ async function installPhotoPlaces(page: Page, pending = false) {
               id: 'att-photo-place',
               position: 0,
               status: 'READY',
+              isSensitive: false,
               mediaType: 'IMAGE',
               mimeType: 'image/jpeg',
               hasThumbnail: true,
@@ -373,6 +374,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(
         page.getByRole('img', { name: storyProducts.gallery.imageAlt }).first(),
       ).toBeVisible();
+      await page
+        .locator('.moment-places')
+        .evaluate((node) => node.scrollIntoView({ block: 'center' }));
+      await page
+        .getByRole('heading', { name: photoPlaceCopy.title, exact: true })
+        .focus();
       await captureScreenshot(
         page,
         testInfo,

@@ -28,6 +28,8 @@
 }
 
 .moment-place-pin {
+  width: var(--space-6);
+  height: var(--space-6);
   margin-block-start: var(--space-2);
   color: var(--color-text-secondary);
 }
@@ -48,6 +50,9 @@
   max-width: 100%;
   text-decoration: underline;
   text-underline-offset: var(--space-1);
+}
+.moment-place-address {
+  color: var(--color-link-text);
 }
 .moment-place-attribution {
   color: var(--color-text-secondary);

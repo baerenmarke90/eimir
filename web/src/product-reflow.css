@@ -65,6 +65,8 @@
   }
 
   .product-shell .product-main {
+    --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
+
     width: calc(100% - 2 * var(--page-gutter));
     padding-bottom: var(--shell-content-bottom-clearance);
   }

@@ -97,6 +97,13 @@ Unless an individual entry states otherwise, these project assets have no
 separate public license grant. No font or audio assets are currently part of
 the repository.
 
+The #1489 generated whole-screen navigation reference under
+`docs/product/design/references/1489/` was created with OpenAI's built-in
+image-generation tool on 2026-10-28 from an actual eimir. browser render at
+`5e19e8b8f522be6b59737b15a40e6c8bbbceb806`. It is design guidance, not runtime
+evidence. Companion browser screenshots use synthetic test identities and the
+repository's existing authorized assets. No predecessor assets were consulted.
+
 ## Contributors
 
 | Name | Role | Period |

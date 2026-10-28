@@ -347,9 +347,7 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     await page.goto('/');
     await signIn(page);
     await expect(page).toHaveURL(/\/today$/);
-    await expect(
-      page.locator('.today-content h1'),
-    ).toBeVisible();
+    await expect(page.locator('.today-content h1')).toBeVisible();
 
     // 2. Open header profile menu and click logout
     const menuButton = page.getByRole('button', {
@@ -362,9 +360,7 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     // Remote cleanup still owns the original credentials and document.
     await expect.poll(() => signOutRequests).toBe(1);
     await expect(page.getByRole('status')).toContainText(de.header.logout);
-    await expect(
-      page.locator('.today-content h1'),
-    ).not.toBeVisible();
+    await expect(page.locator('.today-content h1')).not.toBeVisible();
     await expect(page).toHaveURL(/\/today$/);
     expect(
       await page.evaluate(() => sessionStorage.getItem('eimir-session-v1')),
@@ -570,9 +566,7 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
 
     // 4. Verify magic-link callback is processed and app opens (Today dashboard or default route).
     // Couple Presence owns the page H1 without a redundant date masthead.
-    await expect(
-      page.locator('.today-content h1'),
-    ).toBeVisible({
+    await expect(page.locator('.today-content h1')).toBeVisible({
       timeout: 10000,
     });
     await expect(

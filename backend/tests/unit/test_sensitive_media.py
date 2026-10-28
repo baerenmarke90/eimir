@@ -11,20 +11,29 @@ from eimir.attachments.binding import set_sensitive
 from eimir.attachments.models import Attachment, AttachmentPayload
 
 
-def test_legacy_payload_defaults_to_unmarked_and_mark_preserves_other_metadata() -> None:
-    attachment = Attachment(payload=AttachmentPayload(original_name="unchanged.jpg", orientation=6))
-    assert attachment.payload.is_sensitive is False
+@pytest.mark.parametrize("preserve_metadata", [False, True])
+def test_legacy_payload_defaults_to_unmarked_and_mark_preserves_other_metadata(
+    preserve_metadata: bool,
+) -> None:
+    legacy_payload = AttachmentPayload(original_name="unchanged.jpg", orientation=6)
+    assert legacy_payload.is_sensitive is False
+    assert legacy_payload.preserve_metadata is False
+    attachment = Attachment(
+        payload=legacy_payload.model_copy(update={"preserve_metadata": preserve_metadata})
+    )
     set_sensitive(attachment, True)
     assert attachment.payload.model_dump() == {
         "original_name": "unchanged.jpg",
         "captured_at": None,
         "orientation": 6,
         "is_sensitive": True,
+        "preserve_metadata": preserve_metadata,
     }
     set_sensitive(attachment, None)
     assert attachment.payload.is_sensitive is True
     set_sensitive(attachment, False)
     assert attachment.payload.is_sensitive is False
+    assert attachment.payload.preserve_metadata is preserve_metadata
 
 
 @pytest.mark.parametrize("flag", ["false", 0, 1, [], {}])

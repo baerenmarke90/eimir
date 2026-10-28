@@ -28,6 +28,7 @@ import {
 import { resolvedLocale, useTranslation } from '../i18n';
 import { HeartEmotionBadge } from './HeartEmotionVisual';
 import { MemoryPreview } from './MemoryPreview';
+import { PreviewCardLink } from './PreviewCardLink';
 import { AuthorAvatar } from './PersonIdentity';
 import {
   formatTimelineDate,
@@ -306,6 +307,8 @@ export function StoryList({
             .join(' ');
 
           const metaId = `${listId}-meta-${index}`;
+          const CardLink =
+            imageAttachment?.isSensitive === true ? PreviewCardLink : Link;
           const accessibleName = `${presentation.kindLabel}: ${presentation.title}${
             item.kind === 'HEART_MOMENT' && presentation.preview
               ? ` ${t('heartMomentProduct.emotionLabel')}: ${presentation.preview}`
@@ -321,7 +324,7 @@ export function StoryList({
               }
             >
               <StoryTimelineMarker kind={item.kind} />
-              <Link
+              <CardLink
                 className="story-card-link"
                 to={productPath}
                 data-task-item-key={itemKey}
@@ -342,6 +345,8 @@ export function StoryList({
                       memoryId={imageEntityId}
                       attachmentId={imageAttachment.id}
                       isSensitive={imageAttachment.isSensitive}
+                      allowReveal
+                      resourceScopeKey={`story-preview:${spaceId ?? ''}:${imageEntityId}`}
                       loadImage={imageLoader}
                       loadingMode={
                         progressiveReveal ? 'near-viewport' : 'immediate'
@@ -417,7 +422,7 @@ export function StoryList({
                     </span>
                   </div>
                 </article>
-              </Link>
+              </CardLink>
             </li>
           );
         })}

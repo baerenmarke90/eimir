@@ -373,6 +373,7 @@ function TodayMomentFeature({
             memoryId={item.id}
             attachmentId={previewAttachmentId}
             isSensitive={item.previewIsSensitive}
+            allowReveal
             loadImage={loadMemoryImage}
           />
         ) : null}
@@ -410,6 +411,7 @@ function TodayMomentFeature({
       <TodayDestinationLink
         to={path}
         className="today-moment today-moment-link"
+        previewControls={hasImage && item.previewIsSensitive === true}
       >
         {feature}
       </TodayDestinationLink>

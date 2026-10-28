@@ -284,6 +284,8 @@ for (const [width, theme, largeText] of [
         fullPage: true,
       },
     );
+    if (largeText)
+      await captureScreenshot(passport, info, 'passport-card-large-text.png');
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth > window.innerWidth + 1,

@@ -578,8 +578,9 @@ class TestSensitiveMedia:
             == original
         )
         story = client.get(
-            f"{base_path(couple['space'].id)}/story", headers=auth(couple["token_b"])
+            f"{base_path(couple['space'].id)}/timeline", headers=auth(couple["token_b"])
         )
+        assert story.status_code == 200
         item = next(item for item in story.json()["items"] if item["kind"] == "MEMORY")
         assert item["memory"]["attachments"][0]["isSensitive"] is True
 
@@ -712,12 +713,10 @@ class TestSensitiveMedia:
         ):
             media = json.loads(archive.read("media/index.json"))["items"]
             assert media[0]["isSensitive"] is True
-            assert (
-                archive.read(f"media/{photo}/original")
-                == get_media_store()
-                .get(build_storage_key(couple["space"].id, UUID(photo), "original"))
-                .read()
-            )
+            with get_media_store().open(
+                build_storage_key(couple["space"].id, UUID(photo), "original")
+            ) as original:
+                assert archive.read(f"media/{photo}/original") == original.read()
 
     def test_transfer_round_trip_preserves_sensitive_payload(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
         from eimir.authorization import AuthorizationContext
@@ -760,13 +759,31 @@ class TestSensitiveMedia:
             assert original.read()
 
     def test_classification_failure_rolls_back_before_first_shared_binding(
-        self, client, couple, session, monkeypatch
+        self, production_client, monkeypatch
     ) -> None:  # type: ignore[no-untyped-def]
         from eimir.attachments import binding
         from eimir.core.errors import ConflictError, ErrorCode
 
-        first = ready_attachment(client, couple, session)
-        second = ready_attachment(client, couple, session)
+        # The regular client fixture replaces get_session with a shared test
+        # Session and deliberately bypasses the request's rollback boundary.
+        # Exercise real independent request transactions for this guarantee.
+        client, maker = production_client
+        with maker.begin() as session:
+            anna = make_account(session, "Anna")
+            ben = make_account(session, "Ben")
+            space = make_space(session, anna)
+            relationship_service.add_member(session, space.id, ben)
+            couple = {
+                "anna": anna,
+                "ben": ben,
+                "space": space,
+                "token_a": sign_in(session, anna),
+                "token_b": sign_in(session, ben),
+            }
+        with maker.begin() as session:
+            first = ready_attachment(client, couple, session)
+        with maker.begin() as session:
+            second = ready_attachment(client, couple, session)
         created = memory(client, couple)
         original = binding.set_sensitive
         calls = 0
@@ -793,12 +810,11 @@ class TestSensitiveMedia:
             headers=if_match(couple["token_a"], created["version"]),
         )
         assert result.status_code == 409
-        assert (
-            client.get(f"{root}/memories/{created['id']}", headers=auth(couple["token_b"])).json()[
-                "attachments"
-            ]
-            == []
-        )
+        assert calls == 2
+        partner = client.get(f"{root}/memories/{created['id']}", headers=auth(couple["token_b"]))
+        assert partner.status_code == 200
+        assert partner.json()["attachments"] == []
+        assert partner.json()["version"] == created["version"]
         for photo in [first, second]:
             assert (
                 client.get(f"{root}/attachments/{photo}", headers=auth(couple["token_a"])).json()[

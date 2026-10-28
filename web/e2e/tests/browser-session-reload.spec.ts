@@ -1,7 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import demoDe from '../../src/i18n/locales/demo';
-import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 
@@ -349,7 +348,7 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     await signIn(page);
     await expect(page).toHaveURL(/\/today$/);
     await expect(
-      page.getByRole('heading', { name: m5s5.today.headerTitle, level: 1 }),
+      page.locator('.today-content h1'),
     ).toBeVisible();
 
     // 2. Open header profile menu and click logout
@@ -364,7 +363,7 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     await expect.poll(() => signOutRequests).toBe(1);
     await expect(page.getByRole('status')).toContainText(de.header.logout);
     await expect(
-      page.getByRole('heading', { name: m5s5.today.headerTitle, level: 1 }),
+      page.locator('.today-content h1'),
     ).not.toBeVisible();
     await expect(page).toHaveURL(/\/today$/);
     expect(
@@ -570,16 +569,16 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     await leaButton.click();
 
     // 4. Verify magic-link callback is processed and app opens (Today dashboard or default route).
-    // Today owns the page H1; Couple Presence remains the relationship hero below it.
+    // Couple Presence owns the page H1 without a redundant date masthead.
     await expect(
-      page.getByRole('heading', { name: m5s5.today.headerTitle, level: 1 }),
+      page.locator('.today-content h1'),
     ).toBeVisible({
       timeout: 10000,
     });
     await expect(
       page
         .locator('.couple-presence-card')
-        .getByRole('heading', { name: /Alex/i, level: 2 }),
+        .getByRole('heading', { name: /Alex/i, level: 1 }),
     ).toBeVisible();
     // DemoEntry person picker is gone
     await expect(

@@ -54,7 +54,8 @@
     },
     "floating-bottom-nav-scroll.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 7
+      "baselineTests": 11,
+      "reason": "Persistent navigation clearance and bounded account/Space-scoped primary context, browser history and native tab replacement."
     },
     "floating-bottom-nav.spec.ts": {
       "disposition": "FULL_REGRESSION",

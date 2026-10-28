@@ -475,10 +475,11 @@ export function StoryProductPage({
   );
   useEffect(() => {
     if (
-      activeView !== 'timeline' ||
       !returnOrigin ||
-      !combinedStory ||
-      storyQuery.isFetching
+      (activeView === 'timeline' &&
+        (!combinedStory || storyQuery.isFetching)) ||
+      (activeView === 'discover' &&
+        (!discoverQuery.data || discoverQuery.isFetching))
     )
       return;
     const entry = `${location.key}:${String(returnKey)}`;
@@ -487,6 +488,7 @@ export function StoryProductPage({
       return;
     }
     if (
+      activeView === 'timeline' &&
       loadedPageCount < returnOrigin.loadedPageCount &&
       storyQuery.hasNextPage &&
       !storyQuery.isError &&
@@ -550,6 +552,8 @@ export function StoryProductPage({
     storyQuery.fetchNextPage,
     offline,
     activeView,
+    discoverQuery.data,
+    discoverQuery.isFetching,
   ]);
 
   const timelineItems = useMemo(

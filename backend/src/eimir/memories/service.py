@@ -22,15 +22,23 @@ from eimir.authorization import (
     AuthorizationContext,
     readable,
     require_readable,
+    require_readable_locked,
     require_writable,
     require_writable_locked,
 )
 from eimir.core import cursor as cursor_codec
 from eimir.core.clock import now
-from eimir.core.errors import ConflictError, ErrorCode, ValidationError
+from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
+from eimir.core.ids import parse_id
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.memories import create_receipts
-from eimir.memories.models import Memory, MemoryPayload, shared_privacy
+from eimir.memories.models import (
+    Memory,
+    MemoryPayload,
+    MemoryPhotoReaction,
+    PhotoReaction,
+    shared_privacy,
+)
 from eimir.memories.tags import MemoryTags
 from eimir.outbox import service as outbox_service
 
@@ -160,6 +168,56 @@ def get_memory(
     return require_readable(session, Memory, context, memory_id)
 
 
+def set_photo_reaction(
+    session: Session,
+    context: AuthorizationContext,
+    memory_id: UUID | str,
+    attachment_id: UUID | str,
+    reaction: PhotoReaction | None,
+) -> Memory:
+    """Idempotently set only the caller's reaction under the parent row lock.
+
+    Partners may react without acquiring authorship/edit rights. The parent
+    version still advances, so a stale editor cannot overwrite a reaction.
+    """
+    from eimir.attachments import binding
+    from eimir.attachments.models import MediaType
+
+    memory = require_readable_locked(session, Memory, context, memory_id)
+    photo_id = attachment_id if isinstance(attachment_id, UUID) else parse_id(attachment_id)
+    photos = binding.attachments_of_memory(session, memory.id)
+    if photo_id is None or not any(
+        item.attachment.id == photo_id and item.attachment.media_type == MediaType.IMAGE
+        for item in photos
+    ):
+        raise NotFoundError("Photo not found.", "RESOURCE_NOT_FOUND")
+
+    previous = memory.payload.photo_reactions
+    remaining = [
+        item
+        for item in previous
+        if (item.attachment_id, item.account_id) != (photo_id, context.account_id)
+    ]
+    if reaction is not None:
+        remaining.append(
+            MemoryPhotoReaction(
+                attachment_id=photo_id, account_id=context.account_id, reaction=reaction
+            )
+        )
+    # Stable ordering makes a replay a genuine no-op, including version/event count.
+    remaining.sort(key=lambda item: (str(item.attachment_id), str(item.account_id)))
+    if (
+        sorted(previous, key=lambda item: (str(item.attachment_id), str(item.account_id)))
+        == remaining
+    ):
+        return memory
+    memory.payload = memory.payload.model_copy(update={"photo_reactions": remaining})
+    _flush(session)
+    _record(session, memory, context.account_id, EventType.MEMORY_UPDATED)
+    _flush(session)
+    return memory
+
+
 def update_memory(
     session: Session,
     context: AuthorizationContext,
@@ -191,7 +249,9 @@ def update_memory(
         memory.happened_on = happened_on
 
     if changed_fields.intersection({"title", "body", "tags"}):
-        memory.payload = MemoryPayload(title=next_title, body=next_body, tags=next_tags)
+        memory.payload = memory.payload.model_copy(
+            update={"title": next_title, "body": next_body, "tags": next_tags}
+        )
 
     _flush(session)
     _record(session, memory, context.account_id, EventType.MEMORY_UPDATED)
@@ -391,6 +451,14 @@ def replace_attachments(
             # The last reference was removed. It becomes domain-unreferenced
             # immediately and provider cleanup remains asynchronous (M2-D11).
             attachment_service.mark_for_deletion(session, detached)
+
+    memory.payload = memory.payload.model_copy(
+        update={
+            "photo_reactions": [
+                item for item in memory.payload.photo_reactions if item.attachment_id in identifiers
+            ]
+        }
+    )
 
     from eimir.attachments import photo_locations
 

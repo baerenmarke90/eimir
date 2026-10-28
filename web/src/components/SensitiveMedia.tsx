@@ -2,6 +2,7 @@ import { useLayoutEffect, useState, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { useTranslation } from '../i18n';
 import './SensitiveMedia.css';
+import { EimirIcon } from './EimirIcon';
 
 /** Deliberately volatile: never serialize reveal state with media or navigation. */
 export function useSensitiveMediaReveals(identity: string) {
@@ -50,7 +51,10 @@ export function SensitiveMediaCover({
           {children}
         </span>
       ) : null}
-      <span className="sensitive-media-label">{t('sensitiveMedia.label')}</span>
+      <span className="sensitive-media-label">
+        <EimirIcon name="eye-off" />
+        <span className="sr-only">{t('sensitiveMedia.label')}</span>
+      </span>
     </span>
   );
 }
@@ -68,9 +72,10 @@ export function SensitiveMediaControl({
       type="button"
       className="sensitive-media-control secondary"
       aria-pressed={revealed}
+      aria-label={t(revealed ? 'sensitiveMedia.hide' : 'sensitiveMedia.show')}
       onClick={onToggle}
     >
-      {t(revealed ? 'sensitiveMedia.hide' : 'sensitiveMedia.show')}
+      <EimirIcon name="eye-off" />
     </button>
   );
 }

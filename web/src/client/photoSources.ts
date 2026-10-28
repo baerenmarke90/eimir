@@ -3,6 +3,7 @@ import { PhotoSourcesApi } from '../api/generated/apis/PhotoSourcesApi';
 import type { PhotoSelectionView } from '../api/generated/models/PhotoSelectionView';
 import { isCapacitorNative } from '../pwa';
 import { Configuration } from './apiConfiguration';
+import { retainPhotoInMemory } from './selectedMediaRetention';
 
 export function photoSourcesApi(apiBaseUrl: string, accessToken: string) {
   return new PhotoSourcesApi(
@@ -70,7 +71,7 @@ export async function closePhotoBrowser(popup: Window | null) {
   if (isCapacitorNative()) await Browser.close().catch(() => {});
 }
 
-export function photoFile(blob: Blob, index: number): File {
+export function photoFile(blob: Blob, index: number, memoryOnly = false): File {
   const extension = (
     {
       'image/jpeg': 'jpg',
@@ -83,9 +84,10 @@ export function photoFile(blob: Blob, index: number): File {
   if (!extension || blob.size === 0 || blob.size > 25 * 1024 * 1024) {
     throw new Error('Selected photo is unsupported.');
   }
-  return new File([blob], `photo-${index + 1}.${extension}`, {
+  const file = new File([blob], `photo-${index + 1}.${extension}`, {
     type: blob.type,
   });
+  return memoryOnly ? retainPhotoInMemory(file) : file;
 }
 
 export function selectionReady(view: PhotoSelectionView): boolean {

@@ -13,6 +13,8 @@ import {
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
+import { formatDateInputValue } from '../client/dateInput';
+import { splitFirstGrapheme } from '../client/graphemeSplit';
 import {
   type MemoryEditValues,
   memoryDateInputValue,
@@ -46,7 +48,7 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
-import { MediaGallery } from './MediaGallery';
+import { MemoryPhotoGallery } from './MemoryPhotoGallery';
 import { MemoryPreview } from './MemoryPreview';
 import {
   MEMORY_TAGS,
@@ -748,9 +750,20 @@ export function MemoryProductPage({
     );
   }
 
-  const memoryEyebrow = memory.happenedOn
-    ? `${t('memoryProduct.detailEyebrow').toUpperCase()} · ${formatDateOnly(memory.happenedOn)}`
-    : t('memoryProduct.detailEyebrow').toUpperCase();
+  const dateLabel = memory.happenedOn
+    ? formatDateOnly(memory.happenedOn)
+    : t('memoryProduct.noDate');
+  const generatedTitle = memory.happenedOn
+    ? t('memoryProduct.createFallbackTitle', {
+        date: formatDateInputValue(
+          memoryDateInputValue(memory.happenedOn),
+          resolvedLocale(),
+        ),
+      })
+    : '';
+  const hasAuthoredTitle = Boolean(
+    memory.title.trim() && memory.title.trim() !== generatedTitle,
+  );
 
   const provenanceAuthor = storyAuthorLabel(
     memory.author,
@@ -760,8 +773,20 @@ export function MemoryProductPage({
 
   return (
     <StoryDetailPageShell
-      eyebrow={memoryEyebrow}
-      title={memory.title}
+      title={hasAuthoredTitle ? memory.title : dateLabel}
+      description={
+        hasAuthoredTitle ? (
+          <time
+            dateTime={
+              memory.happenedOn
+                ? memoryDateInputValue(memory.happenedOn)
+                : undefined
+            }
+          >
+            {dateLabel}
+          </time>
+        ) : undefined
+      }
       titleAction={
         memory.capabilities.canEdit && !offline ? (
           <StoryDetailEditLink
@@ -800,15 +825,25 @@ export function MemoryProductPage({
     >
       {memory.body.trim() ? (
         <div className="memory-diary-prose">
-          {memory.body.split(/\r?\n[\t ]*\r?\n/).map((paragraph, index) => (
-            <p
-              className="memory-detail-body"
-              // biome-ignore lint/suspicious/noArrayIndexKey: Read-only paragraphs have no state or reorder interaction.
-              key={index}
-            >
-              {paragraph}
-            </p>
-          ))}
+          {memory.body.split(/\r?\n[\t ]*\r?\n/).map((paragraph, index) => {
+            const initial = index === 0 ? splitFirstGrapheme(paragraph) : null;
+            return (
+              <p
+                className="memory-detail-body"
+                // biome-ignore lint/suspicious/noArrayIndexKey: Read-only paragraphs have no state or reorder interaction.
+                key={index}
+              >
+                {initial ? (
+                  <>
+                    <span className="drop-cap-letter">{initial.first}</span>
+                    {initial.rest}
+                  </>
+                ) : (
+                  paragraph
+                )}
+              </p>
+            );
+          })}
         </div>
       ) : null}
 
@@ -826,32 +861,35 @@ export function MemoryProductPage({
         </section>
       ) : null}
 
-      {readyAttachments.length > 0 ? (
-        <section aria-label={t('memory.photoLabel')}>
-          <MediaGallery
-            items={readyAttachments.map((attachment) => ({
-              id: attachment.id,
-              mediaType: attachment.mediaType,
-              isSensitive: attachment.isSensitive,
-            }))}
-            loadMedia={(attachmentId, signal) =>
-              loadMemoryImage(memory.id, attachmentId, signal)
-            }
-            resourceScopeKey={`memory:${currentAccountId}:${spaceId}:${mode}:${memory.id}`}
-          />
-        </section>
-      ) : null}
+      <div className="memory-media-context">
+        {readyAttachments.length > 0 ? (
+          <section aria-label={t('memory.photoLabel')}>
+            <MemoryPhotoGallery
+              key={`memory:${apiBaseUrl}:${currentAccountId}:${spaceId}:${mode}:${memory.id}`}
+              memory={memory}
+              apis={apis}
+              accountId={currentAccountId}
+              offline={offline}
+              loadImage={(attachmentId, signal) =>
+                loadMemoryImage(memory.id, attachmentId, signal)
+              }
+              scope={`memory:${apiBaseUrl}:${currentAccountId}:${spaceId}:${mode}:${memory.id}`}
+            />
+          </section>
+        ) : null}
 
-      <MomentPlaces
-        key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${memory.id}`}
-        apiBaseUrl={apiBaseUrl}
-        accessToken={accessToken}
-        accountId={currentAccountId}
-        spaceId={spaceId}
-        targetId={memory.id}
-        kind="memories"
-        offline={offline}
-      />
+        <MomentPlaces
+          key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${memory.id}`}
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          accountId={currentAccountId}
+          spaceId={spaceId}
+          targetId={memory.id}
+          kind="memories"
+          offline={offline}
+          compact
+        />
+      </div>
       <CommentsPanel
         commentsApi={apis.comments}
         spaceId={spaceId}

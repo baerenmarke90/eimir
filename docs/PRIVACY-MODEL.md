@@ -59,7 +59,17 @@ often more sensitive than the day itself.
 
 ## Location
 
-Location features are **off** by default. They require explicit opt-in.
+Live location, presence and external location history are **off** by default
+and require explicit opt-in. Selected-photo Place association is the scoped
+default-on exception approved in #1459/#1465: an account may disable it in
+Settings → Memories. It does not request live location or track a device.
+
+Selected moment primary photos may retain readable EXIF/ICC, including GPS,
+capture time and device information, under [ADR 0014](decisions/0014-moment-photo-metadata-preservation.md).
+Authorized readers of the primary file can receive that metadata. Disabling
+automatic Place association or removing a Place relation does not scrub the
+file. Thumbnails and unrelated uploads keep their metadata removal policy;
+generic API projections, logs, events and indexes do not expose retained EXIF.
 
 Four concepts are kept strictly separate:
 

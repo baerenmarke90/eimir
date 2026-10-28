@@ -348,12 +348,15 @@ The canonical dataset is created through normal domain services and currently in
 - shared self-profile preferences for Lea and Alex;
 - private partner notes for both owners;
 - shared and owner-only RelatedPerson / ImportantDate examples;
-- Memories with and without curated local stock photos;
-- shared and owner-only HeartMoments;
+- Memories with and without curated local stock photos, including human-authored context
+  tags (for example, `Frühstück`, `Am See`, and `Kochen`);
+- shared and owner-only HeartMoments with distinct authored tags;
 - Milestones and Comments;
 - Wishes in OPEN, PLANNED, and COMPLETED states;
 - Plans in IDEA, PLANNED, and COMPLETED states, including scheduled examples;
-- Places used by the canonical planning and Chapter examples;
+- Places used by the canonical planning and Chapter examples, including a coordinate-bearing
+  café and deliberately coordinate-free lake;
+- manual Place-to-Memory links for the café breakfast and lake walk (not invented photo GPS);
 - Chapters, including Place-linked content;
 - shared Collections/items, including a realistic shared checklist pinned to Today for both personas;
 - recent Daily Check-in history for both personas with Vibe and Energy/Battery values, intentional gaps,
@@ -365,6 +368,12 @@ The canonical dataset is created through normal domain services and currently in
 - generated M4-C Reminder examples for ImportantDate, birthday, relationship anniversary, and
   planned Plan rules;
 - one manual Reminder plus recipient-specific mute/rule-preference examples.
+
+These authored tags and Place relations are seeded only for a new canonical Space or
+an intentional reset. The idempotent `ensure` operation never overwrites visitor-edited
+Memories or backfills new story relations. Updating the Demo images alone therefore does
+not immediately add these examples to an existing Space; the next scheduled or explicit
+canonical reset does.
 
 The canonical demo ships a hash-pinned set of curated real stock photos under
 `backend/demo_assets/`. They are imported locally through upload registration, normal MediaStore

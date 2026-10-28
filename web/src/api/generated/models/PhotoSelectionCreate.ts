@@ -33,6 +33,12 @@ export interface PhotoSelectionCreate {
     maxItems: number;
     /**
      * 
+     * @type {PhotoSelectionCreateMediaRecoveryPolicyEnum}
+     * @memberof PhotoSelectionCreate
+     */
+    mediaRecoveryPolicy?: PhotoSelectionCreateMediaRecoveryPolicyEnum | null;
+    /**
+     * 
      * @type {PhotoSelectionCreateSourceEnum}
      * @memberof PhotoSelectionCreate
      */
@@ -47,6 +53,14 @@ export const PhotoSelectionCreateConsentEnum = {
     true: true
 } as const;
 export type PhotoSelectionCreateConsentEnum = typeof PhotoSelectionCreateConsentEnum[keyof typeof PhotoSelectionCreateConsentEnum];
+
+/**
+ * @export
+ */
+export const PhotoSelectionCreateMediaRecoveryPolicyEnum = {
+    memory_only_v1: 'memory-only-v1'
+} as const;
+export type PhotoSelectionCreateMediaRecoveryPolicyEnum = typeof PhotoSelectionCreateMediaRecoveryPolicyEnum[keyof typeof PhotoSelectionCreateMediaRecoveryPolicyEnum];
 
 /**
  * @export
@@ -82,6 +96,7 @@ export function PhotoSelectionCreateFromJSONTyped(json: any, ignoreDiscriminator
         
         'consent': json['consent'],
         'maxItems': json['maxItems'],
+        'mediaRecoveryPolicy': json['mediaRecoveryPolicy'] === undefined ? undefined : json['mediaRecoveryPolicy'] === null ? null : json['mediaRecoveryPolicy'],
         'source': json['source'],
     };
 }
@@ -99,6 +114,7 @@ export function PhotoSelectionCreateToJSONTyped(value?: PhotoSelectionCreate | n
         
         'consent': value['consent'],
         'maxItems': value['maxItems'],
+        'mediaRecoveryPolicy': value['mediaRecoveryPolicy'],
         'source': value['source'],
     };
 }

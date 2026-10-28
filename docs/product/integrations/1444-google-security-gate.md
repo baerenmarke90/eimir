@@ -14,17 +14,27 @@ The standalone synthetic operator probe from #1451 is a separate tool with no
 eimir. persistence and remains unchanged. Its successful synthetic transfer and
 cleanup do not establish acceptance of the later application flow.
 
+The #1467 follow-up adds a per-transaction, short-lived HttpOnly browser proof
+to the authenticated start/callback seam. Legacy selections have no proof and
+cannot complete. The literal availability gate remains closed. See the
+[implemented browser binding and proposed device-recovery contract](1467-google-enablement-design.md)
+for exact same-origin Web limits, native/cross-origin exclusions, legacy-draft
+decisions and remaining acceptance. The nonpersistent recovery implementation now accompanies that contract; real
+provider/device acceptance and native transport remain separate.
+
 ## Why the later runtime delivery needs this gate
 
-The later source implementation checks stored Account/Space/DeviceSession,
-expiry, one-use state and PKCE. Its public OAuth callback does not establish
-initiating-browser/user-agent binding. Matching stored ownership metadata alone
-does not prove which browser completed authorization. Before enablement, define
-and test a compliant Web and Capacitor transaction binding, including a
-two-browser negative regression. Do not improvise a bearer-in-URL native handoff.
+The original runtime checked stored Account/Space/DeviceSession, expiry,
+one-use state and PKCE without proving the returning browser. The follow-up
+now requires an independent cookie proof and covers separate browser cookie
+jars, encrypted persistence and replay with synthetic provider responses.
+Matching stored ownership metadata alone remains insufficient. Before
+enablement, accept the same-origin Web flow in real browsers and resolve the
+separate Capacitor transaction binding. Do not improvise a bearer-in-URL native handoff.
 See [OAuth security BCP](https://www.rfc-editor.org/rfc/rfc9700.html#section-2.1.1).
 
-Copied Google Files also enter the diary's raw owner-local IndexedDB checkpoint.
+The original Google flow copied Files into the diary's raw IndexedDB checkpoint;
+that new-copy path now uses memory-only Files and byte-free local descriptors.
 Provider credentials and URLs are excluded and server payloads are encrypted,
 but that does not encrypt copied photo bytes on the device. Disclosure alone
 does not establish Google's required secure storage. See [Google's secure
@@ -32,10 +42,11 @@ operating-environment policy](https://developers.google.com/photos/support/api-p
 The seven-day window is recovery expiry since the last checkpoint, not a
 physical deletion timer that runs while the browser is closed.
 
-Enablement requires a reviewed encrypted recovery or nonpersistent provider-file
-path that preserves Save, uncertain outcomes, idempotency, reordering and mixed
-device/provider drafts. Do not remove Files from a snapshot without accounting
-for its stored attachment ordering and unknown-result recovery identity.
+The new nonpersistent path preserves Save, uncertain outcomes, idempotency,
+ordering, sensitivity and mixed device/provider drafts. Missing photos retain
+explicit slots; available server uploads are reloaded with current authorization.
+Old client/task admission is blocked by the versioned recovery-policy contract.
+Independent review and actual device/provider acceptance remain before enablement.
 
 ## Enforcement and privacy lifecycle
 

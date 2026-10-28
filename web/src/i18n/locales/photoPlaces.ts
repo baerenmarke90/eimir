@@ -6,6 +6,8 @@ const photoPlaces = {
     'Enthält ein ausgewähltes Foto einen Aufnahmeort, ergänzen wir ihn beim Speichern eines gemeinsamen Moments. Für Ortsname und Adresse werden die Koordinaten und deine Sprache an den eingerichteten Ortsdienst übermittelt (standardmäßig Photon). Fotos und Kontodaten werden dabei nicht übermittelt. Private Herzmomente bleiben privat.',
   future:
     'Wenn du dies ausschaltest, werden künftig keine Foto-Orte ergänzt. Bereits gespeicherte Orte bleiben erhalten.',
+  metadata:
+    'Bildmetadaten wie Aufnahmedatum oder Ort können in der Fotodatei erhalten bleiben – auch wenn die automatische Ortszuordnung aus ist.',
   loading: 'Einstellung wird geladen …',
   saving: 'Wird gespeichert …',
   saved: 'Gespeichert',

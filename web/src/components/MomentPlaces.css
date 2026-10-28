@@ -62,3 +62,32 @@
   min-width: var(--space-12);
   min-height: var(--space-12);
 }
+
+.moment-places-compact .moment-place-pin {
+  color: var(--color-private);
+  margin-block-start: var(--space-1);
+}
+.moment-places-compact .moment-place-context {
+  gap: 0;
+}
+.moment-places-compact .moment-place-context strong {
+  font-weight: 500;
+  margin-block-end: var(--space-1);
+}
+.moment-places-compact .moment-place-address {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  min-height: 44px;
+  align-items: flex-start;
+  padding-block: var(--space-1);
+}
+.moment-places-compact .moment-place-attribution {
+  font: var(--font-supporting-copy);
+  text-decoration: none;
+  min-height: 44px;
+}
+.moment-places-compact .moment-place-address:hover,
+.moment-places-compact .moment-place-attribution:hover {
+  text-decoration: underline;
+}

@@ -330,6 +330,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         if_match=True,
         resource_absence="RESOURCE_NOT_FOUND",
     ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/attachments/{attachmentId}/reaction",
+        body={"reaction": "LOVE"},
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/heart-moments"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/heart-moments", body=HEART_MOMENT),
     Endpoint(

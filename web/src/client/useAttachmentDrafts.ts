@@ -19,6 +19,9 @@ import {
 } from './memoryAttachmentDraft';
 import { createOwnedObjectUrl, type OwnedObjectUrl } from './objectUrlResource';
 import type { ReferenceApis } from './referenceFlow';
+import { recoverSelectedPhoto } from './recoverSelectedPhoto';
+import { selectedPhotoUnavailable } from './selectedMediaRetention';
+import { i18n } from '../i18n';
 
 /**
  * How many automatic draft uploads run at once (#701). A small, fixed queue
@@ -270,7 +273,11 @@ export function useAttachmentDrafts({
         file,
         updatePhase,
         fetchApi,
-        { signal: controller.signal, onProgress: updateProgress },
+        {
+          signal: controller.signal,
+          onProgress: updateProgress,
+          preserveMetadata: true,
+        },
       )
         .then(({ attachmentId }) => {
           uploads.current.delete(id);
@@ -351,9 +358,12 @@ export function useAttachmentDrafts({
 
       for (const { file, attachmentId, isSensitive } of accepted) {
         const id = globalThis.crypto.randomUUID();
-        const previewResource = createOwnedObjectUrl(file);
-        const previewUrl = previewResource.url;
-        previewUrls.current.set(id, previewResource);
+        const unavailable = selectedPhotoUnavailable(file);
+        const previewResource = unavailable
+          ? undefined
+          : createOwnedObjectUrl(file);
+        const previewUrl = previewResource?.url ?? '';
+        if (previewResource) previewUrls.current.set(id, previewResource);
         draftCount.current += 1;
         dispatch({
           type: 'draft_action',
@@ -365,15 +375,22 @@ export function useAttachmentDrafts({
               id,
               file,
               previewUrl,
-              status: attachmentId ? 'ready' : 'uploading',
+              status: unavailable
+                ? 'failed'
+                : attachmentId
+                  ? 'ready'
+                  : 'uploading',
               attempt: 0,
               progress: attachmentId ? 100 : 0,
               attachmentId,
               isSensitive: isSensitive ?? false,
+              error: unavailable
+                ? i18n.t('memory.diary.photoUnavailable')
+                : undefined,
             },
           },
         });
-        if (!attachmentId) enqueue(id, file);
+        if (!attachmentId && !unavailable) enqueue(id, file);
       }
     },
     [enqueue, maxAttachments],
@@ -453,8 +470,68 @@ export function useAttachmentDrafts({
   );
 
   const retry = useCallback(
-    (draft: AttachmentDraft) => enqueue(draft.id, draft.file),
-    [enqueue],
+    (draft: AttachmentDraft) => {
+      if (!selectedPhotoUnavailable(draft.file)) {
+        enqueue(draft.id, draft.file);
+        return;
+      }
+      uploads.current.get(draft.id)?.abort();
+      const controller = new AbortController();
+      uploads.current.set(draft.id, controller);
+      const context = committedContextKey.current;
+      const generation = currentGeneration.current;
+      const endpoint = selectionEndpoint.current;
+      const current = () =>
+        mounted.current &&
+        !controller.signal.aborted &&
+        context === committedContextKey.current &&
+        endpoint === selectionEndpoint.current &&
+        generation === currentGeneration.current;
+      void recoverSelectedPhoto(
+        apis,
+        spaceId,
+        draft.file,
+        draft.attachmentId,
+        controller.signal,
+      )
+        .then((file) => {
+          if (!current()) return;
+          const preview = createOwnedObjectUrl(file);
+          previewUrls.current.get(draft.id)?.dispose();
+          previewUrls.current.set(draft.id, preview);
+          dispatch({
+            type: 'draft_action',
+            contextKey: context,
+            generation,
+            action: {
+              type: 'recovered',
+              id: draft.id,
+              file,
+              previewUrl: preview.url,
+            },
+          });
+        })
+        .catch(() => {
+          if (current())
+            dispatch({
+              type: 'draft_action',
+              contextKey: context,
+              generation,
+              action: {
+                type: 'failed',
+                id: draft.id,
+                attempt: draft.attempt,
+                keepAttachmentId: true,
+                error: i18n.t('memory.diary.photoUnavailable'),
+              },
+            });
+        })
+        .finally(() => {
+          if (uploads.current.get(draft.id) === controller)
+            uploads.current.delete(draft.id);
+        });
+    },
+    [apis, spaceId, enqueue],
   );
 
   const clear = useCallback(() => {

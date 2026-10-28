@@ -62,12 +62,16 @@ class AttachmentPayload(ProtectedPayload):
     this payload. The allowlisted fields remain inside the protected payload
     rather than columns so capture time does not accidentally become sortable,
     indexable server metadata.
+
+    ``preserve_metadata`` is transient worker intent for selected moment primary
+    files (ADR 0014), independent of permission to associate a Place.
     """
 
     original_name: str
     is_sensitive: bool = False
     captured_at: datetime | None = None
     orientation: int | None = None
+    preserve_metadata: bool = False
 
 
 class Attachment(

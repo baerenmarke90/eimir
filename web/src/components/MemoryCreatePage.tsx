@@ -33,7 +33,7 @@ import {
 } from '../client/memoryCreateIdentity';
 import type { MemoryDiaryDraft } from '../client/memoryDiaryDraft';
 import {
-  type ClientProblemError,
+  ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
 import { createReferenceApis } from '../client/referenceFlow';
@@ -41,6 +41,11 @@ import { memoryDetailPath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
 import { useMemoryDiaryDraft } from '../client/useMemoryDiaryDraft';
+import { recoverSelectedPhoto } from '../client/recoverSelectedPhoto';
+import {
+  memoryOnlyPhotoDescriptor,
+  selectedPhotoUnavailable,
+} from '../client/selectedMediaRetention';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
@@ -102,6 +107,12 @@ export function MemoryCreatePage({
   const attemptRef = useRef<MemoryCreateAttempt | null>(null);
   const recoveredDraft = useRef(false);
   const recoveryUpload = useRef<AbortController | null>(null);
+  const recoveryScope = JSON.stringify([apiBaseUrl, accountId, spaceId]);
+  const recoveryScopeRef = useRef(recoveryScope);
+  useLayoutEffect(() => {
+    recoveryScopeRef.current = recoveryScope;
+    return () => recoveryUpload.current?.abort();
+  }, [recoveryScope]);
   const outcomeHeadingRef = useRef<HTMLHeadingElement>(null);
   const outcomeNoticeRef = useRef<HTMLElement>(null);
   const [partial, setPartial] = useState<MemoryAttachmentBindingError | null>(
@@ -158,6 +169,18 @@ export function MemoryCreatePage({
     accountId,
     maxAttachments: MAX_MEMORY_ATTACHMENTS,
   });
+  // A missing local preview must not block the exact known-created binding.
+  // The retry still checks current server metadata before using these IDs.
+  const hasBlockingPhotoFailure = attachments.items.some(
+    (item, index) =>
+      item.status === 'failed' &&
+      !(
+        partial &&
+        partial.attachmentIds.length === attachments.items.length &&
+        selectedPhotoUnavailable(item.file) &&
+        item.attachmentId === partial.attachmentIds[index]
+      ),
+  );
   const dirty = Boolean(
     title ||
       body ||
@@ -180,7 +203,10 @@ export function MemoryCreatePage({
         ({ file, attachmentId, status, isSensitive }) => ({
           file,
           isSensitive: isSensitive ?? false,
-          attachmentId: status === 'ready' ? attachmentId : undefined,
+          attachmentId:
+            status === 'ready' || selectedPhotoUnavailable(file)
+              ? attachmentId
+              : undefined,
         }),
       ),
       attempt: null,
@@ -205,29 +231,68 @@ export function MemoryCreatePage({
 
   async function resumeDraft() {
     const draft = diaryDraft.recovery;
-    if (!draft || !(await diaryDraft.checkpoint(draft, true))) return;
-    setTitle(draft.title);
-    setBody(draft.body);
-    setTags(draft.tags);
-    setTagDraftText(draft.tagDraft ?? '');
-    setTagDraftDirty(Boolean(draft.tagDraft));
-    setHappenedOn(draft.happenedOn);
-    setDetailsOpen(Boolean(draft.title || draft.tags.length || draft.tagDraft));
-    attachments.restore(draft.files);
-    recoveredDraft.current = true;
-    attemptRef.current = draft.attempt;
-    setUncertain(Boolean(draft.attempt));
-    setVerifiable(!draft.attempt || canStillReconcile(draft.attempt));
-    if (draft.partial)
-      setPartial(
-        new MemoryAttachmentBindingError(
-          draft.partial.memory,
-          draft.partial.attachmentIds,
-          new Error('Restored attachment binding'),
-          draft.partial.attachmentSensitivity,
-        ),
+    if (!draft || owner.current.pending) return;
+    owner.current.pending = true;
+    setPending(true);
+    const controller = new AbortController();
+    const scope = recoveryScopeRef.current;
+    recoveryUpload.current = controller;
+    try {
+      // Explicit Resume is the consent boundary for conservative legacy migration.
+      if (!(await diaryDraft.checkpoint(draft, true)) || !owner.current.active)
+        return;
+      const files = [];
+      for (const entry of draft.files) {
+        controller.signal.throwIfAborted();
+        let file = entry.file;
+        try {
+          file = await recoverSelectedPhoto(
+            apis,
+            spaceId,
+            file,
+            entry.attachmentId,
+            controller.signal,
+          );
+        } catch {
+          // Keep an honest missing slot and the original attachment identity.
+          controller.signal.throwIfAborted();
+        }
+        files.push({ ...entry, file });
+      }
+      controller.signal.throwIfAborted();
+      if (!owner.current.active || scope !== recoveryScopeRef.current) return;
+      setTitle(draft.title);
+      setBody(draft.body);
+      setTags(draft.tags);
+      setTagDraftText(draft.tagDraft ?? '');
+      setTagDraftDirty(Boolean(draft.tagDraft));
+      setHappenedOn(draft.happenedOn);
+      setDetailsOpen(
+        Boolean(draft.title || draft.tags.length || draft.tagDraft),
       );
-    diaryDraft.acceptRecovery();
+      attachments.restore(files);
+      recoveredDraft.current = true;
+      attemptRef.current = draft.attempt;
+      setUncertain(Boolean(draft.attempt));
+      setVerifiable(!draft.attempt || canStillReconcile(draft.attempt));
+      if (draft.partial)
+        setPartial(
+          new MemoryAttachmentBindingError(
+            draft.partial.memory,
+            draft.partial.attachmentIds,
+            new Error('Restored attachment binding'),
+            draft.partial.attachmentSensitivity,
+          ),
+        );
+      diaryDraft.acceptRecovery();
+    } catch (error) {
+      if (owner.current.active && !controller.signal.aborted)
+        setProblem(await normalizeClientError(error));
+    } finally {
+      if (recoveryUpload.current === controller) recoveryUpload.current = null;
+      owner.current.pending = false;
+      if (owner.current.active) setPending(false);
+    }
   }
 
   // null when happenedOn cannot be parsed (e.g. an out-of-range year the
@@ -329,6 +394,13 @@ export function MemoryCreatePage({
       }
       const normalized = await normalizeClientError(error);
       if (!session.active) return;
+      if (partial) {
+        // A failed metadata read cannot make a confirmed Memory unknown.
+        // Keep its binding retry available without another create identity.
+        setProblem(normalized);
+        setUncertain(false);
+        return;
+      }
       const outcomeUnknown = ['offline', 'server', 'unknown'].includes(
         normalized.kind,
       );
@@ -375,7 +447,7 @@ export function MemoryCreatePage({
       owner.current.pending ||
       uncertain ||
       attachments.hasPending ||
-      attachments.items.some((item) => item.status === 'failed')
+      hasBlockingPhotoFailure
     )
       return;
     if (!navigator.onLine) {
@@ -399,7 +471,11 @@ export function MemoryCreatePage({
               },
             }))
           )
-            throw new Error('Draft ownership unavailable');
+            throw new ClientProblemError(
+              'validation',
+              422,
+              'MEMORY_DRAFT_RECOVERY_REQUIRED',
+            );
           return completeMemoryAttachmentBinding(
             apis,
             spaceId,
@@ -485,7 +561,7 @@ export function MemoryCreatePage({
           draft.file,
           undefined,
           fetch,
-          { signal: controller.signal },
+          { signal: controller.signal, preserveMetadata: true },
         );
       } finally {
         if (recoveryUpload.current === controller)
@@ -503,7 +579,13 @@ export function MemoryCreatePage({
     attempt: MemoryCreateAttempt,
     reconcile: boolean,
   ) {
-    const recovered = await recoverReadyFiles(attempt.attachmentIds);
+    // Verify the original operation first. A missing volatile File must never
+    // force a new create identity or erase a Memory that already exists.
+    const recovered =
+      reconcile &&
+      draftSnapshot.files.some(({ file }) => memoryOnlyPhotoDescriptor(file))
+        ? { ids: [...attempt.attachmentIds], files: draftSnapshot.files }
+        : await recoverReadyFiles(attempt.attachmentIds);
     const verifiedAttempt = { ...attempt, attachmentIds: recovered.ids };
     attemptRef.current = verifiedAttempt;
     const allowed = await diaryDraft.checkpoint({
@@ -512,7 +594,11 @@ export function MemoryCreatePage({
       attempt: verifiedAttempt,
     });
     if (!owner.current.active || !allowed)
-      throw new Error('Draft ownership unavailable');
+      throw new ClientProblemError(
+        'validation',
+        422,
+        'MEMORY_DRAFT_RECOVERY_REQUIRED',
+      );
     return createMemoryWithReadyAttachments(
       apis,
       spaceId,
@@ -577,13 +663,21 @@ export function MemoryCreatePage({
           >
             <h2>{t('memory.diary.resumeTitle')}</h2>
             <p>{t('memory.diary.resumeBody')}</p>
+            {diaryDraft.recovery.legacyMedia ? (
+              <p>{t('memory.diary.legacyMedia')}</p>
+            ) : null}
             <div className="memory-actions">
-              <button type="button" onClick={() => void resumeDraft()}>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => void resumeDraft()}
+              >
                 {t('memory.diary.resume')}
               </button>
               <button
                 type="button"
                 className="secondary"
+                disabled={pending}
                 onClick={() => void diaryDraft.discardRecovery()}
               >
                 {t('memory.diary.startNew')}
@@ -727,7 +821,19 @@ export function MemoryCreatePage({
           !uncertain &&
           !partial ? (
             <p className="memory-draft-status" role="status">
-              {t(`memory.diary.draft.${diaryDraft.status}`)}
+              {t(
+                diaryDraft.status === 'unavailable' &&
+                  attachments.items.some(({ file }) =>
+                    memoryOnlyPhotoDescriptor(file),
+                  )
+                  ? 'memory.diary.draft.memoryOnlyUnavailable'
+                  : diaryDraft.status === 'saved' &&
+                      attachments.items.some(({ file }) =>
+                        memoryOnlyPhotoDescriptor(file),
+                      )
+                    ? 'memory.diary.draft.memoryOnly'
+                    : `memory.diary.draft.${diaryDraft.status}`,
+              )}
             </p>
           ) : null}
           <div className="form-actions">
@@ -748,7 +854,7 @@ export function MemoryCreatePage({
                 pending ||
                 uncertain ||
                 attachments.hasPending ||
-                attachments.items.some((item) => item.status === 'failed')
+                hasBlockingPhotoFailure
               }
             >
               {pending
@@ -825,6 +931,9 @@ export function MemoryCreatePage({
           <section className="inline-message" role="alert">
             <h2>{t('taskBoundary.partialTitle')}</h2>
             <p>{t('taskBoundary.partialBody')}</p>
+            {problem?.code === 'MEMORY_DRAFT_RECOVERY_REQUIRED' ? (
+              <p>{t('memory.diary.recoveryRequired')}</p>
+            ) : null}
             {problem?.kind === 'conflict' ? (
               <p>{t('states.conflict.body')}</p>
             ) : null}
@@ -848,6 +957,8 @@ export function MemoryCreatePage({
             </h2>
             <p>{t('taskBoundary.deletedBody')}</p>
           </section>
+        ) : problem?.code === 'MEMORY_DRAFT_RECOVERY_REQUIRED' ? (
+          <p role="alert">{t('memory.diary.recoveryRequired')}</p>
         ) : problem ? (
           <ProblemState error={problem} />
         ) : null}

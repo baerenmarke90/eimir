@@ -39,6 +39,11 @@ const PROSE_CASES = [
     title: 'M wie Anfang',
     body: 'Mitten in der Nacht sind wir aufgewacht, weil es draußen so heftig gewittert hat.',
   },
+  {
+    id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+    title: 'Kleiner Anfang',
+    body: 'we enjoyed the morning together.\n\nLater we went for a walk.',
+  },
 ] as const;
 
 function localToday(): string {
@@ -984,7 +989,7 @@ test('Milestone Create defaults the date to local today and stays typeable', asy
 });
 
 for (const colorScheme of ['light', 'dark'] as const) {
-  test(`Memory Detail keeps authored prose readable without decorative initials (${colorScheme})`, async ({
+  test(`Memory Detail keeps authored prose readable with the restored initial (${colorScheme})`, async ({
     page,
   }, testInfo) => {
     await page.emulateMedia({ colorScheme });
@@ -1000,11 +1005,23 @@ for (const colorScheme of ['light', 'dark'] as const) {
     const body = page.locator('.memory-detail-body');
     await expect(body).toBeVisible();
     await expect(body).toHaveText(MEMORY_BODY);
-    await expect(body.locator('.drop-cap-letter')).toHaveCount(0);
+    const initial = body.locator('.drop-cap-letter');
+    await expect(initial).toHaveText('W');
     const fontSize = await body.evaluate((el) =>
       Number.parseFloat(getComputedStyle(el).fontSize),
     );
     expect(fontSize).toBeGreaterThanOrEqual(16);
+    const initialStyle = await initial.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return {
+        fontSize: Number.parseFloat(style.fontSize),
+        textTransform: style.textTransform,
+        float: style.float,
+      };
+    });
+    expect(initialStyle.fontSize).toBeGreaterThan(fontSize);
+    expect(initialStyle.textTransform).toBe('uppercase');
+    expect(initialStyle.float).toBe('none');
 
     await page.screenshot({
       path: testInfo.outputPath(`memory-detail-prose-${colorScheme}.png`),
@@ -1057,9 +1074,12 @@ for (const width of [390, 1440]) {
     for (const memoryCase of PROSE_CASES) {
       await page.goto(`/story/memories/${memoryCase.id}`);
       await expect(page.locator('.memory-detail-body')).toHaveText(
-        memoryCase.body,
+        memoryCase.body.split(/\n\n/),
       );
-      await expect(page.locator('.drop-cap-letter')).toHaveCount(0);
+      const initial = page.locator('.drop-cap-letter');
+      await expect(initial).toHaveCount(1);
+      await expect(initial).toHaveText(memoryCase.body[0]);
+      await expect(initial).toHaveCSS('text-transform', 'uppercase');
       await expectNoHorizontalOverflow(page);
     }
   });

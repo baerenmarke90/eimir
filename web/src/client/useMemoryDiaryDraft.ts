@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTaskActivation } from './useTaskActivation';
+import { memoryOnlyPhotoDescriptor } from './selectedMediaRetention';
 import {
   MemoryDiaryDraftStore,
   MemoryDraftOwnershipError,
@@ -97,7 +98,12 @@ export function useMemoryDiaryDraft({
               : 'unavailable',
           );
         // A tab that lost ownership must never publish a stale recovered task.
-        return !(error instanceof MemoryDraftOwnershipError);
+        const requiresJournal =
+          Boolean(value.attempt || value.partial) &&
+          value.files.some(({ file }) => memoryOnlyPhotoDescriptor(file));
+        return (
+          !(error instanceof MemoryDraftOwnershipError) && !requiresJournal
+        );
       }
     },
     [captureOwnership, initialization, store],

@@ -1,5 +1,11 @@
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import type { MemoryCreateAttempt } from './memoryCreateIdentity';
+import {
+  memoryOnlyPhotoDescriptor,
+  missingSelectedPhoto,
+  retainPhotoInMemory,
+  type SelectedPhotoDescriptor,
+} from './selectedMediaRetention';
 
 /** Owner-local work, never a shared read-cache entry or an offline outbox. */
 export interface MemoryDiaryDraft {
@@ -15,6 +21,47 @@ export interface MemoryDiaryDraft {
     attachmentIds: readonly string[];
     attachmentSensitivity?: readonly boolean[];
   } | null;
+  /** Old records have no trustworthy photo provenance; migrate only on Resume. */
+  legacyMedia?: boolean;
+}
+
+type StoredPhoto =
+  | MemoryDiaryDraft['files'][number]
+  | {
+      selectedPhoto: SelectedPhotoDescriptor;
+      attachmentId?: string;
+      isSensitive?: boolean;
+    };
+type StoredDraft = Omit<MemoryDiaryDraft, 'files'> & { files: StoredPhoto[] };
+
+function checkpointValue(value: MemoryDiaryDraft): StoredDraft {
+  return {
+    ...value,
+    legacyMedia: false,
+    files: value.files.map(({ file, attachmentId, isSensitive }) => {
+      if (value.legacyMedia) retainPhotoInMemory(file);
+      const selectedPhoto = memoryOnlyPhotoDescriptor(file);
+      return selectedPhoto
+        ? { selectedPhoto: { ...selectedPhoto }, attachmentId, isSensitive }
+        : { file, attachmentId, isSensitive };
+    }),
+  };
+}
+
+function restoreValue(record: DraftRecord): MemoryDiaryDraft {
+  return {
+    ...record.value,
+    legacyMedia: record.format !== 3 && record.value.files.length > 0,
+    files: record.value.files.map((entry) =>
+      'selectedPhoto' in entry
+        ? {
+            file: missingSelectedPhoto(entry.selectedPhoto),
+            attachmentId: entry.attachmentId,
+            isSensitive: entry.isSensitive,
+          }
+        : entry,
+    ),
+  };
 }
 
 interface DraftRecord {
@@ -22,7 +69,8 @@ interface DraftRecord {
   epoch: string;
   owner: string;
   expiresAt: number;
-  value: MemoryDiaryDraft;
+  value: StoredDraft;
+  format?: 3;
 }
 
 const DATABASE = 'eimir-memory-drafts-v1';
@@ -155,7 +203,7 @@ export class MemoryDiaryDraftStore {
             const record = request.result as DraftRecord | undefined;
             if (record?.epoch === this.epoch && record.expiresAt > Date.now()) {
               this.owner = record.owner;
-              result = record.value;
+              result = restoreValue(record);
             } else if (record) {
               store.delete(this.key);
             }
@@ -183,13 +231,13 @@ export class MemoryDiaryDraftStore {
   }
 
   save(value: MemoryDiaryDraft): Promise<void> {
-    return this.mutate(value);
+    return this.mutate(checkpointValue(value));
   }
   clear(): Promise<void> {
     return this.mutate(null);
   }
 
-  private mutate(value: MemoryDiaryDraft | null): Promise<void> {
+  private mutate(value: StoredDraft | null): Promise<void> {
     const work = this.tail
       .catch(() => undefined)
       .then(async () => {
@@ -208,15 +256,23 @@ export class MemoryDiaryDraftStore {
                 tx.abort();
                 return;
               }
-              if (value && this.epoch)
-                store.put({
-                  key: this.key,
-                  epoch: this.epoch,
-                  owner: this.writer,
-                  expiresAt: Date.now() + MEMORY_DRAFT_MAX_AGE_MS,
-                  value,
-                } satisfies DraftRecord);
-              else store.delete(this.key);
+              try {
+                if (value && this.epoch)
+                  store.put({
+                    key: this.key,
+                    epoch: this.epoch,
+                    owner: this.writer,
+                    expiresAt: Date.now() + MEMORY_DRAFT_MAX_AGE_MS,
+                    value,
+                    format: 3,
+                  } satisfies DraftRecord);
+                else store.delete(this.key);
+              } catch {
+                // Quota/serialization failures may be synchronous. Do not let
+                // them escape an IndexedDB event handler as an unhandled error.
+                reject(new Error('Draft write failed'));
+                tx.abort();
+              }
             };
             tx.oncomplete = () => {
               this.owner = value ? this.writer : null;

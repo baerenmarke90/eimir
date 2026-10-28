@@ -22,7 +22,9 @@ NOW = datetime(2026, 10, 29, 12, tzinfo=UTC)
 
 
 @pytest.fixture
-def context(session: Session):  # type: ignore[no-untyped-def]
+def context(session: Session, monkeypatch):  # type: ignore[no-untyped-def]
+    # Issue and validate real sessions against the same authoritative instant.
+    monkeypatch.setattr(dashboard_service.clock, "now", lambda: NOW)
     anna = make_account(session, "Anna")
     ben = make_account(session, "Ben")
     outsider = make_account(session, "Outside")

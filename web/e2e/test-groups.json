@@ -337,7 +337,7 @@
     },
     "relationship-reflections.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 8,
+      "baselineTests": 9,
       "reason": "Special Plan confirmed highlight, Today duplicate suppression and return; Pro passport capability and canonical shared content access across Compact Light/Dark and Expanded."
     }
   }

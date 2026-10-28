@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useId } from 'react';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { planningIfMatch } from '../client/sharedPlanning';
@@ -14,6 +13,7 @@ import {
 } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
+import { PreferenceSwitch } from './PreferenceSwitch';
 import './RelationshipReflections.css';
 
 export function PlanAnticipationControl({
@@ -28,8 +28,6 @@ export function PlanAnticipationControl({
   disabled: boolean;
 }) {
   const { t } = useTranslation();
-  const labelId = useId();
-  const helpId = useId();
   const client = useQueryClient();
   const key = authorSummaryQueryKeys.planDetail(spaceId, plan.id);
   const mutationKey = ['plan-write', spaceId, plan.id] as const;
@@ -41,6 +39,7 @@ export function PlanAnticipationControl({
       ownsRead: () => boolean;
       ownsDashboard: () => boolean;
       starting: PlanDetail;
+      desired: boolean;
     }) => {
       await client.cancelQueries({ queryKey: key, exact: true });
       assertOnlineWrite();
@@ -70,19 +69,26 @@ export function PlanAnticipationControl({
       }
     },
   });
-  function toggle() {
+  function toggle(desired?: boolean) {
     if (disabled || client.isMutating({ mutationKey, exact: true }) > 0) return;
     const ownsRead = captureAuthorizedQuery(client, key);
     const starting = client.getQueryData<PlanDetail>(key);
     if (!ownsRead() || !starting) return;
+    const next = desired ?? !starting.anticipationEnabled;
+    // Retry the original intent; a newer confirmed read may already satisfy it.
+    if (starting.anticipationEnabled === next) {
+      mutation.reset();
+      return;
+    }
     const request = {
       spaceId,
       planId: starting.id,
       ifMatch: planningIfMatch(starting),
-      planUpdate: { anticipationEnabled: !starting.anticipationEnabled },
+      planUpdate: { anticipationEnabled: next },
     };
     mutation.mutate({
       starting,
+      desired: next,
       ownsRead,
       ownsDashboard: captureAuthorizedQuery(client, dashboardQueryKey(spaceId)),
       send: () => apis.plans.updatePlan(request),
@@ -90,31 +96,22 @@ export function PlanAnticipationControl({
   }
   return (
     <section className="plan-anticipation-control" data-color-world="natural">
-      <label className="choice-row">
-        <input
-          type="checkbox"
-          role="switch"
-          aria-labelledby={labelId}
-          aria-describedby={helpId}
-          checked={plan.anticipationEnabled ?? false}
-          disabled={disabled || mutation.isPending}
-          onChange={toggle}
-        />
-        <span>
-          <strong id={labelId}>
-            {t('relationshipReflections.anticipation.show')}
-          </strong>
-          <small id={helpId}>
-            {t('relationshipReflections.anticipation.help')}
-          </small>
-        </span>
-      </label>
+      <PreferenceSwitch
+        label={t('relationshipReflections.anticipation.show')}
+        description={t('relationshipReflections.anticipation.help')}
+        checked={plan.anticipationEnabled ?? false}
+        disabled={disabled || mutation.isPending}
+        onCheckedChange={toggle}
+      />
       {mutation.isPending ? <p role="status">{t('common.saving')}</p> : null}
       {mutation.isSuccess ? (
         <p role="status">{t('relationshipReflections.anticipation.saved')}</p>
       ) : null}
       {mutation.error ? (
-        <ProblemState error={mutation.error} onRetry={toggle} />
+        <ProblemState
+          error={mutation.error}
+          onRetry={() => toggle(mutation.variables?.desired)}
+        />
       ) : null}
     </section>
   );

@@ -1,5 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import copy from '../../src/i18n/locales/relationshipReflections';
+import de from '../../src/i18n/locales/de';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
@@ -14,7 +17,7 @@ import {
   captureScreenshot,
 } from '../support/storyTimelineFixture';
 
-const TITLE = 'Unser Wochenende am Meer';
+const TITLE = 'Our weekend by the sea';
 const PLAN = '44444444-4444-4444-8444-444444444444';
 const BASE = `/api/v1/spaces/${SPACE_ID}`;
 const DAY = '2099-11-10';
@@ -33,7 +36,7 @@ async function fixture(
     createdBy: ACCOUNT_ID,
     creator: ME,
     title: TITLE,
-    description: 'Zeit für uns, frische Meeresluft und lange Spaziergänge.',
+    description: 'Time together, fresh sea air and long walks.',
     plannedOn: DAY,
     plannedStart: null,
     plannedEnd: null,
@@ -80,6 +83,8 @@ async function fixture(
         },
       });
     }
+    if (path === `${BASE}/profile-preferences`)
+      return route.fulfill({ json: [] });
     if (path === `${BASE}/configuration`)
       return route.fulfill({
         headers: { ETag: '"1"' },
@@ -119,7 +124,7 @@ async function fixture(
           keepsake: {
             type: 'MEMORY',
             id: 'mem-canal',
-            titleOrText: 'Unser Tag am See',
+            titleOrText: 'Our day by the lake',
             occurredOn: '2026-10-12',
             scheduledAt: null,
             createdAt: '2026-10-12T12:00:00Z',
@@ -211,14 +216,15 @@ async function fixture(
   };
 }
 
-for (const [width, theme] of [
-  [360, 'light'],
-  [390, 'dark'],
-  [430, 'light'],
-  [1280, 'dark'],
-  [320, 'light'],
+for (const [width, theme, largeText] of [
+  [360, 'light', false],
+  [390, 'dark', false],
+  [430, 'light', false],
+  [1280, 'dark', false],
+  [320, 'light', false],
+  [390, 'dark', true],
 ] as const) {
-  test(`special Plan -> Wir -> detail -> return and Pro passport at ${width} ${theme}`, async ({
+  test(`special Plan -> Wir -> detail -> return and Pro passport at ${width} ${theme}${largeText ? ' large text' : ''}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width, height: 900 });
@@ -227,10 +233,11 @@ for (const [width, theme] of [
     await signIn(page);
     await page.goto(`/plan/plans/${PLAN}`);
     const control = page.getByRole('switch', {
-      name: 'Vorfreude auf Wir zeigen',
+      name: copy.anticipation.show,
     });
     await expect(control).not.toBeChecked();
-    await control.click();
+    await control.focus();
+    await page.keyboard.press('Space');
     await expect(control).toBeChecked();
     expect(state.patches()).toBe(1);
     await captureScreenshot(
@@ -241,7 +248,9 @@ for (const [width, theme] of [
     );
     await page.getByRole('link', { name: 'Wir', exact: true }).click();
     const countdown = page.locator('.anticipation-card');
-    await expect(countdown).toContainText('Noch 12 Tage');
+    await expect(countdown).toContainText(
+      copy.anticipation.days_other.replace('{{count}}', '12'),
+    );
     await expect(countdown).toContainText('10.11.2099');
     await expect(
       page.locator('.today-agenda-row').filter({ hasText: TITLE }),
@@ -254,16 +263,27 @@ for (const [width, theme] of [
     );
     await countdown.click();
     await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN}$`));
-    await page.getByRole('button', { name: /Zurück/ }).click();
+    await page.getByRole('button', { name: taskBoundary.back }).click();
     await expect(page).toHaveURL(/\/today$/);
     await page.goto('/more/profile');
-    const passport = page.getByRole('region', { name: 'Euer Beziehungs-Pass' });
+    if (largeText)
+      await page.addStyleTag({
+        content: 'html { font-size: 200% !important; }',
+      });
+    const passport = page.getByRole('region', { name: copy.passport.title });
     await expect(
-      passport.getByRole('link', { name: '128 Erinnerungen' }),
+      passport.getByRole('link', {
+        name: `128 ${copy.passport.memories_other}`,
+      }),
     ).toBeVisible();
-    await captureScreenshot(page, info, `passport-pro-${width}-${theme}.png`, {
-      fullPage: true,
-    });
+    await captureScreenshot(
+      page,
+      info,
+      `passport-pro-${width}-${theme}${largeText ? '-large-text' : ''}.png`,
+      {
+        fullPage: true,
+      },
+    );
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth > window.innerWidth + 1,
@@ -273,12 +293,17 @@ for (const [width, theme] of [
       .include('.relationship-passport')
       .analyze();
     expect(results.violations).toEqual([]);
-    await passport.getByRole('link', { name: '128 Erinnerungen' }).click();
+    await passport
+      .getByRole('link', { name: `128 ${copy.passport.memories_other}` })
+      .click();
     await expect(page).toHaveURL(/\/story\?tab=timeline&type=MEMORY$/);
     await page.goBack();
     await expect(
-      page.getByRole('heading', { name: 'Euer Beziehungs-Pass' }),
+      page.getByRole('heading', { name: copy.passport.title }),
     ).toBeVisible();
+    await expect(
+      page.locator('.profile-preferences-section .ui-state-error'),
+    ).toHaveCount(0);
     expect(state.unexpected).toEqual([]);
   });
 }
@@ -289,9 +314,7 @@ test('Free profile explains Pro without requesting passport counts', async ({
   const state = await fixture(page, { pro: false });
   await signIn(page);
   await page.goto('/more/profile');
-  await expect(
-    page.getByText(/Mit eimir. Pro seht ihr eure gemeinsame Geschichte/),
-  ).toBeVisible();
+  await expect(page.getByText(copy.passport.locked)).toBeVisible();
   await expect(page.locator('.passport-metrics')).toHaveCount(0);
   expect(state.passportReads()).toBe(0);
   await captureScreenshot(page, info, 'passport-free.png', { fullPage: true });
@@ -305,14 +328,12 @@ test('failed highlight remains off with retry and no success claim', async ({
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN}`);
   const control = page.getByRole('switch', {
-    name: 'Vorfreude auf Wir zeigen',
+    name: copy.anticipation.show,
   });
   await control.click();
-  await expect(
-    page.getByText('eimir. ist gerade nicht erreichbar.'),
-  ).toBeVisible();
+  await expect(page.getByText(de.states.server.title)).toBeVisible();
   await expect(control).not.toBeChecked();
-  await expect(page.getByText('Vorfreude aktualisiert.')).toHaveCount(0);
+  await expect(page.getByText(copy.anticipation.saved)).toHaveCount(0);
   expect(state.patches()).toBe(1);
 });
 
@@ -322,7 +343,7 @@ test('hidden upcoming module also conceals a selected special event', async ({
   const state = await fixture(page, { hidden: true });
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN}`);
-  await page.getByRole('switch', { name: 'Vorfreude auf Wir zeigen' }).check();
+  await page.getByRole('switch', { name: copy.anticipation.show }).click();
   await page.getByRole('link', { name: 'Wir', exact: true }).click();
   await expect(page.locator('.today-content')).toBeVisible();
   await expect(page.locator('.anticipation-card')).toHaveCount(0);

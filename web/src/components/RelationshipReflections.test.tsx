@@ -96,9 +96,10 @@ describe('Special Plan anticipation', () => {
     fireEvent.click(toggle);
     await waitFor(() =>
       expect(
-        (screen.getByRole('switch', { name: label() }) as HTMLInputElement)
-          .checked,
-      ).toBe(true),
+        screen
+          .getByRole('switch', { name: label() })
+          .getAttribute('aria-checked'),
+      ).toBe('true'),
     );
     expect(update).toHaveBeenCalledTimes(1);
     expect(update.mock.calls[0]?.[0]).toMatchObject({
@@ -116,9 +117,10 @@ describe('Special Plan anticipation', () => {
     fireEvent.click(screen.getByRole('switch', { name: label() }));
     await screen.findByText(i18n.t('states.server.title'));
     expect(
-      (screen.getByRole('switch', { name: label() }) as HTMLInputElement)
-        .checked,
-    ).toBe(false);
+      screen
+        .getByRole('switch', { name: label() })
+        .getAttribute('aria-checked'),
+    ).toBe('false');
     expect(
       screen.queryByText(i18n.t('relationshipReflections.anticipation.saved')),
     ).toBeNull();
@@ -131,6 +133,38 @@ describe('Special Plan anticipation', () => {
     fireEvent.click(screen.getByRole('switch', { name: label() }));
     await screen.findByText(i18n.t('states.offline.title'));
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it('does not reverse the original intent when retry observes an already-confirmed value', async () => {
+    const { client, key, update, plan } = setupPlan(async () => {
+      throw new ClientProblemError('server');
+    });
+    fireEvent.click(screen.getByRole('switch', { name: label() }));
+    await screen.findByText(i18n.t('states.server.title'));
+    client.setQueryData(key, {
+      ...plan,
+      anticipationEnabled: true,
+      version: 2,
+    });
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('switch', { name: label() })
+          .getAttribute('aria-checked'),
+      ).toBe('true'),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('common.retry') }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByText(i18n.t('states.server.title'))).toBeNull(),
+    );
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(
+      screen
+        .getByRole('switch', { name: label() })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
   });
 
   it('rechecks read authorization after cancellation before dispatch', async () => {
@@ -150,9 +184,9 @@ describe('Special Plan anticipation', () => {
   });
 
   it.each([
-    [0, 'Heute ist es so weit'],
-    [1, 'Morgen ist es so weit'],
-    [12, 'Noch 12 Tage'],
+    [0, i18n.t('relationshipReflections.anticipation.today')],
+    [1, i18n.t('relationshipReflections.anticipation.tomorrow')],
+    [12, i18n.t('relationshipReflections.anticipation.days', { count: 12 })],
   ])(
     'renders %i remaining days with the absolute calendar date',
     (days, text) => {

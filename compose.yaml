@@ -40,6 +40,7 @@
         "EIMIR_MEDIA_ROOT": "/var/lib/eimir/media",
         "EIMIR_MEDIA_STORE": "local",
         "EIMIR_OIDC_CONNECTIONS": "[]",
+        "EIMIR_PHOTO_PLACE_GEOCODING_URL": "https://photon.komoot.io",
         "EIMIR_PHOTO_SOURCES_ENABLED": "${EIMIR_PHOTO_SOURCES_ENABLED:-true}",
         "EIMIR_PUBLIC_BASE_URL": "${EIMIR_PUBLIC_BASE_URL:?Set the existing instance value in Arcane}",
         "EIMIR_S3_ACCESS_KEY_ID": "",
@@ -71,7 +72,7 @@
         ],
         "timeout": "5s"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:0e86769a9c691112e383946900f256cb6500df518df6347a79c4175741c7e44c",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:2cab5962139f9ee2f5442512a524ba192a1c7c76623674780cce249756bf5683",
       "networks": {
         "app": {
           "aliases": [
@@ -111,7 +112,7 @@
       "environment": {
         "EIMIR_DATABASE_URL": "postgresql+psycopg://sidebyside:${POSTGRES_PASSWORD:?Set the existing instance value in Arcane}@eimir-test-postgres:5432/sidebyside"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:0e86769a9c691112e383946900f256cb6500df518df6347a79c4175741c7e44c",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:2cab5962139f9ee2f5442512a524ba192a1c7c76623674780cce249756bf5683",
       "networks": {
         "app": null
       },
@@ -130,7 +131,7 @@
       "environment": {
         "EIMIR_WEB_CSP_CONNECT_ORIGINS": ""
       },
-      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:1bab33947f0bc079aeb518071ea037551bf2d04891cb630f7961b4e5b698d13d",
+      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:2e1282e69c1d6eb1710562171b337cf5f1cb50e20b4026ddd7687f1ac5cf64fe",
       "networks": {
         "app": {},
         "proxy": {
@@ -175,6 +176,7 @@
         "EIMIR_MEDIA_ROOT": "/var/lib/eimir/media",
         "EIMIR_MEDIA_STORE": "local",
         "EIMIR_OIDC_CONNECTIONS": "[]",
+        "EIMIR_PHOTO_PLACE_GEOCODING_URL": "https://photon.komoot.io",
         "EIMIR_PHOTO_SOURCES_ENABLED": "${EIMIR_PHOTO_SOURCES_ENABLED:-true}",
         "EIMIR_PUBLIC_BASE_URL": "${EIMIR_PUBLIC_BASE_URL:?Set the existing instance value in Arcane}",
         "EIMIR_S3_ACCESS_KEY_ID": "",
@@ -193,7 +195,7 @@
         "EIMIR_WEBAUTHN_RP_ID": "${EIMIR_WEBAUTHN_RP_ID:?Set the existing instance value in Arcane}",
         "EIMIR_WEBAUTHN_RP_NAME": "eimir."
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:0e86769a9c691112e383946900f256cb6500df518df6347a79c4175741c7e44c",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:2cab5962139f9ee2f5442512a524ba192a1c7c76623674780cce249756bf5683",
       "networks": {
         "app": null
       },

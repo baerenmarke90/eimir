@@ -827,7 +827,8 @@ test.describe('Today R4: the living home of a relationship', () => {
         return node ? Math.round(node.getBoundingClientRect().top) : null;
       };
       return {
-        removedDateHeading: document.querySelectorAll('.today-date-heading').length,
+        removedDateHeading: document.querySelectorAll('.today-date-heading')
+          .length,
         headings: document.querySelectorAll('.today-content h1').length,
         avatar: top('.partner-avatar-pair-action'),
         avatarDiameter: document
@@ -1304,6 +1305,18 @@ test.describe('Today R4: the living home of a relationship', () => {
 
     await expectNoWcagViolations(page);
     await capture(page, testInfo, '320-reflow');
+
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+    const heroBounds = await page
+      .locator('.today-hero .partner-avatar-pair')
+      .evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, viewport: innerWidth };
+      });
+    expect(heroBounds.left).toBeGreaterThanOrEqual(0);
+    expect(heroBounds.right).toBeLessThanOrEqual(heroBounds.viewport);
   });
 
   test('keeps hero and `Demnächst` from consuming a small-height phone screen', async ({
@@ -1383,7 +1396,9 @@ test.describe('Today R4: the living home of a relationship', () => {
       const diameter = await page
         .locator('.today-hero .partner-avatar-primary')
         .evaluate((node) => node.getBoundingClientRect().width);
-      expect(diameter).toBeGreaterThanOrEqual(viewport.width >= 768 ? 140 : 105);
+      expect(diameter).toBeGreaterThanOrEqual(
+        viewport.width >= 768 ? 140 : 105,
+      );
       await capture(page, testInfo, viewport.name);
     }
   });

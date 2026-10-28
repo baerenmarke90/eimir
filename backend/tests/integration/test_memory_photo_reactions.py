@@ -15,9 +15,16 @@ from tests.integration.test_attachment_binding import (
 from tests.integration.test_attachment_binding import (
     couple as _couple,
 )
+from tests.support.encryption import EncryptionConfigurator
 
 pytestmark = [pytest.mark.integration, requires_database]
 couple = _couple
+
+
+@pytest.fixture(autouse=True, params=["disabled", "required"])
+def reaction_storage(request: pytest.FixtureRequest, encryption: EncryptionConfigurator) -> None:
+    """Exercise the Cloud encryption mode as well as ordinary test storage."""
+    encryption.apply(request.param)
 
 
 @pytest.fixture
@@ -35,7 +42,7 @@ def photo_memory(client, couple, session):  # type: ignore[no-untyped-def]
 
 
 def test_each_partner_sets_replaces_and_removes_only_their_own_reaction(
-    client, couple, photo_memory
+    client, couple, photo_memory, session
 ):  # type: ignore[no-untyped-def]
     path, photo, _ = photo_memory
     endpoint = f"{path}/attachments/{photo}/reaction"
@@ -44,6 +51,7 @@ def test_each_partner_sets_replaces_and_removes_only_their_own_reaction(
     assert first.json()["attachments"][0]["reactions"] == [
         {"reaction": "LOVE", "count": 1, "own": True}
     ]
+    session.expire_all()
     replay = client.put(endpoint, json={"reaction": "LOVE"}, headers=auth(couple["token_b"]))
     assert replay.json()["version"] == first.json()["version"]
     other = client.get(path, headers=auth(couple["token_a"]))

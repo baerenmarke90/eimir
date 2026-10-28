@@ -15,7 +15,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, Response
 from fastapi import status as http_status
-from pydantic import ConfigDict, field_validator, model_validator
+from pydantic import ConfigDict, StrictBool, field_validator, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 from eimir.api.authors import resolve_author_summaries, resolve_author_summary
@@ -120,6 +120,7 @@ class PlanUpdate(ApiModel):
     description: str | None = None
     place_id: UUID | None = None
     experienced_on: date | SkipJsonSchema[None] = None
+    anticipation_enabled: StrictBool | SkipJsonSchema[None] = None
 
     @model_validator(mode="after")
     def _validate_patch(self) -> Self:
@@ -131,6 +132,8 @@ class PlanUpdate(ApiModel):
             self.title = self.title.strip()
         if "experienced_on" in self.model_fields_set and self.experienced_on is None:
             raise ValueError("experiencedOn must not be null")
+        if "anticipation_enabled" in self.model_fields_set and self.anticipation_enabled is None:
+            raise ValueError("anticipationEnabled must not be null")
         return self
 
 
@@ -187,6 +190,7 @@ class PlanDetail(ApiModel):
     description: str | None
     status: PlanStatus
     planned_on: date | None = None
+    anticipation_enabled: bool = False
     planned_start: datetime | None
     planned_end: datetime | None
     experienced_on: date | None
@@ -234,6 +238,7 @@ def _plan_detail(
         description=plan.payload.description,
         status=PlanStatus(plan.status),
         planned_on=plan.planned_on,
+        anticipation_enabled=plan.anticipation_enabled,
         planned_start=plan.planned_start,
         planned_end=plan.planned_end,
         experienced_on=plan.experienced_on,
@@ -373,6 +378,7 @@ def update_plan(
         description=body.description,
         place_id=body.place_id,
         experienced_on=body.experienced_on,
+        anticipation_enabled=body.anticipation_enabled,
     )
     response.headers["ETag"] = etag_for(plan.version)
     return _plan_detail(session, authorization, plan)

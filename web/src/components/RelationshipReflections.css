@@ -1,0 +1,113 @@
+.anticipation-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  margin-block-end: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--color-shared-surface);
+  color: var(--color-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: background var(--duration-feedback) var(--easing-standard);
+}
+
+.anticipation-card .eyebrow {
+  color: inherit;
+  margin: 0;
+}
+.anticipation-countdown {
+  font: var(--font-personal-heading);
+}
+.anticipation-date {
+  font-variant-numeric: tabular-nums;
+}
+.anticipation-card:active {
+  background: var(--identity-hover);
+}
+
+.plan-anticipation-control {
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  background: var(--color-shared-surface);
+}
+.plan-anticipation-control .choice-row {
+  margin: 0;
+  min-height: 44px;
+}
+.plan-anticipation-control small {
+  display: block;
+  color: var(--color-text-secondary);
+}
+
+.relationship-passport {
+  padding: var(--space-5);
+  border-radius: var(--radius-card);
+  background: var(--identity-premium-surface);
+  overflow-wrap: anywhere;
+}
+.passport-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.passport-title h2 {
+  margin: 0;
+  font-family: var(--font-display);
+}
+.passport-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-block: var(--space-5);
+}
+.passport-identity > div {
+  min-width: 0;
+}
+.passport-duration {
+  margin: 0;
+  font-family: var(--font-display);
+  font: var(--font-content-heading);
+}
+.passport-support {
+  color: var(--color-text-secondary);
+}
+.passport-metrics {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4) 0 0;
+}
+.passport-metrics a {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding-block: var(--space-3);
+  min-height: 44px;
+  text-decoration: none;
+  color: var(--color-text);
+}
+.passport-metrics a > :last-child {
+  margin-inline-start: auto;
+  color: var(--color-link-text);
+}
+.passport-number {
+  font-size: 1.375rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.passport-pro-entry a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .anticipation-card {
+    transition: none;
+  }
+}
+@media (max-width: 360px) {
+  .passport-identity {
+    flex-wrap: wrap;
+  }
+}

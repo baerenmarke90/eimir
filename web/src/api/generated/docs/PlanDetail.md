@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`anticipationEnabled` | boolean
 `capabilities` | [ResourceCapabilities](ResourceCapabilities.md)
 `createdAt` | Date
 `createdBy` | string
@@ -31,6 +32,7 @@ import type { PlanDetail } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "anticipationEnabled": null,
   "capabilities": null,
   "createdAt": null,
   "createdBy": null,

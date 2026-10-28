@@ -37,6 +37,7 @@ import { ListEntryIconButton } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { PlanStoryContinuation } from './PlanStoryContinuation';
+import { PlanAnticipationControl } from './PlanAnticipationControl';
 import { ProblemState } from './ProblemState';
 import { usePlanCompletion } from './usePlanCompletion';
 import { UiState } from './UiState';
@@ -536,6 +537,19 @@ export function PlanProductPage({
               <p>{t('m5s3.plan.sharedBody')}</p>
             </div>
           </div>
+        ) : null}
+
+        {!isEditing &&
+        plan.status === 'PLANNED' &&
+        typeof plan.anticipationEnabled === 'boolean' &&
+        plan.capabilities.canEdit ? (
+          <PlanAnticipationControl
+            key={`${spaceId}:${plan.id}`}
+            apis={apis}
+            spaceId={spaceId}
+            plan={plan}
+            disabled={writesPending}
+          />
         ) : null}
 
         {plan.status === 'COMPLETED' && completion.isConfirmed ? (

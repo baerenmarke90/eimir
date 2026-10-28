@@ -10,11 +10,12 @@ from fastapi import APIRouter, Path, Response
 from pydantic import ConfigDict, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
-from eimir.api.deps import Authorization, DbSession
+from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.dashboard import preferences, service
 from eimir.dashboard.service import DashboardItemType
+from eimir.entitlements.models import Capability
 from eimir.relationship.models import DurationDisplayMode
 from eimir.story import service as story_service
 
@@ -55,6 +56,23 @@ class DashboardSharedStorySummary(ApiModel):
     milestones: int
 
 
+class DashboardAnticipation(ApiModel):
+    plan_id: UUID
+    title: str
+    event_on: date
+    days_remaining: int
+
+
+class RelationshipPassportView(ApiModel):
+    partner: DashboardPartner | None
+    relationship_duration: DashboardRelationshipDuration | None
+    memories: int
+    heart_moments: int
+    milestones: int
+    completed_plans: int
+    places: int
+
+
 class DashboardView(ApiModel):
     space: DashboardSpaceSummary
     relationship_duration: DashboardRelationshipDuration | None
@@ -66,6 +84,7 @@ class DashboardView(ApiModel):
     thinking_of_you_available_at: datetime | None
     # Additive contract: current servers return a day; older deployments omit it.
     viewer_local_date: date | None = None
+    anticipation: DashboardAnticipation | None = None
 
 
 class DashboardModulePreferenceUpdate(ApiModel):
@@ -137,6 +156,7 @@ def get_dashboard(
     """Return the shared-only relationship overview for one Space."""
     view = service.read_dashboard(session, authorization)
     shared_story_counts = story_service.read_shared_story_counts(session, authorization)
+    anticipation = service.read_anticipation(session, authorization)
     response.headers["Cache-Control"] = "private, no-store"
     return DashboardView(
         space=DashboardSpaceSummary(
@@ -167,6 +187,56 @@ def get_dashboard(
         ),
         thinking_of_you_available_at=view.thinking_of_you_available_at,
         viewer_local_date=view.viewer_local_date,
+        anticipation=(
+            DashboardAnticipation(
+                plan_id=anticipation.plan_id,
+                title=anticipation.title,
+                event_on=anticipation.event_on,
+                days_remaining=anticipation.days_remaining,
+            )
+            if anticipation is not None
+            else None
+        ),
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/relationship-passport",
+    response_model=RelationshipPassportView,
+    operation_id="getRelationshipPassport",
+    responses=problem_responses(401, 403, 404),
+)
+def get_relationship_passport(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+) -> RelationshipPassportView:
+    """Return the Pro presentation without gating any underlying Core data."""
+    ensure_capability(
+        session, authorization.space_id, Capability.RELATIONSHIP_PASSPORT, lock_grants=False
+    )
+    view = service.read_relationship_passport(session, authorization)
+    response.headers["Cache-Control"] = "private, no-store"
+    return RelationshipPassportView(
+        partner=(
+            DashboardPartner(id=view.partner.id, display_name=view.partner.display_name)
+            if view.partner is not None
+            else None
+        ),
+        relationship_duration=(
+            DashboardRelationshipDuration(
+                started_on=view.relationship_duration.started_on,
+                days_together=view.relationship_duration.days_together,
+                display_mode=view.relationship_duration.display_mode,
+            )
+            if view.relationship_duration is not None
+            else None
+        ),
+        memories=view.memories,
+        heart_moments=view.heart_moments,
+        milestones=view.milestones,
+        completed_plans=view.completed_plans,
+        places=view.places,
     )
 
 

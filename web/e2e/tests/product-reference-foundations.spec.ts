@@ -85,7 +85,7 @@ for (const theme of themes) {
     for (const width of widths) {
       await page.setViewportSize({ width, height: 844 });
       await openProof(page, `theme=${theme}`);
-      const photo = page.locator('.proof-photo .story-media-preview');
+      const photo = page.locator('.proof-photo img.story-media-preview');
       await expect(photo).toBeVisible();
       await assertReflow(page);
 

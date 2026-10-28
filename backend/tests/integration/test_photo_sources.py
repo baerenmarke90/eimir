@@ -420,3 +420,215 @@ def test_missing_match_headers_cannot_replace_or_disconnect_link(client, session
     after = client.get(path(owners) + "/photo-sources", headers=owners["a"]).json()
     assert after == before
     assert after["immichConnected"] is True
+
+
+@pytest.fixture
+def synthetic_google(monkeypatch):
+    from eimir.auth.tokens import generate_token
+
+    # Deliberately test the future binding behind the unchanged literal gate.
+    # No production setting or test application configuration enables Google.
+    monkeypatch.setattr(service, "google_import_available", lambda: True)
+    states = []
+
+    def authorization():
+        state = generate_token()
+        states.append(state)
+        return "https://accounts.google.com/synthetic", state, "synthetic-verifier"
+
+    monkeypatch.setattr(service.google_photos, "authorization", authorization)
+    exchange = Mock(return_value="synthetic-google-token")
+    monkeypatch.setattr(service.google_photos, "exchange", exchange)
+    picker = Mock()
+    picker.create.return_value = {
+        "id": "synthetic-picker",
+        "pickerUri": "https://photos.google.com/synthetic",
+    }
+    monkeypatch.setattr(service.google_photos, "GooglePhotoPicker", Mock(return_value=picker))
+    return states, exchange, picker
+
+
+def begin_google(browser, owners):
+    response = browser.post(
+        path(owners) + "/photo-selections",
+        headers=owners["a"],
+        json={"source": "google", "maxItems": 2, "consent": True},
+    )
+    assert response.status_code == 201, response.text
+    return UUID(response.json()["id"])
+
+
+def google_callback(browser, state, code="synthetic-code"):
+    return browser.get(
+        "/api/v1/photo-sources/google/callback",
+        params={"state": state, **({"code": code} if code else {})},
+        follow_redirects=False,
+    )
+
+
+def test_google_callback_requires_the_initiating_browser_and_consumes_once(
+    client, session, owners, synthetic_google
+):
+    from fastapi.testclient import TestClient
+
+    from eimir.photo_sources.browser_binding import cookie_name
+
+    states, exchange, _ = synthetic_google
+    grant(session, owners)
+    with (
+        TestClient(client.app, base_url="https://eimir.example") as initiating,
+        TestClient(client.app, base_url="https://eimir.example") as other,
+    ):
+        identifier = begin_google(initiating, owners)
+        state = states[0]
+        proof = initiating.cookies.get(cookie_name(state))
+        row = session.get(PhotoSelection, identifier)
+        assert row.payload.browser_binding_hash == hash_token(proof)
+        raw = session.execute(
+            text("SELECT payload FROM photo_source_selections WHERE id = :id"),
+            {"id": identifier},
+        ).scalar_one()
+        assert raw["_enc"] == 2
+        assert proof not in str(raw) and hash_token(proof) not in str(raw)
+        # Even the same Account bearer in another cookie jar cannot complete it.
+        other.headers.update(owners["a"])
+        denied = google_callback(other, state)
+        assert denied.status_code == 200 and "Location" not in denied.headers
+        exchange.assert_not_called()
+        session.refresh(row)
+        assert row.status == "AUTHORIZING" and row.state_hash == hash_token(state)
+        accepted = google_callback(initiating, state)
+        assert accepted.status_code == 303
+        exchange.assert_called_once_with("synthetic-code", state, "synthetic-verifier")
+        assert initiating.cookies.get(cookie_name(state)) is None
+        session.refresh(row)
+        assert row.status == "PICKING" and row.state_hash is None
+        assert row.payload.browser_binding_hash is None
+        # Restoring the old cookie cannot restore the consumed transaction.
+        initiating.cookies.set(cookie_name(state), proof, domain="eimir.example", path="/")
+        assert google_callback(initiating, state).status_code == 200
+        exchange.assert_called_once()
+
+
+def test_two_google_transactions_have_independent_browser_proofs(
+    client, session, owners, synthetic_google
+):
+    from fastapi.testclient import TestClient
+
+    from eimir.photo_sources.browser_binding import cookie_name
+
+    states, exchange, _ = synthetic_google
+    grant(session, owners)
+    with TestClient(client.app, base_url="https://eimir.example") as browser:
+        begin_google(browser, owners)
+        begin_google(browser, owners)
+        assert cookie_name(states[0]) != cookie_name(states[1])
+        assert browser.cookies.get(cookie_name(states[0])) != browser.cookies.get(
+            cookie_name(states[1])
+        )
+        assert google_callback(browser, states[1]).status_code == 303
+        assert browser.cookies.get(cookie_name(states[0])) is not None
+        assert google_callback(browser, states[0]).status_code == 303
+        assert exchange.call_count == 2
+
+
+@pytest.mark.parametrize(
+    "condition", ["wrong-proof", "legacy", "expired", "revoked", "downgraded", "disabled"]
+)
+def test_google_browser_proof_does_not_bypass_lifecycle_checks(
+    client, session, owners, synthetic_google, monkeypatch, condition
+):
+    from fastapi.testclient import TestClient
+
+    from eimir.identity.models import DeviceSession
+    from eimir.photo_sources.browser_binding import cookie_name
+
+    states, exchange, _ = synthetic_google
+    entitlement = grant(session, owners)
+    with TestClient(client.app, base_url="https://eimir.example") as browser:
+        identifier = begin_google(browser, owners)
+        row = session.get(PhotoSelection, identifier)
+        if condition == "wrong-proof":
+            browser.cookies.set(cookie_name(states[0]), "A" * 43, domain="eimir.example", path="/")
+        elif condition == "legacy":
+            row.payload = row.payload.model_copy(update={"browser_binding_hash": None})
+        elif condition == "expired":
+            row.expires_at = now() - timedelta(seconds=1)
+        elif condition == "revoked":
+            session.get(DeviceSession, row.device_session_id).revoked_at = now()
+        elif condition == "downgraded":
+            entitlements.revoke_grant(session, entitlement.id)
+        else:
+            monkeypatch.setenv("EIMIR_PHOTO_SOURCES_ENABLED", "false")
+            get_settings.cache_clear()
+        session.flush()
+        response = google_callback(browser, states[0])
+        assert response.status_code == 200 and "Location" not in response.headers
+        exchange.assert_not_called()
+        assert "synthetic-code" not in response.text
+        assert response.headers["Cache-Control"] == "private, no-store"
+        assert response.headers["Referrer-Policy"] == "no-referrer"
+
+
+def test_google_denial_consumes_only_the_browser_owned_task(
+    client, session, owners, synthetic_google
+):
+    from fastapi.testclient import TestClient
+
+    states, exchange, _ = synthetic_google
+    grant(session, owners)
+    with TestClient(client.app, base_url="https://eimir.example") as browser:
+        identifier = begin_google(browser, owners)
+        assert google_callback(browser, states[0], code=None).status_code == 200
+        row = session.get(PhotoSelection, identifier)
+        session.refresh(row)
+        assert row.status == "FAILED" and row.state_hash is None
+        assert row.payload.browser_binding_hash is None
+        exchange.assert_not_called()
+
+
+def test_concurrent_google_callbacks_exchange_only_once_with_real_request_commits(
+    production_client, synthetic_google
+):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    browser, maker = production_client
+    states, exchange, picker = synthetic_google
+    with maker() as setup:
+        account = make_account(setup, "Synthetic owner")
+        space = make_space(setup, account)
+        headers = auth(sign_in(setup, account))
+        grant(setup, {"anna": account, "space": space})
+        space_id = space.id
+        setup.commit()
+    started = browser.post(
+        f"/api/v1/spaces/{space_id}/photo-selections",
+        headers=headers,
+        json={"source": "google", "maxItems": 2, "consent": True},
+    )
+    assert started.status_code == 201, started.text
+    # This test targets real transaction serialization; separate HTTPS cookie
+    # jars and their HTTP transport are covered by the browser isolation test.
+    cookie_header = started.headers["set-cookie"].split(";", 1)[0]
+    barrier = Barrier(2)
+
+    def complete():
+        barrier.wait(timeout=10)
+        return browser.get(
+            "/api/v1/photo-sources/google/callback",
+            params={"state": states[0], "code": "synthetic-code"},
+            headers={"Cookie": cookie_header},
+            follow_redirects=False,
+        ).status_code
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        responses = list(executor.map(lambda _: complete(), range(2)))
+    assert sorted(responses) == [200, 303]
+    exchange.assert_called_once()
+    picker.create.assert_called_once()
+    with maker() as verification:
+        row = verification.get(PhotoSelection, UUID(started.json()["id"]))
+        assert row.status == "PICKING"
+        assert row.state_hash is None
+        assert row.payload.browser_binding_hash is None

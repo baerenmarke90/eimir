@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Path, Query, Response, status
+from fastapi import APIRouter, Path, Query, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ConfigDict, Field, SecretStr
 
@@ -13,10 +13,11 @@ from eimir.api.concurrency import IfMatchToken
 from eimir.api.deps import Authorization, CurrentSession, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
+from eimir.auth.tokens import generate_token
 from eimir.config import get_settings
 from eimir.entitlements.models import Capability
 from eimir.entitlements.service import has_capability
-from eimir.photo_sources import service
+from eimir.photo_sources import browser_binding, service
 from eimir.photo_sources.models import PhotoSelection
 from eimir.security.keyring import EncryptionMode
 
@@ -155,8 +156,13 @@ def start(
     body: PhotoSelectionCreate,
     response: Response,
 ) -> PhotoSelectionView:
-    row, url = service.start(session, authorization, device, body.source, body.max_items)
+    proof = generate_token() if body.source == "google" else None
+    row, url = service.start(
+        session, authorization, device, body.source, body.max_items, browser_binding=proof
+    )
     response.headers.update(_HEADERS)
+    if proof and row.payload.oauth_state:
+        browser_binding.set_cookie(response, row.payload.oauth_state, proof)
     return _view(row, url)
 
 
@@ -234,15 +240,23 @@ def cancel(
 @router.get("/photo-sources/google/callback", include_in_schema=False)
 def callback(
     session: DbSession,
+    request: Request,
     state: Annotated[str, Query(max_length=1024)] = "",
     code: Annotated[str | None, Query(max_length=4096)] = None,
 ) -> Response:
-    uri = service.callback(session, state, code)
+    uri = service.callback(
+        session,
+        state,
+        code,
+        browser_binding=request.cookies.get(browser_binding.cookie_name(state)),
+    )
     if uri:
-        return RedirectResponse(uri, status_code=303, headers=_HEADERS)
+        response: Response = RedirectResponse(uri, status_code=303, headers=_HEADERS)
+        browser_binding.clear_cookie(response, state)
+        return response
     # Provider details never reach the browser. The authenticated source sheet
     # owns localized success/error handling; this is only the external return.
-    return HTMLResponse(
+    response = HTMLResponse(
         "<!doctype html><html lang=en><meta name=viewport content='width=device-width'>"
         "<title>eimir.</title><p>Return to eimir.</p></html>",
         headers={
@@ -252,3 +266,5 @@ def callback(
             ),
         },
     )
+    browser_binding.clear_cookie(response, state)
+    return response

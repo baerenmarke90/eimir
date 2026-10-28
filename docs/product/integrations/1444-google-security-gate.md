@@ -14,14 +14,22 @@ The standalone synthetic operator probe from #1451 is a separate tool with no
 eimir. persistence and remains unchanged. Its successful synthetic transfer and
 cleanup do not establish acceptance of the later application flow.
 
+The #1467 follow-up adds a per-transaction, short-lived HttpOnly browser proof
+to the authenticated start/callback seam. Legacy selections have no proof and
+cannot complete. The literal availability gate remains closed. See the
+[implemented browser binding and proposed device-recovery contract](1467-google-enablement-design.md)
+for exact same-origin Web limits, native/cross-origin exclusions, legacy-draft
+decisions and remaining acceptance. The recovery proposal is not implemented.
+
 ## Why the later runtime delivery needs this gate
 
-The later source implementation checks stored Account/Space/DeviceSession,
-expiry, one-use state and PKCE. Its public OAuth callback does not establish
-initiating-browser/user-agent binding. Matching stored ownership metadata alone
-does not prove which browser completed authorization. Before enablement, define
-and test a compliant Web and Capacitor transaction binding, including a
-two-browser negative regression. Do not improvise a bearer-in-URL native handoff.
+The original runtime checked stored Account/Space/DeviceSession, expiry,
+one-use state and PKCE without proving the returning browser. The follow-up
+now requires an independent cookie proof and covers separate browser cookie
+jars, encrypted persistence and replay with synthetic provider responses.
+Matching stored ownership metadata alone remains insufficient. Before
+enablement, accept the same-origin Web flow in real browsers and resolve the
+separate Capacitor transaction binding. Do not improvise a bearer-in-URL native handoff.
 See [OAuth security BCP](https://www.rfc-editor.org/rfc/rfc9700.html#section-2.1.1).
 
 Copied Google Files also enter the diary's raw owner-local IndexedDB checkpoint.

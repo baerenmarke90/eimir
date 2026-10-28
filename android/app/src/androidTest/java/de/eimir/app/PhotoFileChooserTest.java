@@ -402,6 +402,8 @@ public class PhotoFileChooserTest {
     }
 
     private void tapSystemDocument(AccessibilityNodeInfo document) throws Exception {
+        // Consent banners and diagnostic screenshots can move a previously found node.
+        assertTrue("The identified system control is still attached", document.refresh());
         assertTrue("The identified document is visible", document.isVisibleToUser());
         Rect bounds = new Rect();
         document.getBoundsInScreen(bounds);

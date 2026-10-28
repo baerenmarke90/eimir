@@ -165,6 +165,7 @@ function FoundationsProof() {
                       key={imageAttempts['fixture-memory'] ?? 0}
                       memoryId="fixture-memory"
                       attachmentId="fixture-image"
+                      isSensitive={false}
                       loadImage={loadImage}
                     />
                   </div>
@@ -268,6 +269,7 @@ function FoundationsProof() {
                   key={imageAttempts['fixture-detail'] ?? 0}
                   memoryId="fixture-detail"
                   attachmentId="fixture-image"
+                  isSensitive={false}
                   loadImage={loadImage}
                 />
               </div>

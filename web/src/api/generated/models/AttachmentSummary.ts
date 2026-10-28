@@ -50,6 +50,12 @@ export interface AttachmentSummary {
      */
     id: string;
     /**
+     * Manual sensitive-content classification; never an access-control boundary.
+     * @type {boolean}
+     * @memberof AttachmentSummary
+     */
+    isSensitive?: boolean;
+    /**
      * 
      * @type {MediaType}
      * @memberof AttachmentSummary
@@ -111,6 +117,7 @@ export function AttachmentSummaryFromJSONTyped(json: any, ignoreDiscriminator: b
         'hasThumbnail': json['hasThumbnail'],
         'height': json['height'],
         'id': json['id'],
+        'isSensitive': json['isSensitive'] == null ? undefined : json['isSensitive'],
         'mediaType': MediaTypeFromJSON(json['mediaType']),
         'mimeType': json['mimeType'],
         'size': json['size'],
@@ -133,6 +140,7 @@ export function AttachmentSummaryToJSONTyped(value?: AttachmentSummary | null, i
         'hasThumbnail': value['hasThumbnail'],
         'height': value['height'],
         'id': value['id'],
+        'isSensitive': value['isSensitive'],
         'mediaType': MediaTypeToJSON(value['mediaType']),
         'mimeType': value['mimeType'],
         'size': value['size'],

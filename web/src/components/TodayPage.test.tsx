@@ -467,6 +467,7 @@ describe('TodayPage', () => {
         titleOrText: 'Photo Memory',
         occurredOn: new Date('2026-09-01T12:00:00Z'),
         previewAttachmentId: 'att-123',
+        previewIsSensitive: false,
       },
       recentShared: [
         {
@@ -475,6 +476,7 @@ describe('TodayPage', () => {
           titleOrText: 'Photo Memory',
           occurredOn: new Date('2026-09-01T12:00:00Z'),
           previewAttachmentId: 'att-123',
+          previewIsSensitive: false,
         },
         {
           id: 'mem-text',
@@ -535,6 +537,7 @@ describe('TodayPage', () => {
         titleOrText: 'Anniversary Trip',
         occurredOn: new Date('2026-01-01T12:00:00Z'),
         previewAttachmentId: 'att-old',
+        previewIsSensitive: false,
       },
       recentShared: [
         {
@@ -599,6 +602,7 @@ describe('TodayPage', () => {
         titleOrText: 'Beach Day',
         occurredOn: new Date('2026-09-01T12:00:00Z'),
         previewAttachmentId: 'att-123',
+        previewIsSensitive: false,
       },
       recentShared: [],
       retrospective: null,
@@ -647,6 +651,7 @@ describe('TodayPage', () => {
         titleOrText: 'Beach Day',
         occurredOn: new Date('2026-09-01T12:00:00Z'),
         previewAttachmentId: 'att-123',
+        previewIsSensitive: false,
       },
       recentShared: [
         {
@@ -717,6 +722,7 @@ describe('TodayPage', () => {
         titleOrText: 'Sunset Photo',
         occurredOn: new Date('2026-09-01T12:00:00Z'),
         previewAttachmentId: 'att-123',
+        previewIsSensitive: false,
       },
       recentShared: [],
       retrospective: null,
@@ -842,6 +848,7 @@ describe('TodayPage', () => {
         titleOrText: 'Photo Memory',
         occurredOn: new Date('2026-09-01T12:00:00Z'),
         previewAttachmentId: 'att-123',
+        previewIsSensitive: false,
       },
       recentShared: [
         {
@@ -850,6 +857,7 @@ describe('TodayPage', () => {
           titleOrText: 'Photo Memory',
           occurredOn: new Date('2026-09-01T12:00:00Z'),
           previewAttachmentId: 'att-123',
+          previewIsSensitive: false,
         },
       ],
       retrospective: null,
@@ -1623,6 +1631,7 @@ function renderWithPartnerComment(commentTargetId: string): string {
       titleOrText: 'Featured Photo',
       occurredOn: thisMonth(2),
       previewAttachmentId: 'att-featured',
+      previewIsSensitive: false,
     },
     recentShared: [
       {
@@ -1631,6 +1640,7 @@ function renderWithPartnerComment(commentTargetId: string): string {
         titleOrText: 'Featured Photo',
         occurredOn: thisMonth(2),
         previewAttachmentId: 'att-featured',
+        previewIsSensitive: false,
       },
       {
         id: 'mem-commented',
@@ -1638,6 +1648,7 @@ function renderWithPartnerComment(commentTargetId: string): string {
         titleOrText: 'Commented Photo',
         occurredOn: thisMonth(3),
         previewAttachmentId: 'att-commented',
+        previewIsSensitive: false,
       },
       {
         id: 'mem-other',
@@ -1645,6 +1656,7 @@ function renderWithPartnerComment(commentTargetId: string): string {
         titleOrText: 'Other Photo',
         occurredOn: thisMonth(4),
         previewAttachmentId: 'att-other',
+        previewIsSensitive: false,
       },
       {
         id: 'ms-1',
@@ -1760,6 +1772,7 @@ function renderMonthlyOverflowSpace(): string {
     titleOrText: title,
     occurredOn: thisMonth(day),
     previewAttachmentId: `att-${id}`,
+    previewIsSensitive: false,
   });
 
   const queryClient = new QueryClient({
@@ -1783,6 +1796,7 @@ function renderMonthlyOverflowSpace(): string {
         titleOrText: 'Quiet Heart Moment',
         occurredOn: thisMonth(6),
         previewAttachmentId: null,
+        previewIsSensitive: false,
       },
       {
         id: 'ms-1',
@@ -1790,6 +1804,7 @@ function renderMonthlyOverflowSpace(): string {
         titleOrText: 'Shared Milestone',
         occurredOn: thisMonth(7),
         previewAttachmentId: null,
+        previewIsSensitive: false,
       },
     ],
     retrospective: null,
@@ -1908,6 +1923,7 @@ it('renders `Diesen Monat` as up to three real shared photos, never a count deri
       titleOrText: 'Featured Photo',
       occurredOn: thisMonth(2),
       previewAttachmentId: 'att-featured',
+      previewIsSensitive: false,
     },
     recentShared: [
       {
@@ -1916,6 +1932,7 @@ it('renders `Diesen Monat` as up to three real shared photos, never a count deri
         titleOrText: 'Featured Photo',
         occurredOn: thisMonth(2),
         previewAttachmentId: 'att-featured',
+        previewIsSensitive: false,
       },
       ...[1, 2, 3, 4].map((n) => ({
         id: `strip-${n}`,
@@ -1923,6 +1940,7 @@ it('renders `Diesen Monat` as up to three real shared photos, never a count deri
         titleOrText: `Strip Photo ${n}`,
         occurredOn: thisMonth(3),
         previewAttachmentId: `att-strip-${n}`,
+        previewIsSensitive: false,
       })),
     ],
     retrospective: null,
@@ -1995,6 +2013,7 @@ it('never exposes the internal `keepsake` term to users', () => {
       titleOrText: 'Photo Memory',
       occurredOn: new Date('2026-09-01T12:00:00Z'),
       previewAttachmentId: 'att-123',
+      previewIsSensitive: false,
     },
     recentShared: [],
     retrospective: null,
@@ -2290,6 +2309,7 @@ describe('formatRelationshipDuration', () => {
           titleOrText: 'Keepsake Photo',
           occurredOn: thisMonth(1),
           previewAttachmentId: 'att-keepsake',
+          previewIsSensitive: false,
         },
         recentShared: [
           {
@@ -2298,6 +2318,7 @@ describe('formatRelationshipDuration', () => {
             titleOrText: 'Keepsake Photo',
             occurredOn: thisMonth(1),
             previewAttachmentId: 'att-keepsake',
+            previewIsSensitive: false,
           },
           {
             id: 'mem-monthly',
@@ -2305,6 +2326,7 @@ describe('formatRelationshipDuration', () => {
             titleOrText: 'Monthly Photo',
             occurredOn: thisMonth(2),
             previewAttachmentId: 'att-monthly',
+            previewIsSensitive: false,
           },
           {
             id: 'ms-recent',

@@ -73,6 +73,7 @@ typography('supporting-copy', 'bodySmall');
 typography('navigation-label', 'meta', 'ui', value('font.weight.semibold'));
 typography('action-label', 'body', 'ui', value('font.weight.semibold'));
 
+declare('sensitive-media-blur', value('mediaPrivacy.concealmentBlur'));
 declare('radius-media', rem('radius.large'));
 declare('radius-content', rem('radius.card'));
 declare('radius-sheet-top', rem('radius.sheet'));

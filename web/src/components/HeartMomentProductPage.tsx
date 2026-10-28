@@ -1,3 +1,4 @@
+import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import {
   useIsMutating,
   useMutation,
@@ -56,6 +57,7 @@ import {
 } from '../client/useAttachmentDrafts';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { PRODUCT_NAME } from './Brand';
 import { CommentsPanel } from './CommentsPanel';
@@ -92,6 +94,7 @@ interface HeartMomentCreateValues {
   readonly happenedOn: Date;
   readonly visibility: ContentVisibilityValue;
   readonly attachmentId?: string;
+  readonly attachmentIsSensitive?: boolean;
   readonly tags: string[];
 }
 
@@ -176,6 +179,11 @@ export function HeartMomentProductPage({
   const [editContentError, setEditContentError] = useState(false);
   const [createVisibility, setCreateVisibility] =
     useState<ContentVisibilityValue>(ContentVisibility.SHARED);
+  const sensitivityKey = JSON.stringify([contextKey, heartMomentId, mode]);
+  const [sensitivityDraft, setSensitivityDraft] = useState<{
+    key: string;
+    value: boolean;
+  } | null>(null);
   const createAttemptRef =
     useRef<CreateRequestAttempt<HeartMomentCreateSnapshot> | null>(null);
   const [removeExistingPhotoState, setRemoveExistingPhotoState] = useState<{
@@ -270,6 +278,11 @@ export function HeartMomentProductPage({
       });
     },
     onSuccess: async (heartMoment) => {
+      protectSensitiveMediaProjections(
+        queryClient,
+        spaceId,
+        heartMoment.attachment ? [heartMoment.attachment] : [],
+      );
       attachments.clear();
       await Promise.all([
         invalidateStoryProjections(queryClient, spaceId),
@@ -324,8 +337,14 @@ export function HeartMomentProductPage({
         queryClient.setQueryData(queryKey, context.previous);
     },
     onSuccess: async (heartMoment) => {
+      protectSensitiveMediaProjections(
+        queryClient,
+        spaceId,
+        heartMoment.attachment ? [heartMoment.attachment] : [],
+      );
       attachments.clear();
       setRemoveExistingPhoto(false);
+      setSensitivityDraft(null);
       queryClient.setQueryData(queryKey, {
         value: heartMoment,
         source: 'network',
@@ -473,6 +492,11 @@ export function HeartMomentProductPage({
         happenedOn: new Date(`${happenedOn}T00:00:00Z`),
         visibility: String(data.get('visibility')) as ContentVisibilityValue,
         attachmentId: attachments.readyIds[0],
+        attachmentIsSensitive: attachments.readyIds.length
+          ? (attachments.items.find(
+              (item) => item.attachmentId === attachments.readyIds[0],
+            )?.isSensitive ?? false)
+          : undefined,
       });
     }
 
@@ -533,6 +557,7 @@ export function HeartMomentProductPage({
             <div className="heart-moment-create-media">
               <AttachmentDraftPicker
                 id="heart-moment-create-photo"
+                disabled={createMutation.isPending}
                 attachments={attachments}
                 multiple={false}
               />
@@ -739,6 +764,14 @@ export function HeartMomentProductPage({
         update.attachmentId = replacementAttachmentId;
       else if (removeExistingPhoto) update.attachmentId = null;
 
+      if (replacementAttachmentId)
+        update.attachmentIsSensitive =
+          attachments.items.find(
+            (item) => item.attachmentId === replacementAttachmentId,
+          )?.isSensitive ?? false;
+      else if (heartMoment.attachment && !removeExistingPhoto)
+        update.attachmentIsSensitive =
+          data.get('attachmentIsSensitive') === 'on';
       updateMutation.mutate({ current: heartMoment, update });
     }
 
@@ -770,12 +803,29 @@ export function HeartMomentProductPage({
                     {
                       id: heartMoment.attachment.id,
                       mediaType: heartMoment.attachment.mediaType,
+                      isSensitive:
+                        sensitivityDraft?.key === sensitivityKey
+                          ? sensitivityDraft.value
+                          : heartMoment.attachment.isSensitive,
                     },
                   ]}
                   loadMedia={(attachmentId, signal) =>
                     loadAttachment(heartMoment.id, attachmentId, signal)
                   }
-                  resourceScopeKey={`heart-moment:${heartMoment.id}`}
+                  resourceScopeKey={`heart-moment:${currentAccountId}:${spaceId}:${mode}:${heartMoment.id}`}
+                />
+                <SensitiveMediaCheckbox
+                  name="attachmentIsSensitive"
+                  showHelp
+                  checked={
+                    sensitivityDraft?.key === sensitivityKey
+                      ? sensitivityDraft.value
+                      : (heartMoment.attachment.isSensitive ?? true)
+                  }
+                  onChange={(value) =>
+                    setSensitivityDraft({ key: sensitivityKey, value })
+                  }
+                  disabled={updateMutation.isPending}
                 />
                 <button
                   type="button"
@@ -788,6 +838,7 @@ export function HeartMomentProductPage({
             ) : null}
             <AttachmentDraftPicker
               id="heart-moment-edit-photo"
+              disabled={updateMutation.isPending}
               attachments={attachments}
               multiple={false}
             />
@@ -924,12 +975,13 @@ export function HeartMomentProductPage({
               {
                 id: heartMoment.attachment.id,
                 mediaType: heartMoment.attachment.mediaType,
+                isSensitive: heartMoment.attachment.isSensitive,
               },
             ]}
             loadMedia={(attachmentId, signal) =>
               loadAttachment(heartMoment.id, attachmentId, signal)
             }
-            resourceScopeKey={`heart-moment:${heartMoment.id}`}
+            resourceScopeKey={`heart-moment:${currentAccountId}:${spaceId}:${mode}:${heartMoment.id}`}
           />
         </section>
       ) : null}

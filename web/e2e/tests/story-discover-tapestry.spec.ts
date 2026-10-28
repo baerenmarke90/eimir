@@ -64,6 +64,7 @@ function memoryItem(
               mediaType: 'IMAGE',
               mimeType: 'image/jpeg',
               hasThumbnail: true,
+              isSensitive: false,
               width: 800,
               height: 800,
               size: 12345,
@@ -385,6 +386,7 @@ test('Momente Discover presents the real #452 anniversary with authorized image 
       createdAt: null,
       scheduledAt: null,
       previewAttachmentId: 'historic-lake-ready',
+      previewIsSensitive: false,
     },
   });
   await page.setViewportSize({ width: 390, height: 1100 });
@@ -426,6 +428,7 @@ test('Momente Discover keeps a text-only retrospective readable at 320px in dark
       createdAt: null,
       scheduledAt: null,
       previewAttachmentId: null,
+      previewIsSensitive: false,
     },
   });
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });

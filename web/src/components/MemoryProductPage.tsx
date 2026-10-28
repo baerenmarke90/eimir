@@ -1,3 +1,4 @@
+import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useCallback, useLayoutEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -39,6 +40,7 @@ import {
 } from '../client/useAttachmentDrafts';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
 import { MediaGallery } from './MediaGallery';
@@ -137,6 +139,13 @@ export function MemoryProductPage({
     spaceId,
     memoryId,
   ] as const;
+  const sensitiveDraftKey = JSON.stringify([contextKey, memoryId, mode]);
+  const [sensitiveDraft, setSensitiveDraft] = useState<{
+    key: string;
+    values: Record<string, boolean>;
+  }>({ key: sensitiveDraftKey, values: {} });
+  const sensitiveValues =
+    sensitiveDraft.key === sensitiveDraftKey ? sensitiveDraft.values : {};
   const [removedAttachmentState, setRemovedAttachmentState] = useState<{
     contextKey: string;
     ids: Set<string>;
@@ -238,7 +247,9 @@ export function MemoryProductPage({
         });
 
         const attachmentsChanged =
-          attachments.readyIds.length > 0 || removedAttachmentIds.size > 0;
+          attachments.readyIds.length > 0 ||
+          removedAttachmentIds.size > 0 ||
+          Object.keys(sensitiveValues).length > 0;
         if (attachmentsChanged) {
           const existing = [...updated.attachments]
             .sort((left, right) => left.position - right.position)
@@ -253,6 +264,13 @@ export function MemoryProductPage({
               attachments: attachmentIds.map((attachmentId, position) => ({
                 attachmentId,
                 position,
+                isSensitive:
+                  sensitiveValues[attachmentId] ??
+                  attachments.items.find(
+                    (item) => item.attachmentId === attachmentId,
+                  )?.isSensitive ??
+                  updated.attachments.find((item) => item.id === attachmentId)
+                    ?.isSensitive,
               })),
             },
           });
@@ -286,6 +304,12 @@ export function MemoryProductPage({
       void queryClient.invalidateQueries({ queryKey: memoryKey });
     },
     onSuccess: async (memory) => {
+      protectSensitiveMediaProjections(
+        queryClient,
+        spaceId,
+        memory.attachments,
+      );
+      setSensitiveDraft({ key: sensitiveDraftKey, values: {} });
       attachments.clear();
       setRemovedAttachmentIds(new Set());
       queryClient.setQueryData(memoryKey, { value: memory, source: 'network' });
@@ -513,7 +537,8 @@ export function MemoryProductPage({
               <fieldset className="memory-existing-attachments">
                 <legend>{t('memoryProduct.existingPhotosHeading')}</legend>
                 <p className="field-help">
-                  {t('memoryProduct.existingPhotosHelp')}
+                  {t('memoryProduct.existingPhotosHelp')}{' '}
+                  {t('sensitiveMedia.help')}
                 </p>
                 <ul className="memory-edit-attachment-list">
                   {readyAttachments.map((attachment) => {
@@ -528,9 +553,32 @@ export function MemoryProductPage({
                         <MemoryPreview
                           memoryId={memory.id}
                           attachmentId={attachment.id}
+                          isSensitive={
+                            sensitiveValues[attachment.id] ??
+                            attachment.isSensitive
+                          }
                           loadImage={loadMemoryImage}
                         />
                         <div className="memory-edit-attachment-actions">
+                          <SensitiveMediaCheckbox
+                            checked={
+                              sensitiveValues[attachment.id] ??
+                              attachment.isSensitive ??
+                              true
+                            }
+                            disabled={removed || updateMutation.isPending}
+                            onChange={(value) =>
+                              setSensitiveDraft((current) => ({
+                                key: sensitiveDraftKey,
+                                values: {
+                                  ...(current.key === sensitiveDraftKey
+                                    ? current.values
+                                    : {}),
+                                  [attachment.id]: value,
+                                },
+                              }))
+                            }
+                          />
                           {removed ? (
                             <span role="status">
                               {t('memoryProduct.photoMarkedForRemoval')}
@@ -565,6 +613,7 @@ export function MemoryProductPage({
             </div>
             <AttachmentDraftPicker
               id="memory-edit-images"
+              disabled={updateMutation.isPending}
               attachments={attachments}
               multiple
             />
@@ -752,11 +801,12 @@ export function MemoryProductPage({
             items={readyAttachments.map((attachment) => ({
               id: attachment.id,
               mediaType: attachment.mediaType,
+              isSensitive: attachment.isSensitive,
             }))}
             loadMedia={(attachmentId, signal) =>
               loadMemoryImage(memory.id, attachmentId, signal)
             }
-            resourceScopeKey={`memory:${memory.id}`}
+            resourceScopeKey={`memory:${currentAccountId}:${spaceId}:${mode}:${memory.id}`}
           />
         </section>
       ) : null}

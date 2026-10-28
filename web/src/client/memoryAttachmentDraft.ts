@@ -104,6 +104,7 @@ export class MemoryAttachmentBindingError extends Error {
     readonly memory: MemoryDetail,
     readonly attachmentIds: readonly string[],
     readonly cause: unknown,
+    readonly attachmentSensitivity: readonly boolean[] = [],
   ) {
     super('Memory created; attachment association is not confirmed.');
     this.name = 'MemoryAttachmentBindingError';
@@ -116,6 +117,7 @@ export async function completeMemoryAttachmentBinding(
   created: MemoryDetail,
   attachmentIds: readonly string[],
   reconcile = false,
+  attachmentSensitivity: readonly boolean[] = [],
 ): Promise<MemoryDetail> {
   try {
     let memory = created;
@@ -126,7 +128,14 @@ export async function completeMemoryAttachmentBinding(
         .map((attachment) => attachment.id);
       if (
         bound.length === attachmentIds.length &&
-        bound.every((id, index) => id === attachmentIds[index])
+        bound.every((id, index) => id === attachmentIds[index]) &&
+        (!attachmentSensitivity.length ||
+          [...memory.attachments]
+            .sort((a, b) => a.position - b.position)
+            .every(
+              (attachment, index) =>
+                attachment.isSensitive === attachmentSensitivity[index],
+            ))
       ) {
         return memory;
       }
@@ -143,11 +152,19 @@ export async function completeMemoryAttachmentBinding(
         attachments: attachmentIds.map((attachmentId, position) => ({
           attachmentId,
           position,
+          ...(attachmentSensitivity.length
+            ? { isSensitive: attachmentSensitivity[position] }
+            : {}),
         })),
       },
     });
   } catch (error) {
-    throw new MemoryAttachmentBindingError(created, [...attachmentIds], error);
+    throw new MemoryAttachmentBindingError(
+      created,
+      [...attachmentIds],
+      error,
+      attachmentSensitivity,
+    );
   }
 }
 
@@ -159,6 +176,7 @@ export async function createMemoryWithReadyAttachments(
   options: {
     /** Names this save on the server so a lost response can be reconciled. */
     idempotencyKey?: string;
+    attachmentSensitivity?: readonly boolean[];
     /**
      * The request is a replay after an unknown outcome. The Memory that comes
      * back may already carry an association, so binding first re-reads it and
@@ -179,6 +197,7 @@ export async function createMemoryWithReadyAttachments(
         memory,
         attachmentIds,
         options.reconcile ?? false,
+        options.attachmentSensitivity,
       )
     : memory;
   // Projection refresh is a separate read; it cannot undo this confirmation.

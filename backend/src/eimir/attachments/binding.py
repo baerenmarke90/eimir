@@ -107,7 +107,10 @@ def lock_for_binding(session: Session, attachment_ids: list[UUID]) -> dict[UUID,
     if not attachment_ids:
         return {}
     rows = session.execute(
-        select(Attachment).where(Attachment.id.in_(attachment_ids)).with_for_update()
+        select(Attachment)
+        .where(Attachment.id.in_(attachment_ids))
+        .order_by(Attachment.id)
+        .with_for_update()
     ).scalars()
     return {row.id: row for row in rows}
 
@@ -117,6 +120,7 @@ def ensure_bindable(
     *,
     space_id: UUID,
     account_id: UUID,
+    already_bound: bool = False,
 ) -> Attachment:
     """Validate whether this attachment may be bound now.
 
@@ -131,7 +135,7 @@ def ensure_bindable(
         raise Attachment.privacy_absence.error()
     if attachment.status != AttachmentStatus.READY.value:
         raise _conflict("The attachment is not ready.", ErrorCode.ATTACHMENT_NOT_READY)
-    if binding_window_expired(attachment):
+    if binding_window_expired(attachment) and not already_bound:
         raise _conflict("The attachment is not ready.", ErrorCode.ATTACHMENT_NOT_READY)
     return attachment
 
@@ -249,3 +253,13 @@ def attachments_of_memory(session: Session, memory_id: UUID) -> list[BoundAttach
         .order_by(MemoryAttachment.position, MemoryAttachment.attachment_id)
     ).all()
     return [BoundAttachment(attachment=row[1], position=row[0].position) for row in rows]
+
+
+def set_sensitive(attachment: Attachment, value: bool | None) -> None:
+    """Update protected metadata only under the authorized parent's write/lock contract.
+
+    Omission preserves existing classification for older clients. This helper
+    never changes visibility or source bytes and emits no classification event.
+    """
+    if value is not None and value != attachment.payload.is_sensitive:
+        attachment.payload = attachment.payload.model_copy(update={"is_sensitive": value})

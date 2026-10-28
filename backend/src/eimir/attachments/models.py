@@ -65,6 +65,7 @@ class AttachmentPayload(ProtectedPayload):
     """
 
     original_name: str
+    is_sensitive: bool = False
     captured_at: datetime | None = None
     orientation: int | None = None
 

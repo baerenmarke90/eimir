@@ -21,6 +21,7 @@ const descriptor: UploadDescriptor = {
     createdAt: new Date(),
     durationSeconds: null,
     hasThumbnail: false,
+    isSensitive: false,
     height: null,
     mediaType: 'IMAGE',
     mimeType: 'image/jpeg',

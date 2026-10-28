@@ -25,6 +25,7 @@
   --tracking-navigation-label: 0.02em;
   --font-action-label: 600 1rem / 1.5 "Instrument Sans", "Arial", sans-serif;
   --tracking-action-label: 0em;
+  --sensitive-media-blur: 48px;
   --radius-media: 1rem;
   --radius-content: 1.25rem;
   --radius-sheet-top: 1.5rem;

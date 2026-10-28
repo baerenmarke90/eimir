@@ -23,8 +23,8 @@ describe('MediaGallery lightbox focus contract', () => {
     render(
       <MediaGallery
         items={[
-          { id: 'video-1', mediaType: MediaType.VIDEO },
-          { id: 'video-2', mediaType: MediaType.VIDEO },
+          { id: 'video-1', mediaType: MediaType.VIDEO, isSensitive: false },
+          { id: 'video-2', mediaType: MediaType.VIDEO, isSensitive: false },
         ]}
         loadMedia={loadMedia}
       />,

@@ -63,6 +63,7 @@ describe('MemoryPreview viewport loading', () => {
     const loadImage = vi.fn().mockResolvedValue('blob:near-viewport');
     const { container } = render(
       <MemoryPreview
+        isSensitive={false}
         memoryId="memory-1"
         attachmentId="attachment-1"
         loadImage={loadImage}
@@ -98,6 +99,7 @@ describe('MemoryPreview viewport loading', () => {
     const loadImage = vi.fn().mockResolvedValue('blob:immediate');
     render(
       <MemoryPreview
+        isSensitive={false}
         memoryId="memory-2"
         attachmentId="attachment-2"
         loadImage={loadImage}

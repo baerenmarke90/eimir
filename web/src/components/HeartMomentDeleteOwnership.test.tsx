@@ -28,6 +28,13 @@ import storyProducts from '../i18n/locales/storyProducts';
 import de from '../i18n/locales/de';
 import { HeartMomentProductPage } from './HeartMomentProductPage';
 
+vi.mock('../client/photoPlaces', async (original) => ({
+  ...(await original<object>()),
+  photoPlacesRequest: vi
+    .fn()
+    .mockResolvedValue({ items: [], hasMore: false, nextCursor: null }),
+}));
+
 const { revoke } = vi.hoisted(() => ({ revoke: vi.fn() }));
 vi.mock('../client/productReadCache', async (original) => ({
   ...(await original<object>()),

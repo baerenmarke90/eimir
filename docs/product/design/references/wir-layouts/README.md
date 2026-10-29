@@ -2,7 +2,7 @@
 
 ## Pre-implementation baseline
 
-`main@413d93465429d4e901d0a168a81aad19a12638be` was inspected before runtime implementation. The current `/today` page and Appearance settings were reviewed, including `TodayPage`, `CouplePresence`, Vibe/Energy check-ins, `DailyQuoteCard`, shared content selection, module ordering/visibility, `ProfileAppearancePanel`, app-icon selection and its owner/capability/concurrency boundaries.
+`main@413d93465429d4e901d0a168a81aad19a12638be` was inspected before runtime implementation. The current `/today` page and Appearance settings were reviewed, including `TodayPage`, `CouplePresence`, Vibe and Energy controls, `DailyQuoteCard`, shared content selection, module ordering/visibility, `ProfileAppearancePanel`, app-icon selection and its owner/capability/concurrency boundaries.
 
 The existing browser journey `today-living-home.spec.ts` / `renders the real #452 Polaroid` passed on this baseline. Its actual full-page screenshots are under [baseline](baseline/); they show the current UI and synthetic/demo content. The current implementation, rather than an approximate generated rendering, defines **Klassisch**.
 

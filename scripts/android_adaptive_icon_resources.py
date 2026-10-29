@@ -9,10 +9,9 @@ ROOT = Path(__file__).resolve().parents[1]
 RES = ROOT / "android/app/src/main/res"
 CATALOG = ROOT / "docs/design/eimir/1307-premium-app-icons/source-crops.json"
 ANDROID = "{http://schemas.android.com/apk/res/android}"
-MASK_SAFE_LAYER_DP = 132
+ANDROID_SAFE_ZONE_DP = 66
 POSTER_TILE_PX = 288
 FOREGROUND_PX = 432
-ANDROID_MASK_DP = 72
 
 
 def validate_icon_xml(icon_id: str, adaptive_xml: str, layer_xml: str) -> None:
@@ -21,7 +20,7 @@ def validate_icon_xml(icon_id: str, adaptive_xml: str, layer_xml: str) -> None:
         raise ValueError(f"{icon_id}: expected an adaptive icon")
     background = adaptive.find("background")
     foreground = adaptive.find("foreground")
-    if background is None or not background.get(f"{ANDROID}drawable"):
+    if background is None or background.get(f"{ANDROID}drawable") != f"@color/app_icon_{icon_id}_background":
         raise ValueError(f"{icon_id}: missing fallback background")
     if foreground is None or foreground.get(f"{ANDROID}drawable") != (
         f"@drawable/app_icon_{icon_id}_mask_safe"
@@ -36,14 +35,17 @@ def validate_icon_xml(icon_id: str, adaptive_xml: str, layer_xml: str) -> None:
         f"@drawable/app_icon_{icon_id}_foreground"
     ):
         raise ValueError(f"{icon_id}: wrong poster source")
-    if item.get(f"{ANDROID}width") != f"{MASK_SAFE_LAYER_DP}dp" or item.get(
-        f"{ANDROID}height"
-    ) != f"{MASK_SAFE_LAYER_DP}dp":
-        raise ValueError(f"{icon_id}: adaptive foreground must overscan the mask")
+    try:
+        width = float(item.get(f"{ANDROID}width", "").removesuffix("dp"))
+        height = float(item.get(f"{ANDROID}height", "").removesuffix("dp"))
+    except ValueError as failure:
+        raise ValueError(f"{icon_id}: invalid foreground dimensions") from failure
+    # Verify physical safe geometry, independently of the generator's scale.
+    tile_dp = width * POSTER_TILE_PX / FOREGROUND_PX
+    if width != height or not 48 <= tile_dp <= ANDROID_SAFE_ZONE_DP:
+        raise ValueError(f"{icon_id}: artwork must fit the 48–66dp safe zone")
     if item.get(f"{ANDROID}gravity") != "center":
         raise ValueError(f"{icon_id}: poster artwork must remain centered")
-    if MASK_SAFE_LAYER_DP * POSTER_TILE_PX / FOREGROUND_PX <= ANDROID_MASK_DP:
-        raise ValueError(f"{icon_id}: tile does not cover the platform mask")
 
 
 def validate_resource_catalog(res: Path = RES, catalog: Path = CATALOG) -> None:

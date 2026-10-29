@@ -33,11 +33,12 @@ class AdaptiveIconResourceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "poster source"):
             validate_icon_xml("sand", adaptive, wrong)
 
-    def test_rejects_undersized_and_off_center_artwork(self) -> None:
+    def test_rejects_clipped_undersized_and_off_center_artwork(self) -> None:
         adaptive = (RES / "mipmap-anydpi-v26/app_icon_minimal.xml").read_text()
         layer = (RES / "drawable/app_icon_minimal_mask_safe.xml").read_text()
-        with self.assertRaisesRegex(ValueError, "overscan"):
-            validate_icon_xml("minimal", adaptive, layer.replace("132dp", "108dp"))
+        for size in ["132dp", "108dp", "60dp"]:
+            with self.subTest(size=size), self.assertRaisesRegex(ValueError, "safe zone"):
+                validate_icon_xml("minimal", adaptive, layer.replace("99dp", size))
         with self.assertRaisesRegex(ValueError, "centered"):
             validate_icon_xml("minimal", adaptive, layer.replace('"center"', '"left"'))
 

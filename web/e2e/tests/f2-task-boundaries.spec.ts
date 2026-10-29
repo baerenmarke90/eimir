@@ -1,6 +1,3 @@
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { showMemoryDetails } from '../support/memoryDiary';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -10,6 +7,9 @@ import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { showMemoryDetails } from '../support/memoryDiary';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
 // Exercise the production App and its actual router, queries, uploads and modal
 // adapter. Only HTTP transport is replaced; no alternative proof UI is mounted.
@@ -247,6 +247,8 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
       path.endsWith(`/attachments/${ATTACHMENT}`)
     )
       return json(attachment);
+    if (method === 'GET' && path === `/api/v1/spaces/${SPACE}/discover`)
+      return json({ items: [], lead: null, selectionDate: NOW.slice(0, 10) });
     if (path.endsWith('/timeline')) {
       state.timelineRequests.push(url.search);
       if (state.saved && scenario.refreshFailure)
@@ -319,15 +321,22 @@ async function openMemory(page: Page) {
   await page
     .getByRole('button', { name: navigation.newContent, exact: true })
     .click();
-  await page
+  const target = page
     .getByRole('link', { name: navigation.quickCreateMemory, exact: true })
     .or(
       page.getByRole('menuitem', {
         name: navigation.quickCreateMemory,
         exact: true,
       }),
-    )
-    .click();
+    );
+  await target.evaluate(async (node) => {
+    const sheet = node.closest('dialog');
+    if (sheet)
+      await Promise.all(
+        sheet.getAnimations().map((animation) => animation.finished),
+      );
+  });
+  await target.click();
   await expect(
     page.getByRole('heading', { name: de.memory.heading, exact: true }),
   ).toBeVisible();
@@ -670,7 +679,14 @@ test('an older Memory returns to the same loaded Timeline range and position', a
 }, testInfo) => {
   const api = await installProductApi(page);
   await signIn(page);
-  await page.locator('.story-pagination-sentinel').scrollIntoViewIfNeeded();
+  // The sentinel disappears as soon as automatic paging succeeds. The last
+  // loaded content item remains stable throughout that successful transition.
+  await page
+    .getByRole('heading', {
+      name: firstPage[firstPage.length - 1].title,
+      exact: true,
+    })
+    .scrollIntoViewIfNeeded();
   await expect
     .poll(
       () =>
@@ -1280,10 +1296,25 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   await page.evaluate(() => document.fonts.ready);
   await expectNoOverflow(page);
   await page.setViewportSize({ width: 320, height: 844 });
+  await page
+    .getByRole('button', {
+      name: storyProducts.storyFilters.toggleButton,
+      exact: true,
+    })
+    .click();
+  const diaryOptions = page.getByRole('dialog', {
+    name: storyProducts.storyFilters.aria,
+  });
+  await expect(diaryOptions).toBeVisible();
+  await expectNoOverflow(page);
   await page.locator('.momente-browse-layer').screenshot({
     path: testInfo.outputPath('f2-story-browse-large-text-320.png'),
     animations: 'disabled',
   });
+  await diaryOptions
+    .getByRole('button', { name: taskSheets.close, exact: true })
+    .click();
+  await expect(diaryOptions).not.toBeVisible();
   await page.setViewportSize({ width: 320, height: 480 });
   await page
     .getByRole('button', { name: navigation.newContent, exact: true })

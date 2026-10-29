@@ -14,8 +14,10 @@ export function StoryRetrospective({
   item,
   loadMemoryImage,
   onOpen,
+  compact = false,
 }: {
   item: DashboardItem;
+  compact?: boolean;
   loadMemoryImage: (
     memoryId: string,
     attachmentId: string,
@@ -33,22 +35,25 @@ export function StoryRetrospective({
 
   return (
     <section
-      className="momente-retrospective"
-      aria-labelledby="momente-retrospective-heading"
+      className={`momente-retrospective${compact ? ' momente-retrospective-compact' : ''}`}
+      aria-labelledby={compact ? undefined : 'momente-retrospective-heading'}
+      aria-label={compact ? t('story.retrospectiveHeading') : undefined}
     >
-      <div className="momente-section-header">
-        <div>
-          <h3
-            id="momente-retrospective-heading"
-            className="momente-section-title"
-          >
-            {t('story.retrospectiveHeading')}
-          </h3>
-          <p className="momente-section-subhead">
-            {t('story.retrospectiveSubhead')}
-          </p>
+      {!compact ? (
+        <div className="momente-section-header">
+          <div>
+            <h3
+              id="momente-retrospective-heading"
+              className="momente-section-title"
+            >
+              {t('story.retrospectiveHeading')}
+            </h3>
+            <p className="momente-section-subhead">
+              {t('story.retrospectiveSubhead')}
+            </p>
+          </div>
         </div>
-      </div>
+      ) : null}
       <Link
         to={path}
         className={`momente-retrospective-link${attachmentId ? ' has-media' : ''}`}

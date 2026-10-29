@@ -1,21 +1,30 @@
+import type { MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
   STORY_CHAPTERS_ROUTE,
-  STORY_YEARS_ROUTE,
   STORY_PHOTOS_ROUTE,
+  STORY_YEARS_ROUTE,
 } from '../client/routes';
 import { useTranslation } from '../i18n';
 
 const MILESTONES_BROWSE_ROUTE = '/story?tab=timeline&type=MILESTONE';
 
-export function StoryBrowseLayer() {
+export function StoryBrowseLayer({
+  onOpen,
+}: {
+  onOpen?: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
+}) {
   const { t } = useTranslation();
 
   return (
     <nav className="momente-browse-layer" aria-label={t('story.browseTitle')}>
       <p className="momente-browse-heading">{t('story.browseTitle')}</p>
       <div className="momente-browse-links">
-        <Link to={STORY_PHOTOS_ROUTE} className="momente-browse-link">
+        <Link
+          to={STORY_PHOTOS_ROUTE}
+          onClick={(event) => onOpen?.(event, STORY_PHOTOS_ROUTE)}
+          className="momente-browse-link"
+        >
           <svg
             className="momente-browse-icon"
             viewBox="0 0 24 24"
@@ -34,7 +43,11 @@ export function StoryBrowseLayer() {
           </svg>
           <span>{t('sharedPhotos.browse')}</span>
         </Link>
-        <Link to={MILESTONES_BROWSE_ROUTE} className="momente-browse-link">
+        <Link
+          to={MILESTONES_BROWSE_ROUTE}
+          onClick={(event) => onOpen?.(event, MILESTONES_BROWSE_ROUTE)}
+          className="momente-browse-link"
+        >
           <svg
             className="momente-browse-icon"
             viewBox="0 0 24 24"
@@ -52,7 +65,11 @@ export function StoryBrowseLayer() {
           </svg>
           <span>{t('story.browseMilestones')}</span>
         </Link>
-        <Link to={STORY_CHAPTERS_ROUTE} className="momente-browse-link">
+        <Link
+          to={STORY_CHAPTERS_ROUTE}
+          onClick={(event) => onOpen?.(event, STORY_CHAPTERS_ROUTE)}
+          className="momente-browse-link"
+        >
           <svg
             className="momente-browse-icon"
             viewBox="0 0 24 24"
@@ -70,7 +87,11 @@ export function StoryBrowseLayer() {
           </svg>
           <span>{t('story.browseChapters')}</span>
         </Link>
-        <Link to={STORY_YEARS_ROUTE} className="momente-browse-link">
+        <Link
+          to={STORY_YEARS_ROUTE}
+          onClick={(event) => onOpen?.(event, STORY_YEARS_ROUTE)}
+          className="momente-browse-link"
+        >
           <svg
             className="momente-browse-icon"
             viewBox="0 0 24 24"

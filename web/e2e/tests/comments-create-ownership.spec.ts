@@ -103,7 +103,10 @@ async function openJourney(
     },
   );
   await signIn(page);
-  await page.getByRole('link', { name: new RegExp(scenario.title) }).click();
+  await page
+    .locator('#momente-diary')
+    .getByRole('link', { name: new RegExp(scenario.title) })
+    .click();
   const panel = page.locator('.comments-panel');
   await expect(
     panel.getByRole('button', { name: copy.send, exact: true }),
@@ -187,7 +190,10 @@ for (const scenario of cases) {
     await expect.poll(() => state.writes.length).toBe(1);
     await page.goBack();
     await expect(page).toHaveURL(/\/story\?tab=timeline$/);
-    await page.getByRole('link', { name: new RegExp(scenario.title) }).click();
+    await page
+      .locator('#momente-diary')
+      .getByRole('link', { name: new RegExp(scenario.title) })
+      .click();
     const next = await compose(page, 'A new visit keeps its own words.');
     await expect(
       state.panel.getByRole('button', { name: copy.sending }),
@@ -254,7 +260,9 @@ for (const scenario of cases) {
     await page.goBack();
     await expect(page).toHaveURL(/\/story\?tab=timeline$/);
     await expect(
-      page.getByRole('link', { name: new RegExp(scenario.title) }),
+      page
+        .locator('#momente-diary')
+        .getByRole('link', { name: new RegExp(scenario.title) }),
     ).toBeVisible();
     expect(state.unknown).toEqual([]);
   });

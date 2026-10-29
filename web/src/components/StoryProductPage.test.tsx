@@ -43,8 +43,8 @@ function renderStoryPage(
     authorSummaryQueryKeys.discover('space-1', 'account-1'),
     {
       value: {
-        items: (cachedData as any).items || [],
-        lead: (cachedData as any).items?.[0] || null,
+        items: (cachedData as { items?: unknown[] }).items ?? [],
+        lead: (cachedData as { items?: unknown[] }).items?.[0] ?? null,
         leadContext: null,
         selectionDate: options?.selectionDate,
       },
@@ -152,13 +152,14 @@ describe('Momente retrospective integration (#601)', () => {
       selectionDate,
       dashboard,
     });
-    expect(html).not.toContain('momente-retrospective');
-    expect(html).toContain('momente-tabs');
+    expect(html).toContain('momente-retrospective');
+    expect(html).not.toContain('role="tablist"');
+    expect(html).toContain('momente-diary-title');
   });
 });
 
 describe('StoryProductPage', () => {
-  it('renders tab switcher and discovery view by default', () => {
+  it('renders rediscovery above the Diary on one page by default', () => {
     const html = renderStoryPage('/story', {
       items: [
         {
@@ -194,7 +195,8 @@ describe('StoryProductPage', () => {
       nextCursor: null,
     });
 
-    expect(html).toContain('momente-tabs');
+    expect(html).not.toContain('role="tablist"');
+    expect(html).toContain('momente-diary-title');
     expect(html).toContain('momente-discover-page');
     expect(html).toContain('momente-hero-highlight');
     expect(html).toContain('Summer Lake Vacation');
@@ -259,7 +261,7 @@ describe('StoryProductPage', () => {
 
     // Each content type keeps a distinct presentation role, not one shared
     // equal-sized card shell (regression #790)
-    expect(html).toContain('momente-tapestry-media');
+    expect(html).toContain('momente-hero-media');
     expect(html).toContain('momente-tapestry-note');
     expect(html).toContain('momente-tapestry-milestone');
     // The Heart Moment renders as a quoted note, not a titled card
@@ -336,7 +338,10 @@ describe('StoryProductPage', () => {
       expect(heroHtml).not.toContain('data-media-deferred="true"');
 
       // Tapestry entries carry their own reveal key/class...
-      const tapestryHtml = html.slice(tapestryStart);
+      const tapestryHtml = html.slice(
+        tapestryStart,
+        html.indexOf('id="momente-diary"'),
+      );
       expect(tapestryHtml).toContain('momente-tapestry-reveal');
       expect(tapestryHtml).toContain(
         'data-discover-reveal-key="item:memory-mem-2"',
@@ -452,14 +457,8 @@ describe('StoryProductPage', () => {
     expect(html).toContain('story-filter-container');
     expect(html).toContain('Summer Lake Vacation');
 
-    // #858 follow-up: `Diesen Monat -> Alle anzeigen` links here, so
-    // The diary must be the active tab immediately on landing, not just the
-    // rendered content.
-    expect(html).toMatch(
-      new RegExp(
-        `aria-selected="true" class="momente-tab-btn active"[^>]*>[\\s\\S]*?${de.story.tabTimeline}`,
-      ),
-    );
+    expect(html).toContain('id="momente-diary"');
+    expect(html).not.toContain('role="tablist"');
   });
 
   it('renders empty welcoming state when no moments exist', () => {
@@ -494,18 +493,11 @@ describe('StoryProductPage', () => {
       nextCursor: null,
     });
 
-    expect(html).toContain('momente-tapestry-milestone');
+    expect(html).toContain('momente-hero-highlight');
     expect(html).toContain('Moved in together');
-    expect(html).toContain('momente-browse-layer');
-    expect(html).toContain(de.story.browseMilestones);
-    expect(html).toContain(de.story.browseChapters);
-    expect(html).toContain(de.story.browseYears);
-    expect(html).toContain('href="/story?tab=timeline&amp;type=MILESTONE"');
-    expect(html).toContain('href="/story/chapters"');
-    expect(html).toContain('href="/story/years"');
-    expect(html).not.toContain(de.story.milestonesDesc);
-    expect(html).not.toContain('momente-archive-links');
-    expect(html).not.toContain('momente-year-archive');
+    expect(html).toContain('momente-diary-title');
+    expect(html).toContain(storyProducts.storyFilters.toggleButton);
+    expect(html).not.toContain('role="tablist"');
   });
 
   describe('canonical Discover ordering and presentation', () => {
@@ -525,7 +517,7 @@ describe('StoryProductPage', () => {
               addEventListener: () => {},
               removeEventListener: () => {},
             }),
-          } as any;
+          } as unknown as Window & typeof globalThis;
 
           const html = renderStoryPage('/story', {
             items: [
@@ -574,10 +566,7 @@ describe('StoryProductPage', () => {
           expect(tapestryStart).toBeGreaterThan(-1);
 
           // Canonical backend order: Spring Picnic is BEFORE Late August Vacation
-          const springPicnicIndex = html.indexOf(
-            'Spring Picnic',
-            tapestryStart,
-          );
+          const springPicnicIndex = html.indexOf('Spring Picnic');
           const lateAugustIndex = html.indexOf(
             'Late August Vacation',
             tapestryStart,
@@ -678,13 +667,18 @@ describe('StoryProductPage', () => {
       expect(html).toContain('Juli 2026');
 
       // Server order (DESC by default) is preserved: newer month heads first.
-      const augustIndex = html.indexOf('August 2026');
-      const julyIndex = html.indexOf('Juli 2026');
+      const diaryStart = html.indexOf('id="momente-diary"');
+      const augustIndex = html.indexOf('August 2026', diaryStart);
+      const julyIndex = html.indexOf('Juli 2026', diaryStart);
       expect(augustIndex).toBeGreaterThan(-1);
       expect(julyIndex).toBeGreaterThan(-1);
       expect(augustIndex).toBeLessThan(julyIndex);
-      expect(html.indexOf('Late August Vacation')).toBeLessThan(julyIndex);
-      expect(html.indexOf('Spring Picnic')).toBeGreaterThan(julyIndex);
+      expect(html.indexOf('Late August Vacation', augustIndex)).toBeLessThan(
+        julyIndex,
+      );
+      expect(html.indexOf('Spring Picnic', julyIndex)).toBeGreaterThan(
+        julyIndex,
+      );
     });
 
     it('keeps one near-end pagination sentinel after the last month group without permanent pagination chrome', () => {

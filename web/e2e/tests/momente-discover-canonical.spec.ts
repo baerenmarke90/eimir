@@ -1,6 +1,6 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '99999999-9999-4999-8999-999999999999';
@@ -213,8 +213,24 @@ async function installMocks(
     ) {
       tracker.timelineRequests += 1;
       await fulfillJson({
-        items: [],
-        availableYears: [],
+        items: [
+          {
+            kind: 'MEMORY',
+            effectiveDate: '2026-09-16T08:30:00Z',
+            memory: {
+              id: 'diary-independent',
+              title: 'A complete diary day',
+              body: 'The chronological diary remains independent of rediscovery.',
+              happenedOn: '2026-09-16',
+              createdAt: '2026-09-16T08:30:00Z',
+              author: ME,
+              capabilities: CAPABILITIES,
+              visibility: 'SHARED',
+              attachments: [],
+            },
+          },
+        ],
+        availableYears: [2026],
         hasMore: false,
         nextCursor: null,
       });
@@ -247,7 +263,7 @@ async function captureEvidence(
 }
 
 test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
-  test('uses only canonical Discover data and captures Compact and Expanded evidence', async ({
+  test('uses canonical Discover data above the independent Diary in Compact and Expanded', async ({
     page,
   }, testInfo) => {
     const tracker: RequestTracker = {
@@ -261,17 +277,33 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
     await page.waitForSelector('.momente-discover-page');
 
     expect(tracker.discoverRequests).toBeGreaterThan(0);
-    expect(tracker.timelineRequests).toBe(0);
-    await expect(page.getByText('Morning by the lake')).toBeVisible();
-    await expect(page.getByText('Thinking of you')).toBeVisible();
-    await expect(page.getByText('Our first apartment')).toBeVisible();
-    await expect(page.getByText('Winter evening')).toBeVisible();
+    const discover = page.locator('.momente-discover-page');
+    const diary = page.locator('#momente-diary');
+    await expect(discover.getByText('Morning by the lake')).toBeVisible();
+    await expect(discover.getByText('Thinking of you')).toBeVisible();
+    await expect(discover.getByText('Our first apartment')).toBeVisible();
+    await expect(discover.getByText('Winter evening')).toHaveCount(0);
+    await expect(diary.getByText('A complete diary day')).toBeVisible();
+    expect(tracker.timelineRequests).toBeGreaterThan(0);
+    await expect(discover.getByText('A complete diary day')).toHaveCount(0);
+    await expect(diary.getByText('Morning by the lake')).toHaveCount(0);
+    const order = await page.evaluate(() => {
+      const discover = document.querySelector('.momente-discover-page');
+      const diary = document.querySelector('#momente-diary');
+      return Boolean(
+        discover &&
+          diary &&
+          discover.compareDocumentPosition(diary) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    });
+    expect(order).toBe(true);
 
     await captureEvidence(page, testInfo, 'story-971-discover-390-compact.png');
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await expect(page.locator('.momente-discover-page')).toBeVisible();
-    expect(tracker.timelineRequests).toBe(0);
+    await expect(diary.getByText('A complete diary day')).toBeVisible();
     await captureEvidence(
       page,
       testInfo,

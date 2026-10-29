@@ -46,7 +46,8 @@ jobs:
           - api: '37.1'
             image: android-37.1
             tag: google_apis_ps16k
-            memory: 4096
+            # Reuse the verified test.24 headroom for the 16K guest's services.
+            memory: 6144
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -91,6 +92,7 @@ jobs:
         working-directory: android
         run: |
           export PATH="$ANDROID_HOME/platform-tools:$PATH"
+          free -m | tee host-memory.log
           "$ANDROID_HOME/emulator/emulator" -list-avds | grep -Fx eimir-launcher
           "$ANDROID_HOME/emulator/emulator" -avd eimir-launcher -no-window \
             -no-audio -no-snapshot -no-boot-anim -gpu swiftshader -memory ${{ matrix.memory }} -partition-size 2048 \
@@ -102,6 +104,10 @@ jobs:
             sleep 2
           done
           test "$boot" = '1'
+          # Retain device diagnostics even if instrumentation dies before a test starts.
+          adb -e logcat -b all -v threadtime > native-system.log 2>&1 &
+          device_log_pid=$!
+          trap 'kill "$device_log_pid" 2>/dev/null || true' EXIT
           adb -e install -r app/build/outputs/apk/debug/app-debug.apk
           adb -e install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           # Seed under shell's UID: eimir must not own/read this image before selection.
@@ -124,6 +130,7 @@ jobs:
             external_photo_uri="content://media/external_primary/images/media/$external_photo_id"
             ! grep -F 'owner_package_name=de.sidebyside.app' external-photo-owner.log
           fi
+          adb -e shell cat /proc/meminfo > guest-memory-before-tests.log
           timeout 180 adb -e shell am instrument -w -r \
             -e externalPhotoUri "$external_photo_uri" \
             -e class de.eimir.app.LauncherIconsTest,de.eimir.app.UnifiedPushAccountReplacementTest,de.eimir.app.PhotoFileChooserTest \
@@ -149,7 +156,7 @@ jobs:
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b crash -d -t 200 \
             > native-crash.log 2>&1 || true
-          for proof in native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg; do
+          for proof in native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg; do
             if "$ANDROID_HOME/platform-tools/adb" -e shell run-as de.sidebyside.app.debug test -f "files/$proof"; then
               "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.sidebyside.app.debug \
                 cat "files/$proof" > "$proof"
@@ -157,6 +164,12 @@ jobs:
               rm -f "$proof"
             fi
           done
+      - name: Capture failed instrumentation process diagnostics
+        if: failure()
+        working-directory: android
+        run: |
+          timeout 15 "$ANDROID_HOME/platform-tools/adb" -e shell dumpsys activity exit-info de.sidebyside.app.debug \
+            > native-exit-info.log 2>&1 || true
       - name: Upload native verification results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -166,9 +179,15 @@ jobs:
             android/app/build/reports/
             android/app/build/outputs/androidTest-results/
             android/emulator.log
+            android/host-memory.log
+            android/guest-memory-before-tests.log
             android/instrumentation.log
             android/fixture-logcat.log
             android/native-crash.log
+            android/native-system.log
+            android/native-exit-info.log
+            android/native-photo-input.png
+            android/native-photo-input.txt
             android/native-photo-picker.png
             android/native-photo-picker.txt
             android/native-photo-result.png

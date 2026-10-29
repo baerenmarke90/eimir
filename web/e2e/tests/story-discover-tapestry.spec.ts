@@ -5,6 +5,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import sharedPhotos from '../../src/i18n/locales/sharedPhotos';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -337,6 +338,16 @@ async function installDiscoverApiMocks(
       return;
     }
 
+    if (
+      method === 'GET' &&
+      /^\/api\/v1\/spaces\/[^/]+\/(memories|heart-moments|milestones)\/[^/]+\/comments$/.test(
+        pathname,
+      )
+    ) {
+      await fulfillJson({ items: [], nextCursor: null, hasMore: false });
+      return;
+    }
+
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -406,7 +417,10 @@ test('Momente Discover presents the real #452 anniversary with authorized image 
     retrospective.locator('.momente-retrospective-media'),
   ).toHaveCount(1);
   await expect(page.locator('.momente-hero-highlight')).toHaveCount(1);
-  await expect(page.locator('.momente-tapestry-item')).toHaveCount(11);
+  await expect(page.locator('.momente-tapestry-item')).toHaveCount(1);
+  await expect(page.locator('#momente-diary [data-task-item-key]')).toHaveCount(
+    DISCOVER_ITEMS.length,
+  );
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
 
@@ -481,12 +495,21 @@ test('Momente Discover preserves canonical backend order in its desktop CSS grid
     'Danke, dass du heute für mich da warst.',
   );
 
+  await expect(page.locator('.momente-tapestry-item')).toHaveCount(2);
   const tapestryLinkTitles = await page
     .locator('.momente-tapestry-item')
     .evaluateAll((nodes) =>
       nodes.map((node) => node.getAttribute('aria-label')),
     );
-  expect(tapestryLinkTitles).toEqual(canonicalItemLabels);
+  expect(tapestryLinkTitles).toHaveLength(2);
+  for (const [index, label] of tapestryLinkTitles.entries())
+    expect(label).toContain(canonicalItemLabels[index]);
+  const diary = page.locator('#momente-diary');
+  await expect(diary.locator('[data-task-item-key]')).toHaveCount(
+    DISCOVER_ITEMS.length,
+  );
+  for (const label of canonicalItemLabels)
+    await expect(diary).toContainText(label);
 
   const grid = page.locator('.momente-tapestry').first();
   await expect(grid).toBeVisible();
@@ -498,7 +521,7 @@ test('Momente Discover preserves canonical backend order in its desktop CSS grid
     };
   });
   expect(gridStyle.display).toBe('grid');
-  expect(gridStyle.columns).toBe(3);
+  expect(gridStyle.columns).toBe(2);
   await expect(page.locator('.momente-tapestry-column')).toHaveCount(0);
 
   const dimensions = await page.evaluate(() => ({
@@ -537,7 +560,7 @@ test('Momente Discover tapestry is axe-clean in dark mode', async ({
   });
 });
 
-test('Momente Discover uses one canonical CSS-grid column on mobile with no horizontal overflow', async ({
+test('Momente Discover uses two compact rediscovery columns above the full Diary on mobile with no horizontal overflow', async ({
   page,
 }) => {
   const unexpectedRequests = await installDiscoverApiMocks(page);
@@ -550,12 +573,21 @@ test('Momente Discover uses one canonical CSS-grid column on mobile with no hori
     page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
   ).toBeVisible();
 
+  await expect(page.locator('.momente-tapestry-item')).toHaveCount(2);
   const tapestryLinkTitles = await page
     .locator('.momente-tapestry-item')
     .evaluateAll((nodes) =>
       nodes.map((node) => node.getAttribute('aria-label')),
     );
-  expect(tapestryLinkTitles).toEqual(canonicalItemLabels);
+  expect(tapestryLinkTitles).toHaveLength(2);
+  for (const [index, label] of tapestryLinkTitles.entries())
+    expect(label).toContain(canonicalItemLabels[index]);
+  const diary = page.locator('#momente-diary');
+  await expect(diary.locator('[data-task-item-key]')).toHaveCount(
+    DISCOVER_ITEMS.length,
+  );
+  for (const label of canonicalItemLabels)
+    await expect(diary).toContainText(label);
 
   const grid = page.locator('.momente-tapestry').first();
   const columnCount = await grid.evaluate(
@@ -563,7 +595,7 @@ test('Momente Discover uses one canonical CSS-grid column on mobile with no hori
       getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean)
         .length,
   );
-  expect(columnCount).toBe(1);
+  expect(columnCount).toBe(2);
 
   const dimensions = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -585,6 +617,12 @@ test('Momente browse layer keeps four structural destinations compact and second
   await signIn(page);
   await page.goto('/story?tab=discover');
 
+  await page
+    .getByRole('button', {
+      name: storyProducts.storyFilters.toggleButton,
+      exact: true,
+    })
+    .click();
   const browse = page.getByRole('navigation', { name: de.story.browseTitle });
   await expect(browse).toBeVisible();
   await expect(browse.getByRole('link')).toHaveCount(4);
@@ -601,20 +639,18 @@ test('Momente browse layer keeps four structural destinations compact and second
     browse.getByRole('link', { name: de.story.browseYears }),
   ).toHaveAttribute('href', '/story/years');
 
-  await expect(page.getByRole('tab')).toHaveCount(2);
+  await expect(page.getByRole('tab')).toHaveCount(0);
   await expect(page.locator('.momente-archive-links')).toHaveCount(0);
   await expect(page.locator('.momente-year-archive')).toHaveCount(0);
   await expect(page.getByText(de.story.milestonesDesc)).toHaveCount(0);
   await expect(page.getByText(de.story.yearArchiveSubtitle)).toHaveCount(0);
   await expect(page.getByText(de.story.yearArchiveAll)).toHaveCount(0);
 
-  const browseBox = await browse.boundingBox();
-  const heroBox = await page.locator('.momente-hero-highlight').boundingBox();
-  expect(browseBox).not.toBeNull();
-  expect(heroBox).not.toBeNull();
-  expect(browseBox?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(
-    heroBox?.y ?? Number.NEGATIVE_INFINITY,
-  );
+  await expect(
+    page
+      .getByRole('dialog')
+      .getByRole('navigation', { name: de.story.browseTitle }),
+  ).toBeVisible();
 
   const linkBoxes = await browse.getByRole('link').evaluateAll((links) =>
     links.map((link) => {
@@ -658,6 +694,12 @@ test('Momente browse layer reflows at 320px with enlarged text in dark mode', as
   await page.goto('/story?tab=discover');
   await page.addStyleTag({ content: 'html { font-size: 125%; }' });
 
+  await page
+    .getByRole('button', {
+      name: storyProducts.storyFilters.toggleButton,
+      exact: true,
+    })
+    .click();
   const browse = page.getByRole('navigation', { name: de.story.browseTitle });
   await expect(browse).toBeVisible();
   await expect(browse.getByRole('link')).toHaveCount(4);

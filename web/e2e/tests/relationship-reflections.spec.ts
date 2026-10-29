@@ -641,3 +641,43 @@ for (const [width, theme] of [
     expect(state.unexpected).toEqual([]);
   });
 }
+
+for (const pro of [true, false])
+  test(`Wir statistics remain a voluntary passport Pro option: ${pro}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const state = await fixture(page, { pro });
+    await signIn(page);
+    await expect(page.locator('.shared-story-summary')).toHaveCount(0);
+    await page.goto('/more/settings/today');
+    const control = page.getByRole('switch', {
+      name: copy.passport.wirStatisticsToggle,
+    });
+    await expect(control).toHaveAttribute('aria-checked', 'false');
+    if (pro) {
+      await expect(control).toBeEnabled();
+      await control.click();
+      await expect(control).toHaveAttribute('aria-checked', 'true');
+      await page.goto('/today');
+      await expect(page.locator('.shared-story-summary')).toBeVisible();
+      await expect(page.locator('.shared-story-summary-number')).toHaveText([
+        '128',
+        '12',
+        '4',
+      ]);
+      await captureScreenshot(page, info, 'wir-optional-statistics-390.png', {
+        fullPage: true,
+      });
+      await page.goto('/more/settings/today');
+      await control.click();
+      await page.goto('/today');
+      await expect(page.locator('.shared-story-summary')).toHaveCount(0);
+    } else {
+      await expect(control).toBeDisabled();
+      await page.goto('/today');
+      await expect(page.locator('.shared-story-summary')).toHaveCount(0);
+    }
+    expect(state.passportReads()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });

@@ -1,8 +1,8 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import navigation from '../../src/i18n/locales/navigation';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -378,7 +378,10 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
     }),
   ).toBeVisible();
   await expect(page.locator('.today-date-heading')).toHaveCount(0);
-  await expect(page.getByText('Later October trip')).toBeVisible();
+  const agenda = page.locator('.today-agenda-list');
+  await expect(
+    agenda.getByText('Later October trip', { exact: true }),
+  ).toBeVisible();
   expect(dashboardRequestCount).toBe(1);
 
   // Step 2: Pull-to-refresh is an app-level mobile interaction on Today.
@@ -420,7 +423,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   await expect.poll(() => dashboardRequestCount).toBe(requestsBeforePull + 1);
 
   // Step 3: Navigate to plan details via in-app UI click (NO page.reload())
-  await page.getByRole('link', { name: /Later October trip/ }).click();
+  await agenda.getByRole('link', { name: /Later October trip/ }).click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
   await expect(
     page.getByRole('heading', {
@@ -461,7 +464,9 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
 
   // Step 6: Verify the rescheduled item is now visible in the Shared Planning
   // Horizon agenda, and the stale title is gone
-  await expect(page.getByText('Earlier September outing')).toBeVisible();
+  await expect(
+    agenda.getByText('Earlier September outing', { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText('Later October trip')).toHaveCount(0);
 
   // Step 7: Verify no unexpected network requests occurred

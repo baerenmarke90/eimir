@@ -907,10 +907,13 @@ for (const variant of [
     );
     await nav.locator('a[href^="/story"]').click();
     if (variant.view === 'timeline')
-      await page.getByRole('tab', { name: de.story.tabTimeline }).click();
-    await expect(page.locator('.momente-tab-btn.active')).toHaveText(
-      variant.view === 'timeline' ? de.story.tabTimeline : de.story.tabDiscover,
-    );
+      await page
+        .getByRole('heading', { name: de.story.tabTimeline, exact: true })
+        .scrollIntoViewIfNeeded();
+    await expect(
+      page.getByRole('heading', { name: de.story.tabTimeline, exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole('tablist')).toHaveCount(0);
     await expect(
       page.getByText('Cooked fresh pasta together', { exact: true }).first(),
     ).toBeVisible();
@@ -939,9 +942,10 @@ for (const variant of [
     await expect(page).toHaveURL(/\/plan$/);
     await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
     await nav.locator('a[href^="/story"]').click();
-    await expect(page.locator('.momente-tab-btn.active')).toHaveText(
-      variant.view === 'timeline' ? de.story.tabTimeline : de.story.tabDiscover,
-    );
+    await expect(
+      page.getByRole('heading', { name: de.story.tabTimeline, exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole('tablist')).toHaveCount(0);
     await expect
       .poll(async () =>
         Math.abs((await page.evaluate(() => window.scrollY)) - storyY),
@@ -968,9 +972,10 @@ for (const variant of [
     ).toHaveAttribute('aria-selected', 'true');
     await page.goBack();
     await expect(page).toHaveURL(/\/story/);
-    await expect(page.locator('.momente-tab-btn.active')).toHaveText(
-      variant.view === 'timeline' ? de.story.tabTimeline : de.story.tabDiscover,
-    );
+    await expect(
+      page.getByRole('heading', { name: de.story.tabTimeline, exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole('tablist')).toHaveCount(0);
   });
 }
 

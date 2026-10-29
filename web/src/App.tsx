@@ -159,6 +159,7 @@ import {
 import { ThemeControl } from './components/ThemeControl';
 import { TodayPage } from './components/TodayPage';
 import { UiState } from './components/UiState';
+import { BrandedStartup } from './components/BrandedStartup';
 import { WishProductPage } from './components/WishProductPage';
 import { useTranslation } from './i18n';
 
@@ -172,6 +173,7 @@ function SpaceContextGate({
   onRetry: () => void;
 }) {
   const { t } = useTranslation();
+  if (loading) return <BrandedStartup label={t('states.loading.title')} />;
   return (
     <main className="setup-shell">
       <div className="entry-aura entry-aura-start" aria-hidden="true" />
@@ -424,6 +426,7 @@ function AuthenticatedApp({
     currentAccountId: account.id,
   };
   const planningProductProps = {
+    accountId: account.id,
     apis: planningApis,
     spaceId,
     apiBaseUrl,
@@ -1117,13 +1120,9 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
 
   if (isRestoring || isSigningOut) {
     return (
-      <main className="setup-shell">
-        <ThemeControl />
-        <UiState
-          kind="loading"
-          title={t(isSigningOut ? 'header.logout' : 'spaceContext.loading')}
-        />
-      </main>
+      <BrandedStartup
+        label={t(isSigningOut ? 'header.logout' : 'states.loading.title')}
+      />
     );
   }
 

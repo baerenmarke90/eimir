@@ -400,6 +400,32 @@ async function expectQuoteSurfaceAccessible(
   page: Page,
   { wholeDocument = true }: { wholeDocument?: boolean } = {},
 ): Promise<void> {
+  const card = page.locator('.daily-quote-card');
+  if (await card.count()) {
+    const geometry = await card.evaluate((node) => {
+      const header = node.querySelector('.daily-quote-header');
+      const content = node.querySelector('.daily-quote-content');
+      if (!header || !content)
+        throw new Error('The quote needs a heading above its content.');
+      const block = node.querySelector('blockquote');
+      const paragraph = block?.querySelector('p');
+      const root = parseFloat(
+        getComputedStyle(document.documentElement).fontSize,
+      );
+      return {
+        headingAbove:
+          header.getBoundingClientRect().bottom <=
+          content.getBoundingClientRect().top,
+        border: block ? getComputedStyle(block).borderLeftWidth : '0px',
+        quoteScale: paragraph
+          ? parseFloat(getComputedStyle(paragraph).fontSize) / root
+          : 0,
+      };
+    });
+    expect(geometry.headingAbove).toBe(true);
+    expect(geometry.border).toBe('0px');
+    expect(geometry.quoteScale).toBeLessThanOrEqual(1.25);
+  }
   await expect(
     page
       .locator('.daily-quote-card')

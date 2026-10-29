@@ -1,8 +1,8 @@
 """Verify the Place slice reflects the contract decided in M3-D06 through M3-D08.
 
-Two guarantees exist only in the shape of the contract: coordinates may exist
-only as a pair, and M3 does not promise map functionality such as geocoding,
-provider data, or radius search.
+Stored Place data stays provider-agnostic. The PO-authorized map task adds one
+bounded, transient forward lookup without adding provider IDs or radius search
+to persistent Places. The route and request surface stay explicitly enumerated.
 """
 
 from __future__ import annotations
@@ -11,6 +11,7 @@ from eimir.main import create_app
 
 COLLECTION = "/api/v1/spaces/{spaceId}/places"
 DETAIL = "/api/v1/spaces/{spaceId}/places/{placeId}"
+LOOKUP = f"{COLLECTION}/lookup"
 
 
 def _schema() -> dict[str, object]:
@@ -32,6 +33,7 @@ def test_place_routes_have_frozen_operation_ids() -> None:
     assert paths[DETAIL]["get"]["operationId"] == "getPlace"
     assert paths[DETAIL]["patch"]["operationId"] == "updatePlace"
     assert paths[DETAIL]["delete"]["operationId"] == "deletePlace"
+    assert paths[LOOKUP]["post"]["operationId"] == "lookupPlaces"
 
 
 RELATION_SLUGS = ("memories", "heart-moments", "milestones")
@@ -41,11 +43,11 @@ RELATION_PATHS = {
 }
 
 
-def test_the_place_surface_is_crud_plus_typed_relations() -> None:
+def test_the_place_surface_is_crud_typed_relations_and_explicit_lookup() -> None:
     """The surface is closed and completely enumerated.
 
-    M3-S4 adds the typed relations from M3-D08 and only those relations. This
-    assertion deliberately remains an equality instead of a subset check so a
+    M3-S4 adds the typed relations from M3-D08; the later map task adds only
+    the deliberate forward lookup. This remains an equality so a
     route that was not consciously added here is caught before generated
     clients expose it.
 
@@ -57,6 +59,7 @@ def test_the_place_surface_is_crud_plus_typed_relations() -> None:
     assert {path for path in _paths() if "/places" in path} == {
         COLLECTION,
         DETAIL,
+        LOOKUP,
         *RELATION_PATHS,
         "/api/v1/spaces/{spaceId}/moments/{kind}/{targetId}/places",
     }
@@ -115,13 +118,8 @@ def test_detail_exposes_the_stored_coordinates() -> None:
     )
 
 
-def test_the_contract_promises_no_map_feature() -> None:
-    """M3 provides domain behavior and stored Place data, not map features.
-
-    There is no geocoding, provider ID, radius search, or distance sorting. All
-    of those would introduce a provider concern requiring a separate reuse
-    review and belong to M7/M8.
-    """
+def test_stored_places_stay_provider_agnostic() -> None:
+    """Forward lookup stays separate from durable Place CRUD and pagination."""
     place_schemas = {
         name: schema for name, schema in _components().items() if name.startswith("Place")
     }
@@ -157,3 +155,15 @@ def test_the_plan_contract_now_carries_the_place() -> None:
 
     assert "placeId" in _components()["PlanDetail"]["properties"]
     assert not any("/plans/{planId}/places" in path for path in _paths())
+
+
+def test_explicit_lookup_has_a_bounded_closed_request_and_stable_failures() -> None:
+    schema = _components()["PlaceLookupRequest"]
+    assert schema["additionalProperties"] is False
+    assert set(schema["properties"]) == {"query", "locale"}
+    assert schema["required"] == ["query"]
+    assert schema["properties"]["query"]["minLength"] == 2
+    assert schema["properties"]["query"]["maxLength"] == 200
+    operation = _paths()[LOOKUP]["post"]
+    assert {"200", "401", "404", "422", "429", "503"} <= set(operation["responses"])
+    assert set(_paths()[LOOKUP]) == {"post"}

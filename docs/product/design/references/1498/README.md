@@ -67,10 +67,10 @@ uses the repository-approved forest photograph. Source SHA-256 values are in
 
 - 110 component/unit tests pass across MemoryPreview, SensitiveMedia, TodayPage,
   CouplePresence, WirDesignSettings, MediaGallery and MemoryPhotoGallery.
-- 13 browser journeys pass: design save/return/reload for all three designs at
+- 14 browser journeys pass: design save/return/reload for all three designs at
   320/360/390/430/1280px plus 200% text; Free preview/cancel/reset and saved Pro
   retention; failed save/retry; Wir and diary privacy at 360 Light, 390 Dark,
-  430 Light and 1280 Dark; fullscreen reveal/hide/close without overlapping targets.
+  430 Light and 1280 Dark; fullscreen reveal/hide/close without overlapping targets; the existing Energy optimistic-save/rollback/retry journey at 320px Dark with 200% text.
 - Those journeys verify native pointer/keyboard actions, focus retention,
   geometry/reflow, default/selected styling, shared blur, image-center clearance,
   translucent background with opaque foreground, canonical navigation/return
@@ -88,6 +88,27 @@ uses the repository-approved forest photograph. Source SHA-256 values are in
 
 No native wrapper change, physical-device acceptance, merge or new test release
 is claimed. CI on the published PR remains a separate gate.
+
+## Review correction: Energy overlay at large text
+
+The first complete PR browser run found one real regression in the existing
+Energy optimistic-write/retry journey. At 320px with 200% text, the fixed
+navigation covered the slider. The warm page's new `isolation: isolate` created
+an ancestor stacking context, trapping the hero's existing open-popover layer
+below navigation. The same assertion failed in CI and in a local reproduction.
+
+The warm canvas and portrait glow now paint as element backgrounds, without
+adding an ancestor stacking context. Full-bleed page padding/margins preserve
+content geometry and gutters. Existing Energy/gesture overlay ownership and
+layer rules remain authoritative; no z-index escalation, scroll mutation,
+delay, retry or assertion change is added.
+
+[Unobscured Energy slider at 320px Dark / 200% text](energy-slider-320-dark-large.webp).
+The unchanged failing journey passes after correction. All six design
+save/return/reload sizes/text modes and all four overview privacy sizes/themes
+were rechecked on the corrected source. Runtime screenshots and source hashes
+were refreshed; component tests, formatting, typecheck, token checks and the
+production build were rechecked as well.
 
 ## Reuse, business model and cross-cutting review
 

@@ -2,14 +2,13 @@
    baseline; Geborgen uses the existing contextual warm palette and open rhythm. */
 .today-page[data-wir-design="warm"] {
   position: relative;
-  isolation: isolate;
-}
-.today-page[data-wir-design="warm"]::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: calc(-1 * var(--space-8)) calc(-1 * var(--page-gutter))
-    calc(-1 * var(--space-8));
+  /* Paint the full-bleed ground on the page itself. An isolated backdrop
+     traps the hero's Energy/gesture overlays beneath the fixed navigation. */
+  width: calc(100% + 2 * var(--page-gutter));
+  margin-inline: calc(-1 * var(--page-gutter));
+  padding-inline: var(--page-gutter);
+  margin-block: calc(-1 * var(--space-8));
+  padding-block: var(--space-8);
   background:
     radial-gradient(
       ellipse at 50% 0%,
@@ -17,26 +16,23 @@
       transparent 32rem
     ),
     var(--color-background);
-  pointer-events: none;
 }
 .today-page[data-wir-design="warm"] .today-hero.couple-presence-card {
   padding-block: var(--space-5) var(--space-3);
   gap: var(--space-2);
   margin-bottom: var(--space-5);
-}
-.today-page[data-wir-design="warm"] .today-hero.couple-presence-card::before {
-  inset: 0 0 auto;
-  width: min(100%, 23rem);
-  height: 13rem;
-  margin-inline: auto;
-  border-radius: var(--radius-pill) var(--radius-pill) var(--radius-card)
-    var(--radius-card);
   background: radial-gradient(
     ellipse at 50% 30%,
     var(--color-surface) 20%,
     var(--color-brand-glow) 65%,
     transparent 72%
   );
+  background-size: min(100%, 23rem) 13rem;
+  background-position: top center;
+  background-repeat: no-repeat;
+}
+.today-page[data-wir-design="warm"] .today-hero.couple-presence-card::before {
+  content: none;
 }
 .today-page[data-wir-design="warm"]
   .today-hero

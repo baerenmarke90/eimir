@@ -1021,6 +1021,11 @@ export function TodayPage({
   ) => (
     <CouplePresence
       className="today-hero"
+      eyebrow={
+        (wirDesign?.current ?? 'warm') === 'warm'
+          ? t('wirDesign.welcome')
+          : undefined
+      }
       headingLevel="h1"
       spaceTitle={
         partner
@@ -1316,6 +1321,9 @@ export function TodayPage({
     <div
       className="page today-page"
       data-wir-design={wirDesign?.current ?? 'warm'}
+      data-color-world={
+        (wirDesign?.current ?? 'warm') === 'warm' ? 'warm' : undefined
+      }
     >
       {(dashboardQuery.isLoading ||
         (Boolean(dashboardQuery.data) && preferencesUnresolved)) && (

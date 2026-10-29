@@ -37,6 +37,7 @@ export interface CouplePresenceProps {
   avatarAction?: CouplePresenceAvatarAction;
   actions?: ReactNode;
   headingLevel?: 'h1' | 'h2';
+  eyebrow?: string;
   className?: string;
 }
 
@@ -58,6 +59,7 @@ export function CouplePresence({
   avatarAction,
   actions,
   headingLevel = 'h2',
+  eyebrow,
   className = '',
 }: CouplePresenceProps) {
   const { t } = useTranslation();
@@ -140,6 +142,9 @@ export function CouplePresence({
         </div>
 
         <div className="couple-presence-details">
+          {eyebrow ? (
+            <p className="couple-presence-eyebrow">{eyebrow}</p>
+          ) : null}
           <HeadingTag id={titleId} className="couple-presence-title">
             {presenceTitle}
           </HeadingTag>

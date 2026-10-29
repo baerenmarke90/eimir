@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import { focusManager } from '@tanstack/react-query';
 import { useTranslation } from '../i18n';
 import './SensitiveMedia.css';
+import './MediaOverlay.css';
 import { EimirIcon } from './EimirIcon';
 
 /** Deliberately volatile: never serialize reveal state with media or navigation. */
@@ -60,7 +61,7 @@ export function SensitiveMediaCover({
         </span>
       ) : null}
       {showLabel ? (
-        <span className="sensitive-media-label">
+        <span className="sensitive-media-label media-overlay">
           <EimirIcon name="privatsphaere" />
           <span className="sr-only">{t('sensitiveMedia.label')}</span>
         </span>
@@ -73,16 +74,18 @@ export function SensitiveMediaControl({
   revealed,
   onToggle,
   className = '',
+  overlay = false,
 }: {
   revealed: boolean;
   onToggle: () => void;
   className?: string;
+  overlay?: boolean;
 }) {
   const { t } = useTranslation();
   return (
     <button
       type="button"
-      className={`sensitive-media-control secondary ${className}`}
+      className={`sensitive-media-control ${overlay ? 'media-overlay' : 'secondary'}${revealed ? ' is-revealed' : ''} ${className}`}
       aria-pressed={revealed}
       aria-label={t(revealed ? 'sensitiveMedia.hide' : 'sensitiveMedia.show')}
       onClick={onToggle}

@@ -112,8 +112,6 @@
   bottom: var(--space-2);
   border-radius: var(--radius-pill);
   padding: 0.24rem 0.52rem;
-  background: var(--color-media-scrim-strong);
-  color: var(--color-text-inverse);
   font-size: 0.75rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -133,12 +131,8 @@
   border: 0;
   border-radius: var(--radius-medium);
   padding: 0;
-  background: var(--color-media-scrim-mid);
-  color: var(--color-text-inverse);
-  box-shadow: none;
   font-size: 1.55rem;
   line-height: 1;
-  opacity: 0.72;
   transition:
     opacity var(--duration-feedback) var(--easing-standard),
     background-color var(--duration-feedback) var(--easing-standard);
@@ -146,7 +140,7 @@
 
 .media-gallery-carousel-nav:hover,
 .media-gallery-carousel-nav:focus-visible {
-  background: var(--color-media-scrim-strong);
+  background: var(--media-overlay-surface-hover);
   opacity: 1;
 }
 
@@ -222,8 +216,6 @@
   bottom: var(--space-3);
   border-radius: var(--radius-pill);
   padding: 0.28rem 0.58rem;
-  background: var(--color-media-scrim-mid);
-  color: var(--color-text-inverse);
   font-size: 0.78rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -242,17 +234,9 @@
   border: 0;
   border-radius: var(--radius-pill);
   padding: 0;
-  background: var(--color-media-scrim-mid);
-  color: var(--color-text-inverse);
-  box-shadow: none;
   font-size: 1.55rem;
   line-height: 1;
   transition: background-color var(--duration-feedback) var(--easing-standard);
-}
-
-.media-lightbox-close:hover,
-.media-lightbox-close:focus-visible {
-  background: var(--color-media-scrim-strong);
 }
 
 .media-lightbox-nav {
@@ -267,12 +251,8 @@
   border: 0;
   border-radius: var(--radius-medium);
   padding: 0;
-  background: var(--color-media-scrim-mid);
-  color: var(--color-text-inverse);
-  box-shadow: none;
   font-size: 1.75rem;
   line-height: 1;
-  opacity: 0.78;
   transition:
     opacity var(--duration-feedback) var(--easing-standard),
     background-color var(--duration-feedback) var(--easing-standard);
@@ -280,7 +260,7 @@
 
 .media-lightbox-nav:hover,
 .media-lightbox-nav:focus-visible {
-  background: var(--color-media-scrim-strong);
+  background: var(--media-overlay-surface-hover);
   opacity: 1;
 }
 

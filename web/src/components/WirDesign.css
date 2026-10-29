@@ -1,51 +1,102 @@
-/* Personal compositions share the existing Today content and interaction tree.
-   Classic deliberately adds no overrides to the current product baseline. */
+/* Personal compositions share one content/interaction tree. Classic keeps the
+   baseline; Geborgen uses the existing contextual warm palette and open rhythm. */
+.today-page[data-wir-design="warm"] {
+  position: relative;
+  /* Paint the full-bleed ground on the page itself. An isolated backdrop
+     traps the hero's Energy/gesture overlays beneath the fixed navigation. */
+  width: calc(100% + 2 * var(--page-gutter));
+  margin-inline: calc(-1 * var(--page-gutter));
+  padding-inline: var(--page-gutter);
+  margin-block: calc(-1 * var(--space-8));
+  padding-block: var(--space-8);
+  background:
+    radial-gradient(
+      ellipse at 50% 0%,
+      var(--color-brand-glow),
+      transparent 32rem
+    ),
+    var(--color-background);
+}
 .today-page[data-wir-design="warm"] .today-hero.couple-presence-card {
+  padding-block: var(--space-5) var(--space-3);
   gap: var(--space-2);
   margin-bottom: var(--space-5);
+  background: radial-gradient(
+    ellipse at 50% 30%,
+    var(--color-surface) 20%,
+    var(--color-brand-glow) 65%,
+    transparent 72%
+  );
+  background-size: min(100%, 23rem) 13rem;
+  background-position: top center;
+  background-repeat: no-repeat;
+}
+.today-page[data-wir-design="warm"] .today-hero.couple-presence-card::before {
+  content: none;
 }
 .today-page[data-wir-design="warm"]
   .today-hero
   .partner-avatar-pair-hero
   .partner-avatar {
-  width: clamp(4.75rem, 23vw, 6rem);
-  height: clamp(4.75rem, 23vw, 6rem);
+  width: clamp(5.5rem, 26vw, 7rem);
+  height: clamp(5.5rem, 26vw, 7rem);
   font-size: 1.75rem;
+  box-shadow:
+    0 0 0 var(--space-1) var(--color-surface),
+    var(--shadow-soft);
 }
 .today-page[data-wir-design="warm"]
   .today-hero.couple-presence-card
   .couple-presence-main {
-  gap: var(--space-2);
+  gap: var(--space-4);
+}
+.couple-presence-eyebrow {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  letter-spacing: 0.06em;
 }
 .today-page[data-wir-design="warm"] .today-hero .couple-presence-title {
-  font-size: clamp(1.75rem, 6vw, 2.5rem);
+  font-size: clamp(1.9rem, 7vw, 2.75rem);
 }
 .today-page[data-wir-design="warm"] .daily-vibe-checkin {
   gap: var(--space-3);
-  padding: var(--space-3);
-  background: color-mix(
-    in srgb,
-    var(--color-brand-glow) 42%,
-    var(--color-surface)
-  );
-  border-radius: var(--radius-card);
+  padding: var(--space-3) 0;
+  background: transparent;
+  border-radius: 0;
+}
+.today-page[data-wir-design="warm"] .daily-vibe-heading h2,
+.today-page[data-wir-design="warm"] .today-section-title {
+  font-family: var(--font-display);
 }
 .today-page[data-wir-design="warm"] .daily-vibe-people {
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: var(--space-3);
 }
 .today-page[data-wir-design="warm"] .daily-vibe-person {
+  padding: var(--space-2) var(--space-1);
   border: 0;
+  background: transparent;
   box-shadow: none;
   min-height: 64px;
 }
 .today-page[data-wir-design="warm"] .daily-quote-card {
+  width: 100%;
+  margin-block: var(--space-2) var(--space-6);
+  padding: var(--space-4) var(--space-1);
   box-shadow: none;
-  background: color-mix(
-    in srgb,
-    var(--color-brand-glow) 48%,
-    var(--color-surface)
-  );
+  border-radius: 0;
+  background: transparent;
+}
+.today-page[data-wir-design="warm"] .daily-quote-card::before {
+  inset: var(--space-12) auto auto 0;
+}
+.today-page[data-wir-design="warm"] .daily-quote-block {
+  padding-inline-start: var(--space-5);
+}
+.today-page[data-wir-design="warm"] .today-moment-figure {
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-soft);
 }
 .today-page[data-wir-design="modern"]
   .today-hero.couple-presence-card
@@ -261,6 +312,22 @@
   min-height: 14px;
   background: var(--color-brand-surface);
   border-radius: var(--radius-small);
+}
+.wir-design-preview-warm {
+  background: var(--color-background);
+}
+.wir-design-preview-warm .wir-design-preview-hero {
+  border-radius: var(--radius-pill) var(--radius-pill) var(--radius-medium)
+    var(--radius-medium);
+  background: var(--color-brand-glow);
+}
+.wir-design-preview-warm .wir-design-preview-vibes {
+  grid-template-columns: 1fr 1fr;
+}
+.wir-design-preview-warm .wir-design-preview-vibes i,
+.wir-design-preview-warm .wir-design-preview-quote {
+  background: transparent;
+  box-shadow: inset 0 -1px var(--color-border-subtle);
 }
 .wir-design-preview-modern .wir-design-preview-hero {
   display: flex;

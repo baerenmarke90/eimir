@@ -30,8 +30,6 @@
   display: grid;
   place-items: center;
   border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-text);
   text-align: center;
 }
 .sensitive-media-preview {
@@ -59,8 +57,10 @@
   height: var(--space-12);
   margin: auto;
   border: 0;
-  background: var(--color-surface);
-  color: var(--color-text);
+}
+.sensitive-media-preview > .sensitive-media-preview-control.is-revealed {
+  inset: var(--space-3) var(--space-3) auto auto;
+  margin: 0;
 }
 .sensitive-media-control {
   min-width: 44px;
@@ -80,8 +80,9 @@
   position: absolute;
   z-index: 5;
   top: var(--space-4);
-  right: var(--space-4);
+  right: calc(var(--space-4) + var(--space-12) + var(--space-2));
   max-width: calc(100% - var(--space-12));
+  border: 0;
 }
 .sensitive-media-checkbox {
   display: flex;

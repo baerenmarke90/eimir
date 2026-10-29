@@ -851,6 +851,38 @@ for (const state of [
       await expect(
         card.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
       ).toBeFocused();
+      // Revealed photography keeps a clear center and a visible hide target.
+      const revealedButton = card.getByRole('button', {
+        name: sensitiveMedia.hide,
+        exact: true,
+      });
+      const revealedTarget = await revealedButton.boundingBox();
+      const revealedFrame = await photo.boundingBox();
+      if (!revealedTarget || !revealedFrame)
+        throw new Error('Missing revealed photo geometry.');
+      expect(revealedTarget.x).toBeGreaterThan(
+        revealedFrame.x + revealedFrame.width / 2,
+      );
+      expect(revealedTarget.y).toBeLessThan(
+        revealedFrame.y + revealedFrame.height / 2,
+      );
+      const material = await revealedButton.evaluate((node) => {
+        const style = getComputedStyle(node);
+        return {
+          background: style.backgroundColor,
+          color: style.color,
+          opacity: style.opacity,
+        };
+      });
+      expect(material.background).toMatch(/rgba\(20, 12, 18, 0\.(6|72)\)/);
+      expect(material.color).toBe('rgb(255, 255, 255)');
+      expect(material.opacity).toBe('1');
+      await page.screenshot({
+        path: info.outputPath(
+          `overview-${surface}-${state.width}-${state.theme}-revealed.png`,
+        ),
+        fullPage: true,
+      });
       await page.keyboard.press('Space');
       await expect(photo.locator('.sensitive-media-cover')).toBeVisible();
       const violations = await new AxeBuilder({ page })
@@ -1563,6 +1595,55 @@ for (const width of [390, 1280]) {
     });
   }
 }
+
+test('photo overlay controls remain separate, readable and operable in fullscreen', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await installApiMocks(
+    page,
+    ATTACHMENTS.map((item) => ({ ...item, isSensitive: true })),
+  );
+  await page.goto('/');
+  await signIn(page);
+  await page.goto(`/story/memories/${MEMORY_ID}`);
+  await expect(
+    page.getByRole('heading', { name: MULTI_MEMORY.title }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: sensitiveMedia.show, exact: true })
+    .click();
+  await page.getByRole('button', { name: photoReactions.fullscreen }).click();
+  const dialog = page.getByRole('dialog');
+  const privacy = dialog.getByRole('button', {
+    name: sensitiveMedia.hide,
+    exact: true,
+  });
+  const close = dialog.getByRole('button', {
+    name: GALLERY.close,
+    exact: true,
+  });
+  await expect(privacy).toBeVisible();
+  const privacyBox = await privacy.boundingBox();
+  const closeBox = await close.boundingBox();
+  if (!privacyBox || !closeBox)
+    throw new Error('Missing fullscreen overlay controls.');
+  expect(privacyBox.width).toBeGreaterThanOrEqual(44);
+  expect(closeBox.width).toBeGreaterThanOrEqual(44);
+  expect(privacyBox.x + privacyBox.width).toBeLessThan(closeBox.x);
+  await expect(privacy).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(close).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await page.screenshot({
+    path: info.outputPath('fullscreen-glass-controls.png'),
+  });
+  await privacy.click();
+  await expect(
+    dialog.getByRole('button', { name: sensitiveMedia.show, exact: true }),
+  ).toBeVisible();
+  await close.click();
+  await expect(dialog).toHaveCount(0);
+});
 
 test('Single-image Memory keeps the stable frame without carousel navigation', async ({
   page,

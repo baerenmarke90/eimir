@@ -1,6 +1,6 @@
 # Mobile header / More validation
 
-Source: `0d2e147b73c3eefd434a861c92821c09bd946d43`, based on main `f35f82dbab2465fe337850a1e8db147f4eb3942a`. [Source hashes](source-sha256.json) identify the runtime and browser-case files. Generated composition and exact prompt were published in #1507 before UI implementation.
+Runtime source: `0d2e147b73c3eefd434a861c92821c09bd946d43`, based on main `f35f82dbab2465fe337850a1e8db147f4eb3942a`. [Source hashes](source-sha256.json) identify the runtime and browser-case files. Generated composition and exact prompt were published in #1507 before UI implementation.
 
 ## Completed checks
 
@@ -30,3 +30,7 @@ The light grouped surfaces were explicitly selected by the Product Owner after r
 Browser API fixtures use fictional identities and exercise the real React product and session cleanup. Top/bottom safe-area values are simulated; no physical handset/native-wrapper acceptance is claimed. No wrapper, backend, database, entitlement or deployment configuration changed.
 
 All work used `/tmp/eimir-mobile-header-more`, branch `fix/mobile-header-more`, copied dependencies and explicit strict preview ports. The shared working checkout and other chats' source changes were not edited. An interrupted runner's identified orphaned preview was stopped; no unrelated processes were targeted. Publication is a reviewable PR, not a production deployment or merge.
+
+## Merge follow-up: native modal background target
+
+The retained F2 native-modality proof now uses the real bottom More link rather than the retired header brand. It still cycles keyboard focus, rejects programmatic focus behind the native dialog, clicks the background navigation destination through the backdrop, and requires the complete original URL to stay unchanged. An explicit geometry assertion proves the click is outside the floating sheet. The focused Chromium case passes without retries. This is a test compatibility repair; runtime sources remain unchanged.

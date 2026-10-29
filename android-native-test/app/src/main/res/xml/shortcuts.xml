@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_memory"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_add"
+        android:shortcutShortLabel="@string/shortcut_new_memory"
+        android:shortcutLongLabel="@string/shortcut_new_memory">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="de.eimir.nativetest"
+            android:targetClass="de.eimir.nativetest.MainActivity"
+            android:data="de.eimir.nativetest://create/memory" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="moments"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_moments"
+        android:shortcutShortLabel="@string/nav_moments"
+        android:shortcutLongLabel="@string/nav_moments">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="de.eimir.nativetest"
+            android:targetClass="de.eimir.nativetest.MainActivity"
+            android:data="de.eimir.nativetest://story" />
+    </shortcut>
+</shortcuts>

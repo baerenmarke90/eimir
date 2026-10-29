@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Same launcher background as the Capacitor app icon. -->
+    <color name="launcher_background">#D93D59</color>
+    <color name="window_background">#E6EBFA</color>
+</resources>

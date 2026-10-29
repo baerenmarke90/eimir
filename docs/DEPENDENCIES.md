@@ -306,6 +306,31 @@ Tools 36.0.0, builds the unsigned release APK/AAB, and verifies package
 identity, the local Web bundle, and the SBOM. The GitHub Actions themselves are
 pinned to commit SHAs.
 
+## Android — experimental native test client
+
+`android-native-test/` is a separate Gradle build (ADR 0014) and is not part of the product delivery or CI.
+Its dependencies are pinned in `android-native-test/gradle/libs.versions.toml` and verified with SHA-256 in
+`android-native-test/gradle/verification-metadata.xml`; the Gradle wrapper is the same 9.8.1 distribution as
+`android/`.
+
+| Component | Version | Source | License |
+|---|---|---|---|
+| Android Gradle Plugin | 9.4.0 | Google Maven | Apache-2.0 |
+| Kotlin Compose and serialization compiler plugins | 2.4.10 | Gradle Plugin Portal / Maven Central | Apache-2.0 |
+| AndroidX Compose BOM (UI, Foundation, Material 3, icons) | 2026.08.00 | Google Maven | Apache-2.0 |
+| AndroidX Activity Compose / Core KTX / SplashScreen / ExifInterface | 1.13.0 / 1.17.0 / 1.2.0 / 1.4.2 | Google Maven | Apache-2.0 |
+| AndroidX Lifecycle (runtime/viewmodel compose, process) | 2.11.0 | Google Maven | Apache-2.0 |
+| AndroidX Navigation Compose | 2.10.2 | Google Maven | Apache-2.0 |
+| kotlinx.coroutines / kotlinx.serialization JSON | 1.11.0 / 1.11.0 | Maven Central | Apache-2.0 |
+| OkHttp (+ coroutines) | 5.5.0 | Maven Central | Apache-2.0 |
+| Retrofit (+ kotlinx.serialization converter) | 3.0.0 | Maven Central | Apache-2.0 |
+| Coil 3 (compose, network-okhttp) | 3.6.3 | Maven Central | Apache-2.0 |
+| Telephoto zoomable-image-coil3 | 0.19.0 | Maven Central | Apache-2.0 |
+| Test: JUnit 4 / Robolectric / AndroidX Test / MockWebServer | 4.13.2 / 4.16.1 / 1.7.0, 1.3.0 / 5.5.0 | Maven Central / Google Maven | EPL-1.0 / MIT / Apache-2.0 / Apache-2.0 |
+
+API models in `android-native-test/api/generated` are produced by the same pinned openapi-generator image as
+the Web client (`tools/openapi/generator.env`).
+
 ## Container base images
 
 | Image | Version | Source | License |
@@ -355,6 +380,8 @@ The #1471 Android photo-location preflight at `docs/product/design/references/an
 
 The automatic photo places preflight `docs/product/design/references/1459/compact-current.png` is an original image generated through the eimir. project ImageGen workflow on 2026-10-27. It is a project asset with no separate public license grant; its illustrative photo is generated, not a third-party stock image. See the adjacent README and prompt for scope and provenance.
 
+The native test client renders `android-native-test/docs/evidence/*.webp` come from its Robolectric journey tests against synthetic fixture content. UI screenshots are project assets with no separate public license grant; the embedded photographs are the CC0 1.0 Universal demo images recorded in `backend/demo_assets/manifest.json` (cabin/lake by Darkmoon_Art, Pixabay 3374201; forest path by ulleo, Pixabay 3703447; concert lights by mikewallimages, Pixabay 3084876). The launcher artwork reuses the existing eimir. app icon foreground from `android/`.
+
 The actual browser renders `docs/product/design/references/1459/evidence/1459-*.png` use synthetic account/content fixtures and the existing cabin/lake photograph by Darkmoon_Art (Pixabay 3374201). UI screenshots are project assets with no separate public license grant; the embedded photograph is CC0 1.0 Universal as recorded in `backend/demo_assets/manifest.json`. The evidence README names the runtime source and validation limits.
 
 The repository now contains project-specific image and SVG assets. They were
@@ -385,7 +412,12 @@ decision for the project's own source code.
 | `design/m2/m2-screenflow.svg` | M2 Client handoff | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/m2/m2-privacy-flow.svg` | M2 Privacy/Acceptance handoff | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 
-No font or audio assets are currently documented in the repository.
+| Font asset | Use | Author | License |
+|---|---|---|---|
+| `web/public/fonts/literata-latin-variable.woff2`, `android-native-test/app/src/main/res/font/literata.ttf` | Literata (product typography) | The Literata Project Authors | SIL OFL 1.1 (`OFL-Literata.txt` next to each copy); the TTF is a lossless format conversion of the WOFF2 |
+| `web/public/fonts/instrument-sans-latin-variable.woff2`, `android-native-test/app/src/main/res/font/instrument_sans.ttf` | Instrument Sans (product typography) | The Instrument Sans Project Authors | SIL OFL 1.1 (`OFL-InstrumentSans.txt` next to each copy); the TTF is a lossless format conversion of the WOFF2 |
+
+No audio assets are currently documented in the repository.
 
 ## Maintenance
 

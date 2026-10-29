@@ -226,3 +226,41 @@ including the real Android File → Web upload → API/worker → shared Place j
 (run `40921139573`, attempt 2). API 28 and 37.1 also remain successful. This
 records the successful run alongside the original platform-window failure;
 acceptance for the subsequent final commit still requires its own fresh checks.
+
+## Full-regression compact-media follow-up
+
+The additional full-regression run `40921494733` caught the large-preview Privacy
+control being reused unchanged inside the approved 4rem Diary thumbnail. Its
+painted surface obscured the small revealed photograph. Preserve the shared 3rem
+control and at least 44px touch dimensions; only in these compact Diary previews,
+place it at the top-right and clip its existing material to the icon content box.
+Transparent padding retains the effective touch area. Remove the larger backdrop
+and edge effect there so the photo center is actually clear. Other media surfaces
+keep their existing treatment, concealment, authorization and volatile reveal
+lifecycle.
+
+The existing behavioral journey retains its large-photo geometry assertions,
+independent icon activation, unchanged URL, focus, keyboard reconcealment, reset
+on detail/return and axe checks. For the compact thumbnail it requires the full
+touch target inside the image, the painted material in the upper-right and the
+image center outside that material. It also covers 320px with 200% text. This is
+a correction within the approved compact thumbnail and shared Privacy pattern,
+not a new information architecture or a change to disclosure/permission rules.
+
+Three older Timeline reference journeys now open the actual Diary options sheet
+before examining archive links. Destination, radius, shadow, width and touch-size
+assertions remain; screenshots capture both the open sheet and returned Diary.
+The historical separate-tab presentation is not restored.
+
+The same full run exposed metadata overflow when the 4rem thumbnail and 200%
+text competed for a narrow card. Reuse the existing `product-content` container
+and 17.5rem intrinsic-width boundary to stack that card's children at enlarged or
+narrow content sizes. Metadata keeps a shrinkable, wrapping track without
+truncation. The unchanged footer-containment and overlap assertions own its
+acceptance at 390/320px and 200% text.
+
+The pinned-month journey uses a short 390×600 viewport and scrolls the actual
+month heading. Compact cards no longer provide the former full-photo layout's
+scroll distance in a tall viewport. The test still requires the heading at the
+viewport edge, opaque material, ordinary header scrolled away and persistent
+navigation; it polls actual geometry instead of sleeping for a guessed duration.

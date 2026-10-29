@@ -166,6 +166,9 @@
 .story-page-unified .momente-diary-section .story-timeline .story-card-footer {
   margin: 0;
   flex-wrap: wrap;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow-wrap: anywhere;
   border: 0;
   padding: 0;
 }
@@ -241,6 +244,20 @@
   border-radius: var(--radius-medium);
 }
 
+/* Compact anchors retain the full touch target while the revealed icon's
+   painted material stays clear of the photograph's center. */
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .sensitive-media-preview
+  > .sensitive-media-preview-control.is-revealed {
+  inset: 0 0 auto auto;
+  padding: calc((var(--space-12) - var(--space-5)) / 2);
+  background-clip: content-box;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
 .story-page-unified
   .momente-diary-section
   .story-timeline
@@ -257,6 +274,28 @@
   .story-card.has-image
   > .heart-emotion-badge {
   grid-column: 2;
+}
+
+/* Reuse the product's intrinsic-width boundary for narrow/enlarged content.
+   Metadata and titles regain the full card width before a thumbnail crowds them. */
+@container product-content (max-width: 17.5rem) {
+  .story-page-unified
+    .momente-diary-section
+    .story-timeline
+    .story-card-link
+    .story-card.has-image {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .story-page-unified
+    .momente-diary-section
+    .story-timeline
+    .story-card-link
+    .story-card.has-image
+    > * {
+    grid-column: 1;
+    grid-row: auto;
+  }
 }
 
 @media (min-width: 768px) {

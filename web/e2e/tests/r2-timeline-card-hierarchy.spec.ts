@@ -1,4 +1,3 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,6 +10,7 @@ import {
   test,
 } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 /**
  * #969: Timeline cards lead with content, not taxonomy. Kind badges, the
@@ -590,7 +590,9 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
   test('month heading pins at the viewport edge after the app header scrolls away', async ({
     page,
   }, testInfo) => {
-    await openTimeline(page, { width: 390, height: 844 });
+    // Compact cards leave less document height than the former full-photo
+    // layout. A short real viewport provides enough natural scroll range.
+    await openTimeline(page, { width: 390, height: 600 });
     const topbar = page.locator('.product-topbar');
     const august = page.locator('.story-year-month-header').nth(1);
 
@@ -598,14 +600,12 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
       'relative',
     );
 
-    await page
-      .locator('.story-timeline-item', {
-        hasText: 'Thinking of our spring picnic',
-      })
-      .evaluate((el) => {
-        window.scrollBy(0, el.getBoundingClientRect().top - 120);
-      });
-    await page.waitForTimeout(150);
+    await august.evaluate((el) => {
+      window.scrollBy(0, el.getBoundingClientRect().top + 24);
+    });
+    await expect
+      .poll(async () => Math.abs((await august.boundingBox())?.y ?? 999))
+      .toBeLessThanOrEqual(1);
 
     expect(
       await topbar.evaluate((el) => el.getBoundingClientRect().bottom),

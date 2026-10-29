@@ -1,21 +1,21 @@
-import { fulfillEmptyMomentPlaces } from '../support/photoSources';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { expect, test, type Locator, type Page } from '@playwright/test';
-import de from '../../src/i18n/locales/de';
-import storyProducts from '../../src/i18n/locales/storyProducts';
-import memoryProduct from '../../src/i18n/locales/memoryProduct';
-import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
-import photoReactions from '../../src/i18n/locales/photoReactions';
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
-import {
-  installNativeAppLifecycle,
-  nativeAppState,
-} from '../support/nativeAppLifecycle';
+import { expect, type Locator, type Page, test } from '@playwright/test';
+import de from '../../src/i18n/locales/de';
+import memoryProduct from '../../src/i18n/locales/memoryProduct';
+import photoReactions from '../../src/i18n/locales/photoReactions';
+import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import {
   installMediaOwnershipMetrics,
   mediaOwnershipMetrics,
 } from '../support/mediaOwnershipMetrics';
+import {
+  installNativeAppLifecycle,
+  nativeAppState,
+} from '../support/nativeAppLifecycle';
+import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -784,12 +784,13 @@ async function installSensitiveOverview(page: Page) {
 }
 
 for (const state of [
-  { width: 360, theme: 'light' },
-  { width: 390, theme: 'dark' },
-  { width: 430, theme: 'light' },
-  { width: 1280, theme: 'dark' },
+  { width: 360, theme: 'light', textScale: 1 },
+  { width: 390, theme: 'dark', textScale: 1 },
+  { width: 430, theme: 'light', textScale: 1 },
+  { width: 1280, theme: 'dark', textScale: 1 },
+  { width: 320, theme: 'dark', textScale: 2 },
 ] as const) {
-  test(`overview Privacy icons independently reveal blurred photos at ${state.width}px ${state.theme}`, async ({
+  test(`overview Privacy icons independently reveal blurred photos at ${state.width}px ${state.theme}${state.textScale > 1 ? ' 200% text' : ''}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width: state.width, height: 900 });
@@ -807,6 +808,8 @@ for (const state of [
 
     for (const surface of ['wir', 'diary'] as const) {
       if (surface === 'diary') await page.goto('/story?tab=timeline');
+      if (state.textScale > 1)
+        await page.addStyleTag({ content: ':root { font-size: 200%; }' });
       const card = page.locator(
         surface === 'wir'
           ? '.today-moment.preview-card-link'
@@ -871,12 +874,61 @@ for (const state of [
       const revealedFrame = await photo.boundingBox();
       if (!revealedTarget || !revealedFrame)
         throw new Error('Missing revealed photo geometry.');
-      expect(revealedTarget.x).toBeGreaterThan(
-        revealedFrame.x + revealedFrame.width / 2,
-      );
-      expect(revealedTarget.y).toBeLessThan(
-        revealedFrame.y + revealedFrame.height / 2,
-      );
+      expect(revealedTarget.width).toBeGreaterThanOrEqual(44);
+      expect(revealedTarget.height).toBeGreaterThanOrEqual(44);
+      if (surface === 'diary') {
+        // The approved compact Diary has a 4rem thumbnail. Keep the effective
+        // target inside it and the painted circular material off its center.
+        expect(revealedTarget.x).toBeGreaterThanOrEqual(revealedFrame.x - 0.5);
+        expect(revealedTarget.y).toBeGreaterThanOrEqual(revealedFrame.y - 0.5);
+        expect(revealedTarget.x + revealedTarget.width).toBeLessThanOrEqual(
+          revealedFrame.x + revealedFrame.width + 0.5,
+        );
+        expect(revealedTarget.y + revealedTarget.height).toBeLessThanOrEqual(
+          revealedFrame.y + revealedFrame.height + 0.5,
+        );
+        const paint = await revealedButton.evaluate((node) => {
+          const style = getComputedStyle(node);
+          return {
+            clip: style.backgroundClip,
+            backdrop: style.backdropFilter,
+            shadow: style.boxShadow,
+            left: parseFloat(style.paddingLeft),
+            right: parseFloat(style.paddingRight),
+            top: parseFloat(style.paddingTop),
+            bottom: parseFloat(style.paddingBottom),
+          };
+        });
+        expect(paint.clip).toBe('content-box');
+        expect(paint.backdrop).toBe('none');
+        expect(paint.shadow).toBe('none');
+        const radiusX = (revealedTarget.width - paint.left - paint.right) / 2;
+        const radiusY = (revealedTarget.height - paint.top - paint.bottom) / 2;
+        expect(radiusX).toBeGreaterThan(0);
+        expect(radiusY).toBeGreaterThan(0);
+        const centerX = revealedTarget.x + paint.left + radiusX;
+        const centerY = revealedTarget.y + paint.top + radiusY;
+        expect(centerX).toBeGreaterThan(
+          revealedFrame.x + revealedFrame.width / 2,
+        );
+        expect(centerY).toBeLessThan(
+          revealedFrame.y + revealedFrame.height / 2,
+        );
+        expect(
+          ((revealedFrame.x + revealedFrame.width / 2 - centerX) / radiusX) **
+            2 +
+            ((revealedFrame.y + revealedFrame.height / 2 - centerY) /
+              radiusY) **
+              2,
+        ).toBeGreaterThan(1);
+      } else {
+        expect(revealedTarget.x).toBeGreaterThan(
+          revealedFrame.x + revealedFrame.width / 2,
+        );
+        expect(revealedTarget.y).toBeLessThan(
+          revealedFrame.y + revealedFrame.height / 2,
+        );
+      }
       const material = await revealedButton.evaluate((node) => {
         const style = getComputedStyle(node);
         return {

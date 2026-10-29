@@ -339,6 +339,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 9,
       "reason": "Special Plan confirmed highlight, Today duplicate suppression and return; Pro passport capability and canonical shared content access across Compact Light/Dark and Expanded."
+    },
+    "wir-design-selection.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8,
+      "reason": "Personal Wir design selection, confirmed Pro writes, downgrade retention, Free reset and shared Today interactions across Compact/Expanded themes and large text."
     }
   }
 }

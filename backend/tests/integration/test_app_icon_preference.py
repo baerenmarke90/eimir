@@ -209,7 +209,10 @@ def test_personal_export_includes_only_callers_choice_and_deletion_purges_it(
         with build_export_archive(session, context, scope) as buffer, ZipFile(buffer) as archive:
             account_document = json.loads(archive.read("accounts.json"))
             if scope is TransferScope.PERSONAL:
-                assert account_document["personalAppearance"] == {"appIconId": "sage"}
+                assert account_document["personalAppearance"] == {
+                    "appIconId": "sage",
+                    "wirDesign": "warm",
+                }
             else:
                 assert "personalAppearance" not in account_document
     apply_accepted_tombstone(session, couple["anna"].id, accepted_at=now())

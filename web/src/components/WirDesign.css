@@ -1,0 +1,298 @@
+/* Personal compositions share the existing Today content and interaction tree.
+   Classic deliberately adds no overrides to the current product baseline. */
+.today-page[data-wir-design="warm"] .today-hero.couple-presence-card {
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+.today-page[data-wir-design="warm"]
+  .today-hero
+  .partner-avatar-pair-hero
+  .partner-avatar {
+  width: clamp(4.75rem, 23vw, 6rem);
+  height: clamp(4.75rem, 23vw, 6rem);
+  font-size: 1.75rem;
+}
+.today-page[data-wir-design="warm"]
+  .today-hero.couple-presence-card
+  .couple-presence-main {
+  gap: var(--space-2);
+}
+.today-page[data-wir-design="warm"] .today-hero .couple-presence-title {
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
+}
+.today-page[data-wir-design="warm"] .daily-vibe-checkin {
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: color-mix(
+    in srgb,
+    var(--color-brand-glow) 42%,
+    var(--color-surface)
+  );
+  border-radius: var(--radius-card);
+}
+.today-page[data-wir-design="warm"] .daily-vibe-people {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+}
+.today-page[data-wir-design="warm"] .daily-vibe-person {
+  border: 0;
+  box-shadow: none;
+  min-height: 64px;
+}
+.today-page[data-wir-design="warm"] .daily-quote-card {
+  box-shadow: none;
+  background: color-mix(
+    in srgb,
+    var(--color-brand-glow) 48%,
+    var(--color-surface)
+  );
+}
+.today-page[data-wir-design="modern"]
+  .today-hero.couple-presence-card
+  .couple-presence-main {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+  text-align: start;
+}
+.today-page[data-wir-design="modern"]
+  .today-hero
+  .partner-avatar-pair-hero
+  .partner-avatar {
+  width: 4.5rem;
+  height: 4.5rem;
+  font-size: 1.5rem;
+}
+.today-page[data-wir-design="modern"]
+  .today-hero.couple-presence-card
+  .couple-presence-details {
+  width: auto;
+  flex: 1 1 8rem;
+  align-items: flex-start;
+}
+.today-page[data-wir-design="modern"] .today-hero .couple-presence-title {
+  font-family: var(--font-ui);
+  font-size: clamp(1.4rem, 4.5vw, 2rem);
+  letter-spacing: -0.02em;
+  text-align: start;
+}
+.today-page[data-wir-design="modern"]
+  .today-hero.couple-presence-card
+  .couple-presence-meta {
+  justify-content: flex-start;
+  text-align: start;
+}
+.today-page[data-wir-design="modern"] .today-hero.couple-presence-card::before {
+  background: radial-gradient(
+    105% 95% at 50% 0%,
+    var(--color-shared-surface),
+    transparent 70%
+  );
+}
+.today-page[data-wir-design="modern"] .daily-vibe-checkin {
+  background: var(--color-shared-surface);
+  padding: var(--space-3);
+  border-radius: var(--radius-large);
+}
+.today-page[data-wir-design="modern"] .daily-vibe-person {
+  box-shadow: none;
+}
+.today-page[data-wir-design="modern"] .daily-quote-card {
+  border-inline-start: 3px solid var(--color-shared);
+  border-radius: var(--radius-large);
+  box-shadow: none;
+  background: var(--color-shared-surface);
+}
+.today-page[data-wir-design="modern"] .today-section-title {
+  font-family: var(--font-ui);
+}
+/* Energy/gesture hit targets keep their existing dimensions and own popovers. */
+.today-page[data-wir-design="warm"]
+  .today-hero.couple-presence-card
+  .couple-presence-avatar-adornment
+  .daily-energy-avatar-control,
+.today-page[data-wir-design="modern"]
+  .today-hero.couple-presence-card
+  .couple-presence-avatar-adornment
+  .daily-energy-avatar-control {
+  left: var(--space-5);
+}
+.wir-design-settings {
+  display: grid;
+  gap: var(--space-3);
+}
+.wir-design-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.wir-design-summary > div {
+  display: grid;
+  gap: var(--space-1);
+}
+.wir-design-summary > button {
+  margin-inline-start: auto;
+}
+.wir-design-options {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0;
+  margin: var(--space-4) 0;
+  border: 0;
+  min-width: 0;
+}
+.wir-design-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: var(--space-3);
+  border: 2px solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
+}
+.wir-design-option.is-selected {
+  border-color: var(--color-focus);
+  background: var(--color-brand-surface);
+}
+.wir-design-option:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.wir-design-option input {
+  flex-shrink: 0;
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--color-brand);
+}
+.wir-design-copy {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.wir-design-copy strong {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.wir-design-copy > span,
+.wir-design-personal {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.wir-design-tier {
+  color: var(--color-brand-text);
+  font: var(--font-supporting-copy);
+}
+.wir-design-footer {
+  display: grid;
+  gap: var(--space-3);
+}
+.wir-design-footer p {
+  margin: 0;
+}
+.wir-design-footer > button {
+  min-height: 44px;
+  width: 100%;
+}
+.wir-design-preview {
+  display: grid;
+  flex-shrink: 0;
+  gap: 3px;
+  width: 3.5rem;
+  height: 5.25rem;
+  padding: 5px;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  box-shadow: inset 0 0 0 1px var(--color-border-subtle);
+}
+.wir-design-preview-hero {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+}
+.wir-design-preview-portraits {
+  display: flex;
+  justify-content: center;
+}
+.wir-design-preview-portraits i {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-glow);
+  border: 1px solid var(--color-surface);
+}
+.wir-design-preview-portraits i + i {
+  margin-inline-start: -3px;
+  background: var(--color-brand-surface);
+}
+.wir-design-preview-names {
+  width: 65%;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background: var(--color-text-muted);
+}
+.wir-design-preview-vibes {
+  display: grid;
+  gap: 2px;
+}
+.wir-design-preview-vibes i {
+  display: block;
+  min-height: 5px;
+  background: var(--color-surface);
+  border-radius: var(--radius-small);
+}
+.wir-design-preview-quote {
+  min-height: 8px;
+  background: var(--color-brand-glow);
+  border-radius: var(--radius-small);
+}
+.wir-design-preview-moment {
+  min-height: 14px;
+  background: var(--color-brand-surface);
+  border-radius: var(--radius-small);
+}
+.wir-design-preview-modern .wir-design-preview-hero {
+  display: flex;
+  align-items: center;
+}
+.wir-design-preview-modern .wir-design-preview-vibes {
+  grid-template-columns: 1fr 1fr;
+}
+.wir-design-preview-modern .wir-design-preview-quote {
+  background: var(--color-shared-surface);
+}
+.wir-design-preview-classic .wir-design-preview-portraits i {
+  width: 17px;
+  height: 17px;
+}
+.wir-design-preview-classic .wir-design-preview-vibes {
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 359px) {
+  .wir-design-option {
+    gap: var(--space-2);
+    padding: var(--space-2);
+  }
+  .wir-design-option .wir-design-preview {
+    width: 2.75rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wir-design-option {
+    transition: none;
+  }
+}
+@media (forced-colors: active) {
+  .wir-design-option.is-selected {
+    border-color: Highlight;
+  }
+}

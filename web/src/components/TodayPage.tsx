@@ -77,6 +77,8 @@ import { UiState } from './UiState';
 import { AnticipationCard } from './AnticipationCard';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import './TodayPage.css';
+import { useWirDesign } from '../client/wirDesign';
+import './WirDesign.css';
 
 export function formatRelationshipDuration(
   duration: DashboardRelationshipDuration,
@@ -699,6 +701,7 @@ export function TodayPage({
 }) {
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
+  const wirDesign = useWirDesign();
   const dashboardQuery = useQuery({
     queryKey: dashboardQueryKey(spaceId),
     queryFn: () => apiCall(() => apis.dashboard.getDashboard({ spaceId })),
@@ -1310,7 +1313,10 @@ export function TodayPage({
   );
 
   return (
-    <div className="page today-page">
+    <div
+      className="page today-page"
+      data-wir-design={wirDesign?.current ?? 'warm'}
+    >
       {(dashboardQuery.isLoading ||
         (Boolean(dashboardQuery.data) && preferencesUnresolved)) && (
         <UiState kind="loading" title={t('states.loading.title')} />
@@ -1347,7 +1353,7 @@ export function TodayPage({
               account?.id &&
               dailyCheckInsApi ? (
                 <DailyVibeCheckIn
-                  key={`${account.id}:${spaceId}`}
+                  key={`vibe:${account.id}:${spaceId}`}
                   api={dailyCheckInsApi}
                   accountId={account.id}
                   spaceId={spaceId}
@@ -1359,7 +1365,7 @@ export function TodayPage({
 
               {account?.id && dailyQuoteApi && entitlementApi ? (
                 <DailyQuoteCard
-                  key={`${account.id}:${spaceId}`}
+                  key={`quote:${account.id}:${spaceId}`}
                   quoteApi={dailyQuoteApi}
                   entitlementsApi={entitlementApi}
                   accountId={account.id}
@@ -1401,7 +1407,7 @@ export function TodayPage({
                     account?.id &&
                     dailyCheckInsApi ? (
                       <DailyVibeCheckIn
-                        key={`${account.id}:${spaceId}`}
+                        key={`vibe:${account.id}:${spaceId}`}
                         api={dailyCheckInsApi}
                         accountId={account.id}
                         spaceId={spaceId}
@@ -1413,7 +1419,7 @@ export function TodayPage({
 
                     {account?.id && dailyQuoteApi && entitlementApi ? (
                       <DailyQuoteCard
-                        key={`${account.id}:${spaceId}`}
+                        key={`quote:${account.id}:${spaceId}`}
                         quoteApi={dailyQuoteApi}
                         entitlementsApi={entitlementApi}
                         accountId={account.id}

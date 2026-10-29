@@ -349,19 +349,18 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     await expect(page).toHaveURL(/\/today$/);
     await expect(page.locator('.today-content h1')).toBeVisible();
 
-    // 2. Open header profile menu and click logout
-    const menuButton = page.getByRole('button', {
-      name: navigation.profileMenu,
-    });
-    await menuButton.click();
+    // 2. Open More and use the shell's safe sign-out action.
+    await page
+      .getByRole('link', { name: navigation.more, exact: true })
+      .click();
     const logoutButton = page.getByRole('button', { name: de.header.logout });
     await logoutButton.click();
 
     // Remote cleanup still owns the original credentials and document.
     await expect.poll(() => signOutRequests).toBe(1);
     await expect(page.getByRole('status')).toContainText(de.header.logout);
-    await expect(page.locator('.today-content h1')).not.toBeVisible();
-    await expect(page).toHaveURL(/\/today$/);
+    await expect(page.locator('.more-page')).not.toBeVisible();
+    await expect(page).toHaveURL(/\/more$/);
     expect(
       await page.evaluate(() => sessionStorage.getItem('eimir-session-v1')),
     ).not.toBeNull();

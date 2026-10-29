@@ -112,3 +112,22 @@ The initial API 37.1 job failed downloading the SDK image before app execution.
 
 ![Sensitive media at 320px and 200% text](references/product-consistency-20261029/memory-sensitive-320-text200-light.png)
 ![Dark sensitive media at 320px and 200% text](references/product-consistency-20261029/memory-sensitive-320-text200-dark.png)
+
+## Cloud continuation and current-main integration
+
+The isolated Cloud checkout integrates main `2f7c1df9`, including #1509's
+headerless Compact shell, More utilities, stable privacy controls and browser
+registrations. The approved unified Moments composition and #1503's four browser
+shards with one worker remain intact.
+
+The full-suite follow-up adds the now-visible, independent Discover read to the
+strict task-boundary HTTP fixture. Unexpected-request, draft, focus and history
+assertions remain unchanged. Timeline metadata checks target the Diary and assert
+its intentionally borderless footer from PO #1508 instead of the superseded
+separator, retaining all attachment-shape, typography and wrapping checks.
+
+The API 37.1 instrumentation process exited before reporting any test, without a
+captured crash entry. No cause or passing emulator acceptance is inferred from
+that result. Continuous bounded-job device logs now accompany the existing
+diagnostics; all three API levels and all instrumentation assertions remain
+required. The exact resulting head must complete fresh CI before merge.

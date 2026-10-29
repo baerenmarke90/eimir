@@ -56,7 +56,7 @@ Calm means a composed sequence with useful detail, not vacant hero frames or mis
 
 ### Navigation and thumb reach
 
-Keep four labeled destinations: the localized equivalents of **Wir, Momente, Planen, Mehr**. The central plus is an action, not a fifth destination. Games remain under More; Chapters belong to Moments even where a compatible URL retains a planning prefix. Profile and Settings have named, discoverable More entries; an avatar may remain a shortcut.
+Keep four labeled destinations: the localized equivalents of **Wir, Momente, Planen, Mehr**. The central plus is an action, not a fifth destination. Games remain under More; Chapters belong to Moments even where a compatible URL retains a planning prefix. Profile and Settings have named, discoverable More entries. The [2026-10-29 PO decision](mobile-header-more.md), tracked in #1507, consolidates identity/account utilities, search, notifications and the brand under More, removes the Compact/Medium global header and retains Expanded top navigation.
 
 Primary Compact actions must remain comfortably reachable, with product targets of at least 44 CSS px on Web and 48 dp on Android. Respect safe areas, large text, small-height screens and the software keyboard. Do not hide primary actions behind horizontal discovery or hover. A focused composer uses task-specific Back/Close and completion controls so root navigation and global create do not compete with saving. Expanded preserves the same task and route meaning.
 

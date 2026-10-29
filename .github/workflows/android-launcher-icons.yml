@@ -102,6 +102,10 @@ jobs:
             sleep 2
           done
           test "$boot" = '1'
+          # Retain device diagnostics even if instrumentation dies before a test starts.
+          adb -e logcat -b all -v threadtime > native-system.log 2>&1 &
+          device_log_pid=$!
+          trap 'kill "$device_log_pid" 2>/dev/null || true' EXIT
           adb -e install -r app/build/outputs/apk/debug/app-debug.apk
           adb -e install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           # Seed under shell's UID: eimir must not own/read this image before selection.
@@ -169,6 +173,7 @@ jobs:
             android/instrumentation.log
             android/fixture-logcat.log
             android/native-crash.log
+            android/native-system.log
             android/native-photo-picker.png
             android/native-photo-picker.txt
             android/native-photo-result.png

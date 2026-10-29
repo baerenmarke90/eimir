@@ -1,6 +1,3 @@
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { showMemoryDetails } from '../support/memoryDiary';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -10,6 +7,9 @@ import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { showMemoryDetails } from '../support/memoryDiary';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
 // Exercise the production App and its actual router, queries, uploads and modal
 // adapter. Only HTTP transport is replaced; no alternative proof UI is mounted.
@@ -247,6 +247,8 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
       path.endsWith(`/attachments/${ATTACHMENT}`)
     )
       return json(attachment);
+    if (method === 'GET' && path === `/api/v1/spaces/${SPACE}/discover`)
+      return json({ items: [], nextCursor: null, hasMore: false });
     if (path.endsWith('/timeline')) {
       state.timelineRequests.push(url.search);
       if (state.saved && scenario.refreshFailure)
@@ -440,6 +442,8 @@ test('Quick Create native modality prevents background focus and activation', as
 }, testInfo) => {
   await installProductApi(page);
   await signIn(page);
+  const originUrl = page.url();
+  const backgroundMore = page.locator('.mobile-bottom-nav a[href="/more"]');
   await page
     .getByRole('button', { name: navigation.newContent, exact: true })
     .click();
@@ -471,12 +475,19 @@ test('Quick Create native modality prevents background focus and activation', as
     body: JSON.stringify(checkpoints, null, 2),
     contentType: 'application/json',
   });
-  const brand = await page.locator('.brand').boundingBox();
-  expect(brand).not.toBeNull();
-  if (!brand) throw new Error('The existing background brand link is missing.');
-  await page.mouse.click(brand.x + brand.width / 2, brand.y + brand.height / 2);
+  const backgroundBounds = await backgroundMore.boundingBox();
+  const dialogBounds = await dialog.boundingBox();
+  if (!backgroundBounds || !dialogBounds)
+    throw new Error('The modal or background More destination is missing.');
+  // The dock remains behind the modal backdrop, below the floating sheet.
+  const clickY = backgroundBounds.y + backgroundBounds.height / 2;
+  expect(clickY).toBeGreaterThan(dialogBounds.y + dialogBounds.height);
+  await page.mouse.click(
+    backgroundBounds.x + backgroundBounds.width / 2,
+    clickY,
+  );
   await expect(dialog).toHaveCount(0);
-  await expect(page).toHaveURL(/\/story\?/);
+  await expect(page).toHaveURL(originUrl);
 });
 
 test('content and photo save opens the confirmed canonical Memory and returns to its scope', async ({

@@ -717,7 +717,7 @@ test('signing into the partner account cannot reuse the previous account quote o
   await page.getByRole('button', { name: dailyQuote.done }).click();
   await expect.poll(() => requests.patches.length).toBe(1);
 
-  await page.getByRole('button', { name: navigation.profileMenu }).click();
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
   await Promise.all([
     page.waitForURL((url) => url.pathname === PUBLIC_START_ROUTE),
     page.getByRole('button', { name: de.header.logout }).click(),

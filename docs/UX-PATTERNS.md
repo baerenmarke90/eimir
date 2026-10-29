@@ -67,9 +67,7 @@ The Web header follows the accepted [A1 shell decision](./design/eimir/SHELL-RES
   `docs/INFORMATION-ARCHITECTURE.md`,
   `decisions/0009-games-primary-navigation-and-premium-capability.md`, and
   `decisions/0010-games-secondary-navigation-under-more.md`.
-- Search and Activity are not primary destinations. Search is a global utility
-  in the header/app bar; Activity lives underneath the personal account
-  navigation (`/today/activity`).
+- Search and Activity are not primary destinations. The [2026-10-29 PO decision](product/design/mobile-header-more.md) places global search, notifications and account functions under More; Compact/Medium has no persistent global header. Activity retains `/today/activity`. Expanded keeps horizontal top navigation. Unread notifications produce a static dot and accessible count on More, cleared by existing read-state updates.
 - The active destination is identifiable through shape, color, and text state,
   never through color alone.
 - Badge counts are used only for current, actionable information.

@@ -1,4 +1,8 @@
+// @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { ShellUtilitiesContext } from '../client/shellUtilities';
+import navigation from '../i18n/locales/navigation';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import de from '../i18n/locales/de';
@@ -73,4 +77,80 @@ describe('MoreOverviewPage', () => {
     expect(html).toContain(dailyInsights.pro);
     expect(html).not.toContain(dailyInsights.week.subtitle);
   });
+  it.each([false, true])(
+    'keeps account actions and unread state in More (admin=%s)',
+    (serverAdmin) => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+      });
+      queryClient.setQueryData(['profile-identity', 'space-1', 'account-1'], {
+        accountId: 'account-1',
+        displayName: 'Alex',
+        profileAttachmentId: null,
+        version: 1,
+      });
+      const onLogout = vi.fn();
+      const { container, rerender, unmount } = render(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter>
+            <ShellUtilitiesContext.Provider
+              value={{ unreadCount: 3, serverAdmin, onLogout }}
+            >
+              <MoreOverviewPage
+                apiBaseUrl="http://api.example.test"
+                accessToken="test-token"
+                account={{ id: 'account-1', displayName: 'Alex' }}
+                spaceId="space-1"
+              />
+            </ShellUtilitiesContext.Provider>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      expect(
+        screen
+          .getByRole('link', { name: navigation.searchAll })
+          .getAttribute('href'),
+      ).toBe('/search');
+      expect(
+        screen
+          .getByRole('link', { name: 'Benachrichtigungen, 3 ungelesen' })
+          .getAttribute('href'),
+      ).toBe('/more/notifications');
+      expect(container.querySelector('.more-unread-count')?.textContent).toBe(
+        '3',
+      );
+      expect(container.querySelector('a[href="/server-admin"]') !== null).toBe(
+        serverAdmin,
+      );
+      expect(
+        container.querySelector('.more-footer .brand-mark'),
+      ).not.toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: de.header.logout }));
+      expect(onLogout).toHaveBeenCalledTimes(1);
+      rerender(
+        <QueryClientProvider client={queryClient}>
+          <MemoryRouter>
+            <ShellUtilitiesContext.Provider
+              value={{ unreadCount: 0, serverAdmin, onLogout }}
+            >
+              <MoreOverviewPage
+                apiBaseUrl="http://api.example.test"
+                accessToken="test-token"
+                account={{ id: 'account-1', displayName: 'Alex' }}
+                spaceId="space-1"
+              />
+            </ShellUtilitiesContext.Provider>
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      expect(container.querySelector('.more-unread-count')).toBeNull();
+      expect(
+        screen
+          .getByRole('link', { name: navigation.notifications })
+          .getAttribute('href'),
+      ).toBe('/more/notifications');
+      unmount();
+      queryClient.clear();
+    },
+  );
 });

@@ -414,6 +414,8 @@ export function PlanProductPage({
               type="button"
               ref={editTrigger}
               className="secondary"
+              aria-label={t('common.edit')}
+              title={t('common.edit')}
               disabled={writesPending}
               onClick={() => {
                 if (!isPlanWritePending()) {

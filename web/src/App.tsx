@@ -36,6 +36,7 @@ import {
 } from './client/problemDetails';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { AppIconProvider } from './client/appIconContext';
+import { WirDesignProvider } from './client/wirDesign';
 import { clearProductReadCacheInBackground } from './client/productReadCache';
 import { invalidateStoryProjections } from './client/authorSummaryConsumers';
 import {
@@ -853,7 +854,16 @@ function AuthenticatedApp({
       accountId={account.id}
       spaceId={spaceId}
     >
-      {relationshipContent}
+      <WirDesignProvider
+        key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+        api={appearanceApi}
+        entitlementsApi={entitlementApi}
+        instance={apiBaseUrl}
+        accountId={account.id}
+        spaceId={spaceId}
+      >
+        {relationshipContent}
+      </WirDesignProvider>
     </AppIconProvider>
   );
 }

@@ -139,6 +139,13 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/entitlements"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/relationship-passport"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/app-icon"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/wir-design"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/appearance/wir-design",
+        body={"designId": "warm"},
+        if_match=True,
+    ),
     Endpoint(
         "PATCH",
         "/api/v1/spaces/{spaceId}/appearance/app-icon",

@@ -813,11 +813,18 @@ test.describe('Today R4: the living home of a relationship', () => {
     await capture(page, testInfo, '390-dark');
   });
 
-  test('brings the relationship hero and `Euer Moment` into the first phone viewport', async ({
+  test('Classic brings the relationship hero and `Euer Moment` into the first phone viewport', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installMocks(page, RICH_SPACE);
+    // #1494 retains these original large-portrait bounds in the saved Classic design.
+    await page.route('**/appearance/wir-design', (route) =>
+      route.fulfill({
+        json: { designId: 'classic', version: 1 },
+        headers: { ETag: '"classic:1"' },
+      }),
+    );
     await signInAndOpenToday(page);
 
     await settleMotion(page);
@@ -1373,10 +1380,17 @@ test.describe('Today R4: the living home of a relationship', () => {
     await capture(page, testInfo, '1440-dark');
   });
 
-  test('preserves the R4 composition at the remaining Compact and wide evidence widths', async ({
+  test('Classic preserves the R4 composition at the remaining Compact and wide evidence widths', async ({
     page,
   }, testInfo) => {
     await installMocks(page, RICH_SPACE);
+    // The new default is compact Warm; this regression protects the retained original.
+    await page.route('**/appearance/wir-design', (route) =>
+      route.fulfill({
+        json: { designId: 'classic', version: 1 },
+        headers: { ETag: '"classic:1"' },
+      }),
+    );
     await page.emulateMedia({ colorScheme: 'light' });
     await page.setViewportSize({ width: 360, height: 800 });
     await signInAndOpenToday(page);

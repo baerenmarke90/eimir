@@ -499,6 +499,7 @@ def build_export_archive(
             preference = appearance_service.read_preference(session, authorization)
             account_document["personalAppearance"] = {
                 "appIconId": preference.icon_id if preference else "original",
+                "wirDesign": preference.wir_design if preference else "warm",
             }
             connections = session.scalars(
                 select(PhotoConnection).where(

@@ -25,6 +25,12 @@ class AppIconId(StrEnum):
     MINIMAL = "minimal"
 
 
+class WirDesignId(StrEnum):
+    WARM = "warm"
+    MODERN = "modern"
+    CLASSIC = "classic"
+
+
 class AppIconPreference(IdMixin, TimestampMixin, VersionMixin, Base):
     """Personal system metadata; partners do not share the selected icon."""
 
@@ -44,3 +50,6 @@ class AppIconPreference(IdMixin, TimestampMixin, VersionMixin, Base):
         index=True,
     )
     icon_id: Mapped[str] = mapped_column(String(24), nullable=False)
+    wir_design: Mapped[str] = mapped_column(
+        String(24), nullable=False, default=WirDesignId.WARM.value, server_default="warm"
+    )

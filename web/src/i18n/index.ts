@@ -2,6 +2,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import accountSettings from './locales/accountSettings';
 import appIcon from './locales/appIcon';
+import wirDesign from './locales/wirDesign';
 import contextTags from './locales/contextTags';
 import dailyEnergy from './locales/dailyEnergy';
 import dailyInsights from './locales/dailyInsights';
@@ -59,6 +60,7 @@ if (!i18n.isInitialized) {
           taskSheets,
           accountSettings,
           appIcon,
+          wirDesign,
           navigation: { ...de.navigation, ...navigation },
           notificationSettings,
           demo,

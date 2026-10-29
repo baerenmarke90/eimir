@@ -10594,6 +10594,44 @@
         "title": "UploadDescriptor",
         "type": "object"
       },
+      "WirDesignId": {
+        "enum": [
+          "warm",
+          "modern",
+          "classic"
+        ],
+        "title": "WirDesignId",
+        "type": "string"
+      },
+      "WirDesignPreferencePatch": {
+        "properties": {
+          "designId": {
+            "$ref": "#/components/schemas/WirDesignId"
+          }
+        },
+        "required": [
+          "designId"
+        ],
+        "title": "WirDesignPreferencePatch",
+        "type": "object"
+      },
+      "WirDesignPreferenceView": {
+        "properties": {
+          "designId": {
+            "$ref": "#/components/schemas/WirDesignId"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "designId",
+          "version"
+        ],
+        "title": "WirDesignPreferenceView",
+        "type": "object"
+      },
       "WishCreate": {
         "additionalProperties": false,
         "description": "A wish is created from exactly one client field.\n\n``extra=\"forbid\"`` is more than hygiene here: M3-D01/D02 make\n``status``, ``createdBy``, ``spaceId``, and ``version`` server-controlled.\nA request supplying those fields is rejected rather than silently stripped,\nso the client cannot believe it successfully set them.",
@@ -15839,6 +15877,177 @@
           }
         },
         "summary": "Update App Icon Preference",
+        "tags": [
+          "appearance"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/appearance/wir-design": {
+      "get": {
+        "description": "Read only the caller's personal composition, including after Pro expiry.",
+        "operationId": "getWirDesignPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WirDesignPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Wir Design Preference",
+        "tags": [
+          "appearance"
+        ]
+      },
+      "patch": {
+        "description": "Save a personal cosmetic. Warm is Free; new alternatives require Pro.",
+        "operationId": "updateWirDesignPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WirDesignPreferencePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WirDesignPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Wir Design Preference",
         "tags": [
           "appearance"
         ]

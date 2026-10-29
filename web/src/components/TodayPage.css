@@ -490,10 +490,8 @@
 }
 
 /*
- * Secondary by construction: the trace keeps the approved bordered
- * mini-tile shape - it must not regress into an unstyled text list - but it
- * sits *flat* on the canvas while `Demnächst` above it is raised. Elevation,
- * not size, is what now separates the page's primary and secondary registers.
+ * The secondary trace keeps a compact tinted surface without a surrounding
+ * frame. Fill, padding and typography distinguish it from the flat agenda.
  */
 .today-recent-tile {
   display: flex;

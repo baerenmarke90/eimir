@@ -408,21 +408,33 @@ async function expectAnchoredNavigation(page: Page, safeArea = 0) {
   await expect(navigation).toBeInViewport({ ratio: 1 });
   const geometry = await navigation.evaluate((element) => {
     const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
     return {
       top: rect.top,
       bottomGap: window.innerHeight - rect.bottom,
-      offset:
-        Number.parseFloat(
-          getComputedStyle(element).getPropertyValue('--space-3'),
-        ) *
-        Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
+      left: rect.left,
+      rightGap: window.innerWidth - rect.right,
+      paddingBottom: Number.parseFloat(style.paddingBottom),
+      radius: style.borderRadius,
+      contentBottom: Math.max(
+        ...Array.from(element.querySelectorAll('a, button')).map(
+          (control) => control.getBoundingClientRect().bottom,
+        ),
+      ),
+      bottom: rect.bottom,
       zoom:
         Number.parseFloat(getComputedStyle(document.documentElement).zoom) || 1,
     };
   });
-  expect(
-    Math.abs(geometry.bottomGap - (geometry.offset + safeArea) * geometry.zoom),
-  ).toBeLessThanOrEqual(1);
+  // The full-width dock fills the safe area; controls stay above it.
+  expect(Math.abs(geometry.bottomGap)).toBeLessThanOrEqual(1);
+  expect(Math.abs(geometry.left)).toBeLessThanOrEqual(1);
+  expect(Math.abs(geometry.rightGap)).toBeLessThanOrEqual(1);
+  expect(geometry.radius).toBe('0px');
+  expect(geometry.paddingBottom).toBeGreaterThanOrEqual(safeArea);
+  expect(geometry.contentBottom).toBeLessThanOrEqual(
+    geometry.bottom - safeArea * geometry.zoom + 1,
+  );
   return geometry;
 }
 

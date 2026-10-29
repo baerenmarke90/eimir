@@ -18,6 +18,10 @@ import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
+import {
+  DiscoverSelectionFromJSON,
+  DiscoverSelectionToJSON,
+} from '../api/generated/models/DiscoverSelection';
 import type { MemoryAttachmentSummary } from '../api/generated/models/MemoryAttachmentSummary';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import {
@@ -29,14 +33,10 @@ import {
   StoryPageFromJSON,
   StoryPageToJSON,
 } from '../api/generated/models/StoryPage';
-import {
-  DiscoverSelectionFromJSON,
-  DiscoverSelectionToJSON,
-} from '../api/generated/models/DiscoverSelection';
-import { dashboardQueryKey } from '../client/dashboardQueries';
-import { normalizeClientError } from '../client/problemDetails';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { dashboardQueryKey } from '../client/dashboardQueries';
 import { usePartnerNickname } from '../client/partnerNickname';
+import { normalizeClientError } from '../client/problemDetails';
 import {
   loadProductWithReadCache,
   type ProductReadResult,
@@ -60,6 +60,7 @@ import {
 } from '../client/storyProduct';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
 import { PageHeader } from './PageHeader';
 import { AuthorAvatar } from './PersonIdentity';
@@ -68,7 +69,6 @@ import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryBrowseLayer } from './StoryBrowseLayer';
 import { StoryRetrospective } from './StoryRetrospective';
-import { EimirIcon } from './EimirIcon';
 import './StoryUnifiedPage.css';
 import { StoryList } from './StoryList';
 import './StoryDiscoverReveal.css';
@@ -1005,7 +1005,23 @@ export function StoryProductPage({
                 restoreFocusRef={filterTriggerRef}
                 className="story-task-filter-sheet"
               >
-                <StoryBrowseLayer />
+                <StoryBrowseLayer
+                  onOpen={(event, path) => {
+                    if (
+                      event.button !== 0 ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.shiftKey ||
+                      event.altKey
+                    )
+                      return;
+                    event.preventDefault();
+                    filterSheetRef.current?.closeForNavigation(() => {
+                      const taskOriginKey = captureOrigin();
+                      void navigate(path, { state: { taskOriginKey } });
+                    });
+                  }}
+                />
                 <section
                   className="story-filter-bar"
                   aria-label={t('storyFilters.aria')}

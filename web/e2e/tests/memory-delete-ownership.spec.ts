@@ -1,14 +1,14 @@
 import fs from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import navigation from '../../src/i18n/locales/navigation';
 import {
-  SPACE_ID,
   captureScreenshot,
   getTimelineItems,
   installMocks,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -134,7 +134,10 @@ async function openMemoryDeleteJourney(page: Page, failFirst: boolean) {
   });
   await signIn(page);
   await page.goto('/story?tab=timeline');
-  await page.getByRole('link', { name: /Breakfast by the canal/ }).click();
+  await page
+    .locator('#momente-diary')
+    .getByRole('link', { name: /Breakfast by the canal/ })
+    .click();
   await page
     .getByRole('link', { name: memoryProduct.edit, exact: true })
     .click();
@@ -293,7 +296,9 @@ for (const profile of [
       .scrollIntoViewIfNeeded();
     await expect(page.locator('.story-timeline').first()).toBeVisible();
     await expect(
-      page.getByRole('link', { name: /Breakfast by the canal/ }),
+      page
+        .locator('#momente-diary')
+        .getByRole('link', { name: /Breakfast by the canal/ }),
     ).toHaveCount(0);
     await expect(
       page

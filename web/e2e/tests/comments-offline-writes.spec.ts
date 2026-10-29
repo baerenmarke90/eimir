@@ -3,10 +3,10 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import {
-  DETAIL_COMMENTS,
-  SPACE_ID,
   captureScreenshot,
+  DETAIL_COMMENTS,
   installMocks,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -101,7 +101,10 @@ async function openJourney(page: Page, scenario: (typeof cases)[number]) {
     },
   );
   await signIn(page);
-  await page.getByRole('link', { name: new RegExp(scenario.title) }).click();
+  await page
+    .locator('#momente-diary')
+    .getByRole('link', { name: new RegExp(scenario.title) })
+    .click();
   const panel = page.locator('.comments-panel');
   await expect(
     panel.getByText('Still smiling about this.', { exact: true }),
@@ -259,7 +262,9 @@ for (const scenario of cases) {
       await page.goBack();
       await expect(page).toHaveURL(/\/story\?tab=timeline$/);
       await expect(
-        page.getByRole('link', { name: new RegExp(scenario.title) }),
+        page
+          .locator('#momente-diary')
+          .getByRole('link', { name: new RegExp(scenario.title) }),
       ).toBeVisible();
       expect(state.writes).toHaveLength(1);
       expect(state.unknown).toEqual([]);

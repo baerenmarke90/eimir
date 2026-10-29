@@ -90,3 +90,25 @@ geometry checks are recorded in the PR for its final revision. Native mask
 renders and successful compilation are not a claim of testing the owner's
 installed Pixel build; native resources require a newly built APK. The existing
 Arcane deployment remains under the PO's control and is not accessed here.
+
+
+## PR CI follow-up
+
+The initial full PR browser run identified ambiguous Story links after combining
+rediscovery and Diary, a Place action min-content overflow, and a shared settings
+switch that retained a fixed control width while its track scaled with text.
+Story source-entry tests now name the Diary explicitly, the Place action reflows,
+and the switch retains its minimum target while growing with text. Archive
+links close the options sheet before navigation so Back returns to the Diary
+without a stale dialog. No assertion, timeout, retry, skip or gate was relaxed.
+
+The unchanged sensitive-media reflow journey passes in Light and Dark, including
+320px with 200% text. The exhaustive settings reflow journey and the shared-photo
+entry/Back journey pass. The focused Story/filter/Place unit run passes 32 tests.
+Android instrumentation now measures the actual approved bitmap's visible pixels
+inside the adaptive safe region rather than requiring the superseded overscan;
+its test APK compiles and unit tests pass. Fresh emulator CI remains required.
+The initial API 37.1 job failed downloading the SDK image before app execution.
+
+![Sensitive media at 320px and 200% text](references/product-consistency-20261029/memory-sensitive-320-text200-light.png)
+![Dark sensitive media at 320px and 200% text](references/product-consistency-20261029/memory-sensitive-320-text200-dark.png)

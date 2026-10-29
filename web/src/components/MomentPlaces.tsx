@@ -21,9 +21,9 @@ import { postSnackbar } from '../client/snackbar';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
+import { MomentPlacePicker } from './MomentPlacePicker';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
-import { MomentPlacePicker } from './MomentPlacePicker';
 import './MomentPlaces.css';
 
 export function MomentPlaces({
@@ -181,7 +181,7 @@ export function MomentPlaces({
           onClick={() => setAdding(true)}
         >
           <EimirIcon name="orte" />
-          {t('photoPlaces.add')}
+          <span>{t('photoPlaces.add')}</span>
         </button>
       ) : null}
       <ShortTaskSheet

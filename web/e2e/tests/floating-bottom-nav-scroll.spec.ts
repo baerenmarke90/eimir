@@ -562,7 +562,7 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     }
   });
 
-  test('Today, Momente, Planen and Mehr scroll the global header naturally while bottom navigation stays fixed', async ({
+  test('Today, Momente, Planen and Mehr omit Compact global chrome while bottom navigation stays fixed', async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -571,12 +571,15 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     await signIn(page);
 
     for (const route of ['/today', '/story?tab=timeline', '/plan', '/more']) {
-      await page.goto(route);
+      await page
+        .locator('.mobile-bottom-nav')
+        .locator(`a[href="${route.split('?')[0]}"]`)
+        .click();
       await page.evaluate(() => window.scrollTo(0, 0));
 
       const header = page.locator('.product-topbar');
       const bottomShell = page.locator('.mobile-bottom-shell');
-      await expect(header).toBeVisible();
+      await expect(header).toBeHidden();
       await expect(bottomShell).toBeVisible();
 
       expect(
@@ -631,14 +634,14 @@ test.describe('Global header document flow and persistent bottom navigation', ()
       await page.evaluate(() =>
         window.scrollTo({ top: 0, behavior: 'instant' }),
       );
-      await expect(header).toBeInViewport();
+      await expect(header).toBeHidden();
 
       if (route === '/today') {
         await page.screenshot({
-          path: path.join(EVIDENCE_DIR, '01-today-header-at-top.png'),
+          path: path.join(EVIDENCE_DIR, '01-today-without-global-header.png'),
         });
-        await testInfo.attach('today-header-at-top', {
-          path: path.join(EVIDENCE_DIR, '01-today-header-at-top.png'),
+        await testInfo.attach('today-without-global-header', {
+          path: path.join(EVIDENCE_DIR, '01-today-without-global-header.png'),
           contentType: 'image/png',
         });
       }
@@ -681,7 +684,12 @@ test.describe('Global header document flow and persistent bottom navigation', ()
       }> = [];
 
       for (const destination of destinations) {
-        await page.goto(destination.path);
+        const navigation = page.locator(
+          viewport.width >= 840 ? '.shell-nav' : '.mobile-bottom-nav',
+        );
+        await navigation
+          .locator(`a[href="${destination.path.split('?')[0]}"]`)
+          .click();
         await page.evaluate(() => window.scrollTo(0, 0));
 
         const rootHeader = page.locator('.page-heading-root');
@@ -728,7 +736,7 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     }
   });
 
-  test('Today header and Couple Presence share one surface, including with the demo banner', async ({
+  test('Headerless Today retains its relationship surface and consumes the demo inset once', async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -742,7 +750,7 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     const hero = page.locator('.today-hero');
 
     await expect(shell).toHaveAttribute('data-top-surface', 'today');
-    await expect(header).toBeVisible();
+    await expect(header).toBeHidden();
     await expect(hero).toBeVisible();
 
     expect(
@@ -772,17 +780,24 @@ test.describe('Global header document flow and persistent bottom navigation', ()
       ),
     ).toBe('none');
 
-    const search = header.locator('a[href="/search"]');
+    const more = page.locator('.mobile-bottom-nav a[href="/more"]');
+    await more.focus();
+    await expect(more).toBeFocused();
+    await more.click();
+    const search = page.locator('.more-search-entry');
     await search.focus();
     await expect(search).toBeFocused();
-    const notifications = header.locator('.header-notifications-trigger');
+    const notifications = page.locator(
+      '.more-page a[href="/more/notifications"]',
+    );
     await notifications.focus();
     await expect(notifications).toBeFocused();
-
-    const axe = await new AxeBuilder({ page })
-      .include('.product-topbar')
-      .include('.today-hero')
+    const moreAxe = await new AxeBuilder({ page })
+      .include('.more-page')
       .analyze();
+    expect(moreAxe.violations).toEqual([]);
+    await page.goBack();
+    const axe = await new AxeBuilder({ page }).include('.today-hero').analyze();
     expect(axe.violations).toEqual([]);
 
     await page.evaluate(() => {
@@ -800,12 +815,12 @@ test.describe('Global header document flow and persistent bottom navigation', ()
       const banner = document
         .querySelector('.demo-instance-banner')
         ?.getBoundingClientRect();
-      const header = document
-        .querySelector('.product-topbar')
+      const body = document
+        .querySelector('.product-shell-body')
         ?.getBoundingClientRect();
-      if (!banner || !header) throw new Error('Demo/header geometry missing.');
+      if (!banner || !body) throw new Error('Demo/content geometry missing.');
       return {
-        gap: header.top - banner.bottom,
+        gap: body.top - banner.bottom,
         safeTop: getComputedStyle(
           document.querySelector('.product-shell') as HTMLElement,
         ).getPropertyValue('--shell-header-safe-top'),
@@ -843,7 +858,7 @@ test.describe('Global header document flow and persistent bottom navigation', ()
       await page.setViewportSize({ width, height });
       await page.goto('/today');
       await page.evaluate(() => window.scrollTo(0, 0));
-      await expect(page.locator('.product-topbar')).toBeVisible();
+      await expect(page.locator('.product-topbar')).toBeHidden();
       await expect(page.locator('.mobile-bottom-shell')).toBeVisible();
       await expectNoHorizontalOverflow(page);
     }

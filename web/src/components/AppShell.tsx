@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
@@ -33,17 +33,17 @@ import {
   DEFAULT_APP_ROUTE,
   MEMORY_CREATE_ROUTE,
   PRIMARY_APP_ROUTES,
-  SEARCH_ROUTE,
 } from '../client/routes';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { ProductTourProvider } from '../client/productTour';
 import { resolvedLocale, useTranslation } from '../i18n';
+import {
+  ShellUtilitiesContext,
+  useShellUtilities,
+} from '../client/shellUtilities';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
-import { Brand } from './Brand';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
-import { HeaderNotificationsMenu } from './HeaderNotificationsMenu';
-import { HeaderProfileMenu } from './HeaderProfileMenu';
 import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { QuickCreateMenu } from './QuickCreateMenu';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
@@ -53,6 +53,8 @@ import { ThemeControl } from './ThemeControl';
 function NavigationLink({ route }: { route: AppRouteDefinition }) {
   const { t } = useTranslation();
   const location = useLocation();
+  const { unreadCount } = useShellUtilities();
+  const hasUnread = route.id === 'more' && (unreadCount ?? 0) > 0;
   const activeArea = activeNavigationArea(location.pathname);
   const isActive = activeArea === route.id;
   const { captureOrigin, primaryDestination } = useTaskOrigin();
@@ -95,12 +97,20 @@ function NavigationLink({ route }: { route: AppRouteDefinition }) {
       }}
       className={`shell-nav-link${isActive ? ' shell-nav-link-active' : ''}`}
       aria-current={isActive ? 'page' : undefined}
+      aria-label={
+        hasUnread
+          ? t('navigation.moreWithUnread', { count: unreadCount })
+          : undefined
+      }
     >
       <span className="shell-nav-icon">
         <DestinationIcon
           icon={route.icon}
           variant={isActive ? 'filled' : 'outline'}
         />
+        {hasUnread ? (
+          <span className="notification-dot" aria-hidden="true" />
+        ) : null}
       </span>
       <span>{t(route.labelKey)}</span>
     </Link>
@@ -294,147 +304,126 @@ function AuthenticatedAppShell({
     refetchOnWindowFocus: 'always',
     enabled: Boolean(spaceId && accessToken),
   });
-  const unreadCount = unreadQuery.data?.unreadCount ?? 0;
+  const unreadCount = unreadQuery.data?.unreadCount;
+
+  const detailBackButton = (
+    <button
+      type="button"
+      className="shell-utility-link shell-detail-back"
+      onClick={() => requestReturn(taskOriginKey)}
+      aria-label={storyDetailBackLabel}
+      title={storyDetailBackLabel}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="m15 18-6-6 6-6" />
+      </svg>
+      {location.pathname.startsWith('/story/memories/') ? (
+        <span>{t('navigation.story')}</span>
+      ) : null}
+    </button>
+  );
 
   return (
-    <div
-      className="product-shell"
-      data-focused-task={isFocusedTask}
-      data-top-surface={
-        location.pathname === DEFAULT_APP_ROUTE ? 'today' : undefined
-      }
+    <ShellUtilitiesContext.Provider
+      value={{ unreadCount, serverAdmin, onLogout: logout }}
     >
-      <ThemeControl />
-      <RouteEntryHandoff />
-      <PresenceHeartbeat accountId={account.id} spaceId={spaceId} />
-      <a className="skip-link" href="#main-content">
-        {t('navigation.skipToContent')}
-      </a>
+      <div
+        className="product-shell"
+        data-focused-task={isFocusedTask}
+        data-top-surface={
+          location.pathname === DEFAULT_APP_ROUTE ? 'today' : undefined
+        }
+      >
+        <ThemeControl />
+        <RouteEntryHandoff />
+        <PresenceHeartbeat accountId={account.id} spaceId={spaceId} />
+        <a className="skip-link" href="#main-content">
+          {t('navigation.skipToContent')}
+        </a>
 
-      {!isFocusedTask ? (
-        <header className="app-header product-topbar">
-          {isStoryDetail ? (
-            <button
-              type="button"
-              className="shell-utility-link shell-detail-back"
-              onClick={() => requestReturn(taskOriginKey)}
-              aria-label={storyDetailBackLabel}
-              title={storyDetailBackLabel}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
+        {!isFocusedTask ? (
+          <header className="app-header product-topbar">
+            <nav className="shell-nav" aria-label={t('navigation.primary')}>
+              <PrimaryNavigationLinks />
+            </nav>
+            <div className="header-actions">
+              <div className="shell-primary-action">
+                <QuickCreateMenu variant="desktop" />
+              </div>
+              <span
+                className={`shared-context ${isPrivateArea ? 'private-context' : ''}`}
               >
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-              {location.pathname.startsWith('/story/memories/') ? (
-                <span>{t('navigation.story')}</span>
-              ) : null}
-            </button>
-          ) : (
-            <Brand to={DEFAULT_APP_ROUTE} ariaLabel={t('brand.homeAria')} />
-          )}
-          <nav className="shell-nav" aria-label={t('navigation.primary')}>
-            <PrimaryNavigationLinks />
-          </nav>
-          <div className="header-actions">
-            <div className="shell-primary-action">
-              <QuickCreateMenu variant="desktop" />
-            </div>
-            <span
-              className={`shared-context ${isPrivateArea ? 'private-context' : ''}`}
-            >
-              {isPrivateArea ? (
-                <>
-                  <span aria-hidden="true">🔒</span>{' '}
-                  {t('privateArea.privacyLabel')}
-                </>
-              ) : (
-                <>
-                  <span aria-hidden="true">♥</span> {t('header.sharedArea')}
-                </>
-              )}
-            </span>
-            <NavLink
-              to={SEARCH_ROUTE}
-              className={({ isActive }) =>
-                `shell-utility-link${isActive ? ' shell-utility-link-active' : ''}`
-              }
-              aria-label={t('navigation.search')}
-              title={t('navigation.search')}
-            >
-              <span className="shell-nav-icon" aria-hidden="true">
-                <DestinationIcon icon="search" />
+                {isPrivateArea ? (
+                  <>
+                    <span aria-hidden="true">🔒</span>{' '}
+                    {t('privateArea.privacyLabel')}
+                  </>
+                ) : (
+                  <>
+                    <span aria-hidden="true">♥</span> {t('header.sharedArea')}
+                  </>
+                )}
               </span>
-            </NavLink>
-            <HeaderNotificationsMenu
-              apiBaseUrl={apiBaseUrl}
-              accessToken={accessToken}
-              spaceId={spaceId}
-              unreadCount={unreadCount}
-              currentAccountId={account.id}
-            />
-            <HeaderProfileMenu
-              apiBaseUrl={apiBaseUrl}
-              accessToken={accessToken}
-              account={account}
-              spaceId={spaceId}
-              serverAdmin={serverAdmin}
-              onLogout={logout}
-            />
+            </div>
+          </header>
+        ) : null}
+
+        {cachedAtLabel ? (
+          <div className="offline-banner" role="status">
+            <span aria-hidden="true">↯</span>
+            <span>
+              {t('cacheRuntime.cachedBanner', { timestamp: cachedAtLabel })}
+            </span>
           </div>
-        </header>
-      ) : null}
+        ) : !online ? (
+          <div className="offline-banner" role="status">
+            <span aria-hidden="true">↯</span>
+            <span>{t('states.offline.banner')}</span>
+          </div>
+        ) : null}
 
-      {cachedAtLabel ? (
-        <div className="offline-banner" role="status">
-          <span aria-hidden="true">↯</span>
-          <span>
-            {t('cacheRuntime.cachedBanner', { timestamp: cachedAtLabel })}
-          </span>
+        <div className="product-shell-body">
+          <main id="main-content" className="product-main" tabIndex={-1}>
+            <AppSurfacePullToRefresh pathname={location.pathname} />
+            {isStoryDetail ? (
+              <div className="shell-detail-context">{detailBackButton}</div>
+            ) : null}
+            {isGamesHub ? (
+              <GamesProductArea
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                spaceId={spaceId}
+              />
+            ) : (
+              children
+            )}
+          </main>
         </div>
-      ) : !online ? (
-        <div className="offline-banner" role="status">
-          <span aria-hidden="true">↯</span>
-          <span>{t('states.offline.banner')}</span>
-        </div>
-      ) : null}
 
-      <div className="product-shell-body">
-        <main id="main-content" className="product-main" tabIndex={-1}>
-          <AppSurfacePullToRefresh pathname={location.pathname} />
-          {isGamesHub ? (
-            <GamesProductArea
-              apiBaseUrl={apiBaseUrl}
-              accessToken={accessToken}
-              spaceId={spaceId}
-            />
-          ) : (
-            children
-          )}
-        </main>
+        {!isFocusedTask ? (
+          <div className="mobile-bottom-shell" ref={bottomNavigationRef}>
+            <nav
+              className="mobile-bottom-nav"
+              aria-label={t('navigation.primary')}
+            >
+              <PrimaryNavigationLinks />
+            </nav>
+            <div className="mobile-quick-create">
+              <QuickCreateMenu variant="mobile" />
+            </div>
+          </div>
+        ) : null}
+
+        <Snackbar />
       </div>
-
-      {!isFocusedTask ? (
-        <div className="mobile-bottom-shell" ref={bottomNavigationRef}>
-          <nav
-            className="mobile-bottom-nav"
-            aria-label={t('navigation.primary')}
-          >
-            <PrimaryNavigationLinks />
-          </nav>
-          <div className="mobile-quick-create">
-            <QuickCreateMenu variant="mobile" />
-          </div>
-        </div>
-      ) : null}
-
-      <Snackbar />
-    </div>
+    </ShellUtilitiesContext.Provider>
   );
 }

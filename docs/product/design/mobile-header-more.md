@@ -2,7 +2,7 @@
 
 ## Product Owner decision and baseline
 
-On 2026-10-29 the Product Owner explicitly approved removing the persistent mobile header; consolidating the logo, avatar/account functions, global search and notifications in More; showing an unread dot on More; and retaining Expanded top navigation. This supersedes older guidance requiring Compact header utilities and the optional avatar shortcut. Stable routes and primary destinations remain unchanged.
+On 2026-10-29 the Product Owner explicitly approved removing the persistent mobile header; consolidating the logo, avatar/account functions, global search and notifications in More; showing an unread dot on More; and retaining Expanded top navigation. This supersedes older guidance requiring Compact header utilities and the optional avatar shortcut. Stable routes and primary destinations remain unchanged. The owning issue is [#1507](https://github.com/baerenmarke90/eimir/issues/1507). The Product Owner subsequently explicitly selected the reference image's light, rounded grouped surfaces: separate identity/notification/private entries, continuous shared/utility lists, and an isolated sign-out surface. Dark uses the existing raised-surface token rather than literal white.
 
 Reviewed current `origin/main` at `f35f82dbab2465fe337850a1e8db147f4eb3942a`, including AppShell, MoreOverviewPage, HeaderProfileMenu, HeaderNotificationsMenu, canonical routes, notificationRead ownership, profile identity, tokens, and the real More route wiring. Work is isolated in `fix/mobile-header-more` with separate dependencies and preview ports; unrelated active checkouts are not edited.
 
@@ -10,7 +10,7 @@ Reviewed current `origin/main` at `f35f82dbab2465fe337850a1e8db147f4eb3942a`, in
 
 ![Compact More composition](references/mobile-header-more/compact-reference.png)
 
-Generated before UI implementation with the built-in Imagegen tool. [Exact prompt](references/mobile-header-more/prompt.txt). The two panels show the beginning and continuation of More, with all existing shared/private/account destinations. This is composition guidance, not a pixel lock: retain existing semantic list surfaces and the authoritative brand asset instead of reproducing generated decoration. No new app-information destination is invented; the existing Brand is placed quietly in the More footer.
+Generated before UI implementation with the built-in Imagegen tool. [Exact prompt](references/mobile-header-more/prompt.txt). The two panels show the beginning and continuation of More, with all existing shared/private/account destinations. This is composition guidance, not a pixel lock: reuse semantic raised-surface/radius/border tokens for the explicitly selected white grouped lists, and retain the authoritative brand asset instead of reproducing generated brand artwork. No new app-information destination is invented; the existing Brand is placed quietly in the More footer.
 
 ## Mobile Interaction Contract
 

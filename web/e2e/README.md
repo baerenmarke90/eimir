@@ -53,7 +53,7 @@ A visible full run is available through:
 npm run test:headed
 ```
 
-The Playwright configuration starts the existing Web Vite server from the parent directory. See `docs/m5/WEB-BROWSER-QA.md` for the CI split and maintenance rules.
+The Playwright configuration starts the existing Web Vite server from the parent directory. For isolated concurrent work, set `EIMIR_E2E_PORT` to an unused port; the explicit port disables server reuse and uses strict binding so another checkout cannot be tested accidentally. See `docs/m5/WEB-BROWSER-QA.md` for the CI split and maintenance rules.
 
 ## Classification rules
 

@@ -71,6 +71,14 @@ and generated versus authored titles with focused component/browser evidence.
 
 ### PO layout refinement, 2026-10-29
 
+The subsequent corner correction removes resting and hover shadows from the
+existing agenda card. Its border and surface define the rounded shape without
+a shadow being clipped by the Compact horizontal scroller. Hover keeps border
+feedback without lifting the card into the scroller boundary. This is a narrow
+presentation correction; existing content, targets and focus semantics remain.
+The complete Today browser matrix (Light/Dark, Compact/Expanded, large text and
+safe areas with axe) passed again, and its screenshots were refreshed.
+
 Before this small follow-up: retain only the localized upcoming heading, group
 the special Plan date tightly with its title above the timer, and use the existing
 heart icon for the anniversary row. The PO correction supersedes the earlier

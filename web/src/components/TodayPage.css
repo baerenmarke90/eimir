@@ -378,12 +378,7 @@
   }
 }
 
-/*
- * R4 materiality: the agenda tile is the page's one genuinely *raised*
- * surface - a small warm card you could pick up. `--shadow-raised` is a close
- * contact shadow rather than the wide ambient `--shadow-card`, which is what
- * keeps a single default tile feeling substantial instead of floating.
- */
+/* Keep rounded agenda cards flat inside the Compact horizontal scroller. */
 .today-agenda-row {
   display: flex;
   align-items: center;
@@ -393,7 +388,7 @@
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   background: var(--color-surface-raised);
-  box-shadow: var(--shadow-raised);
+  box-shadow: none;
   color: inherit;
   text-decoration: none;
   box-sizing: border-box;
@@ -407,15 +402,10 @@
 }
 
 .today-agenda-row-link {
-  transition:
-    transform var(--duration-feedback) var(--easing-standard),
-    box-shadow var(--duration-feedback) var(--easing-standard),
-    border-color var(--duration-feedback) var(--easing-standard);
+  transition: border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .today-agenda-row-link:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
   border-color: var(--color-border);
 }
 

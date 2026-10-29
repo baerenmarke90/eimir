@@ -9,6 +9,7 @@ import { PlaceRelationsApi } from '../api/generated/apis/PlaceRelationsApi';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import { PlansApi } from '../api/generated/apis/PlansApi';
 import { StoryApi } from '../api/generated/apis/StoryApi';
+import { SearchApi } from '../api/generated/apis/SearchApi';
 import { WishesApi } from '../api/generated/apis/WishesApi';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
@@ -25,6 +26,7 @@ export interface SharedPlanningApis {
   chapterRelations: ChapterRelationsApi;
   collections: CollectionsApi;
   story: StoryApi;
+  search?: SearchApi;
   memories: MemoriesApi;
   heartMoments: HeartMomentsApi;
   milestones: MilestonesApi;
@@ -41,6 +43,8 @@ export interface PlanningRelationTarget {
   kind: PlanningRelationKind;
   label: string;
   effectiveDate: Date;
+  excerpt?: string;
+  attachment?: { id: string; isSensitive?: boolean };
 }
 
 export function createSharedPlanningApis(
@@ -61,6 +65,7 @@ export function createSharedPlanningApis(
     chapterRelations: new ChapterRelationsApi(configuration),
     collections: new CollectionsApi(configuration),
     story: new StoryApi(configuration),
+    search: new SearchApi(configuration),
     memories: new MemoriesApi(configuration),
     heartMoments: new HeartMomentsApi(configuration),
     milestones: new MilestonesApi(configuration),
@@ -192,6 +197,10 @@ export function storyRelationTarget(item: StoryItem): PlanningRelationTarget {
         kind: 'MEMORY',
         label: item.memory.title,
         effectiveDate: item.effectiveDate,
+        attachment: item.memory.attachments?.find(
+          (attachment) =>
+            attachment.mediaType === 'IMAGE' && attachment.status === 'READY',
+        ),
       };
     case 'HEART_MOMENT':
       return {
@@ -199,6 +208,11 @@ export function storyRelationTarget(item: StoryItem): PlanningRelationTarget {
         kind: 'HEART_MOMENT',
         label: item.heartMoment.text || i18n.t('heartMomentProduct.untitled'),
         effectiveDate: item.effectiveDate,
+        attachment:
+          item.heartMoment.attachment?.mediaType === 'IMAGE' &&
+          item.heartMoment.attachment.status === 'READY'
+            ? item.heartMoment.attachment
+            : undefined,
       };
     case 'MILESTONE':
       return {

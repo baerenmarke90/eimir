@@ -2431,7 +2431,7 @@ describe('formatRelationshipDuration', () => {
 
     const MODULE_SECTIONS = DASHBOARD_MODULE_KEYS.map(
       (key) => [key, MODULE_SECTION_MARKER[key]] as const,
-    );
+    ).filter(([key]) => key !== 'shared_story_summary');
 
     it('renders a personal complete order in DOM order, including the presence hero', () => {
       const order: DashboardModuleKey[] = [
@@ -2454,9 +2454,7 @@ describe('formatRelationshipDuration', () => {
       for (const [, sectionClass] of MODULE_SECTIONS) {
         expect(html).toContain(sectionClass);
       }
-      expect(html.indexOf('today-section-recent')).toBeLessThan(
-        html.indexOf('shared-story-summary'),
-      );
+      expect(html).not.toContain('shared-story-summary');
     });
 
     it.each(MODULE_SECTIONS)(
@@ -2482,6 +2480,12 @@ describe('formatRelationshipDuration', () => {
         expect(shown).toContain(sectionClass);
       },
     );
+
+    it('keeps the retired story statistics hidden even with an explicit visible preference', () => {
+      expect(
+        renderWithVisibility({ shared_story_summary: true }),
+      ).not.toContain('shared-story-summary');
+    });
 
     it('hiding one module does not change what another module selects (no duplicate content leaks in)', () => {
       const baseline = renderWithVisibility({});

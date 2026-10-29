@@ -1,0 +1,194 @@
+.relation-moment-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--space-12);
+  margin-top: var(--space-4);
+}
+.relation-moment-add svg,
+.relation-moment-search > svg {
+  flex: 0 0 var(--space-5);
+  width: var(--space-5);
+  height: var(--space-5);
+}
+.relation-moment-sheet {
+  height: min(
+    52rem,
+    calc(100dvh - var(--space-4) - env(safe-area-inset-top, 0px))
+  );
+}
+.relation-moment-sheet .short-task-sheet-body {
+  flex: 1 1 auto;
+}
+.relation-moment-sheet .short-task-sheet-title {
+  margin-bottom: var(--space-2);
+}
+.relation-moment-context {
+  margin: 0 0 var(--space-2);
+  font-weight: 700;
+}
+.relation-moment-privacy {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.relation-moment-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--color-text-secondary);
+}
+.relation-moment-search input {
+  min-width: 0;
+  width: 100%;
+  min-height: var(--space-12);
+  font-size: 1rem;
+}
+.relation-moment-filters {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 var(--space-2);
+}
+.relation-moment-filters button {
+  min-height: var(--space-12);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-surface-width) solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+.relation-moment-filters button[aria-pressed="true"] {
+  color: var(--color-on-accent);
+  background: var(--color-brand-strong);
+  border-color: var(--color-brand-strong);
+}
+.relation-moment-count {
+  margin: var(--space-2) 0 var(--space-3);
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+}
+.relation-moment-choices {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.relation-moment-choice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--space-6);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background-color var(--duration-feedback) var(--easing-standard);
+}
+.relation-moment-choice[data-selected="true"] {
+  background: var(--color-shared-surface);
+}
+.relation-moment-choice:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.relation-moment-choice > input {
+  grid-column: 2;
+  grid-row: 1;
+  width: var(--space-6);
+  height: var(--space-6);
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--color-brand-strong);
+}
+.relation-moment-choice > .relation-moment-preview {
+  grid-column: 1;
+  grid-row: 1;
+}
+.relation-moment-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  width: 100%;
+  min-height: var(--space-16);
+}
+.relation-moment-art {
+  display: grid;
+  flex: 0 0 var(--space-16);
+  width: var(--space-16);
+  height: var(--space-16);
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+  color: var(--color-shared);
+  background: var(--color-shared-surface);
+}
+.relation-moment-art > svg {
+  width: var(--space-8);
+  height: var(--space-8);
+}
+.relation-moment-preview-heart_moment .relation-moment-art {
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.relation-moment-preview-milestone .relation-moment-art {
+  background: var(--color-discovery-surface);
+  color: var(--color-discovery);
+}
+.relation-moment-art .story-media-preview,
+.relation-moment-art .story-media-skeleton,
+.relation-moment-art .story-media-placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+  margin: 0;
+}
+.relation-moment-copy {
+  display: grid;
+  flex: 1 1 8rem;
+  min-width: 0;
+  gap: var(--space-1);
+  overflow-wrap: anywhere;
+}
+.relation-moment-copy strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  font-weight: 700;
+}
+.relation-moment-excerpt {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+}
+.relation-moment-sheet .short-task-sheet-footer > button,
+.relation-moment-more {
+  width: 100%;
+  min-height: var(--space-12);
+}
+.planning-relation-target.relation-moment-link {
+  display: flex;
+}
+@media (max-width: 599px) {
+  .relation-moment-add {
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .relation-moment-choice {
+    transition: none;
+  }
+}

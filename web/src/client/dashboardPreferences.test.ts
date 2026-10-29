@@ -102,7 +102,9 @@ describe('dashboardPreferences', () => {
   describe('isDashboardModuleVisible', () => {
     it('defaults every registered module to visible without a preferences response', () => {
       for (const key of DASHBOARD_MODULE_KEYS) {
-        expect(isDashboardModuleVisible(undefined, key)).toBe(true);
+        expect(isDashboardModuleVisible(undefined, key)).toBe(
+          key !== 'shared_story_summary',
+        );
       }
     });
 

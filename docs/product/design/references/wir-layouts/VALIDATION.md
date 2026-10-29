@@ -18,6 +18,10 @@ The 200% capture exposed a pre-existing shared-history nowrap overflow. Labels n
 | [Selector 200% text](evidence/selector-modern-390-dark-large.png) | Labels retain reading width and sheet body scrolls above its footer |
 | [Modern 200% text](evidence/wir-modern-390-dark-large.png) | Identity/content wrapping, countdown and history reflow |
 
+## Existing interaction regression
+
+The 82-case browser selection covers personal icons, Countdown/Passport, Today composition, Vibe, Energy and Quote. Eighty cases pass with the new Warm default. The two original large-portrait geometry regressions now explicitly load saved Classic, whose unchanged size assertions pass in a focused two-case run. This preserves the exact old visual contract in its retained design; the new multi-design journey separately proves Warm is the default and all three save/reload paths. No geometric acceptance threshold was relaxed.
+
 ## Other checks
 
 Full Web suite: 2,218 passed, two existing skips. Full Backend unit suite: 1,014 passed. Seven new real settings/provider regressions cover confirmed deduplicated Save, preview/cancel, retention/reset, offline, failed retry, read failure, stale conflict recovery and a late result after query removal. Existing app-icon provider coverage also passes. TypeScript, production build, full Ruff/format, targeted strict mypy, Web format/lint, tokens/PWA and changed engineering-language checks pass.

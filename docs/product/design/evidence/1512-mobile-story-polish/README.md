@@ -28,5 +28,5 @@ Screenshots use synthetic authorized API fixtures, not a signed-in production ac
 
 - 122 component/hook tests passed across StoryProductPage, DailyQuoteCard, TodayPageR4, TodayPage and useTimelineProgressiveLoading.
 - 17 selected browser scenarios passed across the targeted runs (six quote variants/themes, default quote layout, four integrated rediscovery/detail/Place/return journeys, five tapestry scenarios, one sticky-month scenario).
-- Typecheck, production build, semantic-token/PWA checks, changed-file lint/format and diff whitespace checks passed.
+- Typecheck, production build, semantic-token/PWA checks, engineering-language audit, changed-file lint/format and diff whitespace checks passed. The German quote fixture uses the existing localized E2E fixture module; all six quote variant/theme scenarios passed again after moving it.
 - No business/freemium impact: quote remains Pro; the existing authorized Discover/Diary contract remains unchanged. No provider, dependency, API, storage/quota, migration or Cloud/Self-Hosted change.

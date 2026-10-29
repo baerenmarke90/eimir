@@ -6,6 +6,7 @@ import { PUBLIC_START_ROUTE } from '../../src/client/publicStart';
 import dailyQuote from '../../src/i18n/locales/dailyQuote';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
+import localizedFixture from '../fixtures/locales/de';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -535,8 +536,7 @@ for (const design of ['warm', 'modern', 'classic'] as const)
     test(`long quote keeps one surface and a contained heading: ${design} ${theme}`, async ({
       page,
     }, info) => {
-      const quoteText =
-        'Es ist doch das Einzige, was das Leben lebenswert macht, dass man einander liebhat.';
+      const quoteText = localizedFixture.dailyQuote;
       await installMocks(page, { design, quoteText });
       await page.addInitScript(
         (value) => localStorage.setItem('eimir.theme', value),

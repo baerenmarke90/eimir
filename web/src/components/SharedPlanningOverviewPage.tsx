@@ -379,16 +379,19 @@ export function SharedPlanningOverviewPage({
                 apiBaseUrl={apiBaseUrl}
                 accessToken={accessToken}
                 interactive={false}
+                presentation="preview"
               />
-              <span className="planen-next-schedule">
-                {planScheduleLabel(planGroups.focal)}
-              </span>
-              <strong>{planGroups.focal.title}</strong>
-              {planGroups.focal.description ? (
-                <span className="planen-next-description">
-                  {textExcerpt(planGroups.focal.description)}
+              <span className="planen-next-copy">
+                <span className="planen-next-schedule">
+                  {planScheduleLabel(planGroups.focal)}
                 </span>
-              ) : null}
+                <strong>{planGroups.focal.title}</strong>
+                {planGroups.focal.description ? (
+                  <span className="planen-next-description">
+                    {textExcerpt(planGroups.focal.description)}
+                  </span>
+                ) : null}
+              </span>
             </Link>
           </section>
         ) : null}

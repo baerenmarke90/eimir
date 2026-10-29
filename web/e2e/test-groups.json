@@ -349,6 +349,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 4,
       "reason": "Places and Chapters share one content-recognition picker; selection, type-filter continuity, real save/detail/return, privacy-safe search, large text, focus and cancellation must remain coherent."
+    },
+    "plan-cover-layout.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6,
+      "reason": "Complete portrait/landscape/square Plan images, original-versus-thumbnail reads, sensitive concealment and staged edit/cancel/return across actual overview/detail routes, Compact/Expanded and large text."
     }
   }
 }

@@ -19,12 +19,14 @@ export function PlanCover({
   apiBaseUrl,
   accessToken,
   interactive = true,
+  presentation = 'detail',
 }: {
   plan: PlanDetail;
   spaceId: string;
   apiBaseUrl?: string;
   accessToken?: string;
   interactive?: boolean;
+  presentation?: 'detail' | 'preview';
 }) {
   const { t } = useTranslation();
   const apis = useMemo(
@@ -35,16 +37,20 @@ export function PlanCover({
     [apiBaseUrl, accessToken],
   );
   const cover = plan.coverAttachment;
+  const variant =
+    presentation === 'preview' && cover?.hasThumbnail
+      ? 'thumbnail'
+      : 'original';
   const [attempt, setAttempt] = useState(0);
   const scope = apis ? mediaCacheScopeForClient(apis.attachments).id : '';
   const image = useObjectUrlResource(
-    `${scope}:${spaceId}:plan:${plan.id}:${attempt}`,
+    `${scope}:${spaceId}:plan:${plan.id}:${variant}:${attempt}`,
     apis && cover ? cover.id : null,
     async (id, signal) => {
       if (!apis) throw new Error('Plan media API unavailable');
       return loadAuthorizedStoryImage(apis, spaceId, 'PLAN', plan.id, id, {
         signal,
-        variant: cover?.hasThumbnail ? 'thumbnail' : 'original',
+        variant,
       });
     },
   );
@@ -55,7 +61,14 @@ export function PlanCover({
   if (!cover) return null;
   const concealed = cover.isSensitive && !reveals.isRevealed(cover.id);
   const media = image.url ? (
-    <img src={image.url} alt={concealed ? '' : plan.title} loading="lazy" />
+    <img
+      src={image.url}
+      alt={concealed ? '' : plan.title}
+      width={cover.width ?? undefined}
+      height={cover.height ?? undefined}
+      loading="lazy"
+      decoding="async"
+    />
   ) : (
     <span className="plan-cover-placeholder" role="status">
       {t(image.error ? 'm5s3.planImage.failed' : 'states.loading.title')}
@@ -71,7 +84,19 @@ export function PlanCover({
     </span>
   );
   return (
-    <div className="plan-cover">
+    <div
+      className={`plan-cover plan-cover--${presentation}`}
+      style={
+        concealed
+          ? {
+              aspectRatio:
+                cover.width && cover.height
+                  ? `${cover.width} / ${cover.height}`
+                  : '4 / 3',
+            }
+          : undefined
+      }
+    >
       {concealed ? <SensitiveMediaCover>{media}</SensitiveMediaCover> : media}
       {cover.isSensitive && interactive ? (
         <SensitiveMediaControl

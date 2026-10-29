@@ -897,3 +897,81 @@ test('Today clarity: live countdown, honest dates and docked navigation across t
     fullPage: true,
   });
 });
+
+test('borderless surfaces retain selection, saved preferences, keyboard focus and forced-color boundaries', async ({
+  page,
+}, testInfo) => {
+  await installMocks(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+  const sheet = page.getByRole('dialog', { name: dailyQuote.sheetTitle });
+  await expect(sheet).toBeVisible();
+  const mindfulness = sheet.getByRole('checkbox', { name: /Mindfulness/u });
+  await sheet.getByText('Mindfulness', { exact: true }).click();
+  await expect(mindfulness).toBeChecked();
+  for (const colorScheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    const frames = await page
+      .locator(
+        'button, .today-agenda-row, .short-task-sheet, .daily-quote-category, .daily-quote-source-check, .preference-switch-track',
+      )
+      .evaluateAll((elements) =>
+        elements
+          .filter(
+            (el) =>
+              el.getBoundingClientRect().width > 0 &&
+              el.getBoundingClientRect().height > 0,
+          )
+          .flatMap((el) => {
+            const style = getComputedStyle(el);
+            return [
+              'borderTopWidth',
+              'borderRightWidth',
+              'borderBottomWidth',
+              'borderLeftWidth',
+            ]
+              .filter(
+                (side) =>
+                  parseFloat(
+                    style[side as keyof CSSStyleDeclaration] as string,
+                  ) > 0,
+              )
+              .map((side) => `${el.className}: ${side}`);
+          }),
+      );
+    expect(frames).toEqual([]);
+    await expectQuoteSurfaceAccessible(page);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `borderless-preferences-390-${colorScheme}.png`,
+      ),
+      fullPage: true,
+    });
+  }
+  const save = sheet.getByRole('button', { name: dailyQuote.done });
+  await page.keyboard.press('Tab');
+  await save.focus();
+  expect(
+    await save.evaluate((el) => parseFloat(getComputedStyle(el).outlineWidth)),
+  ).toBeGreaterThanOrEqual(2);
+  await page.emulateMedia({ forcedColors: 'active' });
+  expect(
+    await sheet
+      .locator('.daily-quote-category')
+      .first()
+      .evaluate((el) => parseFloat(getComputedStyle(el).borderTopWidth)),
+  ).toBeGreaterThanOrEqual(1);
+  await expect(mindfulness).toBeChecked();
+  await page.screenshot({
+    path: testInfo.outputPath('borderless-preferences-forced-colors-focus.png'),
+    fullPage: true,
+  });
+  await page.emulateMedia({ forcedColors: 'none' });
+  await save.click();
+  await expect(sheet).not.toBeVisible();
+  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+  await expect(
+    sheet.getByRole('checkbox', { name: /Mindfulness/u }),
+  ).toBeChecked();
+});

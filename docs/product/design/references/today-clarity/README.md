@@ -69,6 +69,37 @@ and generated versus authored titles with focused component/browser evidence.
 
 ## Implemented result and verification
 
+### Global borderless surface preflight, 2026-10-29
+
+The PO subsequently requests no decorative surrounding borders across buttons,
+cards and controls, beyond the anniversary row. Baseline: `2f02f10`. Inspected
+the existing Today, creation, planning, settings, selector, sheet and media
+styles, native controls, token adapter and existing selection/focus semantics.
+The [generated whole-composition reference](generated-borderless-reference.webp)
+was produced before this implementation. Prompt: retain the actual Today
+composition and dock, group the countdown date with its title, remove decorative
+surface/control frames, and illustrate existing personal quote preferences with
+filled choices, a switch and explicit save/cancel. Its invented example catalog
+labels and residual lock ring are not implementation requirements; preserve the
+actual catalog and remove the residual decorative frame.
+
+Use one `border.surfaceFrame` token (zero in normal appearance), consumed by
+existing component declarations rather than a universal CSS override. Retain
+focus outlines, native affordances, graphic/icon strokes, chart symbols,
+portrait-overlap separators and forced-colors system boundaries: these carry
+interaction/content meaning rather than decorative box framing. Existing
+selected fills, checkmarks, labels and semantics continue to identify state.
+Border-only unchecked custom controls gain a visible filled surface. Inset
+decorative outline shadows follow the same frame token. No new shadow treatment.
+
+This later explicit PO decision supersedes older secondary-button outline and
+subtle-card-border guidance. Update normative direction and the platform adapter
+with the policy. No capability, API, storage, provider, privacy or business-model
+change; keep the existing Free/Pro and personal preference semantics. Review
+Today and quote preference save/cancel, creation and planning controls, appearance
+selection, visible keyboard focus, Light/Dark, Compact/Expanded, large text and
+reduced/forced-color accessibility before completion.
+
 ### PO layout refinement, 2026-10-29
 
 The subsequent corner correction removes resting and hover shadows from the
@@ -117,6 +148,23 @@ digits receive fast opacity feedback; reduced motion removes it. The timer uses
 `aria-live="off"` and does not generate repeated announcements.
 
 ### Actual browser evidence
+
+The current global surface refinement uses [Today at 390px](borderless/today-clarity-docked-390-viewport.webp),
+quote preferences in [Light](borderless/borderless-preferences-390-light.webp)
+and [Dark](borderless/borderless-preferences-390-dark.webp), and an explicit
+[forced-colors/focus check](borderless/borderless-preferences-forced-colors-focus.webp).
+Additional current creation, planning, 320/360/430px, large-text, Expanded and
+private-checklist screenshots are in `borderless/`, bound by its
+[source fingerprints](borderless/source-sha256.json).
+
+This refinement passed 225 component tests (184 shared-surface/control tests plus
+41 configuration, appearance and selection tests), 53 representative browser
+journeys and six private-checklist feedback journeys. The browser proof includes
+actual zero-width frames, selected preferences surviving save/reopen, a visible
+keyboard focus outline and restored forced-colors control boundaries. The final
+production build, token/PWA checks, changed-source formatting/lint and whitespace
+checks passed. No dependency was added; existing PostCSS was used only for the
+mechanical migration. The older images below retain earlier iteration evidence.
 
 - [390px viewport: single date, timed countdown, next anniversary and dock](today-clarity-docked-390-viewport.webp).
 - Full composition in [390px Light](today-clarity-390-light.webp) and [Dark](today-clarity-390-dark.webp).

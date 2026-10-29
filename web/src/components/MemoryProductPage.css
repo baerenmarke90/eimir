@@ -207,7 +207,7 @@ body:has(.memory-product-page) {
 .memory-edit-attachment {
   display: grid;
   gap: var(--space-2);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   padding: var(--space-3);
   background: var(--color-surface-subtle);
@@ -279,7 +279,7 @@ body:has(.memory-product-page) {
 .memory-delete-confirmation {
   display: grid;
   gap: var(--space-4);
-  border: 1px solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-border);
   border-radius: var(--radius-large);
   padding: var(--space-4);
   background: var(--color-surface-subtle);

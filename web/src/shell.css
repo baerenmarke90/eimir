@@ -94,7 +94,7 @@
   height: 44px;
   min-height: 44px;
   place-items: center;
-  border: 1px solid transparent;
+  border: var(--border-surface-width) solid transparent;
   border-radius: var(--radius-pill);
   padding: 0;
   background: transparent;
@@ -165,7 +165,7 @@
   display: grid;
   width: min(18rem, calc(100vw - 2rem));
   gap: var(--space-1);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   padding: var(--space-2);
   background: var(--color-surface-raised);
@@ -229,7 +229,7 @@
   flex-direction: column;
   width: min(22rem, calc(100vw - 2rem));
   max-height: min(28rem, calc(100vh - 6rem));
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   background: var(--color-surface-raised);
   box-shadow: var(--shadow-soft);
@@ -498,7 +498,7 @@
   width: 100%;
   min-width: 13rem;
   gap: var(--space-1);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   padding: var(--space-2);
   background: var(--color-surface-raised);
@@ -917,7 +917,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
   gap: var(--space-4);
-  border: 2px dashed var(--color-brand-glow);
+  border: var(--border-surface-width) dashed var(--color-brand-glow);
   border-radius: var(--radius-card);
   padding: clamp(var(--space-5), 4vw, var(--space-8));
   background: var(--color-surface-overlay);
@@ -1121,7 +1121,7 @@
   height: 36px;
   margin-bottom: var(--space-2);
   place-items: center;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: 50%;
   background: var(--color-surface-raised);
   color: var(--color-text-secondary);

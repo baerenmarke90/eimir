@@ -104,7 +104,7 @@
   gap: var(--space-2);
   width: 100%;
   min-width: 0;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   padding: var(--space-4) var(--space-5);
   background: var(--color-surface);
@@ -161,7 +161,7 @@
   align-items: center;
   border-radius: var(--radius-pill);
   padding: 0.25rem 0.7rem;
-  border: 1px solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-secondary);
   font-size: 0.82rem;
@@ -238,7 +238,7 @@
 .planen-section {
   display: grid;
   gap: var(--space-2);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   padding: clamp(var(--space-4), 3vw, var(--space-5));
   background: var(--color-surface);
@@ -270,7 +270,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  border: 1px solid var(--color-shared-border);
+  border: var(--border-surface-width) solid var(--color-shared-border);
   border-radius: var(--radius-pill);
   padding: var(--space-3) var(--space-5);
   background: var(--color-shared-surface);

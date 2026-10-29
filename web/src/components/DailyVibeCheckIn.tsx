@@ -576,7 +576,10 @@ export function DailyVibeCheckIn({
                 <span className="daily-vibe-option-glyph" aria-hidden="true">
                   <DailyVibeIcon value={option.value} />
                 </span>
-                <span>{t(option.labelKey)}</span>
+                <span>
+                  {t(option.labelKey)}
+                  {selected ? <span aria-hidden="true"> ✓</span> : null}
+                </span>
               </button>
             );
           })}

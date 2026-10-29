@@ -275,6 +275,9 @@ export function SpaceConfigurationPanel({
                           />
                           <span className="space-visibility-label">
                             {t(mode.labelKey)}
+                            {module.visibility?.mode === mode.value ? (
+                              <span aria-hidden="true"> ✓</span>
+                            ) : null}
                           </span>
                           <span className="space-visibility-hint">
                             {t(mode.hintKey)}

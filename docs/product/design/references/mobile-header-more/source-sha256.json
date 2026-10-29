@@ -1,0 +1,10 @@
+{
+  "web/src/components/AppShell.tsx": "1d914f61cb5fa99c841523b0345b4a210f961604c1f426e182b929c9d50fd32f",
+  "web/src/components/MoreOverviewPage.tsx": "04dd38f640efe893ad07e2872c00cbfd2046ac0dde51d4638ae751104da27682",
+  "web/src/components/MoreOverviewPage.css": "073938fa85a11e3c714327908c65381bb1ee2bfe7a4e005be718085088987137",
+  "web/src/client/shellUtilities.tsx": "d4540b7272a1b4c5c7b08186a42819d1aa50fd868297caca109f14ccabb3b533",
+  "web/src/client/routes.ts": "355448bc0b833249d58b88cdd63a263299499956958f63b5cdd8c39c4e100f4d",
+  "web/src/i18n/locales/navigation.ts": "186cc50715e2ddcd52f920abdd4cf480bf29ad0f52e615a9a9ad52fc4f8d3dbf",
+  "web/src/shell.css": "d1d33f2197dea4d76a5d6885404e646ba33c67cbc3a3d37a70704fb99b76f488",
+  "web/e2e/tests/mobile-header-more.spec.ts": "3da2a47d431807503d5de6c24a69117c35b38cad86dd48567d4330a7dc6efdc6"
+}

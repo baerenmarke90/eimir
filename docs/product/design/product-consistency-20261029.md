@@ -188,3 +188,21 @@ The combined-page acceptance journey now activates the canonical Memory Back
 control directly; the headerless Compact shell no longer exposes a global banner
 landmark. The living-home preference journey also scopes its visible upcoming
 title to the agenda while preserving the hidden-second-entry assertion.
+
+At `6fca94f6`, API 28 and 37.1 passed the complete native pipeline. API 36
+rendered the real input but exposed no virtual WebView accessibility children
+(the screenshot and hierarchy agree on that distinction). The fixture therefore
+maps the real input's measured CSS bounds into the attached WebView's screen
+coordinates after Android's public
+[visual-state callback](https://developer.android.com/reference/android/webkit/WebView#postVisualStateCallback(long,%20android.webkit.WebView.VisualStateCallback)).
+Its file-selector button fills those bounds, and the same native tap activates
+it. JavaScript only installs and reads the fixture; it never activates the input
+or picker. System consent and all original-byte/GPS assertions remain intact.
+
+The large-text task journey now opens the actual Diary options sheet before
+capturing its archive navigation, then closes it before continuing Quick Create.
+The older canonical Discover journey now checks one lead and at most two
+server-ordered companions above an independent, fully loaded chronological
+Diary. Its separate fixture entry proves that Timeline data cannot populate
+Discover, and Discover data cannot substitute for the Diary. It no longer
+requires the superseded isolated Discover tab to suppress all Timeline reads.

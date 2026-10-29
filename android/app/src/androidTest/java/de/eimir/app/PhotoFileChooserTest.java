@@ -262,6 +262,7 @@ public class PhotoFileChooserTest {
         // Inject the real file input there: navigating to a synthetic localhost
         // path can stall the API 37.1 Chromium fixture behind Capacitor routing.
         String fixtureScript = "(function(){"
+            + "document.head.insertAdjacentHTML('beforeend',`<style>#photo::file-selector-button{width:100%;height:100%}</style>`);"
             + "document.body.innerHTML=`<input id='photo' type='file' accept='image/jpeg,image/png,image/webp,image/heic,image/heif' multiple aria-label='Choose photo' "
             + "style='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:240px;height:60px'>`;"
             + "document.getElementById('photo').onchange=async(e)=>{"
@@ -274,11 +275,10 @@ public class PhotoFileChooserTest {
         assertEquals("Chromium creates the live multiple-photo input", "true",
             javascriptValue(view, fixtureScript));
         awaitPhotoInput(view);
-        AccessibilityNodeInfo fileInput = findDocument("Choose photo");
+        Rect fileInput = photoInputScreenBounds(view);
         captureNativeDiagnostics("native-photo-input");
-        assertNotNull("Chromium exposes the real file input for native touch", fileInput);
         instrumentation.getUiAutomation().executeAndWaitForEvent(() -> {
-                try { tapNativeControl(fileInput); }
+                try { tapScreenBounds(fileInput); }
                 catch (Exception failure) { throw new AssertionError(failure); }
             },
             event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
@@ -406,12 +406,51 @@ public class PhotoFileChooserTest {
         return response.get();
     }
 
+    private Rect photoInputScreenBounds(WebView view) throws Exception {
+        // A live WebView can render correctly without exposing virtual accessibility
+        // children. Read geometry only; activation still uses a genuine native tap.
+        CountDownLatch visualState = new CountDownLatch(1);
+        instrumentation.runOnMainSync(() -> view.postVisualStateCallback(1,
+            new WebView.VisualStateCallback() {
+                @Override public void onComplete(long requestId) { visualState.countDown(); }
+            }));
+        assertTrue("Chromium commits the file input's visual state",
+            visualState.await(10, TimeUnit.SECONDS));
+        String geometryJson = new org.json.JSONArray("[" + javascriptValue(view,
+            "JSON.stringify((()=>{const r=document.getElementById('photo').getBoundingClientRect();"
+                + "return [r.left,r.top,r.right,r.bottom,innerWidth,innerHeight]})())") + "]").getString(0);
+        org.json.JSONArray geometry = new org.json.JSONArray(geometryJson);
+        AtomicReference<Rect> result = new AtomicReference<>();
+        instrumentation.runOnMainSync(() -> {
+            assertTrue("The real WebView is visible and attached", view.isShown() && view.isAttachedToWindow());
+            int[] origin = new int[2];
+            view.getLocationOnScreen(origin);
+            double scaleX = view.getWidth() / geometry.optDouble(4);
+            double scaleY = view.getHeight() / geometry.optDouble(5);
+            assertTrue("The CSS viewport maps to finite native pixels",
+                Double.isFinite(scaleX) && scaleX > 0 && Double.isFinite(scaleY) && scaleY > 0);
+            result.set(new Rect(
+                origin[0] + (int) Math.round(geometry.optDouble(0) * scaleX),
+                origin[1] + (int) Math.round(geometry.optDouble(1) * scaleY),
+                origin[0] + (int) Math.round(geometry.optDouble(2) * scaleX),
+                origin[1] + (int) Math.round(geometry.optDouble(3) * scaleY)));
+            assertTrue("The native file-input touch target stays inside the WebView",
+                new Rect(origin[0], origin[1], origin[0] + view.getWidth(), origin[1] + view.getHeight())
+                    .contains(result.get()));
+        });
+        return result.get();
+    }
+
     private void tapNativeControl(AccessibilityNodeInfo document) throws Exception {
         // Consent banners and diagnostic screenshots can move a previously found node.
         assertTrue("The identified system control is still attached", document.refresh());
         assertTrue("The identified document is visible", document.isVisibleToUser());
         Rect bounds = new Rect();
         document.getBoundsInScreen(bounds);
+        tapScreenBounds(bounds);
+    }
+
+    private void tapScreenBounds(Rect bounds) throws Exception {
         assertFalse("The identified document has touch bounds", bounds.isEmpty());
         // Public UiAutomation input waits for platform window/surface transitions.
         // Queue one tap without an Espresso down/up idle gap becoming a long press.

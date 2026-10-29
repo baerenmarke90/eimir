@@ -156,3 +156,35 @@ At `faca04c8`, API 28 and 36 passed, including the real photo pipeline. API 37.1
 reported 14 passing tests and a photo-picker input-event timeout; its memory
 allocation correction still requires fresh acceptance and is not a claim that
 this distinct event timeout has been resolved.
+
+## Native input and remaining combined-page fixture follow-up
+
+At `030704b0`, the final API 36 permission snapshot exposed an accessibility
+window before its surface accepted the shell-injected touch; InputDispatcher
+reported the transition input sink without an input channel. API 37.1 reported a
+WebView long-click instead of the intended file-input tap. Both retain 14/15
+passing tests; neither result establishes a product picker failure or a pass.
+
+The fixture now identifies the actual accessible Chromium file input and reuses
+one native touch primitive for that input, permission consent, location consent,
+photo selection and final confirmation. Public
+[UiAutomation.injectInputEvent](https://developer.android.com/reference/android/app/UiAutomation#injectInputEvent(android.view.InputEvent,%20boolean))
+synchronizes platform window/surface transitions. Queue the touch down without
+waiting for app-idle between down/up, then finish the touch up synchronously;
+use the same bounded tap timestamps as Android's
+[input command](https://android.googlesource.com/platform/frameworks/base/+/81f52b053da6/services/core/java/com/android/server/input/InputShellCommand.java).
+No DOM click, direct chooser invocation, shell permission grant, gesture retry,
+longer timeout or weaker byte/GPS/foreign-ownership assertion is substituted.
+The real system consent and original-file handoff remain mandatory.
+
+Quick Create's animation wait applies only to a target inside the mobile dialog;
+the Expanded menu remains a menu. Milestone deletion enters from the Diary's
+canonical link and requires the actual detail URL and level-one heading. Today
+rescheduling also enters from its explicitly identified agenda. These retain the
+same product journeys while accounting for the approved duplicate rediscovery
+and Hero presentations. Fresh final-head CI is still required.
+
+The combined-page acceptance journey now activates the canonical Memory Back
+control directly; the headerless Compact shell no longer exposes a global banner
+landmark. The living-home preference journey also scopes its visible upcoming
+title to the agenda while preserving the hidden-second-entry assertion.

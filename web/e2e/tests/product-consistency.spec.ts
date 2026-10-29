@@ -1,18 +1,18 @@
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import {
-  SPACE_ID,
-  CAPABILITIES,
-  installMocks,
-  signIn,
-  captureScreenshot,
-} from '../support/storyTimelineFixture';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import copy from '../../src/i18n/locales/photoPlaces';
 import planningCopy from '../../src/i18n/locales/m5s3';
+import copy from '../../src/i18n/locales/photoPlaces';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import {
+  CAPABILITIES,
+  captureScreenshot,
+  installMocks,
+  SPACE_ID,
+  signIn,
+} from '../support/storyTimelineFixture';
 
 const BASE = `/api/v1/spaces/${SPACE_ID}`;
 const place = {
@@ -196,7 +196,6 @@ for (const scenario of [
       ).violations,
     ).toEqual([]);
     await page
-      .getByRole('banner')
       .getByRole('button', { name: taskBoundary.back, exact: true })
       .click();
     await expect(diary).toBeVisible();

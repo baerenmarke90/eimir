@@ -423,7 +423,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   await expect.poll(() => dashboardRequestCount).toBe(requestsBeforePull + 1);
 
   // Step 3: Navigate to plan details via in-app UI click (NO page.reload())
-  await page.getByRole('link', { name: /Later October trip/ }).click();
+  await agenda.getByRole('link', { name: /Later October trip/ }).click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
   await expect(
     page.getByRole('heading', {

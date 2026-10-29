@@ -19,6 +19,8 @@ import android.os.Build;
 import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.view.KeyEvent;
+import android.view.InputDevice;
+import android.view.MotionEvent;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.webkit.WebChromeClient.FileChooserParams;
@@ -272,10 +274,13 @@ public class PhotoFileChooserTest {
         assertEquals("Chromium creates the live multiple-photo input", "true",
             javascriptValue(view, fixtureScript));
         awaitPhotoInput(view);
-        instrumentation.getUiAutomation().executeAndWaitForEvent(() ->
-            androidx.test.espresso.Espresso.onView(
-                androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom(WebView.class))
-                .perform(androidx.test.espresso.action.ViewActions.click()),
+        AccessibilityNodeInfo fileInput = findDocument("Choose photo");
+        captureNativeDiagnostics("native-photo-input");
+        assertNotNull("Chromium exposes the real file input for native touch", fileInput);
+        instrumentation.getUiAutomation().executeAndWaitForEvent(() -> {
+                try { tapNativeControl(fileInput); }
+                catch (Exception failure) { throw new AssertionError(failure); }
+            },
             event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getPackageName() != null
                 && (isSystemPhotoPicker(event.getPackageName())
@@ -287,7 +292,7 @@ public class PhotoFileChooserTest {
             AccessibilityNodeInfo allow = findDocument("Allow all");
             assertNotNull("Android exposes the optional metadata permission decision", allow);
             instrumentation.getUiAutomation().executeAndWaitForEvent(() -> {
-                try { tapSystemDocument(allow); }
+                try { tapNativeControl(allow); }
                 catch (Exception failure) { throw new AssertionError(failure); }
             }, event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getPackageName() != null
@@ -299,13 +304,13 @@ public class PhotoFileChooserTest {
             AccessibilityNodeInfo includeLocation = findDocument("Include location");
             captureNativeDiagnostics("native-photo-location-consent");
             assertNotNull("The system picker asks to include the selected photos' location", includeLocation);
-            tapSystemDocument(includeLocation);
+            tapNativeControl(includeLocation);
         }
         // Match the actual diary input's complete MIME list and multiple mode.
         AccessibilityNodeInfo document = findDocument(token);
         captureNativeDiagnostics("native-photo-picker");
         assertNotNull("The real Android photo picker exposes the foreign-owned fixture", document);
-        tapSystemDocument(document);
+        tapNativeControl(document);
         // SDK-extension-23 pickers label the final selection action "Done";
         // older system photo pickers use "Add". Both are explicit confirmation.
         String confirmLabel = PhotoFileChooser.supportsPickerMetadata() ? "Done" : "Add";
@@ -313,7 +318,7 @@ public class PhotoFileChooserTest {
         captureNativeDiagnostics("native-photo-confirmation");
         assertNotNull("The system picker requires explicit selection confirmation: " + confirmLabel,
             confirm);
-        tapSystemDocument(confirm);
+        tapNativeControl(confirm);
         byte[] uploadedBytes = selectedFileBytes(view);
         java.nio.file.Files.write(new File(context.getFilesDir(), "native-selected-photo.jpg").toPath(), uploadedBytes);
         assertArrayEquals("The existing Web File intake receives the original bytes",
@@ -401,27 +406,32 @@ public class PhotoFileChooserTest {
         return response.get();
     }
 
-    private void tapSystemDocument(AccessibilityNodeInfo document) throws Exception {
+    private void tapNativeControl(AccessibilityNodeInfo document) throws Exception {
         // Consent banners and diagnostic screenshots can move a previously found node.
         assertTrue("The identified system control is still attached", document.refresh());
         assertTrue("The identified document is visible", document.isVisibleToUser());
         Rect bounds = new Rect();
         document.getBoundsInScreen(bounds);
         assertFalse("The identified document has touch bounds", bounds.isEmpty());
-        // Reuse Android's input command for the real cross-process gesture.
-        // Only the identified item's integer screen bounds enter this command.
-        String command = "input touchscreen tap " + bounds.centerX() + " " + bounds.centerY();
-        try (InputStream output = new android.os.ParcelFileDescriptor.AutoCloseInputStream(
-                instrumentation.getUiAutomation().executeShellCommand(command))) {
-            java.io.ByteArrayOutputStream diagnostics = new java.io.ByteArrayOutputStream();
-            byte[] buffer = new byte[1024];
-            int count;
-            while ((count = output.read(buffer)) != -1) {
-                diagnostics.write(buffer, 0, count);
-                assertTrue("System input output stays bounded", diagnostics.size() <= 8192);
-            }
-            assertEquals("Android accepts the identified document tap", "",
-                diagnostics.toString("UTF-8").trim());
+        // Public UiAutomation input waits for platform window/surface transitions.
+        // Queue one tap without an Espresso down/up idle gap becoming a long press.
+        // Match Android's tap event timestamps; no sleep or gesture retry is needed.
+        long now = SystemClock.uptimeMillis();
+        MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN,
+            bounds.centerX(), bounds.centerY(), 0);
+        MotionEvent up = MotionEvent.obtain(now, now, MotionEvent.ACTION_UP,
+            bounds.centerX(), bounds.centerY(), 0);
+        down.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+        up.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+        try {
+            UiAutomation automation = instrumentation.getUiAutomation();
+            assertTrue("Android accepts the identified control's touch down",
+                automation.injectInputEvent(down, false));
+            assertTrue("Android accepts the identified control's touch up",
+                automation.injectInputEvent(up, true));
+        } finally {
+            down.recycle();
+            up.recycle();
         }
     }
 

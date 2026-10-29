@@ -1,13 +1,13 @@
-import { fulfillEmptyMomentPlaces } from '../support/photoSources';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 
 /*
  * Product Reference v1 R4 calibrates `/today` as the living home of a
@@ -875,7 +875,9 @@ test.describe('Today R4: the living home of a relationship', () => {
 
     // #854's default of 1 is visibly effective: one calm, complete entry.
     await expect(page.locator('.today-agenda-row')).toHaveCount(1);
-    await expect(page.getByText(UPCOMING[0].titleOrText)).toBeVisible();
+    await expect(
+      page.locator('.today-agenda-list').getByText(UPCOMING[0].titleOrText),
+    ).toBeVisible();
     await expect(page.getByText(UPCOMING[1].titleOrText)).toHaveCount(0);
 
     // Today never stores a limit of its own; the section is a pure consumer

@@ -321,20 +321,22 @@ async function openMemory(page: Page) {
   await page
     .getByRole('button', { name: navigation.newContent, exact: true })
     .click();
-  await page
-    .getByRole('dialog')
-    .evaluate((node) =>
-      Promise.all(node.getAnimations().map((animation) => animation.finished)),
-    );
-  await page
+  const target = page
     .getByRole('link', { name: navigation.quickCreateMemory, exact: true })
     .or(
       page.getByRole('menuitem', {
         name: navigation.quickCreateMemory,
         exact: true,
       }),
-    )
-    .click();
+    );
+  await target.evaluate(async (node) => {
+    const sheet = node.closest('dialog');
+    if (sheet)
+      await Promise.all(
+        sheet.getAnimations().map((animation) => animation.finished),
+      );
+  });
+  await target.click();
   await expect(
     page.getByRole('heading', { name: de.memory.heading, exact: true }),
   ).toBeVisible();

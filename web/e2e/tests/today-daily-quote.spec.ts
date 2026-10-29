@@ -1,4 +1,5 @@
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import dailyQuote from '../../src/i18n/locales/dailyQuote';
@@ -729,6 +730,170 @@ test('Daily Quote reflows at 320px large text and adapts to Expanded', async ({
   await expectQuoteSurfaceAccessible(page);
   await page.screenshot({
     path: testInfo.outputPath('today-daily-quote-1280-light.png'),
+    fullPage: true,
+  });
+});
+
+test('Today clarity: live countdown, honest dates and docked navigation across themes and sizes', async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  await page.clock.install({ time: new Date('2026-10-29T08:00:00Z') });
+  let memoryTitle = 'Erinnerung vom 27.10.2026';
+  await installMocks(page);
+  await page.route('**/attachments/attachment-clarity/read-access', (route) =>
+    route.fulfill({
+      json: {
+        method: 'STREAM',
+        url: `/api/v1/spaces/${SPACE_ID}/attachments/attachment-clarity/content`,
+        expiresAt: null,
+      },
+    }),
+  );
+  await page.route('**/attachments/attachment-clarity/content*', (route) =>
+    route.fulfill({
+      contentType: 'image/jpeg',
+      path: fileURLToPath(
+        new URL(
+          '../../../backend/demo_assets/images/dog-outdoors.jpg',
+          import.meta.url,
+        ),
+      ),
+    }),
+  );
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/dashboard`, (route) =>
+    route.fulfill({
+      json: {
+        space: {
+          spaceId: SPACE_ID,
+          partner: { id: PARTNER_ID, displayName: 'Ben Winter' },
+        },
+        relationshipDuration: { daysTogether: 168, startedOn: '2026-05-14' },
+        retrospective: null,
+        recentShared: [],
+        keepsake: {
+          id: 'memory-clarity',
+          type: 'MEMORY',
+          titleOrText: memoryTitle,
+          previewAttachmentId: 'attachment-clarity',
+          previewIsSensitive: true,
+          occurredOn: '2026-10-27',
+          scheduledAt: null,
+          createdAt: null,
+        },
+        upcoming: [
+          {
+            id: 'anniversary-clarity',
+            type: 'ANNIVERSARY',
+            titleOrText: null,
+            occurredOn: '2027-05-14',
+            scheduledAt: null,
+            createdAt: null,
+          },
+        ],
+        anticipation: {
+          planId: 'plan-clarity',
+          title: 'Ghost Night',
+          eventOn: '2026-11-21',
+          eventAt: '2026-11-21T19:00:00Z',
+          daysRemaining: 23,
+        },
+        viewerLocalDate: '2026-10-29',
+        thinkingOfYouAvailableAt: null,
+      },
+    }),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  const quote = page.locator('.daily-quote-card');
+  await expect(quote.getByRole('heading')).toHaveText(dailyQuote.title);
+  await expect(
+    quote.locator('.pro-mark, .today-section-kicker, .daily-quote-categories'),
+  ).toHaveCount(0);
+  const moment = page.locator('.today-moment');
+  await expect(quote.getByText('A calm thought for today.')).toBeVisible();
+  await expect(moment.locator('img')).toHaveCount(1);
+  await expect(moment).toContainText('27.10.2026');
+  await expect(moment).not.toContainText('Erinnerung vom');
+  await expect(moment.locator('.today-moment-date')).toHaveCount(0);
+  await expect(moment.locator('.today-moment-title')).toHaveText('27.10.2026');
+  await expect(page.locator('.today-agenda-row')).toContainText(
+    'Euer Jahrestag',
+  );
+  await expect(page.locator('.today-agenda-row')).toContainText('14. Mai 2027');
+  const timer = page.getByRole('timer');
+  await expect(timer).toHaveAttribute('aria-live', 'off');
+  const seconds = timer.locator('.anticipation-digit').last();
+  const before = await seconds.textContent();
+  await page.clock.runFor(1100);
+  await expect(seconds).not.toHaveText(before ?? '');
+
+  for (const width of [320, 360, 390, 430, 1280]) {
+    for (const theme of ['light', 'dark'] as const) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+      const dock = page.locator('.mobile-bottom-shell');
+      if (width < 1024) {
+        const box = await dock.boundingBox();
+        expect(box?.x).toBe(0);
+        expect(box?.width).toBe(width);
+        expect((box?.y ?? 0) + (box?.height ?? 0)).toBe(844);
+        expect(
+          await dock.evaluate((el) => getComputedStyle(el).borderRadius),
+        ).toBe('0px');
+      } else await expect(dock).toBeHidden();
+      await expectQuoteSurfaceAccessible(page);
+      await page.screenshot({
+        path: testInfo.outputPath(`today-clarity-${width}-${theme}.png`),
+        fullPage: true,
+      });
+      if (width === 390 && theme === 'light') {
+        await page.locator('.today-section-upcoming').scrollIntoViewIfNeeded();
+        await page.screenshot({
+          path: testInfo.outputPath('today-clarity-docked-390-viewport.png'),
+        });
+        await page.evaluate(() => window.scrollTo(0, 0));
+      }
+    }
+  }
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+    document.documentElement.style.setProperty(
+      '--safe-area-inset-bottom',
+      '34px',
+    );
+  });
+  await expectQuoteSurfaceAccessible(page);
+  const geometry = await page
+    .locator('.mobile-bottom-shell')
+    .evaluate((el) => ({
+      height: el.getBoundingClientRect().height,
+      bottom: el.getBoundingClientRect().bottom,
+      padding: parseFloat(getComputedStyle(el).paddingBottom),
+      measured: parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue(
+          '--shell-bottom-nav-measured-height',
+        ),
+      ),
+    }));
+  expect(geometry.bottom).toBe(640);
+  expect(geometry.padding).toBeGreaterThanOrEqual(34);
+  expect(geometry.measured).toBe(geometry.height);
+  await page.screenshot({
+    path: testInfo.outputPath('today-clarity-320-large-text-safe-area.png'),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  memoryTitle = 'An evening by the lake';
+  await page.reload();
+  await expect(moment.locator('.today-moment-title')).toHaveText(memoryTitle);
+  await expect(moment.locator('.today-moment-date')).toHaveText('27.10.2026');
+  await expect(quote.getByText('A calm thought for today.')).toBeVisible();
+  await expect(moment.locator('img')).toHaveCount(1);
+  await page.screenshot({
+    path: testInfo.outputPath('today-clarity-authored-title-390-light.png'),
     fullPage: true,
   });
 });

@@ -22,18 +22,6 @@
   color: var(--color-text);
 }
 
-.daily-quote-card::before {
-  position: absolute;
-  top: 2.65rem;
-  right: var(--space-4);
-  color: color-mix(in srgb, var(--color-brand) 28%, transparent);
-  content: "“";
-  font-family: var(--font-display);
-  font-size: clamp(3.25rem, 15vw, 5rem);
-  line-height: 1;
-  pointer-events: none;
-}
-
 .daily-quote-card > * {
   position: relative;
   z-index: 1;
@@ -46,18 +34,6 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
-}
-
-.daily-quote-heading-group {
-  min-width: 0;
-}
-
-.daily-quote-heading {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
 }
 
 .daily-quote-settings {
@@ -112,27 +88,6 @@
   color: var(--color-text-secondary);
   font-size: 0.82rem;
   line-height: 1.4;
-  overflow-wrap: break-word;
-}
-
-.daily-quote-categories {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.daily-quote-categories li {
-  max-width: 100%;
-  padding: 0.35rem 0.7rem;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--color-surface) 62%, transparent);
-  color: var(--color-text-secondary);
-  font-size: 0.72rem;
-  line-height: 1.35;
   overflow-wrap: break-word;
 }
 

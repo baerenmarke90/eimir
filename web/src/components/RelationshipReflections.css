@@ -12,12 +12,39 @@
   transition: background var(--duration-feedback) var(--easing-standard);
 }
 
-.anticipation-card .eyebrow {
-  color: inherit;
-  margin: 0;
-}
 .anticipation-countdown {
   font: var(--font-personal-heading);
+}
+.anticipation-timer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 3.25em), 1fr));
+  gap: var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+.anticipation-unit {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.anticipation-digit {
+  font: var(--font-section-heading);
+  overflow-wrap: normal;
+}
+.anticipation-unit-label {
+  font: var(--font-supporting-copy);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .anticipation-digit {
+    animation: anticipation-tick var(--duration-feedback) var(--easing-standard);
+  }
+}
+@keyframes anticipation-tick {
+  from {
+    opacity: 0.65;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .anticipation-date {
   font-variant-numeric: tabular-nums;

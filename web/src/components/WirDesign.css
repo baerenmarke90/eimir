@@ -92,12 +92,6 @@
   border-radius: 0;
   background: transparent;
 }
-.today-page[data-wir-design="warm"] .daily-quote-card::before {
-  inset: var(--space-12) auto auto 0;
-}
-.today-page[data-wir-design="warm"] .daily-quote-block {
-  padding-inline-start: var(--space-5);
-}
 .today-page[data-wir-design="warm"] .today-moment-figure {
   border-radius: var(--radius-large);
   box-shadow: var(--shadow-soft);

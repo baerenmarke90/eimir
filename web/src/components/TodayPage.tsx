@@ -22,11 +22,8 @@ import {
   limitUpcomingItems,
   selectedDashboardCollectionId,
 } from '../client/dashboardPreferences';
-import {
-  formatRecency,
-  formatUpcomingCalendarDate,
-  formatUpcomingRelative,
-} from '../client/formatRecency';
+import { formatRecency, formatCalendarDate } from '../client/formatRecency';
+import { isGeneratedMemoryTitle } from '../client/memoryProduct';
 import {
   dashboardItemPath,
   engagementTargetPath,
@@ -305,12 +302,27 @@ function TodayAgendaRow({ item }: { item: DashboardItem }) {
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
   const rawDate = item.occurredOn ?? item.scheduledAt ?? item.createdAt;
-  const date = item.scheduledOn
-    ? formatUpcomingCalendarDate(item.scheduledOn, t)
+  const calendarDate = item.scheduledOn ?? item.occurredOn;
+  const date = calendarDate
+    ? new Intl.DateTimeFormat(resolvedLocale(), {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(calendarDate)
     : rawDate
-      ? formatUpcomingRelative(rawDate, t)
+      ? new Intl.DateTimeFormat(resolvedLocale(), {
+          dateStyle: 'long',
+          timeStyle: item.scheduledAt ? 'short' : undefined,
+        }).format(rawDate)
       : null;
-  const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
+  const title =
+    item.titleOrText?.trim() ||
+    t(
+      item.type === 'ANNIVERSARY'
+        ? 'm5s5.dashboard.anniversaryTitle'
+        : `m5s5.kind.${item.type}`,
+    );
 
   const rowInner = (
     <>
@@ -319,7 +331,16 @@ function TodayAgendaRow({ item }: { item: DashboardItem }) {
       </span>
       <span className="today-agenda-copy">
         <span className="today-agenda-title">{title}</span>
-        {date ? <span className="today-agenda-date">{date}</span> : null}
+        {date ? (
+          <time
+            className="today-agenda-date"
+            dateTime={
+              calendarDate?.toISOString().slice(0, 10) ?? rawDate?.toISOString()
+            }
+          >
+            {date}
+          </time>
+        ) : null}
       </span>
     </>
   );
@@ -362,8 +383,18 @@ function TodayMomentFeature({
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
   const rawDate = item.occurredOn ?? item.createdAt;
-  const date = rawDate ? formatDate(rawDate) : null;
-  const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
+  const generatedTitle =
+    item.type === 'MEMORY' &&
+    isGeneratedMemoryTitle(item.titleOrText ?? '', item.occurredOn, t);
+  const date = item.occurredOn
+    ? formatCalendarDate(item.occurredOn)
+    : rawDate
+      ? formatDate(rawDate)
+      : null;
+  const title =
+    generatedTitle && date
+      ? date
+      : item.titleOrText || t(`m5s5.kind.${item.type}`);
   const previewAttachmentId = item.previewAttachmentId;
   const hasImage = Boolean(previewAttachmentId && loadMemoryImage);
 
@@ -382,7 +413,7 @@ function TodayMomentFeature({
       </div>
       <figcaption className="today-moment-caption">
         <span className="today-moment-title">{title}</span>
-        {date ? (
+        {date && !generatedTitle ? (
           <time className="today-moment-date" dateTime={rawDate?.toISOString()}>
             {date}
           </time>
@@ -397,7 +428,7 @@ function TodayMomentFeature({
           : t('m5s5.today.keepsake.sharedTextContext')}
       </span>
       <p className="today-moment-text-content">{title}</p>
-      {date ? (
+      {date && !generatedTitle ? (
         <time
           className="today-moment-text-date"
           dateTime={rawDate?.toISOString()}

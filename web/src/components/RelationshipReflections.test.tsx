@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -24,6 +25,7 @@ import { RelationshipPassport } from './RelationshipPassport';
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 const label = () => i18n.t('relationshipReflections.anticipation.show');
 
@@ -89,6 +91,70 @@ function setupPlan(send?: () => Promise<PlanDetail>) {
 }
 
 describe('Special Plan anticipation', () => {
+  it('ticks from the actual instant, crosses minute boundaries and stops at zero', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-21T18:58:59Z'));
+    const { unmount } = render(
+      <MemoryRouter>
+        <AnticipationCard
+          value={{
+            planId: 'plan-1',
+            title: 'Ghost Night',
+            daysRemaining: 0,
+            eventOn: new Date('2026-11-21'),
+            eventAt: new Date('2026-11-21T19:00:00Z'),
+          }}
+        />
+      </MemoryRouter>,
+    );
+    const digits = () =>
+      Array.from(document.querySelectorAll('.anticipation-digit')).map(
+        (node) => node.textContent,
+      );
+    expect(digits()).toEqual(['00', '00', '01', '01']);
+    expect(screen.getByRole('timer').getAttribute('aria-live')).toBe('off');
+    act(() => vi.advanceTimersByTime(2000));
+    expect(digits()).toEqual(['00', '00', '00', '59']);
+    act(() => vi.advanceTimersByTime(59000));
+    expect(
+      screen.getByText(i18n.t('relationshipReflections.anticipation.now')),
+    ).toBeTruthy();
+    expect(screen.queryByRole('timer')).toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+    unmount();
+  });
+
+  it('resumes from wall-clock time after backgrounding and cleans up on unmount', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-21T18:00:00Z'));
+    const { unmount } = render(
+      <MemoryRouter>
+        <AnticipationCard
+          value={{
+            planId: 'plan-1',
+            title: 'Ghost Night',
+            daysRemaining: 0,
+            eventOn: new Date('2026-11-21'),
+            eventAt: new Date('2026-11-21T19:00:00Z'),
+          }}
+        />
+      </MemoryRouter>,
+    );
+    const visibility = vi.spyOn(document, 'visibilityState', 'get');
+    visibility.mockReturnValue('hidden');
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    expect(vi.getTimerCount()).toBe(0);
+    vi.setSystemTime(new Date('2026-11-21T18:59:55Z'));
+    visibility.mockReturnValue('visible');
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    expect(
+      Array.from(document.querySelectorAll('.anticipation-digit')).map(
+        (node) => node.textContent,
+      ),
+    ).toEqual(['00', '00', '00', '05']);
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  });
   it('uses one confirmed versioned write and updates the actual Plan reading view', async () => {
     const { update } = setupPlan();
     const toggle = screen.getByRole('switch', { name: label() });

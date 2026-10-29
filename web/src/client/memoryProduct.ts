@@ -1,3 +1,6 @@
+import type { TFunction } from 'i18next';
+import { resolvedLocale } from '../i18n';
+import { formatDateInputValue } from './dateInput';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import type { MemoryUpdate } from '../api/generated/models/MemoryUpdate';
 import type { MemoryTag } from '../components/MemoryTagChoices';
@@ -15,6 +18,24 @@ export function memoryDateInputValue(value: Date | null): string {
   const month = String(value.getUTCMonth() + 1).padStart(2, '0');
   const day = String(value.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+/** Share the creation/detail rule without treating authored text as metadata. */
+export function isGeneratedMemoryTitle(
+  title: string,
+  happenedOn: Date | null,
+  t: TFunction,
+): boolean {
+  return Boolean(
+    happenedOn &&
+      title.trim() ===
+        t('memoryProduct.createFallbackTitle', {
+          date: formatDateInputValue(
+            memoryDateInputValue(happenedOn),
+            resolvedLocale(),
+          ),
+        }),
+  );
 }
 
 export function memoryUpdatePayload(values: MemoryEditValues): MemoryUpdate {

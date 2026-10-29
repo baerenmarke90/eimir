@@ -1,5 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { AccountView } from '../api/generated/models/AccountView';
@@ -233,6 +240,29 @@ function AuthenticatedAppShell({
     location.pathname === MEMORY_CREATE_ROUTE ||
     location.pathname === '/plan/plans/new' ||
     location.pathname === '/plan/wishes/new';
+  const bottomNavigationRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (isFocusedTask) return;
+    const navigation = bottomNavigationRef.current;
+    if (!navigation || typeof ResizeObserver === 'undefined') return;
+    const root = document.documentElement;
+    const measure = () => {
+      const height = navigation.getBoundingClientRect().height;
+      if (height > 0)
+        root.style.setProperty(
+          '--shell-bottom-nav-measured-height',
+          `${height}px`,
+        );
+      else root.style.removeProperty('--shell-bottom-nav-measured-height');
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(navigation);
+    measure();
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--shell-bottom-nav-measured-height');
+    };
+  }, [isFocusedTask]);
   const gamesPath = appRoutePath('games');
   const isGamesHub = location.pathname === gamesPath;
 
@@ -389,7 +419,7 @@ function AuthenticatedAppShell({
       </div>
 
       {!isFocusedTask ? (
-        <div className="mobile-bottom-shell">
+        <div className="mobile-bottom-shell" ref={bottomNavigationRef}>
           <nav
             className="mobile-bottom-nav"
             aria-label={t('navigation.primary')}

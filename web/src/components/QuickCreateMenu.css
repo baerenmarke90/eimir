@@ -247,24 +247,16 @@
   stroke-width: 2.2;
 }
 
-/* Keep the Compact action chooser above its existing floating navigation. */
+/* Keep the Compact action chooser above the measured docked navigation. */
 .short-task-sheet.quick-create-mobile-sheet {
-  inset: auto 0
-    calc(
-      var(--shell-floating-nav-offset) +
-      var(--shell-floating-nav-height) +
-      var(--space-3) +
-      env(safe-area-inset-bottom, 0px)
-    );
+  inset: auto 0 calc(var(--shell-floating-nav-footprint) + var(--space-3));
   width: calc(100% - var(--space-6));
   max-width: 28rem;
   max-height: calc(
     100dvh -
-    var(--shell-floating-nav-offset) -
-    var(--shell-floating-nav-height) -
+    var(--shell-floating-nav-footprint) -
     var(--space-3) -
     var(--space-4) -
-    env(safe-area-inset-bottom, 0px) -
     env(safe-area-inset-top, 0px)
   );
   margin: 0 auto;

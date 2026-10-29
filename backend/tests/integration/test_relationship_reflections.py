@@ -104,6 +104,7 @@ def test_countdown_selects_special_plan_beyond_ordinary_agenda_limit(
         "title": selected.payload.title,
         "eventOn": "2026-11-10",
         "daysRemaining": 12,
+        "eventAt": None,
     }
 
 
@@ -138,6 +139,7 @@ def test_countdown_uses_authoritative_viewer_calendar_day(
     context["anna"].timezone = "Europe/Berlin"
     plan(session, context, start=instant)
     value = dashboard(client, context).json()["anticipation"]
+    assert datetime.fromisoformat(value["eventAt"]) == instant
     assert value["daysRemaining"] == expected
     assert value["eventOn"] == (NOW.date() + timedelta(days=expected)).isoformat()
 

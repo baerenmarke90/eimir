@@ -8,8 +8,12 @@ from sqlalchemy import select
 
 from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.authorization import AuthorizationContext
+from eimir.core.clock import now
+from eimir.identity.deletion import apply_accepted_tombstone, apply_core_cleanup
+from eimir.identity.deletion_media import apply_account_media_cleanup
 from eimir.plans.models import Plan
 from eimir.relationship import service as relationship_service
+from eimir.relationship.offboarding import leave_space
 from eimir.transfer import jobs
 from eimir.transfer import service as transfer_service
 from eimir.transfer.models import ImportStatus, TransferScope
@@ -227,3 +231,36 @@ def test_lookup_checks_space_before_provider_and_is_bounded(client, couple, sess
     limited = client.post(url, json=body, headers=auth(couple["token_a"]))
     assert limited.status_code == 429
     assert len(calls) == 30
+
+
+@pytest.mark.parametrize("lifecycle", ["space_exit", "account_deletion"])
+def test_shared_plan_cover_survives_uploader_offboarding(client, couple, session, lifecycle):  # type: ignore[no-untyped-def]
+    image = ready_attachment(client, couple, session)
+    created = client.post(
+        path(couple),
+        json={"title": "Retained shared plan", "coverAttachmentId": image},
+        headers=auth(couple["token_a"]),
+    )
+    assert created.status_code == 201
+    plan_id = created.json()["id"]
+    owner = couple["anna"]
+    if lifecycle == "space_exit":
+        result = leave_space(session, owner, couple["space"].id)
+        assert result.changed
+    else:
+        apply_accepted_tombstone(session, owner.id, accepted_at=now())
+        apply_core_cleanup(session, owner.id)
+        cleanup = apply_account_media_cleanup(session, owner.id)
+        assert cleanup.retained_shared == 1
+        assert cleanup.inconsistent_bindings == 0
+    session.flush()
+    assert session.get(Attachment, UUID(image)).status == AttachmentStatus.READY.value
+    current = client.get(f"{path(couple)}/{plan_id}", headers=auth(couple["token_b"]))
+    assert current.status_code == 200, current.text
+    assert current.json()["coverAttachment"]["id"] == image
+    media = client.post(
+        f"/api/v1/spaces/{couple['space'].id}/attachments/{image}/read-access",
+        json={"parentType": "PLAN", "parentId": plan_id},
+        headers=auth(couple["token_b"]),
+    )
+    assert media.status_code == 200, media.text

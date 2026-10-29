@@ -63,3 +63,24 @@ before creating a separate Git worktree. Only this task's patch and new files
 were transferred with a three-way merge onto PR #1501 plus merged #1500.
 Relation-picker/runtime files remain unchanged from their owning PR; the
 shared original checkout is never staged, reset or switched by this follow-up.
+
+## Publication follow-up checks
+
+The isolated integration with #1500 and #1501 passed the complete 2,259-test Web
+suite and 26 additional browser journeys on its own server port, including
+#1501's place/chapter picker, the complete passport/Plan image-map flow and
+session retention. The shared checkout still matched every backed-up file.
+
+The first GitHub runs exposed two frozen API expectations (Plan media parent and
+explicit place lookup) and the exact CSP checker missing the one approved tile
+origin. The route/enum equality assertions remain closed, the attachment
+manifest now includes PLAN, and a bounded-request/response contract regression
+was added. All 27 focused contract/provider tests passed. Four header probes
+accept only the approved exact policy and reject an added origin, unsafe-inline
+script and duplicate header. No security rule or assertion was relaxed.
+
+The final media-lifecycle review extended the shared binding classifier to Plan
+covers. Twelve PostgreSQL tests, including leaving the Space and accepted
+Account deletion with a Plan cover, verify retained shared bytes, consistent
+cleanup and continued partner read access. Strict mypy and Ruff passed on the
+final runtime addition. Current-head GitHub checks still gate the merge.

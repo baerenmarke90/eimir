@@ -54,7 +54,7 @@
     },
     "floating-bottom-nav-scroll.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 11,
+      "baselineTests": 12,
       "reason": "Persistent navigation clearance and bounded account/Space-scoped primary context, browser history and native tab replacement."
     },
     "floating-bottom-nav.spec.ts": {
@@ -80,7 +80,7 @@
     },
     "memory-carousel-stability.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 10
+      "baselineTests": 11
     },
     "memory-create-defaults.spec.ts": {
       "disposition": "PR_CRITICAL",

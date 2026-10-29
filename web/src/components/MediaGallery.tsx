@@ -684,7 +684,7 @@ export function MediaGallery({
             {items.length > 1 ? (
               <>
                 <span
-                  className="media-gallery-carousel-counter"
+                  className="media-gallery-carousel-counter media-overlay"
                   aria-live="polite"
                 >
                   {t('gallery.counter', {
@@ -694,7 +694,7 @@ export function MediaGallery({
                 </span>
                 <button
                   type="button"
-                  className="media-gallery-carousel-nav media-gallery-carousel-prev"
+                  className="media-gallery-carousel-nav media-gallery-carousel-prev media-overlay"
                   onPointerDown={(event) => event.preventDefault()}
                   onClick={() => changeCarousel(-1)}
                   aria-label={t('gallery.previous')}
@@ -703,7 +703,7 @@ export function MediaGallery({
                 </button>
                 <button
                   type="button"
-                  className="media-gallery-carousel-nav media-gallery-carousel-next"
+                  className="media-gallery-carousel-nav media-gallery-carousel-next media-overlay"
                   onPointerDown={(event) => event.preventDefault()}
                   onClick={() => changeCarousel(1)}
                   aria-label={t('gallery.next')}
@@ -809,12 +809,16 @@ export function MediaGallery({
 
                   {activeItem.isSensitive === true ? (
                     <SensitiveMediaControl
+                      overlay
                       revealed={reveals.isRevealed(activeItem.id)}
                       onToggle={() => reveals.toggle(activeItem.id)}
                     />
                   ) : null}
                   {items.length > 1 ? (
-                    <span className="media-lightbox-counter" aria-live="polite">
+                    <span
+                      className="media-lightbox-counter media-overlay"
+                      aria-live="polite"
+                    >
                       {t('gallery.counter', {
                         index: activeIndex + 1,
                         count: items.length,
@@ -825,7 +829,7 @@ export function MediaGallery({
                   <button
                     ref={closeButton}
                     type="button"
-                    className="media-lightbox-close"
+                    className="media-lightbox-close media-overlay"
                     onClick={closeLightbox}
                     aria-label={t('gallery.close')}
                   >
@@ -836,7 +840,7 @@ export function MediaGallery({
                     <>
                       <button
                         type="button"
-                        className="media-lightbox-nav media-lightbox-prev"
+                        className="media-lightbox-nav media-lightbox-prev media-overlay"
                         onClick={() => changeActive(-1)}
                         aria-label={t('gallery.previous')}
                       >
@@ -844,7 +848,7 @@ export function MediaGallery({
                       </button>
                       <button
                         type="button"
-                        className="media-lightbox-nav media-lightbox-next"
+                        className="media-lightbox-nav media-lightbox-next media-overlay"
                         onClick={() => changeActive(1)}
                         aria-label={t('gallery.next')}
                       >

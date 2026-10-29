@@ -28,6 +28,11 @@
   --tracking-navigation-label: 0.02em;
   --font-action-label: 600 1rem / 1.5 "Instrument Sans", "Arial", sans-serif;
   --tracking-action-label: 0em;
+  --media-overlay-surface: #140C1299;
+  --media-overlay-surface-hover: #140C12B8;
+  --media-overlay-edge: #FFFFFF59;
+  --media-overlay-foreground: #FFFFFF;
+  --media-overlay-backdrop-blur: 8px;
   --sensitive-media-blur: 12px;
   --radius-media: 1rem;
   --radius-content: 1.25rem;

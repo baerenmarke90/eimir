@@ -1,0 +1,44 @@
+/* Shared material for controls over photography. Geometry and interactions
+   belong to each consumer; content is never dimmed with the background. */
+.media-overlay {
+  background: var(--media-overlay-surface);
+  color: var(--media-overlay-foreground);
+  backdrop-filter: blur(var(--media-overlay-backdrop-blur));
+}
+button.media-overlay {
+  min-width: 44px;
+  min-height: 44px;
+}
+button.media-overlay,
+span.media-overlay {
+  box-shadow: inset 0 0 0 1px var(--media-overlay-edge);
+}
+button.media-overlay:hover {
+  background: var(--media-overlay-surface-hover);
+}
+button.media-overlay:focus-visible {
+  outline: 2px solid var(--media-overlay-foreground);
+  outline-offset: -4px;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .media-overlay {
+    --media-overlay-surface: var(--color-media-scrim-strong);
+    --media-overlay-surface-hover: var(--color-media-scrim-strong);
+    backdrop-filter: none;
+  }
+}
+@media (forced-colors: active) {
+  .media-overlay {
+    --media-overlay-surface: ButtonFace;
+    --media-overlay-surface-hover: ButtonFace;
+    --media-overlay-foreground: ButtonText;
+    --media-overlay-edge: ButtonText;
+    border: 1px solid ButtonText;
+    outline: 1px solid ButtonText;
+    outline-offset: -1px;
+    backdrop-filter: none;
+  }
+  button.media-overlay:focus-visible {
+    outline-color: Highlight;
+  }
+}

@@ -99,6 +99,7 @@ export function MemoryPreview({
         {allowReveal ? (
           <SensitiveMediaControl
             className="sensitive-media-preview-control"
+            overlay
             revealed={revealed}
             onToggle={() => reveals.toggle(attachmentId)}
           />

@@ -166,6 +166,7 @@ describe('sensitive overview previews', () => {
       view.container.querySelector('.sensitive-media-blurred img')!,
     );
     expect(button.getAttribute('aria-pressed')).toBe('false');
+    const readsBeforeReveal = loadImage.mock.calls.length;
     button.focus();
     await userEvent.keyboard('{Enter}');
     expect(screen.getByTestId('path').textContent).toBe('/today');
@@ -174,6 +175,7 @@ describe('sensitive overview previews', () => {
     await userEvent.keyboard(' ');
     expect(screen.queryByRole('img')).toBeNull();
     expect(screen.getByRole('button', { name: 'Bild anzeigen' })).toBe(button);
+    expect(loadImage.mock.calls.length).toBe(readsBeforeReveal);
     fireEvent.click(screen.getByRole('link', { name: 'Open memory' }));
     expect(screen.getByTestId('path').textContent).toBe(
       '/story/memories/memory',

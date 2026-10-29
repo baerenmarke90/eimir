@@ -73,7 +73,7 @@ function PhotoActions({
       {revealed ? (
         <button
           type="button"
-          className="memory-photo-expand tertiary"
+          className="memory-photo-expand media-overlay"
           onClick={openFullScreen}
           aria-label={t('photoReactions.fullscreen')}
         >
@@ -82,7 +82,7 @@ function PhotoActions({
       ) : null}
       <button
         type="button"
-        className="memory-photo-react tertiary"
+        className="memory-photo-react media-overlay"
         ref={(element) => {
           popover.triggerRef.current = element;
         }}

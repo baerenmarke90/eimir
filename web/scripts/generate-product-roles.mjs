@@ -74,6 +74,17 @@ typography('supporting-copy', 'bodySmall');
 typography('navigation-label', 'meta', 'ui', value('font.weight.semibold'));
 typography('action-label', 'body', 'ui', value('font.weight.semibold'));
 
+for (const role of [
+  'surface',
+  'surfaceHover',
+  'edge',
+  'foreground',
+  'backdropBlur',
+]) {
+  const name = role.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+  declare(`media-overlay-${name}`, value(`mediaOverlay.${role}`));
+}
+
 declare('sensitive-media-blur', value('mediaPrivacy.concealmentBlur'));
 declare('radius-media', rem('radius.large'));
 declare('radius-content', rem('radius.card'));

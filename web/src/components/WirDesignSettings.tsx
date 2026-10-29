@@ -16,6 +16,7 @@ function DesignPreview({ design }: { design: WirDesignId }) {
   return (
     <span
       className={`wir-design-preview wir-design-preview-${design}`}
+      data-color-world={design === WirDesignId.warm ? 'warm' : undefined}
       aria-hidden="true"
     >
       <span className="wir-design-preview-hero">

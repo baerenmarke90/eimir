@@ -3,6 +3,7 @@ import { expect, type Page, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/relationshipReflections';
 import de from '../../src/i18n/locales/de';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import planningCopy from '../../src/i18n/locales/m5s3';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
@@ -23,25 +24,46 @@ const BASE = `/api/v1/spaces/${SPACE_ID}`;
 const DAY = '2099-11-10';
 async function fixture(
   page: Page,
-  options: { pro?: boolean; hidden?: boolean; failWrite?: boolean } = {},
+  options: {
+    pro?: boolean;
+    hidden?: boolean;
+    failWrite?: boolean;
+    description?: string;
+  } = {},
 ) {
   const unexpected = await installMocks(page);
   let highlighted = false;
   let version = 1;
   let patches = 0;
   let passportReads = 0;
+  let coverAttached = false;
+  let placeId: string | null = null;
+  let savedPlace: Record<string, unknown> | null = null;
+  const cover = {
+    id: 'plan-cover-image',
+    status: 'READY',
+    mediaType: 'IMAGE',
+    mimeType: 'image/jpeg',
+    size: 4000,
+    width: 800,
+    height: 600,
+    hasThumbnail: true,
+    isSensitive: false,
+  };
   const plan = () => ({
     id: PLAN,
     spaceId: SPACE_ID,
     createdBy: ACCOUNT_ID,
     creator: ME,
     title: TITLE,
-    description: 'Time together, fresh sea air and long walks.',
+    description:
+      options.description ?? 'Time together, fresh sea air and long walks.',
     plannedOn: DAY,
     plannedStart: null,
     plannedEnd: null,
     experiencedOn: null,
-    placeId: null,
+    placeId,
+    coverAttachment: coverAttached ? cover : null,
     sourceWishId: null,
     anticipationEnabled: highlighted,
     status: 'PLANNED',
@@ -195,13 +217,96 @@ async function fixture(
             code: 'SERVICE_UNAVAILABLE',
           },
         });
-      highlighted = request.postDataJSON().anticipationEnabled;
+      const update = request.postDataJSON();
+      highlighted = update.anticipationEnabled ?? highlighted;
+      if ('coverAttachmentId' in update)
+        coverAttached = update.coverAttachmentId !== null;
+      if ('placeId' in update) placeId = update.placeId;
       version++;
       return route.fulfill({ json: plan() });
     }
     if (path === `${BASE}/plans`)
       return route.fulfill({
-        json: { items: [plan()], hasMore: false, nextCursor: null },
+        json: {
+          items:
+            new URL(request.url()).searchParams.get('status') === 'PLANNED'
+              ? [plan()]
+              : [],
+          hasMore: false,
+          nextCursor: null,
+        },
+      });
+    if (path === `${BASE}/attachments` && method === 'POST')
+      return route.fulfill({
+        json: {
+          attachment: {
+            ...cover,
+            version: 1,
+            createdAt: '2026-10-29T12:00:00Z',
+            durationSeconds: null,
+          },
+          method: 'STREAM',
+          uploadUrl: `${BASE}/attachments/plan-cover-image/content`,
+          expiresAt: null,
+          requiredHeaders: {},
+        },
+      });
+    if (
+      path === `${BASE}/attachments/plan-cover-image` ||
+      path === `${BASE}/attachments/plan-cover-image/finalize`
+    )
+      return route.fulfill({
+        json: {
+          ...cover,
+          version: 1,
+          createdAt: '2026-10-29T12:00:00Z',
+          durationSeconds: null,
+        },
+      });
+    if (path === `${BASE}/attachments/plan-cover-image/read-access`)
+      return route.fulfill({
+        json: {
+          method: 'STREAM',
+          url: `${BASE}/attachments/plan-cover-image/content`,
+          expiresAt: null,
+        },
+      });
+    if (path === `${BASE}/places/lookup`)
+      return route.fulfill({
+        json: {
+          items: [
+            {
+              name: 'Sankt Peter-Ording',
+              address: 'Beach Road 1',
+              latitude: 54.31,
+              longitude: 8.61,
+            },
+          ],
+          attribution: '© OpenStreetMap contributors',
+        },
+      });
+    if (path === `${BASE}/places` && method === 'POST') {
+      savedPlace = {
+        ...request.postDataJSON(),
+        id: 'map-place',
+        spaceId: SPACE_ID,
+        createdBy: ACCOUNT_ID,
+        creator: ME,
+        description: null,
+        version: 1,
+        createdAt: '2026-10-29T12:00:00Z',
+        updatedAt: '2026-10-29T12:00:00Z',
+        capabilities: CAPABILITIES,
+      };
+      return route.fulfill({ status: 201, json: savedPlace });
+    }
+    if (path === `${BASE}/places`)
+      return route.fulfill({
+        json: {
+          items: savedPlace ? [savedPlace] : [],
+          hasMore: false,
+          nextCursor: null,
+        },
       });
     if (path === `${BASE}/places` || path === `${BASE}/wishes`)
       return route.fulfill({
@@ -235,10 +340,19 @@ for (const [width, theme, largeText] of [
     const control = page.getByRole('switch', {
       name: copy.anticipation.show,
     });
+    await expect(control).toHaveCount(0);
+    await page
+      .getByRole('button', { name: de.common.edit, exact: true })
+      .click();
     await expect(control).not.toBeChecked();
     await control.focus();
     await page.keyboard.press('Space');
     await expect(control).toBeChecked();
+    expect(state.patches()).toBe(0);
+    await page
+      .getByRole('button', { name: planningCopy.common.saveChanges })
+      .click();
+    await expect(control).toHaveCount(0);
     expect(state.patches()).toBe(1);
     await captureScreenshot(
       page,
@@ -271,6 +385,9 @@ for (const [width, theme, largeText] of [
         content: 'html { font-size: 200% !important; }',
       });
     const passport = page.getByRole('region', { name: copy.passport.title });
+    await passport
+      .getByRole('switch', { name: copy.passport.statisticsToggle })
+      .click();
     await expect(
       passport.getByRole('link', {
         name: `128 ${copy.passport.memories_other}`,
@@ -319,11 +436,75 @@ test('Free profile explains Pro without requesting passport counts', async ({
   await expect(page.getByText(copy.passport.locked)).toBeVisible();
   await expect(page.locator('.passport-metrics')).toHaveCount(0);
   expect(state.passportReads()).toBe(0);
+  await page.evaluate(() => window.scrollTo(0, 0));
   await captureScreenshot(page, info, 'passport-free.png', { fullPage: true });
   expect(state.unexpected).toEqual([]);
 });
 
-test('failed highlight remains off with retry and no success claim', async ({
+test('Plan overview bounds prose, preserves full detail, and restores a cold snapshot before slow revalidation', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  const description = 'Time together, fresh sea air and long walks. '
+    .repeat(20)
+    .trim();
+  const state = await fixture(page, { description });
+  let planReads = 0;
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === `${BASE}/plans`) planReads++;
+  });
+  await signIn(page);
+  await page.goto('/plan');
+  const focal = page.locator('.planen-next-link');
+  await expect(focal).toContainText(TITLE);
+  const excerpt = page.locator('.planen-next-description');
+  expect((await excerpt.innerText()).length).toBeLessThanOrEqual(181);
+  expect(await excerpt.innerText()).not.toBe(description);
+  const lineHeight = await excerpt.evaluate((node) =>
+    Number.parseFloat(getComputedStyle(node).lineHeight),
+  );
+  expect((await excerpt.boundingBox())?.height).toBeLessThanOrEqual(
+    lineHeight * 3 + 1,
+  );
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await captureScreenshot(page, info, 'planning-bounded-description-390.png', {
+    fullPage: true,
+  });
+  await focal.click();
+  await expect(page.getByText(description, { exact: true })).toBeVisible();
+  const beforeReturn = planReads;
+  await page.getByRole('button', { name: taskBoundary.back }).click();
+  await expect(page.locator('.planen-next-link')).toContainText(TITLE);
+  expect(planReads).toBe(beforeReturn);
+
+  let release!: () => void;
+  const delayed = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/api/v1/**', async (route) => {
+    if (new URL(route.request().url()).pathname === `${BASE}/plans`)
+      await delayed;
+    await route.fallback();
+  });
+  try {
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.overview-cache-notice')).toContainText(
+      'Gespeicherte Übersicht',
+    );
+    await expect(page.locator('.planen-next-link')).toContainText(TITLE);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await captureScreenshot(page, info, 'planning-warm-snapshot-390.png', {
+      fullPage: true,
+    });
+  } finally {
+    release();
+  }
+  await expect(page.locator('.overview-cache-notice')).toHaveCount(0);
+  await expect(page.locator('.planen-next-link')).toContainText(TITLE);
+  expect(state.unexpected).toEqual([]);
+});
+
+test('failed Plan edit preserves the staged countdown without a success claim', async ({
   page,
 }) => {
   const state = await fixture(page, { failWrite: true });
@@ -332,9 +513,13 @@ test('failed highlight remains off with retry and no success claim', async ({
   const control = page.getByRole('switch', {
     name: copy.anticipation.show,
   });
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
   await control.click();
+  await page
+    .getByRole('button', { name: planningCopy.common.saveChanges })
+    .click();
   await expect(page.getByText(de.states.server.title)).toBeVisible();
-  await expect(control).not.toBeChecked();
+  await expect(control).toBeChecked();
   await expect(page.getByText(copy.anticipation.saved)).toHaveCount(0);
   expect(state.patches()).toBe(1);
 });
@@ -345,9 +530,114 @@ test('hidden upcoming module also conceals a selected special event', async ({
   const state = await fixture(page, { hidden: true });
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN}`);
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
   await page.getByRole('switch', { name: copy.anticipation.show }).click();
+  await page
+    .getByRole('button', { name: planningCopy.common.saveChanges })
+    .click();
+  await expect(
+    page.getByRole('switch', { name: copy.anticipation.show }),
+  ).toHaveCount(0);
   await page.getByRole('link', { name: 'Wir', exact: true }).click();
   await expect(page.locator('.today-content')).toBeVisible();
   await expect(page.locator('.anticipation-card')).toHaveCount(0);
   expect(state.patches()).toBe(1);
 });
+
+for (const [width, theme] of [
+  [390, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`one Plan editor saves a cover, map location and countdown at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: theme });
+    const state = await fixture(page);
+    await page.route('https://tile.openstreetmap.org/**', (route) =>
+      route.fulfill({
+        contentType: 'image/svg+xml',
+        body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><path fill="#e5ecdc" d="M0 0h256v256H0z"/><path stroke="#c1d1ab" stroke-width="25" d="M0 40L256 200M40 0L200 256"/><path stroke="#fff" stroke-width="7" d="M0 40L256 200M40 0L200 256"/></svg>',
+      }),
+    );
+    await signIn(page);
+    await page.goto(`/plan/plans/${PLAN}`);
+    await expect(
+      page.getByRole('switch', { name: copy.anticipation.show }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByText(planningCopy.plan.actionsHeading, { exact: true }),
+    ).toHaveCount(0);
+    await page
+      .getByRole('button', { name: de.common.edit, exact: true })
+      .click();
+    await page
+      .getByLabel(planningCopy.planImage.label)
+      .setInputFiles(
+        fileURLToPath(
+          new URL(
+            '../../../backend/demo_assets/images/lake-sunrise.jpg',
+            import.meta.url,
+          ),
+        ),
+      );
+    await page.getByRole('button', { name: planningCopy.map.open }).click();
+    const sheet = page.getByRole('dialog', { name: planningCopy.map.title });
+    await expect(sheet).toBeVisible();
+    await expect(page.locator('.place-map-viewport')).toHaveCount(0);
+    await sheet.getByRole('searchbox').fill('Sankt Peter-Ording');
+    await sheet
+      .getByRole('button', { name: planningCopy.map.search, exact: true })
+      .click();
+    await sheet
+      .getByRole('button', { name: /Sankt Peter-Ording.*Beach Road/ })
+      .click();
+    await expect(sheet.locator('.leaflet-container')).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await captureScreenshot(page, info, `map-picker-${width}-${theme}.png`);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await sheet.getByRole('button', { name: planningCopy.map.confirm }).click();
+    await expect(sheet).toHaveCount(0);
+    await expect(
+      page.getByLabel(planningCopy.common.place, { exact: true }),
+    ).toHaveValue('map-place');
+    await page.getByRole('switch', { name: copy.anticipation.show }).click();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await captureScreenshot(
+      page,
+      info,
+      `plan-unified-editor-${width}-${theme}.png`,
+      { fullPage: true },
+    );
+    await page
+      .getByRole('button', { name: planningCopy.common.saveChanges })
+      .click();
+    await expect(
+      page.getByRole('switch', { name: copy.anticipation.show }),
+    ).toHaveCount(0);
+    await expect(page.locator('.plan-cover img')).toBeVisible();
+    await expect(page.locator('.planen-detail-meta')).toContainText(
+      'Sankt Peter-Ording',
+    );
+    expect(state.patches()).toBe(1);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await captureScreenshot(
+      page,
+      info,
+      `plan-cover-reading-${width}-${theme}.png`,
+      { fullPage: true },
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth > innerWidth + 1,
+      ),
+    ).toBe(false);
+    expect(state.unexpected).toEqual([]);
+  });
+}

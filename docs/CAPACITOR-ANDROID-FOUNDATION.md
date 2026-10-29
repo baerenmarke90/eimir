@@ -56,7 +56,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 - **Hardware Back-Button (`App.addListener('backButton', ...)`):**
   - Evaluates `canGoBack` (provided by Capacitor).
   - If true, invokes `window.history.back()`.
-  - If at root or history is exhausted, invokes `App.exitApp()`.
+  - If at root or history is exhausted, invokes `App.minimizeApp()` so the Android task and WebView remain reusable when the OS retains the process.
 - **App Resume (`App.addListener('appStateChange', ...)`):**
   - Listens for `isActive === true`.
   - Updates TanStack Query's `focusManager` on background/foreground transitions.

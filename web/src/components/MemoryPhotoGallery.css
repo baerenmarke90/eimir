@@ -22,11 +22,8 @@
   height: 44px;
   min-height: 44px;
   padding: var(--space-2);
-  border: 1px solid var(--color-border-subtle);
+  border: 0;
   border-radius: var(--radius-pill);
-  background: var(--color-surface-raised);
-  color: var(--color-text-secondary);
-  box-shadow: var(--elevation-overlay);
 }
 .memory-photo-react {
   right: var(--space-3);
@@ -38,7 +35,7 @@
 }
 .memory-photo-react:hover,
 .memory-photo-expand:hover {
-  background: var(--color-surface-subtle);
+  background: var(--media-overlay-surface-hover);
 }
 .memory-photo-react .eimir-icon,
 .memory-photo-expand .eimir-icon {
@@ -55,7 +52,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(max(44px, 1.75rem), 1fr));
   padding: var(--space-1);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
   box-shadow: var(--elevation-overlay);
@@ -90,7 +87,7 @@
   min-width: 44px;
   min-height: 44px;
   padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   background: var(--color-surface);
   color: var(--color-text);
@@ -117,6 +114,9 @@
   width: var(--space-8);
   height: var(--space-8);
   border-radius: var(--radius-pill);
+}
+.media-gallery-privacy-indicator .sensitive-media-cover {
+  background: transparent;
 }
 .media-gallery-carousel:has(.media-gallery-carousel-counter)
   .media-gallery-privacy-indicator {

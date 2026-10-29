@@ -20,7 +20,7 @@ const TEST_NOW = '2026-09-01T10:00:00Z';
 
 const EVIDENCE_DIR = path.resolve(
   __dirname,
-  '../../../docs/design/eimir/screenshots/882-floating-nav',
+  '../../../docs/product/design/references/today-clarity/navigation',
 );
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
@@ -279,14 +279,14 @@ async function waitForGamesHub(page: Page): Promise<void> {
   await expect(page.locator('.games-access-panel')).toHaveCount(0);
 }
 
-test.describe('Floating Bottom Navigation (#882/#905)', () => {
+test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
   test.beforeAll(() => {
     if (!fs.existsSync(EVIDENCE_DIR)) {
       fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
     }
   });
 
-  test('shell composition: four destinations + centered Quick Create before Planen in one floating shell', async ({
+  test('shell composition: four destinations + centered Quick Create before Planen in one docked shell', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -342,9 +342,9 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     const shellBox = await floatingShell.boundingBox();
     expect(shellBox).not.toBeNull();
     if (shellBox) {
-      expect(shellBox.x).toBeGreaterThan(0);
-      expect(shellBox.x + shellBox.width).toBeLessThan(390);
-      expect(844 - (shellBox.y + shellBox.height)).toBeGreaterThanOrEqual(8);
+      expect(shellBox.x).toBe(0);
+      expect(shellBox.width).toBe(390);
+      expect(shellBox.y + shellBox.height).toBe(844);
     }
 
     await expectNoHorizontalOverflow(page);
@@ -911,7 +911,7 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     expect(todayAxe.violations).toEqual([]);
   });
 
-  test('200 percent zoom / large-text: floating navigation remains usable and collision-free', async ({
+  test('200 percent zoom / large-text: docked navigation remains usable and collision-free', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 780, height: 844 });

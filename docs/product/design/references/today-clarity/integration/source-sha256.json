@@ -1,0 +1,283 @@
+{
+  "integrationParent": "1fd749ce9c6c919dbce5c0bd7b246e6a30cbc4c0",
+  "included1499Head": "fb07540afb63e2adf1de1c47e1061cc2883ff7cb",
+  "sources": [
+    {
+      "path": "design/tokens.json",
+      "sha256": "4f36190616e6e1be1b2dd2045eea6cf5a66106405c3d017011c0a18ca0d24643"
+    },
+    {
+      "path": "web/e2e/tests/floating-bottom-nav-scroll.spec.ts",
+      "sha256": "ba0d9733118a10719e00f8fbed608ccde8923a9059044363c4d35b331814eaf3"
+    },
+    {
+      "path": "web/e2e/tests/today-daily-quote.spec.ts",
+      "sha256": "daa42703fbe13d0ebeb9565ae49a8b23c21c404b5f6653676748aef1222e2ce7"
+    },
+    {
+      "path": "web/e2e/tests/today-living-home.spec.ts",
+      "sha256": "eb3cac147a2c175caad966c58cc7d4fa1b02ece5d9b06bcbf62888181abb22ef"
+    },
+    {
+      "path": "web/e2e/tests/today-recent-trace.spec.ts",
+      "sha256": "f7e15e7b805290ae388fa039eec24c67c8dabd15a4aaabc04aef6e1709bc73e5"
+    },
+    {
+      "path": "web/scripts/generate-product-roles.mjs",
+      "sha256": "b399adc7d78e3626afb7e397c973e415e69ed140c0dc21614f5bc77b01459dea"
+    },
+    {
+      "path": "web/src/attachment-drafts.css",
+      "sha256": "8f877f2aff757e9f68a541edf50c0c3eaad803e603716839de7dcacaded6bc5d"
+    },
+    {
+      "path": "web/src/client/productTour.css",
+      "sha256": "8fee7d14df98602924c65729d4c821dd1a2ea748ae9b09b9db7d71ba9fa15ddc"
+    },
+    {
+      "path": "web/src/components/AccountSettingsPanel.css",
+      "sha256": "06767ede4c34b39945379c426cc53cea70f2456ad7e606e2c562d5d206b2b3b0"
+    },
+    {
+      "path": "web/src/components/AppIconSettingsPanel.css",
+      "sha256": "1eb043450dd7ef0e42b70b921130b09eb262129af47066ccea810624e1191891"
+    },
+    {
+      "path": "web/src/components/ChecklistToggle.css",
+      "sha256": "ae37943afdd17b7f8cb74b99586f0c657a0d0b19495c8ddd51bb097c11ca8674"
+    },
+    {
+      "path": "web/src/components/CommentsPanel.css",
+      "sha256": "7ed27d40b8cfbda77b9b8c7c295ca0344fef0f67c02c5c353bdc9b5c6c236bff"
+    },
+    {
+      "path": "web/src/components/CouplePresence.css",
+      "sha256": "e0d84fc9c40f632f62eec5da7e75a1380c7880e33127fb453e7c66adb7bbaa5b"
+    },
+    {
+      "path": "web/src/components/DailyEnergyCheckIn.css",
+      "sha256": "65b3d5be75a5a8e8de9491da44e6a6a4a7239aa826b43272d52c7534447fb269"
+    },
+    {
+      "path": "web/src/components/DailyInsights.css",
+      "sha256": "8976aa57b8ca673ccba736fac387f86c09cead59812831cd6592c129e4fe0c58"
+    },
+    {
+      "path": "web/src/components/DailyQuoteCard.css",
+      "sha256": "8d7ef382e400310d80c27b83c6e5a06c6387c562158578352125a303d3cac1f2"
+    },
+    {
+      "path": "web/src/components/DailyVibeCheckIn.css",
+      "sha256": "0a04dbdefb8126219904380b7273e13c191a733f2e876678675cef05711e496c"
+    },
+    {
+      "path": "web/src/components/DailyVibeCheckIn.tsx",
+      "sha256": "3b697909c27b4b3cd7d2a19721122bf6e28c1155de59d0b73911ca0a581a8e81"
+    },
+    {
+      "path": "web/src/components/DashboardSettingsPanel.tsx",
+      "sha256": "d6a05591483674baf9bd508f0bb9ee49b5a556ac986ac5aaa10efba4ab69353b"
+    },
+    {
+      "path": "web/src/components/GamesProductArea.css",
+      "sha256": "6aaf2975000a2438ca9d84497df429f9891b76b49c678b4f3d4616d87755bb70"
+    },
+    {
+      "path": "web/src/components/HeartEmotionVisual.css",
+      "sha256": "836fd7df94ccffe406502f5c0c3a9fef670549af1560a0a49bf3189b0960951c"
+    },
+    {
+      "path": "web/src/components/HeartMomentCreateReference.css",
+      "sha256": "e2b7527eeadad115af0331e730a2e150b89e21c67436b5108c664323520080ff"
+    },
+    {
+      "path": "web/src/components/ListEntryActions.css",
+      "sha256": "fe79c0ae1c47c1448ce2cb48fa0e1bb00415d374476d74d0c6dbed64b87858ef"
+    },
+    {
+      "path": "web/src/components/LoginExperience.css",
+      "sha256": "0220cbcea71121709f8be6ad87f46b5a0240b00d406e34e4f67bb1860095fd8b"
+    },
+    {
+      "path": "web/src/components/M4ProductPages.css",
+      "sha256": "a78a52d44805044305cba59309151e42c1abab02c052c3103244168b475ff511"
+    },
+    {
+      "path": "web/src/components/MediaOverlay.css",
+      "sha256": "2e13d295f11442335b42801b0da6dc2ddff7dceaafba1096c6fabd3e90df0b1e"
+    },
+    {
+      "path": "web/src/components/MemoryPhotoGallery.css",
+      "sha256": "3e1cc9a19dd6738edf9b80b0f9e23b579889d613a7a39478a7fe3bac6c687143"
+    },
+    {
+      "path": "web/src/components/MemoryProductPage.css",
+      "sha256": "9eb560d7014bedd3496cbc83ad59dac9caae22d3b4f429f44652bf406c2c413e"
+    },
+    {
+      "path": "web/src/components/MemoryTagChoices.css",
+      "sha256": "39c478a51153b80177c0af65fdc605ce3e0c0628f9189b8e989ff3fc4fca3048"
+    },
+    {
+      "path": "web/src/components/OurMomentsGamePage.css",
+      "sha256": "a38d35dd9ca920b2a99db1ca803bdcc6e960c97ad44b9dbfc02fdf36bce1cbbd"
+    },
+    {
+      "path": "web/src/components/PartnerAvatarPair.css",
+      "sha256": "16c5f9dd87e74f00dcf423e9be459018c03e027288af4e88e15d55ac9885b8ee"
+    },
+    {
+      "path": "web/src/components/PartnerQuickActions.css",
+      "sha256": "3a167a9e1b9323e13c4f3eeed5d6e98d5fb26a56c3694c157857c6fb8426155f"
+    },
+    {
+      "path": "web/src/components/PlanningReference.css",
+      "sha256": "5bf3cc06c6dc519d12a8b184d227108d7034fa3ebe210e7f3615f8fd92c58d4a"
+    },
+    {
+      "path": "web/src/components/PreferenceSwitch.css",
+      "sha256": "362196b21f3fa470dbbf5d9a5d4d8086ef06b5f2a756cab1e78dbd17c8757512"
+    },
+    {
+      "path": "web/src/components/PrivateAreaProductPage.css",
+      "sha256": "b16f0a2c81929a45221096a84938768b30508f012d7f05d8d852578884a3c579"
+    },
+    {
+      "path": "web/src/components/PrivateAreaReference.css",
+      "sha256": "1aa51b1580222bf1f2c14ac2bbc1d18d5c8fec6e53577d9edd5a89692e3aad89"
+    },
+    {
+      "path": "web/src/components/ProfilePage.css",
+      "sha256": "251f5f4e72e8bbae7315277612158bc298658d0a1e017de3d706f3dab99caa6d"
+    },
+    {
+      "path": "web/src/components/QuickCreateMenu.css",
+      "sha256": "5637f11619acb9e71cb532f3b4919f85ab316a894d76dc525b55a3d146b3006a"
+    },
+    {
+      "path": "web/src/components/RelatedPeoplePage.css",
+      "sha256": "38e92e8343d95f333fd91e8a9fc9e97a796b30b299994ae1d4e0177a9b15b83d"
+    },
+    {
+      "path": "web/src/components/ServerAdminAccountDeletionDialog.css",
+      "sha256": "525b4f6ad8b58da3b731ec5fefd7e98d38e87d2547adee3b92cfd70b3de924b8"
+    },
+    {
+      "path": "web/src/components/ServerAdminPage.css",
+      "sha256": "3b9ecd2114c76d994a36ee11689a74e4287fbe1ec6ffe55e43d6f1461e461060"
+    },
+    {
+      "path": "web/src/components/SettingsPage.css",
+      "sha256": "f389c4d42766287ecd107a2fe4eec319401fea4ce6b72995b66ea9a567318881"
+    },
+    {
+      "path": "web/src/components/SharedAchievementCelebration.css",
+      "sha256": "b1f5c9e4f96b868230f1613a041a3ddedbfd30e3e430aff0b356864b642c37e6"
+    },
+    {
+      "path": "web/src/components/SharedPlanningPages.css",
+      "sha256": "3447fe32d3246542820e127eff219f3f12ad25bac0d00b8b5d8ff581d9347384"
+    },
+    {
+      "path": "web/src/components/SharedPlanningSanctuary.css",
+      "sha256": "850b459b44b236715482d9e968fc6faf4f42d7a1a692bf7af53b2043022a0e59"
+    },
+    {
+      "path": "web/src/components/SharedStorySummary.css",
+      "sha256": "e6d6993c9e38c1129dd36664c52f7ff557a33fb22f44bcf987b385f9da2a6e29"
+    },
+    {
+      "path": "web/src/components/ShortTaskSheet.css",
+      "sha256": "3236a24d1287e9b201d37ee4dd7268efb0d7bf0f26d2b9886d236ab06a6a02fa"
+    },
+    {
+      "path": "web/src/components/SpaceConfigurationPanel.tsx",
+      "sha256": "a57e5606aac608f669130f5ef2d66f58684635357b452af29041f80c749f3686"
+    },
+    {
+      "path": "web/src/components/SpaceOffboardingPanel.css",
+      "sha256": "4d680b877cd0f07350b5d23b537128d9fc55beff8cbb4e3ef0c1be389f019eb7"
+    },
+    {
+      "path": "web/src/components/StoryDetailEditLink.css",
+      "sha256": "5a920411f626ca333d564ce140d52e5a3555686e2dbba74b77a5085e3ab614ff"
+    },
+    {
+      "path": "web/src/components/StoryListPolish.css",
+      "sha256": "aa7252658dbc0a6ed397281496fed2abdb8036b6f52a0bd151455d26514a5602"
+    },
+    {
+      "path": "web/src/components/StoryProductPages.css",
+      "sha256": "d0c8a2c62d9ce0e6a04e23fa08e2cd76ccbd3d4c756dff1c91326f349a54df12"
+    },
+    {
+      "path": "web/src/components/StoryTaskFilters.css",
+      "sha256": "b81932611001a380f485bf77d9fceec7391c4ccfc4c16a428069e310380fd6ed"
+    },
+    {
+      "path": "web/src/components/StoryYearsPage.css",
+      "sha256": "4d9f0e2b7d58bee8515381aeb2ffe25c0b09f61299dca41ea78686f135d07a55"
+    },
+    {
+      "path": "web/src/components/TodayPage.css",
+      "sha256": "dca186a47809f4c2ed2a43794d916563f0c6f08648b778a78783cb3ae7964df7"
+    },
+    {
+      "path": "web/src/components/TransferPanel.css",
+      "sha256": "966669fd057fa7885961fe8cf63729506048764c50b512a2c032eab8827c713a"
+    },
+    {
+      "path": "web/src/components/VisibilityBadge.css",
+      "sha256": "ae120659731ca810646ae3f33e24b263de1bb680caba4eb1bec27e6be4f0ec8f"
+    },
+    {
+      "path": "web/src/components/WirDesign.css",
+      "sha256": "dfe7d64de224af880fb28fd9f928d95204a2136b2356c0dcf7e6f1ec6d0b1acd"
+    },
+    {
+      "path": "web/src/components/WishDetectiveGamePage.css",
+      "sha256": "d9c115531ffb794bd8809a9c79cf6d13ebb89e187335541f89d5b8d12db0c19e"
+    },
+    {
+      "path": "web/src/demo.css",
+      "sha256": "c57dc82b79a82d1dc45e330c3aceb3e1d07d62f487e956f13f41f592da0a1e32"
+    },
+    {
+      "path": "web/src/design/identity-components.css",
+      "sha256": "99a2c000fbd1cf59c963702ea1791c3abbe07b37dc16bbea38bd6bb1cafff37e"
+    },
+    {
+      "path": "web/src/design/product-roles.css",
+      "sha256": "b0a23814ab2ae5871f456fd10a6baf4b8c5b3f7408c521ed9f99229563937df4"
+    },
+    {
+      "path": "web/src/layout.css",
+      "sha256": "8bd4ee01d7cef48cb56fd9fbf54a93d55a0e353c22b7f96ca188159f167d540a"
+    },
+    {
+      "path": "web/src/memory-create-polish.css",
+      "sha256": "4d66894350763667357f8427f79dc18e7bd8323b91e9276fc5985f52460535de"
+    },
+    {
+      "path": "web/src/product-reflow.css",
+      "sha256": "76d4377f58cf0fc9216a596268882a2dca92da2a715ca8527a7a8fdd76d2ff27"
+    },
+    {
+      "path": "web/src/shell.css",
+      "sha256": "26da32f502fcb199b350934db22726b67bf1262db5b1afbbb1fffacd978d7189"
+    },
+    {
+      "path": "web/src/story-media.css",
+      "sha256": "49bd8e675445ba485b20c9c176267ee3fd0e21e9774f93965292e87d21c699e8"
+    },
+    {
+      "path": "web/src/styles.css",
+      "sha256": "501fcf54625148cc6b9fcd4d2aa4f1ef4367ae210ed3596e52710ac65a3a1357"
+    },
+    {
+      "path": "web/src/theme.css",
+      "sha256": "da43f9d735868d948c08d90e4fe646253c6dcf8c415262fd35e10eb2c3ba16a6"
+    }
+  ],
+  "includedMain": "7d671e2a068f89c9b16ee1e7c74da186a9c9c5d9"
+}

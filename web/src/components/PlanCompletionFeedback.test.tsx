@@ -98,9 +98,9 @@ function setup() {
     return write.promise;
   });
   const scheduled = deferred<PlanDetail>();
-  const schedulePlan = vi.fn(() => scheduled.promise);
+  const updatePlan = vi.fn(() => scheduled.promise);
   const apis = {
-    plans: { getPlan, completePlanRaw, schedulePlan },
+    plans: { getPlan, completePlanRaw, updatePlan },
     places: {
       listPlaces: vi.fn(async () => ({
         items: [],
@@ -128,7 +128,7 @@ function setup() {
     writes,
     getPlan,
     completePlanRaw,
-    schedulePlan,
+    updatePlan,
     view,
     tree,
     setServer: (next: PlanDetail) => {
@@ -180,18 +180,12 @@ it('claims the completion synchronously, names the day in one status and locks c
   expect(completeButton().textContent).toBe(m5s3.common.saving);
   expect((dateField() as HTMLInputElement).readOnly).toBe(true);
   expect((dateField() as HTMLInputElement).value).toBe(DAY);
-  for (const name of [
-    m5s3.plan.reschedule,
-    m5s3.plan.unschedule,
-    de.common.edit,
-  ]) {
-    expect(screen.getByRole('button', { name }).hasAttribute('disabled')).toBe(
-      true,
-    );
-  }
   expect(
-    screen.getByLabelText(m5s3.plan.plannedDate).closest('fieldset')?.disabled,
+    screen
+      .getByRole('button', { name: de.common.edit })
+      .hasAttribute('disabled'),
   ).toBe(true);
+  expect(screen.queryByLabelText(m5s3.plan.plannedDate)).toBeNull();
 
   // Nothing is claimed before the server answers.
   expect(screen.queryByText(m5s3.plan.completedTitle)).toBeNull();
@@ -298,7 +292,7 @@ it('keeps competing writes locked until a conflict recovery read returns the cur
   expect(completeButton().getAttribute('aria-disabled')).toBe('true');
   expect(
     screen
-      .getByRole('button', { name: m5s3.plan.reschedule })
+      .getByRole('button', { name: de.common.edit })
       .hasAttribute('disabled'),
   ).toBe(true);
   fireEvent.submit(completeButton().closest('form') as HTMLFormElement);
@@ -314,39 +308,45 @@ it('keeps competing writes locked until a conflict recovery read returns the cur
   expect(h.completePlanRaw.mock.calls[1]).toMatchObject([{ ifMatch: '5' }]);
 });
 
-it.each(['completion', 'schedule'])(
-  'blocks a competing write in the same task when %s is submitted first',
-  async (first) => {
-    const h = setup();
-    await screen.findByText('Picnic in the park');
-    fireEvent.change(dateField(), { target: { value: DAY } });
-    const scheduleDate = screen.getByLabelText(m5s3.plan.plannedDate);
-    fireEvent.change(scheduleDate, { target: { value: DAY } });
-    const completeForm = completeButton().closest('form') as HTMLFormElement;
-    const scheduleForm = scheduleDate.closest('form') as HTMLFormElement;
-    const forms =
-      first === 'completion'
-        ? [completeForm, scheduleForm]
-        : [scheduleForm, completeForm];
+it('prevents opening the unified editor while completion is already claimed', async () => {
+  const h = setup();
+  await screen.findByText('Picnic in the park');
+  fireEvent.change(dateField(), { target: { value: DAY } });
+  act(() => {
+    fireEvent.submit(completeButton().closest('form') as HTMLFormElement);
+    fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
+  });
+  await waitFor(() => expect(h.completePlanRaw).toHaveBeenCalledTimes(1));
+  expect(screen.queryByLabelText(m5s3.plan.plannedDate)).toBeNull();
+  expect(h.updatePlan).not.toHaveBeenCalled();
+});
 
-    act(() => {
-      for (const form of forms) {
-        form.dispatchEvent(
-          new Event('submit', { bubbles: true, cancelable: true }),
-        );
-      }
-    });
-    await waitFor(() =>
-      expect(
-        h.completePlanRaw.mock.calls.length + h.schedulePlan.mock.calls.length,
-      ).toBe(1),
-    );
-    expect(h.completePlanRaw).toHaveBeenCalledTimes(
-      first === 'completion' ? 1 : 0,
-    );
-    expect(h.schedulePlan).toHaveBeenCalledTimes(first === 'schedule' ? 1 : 0);
-  },
-);
+it('admits one editor save and locks inputs and completion until it finishes', async () => {
+  const h = setup();
+  await screen.findByText('Picnic in the park');
+  fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
+  fireEvent.change(screen.getByLabelText(m5s3.plan.plannedDate), {
+    target: { value: DAY },
+  });
+  const form = document.getElementById('plan-edit-form') as HTMLFormElement;
+  act(() => {
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+  });
+  await waitFor(() => expect(h.updatePlan).toHaveBeenCalledTimes(1));
+  expect(h.completePlanRaw).not.toHaveBeenCalled();
+  expect(screen.queryByRole('button', { name: m5s3.plan.complete })).toBeNull();
+  expect(
+    (
+      screen
+        .getByLabelText(m5s3.plan.plannedDate)
+        .closest('fieldset') as HTMLFieldSetElement
+    ).disabled,
+  ).toBe(true);
+  expect(
+    (screen.getByLabelText(m5s3.common.title) as HTMLInputElement).disabled,
+  ).toBe(true);
+});
 
 it('keeps a newer authorized Plan read over a late completion response in the same Query', async () => {
   const h = setup();
@@ -477,7 +477,7 @@ it('does not leak pending state into another Space or recreate the cleared Space
   expect(completeButton().getAttribute('aria-disabled')).toBe('false');
   expect(
     screen
-      .getByRole('button', { name: m5s3.plan.reschedule })
+      .getByRole('button', { name: de.common.edit })
       .hasAttribute('disabled'),
   ).toBe(false);
 

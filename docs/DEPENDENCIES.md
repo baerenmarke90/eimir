@@ -168,6 +168,7 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | react | 19.2.8 | npm | MIT |
 | react-dom | 19.2.8 | npm | MIT |
 | react-router-dom | 7.18.2 | npm | MIT |
+| leaflet | 1.9.4 | npm / Leaflet | BSD-2-Clause |
 
 ## Web — M2-S8 Development
 
@@ -176,6 +177,7 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | @types/react | 19.2.18 | npm | MIT |
 | @types/react-dom | 19.2.5 | npm | MIT |
 | @types/node | 24.19.1 | npm | MIT |
+| @types/leaflet | 1.9.22 | npm / DefinitelyTyped | MIT |
 | typescript | 7.0.2 | npm | Apache-2.0 |
 | rolldown | 1.2.14 | npm | MIT |
 | vite | 8.2.4 | npm | MIT |
@@ -226,6 +228,20 @@ These Web dependencies serve only the thin S8 reference flow. They do not
 pull M5 functionality such as persistent Offline Caches, complete navigation,
 or Client Parity forward. The generated `typescript-fetch` code remains free
 of additional runtime dependencies and uses the browser Fetch API.
+
+### Explicit place map selection (2026-10-29)
+
+Leaflet is loaded only inside the deliberately opened place-map task. It reuses
+browser map interaction, keyboard panning, zoom and attribution instead of
+implementing a map engine. Raster tiles come from OpenStreetMap under its public
+best-effort tile policy, with visible OSM attribution and ordinary HTTP caching;
+there are no bulk/offline tile downloads. Photon search reuses the existing
+backend provider normalization and an operator-controlled origin. It adds no
+Python dependency, end-user key or paid account. Google Maps and MapLibre were
+reviewed; billing/key setup and a separate vector-style boundary are unnecessary
+for this bounded choice task. Existing places and manual coordinates survive
+provider outages. The preflight, privacy disclosure and provider terms are
+recorded in `docs/product/design/plan-images-and-map-picker.md`.
 
 ## Web — Browser QA Development
 
@@ -401,3 +417,12 @@ build separately.
 
 New assets are documented here in the same change. If origin, license, or
 creator is unclear, the asset is not admitted until Provenance is resolved.
+
+The native-continuity/passport and unified Plan/map preflight PNGs in
+`docs/product/design/references/native-continuity/` were generated with ImageGen
+on 2026-10-29 against the recorded repository baseline. They are project assets
+with no separate public license grant; exact prompts are adjacent. Evidence
+PNGs in its `evidence/` directory are actual browser renders with synthetic
+couple data. The Plan cover fixture is Darkmoon_Art/Pixabay 3374201 under CC0,
+as recorded in `backend/demo_assets/manifest.json`. The synthetic map tiles in
+browser evidence are a test fixture, not a third-party cartographic screenshot.

@@ -85,6 +85,9 @@ for (const world of worldNames.filter(
   css.push(
     `:root[data-theme="dark"] [data-color-world="${world}"] {\n${declarations(world, 'dark')}\n}`,
   );
+  css.push(
+    `@media (prefers-color-scheme: dark) {\n  :root:not([data-theme]) [data-color-world="${world}"] {\n${declarations(world, 'dark')}\n  }\n}`,
+  );
 }
 css.push(
   `.eimir-icon { fill: none; stroke: currentColor; stroke-width: ${identity.icon.strokePx}; stroke-linecap: round; stroke-linejoin: round; }`,

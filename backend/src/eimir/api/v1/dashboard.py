@@ -61,6 +61,7 @@ class DashboardAnticipation(ApiModel):
     title: str
     event_on: date
     days_remaining: int
+    event_at: datetime | None = None
 
 
 class RelationshipPassportView(ApiModel):
@@ -193,6 +194,7 @@ def get_dashboard(
                 title=anticipation.title,
                 event_on=anticipation.event_on,
                 days_remaining=anticipation.days_remaining,
+                event_at=anticipation.event_at,
             )
             if anticipation is not None
             else None

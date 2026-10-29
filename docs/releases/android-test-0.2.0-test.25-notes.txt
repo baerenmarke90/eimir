@@ -1,0 +1,13 @@
+eimir. 0.2.0-test.25
+
+Diese Testversion enthält den aktuellen Main vom 29. Oktober mit den Verbesserungen aus #1499, #1500, #1501 und #1502.
+
+Die Wir-Seite ist ruhiger gestaltet, die Hauptnavigation sitzt direkt am unteren Bildschirmrand und der Countdown für besondere Pläne zeigt die verbleibende Zeit. Gemeinsame Anlässe und Erinnerungsdaten sind klarer lesbar.
+
+Die App behält geladene Übersichten beim Wechseln und bei der Rückkehr besser bei. Die Android-Zurück-Taste legt die App am Einstieg in den Hintergrund. Bereits geladene gemeinsame Übersichten können während einer erneuten Abfrage sichtbar bleiben; ein gespeicherter Stand wird entsprechend gekennzeichnet.
+
+Pläne haben einen gemeinsamen Bearbeitungsdialog für Inhalt, Termin, Bild, Ort und Countdown. Ihr könnt ein Titelbild auswählen und Orte ausdrücklich auf einer Karte suchen und bestätigen. Die Auswahl von Momenten für Orte und Kapitel ist für das Smartphone überarbeitet.
+
+Der Beziehungs-Pass zeigt eure gemeinsame Geschichte übersichtlicher. Seine zusätzlichen Statistiken lassen sich persönlich einblenden. Die bestehenden Free- und Pro-Grenzen bleiben erhalten.
+
+Der Updater, die bisherigen Anmelde- und Fotoverbesserungen und eure gespeicherten Inhalte bleiben erhalten. Über Einstellungen → App-Updates installieren. Die bestehende App nicht deinstallieren und keine App-Daten löschen.

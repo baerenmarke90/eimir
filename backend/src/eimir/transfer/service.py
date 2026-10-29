@@ -428,6 +428,11 @@ def _media_rows(
         for row in rows.get("related_persons", [])
         if isinstance(row.get("avatar_attachment_id"), UUID)
     )
+    attachment_ids.update(
+        row["cover_attachment_id"]
+        for row in rows.get("plans", [])
+        if isinstance(row.get("cover_attachment_id"), UUID)
+    )
     if not attachment_ids:
         return []
     metadata = MetaData()
@@ -1121,6 +1126,10 @@ def _validate_media(
         row = _row_snake(raw)
         if row.get("avatar_attachment_id") is not None:
             referenced.add(_uuid(row["avatar_attachment_id"], ErrorCode.TRANSFER_RELATION_INVALID))
+    for raw in tables.get("plans", []):
+        row = _row_snake(raw)
+        if row.get("cover_attachment_id") is not None:
+            referenced.add(_uuid(row["cover_attachment_id"], ErrorCode.TRANSFER_RELATION_INVALID))
     indexed: set[UUID] = set()
     for item in media:
         if "isSensitive" in item and type(item["isSensitive"]) is not bool:
@@ -1197,30 +1206,34 @@ def _validate_domain_schema_and_links(
                     "Transfer tenant relation is invalid.",
                     ErrorCode.TRANSFER_RELATION_INVALID,
                 )
-            for foreign_key in table.foreign_keys:
-                column_name = foreign_key.parent.name
-                value = row.get(column_name)
-                if value is None:
+            # PostgreSQL MATCH SIMPLE skips a composite FK when any component
+            # is NULL. The tenant component references target.space_id, not
+            # target.id; every included target row is checked against the same
+            # source Space above, while the resource component checks its ID.
+            for constraint in table.foreign_key_constraints:
+                if any(row.get(element.parent.name) is None for element in constraint.elements):
                     continue
-                target_table = foreign_key.column.table.name
-                value_id = _uuid(value, ErrorCode.TRANSFER_RELATION_INVALID)
-                if target_table == "spaces":
-                    valid = value_id == source_space_id
-                elif target_table == "accounts":
-                    valid = value_id in source_member_ids
-                elif target_table == "attachments":
-                    valid = value_id in media_ids
-                elif target_table in ids:
-                    valid = value_id in ids[target_table]
-                else:
-                    # An allowlisted table must never acquire a new runtime or
-                    # security FK without an explicit portability decision.
-                    valid = False
-                if not valid:
-                    raise TransferArchiveError(
-                        "Transfer relation is invalid.",
-                        ErrorCode.TRANSFER_RELATION_INVALID,
-                    )
+                for foreign_key in constraint.elements:
+                    value = row[foreign_key.parent.name]
+                    target_column = foreign_key.column
+                    target_table = target_column.table.name
+                    value_id = _uuid(value, ErrorCode.TRANSFER_RELATION_INVALID)
+                    if target_column.name == "space_id" or target_table == "spaces":
+                        valid = value_id == source_space_id
+                    elif target_table == "accounts":
+                        valid = value_id in source_member_ids
+                    elif target_table == "attachments":
+                        valid = value_id in media_ids
+                    elif target_table in ids:
+                        valid = value_id in ids[target_table]
+                    else:
+                        # New runtime/security FKs require an explicit portability decision.
+                        valid = False
+                    if not valid:
+                        raise TransferArchiveError(
+                            "Transfer relation is invalid.",
+                            ErrorCode.TRANSFER_RELATION_INVALID,
+                        )
 
     generated_sources = {
         "IMPORTANT_DATE": "important_dates",

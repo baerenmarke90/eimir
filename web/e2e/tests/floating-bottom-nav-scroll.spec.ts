@@ -408,21 +408,33 @@ async function expectAnchoredNavigation(page: Page, safeArea = 0) {
   await expect(navigation).toBeInViewport({ ratio: 1 });
   const geometry = await navigation.evaluate((element) => {
     const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
     return {
       top: rect.top,
       bottomGap: window.innerHeight - rect.bottom,
-      offset:
-        Number.parseFloat(
-          getComputedStyle(element).getPropertyValue('--space-3'),
-        ) *
-        Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
+      left: rect.left,
+      rightGap: window.innerWidth - rect.right,
+      paddingBottom: Number.parseFloat(style.paddingBottom),
+      radius: style.borderRadius,
+      contentBottom: Math.max(
+        ...Array.from(element.querySelectorAll('a, button')).map(
+          (control) => control.getBoundingClientRect().bottom,
+        ),
+      ),
+      bottom: rect.bottom,
       zoom:
         Number.parseFloat(getComputedStyle(document.documentElement).zoom) || 1,
     };
   });
-  expect(
-    Math.abs(geometry.bottomGap - (geometry.offset + safeArea) * geometry.zoom),
-  ).toBeLessThanOrEqual(1);
+  // The full-width dock fills the safe area; controls stay above it.
+  expect(Math.abs(geometry.bottomGap)).toBeLessThanOrEqual(1);
+  expect(Math.abs(geometry.left)).toBeLessThanOrEqual(1);
+  expect(Math.abs(geometry.rightGap)).toBeLessThanOrEqual(1);
+  expect(geometry.radius).toBe('0px');
+  expect(geometry.paddingBottom).toBeGreaterThanOrEqual(safeArea);
+  expect(geometry.contentBottom).toBeLessThanOrEqual(
+    geometry.bottom - safeArea * geometry.zoom + 1,
+  );
   return geometry;
 }
 
@@ -491,6 +503,21 @@ test.describe('Global header document flow and persistent bottom navigation', ()
   test('focused end-aligned content clears the fixed navigation (#1489)', async ({
     page,
   }, testInfo) => {
+    // Font/viewport changes must remain safe before the next observer frame.
+    await page.addInitScript(() => {
+      const NativeResizeObserver = window.ResizeObserver;
+      window.ResizeObserver = class extends NativeResizeObserver {
+        constructor(callback: ResizeObserverCallback) {
+          super((entries, observer) => {
+            const ready = entries.filter(
+              (entry) =>
+                !entry.target.classList.contains('mobile-bottom-shell'),
+            );
+            if (ready.length) callback(ready, observer);
+          });
+        }
+      };
+    });
     await page.setViewportSize({ width: 390, height: 700 });
     await installApiMocks(page);
     await page.goto('/login');

@@ -1,7 +1,7 @@
 .anticipation-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-4);
   padding: var(--space-5);
   margin-block-end: var(--space-4);
   border-radius: var(--radius-card);
@@ -12,14 +12,56 @@
   transition: background var(--duration-feedback) var(--easing-standard);
 }
 
-.anticipation-card .eyebrow {
-  color: inherit;
-  margin: 0;
-}
 .anticipation-countdown {
   font: var(--font-personal-heading);
 }
+.anticipation-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.anticipation-event {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+.anticipation-open {
+  flex-shrink: 0;
+}
+.anticipation-timer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 3.25em), 1fr));
+  gap: var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+.anticipation-unit {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.anticipation-digit {
+  font: var(--font-section-heading);
+  overflow-wrap: normal;
+}
+.anticipation-unit-label {
+  font: var(--font-supporting-copy);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .anticipation-digit {
+    animation: anticipation-tick var(--duration-feedback) var(--easing-standard);
+  }
+}
+@keyframes anticipation-tick {
+  from {
+    opacity: 0.65;
+  }
+  to {
+    opacity: 1;
+  }
+}
 .anticipation-date {
+  font: var(--font-supporting-copy);
   font-variant-numeric: tabular-nums;
 }
 .anticipation-card:active {
@@ -54,7 +96,7 @@
   gap: var(--space-4);
   margin-block: var(--space-5);
 }
-.passport-identity > div {
+.passport-identity-copy {
   min-width: 0;
   flex: 1 1 12rem;
 }
@@ -100,8 +142,94 @@
   align-items: center;
   min-height: 44px;
 }
+.passport-couple-name {
+  margin: 0 0 var(--space-2);
+  font: var(--font-personal-heading);
+}
+.passport-since {
+  margin-block: var(--space-2) 0;
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+}
+.relationship-passport h3 {
+  margin: 0;
+  font: var(--font-content-heading);
+}
+.passport-landmarks,
+.passport-history,
+.passport-story {
+  margin-block-start: var(--space-6);
+}
+.passport-landmarks dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--space-5);
+  margin-block: var(--space-4) 0;
+}
+.passport-landmarks dt {
+  font-weight: 700;
+}
+.passport-landmarks dd {
+  margin: var(--space-1) 0 0;
+}
+.passport-landmarks time,
+.passport-rediscover time {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+}
+.passport-remaining {
+  color: var(--color-link-text);
+  font-weight: 600;
+}
+.passport-story {
+  display: grid;
+  gap: var(--space-6);
+}
+.passport-rediscover ul {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+}
+.passport-rediscover a,
+.passport-next-experience a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: var(--space-12);
+  padding-block: var(--space-3);
+  color: var(--color-text);
+  text-decoration: none;
+}
+.passport-rediscover a > span:first-child {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.passport-rediscover a > span:last-child,
+.passport-next-experience a > span {
+  color: var(--color-link-text);
+}
+.passport-story-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--space-12);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-link-text);
+  font-weight: 700;
+  text-decoration: none;
+  transition: background var(--duration-feedback) var(--easing-standard);
+}
+.passport-story-action:hover {
+  background: var(--identity-hover);
+}
 @media (prefers-reduced-motion: reduce) {
-  .anticipation-card {
+  .anticipation-card,
+  .passport-story-action {
     transition: none;
   }
 }

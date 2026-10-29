@@ -74,10 +74,22 @@ typography('supporting-copy', 'bodySmall');
 typography('navigation-label', 'meta', 'ui', value('font.weight.semibold'));
 typography('action-label', 'body', 'ui', value('font.weight.semibold'));
 
+for (const role of [
+  'surface',
+  'surfaceHover',
+  'edge',
+  'foreground',
+  'backdropBlur',
+]) {
+  const name = role.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+  declare(`media-overlay-${name}`, value(`mediaOverlay.${role}`).toLowerCase());
+}
+
 declare('sensitive-media-blur', value('mediaPrivacy.concealmentBlur'));
 declare('radius-media', rem('radius.large'));
 declare('radius-content', rem('radius.card'));
 declare('radius-sheet-top', rem('radius.sheet'));
+declare('border-surface-width', value('border.surfaceFrame'));
 declare('space-content-group', rem('spacing.3'));
 declare('space-section', rem('spacing.8'));
 declare('page-gutter-narrow', value('layout.mobileGutterNarrow'));
@@ -154,6 +166,12 @@ ${declarations.join('\n')}
     --duration-feedback: ${value('motion.duration.instant')};
     --duration-transition: ${value('motion.duration.instant')};
     --duration-context: ${value('motion.duration.instant')};
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --border-surface-width: ${value('border.hairline')};
   }
 }
 `;

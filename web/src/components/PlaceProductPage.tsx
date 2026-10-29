@@ -1,3 +1,4 @@
+import { assertOnlineWrite } from '../client/connectivity';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
@@ -26,6 +27,7 @@ import {
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
 import { ListEntryIconButton } from './ListEntryActions';
+import { PlaceMapPicker } from './PlaceMapPicker';
 import { PageHeader } from './PageHeader';
 import {
   PlanningDiscardConfirmation,
@@ -63,6 +65,7 @@ function placeDraft(place: PlaceDetail): PlaceDraft {
 }
 
 function PlaceEditor({
+  apis,
   place,
   draft,
   setDraft,
@@ -76,6 +79,7 @@ function PlaceEditor({
   onDelete,
   onClose,
 }: {
+  apis: SharedPlanningApis;
   place: PlaceDetail;
   draft: PlaceDraft;
   setDraft: (draft: PlaceDraft) => void;
@@ -148,6 +152,29 @@ function PlaceEditor({
         />
       ) : null}
       <form id="place-edit-form" className="form-grid" onSubmit={submit}>
+        <PlaceMapPicker
+          api={apis.places}
+          spaceId={place.spaceId}
+          disabled={isPending}
+          value={
+            draft.latitude && draft.longitude
+              ? {
+                  name: draft.name,
+                  address: draft.address || null,
+                  latitude: Number(draft.latitude),
+                  longitude: Number(draft.longitude),
+                }
+              : undefined
+          }
+          onSelect={(selection) =>
+            updateDraft({
+              name: selection.name,
+              address: selection.address ?? '',
+              latitude: String(selection.latitude),
+              longitude: String(selection.longitude),
+            })
+          }
+        />
         <label htmlFor="place-edit-description">
           {t('m5s3.common.description')}
         </label>
@@ -165,60 +192,63 @@ function PlaceEditor({
           value={draft.address}
           onChange={(event) => updateDraft({ address: event.target.value })}
         />
-        <div className="planning-coordinate-grid">
-          <div className="field-group">
-            <label htmlFor="place-edit-latitude">
-              {t('m5s3.place.latitude')}
-            </label>
-            <input
-              id="place-edit-latitude"
-              name="latitude"
-              type="number"
-              step="any"
-              min="-90"
-              max="90"
-              value={draft.latitude}
-              onChange={(event) =>
-                updateDraft({ latitude: event.target.value })
-              }
-              aria-invalid={coordinateError}
-              aria-describedby={
-                coordinateError
-                  ? 'place-edit-coordinate-help place-edit-coordinate-error'
-                  : 'place-edit-coordinate-help'
-              }
-            />
+        <details className="planning-technical-details">
+          <summary>{t('m5s3.place.technicalDetails')}</summary>
+          <div className="planning-coordinate-grid">
+            <div className="field-group">
+              <label htmlFor="place-edit-latitude">
+                {t('m5s3.place.latitude')}
+              </label>
+              <input
+                id="place-edit-latitude"
+                name="latitude"
+                type="number"
+                step="any"
+                min="-90"
+                max="90"
+                value={draft.latitude}
+                onChange={(event) =>
+                  updateDraft({ latitude: event.target.value })
+                }
+                aria-invalid={coordinateError}
+                aria-describedby={
+                  coordinateError
+                    ? 'place-edit-coordinate-help place-edit-coordinate-error'
+                    : 'place-edit-coordinate-help'
+                }
+              />
+            </div>
+            <div className="field-group">
+              <label htmlFor="place-edit-longitude">
+                {t('m5s3.place.longitude')}
+              </label>
+              <input
+                id="place-edit-longitude"
+                name="longitude"
+                type="number"
+                step="any"
+                min="-180"
+                max="180"
+                value={draft.longitude}
+                onChange={(event) =>
+                  updateDraft({ longitude: event.target.value })
+                }
+                aria-invalid={coordinateError}
+                aria-describedby={
+                  coordinateError
+                    ? 'place-edit-coordinate-help place-edit-coordinate-error'
+                    : 'place-edit-coordinate-help'
+                }
+              />
+            </div>
           </div>
-          <div className="field-group">
-            <label htmlFor="place-edit-longitude">
-              {t('m5s3.place.longitude')}
-            </label>
-            <input
-              id="place-edit-longitude"
-              name="longitude"
-              type="number"
-              step="any"
-              min="-180"
-              max="180"
-              value={draft.longitude}
-              onChange={(event) =>
-                updateDraft({ longitude: event.target.value })
-              }
-              aria-invalid={coordinateError}
-              aria-describedby={
-                coordinateError
-                  ? 'place-edit-coordinate-help place-edit-coordinate-error'
-                  : 'place-edit-coordinate-help'
-              }
-            />
-          </div>
-        </div>
-        <p
-          id="place-edit-coordinate-help"
-          className="field-help planning-coordinate-help"
-        >
-          {t('m5s3.place.coordinateHelp')}
-        </p>
+          <p
+            id="place-edit-coordinate-help"
+            className="field-help planning-coordinate-help"
+          >
+            {t('m5s3.place.coordinateHelp')}
+          </p>
+        </details>
         {coordinateError ? (
           <p
             id="place-edit-coordinate-error"
@@ -335,6 +365,7 @@ export function PlaceProductPage({
   });
 
   const updateMutation = useMutation({
+    networkMode: 'always',
     mutationFn: ({
       place,
       name,
@@ -350,14 +381,15 @@ export function PlaceProductPage({
       latitude: number | null;
       longitude: number | null;
     }) =>
-      apiCall(() =>
-        apis.places.updatePlace({
+      apiCall(() => {
+        assertOnlineWrite();
+        return apis.places.updatePlace({
           spaceId,
           placeId: place.id,
           ifMatch: planningIfMatch(place),
           placeUpdate: { name, description, address, latitude, longitude },
-        }),
-      ),
+        });
+      }),
     onSuccess: async (place) => {
       queryClient.setQueryData(key, place);
       await invalidatePlaceConsumers(queryClient, spaceId);
@@ -367,14 +399,16 @@ export function PlaceProductPage({
   });
 
   const deleteMutation = useMutation({
+    networkMode: 'always',
     mutationFn: (place: PlaceDetail) =>
-      apiCall(() =>
-        apis.places.deletePlace({
+      apiCall(() => {
+        assertOnlineWrite();
+        return apis.places.deletePlace({
           spaceId,
           placeId: place.id,
           ifMatch: planningIfMatch(place),
-        }),
-      ),
+        });
+      }),
     onMutate: (place) => ({
       focusTarget: deleteFocusTargetFromInfiniteData(
         queryClient.getQueryData<InfiniteItemsData<PlaceDetail>>(
@@ -472,6 +506,7 @@ export function PlaceProductPage({
       <div className="planning-detail-grid">
         {isEditing && draft ? (
           <PlaceEditor
+            apis={apis}
             place={place}
             draft={draft}
             setDraft={setDraft}
@@ -543,6 +578,7 @@ export function PlaceProductPage({
       <PlanningRelationManager
         apis={apis}
         spaceId={spaceId}
+        ownerName={place.name}
         ownerKind="place"
         ownerId={place.id}
         canManage={place.capabilities.canEdit}

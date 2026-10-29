@@ -1149,10 +1149,9 @@ describe('TodayPage', () => {
     expect(html).toContain('today-section-upcoming');
     expect(html).toContain('today-agenda-row');
     expect(html).toContain('Cooking Night');
-    // Demnächst carries the same red-eyebrow/title hierarchy as the other
-    // Today modules (e.g. `Euer Moment`), not a locally styled heading.
-    expect(html).toContain('today-section-kicker');
-    expect(html).toContain('Euer Ausblick');
+    // The PO refinement keeps one upcoming heading instead of a repeated label.
+    expect(html).not.toContain('today-section-kicker');
+    expect(html).not.toContain(m5s5.dashboard.upcomingKicker);
     // Nothing qualifies for the contextual slot, so the section is omitted
     // entirely rather than rendered as an empty placeholder.
     expect(html).not.toContain('today-section-living');
@@ -2432,7 +2431,7 @@ describe('formatRelationshipDuration', () => {
 
     const MODULE_SECTIONS = DASHBOARD_MODULE_KEYS.map(
       (key) => [key, MODULE_SECTION_MARKER[key]] as const,
-    );
+    ).filter(([key]) => key !== 'shared_story_summary');
 
     it('renders a personal complete order in DOM order, including the presence hero', () => {
       const order: DashboardModuleKey[] = [
@@ -2455,9 +2454,7 @@ describe('formatRelationshipDuration', () => {
       for (const [, sectionClass] of MODULE_SECTIONS) {
         expect(html).toContain(sectionClass);
       }
-      expect(html.indexOf('today-section-recent')).toBeLessThan(
-        html.indexOf('shared-story-summary'),
-      );
+      expect(html).not.toContain('shared-story-summary');
     });
 
     it.each(MODULE_SECTIONS)(
@@ -2483,6 +2480,12 @@ describe('formatRelationshipDuration', () => {
         expect(shown).toContain(sectionClass);
       },
     );
+
+    it('keeps the retired story statistics hidden even with an explicit visible preference', () => {
+      expect(
+        renderWithVisibility({ shared_story_summary: true }),
+      ).not.toContain('shared-story-summary');
+    });
 
     it('hiding one module does not change what another module selects (no duplicate content leaks in)', () => {
       const baseline = renderWithVisibility({});
@@ -2562,5 +2565,60 @@ describe('formatRelationshipDuration', () => {
       }
       expect(html).toContain(de.states.loading.title);
     });
+  });
+});
+
+describe('Today content clarity', () => {
+  const memory = (title: string) => ({
+    space: { id: 'space-1', partner: null },
+    relationshipDuration: null,
+    upcoming: [],
+    retrospective: null,
+    recentShared: [
+      {
+        id: 'memory-1',
+        type: 'MEMORY',
+        titleOrText: title,
+        occurredOn: new Date('2026-10-27'),
+        createdAt: null,
+        scheduledAt: null,
+      },
+    ],
+  });
+  it('presents an automatically titled Memory date once in the focal item', () => {
+    const html = renderTodayPage(memory('Erinnerung vom 27.10.2026'));
+    const focal = html
+      .split('today-moment-text-content')[1]
+      .split('</article>')[0];
+    expect(focal).toContain('27.10.2026');
+    expect(focal).not.toContain('Erinnerung vom');
+    expect(focal).not.toContain('today-moment-text-date');
+  });
+  it('retains an authored Memory title with its separate date', () => {
+    const html = renderTodayPage(memory('An evening by the lake'));
+    const focal = html
+      .split('today-moment-text-content')[1]
+      .split('</article>')[0];
+    expect(focal).toContain('An evening by the lake');
+    expect(focal).toContain('today-moment-text-date');
+    expect(focal).toContain('27.10.2026');
+  });
+  it('names the otherwise untitled anniversary and includes its next year', () => {
+    const html = renderTodayPage({
+      ...memory('A memory'),
+      upcoming: [
+        {
+          id: 'anniversary-1',
+          type: 'ANNIVERSARY',
+          titleOrText: null,
+          occurredOn: new Date('2027-05-14'),
+          scheduledAt: null,
+          createdAt: null,
+        },
+      ],
+    });
+    expect(html).toContain('Euer Jahrestag');
+    expect(html).toContain('14. Mai 2027');
+    expect(html).not.toContain('Gemeinsamer Eintrag');
   });
 });

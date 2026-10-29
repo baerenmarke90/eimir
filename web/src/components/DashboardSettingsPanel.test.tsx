@@ -688,12 +688,23 @@ describe('DashboardSettingsPanel', () => {
     it('lists every registered module with an accessible checkbox, all shown by default', () => {
       renderPanel(vi.fn());
 
-      for (const entry of DASHBOARD_MODULE_CATALOG) {
+      for (const entry of DASHBOARD_MODULE_CATALOG.filter(
+        (entry) => entry.key !== 'shared_story_summary',
+      )) {
         const checkbox = screen.getByRole('checkbox', {
           name: moduleLabel(entry.key),
         }) as HTMLInputElement;
         expect(checkbox.checked).toBe(true);
       }
+    });
+
+    it('omits the temporarily retired story statistics control', () => {
+      renderPanel(vi.fn());
+      expect(
+        screen.queryByRole('checkbox', {
+          name: moduleLabel('shared_story_summary'),
+        }),
+      ).toBeNull();
     });
 
     it('reflects a hidden module from the loaded preferences', () => {

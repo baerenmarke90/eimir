@@ -1,6 +1,7 @@
 import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
 import {
   DASHBOARD_MODULE_KEYS,
+  isDashboardModuleAvailable,
   type DashboardModuleKey,
 } from './dashboardModules';
 
@@ -56,6 +57,7 @@ export function isDashboardModuleVisible(
   preferences: DashboardModulePreferenceList | undefined,
   moduleKey: DashboardModuleKey,
 ): boolean {
+  if (!isDashboardModuleAvailable(moduleKey)) return false;
   const value = preferences?.items.find(
     (item) => item.moduleKey === moduleKey,
   )?.visible;

@@ -278,6 +278,26 @@ for (const [width, theme, large] of [
         'data-wir-design',
         design,
       );
+      await expect(page.locator('.couple-presence-eyebrow')).toHaveCount(
+        design === 'warm' ? 1 : 0,
+      );
+      if (design === 'warm') {
+        await expect(page.locator('.today-page')).toHaveAttribute(
+          'data-color-world',
+          'warm',
+        );
+        await expect(page.locator('.couple-presence-eyebrow')).toHaveText(
+          copy.welcome,
+        );
+        await expect(page.locator('.daily-quote-card')).toHaveCSS(
+          'background-color',
+          'rgba(0, 0, 0, 0)',
+        );
+        await expect(page.locator('.daily-vibe-person').first()).toHaveCSS(
+          'background-color',
+          'rgba(0, 0, 0, 0)',
+        );
+      }
       await expect(page.locator('.daily-vibe-checkin')).toBeVisible();
       await expect(page.locator('.daily-quote-card')).toBeVisible();
       await expect(page.locator('.anticipation-card')).toBeVisible();

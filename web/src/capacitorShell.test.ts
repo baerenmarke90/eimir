@@ -16,6 +16,7 @@ import { isCapacitorNative } from './pwa';
 vi.mock('@capacitor/app', () => ({
   App: {
     exitApp: vi.fn(),
+    minimizeApp: vi.fn(),
     addListener: vi.fn(),
   },
 }));
@@ -62,13 +63,14 @@ describe('Capacitor native shell integration', () => {
     backSpy.mockRestore();
   });
 
-  it('exits application when canGoBack is false', () => {
+  it('minimizes the task without destroying its WebView at the root', () => {
     const backSpy = vi
       .spyOn(window.history, 'back')
       .mockImplementation(() => {});
     handleNativeBackButton(false);
     expect(backSpy).not.toHaveBeenCalled();
-    expect(App.exitApp).toHaveBeenCalledOnce();
+    expect(App.minimizeApp).toHaveBeenCalledOnce();
+    expect(App.exitApp).not.toHaveBeenCalled();
     backSpy.mockRestore();
   });
 

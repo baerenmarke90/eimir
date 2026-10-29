@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `daysRemaining` | number
+`eventAt` | Date
 `eventOn` | Date
 `planId` | string
 `title` | string
@@ -19,6 +20,7 @@ import type { DashboardAnticipation } from ''
 // TODO: Update the object below with actual values
 const example = {
   "daysRemaining": null,
+  "eventAt": null,
   "eventOn": null,
   "planId": null,
   "title": null,

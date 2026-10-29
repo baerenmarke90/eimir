@@ -3,9 +3,10 @@ export default {
   intro: 'So fühlt sich deine Wir-Seite an. Nur deine Ansicht ändert sich.',
   choices: 'Dein Wir-Design',
   change: 'Design auswählen',
+  welcome: 'Unser Platz zu zweit',
   names: { warm: 'Geborgen', modern: 'Klar & modern', classic: 'Klassisch' },
   descriptions: {
-    warm: 'Warm und persönlich. Kompakte Porträts und ein ruhiger Blick auf euch.',
+    warm: 'Euer Rückzugsort. Sanftes Rosé, nahe Porträts und Gedanken wie eine persönliche Notiz.',
     modern:
       'Klar und luftig. Eure Namen neben den Porträts, mit ruhigen blauen Akzenten.',
     classic:

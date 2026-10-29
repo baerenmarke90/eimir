@@ -23,6 +23,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   const unexpectedRequests: string[] = [];
   let dashboardRequestCount = 0;
   let isRescheduled = false;
+  let planPatchCount = 0;
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
@@ -199,6 +200,9 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
             startedOn: '2026-01-01',
           },
           retrospective: null,
+          keepsake: null,
+          thinkingOfYouAvailableAt: null,
+          sharedStorySummary: { memories: 0, heartMoments: 0, milestones: 0 },
           recentShared: [],
           upcoming: [
             {
@@ -222,6 +226,9 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
             startedOn: '2026-01-01',
           },
           retrospective: null,
+          keepsake: null,
+          thinkingOfYouAvailableAt: null,
+          sharedStorySummary: { memories: 0, heartMoments: 0, milestones: 0 },
           recentShared: [],
           upcoming: [
             {
@@ -275,9 +282,14 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
     }
 
     if (
-      method === 'POST' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}/schedule`
+      method === 'PATCH' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}`
     ) {
+      planPatchCount++;
+      expect(request.postDataJSON()).toMatchObject({
+        title: 'Later October trip',
+        schedule: { plannedStart: expect.stringMatching(/^2026-09-05T.*Z$/) },
+      });
       isRescheduled = true;
       await fulfillJson({
         id: PLAN_ID,
@@ -418,7 +430,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   ).toBeVisible();
 
   // Reschedule to an earlier timed date using the #838 date + optional-time contract.
-  await page.getByText(m5s3.plan.actionsHeading).click();
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
   const dateInput = page.locator('#plan-schedule-date');
   const timeInput = page.locator('#plan-schedule-time');
   await expect(dateInput).toBeVisible();
@@ -426,12 +438,19 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   await dateInput.fill('2026-09-05');
   await timeInput.fill('10:00');
 
-  // Submit the reschedule form and wait for the response
+  // One unified editor Save must still invalidate the derived overview.
   const rescheduleButton = page.getByRole('button', {
-    name: m5s3.plan.reschedule,
+    name: m5s3.common.saveChanges,
   });
   await rescheduleButton.click();
-  await expect(rescheduleButton).toBeEnabled();
+  await expect(rescheduleButton).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', {
+      name: 'Earlier September outing',
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(planPatchCount).toBe(1);
 
   // Step 4: Navigate back to Wir via client-side link (NO page.reload())
   await page.getByRole('link', { name: navigation.today }).click();

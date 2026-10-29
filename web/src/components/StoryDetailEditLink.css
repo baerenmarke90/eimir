@@ -1,7 +1,7 @@
 .story-detail-edit-link {
   color: var(--color-text-secondary);
   background: transparent;
-  border: 1px solid transparent;
+  border: var(--border-surface-width) solid transparent;
   border-radius: var(--radius-medium);
   transition:
     background var(--duration-feedback) var(--easing-standard),

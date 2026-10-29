@@ -14,6 +14,10 @@ import type { DashboardRelationshipDuration } from '../api/generated/models/Dash
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { dashboardQueryKey } from '../client/dashboardQueries';
+import { DashboardViewToJSON } from '../api/generated/models/DashboardView';
+import { decodeDashboardOverview } from '../client/overviewSnapshots';
+import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
+import { OverviewCacheNotice } from './OverviewCacheNotice';
 import type { DashboardModuleKey } from '../client/dashboardModules';
 import {
   dashboardPreferencesQueryKey,
@@ -22,11 +26,8 @@ import {
   limitUpcomingItems,
   selectedDashboardCollectionId,
 } from '../client/dashboardPreferences';
-import {
-  formatRecency,
-  formatUpcomingCalendarDate,
-  formatUpcomingRelative,
-} from '../client/formatRecency';
+import { formatRecency, formatCalendarDate } from '../client/formatRecency';
+import { isGeneratedMemoryTitle } from '../client/memoryProduct';
 import {
   dashboardItemPath,
   engagementTargetPath,
@@ -233,7 +234,7 @@ export function TodayModuleSection({
 function RecentItemTypeIcon({ type }: { type: DashboardItemType }) {
   const names: Partial<Record<DashboardItemType, EimirIconName>> = {
     HEART_MOMENT: 'momente',
-    ANNIVERSARY: 'jahrestag',
+    ANNIVERSARY: 'momente',
     BIRTHDAY: 'geburtstag',
     MILESTONE: 'meilensteine',
     CHAPTER: 'kapitel',
@@ -305,12 +306,27 @@ function TodayAgendaRow({ item }: { item: DashboardItem }) {
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
   const rawDate = item.occurredOn ?? item.scheduledAt ?? item.createdAt;
-  const date = item.scheduledOn
-    ? formatUpcomingCalendarDate(item.scheduledOn, t)
+  const calendarDate = item.scheduledOn ?? item.occurredOn;
+  const date = calendarDate
+    ? new Intl.DateTimeFormat(resolvedLocale(), {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(calendarDate)
     : rawDate
-      ? formatUpcomingRelative(rawDate, t)
+      ? new Intl.DateTimeFormat(resolvedLocale(), {
+          dateStyle: 'long',
+          timeStyle: item.scheduledAt ? 'short' : undefined,
+        }).format(rawDate)
       : null;
-  const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
+  const title =
+    item.titleOrText?.trim() ||
+    t(
+      item.type === 'ANNIVERSARY'
+        ? 'm5s5.dashboard.anniversaryTitle'
+        : `m5s5.kind.${item.type}`,
+    );
 
   const rowInner = (
     <>
@@ -319,7 +335,16 @@ function TodayAgendaRow({ item }: { item: DashboardItem }) {
       </span>
       <span className="today-agenda-copy">
         <span className="today-agenda-title">{title}</span>
-        {date ? <span className="today-agenda-date">{date}</span> : null}
+        {date ? (
+          <time
+            className="today-agenda-date"
+            dateTime={
+              calendarDate?.toISOString().slice(0, 10) ?? rawDate?.toISOString()
+            }
+          >
+            {date}
+          </time>
+        ) : null}
       </span>
     </>
   );
@@ -362,8 +387,18 @@ function TodayMomentFeature({
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
   const rawDate = item.occurredOn ?? item.createdAt;
-  const date = rawDate ? formatDate(rawDate) : null;
-  const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
+  const generatedTitle =
+    item.type === 'MEMORY' &&
+    isGeneratedMemoryTitle(item.titleOrText ?? '', item.occurredOn, t);
+  const date = item.occurredOn
+    ? formatCalendarDate(item.occurredOn)
+    : rawDate
+      ? formatDate(rawDate)
+      : null;
+  const title =
+    generatedTitle && date
+      ? date
+      : item.titleOrText || t(`m5s5.kind.${item.type}`);
   const previewAttachmentId = item.previewAttachmentId;
   const hasImage = Boolean(previewAttachmentId && loadMemoryImage);
 
@@ -382,7 +417,7 @@ function TodayMomentFeature({
       </div>
       <figcaption className="today-moment-caption">
         <span className="today-moment-title">{title}</span>
-        {date ? (
+        {date && !generatedTitle ? (
           <time className="today-moment-date" dateTime={rawDate?.toISOString()}>
             {date}
           </time>
@@ -397,7 +432,7 @@ function TodayMomentFeature({
           : t('m5s5.today.keepsake.sharedTextContext')}
       </span>
       <p className="today-moment-text-content">{title}</p>
-      {date ? (
+      {date && !generatedTitle ? (
         <time
           className="today-moment-text-date"
           dateTime={rawDate?.toISOString()}
@@ -674,6 +709,7 @@ function TodayMonthlyStrip({
 }
 export function TodayPage({
   apis,
+  apiBaseUrl,
   spaceId,
   loadMemoryImage,
   profilesApi,
@@ -685,6 +721,7 @@ export function TodayPage({
   account,
 }: {
   apis: M4ProductApis;
+  apiBaseUrl?: string;
   spaceId: string;
   spacesApi?: SpacesApi;
   dailyCheckInsApi?: DailyCheckInsApi;
@@ -702,10 +739,16 @@ export function TodayPage({
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
-  const dashboardQuery = useQuery({
+  const dashboardQuery = useWarmOverviewQuery({
     queryKey: dashboardQueryKey(spaceId),
-    queryFn: () => apiCall(() => apis.dashboard.getDashboard({ spaceId })),
-    retry: false,
+    accountId: account?.id,
+    apiBaseUrl,
+    spaceId,
+    kind: 'dashboard-overview',
+    load: (signal) =>
+      apiCall(() => apis.dashboard.getDashboard({ spaceId }, { signal })),
+    serialize: DashboardViewToJSON,
+    deserialize: (payload) => decodeDashboardOverview(payload, spaceId),
   });
   const spaceConfigurationQuery = useQuery(
     spaceConfigurationQueryOptions(
@@ -715,10 +758,13 @@ export function TodayPage({
     ),
   );
   const supportGesturesEnabled =
+    !dashboardQuery.isCached &&
     spaceConfigurationQuery.data?.configuration.supportGesturesEnabled === true;
   const energyCheckInEnabled =
+    !dashboardQuery.isCached &&
     spaceConfigurationQuery.data?.configuration.energyCheckInEnabled === true;
   const vibeCheckEnabled =
+    !dashboardQuery.isCached &&
     spaceConfigurationQuery.data?.configuration.vibeCheckEnabled === true;
   const sharedAchievementsEnabled =
     spaceConfigurationQuery.data?.configuration.sharedAchievementsEnabled ===
@@ -1021,6 +1067,11 @@ export function TodayPage({
   ) => (
     <CouplePresence
       className="today-hero"
+      eyebrow={
+        (wirDesign?.current ?? 'warm') === 'warm'
+          ? t('wirDesign.welcome')
+          : undefined
+      }
       headingLevel="h1"
       spaceTitle={
         partner
@@ -1135,7 +1186,6 @@ export function TodayPage({
             className="today-section-upcoming"
             colorWorld="natural"
             title={t('m5s5.dashboard.upcomingTitle')}
-            kicker={t('m5s5.dashboard.upcomingKicker')}
             headerAction={
               <Link
                 to={appRoutePath('plan')}
@@ -1158,7 +1208,8 @@ export function TodayPage({
     ),
     pinned_collection: (
       <>
-        {pinnedCollectionVisible &&
+        {!dashboardQuery.isCached &&
+        pinnedCollectionVisible &&
         pinnedCollectionId &&
         pinnedCollectionQuery.data ? (
           <TodayModuleSection
@@ -1316,6 +1367,9 @@ export function TodayPage({
     <div
       className="page today-page"
       data-wir-design={wirDesign?.current ?? 'warm'}
+      data-color-world={
+        (wirDesign?.current ?? 'warm') === 'warm' ? 'warm' : undefined
+      }
     >
       {(dashboardQuery.isLoading ||
         (Boolean(dashboardQuery.data) && preferencesUnresolved)) && (
@@ -1327,6 +1381,9 @@ export function TodayPage({
           onRetry={() => dashboardQuery.refetch()}
         />
       )}
+      {dashboardQuery.isCached ? (
+        <OverviewCacheNotice cachedAt={dashboardQuery.cachedAt} />
+      ) : null}
       {/* A failed preferences fetch does not block Today: the configurable
           module stack proceeds with product defaults (visible) rather than
           holding the whole page hostage on a secondary, non-critical

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -23,7 +24,9 @@ import { RelationshipPassport } from './RelationshipPassport';
 
 afterEach(() => {
   cleanup();
+  window.localStorage.clear();
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 const label = () => i18n.t('relationshipReflections.anticipation.show');
 
@@ -89,97 +92,140 @@ function setupPlan(send?: () => Promise<PlanDetail>) {
 }
 
 describe('Special Plan anticipation', () => {
-  it('uses one confirmed versioned write and updates the actual Plan reading view', async () => {
-    const { update } = setupPlan();
-    const toggle = screen.getByRole('switch', { name: label() });
-    fireEvent.click(toggle);
-    fireEvent.click(toggle);
-    await waitFor(() =>
-      expect(
-        screen
-          .getByRole('switch', { name: label() })
-          .getAttribute('aria-checked'),
-      ).toBe('true'),
+  it('ticks from the actual instant, crosses minute boundaries and stops at zero', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-21T18:58:59Z'));
+    const { unmount } = render(
+      <MemoryRouter>
+        <AnticipationCard
+          value={{
+            planId: 'plan-1',
+            title: 'Ghost Night',
+            daysRemaining: 0,
+            eventOn: new Date('2026-11-21'),
+            eventAt: new Date('2026-11-21T19:00:00Z'),
+          }}
+        />
+      </MemoryRouter>,
     );
-    expect(update).toHaveBeenCalledTimes(1);
+    const digits = () =>
+      Array.from(document.querySelectorAll('.anticipation-digit')).map(
+        (node) => node.textContent,
+      );
+    expect(digits()).toEqual(['00', '00', '01', '01']);
+    expect(screen.getByRole('timer').getAttribute('aria-live')).toBe('off');
+    act(() => vi.advanceTimersByTime(2000));
+    expect(digits()).toEqual(['00', '00', '00', '59']);
+    act(() => vi.advanceTimersByTime(59000));
+    expect(
+      screen.getByText(i18n.t('relationshipReflections.anticipation.now')),
+    ).toBeTruthy();
+    expect(screen.queryByRole('timer')).toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+    unmount();
+  });
+
+  it('resumes from wall-clock time after backgrounding and cleans up on unmount', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-21T18:00:00Z'));
+    const { unmount } = render(
+      <MemoryRouter>
+        <AnticipationCard
+          value={{
+            planId: 'plan-1',
+            title: 'Ghost Night',
+            daysRemaining: 0,
+            eventOn: new Date('2026-11-21'),
+            eventAt: new Date('2026-11-21T19:00:00Z'),
+          }}
+        />
+      </MemoryRouter>,
+    );
+    const visibility = vi.spyOn(document, 'visibilityState', 'get');
+    visibility.mockReturnValue('hidden');
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    expect(vi.getTimerCount()).toBe(0);
+    vi.setSystemTime(new Date('2026-11-21T18:59:55Z'));
+    visibility.mockReturnValue('visible');
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    expect(
+      Array.from(document.querySelectorAll('.anticipation-digit')).map(
+        (node) => node.textContent,
+      ),
+    ).toEqual(['00', '00', '00', '05']);
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('shows countdown only in Edit and saves its staged choice with one versioned Plan update', async () => {
+    const { update } = setupPlan();
+    expect(screen.queryByRole('switch', { name: label() })).toBeNull();
+    expect(screen.queryByText(i18n.t('m5s3.plan.actionsHeading'))).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('common.edit') }),
+    );
+    fireEvent.click(screen.getByRole('switch', { name: label() }));
+    expect(update).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
+    );
+    await waitFor(() => expect(update).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(screen.queryByRole('switch', { name: label() })).toBeNull(),
+    );
     expect(update.mock.calls[0]?.[0]).toMatchObject({
       spaceId: 'space-1',
       planId: 'plan-1',
       ifMatch: '1',
-      planUpdate: { anticipationEnabled: true },
+      planUpdate: {
+        anticipationEnabled: true,
+        schedule: { plannedOn: new Date('2099-11-10') },
+      },
     });
   });
 
-  it('leaves the confirmed switch unchanged on failure and provides deliberate retry', async () => {
-    const { update } = setupPlan(async () => {
-      throw new ClientProblemError('server');
-    });
-    fireEvent.click(screen.getByRole('switch', { name: label() }));
-    await screen.findByText(i18n.t('states.server.title'));
-    expect(
-      screen
-        .getByRole('switch', { name: label() })
-        .getAttribute('aria-checked'),
-    ).toBe('false');
-    expect(
-      screen.queryByText(i18n.t('relationshipReflections.anticipation.saved')),
-    ).toBeNull();
-    expect(update).toHaveBeenCalledTimes(1);
-  });
-
-  it('never queues an offline toggle for reconnect', async () => {
+  it('keeps the staged choice after failure and deliberately retries the same intent', async () => {
     const { update } = setupPlan();
-    vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
-    fireEvent.click(screen.getByRole('switch', { name: label() }));
-    await screen.findByText(i18n.t('states.offline.title'));
-    expect(update).not.toHaveBeenCalled();
-  });
-
-  it('does not reverse the original intent when retry observes an already-confirmed value', async () => {
-    const { client, key, update, plan } = setupPlan(async () => {
-      throw new ClientProblemError('server');
-    });
-    fireEvent.click(screen.getByRole('switch', { name: label() }));
-    await screen.findByText(i18n.t('states.server.title'));
-    client.setQueryData(key, {
-      ...plan,
-      anticipationEnabled: true,
-      version: 2,
-    });
-    await waitFor(() =>
-      expect(
-        screen
-          .getByRole('switch', { name: label() })
-          .getAttribute('aria-checked'),
-      ).toBe('true'),
-    );
+    update.mockRejectedValueOnce(new ClientProblemError('server'));
     fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('common.retry') }),
+      screen.getByRole('button', { name: i18n.t('common.edit') }),
     );
-    await waitFor(() =>
-      expect(screen.queryByText(i18n.t('states.server.title'))).toBeNull(),
+    fireEvent.click(screen.getByRole('switch', { name: label() }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
     );
-    expect(update).toHaveBeenCalledTimes(1);
+    await screen.findByText(i18n.t('states.server.title'));
     expect(
       screen
         .getByRole('switch', { name: label() })
         .getAttribute('aria-checked'),
     ).toBe('true');
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole('switch', { name: label() })).toBeNull(),
+    );
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(update.mock.calls.map((args) => args[0])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          planUpdate: expect.objectContaining({ anticipationEnabled: true }),
+        }),
+      ]),
+    );
   });
 
-  it('rechecks read authorization after cancellation before dispatch', async () => {
-    const { client, key, update } = setupPlan();
-    vi.spyOn(client, 'cancelQueries').mockImplementation(async () => {
-      client
-        .getQueryCache()
-        .find({ queryKey: key, exact: true })
-        ?.setState({
-          error: new ClientProblemError('permission'),
-          status: 'error',
-        });
-    });
+  it('never queues an offline edit for reconnect', async () => {
+    const { update } = setupPlan();
+    vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('common.edit') }),
+    );
     fireEvent.click(screen.getByRole('switch', { name: label() }));
-    await waitFor(() => expect(client.isMutating()).toBe(0));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
+    );
+    await screen.findByText(i18n.t('states.offline.title'));
     expect(update).not.toHaveBeenCalled();
   });
 
@@ -224,6 +270,12 @@ function setupPassport(
   capability: boolean | Error,
   read: RelationshipPassportView | Error = counts,
 ) {
+  vi.spyOn(DashboardApi.prototype, 'getDashboard').mockResolvedValue({
+    recentShared: [],
+    upcoming: [],
+    keepsake: null,
+    retrospective: null,
+  } as never);
   vi.spyOn(
     EntitlementsApi.prototype,
     'getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet',
@@ -260,7 +312,29 @@ function setupPassport(
   return { request, client };
 }
 
+async function enableStatistics() {
+  const toggle = await screen.findByRole('switch', {
+    name: i18n.t('relationshipReflections.passport.statisticsToggle'),
+  });
+  if (toggle.getAttribute('aria-checked') !== 'true') fireEvent.click(toggle);
+}
+
 describe('Pro relationship passport', () => {
+  it('starts without statistics and saves the explicit personal opt-in', async () => {
+    setupPassport(true);
+    const toggle = await screen.findByRole('switch', {
+      name: i18n.t('relationshipReflections.passport.statisticsToggle'),
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(screen.queryByRole('link', { name: /12 Erinnerungen/ })).toBeNull();
+    fireEvent.click(toggle);
+    expect(
+      await screen.findByRole('link', { name: /12 Erinnerungen/ }),
+    ).toBeTruthy();
+    fireEvent.click(toggle);
+    expect(screen.queryByRole('link', { name: /12 Erinnerungen/ })).toBeNull();
+  });
+
   it('does not request aggregates or invent counts for Free', async () => {
     const { request } = setupPassport(false);
     await screen.findByText(i18n.t('relationshipReflections.passport.locked'));
@@ -277,6 +351,7 @@ describe('Pro relationship passport', () => {
   });
   it('renders authorized lifetime counts as canonical content links without inferring duration', async () => {
     setupPassport(true);
+    await enableStatistics();
     await screen.findByText('12');
     expect(
       screen
@@ -295,6 +370,34 @@ describe('Pro relationship passport', () => {
       true,
       new ClientProblemError('permission', 403, 'PREMIUM_ENTITLEMENT_REQUIRED'),
     );
+    await screen.findByText(i18n.t('relationshipReflections.passport.locked'));
+    expect(screen.queryByText('12')).toBeNull();
+  });
+  it('keeps authorized content visible during a transient background read failure', async () => {
+    const { request, client } = setupPassport(true);
+    await enableStatistics();
+    await screen.findByText('12');
+    request.mockRejectedValue(new ClientProblemError('server'));
+    await act(async () => {
+      await client.refetchQueries({
+        queryKey: ['relationship-passport', 'read'],
+      });
+    });
+    expect(screen.getByText('12')).toBeTruthy();
+    expect(await screen.findByText(i18n.t('states.server.title'))).toBeTruthy();
+  });
+  it('removes previously loaded Pro content when a background read revokes access', async () => {
+    const { request, client } = setupPassport(true);
+    await enableStatistics();
+    await screen.findByText('12');
+    request.mockRejectedValue(
+      new ClientProblemError('permission', 403, 'PREMIUM_ENTITLEMENT_REQUIRED'),
+    );
+    await act(async () => {
+      await client.refetchQueries({
+        queryKey: ['relationship-passport', 'read'],
+      });
+    });
     await screen.findByText(i18n.t('relationshipReflections.passport.locked'));
     expect(screen.queryByText('12')).toBeNull();
   });

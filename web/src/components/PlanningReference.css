@@ -104,7 +104,7 @@
   gap: var(--space-2);
   width: 100%;
   min-width: 0;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   padding: var(--space-4) var(--space-5);
   background: var(--color-surface);
@@ -161,7 +161,7 @@
   align-items: center;
   border-radius: var(--radius-pill);
   padding: 0.25rem 0.7rem;
-  border: 1px solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-text-secondary);
   font-size: 0.82rem;
@@ -238,7 +238,7 @@
 .planen-section {
   display: grid;
   gap: var(--space-2);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   padding: clamp(var(--space-4), 3vw, var(--space-5));
   background: var(--color-surface);
@@ -270,7 +270,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  border: 1px solid var(--color-shared-border);
+  border: var(--border-surface-width) solid var(--color-shared-border);
   border-radius: var(--radius-pill);
   padding: var(--space-3) var(--space-5);
   background: var(--color-shared-surface);
@@ -303,6 +303,8 @@
 /* Detail: prominent bottom completion CTA */
 .planen-complete-form {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-inline-size: 0;
   gap: var(--space-3);
 }
 
@@ -486,10 +488,15 @@
 }
 
 .planen-next-description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
   max-width: 60ch;
   color: var(--color-text-secondary);
   line-height: 1.55;
-  white-space: pre-wrap;
+  white-space: normal;
   overflow-wrap: anywhere;
 }
 
@@ -689,4 +696,16 @@
 .wish-detail :is(h1, h2, button, label, p) {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.planning-editor-fields {
+  border: 0;
+  margin: 0;
+  min-inline-size: 0;
+  padding: 0;
+}
+
+.planen-complete-form input {
+  min-inline-size: 0;
+  inline-size: 100%;
 }

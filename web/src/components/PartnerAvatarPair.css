@@ -59,7 +59,7 @@
 .partner-avatar-waiting {
   z-index: 1;
   margin-left: -0.55rem;
-  border: 1.5px dashed var(--color-brand);
+  border: var(--border-surface-width) dashed var(--color-brand);
   background: var(--color-brand-surface);
   color: var(--color-brand-text);
   cursor: pointer;

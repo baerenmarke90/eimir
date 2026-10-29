@@ -12,6 +12,7 @@ from sqlalchemy import (
     CheckConstraint,
     Date,
     DateTime,
+    ForeignKey,
     ForeignKeyConstraint,
     Index,
     SmallInteger,
@@ -119,6 +120,11 @@ class Plan(
     plans do not conflict with one another.
     """
 
+    cover_attachment_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("attachments.id", ondelete="SET NULL")
+    )
+    """Optional image bound exclusively to this shared Plan."""
+
     planned_on: Mapped[date | None] = mapped_column(Date)
     """Calendar day for a genuinely date-only schedule, or NULL.
 
@@ -152,6 +158,7 @@ class Plan(
     )
 
     __table_args__ = (
+        UniqueConstraint("cover_attachment_id", name="uq_plans_cover_attachment"),
         CheckConstraint("privacy_class = 'SPACE_SHARED'", name="privacy_is_space_shared"),
         CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
         # A schedule has exactly one semantic start representation. Keeping the

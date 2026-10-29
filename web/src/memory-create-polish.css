@@ -120,7 +120,7 @@
   .immersive-create-media {
   min-width: 0;
   padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   background: var(--color-surface-panel-tint);
   box-shadow: var(--shadow-raised);
@@ -144,7 +144,7 @@
   min-height: 52px;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
 }
@@ -224,7 +224,7 @@
   box-sizing: border-box;
   resize: none;
   overflow: hidden;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   background: var(--color-surface);
   color: var(--color-text);
@@ -257,7 +257,7 @@
   .immersive-create-title-input {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
   color: var(--color-text);
@@ -295,7 +295,7 @@
   min-height: 44px;
   box-sizing: border-box;
   padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-medium);
   background: var(--color-surface-subtle);
   color: var(--color-text);
@@ -332,7 +332,7 @@
   width: 100%;
   box-sizing: border-box;
   min-height: 44px;
-  border: 1px solid var(--color-brand);
+  border: var(--border-surface-width) solid var(--color-brand);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
   color: var(--color-text);

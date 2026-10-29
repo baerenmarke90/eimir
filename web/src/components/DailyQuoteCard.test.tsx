@@ -202,11 +202,7 @@ describe('DailyQuoteCard', () => {
         .getByRole('heading', { name: dailyQuote.title })
         .classList.contains('today-section-title'),
     ).toBe(true);
-    expect(
-      screen
-        .getByText(dailyQuote.kicker)
-        .classList.contains('today-section-kicker'),
-    ).toBe(true);
+    expect(screen.queryByText(dailyQuote.kicker)).toBeNull();
     expect(api.getDailyQuote).not.toHaveBeenCalled();
     expect(api.getDailyQuoteCatalog).not.toHaveBeenCalled();
     expect(
@@ -216,7 +212,7 @@ describe('DailyQuoteCard', () => {
     ).not.toBeTruthy();
   });
 
-  it('renders the server-resolved Pro quote with attribution and catalog labels', async () => {
+  it('renders one calm quote heading and attribution without badges or category labels', async () => {
     renderCard();
 
     expect(await screen.findByText('„A server-resolved quote.“')).toBeTruthy();
@@ -228,8 +224,10 @@ describe('DailyQuoteCard', () => {
         }),
       ),
     ).toBeTruthy();
-    expect(screen.getByText('Love')).toBeTruthy();
-    expect(screen.getByText('Mindfulness')).toBeTruthy();
+    expect(screen.queryByText('Love')).toBeNull();
+    expect(screen.queryByText('Mindfulness')).toBeNull();
+    expect(screen.queryByText(dailyQuote.kicker)).toBeNull();
+    expect(document.querySelector('.daily-quote-card .pro-mark')).toBeNull();
     expect(
       screen.getByRole('button', {
         name: dailyQuote.settingsAria,

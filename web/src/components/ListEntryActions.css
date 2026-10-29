@@ -38,7 +38,7 @@
 button.list-entry-icon-button.list-entry-add-button {
   color: var(--color-brand);
   background: var(--color-brand-surface);
-  border: 1px solid var(--color-brand);
+  border: var(--border-surface-width) solid var(--color-brand);
   border-radius: var(--radius-medium);
   transition:
     background var(--duration-feedback) var(--easing-standard),

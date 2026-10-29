@@ -10,7 +10,9 @@ export type ProductCacheKind =
   | 'heartMoment'
   | 'milestone'
   | 'story'
-  | 'story-discover';
+  | 'story-discover'
+  | 'dashboard-overview'
+  | 'plans-overview';
 export type ProductReadSource = 'network' | 'cache';
 export type ProductCachePrivacyScope = 'SPACE_SHARED';
 
@@ -602,9 +604,58 @@ export function canPersistProductReadPayload(
   kind: ProductCacheKind,
   payload: unknown,
 ): boolean {
+  if (kind === 'dashboard-overview' || kind === 'plans-overview') {
+    try {
+      // Overview snapshots are an optimization, never an unbounded archive.
+      return JSON.stringify(payload).length <= 256 * 1024;
+    } catch {
+      return false;
+    }
+  }
   if (kind !== 'heartMoment') return true;
   if (!payload || typeof payload !== 'object') return false;
   return (payload as { visibility?: unknown }).visibility === 'SHARED';
+}
+
+/** Only approved shared overviews may paint before their background read.
+ * Callers mount after Account and Space authorization and keep writes gated.
+ */
+export async function readWarmOverviewCache<T>({
+  accountId,
+  spaceId,
+  kind,
+  resourceId,
+  deserialize,
+}: {
+  accountId: string;
+  spaceId: string;
+  kind: 'dashboard-overview' | 'plans-overview';
+  resourceId: string;
+  deserialize: (payload: unknown) => T;
+}): Promise<ProductReadResult<T> | undefined> {
+  const lease = captureCacheLease(accountId, spaceId);
+  const cached = await readRecord(
+    {
+      key: cacheKey(lease, SHARED_SCOPE, kind, resourceId),
+      accountId,
+      spaceId,
+      generation: lease.generation,
+      kind,
+      resourceId,
+    },
+    lease,
+  );
+  if (!cached || !isLeaseCurrent(lease)) return undefined;
+  try {
+    return {
+      value: deserialize(cached.payload),
+      source: 'cache',
+      refreshedAt: new Date(cached.refreshedAt),
+    };
+  } catch {
+    await deleteRecordByKey(cached.key, lease);
+    return undefined;
+  }
 }
 
 function isExpectedRecord(
@@ -825,7 +876,8 @@ export async function loadProductWithReadCache<T>({
       lease,
     );
     if (!cached || !isLeaseCurrent(lease)) throw normalized;
-    emitCacheEvent(PRODUCT_CACHE_FALLBACK_EVENT, cached.refreshedAt);
+    if (kind !== 'dashboard-overview' && kind !== 'plans-overview')
+      emitCacheEvent(PRODUCT_CACHE_FALLBACK_EVENT, cached.refreshedAt);
     return {
       value: deserialize(cached.payload),
       source: 'cache',
@@ -853,7 +905,11 @@ export async function loadProductWithReadCache<T>({
       refreshedAt,
     });
   }
-  if (isLeaseCurrent(lease)) {
+  if (
+    isLeaseCurrent(lease) &&
+    kind !== 'dashboard-overview' &&
+    kind !== 'plans-overview'
+  ) {
     emitCacheEvent(PRODUCT_CACHE_NETWORK_EVENT, refreshedAt.toISOString());
   }
   return { value, source: 'network', refreshedAt };

@@ -610,7 +610,7 @@ test('representative layout families keep their accepted normal viewport reflow'
             name: m5s5.dashboard.storySummaryTitle,
             level: 2,
           }),
-        ).toBeVisible();
+        ).toHaveCount(0);
       }
     }
   }

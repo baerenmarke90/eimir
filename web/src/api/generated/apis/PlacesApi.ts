@@ -24,6 +24,16 @@ import {
     PlaceDetailToJSON,
 } from '../models/PlaceDetail';
 import {
+    type PlaceLookupRequest,
+    PlaceLookupRequestFromJSON,
+    PlaceLookupRequestToJSON,
+} from '../models/PlaceLookupRequest';
+import {
+    type PlaceLookupResult,
+    PlaceLookupResultFromJSON,
+    PlaceLookupResultToJSON,
+} from '../models/PlaceLookupResult';
+import {
     type PlacePage,
     PlacePageFromJSON,
     PlacePageToJSON,
@@ -67,6 +77,11 @@ export interface ListPlacesRequest {
     spaceId: string;
     cursor?: string | null;
     limit?: number;
+}
+
+export interface LookupPlacesRequest {
+    spaceId: string;
+    placeLookupRequest: PlaceLookupRequest;
 }
 
 export interface UpdatePlaceRequest {
@@ -371,6 +386,63 @@ export class PlacesApi extends runtime.BaseAPI {
      */
     async listPlaces(requestParameters: ListPlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlacePage> {
         const response = await this.listPlacesRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for lookupPlaces without sending the request
+     */
+    async lookupPlacesRequestOpts(requestParameters: LookupPlacesRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling lookupPlaces().'
+            );
+        }
+
+        if (requestParameters['placeLookupRequest'] == null) {
+            throw new runtime.RequiredError(
+                'placeLookupRequest',
+                'Required parameter "placeLookupRequest" was null or undefined when calling lookupPlaces().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/places/lookup`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PlaceLookupRequestToJSON(requestParameters['placeLookupRequest']),
+        };
+    }
+
+    /**
+     * Search only on explicit user intent; never persist or log query content.
+     * Lookup Places
+     */
+    async lookupPlacesRaw(requestParameters: LookupPlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlaceLookupResult>> {
+        const requestOptions = await this.lookupPlacesRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PlaceLookupResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Search only on explicit user intent; never persist or log query content.
+     * Lookup Places
+     */
+    async lookupPlaces(requestParameters: LookupPlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlaceLookupResult> {
+        const response = await this.lookupPlacesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

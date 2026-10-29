@@ -13,6 +13,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
+import { PlanDetailToJSON } from '../api/generated/models/PlanDetail';
 import { WishStatus } from '../api/generated/models/WishStatus';
 import {
   groupPlanningOverviewPlans,
@@ -20,6 +21,9 @@ import {
 } from '../client/planningOverview';
 import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
+import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
+import { textExcerpt } from '../client/textExcerpt';
+import { decodePlansOverview } from '../client/overviewSnapshots';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   PLAN_CREATE_ROUTE,
@@ -33,6 +37,8 @@ import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
+import { PlanCover } from './PlanCover';
+import { OverviewCacheNotice } from './OverviewCacheNotice';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
 
@@ -162,9 +168,15 @@ function PlanenPanel({
 export function SharedPlanningOverviewPage({
   apis,
   spaceId,
+  accountId,
+  apiBaseUrl,
+  accessToken,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
+  accountId?: string;
+  apiBaseUrl?: string;
+  accessToken?: string;
 }) {
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
@@ -223,16 +235,25 @@ export function SharedPlanningOverviewPage({
     retry: false,
   });
 
-  const plans = useInfiniteQuery({
+  const plans = useWarmOverviewQuery({
     queryKey: ['m5-s3', 'plans', spaceId],
-    queryFn: () =>
+    accountId,
+    apiBaseUrl,
+    spaceId,
+    kind: 'plans-overview',
+    load: () =>
       apiCall(async () => ({
-        items: await loadPlanningOverviewPlans(apis, spaceId),
-        nextCursor: null,
+        pages: [
+          {
+            items: await loadPlanningOverviewPlans(apis, spaceId),
+            nextCursor: null,
+          },
+        ],
+        pageParams: [null],
       })),
-    initialPageParam: null as string | null,
-    getNextPageParam: nextCursor<PlanDetail>,
-    retry: false,
+    serialize: (value) =>
+      value.pages.flatMap((page) => page.items).map(PlanDetailToJSON),
+    deserialize: (payload) => decodePlansOverview(payload, spaceId),
   });
 
   const wishItems = (
@@ -328,6 +349,9 @@ export function SharedPlanningOverviewPage({
             onRetry={() => void plans.refetch()}
           />
         ) : null}
+        {plans.isCached ? (
+          <OverviewCacheNotice cachedAt={plans.cachedAt} />
+        ) : null}
         {!plans.isLoading && !plans.error && !hasPlans ? (
           <div className="planen-empty-state">
             <h2>{t('m5s3.overview.plansEmpty')}</h2>
@@ -349,13 +373,20 @@ export function SharedPlanningOverviewPage({
                 planGroups.focal.id,
               )}
             >
+              <PlanCover
+                plan={planGroups.focal}
+                spaceId={spaceId}
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                interactive={false}
+              />
               <span className="planen-next-schedule">
                 {planScheduleLabel(planGroups.focal)}
               </span>
               <strong>{planGroups.focal.title}</strong>
               {planGroups.focal.description ? (
                 <span className="planen-next-description">
-                  {planGroups.focal.description}
+                  {textExcerpt(planGroups.focal.description)}
                 </span>
               ) : null}
             </Link>

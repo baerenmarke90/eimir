@@ -7,13 +7,13 @@ does not shift the value at the final decimal place.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Annotated, Self
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, Response, status
-from pydantic import ConfigDict, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 from eimir.api.authors import resolve_author_summaries, resolve_author_summary
@@ -21,9 +21,14 @@ from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
+from eimir.auth import rate_limit
+from eimir.config import get_settings
+from eimir.core.errors import ServiceUnavailableError
 from eimir.core.ids import parse_id
 from eimir.places import service
 from eimir.places.models import Place
+from eimir.providers.photon import GeocodingUnavailableError
+from eimir.providers.place_search import search_places
 from eimir.relations.service import target_not_found
 
 router = APIRouter(tags=["places"])
@@ -118,6 +123,64 @@ class PlacePage(ApiModel):
     items: list[PlaceDetail]
     next_cursor: str | None
     has_more: bool
+
+
+class PlaceLookupRequest(ApiModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    query: str = Field(min_length=2, max_length=200)
+    locale: str = Field(default="en", max_length=16)
+
+
+class PlaceLookupCandidate(ApiModel):
+    name: str
+    address: str | None
+    latitude: float
+    longitude: float
+
+
+class PlaceLookupResult(ApiModel):
+    items: list[PlaceLookupCandidate]
+    attribution: str = "© OpenStreetMap contributors"
+
+
+@router.post(
+    "/spaces/{spaceId}/places/lookup",
+    response_model=PlaceLookupResult,
+    operation_id="lookupPlaces",
+    responses=problem_responses(401, 404, 422, 429, 503),
+)
+def lookup_places(
+    authorization: Authorization,
+    session: DbSession,
+    body: PlaceLookupRequest,
+    response: Response,
+) -> PlaceLookupResult:
+    """Search only on explicit user intent; never persist or log query content."""
+    rate_limit.check(
+        session,
+        "place-map-search",
+        str(authorization.account_id),
+        rate_limit.Limit(attempts=30, window=timedelta(minutes=15)),
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    try:
+        candidates = search_places(get_settings().place_search_url, body.query, body.locale)
+    except GeocodingUnavailableError:
+        raise ServiceUnavailableError(
+            "Place lookup is unavailable.", "PLACE_LOOKUP_UNAVAILABLE"
+        ) from None
+    return PlaceLookupResult(
+        items=[
+            PlaceLookupCandidate(
+                name=item.name,
+                address=item.address,
+                latitude=float(item.position.latitude),
+                longitude=float(item.position.longitude),
+            )
+            for item in candidates
+            if item.position is not None
+        ]
+    )
 
 
 def place_detail(

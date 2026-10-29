@@ -25,8 +25,10 @@ Places use an explicit map picker with search results, pan/zoom, tap selection,
 a visible marker and confirm. Existing names/addresses remain editable. Keyboard
 panning and a use-map-center action provide an alternative to a pointer; manual
 coordinates remain optional fallback. No automatic device-location request.
-Escape/Back/Close cancel the choice without writing, confirming only updates the
-parent draft. Failure keeps an existing place/draft and offers retry. No result
+Escape/Back/Close cancel the choice without writing, confirming updates the parent draft. In a Plan editor, explicit confirmation
+creates the shared Place through the existing Place-create flow and selects it;
+the Plan association is saved only with the Plan. Canceling the Plan afterward
+keeps that deliberately created Place available in the shared places list. Failure keeps an existing place/draft and offers retry. No result
 is distinct from unavailable service. Compact sheets protect scrolling, focus,
 IME and bottom actions; Expanded preserves the same task. Use existing
 ShortTaskSheet, forms, token roles, normal link/Back and reduced-motion behavior.

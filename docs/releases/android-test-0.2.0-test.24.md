@@ -42,6 +42,21 @@ No database reset, Demo mode, audience or deployment secret changes are authoriz
 
 ## Release procedure
 
+The initial source's Android 37.1 / 16K-page guest twice lost its test process
+to Android's `LOW_MEMORY` killer before an assertion could run. Both captured
+`ApplicationExitInfo` records report reason 3 with an empty crash buffer and
+119/137 MB application RSS. The [two-attempt diagnostic run](https://github.com/baerenmarke90/eimir/actions/runs/40797829170)
+is retained. API 28/36 and the real Android File-to-Web/API/worker/Place pipeline
+passed on the same product code.
+
+The release-only CI adjustment gives that guest 6144 MB rather than 4096 MB and
+captures host/guest memory beside the existing process-exit evidence. It uses
+the same standard public runner, system image, application and test assertions;
+no test, timeout, platform or gate is removed. GitHub documents
+[16 GB for the public Ubuntu runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners),
+and Android supports this [explicit emulator RAM override](https://developer.android.com/studio/run/emulator-commandline).
+All exact-source checks must run again on the adjusted source before selection.
+
 Integrate accepted main into the existing allowlisted
 `release/android-test.14-20261026`, preserving its native updater and publisher.
 Commit this integrated source and the [localized notes](android-test-0.2.0-test.24-notes.txt)

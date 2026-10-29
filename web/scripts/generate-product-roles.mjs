@@ -82,7 +82,7 @@ for (const role of [
   'backdropBlur',
 ]) {
   const name = role.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
-  declare(`media-overlay-${name}`, value(`mediaOverlay.${role}`));
+  declare(`media-overlay-${name}`, value(`mediaOverlay.${role}`).toLowerCase());
 }
 
 declare('sensitive-media-blur', value('mediaPrivacy.concealmentBlur'));

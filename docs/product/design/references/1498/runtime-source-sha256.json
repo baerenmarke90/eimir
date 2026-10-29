@@ -1,7 +1,7 @@
 {
   "design/tokens.json": "ec81d4338145d2f813a15f885f5d32527333066dc4d01d7c6f8128f564056731",
   "web/scripts/generate-identity-roles.mjs": "b746b9100b6d98507c6caa71a84301257cbe33147e4417bf75b993c2d19068ef",
-  "web/scripts/generate-product-roles.mjs": "3e91f0eb736357eb75c56c8d20afc476e4d0f6c2784cdf38defe46c2f0a00a89",
+  "web/scripts/generate-product-roles.mjs": "7e957ed12cb82335b9766746024d05e505653ece09035a5eb9660cbde09e194d",
   "web/src/components/CouplePresence.tsx": "be834269ca5f7d04a5147611cb4cf7993e03e197e82f9c234c56a07aa725c5b4",
   "web/src/components/MediaGallery.css": "01e1a435d93c2961478e8ecd1440d3535472fe63747161460a08fc47550c1bd5",
   "web/src/components/MediaGallery.tsx": "061447cffe079b4daa0fa8988b15bde70b6359826e333ac4113a3e9497197396",
@@ -15,6 +15,6 @@
   "web/src/components/WirDesign.css": "289eb5ef59a465852f4e842342b426cafcf8dbb4a7c54b3a931a61e4c8423de4",
   "web/src/components/WirDesignSettings.tsx": "44ac5992faf381ad80544c3d79c975af09be923187cbadfabe66e28489d03d05",
   "web/src/design/identity-roles.css": "6dd9e82398f0f0c40236ab02dc7a2e758fcf6c02f0b62308c9286a63f98e74bd",
-  "web/src/design/product-roles.css": "d3a5039202d87677801341b6be69a9ade8eb0379b2fcf443297b1c24f2533634",
+  "web/src/design/product-roles.css": "cbe5c6b9fcd1b713d2b26f9f681db1e5486b71598f2c771a60dd053ee9a4e5a9",
   "web/src/i18n/locales/wirDesign.ts": "c7536d7108642c59ec71cdd2ed954187617be23c576f9e0e04d8e9868aac5a51"
 }

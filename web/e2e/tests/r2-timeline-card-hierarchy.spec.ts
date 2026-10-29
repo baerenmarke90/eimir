@@ -617,7 +617,21 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
     expect(Math.abs(pinned?.y ?? 999)).toBeLessThanOrEqual(1);
     expect(
       await august.evaluate((el) => getComputedStyle(el).backgroundColor),
-    ).not.toMatch(/transparent|rgba\([^)]*,\s*0\)$/);
+    ).toBe(
+      await page
+        .locator('body')
+        .evaluate((el) => getComputedStyle(el).backgroundColor),
+    );
+    expect(
+      await august
+        .locator('h2')
+        .evaluate((el) => getComputedStyle(el).fontFamily),
+    ).toContain('Instrument Sans');
+    expect(
+      await august
+        .locator('h2')
+        .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+    ).toBeLessThanOrEqual(16);
 
     await capture(
       page,

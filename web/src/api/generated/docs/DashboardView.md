@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`anticipation` | [DashboardAnticipation](DashboardAnticipation.md)
 `keepsake` | [DashboardItem](DashboardItem.md)
 `recentShared` | [Array&lt;DashboardItem&gt;](DashboardItem.md)
 `relationshipDuration` | [DashboardRelationshipDuration](DashboardRelationshipDuration.md)
@@ -23,6 +24,7 @@ import type { DashboardView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "anticipation": null,
   "keepsake": null,
   "recentShared": null,
   "relationshipDuration": null,

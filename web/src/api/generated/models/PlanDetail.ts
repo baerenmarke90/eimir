@@ -43,6 +43,12 @@ import {
 export interface PlanDetail {
     /**
      * 
+     * @type {boolean}
+     * @memberof PlanDetail
+     */
+    anticipationEnabled?: boolean;
+    /**
+     * 
      * @type {ResourceCapabilities}
      * @memberof PlanDetail
      */
@@ -180,6 +186,7 @@ export function PlanDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
+        'anticipationEnabled': json['anticipationEnabled'] == null ? undefined : json['anticipationEnabled'],
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
         'createdAt': (new Date(json['createdAt'])),
         'createdBy': json['createdBy'],
@@ -211,6 +218,7 @@ export function PlanDetailToJSONTyped(value?: PlanDetail | null, ignoreDiscrimin
 
     return {
         
+        'anticipationEnabled': value['anticipationEnabled'],
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),
         'createdAt': value['createdAt'].toISOString(),
         'createdBy': value['createdBy'],

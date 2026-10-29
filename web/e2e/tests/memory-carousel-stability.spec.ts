@@ -715,6 +715,167 @@ async function installApprovedMemoryDetail(page: Page) {
   return { ...mocks, writes };
 }
 
+async function installSensitiveOverview(page: Page) {
+  const mocks = await installApprovedMemoryDetail(page);
+  const item = {
+    id: MEMORY_ID,
+    type: 'MEMORY',
+    titleOrText: 'Erinnerung vom 27.10.2026',
+    occurredOn: '2026-10-27',
+    createdAt: TEST_NOW,
+    scheduledAt: null,
+    previewAttachmentId: ATTACHMENTS[0].id,
+    previewIsSensitive: true,
+  };
+  const story = {
+    kind: 'MEMORY',
+    effectiveDate: '2026-10-27',
+    memory: {
+      ...memory(MEMORY_ID, [
+        attachment({ ...ATTACHMENTS[0], isSensitive: true }, 0),
+      ]),
+      title: item.titleOrText,
+      body: '',
+      happenedOn: '2026-10-27',
+    },
+  };
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/dashboard`, (route) =>
+    route.fulfill({
+      json: {
+        recentShared: [item],
+        upcoming: [],
+        retrospective: null,
+        relationshipDuration: null,
+        viewerLocalDate: '2026-10-28',
+        space: { spaceId: SPACE_ID, partner: null },
+      },
+    }),
+  );
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/timeline*`, (route) =>
+    route.fulfill({
+      json: {
+        items: [story],
+        hasMore: false,
+        nextCursor: null,
+        availableYears: [2026],
+      },
+    }),
+  );
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/discover*`, (route) =>
+    route.fulfill({
+      json: {
+        selectionDate: '2026-10-28',
+        lead: story,
+        items: [],
+        leadContext: null,
+      },
+    }),
+  );
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/comments*`, (route) =>
+    route.fulfill({
+      json: {
+        items: [],
+        hasMore: false,
+        nextCursor: null,
+      },
+    }),
+  );
+  return mocks;
+}
+
+for (const state of [
+  { width: 360, theme: 'light' },
+  { width: 390, theme: 'dark' },
+  { width: 430, theme: 'light' },
+  { width: 1280, theme: 'dark' },
+] as const) {
+  test(`overview Privacy icons independently reveal blurred photos at ${state.width}px ${state.theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width: state.width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: state.theme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(
+      (theme) => localStorage.setItem('eimir.theme', theme),
+      state.theme,
+    );
+    const { unexpectedRequests } = await installSensitiveOverview(page);
+    await page.goto('/');
+    await signIn(page);
+
+    for (const surface of ['wir', 'diary'] as const) {
+      if (surface === 'diary') await page.goto('/story?tab=timeline');
+      const card = page.locator(
+        surface === 'wir'
+          ? '.today-moment.preview-card-link'
+          : '.story-card-link.preview-card-link',
+      );
+      const photo = card.locator('.sensitive-media-preview');
+      const button = card.getByRole('button', {
+        name: sensitiveMedia.show,
+        exact: true,
+      });
+      await photo.scrollIntoViewIfNeeded();
+      await expect(photo.locator('.sensitive-media-blurred img')).toBeVisible();
+      await expect(button.locator('.eimir-icon-privatsphaere')).toBeVisible();
+      expect(await button.evaluate((node) => node.closest('a'))).toBeNull();
+      const frame = await photo.boundingBox();
+      const target = await button.boundingBox();
+      if (!frame || !target)
+        throw new Error('Expected the photo and Privacy target.');
+      expect(target.width).toBeGreaterThanOrEqual(44);
+      expect(target.height).toBeGreaterThanOrEqual(44);
+      expect(
+        Math.abs(target.x + target.width / 2 - frame.x - frame.width / 2),
+      ).toBeLessThan(1);
+      expect(
+        Math.abs(target.y + target.height / 2 - frame.y - frame.height / 2),
+      ).toBeLessThan(1);
+      expect(
+        await photo
+          .locator('.sensitive-media-blurred')
+          .evaluate((node) => getComputedStyle(node).filter),
+      ).toBe('blur(12px)');
+      await page.screenshot({
+        path: info.outputPath(
+          `overview-${surface}-${state.width}-${state.theme}-concealed.png`,
+        ),
+        fullPage: true,
+      });
+      const before = page.url();
+      await button.click();
+      await expect(page).toHaveURL(before);
+      await expect(photo.locator('.sensitive-media-cover')).toHaveCount(0);
+      await expect(
+        card.getByRole('button', { name: sensitiveMedia.hide, exact: true }),
+      ).toBeFocused();
+      await page.keyboard.press('Space');
+      await expect(photo.locator('.sensitive-media-cover')).toBeVisible();
+      const violations = await new AxeBuilder({ page })
+        .include('.sensitive-media-preview')
+        .include('.preview-card-link-target')
+        .analyze();
+      expect(violations.violations).toEqual([]);
+      // A click on the photo outside the icon still opens detail, concealed.
+      const currentFrame = await photo.boundingBox();
+      if (!currentFrame) throw new Error('Expected a visible photo frame.');
+      await page.mouse.click(currentFrame.x + 12, currentFrame.y + 12);
+      await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
+      await expect(
+        page.locator(
+          '.media-gallery-carousel-slide.is-active .sensitive-media-cover',
+        ),
+      ).toBeVisible();
+      await page.goBack();
+      await expect(button).toBeVisible();
+      await expect(photo.locator('.sensitive-media-cover')).toBeVisible();
+    }
+    expect(unexpectedRequests).toEqual([]);
+  });
+}
+
 for (const state of [
   { width: 320, theme: 'dark' },
   { width: 360, theme: 'light' },

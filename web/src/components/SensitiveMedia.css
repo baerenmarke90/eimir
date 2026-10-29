@@ -34,6 +34,34 @@
   color: var(--color-text);
   text-align: center;
 }
+.sensitive-media-preview {
+  position: relative;
+  display: block;
+  overflow: hidden;
+}
+.sensitive-media-preview > img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sensitive-media-preview > .sensitive-media-cover {
+  position: absolute;
+  inset: 0;
+}
+.sensitive-media-preview > .sensitive-media-preview-control {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: var(--space-12);
+  height: var(--space-12);
+  margin: auto;
+  border: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
 .sensitive-media-control {
   min-width: 44px;
   min-height: 44px;

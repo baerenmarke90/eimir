@@ -7,6 +7,7 @@ Domain correction without changing lifecycle status.  Schedule fields remain own
 
 Name | Type
 ------------ | -------------
+`anticipationEnabled` | boolean
 `description` | string
 `experiencedOn` | Date
 `placeId` | string
@@ -19,6 +20,7 @@ import type { PlanUpdate } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "anticipationEnabled": null,
   "description": null,
   "experiencedOn": null,
   "placeId": null,

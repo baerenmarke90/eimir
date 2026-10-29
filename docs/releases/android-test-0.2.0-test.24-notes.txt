@@ -1,0 +1,13 @@
+eimir. 0.2.0-test.24
+
+Sensible Bilder bleiben auf der Wir-Seite und im Tagebuch unscharf. Nur das Privatsphäre-Symbol macht die jeweilige Vorschau sichtbar; ein Tipp auf die übrige Karte öffnet weiterhin die geschützte Detailansicht.
+
+Deine Wir-Seite hat drei persönliche Designs: Geborgen ist der neue Standard. Klar & modern und Klassisch stehen mit Pro zur Auswahl. Unter Einstellungen → Darstellung kannst du eine Vorschau ansehen und deine Auswahl ausdrücklich speichern. Die Ansicht deines Partners bleibt unabhängig. Ein gespeichertes Design bleibt nach Pro-Ablauf erhalten; der Wechsel zu Geborgen ist immer möglich.
+
+Auf einen besonderen gemeinsamen Plan könnt ihr euch jetzt mit einem Countdown freuen. Markiere den geplanten Termin in seiner Detailansicht. Auf Wir erscheint der nächste passende besondere Termin im bestehenden Ausblick. Diese Funktion ist kostenlos.
+
+Neu mit Pro: Der Beziehungs-Pass im Profil zeigt eure gemeinsame Geschichte mit geteilten Momenten, Herzmomenten, Meilensteinen, abgeschlossenen Plänen und Orten. Private Inhalte bleiben privat. Eure bisherige Geschichte, Beziehungsdauer und Daten bleiben auch ohne Pro zugänglich.
+
+Die feste Hauptnavigation, sichere Rückwege und die bisherigen Foto- und Anmeldeverbesserungen bleiben enthalten. Große Schrift wird in der Design-Auswahl und bei den Beschriftungen eurer gemeinsamen Geschichte besser umgebrochen.
+
+Über Einstellungen → App-Updates installieren. Die bestehende App nicht deinstallieren und keine App-Daten löschen.

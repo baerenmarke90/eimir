@@ -1,12 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import {
-  Fragment,
-  useEffect,
-  useState,
-  type MouseEvent,
-  type ReactNode,
-} from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Fragment, useEffect, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
@@ -53,7 +47,6 @@ import {
   selectMonthlyStrip,
   selectTodayFocalItem,
 } from '../client/todayComposition';
-import { useTaskOrigin } from '../client/taskOrigin';
 import {
   clearForeignRetrospectiveDismissal,
   isRetrospectiveDismissed,
@@ -81,7 +74,11 @@ import { SharedStorySummary } from './SharedStorySummary';
 import { PartnerQuickActions } from './PartnerQuickActions';
 import { TodayPinnedCollection } from './TodayPinnedCollection';
 import { UiState } from './UiState';
+import { AnticipationCard } from './AnticipationCard';
+import { TodayDestinationLink } from './TodayDestinationLink';
 import './TodayPage.css';
+import { useWirDesign } from '../client/wirDesign';
+import './WirDesign.css';
 
 export function formatRelationshipDuration(
   duration: DashboardRelationshipDuration,
@@ -190,48 +187,6 @@ export type TodayPresentationRole =
   | 'relationship_signal' // 0-1 partner interaction signal (e.g. partner commented on memory)
   | 'shared_content' // Recent shared relationship moments
   | 'editorial_highlight'; // Retrospective discovery (e.g. "Weißt du noch?")
-
-function TodayDestinationLink({
-  to,
-  className,
-  ariaLabel,
-  children,
-}: {
-  to: string;
-  className?: string;
-  ariaLabel?: string;
-  children: ReactNode;
-}) {
-  const navigate = useNavigate();
-  const { captureOrigin } = useTaskOrigin();
-
-  function openFromToday(event: MouseEvent<HTMLAnchorElement>) {
-    if (
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    )
-      return;
-
-    const taskOriginKey = captureOrigin();
-    if (!taskOriginKey) return;
-    event.preventDefault();
-    void navigate(to, { state: { taskOriginKey } });
-  }
-
-  return (
-    <Link
-      to={to}
-      className={className}
-      aria-label={ariaLabel}
-      onClick={openFromToday}
-    >
-      {children}
-    </Link>
-  );
-}
 
 export function TodayModuleSection({
   id,
@@ -420,6 +375,7 @@ function TodayMomentFeature({
             memoryId={item.id}
             attachmentId={previewAttachmentId}
             isSensitive={item.previewIsSensitive}
+            allowReveal
             loadImage={loadMemoryImage}
           />
         ) : null}
@@ -457,6 +413,7 @@ function TodayMomentFeature({
       <TodayDestinationLink
         to={path}
         className="today-moment today-moment-link"
+        previewControls={hasImage && item.previewIsSensitive === true}
       >
         {feature}
       </TodayDestinationLink>
@@ -744,6 +701,7 @@ export function TodayPage({
 }) {
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
+  const wirDesign = useWirDesign();
   const dashboardQuery = useQuery({
     queryKey: dashboardQueryKey(spaceId),
     queryFn: () => apiCall(() => apis.dashboard.getDashboard({ spaceId })),
@@ -889,8 +847,16 @@ export function TodayPage({
   // 2. Shared Planning Horizon. The item limit is the personal Account+Space
   // Dashboard preference from #848 with the #854 default of 1; Today only
   // consumes it and never defines a limit of its own.
+  const anticipation = dashboardQuery.data?.anticipation;
   const upcoming = limitUpcomingItems(
-    dashboardQuery.data?.upcoming ?? [],
+    (dashboardQuery.data?.upcoming ?? []).filter(
+      (item) =>
+        !(
+          anticipation &&
+          item.type === 'PLAN' &&
+          item.id === anticipation.planId
+        ),
+    ),
     dashboardPreferencesQuery.data,
   );
 
@@ -941,7 +907,7 @@ export function TodayPage({
     retrospective: retrospectiveDismissed ? null : retrospective,
     recentShared,
     excludeItemIds: focalItem ? [focalItem.item.id] : [],
-    suppressPlanningFallback: upcoming.length > 0,
+    suppressPlanningFallback: Boolean(anticipation) || upcoming.length > 0,
   });
 
   /*
@@ -1038,6 +1004,7 @@ export function TodayPage({
 
   const isSparse = Boolean(
     dashboardQuery.data &&
+      !anticipation &&
       upcoming.length === 0 &&
       recentShared.length === 0 &&
       !retrospective &&
@@ -1163,7 +1130,7 @@ export function TodayPage({
         {/* Demnächst — the short shared horizon. One item is the
                   default and must read as complete on its own; two or three
                   stay restrained rather than becoming an agenda table. */}
-        {upcomingVisible && upcoming.length > 0 ? (
+        {upcomingVisible && (anticipation || upcoming.length > 0) ? (
           <TodayModuleSection
             className="today-section-upcoming"
             colorWorld="natural"
@@ -1179,6 +1146,7 @@ export function TodayPage({
               </Link>
             }
           >
+            {anticipation ? <AnticipationCard value={anticipation} /> : null}
             <div className="today-agenda-list">
               {upcoming.map((item: DashboardItem) => (
                 <TodayAgendaRow key={item.id} item={item} />
@@ -1345,7 +1313,10 @@ export function TodayPage({
   );
 
   return (
-    <div className="page today-page">
+    <div
+      className="page today-page"
+      data-wir-design={wirDesign?.current ?? 'warm'}
+    >
       {(dashboardQuery.isLoading ||
         (Boolean(dashboardQuery.data) && preferencesUnresolved)) && (
         <UiState kind="loading" title={t('states.loading.title')} />
@@ -1382,7 +1353,7 @@ export function TodayPage({
               account?.id &&
               dailyCheckInsApi ? (
                 <DailyVibeCheckIn
-                  key={`${account.id}:${spaceId}`}
+                  key={`vibe:${account.id}:${spaceId}`}
                   api={dailyCheckInsApi}
                   accountId={account.id}
                   spaceId={spaceId}
@@ -1394,7 +1365,7 @@ export function TodayPage({
 
               {account?.id && dailyQuoteApi && entitlementApi ? (
                 <DailyQuoteCard
-                  key={`${account.id}:${spaceId}`}
+                  key={`quote:${account.id}:${spaceId}`}
                   quoteApi={dailyQuoteApi}
                   entitlementsApi={entitlementApi}
                   accountId={account.id}
@@ -1436,7 +1407,7 @@ export function TodayPage({
                     account?.id &&
                     dailyCheckInsApi ? (
                       <DailyVibeCheckIn
-                        key={`${account.id}:${spaceId}`}
+                        key={`vibe:${account.id}:${spaceId}`}
                         api={dailyCheckInsApi}
                         accountId={account.id}
                         spaceId={spaceId}
@@ -1448,7 +1419,7 @@ export function TodayPage({
 
                     {account?.id && dailyQuoteApi && entitlementApi ? (
                       <DailyQuoteCard
-                        key={`${account.id}:${spaceId}`}
+                        key={`quote:${account.id}:${spaceId}`}
                         quoteApi={dailyQuoteApi}
                         entitlementsApi={entitlementApi}
                         accountId={account.id}

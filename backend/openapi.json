@@ -1963,6 +1963,36 @@
         "title": "DailyVibe",
         "type": "string"
       },
+      "DashboardAnticipation": {
+        "properties": {
+          "daysRemaining": {
+            "title": "Daysremaining",
+            "type": "integer"
+          },
+          "eventOn": {
+            "format": "date",
+            "title": "Eventon",
+            "type": "string"
+          },
+          "planId": {
+            "format": "uuid",
+            "title": "Planid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "planId",
+          "title",
+          "eventOn",
+          "daysRemaining"
+        ],
+        "title": "DashboardAnticipation",
+        "type": "object"
+      },
       "DashboardItem": {
         "properties": {
           "createdAt": {
@@ -2267,6 +2297,16 @@
       },
       "DashboardView": {
         "properties": {
+          "anticipation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashboardAnticipation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "keepsake": {
             "anyOf": [
               {
@@ -5628,6 +5668,11 @@
       },
       "PlanDetail": {
         "properties": {
+          "anticipationEnabled": {
+            "default": false,
+            "title": "Anticipationenabled",
+            "type": "boolean"
+          },
           "capabilities": {
             "$ref": "#/components/schemas/ResourceCapabilities"
           },
@@ -5863,6 +5908,10 @@
         "additionalProperties": false,
         "description": "Domain correction without changing lifecycle status.\n\nSchedule fields remain owned by ``/schedule`` and ``/unschedule``.\n``experiencedOn`` is the one exception: it may be corrected on a completed\nPlan without reopening it (M3-D04).",
         "properties": {
+          "anticipationEnabled": {
+            "title": "Anticipationenabled",
+            "type": "boolean"
+          },
           "description": {
             "anyOf": [
               {
@@ -7046,6 +7095,61 @@
           "localTime"
         ],
         "title": "RelationshipDayCountSchedule",
+        "type": "object"
+      },
+      "RelationshipPassportView": {
+        "properties": {
+          "completedPlans": {
+            "title": "Completedplans",
+            "type": "integer"
+          },
+          "heartMoments": {
+            "title": "Heartmoments",
+            "type": "integer"
+          },
+          "memories": {
+            "title": "Memories",
+            "type": "integer"
+          },
+          "milestones": {
+            "title": "Milestones",
+            "type": "integer"
+          },
+          "partner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashboardPartner"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "places": {
+            "title": "Places",
+            "type": "integer"
+          },
+          "relationshipDuration": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashboardRelationshipDuration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "partner",
+          "relationshipDuration",
+          "memories",
+          "heartMoments",
+          "milestones",
+          "completedPlans",
+          "places"
+        ],
+        "title": "RelationshipPassportView",
         "type": "object"
       },
       "ReminderDetail": {
@@ -10488,6 +10592,44 @@
           "requiredHeaders"
         ],
         "title": "UploadDescriptor",
+        "type": "object"
+      },
+      "WirDesignId": {
+        "enum": [
+          "warm",
+          "modern",
+          "classic"
+        ],
+        "title": "WirDesignId",
+        "type": "string"
+      },
+      "WirDesignPreferencePatch": {
+        "properties": {
+          "designId": {
+            "$ref": "#/components/schemas/WirDesignId"
+          }
+        },
+        "required": [
+          "designId"
+        ],
+        "title": "WirDesignPreferencePatch",
+        "type": "object"
+      },
+      "WirDesignPreferenceView": {
+        "properties": {
+          "designId": {
+            "$ref": "#/components/schemas/WirDesignId"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "designId",
+          "version"
+        ],
+        "title": "WirDesignPreferenceView",
         "type": "object"
       },
       "WishCreate": {
@@ -15735,6 +15877,177 @@
           }
         },
         "summary": "Update App Icon Preference",
+        "tags": [
+          "appearance"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/appearance/wir-design": {
+      "get": {
+        "description": "Read only the caller's personal composition, including after Pro expiry.",
+        "operationId": "getWirDesignPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WirDesignPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Wir Design Preference",
+        "tags": [
+          "appearance"
+        ]
+      },
+      "patch": {
+        "description": "Save a personal cosmetic. Warm is Free; new alternatives require Pro.",
+        "operationId": "updateWirDesignPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WirDesignPreferencePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WirDesignPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Wir Design Preference",
         "tags": [
           "appearance"
         ]
@@ -29561,6 +29874,69 @@
         "summary": "Update Related Person",
         "tags": [
           "people"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/relationship-passport": {
+      "get": {
+        "description": "Return the Pro presentation without gating any underlying Core data.",
+        "operationId": "getRelationshipPassport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationshipPassportView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Relationship Passport",
+        "tags": [
+          "dashboard"
         ]
       }
     },

@@ -17,11 +17,13 @@
 
 .shared-story-summary-values {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: flex-end;
   gap: clamp(0.5rem, 2.8vw, 1.25rem);
   margin: 0 auto;
-  padding: var(--space-3) 0 0;
+  padding: var(--space-3) var(--space-4) 0;
+  box-sizing: border-box;
   max-width: 440px;
   width: 100%;
 }
@@ -30,7 +32,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  flex: 0 0 auto;
+  flex: 1 1 5rem;
+  max-width: 10rem;
   min-width: 0;
 }
 
@@ -51,7 +54,8 @@
   line-height: 1.2;
   letter-spacing: -0.01em;
   text-align: center;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* --------------------------------------------------------------------------

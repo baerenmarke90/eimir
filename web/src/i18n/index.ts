@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next';
 import accountSettings from './locales/accountSettings';
 import appIcon from './locales/appIcon';
 import appUpdates from './locales/appUpdates';
+import wirDesign from './locales/wirDesign';
 import contextTags from './locales/contextTags';
 import dailyEnergy from './locales/dailyEnergy';
 import dailyInsights from './locales/dailyInsights';
@@ -29,6 +30,7 @@ import productTour from './locales/productTour';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
 import relationshipComponents from './locales/relationshipComponents';
+import relationshipReflections from './locales/relationshipReflections';
 import serverAdmin from './locales/serverAdmin';
 import sharedPhotos from './locales/sharedPhotos';
 import snackbar from './locales/snackbar';
@@ -60,6 +62,7 @@ if (!i18n.isInitialized) {
           accountSettings,
           appIcon,
           appUpdates,
+          wirDesign,
           navigation: { ...de.navigation, ...navigation },
           notificationSettings,
           demo,
@@ -82,6 +85,7 @@ if (!i18n.isInitialized) {
           serverAdmin,
           spaceOffboarding,
           ...relationshipComponents,
+          relationshipReflections,
           ...snackbar,
           ...storyProducts,
           contextTags,

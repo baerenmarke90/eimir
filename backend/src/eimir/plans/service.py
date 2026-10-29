@@ -405,6 +405,7 @@ def update_plan(
     description: str | None,
     place_id: UUID | str | None,
     experienced_on: date | None,
+    anticipation_enabled: bool | None = None,
 ) -> Plan:
     """Correct plan content without changing lifecycle status (M3-D04)."""
     next_place_id = (
@@ -416,6 +417,9 @@ def update_plan(
 
     if "place_id" in changed_fields:
         plan.place_id = next_place_id
+    if "anticipation_enabled" in changed_fields:
+        assert anticipation_enabled is not None
+        plan.anticipation_enabled = anticipation_enabled
 
     next_title = plan.payload.title
     next_description = plan.payload.description

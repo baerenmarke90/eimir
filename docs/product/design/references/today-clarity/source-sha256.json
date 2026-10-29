@@ -1,27 +1,104 @@
 {
-  "backend/openapi.json": "0773a6ea523a114cefbee2ea645c3b379236bfb22948fb4361f696550bcd9b0d",
-  "backend/src/eimir/api/v1/dashboard.py": "c63c0cfd8d6ca8eba3fdc2a51ecb7dc5ac9eac6c0a96bbc05f18ddb79c2bac4b",
-  "backend/src/eimir/dashboard/service.py": "6d72030db572cebee5aba15b81b429eadf426c3682f73eecffede72a2b077040",
-  "backend/tests/integration/test_relationship_reflections.py": "cf320453dc048829f8f2b9ed9d2b0b1ff0419264942a08ba662e64f12b5f23fb",
-  "web/e2e/tests/floating-bottom-nav.spec.ts": "c9d3f408e70e842d962c28f6e2a680e589acb5b37b99b19d3431139ea9dd1bc7",
-  "web/e2e/tests/today-daily-quote.spec.ts": "0d9a917314c165074ee5c7edbe0285d810aec8c40e827d0f5210bbb9b9d52537",
-  "web/src/api/generated/docs/DashboardAnticipation.md": "a7a59e92e42f2e36f28c18aaa924527af5142d7031e96ca445ca91e234c5b454",
-  "web/src/api/generated/models/DashboardAnticipation.ts": "0c6e05e9c39d848c5a2e0742764fb9101c3c2912c576b0ca371dbf4432af7710",
-  "web/src/client/memoryProduct.ts": "ad5ec27f967559cb61e022159b1ade0577a14fdc9962bc14ea182d9168e4f2f6",
-  "web/src/components/AnticipationCard.tsx": "66ba0773b12b1145510253c0b5ed4a6325c555e653309e025f315389b8c2e6d8",
-  "web/src/components/AppShell.tsx": "f22e6ceb0fba296a5952682a9ce8d0abd1397d1c984e8a21166785d67ea3e945",
-  "web/src/components/DailyQuoteCard.css": "abb1dfc28554d7cb9708999783f7645e0aeb66c8bf80d7e237f94fbc93b5befc",
-  "web/src/components/DailyQuoteCard.test.tsx": "6197871fe0f7d26f30778289617a7a3f8c96ca2b757673573a1041f7475d2c16",
-  "web/src/components/DailyQuoteCard.tsx": "c1523878e7be576989323d9dea1e487d7ec4ae50322037aeb78c4ed4e3a13517",
-  "web/src/components/MemoryProductPage.tsx": "1b8f0f2feb10fb11ea45234214c875e382bcc1bde2e2329984809e39713adbcd",
-  "web/src/components/QuickCreateMenu.css": "c115205460938148e9f432bb4c66864c2c153459bc4e3a3109f586cecaeb1b8a",
-  "web/src/components/RelationshipReflections.css": "dd8f266950c7c1db2ac5b327bfb38135f61f01ddd96c6a3197b1e2accdd673fa",
-  "web/src/components/RelationshipReflections.test.tsx": "094450dc20870575b159567e76d217f3c1bd3449a914ee9ca49cab7fe6aec2f2",
-  "web/src/components/TodayPage.css": "9dad3d75c39456a323e79ed55d5795cfaed5eda7e366c0908f74a52f9fa9badd",
-  "web/src/components/TodayPage.test.tsx": "3e61412fae175816d758009ab316289ea4adf19c680405b957cf7da98fce8b26",
-  "web/src/components/TodayPage.tsx": "1aaebc1a956e3c1ad5d51d89e007b069f745cd3feea7d659e4036eaf28f12a68",
-  "web/src/components/WirDesign.css": "118cad489b5c4d378e4058c645c5e81b3112ce0fc40bf391ca4d606596ab8783",
-  "web/src/i18n/locales/m5s5.ts": "6c94a737b669a06a19150fefaab325641afaa78a238406e19819e51e00f1c4ee",
-  "web/src/i18n/locales/relationshipReflections.ts": "9177ba800762c2b3f6d7f98464ba18d5f923d533df03f50ea8a476e070404305",
-  "web/src/shell.css": "c6a774c6c00a3b6d5ec08525577e67884e54f4a160a350b8e352cde17923fff8"
+  "sources": [
+    {
+      "path": "backend/openapi.json",
+      "sha256": "0773a6ea523a114cefbee2ea645c3b379236bfb22948fb4361f696550bcd9b0d"
+    },
+    {
+      "path": "backend/src/eimir/api/v1/dashboard.py",
+      "sha256": "c63c0cfd8d6ca8eba3fdc2a51ecb7dc5ac9eac6c0a96bbc05f18ddb79c2bac4b"
+    },
+    {
+      "path": "backend/src/eimir/dashboard/service.py",
+      "sha256": "6d72030db572cebee5aba15b81b429eadf426c3682f73eecffede72a2b077040"
+    },
+    {
+      "path": "backend/tests/integration/test_relationship_reflections.py",
+      "sha256": "cf320453dc048829f8f2b9ed9d2b0b1ff0419264942a08ba662e64f12b5f23fb"
+    },
+    {
+      "path": "web/e2e/tests/floating-bottom-nav.spec.ts",
+      "sha256": "c9d3f408e70e842d962c28f6e2a680e589acb5b37b99b19d3431139ea9dd1bc7"
+    },
+    {
+      "path": "web/e2e/tests/today-daily-quote.spec.ts",
+      "sha256": "0d9a917314c165074ee5c7edbe0285d810aec8c40e827d0f5210bbb9b9d52537"
+    },
+    {
+      "path": "web/src/api/generated/docs/DashboardAnticipation.md",
+      "sha256": "a7a59e92e42f2e36f28c18aaa924527af5142d7031e96ca445ca91e234c5b454"
+    },
+    {
+      "path": "web/src/api/generated/models/DashboardAnticipation.ts",
+      "sha256": "0c6e05e9c39d848c5a2e0742764fb9101c3c2912c576b0ca371dbf4432af7710"
+    },
+    {
+      "path": "web/src/client/memoryProduct.ts",
+      "sha256": "ad5ec27f967559cb61e022159b1ade0577a14fdc9962bc14ea182d9168e4f2f6"
+    },
+    {
+      "path": "web/src/components/AnticipationCard.tsx",
+      "sha256": "66ba0773b12b1145510253c0b5ed4a6325c555e653309e025f315389b8c2e6d8"
+    },
+    {
+      "path": "web/src/components/AppShell.tsx",
+      "sha256": "f22e6ceb0fba296a5952682a9ce8d0abd1397d1c984e8a21166785d67ea3e945"
+    },
+    {
+      "path": "web/src/components/DailyQuoteCard.css",
+      "sha256": "abb1dfc28554d7cb9708999783f7645e0aeb66c8bf80d7e237f94fbc93b5befc"
+    },
+    {
+      "path": "web/src/components/DailyQuoteCard.test.tsx",
+      "sha256": "6197871fe0f7d26f30778289617a7a3f8c96ca2b757673573a1041f7475d2c16"
+    },
+    {
+      "path": "web/src/components/DailyQuoteCard.tsx",
+      "sha256": "c1523878e7be576989323d9dea1e487d7ec4ae50322037aeb78c4ed4e3a13517"
+    },
+    {
+      "path": "web/src/components/MemoryProductPage.tsx",
+      "sha256": "1b8f0f2feb10fb11ea45234214c875e382bcc1bde2e2329984809e39713adbcd"
+    },
+    {
+      "path": "web/src/components/QuickCreateMenu.css",
+      "sha256": "c115205460938148e9f432bb4c66864c2c153459bc4e3a3109f586cecaeb1b8a"
+    },
+    {
+      "path": "web/src/components/RelationshipReflections.css",
+      "sha256": "dd8f266950c7c1db2ac5b327bfb38135f61f01ddd96c6a3197b1e2accdd673fa"
+    },
+    {
+      "path": "web/src/components/RelationshipReflections.test.tsx",
+      "sha256": "094450dc20870575b159567e76d217f3c1bd3449a914ee9ca49cab7fe6aec2f2"
+    },
+    {
+      "path": "web/src/components/TodayPage.css",
+      "sha256": "9dad3d75c39456a323e79ed55d5795cfaed5eda7e366c0908f74a52f9fa9badd"
+    },
+    {
+      "path": "web/src/components/TodayPage.test.tsx",
+      "sha256": "3e61412fae175816d758009ab316289ea4adf19c680405b957cf7da98fce8b26"
+    },
+    {
+      "path": "web/src/components/TodayPage.tsx",
+      "sha256": "1aaebc1a956e3c1ad5d51d89e007b069f745cd3feea7d659e4036eaf28f12a68"
+    },
+    {
+      "path": "web/src/components/WirDesign.css",
+      "sha256": "118cad489b5c4d378e4058c645c5e81b3112ce0fc40bf391ca4d606596ab8783"
+    },
+    {
+      "path": "web/src/i18n/locales/m5s5.ts",
+      "sha256": "6c94a737b669a06a19150fefaab325641afaa78a238406e19819e51e00f1c4ee"
+    },
+    {
+      "path": "web/src/i18n/locales/relationshipReflections.ts",
+      "sha256": "9177ba800762c2b3f6d7f98464ba18d5f923d533df03f50ea8a476e070404305"
+    },
+    {
+      "path": "web/src/shell.css",
+      "sha256": "c6a774c6c00a3b6d5ec08525577e67884e54f4a160a350b8e352cde17923fff8"
+    }
+  ]
 }

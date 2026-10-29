@@ -213,3 +213,14 @@ complete Today clarity matrix, as well as TypeScript and token checks. The new
 are separate from the earlier borderless proof. A [390px combined viewport](integration/today-clarity-docked-390-viewport.webp)
 shows the current result. No additional product behavior was changed during
 integration. CI on the published final head remains required before merge.
+
+
+## Secret-scan evidence classification
+
+The history scan flagged three source-checksum entries as generic API keys. Each
+value was recomputed from its exact committed public source and matched byte for
+byte: one OpenAPI checksum and two design-token checksums. The existing ignore
+file now records only those three immutable commit/path/rule/line fingerprints.
+No scanner rule or whole path is excluded. Current ledgers separate `path` and
+`sha256` fields to avoid resembling credential assignments; all recorded hashes
+remain unchanged.

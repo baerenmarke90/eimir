@@ -1,14 +1,12 @@
 :root {
   --shell-floating-nav-height: 3.75rem;
   --shell-floating-nav-offset: 0px;
-  --shell-floating-nav-footprint: var(
-    --shell-bottom-nav-measured-height,
-    calc(
-      var(--shell-floating-nav-height) +
-      var(--shell-floating-nav-offset) +
-      var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
-    )
+  --shell-bottom-nav-measured-height: calc(
+    var(--shell-floating-nav-height) +
+    var(--shell-floating-nav-offset) +
+    var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
   );
+  --shell-floating-nav-footprint: var(--shell-bottom-nav-measured-height);
   --shell-content-bottom-clearance: calc(
     var(--shell-floating-nav-footprint) +
     var(--space-6)

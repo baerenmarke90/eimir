@@ -7,7 +7,8 @@ export function handleNativeBackButton(canGoBack: boolean): void {
   if (canGoBack) {
     window.history.back();
   } else {
-    void App.exitApp();
+    // Root Back follows Android task behavior and retains the live WebView.
+    void App.minimizeApp();
   }
 }
 

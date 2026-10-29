@@ -9,12 +9,14 @@ import { useTranslation } from '../i18n';
  */
 export function PlanScheduleFields({
   idPrefix,
+  formId,
   defaultDate = '',
   defaultTime = '',
   defaultEnd = '',
   includeEnd = false,
 }: {
   idPrefix: string;
+  formId?: string;
   defaultDate?: string;
   defaultTime?: string;
   defaultEnd?: string;
@@ -84,6 +86,7 @@ export function PlanScheduleFields({
     <>
       <label htmlFor={`${idPrefix}-date`}>{t('m5s3.plan.plannedDate')}</label>
       <input
+        form={formId}
         ref={dateRef}
         id={`${idPrefix}-date`}
         name="plannedDate"
@@ -105,6 +108,7 @@ export function PlanScheduleFields({
           : t('m5s3.plan.plannedTime')}
       </label>
       <input
+        form={formId}
         id={`${idPrefix}-time`}
         name="plannedTime"
         type="time"
@@ -148,6 +152,7 @@ export function PlanScheduleFields({
               {t('m5s3.plan.endTime')}
             </label>
             <input
+              form={formId}
               ref={endTimeRef}
               id={`${idPrefix}-end-time`}
               type="time"
@@ -160,6 +165,7 @@ export function PlanScheduleFields({
 
             <label className="choice-row planning-schedule-cross-day">
               <input
+                form={formId}
                 type="checkbox"
                 checked={crossDay}
                 disabled={!showEnd}
@@ -178,6 +184,7 @@ export function PlanScheduleFields({
                   {t('m5s3.plan.endDate')}
                 </label>
                 <input
+                  form={formId}
                   id={`${idPrefix}-end-date`}
                   type="date"
                   min={date}
@@ -196,7 +203,12 @@ export function PlanScheduleFields({
             ) : null}
           </div>
 
-          <input type="hidden" name="plannedEnd" value={endValue} />
+          <input
+            form={formId}
+            type="hidden"
+            name="plannedEnd"
+            value={endValue}
+          />
         </>
       ) : null}
     </>

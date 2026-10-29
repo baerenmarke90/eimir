@@ -149,6 +149,7 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     """
     from eimir.heart_moments.models import HeartMoment
     from eimir.people.models import RelatedPerson
+    from eimir.plans.models import Plan
 
     memory_id = session.execute(
         select(MemoryAttachment.memory_id).where(MemoryAttachment.attachment_id == attachment_id)
@@ -167,6 +168,12 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     ).scalar_one_or_none()
     if related_person_id is not None:
         return "RELATED_PERSON", related_person_id
+
+    plan_id = session.execute(
+        select(Plan.id).where(Plan.cover_attachment_id == attachment_id)
+    ).scalar_one_or_none()
+    if plan_id is not None:
+        return "PLAN", plan_id
 
     account_id = session.execute(
         select(AccountProfileAttachment.account_id).where(

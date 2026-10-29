@@ -227,8 +227,9 @@ class Settings(IdentityCompatibleSettings):
     # Operator-owned Photon origin; an empty value disables reverse lookup.
     # Only canonical saved photo coordinates and language reach this service.
     photo_place_geocoding_url: str = "https://photon.komoot.io"
+    place_search_url: str = "https://photon.komoot.io"
 
-    @field_validator("photo_place_geocoding_url")
+    @field_validator("photo_place_geocoding_url", "place_search_url")
     @classmethod
     def _photo_place_geocoding_origin(cls, value: str) -> str:
         from eimir.providers.photon import validate_photon_url

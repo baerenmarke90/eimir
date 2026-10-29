@@ -4,6 +4,7 @@ const config: CapacitorConfig = {
   appId: 'de.sidebyside.app',
   appName: 'eimir.',
   webDir: 'dist',
+  appendUserAgent: 'eimir/1.0 (+https://github.com/baerenmarke90/eimir)',
   android: {
     path: '../android',
   },

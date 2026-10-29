@@ -1,5 +1,5 @@
 import { authorDisplayName } from '../client/authorPresentation';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   useIsMutating,
   useMutation,
@@ -8,10 +8,20 @@ import {
 } from '@tanstack/react-query';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
-import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
+import type { PlanUpdate } from '../api/generated/models/PlanUpdate';
+import { createReferenceApis } from '../client/referenceFlow';
+import {
+  uploadMemoryDraftAttachment,
+  type DraftUploadPhase,
+} from '../client/memoryAttachmentDraft';
+import { assertOnlineWrite } from '../client/connectivity';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
-import { normalizeClientError } from '../client/problemDetails';
+import {
+  ClientProblemError,
+  normalizeClientError,
+} from '../client/problemDetails';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { formatCalendarDate } from '../client/formatRecency';
 import { appRoutePath } from '../client/routes';
@@ -32,12 +42,18 @@ import {
 } from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
 import { useTaskOrigin } from '../client/taskOrigin';
-import { DestinationIcon } from './DestinationIcon';
-import { ListEntryIconButton } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { PlanStoryContinuation } from './PlanStoryContinuation';
-import { PlanAnticipationControl } from './PlanAnticipationControl';
+import { PreferenceSwitch } from './PreferenceSwitch';
+import { PlanCover, PlanCoverField } from './PlanCover';
+import { PlaceMapPicker, type PlaceMapSelection } from './PlaceMapPicker';
+import {
+  usePlanningEditorLifecycle,
+  PlanningDiscardConfirmation,
+} from './PlanningEditorLifecycle';
+import { placeDetailPath } from '../client/routes';
+import { Link } from 'react-router-dom';
 import { ProblemState } from './ProblemState';
 import { usePlanCompletion } from './usePlanCompletion';
 import { UiState } from './UiState';
@@ -55,9 +71,13 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
 export function PlanProductPage({
   apis,
   spaceId,
+  apiBaseUrl,
+  accessToken,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
+  apiBaseUrl?: string;
+  accessToken?: string;
 }) {
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
@@ -70,6 +90,19 @@ export function PlanProductPage({
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<PlanDetail | null>(null);
+  const [editDirty, setEditDirty] = useState(false);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverRemoved, setCoverRemoved] = useState(false);
+  const [coverSensitive, setCoverSensitive] = useState(false);
+  const [anticipation, setAnticipation] = useState(false);
+  const [selectedPlaceId, setSelectedPlaceId] = useState('');
+  const [uploadPhase, setUploadPhase] = useState<DraftUploadPhase | null>(null);
+  const readyCovers = useRef(new WeakMap<File, string>());
+  const uploadController = useRef<AbortController | null>(null);
+  const editTitle = useRef<HTMLInputElement>(null);
+  const editTrigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => () => uploadController.current?.abort(), []);
   const key = authorSummaryQueryKeys.planDetail(spaceId, planId);
   const planWriteKey = ['plan-write', spaceId, planId] as const;
   const otherWritePending =
@@ -101,68 +134,108 @@ export function PlanProductPage({
 
   const updateMutation = useMutation({
     mutationKey: planWriteKey,
-    mutationFn: ({
-      plan,
-      title,
-      description,
-      placeId,
-      experiencedOn,
-    }: {
+    networkMode: 'always',
+    mutationFn: async (intent: {
       plan: PlanDetail;
-      title: string;
-      description: string | null;
-      placeId: string | null;
-      experiencedOn?: Date;
-    }) =>
-      apiCall(() =>
+      values: PlanUpdate;
+      file: File | null;
+      ownsRead?: () => boolean;
+    }) => {
+      const { plan, values, file } = intent;
+      const ownsRead = captureAuthorizedQuery(queryClient, key);
+      intent.ownsRead = ownsRead;
+      assertOnlineWrite();
+      const next = { ...values };
+      if (file) {
+        if (!apiBaseUrl || !accessToken)
+          throw new Error('Plan upload transport unavailable');
+        let attachmentId = readyCovers.current.get(file);
+        if (!attachmentId) {
+          const controller = new AbortController();
+          uploadController.current = controller;
+          try {
+            const ready = await uploadMemoryDraftAttachment(
+              createReferenceApis(apiBaseUrl, accessToken),
+              apiBaseUrl,
+              accessToken,
+              spaceId,
+              file,
+              setUploadPhase,
+              fetch,
+              { signal: controller.signal },
+            );
+            attachmentId = ready.attachmentId;
+            readyCovers.current.set(file, attachmentId);
+          } finally {
+            setUploadPhase(null);
+          }
+        }
+        next.coverAttachmentId = attachmentId;
+      }
+      assertOnlineWrite();
+      if (!ownsRead()) throw new ClientProblemError('permission');
+      return apiCall(() =>
         apis.plans.updatePlan({
           spaceId,
           planId: plan.id,
           ifMatch: planningIfMatch(plan),
-          planUpdate: { title, description, placeId, experiencedOn },
+          planUpdate: next,
         }),
-      ),
-    onSuccess: async (data) => {
+      );
+    },
+    onSuccess: async (data, intent) => {
+      if (!intent.ownsRead?.()) return;
       await commitPlan(data);
       setIsEditing(false);
       setConfirmDelete(false);
     },
   });
 
-  const scheduleMutation = useMutation({
-    mutationKey: planWriteKey,
-    mutationFn: ({
-      plan,
-      schedule,
-    }: {
-      plan: PlanDetail;
-      schedule: PlanSchedule;
-    }) =>
-      apiCall(() =>
-        apis.plans.schedulePlan({
-          spaceId,
-          planId: plan.id,
-          ifMatch: planningIfMatch(plan),
-          planSchedule: schedule,
-        }),
-      ),
-    onSuccess: commitPlan,
-  });
-  const unscheduleMutation = useMutation({
-    mutationKey: planWriteKey,
-    mutationFn: (plan: PlanDetail) =>
-      apiCall(() =>
-        apis.plans.unschedulePlan({
-          spaceId,
-          planId: plan.id,
-          ifMatch: planningIfMatch(plan),
-        }),
-      ),
-    onSuccess: commitPlan,
-  });
   const completion = usePlanCompletion({ apis, spaceId, planId });
   const completing = completion.isPending;
-  const writesPending = completing || otherWritePending;
+  const placeWritePending =
+    useIsMutating({ mutationKey: ['plan-place-create', spaceId, planId] }) > 0;
+  const writesPending = completing || otherWritePending || placeWritePending;
+  const editorLifecycle = usePlanningEditorLifecycle({
+    isActive: isEditing,
+    isDirty: editDirty,
+    isPending: writesPending,
+    initialFocusRef: editTitle,
+    restoreFocusRef: editTrigger,
+    onEscape: () => Boolean(document.querySelector('dialog[open]')),
+    onClose: () => {
+      setIsEditing(false);
+      setConfirmDelete(false);
+    },
+  });
+  const createPlaceMutation = useMutation({
+    mutationKey: ['plan-place-create', spaceId, planId],
+    networkMode: 'always',
+    mutationFn: (selection: PlaceMapSelection) =>
+      apiCall(() => {
+        assertOnlineWrite();
+        return apis.places.createPlace({
+          spaceId,
+          placeCreate: {
+            name: selection.name,
+            address: selection.address ?? undefined,
+            latitude: selection.latitude,
+            longitude: selection.longitude,
+          },
+        });
+      }),
+    onSuccess: async (place) => {
+      queryClient.setQueryData(
+        authorSummaryQueryKeys.placeOptions(spaceId),
+        (current: typeof placesQuery.data) => [
+          ...(current ?? []).filter((item) => item.id !== place.id),
+          place,
+        ],
+      );
+      setSelectedPlaceId(place.id);
+      setEditDirty(true);
+    },
+  });
   const returnMutation = useMutation({
     mutationKey: planWriteKey,
     mutationFn: (plan: PlanDetail) =>
@@ -237,31 +310,36 @@ export function PlanProductPage({
 
   function submitEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!plan || isPlanWritePending()) return;
+    if (!plan || isPlanWritePending() || createPlaceMutation.isPending) return;
     const data = new FormData(event.currentTarget);
     const description = String(data.get('description')).trim();
     const placeId = String(data.get('placeId')).trim();
     const experiencedOn = String(data.get('experiencedOn') ?? '').trim();
     updateMutation.mutate({
-      plan,
-      title: String(data.get('title')).trim(),
-      description: description || null,
-      placeId: placeId || null,
-      experiencedOn: experiencedOn ? dateFromInput(experiencedOn) : undefined,
+      plan: editingPlan ?? plan,
+      file: coverFile,
+      values: {
+        title: String(data.get('title')).trim(),
+        description: description || null,
+        placeId: placeId || null,
+        experiencedOn: experiencedOn ? dateFromInput(experiencedOn) : undefined,
+        anticipationEnabled: anticipation,
+        ...(plan.status !== 'COMPLETED'
+          ? {
+              schedule:
+                planScheduleFromInputs(
+                  String(data.get('plannedDate') ?? ''),
+                  String(data.get('plannedTime') ?? ''),
+                  String(data.get('plannedEnd') ?? ''),
+                ) ?? null,
+            }
+          : {}),
+        ...(coverRemoved ? { coverAttachmentId: null } : {}),
+        ...(coverFile || plan.coverAttachment
+          ? { coverIsSensitive: coverSensitive }
+          : {}),
+      },
     });
-  }
-
-  function submitSchedule(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!plan || isPlanWritePending()) return;
-    const data = new FormData(event.currentTarget);
-    const schedule = planScheduleFromInputs(
-      String(data.get('plannedDate') ?? ''),
-      String(data.get('plannedTime') ?? ''),
-      String(data.get('plannedEnd') ?? ''),
-    );
-    if (!schedule) return;
-    scheduleMutation.mutate({ plan, schedule });
   }
 
   function submitComplete(event: FormEvent<HTMLFormElement>) {
@@ -274,11 +352,7 @@ export function PlanProductPage({
     completion.complete({ plan, experiencedOn });
   }
 
-  const lifecycleError =
-    scheduleMutation.error ||
-    unscheduleMutation.error ||
-    completion.error ||
-    returnMutation.error;
+  const lifecycleError = completion.error || returnMutation.error;
 
   const placeName = plan.placeId
     ? (placesQuery.data?.find((place) => place.id === plan.placeId)?.name ??
@@ -306,7 +380,9 @@ export function PlanProductPage({
             type="button"
             className="back-link tertiary"
             onClick={() =>
-              requestReturn(originKey, `${appRoutePath('plan')}#plans`)
+              isEditing
+                ? editorLifecycle.requestClose()
+                : requestReturn(originKey, `${appRoutePath('plan')}#plans`)
             }
           >
             {t(
@@ -320,8 +396,11 @@ export function PlanProductPage({
         titleEditor={
           isEditing ? (
             <input
+              ref={editTitle}
+              disabled={writesPending}
               form="plan-edit-form"
               name="title"
+              onChange={() => setEditDirty(true)}
               required
               maxLength={200}
               defaultValue={plan.title}
@@ -331,19 +410,38 @@ export function PlanProductPage({
         }
         titleAction={
           plan.capabilities.canEdit && !isEditing ? (
-            <ListEntryIconButton
-              icon="edit"
-              className="tertiary"
-              label={t('common.edit')}
+            <button
+              type="button"
+              ref={editTrigger}
+              className="secondary"
               disabled={writesPending}
               onClick={() => {
-                if (!isPlanWritePending()) setIsEditing(true);
+                if (!isPlanWritePending()) {
+                  setEditingPlan(plan);
+                  setIsEditing(true);
+                  setEditDirty(false);
+                  setCoverFile(null);
+                  setCoverRemoved(false);
+                  setCoverSensitive(plan.coverAttachment?.isSensitive ?? false);
+                  setAnticipation(plan.anticipationEnabled ?? false);
+                  setSelectedPlaceId(plan.placeId ?? '');
+                }
               }}
-            />
+            >
+              {t('common.edit')}
+            </button>
           ) : undefined
         }
       />
 
+      {!isEditing ? (
+        <PlanCover
+          plan={plan}
+          spaceId={spaceId}
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+        />
+      ) : null}
       <section
         className="planning-facts planen-detail-summary"
         aria-label={t('m5s3.plan.scheduleFacts')}
@@ -355,9 +453,11 @@ export function PlanProductPage({
           <p className="planen-detail-status">{planStatusWord(t, plan)}</p>
         ) : null}
         <p className="planen-detail-meta">
-          {placeName
-            ? `${t('m5s3.plan.placeLabel', { name: placeName })} · `
-            : ''}
+          {placeName && plan.placeId ? (
+            <>
+              <Link to={placeDetailPath(plan.placeId)}>{placeName}</Link> ·{' '}
+            </>
+          ) : null}
           {t('m5s3.overview.createdBy', {
             name: plan.creator.isFormerMember
               ? authorDisplayName(plan.creator)
@@ -389,9 +489,61 @@ export function PlanProductPage({
 
       <div className="planning-detail-grid">
         {isEditing ? (
-          <section id="plan-edit-section" className="planning-subsection">
+          <section
+            id="plan-edit-section"
+            className="planning-subsection"
+            onChange={() => setEditDirty(true)}
+          >
             <h2>{t('m5s3.common.edit')}</h2>
-            <div className="form-grid">
+            {editorLifecycle.showDiscardConfirm ? (
+              <PlanningDiscardConfirmation
+                onKeepEditing={editorLifecycle.keepEditing}
+                onDiscard={editorLifecycle.discard}
+              />
+            ) : null}
+            <PlanCoverField
+              file={coverFile}
+              removed={coverRemoved}
+              sensitive={coverSensitive}
+              disabled={writesPending}
+              existing={
+                plan.coverAttachment ? (
+                  <PlanCover
+                    plan={plan}
+                    spaceId={spaceId}
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={accessToken}
+                  />
+                ) : undefined
+              }
+              onFile={(file) => {
+                setCoverFile(file);
+                setCoverRemoved(false);
+                setEditDirty(true);
+              }}
+              onRemove={() => {
+                setCoverFile(null);
+                setCoverRemoved(true);
+                setEditDirty(true);
+              }}
+              onSensitive={(value) => {
+                setCoverSensitive(value);
+                setEditDirty(true);
+              }}
+            />
+            {uploadPhase ? (
+              <p role="status">
+                {t(
+                  uploadPhase === 'uploading'
+                    ? 'm5s3.planImage.uploading'
+                    : 'm5s3.planImage.validating',
+                )}
+              </p>
+            ) : null}
+            <fieldset
+              className="form-grid planning-editor-fields"
+              disabled={writesPending}
+            >
               <label htmlFor="plan-edit-description">
                 {t('m5s3.common.description')}
               </label>
@@ -407,7 +559,8 @@ export function PlanProductPage({
                 form="plan-edit-form"
                 id="plan-edit-place"
                 name="placeId"
-                defaultValue={plan.placeId ?? ''}
+                value={selectedPlaceId}
+                onChange={(event) => setSelectedPlaceId(event.target.value)}
               >
                 <option value="">{t('m5s3.common.noPlace')}</option>
                 {placesQuery.data?.map((place) => (
@@ -416,6 +569,43 @@ export function PlanProductPage({
                   </option>
                 ))}
               </select>
+              <PlaceMapPicker
+                api={apis.places}
+                spaceId={spaceId}
+                disabled={writesPending || createPlaceMutation.isPending}
+                onSelect={(selection) => createPlaceMutation.mutate(selection)}
+              />
+              {createPlaceMutation.error ? (
+                <ProblemState error={createPlaceMutation.error} />
+              ) : null}
+              {plan.status !== 'COMPLETED' ? (
+                <>
+                  <PlanScheduleFields
+                    formId="plan-edit-form"
+                    idPrefix="plan-schedule"
+                    defaultDate={planScheduleDateInput(editingPlan ?? plan)}
+                    defaultTime={planScheduleTimeInput(editingPlan ?? plan)}
+                    defaultEnd={localDateTimeInput(
+                      (editingPlan ?? plan).plannedEnd,
+                    )}
+                    includeEnd
+                  />
+                  <PreferenceSwitch
+                    label={t('relationshipReflections.anticipation.show')}
+                    description={t('relationshipReflections.anticipation.help')}
+                    checked={anticipation}
+                    disabled={writesPending}
+                    onCheckedChange={(value) => {
+                      setAnticipation(value);
+                      setEditDirty(true);
+                    }}
+                  />
+                </>
+              ) : null}
+              <details>
+                <summary>{t('m5s3.plan.sharedTitle')}</summary>
+                <p>{t('m5s3.plan.sharedBody')}</p>
+              </details>
               {plan.status === 'COMPLETED' ? (
                 <>
                   <label htmlFor="plan-edit-experienced">
@@ -444,8 +634,7 @@ export function PlanProductPage({
                   type="button"
                   className="tertiary"
                   onClick={() => {
-                    setIsEditing(false);
-                    setConfirmDelete(false);
+                    editorLifecycle.requestClose();
                   }}
                 >
                   {t('common.cancel')}
@@ -454,10 +643,20 @@ export function PlanProductPage({
               {updateMutation.error ? (
                 <ProblemState
                   error={updateMutation.error}
-                  onRetry={() => void planQuery.refetch()}
+                  onRetry={() => {
+                    void planQuery.refetch().then((result) => {
+                      if (result.data && !result.error) {
+                        setEditingPlan((current) =>
+                          current
+                            ? { ...current, version: result.data.version }
+                            : current,
+                        );
+                      }
+                    });
+                  }}
                 />
               ) : null}
-            </div>
+            </fieldset>
 
             {plan.capabilities.canDelete ? (
               <div style={{ marginTop: 'var(--space-8)' }}>
@@ -523,35 +722,6 @@ export function PlanProductPage({
           </section>
         ) : null}
 
-        {!isEditing ? (
-          <div
-            className="planen-shared-note"
-            role="note"
-            aria-label={t('m5s3.plan.sharedTitle')}
-          >
-            <span className="planen-shared-note-icon" aria-hidden="true">
-              <DestinationIcon icon="people" />
-            </span>
-            <div>
-              <strong>{t('m5s3.plan.sharedTitle')}</strong>
-              <p>{t('m5s3.plan.sharedBody')}</p>
-            </div>
-          </div>
-        ) : null}
-
-        {!isEditing &&
-        plan.status === 'PLANNED' &&
-        typeof plan.anticipationEnabled === 'boolean' &&
-        plan.capabilities.canEdit ? (
-          <PlanAnticipationControl
-            key={`${spaceId}:${plan.id}`}
-            apis={apis}
-            spaceId={spaceId}
-            plan={plan}
-            disabled={writesPending}
-          />
-        ) : null}
-
         {plan.status === 'COMPLETED' && completion.isConfirmed ? (
           <PlanStoryContinuation
             apis={apis}
@@ -568,92 +738,55 @@ export function PlanProductPage({
           </section>
         ) : null}
 
-        {showsLifecycle ? (
-          <details className="planen-operations">
-            <summary>{t('m5s3.plan.actionsHeading')}</summary>
-            <section className="planning-subsection">
-              <h2>{t('m5s3.plan.lifecycleHeading')}</h2>
-              <form className="form-grid" onSubmit={submitSchedule}>
-                <fieldset
-                  className="planen-lifecycle-fieldset"
-                  disabled={writesPending}
-                >
-                  <PlanScheduleFields
-                    idPrefix="plan-schedule"
-                    defaultDate={planScheduleDateInput(plan)}
-                    defaultTime={planScheduleTimeInput(plan)}
-                    defaultEnd={localDateTimeInput(plan.plannedEnd)}
-                    includeEnd
-                  />
-                </fieldset>
-                <div className="form-actions">
-                  <button type="submit" disabled={writesPending}>
-                    {plan.status === 'PLANNED'
-                      ? t('m5s3.plan.reschedule')
-                      : t('m5s3.plan.schedule')}
-                  </button>
-                  {plan.status === 'PLANNED' ? (
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => {
-                        if (!isPlanWritePending())
-                          unscheduleMutation.mutate(plan);
-                      }}
-                      disabled={writesPending}
-                    >
-                      {t('m5s3.plan.unschedule')}
-                    </button>
-                  ) : null}
-                </div>
-              </form>
-
-              {plan.sourceWishId ? (
-                <button
-                  type="button"
-                  className="tertiary"
-                  onClick={() => {
-                    if (!isPlanWritePending()) returnMutation.mutate(plan);
-                  }}
-                  disabled={writesPending}
-                >
-                  {t('m5s3.plan.returnToWish')}
-                </button>
-              ) : null}
-              {lifecycleError ? (
-                <ProblemState
-                  error={lifecycleError}
-                  onRetry={() => void planQuery.refetch()}
-                />
-              ) : null}
-              <form
-                className="planen-complete-form"
-                onSubmit={submitComplete}
-                aria-label={t('m5s3.plan.complete')}
+        {isEditing && plan.sourceWishId ? (
+          <section className="planning-subsection">
+            <button
+              type="button"
+              className="tertiary"
+              onClick={() => {
+                if (!isPlanWritePending()) returnMutation.mutate(plan);
+              }}
+              disabled={writesPending}
+            >
+              {t('m5s3.plan.returnToWish')}
+            </button>
+          </section>
+        ) : null}
+        {!isEditing && showsLifecycle ? (
+          <section className="planen-completion-action">
+            {lifecycleError ? (
+              <ProblemState
+                error={lifecycleError}
+                onRetry={() => void planQuery.refetch()}
+              />
+            ) : null}
+            <form
+              className="planen-complete-form"
+              onSubmit={submitComplete}
+              aria-label={t('m5s3.plan.complete')}
+            >
+              <label htmlFor="plan-complete-date">
+                {t('m5s3.plan.experiencedOn')}
+              </label>
+              <input
+                id="plan-complete-date"
+                name="experiencedOn"
+                type="date"
+                required
+                readOnly={writesPending}
+                defaultValue={dateOnlyInput(new Date())}
+              />
+              <button
+                type="submit"
+                className="planen-complete-cta"
+                aria-disabled={writesPending}
               >
-                <label htmlFor="plan-complete-date">
-                  {t('m5s3.plan.experiencedOn')}
-                </label>
-                <input
-                  id="plan-complete-date"
-                  name="experiencedOn"
-                  type="date"
-                  required
-                  readOnly={writesPending}
-                  defaultValue={dateOnlyInput(new Date())}
-                />
-                <button
-                  type="submit"
-                  className="planen-complete-cta"
-                  aria-disabled={writesPending}
-                >
-                  {completion.pendingDay
-                    ? t('m5s3.common.saving')
-                    : t('m5s3.plan.complete')}
-                </button>
-              </form>
-            </section>
-          </details>
+                {completion.pendingDay
+                  ? t('m5s3.common.saving')
+                  : t('m5s3.plan.complete')}
+              </button>
+            </form>
+          </section>
         ) : null}
       </div>
     </div>

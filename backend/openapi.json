@@ -500,6 +500,7 @@
               "MEMORY",
               "HEART_MOMENT",
               "RELATED_PERSON",
+              "PLAN",
               "NONE"
             ],
             "title": "Parenttype",
@@ -5546,6 +5547,84 @@
         "title": "PlaceDetail",
         "type": "object"
       },
+      "PlaceLookupCandidate": {
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "latitude": {
+            "title": "Latitude",
+            "type": "number"
+          },
+          "longitude": {
+            "title": "Longitude",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "address",
+          "latitude",
+          "longitude"
+        ],
+        "title": "PlaceLookupCandidate",
+        "type": "object"
+      },
+      "PlaceLookupRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "locale": {
+            "default": "en",
+            "maxLength": 16,
+            "title": "Locale",
+            "type": "string"
+          },
+          "query": {
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "PlaceLookupRequest",
+        "type": "object"
+      },
+      "PlaceLookupResult": {
+        "properties": {
+          "attribution": {
+            "default": "© OpenStreetMap contributors",
+            "title": "Attribution",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PlaceLookupCandidate"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "PlaceLookupResult",
+        "type": "object"
+      },
       "PlacePage": {
         "properties": {
           "hasMore": {
@@ -5654,6 +5733,16 @@
         "additionalProperties": false,
         "description": "Direct Plan creation with an optional atomic schedule.\n\nLifecycle state remains server-owned. Omitting ``schedule`` creates an\n``IDEA``; supplying a valid date-only or timed schedule creates a\n``PLANNED`` Plan in the same transaction.",
         "properties": {
+          "coverAttachmentId": {
+            "format": "uuid",
+            "title": "Coverattachmentid",
+            "type": "string"
+          },
+          "coverIsSensitive": {
+            "default": false,
+            "title": "Coverissensitive",
+            "type": "boolean"
+          },
           "description": {
             "title": "Description",
             "type": "string"
@@ -5687,6 +5776,16 @@
           },
           "capabilities": {
             "$ref": "#/components/schemas/ResourceCapabilities"
+          },
+          "coverAttachment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttachmentSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "createdAt": {
             "format": "date-time",
@@ -5918,10 +6017,26 @@
       },
       "PlanUpdate": {
         "additionalProperties": false,
-        "description": "Domain correction without changing lifecycle status.\n\nSchedule fields remain owned by ``/schedule`` and ``/unschedule``.\n``experiencedOn`` is the one exception: it may be corrected on a completed\nPlan without reopening it (M3-D04).",
+        "description": "Atomic content, image and optional schedule correction.\n\nExplicit null ``schedule`` removes the date; omission preserves it.\n``experiencedOn`` is the one exception: it may be corrected on a completed\nPlan without reopening it (M3-D04).",
         "properties": {
           "anticipationEnabled": {
             "title": "Anticipationenabled",
+            "type": "boolean"
+          },
+          "coverAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverattachmentid"
+          },
+          "coverIsSensitive": {
+            "title": "Coverissensitive",
             "type": "boolean"
           },
           "description": {
@@ -5951,6 +6066,16 @@
               }
             ],
             "title": "Placeid"
+          },
+          "schedule": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanSchedule"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "title": {
             "title": "Title",
@@ -24984,6 +25109,99 @@
           }
         },
         "summary": "Create Place",
+        "tags": [
+          "places"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/places/lookup": {
+      "post": {
+        "description": "Search only on explicit user intent; never persist or log query content.",
+        "operationId": "lookupPlaces",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaceLookupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceLookupResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Lookup Places",
         "tags": [
           "places"
         ]

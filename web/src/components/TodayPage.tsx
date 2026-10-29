@@ -14,6 +14,10 @@ import type { DashboardRelationshipDuration } from '../api/generated/models/Dash
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { dashboardQueryKey } from '../client/dashboardQueries';
+import { DashboardViewToJSON } from '../api/generated/models/DashboardView';
+import { decodeDashboardOverview } from '../client/overviewSnapshots';
+import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
+import { OverviewCacheNotice } from './OverviewCacheNotice';
 import type { DashboardModuleKey } from '../client/dashboardModules';
 import {
   dashboardPreferencesQueryKey,
@@ -705,6 +709,7 @@ function TodayMonthlyStrip({
 }
 export function TodayPage({
   apis,
+  apiBaseUrl,
   spaceId,
   loadMemoryImage,
   profilesApi,
@@ -716,6 +721,7 @@ export function TodayPage({
   account,
 }: {
   apis: M4ProductApis;
+  apiBaseUrl?: string;
   spaceId: string;
   spacesApi?: SpacesApi;
   dailyCheckInsApi?: DailyCheckInsApi;
@@ -733,10 +739,16 @@ export function TodayPage({
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
-  const dashboardQuery = useQuery({
+  const dashboardQuery = useWarmOverviewQuery({
     queryKey: dashboardQueryKey(spaceId),
-    queryFn: () => apiCall(() => apis.dashboard.getDashboard({ spaceId })),
-    retry: false,
+    accountId: account?.id,
+    apiBaseUrl,
+    spaceId,
+    kind: 'dashboard-overview',
+    load: (signal) =>
+      apiCall(() => apis.dashboard.getDashboard({ spaceId }, { signal })),
+    serialize: DashboardViewToJSON,
+    deserialize: (payload) => decodeDashboardOverview(payload, spaceId),
   });
   const spaceConfigurationQuery = useQuery(
     spaceConfigurationQueryOptions(
@@ -746,10 +758,13 @@ export function TodayPage({
     ),
   );
   const supportGesturesEnabled =
+    !dashboardQuery.isCached &&
     spaceConfigurationQuery.data?.configuration.supportGesturesEnabled === true;
   const energyCheckInEnabled =
+    !dashboardQuery.isCached &&
     spaceConfigurationQuery.data?.configuration.energyCheckInEnabled === true;
   const vibeCheckEnabled =
+    !dashboardQuery.isCached &&
     spaceConfigurationQuery.data?.configuration.vibeCheckEnabled === true;
   const sharedAchievementsEnabled =
     spaceConfigurationQuery.data?.configuration.sharedAchievementsEnabled ===
@@ -1193,7 +1208,8 @@ export function TodayPage({
     ),
     pinned_collection: (
       <>
-        {pinnedCollectionVisible &&
+        {!dashboardQuery.isCached &&
+        pinnedCollectionVisible &&
         pinnedCollectionId &&
         pinnedCollectionQuery.data ? (
           <TodayModuleSection
@@ -1365,6 +1381,9 @@ export function TodayPage({
           onRetry={() => dashboardQuery.refetch()}
         />
       )}
+      {dashboardQuery.isCached ? (
+        <OverviewCacheNotice cachedAt={dashboardQuery.cachedAt} />
+      ) : null}
       {/* A failed preferences fetch does not block Today: the configurable
           module stack proceeds with product defaults (visible) rather than
           holding the whole page hostage on a secondary, non-critical

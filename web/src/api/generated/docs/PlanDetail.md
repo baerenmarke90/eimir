@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `anticipationEnabled` | boolean
 `capabilities` | [ResourceCapabilities](ResourceCapabilities.md)
+`coverAttachment` | [AttachmentSummary](AttachmentSummary.md)
 `createdAt` | Date
 `createdBy` | string
 `creator` | [AuthorSummary](AuthorSummary.md)
@@ -34,6 +35,7 @@ import type { PlanDetail } from ''
 const example = {
   "anticipationEnabled": null,
   "capabilities": null,
+  "coverAttachment": null,
   "createdAt": null,
   "createdBy": null,
   "creator": null,

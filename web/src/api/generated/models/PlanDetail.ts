@@ -27,6 +27,13 @@ import {
     AuthorSummaryToJSON,
     AuthorSummaryToJSONTyped,
 } from './AuthorSummary';
+import type { AttachmentSummary } from './AttachmentSummary';
+import {
+    AttachmentSummaryFromJSON,
+    AttachmentSummaryFromJSONTyped,
+    AttachmentSummaryToJSON,
+    AttachmentSummaryToJSONTyped,
+} from './AttachmentSummary';
 import type { PlanStatus } from './PlanStatus';
 import {
     PlanStatusFromJSON,
@@ -53,6 +60,12 @@ export interface PlanDetail {
      * @memberof PlanDetail
      */
     capabilities: ResourceCapabilities;
+    /**
+     * 
+     * @type {AttachmentSummary}
+     * @memberof PlanDetail
+     */
+    coverAttachment?: AttachmentSummary | null;
     /**
      * 
      * @type {Date}
@@ -188,6 +201,7 @@ export function PlanDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         
         'anticipationEnabled': json['anticipationEnabled'] == null ? undefined : json['anticipationEnabled'],
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
+        'coverAttachment': json['coverAttachment'] === undefined ? undefined : json['coverAttachment'] === null ? null : AttachmentSummaryFromJSON(json['coverAttachment']),
         'createdAt': (new Date(json['createdAt'])),
         'createdBy': json['createdBy'],
         'creator': AuthorSummaryFromJSON(json['creator']),
@@ -220,6 +234,7 @@ export function PlanDetailToJSONTyped(value?: PlanDetail | null, ignoreDiscrimin
         
         'anticipationEnabled': value['anticipationEnabled'],
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),
+        'coverAttachment': AttachmentSummaryToJSON(value['coverAttachment']),
         'createdAt': value['createdAt'].toISOString(),
         'createdBy': value['createdBy'],
         'creator': AuthorSummaryToJSON(value['creator']),

@@ -282,3 +282,14 @@ The 53 AppShell/layout tests and TypeScript passed. Fresh images and source
 fingerprints are in [clearance-fix/](clearance-fix/). The existing content and
 focus assertions were retained; no tolerance or timeout was increased.
 The failing current GitHub run is restarted as soon as this fix is published.
+
+## Immediate failure feedback for PR browser runs
+
+PR-critical shards now use the pinned Playwright runner's `--max-failures=1`.
+A confirmed failure after the existing retry stops that shard and uploads its
+diagnostics immediately. Successful runs still execute the full inventory;
+sharding, retries, timeouts, assertions and the full main regression are
+unchanged. The pinned runner implementation counts an unexpected result only
+after retries are exhausted. This implements the Product Owner's request to
+fix and restart as soon as a failure is known, without waiting through the
+rest of a run that has already failed. No third-party component was added.

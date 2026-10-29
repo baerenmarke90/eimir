@@ -45,4 +45,4 @@ Built-in image generation, `ui-mockup`, using the actual baseline 390px screensh
 
 ## Implementation evidence
 
-The final checks and screenshots are recorded here once the complete save → return → reload journey is verified.
+See [source-bound production evidence and acceptance](VALIDATION.md). The complete save → return → reload matrix is verified.

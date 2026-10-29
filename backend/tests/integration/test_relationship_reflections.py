@@ -201,9 +201,16 @@ def test_passport_is_shared_only_couple_scoped_and_respects_duration_preference(
 ):  # type: ignore[no-untyped-def]
     monkeypatch.setattr(dashboard_service.clock, "now", lambda: NOW)
     grant(session, context, capabilities=["relationship.passport"])
-    session.add(Memory(**root(context), payload=MemoryPayload(title="Shared memory")))
     session.add(
-        Memory(**root(context, foreign=True), payload=MemoryPayload(title="Foreign memory"))
+        Memory(
+            **root(context), payload=MemoryPayload(title="Shared memory", body="Our shared story")
+        )
+    )
+    session.add(
+        Memory(
+            **root(context, foreign=True),
+            payload=MemoryPayload(title="Foreign memory", body="A different Space"),
+        )
     )
     for private in (False, True):
         session.add(

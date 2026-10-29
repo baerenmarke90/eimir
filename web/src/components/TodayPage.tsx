@@ -230,7 +230,7 @@ export function TodayModuleSection({
 function RecentItemTypeIcon({ type }: { type: DashboardItemType }) {
   const names: Partial<Record<DashboardItemType, EimirIconName>> = {
     HEART_MOMENT: 'momente',
-    ANNIVERSARY: 'jahrestag',
+    ANNIVERSARY: 'momente',
     BIRTHDAY: 'geburtstag',
     MILESTONE: 'meilensteine',
     CHAPTER: 'kapitel',
@@ -1171,7 +1171,6 @@ export function TodayPage({
             className="today-section-upcoming"
             colorWorld="natural"
             title={t('m5s5.dashboard.upcomingTitle')}
-            kicker={t('m5s5.dashboard.upcomingKicker')}
             headerAction={
               <Link
                 to={appRoutePath('plan')}

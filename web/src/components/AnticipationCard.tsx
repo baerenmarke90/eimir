@@ -52,7 +52,20 @@ export function AnticipationCard({ value }: { value: DashboardAnticipation }) {
       to={planDetailPath(value.planId)}
       className="anticipation-card"
     >
-      <strong>{value.title}</strong>
+      <span className="anticipation-heading">
+        <span className="anticipation-event">
+          <strong>{value.title}</strong>
+          <time
+            className="anticipation-date"
+            dateTime={value.eventOn.toISOString().slice(0, 10)}
+          >
+            {formatCalendarDate(value.eventOn)}
+          </time>
+        </span>
+        <span className="anticipation-open" aria-hidden="true">
+          →
+        </span>
+      </span>
       {timed && remaining > 0 ? (
         <span
           className="anticipation-timer"
@@ -87,10 +100,6 @@ export function AnticipationCard({ value }: { value: DashboardAnticipation }) {
           )}
         </span>
       )}
-      <span className="anticipation-date">
-        {formatCalendarDate(value.eventOn)}
-        <span aria-hidden="true"> →</span>
-      </span>
     </TodayDestinationLink>
   );
 }

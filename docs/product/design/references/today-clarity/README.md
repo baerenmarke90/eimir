@@ -69,6 +69,27 @@ and generated versus authored titles with focused component/browser evidence.
 
 ## Implemented result and verification
 
+### PO layout refinement, 2026-10-29
+
+Before this small follow-up: retain only the localized upcoming heading, group
+the special Plan date tightly with its title above the timer, and use the existing
+heart icon for the anniversary row. The PO correction supersedes the earlier
+generated reference's footer date and double upcoming heading. This is a bounded
+text/icon/alignment refinement of the existing composition, with no new feature,
+interaction, data, capability or design-system primitive. Reuse the semantic
+spacing and supporting-copy roles, a calendar `time` element, the existing heart
+icon and the same card destination. Long titles and dates must continue to wrap
+at 320px/200% text; the timer, reduced motion and dock behavior stay unchanged.
+
+The date is now a semantic calendar date directly below the Plan title in one
+tightly spaced header, with the destination arrow at its trailing edge. The
+countdown follows as a separate reading group. Only the upcoming heading remains;
+the anniversary row reuses the existing outlined heart. Updated 320/360/390/430px,
+Light/Dark, 200% text/safe-area and Expanded browser evidence is retained below.
+The follow-up passed 94 focused component tests, the existing browser matrix with
+axe, changed-runtime lint, TypeScript and production build. One obsolete test
+expectation for the removed double heading was updated to the explicit PO choice.
+
 The bar now fills the bottom edge and safe area; a ResizeObserver keeps content,
 snackbars and the existing create sheet above its actual height. Large-text labels
 and agenda titles wrap instead of losing their meaning to ellipses. Expanded

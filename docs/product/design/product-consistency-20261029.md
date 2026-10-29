@@ -206,3 +206,23 @@ server-ordered companions above an independent, fully loaded chronological
 Diary. Its separate fixture entry proves that Timeline data cannot populate
 Discover, and Discover data cannot substitute for the Diary. It no longer
 requires the superseded isolated Discover tab to suppress all Timeline reads.
+
+The `17ccacf0` API 36 permission attempt exposed an invisible system window:
+its hierarchy contained the permission controls while the screenshot contained
+only the underlying input, and InputDispatcher rejected the tap at the system
+activity's `NO_INPUT_CHANNEL` sink. Android's public
+[framework issue 566540092](https://issuetracker.google.com/issues/566540092)
+reports the matching window/surface inconsistency on this emulator image.
+This is evidence for a targeted infrastructure-job rerun, not proof of that
+report's precise internal cause. The failed result remains recorded; it is not
+counted as native acceptance. No system permission is granted through test setup
+for the actual-file journey.
+
+The Diary-options opener in the large-text task journey uses an exact accessible
+name, distinguishing the Filter button from active-filter removal actions.
+
+The targeted API 36 rerun on the unchanged `17ccacf0` completed successfully,
+including the real Android File → Web upload → API/worker → shared Place journey
+(run `40921139573`, attempt 2). API 28 and 37.1 also remain successful. This
+records the successful run alongside the original platform-window failure;
+acceptance for the subsequent final commit still requires its own fresh checks.

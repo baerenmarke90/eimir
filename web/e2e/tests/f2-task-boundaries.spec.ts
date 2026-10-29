@@ -1297,7 +1297,10 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   await expectNoOverflow(page);
   await page.setViewportSize({ width: 320, height: 844 });
   await page
-    .getByRole('button', { name: storyProducts.storyFilters.toggleButton })
+    .getByRole('button', {
+      name: storyProducts.storyFilters.toggleButton,
+      exact: true,
+    })
     .click();
   const diaryOptions = page.getByRole('dialog', {
     name: storyProducts.storyFilters.aria,

@@ -537,6 +537,7 @@ export function ChapterProductPage({
       <PlanningRelationManager
         apis={apis}
         spaceId={spaceId}
+        ownerName={chapter.title}
         ownerKind="chapter"
         ownerId={chapter.id}
         canManage={chapter.capabilities.canEdit}

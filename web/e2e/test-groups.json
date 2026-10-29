@@ -344,6 +344,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 8,
       "reason": "Personal Wir design selection, confirmed Pro writes, downgrade retention, Free reset and shared Today interactions across Compact/Expanded themes and large text."
+    },
+    "moment-relation-picker.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "Places and Chapters share one content-recognition picker; selection, type-filter continuity, real save/detail/return, privacy-safe search, large text, focus and cancellation must remain coherent."
     }
   }
 }

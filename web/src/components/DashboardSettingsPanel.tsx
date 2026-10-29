@@ -11,6 +11,7 @@ import type { DashboardModulePreferenceList } from '../api/generated/models/Dash
 import type { DashboardModulePreferenceView } from '../api/generated/models/DashboardModulePreferenceView';
 import {
   DASHBOARD_MODULE_CATALOG,
+  isDashboardModuleAvailable,
   type DashboardModuleKey,
 } from '../client/dashboardModules';
 import {
@@ -534,13 +535,16 @@ export function DashboardSettingsPanel({
 
   const orderedKeys = orderedDashboardModuleKeys(preferencesQuery.data);
   const reorder = useListItemReorder({
-    itemIds: orderedKeys,
+    itemIds: orderedKeys.filter(isDashboardModuleAvailable),
     animatePreview: true,
     disabled: preferencesQuery.isPending || Boolean(preferencesQuery.error),
     onReorder: (keys, moved) => {
       const isCurrentQuery = captureAuthorizedQuery(queryClient, queryKey);
       if (!isCurrentQuery()) return;
-      const next = keys as DashboardModuleKey[];
+      const next: DashboardModuleKey[] = [
+        ...(keys as DashboardModuleKey[]),
+        ...orderedKeys.filter((key) => !isDashboardModuleAvailable(key)),
+      ];
       const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moved);
       const position = next.indexOf(moved as DashboardModuleKey) + 1;
       const write: DashboardOrderWrite = {
@@ -560,7 +564,7 @@ export function DashboardSettingsPanel({
           message: t('profileIdentity.dashboardOrderPosition', {
             name: t(entry.labelKey),
             position,
-            total: next.length,
+            total: keys.length,
           }),
         });
       }

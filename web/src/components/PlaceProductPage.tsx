@@ -543,6 +543,7 @@ export function PlaceProductPage({
       <PlanningRelationManager
         apis={apis}
         spaceId={spaceId}
+        ownerName={place.name}
         ownerKind="place"
         ownerId={place.id}
         canManage={place.capabilities.canEdit}

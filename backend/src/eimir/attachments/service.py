@@ -434,13 +434,16 @@ def _require_readable_parent(
     from eimir.heart_moments.models import HeartMoment
     from eimir.memories.models import Memory
     from eimir.people.models import RelatedPerson
+    from eimir.plans.models import Plan
 
     if parent_type == "MEMORY":
-        model: type[Memory] | type[HeartMoment] | type[RelatedPerson] = Memory
+        model: type[Memory] | type[HeartMoment] | type[RelatedPerson] | type[Plan] = Memory
     elif parent_type == "HEART_MOMENT":
         model = HeartMoment
     elif parent_type == "RELATED_PERSON":
         model = RelatedPerson
+    elif parent_type == "PLAN":
+        model = Plan
     else:
         raise Attachment.privacy_absence.error()
     try:

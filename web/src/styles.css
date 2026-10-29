@@ -1246,3 +1246,12 @@ code {
     opacity: 1;
   }
 }
+/* A saved read remains understandable while authoritative data refreshes. */
+.overview-cache-notice {
+  margin-block: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}

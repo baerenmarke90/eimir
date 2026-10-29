@@ -470,6 +470,11 @@
     {
       "parentType": "RELATED_PERSON",
       "requiresParentId": true
+    },
+    {
+      "parentType": "PLAN",
+      "requiresParentId": true,
+      "note": "shared optional Plan cover; authorization is inherited from its bound Plan"
     }
   ]
 }

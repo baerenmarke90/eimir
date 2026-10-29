@@ -72,9 +72,7 @@ describe('PlanProductPage', () => {
     expect(html).toContain('Picnic in the park');
     expect(html).toContain('planen-detail-schedule');
     expect(html).not.toContain('planen-pill-scheduled');
-    expect(html).toContain(
-      i18n.t('m5s3.plan.placeLabel', { name: 'Volkspark' }),
-    );
+    expect(html).toContain('Volkspark');
     expect(html).toContain(i18n.t('m5s3.overview.createdBy', { name: 'Ben' }));
   });
 
@@ -109,11 +107,12 @@ describe('PlanProductPage', () => {
     expect(withoutNotes).not.toContain(i18n.t('m5s3.plan.notesHeading'));
   });
 
-  it('shows the shared-visibility note and the reachable lifecycle/complete controls for an active, editable Plan', () => {
+  it('keeps one named Edit entry and a distinct completion action without management or visibility clutter', () => {
     const html = renderPlan(basePlan());
 
-    expect(html).toContain(i18n.t('m5s3.plan.sharedTitle'));
-    expect(html).toContain(i18n.t('m5s3.plan.lifecycleHeading'));
+    expect(html).not.toContain(i18n.t('m5s3.plan.sharedTitle'));
+    expect(html).not.toContain(i18n.t('m5s3.plan.actionsHeading'));
+    expect(html).toContain(i18n.t('common.edit'));
     expect(html).toContain('planen-complete-cta');
     expect(html).toContain(i18n.t('m5s3.plan.complete'));
   });

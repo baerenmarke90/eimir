@@ -36,6 +36,18 @@ export interface PlanCreate {
      * @type {string}
      * @memberof PlanCreate
      */
+    coverAttachmentId?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PlanCreate
+     */
+    coverIsSensitive?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlanCreate
+     */
     description?: string;
     /**
      * 
@@ -75,6 +87,8 @@ export function PlanCreateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
+        'coverAttachmentId': json['coverAttachmentId'] == null ? undefined : json['coverAttachmentId'],
+        'coverIsSensitive': json['coverIsSensitive'] == null ? undefined : json['coverIsSensitive'],
         'description': json['description'] == null ? undefined : json['description'],
         'placeId': json['placeId'] == null ? undefined : json['placeId'],
         'schedule': json['schedule'] == null ? undefined : PlanScheduleFromJSON(json['schedule']),
@@ -93,6 +107,8 @@ export function PlanCreateToJSONTyped(value?: PlanCreate | null, ignoreDiscrimin
 
     return {
         
+        'coverAttachmentId': value['coverAttachmentId'],
+        'coverIsSensitive': value['coverIsSensitive'],
         'description': value['description'],
         'placeId': value['placeId'],
         'schedule': PlanScheduleToJSON(value['schedule']),

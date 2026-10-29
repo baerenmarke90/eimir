@@ -1,0 +1,52 @@
+.plan-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-content);
+  background: var(--color-surface-subtle);
+}
+.plan-cover img,
+.plan-cover > .sensitive-media-cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.plan-cover .sensitive-media-control {
+  position: absolute;
+  inset-block-end: var(--space-3);
+  inset-inline-end: var(--space-3);
+}
+.plan-cover-placeholder {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: var(--space-4);
+}
+.plan-cover-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+.plan-cover-field .field-help,
+.plan-cover-field .sensitive-media-checkbox {
+  flex-basis: 100%;
+  margin: 0;
+}
+.plan-cover-pick {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.plan-cover-pick input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.plan-cover-pick:focus-within {
+  outline: var(--space-1) solid var(--color-focus);
+  outline-offset: var(--space-1);
+}

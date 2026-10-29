@@ -1,3 +1,4 @@
+import { assertOnlineWrite } from '../client/connectivity';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   useInfiniteQuery,
@@ -18,6 +19,7 @@ import { normalizeClientError } from '../client/problemDetails';
 import { appRoutePath, placeDetailPath } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
+import { PlaceMapPicker, type PlaceMapSelection } from './PlaceMapPicker';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
@@ -49,6 +51,8 @@ export function PlacesOverviewPage({
   const { t } = useTranslation();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const createFormRef = useRef<HTMLFormElement>(null);
+  const [mapChoice, setMapChoice] = useState<PlaceMapSelection>();
   const [coordinateError, setCoordinateError] = useState(false);
   const createActionRef = useRef<HTMLElement>(null);
   const placeRefs = useRef(new Map<string, HTMLAnchorElement>());
@@ -70,6 +74,7 @@ export function PlacesOverviewPage({
   });
 
   const createPlace = useMutation({
+    networkMode: 'always',
     mutationFn: (values: {
       name: string;
       description?: string;
@@ -77,7 +82,10 @@ export function PlacesOverviewPage({
       latitude?: number;
       longitude?: number;
     }) =>
-      apiCall(() => apis.places.createPlace({ spaceId, placeCreate: values })),
+      apiCall(() => {
+        assertOnlineWrite();
+        return apis.places.createPlace({ spaceId, placeCreate: values });
+      }),
     onSuccess: () => {
       void invalidatePlaceConsumers(queryClient, spaceId);
     },
@@ -123,6 +131,7 @@ export function PlacesOverviewPage({
       {
         onSuccess: () => {
           form.reset();
+          setMapChoice(undefined);
           setCoordinateError(false);
         },
       },
@@ -204,9 +213,31 @@ export function PlacesOverviewPage({
             {t('m5s3.place.create')}
           </summary>
           <form
+            ref={createFormRef}
             onSubmit={submitPlace}
             className="form-grid planning-create-form"
           >
+            <PlaceMapPicker
+              api={apis.places}
+              spaceId={spaceId}
+              value={mapChoice}
+              disabled={createPlace.isPending}
+              onSelect={(selection) => {
+                setMapChoice(selection);
+                setCoordinateError(false);
+                const form = createFormRef.current;
+                if (!form) return;
+                for (const [name, value] of Object.entries({
+                  name: selection.name,
+                  address: selection.address ?? '',
+                  latitude: String(selection.latitude),
+                  longitude: String(selection.longitude),
+                })) {
+                  const input = form.elements.namedItem(name);
+                  if (input instanceof HTMLInputElement) input.value = value;
+                }
+              }}
+            />
             <label htmlFor="create-place-name">{t('m5s3.place.name')}</label>
             <input
               id="create-place-name"
@@ -226,52 +257,55 @@ export function PlacesOverviewPage({
               {t('m5s3.place.address')}
             </label>
             <input id="create-place-address" name="address" />
-            <div className="planning-coordinate-grid">
-              <div className="field-group">
-                <label htmlFor="create-place-latitude">
-                  {t('m5s3.place.latitude')}
-                </label>
-                <input
-                  id="create-place-latitude"
-                  name="latitude"
-                  type="number"
-                  step="any"
-                  min="-90"
-                  max="90"
-                  aria-invalid={coordinateError}
-                  aria-describedby={
-                    coordinateError
-                      ? 'create-place-coordinate-help create-place-coordinate-error'
-                      : 'create-place-coordinate-help'
-                  }
-                />
+            <details className="planning-technical-details">
+              <summary>{t('m5s3.place.technicalDetails')}</summary>
+              <div className="planning-coordinate-grid">
+                <div className="field-group">
+                  <label htmlFor="create-place-latitude">
+                    {t('m5s3.place.latitude')}
+                  </label>
+                  <input
+                    id="create-place-latitude"
+                    name="latitude"
+                    type="number"
+                    step="any"
+                    min="-90"
+                    max="90"
+                    aria-invalid={coordinateError}
+                    aria-describedby={
+                      coordinateError
+                        ? 'create-place-coordinate-help create-place-coordinate-error'
+                        : 'create-place-coordinate-help'
+                    }
+                  />
+                </div>
+                <div className="field-group">
+                  <label htmlFor="create-place-longitude">
+                    {t('m5s3.place.longitude')}
+                  </label>
+                  <input
+                    id="create-place-longitude"
+                    name="longitude"
+                    type="number"
+                    step="any"
+                    min="-180"
+                    max="180"
+                    aria-invalid={coordinateError}
+                    aria-describedby={
+                      coordinateError
+                        ? 'create-place-coordinate-help create-place-coordinate-error'
+                        : 'create-place-coordinate-help'
+                    }
+                  />
+                </div>
               </div>
-              <div className="field-group">
-                <label htmlFor="create-place-longitude">
-                  {t('m5s3.place.longitude')}
-                </label>
-                <input
-                  id="create-place-longitude"
-                  name="longitude"
-                  type="number"
-                  step="any"
-                  min="-180"
-                  max="180"
-                  aria-invalid={coordinateError}
-                  aria-describedby={
-                    coordinateError
-                      ? 'create-place-coordinate-help create-place-coordinate-error'
-                      : 'create-place-coordinate-help'
-                  }
-                />
-              </div>
-            </div>
-            <p
-              id="create-place-coordinate-help"
-              className="field-help planning-coordinate-help"
-            >
-              {t('m5s3.place.coordinateHelp')}
-            </p>
+              <p
+                id="create-place-coordinate-help"
+                className="field-help planning-coordinate-help"
+              >
+                {t('m5s3.place.coordinateHelp')}
+              </p>
+            </details>
             {coordinateError ? (
               <p
                 id="create-place-coordinate-error"

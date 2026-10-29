@@ -555,6 +555,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/places", body=PLACE),
     Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/places/lookup",
+        body={"query": "Matrix location", "locale": "en"},
+    ),
+    Endpoint(
         "GET",
         "/api/v1/spaces/{spaceId}/places/{placeId}",
         resource_absence="PLACE_NOT_FOUND",

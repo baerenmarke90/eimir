@@ -2,12 +2,11 @@ import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
-import { captureR3Evidence } from './r3-evidence';
+import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -424,7 +423,6 @@ async function prepareScenario(
     });
   }
 
-  await page.getByText(m5s3.plan.actionsHeading).click();
   await page.getByLabel(m5s3.plan.experiencedOn).fill(EXPERIENCED_ON);
   await page.getByRole('button', { name: m5s3.plan.complete }).click();
 
@@ -467,12 +465,10 @@ async function captureEvidence(
   testInfo: TestInfo,
   name: string,
 ): Promise<void> {
-  await captureR3Evidence(
-    page,
-    testInfo,
-    `r3-plan-completion-${name}.png`,
-    false,
-  );
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await captureScreenshot(page, testInfo, `r3-plan-completion-${name}.png`, {
+    fullPage: true,
+  });
 }
 
 for (const scenario of visualScenarios) {
@@ -530,7 +526,6 @@ test('disabled Shared Achievements keeps normal Plan completion without celebrat
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN_ID}`);
 
-  await page.getByText(m5s3.plan.actionsHeading).click();
   await page.getByLabel(m5s3.plan.experiencedOn).fill(EXPERIENCED_ON);
   await page.getByRole('button', { name: m5s3.plan.complete }).click();
 
@@ -556,7 +551,6 @@ test('failed completion shows no celebration and a deliberate retry celebrates e
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN_ID}`);
 
-  await page.getByText(m5s3.plan.actionsHeading).click();
   await page.getByLabel(m5s3.plan.experiencedOn).fill(EXPERIENCED_ON);
   const complete = page.getByRole('button', { name: m5s3.plan.complete });
   await complete.click();
@@ -574,19 +568,6 @@ test('failed completion shows no celebration and a deliberate retry celebrates e
   expect(state.completionCalls).toBe(2);
 });
 
-const EVIDENCE_DIR = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '..',
-  '..',
-  '..',
-  'docs',
-  'product',
-  'design',
-  'evidence',
-  '508',
-  'plan-completion',
-);
-
 async function savePlanCompletionEvidence(
   page: Page,
   testInfo: TestInfo,
@@ -596,8 +577,11 @@ async function savePlanCompletionEvidence(
   // The off-screen skip link would otherwise be stitched into the capture.
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: outputPath, fullPage: true });
-  fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
-  fs.copyFileSync(outputPath, path.join(EVIDENCE_DIR, fileName));
+  const exportDir = process.env.SCREENSHOT_EXPORT_DIR;
+  if (exportDir) {
+    fs.mkdirSync(exportDir, { recursive: true });
+    fs.copyFileSync(outputPath, path.join(exportDir, fileName));
+  }
 }
 
 function pendingStatus(page: Page) {
@@ -607,7 +591,6 @@ function pendingStatus(page: Page) {
 }
 
 async function openActionsAndChooseDay(page: Page): Promise<void> {
-  await page.getByText(m5s3.plan.actionsHeading).click();
   await page.getByLabel(m5s3.plan.experiencedOn).fill(EXPERIENCED_ON);
 }
 
@@ -616,14 +599,10 @@ async function assertCompetingWritesLocked(page: Page): Promise<void> {
     'readonly',
     '',
   );
-  for (const name of [
-    m5s3.plan.reschedule,
-    m5s3.plan.unschedule,
-    de.common.edit,
-  ]) {
-    await expect(page.getByRole('button', { name })).toBeDisabled();
-  }
-  await expect(page.getByLabel(m5s3.plan.plannedDate)).toBeDisabled();
+  await expect(
+    page.getByRole('button', { name: de.common.edit, exact: true }),
+  ).toBeDisabled();
+  await expect(page.getByLabel(m5s3.plan.plannedDate)).toHaveCount(0);
   const action = page.getByRole('button', { name: m5s3.common.saving });
   await expect(action).toHaveAttribute('aria-disabled', 'true');
   await expect(action).toBeFocused();
@@ -822,11 +801,9 @@ test('Plan completion failure remains actionable after leaving and returning to 
   await expect(page).toHaveURL(/\/more$/);
   await page.goBack();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
-  const operations = page.locator('details.planen-operations');
-  await expect(operations).toBeVisible();
-  if ((await operations.getAttribute('open')) === null)
-    await operations.locator('summary').click();
-  await expect(operations).toHaveJSProperty('open', true);
+  await expect(
+    page.getByRole('button', { name: de.common.edit, exact: true }),
+  ).toBeVisible();
   await page.getByLabel(m5s3.plan.experiencedOn).fill(EXPERIENCED_ON);
   await expect(
     page.getByRole('alert').filter({ hasText: de.states.server.title }),

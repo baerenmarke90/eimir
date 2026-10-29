@@ -111,10 +111,10 @@ def test_schedule_contract_distinguishes_calendar_date_from_instant() -> None:
     assert schedule["properties"]["plannedEnd"]["format"] == "date-time"
 
     # Create and Wish conversion may carry the same nested schedule atomically;
-    # PATCH stays lifecycle-neutral and raw schedule fields never leak outward.
+    # The unified editor accepts the same nested schedule; raw fields remain internal.
     assert "schedule" in _components()["PlanCreate"]["properties"]
     assert "schedule" in _components()["WishToPlan"]["properties"]
-    assert "schedule" not in _components()["PlanUpdate"]["properties"]
+    assert "schedule" in _components()["PlanUpdate"]["properties"]
     for name in ("PlanCreate", "PlanUpdate", "WishToPlan"):
         assert "plannedOn" not in _components()[name]["properties"], name
         assert "plannedStart" not in _components()[name]["properties"], name
@@ -130,7 +130,14 @@ def test_only_complete_and_patch_carry_the_experienced_day() -> None:
 
 def test_direct_create_needs_only_a_title() -> None:
     schema = _components()["PlanCreate"]
-    assert set(schema["properties"]) == {"title", "description", "placeId", "schedule"}
+    assert set(schema["properties"]) == {
+        "title",
+        "description",
+        "placeId",
+        "schedule",
+        "coverAttachmentId",
+        "coverIsSensitive",
+    }
     assert schema["required"] == ["title"]
 
 

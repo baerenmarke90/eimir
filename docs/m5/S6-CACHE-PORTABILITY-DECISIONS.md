@@ -171,6 +171,13 @@ server availability failure. It must not mask:
 - `409` version conflicts;
 - explicit revocation/authorization responses.
 
+The PO's 2026-10-29 native-continuity request adds one bounded exception: after
+Account and Space authorization, approved shared Today and Plan overview
+snapshots may appear read-only while their network read runs in the background.
+The existing retention, invalidation and denial rules remain binding. This does
+not authorize whole-client persistence, cached authentication/entitlements,
+private data or offline writes. See the [owning decision and mobile contract](../product/design/native-continuity-and-passport.md).
+
 The cached presentation is always visibly read-only and shows the age of the
 cached snapshot. Create, Update, Delete, visibility changes, reorder,
 conversion, comment mutation, and every other write remain disabled/offline-

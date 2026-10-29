@@ -1,9 +1,11 @@
+import { assertOnlineWrite } from '../client/connectivity';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
   useCallback,
   useEffect,
   useRef,
+  useMemo,
   useState,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -34,6 +36,13 @@ import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
+import { PlanCoverField } from './PlanCover';
+import { PlaceMapPicker } from './PlaceMapPicker';
+import { createReferenceApis } from '../client/referenceFlow';
+import {
+  uploadMemoryDraftAttachment,
+  type DraftUploadPhase,
+} from '../client/memoryAttachmentDraft';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
@@ -46,6 +55,8 @@ interface PlanningCreateValues {
   readonly description?: string;
   readonly placeId?: string;
   readonly schedule?: PlanSchedule;
+  readonly coverAttachmentId?: string;
+  readonly coverIsSensitive?: boolean;
 }
 
 interface PlanningCreateSnapshot {
@@ -66,10 +77,14 @@ export function PlanningCreatePage({
   apis,
   spaceId,
   kind,
+  apiBaseUrl,
+  accessToken,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
   kind: PlanningCreateKind;
+  apiBaseUrl?: string;
+  accessToken?: string;
 }) {
   const { t } = useTranslation();
   const location = useLocation();
@@ -80,6 +95,19 @@ export function PlanningCreatePage({
     ?.taskOriginKey;
   const headingRef = useRef<HTMLDivElement>(null);
   const discardRef = useRef<ShortTaskSheetHandle>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverSensitive, setCoverSensitive] = useState(false);
+  const [uploadPhase, setUploadPhase] = useState<DraftUploadPhase | null>(null);
+  const readyCovers = useRef(new WeakMap<File, string>());
+  const uploadController = useRef<AbortController | null>(null);
+  useEffect(() => () => uploadController.current?.abort(), []);
+  const referenceApis = useMemo(
+    () =>
+      apiBaseUrl && accessToken
+        ? createReferenceApis(apiBaseUrl, accessToken)
+        : null,
+    [apiBaseUrl, accessToken],
+  );
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [placeId, setPlaceId] = useState('');
@@ -101,7 +129,9 @@ export function PlanningCreatePage({
     retry: false,
   });
 
-  const dirty = Boolean(title || description || placeId || enrichmentDirty);
+  const dirty = Boolean(
+    title || description || placeId || enrichmentDirty || coverFile,
+  );
   const onClose = useCallback(
     () => requestReturn(originKey, '/plan'),
     [originKey, requestReturn],
@@ -122,8 +152,42 @@ export function PlanningCreatePage({
   }, []);
 
   const createMutation = useMutation({
+    networkMode: 'always',
     mutationFn: async (values: PlanningCreateValues) => {
-      const requestValues = kind === 'wish' ? { title: values.title } : values;
+      assertOnlineWrite();
+      let requestValues: PlanningCreateValues =
+        kind === 'wish' ? { title: values.title } : values;
+      if (kind === 'plan' && coverFile) {
+        if (!referenceApis || !apiBaseUrl || !accessToken)
+          throw new Error('Plan upload transport unavailable');
+        let attachmentId = readyCovers.current.get(coverFile);
+        if (!attachmentId) {
+          const controller = new AbortController();
+          uploadController.current = controller;
+          try {
+            const ready = await uploadMemoryDraftAttachment(
+              referenceApis,
+              apiBaseUrl,
+              accessToken,
+              spaceId,
+              coverFile,
+              setUploadPhase,
+              fetch,
+              { signal: controller.signal },
+            );
+            attachmentId = ready.attachmentId;
+            readyCovers.current.set(coverFile, attachmentId);
+          } finally {
+            setUploadPhase(null);
+          }
+        }
+        requestValues = {
+          ...values,
+          coverAttachmentId: attachmentId,
+          coverIsSensitive: coverSensitive,
+        };
+      }
+      assertOnlineWrite();
       const snapshot: PlanningCreateSnapshot = {
         kind,
         spaceId,
@@ -147,7 +211,7 @@ export function PlanningCreatePage({
               })
             : apis.plans.createPlan({
                 spaceId,
-                planCreate: values,
+                planCreate: requestValues,
                 idempotencyKey,
               }),
       });
@@ -183,8 +247,17 @@ export function PlanningCreatePage({
   });
 
   const createPlaceMutation = useMutation({
-    mutationFn: (values: { name: string; address?: string }) =>
-      apiCall(() => apis.places.createPlace({ spaceId, placeCreate: values })),
+    networkMode: 'always',
+    mutationFn: (values: {
+      name: string;
+      address?: string;
+      latitude?: number;
+      longitude?: number;
+    }) =>
+      apiCall(() => {
+        assertOnlineWrite();
+        return apis.places.createPlace({ spaceId, placeCreate: values });
+      }),
     onSuccess: async (created) => {
       await invalidatePlaceConsumers(queryClient, spaceId);
       queryClient.setQueryData(
@@ -210,7 +283,7 @@ export function PlanningCreatePage({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pending || !title.trim()) return;
+    if (pending || createPlaceMutation.isPending || !title.trim()) return;
     if (!navigator.onLine) {
       setOfflineAttempt(true);
       return;
@@ -301,6 +374,25 @@ export function PlanningCreatePage({
           </div>
 
           {isPlan ? (
+            <PlanCoverField
+              file={coverFile}
+              sensitive={coverSensitive}
+              onFile={setCoverFile}
+              onRemove={() => setCoverFile(null)}
+              onSensitive={setCoverSensitive}
+              disabled={pending}
+            />
+          ) : null}
+          {uploadPhase ? (
+            <p role="status">
+              {t(
+                uploadPhase === 'uploading'
+                  ? 'm5s3.planImage.uploading'
+                  : 'm5s3.planImage.validating',
+              )}
+            </p>
+          ) : null}
+          {isPlan ? (
             <details className="planning-optional-details">
               <summary>{t('m5s3.plan.addDetails')}</summary>
               <div className="planning-optional-fields eimir-motion-disclosure">
@@ -330,6 +422,19 @@ export function PlanningCreatePage({
                     </option>
                   ))}
                 </select>
+                <PlaceMapPicker
+                  api={apis.places}
+                  spaceId={spaceId}
+                  disabled={pending || createPlaceMutation.isPending}
+                  onSelect={(selection) =>
+                    createPlaceMutation.mutate({
+                      name: selection.name,
+                      address: selection.address ?? undefined,
+                      latitude: selection.latitude,
+                      longitude: selection.longitude,
+                    })
+                  }
+                />
                 <button
                   type="button"
                   className="button-link secondary-link planning-add-place"

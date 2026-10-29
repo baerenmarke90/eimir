@@ -9,6 +9,7 @@ All URIs are relative to *http://localhost*
 | [**getPlace**](PlacesApi.md#getplace) | **GET** /api/v1/spaces/{spaceId}/places/{placeId} | Get Place |
 | [**listMomentPlaces**](PlacesApi.md#listmomentplaces) | **GET** /api/v1/spaces/{spaceId}/moments/{kind}/{targetId}/places | List Moment Places |
 | [**listPlaces**](PlacesApi.md#listplaces) | **GET** /api/v1/spaces/{spaceId}/places | List Places |
+| [**lookupPlaces**](PlacesApi.md#lookupplaces) | **POST** /api/v1/spaces/{spaceId}/places/lookup | Lookup Places |
 | [**updatePlace**](PlacesApi.md#updateplace) | **PATCH** /api/v1/spaces/{spaceId}/places/{placeId} | Update Place |
 
 
@@ -381,6 +382,81 @@ No authorization required
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## lookupPlaces
+
+> PlaceLookupResult lookupPlaces(spaceId, placeLookupRequest)
+
+Lookup Places
+
+Search only on explicit user intent; never persist or log query content.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PlacesApi,
+} from '';
+import type { LookupPlacesRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PlacesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // PlaceLookupRequest
+    placeLookupRequest: ...,
+  } satisfies LookupPlacesRequest;
+
+  try {
+    const data = await api.lookupPlaces(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **placeLookupRequest** | [PlaceLookupRequest](PlaceLookupRequest.md) |  | |
+
+### Return type
+
+[**PlaceLookupResult**](PlaceLookupResult.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+| **429** | Too many attempts occurred within the allowed time window. |  -  |
+| **503** | A capability required for this operation is not configured on this instance. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

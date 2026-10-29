@@ -131,7 +131,7 @@ const m5s3 = {
     reschedule: 'Termin ändern',
     unschedule: 'Noch ohne festen Termin',
     editAction: 'Plan bearbeiten',
-    complete: 'Plan abschließen',
+    complete: 'Als erlebt markieren',
     completePending: 'Abschluss für den {{date}} wird gespeichert …',
     returnToWish: 'Zurück zum Wunsch',
     completedTitle: 'Gemeinsam erlebt',
@@ -191,6 +191,41 @@ const m5s3 = {
     chapterRetryLink: 'Verknüpfung erneut versuchen',
     chapterSkip: 'Ohne Kapitel fertig',
   },
+  map: {
+    open: 'Ort auf der Karte auswählen',
+    title: 'Ort auswählen',
+    searchLabel: 'Ort oder Adresse suchen',
+    search: 'Suchen',
+    searching: 'Wird gesucht …',
+    results: 'Gefundene Orte',
+    noResults:
+      'Kein passender Ort gefunden. Ändere die Suche oder wähle eine Position auf der Karte.',
+    loadMap: 'Karte laden',
+    privacy:
+      'Die Ortssuche nutzt Photon. Beim Laden der Karte erhält OpenStreetMap deine IP-Adresse und den Kartenausschnitt. Eure übrigen Inhalte werden nicht übermittelt.',
+    attribution: 'Kartendaten © OpenStreetMap-Mitwirkende · Suche mit Photon',
+    zoomIn: 'Karte vergrößern',
+    zoomOut: 'Karte verkleinern',
+    keyboardHelp:
+      'Interaktive Karte. Mit den Pfeiltasten verschieben, mit Plus und Minus zoomen. Mit „Kartenmitte auswählen“ die Position übernehmen.',
+    useCenter: 'Kartenmitte auswählen',
+    confirm: 'Diesen Ort übernehmen',
+    selectedLocation: 'Ausgewählter Ort',
+    chooseHelp:
+      'Wähle ein Suchergebnis oder tippe eine Position auf der Karte an.',
+    tileError:
+      'Die Karte konnte nicht vollständig geladen werden. Deine Auswahl bleibt erhalten.',
+  },
+  planImage: {
+    add: 'Bild hinzufügen',
+    change: 'Bild ändern',
+    remove: 'Bild entfernen',
+    label: 'Bild für euren Plan',
+    uploading: 'Bild wird hochgeladen …',
+    validating: 'Bild wird geprüft …',
+    failed: 'Das Planbild konnte nicht geladen werden.',
+    help: 'Optional. Das Bild gehört zu eurem gemeinsamen Plan.',
+  },
   place: {
     heading: 'Orte',
     intro:
@@ -211,8 +246,7 @@ const m5s3 = {
     locationHeading: 'Ortsangaben',
     coordinates: '{{latitude}}, {{longitude}}',
     nameOnly: 'Dieser Ort ist bewusst ohne Koordinaten gespeichert.',
-    noMap:
-      'eimir. verwendet hier keine Karten- oder Geocoding-Dienste. Der gespeicherte Ort bleibt unabhängig davon nutzbar.',
+    noMap: 'Der gespeicherte Ort bleibt auch ohne geladene Karte nutzbar.',
     noAddress: 'Keine Adresse hinterlegt',
     noDescription: 'Noch keine Beschreibung zu diesem Ort.',
     technicalDetails: 'Technische Ortsdaten',

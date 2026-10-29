@@ -303,6 +303,8 @@
 /* Detail: prominent bottom completion CTA */
 .planen-complete-form {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-inline-size: 0;
   gap: var(--space-3);
 }
 
@@ -486,10 +488,15 @@
 }
 
 .planen-next-description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
   max-width: 60ch;
   color: var(--color-text-secondary);
   line-height: 1.55;
-  white-space: pre-wrap;
+  white-space: normal;
   overflow-wrap: anywhere;
 }
 
@@ -689,4 +696,16 @@
 .wish-detail :is(h1, h2, button, label, p) {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.planning-editor-fields {
+  border: 0;
+  margin: 0;
+  min-inline-size: 0;
+  padding: 0;
+}
+
+.planen-complete-form input {
+  min-inline-size: 0;
+  inline-size: 100%;
 }

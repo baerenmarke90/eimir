@@ -426,6 +426,8 @@ function AuthenticatedApp({
   const planningProductProps = {
     apis: planningApis,
     spaceId,
+    apiBaseUrl,
+    accessToken: tokens.accessToken,
   };
 
   const relationshipContent = (
@@ -515,7 +517,13 @@ function AuthenticatedApp({
             />
             <Route
               path={appRoutePath('plan')}
-              element={<SharedPlanningOverviewPage {...planningProductProps} />}
+              element={
+                <SharedPlanningOverviewPage
+                  {...planningProductProps}
+                  accountId={account.id}
+                  apiBaseUrl={apiBaseUrl}
+                />
+              }
             />
             <Route
               path={PLAN_CREATE_ROUTE}
@@ -588,6 +596,7 @@ function AuthenticatedApp({
               element={
                 <TodayPage
                   apis={m4Apis}
+                  apiBaseUrl={apiBaseUrl}
                   spaceId={spaceId}
                   spacesApi={spacesApi}
                   dailyCheckInsApi={dailyCheckInsApi}
@@ -1034,7 +1043,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
       if (!tokens) return [];
       return loadAuthorizedMemberships(config.apiBaseUrl, tokens.accessToken);
     },
-    enabled: !isRestoring && tokens !== null,
+    // Validate membership alongside /me when a usable access token exists.
+    enabled: tokens !== null && (!isRestoring || isAccessTokenValid(tokens)),
     retry: false,
   });
 

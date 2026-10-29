@@ -17,6 +17,7 @@ from fastapi import APIRouter, Path, Query, Response
 from fastapi import status as http_status
 from pydantic import ConfigDict, StrictBool, field_validator, model_validator
 from pydantic.json_schema import SkipJsonSchema
+from sqlalchemy import select
 
 from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
@@ -29,7 +30,9 @@ from eimir.api.shared_achievements import (
     SHARED_ACHIEVEMENT_HEADER,
     SHARED_ACHIEVEMENT_RESPONSE_HEADER,
 )
+from eimir.api.v1.attachments import AttachmentSummary
 from eimir.api.v1.wishes import ETAG_HEADERS, WishDetail, wish_detail
+from eimir.attachments.models import Attachment, MediaType
 from eimir.plans import service
 from eimir.plans.models import Plan, PlanStatus
 from eimir.relationship import configuration as relationship_configuration
@@ -82,6 +85,8 @@ class PlanCreate(ApiModel):
     description: str | SkipJsonSchema[None] = None
     place_id: UUID | SkipJsonSchema[None] = None
     schedule: PlanSchedule | SkipJsonSchema[None] = None
+    cover_attachment_id: UUID | SkipJsonSchema[None] = None
+    cover_is_sensitive: StrictBool = False
 
     @field_validator("title")
     @classmethod
@@ -107,9 +112,9 @@ class PlanCreate(ApiModel):
 
 
 class PlanUpdate(ApiModel):
-    """Domain correction without changing lifecycle status.
+    """Atomic content, image and optional schedule correction.
 
-    Schedule fields remain owned by ``/schedule`` and ``/unschedule``.
+    Explicit null ``schedule`` removes the date; omission preserves it.
     ``experiencedOn`` is the one exception: it may be corrected on a completed
     Plan without reopening it (M3-D04).
     """
@@ -121,6 +126,9 @@ class PlanUpdate(ApiModel):
     place_id: UUID | None = None
     experienced_on: date | SkipJsonSchema[None] = None
     anticipation_enabled: StrictBool | SkipJsonSchema[None] = None
+    schedule: PlanSchedule | None = None
+    cover_attachment_id: UUID | None = None
+    cover_is_sensitive: StrictBool | SkipJsonSchema[None] = None
 
     @model_validator(mode="after")
     def _validate_patch(self) -> Self:
@@ -132,6 +140,8 @@ class PlanUpdate(ApiModel):
             self.title = self.title.strip()
         if "experienced_on" in self.model_fields_set and self.experienced_on is None:
             raise ValueError("experiencedOn must not be null")
+        if "cover_is_sensitive" in self.model_fields_set and self.cover_is_sensitive is None:
+            raise ValueError("coverIsSensitive must not be null")
         if "anticipation_enabled" in self.model_fields_set and self.anticipation_enabled is None:
             raise ValueError("anticipationEnabled must not be null")
         return self
@@ -188,6 +198,7 @@ class PlanDetail(ApiModel):
     place_id: UUID | None
     title: str
     description: str | None
+    cover_attachment: AttachmentSummary | None = None
     status: PlanStatus
     planned_on: date | None = None
     anticipation_enabled: bool = False
@@ -224,10 +235,20 @@ def _plan_detail(
     authorization: Authorization,
     plan: Plan,
     creator: AuthorSummary | None = None,
+    covers: dict[UUID, Attachment] | None = None,
 ) -> PlanDetail:
     if creator is None:
         creator = resolve_author_summary(session, plan.owner_id, resource="Plan creator")
     is_completed = plan.status == PlanStatus.COMPLETED.value
+    cover = (
+        (
+            covers.get(plan.cover_attachment_id)
+            if covers is not None
+            else session.get(Attachment, plan.cover_attachment_id)
+        )
+        if plan.cover_attachment_id
+        else None
+    )
     return PlanDetail(
         id=plan.id,
         space_id=plan.space_id,
@@ -236,6 +257,19 @@ def _plan_detail(
         place_id=plan.place_id,
         title=plan.payload.title,
         description=plan.payload.description,
+        cover_attachment=AttachmentSummary(
+            id=cover.id,
+            status="READY",
+            media_type=MediaType(cover.media_type),
+            mime_type=cover.mime_type,
+            size=cover.size,
+            width=cover.width,
+            height=cover.height,
+            has_thumbnail=cover.has_thumbnail,
+            is_sensitive=cover.payload.is_sensitive,
+        )
+        if cover is not None
+        else None,
         status=PlanStatus(plan.status),
         planned_on=plan.planned_on,
         anticipation_enabled=plan.anticipation_enabled,
@@ -293,6 +327,8 @@ def create_plan(
         session,
         authorization,
         idempotency_key=idempotency_key,
+        cover_attachment_id=body.cover_attachment_id,
+        cover_is_sensitive=body.cover_is_sensitive,
         title=body.title,
         description=body.description,
         place_id=body.place_id,
@@ -327,9 +363,20 @@ def list_plans(
         status=status,
     )
     creators = resolve_author_summaries(session, {plan.owner_id for plan in page.items})
+    cover_ids = {plan.cover_attachment_id for plan in page.items if plan.cover_attachment_id}
+    covers = (
+        {
+            cover.id: cover
+            for cover in session.scalars(select(Attachment).where(Attachment.id.in_(cover_ids)))
+        }
+        if cover_ids
+        else {}
+    )
     return PlanPage(
         items=[
-            _plan_detail(session, authorization, plan, creator=creators.get(plan.owner_id))
+            _plan_detail(
+                session, authorization, plan, creator=creators.get(plan.owner_id), covers=covers
+            )
             for plan in page.items
         ],
         next_cursor=page.next_cursor,
@@ -379,6 +426,9 @@ def update_plan(
         place_id=body.place_id,
         experienced_on=body.experienced_on,
         anticipation_enabled=body.anticipation_enabled,
+        cover_attachment_id=body.cover_attachment_id,
+        cover_is_sensitive=body.cover_is_sensitive,
+        schedule_values=_schedule_values(body.schedule) if body.schedule else None,
     )
     response.headers["ETag"] = etag_for(plan.version)
     return _plan_detail(session, authorization, plan)

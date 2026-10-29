@@ -7,6 +7,8 @@ Direct Plan creation with an optional atomic schedule.  Lifecycle state remains 
 
 Name | Type
 ------------ | -------------
+`coverAttachmentId` | string
+`coverIsSensitive` | boolean
 `description` | string
 `placeId` | string
 `schedule` | [PlanSchedule](PlanSchedule.md)
@@ -19,6 +21,8 @@ import type { PlanCreate } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "coverAttachmentId": null,
+  "coverIsSensitive": null,
   "description": null,
   "placeId": null,
   "schedule": null,

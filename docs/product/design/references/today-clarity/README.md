@@ -197,5 +197,19 @@ to this evidence. Verification:
   information is unchanged.
 
 No native wrapper capability changed; physical-device acceptance is not claimed.
-CI and public issue/PR publication remain pending. This preflight was prepared
-locally before implementation; publication requires Product Owner authorization.
+The Product Owner authorized publication and merge of the combined result on
+2026-10-29. The preflight was prepared locally before implementation. Merge
+requires green CI on the final integration head.
+
+
+## Integration with the current #1499 head
+
+The local branch now includes #1499 head
+`fb07540afb63e2adf1de1c47e1061cc2883ff7cb`, retaining its Energy overlay fix.
+The merge was conflict-free. The combined result passed the existing 320px /
+200% Energy popover journey, the large-text/Expanded Daily Quote journey and the
+complete Today clarity matrix, as well as TypeScript and token checks. The new
+[integration evidence and source fingerprints](integration/source-sha256.json)
+are separate from the earlier borderless proof. A [390px combined viewport](integration/today-clarity-docked-390-viewport.webp)
+shows the current result. No additional product behavior was changed during
+integration. CI on the published final head remains required before merge.

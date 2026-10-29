@@ -334,6 +334,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 10,
       "reason": "Default-on account consent, saved shared-photo context, explicit map navigation, deliberate unlink and Compact/Expanded Light/Dark accessibility."
+    },
+    "relationship-reflections.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "Special Plan confirmed highlight, Today duplicate suppression and return; Pro passport capability and canonical shared content access across Compact Light/Dark and Expanded."
     }
   }
 }

@@ -1963,6 +1963,36 @@
         "title": "DailyVibe",
         "type": "string"
       },
+      "DashboardAnticipation": {
+        "properties": {
+          "daysRemaining": {
+            "title": "Daysremaining",
+            "type": "integer"
+          },
+          "eventOn": {
+            "format": "date",
+            "title": "Eventon",
+            "type": "string"
+          },
+          "planId": {
+            "format": "uuid",
+            "title": "Planid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "planId",
+          "title",
+          "eventOn",
+          "daysRemaining"
+        ],
+        "title": "DashboardAnticipation",
+        "type": "object"
+      },
       "DashboardItem": {
         "properties": {
           "createdAt": {
@@ -2267,6 +2297,16 @@
       },
       "DashboardView": {
         "properties": {
+          "anticipation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashboardAnticipation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "keepsake": {
             "anyOf": [
               {
@@ -5628,6 +5668,11 @@
       },
       "PlanDetail": {
         "properties": {
+          "anticipationEnabled": {
+            "default": false,
+            "title": "Anticipationenabled",
+            "type": "boolean"
+          },
           "capabilities": {
             "$ref": "#/components/schemas/ResourceCapabilities"
           },
@@ -5863,6 +5908,10 @@
         "additionalProperties": false,
         "description": "Domain correction without changing lifecycle status.\n\nSchedule fields remain owned by ``/schedule`` and ``/unschedule``.\n``experiencedOn`` is the one exception: it may be corrected on a completed\nPlan without reopening it (M3-D04).",
         "properties": {
+          "anticipationEnabled": {
+            "title": "Anticipationenabled",
+            "type": "boolean"
+          },
           "description": {
             "anyOf": [
               {
@@ -7046,6 +7095,61 @@
           "localTime"
         ],
         "title": "RelationshipDayCountSchedule",
+        "type": "object"
+      },
+      "RelationshipPassportView": {
+        "properties": {
+          "completedPlans": {
+            "title": "Completedplans",
+            "type": "integer"
+          },
+          "heartMoments": {
+            "title": "Heartmoments",
+            "type": "integer"
+          },
+          "memories": {
+            "title": "Memories",
+            "type": "integer"
+          },
+          "milestones": {
+            "title": "Milestones",
+            "type": "integer"
+          },
+          "partner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashboardPartner"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "places": {
+            "title": "Places",
+            "type": "integer"
+          },
+          "relationshipDuration": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashboardRelationshipDuration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "partner",
+          "relationshipDuration",
+          "memories",
+          "heartMoments",
+          "milestones",
+          "completedPlans",
+          "places"
+        ],
+        "title": "RelationshipPassportView",
         "type": "object"
       },
       "ReminderDetail": {
@@ -29561,6 +29665,69 @@
         "summary": "Update Related Person",
         "tags": [
           "people"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/relationship-passport": {
+      "get": {
+        "description": "Return the Pro presentation without gating any underlying Core data.",
+        "operationId": "getRelationshipPassport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationshipPassportView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Relationship Passport",
+        "tags": [
+          "dashboard"
         ]
       }
     },

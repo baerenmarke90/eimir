@@ -25,6 +25,12 @@ import { mapValues } from '../runtime';
 export interface PlanUpdate {
     /**
      * 
+     * @type {boolean}
+     * @memberof PlanUpdate
+     */
+    anticipationEnabled?: boolean;
+    /**
+     * 
      * @type {string}
      * @memberof PlanUpdate
      */
@@ -66,6 +72,7 @@ export function PlanUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
+        'anticipationEnabled': json['anticipationEnabled'] == null ? undefined : json['anticipationEnabled'],
         'description': json['description'] === undefined ? undefined : json['description'] === null ? null : json['description'],
         'experiencedOn': json['experiencedOn'] == null ? undefined : (new Date(json['experiencedOn'])),
         'placeId': json['placeId'] === undefined ? undefined : json['placeId'] === null ? null : json['placeId'],
@@ -84,6 +91,7 @@ export function PlanUpdateToJSONTyped(value?: PlanUpdate | null, ignoreDiscrimin
 
     return {
         
+        'anticipationEnabled': value['anticipationEnabled'],
         'description': value['description'],
         'experiencedOn': value['experiencedOn'] == null ? value['experiencedOn'] : value['experiencedOn'].toISOString().substring(0,10),
         'placeId': value['placeId'],

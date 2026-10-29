@@ -8,6 +8,7 @@ from typing import ClassVar
 from uuid import UUID
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -129,6 +130,9 @@ class Plan(
 
     planned_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     planned_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    anticipation_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     experienced_on: Mapped[date | None] = mapped_column(Date)
     """Calendar day on which the experience happened, not an instant.
 
@@ -211,6 +215,7 @@ class Plan(
         Index("ix_plans_place_id", "place_id"),
         Index("ix_plans_space_id_created_at_id", "space_id", "created_at", "id"),
         Index("ix_plans_space_id_status", "space_id", "status"),
+        Index("ix_plans_space_id_anticipation", "space_id", "anticipation_enabled", "status"),
         Index("ix_plans_space_id_planned_on", "space_id", "planned_on"),
         Index("ix_plans_space_id_planned_start", "space_id", "planned_start"),
     )

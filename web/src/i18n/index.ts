@@ -28,6 +28,7 @@ import productTour from './locales/productTour';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
 import relationshipComponents from './locales/relationshipComponents';
+import relationshipReflections from './locales/relationshipReflections';
 import serverAdmin from './locales/serverAdmin';
 import sharedPhotos from './locales/sharedPhotos';
 import snackbar from './locales/snackbar';
@@ -80,6 +81,7 @@ if (!i18n.isInitialized) {
           serverAdmin,
           spaceOffboarding,
           ...relationshipComponents,
+          relationshipReflections,
           ...snackbar,
           ...storyProducts,
           contextTags,

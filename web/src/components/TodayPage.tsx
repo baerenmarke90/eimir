@@ -1,12 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import {
-  Fragment,
-  useEffect,
-  useState,
-  type MouseEvent,
-  type ReactNode,
-} from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Fragment, useEffect, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
@@ -53,7 +47,6 @@ import {
   selectMonthlyStrip,
   selectTodayFocalItem,
 } from '../client/todayComposition';
-import { useTaskOrigin } from '../client/taskOrigin';
 import {
   clearForeignRetrospectiveDismissal,
   isRetrospectiveDismissed,
@@ -75,13 +68,14 @@ import { DailyQuoteCard } from './DailyQuoteCard';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
-import { PreviewCardLink } from './PreviewCardLink';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { SharedStorySummary } from './SharedStorySummary';
 import { PartnerQuickActions } from './PartnerQuickActions';
 import { TodayPinnedCollection } from './TodayPinnedCollection';
 import { UiState } from './UiState';
+import { AnticipationCard } from './AnticipationCard';
+import { TodayDestinationLink } from './TodayDestinationLink';
 import './TodayPage.css';
 
 export function formatRelationshipDuration(
@@ -191,51 +185,6 @@ export type TodayPresentationRole =
   | 'relationship_signal' // 0-1 partner interaction signal (e.g. partner commented on memory)
   | 'shared_content' // Recent shared relationship moments
   | 'editorial_highlight'; // Retrospective discovery (e.g. "Weißt du noch?")
-
-function TodayDestinationLink({
-  to,
-  className,
-  ariaLabel,
-  children,
-  previewControls = false,
-}: {
-  to: string;
-  className?: string;
-  ariaLabel?: string;
-  children: ReactNode;
-  previewControls?: boolean;
-}) {
-  const navigate = useNavigate();
-  const { captureOrigin } = useTaskOrigin();
-
-  function openFromToday(event: MouseEvent<HTMLAnchorElement>) {
-    if (
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    )
-      return;
-
-    const taskOriginKey = captureOrigin();
-    if (!taskOriginKey) return;
-    event.preventDefault();
-    void navigate(to, { state: { taskOriginKey } });
-  }
-
-  const DestinationLink = previewControls ? PreviewCardLink : Link;
-  return (
-    <DestinationLink
-      to={to}
-      className={className}
-      aria-label={ariaLabel}
-      onClick={openFromToday}
-    >
-      {children}
-    </DestinationLink>
-  );
-}
 
 export function TodayModuleSection({
   id,
@@ -895,8 +844,16 @@ export function TodayPage({
   // 2. Shared Planning Horizon. The item limit is the personal Account+Space
   // Dashboard preference from #848 with the #854 default of 1; Today only
   // consumes it and never defines a limit of its own.
+  const anticipation = dashboardQuery.data?.anticipation;
   const upcoming = limitUpcomingItems(
-    dashboardQuery.data?.upcoming ?? [],
+    (dashboardQuery.data?.upcoming ?? []).filter(
+      (item) =>
+        !(
+          anticipation &&
+          item.type === 'PLAN' &&
+          item.id === anticipation.planId
+        ),
+    ),
     dashboardPreferencesQuery.data,
   );
 
@@ -947,7 +904,7 @@ export function TodayPage({
     retrospective: retrospectiveDismissed ? null : retrospective,
     recentShared,
     excludeItemIds: focalItem ? [focalItem.item.id] : [],
-    suppressPlanningFallback: upcoming.length > 0,
+    suppressPlanningFallback: Boolean(anticipation) || upcoming.length > 0,
   });
 
   /*
@@ -1044,6 +1001,7 @@ export function TodayPage({
 
   const isSparse = Boolean(
     dashboardQuery.data &&
+      !anticipation &&
       upcoming.length === 0 &&
       recentShared.length === 0 &&
       !retrospective &&
@@ -1169,7 +1127,7 @@ export function TodayPage({
         {/* Demnächst — the short shared horizon. One item is the
                   default and must read as complete on its own; two or three
                   stay restrained rather than becoming an agenda table. */}
-        {upcomingVisible && upcoming.length > 0 ? (
+        {upcomingVisible && (anticipation || upcoming.length > 0) ? (
           <TodayModuleSection
             className="today-section-upcoming"
             colorWorld="natural"
@@ -1185,6 +1143,7 @@ export function TodayPage({
               </Link>
             }
           >
+            {anticipation ? <AnticipationCard value={anticipation} /> : null}
             <div className="today-agenda-list">
               {upcoming.map((item: DashboardItem) => (
                 <TodayAgendaRow key={item.id} item={item} />

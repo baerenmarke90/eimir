@@ -8,6 +8,7 @@
  */
 
 .planen-overview {
+  grid-template-columns: minmax(0, 1fr);
   gap: 0;
 }
 
@@ -25,6 +26,8 @@
 
 .planen-segment {
   flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
   min-height: 44px;
   border: 0;
   border-radius: var(--radius-pill);
@@ -70,6 +73,8 @@
  */
 .planen-panel {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: var(--space-4);
 }
 
@@ -391,6 +396,8 @@
 .planen-local-add {
   display: inline-flex;
   width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   min-height: 44px;
   align-items: center;
   gap: var(--space-2);
@@ -457,8 +464,11 @@
 }
 
 .planen-next-link {
-  display: grid;
-  gap: var(--space-2);
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
   border-radius: var(--radius-large);
   padding: clamp(var(--space-5), 6vw, var(--space-8));
   background: linear-gradient(
@@ -481,7 +491,14 @@
   font-variant-numeric: tabular-nums;
 }
 
-.planen-next-link > strong {
+.planen-next-copy {
+  display: grid;
+  flex: 1 1 10rem;
+  min-width: 0;
+  gap: var(--space-2);
+}
+
+.planen-next-copy > strong {
   font-size: clamp(1.45rem, 6vw, 2.2rem);
   line-height: 1.16;
   overflow-wrap: anywhere;

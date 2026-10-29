@@ -24,3 +24,11 @@ No business/freemium impact: Plan covers remain Free/Core, with the same one-ima
 ## Verification
 
 Implementation and rendered evidence are recorded after the preflight commit.
+
+## Implementation verification
+
+- Six production-browser journeys passed with retries disabled: 390px portrait Light, 430px landscape Dark, 1280px portrait Dark, 1280px square Light, 320px portrait at 200% text, and sensitive portrait conceal/reveal. Every selected image retains its natural aspect and stays inside the bounded frame. Detail reads demonstrably decode an original larger than 512px; overview reads decode the 512px thumbnail.
+- Every journey opens the canonical Plan, opens Edit, selects a local landscape image, verifies its complete preview, discards deliberately, restores Edit focus and returns to the overview without a write. Sensitive previews remain concealed and contain no nested reveal button. Axe finds no violations on detail.
+- The complete Web suite passes 2,259 tests with two existing skips. Production build, TypeScript, token/PWA checks, strict changed-code lint, formatting and engineering/documentation language audits pass. The six new browser tests are registered in the existing PR-critical inventory. No retries, timeouts or existing test dispositions were weakened.
+- The narrow large-text journey exposed the existing segmented-control grid minimum and overflow of the Add Plan label. Scoped minimum tracks and wrapping keep the overview inside 320px without shrinking the user's font size.
+- [Compact overview](references/plan-cover-fit/evidence/plan-cover-overview-390-portrait-light-false-false.png), [portrait detail](references/plan-cover-fit/evidence/plan-cover-detail-390-portrait-light-false-false.png), [landscape Dark](references/plan-cover-fit/evidence/plan-cover-detail-430-landscape-dark-false-false.png), [Expanded portrait](references/plan-cover-fit/evidence/plan-cover-detail-1280-portrait-dark-false-false.png), [Expanded square](references/plan-cover-fit/evidence/plan-cover-detail-1280-square-light-false-false.png), [200% text](references/plan-cover-fit/evidence/plan-cover-overview-320-portrait-light-true-false.png), [sensitive overview](references/plan-cover-fit/evidence/plan-cover-overview-390-portrait-dark-false-true.png). All are disposable synthetic corner-marker fixtures; no PO photo is committed or modified.

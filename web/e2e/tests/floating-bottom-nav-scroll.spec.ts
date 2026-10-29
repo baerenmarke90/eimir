@@ -503,6 +503,21 @@ test.describe('Global header document flow and persistent bottom navigation', ()
   test('focused end-aligned content clears the fixed navigation (#1489)', async ({
     page,
   }, testInfo) => {
+    // Font/viewport changes must remain safe before the next observer frame.
+    await page.addInitScript(() => {
+      const NativeResizeObserver = window.ResizeObserver;
+      window.ResizeObserver = class extends NativeResizeObserver {
+        constructor(callback: ResizeObserverCallback) {
+          super((entries, observer) => {
+            const ready = entries.filter(
+              (entry) =>
+                !entry.target.classList.contains('mobile-bottom-shell'),
+            );
+            if (ready.length) callback(ready, observer);
+          });
+        }
+      };
+    });
     await page.setViewportSize({ width: 390, height: 700 });
     await installApiMocks(page);
     await page.goto('/login');

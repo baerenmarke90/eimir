@@ -246,8 +246,10 @@ function AuthenticatedAppShell({
     const navigation = bottomNavigationRef.current;
     if (!navigation || typeof ResizeObserver === 'undefined') return;
     const root = document.documentElement;
-    const measure = () => {
-      const height = navigation.getBoundingClientRect().height;
+    const measure = (entry?: ResizeObserverEntry) => {
+      // Reserve layout CSS pixels; root zoom already scales the consumer.
+      const height =
+        entry?.borderBoxSize?.[0]?.blockSize ?? navigation.offsetHeight;
       if (height > 0)
         root.style.setProperty(
           '--shell-bottom-nav-measured-height',
@@ -255,8 +257,8 @@ function AuthenticatedAppShell({
         );
       else root.style.removeProperty('--shell-bottom-nav-measured-height');
     };
-    const observer = new ResizeObserver(measure);
-    observer.observe(navigation);
+    const observer = new ResizeObserver(([entry]) => measure(entry));
+    observer.observe(navigation, { box: 'border-box' });
     measure();
     return () => {
       observer.disconnect();

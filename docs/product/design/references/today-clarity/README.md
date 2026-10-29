@@ -263,3 +263,22 @@ binds all three corrected browser sources as well as the existing runtime
 sources. Additional [scroll and focus evidence](navigation-final/) covers a
 390px dock, a short Dark viewport, 320px/200% text and 400% layout zoom.
 GitHub checks on the final pushed head remain required before merge.
+
+
+## Synchronous clearance after text resizing
+
+The next PR-critical run caught a genuine focus-clearance race: after text
+resizing, the previous smaller measured navigation height could remain until
+the ResizeObserver delivery. The shell now reserves at least its responsive
+CSS minimum immediately and uses the larger measured footprint when available.
+Measurements use the unzoomed border-box size, avoiding double application of
+root zoom.
+
+The existing focused-action test now deliberately suppresses navigation
+observer notifications. Its unchanged content-clearance assertion passed at
+all five viewport/text/zoom states. The Today clarity matrix also passed,
+including actual measured size, safe area, Light/Dark and Expanded behavior.
+The 53 AppShell/layout tests and TypeScript passed. Fresh images and source
+fingerprints are in [clearance-fix/](clearance-fix/). The existing content and
+focus assertions were retained; no tolerance or timeout was increased.
+The failing current GitHub run is restarted as soon as this fix is published.

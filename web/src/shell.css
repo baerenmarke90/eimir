@@ -1,5 +1,5 @@
 :root {
-  --shell-floating-nav-height: 3.75rem;
+  --shell-floating-nav-height: 4.375rem;
   --shell-floating-nav-offset: 0px;
   --shell-bottom-nav-min-height: calc(
     var(--shell-floating-nav-height) +
@@ -803,16 +803,16 @@
 .mobile-bottom-nav .shell-nav-link {
   min-width: 0;
   width: 100%;
-  min-height: 48px;
+  min-height: 56px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: var(--space-1);
   padding: var(--space-1) 2px;
   border-radius: var(--radius-large);
   color: var(--color-text-secondary);
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 550;
   line-height: 1.15;
   text-align: center;
@@ -830,8 +830,8 @@
 }
 
 .mobile-bottom-nav .shell-nav-link .shell-nav-icon {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -839,8 +839,8 @@
 }
 
 .mobile-bottom-nav .shell-nav-link .shell-nav-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
 .mobile-bottom-nav .shell-nav-link-active {
@@ -1074,7 +1074,7 @@
 
 @media (max-width: 360px) {
   .mobile-bottom-nav .shell-nav-link {
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     padding: var(--space-1) 1px;
   }
 }

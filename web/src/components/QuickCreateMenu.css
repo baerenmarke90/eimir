@@ -202,10 +202,10 @@
 
 .mobile-quick-create .quick-create-trigger {
   pointer-events: auto;
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  min-height: 48px;
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  min-height: 52px;
   border-radius: 50%;
   padding: 0;
   background: linear-gradient(
@@ -365,10 +365,10 @@
 
 @media (max-width: 360px) {
   .mobile-quick-create .quick-create-trigger {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
   }
 
   .short-task-sheet.quick-create-mobile-sheet {

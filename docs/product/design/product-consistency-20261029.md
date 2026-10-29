@@ -264,3 +264,9 @@ month heading. Compact cards no longer provide the former full-photo layout's
 scroll distance in a tall viewport. The test still requires the heading at the
 viewport edge, opaque material, ordinary header scrolled away and persistent
 navigation; it polls actual geometry instead of sleeping for a guessed duration.
+
+During final validation, main advanced to `d25f4e232c331857c72b3ac3949866be7e8e2b6d`
+through PO-approved #1511 (larger Compact bottom navigation). Integrate all three
+of its files unchanged, including its quantitative browser assertions. The
+combined final head must recheck shell footprints, short viewports, Timeline
+return/reflow and every native API before merge.

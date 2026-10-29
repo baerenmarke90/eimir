@@ -3,6 +3,7 @@ import { expect, type Page, type Route, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import navigation from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expectToday } from '../support/today';
 
@@ -492,6 +493,12 @@ async function signIn(page: Page): Promise<void> {
 
 async function openToday(page: Page): Promise<void> {
   await page.goto('/today');
+  await expectToday(page);
+}
+
+async function navigateToToday(page: Page): Promise<void> {
+  await page.getByRole('link', { name: navigation.today, exact: true }).click();
+  await expect(page).toHaveURL(/\/today$/);
   await expectToday(page);
 }
 
@@ -2075,11 +2082,22 @@ for (const view of [
     await held.confirm();
     await expect(button).toBeEnabled();
     await expect(action.getByRole('status')).toHaveCount(0);
-    await openToday(page);
+    await navigateToToday(page);
     await expect(
       page.locator('.today-section-pinned-collection'),
     ).toBeVisible();
-    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    await page
+      .locator('.today-section-pinned-collection')
+      .getByRole('link', {
+        name: m5s5.today.pinnedCollection.openAriaLabel.replace(
+          '{{title}}',
+          'Einkauf',
+        ),
+      })
+      .click();
+    await expect(page).toHaveURL(
+      new RegExp(`/plan/collections/${COLLECTION_ID}$`),
+    );
     await expect(button).toHaveAttribute('aria-pressed', 'true');
     await expect(button).toBeEnabled();
     await button.click();
@@ -2088,7 +2106,7 @@ for (const view of [
     await expect.poll(() => held.writes.length).toBe(2);
     await held.confirm();
     await expect(button).toBeEnabled();
-    await openToday(page);
+    await navigateToToday(page);
     await expect(page.locator('.today-section-pinned-collection')).toHaveCount(
       0,
     );
@@ -2147,11 +2165,22 @@ for (const view of [
     await expect.poll(() => held.writes.length).toBe(1);
     await held.confirm();
     await expect(button).toBeEnabled();
-    await openToday(page);
+    await navigateToToday(page);
     await expect(
       page.locator('.today-section-pinned-collection'),
     ).toBeVisible();
-    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    await page
+      .locator('.today-section-pinned-collection')
+      .getByRole('link', {
+        name: m5s5.today.pinnedCollection.openAriaLabel.replace(
+          '{{title}}',
+          'Einkauf',
+        ),
+      })
+      .click();
+    await expect(page).toHaveURL(
+      new RegExp(`/plan/collections/${COLLECTION_ID}$`),
+    );
     await expect(button).toHaveAttribute('aria-pressed', 'true');
     await expect(button).toBeEnabled();
 
@@ -2171,7 +2200,7 @@ for (const view of [
     await expect.poll(() => held.writes.length).toBe(2);
     await held.confirm();
     await expect(button).toBeEnabled();
-    await openToday(page);
+    await navigateToToday(page);
     await expect(page.locator('.today-section-pinned-collection')).toHaveCount(
       0,
     );

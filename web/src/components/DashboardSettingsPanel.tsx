@@ -778,7 +778,12 @@ export function DashboardSettingsPanel({
                 }
                 onChange={() => changeUpcomingLimit(itemLimit)}
               />
-              <span>{itemLimit}</span>
+              <span>
+                {itemLimit}
+                {selectedLimit === itemLimit ? (
+                  <span aria-hidden="true"> ✓</span>
+                ) : null}
+              </span>
             </label>
           ))}
         </div>

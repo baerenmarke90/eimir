@@ -199,7 +199,7 @@
   align-items: center;
   gap: var(--space-2);
   min-height: 44px;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   padding: var(--space-2) var(--space-4);
   background: var(--color-surface);
@@ -378,22 +378,17 @@
   }
 }
 
-/*
- * R4 materiality: the agenda tile is the page's one genuinely *raised*
- * surface - a small warm card you could pick up. `--shadow-raised` is a close
- * contact shadow rather than the wide ambient `--shadow-card`, which is what
- * keeps a single default tile feeling substantial instead of floating.
- */
+/* Keep rounded agenda cards flat inside the Compact horizontal scroller. */
 .today-agenda-row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   overflow: hidden;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   background: var(--color-surface-raised);
-  box-shadow: var(--shadow-raised);
+  box-shadow: none;
   color: inherit;
   text-decoration: none;
   box-sizing: border-box;
@@ -407,15 +402,10 @@
 }
 
 .today-agenda-row-link {
-  transition:
-    transform var(--duration-feedback) var(--easing-standard),
-    box-shadow var(--duration-feedback) var(--easing-standard),
-    border-color var(--duration-feedback) var(--easing-standard);
+  transition: border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .today-agenda-row-link:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
   border-color: var(--color-border);
 }
 
@@ -449,9 +439,7 @@
   font-size: 1rem;
   font-weight: 650;
   color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .today-agenda-date {
@@ -502,17 +490,15 @@
 }
 
 /*
- * Secondary by construction: the trace keeps the approved bordered
- * mini-tile shape - it must not regress into an unstyled text list - but it
- * sits *flat* on the canvas while `Demnächst` above it is raised. Elevation,
- * not size, is what now separates the page's primary and secondary registers.
+ * The secondary trace keeps a compact tinted surface without a surrounding
+ * frame. Fill, padding and typography distinguish it from the flat agenda.
  */
 .today-recent-tile {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-medium);
   background: var(--color-surface-subtle);
   color: inherit;
@@ -766,7 +752,7 @@
   display: grid;
   gap: var(--space-3);
   padding: clamp(var(--space-5), 7vw, var(--space-10));
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   background: var(--color-surface-subtle);
 }
@@ -848,7 +834,7 @@
   align-items: flex-start;
   gap: var(--space-2);
   padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5);
-  border: 1px solid var(--color-brand-glow);
+  border: var(--border-surface-width) solid var(--color-brand-glow);
   border-left: 3px solid var(--color-brand);
   border-radius: var(--radius-large);
   background: linear-gradient(
@@ -862,7 +848,7 @@
 
 .today-living-has-media {
   padding: 0;
-  border-left-width: 1px;
+  border-left-width: var(--border-surface-width);
 }
 
 .today-living-media {
@@ -967,7 +953,7 @@
   gap: var(--space-3);
   padding: var(--space-4);
   overflow: visible;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   background: var(--color-surface-raised);
   box-shadow: var(--shadow-raised);
 }
@@ -1026,7 +1012,7 @@
   position: relative;
   min-width: 0;
   overflow: visible;
-  border: var(--space-2) solid var(--color-surface);
+  border: var(--border-surface-width) solid var(--color-surface);
   border-radius: var(--radius-small);
   background: var(--color-surface);
 }
@@ -1385,7 +1371,7 @@
   flex: 0 0 auto;
   place-items: center;
   margin-inline-start: auto;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   padding: 0;
   background: var(--color-surface-subtle);
@@ -1433,7 +1419,7 @@
 .today-pinned-list-discard {
   display: grid;
   gap: var(--space-2);
-  border: 1px solid var(--color-error);
+  border: var(--border-surface-width) solid var(--color-error);
   border-radius: var(--radius-medium);
   padding: var(--space-4);
   background: var(--color-error-surface);

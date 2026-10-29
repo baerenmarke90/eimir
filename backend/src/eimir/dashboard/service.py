@@ -103,6 +103,7 @@ class Anticipation:
     title: str
     event_on: date
     days_remaining: int
+    event_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -152,6 +153,7 @@ def read_anticipation(
         title=_bounded(plan.payload.title) or "",
         event_on=day,
         days_remaining=(day - today).days,
+        event_at=clock.ensure_utc(plan.planned_start) if plan.planned_start is not None else None,
     )
 
 

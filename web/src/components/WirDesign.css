@@ -88,12 +88,6 @@
   border-radius: 0;
   background: transparent;
 }
-.today-page[data-wir-design="warm"] .daily-quote-card::before {
-  inset: var(--space-12) auto auto 0;
-}
-.today-page[data-wir-design="warm"] .daily-quote-block {
-  padding-inline-start: var(--space-5);
-}
 .today-page[data-wir-design="warm"] .today-moment-figure {
   border-radius: var(--radius-large);
   box-shadow: var(--shadow-soft);
@@ -201,7 +195,7 @@
   gap: var(--space-3);
   min-height: 44px;
   padding: var(--space-3);
-  border: 2px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   cursor: pointer;
   transition:
@@ -264,7 +258,7 @@
   padding: 5px;
   border-radius: var(--radius-medium);
   background: var(--color-surface-subtle);
-  box-shadow: inset 0 0 0 1px var(--color-border-subtle);
+  box-shadow: inset 0 0 0 var(--border-surface-width) var(--color-border-subtle);
 }
 .wir-design-preview-hero {
   display: grid;

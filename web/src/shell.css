@@ -1,10 +1,16 @@
 :root {
   --shell-floating-nav-height: 3.75rem;
-  --shell-floating-nav-offset: var(--space-3);
-  --shell-floating-nav-footprint: calc(
+  --shell-floating-nav-offset: 0px;
+  --shell-bottom-nav-min-height: calc(
     var(--shell-floating-nav-height) +
     var(--shell-floating-nav-offset) +
     var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
+  );
+  --shell-bottom-nav-measured-height: 0px;
+  /* Reflow the minimum immediately while a resized observer is pending. */
+  --shell-floating-nav-footprint: max(
+    var(--shell-bottom-nav-min-height),
+    var(--shell-bottom-nav-measured-height)
   );
   --shell-content-bottom-clearance: calc(
     var(--shell-floating-nav-footprint) +
@@ -91,7 +97,7 @@
   height: 44px;
   min-height: 44px;
   place-items: center;
-  border: 1px solid transparent;
+  border: var(--border-surface-width) solid transparent;
   border-radius: var(--radius-pill);
   padding: 0;
   background: transparent;
@@ -162,7 +168,7 @@
   display: grid;
   width: min(18rem, calc(100vw - 2rem));
   gap: var(--space-1);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   padding: var(--space-2);
   background: var(--color-surface-raised);
@@ -226,7 +232,7 @@
   flex-direction: column;
   width: min(22rem, calc(100vw - 2rem));
   max-height: min(28rem, calc(100vh - 6rem));
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   background: var(--color-surface-raised);
   box-shadow: var(--shadow-soft);
@@ -495,7 +501,7 @@
   width: 100%;
   min-width: 13rem;
   gap: var(--space-1);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   padding: var(--space-2);
   background: var(--color-surface-raised);
@@ -731,26 +737,27 @@
 .mobile-bottom-shell {
   position: fixed;
   z-index: 50;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(
-    var(--shell-floating-nav-offset) +
+  inset-inline: 0;
+  bottom: 0;
+  width: 100%;
+  min-height: calc(
+    var(--shell-floating-nav-height) +
     var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
   );
-  width: calc(100% - var(--space-6));
-  max-width: 28rem;
-  min-height: var(--shell-floating-nav-height);
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
   justify-items: center;
   padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-pill);
+  padding-inline-start: max(var(--space-2), env(safe-area-inset-left, 0px));
+  padding-inline-end: max(var(--space-2), env(safe-area-inset-right, 0px));
+  padding-bottom: calc(
+    var(--space-1) +
+    var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
+  );
+  border-radius: 0;
   background: var(--color-surface-overlay);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--color-border-subtle);
-  box-shadow: var(--shadow-card);
+  border: 0;
   box-sizing: border-box;
 }
 
@@ -811,9 +818,9 @@
 }
 
 .mobile-bottom-nav .shell-nav-link > span:last-child {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
   max-width: 100%;
 }
 
@@ -913,7 +920,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
   gap: var(--space-4);
-  border: 2px dashed var(--color-brand-glow);
+  border: var(--border-surface-width) dashed var(--color-brand-glow);
   border-radius: var(--radius-card);
   padding: clamp(var(--space-5), 4vw, var(--space-8));
   background: var(--color-surface-overlay);
@@ -1053,11 +1060,6 @@
 }
 
 @media (max-width: 360px) {
-  .mobile-bottom-shell {
-    width: calc(100% - var(--space-3));
-    padding: var(--space-1) var(--space-1);
-  }
-
   .mobile-bottom-nav .shell-nav-link {
     font-size: 0.68rem;
     padding: var(--space-1) 1px;
@@ -1122,7 +1124,7 @@
   height: 36px;
   margin-bottom: var(--space-2);
   place-items: center;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: 50%;
   background: var(--color-surface-raised);
   color: var(--color-text-secondary);

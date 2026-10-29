@@ -13,7 +13,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4) var(--space-8);
-  border: 1px solid var(--color-shared-border);
+  border: var(--border-surface-width) solid var(--color-shared-border);
   border-radius: var(--radius-card);
   padding: clamp(var(--space-4), 3vw, var(--space-6));
   background: linear-gradient(
@@ -138,7 +138,7 @@
 .m4-item {
   display: grid;
   gap: var(--space-2);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   padding: var(--space-4);
   background: var(--color-surface-panel);
@@ -264,7 +264,7 @@
   display: inline-flex;
   align-items: center;
   min-height: 2rem;
-  border: 1px solid var(--color-brand-glow);
+  border: var(--border-surface-width) solid var(--color-brand-glow);
   border-radius: 999px;
   padding: 0.2rem 0.8rem;
   background: var(--color-surface-raised);
@@ -304,7 +304,7 @@
   display: flex;
   height: 100%;
   flex-direction: column;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   padding: var(--space-4) var(--space-5);
   background: var(--color-surface-raised);
@@ -385,7 +385,7 @@
   height: 100%;
   flex-direction: column;
   gap: var(--space-3);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   padding: var(--space-4) var(--space-5);
   background: var(--color-surface-panel);

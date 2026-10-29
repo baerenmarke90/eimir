@@ -18,9 +18,9 @@
   height: 1.4rem;
   box-sizing: border-box;
   place-items: center;
-  border: 1.5px solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-border);
   border-radius: var(--radius-pill);
-  background: var(--color-surface);
+  background: var(--color-surface-subtle);
   color: transparent;
   transition:
     background var(--duration-feedback) var(--easing-standard),

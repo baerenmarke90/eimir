@@ -65,7 +65,7 @@
   width: 3.35rem;
   height: 3.35rem;
   place-items: center;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   background: var(--color-brand-surface);
   color: var(--color-brand-text);
@@ -145,7 +145,7 @@
   place-items: center;
   align-content: center;
   gap: var(--space-3);
-  border: 1px dashed var(--color-border);
+  border: var(--border-surface-width) dashed var(--color-border);
   border-radius: var(--radius-card);
   padding: var(--space-6);
   background: linear-gradient(
@@ -211,7 +211,7 @@
   display: grid;
   gap: var(--space-2);
   padding: var(--space-4);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   background: var(--color-surface);
   box-shadow: var(--shadow-raised);
@@ -272,7 +272,7 @@
   min-width: 0;
   min-height: 7.25rem;
   padding: var(--space-4);
-  border: 1px solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-border);
   border-radius: var(--radius-large);
   background: var(--color-surface);
   color: var(--color-text);
@@ -294,7 +294,7 @@
   border-color: var(--color-brand);
   background: var(--color-brand-surface);
   box-shadow:
-    0 0 0 1px var(--color-brand),
+    0 0 0 var(--border-surface-width) var(--color-brand),
     var(--shadow-raised);
 }
 

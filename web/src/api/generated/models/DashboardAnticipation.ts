@@ -30,6 +30,12 @@ export interface DashboardAnticipation {
      * @type {Date}
      * @memberof DashboardAnticipation
      */
+    eventAt?: Date | null;
+    /**
+     * 
+     * @type {Date}
+     * @memberof DashboardAnticipation
+     */
     eventOn: Date;
     /**
      * 
@@ -67,6 +73,7 @@ export function DashboardAnticipationFromJSONTyped(json: any, ignoreDiscriminato
     return {
         
         'daysRemaining': json['daysRemaining'],
+        'eventAt': json['eventAt'] === undefined ? undefined : json['eventAt'] === null ? null : (new Date(json['eventAt'])),
         'eventOn': (new Date(json['eventOn'])),
         'planId': json['planId'],
         'title': json['title'],
@@ -85,6 +92,7 @@ export function DashboardAnticipationToJSONTyped(value?: DashboardAnticipation |
     return {
         
         'daysRemaining': value['daysRemaining'],
+        'eventAt': value['eventAt'] == null ? value['eventAt'] : value['eventAt'].toISOString(),
         'eventOn': value['eventOn'].toISOString().substring(0,10),
         'planId': value['planId'],
         'title': value['title'],

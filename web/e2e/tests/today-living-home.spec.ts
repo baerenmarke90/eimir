@@ -913,6 +913,7 @@ test.describe('Today R4: the living home of a relationship', () => {
           background: style.backgroundColor,
           radius: style.borderTopLeftRadius,
           shadow: style.boxShadow,
+          border: style.borderTopWidth,
         };
       };
       return {
@@ -928,11 +929,17 @@ test.describe('Today R4: the living home of a relationship', () => {
       expect(value, `${name} must render`).not.toBeNull();
     }
 
-    // The raised agenda tile and the flat secondary trace tile must not be
-    // the same surface: elevation is what separates primary from secondary.
-    expect(grammar.agenda?.shadow).not.toBe('none');
+    // Both tiles stay flat and borderless; their fills retain the hierarchy.
+    expect(grammar.agenda?.shadow).toBe('none');
     expect(grammar.trace?.shadow).toBe('none');
+    expect(grammar.agenda?.border).toBe('0px');
+    expect(grammar.trace?.border).toBe('0px');
     expect(grammar.agenda?.background).not.toBe(grammar.trace?.background);
+    await page.locator('.today-agenda-row').first().hover();
+    await expect(page.locator('.today-agenda-row').first()).toHaveCSS(
+      'box-shadow',
+      'none',
+    );
 
     // The contextual module is a tinted panel, distinct from both.
     expect(grammar.living?.background).not.toBe(grammar.agenda?.background);

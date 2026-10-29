@@ -51,6 +51,7 @@ const m5s5 = {
     storySummaryMilestonesCount_one: '{{count}} Meilenstein',
     storySummaryMilestonesCount_other: '{{count}} Meilensteine',
     itemFallback: 'Gemeinsamer Eintrag',
+    anniversaryTitle: 'Euer Jahrestag',
   },
   today: {
     roles: {

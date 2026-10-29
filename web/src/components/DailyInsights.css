@@ -216,7 +216,7 @@
   gap: var(--space-3);
   min-width: 0;
   padding: var(--space-4);
-  border: 1px solid var(--insight-card-line);
+  border: var(--border-surface-width) solid var(--insight-card-line);
   border-radius: var(--radius-card);
   background: var(--insight-card-surface);
   box-shadow: 0 6px 22px var(--color-shadow-soft);

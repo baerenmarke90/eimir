@@ -13,10 +13,10 @@ import {
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
-import { formatDateInputValue } from '../client/dateInput';
 import { splitFirstGrapheme } from '../client/graphemeSplit';
 import {
   type MemoryEditValues,
+  isGeneratedMemoryTitle,
   memoryDateInputValue,
   memoryIfMatch,
   memoryUpdatePayload,
@@ -753,16 +753,9 @@ export function MemoryProductPage({
   const dateLabel = memory.happenedOn
     ? formatDateOnly(memory.happenedOn)
     : t('memoryProduct.noDate');
-  const generatedTitle = memory.happenedOn
-    ? t('memoryProduct.createFallbackTitle', {
-        date: formatDateInputValue(
-          memoryDateInputValue(memory.happenedOn),
-          resolvedLocale(),
-        ),
-      })
-    : '';
   const hasAuthoredTitle = Boolean(
-    memory.title.trim() && memory.title.trim() !== generatedTitle,
+    memory.title.trim() &&
+      !isGeneratedMemoryTitle(memory.title, memory.happenedOn, t),
   );
 
   const provenanceAuthor = storyAuthorLabel(

@@ -20,7 +20,6 @@ import {
 import { clientProblemKind } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
 import { PreferenceSwitch } from './PreferenceSwitch';
-import { ProMark } from './ProMark';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './DailyQuoteCard.css';
 
@@ -349,17 +348,6 @@ export function DailyQuoteCard({
     },
   });
 
-  const categoryNames = useMemo(
-    () =>
-      new Map(
-        (catalogQuery.data?.categories ?? []).map((category) => [
-          category.id,
-          category.name,
-        ]),
-      ),
-    [catalogQuery.data],
-  );
-
   const openSettings = () => {
     saveMutation.reset();
     setDraft(null);
@@ -483,9 +471,6 @@ export function DailyQuoteCard({
   } else {
     settingsAvailable = true;
     const quote = quoteQuery.data.quote;
-    const visibleCategories = quote.categoryIds
-      .map((id) => categoryNames.get(id))
-      .filter((name): name is string => Boolean(name));
     const attribution = quote.sourceDisplay
       ? t('dailyQuote.quoteAttribution', {
           author: quote.authorDisplay,
@@ -496,22 +481,10 @@ export function DailyQuoteCard({
         });
 
     body = (
-      <>
-        <blockquote className="daily-quote-block">
-          <p>„{quote.text}“</p>
-          {quote.attributionRequired ? <footer>{attribution}</footer> : null}
-        </blockquote>
-        {visibleCategories.length > 0 ? (
-          <ul
-            className="daily-quote-categories"
-            aria-label={t('dailyQuote.categories')}
-          >
-            {visibleCategories.map((name) => (
-              <li key={name}>{name}</li>
-            ))}
-          </ul>
-        ) : null}
-      </>
+      <blockquote className="daily-quote-block">
+        <p>„{quote.text}“</p>
+        {quote.attributionRequired ? <footer>{attribution}</footer> : null}
+      </blockquote>
     );
   }
 
@@ -529,17 +502,9 @@ export function DailyQuoteCard({
         aria-labelledby="daily-quote-title"
       >
         <header className="daily-quote-header">
-          <div className="daily-quote-heading-group">
-            <span className="today-section-kicker">
-              {t('dailyQuote.kicker')}
-            </span>
-            <div className="daily-quote-heading">
-              <h2 id="daily-quote-title" className="today-section-title">
-                {t('dailyQuote.title')}
-              </h2>
-              <ProMark label={t('dailyQuote.pro')} />
-            </div>
-          </div>
+          <h2 id="daily-quote-title" className="today-section-title">
+            {t('dailyQuote.title')}
+          </h2>
           {settingsAvailable ? (
             <button
               ref={settingsButtonRef}

@@ -37,6 +37,7 @@
   --radius-media: 1rem;
   --radius-content: 1.25rem;
   --radius-sheet-top: 1.5rem;
+  --border-surface-width: 0px;
   --space-content-group: 0.75rem;
   --space-section: 2rem;
   --page-gutter-narrow: 16px;
@@ -91,5 +92,11 @@
     --duration-feedback: 0ms;
     --duration-transition: 0ms;
     --duration-context: 0ms;
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --border-surface-width: 1px;
   }
 }

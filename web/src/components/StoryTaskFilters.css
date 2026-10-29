@@ -28,7 +28,7 @@
   place-items: center;
   align-self: center;
   padding: 0;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
   color: var(--color-text-secondary);
@@ -59,7 +59,7 @@
   min-width: 19px;
   height: 19px;
   place-items: center;
-  border: 2px solid var(--color-surface);
+  border: var(--border-surface-width) solid var(--color-surface);
   border-radius: var(--radius-pill);
   padding-inline: 4px;
   background: var(--color-brand);

@@ -6,7 +6,7 @@
 .planning-subsection,
 .planning-danger-zone,
 .planning-facts {
-  border: 1px solid transparent;
+  border: var(--border-surface-width) solid transparent;
   border-radius: var(--radius-card);
   padding: clamp(var(--space-5), 3vw, var(--space-6));
   background: var(--color-surface);
@@ -100,7 +100,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   padding: var(--space-4) var(--space-5);
   background: var(--color-surface);
@@ -184,7 +184,7 @@
   align-items: center;
   gap: var(--space-2);
   min-height: 44px;
-  border: 1.5px dashed var(--color-brand);
+  border: var(--border-surface-width) dashed var(--color-brand);
   border-radius: var(--radius-pill);
   padding: var(--space-2) var(--space-4);
   background: var(--color-brand-surface);
@@ -246,7 +246,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  border: 1px solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-border);
   border-radius: var(--radius-medium);
   padding: 0.8rem 0.9rem;
   background: var(--color-surface);
@@ -286,7 +286,7 @@
   gap: 2px;
   max-height: 16rem;
   overflow-y: auto;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-medium);
   padding: var(--space-2);
   background: var(--color-surface-raised);
@@ -334,7 +334,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   padding: var(--space-4);
   background: var(--color-surface-subtle);
@@ -431,7 +431,7 @@
   min-width: 0;
   align-items: center;
   gap: var(--space-3);
-  border: 1px solid transparent;
+  border: var(--border-surface-width) solid transparent;
   border-radius: var(--radius-large);
   padding: var(--space-3);
   background: var(--color-surface-raised);
@@ -543,8 +543,8 @@
   border-radius: 50%;
   padding: 0;
   cursor: pointer;
-  background: var(--color-surface);
-  border: 2px solid var(--color-border);
+  background: var(--color-surface-subtle);
+  border: var(--border-surface-width) solid var(--color-border);
   color: transparent;
   font-size: 1.15rem;
   font-weight: 800;
@@ -601,7 +601,7 @@
 .plan-completed-celebration {
   display: grid;
   gap: var(--space-3);
-  border: 1px solid var(--color-shared-border);
+  border: var(--border-surface-width) solid var(--color-shared-border);
   border-radius: var(--radius-card);
   padding: clamp(var(--space-5), 3vw, var(--space-6));
   background: linear-gradient(

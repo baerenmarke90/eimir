@@ -122,7 +122,7 @@
   display: grid;
   gap: var(--space-4);
   align-content: start;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   padding: clamp(var(--space-5), 2.5vw, var(--space-6));
   background: var(--color-surface-panel);
@@ -270,7 +270,7 @@
 .layout-metric {
   display: grid;
   gap: var(--space-1);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   padding: var(--space-4);
   background: var(--color-surface);

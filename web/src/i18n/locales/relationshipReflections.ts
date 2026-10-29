@@ -1,6 +1,11 @@
 const relationshipReflections = {
   anticipation: {
-    kicker: 'Darauf freuen wir uns',
+    now: 'Jetzt ist es so weit',
+    timerLabel: 'Countdown bis {{title}}',
+    timerDays: 'Tage',
+    timerHours: 'Std.',
+    timerMinutes: 'Min.',
+    timerSeconds: 'Sek.',
     today: 'Heute ist es so weit',
     tomorrow: 'Morgen ist es so weit',
     days_one: 'Noch {{count}} Tag',

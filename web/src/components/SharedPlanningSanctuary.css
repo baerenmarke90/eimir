@@ -127,7 +127,7 @@
 
     & > summary {
       max-width: 100%;
-      border: 1px solid var(--color-brand-glow);
+      border: var(--border-surface-width) solid var(--color-brand-glow);
       background: var(--color-brand-surface);
       color: var(--color-brand-text);
       box-shadow: none;
@@ -160,7 +160,7 @@
 
   & .planning-create-form {
     margin-top: var(--space-4);
-    border: 1px solid var(--color-border-subtle);
+    border: var(--border-surface-width) solid var(--color-border-subtle);
     border-radius: var(--radius-large);
     padding: clamp(var(--space-4), 3vw, var(--space-5));
     background: var(--color-surface-panel-tint);

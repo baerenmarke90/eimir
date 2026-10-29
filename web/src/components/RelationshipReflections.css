@@ -1,7 +1,7 @@
 .anticipation-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-4);
   padding: var(--space-5);
   margin-block-end: var(--space-4);
   border-radius: var(--radius-card);
@@ -12,14 +12,56 @@
   transition: background var(--duration-feedback) var(--easing-standard);
 }
 
-.anticipation-card .eyebrow {
-  color: inherit;
-  margin: 0;
-}
 .anticipation-countdown {
   font: var(--font-personal-heading);
 }
+.anticipation-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.anticipation-event {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+.anticipation-open {
+  flex-shrink: 0;
+}
+.anticipation-timer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 3.25em), 1fr));
+  gap: var(--space-2);
+  font-variant-numeric: tabular-nums;
+}
+.anticipation-unit {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.anticipation-digit {
+  font: var(--font-section-heading);
+  overflow-wrap: normal;
+}
+.anticipation-unit-label {
+  font: var(--font-supporting-copy);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .anticipation-digit {
+    animation: anticipation-tick var(--duration-feedback) var(--easing-standard);
+  }
+}
+@keyframes anticipation-tick {
+  from {
+    opacity: 0.65;
+  }
+  to {
+    opacity: 1;
+  }
+}
 .anticipation-date {
+  font: var(--font-supporting-copy);
   font-variant-numeric: tabular-nums;
 }
 .anticipation-card:active {

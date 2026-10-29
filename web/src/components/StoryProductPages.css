@@ -142,7 +142,7 @@
 .story-card {
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   padding: var(--space-5);
   background: var(--color-surface-raised);
@@ -300,7 +300,7 @@
   gap: var(--space-3);
   margin-bottom: var(--space-6);
   padding: var(--space-4);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   background: var(--color-surface);
   box-shadow: var(--shadow-soft);
@@ -350,7 +350,7 @@
 .story-filter-group select {
   height: 2.5rem;
   padding: 0 var(--space-3);
-  border: 1px solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-border);
   border-radius: var(--radius-medium);
   background: var(--color-surface-raised, var(--color-surface));
   color: var(--color-text);
@@ -405,7 +405,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   background: var(--color-brand-surface);
   color: var(--color-brand-strong);
@@ -477,7 +477,7 @@
     align-self: auto;
     height: 2.5rem;
     padding: 0 var(--space-4);
-    border: 1px solid var(--color-border);
+    border: var(--border-surface-width) solid var(--color-border);
     border-radius: var(--radius-pill);
     background: var(--color-surface-raised, var(--color-surface));
     color: var(--color-text);
@@ -518,7 +518,7 @@
     align-items: stretch;
     gap: var(--space-3);
     background: var(--color-surface);
-    border: 1px solid var(--color-border-subtle);
+    border: var(--border-surface-width) solid var(--color-border-subtle);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-soft);
     padding: var(--space-4);
@@ -558,7 +558,7 @@
   gap: var(--space-1);
   padding: 4px;
   background: var(--color-surface-subtle);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-soft);
 }
@@ -614,7 +614,7 @@
     var(--color-brand-surface),
     var(--color-surface-raised)
   );
-  border: 1px solid var(--color-brand-glow);
+  border: var(--border-surface-width) solid var(--color-brand-glow);
   box-shadow: var(--shadow-card);
   transition: transform var(--duration-feedback) var(--easing-standard);
 }
@@ -736,7 +736,7 @@
   grid-template-columns: minmax(0, 1fr);
   min-height: 5.5rem;
   overflow: hidden;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   background: linear-gradient(
     145deg,
@@ -944,7 +944,7 @@
 
 /* Memory + Media: image-first, the tapestry's photographic focal weight */
 .momente-tapestry-media {
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   background: var(--color-surface);
   box-shadow: var(--shadow-soft);
 }
@@ -980,7 +980,7 @@
 
 /* Memory without media: quiet editorial card, no forced photo area */
 .momente-tapestry-text {
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   background: var(--color-surface);
   box-shadow: var(--shadow-soft);
 }
@@ -992,7 +992,7 @@
 
 /* Heart Moment: a tactile letter/note, sized to its own text */
 .momente-tapestry-note {
-  border: 1px solid var(--color-brand-glow);
+  border: var(--border-surface-width) solid var(--color-brand-glow);
   background: linear-gradient(
     150deg,
     var(--color-brand-surface),
@@ -1061,7 +1061,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
-  border: 1px solid var(--color-brand-glow);
+  border: var(--border-surface-width) solid var(--color-brand-glow);
   background: linear-gradient(
     120deg,
     var(--color-brand-surface),
@@ -1128,7 +1128,7 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
   gap: var(--space-1);
   padding: 4px;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   background: var(--color-surface-subtle);
   box-shadow: var(--shadow-soft);

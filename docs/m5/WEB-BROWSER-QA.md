@@ -31,7 +31,7 @@ Current #1042 state:
 - Phase B Slice 2 retained full regression: **314** browser tests
 - #961 adds two retained tests to `f2-task-boundaries.spec.ts` (unknown-create verification and its photo continuation), so the full regression is **316** tests
 - PR-critical group: **152** browser tests
-- Current topology: **2 PR shards** / **4 full-regression shards**, two Playwright workers per shard
+- Current topology: **4 PR shards** / **4 full-regression shards**, one Playwright worker per shard
 
 Phase A did not delete browser coverage; it moved broad acceptance/reference matrices out of the per-PR path while retaining them in the full regression.
 
@@ -75,23 +75,23 @@ The full regression includes every retained browser spec, including Product Refe
 
 ## CI topology
 
-`.github/workflows/web-browser-qa.yml` uses the same pinned Node container and Chromium runtime for every browser shard. Each browser job uses **two Playwright workers**, including the changed-spec job. This allows independent tests within slow files such as `memory-create-defaults.spec.ts`, `private-area-reference.spec.ts` and `today-pinned-collection.spec.ts` to run concurrently while keeping per-runner browser concurrency bounded.
+`.github/workflows/web-browser-qa.yml` uses the same pinned Node container and Chromium runtime for every browser shard. Pull requests use **four isolated runners**, each with **one Playwright worker**. This divides the PR-critical workload across runners without browser processes competing with each other and the Vite server on the same runner. Playwright assigns cases in native shard order; a slow file can span a shard boundary, but the configuration does not guarantee that every file appears on multiple runners.
 
 For a `pull_request` touching `web/**` or the workflow itself:
 
 1. a lightweight planning job validates the shared test inventory, proves its planner with deterministic tests and resolves changed browser-spec files through every page of the GitHub PR Files API;
-2. two PR-critical jobs run `npm run test:pr -- --shard=1/2` and `--shard=2/2` in parallel;
+2. four PR-critical jobs run `npm run test:pr -- --shard=1/4` through `--shard=4/4` in parallel;
 3. if retained non-critical browser specs changed, one additional isolated job runs those changed specs completely; changed PR-critical files are already covered by step 2 and are not executed twice;
 4. each browser job writes to its own Playwright output directory and uploads its own short-lived evidence artifact;
 5. a stable `Playwright + axe` aggregate job fails if any required shard or targeted verification fails.
 
 For a push to `main` touching the same surfaces, and for manual execution, four isolated jobs run the complete retained regression as `--shard=1/4` through `--shard=4/4`. The aggregate `Playwright + axe` result remains the stable workflow-level browser-QA status.
 
-Native Playwright sharding and worker parallelism use the existing `fullyParallel: true` configuration. Every retained test is assigned to exactly one shard and runs in an isolated browser context. The Memory Create, private-area and pinned-collection suites keep mutable API-mock state inside each test. Screenshots use `testInfo.outputPath()` or distinct viewport/theme-specific reference paths, so their tests can run independently.
+Native Playwright sharding uses the existing `fullyParallel: true` configuration to distribute individual tests, including cases within the same file. Every retained test is assigned to exactly one shard. Each shard preserves the established one-worker execution model and all assertions, test selection, retries, timeouts and diagnostics.
 
-When investigating a slow-file warning, first check the tested commit and the runner's `Running ... tests using ... workers` line. A run of an older commit or an explicit `--workers=1` override still executes serially even when a local checkout has the two-worker setting. Compare end-to-end job durations on the same runner before claiming CI speedups; a local targeted run is validation of concurrency and test behavior, not a measurement of the complete GitHub gate.
+This follows [Playwright's CI worker guidance](https://playwright.dev/docs/ci#workers) and [native sharding](https://playwright.dev/docs/test-sharding). A two-worker trial produced repeated deadlines in existing journeys; the final configuration provides concurrency across isolated runners. The existing test corrections are retained; assertions, timeouts, coverage and production behavior remain unchanged. There is no user-facing UI/UX or business/freemium impact: changes are limited to CI scheduling, test journeys and engineering documentation.
 
-The parallelism adjustment reuses [Playwright's built-in workers](https://playwright.dev/docs/test-parallel). Increasing the worker limit uses the existing test isolation without splitting files or adding more CI runners and repeated dependency setup. Browser assertions, test selection, retries and timeouts remain unchanged. There is no user-facing UI/UX or business/freemium impact because only test execution changes; product tiers, entitlements and Cloud/Self-Hosted behavior are unaffected.
+With one worker per runner, Playwright can still report a slow file's accumulated time within that shard. Check all four shard results and the complete job duration when evaluating performance. The warnings remain enabled and should be interpreted alongside the shard allocation and total job duration.
 
 Successful curated Product Reference evidence artifacts are retained for **1 day** and failed-run evidence for **3 days**, preserving the storage-reduction intent of #963. Artifact names are shard-specific because `upload-artifact@v4` does not allow multiple jobs to append to the same artifact.
 
@@ -108,7 +108,7 @@ unique file list against the PR metadata's `changed_files` count, including the
 Unknown statuses, unsafe current/previous paths and duplicate or oversized pages
 also fail planning. Transport/JSON errors use fixed diagnostics, and CLI error
 output redacts the API token. Even when the additional group is
-empty, the aggregate still requires both critical shards and the planning job
+empty, the aggregate still requires all four critical shards and the planning job
 to succeed. No browser assertion, classification, retry/timeout policy or
 post-merge coverage is removed.
 
@@ -126,7 +126,7 @@ A CI shard can be reproduced locally without changing package scripts:
 
 ```bash
 cd web/e2e
-npm run test:pr -- --shard=1/2
+npm run test:pr -- --shard=1/4
 npm run test:full -- --shard=3/4
 ```
 

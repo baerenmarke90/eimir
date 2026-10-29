@@ -26,17 +26,19 @@ npm run test:full
 CI shards these same commands without changing the suite semantics:
 
 ```bash
-npm run test:pr -- --shard=1/2
+npm run test:pr -- --shard=1/4
 npm run test:full -- --shard=3/4
 ```
 
-Each CI shard runs with two Playwright workers. With `fullyParallel: true`,
-independent tests within slow files such as `memory-create-defaults.spec.ts`
-can run concurrently as well as across GitHub Actions runners. Local runs keep
-Playwright's default worker count; use `--workers=1` for serial debugging.
+Pull requests run four isolated CI shards with one Playwright worker each.
+With `fullyParallel: true`, Playwright assigns individual cases across the
+four runners while each browser has dedicated runner resources. A file can
+span a shard boundary, but not every file is split across multiple shards. Main and
+manual full-regression runs keep their existing four-shard topology. Local
+runs keep Playwright's default worker count.
 
 On a pull request, changed `FULL_REGRESSION` and `LOWER_LEVEL` files additionally
-run in full. Changed `PR_CRITICAL` files are already included in both critical
+run in full. Changed `PR_CRITICAL` files are already included in all critical
 shards' combined coverage and do not run again. The same validated inventory
 owns both selections; removed specs are omitted and renamed destinations must
 exist in the current inventory. API/inventory failures fail planning. The unique

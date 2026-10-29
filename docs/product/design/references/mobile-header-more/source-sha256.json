@@ -7,5 +7,7 @@
   "web/src/i18n/locales/navigation.ts": "186cc50715e2ddcd52f920abdd4cf480bf29ad0f52e615a9a9ad52fc4f8d3dbf",
   "web/src/shell.css": "d1d33f2197dea4d76a5d6885404e646ba33c67cbc3a3d37a70704fb99b76f488",
   "web/e2e/tests/mobile-header-more.spec.ts": "3da2a47d431807503d5de6c24a69117c35b38cad86dd48567d4330a7dc6efdc6",
-  "web/e2e/tests/f2-task-boundaries.spec.ts": "11e3b9d04a69f501481078786757e9b2774d8d86f0ef06dffe441e1b17cf73cc"
+  "web/e2e/tests/f2-task-boundaries.spec.ts": "11e3b9d04a69f501481078786757e9b2774d8d86f0ef06dffe441e1b17cf73cc",
+  "web/src/components/SensitiveMedia.css": "c823d694959f5c6591a16bfd465b89b10744bc790e04f09b8532eff84f970625",
+  "web/e2e/tests/memory-carousel-stability.spec.ts": "6f07074df68d54a8ee8ab615e6342b1eb29fe49f08fbdb6aee571271bb477275"
 }

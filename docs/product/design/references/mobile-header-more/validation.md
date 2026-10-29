@@ -34,3 +34,7 @@ All work used `/tmp/eimir-mobile-header-more`, branch `fix/mobile-header-more`, 
 ## Merge follow-up: native modal background target
 
 The retained F2 native-modality proof now uses the real bottom More link rather than the retired header brand. It still cycles keyboard focus, rejects programmatic focus behind the native dialog, clicks the background navigation destination through the backdrop, and requires the complete original URL to stay unchanged. An explicit geometry assertion proves the click is outside the floating sheet. The focused Chromium case passes without retries. This is a test compatibility repair; runtime sources remain unchanged.
+
+## Merge follow-up: anchored photo privacy controls
+
+The headerless layout exposed a retained preview-centering failure: the global button hover lift applied `matrix(1, 0, 0, 1, 0, -1)` to an otherwise centered privacy control. The unchanged strict <1px center assertion failed twice on the original 390px Dark case; explicit hover reproduces the same cause. Scope hover/active transforms to `none` for the anchored preview control only; existing overlay background feedback remains. The browser proof now deliberately hovers and attaches actual frame/target/transform geometry before keeping the original center, size, privacy, focus and navigation assertions. All four 360/390/430/1280px Light/Dark cases pass without retries. The 47 focused privacy/preview/shell tests also pass.

@@ -821,10 +821,21 @@ for (const state of [
       await expect(photo.locator('.sensitive-media-blurred img')).toBeVisible();
       await expect(button.locator('.eimir-icon-privatsphaere')).toBeVisible();
       expect(await button.evaluate((node) => node.closest('a'))).toBeNull();
+      await button.hover();
       const frame = await photo.boundingBox();
       const target = await button.boundingBox();
       if (!frame || !target)
         throw new Error('Expected the photo and Privacy target.');
+      await info.attach(`concealed-preview-geometry-${surface}`, {
+        body: JSON.stringify({
+          frame,
+          target,
+          transform: await button.evaluate(
+            (node) => getComputedStyle(node).transform,
+          ),
+        }),
+        contentType: 'application/json',
+      });
       expect(target.width).toBeGreaterThanOrEqual(44);
       expect(target.height).toBeGreaterThanOrEqual(44);
       expect(

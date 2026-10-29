@@ -58,6 +58,10 @@
   margin: auto;
   border: 0;
 }
+.sensitive-media-preview > .sensitive-media-preview-control:hover,
+.sensitive-media-preview > .sensitive-media-preview-control:active {
+  transform: none;
+}
 .sensitive-media-preview > .sensitive-media-preview-control.is-revealed {
   inset: var(--space-3) var(--space-3) auto auto;
   margin: 0;

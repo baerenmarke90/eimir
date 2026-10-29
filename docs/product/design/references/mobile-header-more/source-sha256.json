@@ -9,7 +9,7 @@
   "web/e2e/tests/mobile-header-more.spec.ts": "3da2a47d431807503d5de6c24a69117c35b38cad86dd48567d4330a7dc6efdc6",
   "web/e2e/tests/f2-task-boundaries.spec.ts": "11e3b9d04a69f501481078786757e9b2774d8d86f0ef06dffe441e1b17cf73cc",
   "web/src/components/SensitiveMedia.css": "c823d694959f5c6591a16bfd465b89b10744bc790e04f09b8532eff84f970625",
-  "web/e2e/tests/memory-carousel-stability.spec.ts": "6f07074df68d54a8ee8ab615e6342b1eb29fe49f08fbdb6aee571271bb477275",
+  "web/e2e/tests/memory-carousel-stability.spec.ts": "10a2a8e7d4be073eeca6411c9190bc0be53d0da58d327390ec3b66ea36c0adae",
   "web/src/components/GamesProductArea.css": "7e0fe383b47cf4387374ec4d0a213148ca196d52063379f239a4a741624d76e5",
   "web/e2e/tests/perspective-game.spec.ts": "ef5ccec76a9a6861f4c7229087c45159d1d222d800295216e5eed2d2fcca11ab"
 }

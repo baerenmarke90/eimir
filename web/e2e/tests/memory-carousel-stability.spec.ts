@@ -1322,10 +1322,10 @@ test('Memory carousel keeps document and layout position stable across pointer a
   });
 });
 
-test('Memory carousel touch controls stay stable at 320px and 390px', async ({
-  browser,
-}, testInfo) => {
-  for (const width of [320, 390] as const) {
+for (const width of [320, 390] as const) {
+  test(`Memory carousel touch controls stay stable at ${width}px`, async ({
+    browser,
+  }, testInfo) => {
     const context = await browser.newContext({
       hasTouch: true,
       isMobile: true,
@@ -1424,8 +1424,8 @@ test('Memory carousel touch controls stay stable at 320px and 390px', async ({
     } finally {
       await context.close();
     }
-  }
-});
+  });
+}
 
 test('Memory carousel is effectively static with reduced motion and reflows at 200 percent', async ({
   page,

@@ -21,13 +21,13 @@ concurrency:
 jobs:
   pr-critical:
     if: github.event_name == 'pull_request'
-    name: PR-critical ${{ matrix.shard }}/2
+    name: PR-critical ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
     container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -59,7 +59,7 @@ jobs:
         working-directory: web/e2e
         run: >-
           npm run test:pr --
-          --shard=${{ matrix.shard }}/2
+          --shard=${{ matrix.shard }}/4
           --max-failures=1
           --output=test-results-pr-${{ matrix.shard }}
 

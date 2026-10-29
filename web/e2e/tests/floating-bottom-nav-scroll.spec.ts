@@ -648,28 +648,26 @@ test.describe('Global header document flow and persistent bottom navigation', ()
     }
   });
 
-  test('Momente, Planen and Mehr share one root heading rhythm on Compact and Expanded', async ({
-    page,
-  }, testInfo) => {
-    await installApiMocks(page);
-    await page.goto('/login');
-    await signIn(page);
+  for (const viewport of [
+    { label: 'compact', width: 390, height: 844 },
+    { label: 'expanded', width: 1280, height: 900 },
+  ] as const) {
+    test(`Momente, Planen and Mehr share one root heading rhythm on ${viewport.label}`, async ({
+      page,
+    }, testInfo) => {
+      await installApiMocks(page);
+      await page.goto('/login');
+      await signIn(page);
 
-    const destinations = [
-      {
-        slug: 'momente',
-        path: '/story?tab=timeline',
-        title: de.story.timelineTitle,
-      },
-      { slug: 'planen', path: '/plan', title: m5s3.overview.title },
-      { slug: 'mehr', path: '/more', title: de.more.title },
-    ] as const;
-    const viewports = [
-      { label: 'compact', width: 390, height: 844 },
-      { label: 'expanded', width: 1280, height: 900 },
-    ] as const;
-
-    for (const viewport of viewports) {
+      const destinations = [
+        {
+          slug: 'momente',
+          path: '/story?tab=timeline',
+          title: de.story.timelineTitle,
+        },
+        { slug: 'planen', path: '/plan', title: m5s3.overview.title },
+        { slug: 'mehr', path: '/more', title: de.more.title },
+      ] as const;
       await page.setViewportSize({
         width: viewport.width,
         height: viewport.height,
@@ -733,8 +731,8 @@ test.describe('Global header document flow and persistent bottom navigation', ()
       for (const peer of peers) {
         expect(peer).toEqual(baseline);
       }
-    }
-  });
+    });
+  }
 
   test('Headerless Today retains its relationship surface and consumes the demo inset once', async ({
     page,

@@ -450,10 +450,14 @@ for (const theme of ['light', 'dark'] as const) {
     await page
       .getByRole('link', { name: navigation.more, exact: true })
       .click();
+    await expect(page).toHaveURL(/\/more$/);
+    await expect(cleanup).toHaveCount(0);
     await page
       .getByRole('link', { name: navigation.today, exact: true })
       .click();
+    await expect(page).toHaveURL(/\/today$/);
     await expect(cleanup).toBeVisible();
+    expect(state.patchCount()).toBe(0);
     await cleanup
       .getByRole('button', { name: dailyVibe.disabledRemove, exact: true })
       .click();
@@ -467,9 +471,12 @@ for (const theme of ['light', 'dark'] as const) {
     await page
       .getByRole('link', { name: navigation.more, exact: true })
       .click();
+    await expect(page).toHaveURL(/\/more$/);
+    await expect(energy).toHaveCount(0);
     await page
       .getByRole('link', { name: navigation.today, exact: true })
       .click();
+    await expect(page).toHaveURL(/\/today$/);
     await expect(cleanup).toHaveCount(0);
     await expect(energy).toHaveAttribute(
       'aria-label',

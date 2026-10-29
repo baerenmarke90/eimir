@@ -2,6 +2,7 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import { PUBLIC_START_ROUTE } from '../../src/client/publicStart';
 import dailyQuote from '../../src/i18n/locales/dailyQuote';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
@@ -385,6 +386,10 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
 
 async function signIn(page: Page, email = 'anna@example.org') {
   await page.goto('/today');
+  await submitSignIn(page, email);
+}
+
+async function submitSignIn(page: Page, email: string) {
   await page.getByLabel(de.login.email).fill(email);
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
@@ -687,9 +692,12 @@ test('signing into the partner account cannot reuse the previous account quote o
   await expect.poll(() => requests.patches.length).toBe(1);
 
   await page.getByRole('link', { name: navigation.more, exact: true }).click();
-  await page.getByRole('button', { name: de.header.logout }).click();
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === PUBLIC_START_ROUTE),
+    page.getByRole('button', { name: de.header.logout }).click(),
+  ]);
   await expect(page.getByLabel(de.login.email)).toBeVisible();
-  await signIn(page, 'ben@example.org');
+  await submitSignIn(page, 'ben@example.org');
 
   await expect(page.getByText('A different thought for Ben.')).toBeVisible();
   await expect(page.getByText('A calm thought for today.')).toHaveCount(0);

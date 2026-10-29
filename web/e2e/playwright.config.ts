@@ -9,6 +9,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
+  // CI parallelism comes from isolated runners; each owns one browser worker.
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? 'line' : 'list',
   expect: {

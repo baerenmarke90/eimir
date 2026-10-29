@@ -1,5 +1,5 @@
 {
-  "integrationParent": "bd1f15b65e77aa4d6b715ceeee24a7fbc19dd230",
+  "integrationParent": "1fd749ce9c6c919dbce5c0bd7b246e6a30cbc4c0",
   "included1499Head": "fb07540afb63e2adf1de1c47e1061cc2883ff7cb",
   "sources": [
     {
@@ -7,8 +7,20 @@
       "sha256": "4f36190616e6e1be1b2dd2045eea6cf5a66106405c3d017011c0a18ca0d24643"
     },
     {
+      "path": "web/e2e/tests/floating-bottom-nav-scroll.spec.ts",
+      "sha256": "ba0d9733118a10719e00f8fbed608ccde8923a9059044363c4d35b331814eaf3"
+    },
+    {
       "path": "web/e2e/tests/today-daily-quote.spec.ts",
       "sha256": "daa42703fbe13d0ebeb9565ae49a8b23c21c404b5f6653676748aef1222e2ce7"
+    },
+    {
+      "path": "web/e2e/tests/today-living-home.spec.ts",
+      "sha256": "eb3cac147a2c175caad966c58cc7d4fa1b02ece5d9b06bcbf62888181abb22ef"
+    },
+    {
+      "path": "web/e2e/tests/today-recent-trace.spec.ts",
+      "sha256": "f7e15e7b805290ae388fa039eec24c67c8dabd15a4aaabc04aef6e1709bc73e5"
     },
     {
       "path": "web/scripts/generate-product-roles.mjs",
@@ -208,7 +220,7 @@
     },
     {
       "path": "web/src/components/TodayPage.css",
-      "sha256": "29953543827742b76d399c99261d9407710c5ee421b0547f26d64ca722f43253"
+      "sha256": "dca186a47809f4c2ed2a43794d916563f0c6f08648b778a78783cb3ae7964df7"
     },
     {
       "path": "web/src/components/TransferPanel.css",

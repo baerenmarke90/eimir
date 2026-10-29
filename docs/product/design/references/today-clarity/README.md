@@ -238,3 +238,28 @@ login before reaching the feature; the subsequent isolated run passed. The
 integration images and source ledger were refreshed from that successful run.
 The CI-version secret scanner passed across all 5,155 commits available before
 this ancestry merge, with no leaks. Final GitHub checks remain the merge gate.
+
+
+## Final browser contract alignment
+
+The running PR-critical browser suite exposed an overlooked #1489 assertion
+for the former floating navigation: it expected a 12px gap plus a 24px safe
+area outside the bar. The Product Owner's dock decision now requires zero
+bottom and side gaps, square outer corners and safe-area padding inside the
+bar. The existing scroll, route-return, focused-action clearance, 200% text
+and 400% zoom journeys remain and now assert those stronger dock guarantees.
+The controls must remain above the safe area.
+
+Two existing Today visual checks also encoded the superseded visible frame
+and raised agenda shadow. They now require borderless tinted mini-surfaces
+and a flat agenda at rest and on hover while retaining the content hierarchy,
+compact bounds, wrapping and focus checks. These are explicit Product Owner
+decisions, not relaxed tolerances or removed journeys.
+
+All 53 journeys in the complete navigation, living-home, recent-trace and Daily
+Quote collections passed from an isolated snapshot of
+`1fd749ce9c6c919dbce5c0bd7b246e6a30cbc4c0`. The refreshed integration ledger
+binds all three corrected browser sources as well as the existing runtime
+sources. Additional [scroll and focus evidence](navigation-final/) covers a
+390px dock, a short Dark viewport, 320px/200% text and 400% layout zoom.
+GitHub checks on the final pushed head remain required before merge.

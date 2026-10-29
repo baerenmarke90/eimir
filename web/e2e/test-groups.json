@@ -354,6 +354,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,
       "reason": "Headerless Compact navigation, More utility discovery, authoritative unread status, safe areas, sign-out and capability gating."
+    },
+    "plan-cover-layout.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6,
+      "reason": "Complete portrait/landscape/square Plan images, original-versus-thumbnail reads, sensitive concealment and staged edit/cancel/return across actual overview/detail routes, Compact/Expanded and large text."
     }
   }
 }

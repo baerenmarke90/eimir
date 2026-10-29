@@ -31,7 +31,7 @@ Current #1042 state:
 - Phase B Slice 2 retained full regression: **314** browser tests
 - #961 adds two retained tests to `f2-task-boundaries.spec.ts` (unknown-create verification and its photo continuation), so the full regression is **316** tests
 - PR-critical group: **152** browser tests
-- Phase C topology: **2 PR shards** / **4 full-regression shards**, one Playwright worker per shard
+- Current topology: **2 PR shards** / **4 full-regression shards**, two Playwright workers per shard
 
 Phase A did not delete browser coverage; it moved broad acceptance/reference matrices out of the per-PR path while retaining them in the full regression.
 
@@ -75,7 +75,7 @@ The full regression includes every retained browser spec, including Product Refe
 
 ## CI topology
 
-`.github/workflows/web-browser-qa.yml` uses the same pinned Node container and Chromium runtime for every browser shard. Each shard still uses Playwright's CI setting of **one worker**; parallelism comes from isolated GitHub Actions runners rather than multiple browsers sharing one runner.
+`.github/workflows/web-browser-qa.yml` uses the same pinned Node container and Chromium runtime for every browser shard. Each browser job uses **two Playwright workers**, including the changed-spec job. This allows independent tests within slow files such as `memory-create-defaults.spec.ts`, `private-area-reference.spec.ts` and `today-pinned-collection.spec.ts` to run concurrently while keeping per-runner browser concurrency bounded.
 
 For a `pull_request` touching `web/**` or the workflow itself:
 
@@ -87,7 +87,11 @@ For a `pull_request` touching `web/**` or the workflow itself:
 
 For a push to `main` touching the same surfaces, and for manual execution, four isolated jobs run the complete retained regression as `--shard=1/4` through `--shard=4/4`. The aggregate `Playwright + axe` result remains the stable workflow-level browser-QA status.
 
-Native Playwright sharding is safe here because `fullyParallel: true` is already enabled. Every retained test is assigned to exactly one shard while each shard preserves the existing one-worker execution model.
+Native Playwright sharding and worker parallelism use the existing `fullyParallel: true` configuration. Every retained test is assigned to exactly one shard and runs in an isolated browser context. The Memory Create, private-area and pinned-collection suites keep mutable API-mock state inside each test. Screenshots use `testInfo.outputPath()` or distinct viewport/theme-specific reference paths, so their tests can run independently.
+
+When investigating a slow-file warning, first check the tested commit and the runner's `Running ... tests using ... workers` line. A run of an older commit or an explicit `--workers=1` override still executes serially even when a local checkout has the two-worker setting. Compare end-to-end job durations on the same runner before claiming CI speedups; a local targeted run is validation of concurrency and test behavior, not a measurement of the complete GitHub gate.
+
+The parallelism adjustment reuses [Playwright's built-in workers](https://playwright.dev/docs/test-parallel). Increasing the worker limit uses the existing test isolation without splitting files or adding more CI runners and repeated dependency setup. Browser assertions, test selection, retries and timeouts remain unchanged. There is no user-facing UI/UX or business/freemium impact because only test execution changes; product tiers, entitlements and Cloud/Self-Hosted behavior are unaffected.
 
 Successful curated Product Reference evidence artifacts are retained for **1 day** and failed-run evidence for **3 days**, preserving the storage-reduction intent of #963. Artifact names are shard-specific because `upload-artifact@v4` does not allow multiple jobs to append to the same artifact.
 

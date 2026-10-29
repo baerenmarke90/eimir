@@ -30,7 +30,10 @@ npm run test:pr -- --shard=1/2
 npm run test:full -- --shard=3/4
 ```
 
-Each CI shard still runs with one Playwright worker; GitHub Actions provides the cross-runner parallelism.
+Each CI shard runs with two Playwright workers. With `fullyParallel: true`,
+independent tests within slow files such as `memory-create-defaults.spec.ts`
+can run concurrently as well as across GitHub Actions runners. Local runs keep
+Playwright's default worker count; use `--workers=1` for serial debugging.
 
 On a pull request, changed `FULL_REGRESSION` and `LOWER_LEVEL` files additionally
 run in full. Changed `PR_CRITICAL` files are already included in both critical

@@ -8,7 +8,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Let independent tests in slow files share the work within each CI shard.
+  workers: process.env.CI ? 2 : undefined,
   reporter: process.env.CI ? 'line' : 'list',
   expect: {
     timeout: 5_000,

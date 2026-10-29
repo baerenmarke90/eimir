@@ -131,3 +131,28 @@ captured crash entry. No cause or passing emulator acceptance is inferred from
 that result. Continuous bounded-job device logs now accompany the existing
 diagnostics; all three API levels and all instrumentation assertions remain
 required. The exact resulting head must complete fresh CI before merge.
+
+The existing test-channel source already records the matching infrastructure
+diagnosis: two API 37.1 / 16K guest exits with `ApplicationExitInfo` reason
+`LOW_MEMORY` at 4096 MB. Its `08dc6dc8` correction uses 6144 MB on the same public
+runner, image and assertions; all three API jobs passed in
+[run 40800049159](https://github.com/baerenmarke90/eimir/actions/runs/40800049159).
+Reuse that verified guest allocation here, with host/guest memory and process-exit
+diagnostics. This does not assert the cause of a different uncaptured exit and
+does not remove any platform, test, timeout or required check.
+
+Full-suite traces also show a successful automatic page load removing its
+sentinel during the return test's scroll action. The journey now scrolls the
+stable last loaded content item while retaining its exactly-once cursor,
+full-range, focus and return-offset assertions. The strict Discover fixture uses
+the actual selection schema, and Quick Create waits for the real sheet entrance
+animation to finish before its capture action, following the existing completion
+journey pattern. No sleep, synthetic input, timeout increase or retry is added.
+
+The Today freshness journey now identifies the agenda explicitly because the
+authorized next Plan also appears in the Hero; it still requires the refreshed
+agenda, automatic invalidation and complete disappearance of the obsolete title.
+At `faca04c8`, API 28 and 36 passed, including the real photo pipeline. API 37.1
+reported 14 passing tests and a photo-picker input-event timeout; its memory
+allocation correction still requires fresh acceptance and is not a claim that
+this distinct event timeout has been resolved.

@@ -248,7 +248,7 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
     )
       return json(attachment);
     if (method === 'GET' && path === `/api/v1/spaces/${SPACE}/discover`)
-      return json({ items: [], nextCursor: null, hasMore: false });
+      return json({ items: [], lead: null, selectionDate: NOW.slice(0, 10) });
     if (path.endsWith('/timeline')) {
       state.timelineRequests.push(url.search);
       if (state.saved && scenario.refreshFailure)
@@ -321,6 +321,11 @@ async function openMemory(page: Page) {
   await page
     .getByRole('button', { name: navigation.newContent, exact: true })
     .click();
+  await page
+    .getByRole('dialog')
+    .evaluate((node) =>
+      Promise.all(node.getAnimations().map((animation) => animation.finished)),
+    );
   await page
     .getByRole('link', { name: navigation.quickCreateMemory, exact: true })
     .or(
@@ -672,7 +677,14 @@ test('an older Memory returns to the same loaded Timeline range and position', a
 }, testInfo) => {
   const api = await installProductApi(page);
   await signIn(page);
-  await page.locator('.story-pagination-sentinel').scrollIntoViewIfNeeded();
+  // The sentinel disappears as soon as automatic paging succeeds. The last
+  // loaded content item remains stable throughout that successful transition.
+  await page
+    .getByRole('heading', {
+      name: firstPage[firstPage.length - 1].title,
+      exact: true,
+    })
+    .scrollIntoViewIfNeeded();
   await expect
     .poll(
       () =>

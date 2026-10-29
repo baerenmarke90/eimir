@@ -354,6 +354,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 6,
       "reason": "Complete portrait/landscape/square Plan images, original-versus-thumbnail reads, sensitive concealment and staged edit/cancel/return across actual overview/detail routes, Compact/Expanded and large text."
+    },
+    "product-consistency.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7,
+      "reason": "The PO-approved combined Moments composition must preserve manual Place linking, modal return, icon/rail alignment, theme, Compact/Expanded and large-text reflow."
     }
   }
 }

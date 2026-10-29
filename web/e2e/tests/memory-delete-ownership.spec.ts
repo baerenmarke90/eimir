@@ -289,14 +289,16 @@ for (const profile of [
       .getByRole('link', { name: navigation.story, exact: true })
       .click();
     await page
-      .getByRole('tab', { name: de.story.tabTimeline, exact: true })
-      .click();
+      .getByRole('heading', { name: de.story.tabTimeline, exact: true })
+      .scrollIntoViewIfNeeded();
     await expect(page.locator('.story-timeline').first()).toBeVisible();
     await expect(
       page.getByRole('link', { name: /Breakfast by the canal/ }),
     ).toHaveCount(0);
     await expect(
-      page.getByRole('link', { name: /First coffee in new home/ }),
+      page
+        .locator('#momente-diary')
+        .getByRole('link', { name: /First coffee in new home/ }),
     ).toBeVisible();
     await captureScreenshot(page, info, `${prefix}-returned.png`, {
       fullPage: true,

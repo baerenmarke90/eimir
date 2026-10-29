@@ -1,6 +1,6 @@
 # Product consistency and deliberate Plan completion
 
-Date: 2026-10-29. PO amendments in the owning workspace chat. Baseline main: `f35f82dbab2465fe337850a1e8db147f4eb3942a`; this isolated checkout starts at the separately validated Plan image fix `b53f7e973ec6764a25ec783223b062057ad643d4` (#1506). #1506 remains independently in CI. #1503 owns browser parallelization; the release chat owns its selected immutable test build. The experimental Android PR uses android-native-test/, a separate client. Preserve the shared dirty checkout and all those boundaries.
+Date: 2026-10-29. PO amendments in the owning workspace chat. Baseline main: `f35f82dbab2465fe337850a1e8db147f4eb3942a`; this isolated checkout starts at the separately validated Plan image fix `b53f7e973ec6764a25ec783223b062057ad643d4` (#1506). #1506 merged separately as `39804f58`. #1503 owns browser parallelization; the release chat owns its selected immutable test build. The experimental Android PR uses android-native-test/, a separate client. Preserve the shared dirty checkout and all those boundaries.
 
 ## Repository-aware visual preflight
 
@@ -17,7 +17,7 @@ Generated with the built-in Imagegen tool before implementation: [Compact produc
 5. **Optional Pro statistics on Wir:** deliberately enable only under the existing relationship.passport capability, with a personal opt-in initially off. Reuse authoritative counters and existing preference scope (instance/Account/Space); retain compatibility keys and source history. The separate passport view remains the owning Pro presentation. Update the versioned feature matrix for this new PO availability decision, superseding the temporary all-tier suppression.
 6. **Couple Hero:** enrich the existing identity/duration with truthful already-available shared context such as the next Plan. Respect privacy, visibility preferences and sparse states. No invented scores, streaks, relationship strengths, duplicate large dashboard widgets or additional provider/query machinery.
 7. **Launcher and startup:** the PO clarified that the video complaint refers only to the eimir launcher symbol and brief startup logo, not app-navigation or Android-system icons. Reuse approved artwork, correct platform adaptive geometry and native SplashScreen configuration, and replace the oversized Web bootstrap status card with a restrained branded state. Keep account/session, launcher aliases, sign-in entry and selected icon semantics. Never show cached private couple content before current authorization.
-8. **Plan completion:** retain only the Als erlebt markieren CTA in reading. Activating it opens the shared short sheet with the experienced date; confirm completes the versioned Plan, cancel writes nothing. Pending/error/conflict/offline preserve intent. After confirmed completion offer the existing canonical Memory creation task with appropriate confirmed Plan defaults. Preserve the completed Plan; never silently reuse an exclusively bound attachment ID or invent an atomic conversion.
+8. **Plan completion:** retain only the Plan completion CTA in reading. Activating it opens the shared short sheet with the experienced date; confirm completes the versioned Plan, cancel writes nothing. Pending/error/conflict/offline preserve intent. After confirmed completion offer the existing canonical Memory creation task with appropriate confirmed Plan defaults. Preserve the completed Plan; never silently reuse an exclusively bound attachment ID or invent an atomic conversion.
 
 ## Platform sources and native correction
 
@@ -37,3 +37,56 @@ Verify current-owner admission before/after writes; fail closed on unreadable/pr
 ## Evidence plan
 
 Use production journeys and disposable fixtures: Wir settings -> optional Pro statistics, quote settings, rediscovery -> diary, Memory -> add existing/new place -> cancel/save/return, Plan -> completion date -> confirmed result -> canonical Memory draft -> save/return, and cold/restored startup. Check Compact 320/390/430, Expanded, Light/Dark, 200%/400% reflow, offline/failure/pending/privacy and native icon masks. Static references never replace behavioral or installed-device evidence.
+
+
+## PO-approved combined Moments composition
+
+The subsequent PO request explicitly adopts the middle screen of the published
+compact reference. Rediscovery now precedes the full Diary on one page. It uses
+one lead and at most two compact companion cards, including the existing
+server-authorized retrospective when present. It preserves server selection,
+type-specific accessible names, concealed media, chronological paging, filters,
+search and canonical detail/return. Structural archive destinations remain in
+the Diary options sheet. The old two-tab composition is superseded. Normal
+Compact uses two companion columns; large text can reflow to one. No source
+history is capped by the preview limit.
+
+## Implementation and local evidence
+
+- Daily quote heading/actions precede the compact borderless quote surface;
+  quote and attribution use smaller readable type. Plan notes use the same
+  section-heading rule. The normative reference and component contracts record
+  the shared rule.
+- The couple Hero reuses a visible authorized next event. Hidden upcoming data
+  does not reappear there. The passport Pro grant and an independent personal
+  device opt-in govern Wir statistics; existing source counts remain Free.
+- Editable shared Moments expose manual Place selection even without GPS.
+  Existing Places and the shared map/search picker use typed relation commands.
+  A known-created Place survives a failed link; retry repeats only that link.
+- Plan completion progressively reveals a date sheet and retains pending,
+  conflict, offline and duplicate-request ownership. Canonical Memory capture
+  freshly reads a scoped completed Plan and seeds title, text and calendar date
+  only into a pristine draft. Recovery/user input takes precedence. Attachments
+  remain deliberately selected in the existing capture pipeline.
+- Public restoration uses a restrained brand/status; Android uses AndroidX
+  SplashScreen and all eleven corrected adaptive variants with matching opaque
+  backgrounds. The approved source bitmap bytes are unchanged.
+
+Proof uses disposable synthetic content, never PO photos, notes or coordinates:
+
+![Compact Moments](references/product-consistency-20261029/moments-390-light-1.png)
+![Dark Moments](references/product-consistency-20261029/moments-430-dark-1.png)
+![Expanded Moments](references/product-consistency-20261029/moments-1280-light-1.png)
+![Large text](references/product-consistency-20261029/moments-320-dark-2.png)
+![Public startup](references/product-consistency-20261029/startup-light-390.png)
+![Dark public startup](references/product-consistency-20261029/startup-dark-390.png)
+![Native resource masks](references/product-consistency-20261029/native-mask-proof.png)
+
+Local runs cover 51 changed product journeys, 20 combined-Moments/archive/delete
+journeys, the real map create/link-failure/retry journey, and the unchanged
+navigation/filter journeys. Overlapping runs are not additive test counts.
+Full unit/build, language, formatting, inventory, native compilation and resource
+geometry checks are recorded in the PR for its final revision. Native mask
+renders and successful compilation are not a claim of testing the owner's
+installed Pixel build; native resources require a newly built APK. The existing
+Arcane deployment remains under the PO's control and is not accessed here.

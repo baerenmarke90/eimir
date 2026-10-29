@@ -148,7 +148,7 @@ describe('Today R4 origin and partial-failure behavior', () => {
 
     await user.click(
       await screen.findByRole('link', {
-        name: /A trip to the coast together/i,
+        name: /^A trip to the coast together/i,
       }),
     );
     expect(

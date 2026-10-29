@@ -66,7 +66,8 @@ export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
 export const DASHBOARD_MODULE_KEYS: readonly DashboardModuleKey[] =
   DASHBOARD_MODULE_CATALOG.map((entry) => entry.key);
 
-/** Temporarily retired by the Product Owner; retain the transport/catalog key. */
+/** Legacy server visibility for statistics stays retired. PO #1508 uses a
+ * separate device opt-in and the authoritative passport grant for that surface. */
 export function isDashboardModuleAvailable(key: DashboardModuleKey): boolean {
   return key !== 'shared_story_summary';
 }

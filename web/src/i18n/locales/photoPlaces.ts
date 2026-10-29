@@ -15,6 +15,14 @@ const photoPlaces = {
   offline:
     'Du bist offline. Änderungen sind wieder möglich, sobald du verbunden bist.',
   title: 'Orte',
+  add: 'Ort hinzufügen',
+  added: 'Ort hinzugefügt',
+  addHelp:
+    'Wählt einen Ort auf der Karte oder einen eurer gespeicherten Orte. Das geht auch ohne Ortsdaten im Foto.',
+  savedSearch: 'In geladenen Orten suchen',
+  createdHelp:
+    '„{{name}}“ wurde gespeichert. Falls die Zuordnung noch fehlt, könnt ihr sie erneut versuchen.',
+  retryLink: 'Gespeicherten Ort zuordnen',
   initialName: 'Foto-Ort',
   placesLoading: 'Orte werden geladen …',
   more: 'Weitere Orte laden',

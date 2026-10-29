@@ -100,3 +100,20 @@ package/signer, in-place data/session upgrade, and visual inspection of every
 choice on the owner's real launcher (home, app drawer, system mask/theme modes).
 Static validation or an emulator alone cannot close #1307. Previously captured
 native screenshots are evidence of the old build, not this correction.
+
+## PO correction on 2026-10-29 (#1508)
+
+The launcher complaint supersedes the 2026-10-26 overscan geometry. A 132dp
+layer painted the approved 288/432 tile at 88dp, clipping the mark on Pixel's
+mask. Use a centered 99dp layer: the tile becomes 66dp and the meaningful mark
+fits within the platform safe region. Keep the approved pixels and all eleven
+stable launcher aliases. Each native background now derives from that approved
+variant's top-edge color; the historic shared red background must not form a
+ring around the smaller tile. Android still owns the outer launcher mask.
+
+Use the existing AndroidX SplashScreen compatibility library with a static
+approved logo, an opaque theme-aware background and the normal post-splash
+activity theme. Public Web restoration uses the same restrained brand presence;
+no private relationship content is rendered before authorization. Package,
+signer, update channels, existing selected variant and user data are unchanged.
+A resource/build proof is not a claim of acceptance on the owner's Pixel.

@@ -242,7 +242,10 @@
 /* Detail: content sections (Notizen etc.) */
 .planen-section {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-3);
+}
+
+.planen-section-content {
   border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   padding: clamp(var(--space-4), 3vw, var(--space-5));
@@ -311,6 +314,12 @@
   grid-template-columns: minmax(0, 1fr);
   min-inline-size: 0;
   gap: var(--space-3);
+}
+
+.planen-completion-sheet .planen-complete-form {
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .planen-complete-cta {

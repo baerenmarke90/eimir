@@ -1,3 +1,4 @@
+import { useWirStatistics } from '../client/useWirStatistics';
 import { useQuery } from '@tanstack/react-query';
 import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
@@ -39,6 +40,7 @@ import {
   ACTIVITY_ROUTE,
   appRoutePath,
   collectionDetailPath,
+  planDetailPath,
 } from '../client/routes';
 import { spaceConfigurationQueryOptions } from '../client/spaceConfiguration';
 import {
@@ -739,6 +741,12 @@ export function TodayPage({
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
+  const wirStatistics = useWirStatistics({
+    api: entitlementApi,
+    instance: apiBaseUrl ?? '',
+    accountId: account?.id ?? '',
+    spaceId,
+  });
   const dashboardQuery = useWarmOverviewQuery({
     queryKey: dashboardQueryKey(spaceId),
     accountId: account?.id,
@@ -1043,13 +1051,23 @@ export function TodayPage({
     dashboardPreferencesQuery.data,
     'recent_shared',
   );
-  const sharedStorySummaryVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
-    'shared_story_summary',
-  );
+  const sharedStorySummaryVisible =
+    wirStatistics.allowed && wirStatistics.enabled && !dashboardQuery.isCached;
+
+  const heroHorizon = upcomingVisible
+    ? anticipation
+      ? { to: planDetailPath(anticipation.planId), title: anticipation.title }
+      : upcoming
+          .map((item) => ({
+            to: dashboardItemPath(item.type, item.id),
+            title: item.titleOrText,
+          }))
+          .find((item) => item.to && item.title)
+    : undefined;
 
   const isSparse = Boolean(
     dashboardQuery.data &&
+      !(sharedStorySummaryVisible && dashboardQuery.data.sharedStorySummary) &&
       !anticipation &&
       upcoming.length === 0 &&
       recentShared.length === 0 &&
@@ -1110,6 +1128,15 @@ export function TodayPage({
           : undefined
       }
       durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
+      context={
+        contentReady && heroHorizon?.to ? (
+          <Link className="today-hero-context" to={heroHorizon.to}>
+            <span>{t('relationshipReflections.passport.nextExperience')}</span>
+            <strong>{heroHorizon.title}</strong>
+            <span aria-hidden="true">→</span>
+          </Link>
+        ) : undefined
+      }
       avatarSize="hero"
       avatarAction={avatarAction}
       avatarOverlay={avatarOverlay}
@@ -1354,6 +1381,7 @@ export function TodayPage({
         dashboardQuery.data?.sharedStorySummary ? (
           <SharedStorySummary
             summary={dashboardQuery.data?.sharedStorySummary}
+            showEmpty
           />
         ) : null}
       </>

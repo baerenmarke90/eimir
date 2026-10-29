@@ -878,6 +878,7 @@ export function MemoryProductPage({
           accountId={currentAccountId}
           spaceId={spaceId}
           targetId={memory.id}
+          canManage={memory.capabilities.canEdit}
           kind="memories"
           offline={offline}
           compact

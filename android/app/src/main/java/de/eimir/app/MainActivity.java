@@ -1,6 +1,7 @@
 package de.eimir.app;
 
 import android.os.Bundle;
+import androidx.core.splashscreen.SplashScreen;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -9,6 +10,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        SplashScreen.installSplashScreen(this);
         registerPlugin(UnifiedPushBridge.class);
         registerPlugin(AppIconPlugin.class);
         registerPlugin(NativeSessionStoragePlugin.class);

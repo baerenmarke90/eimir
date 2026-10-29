@@ -33,6 +33,7 @@ import {
   dateFromInput,
   dateOnlyInput,
   localDateTimeInput,
+  localCalendarDateInput,
   loadAllPlaces,
   planningIfMatch,
   planScheduleDateInput,
@@ -57,6 +58,7 @@ import { Link } from 'react-router-dom';
 import { ProblemState } from './ProblemState';
 import { usePlanCompletion } from './usePlanCompletion';
 import { UiState } from './UiState';
+import { ShortTaskSheet } from './ShortTaskSheet';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
 
@@ -73,11 +75,13 @@ export function PlanProductPage({
   spaceId,
   apiBaseUrl,
   accessToken,
+  accountId,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
   apiBaseUrl?: string;
   accessToken?: string;
+  accountId?: string;
 }) {
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
@@ -90,6 +94,9 @@ export function PlanProductPage({
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [completionTarget, setCompletionTarget] = useState<string | null>(null);
+  const completionTrigger = useRef<HTMLButtonElement>(null);
+  const [completionSheetPresent, setCompletionSheetPresent] = useState(false);
   const [editingPlan, setEditingPlan] = useState<PlanDetail | null>(null);
   const [editDirty, setEditDirty] = useState(false);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -362,6 +369,12 @@ export function PlanProductPage({
   const hasSubfacts = Boolean(plan.experiencedOn);
   const showsLifecycle =
     plan.capabilities.canEdit && plan.status !== 'COMPLETED';
+  const completionScope = `${spaceId}:${plan.id}`;
+  const completionOpen =
+    completionTarget === completionScope &&
+    !isEditing &&
+    showsLifecycle &&
+    !completion.isConfirmed;
 
   return (
     <div className="page planning-page planen-detail">
@@ -470,7 +483,7 @@ export function PlanProductPage({
                 ),
           })}
         </p>
-        {completion.pendingDay ? (
+        {completion.pendingDay && !completionOpen ? (
           <p className="planen-detail-pending" role="status">
             {t('m5s3.plan.completePending', {
               date: formatCalendarDate(completion.pendingDay),
@@ -720,21 +733,28 @@ export function PlanProductPage({
         {!isEditing && plan.description ? (
           <section className="planen-section">
             <h2>{t('m5s3.plan.notesHeading')}</h2>
-            <p>{plan.description}</p>
+            <div className="planen-section-content">
+              <p>{plan.description}</p>
+            </div>
           </section>
         ) : null}
 
-        {plan.status === 'COMPLETED' && completion.isConfirmed ? (
+        {plan.status === 'COMPLETED' &&
+        (completion.isConfirmed || plan.capabilities.canEdit) ? (
           <PlanStoryContinuation
+            accountId={accountId}
+            apiBaseUrl={apiBaseUrl}
             apis={apis}
             spaceId={spaceId}
             plan={plan}
-            focusOnMount
+            focusOnMount={completion.isConfirmed && !completionSheetPresent}
             sharedAchievementEnabled={completion.hasSharedAchievement}
           />
         ) : null}
 
-        {plan.status === 'COMPLETED' && !completion.isConfirmed ? (
+        {plan.status === 'COMPLETED' &&
+        !completion.isConfirmed &&
+        !plan.capabilities.canEdit ? (
           <section className="planen-completed-result">
             <p>{t('m5s3.plan.completedBody')}</p>
           </section>
@@ -756,40 +776,78 @@ export function PlanProductPage({
         ) : null}
         {!isEditing && showsLifecycle ? (
           <section className="planen-completion-action">
-            {lifecycleError ? (
+            {lifecycleError && !completionOpen ? (
               <ProblemState
                 error={lifecycleError}
                 onRetry={() => void planQuery.refetch()}
               />
             ) : null}
-            <form
-              className="planen-complete-form"
-              onSubmit={submitComplete}
-              aria-label={t('m5s3.plan.complete')}
+            <button
+              ref={completionTrigger}
+              type="button"
+              className="planen-complete-cta"
+              aria-haspopup="dialog"
+              aria-expanded={completionOpen}
+              aria-disabled={writesPending}
+              onClick={() => {
+                if (!isPlanWritePending()) setCompletionTarget(completionScope);
+              }}
             >
-              <label htmlFor="plan-complete-date">
-                {t('m5s3.plan.experiencedOn')}
-              </label>
-              <input
-                id="plan-complete-date"
-                name="experiencedOn"
-                type="date"
-                required
-                readOnly={writesPending}
-                defaultValue={dateOnlyInput(new Date())}
-              />
-              <button
-                type="submit"
-                className="planen-complete-cta"
-                aria-disabled={writesPending}
-              >
-                {completion.pendingDay
-                  ? t('m5s3.common.saving')
-                  : t('m5s3.plan.complete')}
-              </button>
-            </form>
+              {t('m5s3.plan.complete')}
+            </button>
           </section>
         ) : null}
+        <ShortTaskSheet
+          open={completionOpen}
+          onPresenceChange={setCompletionSheetPresent}
+          title={t('m5s3.plan.completeDateTitle')}
+          className="planen-completion-sheet"
+          restoreFocusRef={completionTrigger}
+          onClose={() => setCompletionTarget(null)}
+          isCloseBlocked={writesPending}
+          footer={
+            <button
+              type="submit"
+              form="plan-complete-form"
+              aria-disabled={writesPending}
+            >
+              {completion.pendingDay
+                ? t('m5s3.common.saving')
+                : t('m5s3.plan.complete')}
+            </button>
+          }
+        >
+          {lifecycleError ? (
+            <ProblemState
+              error={lifecycleError}
+              onRetry={() => void planQuery.refetch()}
+            />
+          ) : null}
+          {completion.pendingDay ? (
+            <p className="planen-detail-pending" role="status">
+              {t('m5s3.plan.completePending', {
+                date: formatCalendarDate(completion.pendingDay),
+              })}
+            </p>
+          ) : null}
+          <form
+            id="plan-complete-form"
+            className="planen-complete-form"
+            onSubmit={submitComplete}
+          >
+            <label htmlFor="plan-complete-date">
+              {t('m5s3.plan.experiencedOn')}
+            </label>
+            <input
+              id="plan-complete-date"
+              name="experiencedOn"
+              type="date"
+              required
+              readOnly={writesPending}
+              defaultValue={localCalendarDateInput()}
+            />
+          </form>
+        </ShortTaskSheet>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import './SharedStorySummary.css';
 
 interface SharedStorySummaryProps {
   summary: DashboardSharedStorySummary;
+  showEmpty?: boolean;
 }
 
 export function sharedStorySummaryIsEligible(
@@ -238,9 +239,12 @@ function StoryBadgeAccents({ metricKey }: { metricKey: string }) {
   return null;
 }
 
-export function SharedStorySummary({ summary }: SharedStorySummaryProps) {
+export function SharedStorySummary({
+  summary,
+  showEmpty = false,
+}: SharedStorySummaryProps) {
   const { t } = useTranslation();
-  if (!sharedStorySummaryIsEligible(summary)) return null;
+  if (!showEmpty && !sharedStorySummaryIsEligible(summary)) return null;
 
   const numberFormat = new Intl.NumberFormat(resolvedLocale());
   const storyBaseRoute = appRoutePath('story');
@@ -272,7 +276,7 @@ export function SharedStorySummary({ summary }: SharedStorySummaryProps) {
       value: summary.milestones,
       to: `${storyBaseRoute}?tab=timeline&type=MILESTONE`,
     },
-  ].filter((metric) => metric.value > 0);
+  ].filter((metric) => showEmpty || metric.value > 0);
 
   return (
     <section

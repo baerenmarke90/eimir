@@ -68,6 +68,8 @@ import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryBrowseLayer } from './StoryBrowseLayer';
 import { StoryRetrospective } from './StoryRetrospective';
+import { EimirIcon } from './EimirIcon';
+import './StoryUnifiedPage.css';
 import { StoryList } from './StoryList';
 import './StoryDiscoverReveal.css';
 import './StoryTaskFilters.css';
@@ -174,21 +176,6 @@ function buildTapestryBands(
   ];
 }
 
-const TAPESTRY_TABLET_QUERY = '(min-width: 640px)';
-const TAPESTRY_DESKTOP_QUERY = '(min-width: 1024px)';
-
-function tapestryColumnCountForViewport(): number {
-  if (typeof window === 'undefined') return 1;
-  if (window.matchMedia(TAPESTRY_DESKTOP_QUERY).matches) return 3;
-  if (window.matchMedia(TAPESTRY_TABLET_QUERY).matches) return 2;
-  return 1;
-}
-
-/**
- * Mobile always resolves to exactly one column: no masonry reshuffling, just
- * the plain chronological/priority order (#790 requires no forced desktop
- * masonry tricks on mobile, only a clear vertical, emotional sequence).
- */
 function documentLayoutTop(element: HTMLElement): number {
   let top = 0;
   let current: HTMLElement | null = element;
@@ -197,25 +184,6 @@ function documentLayoutTop(element: HTMLElement): number {
     current = current.offsetParent as HTMLElement | null;
   }
   return top;
-}
-
-function useTapestryColumnCount(): number {
-  const [count, setCount] = useState(tapestryColumnCountForViewport);
-
-  useEffect(() => {
-    const tablet = window.matchMedia(TAPESTRY_TABLET_QUERY);
-    const desktop = window.matchMedia(TAPESTRY_DESKTOP_QUERY);
-    const update = () => setCount(tapestryColumnCountForViewport());
-    update();
-    tablet.addEventListener('change', update);
-    desktop.addEventListener('change', update);
-    return () => {
-      tablet.removeEventListener('change', update);
-      desktop.removeEventListener('change', update);
-    };
-  }, []);
-
-  return count;
 }
 
 export function StoryProductPage({
@@ -266,8 +234,7 @@ export function StoryProductPage({
     return hasActiveFilters ? 'timeline' : 'discover';
   }, [searchParams, hasActiveFilters]);
   // Discover does not inherit the retained Timeline scope.
-  const effectiveFilters =
-    activeView === 'timeline' ? filters : DEFAULT_STORY_FILTERS;
+  const effectiveFilters = filters;
   const cacheResourceId = useMemo(
     () => storyCacheResourceId(effectiveFilters),
     [effectiveFilters],
@@ -321,7 +288,7 @@ export function StoryProductPage({
         ? lastPage.value.nextCursor
         : undefined;
     },
-    enabled: activeView === 'timeline',
+    enabled: true,
     retry: false,
   });
   const discoverQuery = useQuery({
@@ -337,7 +304,7 @@ export function StoryProductPage({
         deserialize: (payload) => DiscoverSelectionFromJSON(payload),
       });
     },
-    enabled: activeView === 'discover',
+    enabled: true,
     retry: false,
   });
   // Reuse Today's authorized #452 candidate and its canonical Query key.
@@ -352,31 +319,22 @@ export function StoryProductPage({
         throw await normalizeClientError(error);
       }
     },
-    enabled: activeView === 'discover' && Boolean(dashboardApi),
+    enabled: Boolean(dashboardApi),
     retry: false,
   });
 
   const [paginationGeneration, setPaginationGeneration] = useState(0);
   const pullRefresh = usePullToRefresh({
     enabled: true,
-    blocked:
-      activeView === 'timeline'
-        ? storyQuery.isFetching
-        : discoverQuery.isFetching,
+    blocked: storyQuery.isFetching || discoverQuery.isFetching,
     onRefresh: async () => {
-      if (activeView === 'timeline') {
-        const result = await storyQuery.refetch();
-        if (!result.isError) {
-          setPaginationGeneration((generation) => generation + 1);
-        }
-      } else if (dashboardApi) {
-        await Promise.all([
-          discoverQuery.refetch(),
-          retrospectiveQuery.refetch(),
-        ]);
-      } else {
-        await discoverQuery.refetch();
-      }
+      const [result] = await Promise.all([
+        storyQuery.refetch(),
+        discoverQuery.refetch(),
+        ...(dashboardApi ? [retrospectiveQuery.refetch()] : []),
+      ]);
+      if (!result.isError)
+        setPaginationGeneration((generation) => generation + 1);
     },
   });
 
@@ -414,12 +372,6 @@ export function StoryProductPage({
       serialize: DiscoverSelectionToJSON,
     });
   }, [accountId, spaceId, discoverQuery.data]);
-
-  function setView(view: 'discover' | 'timeline') {
-    const next = new URLSearchParams(searchParams);
-    next.set('tab', view);
-    setSearchParams(next);
-  }
 
   function updateFilter<K extends keyof StoryFilters>(
     key: K,
@@ -612,7 +564,7 @@ export function StoryProductPage({
   );
   useTimelineReveal({
     rootRef: timelineMonthsRef,
-    enabled: activeView === 'timeline' && timelineItems.length > 0,
+    enabled: timelineItems.length > 0,
     scopeKey: `${spaceId}:${cacheResourceId}`,
     revision: timelineItems.length,
   });
@@ -620,7 +572,7 @@ export function StoryProductPage({
   const discoverTapestryRef = useRef<HTMLDivElement>(null);
   useDiscoverReveal({
     rootRef: discoverTapestryRef,
-    enabled: activeView === 'discover' && discoverItems.length > 0,
+    enabled: discoverItems.length > 0,
     scopeKey: `discover:${accountId}:${spaceId}`,
     revision: discoverContentKey,
   });
@@ -646,7 +598,7 @@ export function StoryProductPage({
   ]);
   const progressivePagination = useTimelineAutoPagination({
     sentinelRef: paginationSentinelRef,
-    enabled: activeView === 'timeline',
+    enabled: true,
     blocked:
       (storyQuery.isFetching && !storyQuery.isFetchingNextPage) ||
       pullRefresh.refreshing ||
@@ -659,12 +611,27 @@ export function StoryProductPage({
     loadNextPage: loadNextStoryPage,
   });
 
-  const tapestryColumnCount = useTapestryColumnCount();
   const tapestryBands = useMemo(
-    () => buildTapestryBands(discoverItems, t, locale, nicknameFor),
-    [discoverItems, t, locale, nicknameFor],
+    () =>
+      buildTapestryBands(
+        discoverItems
+          .filter(
+            (item) =>
+              !featuredItem ||
+              storyItemKey(item) !== storyItemKey(featuredItem),
+          )
+          .slice(0, visibleRetrospective ? 1 : 2),
+        t,
+        locale,
+        nicknameFor,
+      ),
+    [discoverItems, featuredItem, visibleRetrospective, t, locale, nicknameFor],
   );
 
+  const curatedBands =
+    visibleRetrospective && tapestryBands.length === 0
+      ? [{ key: 'discover', label: '', entries: [] }]
+      : tapestryBands;
   const featuredMedia =
     featuredItem?.kind === 'MEMORY'
       ? featuredItem.memory.attachments[0]
@@ -706,7 +673,7 @@ export function StoryProductPage({
   }
 
   return (
-    <div className="page story-page">
+    <div className="page story-page story-page-unified">
       {saved ? (
         <div className="inline-message inline-message-success" role="status">
           <strong>{t('story.savedTitle')}</strong>
@@ -727,114 +694,27 @@ export function StoryProductPage({
         description={t('story.timelineIntro')}
       />
 
-      <div
-        className={`momente-tabs-container ${activeView === 'timeline' ? 'momente-tabs-container-timeline' : ''}`.trim()}
-      >
-        <div
-          className="momente-tabs"
-          role="tablist"
-          aria-label={t('story.viewToggleAria')}
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeView === 'discover'}
-            className={`momente-tab-btn ${activeView === 'discover' ? 'active' : ''}`}
-            onClick={() => setView('discover')}
-          >
-            <svg
-              className="tab-icon"
-              viewBox="0 0 24 24"
-              width="16"
-              height="16"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
-            </svg>
-            <span>{t('story.tabDiscover')}</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeView === 'timeline'}
-            className={`momente-tab-btn ${activeView === 'timeline' ? 'active' : ''}`}
-            onClick={() => setView('timeline')}
-          >
-            <svg
-              className="tab-icon"
-              viewBox="0 0 24 24"
-              width="16"
-              height="16"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z" />
-            </svg>
-            <span>{t('story.tabTimeline')}</span>
-          </button>
-        </div>
-        {activeView === 'timeline' ? (
-          <button
-            type="button"
-            className={`story-filter-toggle story-filter-icon-button story-task-filter-trigger ${hasActiveFilters ? 'is-active' : ''}`}
-            ref={filterTriggerRef}
-            aria-haspopup="dialog"
-            aria-expanded={mobileFiltersOpen}
-            aria-controls="story-filter-panel"
-            aria-label={t('storyFilters.toggleButton')}
-            title={t('storyFilters.toggleButton')}
-            onClick={() => {
-              setDraftFilters(filters);
-              setMobileFiltersOpen(true);
-            }}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width="20"
-              height="20"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M4 5h16l-6 7v6l-4 2v-8z" />
-            </svg>
-            {hasActiveFilters ? (
-              <span className="story-filter-active-badge" aria-hidden="true">
-                {activeFilterCount}
-              </span>
-            ) : null}
-          </button>
-        ) : null}
-      </div>
-
-      <StoryBrowseLayer />
-
-      {activeView === 'timeline' && storyQuery.isLoading ? (
+      {storyQuery.isLoading ? (
         <UiState kind="loading" title={t('story.loadingAria')} />
       ) : null}
-      {activeView === 'timeline' && storyQuery.error ? (
+      {storyQuery.error ? (
         <ProblemState
           error={storyQuery.error}
           onRetry={() => void storyQuery.refetch()}
         />
       ) : null}
 
-      {activeView === 'discover' && discoverQuery.isLoading ? (
+      {discoverQuery.isLoading ? (
         <UiState kind="loading" title={t('story.loadingAria')} />
       ) : null}
-      {activeView === 'discover' && discoverQuery.error ? (
+      {discoverQuery.error ? (
         <ProblemState
           error={discoverQuery.error}
           onRetry={() => void discoverQuery.refetch()}
         />
       ) : null}
 
-      {activeView === 'timeline' &&
-      storyQuery.data &&
+      {storyQuery.data &&
       timelineItems.length === 0 &&
       availableYears.length === 0 &&
       !hasActiveFilters ? (
@@ -861,35 +741,15 @@ export function StoryProductPage({
             </Link>
           </div>
         </div>
-      ) : activeView === 'discover' &&
-        discoverQuery.data &&
-        !featuredItem &&
-        discoverItems.length === 0 ? (
-        <div className="new-space-experience">
-          <div className="new-space-mark" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              width="36"
-              height="36"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-            </svg>
-          </div>
-          <h2 className="new-space-title">{t('story.emptyTitle')}</h2>
-          <p className="new-space-body">{t('story.emptyBody')}</p>
-          <div className="new-space-actions">
-            <Link
-              to="/story/memories/new"
-              className="button-link primary new-space-cta"
-            >
-              {t('story.emptyAction')}
-            </Link>
-          </div>
-        </div>
-      ) : activeView === 'discover' && discoverQuery.data ? (
-        <div className="momente-discover-page">
+      ) : null}
+      {discoverQuery.data && (featuredItem || discoverItems.length > 0) ? (
+        <section
+          className="momente-discover-page"
+          aria-labelledby="momente-discover-title"
+        >
+          <h2 id="momente-discover-title" className="momente-section-title">
+            {t('story.discoverHeading')}
+          </h2>
           {/* 1. Featured Editorial Highlight */}
           {featuredItem && featuredPresentation ? (
             <article className="momente-hero-highlight">
@@ -927,7 +787,7 @@ export function StoryProductPage({
                       <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
                     </svg>
                     <span>
-                      {leadContext?.type === 'ON_THIS_DAY'
+                      {leadContext?.type === 'ON_THIS_DAY' && sameSelectionDay
                         ? t('story.onThisDay', { count: leadContext.yearsAgo })
                         : t('story.featuredKicker')}
                     </span>
@@ -964,14 +824,6 @@ export function StoryProductPage({
             </article>
           ) : null}
 
-          {visibleRetrospective ? (
-            <StoryRetrospective
-              item={visibleRetrospective}
-              loadMemoryImage={loadMemoryImage}
-              onOpen={openDiscoverItem}
-            />
-          ) : null}
-
           {/* 2. Keepsake / Editorial Tapestry — an asymmetric mixed archive,
               not a fixed-width carousel of equal cards. Column height is the
               item's real content height, so a photo memory naturally takes
@@ -980,28 +832,8 @@ export function StoryProductPage({
             className="momente-tapestry-section"
             aria-labelledby="momente-tapestry-heading"
           >
-            <div className="momente-section-header">
-              <div>
-                <h3
-                  id="momente-tapestry-heading"
-                  className="momente-section-title"
-                >
-                  {t('story.discoverHeading')}
-                </h3>
-                <p className="momente-section-subhead">
-                  {t('story.discoverSubhead')}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="momente-stream-all-link"
-                onClick={() => setView('timeline')}
-              >
-                {t('story.streamAll')}
-              </button>
-            </div>
             <div className="momente-tapestry-bands" ref={discoverTapestryRef}>
-              {tapestryBands.map((band) => (
+              {curatedBands.map((band) => (
                 <section
                   className="momente-tapestry-band"
                   key={band.key}
@@ -1015,14 +847,15 @@ export function StoryProductPage({
                       {band.label}
                     </h4>
                   ) : null}
-                  <div
-                    className="momente-tapestry"
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: `repeat(${tapestryColumnCount}, minmax(0, 1fr))`,
-                      alignItems: 'start',
-                    }}
-                  >
+                  <div className="momente-tapestry">
+                    {visibleRetrospective ? (
+                      <StoryRetrospective
+                        compact
+                        item={visibleRetrospective}
+                        loadMemoryImage={loadMemoryImage}
+                        onOpen={openDiscoverItem}
+                      />
+                    ) : null}
                     {band.entries.map((entry) => {
                       const { role, presentation, path, dateTime, dateLabel } =
                         entry;
@@ -1034,7 +867,7 @@ export function StoryProductPage({
                             to={path}
                             className="momente-tapestry-item momente-tapestry-milestone momente-tapestry-reveal"
                             data-discover-reveal-key={`item:${entry.key}`}
-                            aria-label={presentation.title}
+                            aria-label={`${t(`storyItem.${role}`)}: ${presentation.title}`}
                             onClick={(event) => openDiscoverItem(event, path)}
                           >
                             <span
@@ -1072,7 +905,7 @@ export function StoryProductPage({
                           to={path}
                           className={`momente-tapestry-item momente-tapestry-${role} momente-tapestry-reveal`}
                           data-discover-reveal-key={`item:${entry.key}`}
-                          aria-label={presentation.title}
+                          aria-label={`${t(`storyItem.${role}`)}: ${presentation.title}`}
                           onClick={(event) => openDiscoverItem(event, path)}
                         >
                           {role === 'media' && entry.firstAttachment ? (
@@ -1087,24 +920,15 @@ export function StoryProductPage({
                             </div>
                           ) : null}
                           <div className="momente-tapestry-body">
-                            <span className="momente-tapestry-kind">
-                              {role === 'note' ? (
-                                <svg
-                                  className="momente-tapestry-icon"
-                                  viewBox="0 0 24 24"
-                                  width="16"
-                                  height="16"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  aria-hidden="true"
-                                >
-                                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                                </svg>
-                              ) : null}
-                              {t(`storyItem.${role}`)}
+                            <span
+                              className="momente-tapestry-kind"
+                              aria-hidden="true"
+                            >
+                              <EimirIcon
+                                name={
+                                  role === 'note' ? 'momente' : 'erinnerungen'
+                                }
+                              />
                             </span>
                             {role === 'note' ? (
                               <blockquote className="momente-tapestry-quote">
@@ -1136,312 +960,349 @@ export function StoryProductPage({
               ))}
             </div>
           </section>
-        </div>
-      ) : combinedStory && activeView === 'timeline' ? (
-        <div className="layout-single-column">
-          <div className="story-filter-container">
-            <ShortTaskSheet
-              ref={filterSheetRef}
-              id="story-filter-panel"
-              open={mobileFiltersOpen}
-              title={t('storyFilters.aria')}
-              onClose={() => setMobileFiltersOpen(false)}
-              restoreFocusRef={filterTriggerRef}
-              className="story-task-filter-sheet"
-            >
-              <section
-                className="story-filter-bar"
-                aria-label={t('storyFilters.aria')}
+        </section>
+      ) : null}
+      <section
+        id="momente-diary"
+        aria-labelledby="momente-diary-title"
+        className="momente-diary-section"
+      >
+        <header className="momente-section-header">
+          <h2 id="momente-diary-title" className="momente-section-title">
+            {t('story.tabTimeline')}
+          </h2>
+          <button
+            type="button"
+            className={`story-filter-toggle story-filter-icon-button story-task-filter-trigger ${hasActiveFilters ? 'is-active' : ''}`}
+            ref={filterTriggerRef}
+            aria-haspopup="dialog"
+            aria-expanded={mobileFiltersOpen}
+            aria-controls="story-filter-panel"
+            aria-label={t('storyFilters.toggleButton')}
+            title={t('storyFilters.toggleButton')}
+            onClick={() => {
+              setDraftFilters(filters);
+              setMobileFiltersOpen(true);
+            }}
+          >
+            <span aria-hidden="true">⋯</span>
+            {hasActiveFilters ? (
+              <span className="story-filter-active-badge" aria-hidden="true">
+                {activeFilterCount}
+              </span>
+            ) : null}
+          </button>
+        </header>
+        {combinedStory ? (
+          <div className="layout-single-column">
+            <div className="story-filter-container">
+              <ShortTaskSheet
+                ref={filterSheetRef}
+                id="story-filter-panel"
+                open={mobileFiltersOpen}
+                title={t('storyFilters.aria')}
+                onClose={() => setMobileFiltersOpen(false)}
+                restoreFocusRef={filterTriggerRef}
+                className="story-task-filter-sheet"
               >
-                <div className="story-filter-group">
-                  <label htmlFor="story-filter-type">
-                    {t('storyFilters.type')}
-                  </label>
-                  <select
-                    id="story-filter-type"
-                    name="type"
-                    value={draftFilters.kind ?? ''}
-                    onChange={(e) =>
-                      setDraftFilters((draft) => ({
-                        ...draft,
-                        kind: isStoryKind(e.target.value)
-                          ? e.target.value
-                          : null,
-                      }))
-                    }
-                  >
-                    <option value="">{t('storyFilters.allTypes')}</option>
-                    <option value={StoryKind.MEMORY}>
-                      {t('story.kind.memory')}
-                    </option>
-                    <option value={StoryKind.HEART_MOMENT}>
-                      {t('story.kind.heartMoment')}
-                    </option>
-                    <option value={StoryKind.MILESTONE}>
-                      {t('story.kind.milestone')}
-                    </option>
-                  </select>
-                </div>
-                <div className="story-filter-group">
-                  <label htmlFor="story-filter-year">
-                    {t('storyFilters.year')}
-                  </label>
-                  <select
-                    id="story-filter-year"
-                    name="year"
-                    value={draftFilters.year ?? ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setDraftFilters((draft) => ({
-                        ...draft,
-                        year: val ? Number(val) : null,
-                      }));
+                <StoryBrowseLayer />
+                <section
+                  className="story-filter-bar"
+                  aria-label={t('storyFilters.aria')}
+                >
+                  <div className="story-filter-group">
+                    <label htmlFor="story-filter-type">
+                      {t('storyFilters.type')}
+                    </label>
+                    <select
+                      id="story-filter-type"
+                      name="type"
+                      value={draftFilters.kind ?? ''}
+                      onChange={(e) =>
+                        setDraftFilters((draft) => ({
+                          ...draft,
+                          kind: isStoryKind(e.target.value)
+                            ? e.target.value
+                            : null,
+                        }))
+                      }
+                    >
+                      <option value="">{t('storyFilters.allTypes')}</option>
+                      <option value={StoryKind.MEMORY}>
+                        {t('story.kind.memory')}
+                      </option>
+                      <option value={StoryKind.HEART_MOMENT}>
+                        {t('story.kind.heartMoment')}
+                      </option>
+                      <option value={StoryKind.MILESTONE}>
+                        {t('story.kind.milestone')}
+                      </option>
+                    </select>
+                  </div>
+                  <div className="story-filter-group">
+                    <label htmlFor="story-filter-year">
+                      {t('storyFilters.year')}
+                    </label>
+                    <select
+                      id="story-filter-year"
+                      name="year"
+                      value={draftFilters.year ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setDraftFilters((draft) => ({
+                          ...draft,
+                          year: val ? Number(val) : null,
+                        }));
+                      }}
+                    >
+                      <option value="">{t('storyFilters.anyYear')}</option>
+                      {dropdownYears.map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="story-filter-group">
+                    <label htmlFor="story-filter-order">
+                      {t('storyFilters.order')}
+                    </label>
+                    <select
+                      id="story-filter-order"
+                      name="order"
+                      value={draftFilters.order}
+                      onChange={(e) =>
+                        setDraftFilters((draft) => ({
+                          ...draft,
+                          order:
+                            e.target.value === StoryOrder.ASC
+                              ? StoryOrder.ASC
+                              : StoryOrder.DESC,
+                        }))
+                      }
+                    >
+                      <option value={StoryOrder.DESC}>
+                        {t('storyFilters.newest')}
+                      </option>
+                      <option value={StoryOrder.ASC}>
+                        {t('storyFilters.oldest')}
+                      </option>
+                    </select>
+                  </div>
+                  {(draftFilters.kind ||
+                    draftFilters.year ||
+                    draftFilters.order !== StoryOrder.DESC) && (
+                    <button
+                      type="button"
+                      className="story-filter-reset-header-action"
+                      onClick={() => setDraftFilters(DEFAULT_STORY_FILTERS)}
+                    >
+                      {t('storyFilters.reset')}
+                    </button>
+                  )}
+                </section>
+
+                <div className="short-task-sheet-actions">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      filterSheetRef.current?.closeForNavigation(() => {
+                        const next = storyFiltersToSearch(draftFilters);
+                        next.set('tab', 'timeline');
+                        setSearchParams(next);
+                      });
                     }}
                   >
-                    <option value="">{t('storyFilters.anyYear')}</option>
-                    {dropdownYears.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="story-filter-group">
-                  <label htmlFor="story-filter-order">
-                    {t('storyFilters.order')}
-                  </label>
-                  <select
-                    id="story-filter-order"
-                    name="order"
-                    value={draftFilters.order}
-                    onChange={(e) =>
-                      setDraftFilters((draft) => ({
-                        ...draft,
-                        order:
-                          e.target.value === StoryOrder.ASC
-                            ? StoryOrder.ASC
-                            : StoryOrder.DESC,
-                      }))
+                    {t('storyFilters.apply')}
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() =>
+                      filterSheetRef.current?.closeForNavigation(() =>
+                        filterTriggerRef.current?.focus({
+                          preventScroll: true,
+                        }),
+                      )
                     }
                   >
-                    <option value={StoryOrder.DESC}>
-                      {t('storyFilters.newest')}
-                    </option>
-                    <option value={StoryOrder.ASC}>
-                      {t('storyFilters.oldest')}
-                    </option>
-                  </select>
-                </div>
-                {(draftFilters.kind ||
-                  draftFilters.year ||
-                  draftFilters.order !== StoryOrder.DESC) && (
-                  <button
-                    type="button"
-                    className="story-filter-reset-header-action"
-                    onClick={() => setDraftFilters(DEFAULT_STORY_FILTERS)}
-                  >
-                    {t('storyFilters.reset')}
+                    {t('taskSheets.filterCancel')}
                   </button>
+                </div>
+              </ShortTaskSheet>
+              {hasActiveFilters && (
+                <div
+                  className="story-active-chips story-task-active-scope"
+                  role="status"
+                  aria-live="polite"
+                >
+                  {filters.kind && (
+                    <button
+                      type="button"
+                      className="active-chip"
+                      onClick={() => updateFilter('kind', null)}
+                      aria-label={`${t('storyFilters.removeFilter')}: ${resolveStoryKindLabel(filters.kind, t)}`}
+                    >
+                      <span>{resolveStoryKindLabel(filters.kind, t)}</span>
+                      <span className="chip-remove" aria-hidden="true">
+                        ✕
+                      </span>
+                    </button>
+                  )}
+                  {filters.year && (
+                    <button
+                      type="button"
+                      className="active-chip"
+                      onClick={() => updateFilter('year', null)}
+                      aria-label={`${t('storyFilters.removeFilter')}: ${filters.year}`}
+                    >
+                      <span>{filters.year}</span>
+                      <span className="chip-remove" aria-hidden="true">
+                        ✕
+                      </span>
+                    </button>
+                  )}
+                  {filters.order === StoryOrder.ASC && (
+                    <button
+                      type="button"
+                      className="active-chip"
+                      onClick={() => updateFilter('order', StoryOrder.DESC)}
+                      aria-label={`${t('storyFilters.removeFilter')}: ${t('storyFilters.oldest')}`}
+                    >
+                      <span>{t('storyFilters.oldest')}</span>
+                      <span className="chip-remove" aria-hidden="true">
+                        ✕
+                      </span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="layout-main">
+              <section
+                className="story-surface"
+                aria-labelledby="timeline-heading"
+              >
+                <h2 id="timeline-heading" className="sr-only">
+                  {t('story.timelineHeading')}
+                </h2>
+
+                {timelineItems.length === 0 ? (
+                  <div className="story-filter-empty-state">
+                    <p className="story-filter-empty-text">
+                      {t('storyFilters.noMatches')}
+                    </p>
+                    <button
+                      type="button"
+                      className="button secondary compact-action"
+                      onClick={resetAllFilters}
+                    >
+                      {t('storyFilters.noMatchesAction')}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div
+                      ref={timelineMonthsRef}
+                      className="story-year-months story-timeline-months"
+                    >
+                      {timelineMonthGroups.map((group) => (
+                        <section
+                          key={group.key}
+                          className="story-year-month"
+                          aria-labelledby={`story-timeline-month-${group.key}`}
+                        >
+                          <header
+                            className="story-year-month-header story-timeline-progressive-reveal story-timeline-heading-reveal"
+                            data-timeline-reveal-key={`month:${group.key}`}
+                          >
+                            <h2 id={`story-timeline-month-${group.key}`}>
+                              {group.label}
+                            </h2>
+                          </header>
+                          <StoryList
+                            items={group.items}
+                            loadMemoryImage={loadMemoryImage}
+                            loadHeartMomentImage={loadHeartMomentImage}
+                            profilesApi={profilesApi}
+                            spaceId={spaceId}
+                            currentAccountId={accountId}
+                            progressiveReveal
+                            onOpenItem={(event, item, to) => {
+                              if (
+                                event.button !== 0 ||
+                                event.metaKey ||
+                                event.ctrlKey ||
+                                event.shiftKey ||
+                                event.altKey
+                              )
+                                return;
+                              const taskOriginKey = captureOrigin({
+                                selectedKey: storyItemKey(item),
+                                selectedOffset:
+                                  event.currentTarget.getBoundingClientRect()
+                                    .top,
+                                loadedPageCount,
+                              });
+                              if (!taskOriginKey) return;
+                              event.preventDefault();
+                              void navigate(to, { state: { taskOriginKey } });
+                            }}
+                          />
+                        </section>
+                      ))}
+                    </div>
+
+                    {storyQuery.hasNextPage ? (
+                      <>
+                        <div
+                          ref={paginationSentinelRef}
+                          className="story-pagination-sentinel"
+                          aria-hidden="true"
+                        />
+                        <div
+                          className={`story-pagination story-pagination-progressive ${progressivePagination.manualFallback ? 'is-retry' : ''}`}
+                          data-pagination-mode={
+                            progressivePagination.manualFallback
+                              ? 'manual-retry'
+                              : 'automatic'
+                          }
+                        >
+                          {storyQuery.isFetchingNextPage ? (
+                            <span
+                              className="story-pagination-status"
+                              role="status"
+                              aria-live="polite"
+                            >
+                              <span
+                                className="story-pagination-spinner"
+                                aria-hidden="true"
+                              />
+                              {t('storyFilters.loadingMore')}
+                            </span>
+                          ) : progressivePagination.manualFallback ? (
+                            <button
+                              type="button"
+                              className="secondary"
+                              onClick={() => void progressivePagination.retry()}
+                              disabled={
+                                storyQuery.isFetching || pullRefresh.refreshing
+                              }
+                            >
+                              {t('storyFilters.loadMore')}
+                            </button>
+                          ) : null}
+                        </div>
+                      </>
+                    ) : null}
+                  </>
                 )}
               </section>
-
-              <div className="short-task-sheet-actions">
-                <button
-                  type="button"
-                  onClick={() => {
-                    filterSheetRef.current?.closeForNavigation(() => {
-                      const next = storyFiltersToSearch(draftFilters);
-                      next.set('tab', 'timeline');
-                      setSearchParams(next);
-                    });
-                  }}
-                >
-                  {t('storyFilters.apply')}
-                </button>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() =>
-                    filterSheetRef.current?.closeForNavigation(() =>
-                      filterTriggerRef.current?.focus({ preventScroll: true }),
-                    )
-                  }
-                >
-                  {t('taskSheets.filterCancel')}
-                </button>
-              </div>
-            </ShortTaskSheet>
-            {hasActiveFilters && (
-              <div
-                className="story-active-chips story-task-active-scope"
-                role="status"
-                aria-live="polite"
-              >
-                {filters.kind && (
-                  <button
-                    type="button"
-                    className="active-chip"
-                    onClick={() => updateFilter('kind', null)}
-                    aria-label={`${t('storyFilters.removeFilter')}: ${resolveStoryKindLabel(filters.kind, t)}`}
-                  >
-                    <span>{resolveStoryKindLabel(filters.kind, t)}</span>
-                    <span className="chip-remove" aria-hidden="true">
-                      ✕
-                    </span>
-                  </button>
-                )}
-                {filters.year && (
-                  <button
-                    type="button"
-                    className="active-chip"
-                    onClick={() => updateFilter('year', null)}
-                    aria-label={`${t('storyFilters.removeFilter')}: ${filters.year}`}
-                  >
-                    <span>{filters.year}</span>
-                    <span className="chip-remove" aria-hidden="true">
-                      ✕
-                    </span>
-                  </button>
-                )}
-                {filters.order === StoryOrder.ASC && (
-                  <button
-                    type="button"
-                    className="active-chip"
-                    onClick={() => updateFilter('order', StoryOrder.DESC)}
-                    aria-label={`${t('storyFilters.removeFilter')}: ${t('storyFilters.oldest')}`}
-                  >
-                    <span>{t('storyFilters.oldest')}</span>
-                    <span className="chip-remove" aria-hidden="true">
-                      ✕
-                    </span>
-                  </button>
-                )}
-              </div>
-            )}
+            </div>
           </div>
-
-          <div className="layout-main">
-            <section
-              className="story-surface"
-              aria-labelledby="timeline-heading"
-            >
-              <h2 id="timeline-heading" className="sr-only">
-                {t('story.timelineHeading')}
-              </h2>
-
-              {timelineItems.length === 0 ? (
-                <div className="story-filter-empty-state">
-                  <p className="story-filter-empty-text">
-                    {t('storyFilters.noMatches')}
-                  </p>
-                  <button
-                    type="button"
-                    className="button secondary compact-action"
-                    onClick={resetAllFilters}
-                  >
-                    {t('storyFilters.noMatchesAction')}
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div
-                    ref={timelineMonthsRef}
-                    className="story-year-months story-timeline-months"
-                  >
-                    {timelineMonthGroups.map((group) => (
-                      <section
-                        key={group.key}
-                        className="story-year-month"
-                        aria-labelledby={`story-timeline-month-${group.key}`}
-                      >
-                        <header
-                          className="story-year-month-header story-timeline-progressive-reveal story-timeline-heading-reveal"
-                          data-timeline-reveal-key={`month:${group.key}`}
-                        >
-                          <h2 id={`story-timeline-month-${group.key}`}>
-                            {group.label}
-                          </h2>
-                        </header>
-                        <StoryList
-                          items={group.items}
-                          loadMemoryImage={loadMemoryImage}
-                          loadHeartMomentImage={loadHeartMomentImage}
-                          profilesApi={profilesApi}
-                          spaceId={spaceId}
-                          currentAccountId={accountId}
-                          progressiveReveal
-                          onOpenItem={(event, item, to) => {
-                            if (
-                              event.button !== 0 ||
-                              event.metaKey ||
-                              event.ctrlKey ||
-                              event.shiftKey ||
-                              event.altKey
-                            )
-                              return;
-                            const taskOriginKey = captureOrigin({
-                              selectedKey: storyItemKey(item),
-                              selectedOffset:
-                                event.currentTarget.getBoundingClientRect().top,
-                              loadedPageCount,
-                            });
-                            if (!taskOriginKey) return;
-                            event.preventDefault();
-                            void navigate(to, { state: { taskOriginKey } });
-                          }}
-                        />
-                      </section>
-                    ))}
-                  </div>
-
-                  {storyQuery.hasNextPage ? (
-                    <>
-                      <div
-                        ref={paginationSentinelRef}
-                        className="story-pagination-sentinel"
-                        aria-hidden="true"
-                      />
-                      <div
-                        className={`story-pagination story-pagination-progressive ${progressivePagination.manualFallback ? 'is-retry' : ''}`}
-                        data-pagination-mode={
-                          progressivePagination.manualFallback
-                            ? 'manual-retry'
-                            : 'automatic'
-                        }
-                      >
-                        {storyQuery.isFetchingNextPage ? (
-                          <span
-                            className="story-pagination-status"
-                            role="status"
-                            aria-live="polite"
-                          >
-                            <span
-                              className="story-pagination-spinner"
-                              aria-hidden="true"
-                            />
-                            {t('storyFilters.loadingMore')}
-                          </span>
-                        ) : progressivePagination.manualFallback ? (
-                          <button
-                            type="button"
-                            className="secondary"
-                            onClick={() => void progressivePagination.retry()}
-                            disabled={
-                              storyQuery.isFetching || pullRefresh.refreshing
-                            }
-                          >
-                            {t('storyFilters.loadMore')}
-                          </button>
-                        ) : null}
-                      </div>
-                    </>
-                  ) : null}
-                </>
-              )}
-            </section>
-          </div>
-        </div>
-      ) : null}
+        ) : null}
+      </section>
     </div>
   );
 }

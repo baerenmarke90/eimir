@@ -1047,6 +1047,7 @@ export function HeartMomentProductPage({
           accountId={currentAccountId}
           spaceId={spaceId}
           targetId={heartMoment.id}
+          canManage={heartMoment.capabilities.canEdit}
           kind="heart-moments"
           offline={offline}
         />

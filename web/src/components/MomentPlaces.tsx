@@ -21,6 +21,7 @@ import { postSnackbar } from '../client/snackbar';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
+import { MomentPlacePicker } from './MomentPlacePicker';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './MomentPlaces.css';
@@ -34,6 +35,7 @@ export function MomentPlaces({
   kind,
   offline,
   compact = false,
+  canManage = false,
 }: {
   apiBaseUrl: string;
   accessToken: string;
@@ -43,6 +45,7 @@ export function MomentPlaces({
   kind: 'memories' | 'heart-moments';
   offline: boolean;
   compact?: boolean;
+  canManage?: boolean;
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -51,6 +54,9 @@ export function MomentPlaces({
   const heading = useRef<HTMLHeadingElement>(null);
   const sheet = useRef<ShortTaskSheetHandle>(null);
   const unlinkInFlight = useRef(false);
+  const [adding, setAdding] = useState(false);
+  const [addingPending, setAddingPending] = useState(false);
+  const addTrigger = useRef<HTMLButtonElement>(null);
   const [selected, setSelected] = useState<PlaceDetail | null>(null);
   const [confirm, setConfirm] = useState(false);
   const [removed, setRemoved] = useState(false);
@@ -144,7 +150,13 @@ export function MomentPlaces({
   const mapUrl = selected
     ? photoPlaceMapUrl(selected.latitude, selected.longitude)
     : null;
-  if (!query.isPending && !query.error && items.length === 0 && !removed)
+  if (
+    !query.isPending &&
+    !query.error &&
+    items.length === 0 &&
+    !removed &&
+    !canManage
+  )
     return null;
   return (
     <section
@@ -159,6 +171,46 @@ export function MomentPlaces({
       >
         {t('photoPlaces.title')}
       </h2>
+      {canManage && !denied ? (
+        <button
+          ref={addTrigger}
+          type="button"
+          className="secondary moment-place-add"
+          aria-haspopup="dialog"
+          disabled={offline || query.isPending}
+          onClick={() => setAdding(true)}
+        >
+          <EimirIcon name="orte" />
+          <span>{t('photoPlaces.add')}</span>
+        </button>
+      ) : null}
+      <ShortTaskSheet
+        open={adding && canManage && !denied}
+        title={t('photoPlaces.add')}
+        isCloseBlocked={addingPending}
+        onClose={() => setAdding(false)}
+        restoreFocusRef={addTrigger}
+      >
+        {adding && canManage && !denied ? (
+          <MomentPlacePicker
+            api={api}
+            relations={relations}
+            spaceId={spaceId}
+            targetId={targetId}
+            kind={kind}
+            queryKey={key}
+            onPendingChange={setAddingPending}
+            offline={offline}
+            onLinked={() => {
+              setAdding(false);
+              void client.invalidateQueries({
+                queryKey: authorSummaryQueryKeys.places(spaceId),
+              });
+              postSnackbar(t('photoPlaces.added'), { tone: 'success' });
+            }}
+          />
+        ) : null}
+      </ShortTaskSheet>
       {removed && items.length === 0 ? (
         <p role="status">{t('photoPlaces.removed')}</p>
       ) : null}
@@ -261,9 +313,9 @@ export function MomentPlaces({
                 <button
                   type="button"
                   className="destructive"
-                  disabled={mutation.isPending || offline}
+                  disabled={!canManage || mutation.isPending || offline}
                   onClick={() => {
-                    if (unlinkInFlight.current) return;
+                    if (!canManage || unlinkInFlight.current) return;
                     unlinkInFlight.current = true;
                     mutation.mutate(selected.id, {
                       onSettled: () => {
@@ -313,7 +365,7 @@ export function MomentPlaces({
                 <button
                   type="button"
                   className="tertiary"
-                  disabled={offline}
+                  disabled={!canManage || offline}
                   onClick={() => setConfirm(true)}
                 >
                   {t('photoPlaces.remove')}

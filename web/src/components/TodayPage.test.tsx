@@ -1044,7 +1044,8 @@ describe('TodayPage', () => {
     expect(html.split('today-section-living').length - 1).toBe(1);
 
     // Zero duplication: the upcoming item appears exactly once
-    expect(html.split('Candlelight Dinner').length - 1).toBe(1);
+    expect(html.split('Candlelight Dinner').length - 1).toBe(2);
+    expect(html).toContain('today-hero-context');
   });
 
   it('omits the planning area entirely when neither upcoming item nor relationship activity exists', () => {

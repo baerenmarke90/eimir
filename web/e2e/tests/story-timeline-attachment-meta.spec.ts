@@ -1,6 +1,6 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -317,7 +317,7 @@ async function openTimeline(page: Page): Promise<void> {
   await page.goto('/story?tab=timeline');
   await signIn(page);
   await page.goto('/story?tab=timeline');
-  await page.waitForSelector('.story-card-footer');
+  await page.waitForSelector('#momente-diary .story-card-footer');
 }
 
 /**
@@ -378,18 +378,18 @@ test('Timeline footer metadata stays coherent across attachment shapes (#795)', 
         fontWeight: cs.fontWeight,
       };
     };
-    return Array.from(document.querySelectorAll('.story-card-footer')).map(
-      (footer) => {
-        const time = footer.querySelector('time');
-        const mediaLabel = footer.querySelector('.media-label');
-        return {
-          base: read(footer),
-          borderTop: getComputedStyle(footer).borderTopWidth,
-          time: time ? read(time) : null,
-          mediaLabel: mediaLabel ? read(mediaLabel) : null,
-        };
-      },
-    );
+    return Array.from(
+      document.querySelectorAll('#momente-diary .story-card-footer'),
+    ).map((footer) => {
+      const time = footer.querySelector('time');
+      const mediaLabel = footer.querySelector('.media-label');
+      return {
+        base: read(footer),
+        borderTop: getComputedStyle(footer).borderTopWidth,
+        time: time ? read(time) : null,
+        mediaLabel: mediaLabel ? read(mediaLabel) : null,
+      };
+    });
   });
 
   expect(footers).toHaveLength(FOOTER_VARIANTS.length);
@@ -398,7 +398,8 @@ test('Timeline footer metadata stays coherent across attachment shapes (#795)', 
   const bases = new Set(footers.map((footer) => JSON.stringify(footer.base)));
   expect(bases.size).toBe(1);
   for (const footer of footers) {
-    expect(footer.borderTop).toBe('1px');
+    // PO #1508 deliberately removes the separator in the unified Diary.
+    expect(footer.borderTop).toBe('0px');
     // Date and attachment count read as one muted metadata pair.
     if (footer.mediaLabel) expect(footer.mediaLabel).toEqual(footer.time);
   }
@@ -423,7 +424,7 @@ test('Timeline footer is one wrapping row on compact widths (#795, #969)', async
   await openTimeline(page);
 
   const layout = await page
-    .locator('.story-card-footer')
+    .locator('#momente-diary .story-card-footer')
     .first()
     .evaluate((el) => {
       const cs = getComputedStyle(el);

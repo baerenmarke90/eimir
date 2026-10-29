@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
   useCallback,
@@ -9,6 +9,8 @@ import {
   useState,
 } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { PlansApi } from '../api/generated/apis/PlansApi';
+import { Configuration } from '../client/apiConfiguration';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
@@ -161,6 +163,56 @@ export function MemoryCreatePage({
     () => createReferenceApis(apiBaseUrl, accessToken),
     [apiBaseUrl, accessToken],
   );
+  const sourceCandidate = (
+    location.state as {
+      sourcePlan?: {
+        id?: unknown;
+        spaceId?: unknown;
+        accountId?: unknown;
+        instance?: unknown;
+      };
+    } | null
+  )?.sourcePlan;
+  const sourcePlanId =
+    sourceCandidate?.spaceId === spaceId &&
+    sourceCandidate.accountId === accountId &&
+    sourceCandidate.instance === apiBaseUrl &&
+    typeof sourceCandidate.id === 'string'
+      ? sourceCandidate.id
+      : null;
+  const plansApi = useMemo(
+    () =>
+      new PlansApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, accessToken],
+  );
+  const sourcePlan = useQuery({
+    queryKey: [
+      'memory-source-plan',
+      apiBaseUrl,
+      accountId,
+      spaceId,
+      sourcePlanId,
+    ],
+    enabled: Boolean(sourcePlanId),
+    retry: false,
+    queryFn: async ({ signal }) => {
+      if (!sourcePlanId) throw new Error('No source Plan selected.');
+      try {
+        return await plansApi.getPlan(
+          { spaceId, planId: sourcePlanId },
+          { signal },
+        );
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+  });
+  const sourceApplied = useRef(false);
   const attachments = useAttachmentDrafts({
     apis,
     apiBaseUrl,
@@ -222,6 +274,40 @@ export function MemoryCreatePage({
     dirty,
     suspended: pending || uncertain || Boolean(partial),
   });
+  useEffect(() => {
+    if (
+      !sourcePlanId ||
+      sourceApplied.current ||
+      !sourcePlan.data ||
+      diaryDraft.status === 'loading' ||
+      diaryDraft.recovery ||
+      recoveredDraft.current ||
+      dirty ||
+      pending
+    )
+      return;
+    const source = sourcePlan.data;
+    if (
+      source.spaceId !== spaceId ||
+      source.status !== 'COMPLETED' ||
+      !source.capabilities.canEdit
+    )
+      return;
+    sourceApplied.current = true;
+    setTitle(source.title);
+    setBody(source.description ?? '');
+    if (source.experiencedOn)
+      setHappenedOn(source.experiencedOn.toISOString().slice(0, 10));
+    setDetailsOpen(true);
+  }, [
+    sourcePlanId,
+    sourcePlan.data,
+    diaryDraft.status,
+    diaryDraft.recovery,
+    dirty,
+    pending,
+    spaceId,
+  ]);
   useLayoutEffect(() => {
     const field = bodyInputRef.current;
     if (!field || field.value !== body) return;
@@ -656,6 +742,12 @@ export function MemoryCreatePage({
         <h2 id="memory-form-heading" className="sr-only">
           {t('memory.formAria')}
         </h2>
+        {sourcePlanId && sourcePlan.error ? (
+          <ProblemState
+            error={sourcePlan.error}
+            onRetry={() => void sourcePlan.refetch()}
+          />
+        ) : null}
         {diaryDraft.recovery ? (
           <section
             className="inline-message memory-draft-recovery"

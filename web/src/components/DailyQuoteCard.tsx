@@ -517,7 +517,7 @@ export function DailyQuoteCard({
             </button>
           ) : null}
         </header>
-        {body}
+        <div className="daily-quote-content">{body}</div>
       </section>
 
       <ShortTaskSheet

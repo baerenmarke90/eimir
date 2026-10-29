@@ -27,9 +27,10 @@
 
 .preference-switch-control {
   display: grid;
-  width: 48px;
-  min-width: 48px;
-  height: 48px;
+  flex: 0 0 auto;
+  width: max(48px, 2.75rem);
+  min-width: max(48px, 2.75rem);
+  height: max(48px, 1.6rem);
   place-items: center;
   padding: 0;
   border: 0;
@@ -39,6 +40,7 @@
 }
 
 .preference-switch-track {
+  box-sizing: border-box;
   position: relative;
   display: block;
   width: 2.75rem;

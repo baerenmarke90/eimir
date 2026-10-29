@@ -1,6 +1,7 @@
 package de.eimir.app;
 
 import android.os.Bundle;
+import androidx.core.splashscreen.SplashScreen;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
 
@@ -10,6 +11,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        SplashScreen.installSplashScreen(this);
         // The constant-false branch disappears from normal release bytecode.
         // The implementation and install permission exist only in src/sideload.
         if (BuildConfig.EIMIR_SIDELOAD_UPDATES) {

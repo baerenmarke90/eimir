@@ -168,6 +168,7 @@ it('opens a map only as an explicit link and requires deliberate unlink confirma
     .mockResolvedValue();
   wrapper(
     <MomentPlaces
+      canManage
       apiBaseUrl="http://example.test"
       accessToken="token"
       accountId="a"
@@ -227,6 +228,7 @@ it('shows the resolved address as a direct coordinate map link before opening an
   });
   wrapper(
     <MomentPlaces
+      canManage
       apiBaseUrl="http://example.test"
       accessToken="token"
       accountId="a"
@@ -269,6 +271,7 @@ it('does not invent a map destination for an address without coordinates', async
   });
   wrapper(
     <MomentPlaces
+      canManage
       apiBaseUrl="http://example.test"
       accessToken="token"
       accountId="a"
@@ -302,6 +305,7 @@ it('reveals an automatically added Place after saving a photo into a recently op
     <QueryClientProvider client={client}>
       <MemoryRouter>
         <MomentPlaces
+          canManage
           apiBaseUrl="http://example.test"
           accessToken="token"
           accountId="a"
@@ -316,8 +320,8 @@ it('reveals an automatically added Place after saving a photo into a recently op
   await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(
-    screen.queryByRole('heading', { name: photoPlaceCopy.title }),
-  ).toBeNull();
+    screen.getByRole('button', { name: photoPlaceCopy.add }),
+  ).toBeDefined();
   const place = {
     id: 'new-photo-place',
     name: 'New photo location',

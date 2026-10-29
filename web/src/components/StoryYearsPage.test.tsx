@@ -171,7 +171,7 @@ describe('Story annual archive (#868)', () => {
       nextCursor: 'next',
     });
 
-    expect(html).toContain('href="/story/years"');
+    expect(html).toContain('story-task-filter-trigger');
     expect(html).not.toContain('href="/story/years/2026"');
     expect(html).not.toContain('href="/story/years/2024"');
     expect(html).not.toContain('momente-year-archive');

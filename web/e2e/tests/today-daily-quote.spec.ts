@@ -2,6 +2,7 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import { PUBLIC_START_ROUTE } from '../../src/client/publicStart';
 import dailyQuote from '../../src/i18n/locales/dailyQuote';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
@@ -385,6 +386,10 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
 
 async function signIn(page: Page, email = 'anna@example.org') {
   await page.goto('/today');
+  await submitSignIn(page, email);
+}
+
+async function submitSignIn(page: Page, email: string) {
   await page.getByLabel(de.login.email).fill(email);
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
@@ -395,6 +400,32 @@ async function expectQuoteSurfaceAccessible(
   page: Page,
   { wholeDocument = true }: { wholeDocument?: boolean } = {},
 ): Promise<void> {
+  const card = page.locator('.daily-quote-card');
+  if (await card.count()) {
+    const geometry = await card.evaluate((node) => {
+      const header = node.querySelector('.daily-quote-header');
+      const content = node.querySelector('.daily-quote-content');
+      if (!header || !content)
+        throw new Error('The quote needs a heading above its content.');
+      const block = node.querySelector('blockquote');
+      const paragraph = block?.querySelector('p');
+      const root = parseFloat(
+        getComputedStyle(document.documentElement).fontSize,
+      );
+      return {
+        headingAbove:
+          header.getBoundingClientRect().bottom <=
+          content.getBoundingClientRect().top,
+        border: block ? getComputedStyle(block).borderLeftWidth : '0px',
+        quoteScale: paragraph
+          ? parseFloat(getComputedStyle(paragraph).fontSize) / root
+          : 0,
+      };
+    });
+    expect(geometry.headingAbove).toBe(true);
+    expect(geometry.border).toBe('0px');
+    expect(geometry.quoteScale).toBeLessThanOrEqual(1.25);
+  }
   await expect(
     page
       .locator('.daily-quote-card')
@@ -686,10 +717,13 @@ test('signing into the partner account cannot reuse the previous account quote o
   await page.getByRole('button', { name: dailyQuote.done }).click();
   await expect.poll(() => requests.patches.length).toBe(1);
 
-  await page.getByRole('button', { name: navigation.profileMenu }).click();
-  await page.getByRole('button', { name: de.header.logout }).click();
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === PUBLIC_START_ROUTE),
+    page.getByRole('button', { name: de.header.logout }).click(),
+  ]);
   await expect(page.getByLabel(de.login.email)).toBeVisible();
-  await signIn(page, 'ben@example.org');
+  await submitSignIn(page, 'ben@example.org');
 
   await expect(page.getByText('A different thought for Ben.')).toBeVisible();
   await expect(page.getByText('A calm thought for today.')).toHaveCount(0);

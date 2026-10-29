@@ -1,4 +1,5 @@
 .moment-places {
+  min-inline-size: 0;
   display: grid;
   gap: var(--space-3);
 }
@@ -90,4 +91,46 @@
 .moment-places-compact .moment-place-address:hover,
 .moment-places-compact .moment-place-attribution:hover {
   text-decoration: underline;
+}
+.moment-place-add {
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  white-space: normal;
+  justify-self: start;
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+.moment-place-add > span {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.moment-place-add svg,
+.moment-place-choices svg {
+  width: var(--space-6);
+  height: var(--space-6);
+  flex-shrink: 0;
+}
+.moment-place-picker {
+  display: grid;
+  gap: var(--space-3);
+}
+.moment-place-choices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.moment-place-choices button {
+  width: 100%;
+  display: flex;
+  gap: var(--space-3);
+  text-align: start;
+}
+.moment-place-choices button > span {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }

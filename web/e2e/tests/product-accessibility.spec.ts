@@ -1947,8 +1947,11 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await expect(create).toBeFocused();
     await expect(menu).toHaveCount(0);
 
-    const search = header.getByRole('link', {
-      name: navigation.search,
+    await header
+      .getByRole('link', { name: navigation.more, exact: true })
+      .click();
+    const search = page.getByRole('link', {
+      name: navigation.searchAll,
       exact: true,
     });
     await search.focus();
@@ -1965,21 +1968,17 @@ for (const colorScheme of ['light', 'dark'] as const) {
       page.getByRole('button', { name: m5s5.search.submit, exact: true }),
     ).toBeEnabled();
     await page.goBack();
-    const notifications = header.getByRole('button', {
+    const notifications = page.getByRole('link', {
       name: navigation.notifications,
       exact: true,
     });
     await notifications.focus();
     await page.keyboard.press('Enter');
-    await expect(header.locator('a[href="/more/notifications"]')).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(notifications).toBeFocused();
-    const profile = header.getByRole('button', {
-      name: navigation.profileMenu,
-    });
+    await expect(page).toHaveURL(/\/more\/notifications$/);
+    await page.goBack();
+    const profile = page.locator('.more-page a[href="/more/profile"]');
     await profile.focus();
     await page.keyboard.press('Enter');
-    await header.locator('a[href="/more/profile"]').click();
     await expect(page).toHaveURL(/\/more\/profile$/);
     await expect(
       page.getByRole('link', { name: navigation.more, exact: true }),

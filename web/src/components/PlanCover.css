@@ -1,17 +1,38 @@
 .plan-cover {
+  --plan-cover-max-height: min(60svh, 28rem);
   position: relative;
+  display: grid;
+  place-items: center;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  min-width: 0;
+  max-width: 48rem;
+  max-height: var(--plan-cover-max-height);
+  margin-inline: auto;
   overflow: hidden;
   border-radius: var(--radius-content);
   background: var(--color-surface-subtle);
 }
-.plan-cover img,
-.plan-cover > .sensitive-media-cover {
+.plan-cover img {
   display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: var(--plan-cover-max-height);
+  object-fit: contain;
+}
+.plan-cover > .sensitive-media-cover {
+  display: grid;
+  place-items: center;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  min-height: 0;
+}
+.plan-cover--preview {
+  --plan-cover-max-height: 10rem;
+  flex: 0 1 6rem;
+  width: min(100%, 6rem);
+  margin: 0;
+  border-radius: var(--radius-medium);
 }
 .plan-cover .sensitive-media-control {
   position: absolute;
@@ -21,7 +42,7 @@
 .plan-cover-placeholder {
   display: grid;
   place-items: center;
-  height: 100%;
+  min-height: min(12rem, var(--plan-cover-max-height));
   padding: var(--space-4);
 }
 .plan-cover-field {

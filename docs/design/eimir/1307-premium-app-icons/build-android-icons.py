@@ -8,11 +8,10 @@ from PIL import Image
 HERE = Path(__file__).resolve().parent
 RES = HERE.parents[3] / "android/app/src/main/res"
 
-# The shipped 432px foreground holds the poster tile in its central 288px.
-# Android masks a 72dp viewport from the 108dp adaptive-icon canvas. Enlarging
-# the existing layer makes the 288/432 tile 88dp wide: it fills any OS mask
-# without exposing its own baked-in rounded border.
-MASK_SAFE_FOREGROUND_DP = 132
+# The approved 288px artwork occupies a centered 432px source. At 99dp its
+# complete tile is 66dp: Android's guaranteed adaptive-icon safe circle.
+# PO #1508 supersedes the former 132dp overscan that clipped the artwork.
+MASK_SAFE_FOREGROUND_DP = 99
 
 
 def build() -> None:
@@ -20,11 +19,14 @@ def build() -> None:
     drawable = RES / "drawable-nodpi"
     drawable.mkdir(exist_ok=True)
     (RES / "drawable").mkdir(exist_ok=True)
+    backgrounds = []
     for candidate in catalog["candidates"]:
         icon_id = candidate["id"]
         with Image.open(HERE / candidate["file"]) as source:
+            red, green, blue = source.convert("RGB").getpixel((source.width // 2, 0))
+            backgrounds.append(f'    <color name="app_icon_{icon_id}_background">#{red:02X}{green:02X}{blue:02X}</color>')
             # Keep the approved tile pixels unchanged in a stable, centered
-            # bitmap. The drawable XML supplies the launcher-mask overscan.
+            # bitmap. The drawable XML supplies the safe-zone scale.
             canvas = Image.new("RGBA", (432, 432), (0, 0, 0, 0))
             tile = source.convert("RGBA").resize((288, 288), Image.Resampling.LANCZOS)
             canvas.alpha_composite(tile, (72, 72))
@@ -42,10 +44,14 @@ def build() -> None:
         (RES / "mipmap-anydpi-v26" / f"app_icon_{icon_id}.xml").write_text(
             '<?xml version="1.0" encoding="utf-8"?>\n'
             '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
-            '    <background android:drawable="@color/ic_launcher_background"/>\n'
+            f'    <background android:drawable="@color/app_icon_{icon_id}_background"/>\n'
             f'    <foreground android:drawable="@drawable/app_icon_{icon_id}_mask_safe"/>\n'
             '</adaptive-icon>\n'
         )
+
+    (RES / "values" / "app_icon_backgrounds.xml").write_text(
+        '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n' + "\n".join(backgrounds) + '\n</resources>\n'
+    )
 
 
 if __name__ == "__main__":

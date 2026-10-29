@@ -46,7 +46,7 @@ jobs:
           - api: '37.1'
             image: android-37.1
             tag: google_apis_ps16k
-            # Leave headroom for the 16K guest's boot-time system services.
+            # Reuse the verified test.24 headroom for the 16K guest's services.
             memory: 6144
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -104,6 +104,10 @@ jobs:
             sleep 2
           done
           test "$boot" = '1'
+          # Retain device diagnostics even if instrumentation dies before a test starts.
+          adb -e logcat -b all -v threadtime > native-system.log 2>&1 &
+          device_log_pid=$!
+          trap 'kill "$device_log_pid" 2>/dev/null || true' EXIT
           adb -e install -r app/build/outputs/apk/debug/app-debug.apk
           adb -e install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           # Seed under shell's UID: eimir must not own/read this image before selection.
@@ -152,7 +156,7 @@ jobs:
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b crash -d -t 200 \
             > native-crash.log 2>&1 || true
-          for proof in native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg; do
+          for proof in native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg; do
             if "$ANDROID_HOME/platform-tools/adb" -e shell run-as de.sidebyside.app.debug test -f "files/$proof"; then
               "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.sidebyside.app.debug \
                 cat "files/$proof" > "$proof"
@@ -164,8 +168,6 @@ jobs:
         if: failure()
         working-directory: android
         run: |
-          timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b all -d -t 4000 -v threadtime \
-            > native-all-logcat.log 2>&1 || true
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e shell dumpsys activity exit-info de.sidebyside.app.debug \
             > native-exit-info.log 2>&1 || true
       - name: Upload native verification results
@@ -182,8 +184,10 @@ jobs:
             android/instrumentation.log
             android/fixture-logcat.log
             android/native-crash.log
-            android/native-all-logcat.log
+            android/native-system.log
             android/native-exit-info.log
+            android/native-photo-input.png
+            android/native-photo-input.txt
             android/native-photo-picker.png
             android/native-photo-picker.txt
             android/native-photo-result.png

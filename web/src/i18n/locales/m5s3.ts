@@ -132,6 +132,7 @@ const m5s3 = {
     unschedule: 'Noch ohne festen Termin',
     editAction: 'Plan bearbeiten',
     complete: 'Als erlebt markieren',
+    completeDateTitle: 'Wann habt ihr das erlebt?',
     completePending: 'Abschluss für den {{date}} wird gespeichert …',
     returnToWish: 'Zurück zum Wunsch',
     completedTitle: 'Gemeinsam erlebt',

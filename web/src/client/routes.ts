@@ -95,7 +95,7 @@ export function appRoutePath(id: AppRouteId): string {
 
 /* Secondary destinations ------------------------------------------------- */
 
-/** A global utility rather than an area; reachable from the Web app bar. */
+/** Global search keeps its canonical path and is discovered under More. */
 export const SEARCH_ROUTE = '/search';
 
 /**
@@ -108,9 +108,9 @@ export const ACTIVITY_ROUTE = '/today/activity';
 export const MORE_PEOPLE_ROUTE = '/more/people';
 export const MORE_PLACES_ROUTE = '/more/places';
 export const MORE_COLLECTIONS_ROUTE = '/more/collections';
-/** Existing surface; the Web shell exposes it as the header bell utility. */
+/** Existing inbox; More exposes its shared authoritative unread state. */
 export const MORE_NOTIFICATIONS_ROUTE = '/more/notifications';
-/** Existing surface; the Web shell exposes it through the avatar/account tree. */
+/** Named profile destination in the More account group. */
 export const MORE_PROFILE_ROUTE = '/more/profile';
 export const MORE_SETTINGS_ROUTE = '/more/settings';
 
@@ -258,6 +258,7 @@ export function rewriteLegacyPath(pathname: string): string | null {
  * while keeping existing deep links stable without URL migrations.
  */
 export function activeNavigationArea(pathname: string): AppRouteId | null {
+  if (pathname === SEARCH_ROUTE) return 'more';
   if (pathname === '/today' || pathname.startsWith('/today/')) return 'today';
   if (
     pathname === '/story' ||

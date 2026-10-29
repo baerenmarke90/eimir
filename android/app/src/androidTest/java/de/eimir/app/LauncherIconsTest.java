@@ -9,6 +9,8 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ActivityInfo;
 import android.graphics.Rect;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.AdaptiveIconDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
@@ -52,29 +54,59 @@ public class LauncherIconsTest {
     }
 
     @Test
-    public void everyChoiceOverscansThePlatformMaskInsteadOfShowingAnInsetBadge() throws Exception {
+    public void everyChoiceKeepsCompleteArtworkCenteredInsideTheAdaptiveSafeZone() throws Exception {
         PackageManager manager = context.getPackageManager();
         float density = context.getResources().getDisplayMetrics().density;
         int viewportPx = Math.round(108 * density);
-        int expectedLayerPx = Math.round(132 * density);
+        float safeSizePx = 66 * density;
+        float safeStart = (viewportPx - safeSizePx) / 2f;
         for (String id : LauncherIcons.COMPONENTS.keySet()) {
             ComponentName alias = new ComponentName(
                     context.getPackageName(), LauncherIcons.COMPONENTS.get(id));
             ActivityInfo info = manager.getActivityInfo(alias, PackageManager.MATCH_DISABLED_COMPONENTS);
             Drawable icon = context.getDrawable(info.getIconResource());
             assertTrue(id + " must be an adaptive icon", icon instanceof AdaptiveIconDrawable);
+            assertEquals(id + " needs an opaque native background", 255,
+                    ((AdaptiveIconDrawable) icon).getBackground().getAlpha());
             Drawable foreground = ((AdaptiveIconDrawable) icon).getForeground();
             assertTrue(id + " needs the mask-safe foreground", foreground instanceof LayerDrawable);
             LayerDrawable layers = (LayerDrawable) foreground;
             assertEquals(id, 1, layers.getNumberOfLayers());
             layers.setBounds(0, 0, viewportPx, viewportPx);
-            Rect artwork = layers.getDrawable(0).getBounds();
-            assertEquals(id + " width", expectedLayerPx, artwork.width());
-            assertEquals(id + " height", expectedLayerPx, artwork.height());
-            assertTrue(id + " left overscan", artwork.left < 0);
-            assertTrue(id + " right overscan", artwork.right > viewportPx);
-            assertTrue(id + " top overscan", artwork.top < 0);
-            assertTrue(id + " bottom overscan", artwork.bottom > viewportPx);
+            Drawable source = layers.getDrawable(0);
+            assertTrue(id + " must retain its approved bitmap", source instanceof BitmapDrawable);
+            Rect artwork = source.getBounds();
+            assertTrue(id + " must not overscan the canvas", artwork.left >= 0 && artwork.top >= 0
+                    && artwork.right <= viewportPx && artwork.bottom <= viewportPx);
+            Bitmap bitmap = ((BitmapDrawable) source).getBitmap();
+            Rect visible = new Rect(bitmap.getWidth(), bitmap.getHeight(), 0, 0);
+            for (int y = 0; y < bitmap.getHeight(); y++) {
+                for (int x = 0; x < bitmap.getWidth(); x++) {
+                    if ((bitmap.getPixel(x, y) >>> 24) == 0) continue;
+                    visible.left = Math.min(visible.left, x);
+                    visible.top = Math.min(visible.top, y);
+                    visible.right = Math.max(visible.right, x + 1);
+                    visible.bottom = Math.max(visible.bottom, y + 1);
+                }
+            }
+            assertFalse(id + " must contain visible artwork", visible.isEmpty());
+            float scaleX = artwork.width() / (float) bitmap.getWidth();
+            float scaleY = artwork.height() / (float) bitmap.getHeight();
+            float left = artwork.left + visible.left * scaleX;
+            float right = artwork.left + visible.right * scaleX;
+            float top = artwork.top + visible.top * scaleY;
+            float bottom = artwork.top + visible.bottom * scaleY;
+            // Check the actual source pixels in density-independent coordinates,
+            // rather than copying the generator's layer-size constant.
+            assertTrue(id + " must remain recognizable", right - left >= 48 * density - 1);
+            assertTrue(id + " must fit the safe width", right - left <= safeSizePx + 1);
+            assertTrue(id + " must fit the safe height", bottom - top <= safeSizePx + 1);
+            assertTrue(id + " left edge", left >= safeStart - 1);
+            assertTrue(id + " right edge", right <= safeStart + safeSizePx + 1);
+            assertTrue(id + " top edge", top >= safeStart - 1);
+            assertTrue(id + " bottom edge", bottom <= safeStart + safeSizePx + 1);
+            assertEquals(id + " horizontal center", viewportPx / 2f, (left + right) / 2f, 1f);
+            assertEquals(id + " vertical center", viewportPx / 2f, (top + bottom) / 2f, 1f);
         }
     }
 

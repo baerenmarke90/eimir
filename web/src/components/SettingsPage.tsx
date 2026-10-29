@@ -38,6 +38,7 @@ import {
   PartnerBirthdayReminderSettings,
 } from './AnniversaryReminderSettings';
 import { DailyQuoteSettingsPanel } from './DailyQuoteSettingsPanel';
+import { WirStatisticsSetting } from './WirStatisticsSetting';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 import { PageHeader } from './PageHeader';
@@ -186,6 +187,12 @@ export function SettingsPage(props: SettingsPageProps) {
       <div className="settings-category-content">
         <DashboardSettingsPanel
           dashboardApi={dashboardApi}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
+        <WirStatisticsSetting
+          api={entitlementsApi}
+          instance={props.apiBaseUrl}
           accountId={props.account.id}
           spaceId={props.spaceId}
         />

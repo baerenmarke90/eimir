@@ -58,7 +58,7 @@
     },
     "floating-bottom-nav-scroll.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 11,
+      "baselineTests": 12,
       "reason": "Persistent navigation clearance and bounded account/Space-scoped primary context, browser history and native tab replacement."
     },
     "floating-bottom-nav.spec.ts": {
@@ -84,7 +84,7 @@
     },
     "memory-carousel-stability.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 10
+      "baselineTests": 11
     },
     "memory-create-defaults.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -353,6 +353,21 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 4,
       "reason": "Places and Chapters share one content-recognition picker; selection, type-filter continuity, real save/detail/return, privacy-safe search, large text, focus and cancellation must remain coherent."
+    },
+    "mobile-header-more.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5,
+      "reason": "Headerless Compact navigation, More utility discovery, authoritative unread status, safe areas, sign-out and capability gating."
+    },
+    "plan-cover-layout.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6,
+      "reason": "Complete portrait/landscape/square Plan images, original-versus-thumbnail reads, sensitive concealment and staged edit/cancel/return across actual overview/detail routes, Compact/Expanded and large text."
+    },
+    "product-consistency.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7,
+      "reason": "The PO-approved combined Moments composition must preserve manual Place linking, modal return, icon/rail alignment, theme, Compact/Expanded and large-text reflow."
     }
   }
 }

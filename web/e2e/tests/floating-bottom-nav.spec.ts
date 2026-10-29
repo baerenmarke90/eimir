@@ -347,6 +347,30 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
       expect(shellBox.y + shellBox.height).toBe(844);
     }
 
+    // Keep the dock and its targets comfortably sized without changing navigation.
+    const dockSize = await floatingShell.evaluate((element) => {
+      const links = Array.from(
+        element.querySelectorAll('.mobile-bottom-nav .shell-nav-link'),
+      );
+      const trigger = element.querySelector(
+        '.mobile-quick-create .quick-create-trigger',
+      );
+      if (links.length !== 4 || !trigger)
+        throw new Error('Missing bottom navigation controls');
+      return {
+        height: element.getBoundingClientRect().height,
+        linkHeights: links.map((link) => link.getBoundingClientRect().height),
+        fontSizes: links.map((link) =>
+          Number.parseFloat(getComputedStyle(link).fontSize),
+        ),
+        triggerHeight: trigger.getBoundingClientRect().height,
+      };
+    });
+    expect(dockSize.height).toBeGreaterThanOrEqual(70);
+    expect(Math.min(...dockSize.linkHeights)).toBeGreaterThanOrEqual(56);
+    expect(Math.min(...dockSize.fontSizes)).toBeGreaterThanOrEqual(12);
+    expect(dockSize.triggerHeight).toBeGreaterThanOrEqual(52);
+
     await expectNoHorizontalOverflow(page);
   });
 

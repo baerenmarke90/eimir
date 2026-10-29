@@ -86,7 +86,10 @@ async function openJourney(
     },
   );
   await signIn(page);
-  await page.getByRole('link', { name: new RegExp(scenario.title) }).click();
+  await page
+    .locator('#momente-diary')
+    .getByRole('link', { name: new RegExp(scenario.title) })
+    .click();
   const panel = page.locator('.comments-panel');
   await expect(
     panel.getByText(DETAIL_COMMENTS[0].body, { exact: true }),
@@ -122,7 +125,10 @@ for (const scenario of cases) {
     await expect.poll(() => state.writes.length).toBe(1);
     await page.goBack();
     await expect(page).toHaveURL(/\/story\?tab=timeline$/);
-    await page.getByRole('link', { name: new RegExp(scenario.title) }).click();
+    await page
+      .locator('#momente-diary')
+      .getByRole('link', { name: new RegExp(scenario.title) })
+      .click();
     const button = await deleteButton(page);
     await expect(button).toBeDisabled();
     await expect(
@@ -166,7 +172,9 @@ for (const scenario of cases) {
     await page.goBack();
     await expect(page).toHaveURL(/\/story\?tab=timeline$/);
     await expect(
-      page.getByRole('link', { name: new RegExp(scenario.title) }),
+      page
+        .locator('#momente-diary')
+        .getByRole('link', { name: new RegExp(scenario.title) }),
     ).toBeVisible();
     expect(state.unknown).toEqual([]);
   });

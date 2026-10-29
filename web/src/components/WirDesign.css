@@ -81,12 +81,7 @@
   min-height: 64px;
 }
 .today-page[data-wir-design="warm"] .daily-quote-card {
-  width: 100%;
   margin-block: var(--space-2) var(--space-6);
-  padding: var(--space-4) var(--space-1);
-  box-shadow: none;
-  border-radius: 0;
-  background: transparent;
 }
 .today-page[data-wir-design="warm"] .today-moment-figure {
   border-radius: var(--radius-large);
@@ -142,12 +137,6 @@
 }
 .today-page[data-wir-design="modern"] .daily-vibe-person {
   box-shadow: none;
-}
-.today-page[data-wir-design="modern"] .daily-quote-card {
-  border-inline-start: 3px solid var(--color-shared);
-  border-radius: var(--radius-large);
-  box-shadow: none;
-  background: var(--color-shared-surface);
 }
 .today-page[data-wir-design="modern"] .today-section-title {
   font-family: var(--font-ui);

@@ -43,12 +43,19 @@
   gap: var(--space-3);
 }
 
+.daily-quote-header > h2 {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .daily-quote-settings {
   display: grid;
+  flex-shrink: 0;
   width: 44px;
   min-width: 44px;
   height: 44px;
-  margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
+  margin: 0;
   padding: 0;
   place-items: center;
   border: 0;

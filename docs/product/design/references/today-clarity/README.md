@@ -224,3 +224,17 @@ file now records only those three immutable commit/path/rule/line fingerprints.
 No scanner rule or whole path is excluded. Current ledgers separate `path` and
 `sha256` fields to avoid resembling credential assignments; all recorded hashes
 remain unchanged.
+
+
+## Final merge validation
+
+The final integration includes main at
+`7d671e2a068f89c9b16ee1e7c74da186a9c9c5d9`, where #1499 was merged. The
+navigation measurement now has an explicit root default, preserving its existing
+geometry while satisfying the shared custom-property audit. The complete Web
+suite passed with 2,223 tests and two existing skips; the 13-image Today matrix
+passed again after this adjustment. Its initial local retry timed out during
+login before reaching the feature; the subsequent isolated run passed. The
+integration images and source ledger were refreshed from that successful run.
+The CI-version secret scanner passed across all 5,155 commits available before
+this ancestry merge, with no leaks. Final GitHub checks remain the merge gate.

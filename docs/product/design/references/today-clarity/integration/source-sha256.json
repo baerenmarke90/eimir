@@ -1,5 +1,5 @@
 {
-  "integrationParent": "d47cf7865d627e131a621ed4ee59c6ffe40bd3c6",
+  "integrationParent": "bd1f15b65e77aa4d6b715ceeee24a7fbc19dd230",
   "included1499Head": "fb07540afb63e2adf1de1c47e1061cc2883ff7cb",
   "sources": [
     {
@@ -252,7 +252,7 @@
     },
     {
       "path": "web/src/shell.css",
-      "sha256": "d0b3e195a3e92c8c01da6f27aa68e240ed54dac8042591cf641a7c97346fa100"
+      "sha256": "26da32f502fcb199b350934db22726b67bf1262db5b1afbbb1fffacd978d7189"
     },
     {
       "path": "web/src/story-media.css",
@@ -266,5 +266,6 @@
       "path": "web/src/theme.css",
       "sha256": "da43f9d735868d948c08d90e4fe646253c6dcf8c415262fd35e10eb2c3ba16a6"
     }
-  ]
+  ],
+  "includedMain": "7d671e2a068f89c9b16ee1e7c74da186a9c9c5d9"
 }

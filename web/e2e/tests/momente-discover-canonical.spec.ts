@@ -285,9 +285,9 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
     await expect(discover.getByText('Winter evening')).toBeVisible();
     await expect(discover.locator('.momente-tapestry-item')).toHaveCount(3);
     expect(
-      await discover.locator('.momente-tapestry-item').evaluateAll((items) =>
-        items.map((item) => item.getAttribute('href')),
-      ),
+      await discover
+        .locator('.momente-tapestry-item')
+        .evaluateAll((items) => items.map((item) => item.getAttribute('href'))),
     ).toEqual([
       '/story/heart-moments/discover-heart',
       '/story/milestones/discover-milestone',

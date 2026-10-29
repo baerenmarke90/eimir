@@ -10,7 +10,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import navigation from '../i18n/locales/navigation';
 import { AppShell } from './AppShell';
-import { personInitials } from './PersonIdentity';
 
 /** Opening anchor tags, so attribute order in the markup does not matter. */
 function anchorTags(html: string): string[] {
@@ -112,60 +111,34 @@ describe('AppShell', () => {
     expect(renderShell('/story')).not.toContain('href="/discover"');
   });
 
-  it('offers Search and Notifications as icon utilities rather than destinations', () => {
-    const html = renderShell('/story');
+  it('keeps Expanded navigation and creation while utilities live under More', () => {
+    const html = renderShell('/story', true);
     const header = html.slice(
       html.indexOf('<header'),
-      html.indexOf('</header>') + '</header>'.length,
+      html.indexOf('</header>'),
     );
-
-    expect(header).toContain('href="/search"');
-    expect(header).toContain(`aria-label="${navigation.search}"`);
-    expect(header).toContain('href="/more/notifications"');
-    expect(header).toContain(`aria-label="${navigation.notifications}"`);
-    expect(header).not.toContain('theme-preference');
-
-    const compact = html.slice(html.indexOf('mobile-bottom-nav'));
-    expect(compact).not.toContain('href="/search"');
-    expect(compact).not.toContain('href="/more/notifications"');
-    const primaryNavigation = html.slice(
-      html.indexOf('<nav class="shell-nav"'),
-      html.indexOf('</nav>', html.indexOf('<nav class="shell-nav"')),
-    );
-    expect(primaryNavigation).not.toContain('href="/search"');
-    expect(primaryNavigation).not.toContain('href="/more/notifications"');
+    for (const href of ['/today', '/story', '/plan', '/more']) {
+      expect(header).toContain(`href="${href}"`);
+    }
+    expect(header).toContain('shell-primary-action');
+    for (const retired of [
+      'href="/search"',
+      'href="/more/notifications"',
+      'header-profile-menu',
+      'href="/server-admin"',
+      'brand-mark',
+    ]) {
+      expect(header).not.toContain(retired);
+    }
   });
 
-  it('keeps Profile, Settings and Activity in the account tree rather than primary navigation', () => {
-    const html = renderShell('/story');
-    const header = html.slice(
-      html.indexOf('<header'),
-      html.indexOf('</header>') + '</header>'.length,
-    );
-    const primaryNavigation = html.slice(
-      html.indexOf('<nav class="shell-nav"'),
-      html.indexOf('</nav>', html.indexOf('<nav class="shell-nav"')),
-    );
-
-    expect(header).toContain(`aria-label="${navigation.profileMenu}"`);
-    expect(header).toContain('href="/more/profile"');
-    expect(header).toContain('href="/more/settings"');
-    expect(header).toContain('href="/today/activity"');
-    expect(header).toContain('header-profile-menu-logout');
-    expect(primaryNavigation).not.toContain('href="/more/profile"');
-    expect(primaryNavigation).not.toContain('href="/more/settings"');
-    expect(primaryNavigation).not.toContain('href="/today/activity"');
-  });
-
-  it('shows ServerAdmin only for an authorized account capability', () => {
-    expect(renderShell('/story')).not.toContain('href="/server-admin"');
-
-    const authorized = renderShell('/story', true);
-    const header = authorized.slice(
-      authorized.indexOf('<header'),
-      authorized.indexOf('</header>') + '</header>'.length,
-    );
-    expect(header).toContain('href="/server-admin"');
+  it('keeps contextual Story return controls separate from mobile global chrome', () => {
+    const html = renderShell('/story/memories/memory-1');
+    expect(html).toContain('shell-detail-context');
+    expect(
+      html.match(/class="shell-utility-link shell-detail-back"/g),
+    ).toHaveLength(1);
+    expect(renderShell('/story')).not.toContain('shell-detail-context');
   });
 
   it('offers global quick-create triggers for expanded and compact shells', () => {
@@ -210,6 +183,7 @@ describe('AppShell', () => {
     ['/games', '/more'],
     ['/games/our-moments', '/more'],
     ['/more', '/more'],
+    ['/search', '/more'],
     ['/more/people', '/more'],
     ['/more/profile', '/more'],
     ['/more/settings', '/more'],
@@ -235,44 +209,20 @@ describe('AppShell', () => {
     expect(inactive).not.toContain('shell-nav-link-active');
   });
 
-  it('renders standard bell label and no dot when unread count is zero', () => {
-    const html = renderShell('/story', false, 0);
-
-    expect(html).toContain(`aria-label="${navigation.notifications}"`);
-    expect(html).not.toContain('notification-dot');
+  it('does not show an unread dot when the authoritative count is zero', () => {
+    expect(renderShell('/story', false, 0)).not.toContain('notification-dot');
   });
 
-  it('renders unread count accessibility label and visual dot when unread count > 0', () => {
+  it('shows unread state only on More with an accessible count', () => {
     const html = renderShell('/story', false, 3);
-
-    expect(html).toContain('aria-label="Benachrichtigungen, 3 ungelesen"');
-    expect(html).toContain(
-      '<span class="notification-dot" aria-hidden="true"></span>',
+    expect(navigationLinkFor(html, '/more')).toContain(
+      'aria-label="Mehr, 3 ungelesene Benachrichtigungen"',
     );
+    expect(navigationLinkFor(html, '/story')).not.toContain('ungelesen');
+    expect(html.match(/class="notification-dot"/g)).toHaveLength(2);
   });
 
-  it('renders "Unsere Aktivitäten" in header profile menu', () => {
-    const html = renderShell('/story');
-
-    expect(html).toContain('Unsere Aktivitäten');
-  });
-
-  it('shows only the current user profile identity in the global header, never the partner (regression #790/#791)', () => {
-    const html = renderShell('/story');
-    const header = html.slice(
-      html.indexOf('<header'),
-      html.indexOf('</header>') + '</header>'.length,
-    );
-
-    // The global header carries no partner-presence signal at all: no
-    // dedicated markup, and the partner's name/initials never appear.
-    expect(header).not.toContain('header-couple-presence');
-    expect(header).toContain('header-profile-menu');
-    expect(header).not.toContain('Sam Example');
-    expect(header).not.toContain(personInitials('Sam Example'));
-  });
-
-  it('updates unread bell dot and label dynamically on /today without visiting notifications or clicking bell', async () => {
+  it('updates More unread state on refocus without visiting the inbox', async () => {
     window.matchMedia =
       window.matchMedia ||
       vi.fn().mockImplementation((query) => ({
@@ -321,7 +271,7 @@ describe('AppShell', () => {
       ],
     });
 
-    const { container } = render(
+    const { container, unmount } = render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={['/today']}>
           <AppShell
@@ -337,13 +287,13 @@ describe('AppShell', () => {
       </QueryClientProvider>,
     );
 
-    // Initial state on /today: API returns 0, no notification dot
+    // The shell uses one authoritative polling query on all destinations.
     await waitFor(() => {
       expect(unreadCountCalls).toBeGreaterThanOrEqual(1);
     });
     expect(container.querySelector('.notification-dot')).toBeNull();
-    let trigger = container.querySelector('.header-notifications-trigger');
-    expect(trigger?.getAttribute('aria-label')).toBe(navigation.notifications);
+    let trigger = container.querySelector('.mobile-bottom-nav a[href="/more"]');
+    expect(trigger?.getAttribute('aria-label')).toBeNull();
 
     const initialCalls = unreadCountCalls;
 
@@ -362,7 +312,7 @@ describe('AppShell', () => {
     await waitFor(() => {
       expect(container.querySelector('.notification-dot')).not.toBeNull();
     });
-    trigger = container.querySelector('.header-notifications-trigger');
+    trigger = container.querySelector('.mobile-bottom-nav a[href="/more"]');
     expect(trigger?.getAttribute('aria-label')).toContain('1 ungelesen');
 
     const secondCalls = unreadCountCalls;
@@ -380,8 +330,11 @@ describe('AppShell', () => {
     await waitFor(() => {
       expect(container.querySelector('.notification-dot')).toBeNull();
     });
-    trigger = container.querySelector('.header-notifications-trigger');
-    expect(trigger?.getAttribute('aria-label')).toBe(navigation.notifications);
+    trigger = container.querySelector('.mobile-bottom-nav a[href="/more"]');
+    expect(trigger?.getAttribute('aria-label')).toBeNull();
+    unmount();
+    queryClient.clear();
+    vi.restoreAllMocks();
   });
 
   it('integrates Quick Create into floating bottom shell with four primary destinations (#882/#905)', () => {

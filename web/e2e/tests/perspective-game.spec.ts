@@ -414,6 +414,11 @@ for (const theme of ['light', 'dark'] as const) {
       await page.evaluate((largeText) => {
         document.documentElement.style.fontSize = largeText ? '200%' : '';
       }, width === 360);
+      await start.hover();
+      expect(
+        await start.evaluate((element) => getComputedStyle(element).transform),
+        `${width}px game entry stays anchored on hover`,
+      ).toBe('none');
       await start.click();
       await expect(page.locator('#who-of-us-question-title')).toBeVisible();
       const back = page.getByRole('button', { name: copy.back, exact: true });

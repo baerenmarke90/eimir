@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = 'http://127.0.0.1:4173';
+const port = process.env.EIMIR_E2E_PORT ?? '4173';
+const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: './tests',
@@ -26,11 +27,11 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm --prefix .. run dev -- --host 127.0.0.1 --port 4173',
+    command: `npm --prefix .. run dev -- --host 127.0.0.1 --port ${port} --strictPort`,
     url: baseURL,
     // Native-container journeys require an explicit API origin, as shipped APKs do.
     env: { VITE_EIMIR_API_BASE_URL: baseURL },
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !process.env.CI && !process.env.EIMIR_E2E_PORT,
     timeout: 120_000,
   },
 });

@@ -409,9 +409,7 @@ async function signOutToPublicEntry(page: Page): Promise<void> {
     expect(dialog.type()).toBe('beforeunload');
     await dialog.accept();
   });
-  await page
-    .getByRole('button', { name: navigation.profileMenu, exact: true })
-    .click();
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
   await Promise.all([
     page.waitForURL((url) => url.pathname === '/', { waitUntil: 'load' }),
     page.getByRole('button', { name: de.header.logout, exact: true }).click(),

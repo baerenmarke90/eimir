@@ -189,7 +189,7 @@ Use a restrained focal tint and neutral agenda surfaces in Light/Dark. Dates, ra
 
 | Order | Compact composition | Behavior |
 | --- | --- | --- |
-| 1 | Quiet shared root header | Search and notifications remain recognizable utilities |
+| 1 | Content begins below the safe top inset | Per [PO decision #1507](mobile-header-more.md), Compact/Medium has no global header; global search and notifications are named More destinations with unread state on More |
 | 2 | Personal relationship context | Actual avatar pair/names and optional duration; no ceremonial frame or decorative technical state |
 | 3 | Contextual relationship impulse | Existing intentional action with honest pending/result feedback; never auto-send |
 | 4 | One real keepsake | Large photo with caption or actual readable thought; this is the visual focal point |
@@ -246,7 +246,7 @@ Light/Dark use neutral photo captions, restrained surface contrast and unchanged
 | Settings category | Back to index, precise title, existing controls and visible state; one local Save for staged submission or clear immediate feedback for immediate controls |
 | Data/account action | Explicit scope, validation, authentication and consequences; offboarding, sign-out and account deletion remain distinct |
 
-The avatar remains a shortcut. Named Profile and Settings links under More remove dependence on discovering an avatar menu (D6). Personal preferences precede commercial information. A compact eimir. Pro entry must reflect actual availability without invented price, entitlement or account-management capability. Games keeps its current Premium boundary.
+Per [PO decision #1507](mobile-header-more.md), More groups global search, the current-user avatar/name and named Profile, Notifications, Activity and Settings entries, capability-gated administration, safe sign-out and a quiet brand footer. Compact/Medium has no persistent global header; Expanded retains top navigation. An unread dot and accessible label on More use the existing recipient count; entering More does not mark notifications read. This replaces the former avatar-menu shortcut while preserving D6. Personal preferences precede commercial information. A compact eimir. Pro entry must reflect actual availability without invented price, entitlement or account-management capability. Games keeps its current Premium boundary.
 
 ### Mobile interaction contract and continuity
 

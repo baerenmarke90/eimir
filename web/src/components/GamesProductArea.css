@@ -96,6 +96,12 @@
   cursor: pointer;
 }
 
+/* Shelf cards keep their hit area fixed at rounded edges and after reflow. */
+.games-entry-button:hover:not(:disabled),
+.games-entry-button:active:not(:disabled) {
+  transform: none;
+}
+
 .games-entry-link:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;

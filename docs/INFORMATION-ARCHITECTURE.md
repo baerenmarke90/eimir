@@ -64,8 +64,7 @@ their route IDs are not.
   `decisions/0004-android-uses-bottom-navigation-at-every-size.md`.
 - **Web, Compact/Medium windows below 840 px:** Bottom Navigation with icon and text label.
 - **Web, Expanded from 840 px:** horizontal header navigation, as accepted in [A1](./design/eimir/SHELL-RESCUE-A1.md); older sidebar wording is superseded.
-- **Web persistent header:** global utilities and the current-user account
-  affordance live top-right rather than consuming primary navigation slots.
+- **Utilities/account:** global search, notifications, current-user identity, account actions and brand live under More. Compact/Medium has no persistent header; Expanded retains horizontal primary navigation and creation. The [2026-10-29 PO decision](product/design/mobile-header-more.md) supersedes earlier header placement.
 - Order remains identical on all platforms.
 - Current area is recognizable through color, icon, and text state.
 
@@ -109,13 +108,14 @@ eimir.
     ├── data export and account deletion
     └── help, legal, and app information
 
-Web persistent utilities / account tree
-├── Search
-├── Notifications
-└── Avatar / Profil
-    ├── Profil
-    ├── Aktivität
-    └── centralized settings
+More utilities / account group
+├── Search (global scope)
+├── Current-user avatar, name and Profile
+├── Notifications (unread count; dot on More)
+├── Activity and centralized settings
+├── Server administration (authorized operators only)
+├── Sign out
+└── eimir. brand footer
 ```
 
 The utility/account tree is not an additional primary-navigation level. Its
@@ -181,23 +181,16 @@ Links. IDs are opaque, stable identifiers.
 | Data and account | `/more/data-account` |
 | Search | `/search` |
 
-### Web utility and account placement
+### Utility and account placement
 
-Search, Notifications, Profile and Activity are **not** left-primary
-destinations.
+The [2026-10-29 Product Owner decision](product/design/mobile-header-more.md), tracked in #1507, replaces the earlier header utilities/account tree:
 
-- Search is a global utility reachable through an icon-only magnifying-glass
-  control in the top-right Web header and opens `/search`.
-- Notifications is a global utility reachable through an icon-only bell in the
-  top-right Web header and opens `/more/notifications`.
-- The current-user avatar/profile affordance is top-right and uses the profile
-  photo or deterministic initials fallback from the centralized profile
-  identity model. It opens the personal account tree.
-- Profile (`/more/profile`) and Activity (`/today/activity`) are entries inside
-  that account tree. Their route placement remains stable for compatibility and
-  domain ownership; shell placement does not redefine the route.
-- Search, Notifications, Profile and Activity must not be duplicated as
-  standalone left-primary entries.
+- Below 840 px there is no persistent global header. Content consumes the safe top inset once; contextual Back/Close remains available on task/detail pages.
+- More begins with a full-width labelled global-search entry opening `/search`, followed by the current user's authoritative avatar/name and a named Profile link.
+- Notifications opens `/more/notifications`. Its row shows the authoritative unread count. A static dot on More, with an accessible unread label, remains until read state changes; entering More alone does not mark anything read.
+- Profile, Activity, Settings, capability-gated Server Administration and the existing safe sign-out action are named More destinations/actions. The existing brand is placed quietly in its footer.
+- Expanded retains the horizontal primary navigation and creation action. Utility/account destinations have the same More home on both sizes.
+- Search and Notifications do not acquire extra primary-navigation slots. Search highlights More; Activity keeps its existing Today domain ownership and all canonical paths remain compatible.
 
 ### Signed-in landing and Deep-Link return
 
@@ -239,10 +232,7 @@ On small windows, detail replaces the list. On large windows, the list remains
 visible and selected content appears beside it. Back state must survive window
 size changes.
 
-On responsive Web layouts, the header utilities remain reachable through an
-equivalent compact header/account pattern. They are not pushed back into primary
-navigation to solve space constraints. Interactive header targets remain at
-least 44 CSS pixels and preserve keyboard focus order and accessible names.
+More provides the same named utility/account destinations at every width. Compact/Medium has no global header and keeps its bottom navigation; Expanded retains top navigation. Utility entries and contextual return controls preserve at least 44 CSS pixel targets, keyboard focus order and accessible names.
 
 ## 7. Naming and language
 

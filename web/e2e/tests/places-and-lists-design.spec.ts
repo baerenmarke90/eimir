@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import deFixture from '../fixtures/locales/de';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -30,7 +31,7 @@ async function installContent(page: Page, dense = false) {
       ...base,
       id: 'park',
       name: 'Volkspark',
-      description: 'Unser Platz im Grünen.',
+      description: deFixture.placesAndLists.placeDescription,
       address: 'Parkstraße, Berlin',
       latitude: 52.51,
       longitude: 13.35,
@@ -55,7 +56,7 @@ async function installContent(page: Page, dense = false) {
             makeItem(
               `item-${index}`,
               index === 1
-                ? 'Unser gemeinsamer Fernsehabend mit Snacks und einer richtig langen Serienfolge'
+                ? deFixture.placesAndLists.longListEntry
                 : `Unsere Serie ${index + 1}`,
               index,
             ),

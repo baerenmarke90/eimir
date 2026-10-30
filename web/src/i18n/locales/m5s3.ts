@@ -354,6 +354,7 @@ const m5s3 = {
     create: 'Liste hinzufügen',
     loading: 'Liste wird geladen …',
     detailEyebrow: 'Gemeinsame Liste',
+    pinLabel: 'Auf „Wir“',
     pinToToday: 'Auf „Wir“ anzeigen',
     unpinFromToday: 'Nicht mehr auf „Wir“ anzeigen',
     itemCount_one: '{{count}} Eintrag',

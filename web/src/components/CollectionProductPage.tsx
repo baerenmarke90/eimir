@@ -706,6 +706,11 @@ function CollectionProductDetail({
                 className="button-link secondary-link"
                 disabled={pinCollection.isBlocked}
                 aria-pressed={pinnedCollectionId === collection.id}
+                aria-label={t(
+                  pinnedCollectionId === collection.id
+                    ? 'm5s3.collection.unpinFromToday'
+                    : 'm5s3.collection.pinToToday',
+                )}
                 aria-describedby={
                   pinCollection.isSaving ? 'collection-pin-pending' : undefined
                 }
@@ -715,9 +720,10 @@ function CollectionProductDetail({
                   )
                 }
               >
-                {pinnedCollectionId === collection.id
-                  ? t('m5s3.collection.unpinFromToday')
-                  : t('m5s3.collection.pinToToday')}
+                {pinnedCollectionId === collection.id ? (
+                  <span aria-hidden="true">✓ </span>
+                ) : null}
+                {t('m5s3.collection.pinLabel')}
               </button>
               {pinCollection.isSaving ? (
                 <small id="collection-pin-pending" role="status">

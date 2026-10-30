@@ -2071,7 +2071,8 @@ for (const view of [
     const button = action.getByRole('button');
     await expect(button).toBeEnabled();
     await button.click();
-    await expect(button).toHaveText(m5s3.collection.unpinFromToday);
+    await expect(button).toHaveAccessibleName(m5s3.collection.unpinFromToday);
+    await expect(button).toContainText(m5s3.collection.pinLabel);
     await expect(button).toHaveAttribute('aria-pressed', 'true');
     await expect(button).toBeDisabled();
     await expect(action.getByRole('status')).toHaveText(de.common.saving);
@@ -2117,7 +2118,8 @@ for (const view of [
     await expect(button).toBeEnabled();
     await button.click();
     await expect(button).toHaveAttribute('aria-pressed', 'false');
-    await expect(button).toHaveText(m5s3.collection.pinToToday);
+    await expect(button).toHaveAccessibleName(m5s3.collection.pinToToday);
+    await expect(button).toContainText(m5s3.collection.pinLabel);
     await expect.poll(() => held.writes.length).toBe(2);
     await held.confirm();
     await expect(button).toBeEnabled();

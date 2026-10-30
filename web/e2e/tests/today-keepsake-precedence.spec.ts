@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import recaps from '../../src/i18n/locales/recaps';
 
 // Regression coverage for #840: after Couple Presence, a genuinely
 // current/upcoming relationship signal (the Shared Planning Horizon) must
@@ -63,6 +64,16 @@ async function installDashboardMocks(
         contentType: 'application/json',
         body: JSON.stringify(body),
       });
+
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+      return;
+    }
 
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
@@ -446,6 +457,13 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
     await expect(page.locator('.today-section-moment')).toHaveCount(0);
     await expect(page.locator('.today-section-living')).toHaveCount(0);
     await expect(page.locator('.today-section-monthly')).toHaveCount(0);
+    await expect(
+      page.getByRole('link', { name: recaps.profileLink }),
+    ).toHaveAttribute('href', '/more/passport');
+    await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
+    await expect(page.getByRole('link', { name: recaps.watchNow })).toHaveCount(
+      0,
+    );
 
     await expectHorizontalReflow(page);
     await expectNoWcagViolations(page);

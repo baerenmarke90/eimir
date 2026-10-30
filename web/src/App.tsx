@@ -608,6 +608,7 @@ function AuthenticatedApp({
               element={
                 <TodayPage
                   apis={m4Apis}
+                  recapMediaApis={apis}
                   apiBaseUrl={apiBaseUrl}
                   spaceId={spaceId}
                   spacesApi={spacesApi}

@@ -68,6 +68,8 @@ async function setup(
     fail?: boolean;
     empty?: boolean;
     pending?: boolean;
+    start?: 'wir' | 'library';
+    hideMonthly?: boolean;
   } = {},
 ) {
   await page.addInitScript(
@@ -87,11 +89,19 @@ async function setup(
   let fail = options.fail === true;
   let writes = 0;
   let prepares = 0;
+  let deniedOverview = false;
+  let overviewReads = 0;
   await page.route('**/api/v1/**', async (route) => {
     const req = route.request(),
       path = new URL(req.url()).pathname,
       method = req.method();
-    if (path === BASE && method === 'GET')
+    if (path === BASE && method === 'GET') {
+      overviewReads++;
+      if (deniedOverview)
+        return route.fulfill({
+          status: 403,
+          json: { title: 'Access denied', status: 403 },
+        });
       return route.fulfill({
         json: {
           canCompose: options.pro !== false,
@@ -111,6 +121,70 @@ async function setup(
           hasMore: false,
         },
       });
+    }
+    if (
+      options.start === 'wir' &&
+      path.endsWith('/dashboard') &&
+      method === 'GET'
+    ) {
+      return route.fulfill({
+        json: {
+          space: {
+            spaceId: SPACE_ID,
+            partner: { id: 'partner', displayName: 'Alex' },
+          },
+          viewerLocalDate: '2026-10-30',
+          relationshipDuration: null,
+          keepsake: null,
+          recentShared: [
+            {
+              id: 'heart-coffee',
+              type: 'HEART_MOMENT',
+              titleOrText: fixtureCopy.wordsTitle,
+              occurredOn: '2026-10-17',
+              createdAt: null,
+              scheduledAt: null,
+              previewAttachmentId: null,
+              previewIsSensitive: false,
+            },
+          ],
+          upcoming: [],
+          retrospective: null,
+          thinkingOfYouAvailableAt: null,
+          sharedStorySummary: { memories: 2, heartMoments: 1, milestones: 0 },
+        },
+      });
+    }
+    if (
+      options.start === 'wir' &&
+      path.endsWith('/activity') &&
+      method === 'GET'
+    ) {
+      return route.fulfill({
+        json: { items: [], hasMore: false, nextCursor: null },
+      });
+    }
+    if (
+      options.start === 'wir' &&
+      path.endsWith('/dashboard/preferences') &&
+      method === 'GET'
+    ) {
+      return route.fulfill({
+        json: {
+          items: options.hideMonthly
+            ? [
+                {
+                  moduleKey: 'monthly_highlights',
+                  visible: false,
+                  position: 5,
+                  selectedCollectionId: null,
+                  upcomingLimit: null,
+                },
+              ]
+            : [],
+        },
+      });
+    }
     if (path === `${BASE}/prepare`) {
       prepares++;
       return route.fulfill({ status: 202, body: 'null' });
@@ -192,6 +266,28 @@ async function setup(
     return route.fallback();
   });
   await signIn(page);
+  const state = {
+    unexpected,
+    allow: () => {
+      fail = false;
+    },
+    writes: () => writes,
+    prepares: () => prepares,
+    overviewReads: () => overviewReads,
+    denyOverview: () => {
+      deniedOverview = true;
+    },
+  };
+  if (options.start === 'wir') {
+    await page
+      .locator(
+        '.mobile-bottom-nav a[href="/today"], .shell-nav a[href="/today"]',
+      )
+      .filter({ visible: true })
+      .click();
+    await expect(page.locator('.today-content')).toBeVisible();
+    return state;
+  }
   await page
     .locator('.mobile-bottom-nav a[href="/more"], .shell-nav a[href="/more"]')
     .filter({ visible: true })
@@ -200,15 +296,219 @@ async function setup(
   await expect(
     page.getByRole('heading', { name: copy.shortTitle }),
   ).toBeVisible();
-  return {
-    unexpected,
-    allow: () => {
-      fail = false;
-    },
-    writes: () => writes,
-    prepares: () => prepares,
-  };
+  return state;
 }
+
+for (const [width, theme] of [
+  [360, 'light'],
+  [390, 'dark'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`monthly Wir invitation at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir-theme', value),
+      theme,
+    );
+    const state = await setup(page, { start: 'wir', pro: false });
+    const invitation = page.locator('.monthly-recap-invitation');
+    await expect(
+      invitation.getByRole('link', { name: new RegExp(copy.watchNow) }),
+    ).toBeVisible();
+    await expect(invitation).toContainText(
+      new Intl.DateTimeFormat('de-DE', {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(new Date('2026-10-01')),
+    );
+    await expect(invitation.locator('p')).toContainText(
+      copy.partial.split('·')[1].trim(),
+    );
+    await expect(invitation.locator('img')).toBeVisible();
+    await invitation
+      .locator('img')
+      .evaluate((img: HTMLImageElement) => img.decode());
+    await captureScreenshot(page, info, `recaps-wir-${width}-${theme}.png`, {
+      fullPage: true,
+    });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .include('.today-section-monthly')
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    expect(state.prepares()).toBe(0);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
+test('Watch now advances automatically, pauses for a source, and finishes without looping', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.clock.install();
+  const state = await setup(page, { start: 'wir' });
+  await page.getByRole('link', { name: new RegExp(copy.watchNow) }).click();
+  await expect(page).toHaveURL(/\/more\/passport\/october$/);
+  await expect(page.locator('.recap-reader')).toHaveAttribute(
+    'data-playing',
+    'true',
+  );
+  await page.clock.fastForward(90001);
+  await expect(page).toHaveURL(/page=1/);
+  await page.getByRole('link', { name: new RegExp(copy.source) }).click();
+  await page
+    .getByRole('button', { name: new RegExp(taskBoundary.back) })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/more\/passport\/october\?page=1/);
+  await expect(
+    page.getByRole('button', { name: copy.play, exact: true }),
+  ).toBeVisible();
+  await page.clock.fastForward(90001);
+  await expect(page).toHaveURL(/page=1/);
+  await page.getByRole('button', { name: copy.play, exact: true }).click();
+  await expect(page.locator('.recap-reader')).toHaveAttribute(
+    'data-playing',
+    'true',
+  );
+  await page.clock.fastForward(90001);
+  await expect(page).toHaveURL(/page=2/);
+  await expect(
+    page.getByRole('button', { name: copy.pause, exact: true }),
+  ).toBeVisible();
+  await page.clock.fastForward(90001);
+  await expect(page.locator('.recap-spread h1')).toHaveText(copy.finishTitle);
+  await expect(
+    page.getByRole('button', { name: copy.replay, exact: true }),
+  ).toBeVisible();
+  await page.clock.fastForward(90001);
+  await expect(page.locator('.recap-spread h1')).toHaveText(copy.finishTitle);
+  await page.locator('.recap-back').click();
+  await expect(page).toHaveURL(/\/today$/);
+  expect(state.prepares()).toBe(0);
+  expect(state.unexpected).toEqual([]);
+});
+
+test('reduced motion opens Watch now paused and playback pauses for editing', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 360, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: 'dark' });
+  await page.clock.install();
+  await setup(page, { start: 'wir' });
+  await page.getByRole('link', { name: new RegExp(copy.watchNow) }).click();
+  await expect(
+    page.getByRole('button', { name: copy.play, exact: true }),
+  ).toBeVisible();
+  await page.clock.fastForward(90001);
+  await expect(page).not.toHaveURL(/page=/);
+  await page.getByRole('button', { name: copy.play, exact: true }).click();
+  await page.clock.fastForward(90001);
+  await expect(page).toHaveURL(/page=1/);
+  await page.getByRole('button', { name: copy.ownWords, exact: true }).click();
+  await expect(
+    page.getByRole('textbox', { name: copy.reflectionLabel }),
+  ).toBeVisible();
+  await expect(page.locator('.recap-reader')).toHaveAttribute(
+    'data-playing',
+    'false',
+  );
+  await page.clock.fastForward(90001);
+  await expect(page).toHaveURL(/page=1/);
+  await page
+    .getByRole('button', { name: taskSheets.close, exact: true })
+    .click();
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+  const controlLines = await page
+    .locator('.recap-playback-toggle')
+    .evaluate((button) => {
+      const label = [...button.childNodes].find(
+        (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+      );
+      if (!label) return 0;
+      const range = document.createRange();
+      range.selectNodeContents(label);
+      return range.getClientRects().length;
+    });
+  expect(controlLines).toBe(1);
+  const controlsDoNotOverlap = await page
+    .locator('.recap-page-controls button')
+    .evaluateAll((buttons) => {
+      const boxes = buttons.map((button) => button.getBoundingClientRect());
+      return boxes.every((a, i) =>
+        boxes
+          .slice(i + 1)
+          .every(
+            (b) =>
+              a.right <= b.left ||
+              b.right <= a.left ||
+              a.bottom <= b.top ||
+              b.bottom <= a.top,
+          ),
+      );
+    });
+  expect(controlsDoNotOverlap).toBe(true);
+  await page.getByRole('button', { name: copy.play, exact: true }).focus();
+  // Capture the full reading surface from its top after the focus-induced scroll.
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  await captureScreenshot(
+    page,
+    info,
+    'recaps-playback-360-dark-large-reduced.png',
+    { fullPage: true },
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test('hidden monthly highlights do not request or reveal a recap invitation', async ({
+  page,
+}) => {
+  const state = await setup(page, { start: 'wir', hideMonthly: true });
+  await expect(page.locator('.today-content')).toBeVisible();
+  await expect(page.locator('.monthly-recap-entry')).toHaveCount(0);
+  expect(state.overviewReads()).toBe(0);
+});
+
+test('an authoritative overview denial removes a previously visible recap cover', async ({
+  page,
+}) => {
+  const state = await setup(page, { start: 'wir' });
+  await expect(page.locator('.monthly-recap-invitation')).toBeVisible();
+  state.denyOverview();
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      value: 'hidden',
+    });
+    document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  });
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      value: 'visible',
+    });
+    document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
+  });
+  await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
+  await expect(page.locator('.monthly-recap-library-link')).toBeVisible();
+});
 
 for (const [width, theme] of [
   [360, 'light'],

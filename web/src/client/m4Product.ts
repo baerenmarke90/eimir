@@ -2,6 +2,7 @@ import { ActivityApi } from '../api/generated/apis/ActivityApi';
 import { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { SearchApi } from '../api/generated/apis/SearchApi';
+import { RecapsApi } from '../api/generated/apis/RecapsApi';
 import { Configuration } from './apiConfiguration';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
 import type { EngagementTarget } from '../api/generated/models/EngagementTarget';
@@ -29,6 +30,7 @@ export interface M4ProductApis {
   dashboard: DashboardApi;
   notifications: NotificationsApi;
   search: SearchApi;
+  recaps?: RecapsApi;
 }
 
 export function createM4ProductApis(
@@ -45,6 +47,7 @@ export function createM4ProductApis(
     dashboard: new DashboardApi(configuration),
     notifications: new NotificationsApi(configuration),
     search: new SearchApi(configuration),
+    recaps: new RecapsApi(configuration),
   };
 }
 

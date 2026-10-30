@@ -29,6 +29,19 @@ export function recapDate(value: Date, locale: string): string {
     timeZone: 'UTC',
   }).format(value);
 }
+export function recapPeriodStatus(
+  value: Pick<RecapView, 'savedAt' | 'isPartial' | 'throughOn'>,
+  locale: string,
+  translate: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  return value.savedAt
+    ? translate('recaps.saved')
+    : value.isPartial
+      ? translate('recaps.partial', {
+          date: recapDate(value.throughOn, locale),
+        })
+      : translate('recaps.complete');
+}
 export function recapSourcePath(source: RecapSourceView): string {
   switch (source.kind) {
     case 'MEMORY':
@@ -53,4 +66,35 @@ export function recapHeadline(
       `recaps.fallback.${['MOMENTS', 'WORDS', 'MILESTONES', 'CHAPTERS', 'PLANS'].includes(value.theme) ? value.theme : 'MIXED'}`,
     )
   );
+}
+
+/** Attention timing uses the server's viewer day; edition dates remain authoritative. */
+export function monthlyRecapInvitation(
+  editions: RecapView[],
+  today: Date,
+): RecapView | undefined {
+  const year = today.getUTCFullYear();
+  const month = today.getUTCMonth();
+  const day = today.getUTCDate();
+  const last = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const period =
+    day >= last - 2
+      ? year * 12 + month
+      : day <= 7
+        ? year * 12 + month - 1
+        : null;
+  if (period === null) return undefined;
+  return editions
+    .filter(
+      (edition) =>
+        edition.kind === 'MONTH' &&
+        edition.status === 'READY' &&
+        edition.year * 12 + (edition.month ?? 0) - 1 === period &&
+        edition.sources.some((source) => source.available),
+    )
+    .sort(
+      (a, b) =>
+        Number(Boolean(a.savedAt)) - Number(Boolean(b.savedAt)) ||
+        (b.generatedAt?.getTime() ?? 0) - (a.generatedAt?.getTime() ?? 0),
+    )[0];
 }

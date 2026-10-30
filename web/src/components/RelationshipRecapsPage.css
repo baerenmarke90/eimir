@@ -246,7 +246,7 @@
   gap: var(--space-1);
   margin-block: var(--space-4) var(--space-8);
 }
-.recap-progress span {
+.recap-progress > span {
   flex: 1;
   block-size: var(--space-1);
   border-radius: var(--radius-pill);
@@ -254,6 +254,49 @@
 }
 .recap-progress [data-complete="true"] {
   background: var(--color-brand-strong);
+}
+.recap-progress > span {
+  overflow: hidden;
+}
+.recap-step-fill {
+  display: block;
+  block-size: 100%;
+  inline-size: 100%;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: var(--color-brand-strong);
+}
+.recap-progress [data-current="true"] .recap-step-fill {
+  animation: recap-step-progress var(--recap-dwell) var(--easing-playback) both;
+  animation-play-state: paused;
+}
+.recap-reader[data-playing="true"] .recap-step-fill {
+  animation-play-state: running;
+}
+.recap-playback-center {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  text-align: center;
+}
+.recap-playback-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-pill);
+  overflow-wrap: normal;
+}
+.recap-ai-note {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+}
+@keyframes recap-step-progress {
+  to {
+    transform: scaleX(1);
+  }
 }
 .recap-spread {
   min-block-size: 26rem;
@@ -311,6 +354,18 @@
 }
 .recap-page-controls button {
   min-inline-size: 52px;
+}
+@container product-content (max-width: 30rem) {
+  .recap-page-controls {
+    flex-wrap: wrap;
+  }
+  .recap-playback-center {
+    order: -1;
+    flex: 1 0 100%;
+  }
+  .recap-page-controls > button {
+    flex: 1;
+  }
 }
 .recap-reader-tools {
   display: flex;
@@ -409,7 +464,19 @@
 }
 @media (prefers-reduced-motion: no-preference) {
   .recap-spread {
-    animation: recap-page-enter var(--duration-feedback) var(--easing-standard);
+    animation: recap-page-enter var(--duration-context) var(--easing-enter);
+  }
+  .recap-reader-photo img {
+    animation: recap-photo-drift var(--recap-dwell) var(--easing-playback) both;
+    animation-play-state: paused;
+  }
+  .recap-reader[data-playing="true"] .recap-reader-photo img {
+    animation-play-state: running;
+  }
+  @keyframes recap-photo-drift {
+    to {
+      transform: scale(1.04);
+    }
   }
   @keyframes recap-page-enter {
     from {
@@ -420,6 +487,11 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .recap-step-fill {
+    animation: none !important;
   }
 }
 

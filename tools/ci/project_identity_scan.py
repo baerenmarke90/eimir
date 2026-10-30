@@ -144,6 +144,10 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
             )
             and "two flat smartphone screens side by side" in normalized
         )
+        or (
+            path == Path("docs/product/design/references/1542/prompt.txt")
+            and "two comparable phones side by side" in normalized
+        )
     ):
         return (
             Classification.FALSE_POSITIVE,

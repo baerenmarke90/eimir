@@ -99,7 +99,7 @@ declare('page-gutter', 'var(--page-gutter-narrow)');
 declare('duration-feedback', value('motion.duration.fast'));
 declare('duration-transition', value('motion.duration.standard'));
 declare('duration-context', value('motion.duration.emphasized'));
-for (const role of ['standard', 'enter', 'exit']) {
+for (const role of ['standard', 'enter', 'exit', 'playback']) {
   declare(
     `easing-${role}`,
     `cubic-bezier(${value(`motion.easing.${role}`).join(', ')})`,

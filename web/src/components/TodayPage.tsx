@@ -79,6 +79,11 @@ import { SharedStorySummary } from './SharedStorySummary';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import { TodayPinnedCollection } from './TodayPinnedCollection';
 import { UiState } from './UiState';
+import type { ReferenceApis } from '../client/referenceFlow';
+import {
+  MonthlyRecapInvitation,
+  useMonthlyRecapInvitation,
+} from './MonthlyRecapInvitation';
 import './TodayPage.css';
 import { useWirDesign } from '../client/wirDesign';
 import './WirDesign.css';
@@ -731,6 +736,7 @@ export function TodayPage({
   entitlementApi,
   collectionsApi,
   account,
+  recapMediaApis,
 }: {
   apis: M4ProductApis;
   apiBaseUrl?: string;
@@ -747,6 +753,7 @@ export function TodayPage({
   ) => Promise<string>;
   profilesApi?: ProfilesApi;
   account?: AccountView | null;
+  recapMediaApis?: ReferenceApis;
 }) {
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
@@ -1068,6 +1075,36 @@ export function TodayPage({
     dashboardPreferencesQuery.data,
     'recent_shared',
   );
+  const monthlyRecapEnabled = Boolean(
+    contentReady &&
+      monthlyHighlightsVisible &&
+      apis.recaps &&
+      recapMediaApis &&
+      account &&
+      !dashboardQuery.isCached,
+  );
+  const monthlyRecapEdition = useMonthlyRecapInvitation({
+    api: apis.recaps,
+    today: dashboardQuery.data?.viewerLocalDate ?? new Date(),
+    instance: apiBaseUrl ?? '',
+    accountId: account?.id,
+    spaceId,
+    enabled: monthlyRecapEnabled,
+  });
+  const monthlyRecapEntry =
+    monthlyRecapEnabled && recapMediaApis && account ? (
+      <MonthlyRecapInvitation
+        edition={monthlyRecapEdition}
+        mediaApis={recapMediaApis}
+        account={account}
+        spaceId={spaceId}
+        excludeSourceIds={[
+          ...featuredIds,
+          ...monthlyStrip.map((item) => item.id),
+          ...monthlyNotes.map((item) => item.id),
+        ]}
+      />
+    ) : null;
   const sharedStorySummaryVisible =
     wirStatistics.allowed && wirStatistics.enabled && !dashboardQuery.isCached;
 
@@ -1350,7 +1387,9 @@ export function TodayPage({
         {/* 5. Diesen Monat — this month's shared life, shown rather than
                   counted. */}
         {monthlyHighlightsVisible &&
-        (monthlyStrip.length > 0 || monthlyNotes.length > 0) ? (
+        (monthlyStrip.length > 0 ||
+          monthlyNotes.length > 0 ||
+          monthlyRecapEdition) ? (
           <TodayModuleSection
             className="today-section-monthly"
             title={t('m5s5.today.monthly.title')}
@@ -1364,6 +1403,7 @@ export function TodayPage({
               </Link>
             }
           >
+            {monthlyRecapEntry}
             {loadMemoryImage && monthlyStrip.length > 0 ? (
               <TodayMonthlyStrip
                 items={monthlyStrip}
@@ -1378,6 +1418,8 @@ export function TodayPage({
               </div>
             ) : null}
           </TodayModuleSection>
+        ) : monthlyHighlightsVisible ? (
+          monthlyRecapEntry
         ) : null}
       </>
     ),

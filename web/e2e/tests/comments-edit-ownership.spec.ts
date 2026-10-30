@@ -151,7 +151,6 @@ async function edit(panel: Locator, body: string) {
   const card = panel
     .locator('.comment-card')
     .filter({ has: panel.page().getByText(body, { exact: true }) });
-  await card.locator('.comment-menu-trigger').click();
   await card.getByRole('button', { name: copy.edit, exact: true }).click();
   return panel.getByRole('textbox');
 }

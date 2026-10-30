@@ -1138,17 +1138,14 @@
 
 .today-monthly-tile {
   display: block;
-  border-radius: var(--radius-medium);
-  overflow: hidden;
-  box-shadow: var(--shadow-raised);
-  transition:
-    transform var(--duration-feedback) var(--easing-standard),
-    box-shadow var(--duration-feedback) var(--easing-standard);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: transform var(--duration-feedback) var(--easing-standard);
 }
 
 .today-monthly-tile:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
+  text-decoration: none;
 }
 
 .today-monthly-tile:focus-visible {
@@ -1158,6 +1155,8 @@
 
 .today-monthly-tile-media {
   display: block;
+  border-radius: var(--radius-medium);
+  overflow: hidden;
 }
 
 .today-monthly-tile-media .story-media-preview,
@@ -1447,8 +1446,8 @@
 .today-monthly-caption {
   display: grid;
   gap: var(--space-1);
-  padding: var(--space-3);
-  background: var(--color-surface-raised);
+  padding-block: var(--space-2);
+  background: transparent;
   color: var(--color-text);
   font: var(--font-supporting-copy);
 }

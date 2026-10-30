@@ -309,7 +309,11 @@
 
 /* Color follows the story's meaning, while the chronology stays open. */
 .story-page-unified .momente-diary-section .story-card-heart-moment {
-  --diary-entry-surface: var(--color-brand-surface);
+  --diary-entry-surface: var(--heart-emotion-surface);
+}
+
+.story-page-unified .momente-diary-section > .momente-browse-layer {
+  margin: 0 0 var(--space-2);
 }
 .story-page-unified .momente-diary-section .story-card-milestone {
   --diary-entry-surface: var(--color-shared-surface);

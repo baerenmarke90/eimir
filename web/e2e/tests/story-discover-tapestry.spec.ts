@@ -5,8 +5,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import sharedPhotos from '../../src/i18n/locales/sharedPhotos';
-import storyProducts from '../../src/i18n/locales/storyProducts';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
+import localizedFixture from '../fixtures/locales/de';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -623,12 +623,6 @@ test('Momente browse layer keeps four structural destinations compact and second
   await signIn(page);
   await page.goto('/story?tab=discover');
 
-  await page
-    .getByRole('button', {
-      name: storyProducts.storyFilters.toggleButton,
-      exact: true,
-    })
-    .click();
   const browse = page.getByRole('navigation', { name: de.story.browseTitle });
   await expect(browse).toBeVisible();
   await expect(browse.getByRole('link')).toHaveCount(4);
@@ -652,11 +646,8 @@ test('Momente browse layer keeps four structural destinations compact and second
   await expect(page.getByText(de.story.yearArchiveSubtitle)).toHaveCount(0);
   await expect(page.getByText(de.story.yearArchiveAll)).toHaveCount(0);
 
-  await expect(
-    page
-      .getByRole('dialog')
-      .getByRole('navigation', { name: de.story.browseTitle }),
-  ).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await browse.scrollIntoViewIfNeeded();
 
   const linkBoxes = await browse.getByRole('link').evaluateAll((links) =>
     links.map((link) => {
@@ -700,12 +691,6 @@ test('Momente browse layer reflows at 320px with enlarged text in dark mode', as
   await page.goto('/story?tab=discover');
   await page.addStyleTag({ content: 'html { font-size: 125%; }' });
 
-  await page
-    .getByRole('button', {
-      name: storyProducts.storyFilters.toggleButton,
-      exact: true,
-    })
-    .click();
   const browse = page.getByRole('navigation', { name: de.story.browseTitle });
   await expect(browse).toBeVisible();
   await expect(browse.getByRole('link')).toHaveCount(4);
@@ -737,3 +722,122 @@ test('Momente browse layer reflows at 320px with enlarged text in dark mode', as
     fullPage: false,
   });
 });
+
+for (const [width, theme] of [
+  [360, 'light'],
+  [390, 'dark'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`Diary categories, red hearts and single-date headings at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    const unexpected = await installDiscoverApiMocks(page);
+    const emotions = [
+      'LOVED',
+      'SEEN',
+      'APPRECIATED',
+      'SUPPORTED',
+      'GRATEFUL',
+      'HAPPY',
+    ];
+    const items = emotions.map((emotion, index) => {
+      const item = heartMomentItem(
+        `category-${index}`,
+        localizedFixture.diaryCategoryNotes[index],
+        '2026-10-26',
+      );
+      return {
+        ...item,
+        heartMoment: {
+          ...item.heartMoment,
+          emotion,
+          visibility: index === 0 ? 'PRIVATE' : 'SHARED',
+        },
+      };
+    });
+    const untitled = memoryItem(
+      'single-date',
+      'Erinnerung vom 26.10.2026',
+      '2026-10-26',
+      false,
+    );
+    await page.route(`**/api/v1/spaces/${SPACE_ID}/timeline*`, (route) =>
+      route.fulfill({
+        json: {
+          items: [...items, untitled],
+          hasMore: false,
+          nextCursor: null,
+          availableYears: [2026],
+        },
+      }),
+    );
+    await page.setViewportSize({ width, height: 1000 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.goto('/story?tab=timeline');
+    await signIn(page);
+    await page.goto('/story?tab=timeline');
+    const diary = page.locator('#momente-diary');
+    await expect(diary.locator('[data-heart-emotion]')).toHaveCount(6);
+    await expect(
+      diary.getByRole('navigation', { name: de.story.browseTitle }),
+    ).toBeVisible();
+    await expect(diary.locator('.story-filter-toggle svg')).toBeVisible();
+    const surfaces = await diary
+      .locator('[data-heart-emotion]')
+      .evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const computed = getComputedStyle(node);
+          const probe = document.createElement('span');
+          probe.style.backgroundColor = 'var(--heart-emotion-surface)';
+          node.append(probe);
+          const expected = getComputedStyle(probe).backgroundColor;
+          probe.remove();
+          return { background: computed.backgroundColor, expected };
+        }),
+      );
+    expect(new Set(surfaces.map((s) => s.background)).size).toBe(6);
+    for (const surface of surfaces)
+      expect(surface.background).toBe(surface.expected);
+    const hearts = await diary
+      .locator('.story-timeline-marker-heart-moment')
+      .evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const probe = document.createElement('span');
+          probe.style.color = 'var(--emotion-loved-accent)';
+          node.append(probe);
+          const expected = getComputedStyle(probe).color;
+          probe.remove();
+          return { color: getComputedStyle(node).color, expected };
+        }),
+      );
+    for (const heart of hearts) expect(heart.color).toBe(heart.expected);
+    // The same generated title is normalized by every StoryList consumer.
+    const memory = diary.locator('.story-card-memory');
+    await expect(memory).toHaveText(/26\. Oktober 2026/);
+    await expect(memory.locator('time')).toHaveCount(1);
+    await expect(memory).not.toContainText('Erinnerung vom');
+    await expect(diary.locator('.story-card-visibility-private')).toHaveCount(
+      1,
+    );
+    await page.setViewportSize({ width, height: 1400 });
+    await diary.evaluate((node) => node.scrollIntoView({ block: 'start' }));
+    await expectNoWcagViolations(page);
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+    await page.evaluate(() => {
+      if (document.activeElement instanceof HTMLElement)
+        document.activeElement.blur();
+    });
+    await page.screenshot({
+      path: info.outputPath(`diary-${width}-${theme}.png`),
+      fullPage: false,
+    });
+    expect(unexpected).toEqual([]);
+  });
+}

@@ -429,19 +429,20 @@ async function expectQuoteSurfaceAccessible(
   const card = page.locator('.daily-quote-card');
   if (await card.count()) {
     const geometry = await card.evaluate((node) => {
-      const header = node.querySelector('.daily-quote-header');
+      const heading = node.querySelector('h2');
       const content = node.querySelector('.daily-quote-content');
-      if (!header || !content)
-        throw new Error('The quote needs a heading above its content.');
+      if (!heading || !content)
+        throw new Error('The quote needs an accessible heading and content.');
       const block = node.querySelector('blockquote');
       const paragraph = block?.querySelector('p');
       const root = parseFloat(
         getComputedStyle(document.documentElement).fontSize,
       );
       return {
-        headingAbove:
-          header.getBoundingClientRect().bottom <=
-          content.getBoundingClientRect().top,
+        headingBeforeContent: Boolean(
+          heading.compareDocumentPosition(content) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
         border: block ? getComputedStyle(block).borderLeftWidth : '0px',
         outerBorder: getComputedStyle(node).borderInlineStartWidth,
         outerBackground: getComputedStyle(node).backgroundColor,
@@ -450,7 +451,7 @@ async function expectQuoteSurfaceAccessible(
           : 0,
       };
     });
-    expect(geometry.headingAbove).toBe(true);
+    expect(geometry.headingBeforeContent).toBe(true);
     expect(geometry.border).toBe('0px');
     expect(geometry.outerBorder).toBe('0px');
     expect(geometry.outerBackground).toBe('rgba(0, 0, 0, 0)');
@@ -460,7 +461,7 @@ async function expectQuoteSurfaceAccessible(
         .locator('.daily-quote-card')
         .getByRole('heading', { level: 2, name: dailyQuote.title }),
     ).toHaveClass('sr-only');
-    await expect(page.locator('.daily-quote-symbol')).toBeVisible();
+    await expect(page.locator('.daily-quote-symbol')).toHaveCount(0);
   }
 
   const result = await page.evaluate(() => {
@@ -582,7 +583,7 @@ for (const design of ['warm', 'modern', 'classic'] as const)
       await page.addStyleTag({ content: 'html { font-size: 200%; }' });
       await expectQuoteSurfaceAccessible(page);
       const contained = await page
-        .locator('.daily-quote-header')
+        .locator('.daily-quote-content')
         .evaluate((header) => {
           const box = header.getBoundingClientRect();
           return Array.from(header.children).every((child) => {
@@ -927,7 +928,7 @@ test('Today clarity: live countdown, honest dates and docked navigation across t
   const quote = page.locator('.daily-quote-card');
   await expect(quote.getByRole('heading')).toHaveText(dailyQuote.title);
   await expect(quote.getByRole('heading')).toHaveClass('sr-only');
-  await expect(quote.locator('.daily-quote-symbol')).toBeVisible();
+  await expect(quote.locator('.daily-quote-symbol')).toHaveCount(0);
   await expect(
     page.locator('.today-section-moment .today-section-kicker'),
   ).toHaveCount(0);
@@ -937,10 +938,12 @@ test('Today clarity: live countdown, honest dates and docked navigation across t
   const moment = page.locator('.today-moment');
   await expect(quote.getByText('A calm thought for today.')).toBeVisible();
   await expect(moment.locator('img')).toHaveCount(1);
-  await expect(moment).toContainText('27.10.2026');
+  await expect(moment).toContainText('27. Oktober 2026');
   await expect(moment).not.toContainText('Erinnerung vom');
   await expect(moment.locator('.today-moment-date')).toHaveCount(0);
-  await expect(moment.locator('.today-moment-title')).toHaveText('27.10.2026');
+  await expect(moment.locator('.today-moment-title')).toHaveText(
+    '27. Oktober 2026',
+  );
   await expect(page.locator('.today-agenda-row')).toContainText(
     'Euer Jahrestag',
   );

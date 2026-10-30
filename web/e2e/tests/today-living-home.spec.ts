@@ -1586,3 +1586,63 @@ test.describe('Today R4: the living home of a relationship', () => {
     expect(visibleText).toContain(m5s5.today.keepsake.kicker.toLowerCase());
   });
 });
+
+for (const [width, theme] of [
+  [390, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`monthly captions use the page surface and one date at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    const date = new Date(`${thisMonthDate(4)}T00:00:00Z`);
+    const numeric = new Intl.DateTimeFormat('de', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(date);
+    const readable = new Intl.DateTimeFormat('de', {
+      dateStyle: 'long',
+      timeZone: 'UTC',
+    }).format(date);
+    await installMocks(page, {
+      ...RICH_SPACE,
+      recentShared: [
+        MOMENT,
+        { ...STRIP_PHOTOS[0], titleOrText: `Erinnerung vom ${numeric}` },
+        STRIP_PHOTOS[1],
+      ],
+    });
+    await page.setViewportSize({ width, height: 1000 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await signInAndOpenToday(page);
+    const tile = page.locator('.today-monthly-tile').first();
+    await expect(tile.locator('.today-monthly-caption')).toHaveText(readable);
+    await expect(tile.locator('time')).toHaveCount(0);
+    const authored = page.locator('.today-monthly-tile').nth(1);
+    await expect(authored).toContainText(STRIP_PHOTOS[1].titleOrText);
+    await expect(authored.locator('time')).toHaveCount(1);
+    const style = await tile.evaluate((node) => ({
+      underline: getComputedStyle(node).textDecorationLine,
+      caption: getComputedStyle(
+        node.querySelector('.today-monthly-caption') ?? node,
+      ).backgroundColor,
+    }));
+    expect(style).toEqual({ underline: 'none', caption: 'rgba(0, 0, 0, 0)' });
+    await tile.scrollIntoViewIfNeeded();
+    await page.evaluate(() => {
+      if (document.activeElement instanceof HTMLElement)
+        document.activeElement.blur();
+    });
+    await expectNoWcagViolations(page);
+    await expectNoHorizontalOverflow(page);
+    await page.evaluate(() => {
+      if (document.activeElement instanceof HTMLElement)
+        document.activeElement.blur();
+    });
+    await page.screenshot({
+      path: info.outputPath(`monthly-${width}-${theme}.png`),
+      fullPage: false,
+    });
+  });
+}

@@ -28,6 +28,7 @@
 
 .comment-head {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--space-2);
@@ -61,8 +62,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
   border-radius: var(--radius-pill);
   cursor: pointer;
   list-style: none;

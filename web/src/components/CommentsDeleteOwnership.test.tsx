@@ -124,7 +124,7 @@ function setup(kind: CommentParentKind = 'memory') {
   };
 }
 async function deleteButton() {
-  await userEvent.setup().click(screen.getByLabelText(copy.edit));
+  await userEvent.setup().click(screen.getByLabelText(copy.moreActions));
   return screen.getByRole<HTMLButtonElement>('button', { name: copy.delete });
 }
 async function submit() {

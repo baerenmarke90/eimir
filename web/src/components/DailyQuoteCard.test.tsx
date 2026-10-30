@@ -215,7 +215,7 @@ describe('DailyQuoteCard', () => {
     ).not.toBeTruthy();
   });
 
-  it('renders a quotation symbol and accessible heading with attribution', async () => {
+  it('keeps the quotation and accessible heading without a decorative symbol', async () => {
     renderCard();
 
     expect(await screen.findByText('„A server-resolved quote.“')).toBeTruthy();
@@ -227,7 +227,7 @@ describe('DailyQuoteCard', () => {
         }),
       ),
     ).toBeTruthy();
-    expect(document.querySelector('.daily-quote-symbol')).toBeTruthy();
+    expect(document.querySelector('.daily-quote-symbol')).toBeNull();
     expect(
       screen
         .getByRole('heading', { name: dailyQuote.title })

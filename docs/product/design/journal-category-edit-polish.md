@@ -23,6 +23,8 @@ photo captions and a contextual pencil. The image is composition guidance:
 its invented header/hero copy, repeated privacy locks, hidden navigation labels,
 separators and four separate browse tiles are not implementation requirements.
 The actual existing shell, shared browse strip and authorization take precedence.
+The exact generation prompt is retained in
+[prompt.txt](references/journal-category-edit-polish/prompt.txt).
 
 ## Mobile interaction contract
 
@@ -79,3 +81,52 @@ are relevant. Validate all six categories in Light/Dark and generated/authored
 captions; exercise filter draft/cancel/apply, browsing, edit/save/return and
 private edit permissions. Capture Compact 360/390/430, 320 reflow, Expanded,
 Light/Dark and reduced-motion evidence using synthetic content.
+
+## Implementation and validation
+
+UI source revision: `e97b869016395da6f274f0145abc953dac033025`, based on main
+`e9f6646065440c24baf4dfe02477704adaee57b7`. The implementation initially used
+the linked swipe branch; its only extra generated swipe reference was excluded
+when moving this independent change onto main. No parallel swipe code or
+uncommitted source-checkout changes were included.
+
+- 235 targeted tests passed in 16 Vitest files, including original permission,
+  draft/failure, profile, Story, Today, quote and private-edit coverage. The new
+  caption regression preserves authored titles, normalizes blank/generated
+  titles and handles missing dates without fabrication.
+- 36 distinct Chromium journeys passed: category/heart/caption matrix (6),
+  browse narrow/reflow (2), comment edit/late completion (11), comment offline
+  create/update/delete (12), filter draft/cancel/apply (1), private Search
+  edit/cancel/return (1), quote composition/reflow (2), nickname/profile (1).
+  The six visual cases were also rerun to capture focused final screenshots.
+- One isolated retry: the 390 Dark HeartMoment comment-create case initially
+  remained on Login before any sign-in POST. The trace showed instance-status
+  reads but no auth request; the same unchanged case passed alone. No successful
+  independent test was rerun to mask that failure; no CI retry was used.
+- Scoped Biome lint and format, TypeScript, semantic-token checks, PWA checks,
+  production Vite build and `git diff --check` passed with Node 22.23.2.
+  Existing bundle-size and upstream `use client` bundler notices remain.
+- Browser checks include axe WCAG checks, 320 large-text/reflow, 360/390/430,
+  Expanded, Light/Dark, reduced motion, explicit filter state and existing
+  author-only mutation and task-return contracts. A profile focus regression
+  found during implementation was corrected: deferred focus restoration never
+  steals focus from a field the user has already entered.
+- Browser request fixtures use synthetic accounts/content and repository demo
+  media. No production data, API contract, persistence or authorization changed.
+  No native wrapper capability changed; physical-device acceptance was not run.
+
+### Visual evidence
+
+| Composition | Evidence |
+| --- | --- |
+| Diary, Compact Light | [360](references/journal-category-edit-polish/diary-360-light.png), [430](references/journal-category-edit-polish/diary-430-light.png) |
+| Diary, Compact Dark | [390](references/journal-category-edit-polish/diary-390-dark.png) |
+| Diary, Expanded Dark | [1280](references/journal-category-edit-polish/diary-1280-dark.png) |
+| Monthly captions, Compact Light | [390](references/journal-category-edit-polish/monthly-390-light.png) |
+| Monthly captions, Expanded Dark | [1280](references/journal-category-edit-polish/monthly-1280-dark.png) |
+| Quote without ornament | [Compact](references/journal-category-edit-polish/today-daily-quote-390-light.png), [Expanded](references/journal-category-edit-polish/today-daily-quote-1280-light.png) |
+| Read-detail pencil and comment edit | [390 Dark](references/journal-category-edit-polish/comment-edit-success-390-dark.png) |
+
+These are implementation evidence, not a declaration of final Product Owner
+acceptance for the broader design program. Business/freemium and reuse findings
+above were rechecked after implementation and remain unchanged.

@@ -912,12 +912,12 @@ for (const variant of [
     await nav.locator('a[href^="/story"]').click();
     if (variant.view === 'timeline')
       await page
-        .getByRole('heading', { name: de.story.tabTimeline, exact: true })
-        .scrollIntoViewIfNeeded();
+        .getByRole('tab', { name: de.story.tabTimeline, exact: true })
+        .click();
     await expect(
-      page.getByRole('heading', { name: de.story.tabTimeline, exact: true }),
+      page.getByRole('tab', { name: de.story.tabTimeline, exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole('tablist')).toHaveCount(0);
+    await expect(page.getByRole('tablist')).toHaveCount(1);
     await expect(
       page.getByText('Cooked fresh pasta together', { exact: true }).first(),
     ).toBeVisible();
@@ -947,9 +947,9 @@ for (const variant of [
     await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
     await nav.locator('a[href^="/story"]').click();
     await expect(
-      page.getByRole('heading', { name: de.story.tabTimeline, exact: true }),
+      page.getByRole('tab', { name: de.story.tabTimeline, exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole('tablist')).toHaveCount(0);
+    await expect(page.getByRole('tablist')).toHaveCount(1);
     await expect
       .poll(async () =>
         Math.abs((await page.evaluate(() => window.scrollY)) - storyY),
@@ -977,9 +977,9 @@ for (const variant of [
     await page.goBack();
     await expect(page).toHaveURL(/\/story/);
     await expect(
-      page.getByRole('heading', { name: de.story.tabTimeline, exact: true }),
+      page.getByRole('tab', { name: de.story.tabTimeline, exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole('tablist')).toHaveCount(0);
+    await expect(page.getByRole('tablist')).toHaveCount(1);
   });
 }
 

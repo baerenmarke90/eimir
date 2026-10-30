@@ -20,6 +20,7 @@
 
 .story-page .story-task-filter-trigger {
   position: relative;
+  margin-inline-start: auto;
   display: inline-grid;
   width: 44px;
   min-width: 44px;

@@ -186,14 +186,15 @@ describe('Momente retrospective integration (#601)', () => {
       selectionDate,
       dashboard,
     });
-    expect(html).toContain('momente-retrospective');
-    expect(html).not.toContain('role="tablist"');
-    expect(html).toContain('momente-diary-title');
+    expect(html).not.toContain('momente-retrospective');
+    expect(html).toContain('role="tablist"');
+    expect(html).not.toContain('momente-diary-title');
+    expect(html).not.toContain('momente-discover-title');
   });
 });
 
 describe('StoryProductPage', () => {
-  it('renders rediscovery above the Diary on one page by default', () => {
+  it('defaults to Discover with the independent Diary panel hidden', () => {
     const html = renderStoryPage('/story', {
       items: [
         {
@@ -229,10 +230,13 @@ describe('StoryProductPage', () => {
       nextCursor: null,
     });
 
-    expect(html).not.toContain('role="tablist"');
-    expect(html).toContain('momente-diary-title');
+    expect(html).toContain('role="tablist"');
+    expect(html).not.toContain('momente-diary-title');
+    expect(html).not.toContain('momente-discover-title');
     expect(html).toContain('momente-discover-page');
     expect(html).toContain('momente-hero-highlight');
+    expect(html).toContain('aria-labelledby="momente-tab-timeline" hidden=""');
+    expect(html).not.toContain('class="story-timeline"');
     expect(html).toContain('Summer Lake Vacation');
     expect(html).toContain('momente-tapestry');
     expect(html).toContain('I love you more each day');
@@ -489,10 +493,12 @@ describe('StoryProductPage', () => {
 
     expect(html).toContain('story-timeline');
     expect(html).toContain('story-filter-container');
+    expect(html).not.toContain('momente-hero-highlight');
+    expect(html).toContain('aria-labelledby="momente-tab-discover" hidden=""');
     expect(html).toContain('Summer Lake Vacation');
 
     expect(html).toContain('id="momente-diary"');
-    expect(html).not.toContain('role="tablist"');
+    expect(html).toContain('role="tablist"');
   });
 
   it('renders empty welcoming state when no moments exist', () => {
@@ -529,9 +535,10 @@ describe('StoryProductPage', () => {
 
     expect(html).toContain('momente-hero-highlight');
     expect(html).toContain('Moved in together');
-    expect(html).toContain('momente-diary-title');
+    expect(html).not.toContain('momente-diary-title');
+    expect(html).not.toContain('momente-discover-title');
     expect(html).toContain(storyProducts.storyFilters.toggleButton);
-    expect(html).not.toContain('role="tablist"');
+    expect(html).toContain('role="tablist"');
   });
 
   describe('canonical Discover ordering and presentation', () => {
@@ -641,8 +648,9 @@ describe('StoryProductPage', () => {
       expect(tapestryStart).toBeGreaterThan(-1);
       const tapestryHtml = html.slice(tapestryStart);
 
-      // All 14 items should be rendered, because Discover is now bounded by the backend
-      expect(tapestryHtml).toContain('Moment 0');
+      // The lead appears once, outside the uncapped backend selection.
+      expect(html).toContain('Moment 0');
+      expect(tapestryHtml).not.toContain('Moment 0');
       expect(tapestryHtml).toContain('Moment 11');
       expect(tapestryHtml).toContain('Moment 12');
       expect(tapestryHtml).toContain('Moment 13');

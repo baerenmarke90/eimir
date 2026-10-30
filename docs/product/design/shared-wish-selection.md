@@ -164,6 +164,14 @@ Python 3.14.8 remains authoritative. The additive migration follows the now-merg
 0094 -> 0093 -> 0094 round trip pass. Downgrade deliberately refuses active
 rounds; closing/exporting temporary state preserves original Wishes and Plans.
 
+The complete CI sweep exposed a missing entry in the cross-cutting endpoint
+matrix. All four operations now receive the same anonymous/foreign/malformed
+Space and missing If-Match checks as existing operations; all 20 selected cases
+pass with encryption disabled and required. An existing Timeline contrast check
+also raced its month-heading reveal. It now observes completed opacity before
+Axe while preserving the motion assertions and all accessibility rules; the four
+Timeline browser cases pass. These changes affect tests, not runtime behavior.
+
 Business/freemium and cross-cutting decisions above were rechecked after delivery
 and remain unchanged. The authoritative matrix is version 1.9. CI results and
 exact test totals are recorded in the pull request; no deployment or physical

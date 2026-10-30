@@ -1,5 +1,15 @@
 const notificationSettings = {
   title: 'Welche Nachrichten du bekommst',
+  sharedActivityDescription: 'Kommentare und fällige Erinnerungen.',
+  closenessDescription: 'Gedanken aneinander, Küsse und Check-ins.',
+  individual: 'Einzeln anpassen',
+  dates: 'Wichtige Tage',
+  mixed:
+    'Unterschiedlich eingestellt. Unter „Einzeln anpassen“ siehst du die Auswahl.',
+  groupSaving: 'Auswahl wird gespeichert …',
+  groupSaved: 'Auswahl gespeichert.',
+  groupFailed:
+    'Nicht alles wurde gespeichert. Bestätigte Änderungen bleiben erhalten. Prüfe die Auswahl und versuche es erneut.',
   intro: 'Nur für dich. Dein Partner wählt selbst, was ihn erreicht.',
   sharedActivity: 'Gemeinsame Aktivität',
   closeness: 'Nähe',

@@ -51,6 +51,8 @@ PINNED_CONTEXTS = {
     "recap_reflections": "RecapReflectionPayload",
     "reminders": "ReminderPayload",
     "wishes": "WishPayload",
+    "wish_selection_rounds": "WishSelectionRoundPayload",
+    "wish_selections": "WishSelectionPayload",
 }
 
 

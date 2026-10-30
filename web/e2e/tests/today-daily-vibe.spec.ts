@@ -71,6 +71,16 @@ async function installMocks(
         body: JSON.stringify(body),
       });
 
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await json({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await json({
         maintenanceMode: false,

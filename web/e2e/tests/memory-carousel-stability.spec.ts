@@ -355,6 +355,16 @@ async function installApiMocks(
       return;
     }
 
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
         maintenanceMode: false,

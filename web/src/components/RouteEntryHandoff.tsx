@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { applyRouteEntryHandoff } from '../client/routeEntryHandoff';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
@@ -53,12 +53,20 @@ export function RouteEntryHandoff(): null {
   const location = useLocation();
   const navigationType = useNavigationType();
   const { resolveOrigin } = useTaskOrigin();
+  const previousPath = useRef<string | null>(null);
 
   useEffect(() => {
     const state = location.state as {
       taskReturnKey?: unknown;
       taskOriginKey?: unknown;
+      inPlaceRouteUpdate?: boolean;
     } | null;
+    const samePath = previousPath.current === location.pathname;
+    previousPath.current = location.pathname;
+    // Playback/query state is not a new destination. Preserve its opaque return
+    // context without repeatedly moving focus or scrolling the reader.
+    if (samePath && !location.hash && state?.inPlaceRouteUpdate === true)
+      return undefined;
     const origin = resolveOrigin(state?.taskReturnKey);
     if (
       origin &&

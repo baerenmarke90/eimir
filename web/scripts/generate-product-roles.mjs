@@ -90,6 +90,7 @@ declare('radius-media', rem('radius.large'));
 declare('radius-content', rem('radius.card'));
 declare('radius-sheet-top', rem('radius.sheet'));
 declare('border-surface-width', value('border.surfaceFrame'));
+declare('touch-target-web', value('size.touchTarget.webMinimum'));
 declare('space-content-group', rem('spacing.3'));
 declare('space-section', rem('spacing.8'));
 declare('page-gutter-narrow', value('layout.mobileGutterNarrow'));
@@ -98,7 +99,7 @@ declare('page-gutter', 'var(--page-gutter-narrow)');
 declare('duration-feedback', value('motion.duration.fast'));
 declare('duration-transition', value('motion.duration.standard'));
 declare('duration-context', value('motion.duration.emphasized'));
-for (const role of ['standard', 'enter', 'exit']) {
+for (const role of ['standard', 'enter', 'exit', 'playback']) {
   declare(
     `easing-${role}`,
     `cubic-bezier(${value(`motion.easing.${role}`).join(', ')})`,

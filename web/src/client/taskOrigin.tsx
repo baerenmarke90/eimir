@@ -14,6 +14,7 @@ import {
   MORE_PASSPORT_ROUTE,
   PRIMARY_APP_ROUTES,
   STORY_PHOTOS_ROUTE,
+  WISH_SELECTION_ROUTE,
 } from './routes';
 import { parseStoryFilters, storyFiltersToSearch } from './storyProduct';
 
@@ -95,6 +96,7 @@ export function taskOriginPath(
       '/story',
       STORY_PHOTOS_ROUTE,
       '/plan',
+      WISH_SELECTION_ROUTE,
       '/more',
       MORE_PASSPORT_ROUTE,
       '/search',

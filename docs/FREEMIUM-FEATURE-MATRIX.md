@@ -1,10 +1,10 @@
 # eimir. - Freemium Feature Matrix
 
 **Status:** authoritative product-tier and roadmap baseline  
-**Version:** 1.7
+**Version:** 1.9
 
 **Audit date:** 2026-09-21  
-**Revision:** 2026-10-30 — Plan photo galleries (#1514, Free/Core); PO-approved special-Plan countdown (#504, Free/Core) and automatic relationship recap artifacts (#497, #1528)
+**Revision:** 2026-10-30 — Plan photo galleries (#1514, Free/Core); PO-approved special-Plan countdown (#504, Free/Core) and automatic relationship recap artifacts (#497, #1528); shared Wish selection (#1535, Free/Core)
 
 **Audited `main` baseline:** `dfc87cd`  
 **Strategic decisions:** #262 (Finalized), #876 (consumer packaging/pricing), #1151 (Today Pro Foundation)  
@@ -89,6 +89,7 @@ Capabilities essential for Security, Privacy, Accessibility, Tenant Isolation, a
 | **Comments on shared entries** | M2, M5 | **Free/Core** | Whole feature Free | Identical | In-app communication around shared memories is basic functionality. |
 | **Preset reactions on Memory photos (#1485)** | M2, M5 | **Free/Core** | One changeable/removable preset reaction per account and bound photo | Identical | Basic shared Memory communication, protected with its parent; no provider, entitlement or media-processing cost. Export and existing-data access remain available. |
 | **Wish & Plan lifecycle** | M3, M5 | **Free/Core** | Whole feature Free | Identical | Shared bucket list and couple planning are everyday core tools. |
+| **Shared Wish selection (#1535)** | M3, M5 | **Free/Core** | Current two-to-five-Wish round, private favorites, explicit intersection sharing and canonical Plan continuation. | Identical | PO-approved 2026-10-30 extension of everyday planning. One current round is temporary decision state, not an entity-count paywall. Original Wishes/Plans remain unlimited; personal choices remain owner-only, exportable and removable independently of any commercial tier. |
 | **Special-Plan anticipation countdown (#504)** | M5, M7 | **Free/Core** | Deliberate special-event flag on existing Plans; one server-selected next event in the existing Today upcoming module. Timed Plans count down locally to seconds; date-only Plans retain calendar-day precision (PO follow-up, 2026-10-29). | Identical | Basic shared anticipation is Core. No second calendar, notification series or automatic Memory. No extra polling. The flag participates in existing export/restore. |
 | **Relationship passport and automatic recaps (#497, #1528)** | M5, M7 | **Premium composition / Free retained artifacts** | Automatic monthly/yearly composition, local AI wording, manual selection/variants and new editions require Space capability `relationship.passport`. Live lifetime counters and composed rediscovery remain Pro. Existing duration, ordinary Dashboard counts, source history, basic chapters and essential machine-readable export remain Free. | Identical; optional local inference, complete rules fallback | Explicit PO approval 2026-10-30 supersedes the earlier read-only/no-snapshot contract. One Space grant serves both partners. All created editions and existing reflections remain readable after expiry; own existing unsaved reflections may be edited and own shared words withdrawn without Pro. Source deletion/privacy continues to control derived presentation, including saved editions. Private drafts never enter shared composition or another member's export. Shared text is an explicit write. Saved editorial selections/text are immutable except author withdrawal and source lifecycle. Lifetime counters remain personal device opt-in, off by default, including the independent Wir opt-in from #1508. No new provider fee or artificial Self-Hosted degradation; host compute/storage still apply. |
 | **Place CRUD & Coordinates** | M3, M5 | **Mixed** | **Free:** Place CRUD, pin locations, content links.<br>**Premium:** Interactive journey routes, clustering, heatmaps. | Identical | Storing places is basic utility; advanced geospatial analytics are Premium. |

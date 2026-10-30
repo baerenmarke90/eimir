@@ -1,7 +1,6 @@
 import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
 import {
   DASHBOARD_MODULE_KEYS,
-  isDashboardModuleAvailable,
   type DashboardModuleKey,
 } from './dashboardModules';
 
@@ -57,7 +56,7 @@ export function isDashboardModuleVisible(
   preferences: DashboardModulePreferenceList | undefined,
   moduleKey: DashboardModuleKey,
 ): boolean {
-  if (!isDashboardModuleAvailable(moduleKey)) return false;
+  if (moduleKey === 'shared_story_summary') return false;
   const value = preferences?.items.find(
     (item) => item.moduleKey === moduleKey,
   )?.visible;
@@ -69,13 +68,28 @@ export function orderedDashboardModuleKeys(
   preferences: DashboardModulePreferenceList | undefined,
 ): DashboardModuleKey[] {
   const keys = preferences?.items.map((item) => item.moduleKey);
-  return keys?.length === DASHBOARD_MODULE_KEYS.length &&
-    new Set(keys).size === DASHBOARD_MODULE_KEYS.length &&
-    keys.every((key) =>
-      DASHBOARD_MODULE_KEYS.includes(key as DashboardModuleKey),
+  const legacyCatalog =
+    keys?.length === DASHBOARD_MODULE_KEYS.length - 1 &&
+    !keys.includes('daily_quote');
+  if (
+    !keys?.length ||
+    (!legacyCatalog && keys.length !== DASHBOARD_MODULE_KEYS.length) ||
+    new Set(keys).size !== keys.length ||
+    keys.some(
+      (key) => !DASHBOARD_MODULE_KEYS.includes(key as DashboardModuleKey),
     )
-    ? (keys as DashboardModuleKey[])
-    : [...DASHBOARD_MODULE_KEYS];
+  ) {
+    return [...DASHBOARD_MODULE_KEYS];
+  }
+  const result = [...keys] as DashboardModuleKey[];
+  for (const [index, key] of DASHBOARD_MODULE_KEYS.entries()) {
+    if (result.includes(key)) continue;
+    const predecessor = [...DASHBOARD_MODULE_KEYS.slice(0, index)]
+      .reverse()
+      .find((candidate) => result.includes(candidate));
+    result.splice(predecessor ? result.indexOf(predecessor) + 1 : 0, 0, key);
+  }
+  return result;
 }
 
 export function withDashboardModuleOrder(

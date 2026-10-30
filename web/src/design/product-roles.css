@@ -38,6 +38,7 @@
   --radius-content: 1.25rem;
   --radius-sheet-top: 1.5rem;
   --border-surface-width: 0px;
+  --touch-target-web: 44px;
   --space-content-group: 0.75rem;
   --space-section: 2rem;
   --page-gutter-narrow: 16px;
@@ -49,6 +50,7 @@
   --easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --easing-enter: cubic-bezier(0, 0, 0.2, 1);
   --easing-exit: cubic-bezier(0.4, 0, 1, 1);
+  --easing-playback: cubic-bezier(0, 0, 1, 1);
   --elevation-overlay: 0px 8px 32px 0px var(--color-shadow-overlay);
   --color-link-text: #3055b8;
   --memory-detail-background: #f7f8fc;

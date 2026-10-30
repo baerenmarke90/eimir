@@ -138,6 +138,16 @@ async function installAuthorizedApiMocks(
       return;
     }
 
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
         maintenanceMode: false,
@@ -779,6 +789,10 @@ for (const view of [
     });
     await page.goto('/more/profile');
     await signIn(page);
+    const partnerDetails = page.locator('.profile-partner-disclosure');
+    await expect(partnerDetails).not.toHaveAttribute('open');
+    await partnerDetails.locator(':scope > summary').click();
+    await expect(partnerDetails).toHaveAttribute('open');
     const trigger = page.getByRole('button', {
       name: profiles.addNoteShort,
       exact: true,
@@ -1426,6 +1440,22 @@ test('notification choices survive return and stay legible across themes and wid
   await signIn(page);
   await page.goto('/more/settings/notifications');
 
+  const sharedGroup = page.locator('.notification-settings-group').filter({
+    has: page.getByRole('heading', {
+      name: notificationSettings.sharedActivity,
+      exact: true,
+    }),
+  });
+  await expect(
+    sharedGroup.getByRole('switch', {
+      name: `${notificationSettings.sharedActivity}: ${notificationSettings.email}`,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('switch', { name: 'Fällige Erinnerungen: E-Mail' }),
+  ).toBeHidden();
+  await sharedGroup.locator('summary').click();
+
   const email = page.getByRole('switch', {
     name: 'Fällige Erinnerungen: E-Mail',
   });
@@ -1457,9 +1487,7 @@ test('notification choices survive return and stay legible across themes and wid
   await expect(commentEmail).toHaveAttribute('aria-checked', 'true');
   await expect(
     page.getByRole('status').filter({
-      hasText: notificationSettings.saved
-        .replace('{{event}}', notificationSettings.comment)
-        .replace('{{channel}}', notificationSettings.email),
+      hasText: notificationSettings.groupSaved,
     }),
   ).toBeVisible();
   await page.screenshot({
@@ -1481,9 +1509,7 @@ test('notification choices survive return and stay legible across themes and wid
   await expect(commentPush).toHaveAttribute('aria-checked', 'true');
   await expect(
     page.getByRole('status').filter({
-      hasText: notificationSettings.saved
-        .replace('{{event}}', notificationSettings.comment)
-        .replace('{{channel}}', notificationSettings.push),
+      hasText: notificationSettings.groupSaved,
     }),
   ).toBeVisible();
   await page.screenshot({
@@ -1493,6 +1519,7 @@ test('notification choices survive return and stay legible across themes and wid
     fullPage: true,
   });
 
+  await page.locator('.notification-quiet-hours > summary').click();
   const quietSwitch = page.getByRole('switch', {
     name: notificationSettings.quietHoursEnable,
   });
@@ -1514,7 +1541,9 @@ test('notification choices survive return and stay legible across themes and wid
   await expect(
     page.getByText(notificationSettings.quietHoursSaved),
   ).toBeVisible();
-  await expect(page.getByText('Täglich 22:00–07:00 Uhr.')).toBeVisible();
+  await expect(
+    page.locator('.quiet-hours-settings').getByText('Täglich 22:00–07:00 Uhr.'),
+  ).toBeVisible();
   await page.screenshot({
     path: test.info().outputPath('notification-settings-390-light-saved.png'),
     fullPage: true,
@@ -1534,9 +1563,7 @@ test('notification choices survive return and stay legible across themes and wid
   await expect(email).toHaveAttribute('aria-checked', 'true');
   await expect(
     page.getByRole('status').filter({
-      hasText: notificationSettings.saved
-        .replace('{{event}}', notificationSettings.reminder)
-        .replace('{{channel}}', notificationSettings.email),
+      hasText: notificationSettings.groupSaved,
     }),
   ).toBeVisible();
   await page
@@ -1547,6 +1574,11 @@ test('notification choices survive return and stay legible across themes and wid
       name: profileIdentity.settingsNotifications,
     })
     .click();
+  await expect(
+    page.locator('.notification-quiet-hours > summary'),
+  ).toContainText('Täglich 22:00–07:00 Uhr.');
+  await sharedGroup.locator('summary').click();
+  await page.locator('.notification-quiet-hours > summary').click();
   await expect(
     page.getByRole('switch', { name: 'Fällige Erinnerungen: E-Mail' }),
   ).toHaveAttribute('aria-checked', 'true');
@@ -1595,6 +1627,7 @@ test('notification choices survive return and stay legible across themes and wid
     page.getByRole('switch', { name: 'Kommentare: Push' }),
   ).toHaveAttribute('aria-checked', 'false');
   await page.reload();
+  await sharedGroup.locator('summary').click();
   await expect(
     page.getByRole('switch', { name: 'Kommentare: Push' }),
   ).toHaveAttribute('aria-checked', 'false');
@@ -1603,6 +1636,7 @@ test('notification choices survive return and stay legible across themes and wid
     page.getByRole('switch', { name: 'Kommentare: E-Mail' }),
   ).toHaveAttribute('aria-checked', 'false');
   await page.reload();
+  await sharedGroup.locator('summary').click();
   await expect(
     page.getByRole('switch', { name: 'Kommentare: E-Mail' }),
   ).toHaveAttribute('aria-checked', 'false');

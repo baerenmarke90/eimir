@@ -554,6 +554,20 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         if_match=True,
         resource_absence="COMMENT_TARGET_NOT_AVAILABLE",
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/wish-selection"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/wish-selection",
+        body={"wishIds": [str(uuid4()), str(uuid4())]},
+        if_match=True,
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/wish-selection/own",
+        body={"favoriteWishIds": [], "published": False},
+        if_match=True,
+    ),
+    Endpoint("DELETE", "/api/v1/spaces/{spaceId}/wish-selection", if_match=True),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/wishes"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/wishes", body=WISH),
     Endpoint(
@@ -1191,6 +1205,16 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
     recap_id = str(uuid4())
     callspec = getattr(request.node, "callspec", None)
     endpoint = callspec.params.get("endpoint") if callspec else None
+    if endpoint and "/wish-selection" in endpoint.template:
+        second_wish = client.post(
+            f"{base_path}/wishes", json={"title": "Another Matrix Wish"}, headers=headers
+        ).json()
+        selection = client.put(
+            f"{base_path}/wish-selection",
+            json={"wishIds": [wish["id"], second_wish["id"]]},
+            headers={**headers, "If-Match": '"absent"'},
+        )
+        assert selection.status_code == 200
     if endpoint and "/recaps" in endpoint.template:
         # Keep unrelated domain fixtures Free. Recap writes need their own grant
         # so the matrix reaches resource/header checks instead of a Pro gate.
@@ -1437,6 +1461,8 @@ def test_without_if_match_does_not_write(scenario, endpoint: Endpoint) -> None: 
                 verification_path, headers=scenario["owner_headers"]
             )
             assert afterwards.status_code == 200
+            if endpoint.template.endswith("/wish-selection"):
+                assert afterwards.json()["id"] is not None
             if "/recaps/" in endpoint.template:
                 assert len(afterwards.json()["reflections"]) == 1
 

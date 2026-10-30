@@ -104,6 +104,7 @@ import {
   STORY_PHOTOS_ROUTE,
   WISH_DETAIL_ROUTE_PATTERN,
   WISH_CREATE_ROUTE,
+  WISH_SELECTION_ROUTE,
 } from './client/routes';
 import { createSharedPlanningApis } from './client/sharedPlanning';
 import { postSnackbar } from './client/snackbar';
@@ -164,6 +165,7 @@ import { TodayPage } from './components/TodayPage';
 import { UiState } from './components/UiState';
 import { BrandedStartup } from './components/BrandedStartup';
 import { WishProductPage } from './components/WishProductPage';
+import { WishSelectionPage } from './components/WishSelectionPage';
 import { useTranslation } from './i18n';
 
 function SpaceContextGate({
@@ -538,6 +540,10 @@ function AuthenticatedApp({
               }
             />
             <Route
+              path={WISH_SELECTION_ROUTE}
+              element={<WishSelectionPage {...planningProductProps} />}
+            />
+            <Route
               path={WISH_CREATE_ROUTE}
               element={
                 <PlanningCreatePage kind="wish" {...planningProductProps} />
@@ -602,6 +608,7 @@ function AuthenticatedApp({
               element={
                 <TodayPage
                   apis={m4Apis}
+                  recapMediaApis={apis}
                   apiBaseUrl={apiBaseUrl}
                   spaceId={spaceId}
                   spacesApi={spacesApi}

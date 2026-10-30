@@ -165,6 +165,16 @@ async function installDiscoverApiMocks(
         body: JSON.stringify(body),
       });
 
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
         maintenanceMode: false,
@@ -385,35 +395,31 @@ const canonicalItemLabels = [
   'Wochenendtrip nach Trier',
 ];
 
-async function expectCanonicalDiaryInPeerTab(page: Page): Promise<void> {
-  const discoverTab = page.getByRole('tab', {
-    name: de.story.tabDiscover,
-    exact: true,
-  });
+async function verifyDiaryAndReturnToDiscover(page: Page): Promise<void> {
   const diaryTab = page.getByRole('tab', {
     name: de.story.tabTimeline,
     exact: true,
   });
-  await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('#momente-diary [data-task-item-key]')).toHaveCount(
-    0,
-  );
   await diaryTab.click();
   await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
-  await expect(page).toHaveURL(/tab=timeline/);
-  const diary = page.locator('#momente-diary');
+  const diary = page.getByRole('tabpanel', {
+    name: de.story.tabTimeline,
+    exact: true,
+  });
+  await expect(diary).toBeVisible();
   await expect(diary.locator('[data-task-item-key]')).toHaveCount(
     DISCOVER_ITEMS.length,
   );
   for (const label of canonicalItemLabels)
     await expect(diary).toContainText(label);
   await expectNoWcagViolations(page);
-  await discoverTab.click();
-  await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
-  await expect(page).toHaveURL(/tab=discover/);
-  await expect(page.locator('.momente-tapestry-item')).toHaveCount(
-    canonicalItemLabels.length,
-  );
+  await page
+    .getByRole('tab', { name: de.story.tabDiscover, exact: true })
+    .click();
+  await expect(
+    page.getByRole('tabpanel', { name: de.story.tabDiscover, exact: true }),
+  ).toBeVisible();
+  await expect(diary).toBeHidden();
 }
 
 test('Momente Discover presents the real #452 anniversary with authorized image and remains accessible on mobile', async ({
@@ -451,7 +457,7 @@ test('Momente Discover presents the real #452 anniversary with authorized image 
   await expect(page.locator('.momente-tapestry-item')).toHaveCount(
     canonicalItemLabels.length,
   );
-  await expectCanonicalDiaryInPeerTab(page);
+  await verifyDiaryAndReturnToDiscover(page);
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
 
@@ -537,7 +543,7 @@ test('Momente Discover preserves canonical backend order in its desktop CSS grid
   expect(tapestryLinkTitles).toHaveLength(canonicalItemLabels.length);
   for (const [index, label] of tapestryLinkTitles.entries())
     expect(label).toContain(canonicalItemLabels[index]);
-  await expectCanonicalDiaryInPeerTab(page);
+  await verifyDiaryAndReturnToDiscover(page);
 
   const grid = page.locator('.momente-tapestry').first();
   await expect(grid).toBeVisible();
@@ -588,7 +594,7 @@ test('Momente Discover tapestry is axe-clean in dark mode', async ({
   });
 });
 
-test('Momente Discover uses two compact rediscovery columns and opens the full Diary peer tab without horizontal overflow', async ({
+test('Momente Discover uses two compact rediscovery columns and a separate full Diary on mobile with no horizontal overflow', async ({
   page,
 }) => {
   const unexpectedRequests = await installDiscoverApiMocks(page);
@@ -612,7 +618,7 @@ test('Momente Discover uses two compact rediscovery columns and opens the full D
   expect(tapestryLinkTitles).toHaveLength(canonicalItemLabels.length);
   for (const [index, label] of tapestryLinkTitles.entries())
     expect(label).toContain(canonicalItemLabels[index]);
-  await expectCanonicalDiaryInPeerTab(page);
+  await verifyDiaryAndReturnToDiscover(page);
 
   const grid = page.locator('.momente-tapestry').first();
   const columnCount = await grid.evaluate(

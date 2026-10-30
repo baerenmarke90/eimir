@@ -131,6 +131,7 @@ def engine() -> Iterator[Engine]:
     from eimir.reminders import runtime_models as _reminder_runtime  # noqa: F401
     from eimir.story import view_models as _story_views  # noqa: F401
     from eimir.transfer import models as _transfer  # noqa: F401
+    from eimir.wish_selections import models as _wish_selections  # noqa: F401
     from eimir.wishes import models as _wishes  # noqa: F401
 
     # Test probe for owner/privacy authorization. It deliberately exists only

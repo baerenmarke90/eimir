@@ -169,6 +169,15 @@ async function installMocks(
   return { writes };
 }
 
+async function openPartnerDetails(page: Page): Promise<void> {
+  const details = page.locator('.profile-partner-disclosure');
+  await expect(details).toBeVisible();
+  if (!(await details.evaluate((node: HTMLDetailsElement) => node.open))) {
+    await details.locator(':scope > summary').click();
+  }
+  await expect(details).toHaveAttribute('open');
+}
+
 test('partner nickname remains private to the viewer and follows profile edits into Wir', async ({
   page,
 }, info) => {
@@ -179,6 +188,7 @@ test('partner nickname remains private to the viewer and follows profile edits i
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page).toHaveURL(/\/more\/profile$/);
+  await openPartnerDetails(page);
 
   const editor = page.locator('.partner-nickname');
   await expect(
@@ -209,6 +219,7 @@ test('partner nickname remains private to the viewer and follows profile edits i
     window.localStorage.setItem('eimir.theme', 'dark');
   });
   await page.reload();
+  await openPartnerDetails(page);
   await page.evaluate(() => {
     document.documentElement.style.fontSize = '200%';
   });
@@ -242,6 +253,7 @@ test('partner nickname remains private to the viewer and follows profile edits i
   await page.getByRole('link', { name: navigation.more, exact: true }).click();
   await page.getByRole('link', { name: navigation.profile }).click();
   await expect(page).toHaveURL(/\/more\/profile$/);
+  await openPartnerDetails(page);
   await editor.getByRole('button', { name: profiles.nickname.edit }).click();
   await editor.getByRole('button', { name: profiles.nickname.remove }).click();
   await expect(
@@ -253,6 +265,7 @@ test('partner nickname remains private to the viewer and follows profile edits i
   await page.evaluate(() => window.localStorage.setItem('eimir.theme', 'dark'));
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await openPartnerDetails(page);
   await expect(
     editor.getByText(profiles.nickname.fallback.replace('{{name}}', 'Alex')),
   ).toBeVisible();

@@ -16,6 +16,7 @@ export function MemoryPreview({
   resourceScopeKey,
   isSensitive,
   allowReveal = false,
+  onSettled,
 }: {
   memoryId: string;
   isSensitive?: boolean;
@@ -28,6 +29,8 @@ export function MemoryPreview({
   ) => Promise<string>;
   loadingMode?: 'immediate' | 'near-viewport';
   resourceScopeKey?: string;
+  /** Resource completion, including reuse/failure; never grants media visibility. */
+  onSettled?: () => void;
 }) {
   const { t } = useTranslation();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -77,6 +80,10 @@ export function MemoryPreview({
   );
   const url = mediaResource.url;
   const failed = mediaResource.error !== null;
+
+  useEffect(() => {
+    if (url || failed || typeof isSensitive !== 'boolean') onSettled?.();
+  }, [url, failed, isSensitive, onSettled]);
 
   if (typeof isSensitive !== 'boolean')
     return <SensitiveMediaCover className="story-media-preview" />;

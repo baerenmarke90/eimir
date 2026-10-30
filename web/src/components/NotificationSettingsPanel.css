@@ -174,3 +174,30 @@
     justify-content: space-between;
   }
 }
+
+.notification-group-channels {
+  display: grid;
+  gap: var(--space-2);
+}
+.notification-group-channels .preference-switch-row {
+  min-height: var(--touch-target-web);
+  padding-block: 0;
+}
+.notification-quiet-hours > summary small {
+  display: block;
+  margin-inline-start: var(--space-4);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.notification-quiet-hours[open] > summary small {
+  display: none;
+}
+.notification-settings-group > p {
+  margin: 0;
+}
+.notification-event-details > summary {
+  font: var(--font-supporting-copy);
+}
+.notification-event-details[open] {
+  padding-bottom: var(--space-3);
+}

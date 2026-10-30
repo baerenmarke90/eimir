@@ -43,6 +43,16 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
       return;
     }
 
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
         maintenanceMode: false,

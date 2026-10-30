@@ -2,6 +2,11 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import copy from '../../src/i18n/locales/wirDesign';
 import energyCopy from '../../src/i18n/locales/dailyEnergy';
+import reflections from '../../src/i18n/locales/relationshipReflections';
+import notificationCopy from '../../src/i18n/locales/notificationSettings';
+import photoCopy from '../../src/i18n/locales/photoPlaces';
+import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
+import fs from 'node:fs';
 import {
   PARTNER_ID,
   SPACE_ID,
@@ -25,6 +30,17 @@ async function fixture(
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
+    if (path.includes('/attachments/') && path.endsWith('/content')) {
+      return route.fulfill({
+        contentType: 'image/jpeg',
+        body: fs.readFileSync(
+          new URL(
+            '../../../backend/demo_assets/images/cabin-lake.jpg',
+            import.meta.url,
+          ),
+        ),
+      });
+    }
     if (path === `${base}/appearance/wir-design`) {
       if (request.method() === 'PATCH') {
         writes.push(request.postDataJSON().designId);
@@ -59,7 +75,7 @@ async function fixture(
           isInGracePeriod: false,
           capabilities: [
             'daily.quote',
-            ...(pro ? ['theme.bespoke_packs'] : []),
+            ...(pro ? ['theme.bespoke_packs', 'relationship.passport'] : []),
           ],
         },
       });
@@ -374,3 +390,229 @@ test('failure keeps the draft and confirmed retry changes the visible design', a
   expect(f.writes).toEqual(['modern', 'modern']);
   expect(f.unexpected).toEqual([]);
 });
+
+test('quote and statistics order survives pointer release, keyboard movement and reload', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  const state = await fixture(page);
+  let order = [...DASHBOARD_MODULE_KEYS];
+  const orders: string[][] = [];
+  await page.route('**/api/v1/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/dashboard/preferences/order')) {
+      order = route.request().postDataJSON().moduleKeys;
+      orders.push([...order]);
+      return route.fulfill({
+        json: {
+          items: order.map((moduleKey) => ({ moduleKey, visible: true })),
+        },
+      });
+    }
+    if (path.endsWith('/dashboard/preferences'))
+      return route.fulfill({
+        json: {
+          items: order.map((moduleKey) => ({ moduleKey, visible: true })),
+        },
+      });
+    if (path.endsWith('/daily-quote/preferences'))
+      return route.fulfill({
+        json: {
+          enabled: true,
+          selectedCategoryIds: [],
+          selectedSourceIds: [],
+          version: 1,
+        },
+      });
+    return route.fallback();
+  });
+  await signIn(page);
+  await page.goto('/more/settings/today');
+  const quote = page.locator('[data-sortable-item-id="daily_quote"]');
+  const grip = quote.getByRole('button');
+  await grip.scrollIntoViewIfNeeded();
+  const initial = await grip.boundingBox();
+  const rowBefore = await quote.boundingBox();
+  if (!initial || !rowBefore) throw new Error('Missing visible quote row');
+  await page.mouse.move(
+    initial.x + initial.width / 2,
+    initial.y + initial.height / 2,
+  );
+  await page.mouse.down();
+  const dragDistance = rowBefore.height + 20;
+  await page.mouse.move(
+    initial.x + initial.width / 2,
+    initial.y + initial.height / 2 + dragDistance,
+    { steps: 12 },
+  );
+  const held = await quote.boundingBox();
+  expect(Math.abs((held?.y ?? 0) - rowBefore.y - dragDistance)).toBeLessThan(4);
+  await page.mouse.up();
+  await expect.poll(() => orders.length).toBe(1);
+  expect(order.indexOf('daily_quote')).toBeGreaterThan(
+    order.indexOf('keepsake'),
+  );
+  const statisticsGrip = page
+    .locator('[data-sortable-item-id="shared_story_summary"]')
+    .getByRole('button');
+  await statisticsGrip.focus();
+  await page.keyboard.press('ArrowUp');
+  await expect.poll(() => orders.length).toBe(2);
+  await page
+    .getByRole('switch', { name: reflections.passport.wirStatisticsToggle })
+    .click();
+  await page.reload();
+  await expect(
+    page.getByRole('switch', {
+      name: reflections.passport.wirStatisticsToggle,
+    }),
+  ).toHaveAttribute('aria-checked', 'true');
+  expect(
+    await page
+      .locator('[data-sortable-item-id]')
+      .evaluateAll((rows) =>
+        rows.map((row) => row.getAttribute('data-sortable-item-id')),
+      ),
+  ).toEqual(order);
+  await captureScreenshot(page, info, 'settings-order-390-light.png', {
+    fullPage: true,
+  });
+  await page.goto('/today');
+  await expect(page.locator('.shared-story-summary')).toBeVisible();
+  expect(
+    await page
+      .locator('.today-section-moment')
+      .evaluate((node) =>
+        Boolean(
+          node.compareDocumentPosition(
+            document.querySelector('.daily-quote-card')!,
+          ) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+      ),
+  ).toBe(true);
+  await page.reload();
+  await expect(page.locator('.shared-story-summary')).toBeVisible();
+  expect(state.unexpected).toEqual([]);
+});
+
+for (const [width, theme] of [
+  [390, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`concise utility surfaces retain their controls at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme });
+    const state = await fixture(page);
+    const channels = ['IN_APP', 'PUSH', 'EMAIL'];
+    const notifications = {
+      catalogVersion: 2,
+      quietHours: {
+        enabled: false,
+        start: null,
+        end: null,
+        timeZone: 'Europe/Berlin',
+      },
+      capabilities: channels.map((channel) => ({
+        channel,
+        available: true,
+        reason: null,
+        ...(channel === 'EMAIL' ? { destination: 'fixture@example.org' } : {}),
+      })),
+      items: [
+        'COMMENT_CREATED',
+        'REMINDER_DUE',
+        'THINKING_OF_YOU',
+        'PARTNER_KISS',
+        'PARTNER_CHECK_IN',
+      ].map((kind) => ({
+        kind,
+        deliveryClass: kind === 'COMMENT_CREATED' ? 'DIGESTIBLE' : 'IMMEDIATE',
+        channels: channels.map((channel) => ({
+          channel,
+          configurable: true,
+          enabled: channel === 'IN_APP',
+        })),
+      })),
+    };
+    await page.route('**/api/v1/**', async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === '/api/v1/notification-preferences')
+        return route.fulfill({ json: notifications });
+      if (path.startsWith('/api/v1/notification-preferences/')) {
+        const [kind, channel] = path.split('/').slice(-2);
+        const choice = notifications.items
+          .find((item) => item.kind === kind)
+          ?.channels.find((item) => item.channel === channel);
+        if (!choice) throw new Error('Unexpected fixture notification write');
+        choice.enabled = route.request().postDataJSON().enabled;
+        return route.fulfill({
+          json: { kind, channel, enabled: choice.enabled },
+        });
+      }
+      if (path.includes('/rules/') && path.endsWith('/preference'))
+        return route.fulfill({
+          json: {
+            ruleKey: path.split('/').at(-2),
+            enabled: false,
+            parameters: { daysBefore: [1], localTime: '09:00:00' },
+          },
+        });
+      if (path === '/api/v1/account/photo-location-preference')
+        return route.fulfill({ json: { enabled: false, version: 1 } });
+      return route.fallback();
+    });
+    await signIn(page);
+    await page.goto('/more/settings/notifications');
+    await expect(page.locator('.notification-settings-group')).toHaveCount(2);
+    await expect(
+      page.getByRole('switch', { name: 'Kommentare: E-Mail' }),
+    ).toBeHidden();
+    await page
+      .getByRole('switch', { name: 'Gemeinsame Aktivität: E-Mail' })
+      .click();
+    await expect(
+      page.getByText(notificationCopy.groupSaved, { exact: true }),
+    ).toBeVisible();
+    expect(
+      notifications.items.slice(0, 2).every((item) => item.channels[2].enabled),
+    ).toBe(true);
+    await captureScreenshot(page, info, `notifications-${width}-${theme}.png`, {
+      fullPage: true,
+    });
+    await reflow(page);
+    await page.goto('/more/settings/memories');
+    await expect(page.getByText(photoCopy.description)).toBeHidden();
+    await page.getByText(photoCopy.details, { exact: true }).click();
+    await expect(page.getByText(photoCopy.description)).toBeVisible();
+    await captureScreenshot(
+      page,
+      info,
+      `photo-settings-${width}-${theme}.png`,
+      { fullPage: true },
+    );
+    await page.goto('/more/private');
+    await expect(page.locator('.private-area-privacy-banner')).toHaveCount(0);
+    await expect(page.locator('.private-area-intro-text')).toHaveCount(1);
+    await captureScreenshot(page, info, `private-${width}-${theme}.png`, {
+      fullPage: true,
+    });
+    await page.goto('/more/profile');
+    await expect(page.locator('.profile-identity-hero')).toBeVisible();
+    const partner = page.locator('.profile-partner-disclosure');
+    await expect(partner).not.toHaveAttribute('open');
+    await partner.locator(':scope > summary').click();
+    await expect(partner).toHaveAttribute('open');
+    await partner.locator(':scope > summary').click();
+    await captureScreenshot(page, info, `profile-${width}-${theme}.png`, {
+      fullPage: true,
+    });
+    await reflow(page);
+    const issues = await new AxeBuilder({ page })
+      .include('.profile-page')
+      .analyze();
+    expect(issues.violations).toEqual([]);
+    expect(state.unexpected).toEqual([]);
+  });
+}

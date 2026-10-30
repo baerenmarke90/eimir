@@ -249,7 +249,8 @@ function AuthenticatedAppShell({
     /^\/more\/passport\/[^/]+$/.test(location.pathname) ||
     location.pathname === MEMORY_CREATE_ROUTE ||
     location.pathname === '/plan/plans/new' ||
-    location.pathname === '/plan/wishes/new';
+    location.pathname === '/plan/wishes/new' ||
+    location.pathname === '/plan/choose';
   const bottomNavigationRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (isFocusedTask) return;

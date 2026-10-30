@@ -13,14 +13,6 @@
     var(--easing-standard);
 }
 
-.product-main[data-primary-tab-entry="next"] {
-  --primary-tab-entry-offset: 6%;
-}
-
-.product-main[data-primary-tab-entry="previous"] {
-  --primary-tab-entry-offset: -6%;
-}
-
 @keyframes primary-tab-arrive {
   from {
     transform: translate3d(var(--primary-tab-entry-offset), 0, 0);

@@ -5,6 +5,7 @@ import {
   effectiveUpcomingItemLimit,
   isDashboardModuleVisible,
   limitUpcomingItems,
+  orderedDashboardModuleKeys,
   selectedDashboardCollectionId,
 } from './dashboardPreferences';
 
@@ -24,6 +25,18 @@ function withVisibility(
 }
 
 describe('dashboardPreferences', () => {
+  it('inserts the daily quote beside the hero in a complete legacy personal order', () => {
+    const legacy = [...DASHBOARD_MODULE_KEYS]
+      .reverse()
+      .filter((key) => key !== 'daily_quote');
+    const migrated = orderedDashboardModuleKeys({
+      items: legacy.map((moduleKey) => ({ moduleKey, visible: true })),
+    });
+    expect(migrated.filter((key) => key !== 'daily_quote')).toEqual(legacy);
+    expect(migrated.indexOf('daily_quote')).toBe(
+      migrated.indexOf('relationship_presence') + 1,
+    );
+  });
   it('scopes query cache entries by account and Space', () => {
     expect(dashboardPreferencesQueryKey('account-a', 'space-a')).toEqual([
       'dashboard-preferences',

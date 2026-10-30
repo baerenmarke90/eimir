@@ -8,6 +8,7 @@ import {
 } from '@testing-library/react';
 import { useLayoutEffect, useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useDocumentLeaveGuard } from '../client/useDocumentLeaveGuard';
 import { usePrimaryTabSwipe } from './usePrimaryTabSwipe';
 import { usePullToRefresh } from './usePullToRefresh';
 
@@ -43,15 +44,18 @@ function Harness({
   routeKey = pathname,
   onNavigate,
   onRefresh = vi.fn(),
+  dirty = false,
 }: {
   pathname?: string;
   routeKey?: string;
   onNavigate: (path: string) => void;
   onRefresh?: () => void;
+  dirty?: boolean;
 }) {
   const ref = useRef<HTMLElement>(null);
   usePrimaryTabSwipe({ surfaceRef: ref, pathname, routeKey, onNavigate });
   usePullToRefresh({ enabled: true, blocked: false, onRefresh });
+  useDocumentLeaveGuard(dirty);
   return (
     <main ref={ref} data-testid="surface">
       <p data-testid="reading">Shared content</p>
@@ -207,6 +211,43 @@ describe('primary tab swipe ownership', () => {
     expect(onNavigate).not.toHaveBeenCalled();
   });
 
+  it('keeps a horizontal content region owned even when every item fits', () => {
+    const onNavigate = vi.fn();
+    render(<Harness onNavigate={onNavigate} />);
+    const scroller = screen.getByTestId('scroller');
+    Object.defineProperties(scroller, {
+      scrollWidth: { value: 200 },
+      clientWidth: { value: 200 },
+    });
+    act(() => {
+      swipe(scroller.firstChild ?? scroller);
+      swipe(scroller.firstChild ?? scroller, 90, 280);
+    });
+    expect(onNavigate).not.toHaveBeenCalled();
+    act(() => swipe(screen.getByTestId('reading')));
+    expect(onNavigate).toHaveBeenCalledExactlyOnceWith('/plan');
+  });
+
+  it('preserves a dirty document owner after its field loses focus', () => {
+    const onNavigate = vi.fn();
+    render(<Harness onNavigate={onNavigate} dirty />);
+    act(() => swipe(screen.getByTestId('reading')));
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it('cancels if a dirty owner appears during a gesture', () => {
+    const onNavigate = vi.fn();
+    const view = render(<Harness onNavigate={onNavigate} />);
+    const target = screen.getByTestId('reading');
+    act(() => {
+      touch(target, 'touchstart', [point(280)]);
+      touch(target, 'touchmove', [point(90)]);
+    });
+    view.rerender(<Harness onNavigate={onNavigate} dirty />);
+    act(() => touch(target, 'touchend', [], [point(90)]));
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
   it('protects controls and keeps an active draft safe when a swipe starts elsewhere', () => {
     const onNavigate = vi.fn();
     render(<Harness onNavigate={onNavigate} />);
@@ -259,7 +300,7 @@ describe('primary tab swipe ownership', () => {
     expect(onNavigate).not.toHaveBeenCalled();
   });
 
-  it.each(['touchcancel', 'visibilitychange', 'blur'])(
+  it.each(['touchcancel', 'visibilitychange', 'blur', 'contextmenu'])(
     'cancels on %s',
     (type) => {
       const onNavigate = vi.fn();
@@ -269,6 +310,8 @@ describe('primary tab swipe ownership', () => {
         touch(target, 'touchstart', [point(280)]);
         touch(target, 'touchmove', [point(90)]);
         if (type === 'touchcancel') touch(target, type, []);
+        else if (type === 'contextmenu')
+          target.dispatchEvent(new Event(type, { bubbles: true }));
         else
           (type === 'blur' ? window : document).dispatchEvent(new Event(type));
         touch(target, 'touchend', [], [point(90)]);

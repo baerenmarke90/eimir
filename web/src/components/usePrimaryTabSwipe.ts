@@ -1,5 +1,6 @@
 import { type RefObject, useLayoutEffect, useRef } from 'react';
 import { PRIMARY_APP_ROUTES } from '../client/routes';
+import { isDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import './PrimaryTabSwipe.css';
 
 const EDGE_INSET = 24;
@@ -10,7 +11,8 @@ const BLOCKED_TARGETS =
 
 function editingOrOverlayActive(): boolean {
   return Boolean(
-    document.body.style.overflow === 'hidden' ||
+    isDocumentLeaveBlocked() ||
+      document.body.style.overflow === 'hidden' ||
       document.querySelector(
         'dialog[open], [aria-modal="true"], [role="menu"]',
       ) ||
@@ -31,8 +33,7 @@ function contentOwnsGesture(target: Element, surface: HTMLElement): boolean {
   ) {
     const style = window.getComputedStyle(node);
     if (
-      (/(auto|scroll)/.test(style.overflowX) &&
-        node.scrollWidth > node.clientWidth + 1) ||
+      /(auto|scroll)/.test(style.overflowX) ||
       style.touchAction === 'none' ||
       style.touchAction === 'pan-x'
     )
@@ -241,6 +242,7 @@ export function usePrimaryTabSwipe({
     surface.addEventListener('touchmove', move, { passive: false });
     surface.addEventListener('touchend', end, { passive: true });
     surface.addEventListener('touchcancel', cancel, { passive: true });
+    surface.addEventListener('contextmenu', cancel);
     surface.addEventListener('click', click, true);
     surface.addEventListener('pointerdown', pointer, true);
     // A second finger can land outside main; it still cancels this gesture.
@@ -257,6 +259,7 @@ export function usePrimaryTabSwipe({
       surface.removeEventListener('touchmove', move);
       surface.removeEventListener('touchend', end);
       surface.removeEventListener('touchcancel', cancel);
+      surface.removeEventListener('contextmenu', cancel);
       surface.removeEventListener('click', click, true);
       surface.removeEventListener('pointerdown', pointer, true);
       document.removeEventListener('touchstart', multiTouch);

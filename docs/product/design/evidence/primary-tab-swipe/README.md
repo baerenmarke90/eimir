@@ -85,6 +85,25 @@ establish the interaction, preservation and cancellation behavior. Browser
 fixtures use the existing default Wir design; the generated Modern reference
 illustrates the same supplementary gesture without changing design selection.
 
+## Follow-up gesture ownership verification
+
+Independent acceptance found that a horizontal content region with all items
+visible could otherwise hand a swipe to primary navigation. Overflow ownership
+now follows the region's declared scrolling behavior even without overflow.
+Dirty document owners remain protected after focus leaves their field, and a
+context menu cancels a pending gesture.
+
+The four added regressions fail on the original implementation and pass after
+the correction. The focused suite passes **54 tests**, including **34 gesture
+cases**. A separate Chromium 153 mobile-touch diagnostic passes **28 checks**
+across Light and Dark/reduced-motion, including all roots in both directions,
+endpoint bounds, active links, no reload, short cancellation, no-overflow regions
+and native vertical scrolling. The existing browser ownership journey now also
+checks a single fitting item in both directions. Production build, TypeScript
+and changed-file formatting/lint pass. The supplemental local full-suite attempt
+was stopped by the environment's blocked `example.test` network request; exact-head
+GitHub CI remains authoritative. No job was manually retried.
+
 ## Boundaries
 
 Essential navigation stays Core with identical Cloud/Self-Hosted behavior. There
@@ -101,3 +120,4 @@ ownership cases exercise horizontal scrollers separately. No physical-device,
 real-backend, production-performance or separate Android-wrapper acceptance is
 claimed. CI on the pushed head remains required before a separately authorized
 merge. This delivery does not publish a release.
+

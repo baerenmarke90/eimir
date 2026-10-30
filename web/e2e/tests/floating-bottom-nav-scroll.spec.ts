@@ -1251,6 +1251,22 @@ test.describe('primary tab touch navigation', () => {
     });
     await dragTouch(page, { x: 300, y: box.y + 50 }, { x: 80, y: box.y + 50 });
     await expect(page).toHaveURL(/\/today$/);
+    // Local content retains both directions when every item fits, too.
+    await scroller.evaluate((element) => {
+      const item = document.createElement('div');
+      item.style.flex = '0 0 80px';
+      item.textContent = 'A single horizontal item';
+      element.replaceChildren(item);
+    });
+    expect(
+      await scroller.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+    ).toBe(true);
+    await dragTouch(page, { x: 300, y: box.y + 50 }, { x: 80, y: box.y + 50 });
+    await expect(page).toHaveURL(/\/today$/);
+    await dragTouch(page, { x: 80, y: box.y + 50 }, { x: 300, y: box.y + 50 });
+    await expect(page).toHaveURL(/\/today$/);
     await addScrollFixture(page);
     await dragTouch(page, { x: 200, y: 650 }, { x: 200, y: 280 });
     await expect

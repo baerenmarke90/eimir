@@ -2594,7 +2594,7 @@ describe('Today content clarity', () => {
     const focal = html
       .split('today-moment-text-content')[1]
       .split('</article>')[0];
-    expect(focal).toContain('27.10.2026');
+    expect(focal).toContain('27. Oktober 2026');
     expect(focal).not.toContain('Erinnerung vom');
     expect(focal).not.toContain('today-moment-text-date');
   });

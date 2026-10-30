@@ -1,3 +1,4 @@
+import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { type FormEvent, useState } from 'react';
 import {
   useInfiniteQuery,
@@ -341,15 +342,13 @@ export function PrivateNoteDetailPage({ api, accountId, spaceId }: Props) {
         }
         eyebrow={t('privateArea.privacyLabel')}
         title={note.title}
-        action={
+        titleAction={
           note.capabilities.canEdit ? (
-            <Link
-              className="button-link secondary-link"
+            <StoryDetailEditLink
               to={privateNoteEditPath(note.id)}
               state={navigationState}
-            >
-              {t('privateArea.edit')}
-            </Link>
+              label={t('privateArea.edit')}
+            />
           ) : undefined
         }
       />

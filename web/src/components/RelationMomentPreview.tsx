@@ -1,3 +1,4 @@
+import { memoryPreviewTitle } from '../client/memoryProduct';
 import { useCallback } from 'react';
 import type { ReferenceApis } from '../client/referenceFlow';
 import type { PlanningRelationTarget } from '../client/sharedPlanning';
@@ -17,6 +18,10 @@ export function RelationMomentPreview({
   mediaApis: ReferenceApis | null;
 }) {
   const { t } = useTranslation();
+  const { title, titleIsDate } =
+    target.kind === 'MEMORY'
+      ? memoryPreviewTitle(target.label, target.effectiveDate, t)
+      : { title: target.label, titleIsDate: false };
   const loadImage = useCallback(
     (parentId: string, attachmentId: string, signal?: AbortSignal) => {
       if (!mediaApis || target.kind === 'MILESTONE')
@@ -66,13 +71,13 @@ export function RelationMomentPreview({
         )}
       </span>
       <span className="relation-moment-copy">
-        <strong>{target.label}</strong>
+        <strong>{title}</strong>
         {target.excerpt && target.excerpt !== target.label ? (
           <span className="relation-moment-excerpt">{target.excerpt}</span>
         ) : null}
         <span className="planning-meta">
           {t(`m5s3.relations.kind.${target.kind}`)}
-          {date ? (
+          {date && !titleIsDate ? (
             <>
               {' '}
               ·{' '}

@@ -1,12 +1,9 @@
 import { Link } from 'react-router-dom';
 import { EditPencilIcon } from './ListEntryActions';
-import './StoryDetailEditLink.css';
 
 /**
- * The one compact edit action shared by Story detail pages (Memory,
- * Milestone, Heart Moment - #1014). Icon-only, placed beside the title via
- * PageHeader's `titleAction`, so it stays secondary to title and content
- * instead of a full-width text button between them.
+ * Canonical edit navigation for Story and private read details. The shared
+ * pencil style also serves inline edit buttons, at the trailing title edge.
  */
 export function StoryDetailEditLink({
   to,
@@ -19,7 +16,7 @@ export function StoryDetailEditLink({
 }) {
   return (
     <Link
-      className="list-entry-icon-button story-detail-edit-link"
+      className="list-entry-icon-button content-edit-action story-detail-edit-link"
       to={to}
       state={state}
       aria-label={label}

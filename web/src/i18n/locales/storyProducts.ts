@@ -61,6 +61,7 @@ const storyProducts = {
     send: 'Kommentieren',
     sending: 'Wird gesendet …',
     edit: 'Bearbeiten',
+    moreActions: 'Weitere Kommentaraktionen',
     save: 'Speichern',
     saving: 'Wird gespeichert …',
     cancel: 'Abbrechen',

@@ -29,24 +29,10 @@
   color: var(--color-text);
 }
 
-.daily-quote-card > * {
+.daily-quote-card > :not(.sr-only) {
   position: relative;
   z-index: 1;
   min-width: 0;
-}
-
-.daily-quote-header {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.daily-quote-symbol {
-  width: var(--space-6);
-  height: var(--space-6);
-  color: var(--color-text-secondary);
 }
 
 .daily-quote-settings {

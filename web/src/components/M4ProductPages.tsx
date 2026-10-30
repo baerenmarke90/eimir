@@ -19,6 +19,7 @@ import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { SearchKind } from '../api/generated/models/SearchKind';
 import type { SearchResult } from '../api/generated/models/SearchResult';
 import { authorDisplayName } from '../client/authorPresentation';
+import { memoryPreviewTitle } from '../client/memoryProduct';
 import { assertOnlineWrite } from '../client/connectivity';
 import {
   engagementTargetPath,
@@ -110,6 +111,13 @@ function SearchResultCard({
   const { t } = useTranslation();
   const path = searchResultPath(item.type, item.id, item.parentId);
   const date = formatDate(item.occurredOn);
+  const presentation =
+    item.type === 'MEMORY'
+      ? memoryPreviewTitle(item.title, item.occurredOn, t)
+      : {
+          title: item.title || t('m5s5.search.resultFallback'),
+          titleIsDate: false,
+        };
 
   const inner = (
     <div
@@ -120,13 +128,13 @@ function SearchResultCard({
           {t(`m5s5.kind.${item.type}`)}
           {item.scope !== 'SHARED' && ` · ${t(`m5s5.scope.${item.scope}`)}`}
         </span>
-        <h3 className="search-result-title">
-          {item.title || t('m5s5.search.resultFallback')}
-        </h3>
+        <h3 className="search-result-title">{presentation.title}</h3>
         {item.excerpt && (
           <p className="search-result-excerpt">{item.excerpt}</p>
         )}
-        {date && <span className="search-result-date">{date}</span>}
+        {date && !presentation.titleIsDate && (
+          <span className="search-result-date">{date}</span>
+        )}
       </div>
     </div>
   );

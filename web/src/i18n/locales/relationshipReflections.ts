@@ -37,7 +37,7 @@ const relationshipReflections = {
     landmarkToday: 'Heute ist euer Tag',
     rediscover: 'Zum Wiederentdecken',
     highlightsLoading: 'Eure gemeinsamen Momente werden geladen …',
-    nextExperience: 'Worauf ihr euch freuen könnt',
+    nextExperience: 'Als Nächstes',
     explore: 'Eure Geschichte entdecken',
     shared: 'Eure gemeinsame Geschichte',
     days_one: '{{count}} Tag gemeinsam',

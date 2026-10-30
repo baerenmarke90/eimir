@@ -101,13 +101,6 @@
   overflow-wrap: anywhere;
 }
 
-.story-page-unified .story-year-month-header {
-  background: transparent;
-  padding: 0;
-  border: 0;
-  box-shadow: none;
-}
-
 .story-page-unified .momente-retrospective-compact {
   min-width: 0;
   margin: 0;

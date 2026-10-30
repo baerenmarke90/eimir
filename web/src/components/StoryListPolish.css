@@ -368,7 +368,16 @@
   top: 0;
   margin-block: calc(var(--space-2) * -1);
   padding-block: var(--space-2);
-  background: var(--color-surface);
+  background: var(--color-background);
+}
+
+.story-timeline-months > .story-year-month > .story-year-month-header h2 {
+  font: var(--font-action-label);
+  color: var(--color-text-secondary);
+}
+
+.story-timeline-months > .story-year-month > .story-year-month-header::after {
+  content: none;
 }
 
 .story-timeline-months .story-card-link {

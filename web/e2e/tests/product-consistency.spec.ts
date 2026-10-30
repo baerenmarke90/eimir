@@ -10,6 +10,7 @@ import {
   CAPABILITIES,
   captureScreenshot,
   installMocks,
+  getTimelineItems,
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
@@ -101,7 +102,9 @@ for (const scenario of [
     await expect(discover).toBeVisible();
     await expect(diary).toBeVisible();
     await expect(page.getByRole('tablist')).toHaveCount(0);
-    await expect(page.locator('.momente-tapestry-item')).toHaveCount(2);
+    await expect(page.locator('.momente-tapestry-item')).toHaveCount(
+      getTimelineItems().length - 1,
+    );
     const discoverBox = await discover.boundingBox();
     const diaryBox = await diary.boundingBox();
     if (!discoverBox || !diaryBox)
@@ -109,7 +112,7 @@ for (const scenario of [
     expect(discoverBox.y).toBeLessThan(diaryBox.y);
     expect(
       await page.locator('.momente-tapestry-kind').allTextContents(),
-    ).toEqual(['', '']);
+    ).toEqual(['', '', '']);
     const overflowDetails = await page.evaluate(() =>
       Array.from(document.querySelectorAll('main *'))
         .filter((node) => {

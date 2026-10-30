@@ -574,7 +574,7 @@ export function StoryProductPage({
     rootRef: discoverTapestryRef,
     enabled: discoverItems.length > 0,
     scopeKey: `discover:${accountId}:${spaceId}`,
-    revision: discoverContentKey,
+    revision: `${discoverContentKey}|${visibleRetrospective?.type ?? ''}|${visibleRetrospective?.id ?? ''}`,
   });
 
   const nextStoryCursor = storyQuery.hasNextPage
@@ -614,13 +614,18 @@ export function StoryProductPage({
   const tapestryBands = useMemo(
     () =>
       buildTapestryBands(
-        discoverItems
-          .filter(
-            (item) =>
-              !featuredItem ||
-              storyItemKey(item) !== storyItemKey(featuredItem),
-          )
-          .slice(0, visibleRetrospective ? 1 : 2),
+        discoverItems.filter(
+          (item) =>
+            (!featuredItem ||
+              storyItemKey(item) !== storyItemKey(featuredItem)) &&
+            (!visibleRetrospective ||
+              item.kind !== visibleRetrospective.type ||
+              (item.kind === 'MEMORY'
+                ? item.memory.id
+                : item.kind === 'HEART_MOMENT'
+                  ? item.heartMoment.id
+                  : item.milestone.id) !== visibleRetrospective.id),
+        ),
         t,
         locale,
         nicknameFor,

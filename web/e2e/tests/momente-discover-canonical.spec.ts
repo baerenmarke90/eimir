@@ -282,7 +282,17 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
     await expect(discover.getByText('Morning by the lake')).toBeVisible();
     await expect(discover.getByText('Thinking of you')).toBeVisible();
     await expect(discover.getByText('Our first apartment')).toBeVisible();
-    await expect(discover.getByText('Winter evening')).toHaveCount(0);
+    await expect(discover.getByText('Winter evening')).toBeVisible();
+    await expect(discover.locator('.momente-tapestry-item')).toHaveCount(3);
+    expect(
+      await discover
+        .locator('.momente-tapestry-item')
+        .evaluateAll((items) => items.map((item) => item.getAttribute('href'))),
+    ).toEqual([
+      '/story/heart-moments/discover-heart',
+      '/story/milestones/discover-milestone',
+      '/story/memories/discover-memory',
+    ]);
     await expect(diary.getByText('A complete diary day')).toBeVisible();
     expect(tracker.timelineRequests).toBeGreaterThan(0);
     await expect(discover.getByText('A complete diary day')).toHaveCount(0);
@@ -303,6 +313,8 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await expect(page.locator('.momente-discover-page')).toBeVisible();
+    await expect(discover.getByText('Winter evening')).toBeVisible();
+    await expect(discover.locator('.momente-tapestry-item')).toHaveCount(3);
     await expect(diary.getByText('A complete diary day')).toBeVisible();
     await captureEvidence(
       page,

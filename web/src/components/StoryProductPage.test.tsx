@@ -126,6 +126,40 @@ describe('Momente retrospective integration (#601)', () => {
     expect(html).toContain('momente-hero-highlight');
   });
 
+  it('shows the complete authorized selection without duplicating the lead or retrospective', () => {
+    const items = Array.from({ length: 8 }, (_, index) => ({
+      ...lead,
+      memory: {
+        ...lead.memory,
+        id: `memory-${index}`,
+        title: `Keepsake ${index}`,
+      },
+    }));
+    const html = renderStoryPage(
+      '/story',
+      { ...discover, items },
+      {
+        selectionDate,
+        dashboard: {
+          ...dashboard,
+          retrospective: { ...retrospective, id: 'memory-4' },
+        },
+      },
+    );
+    const discovery = html.slice(
+      html.indexOf('class="momente-discover-page"'),
+      html.indexOf('id="momente-diary"'),
+    );
+    const destinations = Array.from(
+      discovery.matchAll(/href="(\/story\/memories\/[^"\s]+)"/g),
+      (match) => match[1],
+    );
+    expect(destinations).toHaveLength(8);
+    expect(new Set(destinations).size).toBe(8);
+    for (const item of items)
+      expect(destinations).toContain(`/story/memories/${item.memory.id}`);
+  });
+
   it('suppresses stale or absent candidates rather than inventing a moment', () => {
     const stale = renderStoryPage('/story?tab=discover', discover, {
       selectionDate: new Date('2026-08-23T00:00:00Z'),

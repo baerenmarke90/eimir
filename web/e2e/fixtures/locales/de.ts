@@ -3,6 +3,8 @@ const de = {
     longNotes: 'Eine ausführliche Beschreibung der Änderungen. ',
     notes: 'Verbesserungen für eure Testversion.',
   },
+  dailyQuote:
+    'Es ist doch das Einzige, was das Leben lebenswert macht, dass man einander liebhat.',
   photoPlaces: {
     title: 'Unser Nachmittag am See',
     body: 'Wir haben uns Zeit genommen und sind bis zum Abend geblieben.',

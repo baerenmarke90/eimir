@@ -218,6 +218,14 @@ const m5s3 = {
       'Die Karte konnte nicht vollständig geladen werden. Deine Auswahl bleibt erhalten.',
   },
   planImage: {
+    galleryHelp:
+      'Optional. Die Fotos gehören zu eurem gemeinsamen Plan. Das erste Foto ist das Titelbild.',
+    photoNumber: 'Foto {{number}}',
+    leading: 'Titelbild',
+    waitUploads: 'Warte, bis alle Fotos geprüft sind.',
+    fixUploads:
+      'Bitte versuche fehlgeschlagene Fotos erneut oder entferne sie.',
+    removePhoto: '{{name}} entfernen',
     add: 'Bild hinzufügen',
     change: 'Bild ändern',
     remove: 'Bild entfernen',

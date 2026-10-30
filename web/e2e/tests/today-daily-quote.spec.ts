@@ -6,6 +6,7 @@ import { PUBLIC_START_ROUTE } from '../../src/client/publicStart';
 import dailyQuote from '../../src/i18n/locales/dailyQuote';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
+import localizedFixture from '../fixtures/locales/de';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -16,6 +17,8 @@ interface DailyQuoteMockOptions {
   quoteAvailable?: boolean;
   preferenceEnabled?: boolean;
   quoteFailures?: number;
+  design?: 'warm' | 'modern' | 'classic';
+  quoteText?: string;
 }
 
 interface PreferencePatch {
@@ -42,7 +45,6 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
   };
 
   await page.route('**/api/v1/**', async (route) => {
-    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const url = new URL(request.url());
@@ -238,6 +240,15 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
       return;
     }
 
+    if (method === 'GET' && pathname === `${space}/appearance/wir-design`) {
+      await json({ designId: options.design ?? 'warm', version: 0 }, 200, {
+        ETag: '"appearance:0"',
+      });
+      return;
+    }
+
+    if (await fulfillDefaultAppIcon(route)) return;
+
     if (method === 'GET' && pathname === `${space}/daily-quote`) {
       requests.quote += 1;
       if (!capabilities.includes('daily.quote')) {
@@ -268,7 +279,7 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
                 id: 'quote-browser-001',
                 text:
                   currentAccountId === ACCOUNT_ID
-                    ? 'A calm thought for today.'
+                    ? (options.quoteText ?? 'A calm thought for today.')
                     : 'A different thought for Ben.',
                 authorDisplay: 'Example Author',
                 sourceDisplay: 'Example Source',
@@ -417,6 +428,8 @@ async function expectQuoteSurfaceAccessible(
           header.getBoundingClientRect().bottom <=
           content.getBoundingClientRect().top,
         border: block ? getComputedStyle(block).borderLeftWidth : '0px',
+        outerBorder: getComputedStyle(node).borderInlineStartWidth,
+        outerBackground: getComputedStyle(node).backgroundColor,
         quoteScale: paragraph
           ? parseFloat(getComputedStyle(paragraph).fontSize) / root
           : 0,
@@ -424,6 +437,8 @@ async function expectQuoteSurfaceAccessible(
     });
     expect(geometry.headingAbove).toBe(true);
     expect(geometry.border).toBe('0px');
+    expect(geometry.outerBorder).toBe('0px');
+    expect(geometry.outerBackground).toBe('rgba(0, 0, 0, 0)');
     expect(geometry.quoteScale).toBeLessThanOrEqual(1.25);
   }
   await expect(
@@ -515,6 +530,47 @@ test('Pro Daily Quote follows the approved Today composition across Compact widt
     });
   }
 });
+
+for (const design of ['warm', 'modern', 'classic'] as const)
+  for (const theme of ['light', 'dark'])
+    test(`long quote keeps one surface and a contained heading: ${design} ${theme}`, async ({
+      page,
+    }, info) => {
+      const quoteText = localizedFixture.dailyQuote;
+      await installMocks(page, { design, quoteText });
+      await page.addInitScript(
+        (value) => localStorage.setItem('eimir.theme', value),
+        theme,
+      );
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await signIn(page);
+      await expect(page.locator('.today-page')).toHaveAttribute(
+        'data-wir-design',
+        design,
+      );
+      await expect(page.locator('.daily-quote-block')).toContainText(quoteText);
+      for (const width of [360, 390, 430]) {
+        await page.setViewportSize({ width, height: 844 });
+        await expectQuoteSurfaceAccessible(page);
+      }
+      await page.locator('.daily-quote-card').screenshot({
+        path: info.outputPath(`quote-${design}-${theme}.png`),
+      });
+      await page.setViewportSize({ width: 320, height: 760 });
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+      await expectQuoteSurfaceAccessible(page);
+      const contained = await page
+        .locator('.daily-quote-header')
+        .evaluate((header) => {
+          const box = header.getBoundingClientRect();
+          return Array.from(header.children).every((child) => {
+            const rect = child.getBoundingClientRect();
+            return rect.left >= box.left - 1 && rect.right <= box.right + 1;
+          });
+        });
+      expect(contained).toBe(true);
+    });
 
 test('personal Daily Quote preferences stay caller-only and round-trip If-Match', async ({
   page,

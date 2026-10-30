@@ -15,7 +15,7 @@ from eimir.api.deps import Authorization, DbSession, PhotoBindingAuthorization
 from eimir.api.errors import problem_responses
 from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
-from eimir.api.v1.attachments import AttachmentSummary
+from eimir.api.v1.attachments import AttachmentEntry, OrderedAttachmentSummary
 from eimir.attachments import binding
 from eimir.attachments.models import MediaType
 from eimir.memories import service
@@ -76,12 +76,8 @@ class MemoryUpdate(ApiModel):
         return self
 
 
-class MemoryAttachmentEntry(ApiModel):
-    model_config = ConfigDict(extra="forbid")
-
-    attachment_id: UUID
-    position: int = Field(ge=0)
-    is_sensitive: bool | None = Field(default=None, strict=True)
+class MemoryAttachmentEntry(AttachmentEntry):
+    pass
 
 
 class MemoryAttachmentSet(ApiModel):
@@ -102,10 +98,9 @@ class PhotoReactionSet(ApiModel):
     reaction: PhotoReaction | None
 
 
-class MemoryAttachmentSummary(AttachmentSummary):
+class MemoryAttachmentSummary(OrderedAttachmentSummary):
     """A bound attachment plus its position in the memory gallery."""
 
-    position: int
     reactions: list[PhotoReactionSummary] = Field(default_factory=list)
 
 

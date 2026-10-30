@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { createReferenceApis } from '../client/referenceFlow';
 import { mediaCacheScopeForClient } from '../client/authorizedMediaCache';
@@ -6,7 +6,6 @@ import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import { useTranslation } from '../i18n';
 import {
-  SensitiveMediaCheckbox,
   SensitiveMediaControl,
   SensitiveMediaCover,
   useSensitiveMediaReveals,
@@ -105,85 +104,6 @@ export function PlanCover({
           overlay
         />
       ) : null}
-    </div>
-  );
-}
-
-export function PlanCoverField({
-  file,
-  existing,
-  removed,
-  sensitive,
-  onFile,
-  onRemove,
-  onSensitive,
-  disabled = false,
-}: {
-  file: File | null;
-  existing?: ReactNode;
-  removed?: boolean;
-  sensitive: boolean;
-  onFile: (file: File) => void;
-  onRemove: () => void;
-  onSensitive: (value: boolean) => void;
-  disabled?: boolean;
-}) {
-  const { t } = useTranslation();
-  const [preview, setPreview] = useState<string | null>(null);
-  useEffect(() => {
-    if (!file) {
-      setPreview(null);
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
-  return (
-    <div className="plan-cover-field">
-      {preview ? (
-        <div className="plan-cover">
-          <img src={preview} alt={t('m5s3.planImage.label')} />
-        </div>
-      ) : !removed ? (
-        existing
-      ) : null}
-      <label className="button-link secondary-link plan-cover-pick">
-        {t(
-          file || (!removed && existing)
-            ? 'm5s3.planImage.change'
-            : 'm5s3.planImage.add',
-        )}
-        <input
-          type="file"
-          accept="image/*"
-          disabled={disabled}
-          aria-label={`${t(file || (!removed && existing) ? 'm5s3.planImage.change' : 'm5s3.planImage.add')}: ${t('m5s3.planImage.label')}`}
-          onChange={(event) => {
-            const chosen = event.currentTarget.files?.[0];
-            if (chosen) onFile(chosen);
-            event.currentTarget.value = '';
-          }}
-        />
-      </label>
-      {file || (!removed && existing) ? (
-        <>
-          <button
-            type="button"
-            className="tertiary"
-            onClick={onRemove}
-            disabled={disabled}
-          >
-            {t('m5s3.planImage.remove')}
-          </button>
-          <SensitiveMediaCheckbox
-            checked={sensitive}
-            onChange={onSensitive}
-            disabled={disabled}
-          />
-        </>
-      ) : null}
-      <p className="field-help">{t('m5s3.planImage.help')}</p>
     </div>
   );
 }

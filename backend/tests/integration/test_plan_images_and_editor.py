@@ -1,11 +1,12 @@
 """Real Plan cover binding, shared authorization and atomic editor corrections."""
 
 import io
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import select
 
+from eimir.attachments.binding import PlanAttachment
 from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.authorization import AuthorizationContext
 from eimir.core.clock import now
@@ -161,11 +162,113 @@ def test_deleting_plan_schedules_cover_cleanup(client, couple, session):  # type
     assert session.get(Attachment, UUID(image)).status == AttachmentStatus.DELETING.value
 
 
-def test_shared_transfer_round_trip_preserves_cover_and_rebinds_its_parent(client, couple, session):  # type: ignore[no-untyped-def]
-    image = ready_attachment(client, couple, session)
+def test_gallery_partner_reorder_legacy_edit_and_delete_are_atomic(client, couple, session):  # type: ignore[no-untyped-def]
+    images = [ready_attachment(client, couple, session) for _ in range(3)]
     created = client.post(
         path(couple),
-        json={"title": "Portable plan", "coverAttachmentId": image},
+        json={
+            "title": "Gallery",
+            "attachments": [
+                {"attachmentId": image, "position": index} for index, image in enumerate(images)
+            ],
+        },
+        headers=auth(couple["token_a"]),
+    )
+    assert created.status_code == 201, created.text
+    plan = created.json()
+    url = f"{path(couple)}/{plan['id']}"
+    for image in images:
+        read = client.post(
+            f"/api/v1/spaces/{couple['space'].id}/attachments/{image}/read-access",
+            json={"parentType": "PLAN", "parentId": plan["id"]},
+            headers=auth(couple["token_b"]),
+        )
+        assert read.status_code == 200, read.text
+        reused = client.post(
+            path(couple),
+            json={"title": "Other", "coverAttachmentId": image},
+            headers=auth(couple["token_a"]),
+        )
+        assert reused.status_code == 409
+    reordered = client.patch(
+        url,
+        json={
+            "title": "Together",
+            "attachments": [
+                {"attachmentId": image, "position": index, "isSensitive": index == 1}
+                for index, image in enumerate(reversed(images))
+            ],
+        },
+        headers={**auth(couple["token_b"]), "If-Match": str(plan["version"])},
+    )
+    assert reordered.status_code == 200, reordered.text
+    saved = reordered.json()
+    assert [photo["id"] for photo in saved["attachments"]] == list(reversed(images))
+    assert saved["coverAttachment"]["id"] == images[-1]
+    assert saved["attachments"][1]["isSensitive"] is True
+    assert all(session.get(Attachment, UUID(image)).status == "READY" for image in images)
+    stale = client.patch(
+        url,
+        json={"attachments": []},
+        headers={**auth(couple["token_a"]), "If-Match": str(plan["version"])},
+    )
+    assert stale.status_code == 409
+    # Older clients clear only the leading photo; supplemental photos survive.
+    legacy = client.patch(
+        url,
+        json={"coverAttachmentId": None},
+        headers={**auth(couple["token_a"]), "If-Match": str(saved["version"])},
+    )
+    assert legacy.status_code == 200, legacy.text
+    assert [photo["id"] for photo in legacy.json()["attachments"]] == [images[1], images[0]]
+    assert session.get(Attachment, UUID(images[2])).status == "DELETING"
+    deleted = client.delete(
+        url, headers={**auth(couple["token_b"]), "If-Match": str(legacy.json()["version"])}
+    )
+    assert deleted.status_code == 204
+    assert all(session.get(Attachment, UUID(image)).status == "DELETING" for image in images)
+    assert (
+        session.scalar(select(PlanAttachment).where(PlanAttachment.plan_id == UUID(plan["id"])))
+        is None
+    )
+
+
+def test_gallery_rejects_unowned_and_duplicate_media_without_partial_changes(
+    client, couple, session
+):  # type: ignore[no-untyped-def]
+    image = ready_attachment(client, couple, session)
+    created = client.post(path(couple), json={"title": "Original"}, headers=auth(couple["token_b"]))
+    plan = created.json()
+    url = f"{path(couple)}/{plan['id']}"
+    for photos, status in [
+        ([{"attachmentId": image, "position": 0}], 404),
+        ([{"attachmentId": image, "position": 0}, {"attachmentId": image, "position": 1}], 422),
+    ]:
+        response = client.patch(
+            url,
+            json={"title": "Must roll back", "attachments": photos},
+            headers={**auth(couple["token_b"]), "If-Match": str(plan["version"])},
+        )
+        assert response.status_code == status, response.text
+        current = client.get(url, headers=auth(couple["token_b"])).json()
+        assert current["title"] == "Original"
+        assert current["attachments"] == []
+        assert current["version"] == plan["version"]
+    assert session.get(Attachment, UUID(image)).status == "READY"
+
+
+def test_shared_transfer_round_trip_preserves_cover_and_rebinds_its_parent(client, couple, session):  # type: ignore[no-untyped-def]
+    image = ready_attachment(client, couple, session)
+    second = ready_attachment(client, couple, session)
+    created = client.post(
+        path(couple),
+        json={
+            "title": "Portable plan",
+            "attachments": [
+                {"attachmentId": image, "position": 0},
+                {"attachmentId": second, "position": 1, "isSensitive": True},
+            ],
+        },
         headers=auth(couple["token_a"]),
     )
     assert created.status_code == 201
@@ -201,6 +304,11 @@ def test_shared_transfer_round_trip_preserves_cover_and_rebinds_its_parent(clien
     )
     assert result.status_code == 200
     assert result.json()["coverAttachment"]["id"] == str(imported.cover_attachment_id)
+    restored = result.json()["attachments"]
+    assert [photo["position"] for photo in restored] == [0, 1]
+    assert restored[1]["id"] not in {image, second}
+    assert restored[1]["isSensitive"] is True
+    assert session.scalar(select(PlanAttachment).where(PlanAttachment.plan_id == imported.id))
     media = client.post(
         f"/api/v1/spaces/{target.id}/attachments/{imported.cover_attachment_id}/read-access",
         json={"parentType": "PLAN", "parentId": str(imported.id)},
@@ -236,9 +344,16 @@ def test_lookup_checks_space_before_provider_and_is_bounded(client, couple, sess
 @pytest.mark.parametrize("lifecycle", ["space_exit", "account_deletion"])
 def test_shared_plan_cover_survives_uploader_offboarding(client, couple, session, lifecycle):  # type: ignore[no-untyped-def]
     image = ready_attachment(client, couple, session)
+    second = ready_attachment(client, couple, session)
     created = client.post(
         path(couple),
-        json={"title": "Retained shared plan", "coverAttachmentId": image},
+        json={
+            "title": "Retained shared plan",
+            "attachments": [
+                {"attachmentId": image, "position": 0},
+                {"attachmentId": second, "position": 1},
+            ],
+        },
         headers=auth(couple["token_a"]),
     )
     assert created.status_code == 201
@@ -251,16 +366,63 @@ def test_shared_plan_cover_survives_uploader_offboarding(client, couple, session
         apply_accepted_tombstone(session, owner.id, accepted_at=now())
         apply_core_cleanup(session, owner.id)
         cleanup = apply_account_media_cleanup(session, owner.id)
-        assert cleanup.retained_shared == 1
+        assert cleanup.retained_shared == 2
         assert cleanup.inconsistent_bindings == 0
     session.flush()
     assert session.get(Attachment, UUID(image)).status == AttachmentStatus.READY.value
     current = client.get(f"{path(couple)}/{plan_id}", headers=auth(couple["token_b"]))
     assert current.status_code == 200, current.text
     assert current.json()["coverAttachment"]["id"] == image
+    assert [photo["id"] for photo in current.json()["attachments"]] == [image, second]
+    assert session.get(Attachment, UUID(second)).status == AttachmentStatus.READY.value
     media = client.post(
         f"/api/v1/spaces/{couple['space'].id}/attachments/{image}/read-access",
         json={"parentType": "PLAN", "parentId": plan_id},
         headers=auth(couple["token_b"]),
     )
     assert media.status_code == 200, media.text
+
+
+def test_gallery_create_replay_is_bound_to_the_ordered_photo_intent(client, couple, session):  # type: ignore[no-untyped-def]
+    images = [ready_attachment(client, couple, session) for _ in range(2)]
+    headers = {**auth(couple["token_a"]), "Idempotency-Key": str(uuid4())}
+    body = {
+        "title": "One plan",
+        "attachments": [
+            {"attachmentId": image, "position": index} for index, image in enumerate(images)
+        ],
+    }
+    first = client.post(path(couple), json=body, headers=headers)
+    assert first.status_code == 201, first.text
+    replay = client.post(path(couple), json=body, headers=headers)
+    assert replay.status_code == 200, replay.text
+    assert replay.json()["id"] == first.json()["id"]
+    assert [photo["id"] for photo in replay.json()["attachments"]] == images
+    changed = {
+        "title": "One plan",
+        "attachments": [
+            {"attachmentId": image, "position": index}
+            for index, image in enumerate(reversed(images))
+        ],
+    }
+    assert client.post(path(couple), json=changed, headers=headers).status_code == 409
+
+
+@pytest.mark.parametrize("selection", [{}, {"attachments": []}])
+def test_empty_gallery_creation_keeps_the_initial_plan_version(client, couple, selection):  # type: ignore[no-untyped-def]
+    response = client.post(
+        path(couple), json={"title": "A simple idea", **selection}, headers=auth(couple["token_a"])
+    )
+    assert response.status_code == 201, response.text
+    plan = response.json()
+    assert plan["version"] == 1
+    current = client.get(f"{path(couple)}/{plan['id']}", headers=auth(couple["token_a"]))
+    assert current.headers["ETag"] == '"1"'
+    assert current.json()["attachments"] == []
+    updated = client.patch(
+        f"{path(couple)}/{plan['id']}",
+        json={"title": "A shared idea"},
+        headers={**auth(couple["token_a"]), "If-Match": "1"},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["version"] == 2

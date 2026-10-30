@@ -1,5 +1,5 @@
 import { authorDisplayName } from '../client/authorPresentation';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { type FormEvent, useMemo, useRef, useState } from 'react';
 import {
   useIsMutating,
   useMutation,
@@ -10,10 +10,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanUpdate } from '../api/generated/models/PlanUpdate';
 import { createReferenceApis } from '../client/referenceFlow';
-import {
-  uploadMemoryDraftAttachment,
-  type DraftUploadPhase,
-} from '../client/memoryAttachmentDraft';
+import { planPhotos, usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
 import { assertOnlineWrite } from '../client/connectivity';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
@@ -47,7 +44,8 @@ import { PageHeader } from './PageHeader';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { PlanStoryContinuation } from './PlanStoryContinuation';
 import { PreferenceSwitch } from './PreferenceSwitch';
-import { PlanCover, PlanCoverField } from './PlanCover';
+import { PlanPhotoGallery } from './PlanPhotoGallery';
+import { PlanPhotosEditor } from './PlanPhotosEditor';
 import { PlaceMapPicker, type PlaceMapSelection } from './PlaceMapPicker';
 import {
   usePlanningEditorLifecycle,
@@ -99,17 +97,22 @@ export function PlanProductPage({
   const [completionSheetPresent, setCompletionSheetPresent] = useState(false);
   const [editingPlan, setEditingPlan] = useState<PlanDetail | null>(null);
   const [editDirty, setEditDirty] = useState(false);
-  const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [coverRemoved, setCoverRemoved] = useState(false);
-  const [coverSensitive, setCoverSensitive] = useState(false);
+  const [photosChanged, setPhotosChanged] = useState(false);
+  const mediaApis = useMemo(
+    () => createReferenceApis(apiBaseUrl ?? '', accessToken ?? ''),
+    [apiBaseUrl, accessToken],
+  );
+  const photos = usePlanPhotoDrafts({
+    apis: mediaApis,
+    apiBaseUrl: apiBaseUrl ?? '',
+    accessToken: accessToken ?? '',
+    spaceId,
+    accountId: accountId ?? '',
+  });
   const [anticipation, setAnticipation] = useState(false);
   const [selectedPlaceId, setSelectedPlaceId] = useState('');
-  const [uploadPhase, setUploadPhase] = useState<DraftUploadPhase | null>(null);
-  const readyCovers = useRef(new WeakMap<File, string>());
-  const uploadController = useRef<AbortController | null>(null);
   const editTitle = useRef<HTMLInputElement>(null);
   const editTrigger = useRef<HTMLButtonElement>(null);
-  useEffect(() => () => uploadController.current?.abort(), []);
   const key = authorSummaryQueryKeys.planDetail(spaceId, planId);
   const planWriteKey = ['plan-write', spaceId, planId] as const;
   const otherWritePending =
@@ -145,40 +148,12 @@ export function PlanProductPage({
     mutationFn: async (intent: {
       plan: PlanDetail;
       values: PlanUpdate;
-      file: File | null;
       ownsRead?: () => boolean;
     }) => {
-      const { plan, values, file } = intent;
+      const { plan, values } = intent;
       const ownsRead = captureAuthorizedQuery(queryClient, key);
       intent.ownsRead = ownsRead;
       assertOnlineWrite();
-      const next = { ...values };
-      if (file) {
-        if (!apiBaseUrl || !accessToken)
-          throw new Error('Plan upload transport unavailable');
-        let attachmentId = readyCovers.current.get(file);
-        if (!attachmentId) {
-          const controller = new AbortController();
-          uploadController.current = controller;
-          try {
-            const ready = await uploadMemoryDraftAttachment(
-              createReferenceApis(apiBaseUrl, accessToken),
-              apiBaseUrl,
-              accessToken,
-              spaceId,
-              file,
-              setUploadPhase,
-              fetch,
-              { signal: controller.signal },
-            );
-            attachmentId = ready.attachmentId;
-            readyCovers.current.set(file, attachmentId);
-          } finally {
-            setUploadPhase(null);
-          }
-        }
-        next.coverAttachmentId = attachmentId;
-      }
       assertOnlineWrite();
       if (!ownsRead()) throw new ClientProblemError('permission');
       return apiCall(() =>
@@ -186,13 +161,14 @@ export function PlanProductPage({
           spaceId,
           planId: plan.id,
           ifMatch: planningIfMatch(plan),
-          planUpdate: next,
+          planUpdate: values,
         }),
       );
     },
     onSuccess: async (data, intent) => {
       if (!intent.ownsRead?.()) return;
       await commitPlan(data);
+      photos.clear();
       setIsEditing(false);
       setConfirmDelete(false);
     },
@@ -211,6 +187,7 @@ export function PlanProductPage({
     restoreFocusRef: editTrigger,
     onEscape: () => Boolean(document.querySelector('dialog[open]')),
     onClose: () => {
+      photos.clear();
       setIsEditing(false);
       setConfirmDelete(false);
     },
@@ -317,14 +294,21 @@ export function PlanProductPage({
 
   function submitEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!plan || isPlanWritePending() || createPlaceMutation.isPending) return;
+    if (
+      !plan ||
+      isPlanWritePending() ||
+      createPlaceMutation.isPending ||
+      photos.hasPending ||
+      photos.hasFailed ||
+      photos.entries.length !== photos.items.length
+    )
+      return;
     const data = new FormData(event.currentTarget);
     const description = String(data.get('description')).trim();
     const placeId = String(data.get('placeId')).trim();
     const experiencedOn = String(data.get('experiencedOn') ?? '').trim();
     updateMutation.mutate({
       plan: editingPlan ?? plan,
-      file: coverFile,
       values: {
         title: String(data.get('title')).trim(),
         description: description || null,
@@ -341,10 +325,7 @@ export function PlanProductPage({
                 ) ?? null,
             }
           : {}),
-        ...(coverRemoved ? { coverAttachmentId: null } : {}),
-        ...(coverFile || plan.coverAttachment
-          ? { coverIsSensitive: coverSensitive }
-          : {}),
+        ...(photosChanged ? { attachments: photos.entries } : {}),
       },
     });
   }
@@ -435,9 +416,8 @@ export function PlanProductPage({
                   setEditingPlan(plan);
                   setIsEditing(true);
                   setEditDirty(false);
-                  setCoverFile(null);
-                  setCoverRemoved(false);
-                  setCoverSensitive(plan.coverAttachment?.isSensitive ?? false);
+                  photos.load(planPhotos(plan));
+                  setPhotosChanged(false);
                   setAnticipation(plan.anticipationEnabled ?? false);
                   setSelectedPlaceId(plan.placeId ?? '');
                 }
@@ -450,7 +430,7 @@ export function PlanProductPage({
       />
 
       {!isEditing ? (
-        <PlanCover
+        <PlanPhotoGallery
           plan={plan}
           spaceId={spaceId}
           apiBaseUrl={apiBaseUrl}
@@ -516,45 +496,17 @@ export function PlanProductPage({
                 onDiscard={editorLifecycle.discard}
               />
             ) : null}
-            <PlanCoverField
-              file={coverFile}
-              removed={coverRemoved}
-              sensitive={coverSensitive}
+            <PlanPhotosEditor
+              controller={photos}
+              spaceId={spaceId}
+              planId={plan.id}
               disabled={writesPending}
-              existing={
-                plan.coverAttachment ? (
-                  <PlanCover
-                    plan={plan}
-                    spaceId={spaceId}
-                    apiBaseUrl={apiBaseUrl}
-                    accessToken={accessToken}
-                  />
-                ) : undefined
-              }
-              onFile={(file) => {
-                setCoverFile(file);
-                setCoverRemoved(false);
-                setEditDirty(true);
-              }}
-              onRemove={() => {
-                setCoverFile(null);
-                setCoverRemoved(true);
-                setEditDirty(true);
-              }}
-              onSensitive={(value) => {
-                setCoverSensitive(value);
+              canUpload={Boolean(apiBaseUrl && accessToken)}
+              onChange={() => {
+                setPhotosChanged(true);
                 setEditDirty(true);
               }}
             />
-            {uploadPhase ? (
-              <p role="status">
-                {t(
-                  uploadPhase === 'uploading'
-                    ? 'm5s3.planImage.uploading'
-                    : 'm5s3.planImage.validating',
-                )}
-              </p>
-            ) : null}
             <fieldset
               className="form-grid planning-editor-fields"
               disabled={writesPending}
@@ -639,7 +591,9 @@ export function PlanProductPage({
                 <button
                   form="plan-edit-form"
                   type="submit"
-                  disabled={writesPending}
+                  disabled={
+                    writesPending || photos.hasPending || photos.hasFailed
+                  }
                 >
                   {updateMutation.isPending
                     ? t('m5s3.common.saving')

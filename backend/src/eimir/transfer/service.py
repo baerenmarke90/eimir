@@ -68,7 +68,7 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
     "milestones.json": ("milestones",),
     "comments.json": ("comments",),
     "wishes.json": ("wishes",),
-    "plans.json": ("plans",),
+    "plans.json": ("plans", "plan_attachments"),
     "places.json": (
         "places",
         "place_memories",
@@ -97,6 +97,7 @@ CHILD_PARENT: dict[str, tuple[str, str]] = {
     "reminder_offsets": ("reminder_id", "reminders"),
     "reminder_preferences": ("reminder_id", "reminders"),
     "memory_attachments": ("memory_id", "memories"),
+    "plan_attachments": ("plan_id", "plans"),
 }
 RELATION_REQUIREMENTS: dict[str, tuple[tuple[str, str], ...]] = {
     "place_memories": (("place_id", "places"), ("memory_id", "memories")),
@@ -142,6 +143,7 @@ INSERT_ORDER = (
     "chapter_milestones",
     "chapter_heart_moments",
     "memory_attachments",
+    "plan_attachments",
 )
 
 
@@ -432,6 +434,11 @@ def _media_rows(
         row["cover_attachment_id"]
         for row in rows.get("plans", [])
         if isinstance(row.get("cover_attachment_id"), UUID)
+    )
+    attachment_ids.update(
+        row["attachment_id"]
+        for row in rows.get("plan_attachments", [])
+        if isinstance(row.get("attachment_id"), UUID)
     )
     if not attachment_ids:
         return []
@@ -972,6 +979,77 @@ def _validate_relations(
             )
 
 
+def _validate_plan_photos(
+    tables: dict[str, list[dict[str, Any]]], media: list[dict[str, Any]]
+) -> None:
+    """A portable gallery cannot bypass exclusive binding or ordered positions."""
+    from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS, MAX_GALLERY_TOTAL_SIZE
+
+    bound: set[UUID] = set()
+    for table, column in (
+        ("memory_attachments", "attachment_id"),
+        ("heart_moments", "attachment_id"),
+        ("related_persons", "avatar_attachment_id"),
+    ):
+        for raw in tables.get(table, []):
+            value = _row_snake(raw).get(column)
+            if value is not None:
+                bound.add(_uuid(value, ErrorCode.TRANSFER_RELATION_INVALID))
+    covers: dict[UUID, UUID | None] = {}
+    for raw in tables.get("plans", []):
+        row = _row_snake(raw)
+        plan_id = _uuid(row.get("id"), ErrorCode.TRANSFER_RELATION_INVALID)
+        cover = row.get("cover_attachment_id")
+        covers[plan_id] = (
+            _uuid(cover, ErrorCode.TRANSFER_RELATION_INVALID) if cover is not None else None
+        )
+        if covers[plan_id] is not None:
+            if covers[plan_id] in bound:
+                raise TransferArchiveError(
+                    "Transfer photo is bound twice.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
+            cover_id = covers[plan_id]
+            assert cover_id is not None
+            bound.add(cover_id)
+    positions: dict[UUID, list[int]] = {}
+    photos = {plan_id: [cover] if cover else [] for plan_id, cover in covers.items()}
+    for raw in tables.get("plan_attachments", []):
+        row = _row_snake(raw)
+        plan_id = _uuid(row.get("plan_id"), ErrorCode.TRANSFER_RELATION_INVALID)
+        photo_id = _uuid(row.get("attachment_id"), ErrorCode.TRANSFER_RELATION_INVALID)
+        position = row.get("position")
+        if not covers.get(plan_id) or photo_id in bound or type(position) is not int:
+            raise TransferArchiveError(
+                "Transfer photo binding is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
+        bound.add(photo_id)
+        positions.setdefault(plan_id, []).append(position)
+        photos[plan_id].append(photo_id)
+    for values in positions.values():
+        if (
+            sorted(values) != list(range(1, len(values) + 1))
+            or len(values) >= MAX_GALLERY_ATTACHMENTS
+        ):
+            raise TransferArchiveError(
+                "Transfer photo order is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
+    indexed = {str(item.get("sourceId")): item for item in media}
+    for gallery in photos.values():
+        total = 0
+        for photo_id in gallery:
+            item = indexed.get(str(photo_id), {})
+            size = item.get("size")
+            if item.get("mediaType") != "IMAGE" or type(size) is not int or size <= 0:
+                raise TransferArchiveError(
+                    "Transfer Plan photo is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
+            total += size
+        if total > MAX_GALLERY_TOTAL_SIZE:
+            raise TransferArchiveError(
+                "Transfer Plan gallery is too large.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
+
+
 def _validate_photo_reactions(
     tables: dict[str, list[dict[str, Any]]], source_member_ids: set[UUID]
 ) -> None:
@@ -1130,6 +1208,9 @@ def _validate_media(
         row = _row_snake(raw)
         if row.get("cover_attachment_id") is not None:
             referenced.add(_uuid(row["cover_attachment_id"], ErrorCode.TRANSFER_RELATION_INVALID))
+    for raw in tables.get("plan_attachments", []):
+        row = _row_snake(raw)
+        referenced.add(_uuid(row.get("attachment_id"), ErrorCode.TRANSFER_RELATION_INVALID))
     indexed: set[UUID] = set()
     for item in media:
         if "isSensitive" in item and type(item["isSensitive"]) is not bool:
@@ -1314,6 +1395,7 @@ def validate_import_bundle(
     ids = _validate_ids_and_privacy(scope, personal_owner, tables, source_members)
     _validate_relations(tables, ids)
     _validate_photo_reactions(tables, source_members)
+    _validate_plan_photos(tables, media)
     _validate_media(
         scope,
         personal_owner,

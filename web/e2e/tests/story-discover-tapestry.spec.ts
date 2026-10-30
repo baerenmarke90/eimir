@@ -417,7 +417,9 @@ test('Momente Discover presents the real #452 anniversary with authorized image 
     retrospective.locator('.momente-retrospective-media'),
   ).toHaveCount(1);
   await expect(page.locator('.momente-hero-highlight')).toHaveCount(1);
-  await expect(page.locator('.momente-tapestry-item')).toHaveCount(1);
+  await expect(page.locator('.momente-tapestry-item')).toHaveCount(
+    canonicalItemLabels.length,
+  );
   await expect(page.locator('#momente-diary [data-task-item-key]')).toHaveCount(
     DISCOVER_ITEMS.length,
   );
@@ -495,13 +497,15 @@ test('Momente Discover preserves canonical backend order in its desktop CSS grid
     'Danke, dass du heute für mich da warst.',
   );
 
-  await expect(page.locator('.momente-tapestry-item')).toHaveCount(2);
+  await expect(page.locator('.momente-tapestry-item')).toHaveCount(
+    canonicalItemLabels.length,
+  );
   const tapestryLinkTitles = await page
     .locator('.momente-tapestry-item')
     .evaluateAll((nodes) =>
       nodes.map((node) => node.getAttribute('aria-label')),
     );
-  expect(tapestryLinkTitles).toHaveLength(2);
+  expect(tapestryLinkTitles).toHaveLength(canonicalItemLabels.length);
   for (const [index, label] of tapestryLinkTitles.entries())
     expect(label).toContain(canonicalItemLabels[index]);
   const diary = page.locator('#momente-diary');
@@ -573,13 +577,15 @@ test('Momente Discover uses two compact rediscovery columns above the full Diary
     page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
   ).toBeVisible();
 
-  await expect(page.locator('.momente-tapestry-item')).toHaveCount(2);
+  await expect(page.locator('.momente-tapestry-item')).toHaveCount(
+    canonicalItemLabels.length,
+  );
   const tapestryLinkTitles = await page
     .locator('.momente-tapestry-item')
     .evaluateAll((nodes) =>
       nodes.map((node) => node.getAttribute('aria-label')),
     );
-  expect(tapestryLinkTitles).toHaveLength(2);
+  expect(tapestryLinkTitles).toHaveLength(canonicalItemLabels.length);
   for (const [index, label] of tapestryLinkTitles.entries())
     expect(label).toContain(canonicalItemLabels[index]);
   const diary = page.locator('#momente-diary');

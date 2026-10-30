@@ -1,0 +1,9 @@
+eimir. 0.2.0-test.27
+
+Pläne können jetzt mehrere Fotos enthalten. Ihr könnt sie gemeinsam auswählen, ihre Reihenfolge ändern, einzelne Bilder entfernen und sensible Inhalte markieren. Das erste Foto wird als Titelbild verwendet. Änderungen werden erst mit Speichern übernommen.
+
+Die Fotoansicht bedient sich wie bei Erinnerungen: durch Bilder wischen, im Vollbild öffnen, weiterblättern und mit Zurück wieder zum Plan wechseln. Bestehende Titelbilder bleiben erhalten.
+
+Die vorherigen Korrekturen sind ebenfalls enthalten: Das Tageszitat passt in seine Karte und hat keinen farbigen linken Rand mehr. Die Vorschau auf den nächsten Plan ist kürzer benannt. Die Monatsüberschriften im Tagebuch sind ruhiger, die Wiederholungen von „Momente“ reduziert und die Auswahl zum Wiederentdecken erweitert.
+
+Über Einstellungen → App-Updates auf der bestehenden Installation aktualisieren. Nicht deinstallieren und keine App-Daten löschen. Paket, Signatur, Testkanal und Anmeldung bleiben erhalten. Für die neue Plan-Galerie muss auch die passende Web/API-Version mit Migration 0092 über den bestehenden privaten Kanal in Arcane übernommen werden.

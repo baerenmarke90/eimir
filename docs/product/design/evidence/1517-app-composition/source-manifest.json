@@ -2,6 +2,10 @@
   "baseline": "44cd3d59bd33a47472b320025efd6bc9ab22a26d",
   "sources": [
     {
+      "path": "web/e2e/tests/floating-bottom-nav-scroll.spec.ts",
+      "sha256": "a3b489ac51d48e830d09d3b927c16c45ab51f28430b58d654e6b66586e1b8fd9"
+    },
+    {
       "path": "web/e2e/tests/momente-timeline-reference.spec.ts",
       "sha256": "315685fd18a1aaeeae06d00718b0c85990245e50fa83e2930708270abb7a48c3"
     },
@@ -195,7 +199,11 @@
     },
     {
       "path": "web/src/components/RelationshipPassport.tsx",
-      "sha256": "6fbb09f1d7beab2565130d1942e7cf633860c28681f67654f095cbf06fbb1357"
+      "sha256": "27fc2b348e6b575b00521786f2ea81fbe039352cc52b1b65f7846c2e9230f680"
+    },
+    {
+      "path": "web/src/components/RelationshipReflections.css",
+      "sha256": "e4e26c3c9e08dd0eacb16a93757daa4f5dddf0c2d17a1398ff6ff02a3222b058"
     },
     {
       "path": "web/src/components/SettingsIndex.css",
@@ -338,6 +346,10 @@
     {
       "path": "more-footer-390-dark.png",
       "sha256": "b73f08d0a3566c1540e31977e358c1a0647ddc751ae9cfe902ad578200a93c0c"
+    },
+    {
+      "path": "passport-pro-390-dark-large-text.png",
+      "sha256": "32a033093a9b9a731642715df8fde21dc01b5ce777ae9b33dd7e36073362c1ca"
     },
     {
       "path": "today-daily-quote-preferences-390-light.png",

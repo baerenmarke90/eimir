@@ -334,7 +334,7 @@ function PassportContent({
                   <span className="passport-number">
                     {numbers.format(metric.count)}
                   </span>
-                  <span>
+                  <span className="passport-metric-label">
                     {t(`relationshipReflections.passport.${metric.key}`, {
                       count: metric.count,
                     })}

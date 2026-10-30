@@ -46,3 +46,22 @@ bounded and cleared on session/Space transitions. This is neither encrypted
 storage nor offline media authorization. No physical Android-device or production
 latency acceptance is claimed. Final-head GitHub checks are required before merge;
 this PR does not merge or publish a release.
+
+
+## PR-critical follow-up
+
+The full PR-critical CI run found two remaining regressions outside the original
+selected collection. Removing the metric arrow left a positional last-child CSS
+rule on the statistics label, preventing shrink/wrap at 200% text. An explicit
+metric-label class replaces that obsolete rule; existing full-width and large-text
+assertions remain unchanged. [The corrected large-text profile](passport-pro-390-dark-large-text.png)
+retains the complete count and label without horizontal overflow.
+
+The root-heading journey now explicitly expects the approved Instrument Sans
+utility typography for More and Literata for Moments/Planning. Size, weight,
+line-height, section rhythm and no-overflow comparisons remain intact. Both
+Compact and Expanded pass. All six Plan → Wir → detail → return → passport
+journeys pass, including 320px and 390px/200% text. The 21 related component/client
+tests and production build pass. No browser budgets, tolerances or assertions
+were weakened. The owning request now authorizes merging after successful
+final-head GitHub checks; no release was requested.

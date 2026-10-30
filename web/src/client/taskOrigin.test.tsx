@@ -238,6 +238,24 @@ describe('task origin privacy and lifetime', () => {
     expect(origin.resolveOrigin(recent)).toBeNull();
   });
 
+  it('returns to a shared Memory editor without retaining query payloads or resuming it as a root', async () => {
+    expect(
+      taskOriginPath('/story/memories/memory-1/edit', '?body=private'),
+    ).toBe('/story/memories/memory-1/edit');
+    expect(taskOriginPath('/story/memories/new/edit', '')).toBeNull();
+    expect(taskOriginPath('/story/heart-moments/private/edit', '')).toBeNull();
+    render(<Harness />);
+    const rootKey = origin.captureOrigin();
+    await act(async () => navigate('/story/memories/memory-1/edit'));
+    const editKey = origin.captureOrigin();
+    await act(async () =>
+      navigate('/plan/places/place-1', { state: { taskOriginKey: editKey } }),
+    );
+    await act(async () => origin.requestReturn(editKey));
+    expect(currentPath).toBe('/story/memories/memory-1/edit');
+    expect(origin.primaryDestination('/story').returnKey).toBe(rootKey);
+  });
+
   it('allowlists /search as a return origin without ever putting its query text in the path', () => {
     expect(taskOriginPath('/search', '?q=secret+words&kind=MEMORY')).toBe(
       '/search',

@@ -40,3 +40,12 @@ The quote browser suite retains its containment, large-text, all-design/theme, a
 Local browser verification could not start: no Chromium executable is installed, and the advertised Playwright browser download returns a 195-byte HTML document with HTTP 200 instead of an archive. This is an environment limitation, not visual acceptance. The PR must record actual CI/browser results and representative visual evidence before being considered merge-ready. No native capability changed. The Plan-detail follow-up passes all 48 focused Plan reading/editing/completion/continuation/reflection tests, TypeScript checking and changed-file lint; authored prose and its edit lifecycle remain intact.
 
 No business/freemium impact: the current feature matrix remains authoritative. Quote and insight capabilities stay Pro; ownership, entitlement checks, Self-Hosted/Cloud parity, quotas, costs, retention and non-destructive downgrade/export remain unchanged.
+
+
+## Cloud verification follow-up — #1517
+
+The initial browser-download limitation above was resolved with the available
+Chromium runtime. The complete quote browser collection now passes, including
+all-design Light/Dark containment, large text, preferences under More, caller
+isolation and return/focus. The complete Web suite passes 2,275 tests with two
+existing skips; see the [combined acceptance evidence](evidence/1517-app-composition/README.md).

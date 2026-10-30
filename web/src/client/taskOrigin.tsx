@@ -78,7 +78,12 @@ export function taskOriginPath(
   );
   const momentDetail =
     /^\/story\/(memories|heart-moments)\/(?!new$)[^/]+$/.test(pathname);
+  // Shared Memory location editing returns to its owning editor, without query data.
+  const memoryEditor = /^\/story\/memories\/(?!new\/)[^/]+\/edit$/.test(
+    pathname,
+  );
   if (
+    !memoryEditor &&
     !planningDetail &&
     !secondaryDetail &&
     !momentDetail &&

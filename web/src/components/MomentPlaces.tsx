@@ -36,6 +36,7 @@ export function MomentPlaces({
   offline,
   compact = false,
   canManage = false,
+  onNavigate,
 }: {
   apiBaseUrl: string;
   accessToken: string;
@@ -46,6 +47,7 @@ export function MomentPlaces({
   offline: boolean;
   compact?: boolean;
   canManage?: boolean;
+  onNavigate?: (proceed: () => void) => void;
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -346,8 +348,12 @@ export function MomentPlaces({
                     event.preventDefault();
                     const path = placeDetailPath(selected.id);
                     sheet.current?.closeForNavigation(() => {
-                      const taskOriginKey = captureOrigin();
-                      void navigate(path, { state: { taskOriginKey } });
+                      const proceed = () => {
+                        const taskOriginKey = captureOrigin();
+                        void navigate(path, { state: { taskOriginKey } });
+                      };
+                      if (onNavigate) onNavigate(proceed);
+                      else proceed();
                     });
                   }}
                 >

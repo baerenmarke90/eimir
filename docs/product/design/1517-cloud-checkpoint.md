@@ -1,106 +1,61 @@
-# Issue 1517 — cloud continuation checkpoint
+# App composition and continuity delivery — #1517
 
-Repository: baerenmarke90/eimir. Branch: fix/app-continuity-and-composition.
-Baseline main: 44cd3d59bd33a47472b320025efd6bc9ab22a26d.
+Repository: `baerenmarke90/eimir`. Branch: `fix/app-continuity-and-composition`.
+Baseline main: `44cd3d59bd33a47472b320025efd6bc9ab22a26d`.
 
-## Owner request
+The complete private checkpoint and earlier copy-polish commits were restored
+successfully in the cloud. The scheduled continuation recorded a failed run and
+no result. The owner authorized cloud completion and pushing a PR. After automatic approval
+review required the public target to be named explicitly, the owner explicitly
+named `https://github.com/baerenmarke90/eimir` for PR publication. Publication of this
+source and fixture evidence to that repository is now explicitly authorized.
+The current request does not authorize merging or releasing this new scope.
 
-Continue the entire change in the cloud. Preserve the prior local concise-copy
-commits (93e21268 and fbe2fd15) as part of this branch. Do not lose any work.
+## Delivered scope
 
-Requested product changes:
-- Clear sign-out button with logout icon and distinct semantic surface.
-- Deliberate centered brand footer; round search pill without forward arrow.
-- Shared More child-page typography, widths and settings navigation surfaces/icons.
-- More color and differentiation in Diary entries and month labels.
-- Modern Wir hero with larger centered portraits, names, duration and separate next event.
-- App-owned persistent media store informed by RWN Messenger cache principles.
-- Remove decorative forward destination arrows throughout couple-facing screens;
-  retain actual gallery next/previous and explicit Back controls.
-- Quote preferences (including category/source selection) belong in More → Settings → Wir,
-  with no overflow button on the Wir quote itself.
-- Monthly highlights include captions/dates and text/Milestone highlights, not just 3 photos.
-- Memory view shows location/address/map only. Add/edit/unlink controls appear in
-  the Memory editor; no Add button when a location already exists.
+- Replace the visible quote title with a quotation icon; shorten repeated copy
+  throughout the app and remove the redundant Plan notes/creator labels.
+- Clear sign-out action, centered brand footer, search pill without a forward
+  arrow and shared More child-page presentation.
+- Purposeful Diary colors and a centered Modern couple hero with an independent
+  duration and next-plan surface. Preserve existing capabilities and Pro tiers.
+- App-owned persistent authorized media bytes, informed by RWN Messenger cache
+  principles and implemented through the existing shared media loader.
+- Remove decorative forward arrows while retaining functional gallery/Back controls.
+- Move personal quote category/source preferences to More → Settings → Wir.
+  The Wir quote has no overflow action and does not request preference/catalog data.
+- Monthly photo captions/dates plus distinct text and Milestone highlights from
+  already loaded authorized projections, with no fabricated overall count.
+- Memory reading retains Place name/address/map. Add/edit/unlink controls belong
+  in the editor; an existing location has no Add button. Correcting a Place returns
+  to the Memory editor. Unsaved content requires explicit discard before leaving.
 
-## Implemented
+## Storage and ownership
 
-See current branch diff and media-cache-lifecycle.md. Durable media: IndexedDB,
-128 MiB / 512 entries / 7 days, bounded RAM retained, current authorization before
-all deliveries, account/origin/Space/parent/variant identities, epoch fencing,
-logout/switch clear and targeted denial eviction. Does not claim encryption or
-offline-media authorization. Query RAM retention raised to 30 minutes without
-changing one-minute freshness.
+RAM: 48 MiB / 192 entries / 30 minutes. IndexedDB: 128 MiB / 512 entries /
+seven days. Keys separate origin, Account, Space, parent, attachment and variant;
+credentials, signed URLs and Object URLs are never persisted. Access is checked
+before every delivery. Synchronous epoch rotation, current-owner/lease checks,
+logout/Space invalidation and targeted denial eviction fence stale work.
+Storage failure falls back to the established network/RAM path. This is disposable
+unencrypted app/browser storage, not offline authorization or full domain sync.
+Ordinary query RAM retention is 30 minutes; freshness remains one minute.
+See [the lifecycle contract](media-cache-lifecycle.md).
 
-Quote advanced settings reuse DailyQuoteCard's existing preferences sheet via
-settingsOnly mode, mounted under DailyQuoteSettingsPanel. Normal Wir mode hides
-the overflow button and does not request the preferences catalog. Existing
-visibility switch remains in More settings. No new backend or native Kotlin code.
+## Acceptance
 
-Generated references were created before implementation and linked in #1517:
-references/more-modern-diary-2026-10-30.png and
-references/monthly-quote-location-2026-10-30.png. Existing functions and hierarchy
-were inspected; mock content is illustrative, not a new product/data contract.
+All previously open test migrations and meaningful regressions are complete.
+The full Web suite passes 2,275 tests (two existing skips), using the private
+verification setup that blocks accidental external fetches. Production build,
+token/PWA, changed-file formatting/lint, language audits and whitespace pass.
+Forty-three distinct selected browser journeys pass across the final verification
+runs. The additional monthly screenshot refresh also passes. The final checks
+caught and fixed the editor return allowlist and Modern 200% avatar overflow;
+tests were corrected only where their expected product behavior was superseded.
 
-Business/freemium reviewed: essential continuity and navigation stay non-paywallable;
-Modern keeps its current Pro classification. Cloud and Self-Hosted share behavior.
-
-## Validation already completed
-
-Before the final scope extension: production build passed; 2,273 unit/component
-tests passed (2 skipped) with external fetch disabled by a verification-only setup.
-Original full run was blocked by automatic approval review because a test attempted
-api.example.com; the safer offline run succeeded. Do not retry real external fetches.
-
-Browser: 13 More/Wir design journeys passed (320/360/390/430/1280, light/dark,
-large text, reduced motion, capability and sign-out). 17 further media/Diary
-journeys passed. Three initial failures were corrected: two expected a removed
-redundant intro, and the new media-restart test counted only absent variant query
-params instead of variant=original. The final five affected browser reruns all
-passed, including persisted bytes across reload with fresh authorization.
-Screenshots under evidence/app-composition are real fixture-based browser evidence.
-
-After the additional owner scope, TypeScript and all 120 focused extension tests
-passed (7 files). The monthly-visibility fixture now uses a previous-month trace
-row, since current-month notes consume the old fixture's last current-month row.
-DailyQuoteCard/SettingsPanel, TodayPage, PhotoPlaces, Memory and activity/notification
-component tests passed after the product expectations were updated.
-
-## Work still required
-
-1. Format only changed files from web cwd (Biome nested configs reject root invocation).
-2. Rerun focused and complete unit tests with network disabled. Verification-only
-   files verify-no-network.ts and verify-offline.config.ts currently exist locally,
-   intentionally excluded from this checkpoint. Recreate a setup that assigns
-   globalThis.fetch to an async function throwing TypeError and extend vite.config.ts
-   with setupFiles. Existing per-test mocks override it. Do not ship the verification configs.
-3. Add meaningful regression assertions for read-only location (no Add/overflow),
-   existing location in editor (no Add; actions available), and monthly text inclusion.
-4. Migrate today-daily-quote.spec.ts settings journeys from Wir overflow to the
-   More settings entry. Preserve privacy/ETag, conflict, offline, capability,
-   hidden-quote restore, focus and return assertions. SettingsPanel now has generic
-   privacy fallback because partner identity is not required there. Some journeys
-   currently assume remaining on Today after saving; navigate back explicitly.
-5. photo-places.spec.ts canonical correction currently opens place actions from
-   Memory viewing mode: enter /story/memories/mem-canal/edit first. Returning from
-   Place must preserve the Memory editor context; update expected path accordingly.
-   Other read-only address/map journeys should continue to pass.
-6. Run the affected browser suites; capture final More footer/settings, Modern
-   hero, colored Diary, monthly highlights and read-only/editor location evidence.
-7. Review cache security/races and all UI changes. No broad refactors or weakened
-   tests. Make the draft PR reviewable with validation and limitations.
-8. No merge or test-release was requested for this new scope in the latest messages;
-   retain the branch/PR for review unless the owner adds authorization.
-
-## Browser runtime used successfully
-
-A Chromium binary was extracted from @sparticuz/chromium (MIT distribution;
-Chromium upstream licenses apply) installed under /tmp/eimir-browser. Executable:
-/workspace/scratch/60502d8a1f63/browser-tmp/chromium. Normal Playwright browser
-archive download had previously produced HTML, so the npm-distributed binary was
-used. The package's tar extraction chown fails in this container; the binary was
-Brotli-decompressed directly to scratch and chmod 0700. No network policy was bypassed.
-A temporary e2e config extends playwright.config.ts with launchOptions executablePath
-and args --no-sandbox --disable-dev-shm-usage --disable-gpu. Do not commit absolute
-runtime paths. If the scratch runtime is gone, recreate this setup using permitted
-package access; do not assume the executable or logs still exist.
+[Actual visual evidence, source fingerprints and behavioral limits](evidence/1517-app-composition/README.md).
+Generated references remain linked from #1517. Existing quote conflict/offline
+component coverage is preserved. No temporary runtime configuration or test
+transport override is shipped. GitHub CI on the pushed head remains a separate
+merge gate. Physical-device, real backend and production performance acceptance
+are not claimed. No merge or test-release is part of this PR delivery.

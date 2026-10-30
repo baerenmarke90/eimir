@@ -43,6 +43,9 @@
         "EIMIR_PHOTO_PLACE_GEOCODING_URL": "https://photon.komoot.io",
         "EIMIR_PHOTO_SOURCES_ENABLED": "${EIMIR_PHOTO_SOURCES_ENABLED:-true}",
         "EIMIR_PUBLIC_BASE_URL": "${EIMIR_PUBLIC_BASE_URL:?Set the existing instance value in Arcane}",
+        "EIMIR_RECAP_AI_MODEL": "${EIMIR_RECAP_AI_MODEL:-qwen3:1.7b-q4_K_M}",
+        "EIMIR_RECAP_AI_TIMEOUT_SECONDS": "${EIMIR_RECAP_AI_TIMEOUT_SECONDS:-90}",
+        "EIMIR_RECAP_AI_URL": "${EIMIR_RECAP_AI_URL:-}",
         "EIMIR_S3_ACCESS_KEY_ID": "",
         "EIMIR_S3_BUCKET": "",
         "EIMIR_S3_ENDPOINT": "",
@@ -72,7 +75,7 @@
         ],
         "timeout": "5s"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:cfff1d8257b731fe23eaae64edb6852a411ca2fa3075bb6dca50ce7947970557",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:fb1a4730c39ae41bb90ca6edf7917845eb54ed5d423bfb0c8e0c6d7802994a60",
       "networks": {
         "app": {
           "aliases": [
@@ -112,7 +115,7 @@
       "environment": {
         "EIMIR_DATABASE_URL": "postgresql+psycopg://sidebyside:${POSTGRES_PASSWORD:?Set the existing instance value in Arcane}@eimir-test-postgres:5432/sidebyside"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:cfff1d8257b731fe23eaae64edb6852a411ca2fa3075bb6dca50ce7947970557",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:fb1a4730c39ae41bb90ca6edf7917845eb54ed5d423bfb0c8e0c6d7802994a60",
       "networks": {
         "app": null
       },
@@ -131,7 +134,7 @@
       "environment": {
         "EIMIR_WEB_CSP_CONNECT_ORIGINS": ""
       },
-      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:6d9f6e1a8ec8b76a39cab1250237d2b80ec73fd383d1d15b46779f7c6ab62fbf",
+      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:b00546bff7448e8412b992a22d490ee56c80d81c77d3888cf44bc60af746ce73",
       "networks": {
         "app": {},
         "proxy": {
@@ -179,6 +182,9 @@
         "EIMIR_PHOTO_PLACE_GEOCODING_URL": "https://photon.komoot.io",
         "EIMIR_PHOTO_SOURCES_ENABLED": "${EIMIR_PHOTO_SOURCES_ENABLED:-true}",
         "EIMIR_PUBLIC_BASE_URL": "${EIMIR_PUBLIC_BASE_URL:?Set the existing instance value in Arcane}",
+        "EIMIR_RECAP_AI_MODEL": "${EIMIR_RECAP_AI_MODEL:-qwen3:1.7b-q4_K_M}",
+        "EIMIR_RECAP_AI_TIMEOUT_SECONDS": "${EIMIR_RECAP_AI_TIMEOUT_SECONDS:-90}",
+        "EIMIR_RECAP_AI_URL": "${EIMIR_RECAP_AI_URL:-}",
         "EIMIR_S3_ACCESS_KEY_ID": "",
         "EIMIR_S3_BUCKET": "",
         "EIMIR_S3_ENDPOINT": "",
@@ -195,7 +201,7 @@
         "EIMIR_WEBAUTHN_RP_ID": "${EIMIR_WEBAUTHN_RP_ID:?Set the existing instance value in Arcane}",
         "EIMIR_WEBAUTHN_RP_NAME": "eimir."
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:cfff1d8257b731fe23eaae64edb6852a411ca2fa3075bb6dca50ce7947970557",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:fb1a4730c39ae41bb90ca6edf7917845eb54ed5d423bfb0c8e0c6d7802994a60",
       "networks": {
         "app": null
       },

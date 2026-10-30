@@ -43,3 +43,30 @@ Business/freemium impact reviewed: live composition, automatic generation, selec
 Review scope includes tenant/owner separation, encrypted payloads, source withdrawal/deletion and revoked membership, no prompt/content logging, bounded parsing/output, provider failure fallback, optimistic concurrency, idempotent job scheduling/retry, localized UI/dates and generated language context, accessibility/focus/return, media performance, additive migration/OpenAPI clients, transfer and lifecycle, Compose/Arcane deployment and release identity. Tests must cover PostgreSQL isolation/private exclusion and mutation races, generation staleness/idempotency, model failure/schema validation, calendar boundaries, Free downgrade reads, source invalidation and actual mobile open/edit/save/return. Render Compact/Expanded, Light/Dark, narrow/large text, sparse/empty/error and reduced-motion evidence before merge.
 
 Arcane commands must extend the PO's supplied `eimir-test` Compose and external networks/volumes, preserve existing secret substitutions and pinned application images until replacements are actually built, and never claim an old digest contains the feature. No production deployment is authorized by preparing those commands.
+
+## Delivery evidence and limits
+
+The implemented routes are `/more/passport` and `/more/passport/:recapId`, with
+Months/Years and a bounded, explicit reader page in the return context. The
+profile now continues into that named More destination. Existing next occasions
+and opt-in lifetime counters remain under a secondary disclosure, whose open
+state is retained in the route. Reader tasks reuse ShortTaskSheet's native
+modal/focus/history/dirty handling. All new visible copy is localized.
+
+The optional inference service is defined once in canonical Compose. For the
+existing Git Sync test deployment it runs in a separate Arcane project on the
+same existing data network; the channel exporter forwards only operator settings
+for API/worker. This preserves the four-service application channel's existing
+image and data lifecycle. See [the operator runbook](../../LOCAL-RECAP-AI.md).
+
+Browser fixtures use explicitly synthetic shared entries and the generated empty
+lake image; no fixture photograph or authored prose is a production fallback.
+Representative real-UI evidence lives alongside the generated preflight reference
+in `references/automatic-relationship-recaps/evidence/`. The generated reference
+is design input; screenshots are implementation evidence.
+
+The actual local model was not installed or benchmarked during this change.
+HTTP/schema, bounded payload, missing/invalid service fallback and CPU/unload
+options are tested. No language-quality, host latency or native Android-device
+acceptance claim is made from those tests. The same Web implementation ships in
+the Capacitor wrapper; device-specific gates remain separate.

@@ -222,3 +222,13 @@ No business/freemium impact: no Free/Core or Premium classification, entitlement
 quota, ownership, export or downgrade behavior changes. No end-user provider
 setup is added. Released Self-Hosted/Production contracts remain unchanged.
 
+
+## Optional automatic recap wording
+
+The application channel forwards the optional `EIMIR_RECAP_AI_URL`,
+`EIMIR_RECAP_AI_MODEL` and `EIMIR_RECAP_AI_TIMEOUT_SECONDS` expressions to API and
+worker. Keep local inference in a separate Arcane project on `eimir-test-data`,
+so an application Git Sync update does not remove an operator-added service.
+The complete CPU-only setup, model download commands, fallback and disable path
+are in [Local recap AI](LOCAL-RECAP-AI.md). No public model port or paid API is
+required; existing application image/digest admission remains unchanged.

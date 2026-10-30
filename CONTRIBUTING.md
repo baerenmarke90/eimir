@@ -13,6 +13,29 @@ Contributions are welcome through GitHub Pull Requests.
 
 A Pull Request submission does not guarantee inclusion in the project.
 
+## Retrying failed CI jobs
+
+Inspect the failed job and its diagnostics before retrying. For a transient
+runner, network, or service failure on the same revision, open the failed
+workflow run and choose **Re-run jobs → Re-run failed jobs**. GitHub reruns the
+failed jobs and their dependent checks while keeping successful independent
+jobs completed. The same operation is available through the GitHub CLI:
+
+```bash
+gh run rerun RUN_ID --failed --repo baerenmarke90/eimir
+```
+
+A retry uses the original commit and workflow definition. When a failure needs
+a code, test, or workflow fix, push a new commit and let its relevant checks run.
+Do not push an empty commit, close/reopen a PR, or use **Re-run all jobs** merely
+to retry a transient failure. See [GitHub's rerun documentation](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs).
+
+Browser QA already keeps its matrix shards independent (`fail-fast: false`).
+For example, if only `PR-critical 3/4` fails, a failed-jobs retry reruns that
+shard and the `Playwright + axe` aggregate; the other successful shards and
+unrelated workflows remain completed. A GitHub job is the retry unit, so steps
+within the failed job start again. See [Web Browser QA](docs/m5/WEB-BROWSER-QA.md).
+
 ## Product design work
 
 Read the [design authority index](docs/product/design/README.md) and [Product Reference v1](docs/product/design/product-reference-v1.md) before planning client work. v1 governs conflicting older design references unless a later explicit Product Owner decision supersedes it. Follow the [Partner-App Experience Standard](docs/PARTNER-APP-EXPERIENCE-STANDARD.md), complete the Mobile Interaction Contract before UI implementation, and review the full open/interact/save/result/return journey. Technical, privacy, security, accessibility, business-model, and reuse gates remain cumulative.

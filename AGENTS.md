@@ -242,6 +242,19 @@ Reuse, business-model, product-design, or cross-cutting decisions must never wea
 
 ## Pull requests
 
+### CI failures and targeted retries
+
+This policy applies to human contributors and coding agents handling any pull request. Follow the [contributor retry instructions](CONTRIBUTING.md#retrying-failed-ci-jobs).
+
+- Inspect the failed job and its diagnostics before deciding whether to retry or fix the cause.
+- For a transient failure on the same commit, use **Re-run failed jobs** or a specific-job rerun. Preserve successful independent jobs; do not restart every workflow, push an empty commit, or close/reopen the PR merely to retry.
+- Code, test, or workflow fixes require a new commit and fresh relevant checks. Never copy successful statuses from an older revision or retry an old run as proof of a new commit.
+- When changing workflows, keep independent expensive checks in independently retryable jobs where practical. Matrix checks should retain `fail-fast: false` when sibling jobs can finish independently. Required aggregate checks must still reject failed, cancelled, or unexpectedly skipped required work.
+- Diagnostic artifacts produced by retried jobs must distinguish attempts or follow an explicit safe replacement contract. Preserve stable artifact names where downstream release consumers require them; review those consumers before renaming artifacts.
+- Record any retries and their reason in the PR validation results. A repeatable test failure needs a fix; retries must not hide it or weaken existing gates.
+
+### Required reviews
+
 A relevant pull request without a traceable reuse review is not merge-ready. Pure domain changes may mark the review as `not relevant` with a short rationale.
 
 Every development pull request must contain a traceable Business/Freemium Model Consistency result. `No business/freemium impact` is acceptable only with a short rationale. A recognizable conflict with `docs/BUSINESS-MODEL.md`, `docs/FREEMIUM-FEATURE-MATRIX.md`, or the current working decisions for unclassified future features must be resolved before merge or routed through an explicit owning product decision.

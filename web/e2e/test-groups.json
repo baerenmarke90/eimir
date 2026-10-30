@@ -58,8 +58,8 @@
     },
     "floating-bottom-nav-scroll.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 12,
-      "reason": "Persistent navigation clearance and bounded account/Space-scoped primary context, browser history and native tab replacement."
+      "baselineTests": 18,
+      "reason": "Persistent navigation clearance, bounded account/Space-scoped primary context, browser history/native tab replacement and native touch swipe ownership."
     },
     "floating-bottom-nav.spec.ts": {
       "disposition": "FULL_REGRESSION",

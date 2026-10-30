@@ -67,8 +67,10 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
     evidence = [
         {
             "key": item["key"],
-            "title": (item["title"] or "")[:140],
-            "excerpt": (item["excerpt"] or "")[:240],
+            "kind": str(item["kind"]),
+            "occurred_on": item["occurred_on"].isoformat(),
+            "title": item["title"] or "",
+            "excerpt": "" if item["excerpt"] == item["title"] else item["excerpt"] or "",
         }
         for item in material
         if (item["title"] or "").strip() or (item["excerpt"] or "").strip()

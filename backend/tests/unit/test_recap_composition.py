@@ -183,3 +183,57 @@ def test_an_alternative_differs_when_distinct_source_kinds_have_no_ties() -> Non
     alternate = select_candidates(items, RecapKind.MONTH, "space:month", 1)
     assert len(baseline) == len(alternate) == 3
     assert baseline != alternate
+
+
+@pytest.mark.parametrize(
+    "title,introduction,keys",
+    [
+        ("A morning note", "A lovely day. Everyone was moved. The world stood still.", ["note"]),
+        ("A morning note", "A note for 100 people.", ["note"]),
+        ("October 2026", "A kind note.", ["note"]),
+        ("A morning note", " ", ["note"]),
+        ("A morning note", "A kind note.\nA new day.", ["note"]),
+        ("A morning note", "A kind note.", ["note", "note"]),
+        ("A morning note", "A kind note.", ["other"]),
+        ("A morning note", "A kind note in the morning, a kind note in the morning.", ["note"]),
+    ],
+)
+def test_editorial_checks_reject_unsupported_numbers_repetition_and_filler(
+    title: str, introduction: str, keys: list[str]
+) -> None:
+    evidence = [
+        {
+            "key": "note",
+            "title": "A kind note in the morning",
+            "kind": "HEART_MOMENT",
+            "occurred_on": "2026-10-26",
+        },
+        {"key": "other", "title": "100 people at a concert"},
+    ]
+    # The number in an uncited source or the date envelope cannot support prose.
+    result = local_ai.Narration(title=title, introduction=introduction, source_keys=keys)
+    if keys == ["other"]:
+        evidence = evidence[:1]
+    assert not local_ai.usable_narration(result, evidence)
+
+
+def test_editorial_checks_accept_a_short_caption_using_only_cited_numbers() -> None:
+    result = local_ai.Narration(
+        title="An afternoon together",
+        introduction="A walk by the lake. 2 notes from the afternoon.",
+        source_keys=["memory"],
+    )
+    assert local_ai.usable_narration(
+        result, [{"key": "memory", "title": "A walk by the lake", "excerpt": "2 notes"}]
+    )
+
+
+def test_overlong_model_prose_is_rejected_instead_of_truncated() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        local_ai.Narration(
+            title="A morning note",
+            introduction="A perfect day full of love and happiness. " * 8,
+            source_keys=["note"],
+        )

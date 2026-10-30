@@ -3,6 +3,10 @@ import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import copy from '../../src/i18n/locales/recaps';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import taskSheets from '../../src/i18n/locales/taskSheets';
+import fixtures from '../fixtures/locales/de';
+const fixtureCopy = fixtures.recaps;
 import {
   ACCOUNT_ID,
   SPACE_ID,
@@ -22,8 +26,7 @@ const source = (id: string, title: string, kind = 'MEMORY') => ({
   occurredOn: '2026-10-17',
   version: 1,
   title,
-  excerpt:
-    'Wir sind einfach sitzen geblieben. Ohne Plan, ohne Eile. Genau das hat diesen Tag so schön gemacht.',
+  excerpt: fixtureCopy.excerpt,
   previewAttachmentId: kind === 'MEMORY' ? 'recap-photo' : null,
   previewIsSensitive: false,
   available: true,
@@ -43,14 +46,11 @@ const initial = (id = 'october', year = false) => ({
   generatedAt: '2026-10-30T10:00:00Z',
   savedAt: null as string | null,
   locale: 'de-DE',
-  headline: year
-    ? 'Ein Jahr voller kleiner Anfänge.'
-    : 'Einfach mal die Zeit vergessen.',
-  introduction:
-    'Ein Nachmittag am See und die kleinen Worte zwischendurch. Ein neuer Blick auf das, was ihr gemeinsam festgehalten habt.',
+  headline: year ? fixtureCopy.yearHeadline : fixtureCopy.monthHeadline,
+  introduction: fixtureCopy.introduction,
   sources: [
-    source('mem-canal', 'Dieser Nachmittag am See'),
-    source('heart-coffee', 'Deine Nachricht am Morgen', 'HEART_MOMENT'),
+    source('mem-canal', fixtureCopy.photoTitle),
+    source('heart-coffee', fixtureCopy.wordsTitle, 'HEART_MOMENT'),
   ],
   reflections: [] as {
     id: string;
@@ -103,7 +103,7 @@ async function setup(
               startsOn: '2026-09-01',
               throughOn: '2026-09-30',
               isPartial: false,
-              headline: 'Ein Tag nur für uns.',
+              headline: fixtureCopy.previousHeadline,
             },
             year,
           ],
@@ -196,7 +196,7 @@ async function setup(
     .locator('.mobile-bottom-nav a[href="/more"], .shell-nav a[href="/more"]')
     .filter({ visible: true })
     .click();
-  await page.getByRole('link', { name: /Beziehungs-Pass/ }).click();
+  await page.getByRole('link', { name: new RegExp(copy.shortTitle) }).click();
   await expect(
     page.getByRole('heading', { name: copy.shortTitle }),
   ).toBeVisible();
@@ -252,23 +252,23 @@ for (const [width, theme] of [
     expect(libraryAxe.violations).toEqual([]);
     await page.getByRole('tab', { name: copy.years }).click();
     await expect(
-      page.getByRole('heading', { name: 'Ein Jahr voller kleiner Anfänge.' }),
+      page.getByRole('heading', { name: fixtureCopy.yearHeadline }),
     ).toBeVisible();
     await page.getByRole('tab', { name: copy.months }).click();
     await expect(
-      page.getByRole('heading', { name: 'Einfach mal die Zeit vergessen.' }),
+      page.getByRole('heading', { name: fixtureCopy.monthHeadline }),
     ).toBeVisible();
     await page
-      .getByRole('link', { name: /Rückblick öffnen/ })
+      .getByRole('link', { name: new RegExp(copy.open) })
       .first()
       .click();
     await expect(page.locator('.recap-spread h1')).toHaveText(
-      'Einfach mal die Zeit vergessen.',
+      fixtureCopy.monthHeadline,
     );
     await expect(page.locator('.mobile-bottom-nav')).toBeHidden();
     await page.getByRole('button', { name: copy.next, exact: true }).click();
     await expect(page.locator('.recap-spread h1')).toHaveText(
-      'Dieser Nachmittag am See',
+      fixtureCopy.photoTitle,
     );
     await expect
       .poll(() =>
@@ -297,12 +297,15 @@ for (const [width, theme] of [
     await page.getByRole('link', { name: /Original öffnen/ }).click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal/);
     await page
-      .getByRole('button', { name: /Zurück/, exact: false })
+      .getByRole('button', {
+        name: new RegExp(taskBoundary.back),
+        exact: false,
+      })
       .first()
       .click();
     await expect(page).toHaveURL(/\/more\/passport\/october\?page=1/);
     await expect(page.locator('.recap-spread h1')).toHaveText(
-      'Dieser Nachmittag am See',
+      fixtureCopy.photoTitle,
     );
     expect(state.prepares()).toBe(1);
     expect(state.unexpected).toEqual([]);
@@ -315,16 +318,14 @@ test('selection, private draft, explicit sharing, save and withdrawal keep confi
   await page.setViewportSize({ width: 390, height: 844 });
   const state = await setup(page, { fail: true });
   await page
-    .getByRole('link', { name: /Rückblick öffnen/ })
+    .getByRole('link', { name: new RegExp(copy.open) })
     .first()
     .click();
   await page.getByRole('button', { name: copy.edit, exact: true }).click();
   const selection = page.getByRole('dialog');
   await selection.getByRole('checkbox').last().uncheck();
   await selection.getByRole('button', { name: copy.apply }).click();
-  await expect(selection.getByRole('alert')).toContainText(
-    'inzwischen verändert',
-  );
+  await expect(selection.getByRole('alert')).toContainText(copy.conflict);
   await expect(selection.getByRole('checkbox').last()).not.toBeChecked();
   state.allow();
   await selection.getByRole('button', { name: copy.reload }).click();
@@ -332,19 +333,17 @@ test('selection, private draft, explicit sharing, save and withdrawal keep confi
   await expect(selection).toBeHidden();
   await page.getByRole('button', { name: copy.ownWords, exact: true }).click();
   const words = page.getByRole('dialog');
-  await words.getByRole('textbox').fill('Das möchte ich für uns behalten.');
+  await words.getByRole('textbox').fill(fixtureCopy.reflection);
   await words.getByRole('button', { name: copy.draft, exact: true }).click();
   await expect(words).toBeHidden();
   await page.getByRole('button', { name: copy.ownWords, exact: true }).click();
-  await expect(words.getByRole('textbox')).toHaveValue(
-    'Das möchte ich für uns behalten.',
-  );
+  await expect(words.getByRole('textbox')).toHaveValue(fixtureCopy.reflection);
   await words.getByRole('button', { name: copy.share, exact: true }).click();
   await expect(words).toBeHidden();
   await page.getByRole('button', { name: copy.next, exact: true }).click();
   await page.getByRole('button', { name: copy.next, exact: true }).click();
   await expect(page.locator('blockquote')).toContainText(
-    'Das möchte ich für uns behalten.',
+    fixtureCopy.reflection,
   );
   await page.getByRole('button', { name: copy.save, exact: true }).click();
   await page
@@ -370,7 +369,7 @@ test('Free reads retained editions without preparing or exposing composition', a
   const state = await setup(page, { pro: false });
   await expect(page.getByText(copy.gateBody)).toBeVisible();
   await page
-    .getByRole('link', { name: /Rückblick öffnen/ })
+    .getByRole('link', { name: new RegExp(copy.open) })
     .first()
     .click();
   await expect(page.locator('.recap-spread h1')).toBeVisible();
@@ -381,12 +380,16 @@ test('Free reads retained editions without preparing or exposing composition', a
 test('empty periods do not invent shared events', async ({ page }) => {
   await setup(page, { empty: true });
   await page
-    .getByRole('link', { name: /Rückblick öffnen/ })
+    .getByRole('link', { name: new RegExp(copy.open) })
     .first()
     .click();
   await expect(page.getByText(copy.emptyBody)).toBeVisible();
   await expect(page.locator('.recap-reader-photo')).toHaveCount(0);
-  await expect(page.getByText('Seite 1 von 2')).toBeVisible();
+  await expect(
+    page.getByText(
+      copy.page.replace('{{page}}', '1').replace('{{count}}', '2'),
+    ),
+  ).toBeVisible();
 });
 
 test('large text and an unsaved offline draft preserve the editing task', async ({
@@ -404,7 +407,7 @@ test('large text and an unsaved offline draft preserve the editing task', async 
     fullPage: true,
   });
   await page
-    .getByRole('link', { name: /Rückblick öffnen/ })
+    .getByRole('link', { name: new RegExp(copy.open) })
     .first()
     .click();
   await page.getByRole('button', { name: copy.ownWords, exact: true }).click();
@@ -418,7 +421,9 @@ test('large text and an unsaved offline draft preserve the editing task', async 
     'An unfinished thought.',
   );
   await expect(words.locator('.ui-state')).toBeVisible();
-  await words.getByRole('button', { name: /Schließen/ }).click();
+  await words
+    .getByRole('button', { name: new RegExp(taskSheets.close) })
+    .click();
   await expect(page.getByRole('alertdialog')).toBeVisible();
   await page.getByRole('button', { name: copy.keep, exact: true }).click();
   await expect(words.getByRole('textbox')).toHaveValue(
@@ -438,7 +443,7 @@ test('pending generation remains readable as a background task', async ({
   await expect(page.getByText(copy.pendingBody)).toBeVisible();
   await expect(page.locator('.recap-spread')).toHaveCount(0);
   await captureScreenshot(page, info, 'recaps-pending.png', { fullPage: true });
-  await page.getByRole('button', { name: /Alle Rückblicke/ }).click();
+  await page.getByRole('button', { name: new RegExp(copy.back) }).click();
   await expect(
     page.getByRole('heading', { name: copy.shortTitle }),
   ).toBeVisible();

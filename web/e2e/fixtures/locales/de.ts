@@ -1,4 +1,16 @@
 const de = {
+  recaps: {
+    excerpt:
+      'Wir sind einfach sitzen geblieben. Ohne Plan, ohne Eile. Genau das hat diesen Tag so schön gemacht.',
+    yearHeadline: 'Ein Jahr voller kleiner Anfänge.',
+    monthHeadline: 'Einfach mal die Zeit vergessen.',
+    introduction:
+      'Ein Nachmittag am See und die kleinen Worte zwischendurch. Ein neuer Blick auf das, was ihr gemeinsam festgehalten habt.',
+    photoTitle: 'Dieser Nachmittag am See',
+    wordsTitle: 'Deine Nachricht am Morgen',
+    previousHeadline: 'Ein Tag nur für uns.',
+    reflection: 'Das möchte ich für uns behalten.',
+  },
   diaryCategoryNotes: [
     'Ein lieber Gedanke.',
     'Du hast zugehört.',

@@ -55,3 +55,19 @@ unchanged filter/return behavior. No API/migration/security boundary changes.
 | Compact Light | [360 px](references/timeline-marker-filter/diary-360-light.png), [430 px](references/timeline-marker-filter/diary-430-light.png) |
 | Compact Dark | [390 px](references/timeline-marker-filter/diary-390-dark.png) |
 | Expanded Dark | [1280 px](references/timeline-marker-filter/diary-1280-dark.png) |
+
+## CI geometry-check alignment
+
+The first CI revision `c4d1bbb1` passed the full Web suite and browser shards
+1/2/4, but shard 3 found an existing geometry assertion still measuring the
+removed list-level pseudo-element. Its `left: auto` produced `NaN` on both
+automatic attempts. The existing check now measures each entry's actual rail
+and retains the one-pixel horizontal tolerance. It additionally checks vertical
+centering against that entry's card with the same tolerance. All remaining
+open/edit/Place/link/return, accessibility and request assertions are retained.
+
+All seven cases in `product-consistency.spec.ts` pass locally, including
+390 Light, 430 Dark, 1280 Light and 320 Dark at 200% text. Scoped lint/format
+and whitespace checks pass. This test correction requires a new commit and
+fresh CI; the failed job was not manually retried. The rendered UI and the
+linked visual evidence still describe the runtime source `c4d1bbb1`.

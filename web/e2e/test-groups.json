@@ -364,6 +364,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 7,
       "reason": "The PO-approved combined Moments composition must preserve manual Place linking, modal return, icon/rail alignment, theme, Compact/Expanded and large-text reflow."
+    },
+    "places-and-lists-design.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7,
+      "reason": "Places and Lists create/result/return, dirty modal boundaries, read-first entry editing, failed-save recovery, checking, sorting, removal and theme/reflow acceptance."
     }
   }
 }

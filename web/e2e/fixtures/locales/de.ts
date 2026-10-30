@@ -1,4 +1,9 @@
 const de = {
+  placesAndLists: {
+    placeDescription: 'Unser Platz im Grünen.',
+    longListEntry:
+      'Unser gemeinsamer Fernsehabend mit Snacks und einer richtig langen Serienfolge',
+  },
   diaryCategoryNotes: [
     'Ein lieber Gedanke.',
     'Du hast zugehört.',

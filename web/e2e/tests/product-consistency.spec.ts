@@ -161,19 +161,31 @@ for (const scenario of [
       .locator('.story-timeline-marker')
       .evaluateAll((markers) =>
         markers.map((marker) => {
-          const list = marker.closest('.story-list');
-          if (!list)
-            throw new Error('A timeline marker must belong to its rail.');
-          const rail = getComputedStyle(list, '::before');
-          const box = list.getBoundingClientRect();
+          const entry = marker.closest('.story-timeline-item');
+          const card = entry?.querySelector('.story-card-link');
+          if (!entry || !card)
+            throw new Error(
+              'A timeline marker must belong to its card and rail.',
+            );
+          const rail = getComputedStyle(entry, '::before');
+          const box = entry.getBoundingClientRect();
+          const cardBox = card.getBoundingClientRect();
           const node = marker.getBoundingClientRect();
-          return Math.abs(
-            node.left + node.width / 2 - (box.left + parseFloat(rail.left)),
-          );
+          return {
+            horizontal: Math.abs(
+              node.left + node.width / 2 - (box.left + parseFloat(rail.left)),
+            ),
+            vertical: Math.abs(
+              node.top + node.height / 2 - (cardBox.top + cardBox.height / 2),
+            ),
+          };
         }),
       );
     expect(offsets.length).toBeGreaterThan(0);
-    for (const offset of offsets) expect(offset).toBeLessThanOrEqual(1);
+    for (const offset of offsets) {
+      expect(offset.horizontal).toBeLessThanOrEqual(1);
+      expect(offset.vertical).toBeLessThanOrEqual(1);
+    }
     await page
       .locator('#momente-diary [data-task-item-key="memory-mem-canal"]')
       .click();

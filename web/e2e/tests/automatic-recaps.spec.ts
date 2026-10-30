@@ -396,6 +396,8 @@ test('Watch now advances automatically, pauses for a source, and finishes withou
   ).toBeVisible();
   await page.clock.fastForward(90001);
   await expect(page.locator('.recap-spread h1')).toHaveText(copy.finishTitle);
+  await page.locator('.recap-back').click();
+  await expect(page).toHaveURL(/\/today$/);
   expect(state.prepares()).toBe(0);
   expect(state.unexpected).toEqual([]);
 });
@@ -460,6 +462,8 @@ test('reduced motion opens Watch now paused and playback pauses for editing', as
     });
   expect(controlsDoNotOverlap).toBe(true);
   await page.getByRole('button', { name: copy.play, exact: true }).focus();
+  // Capture the full reading surface from its top after the focus-induced scroll.
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
   await captureScreenshot(
     page,
     info,

@@ -60,7 +60,11 @@ MemoryPreview reports resource completion, including cache reuse and failure,
 so a loading picture does not consume reading time. A single finite playback
 hook preserves remaining dwell time through Pause, uses text-sensitive reading
 time, pauses for content interaction/tasks/backgrounding and consumes Watch-now
-intent once. Return from an original remains paused at the same page. Playback
+intent once. Reader query updates preserve the opaque Wir origin. Automatic
+page updates use the shared in-place route handoff, preserving focus and scroll
+until a real destination changes. Initial heading orientation does not cancel an
+explicit Watch-now request; focusing a content control still pauses playback.
+Return from an original remains paused at the same page, and Back returns to Wir. Playback
 stops at reflections and can be deliberately restarted. Existing editing, private
 drafts, source return and saved-artifact behavior remain unchanged.
 
@@ -75,6 +79,8 @@ introductions have a localized AI-draft label, separate from authored originals.
 ## Verification
 
 - Focused integrated playback/calendar/Today/media/motion tests: 110 passed.
+- Integrated follow-up: 29 browser scenarios passed, including all 18 recap
+  scenarios and the previously failed privacy/Today/private-return cases.
 - Browser suite: all 18 scenarios passed in a fresh integrated run against main
   `bad2cb2691ca7045ea290d6a6e63345989aab19b`. Reader/reflow scenarios also passed
   after the final control-layout correction.
@@ -83,6 +89,12 @@ introductions have a localized AI-draft label, separate from authored originals.
   the shared Close action, and synthetic visibility events must bubble to the
   window listener used by TanStack Query. Corrections preserve the assertions and
   timeout limits. No product test or privacy rule was weakened.
+- Shared route handoff/task-origin/playback regression tests: 29 passed.
+  Watch-now/source-return/final-stop/Wir-return and reduced-motion editing passed
+  after preserving opaque route state.
+- CI browser artifacts identified unconfigured recap GET requests in existing
+  strict Today-related fixtures. Those fixtures now explicitly provide an empty
+  authorized overview; unexpected-request assertions and timeouts are unchanged.
 - Production build, semantic token generation/check, scoped lint and typecheck passed.
 - Backend composition/model validation: 25 passed; scoped Ruff/format and strict
   mypy passed with locked dependencies on Python 3.12.

@@ -447,7 +447,7 @@ function RecapReader({
   const [search, setSearch] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { requestReturn, captureOrigin } = useTaskOrigin();
+  const { requestReturn, captureOrigin, resolveOrigin } = useTaskOrigin();
   const [task, setTask] = useState<'selection' | 'reflection' | 'save' | null>(
     null,
   );
@@ -500,11 +500,14 @@ function RecapReader({
   const page = Number.isInteger(requestedPage)
     ? Math.max(0, Math.min(pageCount - 1, requestedPage))
     : 0;
-  const setPage = (next: number) => {
+  const setPage = (next: number, automatic = false) => {
     const update = new URLSearchParams(search);
     if (next) update.set('page', String(next));
     else update.delete('page');
-    setSearch(update, { replace: true });
+    setSearch(update, {
+      replace: true,
+      state: { ...location.state, inPlaceRouteUpdate: automatic },
+    });
   };
   const source = value?.sources[page - 1];
   const cover = value?.sources.find(
@@ -516,8 +519,8 @@ function RecapReader({
     if (!search.has('play')) return;
     const update = new URLSearchParams(search);
     update.delete('play');
-    setSearch(update, { replace: true });
-  }, [search, setSearch]);
+    setSearch(update, { replace: true, state: location.state });
+  }, [location.state, search, setSearch]);
   const pageKey = `${recapId}:${page}:${value?.version ?? 0}`;
   const pageMedia =
     page === 0
@@ -548,13 +551,17 @@ function RecapReader({
             page === pageCount - 1 ||
             source?.available === false)),
     ),
-    onAdvance: () => setPage(Math.min(page + 1, pageCount - 1)),
+    onAdvance: () => setPage(Math.min(page + 1, pageCount - 1), true),
   });
   const back = () =>
     requestReturn(
       (location.state as { taskOriginKey?: unknown } | null)?.taskOriginKey,
       `${MORE_PASSPORT_ROUTE}${search.get('tab') === 'years' ? '?tab=years' : ''}`,
     );
+  const returnsToWir =
+    resolveOrigin(
+      (location.state as { taskOriginKey?: unknown } | null)?.taskOriginKey,
+    )?.to === '/today';
   return (
     <div
       className="page recap-reader"
@@ -563,7 +570,7 @@ function RecapReader({
     >
       <div className="recap-reader-top">
         <button type="button" className="recap-back" onClick={back}>
-          ‹ {t('recaps.back')}
+          ‹ {t(returnsToWir ? 'navigation.today' : 'recaps.back')}
         </button>
         {value ? (
           <span>{recapPeriodLabel(value, resolvedLocale())}</span>
@@ -629,7 +636,15 @@ function RecapReader({
                 className="recap-spread"
                 key={`${recapId}:${page}`}
                 onPointerDownCapture={playback.pause}
-                onFocusCapture={playback.pause}
+                onFocusCapture={(event) => {
+                  if (
+                    event.target instanceof HTMLElement &&
+                    event.target.matches(
+                      'a,button,input,textarea,select,[contenteditable="true"]',
+                    )
+                  )
+                    playback.pause();
+                }}
                 onKeyDownCapture={playback.pause}
                 aria-label={t('recaps.page', {
                   page: page + 1,

@@ -1,21 +1,21 @@
-import AxeBuilder from '@axe-core/playwright';
-import { expect, type Page, test } from '@playwright/test';
-import copy from '../../src/i18n/locales/relationshipReflections';
-import de from '../../src/i18n/locales/de';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import planningCopy from '../../src/i18n/locales/m5s3';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, type Page, test } from '@playwright/test';
+import de from '../../src/i18n/locales/de';
+import planningCopy from '../../src/i18n/locales/m5s3';
+import copy from '../../src/i18n/locales/relationshipReflections';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
   ACCOUNT_ID,
-  PARTNER_ID,
-  SPACE_ID,
+  CAPABILITIES,
+  captureScreenshot,
+  installMocks,
   ME,
   PARTNER,
-  CAPABILITIES,
-  installMocks,
+  PARTNER_ID,
+  SPACE_ID,
   signIn,
-  captureScreenshot,
 } from '../support/storyTimelineFixture';
 
 const TITLE = 'Our weekend by the sea';
@@ -368,6 +368,8 @@ for (const [width, theme, largeText] of [
       copy.anticipation.days_other.replace('{{count}}', '12'),
     );
     await expect(countdown).toContainText('10.11.2099');
+    await expect(page.locator('.anticipation-card')).toHaveCount(1);
+    await expect(page.locator('.today-hero').getByText(TITLE)).toHaveCount(0);
     await expect(
       page.locator('.today-agenda-row').filter({ hasText: TITLE }),
     ).toHaveCount(0);
@@ -377,6 +379,13 @@ for (const [width, theme, largeText] of [
       `anticipation-wir-${width}-${theme}.png`,
       { fullPage: true },
     );
+    const upcomingSection = page.locator('.today-section-upcoming');
+    await upcomingSection.evaluate((element) =>
+      element.scrollIntoView({ block: 'center', behavior: 'instant' }),
+    );
+    await upcomingSection.screenshot({
+      path: info.outputPath(`anticipation-section-${width}-${theme}.png`),
+    });
     await countdown.click();
     await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN}$`));
     await page.getByRole('button', { name: taskBoundary.back }).click();

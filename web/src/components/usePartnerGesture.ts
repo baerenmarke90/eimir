@@ -116,14 +116,6 @@ export function usePartnerGesture({
               : old,
         );
       }
-      if (!request.canNotify()) return;
-      postSnackbar(
-        result.action === 'THINKING'
-          ? 'snackbar.partnerQuickActionThinkingSent'
-          : result.action === 'KISS'
-            ? 'snackbar.partnerQuickActionKissSent'
-            : 'snackbar.partnerQuickActionCheckInSent',
-      );
     },
     onError: (error, request, context) => {
       if (!request.isCurrent()) return;

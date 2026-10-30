@@ -1443,3 +1443,27 @@
     transform: none;
   }
 }
+
+.today-monthly-caption {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font: var(--font-supporting-copy);
+}
+.today-monthly-caption strong {
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.today-monthly-caption time {
+  color: var(--color-text-secondary);
+}
+.today-monthly-notes {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}

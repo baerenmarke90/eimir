@@ -273,7 +273,7 @@ export function SettingsPage(props: SettingsPageProps) {
             <span>{backLabel}</span>
           </Link>
         }
-        eyebrow={t('navigation.settings')}
+        eyebrow={category ? t('navigation.settings') : undefined}
         title={category ? t(category.titleKey) : t('navigation.settings')}
         description={
           category

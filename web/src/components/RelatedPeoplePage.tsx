@@ -471,7 +471,6 @@ export function RelatedPeoplePage({
   return (
     <div className="page">
       <PageHeader
-        eyebrow={t('people.eyebrow')}
         title={t('people.title')}
         description={t('people.intro')}
         action={

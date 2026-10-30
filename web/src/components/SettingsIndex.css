@@ -12,7 +12,7 @@
 .settings-category-link {
   display: grid;
   min-height: 64px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) 0;

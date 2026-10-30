@@ -121,14 +121,10 @@
   text-decoration: none;
   color: var(--color-text);
 }
-.passport-metrics a > :last-child {
-  margin-inline-start: auto;
-  color: var(--color-link-text);
-  flex-shrink: 0;
-}
-.passport-metrics a > :nth-child(2) {
+.passport-metric-label {
   min-width: 0;
-  overflow-wrap: normal;
+  flex: 1;
+  overflow-wrap: anywhere;
   hyphens: auto;
 }
 .passport-number {

@@ -48,9 +48,6 @@ export function StoryRetrospective({
             >
               {t('story.retrospectiveHeading')}
             </h3>
-            <p className="momente-section-subhead">
-              {t('story.retrospectiveSubhead')}
-            </p>
           </div>
         </div>
       ) : null}
@@ -84,7 +81,7 @@ export function StoryRetrospective({
             </time>
           ) : null}
           <span className="momente-retrospective-action">
-            {t('story.retrospectiveOpen')} →
+            {t('story.retrospectiveOpen')}
           </span>
         </span>
       </Link>

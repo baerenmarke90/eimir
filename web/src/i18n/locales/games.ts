@@ -1,8 +1,7 @@
 const games = {
   eyebrow: 'Spielen',
   title: 'Gemeinsam spielen',
-  intro:
-    'Fünf kleine Spiele, die euch miteinander ins Erinnern, Kennen, Entdecken, Tun und Vertiefen bringen.',
+  intro: 'Erinnerungen erraten und Neues übereinander erfahren.',
   status: {
     premium: 'Pro',
     comingSoon: 'Bald verfügbar',

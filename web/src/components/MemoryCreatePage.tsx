@@ -729,7 +729,6 @@ export function MemoryCreatePage({
                 {t('taskBoundary.close')}
               </button>
             }
-            eyebrow={t('memory.eyebrow')}
             title={t('memory.heading')}
             className="create-heading"
           />

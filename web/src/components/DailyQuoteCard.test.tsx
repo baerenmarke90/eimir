@@ -104,12 +104,14 @@ function renderCard({
   quoteError,
   entitlementError,
   saveError,
+  settingsOnly = false,
 }: {
   capabilities?: string[];
   quoteResult?: DailyQuoteResponse;
   quoteError?: unknown;
   entitlementError?: unknown;
   saveError?: unknown;
+  settingsOnly?: boolean;
 } = {}) {
   const getEntitlements = entitlementError
     ? vi.fn().mockRejectedValue(entitlementError)
@@ -172,6 +174,7 @@ function renderCard({
     <QueryClientProvider client={client}>
       <MemoryRouter>
         <DailyQuoteCard
+          settingsOnly={settingsOnly}
           quoteApi={quoteApi}
           entitlementsApi={entitlementsApi}
           accountId={ACCOUNT_ID}
@@ -200,7 +203,7 @@ describe('DailyQuoteCard', () => {
     expect(
       screen
         .getByRole('heading', { name: dailyQuote.title })
-        .classList.contains('today-section-title'),
+        .classList.contains('sr-only'),
     ).toBe(true);
     expect(screen.queryByText(dailyQuote.kicker)).toBeNull();
     expect(api.getDailyQuote).not.toHaveBeenCalled();
@@ -212,7 +215,7 @@ describe('DailyQuoteCard', () => {
     ).not.toBeTruthy();
   });
 
-  it('renders one calm quote heading and attribution without badges or category labels', async () => {
+  it('renders a quotation symbol and accessible heading with attribution', async () => {
     renderCard();
 
     expect(await screen.findByText('„A server-resolved quote.“')).toBeTruthy();
@@ -224,15 +227,21 @@ describe('DailyQuoteCard', () => {
         }),
       ),
     ).toBeTruthy();
+    expect(document.querySelector('.daily-quote-symbol')).toBeTruthy();
+    expect(
+      screen
+        .getByRole('heading', { name: dailyQuote.title })
+        .classList.contains('sr-only'),
+    ).toBe(true);
     expect(screen.queryByText('Love')).toBeNull();
     expect(screen.queryByText('Mindfulness')).toBeNull();
     expect(screen.queryByText(dailyQuote.kicker)).toBeNull();
     expect(document.querySelector('.daily-quote-card .pro-mark')).toBeNull();
     expect(
-      screen.getByRole('button', {
+      screen.queryByRole('button', {
         name: dailyQuote.settingsAria,
       }),
-    ).toBeTruthy();
+    ).toBeNull();
   });
 
   it('falls back to quiet discovery when Pro is removed between entitlement and quote reads', async () => {
@@ -291,7 +300,7 @@ describe('DailyQuoteCard', () => {
       value: false,
     });
     const user = userEvent.setup();
-    const api = renderCard();
+    const api = renderCard({ settingsOnly: true });
 
     await user.click(
       await screen.findByRole('button', { name: dailyQuote.settingsAria }),
@@ -305,7 +314,7 @@ describe('DailyQuoteCard', () => {
 
   it('disables the personal quote without dropping source/category selections', async () => {
     const user = userEvent.setup();
-    const api = renderCard();
+    const api = renderCard({ settingsOnly: true });
 
     await user.click(
       await screen.findByRole('button', { name: dailyQuote.settingsAria }),
@@ -339,6 +348,7 @@ describe('DailyQuoteCard', () => {
   it('keeps the preference draft open on an optimistic concurrency conflict', async () => {
     const user = userEvent.setup();
     const api = renderCard({
+      settingsOnly: true,
       saveError: new ClientProblemError(
         'conflict',
         409,
@@ -359,7 +369,7 @@ describe('DailyQuoteCard', () => {
 
   it('edits only the caller preference and round-trips the server ETag', async () => {
     const user = userEvent.setup();
-    const api = renderCard();
+    const api = renderCard({ settingsOnly: true });
 
     const settings = await screen.findByRole('button', {
       name: dailyQuote.settingsAria,

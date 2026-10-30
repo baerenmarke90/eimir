@@ -532,3 +532,68 @@ test('shared photos: revoked original access refreshes the projection and dismis
   await expect(page.locator('.shared-photos-tile')).toHaveCount(40);
   await screenshot(page, testInfo, 'story-photos-revoked-access.png');
 });
+
+test('shared photos: app restart reuses durable bytes and still authorizes every read', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const reads = await mocks(page);
+  let originals = 0;
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (
+      url.pathname.endsWith('/attachments/photo-1/content') &&
+      (url.searchParams.get('variant') ?? 'original') === 'original'
+    )
+      originals++;
+  });
+  await signIn(page);
+  await page.locator('[data-photo-id="photo-1"] img').waitFor();
+  await page.locator('[data-photo-id="photo-1"]').click();
+  await expect(page.getByRole('dialog').locator('img').first()).toBeVisible();
+  await expect.poll(() => originals).toBe(1);
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        return new Promise<boolean>((resolve) => {
+          const request = indexedDB.open('eimir-authorized-media-v1');
+          request.onsuccess = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains('media')) {
+              db.close();
+              resolve(false);
+              return;
+            }
+            const read = db
+              .transaction('media')
+              .objectStore('media')
+              .getAllKeys();
+            read.onsuccess = () => {
+              db.close();
+              resolve(
+                read.result.some(
+                  (key) =>
+                    String(key).includes('photo-1') &&
+                    String(key).includes('original'),
+                ),
+              );
+            };
+          };
+          request.onerror = () => resolve(false);
+        });
+      }),
+    )
+    .toBe(true);
+  const before = reads.filter(
+    (read) => read.id === 'photo-1' && read.variant === 'original',
+  ).length;
+  await page.reload();
+  await page.locator('[data-photo-id="photo-1"] img').waitFor();
+  await page.locator('[data-photo-id="photo-1"]').click();
+  await expect(page.getByRole('dialog').locator('img').first()).toBeVisible();
+  expect(originals).toBe(1);
+  expect(
+    reads.filter((read) => read.id === 'photo-1' && read.variant === 'original')
+      .length,
+  ).toBeGreaterThan(before);
+});

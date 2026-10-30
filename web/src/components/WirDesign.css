@@ -90,38 +90,37 @@
 .today-page[data-wir-design="modern"]
   .today-hero.couple-presence-card
   .couple-presence-main {
-  flex-direction: row;
-  flex-wrap: wrap;
+  flex-direction: column;
   justify-content: center;
-  gap: var(--space-4);
-  text-align: start;
+  gap: var(--space-5);
+  text-align: center;
 }
 .today-page[data-wir-design="modern"]
   .today-hero
   .partner-avatar-pair-hero
   .partner-avatar {
-  width: 4.5rem;
-  height: 4.5rem;
+  width: min(clamp(6rem, 26vw, 8rem), 37vw);
+  height: min(clamp(6rem, 26vw, 8rem), 37vw);
   font-size: 1.5rem;
 }
 .today-page[data-wir-design="modern"]
   .today-hero.couple-presence-card
   .couple-presence-details {
-  width: auto;
-  flex: 1 1 8rem;
-  align-items: flex-start;
+  width: 100%;
+  align-items: center;
+  gap: var(--space-2);
 }
 .today-page[data-wir-design="modern"] .today-hero .couple-presence-title {
   font-family: var(--font-ui);
-  font-size: clamp(1.4rem, 4.5vw, 2rem);
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
   letter-spacing: -0.02em;
-  text-align: start;
+  text-align: center;
 }
 .today-page[data-wir-design="modern"]
   .today-hero.couple-presence-card
   .couple-presence-meta {
-  justify-content: flex-start;
-  text-align: start;
+  justify-content: center;
+  text-align: center;
 }
 .today-page[data-wir-design="modern"] .today-hero.couple-presence-card::before {
   background: radial-gradient(
@@ -347,4 +346,27 @@
   .wir-design-option.is-selected {
     border-color: Highlight;
   }
+}
+
+.today-page[data-wir-design="modern"] .today-hero.couple-presence-card {
+  padding-block: var(--space-6) var(--space-4);
+  background: transparent;
+  box-shadow: none;
+}
+.today-page[data-wir-design="modern"] .couple-presence-context {
+  margin-top: var(--space-4);
+}
+.today-page[data-wir-design="modern"] .today-hero-context {
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+.today-page[data-wir-design="modern"] .today-hero-duration-link {
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-shared-surface);
+  text-decoration: none;
+}
+.wir-design-preview-modern .wir-design-preview-hero {
+  display: grid;
+  justify-items: center;
 }

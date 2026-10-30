@@ -48,6 +48,7 @@ import {
   livingModuleContentId,
   selectLivingModule,
   selectMonthlyStrip,
+  selectMonthlyNotes,
   selectTodayFocalItem,
 } from '../client/todayComposition';
 import {
@@ -533,7 +534,7 @@ function TodayLivingModuleCard({
               name: partnerName,
             })}
           >
-            {t('m5s5.today.relationshipSignal.viewAction')} →
+            {t('m5s5.today.relationshipSignal.viewAction')}
           </TodayDestinationLink>
         ) : null}
       </div>
@@ -606,7 +607,7 @@ function TodayLivingModuleCard({
             to={path}
             className="today-retrospective-action"
           >
-            {action} →
+            {action}
           </TodayDestinationLink>
         ) : null}
       </article>
@@ -636,7 +637,7 @@ function TodayLivingModuleCard({
       </div>
       {path ? (
         <TodayDestinationLink to={path} className="today-living-action">
-          {action} →
+          {action}
         </TodayDestinationLink>
       ) : null}
     </div>
@@ -646,8 +647,8 @@ function TodayLivingModuleCard({
 /**
  * `Diesen Monat` — a small strip of this month's real shared photos.
  *
- * Photographs only, no titles and no counted total (see `selectMonthlyStrip`).
- * The strip shows that the month happened; `Momente` is where it is read.
+ * Photos carry their real title and calendar date, alongside text highlights.
+ * The bounded projection deliberately makes no counted-total claim.
  */
 function TodayMonthlyStrip({
   items,
@@ -695,12 +696,26 @@ function TodayMonthlyStrip({
             {path ? (
               <TodayDestinationLink to={path} className="today-monthly-tile">
                 {tile}
-                <span className="sr-only">{title}</span>
+                <span className="today-monthly-caption">
+                  <strong>{title}</strong>
+                  {item.occurredOn ? (
+                    <time dateTime={item.occurredOn.toISOString()}>
+                      {formatCalendarDate(item.occurredOn)}
+                    </time>
+                  ) : null}
+                </span>
               </TodayDestinationLink>
             ) : (
               <span className="today-monthly-tile">
                 {tile}
-                <span className="sr-only">{title}</span>
+                <span className="today-monthly-caption">
+                  <strong>{title}</strong>
+                  {item.occurredOn ? (
+                    <time dateTime={item.occurredOn.toISOString()}>
+                      {formatCalendarDate(item.occurredOn)}
+                    </time>
+                  ) : null}
+                </span>
               </span>
             )}
           </li>
@@ -993,11 +1008,18 @@ export function TodayPage({
       })
     : [];
 
+  const monthlyNotes = selectMonthlyNotes({
+    recentShared,
+    now: new Date(),
+    excludeItemIds: [...featuredIds, ...monthlyStrip.map((item) => item.id)],
+  });
+
   // 6. Zuletzt bei euch: the quiet trace, minus everything featured above it -
   // the photos the strip just claimed included, so a Memory is never both a
   // thumbnail up there and a row down here.
   const traceExcludedIds = new Set(featuredIds);
-  for (const item of monthlyStrip) traceExcludedIds.add(item.id);
+  for (const item of [...monthlyStrip, ...monthlyNotes])
+    traceExcludedIds.add(item.id);
   const recentSharedForTrace = recentShared.filter(
     (item) => !traceExcludedIds.has(item.id),
   );
@@ -1133,7 +1155,6 @@ export function TodayPage({
           <Link className="today-hero-context" to={heroHorizon.to}>
             <span>{t('relationshipReflections.passport.nextExperience')}</span>
             <strong>{heroHorizon.title}</strong>
-            <span aria-hidden="true">→</span>
           </Link>
         ) : undefined
       }
@@ -1192,7 +1213,6 @@ export function TodayPage({
           <TodayModuleSection
             className="today-section-moment"
             title={t('m5s5.today.keepsake.title')}
-            kicker={t('m5s5.today.keepsake.kicker')}
           >
             <TodayMomentFeature
               item={focalItem.item}
@@ -1219,7 +1239,7 @@ export function TodayPage({
                 className="today-section-link"
                 aria-label={t('m5s5.today.upcoming.allAriaLabel')}
               >
-                {t('m5s5.today.upcoming.allAction')} →
+                {t('m5s5.today.upcoming.allAction')}
               </Link>
             }
           >
@@ -1251,7 +1271,7 @@ export function TodayPage({
                   title: pinnedCollectionQuery.data.title,
                 })}
               >
-                {t('m5s5.today.pinnedCollection.openAction')} →
+                {t('m5s5.today.pinnedCollection.openAction')}
               </TodayDestinationLink>
             }
           >
@@ -1328,8 +1348,7 @@ export function TodayPage({
         {/* 5. Diesen Monat — this month's shared life, shown rather than
                   counted. */}
         {monthlyHighlightsVisible &&
-        monthlyStrip.length > 0 &&
-        loadMemoryImage ? (
+        (monthlyStrip.length > 0 || monthlyNotes.length > 0) ? (
           <TodayModuleSection
             className="today-section-monthly"
             title={t('m5s5.today.monthly.title')}
@@ -1339,14 +1358,23 @@ export function TodayPage({
                 className="today-section-link"
                 aria-label={t('m5s5.today.monthly.allAriaLabel')}
               >
-                {t('m5s5.today.monthly.allAction')} →
+                {t('m5s5.today.monthly.allAction')}
               </Link>
             }
           >
-            <TodayMonthlyStrip
-              items={monthlyStrip}
-              loadMemoryImage={loadMemoryImage}
-            />
+            {loadMemoryImage && monthlyStrip.length > 0 ? (
+              <TodayMonthlyStrip
+                items={monthlyStrip}
+                loadMemoryImage={loadMemoryImage}
+              />
+            ) : null}
+            {monthlyNotes.length > 0 ? (
+              <div className="today-monthly-notes">
+                {monthlyNotes.map((item) => (
+                  <RecentSharedItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            ) : null}
           </TodayModuleSection>
         ) : null}
       </>
@@ -1359,7 +1387,6 @@ export function TodayPage({
           <TodayModuleSection
             className="today-section-recent"
             title={t('m5s5.dashboard.recentTitle')}
-            kicker={t('m5s5.dashboard.recentKicker')}
           >
             <div className="today-stream today-stream-recent">
               {recentSharedForTrace.slice(0, 4).map((item: DashboardItem) => (

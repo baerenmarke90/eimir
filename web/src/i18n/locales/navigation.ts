@@ -22,7 +22,7 @@ const navigation = {
   profileMenu: 'Profil und Konto',
   profile: 'Profil',
   settings: 'Einstellungen',
-  activity: 'Unsere Aktivitäten',
+  activity: 'Aktivitäten',
   newContent: 'Neu festhalten',
   closeMenu: 'Menü schließen',
   quickCreateTitle: 'Was möchtest du hinzufügen?',

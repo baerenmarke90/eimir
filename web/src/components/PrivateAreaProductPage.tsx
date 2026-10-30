@@ -85,12 +85,6 @@ function PrivateAreaOverview() {
                   <strong>{t(destination.title)}</strong>
                   <span>{t(destination.intro)}</span>
                 </span>
-                <span
-                  className="private-area-destination-chevron"
-                  aria-hidden="true"
-                >
-                  ›
-                </span>
               </Link>
             </li>
           ))}

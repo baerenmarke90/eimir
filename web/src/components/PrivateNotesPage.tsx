@@ -190,9 +190,6 @@ export function PrivateNotesListPage({ api, accountId, spaceId }: Props) {
                       <p className="private-area-excerpt">{note.body}</p>
                     ) : null}
                   </div>
-                  <span className="private-area-card-arrow" aria-hidden="true">
-                    →
-                  </span>
                 </Link>
               </li>
             ))}

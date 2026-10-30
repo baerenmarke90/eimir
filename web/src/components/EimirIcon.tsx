@@ -44,11 +44,17 @@ export const EIMIR_ICON_NAMES = [
   'eye-off',
   'smile-plus',
   'expand',
+  'quote',
 ] as const;
 export type EimirIconName = (typeof EIMIR_ICON_NAMES)[number];
 export type EimirIconVariant = 'outline' | 'filled' | 'duotone';
 
 const OUTLINE: Record<EimirIconName, ReactNode> = {
+  quote: (
+    <>
+      <path d="M4 5h6v7c0 3.5-2 6-6 7v-2c2.5-1 4-2.5 4-5H4V5ZM14 5h6v7c0 3.5-2 6-6 7v-2c2.5-1 4-2.5 4-5h-4V5Z" />
+    </>
+  ),
   'eye-off': (
     <>
       <path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.2A10.7 10.7 0 0 1 12 5c6 0 10 7 10 7a17 17 0 0 1-3.2 3.8M6.2 6.2A18.4 18.4 0 0 0 2 12s4 7 10 7a10.9 10.9 0 0 0 5.1-1.3" />

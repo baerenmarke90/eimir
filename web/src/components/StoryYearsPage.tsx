@@ -129,9 +129,7 @@ export function StoryYearsIndexPage({
             {t('storyYears.backToMoments')}
           </Link>
         }
-        eyebrow={t('storyYears.eyebrow')}
         title={t('storyYears.title')}
-        description={t('storyYears.intro')}
       />
 
       {offline ? (
@@ -176,9 +174,6 @@ export function StoryYearsIndexPage({
                         ? t('storyYears.currentYearHint')
                         : t('storyYears.pastYearHint')}
                     </span>
-                  </span>
-                  <span className="story-year-arrow" aria-hidden="true">
-                    →
                   </span>
                 </Link>
               </li>
@@ -318,7 +313,6 @@ export function StoryYearDetailPage({
             {t('storyYears.backToYears')}
           </Link>
         }
-        eyebrow={t('storyYears.eyebrow')}
         title={title}
         description={description}
         className="story-year-header"

@@ -17,8 +17,7 @@ const de = {
   more: {
     eyebrow: 'Mehr',
     title: 'Alles Weitere',
-    intro:
-      'Dein Profil, persönliche Bereiche, gemeinsame Organisation und die Einstellungen von eimir. an einem verlässlichen Ort.',
+    intro: 'Persönliches, gemeinsame Listen und Einstellungen.',
     groups: {
       personal: 'Für dich',
       shared: 'Gemeinsam',
@@ -239,7 +238,7 @@ const de = {
     eyebrow: 'Momente & Erinnerungen',
     title: 'Unsere Momente',
     intro:
-      'Erinnerungen, Herzensmomente und Meilensteine – euer ruhiges Zuhause für die Dinge, die bleiben.',
+      'Erinnerungen, Herzmomente und Meilensteine – euer ruhiges Zuhause für die Dinge, die bleiben.',
     timelineTitle: 'Momente',
     timelineIntro: 'Eure gemeinsame Geschichte.',
     addMemory: 'Erinnerung',
@@ -263,9 +262,9 @@ const de = {
     retrospectiveHeading: 'Rückblicke',
     retrospectiveSubhead: 'Ein Moment aus eurer gemeinsamen Geschichte.',
     retrospectiveOpen: 'Erinnerung öffnen',
-    milestonesTitle: 'Meilensteine & gemeinsame Schritte',
+    milestonesTitle: 'Meilensteine',
     milestonesDesc: 'Große und kleine Stationen eurer gemeinsamen Geschichte.',
-    chaptersTitle: 'Kapitel unserer Geschichte',
+    chaptersTitle: 'Kapitel',
     chaptersDesc:
       'Gemeinsame Erlebnisse und Reisen nach Lebensabschnitten bündeln.',
     yearArchiveTitle: 'Unsere Jahre',
@@ -274,7 +273,7 @@ const de = {
     loadingAria: 'Momente werden geladen',
     loadErrorTitle: 'Die Momente konnten nicht geladen werden.',
     loadErrorFallback: 'Bitte versuche es erneut.',
-    emptyTitle: 'Eure Story beginnt hier.',
+    emptyTitle: 'Eure Geschichte beginnt hier',
     emptyBody: 'Haltet euren ersten gemeinsamen Moment fest.',
     emptyAction: 'Ersten Moment festhalten',
     aria: 'Gemeinsame Story',

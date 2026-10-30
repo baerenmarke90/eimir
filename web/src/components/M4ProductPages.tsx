@@ -219,7 +219,6 @@ export function SearchProductPage({
   return (
     <div className="page m4-product-page">
       <PageHeader
-        eyebrow={t('m5s5.search.eyebrow')}
         title={t('m5s5.search.title')}
         description={t('m5s5.search.intro')}
       />
@@ -405,11 +404,6 @@ function ActivityCard({
             {formatDateTime(item.occurredAt)}
           </time>
         </div>
-        {path ? (
-          <span className="activity-card-chevron" aria-hidden="true">
-            ›
-          </span>
-        ) : null}
       </div>
       {item.target?.title ? (
         <div className="activity-card-target">
@@ -471,9 +465,7 @@ export function ActivityProductPage({
   return (
     <div className="page m4-product-page">
       <PageHeader
-        eyebrow={t('m5s5.activity.eyebrow')}
         title={t('m5s5.activity.title')}
-        description={t('m5s5.activity.intro')}
         action={
           <button
             type="button"
@@ -595,11 +587,7 @@ function NotificationCard({
             {formatDateTime(item.createdAt)}
           </time>
         </div>
-        {path ? (
-          <span className="activity-card-chevron" aria-hidden="true">
-            ›
-          </span>
-        ) : !item.readAt ? (
+        {!path && !item.readAt ? (
           <button
             type="button"
             className="secondary compact-action m4-mark-read-btn"
@@ -780,9 +768,7 @@ export function NotificationsProductPage({
   return (
     <div className="page m4-product-page">
       <PageHeader
-        eyebrow={t('m5s5.notifications.eyebrow')}
         title={t('m5s5.notifications.title')}
-        description={t('m5s5.notifications.intro')}
         action={
           <button
             type="button"

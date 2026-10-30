@@ -693,11 +693,7 @@ export function StoryProductPage({
 
       <PullToRefreshIndicator state={pullRefresh} />
 
-      <PageHeader
-        variant="root"
-        title={t('story.timelineTitle')}
-        description={t('story.timelineIntro')}
-      />
+      <PageHeader variant="root" title={t('story.timelineTitle')} />
 
       {storyQuery.isLoading ? (
         <UiState kind="loading" title={t('story.loadingAria')} />

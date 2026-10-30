@@ -46,11 +46,7 @@ export function ProfilePage(props: ProfilePageProps) {
 
   return (
     <div className="page profile-page">
-      <PageHeader
-        eyebrow={t('profiles.eyebrow')}
-        title={t('profiles.title')}
-        description={t('profiles.intro')}
-      />
+      <PageHeader title={t('profiles.title')} />
 
       {/* Relationship compact badge/row (if anniversary date is configured) */}
       <RelationshipSummarySection
@@ -79,12 +75,8 @@ export function ProfilePage(props: ProfilePageProps) {
         className="profile-premium-section"
         aria-labelledby="profile-premium-title"
       >
-        <p className="eyebrow">{t('profiles.premium.eyebrow')}</p>
         <div className="profile-premium-title-row">
           <h2 id="profile-premium-title">{t('profiles.premium.title')}</h2>
-          <span className="profile-premium-badge">
-            {t('profiles.premium.badge')}
-          </span>
         </div>
         <p className="profile-premium-lead">
           {t('profiles.premium.gamesTitle')}

@@ -88,6 +88,7 @@ export class Configuration extends GeneratedConfiguration {
           (!stored?.spaceId || stored.spaceId === spaceId)
         );
       },
+      owner.accountId,
     );
   }
 }

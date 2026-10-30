@@ -246,6 +246,7 @@ function AuthenticatedAppShell({
       : 'memoryProduct.backToStory',
   );
   const isFocusedTask =
+    /^\/more\/passport\/[^/]+$/.test(location.pathname) ||
     location.pathname === MEMORY_CREATE_ROUTE ||
     location.pathname === '/plan/plans/new' ||
     location.pathname === '/plan/wishes/new';

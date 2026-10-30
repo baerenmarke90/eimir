@@ -385,22 +385,17 @@ test('shared photos: Compact/Expanded themes, 320px, 200% text and accessible ga
   await page.evaluate(() => {
     document.documentElement.style.fontSize = '';
   });
-  await page.goto('/story');
-  await page
-    .getByRole('button', {
-      name: storyProducts.storyFilters.toggleButton,
-      exact: true,
-    })
-    .click();
+  await page.goto('/story?tab=timeline');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await page
     .getByRole('link', { name: sharedPhotos.browse, exact: true })
     .click();
   await expect(page).toHaveURL(/\/story\/photos$/);
   await page.goBack();
-  await expect(page).toHaveURL(/\/story$/);
+  await expect(page).toHaveURL(/\/story\?tab=timeline$/);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
-    page.getByRole('heading', { name: de.story.tabTimeline, exact: true }),
+    page.getByRole('tab', { name: de.story.tabTimeline, exact: true }),
   ).toBeVisible();
 });
 

@@ -126,7 +126,8 @@ for (const scenario of cases) {
           .click();
         await state.panel.getByRole('textbox').fill('A thought worth keeping.');
       } else {
-        await state.panel.locator('.comment-menu-trigger').click();
+        if (operation === 'delete')
+          await state.panel.locator('.comment-menu-trigger').click();
         if (operation === 'update') {
           await state.panel
             .getByRole('button', { name: copy.edit, exact: true })

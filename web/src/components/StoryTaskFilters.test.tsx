@@ -149,11 +149,11 @@ describe('Timeline filter task', () => {
     ).toBeDefined();
   });
 
-  it('keeps the Diary filter and retained scope available on the combined page', async () => {
+  it('keeps the Diary filter and retained scope available in its selected tab', async () => {
     const load = setup();
-    expect(screen.queryByRole('tablist')).toBeNull();
+    expect(screen.getByRole('tablist')).toBeDefined();
     expect(
-      screen.getByRole('heading', { name: de.story.tabTimeline }),
+      screen.getByRole('tab', { name: de.story.tabTimeline, selected: true }),
     ).toBeDefined();
     const dialog = await openFilters();
     expect(

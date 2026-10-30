@@ -384,6 +384,9 @@ def export_compose(canonical: dict, backend: str, web: str) -> dict:
         "EIMIR_OIDC_CONNECTIONS": "[]",
         # Optional personal-source configuration is supplied by the instance,
         # never frozen to source defaults or the publishing runner's values.
+        "EIMIR_RECAP_AI_URL": "${EIMIR_RECAP_AI_URL:-}",
+        "EIMIR_RECAP_AI_MODEL": "${EIMIR_RECAP_AI_MODEL:-qwen3:1.7b-q4_K_M}",
+        "EIMIR_RECAP_AI_TIMEOUT_SECONDS": "${EIMIR_RECAP_AI_TIMEOUT_SECONDS:-90}",
         "EIMIR_PHOTO_SOURCES_ENABLED": "${EIMIR_PHOTO_SOURCES_ENABLED:-true}",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_ID": "${EIMIR_GOOGLE_PHOTOS_CLIENT_ID:-}",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}",

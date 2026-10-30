@@ -242,6 +242,7 @@ describe('PartnerQuickActions', () => {
       await screen.findByText(copy.sentThinking);
       expect(activated).toBe(true);
       expect(sendThinkingOfYou).toHaveBeenCalledTimes(1);
+      expect(view.snackbars).toEqual([]);
     } finally {
       unsubscribe();
     }

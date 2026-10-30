@@ -68,9 +68,23 @@ class ProjectIdentityScanTest(unittest.TestCase):
         line = "Create two complete Compact smartphone screens side by side."
         classification, _ = classify(path, line, "side by side")
         self.assertEqual(classification, Classification.FALSE_POSITIVE)
+        classification, _ = classify(
+            path, line + " Use SideBySide branding.", "SideBySide"
+        )
+        self.assertEqual(classification, Classification.MUST_RENAME)
+        classification, _ = classify(
+            Path("backend/src/example.py"), line, "side by side"
+        )
+        self.assertEqual(classification, Classification.MUST_RENAME)
+
+    def test_exact_places_and_lists_prompt_retains_ordinary_layout_wording(self) -> None:
+        path = Path("docs/product/design/references/places-and-lists/reference-prompt.txt")
+        line = "Preflight, four whole Compact smartphone app screens side-by-side."
+        classification, _ = classify(path, line, "side-by-side")
+        self.assertEqual(classification, Classification.FALSE_POSITIVE)
         classification, _ = classify(path, line + " Use SideBySide branding.", "SideBySide")
         self.assertEqual(classification, Classification.MUST_RENAME)
-        classification, _ = classify(Path("backend/src/example.py"), line, "side by side")
+        classification, _ = classify(Path("backend/src/example.py"), line, "side-by-side")
         self.assertEqual(classification, Classification.MUST_RENAME)
 
     def test_required_patterns_are_case_insensitive_and_complete(self) -> None:
@@ -90,6 +104,24 @@ class ProjectIdentityScanTest(unittest.TestCase):
         for sample in samples:
             with self.subTest(sample=sample):
                 self.assertIsNotNone(LEGACY_PATTERN.search(sample))
+
+    def test_exact_recap_prompt_retains_layout_provenance_only(self) -> None:
+        path = Path(
+            "docs/product/design/references/automatic-relationship-recaps/prompt.txt"
+        )
+        line = "Two flat smartphone screens side by side at consistent proportions."
+        self.assertEqual(
+            classify(path, line, "side by side")[0], Classification.FALSE_POSITIVE
+        )
+        for candidate, text, match in (
+            (path, line + " Use SideBySide branding.", "SideBySide"),
+            (path, "Use SideBySide branding.", "SideBySide"),
+            (Path("backend/src/example.py"), line, "side by side"),
+        ):
+            with self.subTest(path=candidate, match=match):
+                self.assertEqual(
+                    classify(candidate, text, match)[0], Classification.MUST_RENAME
+                )
 
 
 if __name__ == "__main__":

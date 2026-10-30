@@ -340,3 +340,10 @@ export function collectionDetailPath(collectionId: string): string {
 export const MORE_INSIGHTS_ROUTE = '/more/insights';
 export const MORE_INSIGHTS_PATTERNS_ROUTE = `${MORE_INSIGHTS_ROUTE}/patterns`;
 export const MORE_INSIGHTS_RECAP_ROUTE = `${MORE_INSIGHTS_ROUTE}/recap`;
+
+/** Automatic relationship recaps, discovered in More and the profile. */
+export const MORE_PASSPORT_ROUTE = '/more/passport';
+export const RECAP_DETAIL_ROUTE_PATTERN = `${MORE_PASSPORT_ROUTE}/:recapId`;
+export function recapDetailPath(recapId: string): string {
+  return `${MORE_PASSPORT_ROUTE}/${encodeURIComponent(recapId)}`;
+}

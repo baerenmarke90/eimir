@@ -1,9 +1,9 @@
 .momente-diary-section {
-  margin-top: var(--space-6);
+  margin-top: 0;
   scroll-margin-top: var(--space-6);
 }
 
-/* PO #1508: one rediscovery composition followed by the complete Diary. */
+/* Preserve the existing content composition within each peer mode. */
 .story-page-unified .momente-discover-page,
 .momente-diary-section {
   display: grid;
@@ -309,7 +309,11 @@
 
 /* Color follows the story's meaning, while the chronology stays open. */
 .story-page-unified .momente-diary-section .story-card-heart-moment {
-  --diary-entry-surface: var(--color-brand-surface);
+  --diary-entry-surface: var(--heart-emotion-surface);
+}
+
+.story-page-unified .momente-diary-section > .momente-browse-layer {
+  margin: 0 0 var(--space-2);
 }
 .story-page-unified .momente-diary-section .story-card-milestone {
   --diary-entry-surface: var(--color-shared-surface);

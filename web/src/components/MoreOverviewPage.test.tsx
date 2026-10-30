@@ -68,10 +68,10 @@ describe('MoreOverviewPage', () => {
     expect(html).not.toContain(de.more.intro);
 
     const rowMatches = html.match(/class="more-destination"/g);
-    expect(rowMatches).toHaveLength(10);
+    expect(rowMatches).toHaveLength(11);
 
     const badgeMatches = html.match(/class="more-destination-badge"/g);
-    expect(badgeMatches).toHaveLength(2);
+    expect(badgeMatches).toHaveLength(3);
     expect(html).toContain(games.status.premium);
     expect(html).toContain(dailyInsights.week.title);
     expect(html).toContain(dailyInsights.pro);

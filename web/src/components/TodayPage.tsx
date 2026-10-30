@@ -28,7 +28,7 @@ import {
   selectedDashboardCollectionId,
 } from '../client/dashboardPreferences';
 import { formatRecency, formatCalendarDate } from '../client/formatRecency';
-import { isGeneratedMemoryTitle } from '../client/memoryProduct';
+import { dashboardItemTitle } from '../client/dashboardPresentation';
 import {
   dashboardItemPath,
   engagementTargetPath,
@@ -261,7 +261,7 @@ function RecentSharedItemCard({ item }: { item: DashboardItem }) {
   const rawDate = item.occurredOn ?? item.scheduledAt ?? item.createdAt;
   const recency = rawDate ? formatRecency(rawDate, t) : null;
   const typeLabel = t(`m5s5.kind.${item.type}`);
-  const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
+  const { title, titleIsDate } = dashboardItemTitle(item, t);
 
   const tileInner = (
     <>
@@ -279,7 +279,7 @@ function RecentSharedItemCard({ item }: { item: DashboardItem }) {
             than a warm shared-life trace (#790/#791 fourth follow-up). */}
         <span className="sr-only">{typeLabel}: </span>
         <span className="today-recent-tile-title">{title}</span>
-        {recency ? (
+        {recency && !titleIsDate ? (
           <time
             className="today-recent-tile-date"
             dateTime={rawDate?.toISOString()}
@@ -390,18 +390,12 @@ function TodayMomentFeature({
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
   const rawDate = item.occurredOn ?? item.createdAt;
-  const generatedTitle =
-    item.type === 'MEMORY' &&
-    isGeneratedMemoryTitle(item.titleOrText ?? '', item.occurredOn, t);
+  const { title, titleIsDate } = dashboardItemTitle(item, t);
   const date = item.occurredOn
     ? formatCalendarDate(item.occurredOn)
     : rawDate
       ? formatDate(rawDate)
       : null;
-  const title =
-    generatedTitle && date
-      ? date
-      : item.titleOrText || t(`m5s5.kind.${item.type}`);
   const previewAttachmentId = item.previewAttachmentId;
   const hasImage = Boolean(previewAttachmentId && loadMemoryImage);
 
@@ -420,7 +414,7 @@ function TodayMomentFeature({
       </div>
       <figcaption className="today-moment-caption">
         <span className="today-moment-title">{title}</span>
-        {date && !generatedTitle ? (
+        {date && !titleIsDate ? (
           <time className="today-moment-date" dateTime={rawDate?.toISOString()}>
             {date}
           </time>
@@ -435,7 +429,7 @@ function TodayMomentFeature({
           : t('m5s5.today.keepsake.sharedTextContext')}
       </span>
       <p className="today-moment-text-content">{title}</p>
-      {date && !generatedTitle ? (
+      {date && !titleIsDate ? (
         <time
           className="today-moment-text-date"
           dateTime={rawDate?.toISOString()}
@@ -543,7 +537,7 @@ function TodayLivingModuleCard({
 
   const { item, kind } = module;
   const path = dashboardItemPath(item.type, item.id);
-  const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
+  const { title, titleIsDate } = dashboardItemTitle(item, t);
   const label = t(`m5s5.today.living.${kind}Label`);
   const action = t(`m5s5.today.living.${kind}Action`);
   const rawDate = item.occurredOn ?? item.scheduledAt ?? item.createdAt;
@@ -595,7 +589,7 @@ function TodayLivingModuleCard({
             }`}
           >
             <span className="today-retrospective-title">{title}</span>
-            {date ? (
+            {date && !titleIsDate ? (
               <time className="today-retrospective-date" dateTime={dateTime}>
                 {date}
               </time>
@@ -633,7 +627,9 @@ function TodayLivingModuleCard({
       <div className="today-living-body">
         <span className="today-living-label">{label}</span>
         <p className="today-living-title">{title}</p>
-        {meta ? <span className="today-living-meta">{meta}</span> : null}
+        {meta && !titleIsDate ? (
+          <span className="today-living-meta">{meta}</span>
+        ) : null}
       </div>
       {path ? (
         <TodayDestinationLink to={path} className="today-living-action">
@@ -671,7 +667,7 @@ function TodayMonthlyStrip({
     >
       {items.map((item) => {
         const path = dashboardItemPath(item.type, item.id);
-        const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
+        const { title, titleIsDate } = dashboardItemTitle(item, t);
         const tile = (
           <span className="today-monthly-tile-media">
             {item.previewAttachmentId ? (
@@ -698,7 +694,7 @@ function TodayMonthlyStrip({
                 {tile}
                 <span className="today-monthly-caption">
                   <strong>{title}</strong>
-                  {item.occurredOn ? (
+                  {item.occurredOn && !titleIsDate ? (
                     <time dateTime={item.occurredOn.toISOString()}>
                       {formatCalendarDate(item.occurredOn)}
                     </time>
@@ -710,7 +706,7 @@ function TodayMonthlyStrip({
                 {tile}
                 <span className="today-monthly-caption">
                   <strong>{title}</strong>
-                  {item.occurredOn ? (
+                  {item.occurredOn && !titleIsDate ? (
                     <time dateTime={item.occurredOn.toISOString()}>
                       {formatCalendarDate(item.occurredOn)}
                     </time>
@@ -1076,17 +1072,6 @@ export function TodayPage({
   const sharedStorySummaryVisible =
     wirStatistics.allowed && wirStatistics.enabled && !dashboardQuery.isCached;
 
-  const heroHorizon = upcomingVisible
-    ? anticipation
-      ? { to: planDetailPath(anticipation.planId), title: anticipation.title }
-      : upcoming
-          .map((item) => ({
-            to: dashboardItemPath(item.type, item.id),
-            title: item.titleOrText,
-          }))
-          .find((item) => item.to && item.title)
-    : undefined;
-
   const isSparse = Boolean(
     dashboardQuery.data &&
       !(sharedStorySummaryVisible && dashboardQuery.data.sharedStorySummary) &&
@@ -1150,14 +1135,6 @@ export function TodayPage({
           : undefined
       }
       durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
-      context={
-        contentReady && heroHorizon?.to ? (
-          <Link className="today-hero-context" to={heroHorizon.to}>
-            <span>{t('relationshipReflections.passport.nextExperience')}</span>
-            <strong>{heroHorizon.title}</strong>
-          </Link>
-        ) : undefined
-      }
       avatarSize="hero"
       avatarAction={avatarAction}
       avatarOverlay={avatarOverlay}

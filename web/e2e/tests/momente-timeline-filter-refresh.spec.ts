@@ -368,7 +368,7 @@ test.describe('Momente Timeline compact controls and refresh (#974)', () => {
     await expect(page).toHaveURL(/tab=timeline/);
     await expect(page).toHaveURL(/type=MEMORY/);
     await expect(
-      page.getByRole('heading', { name: de.story.tabTimeline, exact: true }),
+      page.getByRole('tab', { name: de.story.tabTimeline, exact: true }),
     ).toBeVisible();
     await expect(
       page

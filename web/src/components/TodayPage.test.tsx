@@ -1044,8 +1044,8 @@ describe('TodayPage', () => {
     expect(html.split('today-section-living').length - 1).toBe(1);
 
     // Zero duplication: the upcoming item appears exactly once
-    expect(html.split('Candlelight Dinner').length - 1).toBe(2);
-    expect(html).toContain('today-hero-context');
+    expect(html.split('Candlelight Dinner').length - 1).toBe(1);
+    expect(html).not.toContain('today-hero-context');
   });
 
   it('omits the planning area entirely when neither upcoming item nor relationship activity exists', () => {
@@ -2594,7 +2594,7 @@ describe('Today content clarity', () => {
     const focal = html
       .split('today-moment-text-content')[1]
       .split('</article>')[0];
-    expect(focal).toContain('27.10.2026');
+    expect(focal).toContain('27. Oktober 2026');
     expect(focal).not.toContain('Erinnerung vom');
     expect(focal).not.toContain('today-moment-text-date');
   });

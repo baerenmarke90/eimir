@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
@@ -259,11 +260,15 @@ async function captureEvidence(
   testInfo: TestInfo,
   name: string,
 ): Promise<void> {
-  await page.screenshot({ path: testInfo.outputPath(name), fullPage: true });
+  await page.screenshot({
+    path: testInfo.outputPath(name),
+    fullPage: true,
+    animations: 'disabled',
+  });
 }
 
 test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
-  test('uses canonical Discover data above the independent Diary in Compact and Expanded', async ({
+  test('switches between canonical Discover and the independent Diary in Compact and Expanded', async ({
     page,
   }, testInfo) => {
     const tracker: RequestTracker = {
@@ -293,21 +298,21 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
       '/story/milestones/discover-milestone',
       '/story/memories/discover-memory',
     ]);
-    await expect(diary.getByText('A complete diary day')).toBeVisible();
-    expect(tracker.timelineRequests).toBeGreaterThan(0);
+    const discoverTab = page.getByRole('tab', { name: de.story.tabDiscover });
+    const diaryTab = page.getByRole('tab', { name: de.story.tabTimeline });
+    await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
+    await expect(diary).toBeHidden();
     await expect(discover.getByText('A complete diary day')).toHaveCount(0);
+    expect(tracker.timelineRequests).toBeGreaterThan(0);
+
+    await diaryTab.click();
+    await expect(diary.getByText('A complete diary day')).toBeVisible();
+    await expect(page.locator('#momente-panel-discover')).toBeHidden();
     await expect(diary.getByText('Morning by the lake')).toHaveCount(0);
-    const order = await page.evaluate(() => {
-      const discover = document.querySelector('.momente-discover-page');
-      const diary = document.querySelector('#momente-diary');
-      return Boolean(
-        discover &&
-          diary &&
-          discover.compareDocumentPosition(diary) &
-            Node.DOCUMENT_POSITION_FOLLOWING,
-      );
-    });
-    expect(order).toBe(true);
+    await expect(page.getByRole('tabpanel')).toHaveCount(1);
+    await captureEvidence(page, testInfo, 'moments-tabs-diary-390-light.png');
+    await discoverTab.click();
+    await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
 
     await captureEvidence(page, testInfo, 'story-971-discover-390-compact.png');
 
@@ -315,11 +320,87 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
     await expect(page.locator('.momente-discover-page')).toBeVisible();
     await expect(discover.getByText('Winter evening')).toBeVisible();
     await expect(discover.locator('.momente-tapestry-item')).toHaveCount(3);
-    await expect(diary.getByText('A complete diary day')).toBeVisible();
+    await expect(diary).toBeHidden();
     await captureEvidence(
       page,
       testInfo,
       'story-971-discover-1440-expanded.png',
     );
+    await diaryTab.click();
+    await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
+    await captureEvidence(page, testInfo, 'moments-tabs-diary-1440-light.png');
+
+    // Keep Timeline scope parked while Discover uses its own canonical data.
+    await page.goto('/story?tab=timeline&type=MEMORY&year=2026&order=ASC');
+    await expect(diary.getByText('A complete diary day')).toBeVisible();
+    await discoverTab.click();
+    await expect(page).toHaveURL(/tab=discover/);
+    await expect(page).toHaveURL(/type=MEMORY/);
+    await expect(page).toHaveURL(/year=2026/);
+    await expect(page).toHaveURL(/order=ASC/);
+    await expect(discover.getByText('Thinking of you')).toBeVisible();
+    await page.goBack();
+    await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
+    await expect(diary.getByText('A complete diary day')).toBeVisible();
+
+    await diaryTab.focus();
+    await diaryTab.press('ArrowLeft');
+    await expect(discoverTab).toBeFocused();
+    await expect(discoverTab).toHaveAttribute('tabindex', '0');
+    await expect(diaryTab).toHaveAttribute('tabindex', '-1');
+    await discoverTab.press('End');
+    await expect(diaryTab).toBeFocused();
+    await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
+    await diaryTab.press('Home');
+    await expect(discoverTab).toBeFocused();
+    await discoverTab.press('ArrowRight');
+    await expect(diaryTab).toBeFocused();
+    await diaryTab.press('ArrowRight');
+    await expect(discoverTab).toBeFocused();
+
+    for (const width of [360, 390, 430, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      for (const [view, tab] of [
+        ['discover', discoverTab],
+        ['diary', diaryTab],
+      ] as const) {
+        await tab.click();
+        await expect(tab).toHaveAttribute('aria-selected', 'true');
+        await expect(page.getByRole('tabpanel')).toHaveCount(1);
+        const box = await tab.boundingBox();
+        expect(box?.height).toBeGreaterThanOrEqual(44);
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+          ),
+        ).toBe(true);
+        await captureEvidence(
+          page,
+          testInfo,
+          `moments-tabs-${view}-${width}-light.png`,
+        );
+      }
+    }
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    for (const [view, tab] of [
+      ['discover', discoverTab],
+      ['diary', diaryTab],
+    ] as const) {
+      await tab.click();
+      await expect(tab).toHaveAttribute('aria-selected', 'true');
+      await captureEvidence(
+        page,
+        testInfo,
+        `moments-tabs-${view}-390-dark.png`,
+      );
+      const accessibility = await new AxeBuilder({ page })
+        .include('.story-page')
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+        .analyze();
+      expect(accessibility.violations).toEqual([]);
+    }
   });
 });

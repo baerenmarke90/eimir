@@ -76,6 +76,9 @@ The earlier [design evidence directory](../../design/eimir/README.md) links here
 
 ## Maintenance and review
 
+[Places and shared Lists](places-and-lists.md) records the #1529 Compact
+correction, generated preflight, interaction contract and implementation evidence.
+
 Read v1 before implementing a design slice. Start from fresh main and inspect current issues/PRs; approved direction is stable, but component names and runtime behavior must be checked live. Record the chosen reference, Mobile Interaction Contract, reusable patterns, bounded proof and evidence plan before UI code.
 
 Review the complete human journey and its states, then update the relevant domain/pattern guidance alongside implementation. Do not use an old screenshot test to reject an intentional v1 correction without checking the current contract. Equally, do not delete useful privacy, state, accessibility or navigation assertions while updating visual baselines.

@@ -28,7 +28,7 @@ const photoPlaces = {
   more: 'Weitere Orte laden',
   actions: 'Aktionen für {{name}}',
   actionButton: 'Aktionen',
-  edit: 'Ort ansehen und bearbeiten',
+  edit: 'Ort ansehen',
   maps: 'In Google Maps öffnen (extern)',
   mapAddress: '{{address}} – in Google Maps öffnen (extern)',
   viewMap: 'Auf Karte ansehen',

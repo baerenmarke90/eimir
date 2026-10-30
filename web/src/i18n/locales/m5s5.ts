@@ -34,7 +34,7 @@ const m5s5 = {
     pinnedCollectionSettingsTitle: 'Angeheftete Liste',
     recentKicker: 'Aktivitäten',
     recentTitle: 'Zuletzt bei euch',
-    allActivityAction: 'Alle Aktivitäten ansehen →',
+    allActivityAction: 'Alle Aktivitäten ansehen',
     recentEmpty: 'Noch keine gemeinsamen Einträge vorhanden.',
     storySummaryKicker: 'Was schon zu euch gehört',
     storySummaryTitle: 'Eure Geschichte',

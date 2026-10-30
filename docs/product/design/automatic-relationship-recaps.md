@@ -1,0 +1,72 @@
+# Automatic relationship recaps with lean local inference
+
+Owner: explicit PO approval in the 2026-10-30 workspace conversation, following #497. The approved automatic mobile prototype is the composition target. This decision supersedes the previous read-only/no-snapshot Passport boundary only for the additive recaps described here. Existing source history, relationship context, chapter organization and essential export remain Free.
+
+## Baseline and visual preflight
+
+Reviewed `origin/main@1468e0a6e66eb5bd7b9192bf65ac357d8351b4d0` before implementation: ProfilePage/RelationshipPassport and its existing identity, duration, optional lifetime numbers, rediscovery and next occasions; MoreOverviewPage; route registry/App shell; Story/MemoryPreview and authorized media loader; worker/DB queue; current Compose runtime; Product Reference v1, R2/R4/R5 and semantic tokens. Keep four root destinations and central create. Profile and its settings remain intact; it gets a named Passport link, and More gets a named Passport destination.
+
+![Generated Compact composition](references/automatic-relationship-recaps/compact-reference.png)
+
+Generated with the built-in Imagegen tool after that review, before UI implementation. The [exact prompt](references/automatic-relationship-recaps/prompt.txt) is retained. Example photos and text are composition guidance, never production fixture content. Implement using actual authorized user content. Existing shared counts, source history and relationship occasions remain progressively disclosed.
+
+## Mobile Interaction Contract
+
+The human task is opening a personally relevant ready-to-read recap, then optionally refining it. Months and Years are visible peer tabs. A natural photo or a short authored text leads the cover. Exact period and partial/completed meaning stay visible. Current month/year are explicitly partial; past months and years have their own editions. A year is composed from full-year evidence, not concatenated monthly pages.
+
+Open a cover into a focused reader with local Back and explicit Previous/Next; do not require swiping. Source links open canonical detail and restore the recap, period, page and meaningful browsing position on return. Selection and alternative-variant actions are deliberate, bounded tasks. Reflecting is optional: a private draft is separate from deliberately shared words, with explicit save/share/withdraw behavior. Saving an edition freezes editorial choices; a later live proposal is separate. Existing saved artifacts remain readable after Pro expires. Critical permission, pending and failure states are visible.
+
+Use existing PageHeader, SegmentedControl/tabs, Button/links, ProblemState, MemoryPreview, authorized image reads, ProMark and semantic typography, spacing, motion and surface tokens. The content focal point is a real picture or authored words; the main overview action opens the recap. No score, streak, emotional ranking, invented chronology, fake photo or dashboard tile wall. Utility text stays Instrument Sans; short editorial meaning may use Literata.
+
+First load reserves meaningful cover proportions; background reads retain authorized content. Empty means no eligible shared material, with a source-history/capture action. Generation pending is distinct from an empty period. Failure has local retry without erasing drafts or selection. Offline reads never imply a successful write. An authoritative denial drops cached content. Sparse material produces fewer spreads; dense material receives a bounded, time-distributed selection. A missing photo becomes a text composition. Narrow 320/360/390/430 and large text reflow; Light/Dark use semantic roles. Motion explains tab/page/save transitions and remains non-blocking; reduced motion preserves state/focus without translation. Expanded retains the same order and comfortable reading measure, using width for imagery rather than extra controls. No Capacitor/native behavior changes.
+
+## Runtime and privacy contract
+
+Reuse the existing database worker and scheduler. Select full-period shared metadata and actual typed chapter/plan/place relations, deduplicate, balance time and content kinds, then read only the bounded selected content. The server owns permissions, dates, counts, media and quotations. A small optional local model writes a short heading/introduction from the approved text-only evidence packet. It cannot supply source identities, dates or executable markup. JSON shape and allowed sources are validated; timeout, disabled model, invalid output or unsupported content uses localized factual templates.
+
+Period boundaries are frozen in the edition using the Space calendar context (or a stable founder-context fallback), never a temporary browser zone. Reopening uses persisted results for both partners. Source versions and shared eligibility are revalidated before publication and on read. Changed/removed sources suppress their preview and derived prose; mutation invalidation scrubs stored model prose. Private HeartMoments, private notes/gifts and undisclosed daily answers never enter evidence or shared counts. Reflection drafts are owner-only; sharing is an explicit separate write. Concurrent editing uses versions and tenant/lifecycle guards.
+
+Persist source references and generated presentation behind the existing ProtectedPayload boundary; never persist signed media URLs or copy original photos/text into a second uncontrolled album. Saved edition editorial data is immutable, subject to source deletion/withdrawal and author withdrawal. Space/account lifecycle and essential transfer must include the new authored/persisted data without exposing another person's private draft. No public share/export renderer is added.
+
+## Reuse and operations review
+
+Reviewed existing DB jobs, httpx, Pydantic, authorized Story/Chapter/Plan queries, source media, PostgreSQL persistence and OpenAPI generation. For inference reviewed Ollama's native local HTTP interface versus an embedded Python model stack, a separate orchestration/queue/vector stack, llama.cpp and remote APIs. Select one optional CPU-only Ollama container using the existing Docker app network and persistent model volume; no published host port, proxy attachment, GPU runtime or Python ML dependencies. The existing HTTP client and schema validation suffice; custom code is bounded application-specific selection/orchestration.
+
+Start with `qwen3:1.7b-q4_K_M` (approximately 1.4 GB model download, not runtime RAM). Ollama MIT / Qwen Apache-2.0 support the intended local deployment; preserve notices when distributing these third-party artifacts. Use `OLLAMA_NO_CLOUD=1`, one concurrent generation, bounded context/output, no thinking trace, unload after a job, short timeout and a deterministic complete fallback. Exact language quality/latency must be measured separately, not assumed. No API/subscription fee; existing compute, power and storage still apply. Ordinary couples configure no technical settings. Operator settings stay in the runtime configuration. Both Cloud and Self-Hosted retain identical capability and privacy semantics.
+
+Primary sources checked 2026-10-30: [Docker](https://docs.ollama.com/docker), [local-only settings](https://docs.ollama.com/faq), [structured output](https://docs.ollama.com/capabilities/structured-outputs), [thinking controls](https://docs.ollama.com/capabilities/thinking), [quantized model](https://ollama.com/library/qwen3:1.7b-q4_K_M), [upstream model/license](https://huggingface.co/Qwen/Qwen3-1.7B), [Ollama license](https://github.com/ollama/ollama/blob/main/LICENSE). No current public-provider terms or performance guarantees are inferred.
+
+## Business/freemium and cross-cutting review
+
+Business/freemium impact reviewed: live composition, automatic generation, selection/variants and new edition creation use Space capability `relationship.passport`. One grant serves both partners. Saved editions and existing authored reflections remain readable after downgrade; source history, basic chapters and essential portability stay Free. Update the authoritative matrix with this explicit PO decision. No new paid inference provider or artificial Self-Hosted limit. Storage/compute are bounded operational resources, not a source-content quota.
+
+Review scope includes tenant/owner separation, encrypted payloads, source withdrawal/deletion and revoked membership, no prompt/content logging, bounded parsing/output, provider failure fallback, optimistic concurrency, idempotent job scheduling/retry, localized UI/dates and generated language context, accessibility/focus/return, media performance, additive migration/OpenAPI clients, transfer and lifecycle, Compose/Arcane deployment and release identity. Tests must cover PostgreSQL isolation/private exclusion and mutation races, generation staleness/idempotency, model failure/schema validation, calendar boundaries, Free downgrade reads, source invalidation and actual mobile open/edit/save/return. Render Compact/Expanded, Light/Dark, narrow/large text, sparse/empty/error and reduced-motion evidence before merge.
+
+Arcane commands must extend the PO's supplied `eimir-test` Compose and external networks/volumes, preserve existing secret substitutions and pinned application images until replacements are actually built, and never claim an old digest contains the feature. No production deployment is authorized by preparing those commands.
+
+## Delivery evidence and limits
+
+The implemented routes are `/more/passport` and `/more/passport/:recapId`, with
+Months/Years and a bounded, explicit reader page in the return context. The
+profile now continues into that named More destination. Existing next occasions
+and opt-in lifetime counters remain under a secondary disclosure, whose open
+state is retained in the route. Reader tasks reuse ShortTaskSheet's native
+modal/focus/history/dirty handling. All new visible copy is localized.
+
+The optional inference service is defined once in canonical Compose. For the
+existing Git Sync test deployment it runs in a separate Arcane project on the
+same existing data network; the channel exporter forwards only operator settings
+for API/worker. This preserves the four-service application channel's existing
+image and data lifecycle. See [the operator runbook](../../LOCAL-RECAP-AI.md).
+
+Browser fixtures use explicitly synthetic shared entries and the generated empty
+lake image; no fixture photograph or authored prose is a production fallback.
+Representative real-UI evidence lives alongside the generated preflight reference
+in `references/automatic-relationship-recaps/evidence/`. The generated reference
+is design input; screenshots are implementation evidence.
+
+The actual local model was not installed or benchmarked during this change.
+HTTP/schema, bounded payload, missing/invalid service fallback and CPU/unload
+options are tested. No language-quality, host latency or native Android-device
+acceptance claim is made from those tests. The same Web implementation ships in
+the Capacitor wrapper; device-specific gates remain separate.

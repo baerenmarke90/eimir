@@ -14,6 +14,10 @@
       "sha256": "24b46c9ec9079822e4edcdc79f58a1d552121c12ad61b71d52cac743ea1d5917"
     },
     {
+      "path": "web/e2e/tests/product-consistency.spec.ts",
+      "sha256": "b41b9139b57687877e007027cc5a00884becd950ab93f90e1fa3c5928ddcf2ec"
+    },
+    {
       "path": "web/e2e/tests/shared-photos.spec.ts",
       "sha256": "c2b7dc2e34d3fa7051c568673f9a2d669b26b90d36651bb84976d0dda0cd2f18"
     },

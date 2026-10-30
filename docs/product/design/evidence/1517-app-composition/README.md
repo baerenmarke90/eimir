@@ -77,3 +77,17 @@ chronology and no-duplication assertions are unchanged; the quote collection
 continues to prove current-month prose/Milestone inclusion. All 112 existing
 Today composition and component tests pass, along with changed-spec formatting
 and lint. The complete pinned GitHub browser run remains required before merge.
+
+
+## Product-consistency Place journey migration
+
+The final critical run passed groups 1/4, 2/4 and 4/4; group 3/4 passed 119 cases
+before an older product-consistency journey waited for Add Place in read mode.
+Both saved-Place and create/retry journeys now enter the Memory editor through
+its existing Edit link. The main journey returns to the readable saved Memory
+and then its originating Diary. New checks assert the absent read-mode Add/menu
+and absent Add after linking; picker, single-write, partial-failure retry, axe,
+reflow and return assertions are preserved. A repository-wide search confirms
+that all Memory Place-management browser callers use the editor contract.
+The 18 existing Place/Memory component tests and changed-spec format/lint pass.
+Full current-head CI remains the merge gate; no timeout or assertion was relaxed.

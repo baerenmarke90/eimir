@@ -1,8 +1,7 @@
 const people = {
   eyebrow: 'Wichtige Menschen',
   title: 'Menschen in eurem Leben',
-  intro:
-    'Haltet Personen fest, die für euch wichtig sind. Sichtbarkeit und persönliche Angaben bleiben bewusst unter eurer Kontrolle.',
+  intro: 'Ihr entscheidet, welche Angaben ihr teilt.',
   formRailAria: 'Person anlegen oder bearbeiten',
   createTitle: 'Person hinzufügen',
   editTitle: 'Person bearbeiten',

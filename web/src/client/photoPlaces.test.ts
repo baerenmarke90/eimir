@@ -17,13 +17,16 @@ it('does not create map destinations for missing or invalid coordinates', () => 
   );
 });
 
-it('returns from canonical Place detail only to the read moment, without sensitive queries or editor paths', () => {
+it('returns from canonical Place detail to the owning moment or shared Memory editor without sensitive queries', () => {
   expect(taskOriginPath('/story/memories/m', '?secret=text')).toBe(
     '/story/memories/m',
   );
   expect(taskOriginPath('/story/heart-moments/h', '')).toBe(
     '/story/heart-moments/h',
   );
-  expect(taskOriginPath('/story/memories/m/edit', '')).toBeNull();
+  expect(taskOriginPath('/story/memories/m/edit', '?body=private')).toBe(
+    '/story/memories/m/edit',
+  );
+  expect(taskOriginPath('/story/heart-moments/h/edit', '')).toBeNull();
   expect(taskOriginPath('/story/memories/new', '')).toBeNull();
 });

@@ -102,7 +102,6 @@ export function GamesProductArea({
   return (
     <div className="page games-product-page">
       <PageHeader
-        eyebrow={t('games.eyebrow')}
         title={t('games.title')}
         description={t('games.intro')}
         className="games-heading"

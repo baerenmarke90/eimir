@@ -1,6 +1,12 @@
 import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type FormEvent, useCallback, useLayoutEffect, useState } from 'react';
+import {
+  type FormEvent,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import {
@@ -63,6 +69,7 @@ import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
 import { StoryEditorPageShell } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { UiState } from './UiState';
 
 export type MemoryProductMode = 'detail' | 'edit';
@@ -201,6 +208,9 @@ export function MemoryProductPage({
     enabled: Boolean(memoryId),
     retry: false,
   });
+  const editForm = useRef<HTMLFormElement>(null);
+  const [placeExit, setPlaceExit] = useState<(() => void) | null>(null);
+  const placeExitSheet = useRef<ShortTaskSheetHandle>(null);
   const [tagDraft, setTagDraft] = useState<{
     memoryId: string;
     tags: MemoryTag[];
@@ -459,9 +469,7 @@ export function MemoryProductPage({
                 {t('memoryProduct.backToMemory')}
               </Link>
             }
-            eyebrow={t('memoryProduct.editEyebrow')}
             title={t('memoryProduct.editHeading')}
-            description={t('memoryProduct.editIntro')}
           />
           <UiState
             kind={offline ? 'offline' : 'permission'}
@@ -516,15 +524,14 @@ export function MemoryProductPage({
             {t('memoryProduct.backToMemory')}
           </Link>
         }
-        eyebrow={t('memoryProduct.editEyebrow')}
         title={t('memoryProduct.editHeading')}
-        description={t('memoryProduct.editIntro')}
         headerClassName="create-heading"
         sectionLabelledBy="memory-edit-heading"
         sectionHeading={t('memoryProduct.formAria')}
       >
         <>
           <form
+            ref={editForm}
             key={memory.version}
             onSubmit={submit}
             className="form-grid memory-form"
@@ -687,6 +694,76 @@ export function MemoryProductPage({
               </button>
             </div>
           </form>
+          <MomentPlaces
+            key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${memory.id}:edit`}
+            apiBaseUrl={apiBaseUrl}
+            accessToken={accessToken}
+            accountId={currentAccountId}
+            spaceId={spaceId}
+            targetId={memory.id}
+            canManage
+            onNavigate={(proceed) => {
+              if (updateMutation.isPending || attachments.hasPending) return;
+              const ownsTask = captureSaveOwnership();
+              const ownsRead = captureAuthorizedQuery(queryClient, memoryKey);
+              const proceedIfCurrent = () => {
+                if (ownsTask() && ownsRead()) proceed();
+              };
+              const data = editForm.current
+                ? new FormData(editForm.current)
+                : null;
+              const changed =
+                data &&
+                (String(data.get('title') ?? '') !== memory.title ||
+                  String(data.get('body') ?? '') !== (memory.body ?? '') ||
+                  String(data.get('happenedOn') ?? '') !==
+                    memoryDateInputValue(memory.happenedOn));
+              if (
+                changed ||
+                attachments.items.length > 0 ||
+                removedAttachmentIds.size > 0 ||
+                Object.keys(sensitiveValues).length > 0 ||
+                JSON.stringify(selectedTags) !==
+                  JSON.stringify(memory.tags ?? [])
+              ) {
+                setPlaceExit(() => proceedIfCurrent);
+              } else proceedIfCurrent();
+            }}
+            kind="memories"
+            offline={offline}
+            compact
+          />
+          <ShortTaskSheet
+            ref={placeExitSheet}
+            open={placeExit !== null}
+            role="alertdialog"
+            title={t('taskBoundary.discardTitle')}
+            onClose={() => setPlaceExit(null)}
+          >
+            <p>{t('taskBoundary.discardBody')}</p>
+            <div className="form-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setPlaceExit(null)}
+              >
+                {t('taskBoundary.keepEditing')}
+              </button>
+              <button
+                type="button"
+                className="danger"
+                onClick={() => {
+                  const proceed = placeExit;
+                  placeExitSheet.current?.closeForNavigation(() => {
+                    setPlaceExit(null);
+                    proceed?.();
+                  });
+                }}
+              >
+                {t('taskBoundary.discard')}
+              </button>
+            </div>
+          </ShortTaskSheet>
           {updateMutation.error ? (
             <ProblemState
               error={updateMutation.error}
@@ -878,7 +955,7 @@ export function MemoryProductPage({
           accountId={currentAccountId}
           spaceId={spaceId}
           targetId={memory.id}
-          canManage={memory.capabilities.canEdit}
+          canManage={false}
           kind="memories"
           offline={offline}
           compact

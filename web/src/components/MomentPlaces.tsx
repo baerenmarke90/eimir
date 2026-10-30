@@ -36,6 +36,7 @@ export function MomentPlaces({
   offline,
   compact = false,
   canManage = false,
+  onNavigate,
 }: {
   apiBaseUrl: string;
   accessToken: string;
@@ -46,6 +47,7 @@ export function MomentPlaces({
   offline: boolean;
   compact?: boolean;
   canManage?: boolean;
+  onNavigate?: (proceed: () => void) => void;
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -171,7 +173,7 @@ export function MomentPlaces({
       >
         {t('photoPlaces.title')}
       </h2>
-      {canManage && !denied ? (
+      {canManage && !denied && !query.isPending && items.length === 0 ? (
         <button
           ref={addTrigger}
           type="button"
@@ -268,21 +270,23 @@ export function MomentPlaces({
                   </a>
                 ) : null}
               </div>
-              <button
-                type="button"
-                className="tertiary moment-place-overflow"
-                aria-label={t('photoPlaces.actions', { name })}
-                title={t('photoPlaces.actions', { name })}
-                aria-haspopup="dialog"
-                aria-expanded={selected?.id === place.id}
-                onClick={() => {
-                  setSelected(place);
-                  setConfirm(false);
-                  mutation.reset();
-                }}
-              >
-                <span aria-hidden="true">⋯</span>
-              </button>
+              {canManage ? (
+                <button
+                  type="button"
+                  className="tertiary moment-place-overflow"
+                  aria-label={t('photoPlaces.actions', { name })}
+                  title={t('photoPlaces.actions', { name })}
+                  aria-haspopup="dialog"
+                  aria-expanded={selected?.id === place.id}
+                  onClick={() => {
+                    setSelected(place);
+                    setConfirm(false);
+                    mutation.reset();
+                  }}
+                >
+                  <span aria-hidden="true">⋯</span>
+                </button>
+              ) : null}
             </li>
           );
         })}
@@ -344,8 +348,12 @@ export function MomentPlaces({
                     event.preventDefault();
                     const path = placeDetailPath(selected.id);
                     sheet.current?.closeForNavigation(() => {
-                      const taskOriginKey = captureOrigin();
-                      void navigate(path, { state: { taskOriginKey } });
+                      const proceed = () => {
+                        const taskOriginKey = captureOrigin();
+                        void navigate(path, { state: { taskOriginKey } });
+                      };
+                      if (onNavigate) onNavigate(proceed);
+                      else proceed();
                     });
                   }}
                 >

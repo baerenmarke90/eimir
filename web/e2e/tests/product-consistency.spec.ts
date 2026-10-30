@@ -4,6 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import planningCopy from '../../src/i18n/locales/m5s3';
+import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import copy from '../../src/i18n/locales/photoPlaces';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
@@ -34,7 +35,7 @@ for (const scenario of [
   { width: 1280, height: 900, theme: 'light', scale: 1 },
   { width: 320, height: 760, theme: 'dark', scale: 2 },
 ])
-  test(`rediscovery and Diary coexist, open, add Place, return at ${scenario.width} ${scenario.theme} text ${scenario.scale}`, async ({
+  test(`rediscovery and Diary coexist, open, edit, add Place, return at ${scenario.width} ${scenario.theme} text ${scenario.scale}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({
@@ -183,6 +184,13 @@ for (const scenario of [
         exact: true,
       }),
     ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: copy.add, exact: true }),
+    ).toHaveCount(0);
+    await page
+      .getByRole('link', { name: memoryProduct.edit, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
     await page.getByRole('button', { name: copy.add, exact: true }).click();
     const picker = page.getByRole('dialog', { name: copy.add });
     await expect(picker).toBeVisible();
@@ -191,6 +199,14 @@ for (const scenario of [
     await expect(picker).toBeHidden();
     await expect(page.getByText(place.name, { exact: true })).toBeVisible();
     expect(links).toBe(1);
+    await expect(
+      page.getByRole('button', { name: copy.add, exact: true }),
+    ).toHaveCount(0);
+    await page
+      .getByRole('link', { name: memoryProduct.backToMemory, exact: true })
+      .click();
+    await expect(page.getByText(place.name, { exact: true })).toBeVisible();
+    await expect(page.locator('.moment-place-overflow')).toHaveCount(0);
     expect(
       (
         await new AxeBuilder({ page })
@@ -317,6 +333,13 @@ test('a manually created map Place survives a failed relation and retries only i
   await page.route('**/*.tile.openstreetmap.org/**', (route) => route.abort());
   await signIn(page);
   await page.goto('/story/memories/mem-canal');
+  await expect(
+    page.getByRole('button', { name: copy.add, exact: true }),
+  ).toHaveCount(0);
+  await page
+    .getByRole('link', { name: memoryProduct.edit, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
   await page.getByRole('button', { name: copy.add, exact: true }).click();
   const picker = page.getByRole('dialog', { name: copy.add });
   await picker
@@ -344,6 +367,9 @@ test('a manually created map Place survives a failed relation and retries only i
   await retry.click();
   await expect(picker).toBeHidden();
   await expect(page.getByText(place.name, { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: copy.add, exact: true }),
+  ).toHaveCount(0);
   expect(creates).toBe(1);
   expect(links).toBe(2);
 });

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import photoPlaceCopy from '../../src/i18n/locales/photoPlaces';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
@@ -47,6 +48,10 @@ test('the visible address opens the pinned map directly and retains the saved mo
     ),
   });
   await expect(address).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: photoPlaceCopy.add }),
+  ).toHaveCount(0);
+  await expect(page.locator('.moment-place-overflow')).toHaveCount(0);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const popupPromise = page.waitForEvent('popup');
   await address.click();
@@ -103,7 +108,10 @@ test('canonical Place correction returns to the originating saved moment', async
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const state = await installPhotoPlaces(page);
   await signIn(page);
-  await page.goto('/story/memories/mem-canal');
+  await page.goto('/story/memories/mem-canal/edit');
+  await expect(
+    page.getByRole('button', { name: photoPlaceCopy.add }),
+  ).toHaveCount(0);
   await page
     .getByRole('button', {
       name: photoPlaceCopy.actions.replace(
@@ -140,11 +148,56 @@ test('canonical Place correction returns to the originating saved moment', async
   await page
     .getByRole('button', { name: taskBoundary.back, exact: false })
     .click();
-  await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+  await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
   await expect(
     page.getByText(localeFixture.photoPlaces.correctedName, { exact: true }),
   ).toBeVisible();
   expect(state.writes).toEqual(['edit']);
+  expect(state.unexpected).toEqual([]);
+});
+
+test('leaving the Memory editor for a Place requires a deliberate decision about unsaved content', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const state = await installPhotoPlaces(page);
+  await signIn(page);
+  await page.goto('/story/memories/mem-canal/edit');
+  const body = page.locator('#memory-edit-body');
+  await body.fill('An unsaved personal memory');
+  const openPlace = async () => {
+    await page
+      .getByRole('button', {
+        name: photoPlaceCopy.actions.replace(
+          '{{name}}',
+          localeFixture.photoPlaces.resolvedName,
+        ),
+      })
+      .click();
+    await page
+      .getByRole('dialog')
+      .getByRole('link', { name: photoPlaceCopy.edit })
+      .click();
+    await expect(
+      page.getByRole('alertdialog', { name: taskBoundary.discardTitle }),
+    ).toBeVisible();
+  };
+  await openPlace();
+  await page.getByRole('button', { name: taskBoundary.keepEditing }).click();
+  await expect(body).toHaveValue('An unsaved personal memory');
+  await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
+  await openPlace();
+  await page
+    .getByRole('button', { name: taskBoundary.discard, exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', {
+      name: localeFixture.photoPlaces.resolvedName,
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(state.writes).toEqual([]);
   expect(state.unexpected).toEqual([]);
 });
 
@@ -395,6 +448,17 @@ for (const colorScheme of ['light', 'dark'] as const) {
           () => document.documentElement.scrollWidth <= innerWidth + 1,
         ),
       ).toBe(true);
+      await expect(
+        page.getByRole('button', { name: photoPlaceCopy.add }),
+      ).toHaveCount(0);
+      await expect(page.locator('.moment-place-overflow')).toHaveCount(0);
+      await page
+        .getByRole('link', { name: memoryProduct.edit, exact: true })
+        .click();
+      await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
+      await expect(
+        page.getByRole('button', { name: photoPlaceCopy.add }),
+      ).toHaveCount(0);
       await page
         .getByRole('button', {
           name: photoPlaceCopy.actions.replace(

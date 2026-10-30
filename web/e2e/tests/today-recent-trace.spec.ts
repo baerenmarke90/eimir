@@ -45,6 +45,14 @@ const UPCOMING_ITEMS = [
  * enough to reproduce the reported activity-log/left-column/dead-space
  * problem on a real desktop viewport.
  */
+// Current-month text now appears once in monthly highlights. Keep the Memory
+// outside this month so the existing trace layout and focus checks retain it.
+const now = new Date();
+const previousMonthDate = new Date(
+  Date.UTC(now.getFullYear(), now.getMonth() - 1, 2),
+)
+  .toISOString()
+  .slice(0, 10);
 const RECENT_SHARED_ITEMS = [
   {
     id: 'r1',
@@ -56,7 +64,7 @@ const RECENT_SHARED_ITEMS = [
     id: 'r2',
     type: 'MEMORY',
     titleOrText: 'Ein Wochenende am Wasser',
-    occurredOn: daysAgo(2),
+    occurredOn: previousMonthDate,
   },
   {
     id: 'r3',

@@ -287,9 +287,6 @@ export function GiftIdeasListPage({ api, accountId, spaceId }: Props) {
                       <p className="private-area-excerpt">{gift.description}</p>
                     ) : null}
                   </div>
-                  <span className="private-area-card-arrow" aria-hidden="true">
-                    →
-                  </span>
                 </Link>
               </li>
             ))}

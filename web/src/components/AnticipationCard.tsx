@@ -62,9 +62,6 @@ export function AnticipationCard({ value }: { value: DashboardAnticipation }) {
             {formatCalendarDate(value.eventOn)}
           </time>
         </span>
-        <span className="anticipation-open" aria-hidden="true">
-          →
-        </span>
       </span>
       {timed && remaining > 0 ? (
         <span

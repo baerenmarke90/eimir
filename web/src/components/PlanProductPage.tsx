@@ -1,4 +1,3 @@
-import { authorDisplayName } from '../client/authorPresentation';
 import { type FormEvent, useMemo, useRef, useState } from 'react';
 import {
   useIsMutating,
@@ -19,7 +18,6 @@ import {
   ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
-import { usePartnerNickname } from '../client/partnerNickname';
 import { formatCalendarDate } from '../client/formatRecency';
 import { appRoutePath } from '../client/routes';
 import {
@@ -82,7 +80,6 @@ export function PlanProductPage({
   accountId?: string;
 }) {
   const { t } = useTranslation();
-  const { relationshipLabel } = usePartnerNickname();
   const { planId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -447,22 +444,11 @@ export function PlanProductPage({
         {plan.status === 'COMPLETED' ? (
           <p className="planen-detail-status">{planStatusWord(t, plan)}</p>
         ) : null}
-        <p className="planen-detail-meta">
-          {placeName && plan.placeId ? (
-            <>
-              <Link to={placeDetailPath(plan.placeId)}>{placeName}</Link> ·{' '}
-            </>
-          ) : null}
-          {t('m5s3.overview.createdBy', {
-            name: plan.creator.isFormerMember
-              ? authorDisplayName(plan.creator)
-              : relationshipLabel(
-                  plan.creator.id,
-                  plan.creator.displayName,
-                  t('couplePresencePartnerFallback'),
-                ),
-          })}
-        </p>
+        {placeName && plan.placeId ? (
+          <p className="planen-detail-meta">
+            <Link to={placeDetailPath(plan.placeId)}>{placeName}</Link>
+          </p>
+        ) : null}
         {completion.pendingDay && !completionOpen ? (
           <p className="planen-detail-pending" role="status">
             {t('m5s3.plan.completePending', {
@@ -685,12 +671,9 @@ export function PlanProductPage({
         ) : null}
 
         {!isEditing && plan.description ? (
-          <section className="planen-section">
-            <h2>{t('m5s3.plan.notesHeading')}</h2>
-            <div className="planen-section-content">
-              <p>{plan.description}</p>
-            </div>
-          </section>
+          <div className="planen-section planen-section-content">
+            <p>{plan.description}</p>
+          </div>
         ) : null}
 
         {plan.status === 'COMPLETED' &&

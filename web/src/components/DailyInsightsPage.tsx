@@ -42,7 +42,6 @@ import './DailyInsights.css';
 import {
   formatDayMonth,
   formatMonthYear,
-  Handwriting,
   InsightIcon,
   type InsightPerson,
   ProMark,
@@ -115,9 +114,7 @@ function PeriodPicker({
         onClick={onNext}
         aria-label={nextLabel}
         disabled={!canGoNext}
-      >
-        <span aria-hidden="true">›</span>
-      </button>
+      ></button>
     </fieldset>
   );
 }
@@ -335,12 +332,6 @@ export function DailyInsightsPage({
       : view === 'recap'
         ? t('dailyInsights.recap.subtitle')
         : t('dailyInsights.week.subtitle');
-  const accent =
-    view === 'patterns'
-      ? t('dailyInsights.patterns.handwriting')
-      : view === 'recap'
-        ? t('dailyInsights.recap.handwriting')
-        : t('dailyInsights.week.handwriting');
 
   let picker: ReactNode = null;
   if (monday !== null && view !== 'patterns') {
@@ -455,7 +446,6 @@ export function DailyInsightsPage({
       <header className="insight-header">
         <div className="insight-header-top">
           <ProMark />
-          <Handwriting>{accent}</Handwriting>
         </div>
         <h1>{title}</h1>
         <p className="insight-subtitle">{subtitle}</p>

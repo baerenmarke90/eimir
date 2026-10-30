@@ -340,5 +340,49 @@ it('reveals an automatically added Place after saving a photo into a recently op
     ),
   ).toBeTruthy();
   expect(list).toHaveBeenCalledTimes(2);
+  expect(screen.queryByRole('button', { name: photoPlaceCopy.add })).toBeNull();
+  expect(
+    screen.getByRole('button', {
+      name: photoPlaceCopy.actions.replace('{{name}}', place.name),
+    }),
+  ).toBeTruthy();
   expect(client.getQueryState(otherSpace)?.isInvalidated).toBe(false);
+});
+
+it('keeps a saved location readable without add or management controls in reading mode', async () => {
+  const place = {
+    id: 'read-only-place',
+    name: 'Our lakeside',
+    address: 'Lake Road 4',
+    latitude: 52.5,
+    longitude: 13.4,
+  } as PlaceDetail;
+  vi.spyOn(PlacesApi.prototype, 'listMomentPlaces').mockResolvedValue({
+    items: [place],
+    nextCursor: null,
+    hasMore: false,
+  });
+  wrapper(
+    <MomentPlaces
+      apiBaseUrl="http://example.test"
+      accessToken="token"
+      accountId="a"
+      spaceId="s"
+      targetId="m"
+      kind="memories"
+      offline={false}
+    />,
+  );
+  expect(await screen.findByText(place.name)).toBeTruthy();
+  expect(
+    screen.getByRole('link', {
+      name: photoPlaceCopy.mapAddress.replace('{{address}}', place.address!),
+    }),
+  ).toBeTruthy();
+  expect(screen.queryByRole('button', { name: photoPlaceCopy.add })).toBeNull();
+  expect(
+    screen.queryByRole('button', {
+      name: photoPlaceCopy.actions.replace('{{name}}', place.name),
+    }),
+  ).toBeNull();
 });

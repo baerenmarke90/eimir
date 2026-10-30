@@ -20,6 +20,7 @@ import {
 import { useTranslation } from '../i18n';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProMark } from './ProMark';
+import { DailyQuoteCard } from './DailyQuoteCard';
 
 export function DailyQuoteSettingsPanel({
   quoteApi,
@@ -177,6 +178,15 @@ export function DailyQuoteSettingsPanel({
         />
       ) : null}
 
+      {hasCapability ? (
+        <DailyQuoteCard
+          settingsOnly
+          quoteApi={quoteApi}
+          entitlementsApi={entitlementsApi}
+          accountId={accountId}
+          spaceId={spaceId}
+        />
+      ) : null}
       {status ? (
         <p
           className="daily-quote-settings-status"

@@ -61,7 +61,7 @@ function renderPlan(plan: ReturnType<typeof basePlan>, places: unknown[] = []) {
 }
 
 describe('PlanProductPage', () => {
-  it('shows the title, readable schedule, resolved place, and creator attribution before operations', () => {
+  it('shows the title, readable schedule and resolved place without creator attribution', () => {
     const plan = basePlan({
       placeId: 'place-berlin',
       plannedStart: new Date('2026-09-14T14:00:00Z'),
@@ -73,7 +73,9 @@ describe('PlanProductPage', () => {
     expect(html).toContain('planen-detail-schedule');
     expect(html).not.toContain('planen-pill-scheduled');
     expect(html).toContain('Volkspark');
-    expect(html).toContain(i18n.t('m5s3.overview.createdBy', { name: 'Ben' }));
+    expect(html).not.toContain(
+      i18n.t('m5s3.overview.createdBy', { name: 'Ben' }),
+    );
   });
 
   it('presents a timed end as one range instead of a separate technical subfact', () => {
@@ -96,15 +98,19 @@ describe('PlanProductPage', () => {
     expect(html).not.toContain('planen-pill-idea');
   });
 
-  it('shows the Notizen section only when a description exists', () => {
+  it('keeps authored prose without a repeated heading or an empty description surface', () => {
     const withNotes = renderPlan(
       basePlan({ description: 'Remember the sunscreen.' }),
     );
-    expect(withNotes).toContain(i18n.t('m5s3.plan.notesHeading'));
+    expect(withNotes).not.toContain(i18n.t('m5s3.plan.notesHeading'));
+    expect(withNotes).toContain(
+      'class="planen-section planen-section-content"',
+    );
     expect(withNotes).toContain('Remember the sunscreen.');
 
     const withoutNotes = renderPlan(basePlan({ description: null }));
-    expect(withoutNotes).not.toContain(i18n.t('m5s3.plan.notesHeading'));
+    expect(withoutNotes).not.toContain('planen-section-content');
+    expect(withoutNotes).not.toContain('planen-detail-meta');
   });
 
   it('keeps one named Edit entry and a distinct completion action without management or visibility clutter', () => {

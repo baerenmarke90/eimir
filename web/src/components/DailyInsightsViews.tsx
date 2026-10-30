@@ -218,7 +218,6 @@ export function WeekView({ days, people, modules }: ViewProps) {
           <p>{t('dailyInsights.week.closingBody')}</p>
           <Link className="insight-cta" to={MORE_INSIGHTS_RECAP_ROUTE}>
             {t('dailyInsights.week.closingCta')}
-            <span aria-hidden="true"> →</span>
           </Link>
         </div>
         <Handwriting>{t('dailyInsights.week.closingHandwriting')}</Handwriting>
@@ -680,7 +679,6 @@ export function RecapView({
           </div>
           <Link className="insight-link" to={MORE_INSIGHTS_ROUTE}>
             {t('dailyInsights.recap.highlightsAll')}
-            <span aria-hidden="true"> →</span>
           </Link>
         </header>
         {highlights.length > 0 ? (
@@ -753,7 +751,6 @@ export function RecapView({
           <p>{t('dailyInsights.recap.discoverSubline')}</p>
           <Link className="insight-cta" to={MORE_INSIGHTS_PATTERNS_ROUTE}>
             {t('dailyInsights.recap.discoverCta')}
-            <span aria-hidden="true"> →</span>
           </Link>
         </div>
       </section>

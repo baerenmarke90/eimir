@@ -239,7 +239,7 @@
   margin: 0;
 }
 
-/* Detail: content sections (Notizen etc.) */
+/* Detail: authored Plan prose, without a redundant section heading. */
 .planen-section {
   display: grid;
   gap: var(--space-3);
@@ -251,11 +251,6 @@
   padding: clamp(var(--space-4), 3vw, var(--space-5));
   background: var(--color-surface);
   box-shadow: var(--shadow-soft);
-}
-
-.planen-section h2 {
-  margin: 0;
-  font-size: 1.05rem;
 }
 
 .planen-section p {

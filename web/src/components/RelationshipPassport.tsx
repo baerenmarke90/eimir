@@ -334,12 +334,11 @@ function PassportContent({
                   <span className="passport-number">
                     {numbers.format(metric.count)}
                   </span>
-                  <span>
+                  <span className="passport-metric-label">
                     {t(`relationshipReflections.passport.${metric.key}`, {
                       count: metric.count,
                     })}
                   </span>
-                  <span aria-hidden="true">→</span>
                 </Link>
               </li>
             ))}
@@ -481,7 +480,6 @@ function PassportStory({
                       </time>
                     ) : null}
                   </span>
-                  <span aria-hidden="true">→</span>
                 </Link>
               </li>
             ))}
@@ -498,13 +496,11 @@ function PassportStory({
                 100,
               )}
             </strong>
-            <span aria-hidden="true">→</span>
           </Link>
         </div>
       ) : null}
       <Link className="passport-story-action" to="/story?tab=timeline">
         {t('relationshipReflections.passport.explore')}{' '}
-        <span aria-hidden="true">→</span>
       </Link>
     </div>
   );

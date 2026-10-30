@@ -752,7 +752,6 @@ export function HeartMomentProductPage({
                 {t('heartMomentProduct.backToHeartMoment')}
               </Link>
             }
-            eyebrow={t('heartMomentProduct.editEyebrow')}
             title={t('heartMomentProduct.editHeading')}
             description={t('heartMomentProduct.editIntro')}
           />
@@ -835,7 +834,6 @@ export function HeartMomentProductPage({
             {t('heartMomentProduct.backToHeartMoment')}
           </Link>
         }
-        eyebrow={t('heartMomentProduct.editEyebrow')}
         title={t('heartMomentProduct.editHeading')}
         description={t('heartMomentProduct.editIntro')}
         sectionLabelledBy="heart-moment-edit-heading"

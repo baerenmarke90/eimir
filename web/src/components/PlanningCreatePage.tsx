@@ -304,9 +304,6 @@ export function PlanningCreatePage({
             {t('taskBoundary.close')}
           </button>
         }
-        eyebrow={t(
-          isPlan ? 'm5s3.plan.createEyebrow' : 'm5s3.wish.createEyebrow',
-        )}
         title={t(
           isPlan ? 'm5s3.plan.createHeading' : 'm5s3.wish.createHeading',
         )}

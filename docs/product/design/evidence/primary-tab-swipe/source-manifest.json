@@ -11,6 +11,7 @@
     "web/src/components/usePrimaryTabSwipe.test.tsx": "4d8731d84b08712a7a90d18f8d19ceec010b8807c8f159b079061f941c3d93ca",
     "web/e2e/tests/floating-bottom-nav-scroll.spec.ts": "74648cd124e16c15061748ae7cd24e3a8cc6f9b7da3ecc786e7c89bed1159ef7",
     "web/e2e/test-groups.json": "20d278b84242c7346708916c81fe2fedeafa5b173d873681e1ba6216c6572a02",
-    "docs/UX-PATTERNS.md": "cdb753012827456e4874448725d159a89e3534ae24740b6bc4d161461ad463b0"
+    "docs/UX-PATTERNS.md": "cdb753012827456e4874448725d159a89e3534ae24740b6bc4d161461ad463b0",
+    "docs/product/design/evidence/primary-tab-swipe/generated-reference.png": "73f10d8984e7ea38dd4fe7edc70009645005fd8b47e1ddb0fd536ad0e0ca5fcd"
   }
 }

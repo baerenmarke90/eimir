@@ -15,6 +15,9 @@ AppShell, route registry, TaskOriginProvider, RouteEntryHandoff, pull-to-refresh
 media/gallery mechanics, tokens and Product Reference v1 R2–R5. The reference
 commit is `da14f81791ae62a6ec4742762a43b8764ee2d298`; it illustrates the new gesture
 without authorizing a layout redesign or an in-product tutorial.
+The original asset transfer was repaired byte-for-byte from that already-generated
+reference during publication verification; the design was not regenerated after
+implementation.
 
 The existing Today, Story, Plan Hub and Utility templates remain in use. Personal
 content remains the focal point. Bottom navigation and Quick Create keep their

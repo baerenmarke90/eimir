@@ -411,8 +411,9 @@
 .dashboard-module-option.is-dragging {
   position: relative;
   z-index: 1;
-  background: var(--color-brand-surface);
+  background: var(--color-surface-raised);
   box-shadow: var(--shadow-raised);
+  transition: none;
 }
 
 .dashboard-module-option-label {
@@ -651,4 +652,11 @@
   display: grid;
   max-width: 32rem;
   gap: var(--space-2);
+}
+
+.dashboard-module-configure {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: var(--space-2);
 }

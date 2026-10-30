@@ -1,6 +1,5 @@
-import { useWirStatistics } from '../client/useWirStatistics';
 import { useQuery } from '@tanstack/react-query';
-import { Fragment, useEffect, useState, type ReactNode } from 'react';
+import { Fragment, type ReactNode, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
@@ -12,43 +11,44 @@ import type { AccountView } from '../api/generated/models/AccountView';
 import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
 import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
+import { DashboardViewToJSON } from '../api/generated/models/DashboardView';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import { dashboardQueryKey } from '../client/dashboardQueries';
-import { DashboardViewToJSON } from '../api/generated/models/DashboardView';
-import { decodeDashboardOverview } from '../client/overviewSnapshots';
-import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
-import { OverviewCacheNotice } from './OverviewCacheNotice';
 import type { DashboardModuleKey } from '../client/dashboardModules';
 import {
   dashboardPreferencesQueryKey,
   isDashboardModuleVisible,
-  orderedDashboardModuleKeys,
   limitUpcomingItems,
+  orderedDashboardModuleKeys,
   selectedDashboardCollectionId,
 } from '../client/dashboardPreferences';
-import { formatRecency, formatCalendarDate } from '../client/formatRecency';
 import { dashboardItemTitle } from '../client/dashboardPresentation';
+import { dashboardQueryKey } from '../client/dashboardQueries';
+import { formatCalendarDate, formatRecency } from '../client/formatRecency';
 import {
   dashboardItemPath,
   engagementTargetPath,
   type M4ProductApis,
 } from '../client/m4Product';
-import { normalizeClientError } from '../client/problemDetails';
+import { decodeDashboardOverview } from '../client/overviewSnapshots';
 import { usePartnerNickname } from '../client/partnerNickname';
+import {
+  PARTNER_PRESENCE_PRODUCT_ENABLED,
+  usePartnerPresence,
+} from '../client/presence';
+import { normalizeClientError } from '../client/problemDetails';
 import {
   ACTIVITY_ROUTE,
   appRoutePath,
   collectionDetailPath,
-  planDetailPath,
 } from '../client/routes';
 import { spaceConfigurationQueryOptions } from '../client/spaceConfiguration';
 import {
   type LivingModule,
   livingModuleContentId,
   selectLivingModule,
-  selectMonthlyStrip,
   selectMonthlyNotes,
+  selectMonthlyStrip,
   selectTodayFocalItem,
 } from '../client/todayComposition';
 import {
@@ -58,11 +58,10 @@ import {
   retrospectiveDismissalToken,
 } from '../client/todayRetrospectiveDismissal';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
-import {
-  PARTNER_PRESENCE_PRODUCT_ENABLED,
-  usePartnerPresence,
-} from '../client/presence';
+import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
+import { useWirStatistics } from '../client/useWirStatistics';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { AnticipationCard } from './AnticipationCard';
 import {
   CouplePresence,
   type CouplePresenceAvatarAction,
@@ -72,14 +71,14 @@ import { DailyQuoteCard } from './DailyQuoteCard';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
+import { OverviewCacheNotice } from './OverviewCacheNotice';
+import { PartnerQuickActions } from './PartnerQuickActions';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { SharedStorySummary } from './SharedStorySummary';
-import { PartnerQuickActions } from './PartnerQuickActions';
+import { TodayDestinationLink } from './TodayDestinationLink';
 import { TodayPinnedCollection } from './TodayPinnedCollection';
 import { UiState } from './UiState';
-import { AnticipationCard } from './AnticipationCard';
-import { TodayDestinationLink } from './TodayDestinationLink';
 import './TodayPage.css';
 import { useWirDesign } from '../client/wirDesign';
 import './WirDesign.css';
@@ -1152,7 +1151,32 @@ export function TodayPage({
     />
   );
 
+  const dailyQuote =
+    account?.id && dailyQuoteApi && entitlementApi ? (
+      <DailyQuoteCard
+        key={`quote:${account.id}:${spaceId}`}
+        quoteApi={dailyQuoteApi}
+        entitlementsApi={entitlementApi}
+        accountId={account.id}
+        spaceId={spaceId}
+        partnerName={partner ? partnerName : undefined}
+        partnerNameIsResolved
+      />
+    ) : null;
+  const dailyVibe =
+    vibeCheckEnabled && partner && account?.id && dailyCheckInsApi ? (
+      <DailyVibeCheckIn
+        key={`vibe:${account.id}:${spaceId}`}
+        api={dailyCheckInsApi}
+        accountId={account.id}
+        spaceId={spaceId}
+        partnerName={partnerName}
+        partnerNameIsResolved
+        configuredEnabled
+      />
+    ) : null;
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {
+    daily_quote: dailyQuote,
     relationship_presence: (
       <>
         {/* ROLE: Hero / Couple Presence — the permanent emotional entry
@@ -1179,6 +1203,7 @@ export function TodayPage({
             renderRelationshipHero()
           )
         ) : null}
+        {dailyVibe}
       </>
     ),
     keepsake: (
@@ -1434,94 +1459,31 @@ export function TodayPage({
             <h1 className="sr-only">{t('navigation.today')}</h1>
           ) : null}
 
+          {orderedModuleKeys.map((key) => (
+            <Fragment key={key}>{moduleContent[key]}</Fragment>
+          ))}
           {isSparse ? (
-            <>
-              {moduleContent.relationship_presence}
-              {vibeCheckEnabled &&
-              partner &&
-              account?.id &&
-              dailyCheckInsApi ? (
-                <DailyVibeCheckIn
-                  key={`vibe:${account.id}:${spaceId}`}
-                  api={dailyCheckInsApi}
-                  accountId={account.id}
-                  spaceId={spaceId}
-                  partnerName={partnerName}
-                  partnerNameIsResolved
-                  configuredEnabled
-                />
-              ) : null}
-
-              {account?.id && dailyQuoteApi && entitlementApi ? (
-                <DailyQuoteCard
-                  key={`quote:${account.id}:${spaceId}`}
-                  quoteApi={dailyQuoteApi}
-                  entitlementsApi={entitlementApi}
-                  accountId={account.id}
-                  spaceId={spaceId}
-                  partnerName={partner ? partnerName : undefined}
-                  partnerNameIsResolved
-                />
-              ) : null}
-
-              <div className="new-space-experience">
-                <h2 className="new-space-title">
-                  {partner
-                    ? t('m5s5.dashboard.newSpacePartner', {
-                        name: partnerName,
-                      })
-                    : t('m5s5.dashboard.newSpaceEmpty')}
-                </h2>
-                <p className="new-space-body">
-                  {t('m5s5.dashboard.newSpaceIntro')}
-                </p>
-                <div className="new-space-actions">
-                  <Link
-                    className="button-link primary new-space-cta"
-                    to="/story/memories/new"
-                  >
-                    {t('m5s5.dashboard.newSpaceAction')}
-                  </Link>
-                </div>
+            <div className="new-space-experience">
+              <h2 className="new-space-title">
+                {partner
+                  ? t('m5s5.dashboard.newSpacePartner', {
+                      name: partnerName,
+                    })
+                  : t('m5s5.dashboard.newSpaceEmpty')}
+              </h2>
+              <p className="new-space-body">
+                {t('m5s5.dashboard.newSpaceIntro')}
+              </p>
+              <div className="new-space-actions">
+                <Link
+                  className="button-link primary new-space-cta"
+                  to="/story/memories/new"
+                >
+                  {t('m5s5.dashboard.newSpaceAction')}
+                </Link>
               </div>
-            </>
-          ) : (
-            orderedModuleKeys.map((key, index) => (
-              <Fragment key={key}>
-                {moduleContent[key]}
-                {index === 0 ? (
-                  <>
-                    {vibeCheckEnabled &&
-                    partner &&
-                    account?.id &&
-                    dailyCheckInsApi ? (
-                      <DailyVibeCheckIn
-                        key={`vibe:${account.id}:${spaceId}`}
-                        api={dailyCheckInsApi}
-                        accountId={account.id}
-                        spaceId={spaceId}
-                        partnerName={partnerName}
-                        partnerNameIsResolved
-                        configuredEnabled
-                      />
-                    ) : null}
-
-                    {account?.id && dailyQuoteApi && entitlementApi ? (
-                      <DailyQuoteCard
-                        key={`quote:${account.id}:${spaceId}`}
-                        quoteApi={dailyQuoteApi}
-                        entitlementsApi={entitlementApi}
-                        accountId={account.id}
-                        spaceId={spaceId}
-                        partnerName={partner ? partnerName : undefined}
-                        partnerNameIsResolved
-                      />
-                    ) : null}
-                  </>
-                ) : null}
-              </Fragment>
-            ))
-          )}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

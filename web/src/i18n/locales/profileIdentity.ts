@@ -105,6 +105,7 @@ const profileIdentity = {
   dashboardModulesIntro:
     'Blende Bereiche aus oder ändere ihre Reihenfolge am Griff. Dein Partner sieht weiterhin seine eigene Auswahl.',
   dashboardOrderHandle: '{{name}} verschieben',
+  dashboardModuleConfigure: '{{name}} bearbeiten',
   dashboardOrderInstructions:
     'Am Griff ziehen oder ihn fokussieren und mit Pfeil hoch und runter verschieben.',
   dashboardOrderPosition: '{{name}}, Position {{position}} von {{total}}.',

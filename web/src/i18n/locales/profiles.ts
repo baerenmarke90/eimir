@@ -1,4 +1,5 @@
 const profiles = {
+  partnerSection: 'Über {{name}}',
   eyebrow: 'Profil',
   title: 'Du und dein Partner',
   intro:

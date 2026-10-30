@@ -87,59 +87,6 @@
   border-radius: var(--radius-large);
   box-shadow: var(--shadow-soft);
 }
-.today-page[data-wir-design="modern"]
-  .today-hero.couple-presence-card
-  .couple-presence-main {
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--space-5);
-  text-align: center;
-}
-.today-page[data-wir-design="modern"]
-  .today-hero
-  .partner-avatar-pair-hero
-  .partner-avatar {
-  width: min(clamp(6rem, 26vw, 8rem), 37vw);
-  height: min(clamp(6rem, 26vw, 8rem), 37vw);
-  font-size: 1.5rem;
-}
-.today-page[data-wir-design="modern"]
-  .today-hero.couple-presence-card
-  .couple-presence-details {
-  width: 100%;
-  align-items: center;
-  gap: var(--space-2);
-}
-.today-page[data-wir-design="modern"] .today-hero .couple-presence-title {
-  font-family: var(--font-ui);
-  font-size: clamp(1.75rem, 6vw, 2.5rem);
-  letter-spacing: -0.02em;
-  text-align: center;
-}
-.today-page[data-wir-design="modern"]
-  .today-hero.couple-presence-card
-  .couple-presence-meta {
-  justify-content: center;
-  text-align: center;
-}
-.today-page[data-wir-design="modern"] .today-hero.couple-presence-card::before {
-  background: radial-gradient(
-    105% 95% at 50% 0%,
-    var(--color-shared-surface),
-    transparent 70%
-  );
-}
-.today-page[data-wir-design="modern"] .daily-vibe-checkin {
-  background: var(--color-shared-surface);
-  padding: var(--space-3);
-  border-radius: var(--radius-large);
-}
-.today-page[data-wir-design="modern"] .daily-vibe-person {
-  box-shadow: none;
-}
-.today-page[data-wir-design="modern"] .today-section-title {
-  font-family: var(--font-ui);
-}
 /* Energy/gesture hit targets keep their existing dimensions and own popovers. */
 .today-page[data-wir-design="warm"]
   .today-hero.couple-presence-card
@@ -348,21 +295,108 @@
   }
 }
 
-.today-page[data-wir-design="modern"] .today-hero.couple-presence-card {
-  padding-block: var(--space-6) var(--space-4);
-  background: transparent;
+/* Editorial: a compact couple introduction followed by a full-width keepsake. */
+.today-page[data-wir-design="warm"] .today-section-moment {
+  margin-inline: calc(-1 * var(--page-gutter));
+}
+.today-page[data-wir-design="warm"]
+  .today-section-moment
+  .today-section-header {
+  padding-inline: var(--page-gutter);
+}
+.today-page[data-wir-design="warm"] .today-moment-figure {
+  border-radius: 0;
   box-shadow: none;
 }
-.today-page[data-wir-design="modern"] .couple-presence-context {
-  margin-top: var(--space-4);
+.today-page[data-wir-design="warm"] .today-moment-media .story-media-preview,
+.today-page[data-wir-design="warm"] .today-moment-media .story-media-skeleton,
+.today-page[data-wir-design="warm"]
+  .today-moment-media
+  .story-media-placeholder {
+  aspect-ratio: 4 / 3;
+  max-height: none;
 }
-.today-page[data-wir-design="modern"] .today-hero-duration-link {
-  padding-inline: var(--space-4);
-  border-radius: var(--radius-pill);
+.today-page[data-wir-design="warm"] .today-moment-caption {
+  padding-inline: var(--page-gutter);
+  padding-block: var(--space-4);
+  background: transparent;
+}
+
+/* Modern: horizontal identity, concise supporting content and a panoramic photo. */
+.today-page[data-wir-design="modern"] .today-hero.couple-presence-card {
+  padding-block: var(--space-3);
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.today-page[data-wir-design="modern"] .today-hero.couple-presence-card::before {
+  content: none;
+}
+.today-page[data-wir-design="modern"]
+  .today-hero.couple-presence-card
+  .couple-presence-main {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: var(--space-4);
+  text-align: start;
+}
+.today-page[data-wir-design="modern"]
+  .today-hero.couple-presence-card
+  .couple-presence-details {
+  flex: 1 1 10rem;
+  width: auto;
+  align-items: flex-start;
+}
+.today-page[data-wir-design="modern"]
+  .today-hero.couple-presence-card
+  .couple-presence-meta {
+  justify-content: flex-start;
+  text-align: start;
+}
+.today-page[data-wir-design="modern"]
+  .today-hero
+  .partner-avatar-pair-hero
+  .partner-avatar {
+  width: var(--space-16);
+  height: var(--space-16);
+  font-size: var(--space-5);
+  box-shadow: none;
+}
+.today-page[data-wir-design="modern"] .today-hero .couple-presence-title {
+  font: var(--font-content-heading);
+  font-family: var(--font-ui);
+  text-align: start;
+}
+.today-page[data-wir-design="modern"] .today-hero-action-container {
+  justify-content: flex-start;
+}
+.today-page[data-wir-design="modern"] .daily-vibe-checkin {
+  padding: var(--space-3);
   background: var(--color-shared-surface);
-  text-decoration: none;
+  border-radius: var(--radius-large);
+}
+.today-page[data-wir-design="modern"] .today-section-title {
+  font-family: var(--font-ui);
+}
+.today-page[data-wir-design="modern"] .today-moment-media .story-media-preview,
+.today-page[data-wir-design="modern"] .today-moment-media .story-media-skeleton,
+.today-page[data-wir-design="modern"]
+  .today-moment-media
+  .story-media-placeholder {
+  aspect-ratio: 16 / 9;
+}
+.today-page[data-wir-design="modern"] .daily-quote-card {
+  padding-inline: var(--space-4);
+  text-align: start;
+}
+.today-page[data-wir-design="modern"] .today-stream-recent {
+  gap: var(--space-2);
 }
 .wir-design-preview-modern .wir-design-preview-hero {
-  display: grid;
-  justify-items: center;
+  display: flex;
+}
+@media (min-width: 840px) {
+  .today-page[data-wir-design="warm"] .today-moment-media .story-media-preview {
+    aspect-ratio: 16 / 9;
+  }
 }

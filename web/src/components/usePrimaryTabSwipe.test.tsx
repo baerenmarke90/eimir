@@ -235,6 +235,33 @@ describe('primary tab swipe ownership', () => {
     expect(onNavigate).not.toHaveBeenCalled();
   });
 
+  it('allows horizontal root navigation inside a vertical-only scroller', () => {
+    const onNavigate = vi.fn();
+    render(<Harness onNavigate={onNavigate} />);
+    const scroller = screen.getByTestId('scroller');
+    scroller.style.overflowY = 'auto';
+    Object.defineProperties(scroller, {
+      scrollWidth: { value: 200 },
+      clientWidth: { value: 200 },
+      scrollHeight: { value: 800 },
+      clientHeight: { value: 200 },
+    });
+    act(() => swipe(scroller.firstChild ?? scroller));
+    expect(onNavigate).toHaveBeenCalledExactlyOnceWith('/plan');
+  });
+
+  it('accepts a deliberate horizontal drag over a simple button without activating it', () => {
+    const onNavigate = vi.fn();
+    render(<Harness onNavigate={onNavigate} />);
+    const button = screen.getByRole('button');
+    const action = vi.fn();
+    button.addEventListener('click', action);
+    act(() => swipe(button));
+    expect(onNavigate).toHaveBeenCalledExactlyOnceWith('/plan');
+    fireEvent.click(button, { detail: 1 });
+    expect(action).not.toHaveBeenCalled();
+  });
+
   it('cancels if a dirty owner appears during a gesture', () => {
     const onNavigate = vi.fn();
     const view = render(<Harness onNavigate={onNavigate} />);
@@ -252,7 +279,6 @@ describe('primary tab swipe ownership', () => {
     const onNavigate = vi.fn();
     render(<Harness onNavigate={onNavigate} />);
     act(() => {
-      swipe(screen.getByRole('button'));
       swipe(screen.getByRole('textbox'));
       screen.getByRole('textbox').focus();
       swipe(screen.getByTestId('reading'));

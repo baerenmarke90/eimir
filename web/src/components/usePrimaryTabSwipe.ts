@@ -7,7 +7,7 @@ const EDGE_INSET = 24;
 const DIRECTION_SLOP = 10;
 const HORIZONTAL_BIAS = 1.25;
 const BLOCKED_TARGETS =
-  'button, input, textarea, select, form, [contenteditable]:not([contenteditable="false"]), [role="slider"], [role="tablist"], [draggable="true"], video, audio, .leaflet-container, .media-gallery, .eimir-media-snap-track, [data-primary-tab-swipe-block]';
+  'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="switch"], [role="slider"], [role="tablist"], [draggable="true"], video, audio, .leaflet-container, .media-gallery, .eimir-media-snap-track, [data-primary-tab-swipe-block]';
 
 function editingOrOverlayActive(): boolean {
   return Boolean(
@@ -32,8 +32,14 @@ function contentOwnsGesture(target: Element, surface: HTMLElement): boolean {
     node = node.parentElement
   ) {
     const style = window.getComputedStyle(node);
+    // A vertical scroller can compute overflow-x:auto without owning any
+    // horizontal gesture. Keep explicit carousels and real horizontal overflow.
+    const verticalOnlyScroller =
+      /(auto|scroll)/.test(style.overflowY) &&
+      node.scrollHeight > node.clientHeight + 1 &&
+      node.scrollWidth <= node.clientWidth + 1;
     if (
-      /(auto|scroll)/.test(style.overflowX) ||
+      (/(auto|scroll)/.test(style.overflowX) && !verticalOnlyScroller) ||
       style.touchAction === 'none' ||
       style.touchAction === 'pan-x'
     )
@@ -49,6 +55,7 @@ interface Gesture {
   scrollY: number;
   horizontal: boolean;
   offset: number;
+  startedAt: number;
 }
 
 /** Shell-owned root navigation; content scrollers and task layers keep priority. */
@@ -68,7 +75,7 @@ export function usePrimaryTabSwipe({
   const currentRoute = useRef(routeKey);
   currentRoute.current = routeKey;
   const suppressClick = useRef(false);
-  const entry = useRef<{ to: string; direction: number; from: string } | null>(
+  const entry = useRef<{ to: string; offset: number; from: string } | null>(
     null,
   );
 
@@ -85,17 +92,23 @@ export function usePrimaryTabSwipe({
       pending.from !== routeKey &&
       !reducedMotion?.matches
     ) {
-      surface.dataset.primaryTabEntry =
-        pending.direction > 0 ? 'next' : 'previous';
+      surface.style.setProperty(
+        '--primary-tab-entry-offset',
+        `${pending.offset}px`,
+      );
+      surface.dataset.primaryTabEntry = 'true';
       const complete = (event: Event) => {
-        if (event.type === 'change' || event.target === surface)
+        if (event.type === 'change' || event.target === surface) {
           delete surface.dataset.primaryTabEntry;
+          surface.style.removeProperty('--primary-tab-entry-offset');
+        }
       };
       surface.addEventListener('animationend', complete);
       surface.addEventListener('animationcancel', complete);
       reducedMotion?.addEventListener('change', complete);
       return () => {
         delete surface.dataset.primaryTabEntry;
+        surface.style.removeProperty('--primary-tab-entry-offset');
         surface.removeEventListener('animationend', complete);
         surface.removeEventListener('animationcancel', complete);
         reducedMotion?.removeEventListener('change', complete);
@@ -112,6 +125,7 @@ export function usePrimaryTabSwipe({
     if (!surface || index < 0) return;
     let gesture: Gesture | null = null;
     let frame = 0;
+    let snapBack: Animation | undefined;
     const clearDrag = () => {
       if (frame) window.cancelAnimationFrame(frame);
       frame = 0;
@@ -124,6 +138,7 @@ export function usePrimaryTabSwipe({
     };
     const start = (event: TouchEvent) => {
       cancel();
+      snapBack?.cancel();
       suppressClick.current = false;
       const touch = event.touches[0];
       if (
@@ -146,6 +161,7 @@ export function usePrimaryTabSwipe({
         scrollY: window.scrollY,
         horizontal: false,
         offset: 0,
+        startedAt: event.timeStamp,
       };
     };
     const move = (event: TouchEvent) => {
@@ -191,11 +207,8 @@ export function usePrimaryTabSwipe({
           frame = 0;
           if (!gesture) return;
           // Bounded direct feedback; never move or remount the fixed shell.
-          const limit = window.innerWidth * 0.18;
-          const offset = Math.max(
-            -limit,
-            Math.min(limit, gesture.offset * 0.35),
-          );
+          const limit = window.innerWidth;
+          const offset = Math.max(-limit, Math.min(limit, gesture.offset));
           surface.dataset.primaryTabDragging = 'true';
           surface.style.setProperty('--primary-tab-offset', `${offset}px`);
         });
@@ -218,15 +231,43 @@ export function usePrimaryTabSwipe({
       const dx = touch.clientX - current.x;
       const dy = touch.clientY - current.y;
       const threshold = Math.min(80, Math.max(48, window.innerWidth * 0.18));
+      const elapsed = event.timeStamp - current.startedAt;
+      const velocity = Math.abs(dx) / Math.max(1, elapsed);
       if (
-        Math.abs(dx) < threshold ||
+        (Math.abs(dx) < threshold &&
+          !(elapsed >= 32 && Math.abs(dx) >= 32 && velocity > 0.5)) ||
         Math.abs(dx) < Math.abs(dy) * HORIZONTAL_BIAS
-      )
+      ) {
+        if (
+          !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches &&
+          surface.animate
+        ) {
+          const style = getComputedStyle(surface);
+          snapBack = surface.animate(
+            [
+              { transform: `translateX(${current.offset}px)` },
+              { transform: 'none' },
+            ],
+            {
+              duration:
+                parseFloat(style.getPropertyValue('--duration-transition')) ||
+                180,
+              easing:
+                style.getPropertyValue('--easing-standard').trim() ||
+                'ease-out',
+            },
+          );
+        }
         return;
+      }
       const direction = dx < 0 ? 1 : -1;
       const destination = PRIMARY_APP_ROUTES[index + direction];
       if (!destination) return;
-      entry.current = { to: destination.path, direction, from: routeKey };
+      entry.current = {
+        to: destination.path,
+        offset: direction * window.innerWidth + dx,
+        from: routeKey,
+      };
       navigateRef.current(destination.path);
     };
     const click = (event: MouseEvent) => {
@@ -255,6 +296,7 @@ export function usePrimaryTabSwipe({
     window.addEventListener('resize', cancel);
     return () => {
       cancel();
+      snapBack?.cancel();
       surface.removeEventListener('touchstart', start);
       surface.removeEventListener('touchmove', move);
       surface.removeEventListener('touchend', end);

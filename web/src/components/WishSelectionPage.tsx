@@ -193,7 +193,9 @@ function WishSelectionTask({
     setOccasion(current.title ?? '');
   }, []);
   useEffect(() => {
-    if (!view || dirty || busy) return;
+    if (!view) return;
+    if (mode === null) setMode(activeMode);
+    if (dirty || busy) return;
     if (
       !base ||
       (activeMode !== 'setup' &&
@@ -201,7 +203,7 @@ function WishSelectionTask({
         base.token !== view.selectionToken)
     )
       adopt(view);
-  }, [view, dirty, busy, base, activeMode, adopt]);
+  }, [view, dirty, busy, base, activeMode, mode, adopt]);
   useEffect(() => {
     focusRef.current?.focus({ preventScroll: activeMode === 'setup' });
   }, [activeMode]);
@@ -447,7 +449,9 @@ function WishSelectionTask({
   const stale = Boolean(
     view &&
       base &&
-      (view.selectionToken !== base.token || view.version !== base.version),
+      (view.selectionToken !== base.token ||
+        view.roundToken !== base.roundToken ||
+        (activeMode === 'vote' && view.resultState === 'NEEDS_IDEAS')),
   );
   function clearProblems() {
     roundMutation.reset();

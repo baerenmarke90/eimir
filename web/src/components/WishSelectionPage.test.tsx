@@ -422,6 +422,38 @@ describe('WishSelectionPage', () => {
     expect(updateOwnWishSelection).not.toHaveBeenCalled();
   });
 
+  it('keeps the personal draft and offers explicit reload when a source changes', async () => {
+    const { queryClient, updateOwnWishSelection } = renderTask();
+    fireEvent.click(
+      await screen.findByRole('checkbox', { name: candidates[0].title }),
+    );
+    act(() =>
+      queryClient.setQueryData(
+        wishSelectionQueryKey('', 'account-a', 'space-1'),
+        projection('NEEDS_IDEAS'),
+      ),
+    );
+    expect(
+      screen.getByRole('checkbox', { name: candidates[0].title }),
+    ).toHaveProperty('checked', true);
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: copy.share })).toHaveProperty(
+        'disabled',
+        true,
+      ),
+    );
+    expect(screen.getByText(copy.changedBody)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: copy.reload }));
+    expect(await screen.findByRole('alertdialog')).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', { name: m5s3.common.keepEditing }),
+    );
+    expect(
+      screen.getByRole('checkbox', { name: candidates[0].title }),
+    ).toHaveProperty('checked', true);
+    expect(updateOwnWishSelection).not.toHaveBeenCalled();
+  });
+
   it('clears personal drafts when the active account changes', async () => {
     const { switchAccount } = renderTask();
     fireEvent.click(

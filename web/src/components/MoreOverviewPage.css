@@ -275,6 +275,7 @@
 }
 .product-main[data-area="more"] .page-heading h1 {
   font-family: var(--font-ui);
+  overflow-wrap: anywhere;
 }
 .product-main[data-area="more"] .settings-category-list {
   display: grid;

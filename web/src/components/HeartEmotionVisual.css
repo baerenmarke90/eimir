@@ -174,15 +174,6 @@
   border: 0;
 }
 
-.heart-moment-create-field.heart-emotion-picker {
-  grid-column: 1 / -1;
-  padding: var(--space-4);
-  border: var(--border-surface-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-raised);
-}
-
 .heart-emotion-picker > legend {
   margin-bottom: var(--space-3);
   color: var(--color-text);

@@ -314,6 +314,7 @@ export const ListEntryIconButton = forwardRef<
 ) {
   const classes = [
     'list-entry-icon-button',
+    icon === 'edit' ? 'content-edit-action' : null,
     variant === 'add' ? 'list-entry-add-button' : null,
     icon === 'reorder' ? 'list-entry-drag-handle' : null,
     className,

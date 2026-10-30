@@ -90,6 +90,7 @@ function emptyPhotoBatch(): PhotoBatchScenario {
 }
 
 for (const [width, colorScheme] of [
+  [320, 'light'],
   [360, 'dark'],
   [390, 'light'],
   [430, 'light'],
@@ -103,6 +104,28 @@ for (const [width, colorScheme] of [
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
     await signInAndOpenMemoryCreate(page, photos, source);
+    if (width === 320)
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '32px';
+      });
+    const devicePicker = page.locator('.immersive-create-media .file-picker');
+    const sourcePicker = page.getByRole('button', { name: photoSources.more });
+    const [deviceBox, sourceBox] = await Promise.all([
+      devicePicker.boundingBox(),
+      sourcePicker.boundingBox(),
+    ]);
+    if (!deviceBox || !sourceBox) throw new Error('Photo actions are missing.');
+    expect(sourceBox.y).toBeGreaterThan(deviceBox.y + deviceBox.height);
+    expect(sourceBox.height).toBeGreaterThanOrEqual(44);
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`photo-actions-${width}-${colorScheme}.png`),
+      fullPage: true,
+    });
+    if (width === 320)
+      await page.evaluate(() => {
+        document.documentElement.style.removeProperty('font-size');
+      });
     await page
       .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
       .fill(AUTHORED_BODY);

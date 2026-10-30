@@ -1,13 +1,13 @@
-import { fulfillEmptyMomentPlaces } from '../support/photoSources';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { readFile, writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
-import de from '../../src/i18n/locales/de';
+import { expect, type Page, test } from '@playwright/test';
 import contextTags from '../../src/i18n/locales/contextTags';
+import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -707,9 +707,6 @@ for (const colorScheme of ['light', 'dark'] as const) {
       const privateRadio = page.locator(
         '#heart-moment-create-visibility-private',
       );
-      const privacySummary = page.locator(
-        '.heart-moment-create-privacy-summary',
-      );
       const saveButton = page.getByRole('button', {
         name: storyProducts.heartMomentProduct.save,
       });
@@ -726,18 +723,38 @@ for (const colorScheme of ['light', 'dark'] as const) {
       // Preserve the existing product default while making the choice explicit.
       await expect(sharedRadio).toBeChecked();
       await expect(privateRadio).not.toBeChecked();
-      await expect(privacySummary).toHaveText(
-        storyProducts.heartMomentProduct.sharedHelp,
+      await expect(
+        page.getByText(storyProducts.heartMomentProduct.sharedHelp),
+      ).toHaveCount(0);
+      await expect(
+        page.getByText(storyProducts.heartMomentProduct.privateHelp),
+      ).toHaveCount(0);
+      await expect(page.locator('.heart-moment-create-identity')).toHaveCount(
+        0,
+      );
+
+      const emotion = page.locator('.heart-moment-create-emotion-picker');
+      const label = emotion
+        .getByRole('group', {
+          name: storyProducts.heartMomentProduct.emotionLabel,
+        })
+        .locator('legend');
+      const [surfaceBox, labelBox] = await Promise.all([
+        emotion.boundingBox(),
+        label.boundingBox(),
+      ]);
+      if (!surfaceBox || !labelBox)
+        throw new Error('Emotion group is missing.');
+      expect(labelBox.y).toBeGreaterThan(surfaceBox.y);
+      expect(labelBox.y + labelBox.height).toBeLessThan(
+        surfaceBox.y + surfaceBox.height,
       );
 
       await privateRadio.check();
       await expect(privateRadio).toBeChecked();
       await expect(sharedRadio).not.toBeChecked();
-      await expect(privacySummary).toHaveText(
-        storyProducts.heartMomentProduct.privateHelp,
-      );
-
-      await sharedRadio.check();
+      await privateRadio.focus();
+      await privateRadio.press('ArrowRight');
       await expect(sharedRadio).toBeChecked();
 
       const dateInput = page.getByLabel(
@@ -791,11 +808,21 @@ for (const colorScheme of ['light', 'dark'] as const) {
         .analyze();
       expect(axeResult.violations).toEqual([]);
 
+      await page.locator('#heart-moment-create-heading').click();
       await page.screenshot({
         path: testInfo.outputPath(
           `shell-heart-moment-create-reference-390-${colorScheme}.png`,
         ),
         fullPage: true,
+      });
+      await emotion.screenshot({
+        path: testInfo.outputPath(`heart-emotion-field-390-${colorScheme}.png`),
+      });
+      await visibility.evaluate((element) =>
+        element.scrollIntoView({ block: 'center', behavior: 'instant' }),
+      );
+      await visibility.screenshot({
+        path: testInfo.outputPath(`heart-audience-390-${colorScheme}.png`),
       });
     } finally {
       await context.close();
@@ -830,7 +857,10 @@ test('Heart Moment Create reflows at 320px and large text without horizontal ove
     if (!privateBox || !sharedBox) {
       throw new Error('Visibility cards did not render at 320px.');
     }
-    expect(sharedBox.y).toBeGreaterThan(privateBox.y + privateBox.height - 1);
+    expect(sharedBox.y).toBe(privateBox.y);
+    expect(sharedBox.x).toBeGreaterThanOrEqual(privateBox.x + privateBox.width);
+    expect(sharedBox.height).toBeGreaterThanOrEqual(44);
+    expect(privateBox.height).toBeGreaterThanOrEqual(44);
 
     await page.screenshot({
       path: testInfo.outputPath('shell-heart-moment-create-reference-320.png'),
@@ -839,7 +869,7 @@ test('Heart Moment Create reflows at 320px and large text without horizontal ove
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.evaluate(() => {
-      document.documentElement.style.fontSize = '24px';
+      document.documentElement.style.fontSize = '32px';
     });
     await expectNoHorizontalOverflow(page);
 
@@ -850,8 +880,9 @@ test('Heart Moment Create reflows at 320px and large text without horizontal ove
     if (!largeTextPrivateBox || !largeTextSharedBox) {
       throw new Error('Visibility cards did not render with large text.');
     }
-    expect(largeTextSharedBox.y).toBeGreaterThan(
-      largeTextPrivateBox.y + largeTextPrivateBox.height - 1,
+    expect(largeTextSharedBox.y).toBe(largeTextPrivateBox.y);
+    expect(largeTextSharedBox.x).toBeGreaterThanOrEqual(
+      largeTextPrivateBox.x + largeTextPrivateBox.width,
     );
 
     await page.screenshot({

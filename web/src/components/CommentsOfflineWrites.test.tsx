@@ -106,7 +106,8 @@ async function prepare(operation: Operation) {
     await user.click(screen.getByRole('button', { name: copy.send }));
     await user.type(screen.getByRole('textbox'), 'New comment');
   } else {
-    await user.click(screen.getByLabelText(copy.edit));
+    if (operation === 'delete')
+      await user.click(screen.getByLabelText(copy.moreActions));
     if (operation === 'update') {
       await user.click(screen.getByRole('button', { name: copy.edit }));
       await user.clear(screen.getByRole('textbox'));

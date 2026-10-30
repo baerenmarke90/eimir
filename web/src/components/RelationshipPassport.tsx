@@ -1,3 +1,4 @@
+import { dashboardItemTitle } from '../client/dashboardPresentation';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -467,12 +468,10 @@ function PassportStory({
                 <Link to={dashboardItemPath(item.type, item.id) ?? '/story'}>
                   <span>
                     <strong>
-                      {textExcerpt(
-                        item.titleOrText || t('m5s5.dashboard.itemFallback'),
-                        100,
-                      )}
+                      {textExcerpt(dashboardItemTitle(item, t).title, 100)}
                     </strong>
-                    {item.occurredOn ? (
+                    {item.occurredOn &&
+                    !dashboardItemTitle(item, t).titleIsDate ? (
                       <time
                         dateTime={item.occurredOn.toISOString().slice(0, 10)}
                       >

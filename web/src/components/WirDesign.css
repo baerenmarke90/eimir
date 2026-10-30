@@ -356,10 +356,6 @@
 .today-page[data-wir-design="modern"] .couple-presence-context {
   margin-top: var(--space-4);
 }
-.today-page[data-wir-design="modern"] .today-hero-context {
-  background: var(--color-surface-raised);
-  box-shadow: var(--shadow-soft);
-}
 .today-page[data-wir-design="modern"] .today-hero-duration-link {
   padding-inline: var(--space-4);
   border-radius: var(--radius-pill);

@@ -1,3 +1,4 @@
+import { ListEntryIconButton } from './ListEntryActions';
 import { type FormEvent, useMemo, useRef, useState } from 'react';
 import {
   useIsMutating,
@@ -401,12 +402,11 @@ export function PlanProductPage({
         }
         titleAction={
           plan.capabilities.canEdit && !isEditing ? (
-            <button
+            <ListEntryIconButton
               type="button"
               ref={editTrigger}
-              className="secondary"
-              aria-label={t('common.edit')}
-              title={t('common.edit')}
+              label={t('common.edit')}
+              icon="edit"
               disabled={writesPending}
               onClick={() => {
                 if (!isPlanWritePending()) {
@@ -419,9 +419,7 @@ export function PlanProductPage({
                   setSelectedPlaceId(plan.placeId ?? '');
                 }
               }}
-            >
-              {t('common.edit')}
-            </button>
+            />
           ) : undefined
         }
       />

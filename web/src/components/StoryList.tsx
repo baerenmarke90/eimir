@@ -354,7 +354,17 @@ export function StoryList({
                     />
                   ) : null}
 
-                  <h4>{presentation.title}</h4>
+                  <h4>
+                    {presentation.titleIsDate ? (
+                      <time
+                        dateTime={item.effectiveDate.toISOString().slice(0, 10)}
+                      >
+                        {presentation.title}
+                      </time>
+                    ) : (
+                      presentation.title
+                    )}
+                  </h4>
                   {item.kind === 'HEART_MOMENT' ? (
                     <HeartEmotionBadge emotion={item.heartMoment.emotion} />
                   ) : presentation.preview ? (
@@ -362,11 +372,13 @@ export function StoryList({
                   ) : null}
 
                   <div className="story-card-footer" id={metaId}>
-                    <time
-                      dateTime={item.effectiveDate.toISOString().slice(0, 10)}
-                    >
-                      {formatTimelineDate(item.effectiveDate, locale)}
-                    </time>
+                    {!presentation.titleIsDate ? (
+                      <time
+                        dateTime={item.effectiveDate.toISOString().slice(0, 10)}
+                      >
+                        {formatTimelineDate(item.effectiveDate, locale)}
+                      </time>
+                    ) : null}
                     <span className="story-card-footer-author">
                       <span className="momente-author-meta">
                         <AuthorAvatar

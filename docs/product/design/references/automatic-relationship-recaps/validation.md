@@ -2,6 +2,9 @@
 
 Owner: #1528. Baseline: main `1468e0a6e66eb5bd7b9192bf65ac357d8351b4d0`.
 The generated preflight reference was linked in the owning issue before UI code.
+Final integration includes main `daf8783fde32c53ff72a03bf02e2ebad6ef92417`
+(the journal and Today/composer follow-ups); its source-title and anticipation
+changes are preserved.
 
 ## Product evidence
 

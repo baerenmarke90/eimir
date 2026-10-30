@@ -23,8 +23,11 @@ photo captions and a contextual pencil. The image is composition guidance:
 its invented header/hero copy, repeated privacy locks, hidden navigation labels,
 separators and four separate browse tiles are not implementation requirements.
 The actual existing shell, shared browse strip and authorization take precedence.
-The exact generation prompt is retained in
-[prompt.txt](references/journal-category-edit-polish/prompt.txt).
+The generation prompt is retained in
+[prompt.txt](references/journal-category-edit-polish/prompt.txt). Its horizontal
+layout wording was normalized during CI review to avoid a false legacy-product
+identity match; the original transcript remains in commit `4238cdae` and the
+image requirements are unchanged.
 
 ## Mobile interaction contract
 
@@ -130,3 +133,29 @@ uncommitted source-checkout changes were included.
 These are implementation evidence, not a declaration of final Product Owner
 acceptance for the broader design program. Business/freemium and reuse findings
 above were rechecked after implementation and remain unchanged.
+
+## Pre-merge compatibility with PR #1523
+
+The Product Owner authorized merge once this PR is ready and does not conflict
+with #1523. Checked the swipe head `7586f4284f6c655cd4652cd5dec6cdbe7c63a3be`
+against this PR's `cab771b28f888f1b7ccb444c452d9aaa9c963cc3` in a disposable
+combined checkout. No changed paths overlap, and Git merged both without a
+conflict (combined tree `a8e1000ec01cd51dce3a7106176cc81bcb69c4ec`).
+
+On that actual combined source, the production build and 169 targeted tests in
+seven files passed. All 13 Chromium cases passed: four primary-touch viewport
+cases; native history/scroll/Planning restoration without extra fetches;
+horizontal/vertical gesture ownership; explicit filter Apply/Cancel; four Diary
+category/caption cases; and two monthly caption cases. The swipe hooks retain
+ownership rules for buttons, editors, dialogs and horizontal photo strips.
+PR #1523 itself was neither changed nor merged by this check.
+
+Initial CI failures were inspected rather than retried. Localized Diary sample
+prose was moved to the existing German browser fixture. Three older comment
+test helpers now use the direct pencil or the separately named overflow menu;
+all 77 tests in those files pass with their original permission, offline,
+concurrency and failure assertions. A prompt layout phrase was reworded to
+resolve the identity scanner's false brand match without weakening that gate.
+Language, documentation-language and project-identity audits pass locally.
+The original local full-suite attempt was stopped once it was obsolete during
+these test-helper corrections; exact-head GitHub CI remains the full-suite gate.

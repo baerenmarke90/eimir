@@ -6,6 +6,7 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import sharedPhotos from '../../src/i18n/locales/sharedPhotos';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
+import localizedFixture from '../fixtures/locales/de';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -740,18 +741,10 @@ for (const [width, theme] of [
       'GRATEFUL',
       'HAPPY',
     ];
-    const words = [
-      'Ein lieber Gedanke.',
-      'Du hast zugehört.',
-      'Du bist wunderbar.',
-      'Danke fürs Dasein.',
-      'Dankbar für uns.',
-      'Ein glücklicher Tag.',
-    ];
     const items = emotions.map((emotion, index) => {
       const item = heartMomentItem(
         `category-${index}`,
-        words[index],
+        localizedFixture.diaryCategoryNotes[index],
         '2026-10-26',
       );
       return {

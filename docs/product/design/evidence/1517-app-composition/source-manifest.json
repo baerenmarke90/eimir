@@ -22,6 +22,14 @@
       "sha256": "5bdb1b0f5e5707c0d12159c6e0270f7cc3225b4f25945c3efd5e4555b094ee68"
     },
     {
+      "path": "web/e2e/tests/today-living-home.spec.ts",
+      "sha256": "6793fb4d0b8d24f09a265e3517b3dab08ad88bace19e4877ac4bbc17fe849b43"
+    },
+    {
+      "path": "web/e2e/tests/today-recent-trace.spec.ts",
+      "sha256": "174e183b1bbddb00d5ba1cefb714a5e102217ee083df376270d0d9e824684bcd"
+    },
+    {
       "path": "web/src/client/apiConfiguration.ts",
       "sha256": "232f6a291a2bb670147e1b4fc224dd2e79e71c116bd6bc0d9379c60a0cbba7a8"
     },

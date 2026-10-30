@@ -131,12 +131,19 @@ const SHARED_WISH = {
   previewIsSensitive: false,
 };
 
+// Current-month prose now belongs in monthly highlights. Older shared content
+// remains reachable in the independent recent trace, without duplication.
+const previousMonthDate = new Date(
+  Date.UTC(NOW.getFullYear(), NOW.getMonth() - 1, 3),
+)
+  .toISOString()
+  .slice(0, 10);
 const TRACE_ONLY = {
   id: 'hm-1',
   type: 'HEART_MOMENT',
   titleOrText: 'Kleine Alltagsmomente',
-  occurredOn: thisMonthDate(3),
-  createdAt: thisMonth(3),
+  occurredOn: previousMonthDate,
+  createdAt: `${previousMonthDate}T12:00:00Z`,
   scheduledAt: null,
   previewAttachmentId: null,
   previewIsSensitive: false,

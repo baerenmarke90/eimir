@@ -65,3 +65,15 @@ journeys pass, including 320px and 390px/200% text. The 21 related component/cli
 tests and production build pass. No browser budgets, tolerances or assertions
 were weakened. The owning request now authorizes merging after successful
 final-head GitHub checks; no release was requested.
+
+
+## Monthly selection fixture correction
+
+The expanded monthly highlights intentionally claim current-month text once.
+Two older trace-layout fixtures still placed their trace-only examples in that
+same month. Those examples now use a date-only value from the previous month,
+including the January/year boundary. Tile counts, focus, geometry, no-overflow,
+chronology and no-duplication assertions are unchanged; the quote collection
+continues to prove current-month prose/Milestone inclusion. All 112 existing
+Today composition and component tests pass, along with changed-spec formatting
+and lint. The complete pinned GitHub browser run remains required before merge.

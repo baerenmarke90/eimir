@@ -12,14 +12,18 @@ without an entry makes the suite fail before it reaches production.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.orm import Session
 
+from eimir.core import clock
 from eimir.dashboard.preferences import CATALOG as DASHBOARD_CATALOG
 from eimir.engagement.models import Notification, NotificationKind
+from eimir.entitlements import service as entitlements
+from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
 from eimir.main import create_app
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
@@ -138,6 +142,43 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("POST", "/api/v1/spaces/{spaceId}/membership/leave"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/entitlements"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/relationship-passport"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/recaps"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps/prepare"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps", body={"kind": "YEAR", "year": 2025}),
+    Endpoint(
+        "GET", "/api/v1/spaces/{spaceId}/recaps/{recapId}", resource_absence="RESOURCE_NOT_FOUND"
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/recaps/{recapId}/selection",
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/recaps/{recapId}/selection",
+        body={"sourceKeys": []},
+        if_match=True,
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/recaps/{recapId}/save",
+        if_match=True,
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/recaps/{recapId}/reflection",
+        body={"text": "Matrix recap reflection", "shared": True, "version": 1},
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/recaps/{recapId}/reflection",
+        if_match=True,
+        resource_absence="RESOURCE_NOT_FOUND",
+        verification_template="/api/v1/spaces/{spaceId}/recaps/{recapId}",
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/app-icon"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/wir-design"),
     Endpoint(
@@ -1070,7 +1111,7 @@ covered in `test_auth_flows` and `test_invitations`.
 
 
 @pytest.fixture
-def scenario(client, session: Session):  # type: ignore[no-untyped-def]
+def scenario(client, session: Session, request: pytest.FixtureRequest):  # type: ignore[no-untyped-def]
     "A couple with one real resource per domain, plus a foreign one."
     anna = make_account(session, "Anna")
     ben = make_account(session, "Ben")
@@ -1147,6 +1188,35 @@ def scenario(client, session: Session):  # type: ignore[no-untyped-def]
     ).json()
     attachment = client.post(f"{base_path}/attachments", json=ATTACHMENT, headers=headers).json()
 
+    recap_id = str(uuid4())
+    callspec = getattr(request.node, "callspec", None)
+    endpoint = callspec.params.get("endpoint") if callspec else None
+    if endpoint and "/recaps" in endpoint.template:
+        # Keep unrelated domain fixtures Free. Recap writes need their own grant
+        # so the matrix reaches resource/header checks instead of a Pro gate.
+        entitlements.record_grant(
+            session,
+            space_id=space.id,
+            account_id=anna.id,
+            source_type=EntitlementSourceType.ADMIN_GRANT,
+            status=EntitlementStatus.ACTIVE,
+            tier=EntitlementTier.PREMIUM,
+            effective_from=clock.now() - timedelta(days=1),
+            capabilities=["relationship.passport"],
+        )
+        session.flush()
+        recap = client.post(
+            f"{base_path}/recaps", json={"kind": "YEAR", "year": 2025}, headers=headers
+        )
+        assert recap.status_code == 200
+        recap_id = recap.json()["id"]
+        reflection = client.put(
+            f"{base_path}/recaps/{recap_id}/reflection",
+            json={"text": "Matrix recap reflection", "shared": True, "version": 0},
+            headers=headers,
+        )
+        assert reflection.status_code == 200
+
     return {
         "client": client,
         "space": space,
@@ -1154,6 +1224,7 @@ def scenario(client, session: Session):  # type: ignore[no-untyped-def]
         "foreign_headers": auth(sign_in(session, foreign)),
         "ids": {
             "spaceId": str(space.id),
+            "recapId": recap_id,
             "accountId": str(ben.id),
             "invitationId": invitation["id"],
             "preferenceId": preference["id"],
@@ -1300,6 +1371,7 @@ def _resource_placeholders(endpoint: Endpoint) -> tuple[str, ...]:
     return tuple(
         name
         for name in (
+            "recapId",
             "invitationId",
             "preferenceId",
             "personId",
@@ -1365,6 +1437,8 @@ def test_without_if_match_does_not_write(scenario, endpoint: Endpoint) -> None: 
                 verification_path, headers=scenario["owner_headers"]
             )
             assert afterwards.status_code == 200
+            if "/recaps/" in endpoint.template:
+                assert len(afterwards.json()["reflections"]) == 1
 
 
 def test_contract_is_completely_covered() -> None:

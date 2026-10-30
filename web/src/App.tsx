@@ -89,6 +89,8 @@ import {
   MORE_PLACES_ROUTE,
   MORE_COLLECTIONS_ROUTE,
   MORE_PROFILE_ROUTE,
+  MORE_PASSPORT_ROUTE,
+  RECAP_DETAIL_ROUTE_PATTERN,
   MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
   PLAN_CREATE_ROUTE,
@@ -144,6 +146,7 @@ import { PlanningCreatePage } from './components/PlanningCreatePage';
 import { PrivateAreaProductPage } from './components/PrivateAreaProductPage';
 import { ProblemState } from './components/ProblemState';
 import { ProfilePage } from './components/ProfilePage';
+import { RelationshipRecapsPage } from './components/RelationshipRecapsPage';
 import { RelatedPeoplePage } from './components/RelatedPeoplePage';
 import {
   ServerAdminAccessGate,
@@ -680,6 +683,21 @@ function AuthenticatedApp({
                     entitlementApi={entitlementApi}
                     dashboardApi={m4Apis.dashboard}
                     profilesApi={profilesApi}
+                  />
+                }
+              />
+            ))}
+            {[MORE_PASSPORT_ROUTE, RECAP_DETAIL_ROUTE_PATTERN].map((path) => (
+              <Route
+                key={path}
+                path={path}
+                element={
+                  <RelationshipRecapsPage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    account={account}
+                    spaceId={spaceId}
+                    mediaApis={apis}
                   />
                 }
               />

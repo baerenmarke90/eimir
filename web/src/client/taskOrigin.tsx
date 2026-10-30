@@ -11,6 +11,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ACTIVITY_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
+  MORE_PASSPORT_ROUTE,
   PRIMARY_APP_ROUTES,
   STORY_PHOTOS_ROUTE,
 } from './routes';
@@ -82,7 +83,9 @@ export function taskOriginPath(
   const memoryEditor = /^\/story\/memories\/(?!new\/)[^/]+\/edit$/.test(
     pathname,
   );
+  const recapReader = /^\/more\/passport\/[^/]+$/.test(pathname);
   if (
+    !recapReader &&
     !memoryEditor &&
     !planningDetail &&
     !secondaryDetail &&
@@ -93,12 +96,28 @@ export function taskOriginPath(
       STORY_PHOTOS_ROUTE,
       '/plan',
       '/more',
+      MORE_PASSPORT_ROUTE,
       '/search',
       ACTIVITY_ROUTE,
       MORE_NOTIFICATIONS_ROUTE,
+      MORE_PASSPORT_ROUTE,
     ].includes(pathname)
   )
     return null;
+  if (recapReader || pathname === MORE_PASSPORT_ROUTE) {
+    const input = new URLSearchParams(search);
+    const safe = new URLSearchParams();
+    if (input.get('tab') === 'years') safe.set('tab', 'years');
+    if (
+      pathname === MORE_PASSPORT_ROUTE &&
+      input.get('details') === 'relationship'
+    )
+      safe.set('details', 'relationship');
+    const page = Number(input.get('page'));
+    if (recapReader && Number.isInteger(page) && page > 0 && page <= 13)
+      safe.set('page', String(page));
+    return safe.size ? `${pathname}?${safe}` : pathname;
+  }
   if (pathname !== '/story') return pathname;
   const input = new URLSearchParams(search);
   const safe = storyFiltersToSearch(parseStoryFilters(input));

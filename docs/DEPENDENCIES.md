@@ -425,3 +425,18 @@ PNGs in its `evidence/` directory are actual browser renders with synthetic
 couple data. The Plan cover fixture is Darkmoon_Art/Pixabay 3374201 under CC0,
 as recorded in `backend/demo_assets/manifest.json`. The synthetic map tiles in
 browser evidence are a test fixture, not a third-party cartographic screenshot.
+
+## Optional local recap inference and reference assets (#1528)
+
+| Component / asset | Version / origin | License / use |
+| --- | --- | --- |
+| Ollama, optional operator container | `ollama/ollama:0.40.12@sha256:20d1bbfbabe1c97ba4b16301f08a20d8484bcf77047742a3cb71c613d8e12d0b`, [upstream](https://github.com/ollama/ollama) | MIT; local CPU inference; no runtime package dependency added to API/worker |
+| Qwen3 1.7B quantized model | Operator download `qwen3:1.7b-q4_K_M`, [model card](https://huggingface.co/Qwen/Qwen3-1.7B) / [distribution](https://ollama.com/library/qwen3:1.7b-q4_K_M) | Apache-2.0; not bundled in application releases; downloaded into the operator's model volume |
+| `docs/product/design/references/automatic-relationship-recaps/compact-reference.png` | eimir. workflow, built-in ImageGen, 2026-10-30; exact prompt alongside | Project-owned illustrative UI reference; not production user content |
+| `web/e2e/fixtures/recap-lake.webp` | eimir. workflow, built-in ImageGen, 2026-10-30; illustrative empty lake/jetty photograph | Project-owned test fixture only; no claimed user location/person/event; no production fallback photograph |
+| `docs/product/design/references/automatic-relationship-recaps/evidence/*.png` | Playwright screenshots of the real eimir. UI using explicitly synthetic fixtures | Project validation evidence; no real couple data |
+
+The optional model is not assumed immutable from its tag alone. Operators can
+record `ollama list`'s model identifier after download, and should review model
+updates deliberately. See [local recap operations](LOCAL-RECAP-AI.md) for resource,
+privacy, fallback and deployment behavior. No paid remote model provider is used.

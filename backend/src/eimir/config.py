@@ -229,6 +229,18 @@ class Settings(IdentityCompatibleSettings):
     photo_place_geocoding_url: str = "https://photon.komoot.io"
     place_search_url: str = "https://photon.komoot.io"
 
+    # Optional local-only recap wording. Selection and complete fallback stay in Core.
+    recap_ai_url: str = ""
+    recap_ai_model: str = "qwen3:1.7b-q4_K_M"
+    recap_ai_timeout_seconds: float = Field(default=45, ge=1, le=120)
+
+    @field_validator("recap_ai_url")
+    @classmethod
+    def _recap_ai_origin(cls, value: str) -> str:
+        from eimir.recaps.local_ai import validate_local_url
+
+        return validate_local_url(value)
+
     @field_validator("photo_place_geocoding_url", "place_search_url")
     @classmethod
     def _photo_place_geocoding_origin(cls, value: str) -> str:

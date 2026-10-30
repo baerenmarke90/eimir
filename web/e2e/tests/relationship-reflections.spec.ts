@@ -5,6 +5,7 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import planningCopy from '../../src/i18n/locales/m5s3';
 import copy from '../../src/i18n/locales/relationshipReflections';
+import recapCopy from '../../src/i18n/locales/recaps';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
   ACCOUNT_ID,
@@ -76,6 +77,17 @@ async function fixture(
     const request = route.request();
     const path = new URL(request.url()).pathname;
     const method = request.method();
+    if (path === `${BASE}/recaps`)
+      return route.fulfill({
+        json: {
+          canCompose: options.pro !== false,
+          editions: [],
+          periods: [],
+          hasMore: false,
+        },
+      });
+    if (path === `${BASE}/recaps/prepare`)
+      return route.fulfill({ status: 202, body: 'null' });
     if (path === `${BASE}/entitlements`)
       return route.fulfill({
         json: {
@@ -391,6 +403,8 @@ for (const [width, theme, largeText] of [
     await page.getByRole('button', { name: taskBoundary.back }).click();
     await expect(page).toHaveURL(/\/today$/);
     await page.goto('/more/profile');
+    await page.getByRole('link', { name: /Beziehungs-Pass/ }).click();
+    await page.getByText(recapCopy.details, { exact: true }).click();
     if (largeText)
       await page.addStyleTag({
         content: 'html { font-size: 200% !important; }',
@@ -444,7 +458,8 @@ test('Free profile explains Pro without requesting passport counts', async ({
   const state = await fixture(page, { pro: false });
   await signIn(page);
   await page.goto('/more/profile');
-  await expect(page.getByText(copy.passport.locked)).toBeVisible();
+  await page.getByRole('link', { name: /Beziehungs-Pass/ }).click();
+  await expect(page.getByText(recapCopy.gateBody)).toBeVisible();
   await expect(page.locator('.passport-metrics')).toHaveCount(0);
   expect(state.passportReads()).toBe(0);
   await page.evaluate(() => window.scrollTo(0, 0));

@@ -5,7 +5,8 @@ import { Configuration } from '../client/apiConfiguration';
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProfileIdentityPanel } from './ProfileIdentityPanel';
-import { RelationshipPassport } from './RelationshipPassport';
+import { Link } from 'react-router-dom';
+import { MORE_PASSPORT_ROUTE } from '../client/routes';
 import {
   ProfilePreferencesSection,
   RelationshipSummarySection,
@@ -63,10 +64,13 @@ export function ProfilePage(props: ProfilePageProps) {
       />
 
       {/* 2. Personal and partner profile content remains ahead of product/account messaging. */}
-      <RelationshipPassport
-        key={`${props.account.id}:${props.spaceId}`}
-        {...currentProps}
-      />
+      <Link className="profile-passport-entry" to={MORE_PASSPORT_ROUTE}>
+        <span>
+          <strong>{t('recaps.shortTitle')}</strong>
+          <span>{t('recaps.profileLink')}</span>
+        </span>
+        <span aria-hidden="true">↗</span>
+      </Link>
       <ProfilePreferencesSection {...currentProps} />
 
       {/* 3. Account-level Premium information stays factual and secondary. */}

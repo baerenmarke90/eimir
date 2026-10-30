@@ -365,6 +365,11 @@
       "baselineTests": 7,
       "reason": "The PO-approved combined Moments composition must preserve manual Place linking, modal return, icon/rail alignment, theme, Compact/Expanded and large-text reflow."
     },
+    "automatic-recaps.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 10,
+      "reason": "Automatic month/year discovery, focused source-return reader, selection conflict safety, private draft/share/save/withdraw and retained Free reads across Compact/Expanded themes."
+    },
     "places-and-lists-design.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 7,

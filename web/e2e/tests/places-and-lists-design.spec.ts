@@ -301,7 +301,7 @@ for (const scenario of [
 
 test('read, check, edit with failure recovery, sort, delete, create and return', async ({
   page,
-}) => {
+}, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const state = await installContent(page);
@@ -331,6 +331,7 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await dialog
     .getByLabel(m5s3.place.name, { exact: true })
     .fill('Unser Volkspark');
+  await captureScreenshot(page, testInfo, 'place-editor-390-light.png');
   await page.keyboard.press('Escape');
   await expect(dialog.getByRole('alertdialog')).toBeVisible();
   await dialog.getByRole('button', { name: m5s3.common.keepEditing }).click();
@@ -343,6 +344,7 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await page.getByRole('button', { name: m5s3.place.create }).click();
   dialog = page.getByRole('dialog');
   await dialog.getByLabel(m5s3.place.name, { exact: true }).fill('Unser Café');
+  await captureScreenshot(page, testInfo, 'place-create-390-light.png');
   await dialog
     .getByRole('button', { name: m5s3.common.save, exact: true })
     .click();
@@ -389,6 +391,7 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await dialog.getByRole('button', { name: m5s3.common.saveChanges }).click();
   await expect(dialog.getByRole('textbox')).toHaveValue('Sommerhaus gemeinsam');
   await expect(dialog.locator('.problem-state, [role="alert"]')).toBeVisible();
+  await captureScreenshot(page, testInfo, 'list-entry-error-390-light.png');
   await dialog.getByRole('button', { name: m5s3.common.saveChanges }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
@@ -450,6 +453,7 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
     .getByRole('button', { name: m5s3.common.save, exact: true })
     .click();
   await expect(page.locator('h1')).toHaveText('Unser Wochenende');
+  await captureScreenshot(page, testInfo, 'list-created-390-light.png');
   await page
     .getByRole('link', { name: m5s3.common.shortBackToCollections })
     .click();

@@ -91,4 +91,60 @@ TypeScript/build and token checks; browser journeys and visual evidence at
 
 ## Delivery evidence
 
-Implementation and verification results will be added here after the changes.
+UI source revision: `01b78997ac20d1f7f18b673914180910e676b013`.
+The latest main `cc0e23b7d6f4d950f0012660f051be46dd2da3af` (#1526) was
+merged before final verification. Its shared title/pencil and Memory preview
+refinements remain intact. The composition/reference remains applicable; the
+personal pin uses a shorter visible label while its full action name and
+pressed state remain accessible.
+
+The [image manifest](references/places-and-lists/evidence/manifest.json) records
+28 PNGs and their SHA-256 fingerprints. All images use disposable authorized
+fixtures, not private couple data. The UI source is unchanged in the subsequent
+evidence-only commit.
+
+| State | Places | Shared Lists |
+| --- | --- | --- |
+| Compact overview, Light | [430 px](references/places-and-lists/evidence/places-overview-430-light.png) | [430 px](references/places-and-lists/evidence/collections-overview-430-light.png) |
+| Compact detail, Light | [360 px](references/places-and-lists/evidence/places-detail-360-light.png) | [360 px](references/places-and-lists/evidence/collections-detail-360-light.png) |
+| Compact detail, Dark | [390 px](references/places-and-lists/evidence/places-detail-390-dark.png) | [390 px](references/places-and-lists/evidence/collections-detail-390-dark.png) |
+| Expanded, Dark | [1280 px](references/places-and-lists/evidence/places-detail-1280-dark.png) | [1280 px](references/places-and-lists/evidence/collections-detail-1280-dark.png) |
+| 200% text, Light | [390 px](references/places-and-lists/evidence/places-detail-390-light-large.png) | [390 px](references/places-and-lists/evidence/collections-detail-390-light-large.png) |
+| Dense, Dark | [390 px](references/places-and-lists/evidence/places-detail-390-dark-dense.png) | [24 entries](references/places-and-lists/evidence/collections-detail-390-dark-dense.png) |
+| Short tasks / results | [Create](references/places-and-lists/evidence/place-create-390-light.png), [Edit](references/places-and-lists/evidence/place-editor-390-light.png) | [Failed edit retains text](references/places-and-lists/evidence/list-entry-error-390-light.png), [created resource](references/places-and-lists/evidence/list-created-390-light.png) |
+
+The four task/result images were captured directly from the production build.
+The six viewport/state compositions additionally verify that the shell stays
+visible, add controls share a line, moment actions remain beside content, and
+page content does not overflow horizontally. The 200% captures show the initial
+viewport; the page remains scrollable with measured bottom-navigation clearance.
+
+### Behavioral and engineering verification
+
+- Production build, token adapters/PWA checks and TypeScript pass on Node
+  22.23.2. Targeted Biome formatting/lint, browser inventory and diff checks pass.
+- 232 distinct component cases across 10 files are verified, including existing
+  private-list consumers, personal pin, modal history/focus, optimistic rollback,
+  version conflicts, denied/replaced queries and authorized cached reads.
+- 64 distinct Chromium browser cases across the Places/Lists, relation picker,
+  Today pinned-list and relevant product-accessibility suites are verified.
+  They include seven new design journeys, unchanged shared-history/privacy
+  assertions, offline/no-replay, recovery, personal pin, reordering, reduced
+  motion, 360/390/430 px, Expanded Light/200% and 390×520 short editor checks.
+- The complete production journey passes: open a Place; unlink only its moment
+  association and restore focus; edit with dirty Escape protection; create a
+  name-only Place and observe it; return to the overview; open a List, add/check
+  without reordering, retain an edit after a failed save, save explicitly, sort
+  with a keyboard alternative, confirm deletion and focus the next item without
+  summoning the keyboard; create a List, observe the actual resource and return.
+
+Local verification adaptations and retries are traceable: older browser checks
+were updated from permanent textboxes to readable entry text and explicit sort
+activation, keeping their data/authorization/order assertions. A 21-page fixture
+exceeded its existing 5 s deadline during a busy combined run; the unchanged
+67-case Collection/relation check passed in isolation. One browser editor run
+lost local modules with `ERR_NETWORK_CHANGED`; the same editor case passed alone.
+The final production-build journey, including dialog screenshots, passed in
+3.8 s. No existing test deadline was raised and no GitHub workflow was retried.
+Physical Android-device validation is not claimed; no wrapper/native behavior
+was changed.

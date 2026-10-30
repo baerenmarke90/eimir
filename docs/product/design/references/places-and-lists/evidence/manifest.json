@@ -1,0 +1,120 @@
+{
+  "runtime_revision": "01b78997ac20d1f7f18b673914180910e676b013",
+  "main_integrated": "cc0e23b7d6f4d950f0012660f051be46dd2da3af",
+  "date": "2026-10-30",
+  "fixtures": "Authorized disposable browser fixtures; no real couple data.",
+  "images": [
+    {
+      "file": "collections-detail-1280-dark.png",
+      "sha256": "e3986ebed020bfd161660d056f70e980286410c94c802d4c29016f6aa464b274"
+    },
+    {
+      "file": "collections-detail-360-light.png",
+      "sha256": "e3d31e650a36c0853c23d6443915b4257a28676f3a38cdc853f094ccf944ce64"
+    },
+    {
+      "file": "collections-detail-390-dark-dense.png",
+      "sha256": "9983d181cfd26d331544de56aeb03b65780a6a89f7d7fafda88bf3a9beddb861"
+    },
+    {
+      "file": "collections-detail-390-dark.png",
+      "sha256": "560dfa334a12f96a7eac30a420d08d7e3d0b7782e6fc5eec5be9fb76e35f0820"
+    },
+    {
+      "file": "collections-detail-390-light-large.png",
+      "sha256": "520a30e47aa43884a5a878d60783c9e26c2089a50beb6f23ecebec5d7dc7c608"
+    },
+    {
+      "file": "collections-detail-430-light.png",
+      "sha256": "4f90a3643c4f1df90f4bcb4edbd8c4d489fd0b01a8aa77535a821728fc4db052"
+    },
+    {
+      "file": "collections-overview-1280-dark.png",
+      "sha256": "af5e94b80a0089d97beba557c37ac9ad289a4597c38a1601be40a0770f33623f"
+    },
+    {
+      "file": "collections-overview-360-light.png",
+      "sha256": "db8ed532f120fecd21f1ba8e0480477ec55d2749655e6506ed60e407f5bc66f3"
+    },
+    {
+      "file": "collections-overview-390-dark-dense.png",
+      "sha256": "bfb8a81ef015b24018b287c024117b1f7a38b72896205da7fc77d21ae867ffef"
+    },
+    {
+      "file": "collections-overview-390-dark.png",
+      "sha256": "e445a57180042f2ba44999ae64be7aff663ea1fb339ff12c0308bfdb1eb88148"
+    },
+    {
+      "file": "collections-overview-390-light-large.png",
+      "sha256": "698fdac927a54a170b512414c23a9213429bf47f628315a99ef499c97fade741"
+    },
+    {
+      "file": "collections-overview-430-light.png",
+      "sha256": "ac0d525b49017e75b6ffcf47e327ec90e0f45d2509c68506b7a205246fba2f02"
+    },
+    {
+      "file": "list-created-390-light.png",
+      "sha256": "171d62908d1be63e83951f8a7982d0047bdf1722081356bce69f37492438405c"
+    },
+    {
+      "file": "list-entry-error-390-light.png",
+      "sha256": "3ce25db29a28741056cbe96d4a54100bbbee1c7418bfa6cd243cd4172ac006c4"
+    },
+    {
+      "file": "place-create-390-light.png",
+      "sha256": "5c369712424c962980ce3719dd9713feaf4eceb7b834ddc04c6ca1af8fecfa30"
+    },
+    {
+      "file": "place-editor-390-light.png",
+      "sha256": "eb1d50f56394db897bc41b491283cca14feb76490be7ea7b6ed8eba279886c61"
+    },
+    {
+      "file": "places-detail-1280-dark.png",
+      "sha256": "632a4895cb485c4d9d3bf3e188452a54a5077a88e8afd11d3202a18213225bad"
+    },
+    {
+      "file": "places-detail-360-light.png",
+      "sha256": "3ed2b5041af1a7134a51a80a0a41c1ba73f9611072ef6dd826721d49d98d74ca"
+    },
+    {
+      "file": "places-detail-390-dark-dense.png",
+      "sha256": "96cd1e399d41d81021edcc72f0896315f7e9478faf4d2cb0a8f787fdff9587f5"
+    },
+    {
+      "file": "places-detail-390-dark.png",
+      "sha256": "96cd1e399d41d81021edcc72f0896315f7e9478faf4d2cb0a8f787fdff9587f5"
+    },
+    {
+      "file": "places-detail-390-light-large.png",
+      "sha256": "0ceac4c3434115f43503f72ae298e3df20c4ddca6d209e78ab6c4b011d8e0877"
+    },
+    {
+      "file": "places-detail-430-light.png",
+      "sha256": "2ef70eaa9a9daa0adad943c1768be2f141f6cc7fd4d19fdf0657775698cda688"
+    },
+    {
+      "file": "places-overview-1280-dark.png",
+      "sha256": "6d7b4a5152423d910a37faece05297b20db827ee869fd15a25a9093703d61d7d"
+    },
+    {
+      "file": "places-overview-360-light.png",
+      "sha256": "8b747a900d98f4e6e15015dab7fe644b3bc7d295f2616667357856b43250453b"
+    },
+    {
+      "file": "places-overview-390-dark-dense.png",
+      "sha256": "2f13c990303e9f68545136ba4ce7f7f8d2ed8630822613606baf0bf1ce488d45"
+    },
+    {
+      "file": "places-overview-390-dark.png",
+      "sha256": "2f13c990303e9f68545136ba4ce7f7f8d2ed8630822613606baf0bf1ce488d45"
+    },
+    {
+      "file": "places-overview-390-light-large.png",
+      "sha256": "dc12cdda1be5a7e6db19826516d4fdba86c85ef82b5eab7e6d3835a3413256b6"
+    },
+    {
+      "file": "places-overview-430-light.png",
+      "sha256": "aff383cd2f8e4fcc2aac374b83acf36d146fd35999916b1cb228ace3cb1d44c7"
+    }
+  ]
+}

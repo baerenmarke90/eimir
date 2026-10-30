@@ -67,7 +67,8 @@ function renderPanel(
 
 function moduleLabel(moduleKey: string): string {
   if (moduleKey === 'daily_quote') return dailyQuote.title;
-  if (moduleKey === 'shared_story_summary') return relationshipReflections.passport.wirStatisticsTitle;
+  if (moduleKey === 'shared_story_summary')
+    return relationshipReflections.passport.wirStatisticsTitle;
   const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moduleKey);
   if (!entry) throw new Error(`Unknown module key: ${moduleKey}`);
   const path = entry.labelKey.split('.').slice(1);
@@ -693,7 +694,8 @@ describe('DashboardSettingsPanel', () => {
       renderPanel(vi.fn());
 
       for (const entry of DASHBOARD_MODULE_CATALOG.filter(
-        (entry) => entry.key !== 'shared_story_summary' && entry.key !== 'daily_quote',
+        (entry) =>
+          entry.key !== 'shared_story_summary' && entry.key !== 'daily_quote',
       )) {
         const checkbox = screen.getByRole('checkbox', {
           name: moduleLabel(entry.key),

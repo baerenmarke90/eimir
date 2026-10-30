@@ -659,9 +659,7 @@ def test_former_member_is_denied_after_offboarding(
     assert denied_write.status_code == 404
 
 
-def test_legacy_full_order_adds_quote_without_resetting_existing_positions(
-    client, couple
-) -> None:  # type: ignore[no-untyped-def]
+def test_legacy_full_order_adds_quote_without_resetting_existing_positions(client, couple) -> None:  # type: ignore[no-untyped-def]
     legacy = list(reversed([key for key in ALL_MODULE_KEYS if key != "daily_quote"]))
     response = _reorder(client, couple["space"].id, couple["token_a"], legacy)
     assert response.status_code == 200, response.text

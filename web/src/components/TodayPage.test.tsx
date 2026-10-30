@@ -2436,7 +2436,9 @@ describe('formatRelationshipDuration', () => {
 
     const MODULE_SECTIONS = DASHBOARD_MODULE_KEYS.map(
       (key) => [key, MODULE_SECTION_MARKER[key]] as const,
-    ).filter(([key]) => key !== 'shared_story_summary' && key !== 'daily_quote');
+    ).filter(
+      ([key]) => key !== 'shared_story_summary' && key !== 'daily_quote',
+    );
 
     it('renders a personal complete order in DOM order, including the presence hero', () => {
       const order: DashboardModuleKey[] = [

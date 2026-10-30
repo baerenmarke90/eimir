@@ -149,7 +149,7 @@
   font-weight: 650;
   text-align: center;
   text-decoration: none;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
   hyphens: auto;
 }
 

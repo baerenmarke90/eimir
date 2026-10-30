@@ -27,6 +27,7 @@ import productTour from './locales/productTour';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
 import relationshipComponents from './locales/relationshipComponents';
+import recaps from './locales/recaps';
 import relationshipReflections from './locales/relationshipReflections';
 import sensitiveMedia from './locales/sensitiveMedia';
 import serverAdmin from './locales/serverAdmin';
@@ -86,6 +87,7 @@ if (!i18n.isInitialized) {
           spaceOffboarding,
           ...relationshipComponents,
           relationshipReflections,
+          recaps,
           ...snackbar,
           ...storyProducts,
           contextTags,

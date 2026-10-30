@@ -48,6 +48,7 @@ _ALLOWED_ROOT_FILES = {
     "collections.json",
     "reminders.json",
     "rules.json",
+    "recaps.json",
     "media/index.json",
     "private/notes.json",
     "private/gift-ideas.json",

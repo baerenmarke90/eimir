@@ -9,6 +9,7 @@ import {
   MORE_INSIGHTS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
+  MORE_PASSPORT_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_ROUTE,
@@ -43,6 +44,12 @@ const PERSONAL_DESTINATIONS: readonly MoreDestination[] = [
 ];
 
 const SHARED_DESTINATIONS: readonly MoreDestination[] = [
+  {
+    path: MORE_PASSPORT_ROUTE,
+    icon: 'chapter',
+    titleKey: 'recaps.shortTitle',
+    badgeKey: 'recaps.pro',
+  },
   {
     path: MORE_INSIGHTS_ROUTE,
     icon: 'activity',

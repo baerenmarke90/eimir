@@ -35,7 +35,7 @@ for (const scenario of [
   { width: 1280, height: 900, theme: 'light', scale: 1 },
   { width: 320, height: 760, theme: 'dark', scale: 2 },
 ])
-  test(`rediscovery and Diary coexist, open, edit, add Place, return at ${scenario.width} ${scenario.theme} text ${scenario.scale}`, async ({
+  test(`rediscovery and Diary modes open, edit, add Place, return at ${scenario.width} ${scenario.theme} text ${scenario.scale}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({
@@ -92,25 +92,29 @@ for (const scenario of [
       await page.addStyleTag({
         content: `html { font-size: ${scenario.scale * 100}% !important; }`,
       });
-    const discover = page.getByRole('heading', {
-      name: de.story.discoverHeading,
+    const discover = page.getByRole('tab', {
+      name: de.story.tabDiscover,
       exact: true,
     });
-    const diary = page.getByRole('heading', {
+    const diary = page.getByRole('tab', {
       name: de.story.tabTimeline,
       exact: true,
     });
-    await expect(discover).toBeVisible();
+    await expect(discover).toHaveAttribute('aria-selected', 'true');
     await expect(diary).toBeVisible();
-    await expect(page.getByRole('tablist')).toHaveCount(0);
+    await expect(page.getByRole('tablist')).toHaveCount(1);
+    await expect(
+      page.getByRole('heading', {
+        name: de.story.discoverHeading,
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('heading', { name: de.story.tabTimeline, exact: true }),
+    ).toHaveCount(0);
     await expect(page.locator('.momente-tapestry-item')).toHaveCount(
       getTimelineItems().length - 1,
     );
-    const discoverBox = await discover.boundingBox();
-    const diaryBox = await diary.boundingBox();
-    if (!discoverBox || !diaryBox)
-      throw new Error('Both section headings must have a layout box.');
-    expect(discoverBox.y).toBeLessThan(diaryBox.y);
     expect(
       await page.locator('.momente-tapestry-kind').allTextContents(),
     ).toEqual(['', '', '']);
@@ -156,24 +160,37 @@ for (const scenario of [
       `moments-${scenario.width}-${scenario.theme}-${scenario.scale}.png`,
       { fullPage: true },
     );
-    await diary.scrollIntoViewIfNeeded();
+    await diary.click();
+    await expect(diary).toHaveAttribute('aria-selected', 'true');
     const offsets = await page
       .locator('.story-timeline-marker')
       .evaluateAll((markers) =>
         markers.map((marker) => {
-          const list = marker.closest('.story-list');
-          if (!list)
-            throw new Error('A timeline marker must belong to its rail.');
-          const rail = getComputedStyle(list, '::before');
-          const box = list.getBoundingClientRect();
+          const entry = marker.closest('.story-timeline-item');
+          const card = entry?.querySelector('.story-card-link');
+          if (!entry || !card)
+            throw new Error(
+              'A timeline marker must belong to its card and rail.',
+            );
+          const rail = getComputedStyle(entry, '::before');
+          const box = entry.getBoundingClientRect();
+          const cardBox = card.getBoundingClientRect();
           const node = marker.getBoundingClientRect();
-          return Math.abs(
-            node.left + node.width / 2 - (box.left + parseFloat(rail.left)),
-          );
+          return {
+            horizontal: Math.abs(
+              node.left + node.width / 2 - (box.left + parseFloat(rail.left)),
+            ),
+            vertical: Math.abs(
+              node.top + node.height / 2 - (cardBox.top + cardBox.height / 2),
+            ),
+          };
         }),
       );
     expect(offsets.length).toBeGreaterThan(0);
-    for (const offset of offsets) expect(offset).toBeLessThanOrEqual(1);
+    for (const offset of offsets) {
+      expect(offset.horizontal).toBeLessThanOrEqual(1);
+      expect(offset.vertical).toBeLessThanOrEqual(1);
+    }
     await page
       .locator('#momente-diary [data-task-item-key="memory-mem-canal"]')
       .click();
@@ -217,7 +234,7 @@ for (const scenario of [
     await page
       .getByRole('button', { name: taskBoundary.back, exact: true })
       .click();
-    await expect(diary).toBeVisible();
+    await expect(diary).toHaveAttribute('aria-selected', 'true');
     expect(unexpected).toEqual([]);
   });
 

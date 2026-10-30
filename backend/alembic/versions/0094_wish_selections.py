@@ -1,7 +1,7 @@
 """Add current shared Wish rounds and protected owner-only selections.
 
 Revision ID: 0094
-Revises: 0092
+Revises: 0093
 Create Date: 2026-10-30
 """
 
@@ -10,7 +10,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "0094"
-down_revision = "0092"
+down_revision = "0093"
 branch_labels = None
 depends_on = None
 

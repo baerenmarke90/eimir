@@ -47,6 +47,8 @@ PINNED_CONTEXTS = {
     "private_notes": "PrivateNotePayload",
     "profile_preferences": "ProfilePreferencePayload",
     "related_persons": "RelatedPersonPayload",
+    "recap_editions": "RecapPayload",
+    "recap_reflections": "RecapReflectionPayload",
     "reminders": "ReminderPayload",
     "wishes": "WishPayload",
     "wish_selection_rounds": "WishSelectionRoundPayload",

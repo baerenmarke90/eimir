@@ -39,6 +39,8 @@ MODEL_MODULES = (
     "eimir.private_notes.models",
     "eimir.profiles.models",
     "eimir.quotes.models",
+    "eimir.recaps.models",
+    "eimir.recaps.invalidation",
     "eimir.relations.models",
     "eimir.relationship.models",
     "eimir.reminders.models",

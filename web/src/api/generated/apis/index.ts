@@ -28,6 +28,7 @@ export * from './PlacesApi';
 export * from './PlansApi';
 export * from './PrivateAreaApi';
 export * from './ProfilesApi';
+export * from './RecapsApi';
 export * from './RemindersApi';
 export * from './RulesApi';
 export * from './SearchApi';

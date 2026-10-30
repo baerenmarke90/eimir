@@ -84,6 +84,7 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
     "collections.json": ("collections", "collection_items"),
     "reminders.json": ("reminders", "reminder_offsets", "reminder_preferences"),
     "rules.json": ("rule_preferences",),
+    "recaps.json": ("recap_editions", "recap_sources", "recap_reflections"),
     "private/notes.json": ("private_notes",),
     "private/gift-ideas.json": ("gift_ideas",),
     "private/collections.json": ("private_collections", "private_collection_items"),
@@ -98,6 +99,7 @@ CHILD_PARENT: dict[str, tuple[str, str]] = {
     "reminder_preferences": ("reminder_id", "reminders"),
     "memory_attachments": ("memory_id", "memories"),
     "plan_attachments": ("plan_id", "plans"),
+    "recap_sources": ("edition_id", "recap_editions"),
 }
 RELATION_REQUIREMENTS: dict[str, tuple[tuple[str, str], ...]] = {
     "place_memories": (("place_id", "places"), ("memory_id", "memories")),
@@ -136,6 +138,9 @@ INSERT_ORDER = (
     "reminder_preferences",
     "rule_preferences",
     "comments",
+    "recap_editions",
+    "recap_sources",
+    "recap_reflections",
     "place_memories",
     "place_milestones",
     "place_heart_moments",
@@ -272,6 +277,34 @@ def _load_child_rows(
 
 
 def _prune_relations(rows: dict[str, list[dict[str, Any]]]) -> None:
+    source_tables = {
+        "MEMORY": "memories",
+        "HEART_MOMENT": "heart_moments",
+        "MILESTONE": "milestones",
+        "CHAPTER": "chapters",
+        "PLAN": "plans",
+    }
+    versions = {
+        kind: {row["id"]: row.get("version") for row in rows.get(table, [])}
+        for kind, table in source_tables.items()
+    }
+    stale_editions = set()
+    kept_sources = []
+    for ref in rows.get("recap_sources", []):
+        current = versions.get(ref["kind"], {}).get(ref["source_id"])
+        if current != ref["source_version"]:
+            stale_editions.add(ref["edition_id"])
+        if current is not None:
+            kept_sources.append(ref)
+    rows["recap_sources"] = kept_sources
+    for recap in rows.get("recap_editions", []):
+        if recap["id"] in stale_editions:
+            recap["payload"] = {"headline": None, "introduction": None}
+            recap["generated_by"] = "RULES"
+    edition_ids = _selected_ids(rows, "recap_editions")
+    rows["recap_reflections"] = [
+        row for row in rows.get("recap_reflections", []) if row["edition_id"] in edition_ids
+    ]
     for table_name, requirements in RELATION_REQUIREMENTS.items():
         kept: list[dict[str, Any]] = []
         targets = {target: _selected_ids(rows, target) for _, target in requirements}
@@ -952,6 +985,29 @@ def _validate_relations(
     tables: dict[str, list[dict[str, Any]]],
     ids: dict[str, set[UUID]],
 ) -> None:
+    recap_targets = {
+        "MEMORY": "memories",
+        "HEART_MOMENT": "heart_moments",
+        "MILESTONE": "milestones",
+        "CHAPTER": "chapters",
+        "PLAN": "plans",
+    }
+    for raw in tables.get("recap_sources", []):
+        row = _row_snake(raw)
+        if _uuid(row.get("source_id"), ErrorCode.TRANSFER_RELATION_INVALID) not in ids.get(
+            recap_targets.get(str(row.get("kind")), ""), set()
+        ):
+            raise TransferArchiveError(
+                "Transfer relation is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
+    for raw in tables.get("recap_reflections", []):
+        row = _row_snake(raw)
+        if _uuid(row.get("edition_id"), ErrorCode.TRANSFER_RELATION_INVALID) not in ids.get(
+            "recap_editions", set()
+        ):
+            raise TransferArchiveError(
+                "Transfer relation is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
     for child, (column, parent) in CHILD_PARENT.items():
         for raw in tables.get(child, []):
             row = _row_snake(raw)
@@ -1510,6 +1566,16 @@ def _prepare_row(
     ids: Mapping[UUID, UUID],
 ) -> dict[str, Any]:
     row = _row_snake(raw)
+    if table.name == "recap_editions":
+        # Imported editions are retained artifacts, never new automation authority.
+        row.update(
+            request_token=str(new_id()),
+            status="READY",
+            customized=True,
+            saved_at=row.get("saved_at") or now().isoformat(),
+            payload={"headline": None, "introduction": None},
+            generated_by="RULES",
+        )
     # Imported links are intentional canonical content, never future automation authority.
     if "photo_generated" in table.c:
         row["photo_generated"] = False

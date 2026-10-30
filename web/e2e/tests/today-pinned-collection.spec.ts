@@ -630,8 +630,8 @@ for (const view of [
           .locator(
             `[data-sortable-item-id="00000000-0000-0000-0000-0000000000${outcome === 'success' ? '35' : '34'}"]`,
           )
-          .getByRole('textbox'),
-      ).toHaveValue('Reis');
+          .locator('.shared-list-item-copy > p'),
+      ).toHaveText('Reis');
       await page.goBack();
       await expect(pinned.getByText('Reis', { exact: true })).toBeVisible();
       expect(titles).toEqual(['Butter', 'Reis']);
@@ -887,7 +887,9 @@ for (const outcome of ['failure', 'success'] as const) {
       .fill('Kaffee');
     await page.getByRole('button', { name: m5s3.collection.addItem }).click();
     await expect.poll(network.collectionGetCount).toBeGreaterThan(readsBefore);
-    await expect(row.getByRole('textbox')).toHaveValue('Hafermilch');
+    await expect(row.locator('.shared-list-item-copy > p')).toHaveText(
+      'Hafermilch',
+    );
     const markDone = m5s3.collection.markDone.replace(
       '{{title}}',
       'Hafermilch',
@@ -905,7 +907,9 @@ for (const outcome of ['failure', 'success'] as const) {
         page.getByRole('button', { name: de.common.retry }),
       ).toBeVisible();
     // The late callback must preserve the newer read even before recovery returns.
-    await expect(row.getByRole('textbox')).toHaveValue('Hafermilch');
+    await expect(row.locator('.shared-list-item-copy > p')).toHaveText(
+      'Hafermilch',
+    );
     await expect(row.getByRole('button', { name: markDone })).toHaveAttribute(
       'aria-pressed',
       'false',
@@ -914,12 +918,10 @@ for (const outcome of ['failure', 'success'] as const) {
       page.locator('[data-sortable-item-id]').nth(2),
     ).toHaveAttribute('data-sortable-item-id', itemId);
     await expect(
-      page
-        .locator(
-          '[data-sortable-item-id="00000000-0000-0000-0000-000000000034"]',
-        )
-        .getByRole('textbox'),
-    ).toHaveValue('Kaffee');
+      page.locator(
+        '[data-sortable-item-id="00000000-0000-0000-0000-000000000034"] .shared-list-item-copy > p',
+      ),
+    ).toHaveText('Kaffee');
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: testInfo.outputPath(`shared-newer-${outcome}-390-light.png`),
@@ -949,10 +951,12 @@ for (const outcome of ['failure', 'success'] as const) {
       animations: 'disabled',
     });
     await page
-      .getByRole('link', { name: m5s3.common.backToCollections })
+      .getByRole('link', { name: m5s3.common.shortBackToCollections })
       .click();
     await page.goBack();
-    await expect(row.getByRole('textbox')).toHaveValue('Hafermilch');
+    await expect(row.locator('.shared-list-item-copy > p')).toHaveText(
+      'Hafermilch',
+    );
     await expect(
       row.getByRole('button', {
         name: m5s3.collection.markOpen.replace('{{title}}', 'Hafermilch'),
@@ -1113,8 +1117,10 @@ for (const view of [
         })
         .click();
       await expect(
-        page.locator(`[data-sortable-item-id="${milk}"]`).getByRole('textbox'),
-      ).toHaveValue('Hafermilch');
+        page.locator(
+          `[data-sortable-item-id="${milk}"] .shared-list-item-copy > p`,
+        ),
+      ).toHaveText('Hafermilch');
       await page.goBack();
       await expect(
         pinned.getByText('Hafermilch', { exact: true }),
@@ -1199,10 +1205,11 @@ for (const view of [
       await page.goto(`/plan/collections/${COLLECTION_ID}`);
       const names = () =>
         page
-          .locator('[data-sortable-item-id] input[name="title"]')
-          .evaluateAll((inputs) =>
-            inputs.map((input) => (input as HTMLInputElement).value),
-          );
+          .locator('[data-sortable-item-id] .shared-list-item-copy > p')
+          .evaluateAll((inputs) => inputs.map((input) => input.textContent));
+      await page
+        .getByRole('button', { name: m5s3.collection.sort, exact: true })
+        .click();
       const handle = page.getByRole('button', {
         name: m5s3.collection.reorderItem.replace('{{title}}', 'Äpfel'),
       });
@@ -1271,12 +1278,16 @@ for (const view of [
       await expect(
         page.getByRole('button', { name: de.common.retry }),
       ).toHaveCount(0);
-      await expect(milkRow.getByRole('textbox')).toHaveValue('Hafermilch');
+      await expect(milkRow.locator('.shared-list-item-copy > p')).toHaveText(
+        'Hafermilch',
+      );
       await page
-        .getByRole('link', { name: m5s3.common.backToCollections })
+        .getByRole('link', { name: m5s3.common.shortBackToCollections })
         .click();
       await page.goBack();
-      await expect(milkRow.getByRole('textbox')).toHaveValue('Hafermilch');
+      await expect(milkRow.locator('.shared-list-item-copy > p')).toHaveText(
+        'Hafermilch',
+      );
       expect(writes).toHaveLength(2);
     });
   }
@@ -1354,6 +1365,9 @@ for (const outcome of ['success', 'failure'] as const) {
       },
     );
     await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    await page
+      .getByRole('button', { name: m5s3.collection.sort, exact: true })
+      .click();
     await page
       .getByRole('button', {
         name: m5s3.collection.reorderItem.replace('{{title}}', 'Äpfel'),
@@ -1439,10 +1453,11 @@ test('keeps a shared Collection reorder in place until confirmed or rolled back'
   const rows = page.locator('[data-sortable-item-id]');
   const names = async () =>
     rows
-      .locator('input[name="title"]')
-      .evaluateAll((inputs) =>
-        inputs.map((input) => (input as HTMLInputElement).value),
-      );
+      .locator('.shared-list-item-copy > p')
+      .evaluateAll((inputs) => inputs.map((input) => input.textContent));
+  await page
+    .getByRole('button', { name: m5s3.collection.sort, exact: true })
+    .click();
   const moveApples = page.getByRole('button', {
     name: m5s3.collection.reorderItem.replace('{{title}}', 'Äpfel'),
   });
@@ -2056,7 +2071,8 @@ for (const view of [
     const button = action.getByRole('button');
     await expect(button).toBeEnabled();
     await button.click();
-    await expect(button).toHaveText(m5s3.collection.unpinFromToday);
+    await expect(button).toHaveAccessibleName(m5s3.collection.unpinFromToday);
+    await expect(button).toContainText(m5s3.collection.pinLabel);
     await expect(button).toHaveAttribute('aria-pressed', 'true');
     await expect(button).toBeDisabled();
     await expect(action.getByRole('status')).toHaveText(de.common.saving);
@@ -2102,7 +2118,8 @@ for (const view of [
     await expect(button).toBeEnabled();
     await button.click();
     await expect(button).toHaveAttribute('aria-pressed', 'false');
-    await expect(button).toHaveText(m5s3.collection.pinToToday);
+    await expect(button).toHaveAccessibleName(m5s3.collection.pinToToday);
+    await expect(button).toContainText(m5s3.collection.pinLabel);
     await expect.poll(() => held.writes.length).toBe(2);
     await held.confirm();
     await expect(button).toBeEnabled();
@@ -2306,11 +2323,13 @@ for (const view of [
       );
       const titles = () =>
         page
-          .locator('[data-sortable-item-id] input[name="title"]')
-          .evaluateAll((inputs) =>
-            inputs.map((input) => (input as HTMLInputElement).value),
-          );
+          .locator('[data-sortable-item-id] .shared-list-item-copy > p')
+          .evaluateAll((inputs) => inputs.map((input) => input.textContent));
       await expect(row).toBeVisible();
+      if (action === 'reorder')
+        await page
+          .getByRole('button', { name: m5s3.collection.sort, exact: true })
+          .click();
       await page.context().setOffline(true);
       if (action === 'checkbox')
         await row

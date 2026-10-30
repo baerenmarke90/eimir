@@ -292,8 +292,8 @@ for (const profile of [
       .getByRole('link', { name: navigation.story, exact: true })
       .click();
     await page
-      .getByRole('heading', { name: de.story.tabTimeline, exact: true })
-      .scrollIntoViewIfNeeded();
+      .getByRole('tab', { name: de.story.tabTimeline, exact: true })
+      .click();
     await expect(page.locator('.story-timeline').first()).toBeVisible();
     await expect(
       page

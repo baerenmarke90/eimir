@@ -427,10 +427,12 @@ describe('WishSelectionPage', () => {
     fireEvent.click(
       await screen.findByRole('checkbox', { name: candidates[0].title }),
     );
+    const changed = projection('NEEDS_IDEAS');
+    changed.candidates[0].version = 2;
     act(() =>
       queryClient.setQueryData(
         wishSelectionQueryKey('', 'account-a', 'space-1'),
-        projection('NEEDS_IDEAS'),
+        changed,
       ),
     );
     expect(
@@ -452,6 +454,37 @@ describe('WishSelectionPage', () => {
       screen.getByRole('checkbox', { name: candidates[0].title }),
     ).toHaveProperty('checked', true);
     expect(updateOwnWishSelection).not.toHaveBeenCalled();
+  });
+
+  it('keeps a round-setup draft when a source is removed on another device', async () => {
+    const { queryClient, replaceWishSelectionRound } = renderTask(
+      projection('READY'),
+    );
+    fireEvent.click(await screen.findByText(copy.moreActions));
+    fireEvent.click(screen.getByRole('button', { name: copy.changeIdeas }));
+    fireEvent.change(screen.getByLabelText(copy.occasion), {
+      target: { value: 'A new occasion' },
+    });
+    const changed = projection('NEEDS_IDEAS');
+    changed.candidates = changed.candidates.slice(1);
+    act(() =>
+      queryClient.setQueryData(
+        wishSelectionQueryKey('', 'account-a', 'space-1'),
+        changed,
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: copy.replace })).toHaveProperty(
+        'disabled',
+        true,
+      ),
+    );
+    expect(screen.getByLabelText(copy.occasion)).toHaveProperty(
+      'value',
+      'A new occasion',
+    );
+    expect(screen.getByRole('button', { name: copy.reload })).toBeTruthy();
+    expect(replaceWishSelectionRound).not.toHaveBeenCalled();
   });
 
   it('clears personal drafts when the active account changes', async () => {

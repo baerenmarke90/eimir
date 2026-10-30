@@ -23,3 +23,15 @@ export function ownSelectionIds(view: WishSelectionView): string[] {
   );
   return view.own.favoriteWishIds.filter((id) => candidates.has(id));
 }
+
+/** Detect source edits, deletion and conversion without exposing partner choices. */
+export function wishSelectionSourceToken(view: WishSelectionView): string {
+  return JSON.stringify(
+    view.candidates.map(({ wishId, version, status, planId }) => [
+      wishId,
+      version,
+      status,
+      planId,
+    ]),
+  );
+}

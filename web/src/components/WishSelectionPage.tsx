@@ -40,6 +40,7 @@ import {
   ownSelectionIds,
   selectionChanged,
   wishSelectionQueryKey,
+  wishSelectionSourceToken,
 } from '../client/wishSelection';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
@@ -61,7 +62,7 @@ interface Props {
 type Mode = 'setup' | 'vote' | 'view' | 'plan';
 type DraftBase = {
   token: string | null;
-  version: number;
+  sources: string;
   roundToken: string;
   ids: string[];
   favorites: string[];
@@ -182,7 +183,7 @@ function WishSelectionTask({
     const favorites = ownSelectionIds(current);
     setBase({
       token: current.selectionToken,
-      version: current.version,
+      sources: wishSelectionSourceToken(current),
       roundToken: current.roundToken,
       ids,
       favorites,
@@ -451,7 +452,7 @@ function WishSelectionTask({
       base &&
       (view.selectionToken !== base.token ||
         view.roundToken !== base.roundToken ||
-        (activeMode === 'vote' && view.resultState === 'NEEDS_IDEAS')),
+        wishSelectionSourceToken(view) !== base.sources),
   );
   function clearProblems() {
     roundMutation.reset();
@@ -512,6 +513,10 @@ function WishSelectionTask({
     const result = await query.refetch();
     if (!owns()) return;
     if (result.data && !result.error) {
+      await client.invalidateQueries({
+        queryKey: ['m5-s3', 'wishes', spaceId],
+      });
+      if (!owns()) return;
       adopt(result.data);
       setMode(null);
       setNewIdea('');

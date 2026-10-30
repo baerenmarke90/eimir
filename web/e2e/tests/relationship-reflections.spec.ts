@@ -219,6 +219,8 @@ async function fixture(
         });
       const update = request.postDataJSON();
       highlighted = update.anticipationEnabled ?? highlighted;
+      if ('attachments' in update)
+        coverAttached = update.attachments.length > 0;
       if ('coverAttachmentId' in update)
         coverAttached = update.coverAttachmentId !== null;
       if ('placeId' in update) placeId = update.placeId;
@@ -572,7 +574,7 @@ for (const [width, theme] of [
       .getByRole('button', { name: de.common.edit, exact: true })
       .click();
     await page
-      .getByLabel(planningCopy.planImage.label)
+      .locator('#plan-photos')
       .setInputFiles(
         fileURLToPath(
           new URL(
@@ -621,7 +623,9 @@ for (const [width, theme] of [
     await expect(
       page.getByRole('switch', { name: copy.anticipation.show }),
     ).toHaveCount(0);
-    await expect(page.locator('.plan-cover img')).toBeVisible();
+    await expect(
+      page.locator('.plan-photo-gallery .media-gallery-carousel-content'),
+    ).toBeVisible();
     await expect(page.locator('.planen-detail-meta')).toContainText(
       'Sankt Peter-Ording',
     );

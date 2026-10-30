@@ -472,6 +472,39 @@
         "title": "AttachmentDetail",
         "type": "object"
       },
+      "AttachmentEntry": {
+        "additionalProperties": false,
+        "description": "Ordered atomic gallery binding, shared by Memory and Plan writers.",
+        "properties": {
+          "attachmentId": {
+            "format": "uuid",
+            "title": "Attachmentid",
+            "type": "string"
+          },
+          "isSensitive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issensitive"
+          },
+          "position": {
+            "minimum": 0.0,
+            "title": "Position",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "attachmentId",
+          "position"
+        ],
+        "title": "AttachmentEntry",
+        "type": "object"
+      },
       "AttachmentFinalize": {
         "additionalProperties": false,
         "description": "Empty by contract: finalize carries no client-supplied metadata.\n\nThe server determines everything it needs to know about the file itself.",
@@ -4642,6 +4675,94 @@
         "title": "OnceSchedule",
         "type": "object"
       },
+      "OrderedAttachmentSummary": {
+        "description": "A bound photo with its stable position in a parent's gallery.",
+        "properties": {
+          "hasThumbnail": {
+            "title": "Hasthumbnail",
+            "type": "boolean"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "isSensitive": {
+            "default": false,
+            "description": "Manual sensitive-content classification; never an access-control boundary.",
+            "title": "Issensitive",
+            "type": "boolean"
+          },
+          "mediaType": {
+            "$ref": "#/components/schemas/MediaType"
+          },
+          "mimeType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mimetype"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "mediaType",
+          "mimeType",
+          "size",
+          "width",
+          "height",
+          "hasThumbnail",
+          "position"
+        ],
+        "title": "OrderedAttachmentSummary",
+        "type": "object"
+      },
       "PartnerEnergyHidden": {
         "description": "Mutual Reveal is closed and intentionally carries no partner side channel.",
         "properties": {
@@ -5733,6 +5854,14 @@
         "additionalProperties": false,
         "description": "Direct Plan creation with an optional atomic schedule.\n\nLifecycle state remains server-owned. Omitting ``schedule`` creates an\n``IDEA``; supplying a valid date-only or timed schedule creates a\n``PLANNED`` Plan in the same transaction.",
         "properties": {
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/AttachmentEntry"
+            },
+            "maxItems": 20,
+            "title": "Attachments",
+            "type": "array"
+          },
           "coverAttachmentId": {
             "format": "uuid",
             "title": "Coverattachmentid",
@@ -5773,6 +5902,13 @@
             "default": false,
             "title": "Anticipationenabled",
             "type": "boolean"
+          },
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/OrderedAttachmentSummary"
+            },
+            "title": "Attachments",
+            "type": "array"
           },
           "capabilities": {
             "$ref": "#/components/schemas/ResourceCapabilities"
@@ -6022,6 +6158,14 @@
           "anticipationEnabled": {
             "title": "Anticipationenabled",
             "type": "boolean"
+          },
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/AttachmentEntry"
+            },
+            "maxItems": 20,
+            "title": "Attachments",
+            "type": "array"
           },
           "coverAttachmentId": {
             "anyOf": [

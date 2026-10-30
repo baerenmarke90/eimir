@@ -20,6 +20,28 @@ import {
   useSensitiveMediaReveals,
 } from './SensitiveMedia';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
+import { EimirIcon } from './EimirIcon';
+import './MediaGallery.css';
+
+export function GalleryExpandAction({
+  onOpen,
+  className = '',
+}: {
+  onOpen: () => void;
+  className?: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      className={`media-gallery-expand media-overlay ${className}`}
+      onClick={onOpen}
+      aria-label={t('photoReactions.fullscreen')}
+    >
+      <EimirIcon name="expand" />
+    </button>
+  );
+}
 
 export interface GalleryMediaItem {
   id: string;

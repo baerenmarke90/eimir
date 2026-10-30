@@ -22,11 +22,13 @@ export function AttachmentDraftPicker({
   attachments,
   multiple = true,
   disabled = false,
+  showItems = true,
 }: {
   id: string;
   attachments: AttachmentDraftPickerController;
   multiple?: boolean;
   disabled?: boolean;
+  showItems?: boolean;
 }) {
   const { t } = useTranslation();
   const [moved, setMoved] = useState('');
@@ -57,6 +59,7 @@ export function AttachmentDraftPicker({
         type="file"
         accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
         multiple={multiple}
+        disabled={disabled}
         onChange={(event) => {
           const files = event.currentTarget.files;
           if (!multiple && files && files.length > 0) {
@@ -80,10 +83,10 @@ export function AttachmentDraftPicker({
         </span>
       </label>
 
-      {attachments.items.length > 0 ? (
+      {showItems && attachments.items.length > 0 ? (
         <p className="field-help">{t('sensitiveMedia.help')}</p>
       ) : null}
-      {attachments.items.length > 0 ? (
+      {showItems && attachments.items.length > 0 ? (
         <ul
           className="attachment-draft-list"
           aria-label={t('memory.photoDraftsAria')}

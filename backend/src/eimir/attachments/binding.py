@@ -14,7 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, Index, Integer, UniqueConstraint, select
+from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, UniqueConstraint, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
@@ -27,6 +27,9 @@ from eimir.db.mixins import IdMixin
 MAX_MEMORY_ATTACHMENTS = 20
 MAX_MEMORY_TOTAL_SIZE = 500 * 1024 * 1024
 """M2-D04 cardinality and aggregate size limits for one memory."""
+MAX_GALLERY_ATTACHMENTS = MAX_MEMORY_ATTACHMENTS
+MAX_GALLERY_TOTAL_SIZE = MAX_MEMORY_TOTAL_SIZE
+"""The same collection safety boundary applies to ordinary Plan galleries."""
 
 
 class MemoryAttachment(IdMixin, Base):
@@ -57,6 +60,33 @@ class MemoryAttachment(IdMixin, Base):
         UniqueConstraint("attachment_id", name="uq_memory_attachments_attachment"),
         UniqueConstraint("memory_id", "position", name="uq_memory_attachments_position"),
         Index("ix_memory_attachments_memory_id", "memory_id"),
+    )
+
+
+class PlanAttachment(IdMixin, Base):
+    """Ordered supplemental Plan photos; the designated cover owns position zero.
+
+    The cover remains in Plan.cover_attachment_id for older clients. It never
+    also appears here, so each attachment has exactly one authoritative binding.
+    """
+
+    __tablename__ = "plan_attachments"
+
+    plan_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("plans.id", ondelete="CASCADE"), nullable=False
+    )
+    attachment_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("attachments.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("attachment_id", name="uq_plan_attachments_attachment"),
+        UniqueConstraint("plan_id", "position", name="uq_plan_attachments_position"),
+        CheckConstraint("position > 0", name="position_is_supplemental"),
+        Index("ix_plan_attachments_plan_id", "plan_id"),
     )
 
 
@@ -175,6 +205,12 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     if plan_id is not None:
         return "PLAN", plan_id
 
+    plan_id = session.execute(
+        select(PlanAttachment.plan_id).where(PlanAttachment.attachment_id == attachment_id)
+    ).scalar_one_or_none()
+    if plan_id is not None:
+        return "PLAN", plan_id
+
     account_id = session.execute(
         select(AccountProfileAttachment.account_id).where(
             AccountProfileAttachment.attachment_id == attachment_id
@@ -209,13 +245,13 @@ def ensure_unlinked(
 
 
 def ensure_within_limits(attachments: list[Attachment]) -> None:
-    if len(attachments) > MAX_MEMORY_ATTACHMENTS:
+    if len(attachments) > MAX_GALLERY_ATTACHMENTS:
         raise _conflict(
             "The parent exceeds its attachment limit.",
             ErrorCode.ATTACHMENT_LIMIT_EXCEEDED,
         )
     total = sum(attachment.size or 0 for attachment in attachments)
-    if total > MAX_MEMORY_TOTAL_SIZE:
+    if total > MAX_GALLERY_TOTAL_SIZE:
         raise _conflict(
             "The parent exceeds its attachment limit.",
             ErrorCode.ATTACHMENT_LIMIT_EXCEEDED,

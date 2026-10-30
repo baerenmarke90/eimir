@@ -4,7 +4,7 @@
 **Version:** 1.7
 
 **Audit date:** 2026-09-21  
-**Revision:** 2026-10-29 — PO-approved special-Plan countdown (#504, Free/Core) and additive Pro relationship passport (#497)
+**Revision:** 2026-10-30 — Plan photo galleries (#1514, Free/Core); PO-approved special-Plan countdown (#504, Free/Core) and additive Pro relationship passport (#497)
 
 **Audited `main` baseline:** `dfc87cd`  
 **Strategic decisions:** #262 (Finalized), #876 (consumer packaging/pricing), #1151 (Today Pro Foundation)  
@@ -284,3 +284,10 @@ use the existing attachment byte limits, authorization, cleanup and transfer
 rules; there is no new image-count paywall or paid maps entitlement. Countdown
 and fixed shared-visibility context move into the one Plan editor. This changes
 presentation, not audience rights or the underlying Plan state machine.
+
+PO gallery extension (2026-10-30, #1514): Plans support ordered photo galleries
+with the same viewing interaction as Memories. This remains Free/Core in Cloud
+and Self-Hosted. The existing technical gallery safety limits (20 images,
+500 MiB combined) and managed storage quota apply; there is no paid image-count
+boundary. Existing cover-only Plans remain intact. All photos participate in
+shared-parent retention, cleanup and portable export/restore.

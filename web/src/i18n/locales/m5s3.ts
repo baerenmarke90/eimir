@@ -44,11 +44,11 @@ const m5s3 = {
       'Noch keine Pläne. Sobald aus einer Idee ein konkretes Vorhaben wird, findet ihr es hier.',
     createdBy: 'Idee von {{name}}',
     scheduledMeta: '{{status}} → {{date}}',
-    nextHeading: 'Darauf freut ihr euch als Nächstes',
+    nextHeading: 'Als Nächstes',
     laterHeading: 'Danach',
     undatedHeading: 'Noch ohne Termin',
-    undatedIntro: 'Echte Pläne, deren Zeitpunkt ihr später festlegen könnt.',
-    historyHeading: 'Vergangene und erlebte Pläne',
+    undatedIntro: 'Den Termin könnt ihr später ergänzen.',
+    historyHeading: 'Vergangenes',
     historyIntro: 'Ruhig abgelegt und jederzeit wiederzufinden.',
     pastLabel: 'Termin liegt zurück',
     completedLabel: 'Gemeinsam erlebt',
@@ -62,9 +62,9 @@ const m5s3 = {
       'Ideen für später, die ihr gemeinsam festhaltet und bei Bedarf in einen konkreten Plan verwandelt.',
     create: 'Wunsch hinzufügen',
     createEyebrow: 'Eine Idee für euch',
-    createHeading: 'Wunsch festhalten',
+    createHeading: 'Neuer Wunsch',
     createIntro:
-      'Haltet fest, was ihr irgendwann gemeinsam erleben möchtet. Ein Termin gehört erst zu einem Plan.',
+      'Ein Termin gehört erst dazu, wenn ihr daraus einen Plan macht.',
     intentionLabel: 'Was wünscht ihr euch?',
     intentionPlaceholder: 'Zum Beispiel: einmal zusammen ans Meer',
     loading: 'Wunsch wird geladen …',
@@ -103,9 +103,8 @@ const m5s3 = {
       'Vom ersten Gedanken über einen Zeitpunkt bis zum gemeinsam Erlebten.',
     create: 'Plan hinzufügen',
     createEyebrow: 'Etwas, worauf ihr euch freut',
-    createHeading: 'Gemeinsamen Plan festhalten',
-    createIntro:
-      'Die gemeinsame Absicht reicht für den Anfang. Einen Termin und weitere Details könnt ihr später ergänzen.',
+    createHeading: 'Neuer Plan',
+    createIntro: 'Termin, Ort und weitere Details könnt ihr später ergänzen.',
     intentionLabel: 'Was habt ihr gemeinsam vor?',
     intentionPlaceholder: 'Zum Beispiel: Picknick im Park',
     addDetails: 'Termin, Ort und Beschreibung hinzufügen (optional)',
@@ -237,8 +236,7 @@ const m5s3 = {
   },
   place: {
     heading: 'Orte',
-    intro:
-      'Orte, die zu euren Plänen und gemeinsamen Momenten gehören. Ein Name reicht; Adresse und Koordinaten bleiben optional.',
+    intro: 'Ein Name reicht. Adresse und Standort könnt ihr ergänzen.',
     emptyOverview:
       'Noch keine gemeinsamen Orte gespeichert. Haltet hier Orte fest, die für eure Pläne oder Momente wichtig sind.',
     create: 'Ort hinzufügen',
@@ -332,8 +330,7 @@ const m5s3 = {
   },
   collection: {
     heading: 'Gemeinsame Listen',
-    intro:
-      'Listen für Dinge, die ihr gemeinsam im Blick behalten, sortieren und abhaken möchtet.',
+    intro: 'Zum Beispiel zum Packen, Einkaufen oder Ideensammeln.',
     emptyOverview:
       'Noch keine gemeinsame Liste. Legt eine an für Dinge, die ihr zusammen im Blick behalten möchtet.',
     create: 'Liste hinzufügen',

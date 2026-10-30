@@ -163,11 +163,7 @@ describe('DailyVibeCheckIn', () => {
         .getByRole('heading', { name: dailyVibe.question })
         .classList.contains('today-section-title'),
     ).toBe(true);
-    expect(
-      screen
-        .getByText(dailyVibe.kicker)
-        .classList.contains('today-section-kicker'),
-    ).toBe(true);
+    expect(screen.queryByText(dailyVibe.kicker)).toBeNull();
 
     const dialog = await openVibeSheet();
     for (const label of Object.values(dailyVibe.values)) {

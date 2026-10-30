@@ -924,8 +924,8 @@ describe('TodayPage', () => {
       </QueryClientProvider>,
     );
 
-    // Renders section with distinct kicker and heading (no duplicate wording)
-    expect(html).toContain(m5s5.dashboard.recentKicker);
+    // The section needs one heading, without a synonymous activity kicker.
+    expect(html).not.toContain('today-section-kicker');
     expect(html).toContain(m5s5.dashboard.recentTitle);
     // The descriptive subline read as redundant activity-log copy and was
     // removed per Product Owner review; the section no longer renders one.
@@ -2030,7 +2030,8 @@ it('never exposes the internal `keepsake` term to users', () => {
     .replace(/\s+/g, ' ')
     .toLowerCase();
   expect(visibleText).not.toContain('keepsake');
-  expect(html).toContain(m5s5.today.keepsake.kicker);
+  expect(html).toContain(m5s5.today.keepsake.title);
+  expect(html).not.toContain('today-section-kicker');
 });
 
 it('keeps the partner quick-actions trigger in the hero, unchanged by the recomposition', () => {

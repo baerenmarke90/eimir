@@ -200,7 +200,7 @@ describe('DailyQuoteCard', () => {
     expect(
       screen
         .getByRole('heading', { name: dailyQuote.title })
-        .classList.contains('today-section-title'),
+        .classList.contains('sr-only'),
     ).toBe(true);
     expect(screen.queryByText(dailyQuote.kicker)).toBeNull();
     expect(api.getDailyQuote).not.toHaveBeenCalled();
@@ -212,7 +212,7 @@ describe('DailyQuoteCard', () => {
     ).not.toBeTruthy();
   });
 
-  it('renders one calm quote heading and attribution without badges or category labels', async () => {
+  it('renders a quotation symbol and accessible heading with attribution', async () => {
     renderCard();
 
     expect(await screen.findByText('„A server-resolved quote.“')).toBeTruthy();
@@ -224,6 +224,12 @@ describe('DailyQuoteCard', () => {
         }),
       ),
     ).toBeTruthy();
+    expect(document.querySelector('.daily-quote-symbol')).toBeTruthy();
+    expect(
+      screen
+        .getByRole('heading', { name: dailyQuote.title })
+        .classList.contains('sr-only'),
+    ).toBe(true);
     expect(screen.queryByText('Love')).toBeNull();
     expect(screen.queryByText('Mindfulness')).toBeNull();
     expect(screen.queryByText(dailyQuote.kicker)).toBeNull();

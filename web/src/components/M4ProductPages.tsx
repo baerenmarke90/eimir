@@ -219,7 +219,6 @@ export function SearchProductPage({
   return (
     <div className="page m4-product-page">
       <PageHeader
-        eyebrow={t('m5s5.search.eyebrow')}
         title={t('m5s5.search.title')}
         description={t('m5s5.search.intro')}
       />
@@ -471,9 +470,7 @@ export function ActivityProductPage({
   return (
     <div className="page m4-product-page">
       <PageHeader
-        eyebrow={t('m5s5.activity.eyebrow')}
         title={t('m5s5.activity.title')}
-        description={t('m5s5.activity.intro')}
         action={
           <button
             type="button"
@@ -780,9 +777,7 @@ export function NotificationsProductPage({
   return (
     <div className="page m4-product-page">
       <PageHeader
-        eyebrow={t('m5s5.notifications.eyebrow')}
         title={t('m5s5.notifications.title')}
-        description={t('m5s5.notifications.intro')}
         action={
           <button
             type="button"

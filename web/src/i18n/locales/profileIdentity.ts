@@ -42,8 +42,7 @@ const profileIdentity = {
   settingsTitle: 'Einstellungen',
   settingsIntro:
     'Hier verwaltest du deine persönlichen App-Einstellungen, Verbindungen und Daten.',
-  settingsPageIntro:
-    'Wähle den Bereich, den du anpassen möchtest. Jede Einstellung bleibt dort, wo du sie erwartest.',
+  settingsPageIntro: 'Darstellung, gemeinsame Funktionen und dein Konto.',
   settingsIdentity: 'Profilbild und Anzeigename',
   settingsRelationship: 'Partner und Verbindung',
   settingsRelationshipIntro:

@@ -1192,7 +1192,6 @@ export function TodayPage({
           <TodayModuleSection
             className="today-section-moment"
             title={t('m5s5.today.keepsake.title')}
-            kicker={t('m5s5.today.keepsake.kicker')}
           >
             <TodayMomentFeature
               item={focalItem.item}
@@ -1359,7 +1358,6 @@ export function TodayPage({
           <TodayModuleSection
             className="today-section-recent"
             title={t('m5s5.dashboard.recentTitle')}
-            kicker={t('m5s5.dashboard.recentKicker')}
           >
             <div className="today-stream today-stream-recent">
               {recentSharedForTrace.slice(0, 4).map((item: DashboardItem) => (

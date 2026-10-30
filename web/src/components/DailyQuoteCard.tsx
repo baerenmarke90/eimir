@@ -19,6 +19,7 @@ import {
 } from '../client/dailyQuote';
 import { clientProblemKind } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './DailyQuoteCard.css';
@@ -502,7 +503,8 @@ export function DailyQuoteCard({
         aria-labelledby="daily-quote-title"
       >
         <header className="daily-quote-header">
-          <h2 id="daily-quote-title" className="today-section-title">
+          <EimirIcon name="quote" className="daily-quote-symbol" />
+          <h2 id="daily-quote-title" className="sr-only">
             {t('dailyQuote.title')}
           </h2>
           {settingsAvailable ? (

@@ -209,7 +209,6 @@ export function SharedPhotosPage({
             {t('storyYears.backToMoments')}
           </Link>
         }
-        eyebrow={t('sharedPhotos.eyebrow')}
         title={t('sharedPhotos.title')}
         description={t('sharedPhotos.description')}
       />

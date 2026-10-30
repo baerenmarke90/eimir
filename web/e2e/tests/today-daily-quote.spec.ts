@@ -445,7 +445,8 @@ async function expectQuoteSurfaceAccessible(
     page
       .locator('.daily-quote-card')
       .getByRole('heading', { level: 2, name: dailyQuote.title }),
-  ).toBeVisible();
+  ).toHaveClass('sr-only');
+  await expect(page.locator('.daily-quote-symbol')).toBeVisible();
 
   const result = await page.evaluate(() => {
     const root = document.documentElement;
@@ -533,7 +534,7 @@ test('Pro Daily Quote follows the approved Today composition across Compact widt
 
 for (const design of ['warm', 'modern', 'classic'] as const)
   for (const theme of ['light', 'dark'])
-    test(`long quote keeps one surface and a contained heading: ${design} ${theme}`, async ({
+    test(`long quote keeps one surface and a quotation symbol: ${design} ${theme}`, async ({
       page,
     }, info) => {
       const quoteText = localizedFixture.dailyQuote;
@@ -897,6 +898,11 @@ test('Today clarity: live countdown, honest dates and docked navigation across t
   await signIn(page);
   const quote = page.locator('.daily-quote-card');
   await expect(quote.getByRole('heading')).toHaveText(dailyQuote.title);
+  await expect(quote.getByRole('heading')).toHaveClass('sr-only');
+  await expect(quote.locator('.daily-quote-symbol')).toBeVisible();
+  await expect(
+    page.locator('.today-section-moment .today-section-kicker'),
+  ).toHaveCount(0);
   await expect(
     quote.locator('.pro-mark, .today-section-kicker, .daily-quote-categories'),
   ).toHaveCount(0);

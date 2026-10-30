@@ -48,9 +48,6 @@ export function StoryRetrospective({
             >
               {t('story.retrospectiveHeading')}
             </h3>
-            <p className="momente-section-subhead">
-              {t('story.retrospectiveSubhead')}
-            </p>
           </div>
         </div>
       ) : null}

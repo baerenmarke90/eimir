@@ -459,9 +459,7 @@ export function MemoryProductPage({
                 {t('memoryProduct.backToMemory')}
               </Link>
             }
-            eyebrow={t('memoryProduct.editEyebrow')}
             title={t('memoryProduct.editHeading')}
-            description={t('memoryProduct.editIntro')}
           />
           <UiState
             kind={offline ? 'offline' : 'permission'}
@@ -516,9 +514,7 @@ export function MemoryProductPage({
             {t('memoryProduct.backToMemory')}
           </Link>
         }
-        eyebrow={t('memoryProduct.editEyebrow')}
         title={t('memoryProduct.editHeading')}
-        description={t('memoryProduct.editIntro')}
         headerClassName="create-heading"
         sectionLabelledBy="memory-edit-heading"
         sectionHeading={t('memoryProduct.formAria')}

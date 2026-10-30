@@ -385,6 +385,33 @@ const canonicalItemLabels = [
   'Wochenendtrip nach Trier',
 ];
 
+async function verifyDiaryAndReturnToDiscover(page: Page): Promise<void> {
+  const diaryTab = page.getByRole('tab', {
+    name: de.story.tabTimeline,
+    exact: true,
+  });
+  await diaryTab.click();
+  await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
+  const diary = page.getByRole('tabpanel', {
+    name: de.story.tabTimeline,
+    exact: true,
+  });
+  await expect(diary).toBeVisible();
+  await expect(diary.locator('[data-task-item-key]')).toHaveCount(
+    DISCOVER_ITEMS.length,
+  );
+  for (const label of canonicalItemLabels)
+    await expect(diary).toContainText(label);
+  await expectNoWcagViolations(page);
+  await page
+    .getByRole('tab', { name: de.story.tabDiscover, exact: true })
+    .click();
+  await expect(
+    page.getByRole('tabpanel', { name: de.story.tabDiscover, exact: true }),
+  ).toBeVisible();
+  await expect(diary).toBeHidden();
+}
+
 test('Momente Discover presents the real #452 anniversary with authorized image and remains accessible on mobile', async ({
   page,
 }, testInfo) => {
@@ -420,9 +447,7 @@ test('Momente Discover presents the real #452 anniversary with authorized image 
   await expect(page.locator('.momente-tapestry-item')).toHaveCount(
     canonicalItemLabels.length,
   );
-  await expect(page.locator('#momente-diary [data-task-item-key]')).toHaveCount(
-    DISCOVER_ITEMS.length,
-  );
+  await verifyDiaryAndReturnToDiscover(page);
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
 
@@ -508,12 +533,7 @@ test('Momente Discover preserves canonical backend order in its desktop CSS grid
   expect(tapestryLinkTitles).toHaveLength(canonicalItemLabels.length);
   for (const [index, label] of tapestryLinkTitles.entries())
     expect(label).toContain(canonicalItemLabels[index]);
-  const diary = page.locator('#momente-diary');
-  await expect(diary.locator('[data-task-item-key]')).toHaveCount(
-    DISCOVER_ITEMS.length,
-  );
-  for (const label of canonicalItemLabels)
-    await expect(diary).toContainText(label);
+  await verifyDiaryAndReturnToDiscover(page);
 
   const grid = page.locator('.momente-tapestry').first();
   await expect(grid).toBeVisible();
@@ -564,7 +584,7 @@ test('Momente Discover tapestry is axe-clean in dark mode', async ({
   });
 });
 
-test('Momente Discover uses two compact rediscovery columns above the full Diary on mobile with no horizontal overflow', async ({
+test('Momente Discover uses two compact rediscovery columns and a separate full Diary on mobile with no horizontal overflow', async ({
   page,
 }) => {
   const unexpectedRequests = await installDiscoverApiMocks(page);
@@ -588,12 +608,7 @@ test('Momente Discover uses two compact rediscovery columns above the full Diary
   expect(tapestryLinkTitles).toHaveLength(canonicalItemLabels.length);
   for (const [index, label] of tapestryLinkTitles.entries())
     expect(label).toContain(canonicalItemLabels[index]);
-  const diary = page.locator('#momente-diary');
-  await expect(diary.locator('[data-task-item-key]')).toHaveCount(
-    DISCOVER_ITEMS.length,
-  );
-  for (const label of canonicalItemLabels)
-    await expect(diary).toContainText(label);
+  await verifyDiaryAndReturnToDiscover(page);
 
   const grid = page.locator('.momente-tapestry').first();
   const columnCount = await grid.evaluate(
@@ -619,9 +634,9 @@ test('Momente browse layer keeps four structural destinations compact and second
   const unexpectedRequests = await installDiscoverApiMocks(page);
   await page.emulateMedia({ colorScheme: 'light' });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/story?tab=discover');
+  await page.goto('/story?tab=timeline');
   await signIn(page);
-  await page.goto('/story?tab=discover');
+  await page.goto('/story?tab=timeline');
 
   const browse = page.getByRole('navigation', { name: de.story.browseTitle });
   await expect(browse).toBeVisible();
@@ -639,7 +654,10 @@ test('Momente browse layer keeps four structural destinations compact and second
     browse.getByRole('link', { name: de.story.browseYears }),
   ).toHaveAttribute('href', '/story/years');
 
-  await expect(page.getByRole('tab')).toHaveCount(0);
+  await expect(page.getByRole('tab')).toHaveCount(2);
+  await expect(
+    page.getByRole('tab', { name: de.story.tabTimeline, exact: true }),
+  ).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('.momente-archive-links')).toHaveCount(0);
   await expect(page.locator('.momente-year-archive')).toHaveCount(0);
   await expect(page.getByText(de.story.milestonesDesc)).toHaveCount(0);
@@ -686,9 +704,9 @@ test('Momente browse layer reflows at 320px with enlarged text in dark mode', as
   const unexpectedRequests = await installDiscoverApiMocks(page);
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.setViewportSize({ width: 320, height: 720 });
-  await page.goto('/story?tab=discover');
+  await page.goto('/story?tab=timeline');
   await signIn(page);
-  await page.goto('/story?tab=discover');
+  await page.goto('/story?tab=timeline');
   await page.addStyleTag({ content: 'html { font-size: 125%; }' });
 
   const browse = page.getByRole('navigation', { name: de.story.browseTitle });

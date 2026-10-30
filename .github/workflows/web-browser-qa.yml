@@ -18,6 +18,7 @@ concurrency:
   group: web-browser-qa-${{ github.ref }}
   cancel-in-progress: true
 
+# Keep evidence from separate attempts distinct when retrying only failed jobs.
 jobs:
   pr-critical:
     if: github.event_name == 'pull_request'
@@ -67,7 +68,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: web-browser-failure-pr-${{ matrix.shard }}-${{ github.sha }}
+          name: web-browser-failure-pr-${{ matrix.shard }}-${{ github.sha }}-attempt-${{ github.run_attempt }}
           path: web/e2e/test-results-pr-${{ matrix.shard }}/
           if-no-files-found: ignore
           retention-days: 3
@@ -76,7 +77,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: web-product-visual-evidence-pr-${{ matrix.shard }}-${{ github.sha }}
+          name: web-product-visual-evidence-pr-${{ matrix.shard }}-${{ github.sha }}-attempt-${{ github.run_attempt }}
           path: |
             web/e2e/test-results-pr-${{ matrix.shard }}/**/planning-*.png
             web/e2e/test-results-pr-${{ matrix.shard }}/**/shell-*.png
@@ -176,7 +177,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: web-browser-failure-changed-${{ github.sha }}
+          name: web-browser-failure-changed-${{ github.sha }}-attempt-${{ github.run_attempt }}
           path: web/e2e/test-results-changed-specs/
           if-no-files-found: ignore
           retention-days: 3
@@ -185,7 +186,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: web-product-visual-evidence-changed-${{ github.sha }}
+          name: web-product-visual-evidence-changed-${{ github.sha }}-attempt-${{ github.run_attempt }}
           path: |
             web/e2e/test-results-changed-specs/**/planning-*.png
             web/e2e/test-results-changed-specs/**/shell-*.png
@@ -249,7 +250,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: web-browser-failure-full-${{ matrix.shard }}-${{ github.sha }}
+          name: web-browser-failure-full-${{ matrix.shard }}-${{ github.sha }}-attempt-${{ github.run_attempt }}
           path: web/e2e/test-results-full-${{ matrix.shard }}/
           if-no-files-found: ignore
           retention-days: 3
@@ -258,7 +259,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: web-product-visual-evidence-full-${{ matrix.shard }}-${{ github.sha }}
+          name: web-product-visual-evidence-full-${{ matrix.shard }}-${{ github.sha }}-attempt-${{ github.run_attempt }}
           path: |
             web/e2e/test-results-full-${{ matrix.shard }}/**/planning-*.png
             web/e2e/test-results-full-${{ matrix.shard }}/**/shell-*.png
@@ -329,3 +330,20 @@ jobs:
               exit 1
             }
           fi
+
+      - name: Explain targeted retry
+        if: failure()
+        run: |
+          {
+            echo '### Retry browser QA for this revision'
+            echo
+            echo 'Inspect the failed job and its diagnostics first. For a transient failure, choose **Re-run jobs → Re-run failed jobs** on this workflow run.'
+            echo 'GitHub reruns failed jobs and their dependent aggregate checks; successful independent jobs stay completed.'
+            echo
+            echo 'Equivalent GitHub CLI command:'
+            echo '```bash'
+            printf 'gh run rerun %s --failed --repo %s\n' "$GITHUB_RUN_ID" "$GITHUB_REPOSITORY"
+            echo '```'
+            echo
+            echo 'A code or test fix needs a new commit and fresh checks. A retry uses the original revision.'
+          } >> "$GITHUB_STEP_SUMMARY"

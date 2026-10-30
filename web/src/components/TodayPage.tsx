@@ -1072,17 +1072,6 @@ export function TodayPage({
   const sharedStorySummaryVisible =
     wirStatistics.allowed && wirStatistics.enabled && !dashboardQuery.isCached;
 
-  const heroHorizon = upcomingVisible
-    ? anticipation
-      ? { to: planDetailPath(anticipation.planId), title: anticipation.title }
-      : upcoming
-          .map((item) => ({
-            to: dashboardItemPath(item.type, item.id),
-            title: item.titleOrText,
-          }))
-          .find((item) => item.to && item.title)
-    : undefined;
-
   const isSparse = Boolean(
     dashboardQuery.data &&
       !(sharedStorySummaryVisible && dashboardQuery.data.sharedStorySummary) &&
@@ -1146,14 +1135,6 @@ export function TodayPage({
           : undefined
       }
       durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
-      context={
-        contentReady && heroHorizon?.to ? (
-          <Link className="today-hero-context" to={heroHorizon.to}>
-            <span>{t('relationshipReflections.passport.nextExperience')}</span>
-            <strong>{heroHorizon.title}</strong>
-          </Link>
-        ) : undefined
-      }
       avatarSize="hero"
       avatarAction={avatarAction}
       avatarOverlay={avatarOverlay}

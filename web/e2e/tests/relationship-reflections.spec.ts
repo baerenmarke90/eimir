@@ -368,6 +368,8 @@ for (const [width, theme, largeText] of [
       copy.anticipation.days_other.replace('{{count}}', '12'),
     );
     await expect(countdown).toContainText('10.11.2099');
+    await expect(page.locator('.anticipation-card')).toHaveCount(1);
+    await expect(page.locator('.today-hero').getByText(TITLE)).toHaveCount(0);
     await expect(
       page.locator('.today-agenda-row').filter({ hasText: TITLE }),
     ).toHaveCount(0);

@@ -60,7 +60,6 @@ import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
-import { PRODUCT_NAME } from './Brand';
 import { CommentsPanel } from './CommentsPanel';
 import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
 import {
@@ -559,13 +558,6 @@ export function HeartMomentProductPage({
                     : 'heartMomentProduct.backToStory',
                 )}
               </button>
-              <span className="heart-moment-create-identity" aria-hidden="true">
-                {PRODUCT_NAME}
-              </span>
-              <span
-                className="heart-moment-create-topline-spacer"
-                aria-hidden="true"
-              />
             </div>
             <div className="heart-moment-create-title-lockup">
               <span className="heart-moment-create-heart" aria-hidden="true">
@@ -577,14 +569,6 @@ export function HeartMomentProductPage({
               <h1 id="heart-moment-create-heading">
                 {t('heartMomentProduct.createHeading')}
               </h1>
-              <p
-                className="heart-moment-create-privacy-summary"
-                aria-live="polite"
-              >
-                {createVisibility === ContentVisibility.PRIVATE
-                  ? t('heartMomentProduct.privateHelp')
-                  : t('heartMomentProduct.sharedHelp')}
-              </p>
             </div>
           </header>
         }
@@ -623,11 +607,12 @@ export function HeartMomentProductPage({
             <HeartMomentTagChoices />
 
             <div className="heart-moment-create-field-grid">
-              <HeartEmotionPicker
-                legend={t('heartMomentProduct.emotionLabel')}
-                idPrefix="heart-moment-create-emotion"
-                className="heart-moment-create-field heart-moment-create-emotion-picker"
-              />
+              <div className="heart-moment-create-field heart-moment-create-emotion-picker">
+                <HeartEmotionPicker
+                  legend={t('heartMomentProduct.emotionLabel')}
+                  idPrefix="heart-moment-create-emotion"
+                />
+              </div>
 
               <NativeDateField
                 id="heart-moment-date"
@@ -657,9 +642,9 @@ export function HeartMomentProductPage({
                       setCreateVisibility(ContentVisibility.PRIVATE)
                     }
                   />
+                  <VisibilityGlyph visibility="OWNER_ONLY" />
                   <span>
                     <strong>{t('heartMomentProduct.visibilityPrivate')}</strong>
-                    <small>{t('heartMomentProduct.privateHelp')}</small>
                   </span>
                 </label>
                 <label
@@ -676,9 +661,9 @@ export function HeartMomentProductPage({
                       setCreateVisibility(ContentVisibility.SHARED)
                     }
                   />
+                  <VisibilityGlyph visibility="SPACE_SHARED" />
                   <span>
                     <strong>{t('heartMomentProduct.visibilityShared')}</strong>
-                    <small>{t('heartMomentProduct.sharedHelp')}</small>
                   </span>
                 </label>
               </div>

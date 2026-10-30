@@ -71,6 +71,7 @@ def generate(session: Session, payload: dict[str, Any]) -> None:
             "excerpt": (item["excerpt"] or "")[:240],
         }
         for item in material
+        if (item["title"] or "").strip() or (item["excerpt"] or "").strip()
     ]
     versions = {item["key"]: item["version"] for item in material}
     locale, period = value.locale, f"{value.starts_on.isoformat()}/{value.through_on.isoformat()}"

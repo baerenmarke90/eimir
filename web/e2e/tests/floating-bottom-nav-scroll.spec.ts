@@ -1,11 +1,11 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { expect, test, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -1007,4 +1007,255 @@ test('native primary tab switching replaces root history but keeps nested task r
   await page.goBack();
   await expect(page).toHaveURL(/\/more$/);
   await expect(nav).toBeVisible();
+});
+
+async function dragTouch(
+  page: Page,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+) {
+  const session = await page.context().newCDPSession(page);
+  try {
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ ...from, id: 1 }],
+    });
+    for (let step = 1; step <= 8; step++) {
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [
+          {
+            x: from.x + ((to.x - from.x) * step) / 8,
+            y: from.y + ((to.y - from.y) * step) / 8,
+            id: 1,
+          },
+        ],
+      });
+    }
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+  } finally {
+    await session.detach();
+  }
+}
+
+async function swipePrimary(page: Page, direction: 'next' | 'previous') {
+  const surfaceForRoute: Record<string, string> = {
+    '/today': '.today-page',
+    '/story': '.story-page',
+    '/plan': '.planen-overview',
+    '/more': '.more-page',
+  };
+  const selector = surfaceForRoute[new URL(page.url()).pathname];
+  if (!selector)
+    throw new Error('A primary swipe requires a primary destination.');
+  await expect(page.locator(`main > ${selector}`)).toBeVisible();
+  await expect(page.locator('main')).not.toHaveAttribute(
+    'data-primary-tab-entry',
+    /.+/,
+  );
+  const width = page.viewportSize()?.width ?? 390;
+  const startX = direction === 'next' ? width * 0.75 : width * 0.25;
+  // Use existing readable content, never a control or a synthetic gesture pad.
+  const y = await page.evaluate((x) => {
+    for (let y = 100; y < innerHeight - 150; y += 30) {
+      const target = document.elementFromPoint(x, y);
+      if (
+        target?.closest('main') &&
+        !target.closest(
+          'button, input, form, [role="tablist"], .eimir-media-snap-track',
+        )
+      ) {
+        let scroller: Element | null = target;
+        while (scroller && scroller.tagName !== 'MAIN') {
+          const style = getComputedStyle(scroller);
+          if (
+            /(auto|scroll)/.test(style.overflowX) &&
+            scroller.scrollWidth > scroller.clientWidth + 1
+          )
+            break;
+          scroller = scroller.parentElement;
+        }
+        if (scroller?.tagName === 'MAIN') return y;
+      }
+    }
+    throw new Error('No visible reading surface for a primary swipe.');
+  }, startX);
+  await dragTouch(
+    page,
+    { x: startX, y },
+    { x: direction === 'next' ? width * 0.25 : width * 0.75, y },
+  );
+}
+
+test.describe('primary tab touch navigation', () => {
+  test.use({ hasTouch: true });
+
+  for (const variant of [
+    { width: 360, theme: 'light', reduced: false },
+    { width: 390, theme: 'dark', reduced: true },
+    { width: 430, theme: 'light', reduced: false },
+    { width: 1280, theme: 'dark', reduced: false },
+  ] as const) {
+    test(`primary swipe follows tab order at ${variant.width}px ${variant.theme}`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: variant.width, height: 844 });
+      await page.emulateMedia({
+        reducedMotion: variant.reduced ? 'reduce' : 'no-preference',
+      });
+      await installApiMocks(page);
+      await page.goto('/login');
+      await signIn(page);
+      await expect(page).toHaveURL(/\/today$/);
+      await page.evaluate((theme) => {
+        document.documentElement.dataset.theme = theme;
+      }, variant.theme);
+      const nav = page.locator(
+        variant.width >= 840 ? '.shell-nav' : '.mobile-bottom-nav',
+      );
+      const documentLifetime = await page.evaluate(
+        () => performance.timeOrigin,
+      );
+      await swipePrimary(page, 'previous');
+      await expect(page).toHaveURL(/\/today$/);
+      for (const destination of ['/story', '/plan', '/more']) {
+        await swipePrimary(page, 'next');
+        await expect(page).toHaveURL(new RegExp(`${destination}$`));
+        await expect(nav.locator(`a[href^="${destination}"]`)).toHaveAttribute(
+          'aria-current',
+          'page',
+        );
+        await expectNoHorizontalOverflow(page);
+      }
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `swipe-more-${variant.width}-${variant.theme}.png`,
+        ),
+      });
+      await swipePrimary(page, 'next');
+      await expect(page).toHaveURL(/\/more$/);
+      for (const destination of ['/plan', '/story', '/today']) {
+        await swipePrimary(page, 'previous');
+        await expect(page).toHaveURL(new RegExp(`${destination}$`));
+        await expect(nav.locator(`a[href^="${destination}"]`)).toHaveAttribute(
+          'aria-current',
+          'page',
+        );
+      }
+      expect(await page.evaluate(() => performance.timeOrigin)).toBe(
+        documentLifetime,
+      );
+      if (variant.reduced) {
+        expect(
+          await page
+            .locator('main')
+            .evaluate((element) => getComputedStyle(element).animationName),
+        ).toBe('none');
+      }
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `swipe-wir-${variant.width}-${variant.theme}.png`,
+        ),
+      });
+      await expectNoHorizontalOverflow(page);
+    });
+  }
+
+  test('primary swipe restores Timeline scroll and Planning segment without growing native history or refetching fresh content', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installNativeAppLifecycle(page);
+    await installApiMocks(page);
+    let timelineReads = 0;
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname.endsWith('/timeline'))
+        timelineReads++;
+    });
+    await page.goto('/login');
+    await signIn(page);
+    const historyLength = await page.evaluate(() => history.length);
+    await swipePrimary(page, 'next');
+    await expect(page).toHaveURL(/\/story$/);
+    await expect(
+      page.getByText('Cooked fresh pasta together', { exact: true }).first(),
+    ).toBeVisible();
+    await page.evaluate(() =>
+      window.scrollTo({ top: 500, behavior: 'instant' }),
+    );
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeGreaterThan(400);
+    const storyY = await page.evaluate(() => window.scrollY);
+    const reads = timelineReads;
+    expect(reads).toBeGreaterThan(0);
+    await swipePrimary(page, 'next');
+    await expect(page).toHaveURL(/\/plan$/);
+    await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
+    await swipePrimary(page, 'previous');
+    await expect(page).toHaveURL(/\/story/);
+    await expect
+      .poll(async () =>
+        Math.abs((await page.evaluate(() => window.scrollY)) - storyY),
+      )
+      .toBeLessThan(3);
+    expect(timelineReads).toBe(reads);
+    await swipePrimary(page, 'next');
+    await expect(page).toHaveURL(/\/plan$/);
+    await expect(
+      page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
+    ).toHaveAttribute('aria-selected', 'true');
+    expect(await page.evaluate(() => history.length)).toBe(historyLength);
+    await page.locator('.mobile-quick-create .quick-create-trigger').click();
+    await page
+      .locator('.quick-create-mobile-item[href="/story/memories/new"]')
+      .click();
+    await expect(page).toHaveURL(/\/story\/memories\/new$/);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/plan$/);
+  });
+
+  test('native horizontal content scrolling and vertical document scrolling keep gesture ownership', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await page.evaluate(() => {
+      const scroller = document.createElement('div');
+      scroller.dataset.testHorizontalContent = 'true';
+      scroller.style.cssText =
+        'display:flex;overflow-x:auto;width:100%;height:100px;';
+      for (let index = 0; index < 4; index++) {
+        const item = document.createElement('div');
+        item.style.cssText = 'flex:0 0 250px;background:var(--color-surface);';
+        item.textContent = `Synthetic horizontal item ${index + 1}`;
+        scroller.append(item);
+      }
+      document.querySelector('main')?.prepend(scroller);
+    });
+    const scroller = page.locator('[data-test-horizontal-content]');
+    const box = await scroller.boundingBox();
+    if (!box) throw new Error('Horizontal content is missing.');
+    await dragTouch(page, { x: 300, y: box.y + 50 }, { x: 80, y: box.y + 50 });
+    await expect
+      .poll(() => scroller.evaluate((element) => element.scrollLeft))
+      .toBeGreaterThan(100);
+    await expect(page).toHaveURL(/\/today$/);
+    await scroller.evaluate((element) => {
+      element.scrollLeft = element.scrollWidth;
+    });
+    await dragTouch(page, { x: 300, y: box.y + 50 }, { x: 80, y: box.y + 50 });
+    await expect(page).toHaveURL(/\/today$/);
+    await addScrollFixture(page);
+    await dragTouch(page, { x: 200, y: 650 }, { x: 200, y: 280 });
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeGreaterThan(100);
+    await expect(page).toHaveURL(/\/today$/);
+  });
 });

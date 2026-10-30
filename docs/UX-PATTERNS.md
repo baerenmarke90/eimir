@@ -70,6 +70,13 @@ The Web header follows the accepted [A1 shell decision](./design/eimir/SHELL-RES
 - Search and Activity are not primary destinations. The [2026-10-29 PO decision](product/design/mobile-header-more.md) places global search, notifications and account functions under More; Compact/Medium has no persistent global header. Activity retains `/today/activity`. Expanded keeps horizontal top navigation. Unread notifications produce a static dot and accessible count on More, cleared by existing read-state updates.
 - The active destination is identifiable through shape, color, and text state,
   never through color alone.
+- On touch input, a horizontal swipe on a primary root can select its adjacent
+  destination in the visible navigation order, without wrapping (#1521). It is
+  an additional shortcut: labeled navigation links remain available and both
+  inputs share the same history and bounded account/Space-scoped return context.
+  Vertical scrolling, galleries, horizontal content scrollers, controls, editing,
+  text selection, modal/menu layers and system edge gestures retain ownership.
+  Details, editors and secondary destinations do not swipe between primary tabs.
 - Badge counts are used only for current, actionable information.
 - On Web, every primary function is keyboard-accessible and focus remains
   visible.

@@ -18,14 +18,8 @@ import {
   PRODUCT_CACHE_NETWORK_EVENT,
   type ProductCacheEventDetail,
 } from '../client/productReadCache';
+import { ProductTourProvider } from '../client/productTour';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
-import { isCapacitorNative } from '../pwa';
-import {
-  captureSessionOwner,
-  currentSessionTokens,
-  loadStoredSession,
-} from '../client/sessionPersistence';
-import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import {
   type AppRouteDefinition,
   activeNavigationArea,
@@ -34,13 +28,19 @@ import {
   MEMORY_CREATE_ROUTE,
   PRIMARY_APP_ROUTES,
 } from '../client/routes';
-import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
-import { ProductTourProvider } from '../client/productTour';
-import { resolvedLocale, useTranslation } from '../i18n';
+import {
+  captureSessionOwner,
+  currentSessionTokens,
+  loadStoredSession,
+} from '../client/sessionPersistence';
 import {
   ShellUtilitiesContext,
   useShellUtilities,
 } from '../client/shellUtilities';
+import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
+import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
+import { resolvedLocale, useTranslation } from '../i18n';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
@@ -49,6 +49,7 @@ import { QuickCreateMenu } from './QuickCreateMenu';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { Snackbar } from './Snackbar';
 import { ThemeControl } from './ThemeControl';
+import { usePrimaryTabSwipe } from './usePrimaryTabSwipe';
 
 function NavigationLink({ route }: { route: AppRouteDefinition }) {
   const { t } = useTranslation();
@@ -57,21 +58,11 @@ function NavigationLink({ route }: { route: AppRouteDefinition }) {
   const hasUnread = route.id === 'more' && (unreadCount ?? 0) > 0;
   const activeArea = activeNavigationArea(location.pathname);
   const isActive = activeArea === route.id;
-  const { captureOrigin, primaryDestination } = useTaskOrigin();
-  const destination = primaryDestination(route.path);
-  const isRoot = PRIMARY_APP_ROUTES.some(
-    (candidate) => candidate.path === location.pathname,
-  );
+  const { destinationFor, captureCurrent } = usePrimaryNavigation();
 
   return (
     <Link
-      to={destination.to}
-      state={
-        destination.returnKey
-          ? { taskReturnKey: destination.returnKey }
-          : undefined
-      }
-      replace={isCapacitorNative() && isRoot}
+      {...destinationFor(route.path)}
       onClick={(event) => {
         if (
           event.defaultPrevented ||
@@ -93,7 +84,7 @@ function NavigationLink({ route }: { route: AppRouteDefinition }) {
           });
           return;
         }
-        if (isRoot) captureOrigin();
+        captureCurrent();
       }}
       className={`shell-nav-link${isActive ? ' shell-nav-link-active' : ''}`}
       aria-current={isActive ? 'page' : undefined}
@@ -230,6 +221,14 @@ function AuthenticatedAppShell({
   }
 
   const location = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+  const { navigatePrimary } = usePrimaryNavigation();
+  usePrimaryTabSwipe({
+    surfaceRef: mainRef,
+    pathname: location.pathname,
+    routeKey: location.key,
+    onNavigate: navigatePrimary,
+  });
   const { requestReturn, resolveOrigin } = useTaskOrigin();
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const storyDetailMatch =
@@ -392,6 +391,7 @@ function AuthenticatedAppShell({
 
         <div className="product-shell-body">
           <main
+            ref={mainRef}
             id="main-content"
             className="product-main"
             data-area={

@@ -1,0 +1,40 @@
+/* Only a deliberate primary-tab gesture moves content; the shell stays fixed. */
+.product-shell-body:has(> [data-primary-tab-dragging]),
+.product-shell-body:has(> [data-primary-tab-entry]) {
+  overflow-x: clip;
+}
+
+.product-main[data-primary-tab-dragging] {
+  transform: translate3d(var(--primary-tab-offset), 0, 0);
+}
+
+.product-main[data-primary-tab-entry] {
+  animation: primary-tab-arrive var(--duration-transition)
+    var(--easing-standard);
+}
+
+.product-main[data-primary-tab-entry="next"] {
+  --primary-tab-entry-offset: 6%;
+}
+
+.product-main[data-primary-tab-entry="previous"] {
+  --primary-tab-entry-offset: -6%;
+}
+
+@keyframes primary-tab-arrive {
+  from {
+    transform: translate3d(var(--primary-tab-entry-offset), 0, 0);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-main[data-primary-tab-dragging] {
+    transform: none;
+  }
+  .product-main[data-primary-tab-entry] {
+    animation: none;
+  }
+}

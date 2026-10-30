@@ -1,0 +1,16 @@
+{
+  "baselineMain": "e9f6646065440c24baf4dfe02477704adaee57b7",
+  "preflightCommit": "da14f81791ae62a6ec4742762a43b8764ee2d298",
+  "issue": 1521,
+  "browser": "Chromium 153.0.8010.0",
+  "sha256": {
+    "web/src/client/usePrimaryNavigation.ts": "c7008e4b836e1863cdaca3257c70897e4a76b9cc5f2135a941f79af894875415",
+    "web/src/components/AppShell.tsx": "1f7a167373d5543b8bebe976c16276cedce5cbfe33fa26251f69864816249a03",
+    "web/src/components/PrimaryTabSwipe.css": "4070a5da031bf7c6dd362f3dfdd672185d5490da8b5a2ee07e811d57bca3bdb5",
+    "web/src/components/usePrimaryTabSwipe.ts": "4ea03c2b02511a4e9d4f3457ceace8fc679f19ce8c16d0f4d05b65b76ec610db",
+    "web/src/components/usePrimaryTabSwipe.test.tsx": "4d8731d84b08712a7a90d18f8d19ceec010b8807c8f159b079061f941c3d93ca",
+    "web/e2e/tests/floating-bottom-nav-scroll.spec.ts": "74648cd124e16c15061748ae7cd24e3a8cc6f9b7da3ecc786e7c89bed1159ef7",
+    "web/e2e/test-groups.json": "20d278b84242c7346708916c81fe2fedeafa5b173d873681e1ba6216c6572a02",
+    "docs/UX-PATTERNS.md": "cdb753012827456e4874448725d159a89e3534ae24740b6bc4d161461ad463b0"
+  }
+}

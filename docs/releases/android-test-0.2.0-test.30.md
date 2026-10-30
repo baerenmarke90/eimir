@@ -32,6 +32,13 @@ updater integration: dependency documentation, browser inventory, localized test
 fixture, Settings route registration and the locale module registration. Existing
 updater foreground checks and build activation remain separate from main.
 
+The full main regression exposed five stale Discover/Diary tests after #1536:
+they still expected both panels simultaneously. The test-only correction opens
+the selected Diary tab, retains all 12-item and canonical-label checks, checks axe
+accessibility, and returns to Discover. Browse journeys begin in Diary and verify
+the approved two-tab contract. All 11 cases pass in actual local Chromium; no
+runtime, retry, timeout, grouping or tolerance changes are introduced.
+
 ## Reuse, business and cross-cutting review
 
 Reuse review relevant: use the existing fixed-source plan, protected publisher,

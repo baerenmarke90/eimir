@@ -1,5 +1,8 @@
 const m5s3 = {
   common: {
+    shortBackToMore: '← Mehr',
+    shortBackToPlaces: '← Orte',
+    shortBackToCollections: '← Listen',
     saved: 'gespeichert',
     back: '← Zurück zu Planen',
     backToPlan: '← Zurück zu Planen',
@@ -285,6 +288,10 @@ const m5s3 = {
       'Nur das Kapitel und seine Verknüpfungen werden gelöscht. Die enthaltenen Erinnerungen, Herzmomente und Meilensteine bleiben unverändert erhalten.',
   },
   relations: {
+    momentsHere: 'Momente hier',
+    actions: 'Aktionen für „{{title}}“',
+    unlinkPlaceConsequence:
+      'Nur die Zuordnung zu diesem Ort wird entfernt. Der Moment selbst bleibt erhalten.',
     headingPlace: 'Was verbindet ihr mit diesem Ort?',
     headingChapter: 'Was gehört zu diesem Kapitel?',
     intro:
@@ -329,6 +336,17 @@ const m5s3 = {
     },
   },
   collection: {
+    overviewHeading: 'Listen',
+    progress: '{{count}} Einträge · {{completed}} erledigt',
+    progress_one: '{{count}} Eintrag · {{completed}} erledigt',
+    progress_other: '{{count}} Einträge · {{completed}} erledigt',
+    itemActions: 'Aktionen für „{{title}}“',
+    editItem: 'Eintrag bearbeiten',
+    deleteItemConsequence: '„{{title}}“ wird aus dieser Liste gelöscht.',
+    sort: 'Sortieren',
+    finishSorting: 'Fertig',
+    sortHelp:
+      'Ziehe die Einträge am Griff in die gewünschte Reihenfolge. Mit der Tastatur: Griff fokussieren und Pfeiltasten verwenden.',
     heading: 'Gemeinsame Listen',
     intro: 'Zum Beispiel zum Packen, Einkaufen oder Ideensammeln.',
     emptyOverview:
@@ -336,6 +354,7 @@ const m5s3 = {
     create: 'Liste hinzufügen',
     loading: 'Liste wird geladen …',
     detailEyebrow: 'Gemeinsame Liste',
+    pinLabel: 'Auf „Wir“',
     pinToToday: 'Auf „Wir“ anzeigen',
     unpinFromToday: 'Nicht mehr auf „Wir“ anzeigen',
     itemCount_one: '{{count}} Eintrag',

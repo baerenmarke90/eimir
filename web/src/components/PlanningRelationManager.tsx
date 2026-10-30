@@ -29,6 +29,7 @@ import {
 } from '../client/sharedPlanning';
 import { i18n, useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
+import { PlaceMomentActions } from './PlaceMomentActions';
 import { UiState } from './UiState';
 import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
@@ -411,7 +412,15 @@ function ScopedPlanningRelationManager({
     },
   });
 
+  const unlinkFocusRef = useRef<string | null>(null);
   const unlinkMutation = useMutation({
+    onMutate: ({ kind, targetId }) => {
+      if (ownerKind === 'place')
+        unlinkFocusRef.current = targetKey(kind, targetId);
+    },
+    onError: () => {
+      unlinkFocusRef.current = null;
+    },
     networkMode: 'always',
     retry: false,
     mutationFn: async ({
@@ -478,8 +487,25 @@ function ScopedPlanningRelationManager({
           );
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: relationKey }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: relationKey });
+    },
   });
+
+  useEffect(() => {
+    const removed = unlinkFocusRef.current;
+    if (
+      !removed ||
+      !relationsQuery.data ||
+      relationsQuery.data.some(
+        (relation) =>
+          targetKey(relation.targetType, relation.targetId) === removed,
+      )
+    )
+      return;
+    unlinkFocusRef.current = null;
+    trigger.current?.focus();
+  }, [relationsQuery.data]);
 
   const loadedTargets = useMemo(() => {
     const byKey = new Map<string, PlanningRelationTarget>();
@@ -612,6 +638,24 @@ function ScopedPlanningRelationManager({
     void navigate(path, { state: { taskOriginKey } });
   }
 
+  const addButton =
+    canManage && relationsQuery.isSuccess ? (
+      <button
+        ref={trigger}
+        type="button"
+        className="secondary relation-moment-add"
+        aria-haspopup="dialog"
+        aria-expanded={pickerOpen}
+        onClick={() => {
+          linkMutation.reset();
+          setPickerOpen(true);
+        }}
+      >
+        <EimirIcon name="hinzufuegen" />
+        {t('m5s3.relations.addLabel')}
+      </button>
+    ) : null;
+
   return (
     <section
       className="planning-subsection"
@@ -622,12 +666,13 @@ function ScopedPlanningRelationManager({
           <h2 id={`${ownerKind}-relations-heading`}>
             {t(
               ownerKind === 'place'
-                ? 'm5s3.relations.headingPlace'
+                ? 'm5s3.relations.momentsHere'
                 : 'm5s3.relations.headingChapter',
             )}
           </h2>
-          <p>{t('m5s3.relations.intro')}</p>
+          {ownerKind === 'chapter' ? <p>{t('m5s3.relations.intro')}</p> : null}
         </div>
+        {ownerKind === 'place' ? addButton : null}
       </div>
 
       {relationsQuery.isLoading ? (
@@ -669,23 +714,35 @@ function ScopedPlanningRelationManager({
                     </span>
                   </div>
                 )}
-                {canManage ? (
+                {canManage && ownerKind === 'place' ? (
+                  <PlaceMomentActions
+                    name={target?.label ?? t('m5s3.relations.contentFallback')}
+                    pending={unlinkMutation.isPending}
+                    error={
+                      unlinkMutation.variables?.targetId === relation.targetId
+                        ? unlinkMutation.error
+                        : null
+                    }
+                    onRemove={() =>
+                      unlinkMutation.mutateAsync({
+                        kind: relation.targetType,
+                        targetId: relation.targetId,
+                      })
+                    }
+                  />
+                ) : canManage ? (
                   <button
                     type="button"
                     className="tertiary"
+                    disabled={unlinkMutation.isPending}
                     onClick={() =>
                       unlinkMutation.mutate({
                         kind: relation.targetType,
                         targetId: relation.targetId,
                       })
                     }
-                    disabled={unlinkMutation.isPending}
                   >
-                    {t(
-                      ownerKind === 'place'
-                        ? 'm5s3.relations.unlinkPlace'
-                        : 'm5s3.relations.unlink',
-                    )}
+                    {t('m5s3.relations.unlink')}
                   </button>
                 ) : null}
               </li>
@@ -696,22 +753,7 @@ function ScopedPlanningRelationManager({
         <p className="planning-empty">{t('m5s3.relations.empty')}</p>
       ) : null}
 
-      {canManage && relationsQuery.isSuccess ? (
-        <button
-          ref={trigger}
-          type="button"
-          className="secondary relation-moment-add"
-          aria-haspopup="dialog"
-          aria-expanded={pickerOpen}
-          onClick={() => {
-            linkMutation.reset();
-            setPickerOpen(true);
-          }}
-        >
-          <EimirIcon name="hinzufuegen" />
-          {t('m5s3.relations.addLabel')}
-        </button>
-      ) : null}
+      {ownerKind === 'chapter' ? addButton : null}
       <ShortTaskSheet
         open={pickerOpen && canManage}
         title={t('m5s3.relations.addLabel')}

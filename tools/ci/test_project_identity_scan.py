@@ -77,6 +77,16 @@ class ProjectIdentityScanTest(unittest.TestCase):
         )
         self.assertEqual(classification, Classification.MUST_RENAME)
 
+    def test_exact_places_and_lists_prompt_retains_ordinary_layout_wording(self) -> None:
+        path = Path("docs/product/design/references/places-and-lists/reference-prompt.txt")
+        line = "Preflight, four whole Compact smartphone app screens side-by-side."
+        classification, _ = classify(path, line, "side-by-side")
+        self.assertEqual(classification, Classification.FALSE_POSITIVE)
+        classification, _ = classify(path, line + " Use SideBySide branding.", "SideBySide")
+        self.assertEqual(classification, Classification.MUST_RENAME)
+        classification, _ = classify(Path("backend/src/example.py"), line, "side-by-side")
+        self.assertEqual(classification, Classification.MUST_RENAME)
+
     def test_required_patterns_are_case_insensitive_and_complete(self) -> None:
         samples = (
             "SideBySide-Next",

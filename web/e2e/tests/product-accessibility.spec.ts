@@ -1659,7 +1659,10 @@ test('planning sanctuary is compact, dark, reduced-motion, keyboard operable, an
 
   await navigateWithinApp(page, '/more/collections');
   await expect(
-    page.getByRole('heading', { name: m5s3.collection.heading, level: 1 }),
+    page.getByRole('heading', {
+      name: m5s3.collection.overviewHeading,
+      level: 1,
+    }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -1708,7 +1711,10 @@ test('planning sanctuary stays accessible in expanded light mode at 200 percent 
 
   await navigateWithinApp(page, '/more/collections');
   await expect(
-    page.getByRole('heading', { name: m5s3.collection.heading, level: 1 }),
+    page.getByRole('heading', {
+      name: m5s3.collection.overviewHeading,
+      level: 1,
+    }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -1831,7 +1837,13 @@ for (const { colorScheme, width, height } of placeCoordinateGuidanceScenarios) {
       'data-theme',
       colorScheme,
     );
-    await page.locator('summary', { hasText: m5s3.place.create }).click();
+    await page
+      .getByRole('button', { name: m5s3.place.create, exact: true })
+      .click();
+    await page
+      .getByRole('dialog')
+      .locator('summary', { hasText: m5s3.place.technicalDetails })
+      .click();
     const createHelp = page.locator('#create-place-coordinate-help');
     await expect(createHelp).toHaveClass(
       /(?:^|\s)planning-coordinate-help(?:\s|$)/,
@@ -1847,6 +1859,10 @@ for (const { colorScheme, width, height } of placeCoordinateGuidanceScenarios) {
 
     await page.goto('/plan/places/place-1');
     await page.getByRole('button', { name: de.common.edit }).click();
+    await page
+      .getByRole('dialog')
+      .locator('summary', { hasText: m5s3.place.technicalDetails })
+      .click();
     const editHelp = page.locator('#place-edit-coordinate-help');
     await expect(editHelp).toHaveClass(
       /(?:^|\s)planning-coordinate-help(?:\s|$)/,

@@ -11,6 +11,11 @@ const de = {
     previousHeadline: 'Ein Tag nur für uns.',
     reflection: 'Das möchte ich für uns behalten.',
   },
+  placesAndLists: {
+    placeDescription: 'Unser Platz im Grünen.',
+    longListEntry:
+      'Unser gemeinsamer Fernsehabend mit Snacks und einer richtig langen Serienfolge',
+  },
   diaryCategoryNotes: [
     'Ein lieber Gedanke.',
     'Du hast zugehört.',

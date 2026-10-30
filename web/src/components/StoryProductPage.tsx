@@ -998,11 +998,10 @@ export function StoryProductPage({
               stroke="currentColor"
               strokeWidth="1.8"
               strokeLinecap="round"
+              strokeLinejoin="round"
               aria-hidden="true"
             >
-              <path d="M4 7h9m4 0h3M4 17h3m4 0h9" />
-              <circle cx="15" cy="7" r="2" />
-              <circle cx="9" cy="17" r="2" />
+              <path d="M3 4h18l-7 8v7l-4 2v-9L3 4Z" />
             </svg>
             {hasActiveFilters ? (
               <span className="story-filter-active-badge" aria-hidden="true">

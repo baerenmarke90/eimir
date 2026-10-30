@@ -369,6 +369,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 10,
       "reason": "Automatic month/year discovery, focused source-return reader, selection conflict safety, private draft/share/save/withdraw and retained Free reads across Compact/Expanded themes."
+    },
+    "places-and-lists-design.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7,
+      "reason": "Places and Lists create/result/return, dirty modal boundaries, read-first entry editing, failed-save recovery, checking, sorting, removal and theme/reflow acceptance."
     }
   }
 }

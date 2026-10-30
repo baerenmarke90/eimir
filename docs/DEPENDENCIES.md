@@ -425,3 +425,5 @@ PNGs in its `evidence/` directory are actual browser renders with synthetic
 couple data. The Plan cover fixture is Darkmoon_Art/Pixabay 3374201 under CC0,
 as recorded in `backend/demo_assets/manifest.json`. The synthetic map tiles in
 browser evidence are a test fixture, not a third-party cartographic screenshot.
+
+The primary-tab swipe preflight at `docs/product/design/references/primary-tab-swipe/compact-swipe-reference.png` is an original ImageGen project asset generated on 2026-10-30 from the current eimir. Compact Momente and Planen renders. It has no separate public license grant. The exact prompt, main baseline and interaction limits are recorded beside it. The two baseline PNGs are actual project UI renders with synthetic fixtures; no RWN source, screenshot or asset is copied.

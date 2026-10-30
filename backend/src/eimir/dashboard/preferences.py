@@ -43,6 +43,7 @@ class DashboardModuleKey(StrEnum):
     """Stable internal product keys for registered Dashboard modules."""
 
     RELATIONSHIP_PRESENCE = "relationship_presence"
+    DAILY_QUOTE = "daily_quote"
     UPCOMING = "upcoming"
     PINNED_COLLECTION = "pinned_collection"
     KEEPSAKE = "keepsake"
@@ -96,6 +97,7 @@ class DashboardModuleState:
 # same per-Account+Space visibility behavior as every other Dashboard module.
 CATALOG: tuple[DashboardModuleDefinition, ...] = (
     DashboardModuleDefinition(key=DashboardModuleKey.RELATIONSHIP_PRESENCE, default_visible=True),
+    DashboardModuleDefinition(key=DashboardModuleKey.DAILY_QUOTE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.KEEPSAKE, default_visible=True),
     DashboardModuleDefinition(
         key=DashboardModuleKey.UPCOMING,
@@ -183,6 +185,15 @@ def set_module_order(
 ) -> list[DashboardModuleState]:
     """Atomically replace only the order facet of the personal preference rows."""
     expected = {definition.key.value for definition in CATALOG}
+    # Older installed Web bundles submit the complete pre-quote catalog.
+    # Accept that one known revision without resetting its personal order.
+    legacy = expected - {DashboardModuleKey.DAILY_QUOTE.value}
+    if len(module_keys) == len(legacy) and set(module_keys) == legacy:
+        module_keys = list(module_keys)
+        module_keys.insert(
+            module_keys.index(DashboardModuleKey.RELATIONSHIP_PRESENCE.value) + 1,
+            DashboardModuleKey.DAILY_QUOTE.value,
+        )
     if len(module_keys) != len(expected) or set(module_keys) != expected:
         raise ValidationError(
             "moduleKeys must contain every registered Dashboard module exactly once.",

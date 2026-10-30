@@ -15,6 +15,8 @@ import { DASHBOARD_MODULE_CATALOG } from '../client/dashboardModules';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import profileIdentity from '../i18n/locales/profileIdentity';
 import m5s5 from '../i18n/locales/m5s5';
+import dailyQuote from '../i18n/locales/dailyQuote';
+import relationshipReflections from '../i18n/locales/relationshipReflections';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
 
 const ACCOUNT_ID = 'account-1';
@@ -64,6 +66,8 @@ function renderPanel(
 }
 
 function moduleLabel(moduleKey: string): string {
+  if (moduleKey === 'daily_quote') return dailyQuote.title;
+  if (moduleKey === 'shared_story_summary') return relationshipReflections.passport.wirStatisticsTitle;
   const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moduleKey);
   if (!entry) throw new Error(`Unknown module key: ${moduleKey}`);
   const path = entry.labelKey.split('.').slice(1);
@@ -96,7 +100,7 @@ describe('DashboardSettingsPanel', () => {
     await waitFor(() => expect(reorder).toHaveBeenCalledTimes(1));
     const desired = reorder.mock.calls[0][0].dashboardModuleOrderUpdate
       .moduleKeys as string[];
-    expect(desired.indexOf('keepsake')).toBe(2);
+    expect(desired.indexOf('keepsake')).toBe(3);
     expect(document.activeElement).toBe(grip);
 
     fireEvent.click(
@@ -689,7 +693,7 @@ describe('DashboardSettingsPanel', () => {
       renderPanel(vi.fn());
 
       for (const entry of DASHBOARD_MODULE_CATALOG.filter(
-        (entry) => entry.key !== 'shared_story_summary',
+        (entry) => entry.key !== 'shared_story_summary' && entry.key !== 'daily_quote',
       )) {
         const checkbox = screen.getByRole('checkbox', {
           name: moduleLabel(entry.key),

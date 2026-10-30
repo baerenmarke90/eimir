@@ -19,6 +19,10 @@ import {
 const PLAN = '44444444-4444-4444-8444-444444444444';
 const BASE = `/api/v1/spaces/${SPACE_ID}`;
 const TITLE = 'A complete view of our next adventure';
+const galleryCounter = (index: number, count: number) =>
+  storyCopy.gallery.counter
+    .replace('{{index}}', String(index))
+    .replace('{{count}}', String(count));
 const dimensions = {
   portrait: [800, 1200],
   landscape: [1600, 900],
@@ -550,7 +554,7 @@ for (const view of [
       });
     const gallery = page.locator('.plan-photo-gallery');
     await expect(gallery.locator('.media-gallery-carousel-counter')).toHaveText(
-      '1 von 3',
+      galleryCounter(1, 3),
     );
     await expectGalleryImage(
       gallery
@@ -598,7 +602,7 @@ for (const view of [
       }
       await expect(
         gallery.locator('.media-gallery-carousel-counter'),
-      ).toHaveText('2 von 3');
+      ).toHaveText(galleryCounter(2, 3));
     }
     await gallery.getByRole('button', { name: photoCopy.fullscreen }).click();
     const viewer = page.getByRole('dialog', {
@@ -607,7 +611,7 @@ for (const view of [
     await expect(viewer).toBeVisible();
     await page.keyboard.press('ArrowRight');
     await expect(viewer.locator('.media-lightbox-counter')).toHaveText(
-      view.width < 600 ? '3 von 3' : '2 von 3',
+      view.width < 600 ? galleryCounter(3, 3) : galleryCounter(2, 3),
     );
     await captureScreenshot(
       page,
@@ -677,7 +681,7 @@ for (const view of [
         .locator('.sensitive-media-cover'),
     ).toBeVisible();
     await expect(gallery.locator('.media-gallery-carousel-counter')).toHaveText(
-      '1 von 2',
+      galleryCounter(1, 2),
     );
     expect(
       await page.evaluate(

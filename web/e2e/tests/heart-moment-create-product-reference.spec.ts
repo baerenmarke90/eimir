@@ -1,13 +1,13 @@
-import { fulfillEmptyMomentPlaces } from '../support/photoSources';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { readFile, writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
-import de from '../../src/i18n/locales/de';
+import { expect, type Page, test } from '@playwright/test';
 import contextTags from '../../src/i18n/locales/contextTags';
+import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -818,6 +818,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await emotion.screenshot({
         path: testInfo.outputPath(`heart-emotion-field-390-${colorScheme}.png`),
       });
+      await visibility.evaluate((element) =>
+        element.scrollIntoView({ block: 'center', behavior: 'instant' }),
+      );
       await visibility.screenshot({
         path: testInfo.outputPath(`heart-audience-390-${colorScheme}.png`),
       });

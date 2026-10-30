@@ -9,6 +9,9 @@ controls, and simplify HeartMoment creation chrome and audience selection.
 The Product Owner authorized a pull request. This slice does not authorize a
 deployment or merge.
 
+Owning issue: [#1530](https://github.com/baerenmarke90/eimir/issues/1530). The
+reference and contract were committed and linked there before UI implementation.
+
 Baseline: `cc0e23b7d6f4d950f0012660f051be46dd2da3af` (`main`, including #1523 and
 #1526). Inspected the actual `/today`, `/story/memories/new` and
 `/story/heart-moments/new` implementations before generating the reference:
@@ -26,6 +29,8 @@ component contracts, and the current semantic token adapter.
 
 Generated with the built-in Imagegen tool before UI changes. The complete prompt
 is retained in [the reference prompt](references/wir-composer-clarity/prompt.txt).
+Unmodified generated PNG SHA-256:
+`ffa029b8ffdf7f353556c90ce1c0488cafd1250607847345d5058e08d6dcfd9a`.
 This image guides hierarchy, not exact typography or geometry. Its Memory panel
 reorders existing content, omits the existing top date and misrepresents the
 focused-task shell; implementation preserves the actual date → narrative →
@@ -105,4 +110,48 @@ offline, failure and cooldown tests remain intact.
 
 ## Validation
 
-Implementation and exact-build results will be recorded here before PR delivery.
+Runtime implementation: `3b6f8d3f`; final scoped photo-sheet hover correction:
+`a68f4bee`. Subsequent commits add evidence, import ordering and this record;
+they do not alter runtime behavior.
+
+- 139 targeted tests pass across `TodayPage`, `PartnerQuickActions`,
+  `HeartMomentProductPage`, `HeartMomentVisibility` and `HeartEmotionVisual`.
+- All 109 distinct relevant browser cases have a passing result across the
+  broad run and targeted corrected runs. The initial broad run passed 107 and
+  identified two real defects. Double-size text exposed the existing unbroken
+  HeartMoment heading width; it now wraps without overflow. The photo-source
+  sheet's generic hover translation oscillated by 1 px when it opened with the
+  pointer on a button edge; scoped stable hover geometry fixes the actual
+  interaction instead of bypassing browser actionability.
+- The final HeartMoment Compact Light/Dark and 320 px/200% cases pass. The final
+  photo-source journeys pass at 320/360/390/430/1280, including 200% photo-action
+  reflow, separated targets, consent, import, draft retention and save. One
+  430 px rerun encountered a transient blank development page during startup;
+  the targeted repeat passed unchanged. No timeouts or assertions were relaxed.
+- All three gestures retain pending/confirmed contextual feedback, reject
+  duplicate sends and display no success snackbar. Error, uncertain retry,
+  offline no-replay, cooldown and entitlement cases pass.
+- Special-plan countdown opens the real plan and returns to Today; it appears
+  once, respects hidden upcoming state and preserves the 1–3 preference.
+  Populated/sparse Today, keyboard, 200% reflow, reduced motion, canonical
+  destinations and Light/Dark/Expanded scenarios pass.
+- Production build, token identity/PWA checks, TypeScript, Web lint/format,
+  engineering-language audit, project-identity scan and whitespace checks pass.
+  The first local build was interrupted when its formatter child stalled in
+  the restricted process environment; the normal build passed with local
+  process access. Existing unrelated lint/build warnings remain unchanged.
+- No GitHub jobs were manually retried. CI remains a merge gate. No physical
+  Android device was used; this slice changes the shared Web UI only.
+
+Representative browser evidence uses repository-owned demo/fixture content,
+not the Product Owner's personal photos. Full-page captures preserve actual
+fixed navigation; detail captures show the affected controls without overlap.
+
+| Scope | Evidence |
+| --- | --- |
+| Today composition | [390 Light](references/wir-composer-clarity/evidence/today-390-light.png), [390 Dark](references/wir-composer-clarity/evidence/today-390-dark.png), [Expanded](references/wir-composer-clarity/evidence/today-expanded.png) |
+| Single upcoming/countdown area | [360 Light](references/wir-composer-clarity/evidence/countdown-360-light.png), [Expanded Dark](references/wir-composer-clarity/evidence/countdown-expanded-dark.png) |
+| Confirmed gesture without a toast | [430 Dark](references/wir-composer-clarity/evidence/gesture-confirmed-no-toast.png) |
+| Memory photo controls | [390 Light](references/wir-composer-clarity/evidence/memory-photo-actions-390-light.png), [360 Dark](references/wir-composer-clarity/evidence/memory-photo-actions-360-dark.png), [320 / 200%](references/wir-composer-clarity/evidence/memory-photo-actions-320-200-percent.png), [Expanded Dark](references/wir-composer-clarity/evidence/memory-photo-actions-expanded-dark.png) |
+| HeartMoment creation | [390 Light](references/wir-composer-clarity/evidence/heart-create-390-light.png), [390 Dark](references/wir-composer-clarity/evidence/heart-create-390-dark.png), [Expanded](references/wir-composer-clarity/evidence/heart-create-expanded.png), [200%](references/wir-composer-clarity/evidence/heart-create-200-percent.png) |
+| Emotion label and audience | [Emotion inside surface](references/wir-composer-clarity/evidence/heart-emotion-390-light.png), [Compact audience row](references/wir-composer-clarity/evidence/heart-audience-390-dark.png) |

@@ -4,7 +4,7 @@ PO request, 2026-10-30: multiple Plan photos with the same opening, slideshow/sw
 
 Baseline main: `66cd05fd17a43bd09cff290d877f32bcb6be016e`. Reviewed the actual Plan reading/create/staged-edit routes, PlanCover, MemoryPhotoGallery/MediaGallery, AttachmentDraftPicker/useAttachmentDrafts, Plan media binding, attachment retention/authorization and transfer, existing cover-fit evidence, Product Reference v1 R3 and the Detail/Create-Edit templates. The current mobile shell has no global header and retains the fixed four-destination dock plus central creation action.
 
-![Generated whole-screen Compact reference](compact-reference.png)
+![Generated whole-screen Compact reference](compact-reference.webp)
 
 Generated with the built-in Imagegen tool before UI implementation. The prompt and its correction are retained in `prompt.txt`. This is composition guidance, not a pixel lock or a runtime screenshot. Generated editing controls on the left reading panel are NOT approved: reading uses only the existing gallery; removal, reordering and sensitivity classification belong exclusively in the staged editor. The actual shared gallery, original uncropped photo geometry, navigation glyphs, date/place/notes hierarchy, completion date sheet and existing form controls remain authoritative. No new per-photo audience selector, reaction service, character limit, thumbnail duplication or modal root navigation is introduced. All Plan photos remain shared with the couple; sensitivity is a per-photo conceal/reveal presentation.
 

@@ -8,4 +8,6 @@ Orte zu Erinnerungen werden im Bearbeiten-Modus verwaltet. Beim Lesen bleiben Ad
 
 Bereits geladene Bilder müssen beim erneuten Öffnen und nach einem App-Neustart seltener neu geladen werden. Der Zugriff wird weiterhin geprüft; das ist keine Offline-Freigabe für Medien.
 
+Auch bei starker Vergrößerung bleiben lange Überschriften innerhalb der Seitenbreite.
+
 Über Einstellungen → App-Updates auf der bestehenden Installation aktualisieren. Nicht deinstallieren und keine App-Daten löschen. Dieses Testrelease verwendet weiterhin das bestehende Paket und denselben Testsignierer.

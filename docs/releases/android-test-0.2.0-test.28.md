@@ -2,6 +2,8 @@
 
 The Product Owner requests a new published Android test release after PR #1518
 merged into main at `9fd0c0a64fa72efd1e8f5eec5575386b0251d177`.
+The release also includes the bounded More heading reflow correction in #1520;
+merge that shared correction through its ordinary main checks before publication.
 Integrate that main as an explicit parent of the existing isolated test source.
 Draft foundation PR #1443 remains isolated and must not merge into main.
 
@@ -55,3 +57,15 @@ original signing certificate and verifies the signed APK's package, source,
 version and upgrade compatibility. Stage all four assets as a draft, upload the
 marker last, publish the complete immutable prerelease and verify anonymous
 asset bytes, hashes, marker and embedded identity. Preserve all existing gates.
+
+## Additional release-gate correction
+
+The first frozen source passed all 588 PR-critical browser cases and 178/180
+additional cases. The two Light/Dark 400% reflow cases reproduced a 25 px
+horizontal overflow on notifications. Apply #1520's identical shared CSS blob:
+standard word wrapping on the existing More heading selector. All 34 direct
+original-assertion diagnostics pass, with synthetic visual evidence in
+[the correction record](../product/design/evidence/notifications-heading-reflow/README.md).
+No test assertion, timeout, retry or grouping is relaxed. This code correction
+requires all 32 named checks to pass freshly on the new immutable APK source;
+previous successes are not copied. There were no manual workflow reruns.

@@ -2,23 +2,25 @@ import { ChapterRelationsApi } from '../api/generated/apis/ChapterRelationsApi';
 import { ChaptersApi } from '../api/generated/apis/ChaptersApi';
 import { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import { HeartMomentsApi } from '../api/generated/apis/HeartMomentsApi';
-import { i18n } from '../i18n';
 import { MemoriesApi } from '../api/generated/apis/MemoriesApi';
 import { MilestonesApi } from '../api/generated/apis/MilestonesApi';
 import { PlaceRelationsApi } from '../api/generated/apis/PlaceRelationsApi';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import { PlansApi } from '../api/generated/apis/PlansApi';
-import { StoryApi } from '../api/generated/apis/StoryApi';
 import { SearchApi } from '../api/generated/apis/SearchApi';
+import { StoryApi } from '../api/generated/apis/StoryApi';
 import { WishesApi } from '../api/generated/apis/WishesApi';
+import { WishSelectionsApi } from '../api/generated/apis/WishSelectionsApi';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { StoryItem } from '../api/generated/models/StoryItem';
+import { i18n } from '../i18n';
 import { Configuration } from './apiConfiguration';
 
 export interface SharedPlanningApis {
   wishes: WishesApi;
+  wishSelections?: WishSelectionsApi;
   plans: PlansApi;
   places: PlacesApi;
   placeRelations: PlaceRelationsApi;
@@ -58,6 +60,7 @@ export function createSharedPlanningApis(
 
   return {
     wishes: new WishesApi(configuration),
+    wishSelections: new WishSelectionsApi(configuration),
     plans: new PlansApi(configuration),
     places: new PlacesApi(configuration),
     placeRelations: new PlaceRelationsApi(configuration),

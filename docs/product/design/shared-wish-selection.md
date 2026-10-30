@@ -1,5 +1,7 @@
 # Shared wish selection
 
+Owning issue: [#1535](https://github.com/baerenmarke90/eimir/issues/1535).
+
 ## Product decision and repository-aware preflight
 
 The Product Owner approved the mobile concept in this chat on 2026-10-30 and

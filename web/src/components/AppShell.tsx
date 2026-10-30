@@ -248,7 +248,8 @@ function AuthenticatedAppShell({
   const isFocusedTask =
     location.pathname === MEMORY_CREATE_ROUTE ||
     location.pathname === '/plan/plans/new' ||
-    location.pathname === '/plan/wishes/new';
+    location.pathname === '/plan/wishes/new' ||
+    location.pathname === '/plan/choose';
   const bottomNavigationRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (isFocusedTask) return;

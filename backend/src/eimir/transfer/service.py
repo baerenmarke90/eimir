@@ -507,6 +507,15 @@ def build_export_archive(
     store = get_media_store()
     with ZipFile(output, mode="w", compression=ZIP_DEFLATED, allowZip64=True) as archive:
         account_document: dict[str, Any] = {"members": accounts}
+        from eimir.wish_selections.service import portable_snapshot
+
+        selection_snapshot = portable_snapshot(
+            session, authorization, personal=scope is TransferScope.PERSONAL
+        )
+        if selection_snapshot is not None:
+            # Export-only decision state. Import never reactivates choices or
+            # treats a downloaded archive as a participant's consent.
+            account_document["wishSelection"] = selection_snapshot
         if scope is TransferScope.PERSONAL:
             preference = appearance_service.read_preference(session, authorization)
             account_document["personalAppearance"] = {

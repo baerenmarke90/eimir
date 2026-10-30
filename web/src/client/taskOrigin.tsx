@@ -13,6 +13,7 @@ import {
   MORE_NOTIFICATIONS_ROUTE,
   PRIMARY_APP_ROUTES,
   STORY_PHOTOS_ROUTE,
+  WISH_SELECTION_ROUTE,
 } from './routes';
 import { parseStoryFilters, storyFiltersToSearch } from './storyProduct';
 
@@ -92,6 +93,7 @@ export function taskOriginPath(
       '/story',
       STORY_PHOTOS_ROUTE,
       '/plan',
+      WISH_SELECTION_ROUTE,
       '/more',
       '/search',
       ACTIVITY_ROUTE,

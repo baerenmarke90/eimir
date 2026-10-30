@@ -46,6 +46,7 @@ MODEL_MODULES = (
     "eimir.story.view_models",
     "eimir.transfer.models",
     "eimir.wishes.models",
+    "eimir.wish_selections.models",
 )
 
 

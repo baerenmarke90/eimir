@@ -733,6 +733,7 @@
 
 .profile-passport-entry {
   display: flex;
+  min-inline-size: 0;
   justify-content: space-between;
   align-items: center;
   gap: var(--space-4);
@@ -744,7 +745,13 @@
 }
 .profile-passport-entry > span:first-child {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-inline-size: 0;
   gap: var(--space-2);
+  overflow-wrap: anywhere;
+}
+.profile-passport-entry > span:last-child {
+  flex-shrink: 0;
 }
 .profile-passport-entry strong {
   font: var(--font-content-heading);

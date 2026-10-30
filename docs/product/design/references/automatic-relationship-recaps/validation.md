@@ -57,6 +57,19 @@ secondary disclosure and preserve its expanded route context on return.
 - Production Web build, design-token/PWA checks, scoped lint, browser inventory,
   38 private-channel publication contracts and the rendered AI Compose validate.
 
+## PR CI corrections
+
+The shared endpoint matrix now covers all nine recap operations, including
+foreign/absent/malformed resources and required optimistic headers. The focused
+selection passes 52 cases in both normal and required-encryption modes against
+real PostgreSQL. The recap grant is scoped to recap scenarios so other domain
+fixtures retain their Free-tier behavior.
+
+The existing profile nickname and private-note journeys caught overflow from the
+new passport entry at narrow widths and 200% text. Its flex content can now shrink
+and wrap, with no clipping or relaxed assertions. Both existing journeys are
+rerun unchanged at Compact and Expanded sizes.
+
 ## Limits
 
 Local QA reused an available Python 3.13 dependency environment and cached Node

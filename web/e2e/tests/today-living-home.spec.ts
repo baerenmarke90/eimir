@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import recaps from '../../src/i18n/locales/recaps';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
@@ -326,6 +327,16 @@ async function installMocks(
         contentType: 'application/json',
         body: JSON.stringify(body),
       });
+
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+      return;
+    }
 
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
@@ -1159,6 +1170,9 @@ test.describe('Today R4: the living home of a relationship', () => {
     await signInAndOpenToday(page);
 
     await expect(page.locator('.today-section-monthly')).toHaveCount(0);
+    await expect(
+      page.getByRole('link', { name: recaps.profileLink }),
+    ).toHaveAttribute('href', '/more/passport');
     await expect(page.locator('.today-moment-figure')).toHaveCount(0);
     await expect(page.locator('.today-moment-text')).toBeVisible();
     await expect(page.getByText(TRACE_ONLY.titleOrText)).toBeVisible();

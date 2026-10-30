@@ -48,7 +48,9 @@ establishes actual operator-host model quality or latency.
 The invitation is part of monthly highlights, including its existing personal
 visibility and ordering. It features a ready, nonempty current month in the last
 three calendar days, or the previous month in the first seven days. Other days
-retain a quiet Passport link. Timing uses Dashboard's server-provided viewer day;
+retain a quiet Passport link. Without actual monthly content or a ready recap,
+that continuation renders without an empty monthly heading or browse action.
+Timing uses Dashboard's server-provided viewer day;
 period/partial labels use the actual edition. Free users may watch retained
 editions; saved partial editions use the same retained-status label as the reader
 instead of promising continued growth; Wir never queues a generation. Optional query failure/denial removes
@@ -79,6 +81,10 @@ introductions have a localized AI-draft label, separate from authored originals.
 ## Verification
 
 - Focused integrated playback/calendar/Today/media/motion tests: 110 passed.
+- Sparse composition correction: 51 browser scenarios passed across both existing
+  Wir composition suites and all recap scenarios. Existing no-empty-section,
+  viewport, keyboard, accessibility and reduced-motion assertions are retained.
+  Another 85 Today-focused unit tests, typecheck, lint and production build passed.
 - Integrated follow-up: 29 browser scenarios passed, including all 18 recap
   scenarios and the previously failed privacy/Today/private-return cases.
 - Browser suite: all 18 scenarios passed in a fresh integrated run against main
@@ -92,6 +98,10 @@ introductions have a localized AI-draft label, separate from authored originals.
 - Shared route handoff/task-origin/playback regression tests: 29 passed.
   Watch-now/source-return/final-stop/Wir-return and reduced-motion editing passed
   after preserving opaque route state.
+- CI also exposed a sparse-state composition regression: API availability alone
+  created an empty monthly section. Discovery now supplies the authorized edition
+  before deciding whether the section has content. Existing no-empty-section
+  assertions remain intact, with additional quiet-link/no-invented-recap checks.
 - CI browser artifacts identified unconfigured recap GET requests in existing
   strict Today-related fixtures. Those fixtures now explicitly provide an empty
   authorized overview; unexpected-request assertions and timeouts are unchanged.
@@ -117,3 +127,5 @@ Representative implementation evidence:
 - [Reader Compact Dark](evidence/recaps-reader-430-dark.png)
 - [Reader Expanded Dark](evidence/recaps-reader-1280-dark.png)
 - [Large text and reduced motion](evidence/recaps-playback-360-dark-large-reduced.png)
+
+- [Sparse Wir with a quiet continuation](evidence/recaps-wir-empty-390-light.png)

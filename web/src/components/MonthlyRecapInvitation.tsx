@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { RecapsApi } from '../api/generated/apis/RecapsApi';
+import type { RecapView } from '../api/generated/models/RecapView';
 import { normalizeClientError } from '../client/problemDetails';
 import {
   monthlyRecapInvitation,
@@ -12,31 +13,30 @@ import { RecapMedia, type RecapMediaProps } from './RecapMedia';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import './MonthlyRecapInvitation.css';
 
-/** Read-only discovery: Wir never schedules inference or shows fabricated covers. */
-export function MonthlyRecapInvitation({
+/** Read-only discovery, gated by the resolved visibility and live Dashboard. */
+export function useMonthlyRecapInvitation({
   api,
   today,
   instance,
-  excludeSourceIds = [],
-  ...media
-}: RecapMediaProps & {
-  api: RecapsApi;
+  spaceId,
+  accountId,
+  enabled,
+}: {
+  api?: RecapsApi;
   today: Date;
   instance: string;
-  excludeSourceIds?: readonly string[];
+  spaceId: string;
+  accountId?: string;
+  enabled: boolean;
 }) {
-  const { t } = useTranslation();
   const query = useQuery({
-    queryKey: [
-      'monthly-recap-invitation',
-      instance,
-      media.account.id,
-      media.spaceId,
-    ],
+    queryKey: ['monthly-recap-invitation', instance, accountId, spaceId],
+    enabled,
     queryFn: async ({ signal }) => {
+      if (!api) throw new Error('Recap discovery is unavailable.');
       try {
         return await api.getRecapOverview(
-          { spaceId: media.spaceId, kind: 'MONTH' },
+          { spaceId, kind: 'MONTH' },
           { signal },
         );
       } catch (error) {
@@ -49,10 +49,21 @@ export function MonthlyRecapInvitation({
     refetchOnMount: 'always',
     refetchOnWindowFocus: 'always',
   });
-  const value =
-    !query.isError && query.data
-      ? monthlyRecapInvitation(query.data.editions, today)
-      : undefined;
+  return enabled && !query.isError && query.data
+    ? monthlyRecapInvitation(query.data.editions, today)
+    : undefined;
+}
+
+/** Wir never schedules inference or shows fabricated covers. */
+export function MonthlyRecapInvitation({
+  edition: value,
+  excludeSourceIds = [],
+  ...media
+}: RecapMediaProps & {
+  edition?: RecapView;
+  excludeSourceIds?: readonly string[];
+}) {
+  const { t } = useTranslation();
   const source = value?.sources.find((item) => item.available);
   const cover =
     source?.previewAttachmentId && !excludeSourceIds.includes(source.id)

@@ -80,7 +80,10 @@ import { TodayDestinationLink } from './TodayDestinationLink';
 import { TodayPinnedCollection } from './TodayPinnedCollection';
 import { UiState } from './UiState';
 import type { ReferenceApis } from '../client/referenceFlow';
-import { MonthlyRecapInvitation } from './MonthlyRecapInvitation';
+import {
+  MonthlyRecapInvitation,
+  useMonthlyRecapInvitation,
+} from './MonthlyRecapInvitation';
 import './TodayPage.css';
 import { useWirDesign } from '../client/wirDesign';
 import './WirDesign.css';
@@ -1072,6 +1075,36 @@ export function TodayPage({
     dashboardPreferencesQuery.data,
     'recent_shared',
   );
+  const monthlyRecapEnabled = Boolean(
+    contentReady &&
+      monthlyHighlightsVisible &&
+      apis.recaps &&
+      recapMediaApis &&
+      account &&
+      !dashboardQuery.isCached,
+  );
+  const monthlyRecapEdition = useMonthlyRecapInvitation({
+    api: apis.recaps,
+    today: dashboardQuery.data?.viewerLocalDate ?? new Date(),
+    instance: apiBaseUrl ?? '',
+    accountId: account?.id,
+    spaceId,
+    enabled: monthlyRecapEnabled,
+  });
+  const monthlyRecapEntry =
+    monthlyRecapEnabled && recapMediaApis && account ? (
+      <MonthlyRecapInvitation
+        edition={monthlyRecapEdition}
+        mediaApis={recapMediaApis}
+        account={account}
+        spaceId={spaceId}
+        excludeSourceIds={[
+          ...featuredIds,
+          ...monthlyStrip.map((item) => item.id),
+          ...monthlyNotes.map((item) => item.id),
+        ]}
+      />
+    ) : null;
   const sharedStorySummaryVisible =
     wirStatistics.allowed && wirStatistics.enabled && !dashboardQuery.isCached;
 
@@ -1356,10 +1389,7 @@ export function TodayPage({
         {monthlyHighlightsVisible &&
         (monthlyStrip.length > 0 ||
           monthlyNotes.length > 0 ||
-          (apis.recaps &&
-            recapMediaApis &&
-            account &&
-            !dashboardQuery.isCached)) ? (
+          monthlyRecapEdition) ? (
           <TodayModuleSection
             className="today-section-monthly"
             title={t('m5s5.today.monthly.title')}
@@ -1373,24 +1403,7 @@ export function TodayPage({
               </Link>
             }
           >
-            {apis.recaps &&
-            recapMediaApis &&
-            account &&
-            !dashboardQuery.isCached ? (
-              <MonthlyRecapInvitation
-                api={apis.recaps}
-                mediaApis={recapMediaApis}
-                account={account}
-                spaceId={spaceId}
-                instance={apiBaseUrl ?? ''}
-                excludeSourceIds={[
-                  ...featuredIds,
-                  ...monthlyStrip.map((item) => item.id),
-                  ...monthlyNotes.map((item) => item.id),
-                ]}
-                today={dashboardQuery.data?.viewerLocalDate ?? new Date()}
-              />
-            ) : null}
+            {monthlyRecapEntry}
             {loadMemoryImage && monthlyStrip.length > 0 ? (
               <TodayMonthlyStrip
                 items={monthlyStrip}
@@ -1405,6 +1418,8 @@ export function TodayPage({
               </div>
             ) : null}
           </TodayModuleSection>
+        ) : monthlyHighlightsVisible ? (
+          monthlyRecapEntry
         ) : null}
       </>
     ),

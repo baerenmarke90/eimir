@@ -1,5 +1,5 @@
 {
-  "sourceCommit": "d1d63cdc05d9320a90f35ad53d86417572f45185",
+  "sourceCommit": "cd30e79102a7c02aa1a960bf7aa7eaddf7950020",
   "baselineMain": "9e7ef004",
   "fixture": "web/e2e/fixtures/locales/de.ts: wishSelection",
   "test": "web/e2e/tests/shared-wish-selection.spec.ts",
@@ -11,11 +11,11 @@
     },
     {
       "file": "wish-selection-no-match-390-light.png",
-      "sha256": "f7895b4451aa0df2e3630e4541e000b1b9d2abe7aaa8e0e849726b7231b411ec"
+      "sha256": "6b1bbbc15c9be27246b2b6fca4883074d1b4c821368e6f80a21bc6e6d1b40283"
     },
     {
       "file": "wish-selection-plan-390-light.png",
-      "sha256": "2c3510e083a66082624c4280a27e5db0537a56f76a0cd5796792eb9f8ed1074d"
+      "sha256": "141f718e50f1edfc664b66cde0d818bbb15f1bfb5c9c4e7824b6d4d48d2477d7"
     },
     {
       "file": "wish-selection-private-390-light.png",

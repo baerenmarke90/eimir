@@ -155,7 +155,7 @@ payloads, partner-list withholding, source changes, exports, membership cleanup,
 parallel writes and closed/recreated-round conflicts. Personal and round writes
 both bind to round identity, so resetting numeric versions cannot revive stale
 consent. The client rejects late account responses and retains failed drafts. Background
-source changes retain the current task and personal edits while offering an
+source edits, deletion and conversion retain personal/round-setup drafts while offering an
 explicit reload with draft confirmation.
 
 Local validation uses Node 22.23.2 and supported Python 3.13.5; CI's pinned

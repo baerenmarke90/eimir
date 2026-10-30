@@ -1,6 +1,6 @@
 # Shared Wish selection acceptance evidence
 
-Source revision: `d1d63cdc05d9320a90f35ad53d86417572f45185`, integrated with
+Source revision: `cd30e79102a7c02aa1a960bf7aa7eaddf7950020`, integrated with
 main `9e7ef004`. The evidence commit changes documentation and PNGs only.
 All content is synthetic and localized through the existing German fixture.
 The [manifest](manifest.json) records the image hashes and test source.
@@ -24,7 +24,7 @@ The negative journey retains input after a failed publication, refuses offline
 writes and verifies that reconnecting does not replay them. The no-match journey
 labels individual proposals and checks dirty cancellation. Unit tests separately
 cover late responses after account changes, source review, withdrawn publication,
-round changes, source changes during an active private draft, undated saves and
+round changes, source changes during personal selection and round setup, undated saves and
 existing-Plan links. The focused-task mode remains stable during background
 updates; adopting new source state requires deliberate draft confirmation. Real PostgreSQL/API tests
 verify separate participants and authorization; HTTP browser fixtures do not

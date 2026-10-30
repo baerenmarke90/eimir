@@ -1,3 +1,4 @@
+import { ListEntryIconButton } from './ListEntryActions';
 import {
   type QueryClient,
   type QueryKey,
@@ -360,6 +361,14 @@ function CommentsPanelContent({
                     </time>
                     {edited ? ` · ${t('comments.edited')}` : ''}
                   </span>
+                  {own && !offline && editingId !== comment.id ? (
+                    <ListEntryIconButton
+                      className="comment-edit"
+                      icon="edit"
+                      label={t('comments.edit')}
+                      onClick={() => setEditingId(comment.id)}
+                    />
+                  ) : null}
                 </div>
                 {own && editingId === comment.id ? (
                   <CommentEditor
@@ -379,7 +388,8 @@ function CommentsPanelContent({
                       <details className="comment-menu">
                         <summary
                           className="comment-menu-trigger"
-                          aria-label={t('comments.edit')}
+                          aria-label={t('comments.moreActions')}
+                          title={t('comments.moreActions')}
                         >
                           <svg
                             width="16"
@@ -398,19 +408,6 @@ function CommentsPanelContent({
                           </svg>
                         </summary>
                         <div className="comment-menu-dropdown">
-                          <button
-                            type="button"
-                            className="comment-menu-item comment-edit"
-                            onClick={(e) => {
-                              const details = (e.target as HTMLElement).closest(
-                                'details',
-                              );
-                              if (details) details.open = false;
-                              setEditingId(comment.id);
-                            }}
-                          >
-                            {t('comments.edit')}
-                          </button>
                           <button
                             type="button"
                             className="comment-menu-item comment-delete comment-menu-item-danger"

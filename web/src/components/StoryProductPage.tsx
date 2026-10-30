@@ -803,13 +803,15 @@ export function StoryProductPage({
                     </h3>
                   )}
                   <div className="momente-hero-meta">
-                    <time
-                      dateTime={featuredItem.effectiveDate
-                        .toISOString()
-                        .slice(0, 10)}
-                    >
-                      {formatStoryDate(featuredItem.effectiveDate, locale)}
-                    </time>
+                    {!featuredPresentation.titleIsDate ? (
+                      <time
+                        dateTime={featuredItem.effectiveDate
+                          .toISOString()
+                          .slice(0, 10)}
+                      >
+                        {formatStoryDate(featuredItem.effectiveDate, locale)}
+                      </time>
+                    ) : null}
                     {featuredAuthor ? (
                       <span className="momente-author-meta">
                         <AuthorAvatar
@@ -941,7 +943,9 @@ export function StoryProductPage({
                               </h4>
                             )}
                             <div className="momente-tapestry-meta">
-                              <time dateTime={dateTime}>{dateLabel}</time>
+                              {!presentation.titleIsDate ? (
+                                <time dateTime={dateTime}>{dateLabel}</time>
+                              ) : null}
                               {entry.author ? (
                                 <span className="momente-author-meta">
                                   <AuthorAvatar
@@ -986,7 +990,20 @@ export function StoryProductPage({
               setMobileFiltersOpen(true);
             }}
           >
-            <span aria-hidden="true">⋯</span>
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M4 7h9m4 0h3M4 17h3m4 0h9" />
+              <circle cx="15" cy="7" r="2" />
+              <circle cx="9" cy="17" r="2" />
+            </svg>
             {hasActiveFilters ? (
               <span className="story-filter-active-badge" aria-hidden="true">
                 {activeFilterCount}
@@ -994,6 +1011,21 @@ export function StoryProductPage({
             ) : null}
           </button>
         </header>
+        <StoryBrowseLayer
+          onOpen={(event, path) => {
+            if (
+              event.button !== 0 ||
+              event.metaKey ||
+              event.ctrlKey ||
+              event.shiftKey ||
+              event.altKey
+            )
+              return;
+            event.preventDefault();
+            const taskOriginKey = captureOrigin();
+            void navigate(path, { state: { taskOriginKey } });
+          }}
+        />
         {combinedStory ? (
           <div className="layout-single-column">
             <div className="story-filter-container">
@@ -1006,23 +1038,6 @@ export function StoryProductPage({
                 restoreFocusRef={filterTriggerRef}
                 className="story-task-filter-sheet"
               >
-                <StoryBrowseLayer
-                  onOpen={(event, path) => {
-                    if (
-                      event.button !== 0 ||
-                      event.metaKey ||
-                      event.ctrlKey ||
-                      event.shiftKey ||
-                      event.altKey
-                    )
-                      return;
-                    event.preventDefault();
-                    filterSheetRef.current?.closeForNavigation(() => {
-                      const taskOriginKey = captureOrigin();
-                      void navigate(path, { state: { taskOriginKey } });
-                    });
-                  }}
-                />
                 <section
                   className="story-filter-bar"
                   aria-label={t('storyFilters.aria')}

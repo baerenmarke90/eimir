@@ -1,3 +1,4 @@
+import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { type FormEvent, useState } from 'react';
 import {
   useInfiniteQuery,
@@ -438,15 +439,13 @@ export function GiftIdeaDetailPage({ api, accountId, spaceId }: Props) {
         eyebrow={t('privateArea.privacyLabel')}
         title={gift.title}
         description={t(`privateArea.gifts.status.${gift.status}`)}
-        action={
+        titleAction={
           gift.capabilities.canEdit ? (
-            <Link
-              className="button-link secondary-link"
+            <StoryDetailEditLink
               to={privateGiftIdeaEditPath(gift.id)}
               state={navigationState}
-            >
-              {t('privateArea.edit')}
-            </Link>
+              label={t('privateArea.edit')}
+            />
           ) : undefined
         }
       />

@@ -124,6 +124,7 @@ describe('storyItemPresentation', () => {
     ).toEqual({
       kindLabel: 'Erinnerung',
       title: 'Am See',
+      titleIsDate: false,
       author: 'Anna',
       mediaCount: 2,
       mediaLabel: '2 Fotos',
@@ -180,6 +181,7 @@ describe('storyItemPresentation', () => {
       memory: {
         id: 'm-full-name',
         title: 'Am See',
+        titleIsDate: false,
         author: { id: 'author-3', displayName: 'Alex Winter' },
         attachments: [],
       },

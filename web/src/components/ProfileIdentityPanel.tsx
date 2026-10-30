@@ -17,6 +17,7 @@ import { createReferenceApis } from '../client/referenceFlow';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
 import { NativeDateField } from './NativeDateField';
+import { ListEntryIconButton } from './ListEntryActions';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
@@ -47,6 +48,8 @@ export function ProfileIdentityPanel({
   onDisplayNameChanged: (displayName: string) => void;
 }) {
   const { t, i18n } = useTranslation();
+  const editIdentityButtonRef = useRef<HTMLButtonElement>(null);
+  const closeIdentityButtonRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const displayNameInputRef = useRef<HTMLInputElement>(null);
@@ -272,6 +275,24 @@ export function ProfileIdentityPanel({
           <div className="profile-identity-details">
             <div className="profile-identity-name-row">
               <h2 className="profile-identity-display-name">{visibleName}</h2>
+              {!editingIdentity ? (
+                <ListEntryIconButton
+                  ref={editIdentityButtonRef}
+                  icon="edit"
+                  label={t('profileIdentity.editProfile')}
+                  disabled={pending}
+                  aria-expanded={false}
+                  onClick={() => {
+                    setSaved(false);
+                    setEditingIdentity(true);
+                    requestAnimationFrame(
+                      () =>
+                        document.activeElement === document.body &&
+                        closeIdentityButtonRef.current?.focus(),
+                    );
+                  }}
+                />
+              ) : null}
               <VisibilityBadge
                 visibility="SHARED"
                 size="small"
@@ -288,29 +309,31 @@ export function ProfileIdentityPanel({
               </p>
             ) : null}
 
-            <div className="profile-identity-edit-entry">
-              <button
-                type="button"
-                className="secondary compact-action"
-                onClick={() => {
-                  if (editingIdentity) {
+            {editingIdentity ? (
+              <div className="profile-identity-edit-entry">
+                <button
+                  ref={closeIdentityButtonRef}
+                  type="button"
+                  className="secondary compact-action"
+                  onClick={() => {
                     setEditingName(false);
                     setEditingBirthday(false);
                     displayNameMutation.reset();
                     birthdayMutation.reset();
-                  } else {
-                    setSaved(false);
-                  }
-                  setEditingIdentity((previous) => !previous);
-                }}
-                disabled={pending}
-                aria-expanded={editingIdentity}
-              >
-                {editingIdentity
-                  ? t('profileIdentity.closeProfileEdit')
-                  : t('profileIdentity.editProfile')}
-              </button>
-            </div>
+                    setEditingIdentity(false);
+                    requestAnimationFrame(
+                      () =>
+                        document.activeElement === document.body &&
+                        editIdentityButtonRef.current?.focus(),
+                    );
+                  }}
+                  disabled={pending}
+                  aria-expanded={editingIdentity}
+                >
+                  {t('profileIdentity.closeProfileEdit')}
+                </button>
+              </div>
+            ) : null}
 
             {editingIdentity ? (
               <div className="profile-identity-actions-row eimir-motion-disclosure">

@@ -159,8 +159,8 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     ).toHaveCount(1);
     await expect(imageMemoryCard).not.toContainText(SELF_ATTRIBUTION);
 
-    const browseSheet = await openDiaryOptions(page);
-    const browseShell = browseSheet.locator('.momente-browse-links');
+    const browseShell = page.locator('.momente-browse-links');
+    await expect(browseShell).toBeVisible();
     const browseLink = page.locator('.momente-browse-link').first();
     const browseShape = await browseShell.evaluate((element) => {
       const style = getComputedStyle(element);
@@ -187,6 +187,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       testInfo,
       'momente-diary-options-390-light.png',
     );
+    const browseSheet = await openDiaryOptions(page);
     await browseSheet
       .getByRole('button', { name: taskSheets.close, exact: true })
       .click();
@@ -322,8 +323,8 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     });
     expect(hasHorizontalOverflow).toBe(false);
 
-    const browseSheet = await openDiaryOptions(page);
-    const browseLinks = browseSheet.locator('.momente-browse-link');
+    const browseLinks = page.locator('.momente-browse-link');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(browseLinks).toHaveCount(4);
     expect(
       await browseLinks.evaluateAll((links) =>
@@ -348,6 +349,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       testInfo,
       'momente-diary-options-320-reflow.png',
     );
+    const browseSheet = await openDiaryOptions(page);
     await browseSheet
       .getByRole('button', { name: taskSheets.close, exact: true })
       .click();
@@ -406,8 +408,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       'rgba(0, 0, 0, 0)',
     );
     await expect(page.locator('.story-card-author')).toHaveCount(0);
-    const browseSheet = await openDiaryOptions(page);
-    const browseWidth = await browseSheet
+    const browseWidth = await page
       .locator('.momente-browse-links')
       .evaluate((element) => element.getBoundingClientRect().width);
     expect(browseWidth).toBeLessThan(700);
@@ -416,6 +417,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       testInfo,
       'momente-diary-options-1440-expanded.png',
     );
+    const browseSheet = await openDiaryOptions(page);
     await browseSheet
       .getByRole('button', { name: taskSheets.close, exact: true })
       .click();

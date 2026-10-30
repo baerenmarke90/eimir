@@ -1,3 +1,4 @@
+import { ListEntryIconButton } from './ListEntryActions';
 import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProfilesApi } from '../client/mediaApis';
@@ -179,10 +180,15 @@ export function PartnerIdentityPanel({
                 t('profiles.nickname.fallback', { name: partnerFirstName })}
             </p>
           </div>
-          <button
+          <ListEntryIconButton
             ref={editButtonRef}
             type="button"
-            className="button secondary"
+            icon={currentNickname ? 'edit' : 'add'}
+            label={
+              currentNickname
+                ? t('profiles.nickname.edit')
+                : t('profiles.nickname.add')
+            }
             disabled={nicknameQuery.isLoading || Boolean(nicknameQuery.error)}
             onClick={() => {
               setNicknameDraft(currentNickname ?? '');
@@ -191,11 +197,7 @@ export function PartnerIdentityPanel({
               setEditingNickname(true);
               requestAnimationFrame(() => nicknameInputRef.current?.focus());
             }}
-          >
-            {currentNickname
-              ? t('profiles.nickname.edit')
-              : t('profiles.nickname.add')}
-          </button>
+          />
         </div>
         <p className="field-help">{t('profiles.nickname.privateHelp')}</p>
         {nicknameQuery.error ? (

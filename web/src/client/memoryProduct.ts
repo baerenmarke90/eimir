@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
 import { resolvedLocale } from '../i18n';
-import { formatDateInputValue } from './dateInput';
+import { formatDateInputValue, formatDateSummary } from './dateInput';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import type { MemoryUpdate } from '../api/generated/models/MemoryUpdate';
 import type { MemoryTag } from '../components/MemoryTagChoices';
@@ -36,6 +36,21 @@ export function isGeneratedMemoryTitle(
           ),
         }),
   );
+}
+
+/** Date-only capture titles become one readable caption, never two dates. */
+export function memoryPreviewTitle(
+  title: string | null | undefined,
+  date: Date | null | undefined,
+  t: TFunction,
+): { title: string; titleIsDate: boolean } {
+  if (date && (!title?.trim() || isGeneratedMemoryTitle(title, date, t))) {
+    return {
+      title: formatDateSummary(memoryDateInputValue(date), resolvedLocale()),
+      titleIsDate: true,
+    };
+  }
+  return { title: title?.trim() || t('story.kind.memory'), titleIsDate: false };
 }
 
 export function memoryUpdatePayload(values: MemoryEditValues): MemoryUpdate {

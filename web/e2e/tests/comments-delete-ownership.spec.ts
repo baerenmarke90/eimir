@@ -98,7 +98,7 @@ async function openJourney(
 }
 async function deleteButton(page: Page) {
   const panel = page.locator('.comments-panel');
-  await panel.getByLabel(copy.edit, { exact: true }).click();
+  await panel.getByLabel(copy.moreActions, { exact: true }).click();
   return panel.getByRole('button', { name: copy.delete, exact: true });
 }
 async function accessible(page: Page) {

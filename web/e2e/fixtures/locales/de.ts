@@ -1,4 +1,12 @@
 const de = {
+  diaryCategoryNotes: [
+    'Ein lieber Gedanke.',
+    'Du hast zugehört.',
+    'Du bist wunderbar.',
+    'Danke fürs Dasein.',
+    'Dankbar für uns.',
+    'Ein glücklicher Tag.',
+  ],
   dailyQuote:
     'Es ist doch das Einzige, was das Leben lebenswert macht, dass man einander liebhat.',
   photoPlaces: {

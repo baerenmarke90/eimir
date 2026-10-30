@@ -1,3 +1,4 @@
+import { dashboardItemTitle } from '../client/dashboardPresentation';
 import type { MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { DashboardItem } from '../api/generated/models/DashboardItem';
@@ -31,7 +32,7 @@ export function StoryRetrospective({
 
   const attachmentId = item.type === 'MEMORY' ? item.previewAttachmentId : null;
   const date = item.occurredOn ?? item.createdAt ?? null;
-  const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
+  const { title, titleIsDate } = dashboardItemTitle(item, t);
 
   return (
     <section
@@ -72,7 +73,7 @@ export function StoryRetrospective({
             {t('m5s5.today.living.retrospectiveLabel')}
           </span>
           <span className="momente-retrospective-title">{title}</span>
-          {date ? (
+          {date && !titleIsDate ? (
             <time
               className="momente-retrospective-date"
               dateTime={date.toISOString().slice(0, 10)}

@@ -53,6 +53,7 @@ from eimir.api.v1 import (
     spaces,
     story,
     transfer,
+    wish_selections,
     wishes,
 )
 
@@ -95,6 +96,7 @@ normal_router.include_router(spaces.router)
 normal_router.include_router(entitlements.router)
 normal_router.include_router(games.router)
 normal_router.include_router(wishes.router)
+normal_router.include_router(wish_selections.router)
 normal_router.include_router(places.router)
 normal_router.include_router(place_relations.router)
 normal_router.include_router(plans.router)

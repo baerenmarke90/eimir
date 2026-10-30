@@ -317,6 +317,24 @@ test.describe('Momente Timeline progressive loading (#975)', () => {
     await page
       .getByText(olderItem.memory.title, { exact: true })
       .scrollIntoViewIfNeeded();
+    // The newly reached month heading and cards fade in on intersection.
+    // Assess their settled colors, while retaining the motion assertions above.
+    await expect(
+      page.locator('[data-timeline-reveal-key="month:2026-08"]'),
+    ).toHaveAttribute('data-timeline-revealed', 'true');
+    await expect
+      .poll(() =>
+        page
+          .locator(
+            '.story-timeline-progressive-reveal[data-timeline-revealed="true"]',
+          )
+          .evaluateAll((elements) =>
+            elements.every(
+              (element) => getComputedStyle(element).opacity === '1',
+            ),
+          ),
+      )
+      .toBe(true);
     await capture(page, testInfo, 'story-975-near-end-loaded.png');
 
     const accessibility = await new AxeBuilder({ page })

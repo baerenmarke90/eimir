@@ -2,14 +2,12 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import accountSettings from './locales/accountSettings';
 import appIcon from './locales/appIcon';
-import wirDesign from './locales/wirDesign';
 import contextTags from './locales/contextTags';
 import dailyEnergy from './locales/dailyEnergy';
 import dailyInsights from './locales/dailyInsights';
 import dailyQuote from './locales/dailyQuote';
 import dailyVibe from './locales/dailyVibe';
 import de from './locales/de';
-import sensitiveMedia from './locales/sensitiveMedia';
 import demo from './locales/demo';
 import games from './locales/games';
 import importantDates from './locales/importantDates';
@@ -31,6 +29,7 @@ import profiles from './locales/profiles';
 import relationshipComponents from './locales/relationshipComponents';
 import recaps from './locales/recaps';
 import relationshipReflections from './locales/relationshipReflections';
+import sensitiveMedia from './locales/sensitiveMedia';
 import serverAdmin from './locales/serverAdmin';
 import sharedPhotos from './locales/sharedPhotos';
 import snackbar from './locales/snackbar';
@@ -38,6 +37,8 @@ import spaceOffboarding from './locales/spaceOffboarding';
 import storyProducts from './locales/storyProducts';
 import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
+import wirDesign from './locales/wirDesign';
+import wishSelection from './locales/wishSelection';
 
 export const DEFAULT_LOCALE = 'de';
 
@@ -62,6 +63,7 @@ if (!i18n.isInitialized) {
           accountSettings,
           appIcon,
           wirDesign,
+          wishSelection,
           navigation: { ...de.navigation, ...navigation },
           notificationSettings,
           demo,

@@ -1,4 +1,4 @@
-import { authorDisplayName } from '../client/authorPresentation';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import {
   type KeyboardEvent,
   type MouseEvent,
@@ -9,22 +9,20 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
-import type { WishDetail } from '../api/generated/models/WishDetail';
 import { PlanDetailToJSON } from '../api/generated/models/PlanDetail';
+import type { WishDetail } from '../api/generated/models/WishDetail';
 import { WishStatus } from '../api/generated/models/WishStatus';
+import { authorDisplayName } from '../client/authorPresentation';
+import { decodePlansOverview } from '../client/overviewSnapshots';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   groupPlanningOverviewPlans,
   loadPlanningOverviewPlans,
 } from '../client/planningOverview';
 import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
-import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
-import { textExcerpt } from '../client/textExcerpt';
-import { decodePlansOverview } from '../client/overviewSnapshots';
-import { usePartnerNickname } from '../client/partnerNickname';
 import {
   PLAN_CREATE_ROUTE,
   planDetailPath,
@@ -33,12 +31,15 @@ import {
 } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { textExcerpt } from '../client/textExcerpt';
+import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
 import { useTranslation } from '../i18n';
+import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
+import { PlanCover } from './PlanCover';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
-import { PlanCover } from './PlanCover';
-import { OverviewCacheNotice } from './OverviewCacheNotice';
+import { WishSelectionEntry } from './WishSelectionEntry';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
 
@@ -396,6 +397,8 @@ export function SharedPlanningOverviewPage({
           </section>
         ) : null}
 
+        <WishSelectionEntry segment="plans" />
+
         {planGroups.later.length ? (
           <section
             className="planen-agenda"
@@ -477,6 +480,7 @@ export function SharedPlanningOverviewPage({
           <span aria-hidden="true">+</span>
           {t('m5s3.overview.addWish')}
         </Link>
+        <WishSelectionEntry segment="wishes" />
         {wishes.isLoading && !wishes.data ? (
           <UiState kind="loading" title={t('states.loading.title')} />
         ) : null}

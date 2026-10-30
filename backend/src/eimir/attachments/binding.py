@@ -24,11 +24,12 @@ from eimir.core.errors import ConflictError, ErrorCode
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin
 
-MAX_GALLERY_ATTACHMENTS = 20
-MAX_GALLERY_TOTAL_SIZE = 500 * 1024 * 1024
-MAX_MEMORY_ATTACHMENTS = MAX_GALLERY_ATTACHMENTS
-MAX_MEMORY_TOTAL_SIZE = MAX_GALLERY_TOTAL_SIZE
+MAX_MEMORY_ATTACHMENTS = 20
+MAX_MEMORY_TOTAL_SIZE = 500 * 1024 * 1024
 """M2-D04 cardinality and aggregate size limits for one memory."""
+MAX_GALLERY_ATTACHMENTS = MAX_MEMORY_ATTACHMENTS
+MAX_GALLERY_TOTAL_SIZE = MAX_MEMORY_TOTAL_SIZE
+"""The same collection safety boundary applies to ordinary Plan galleries."""
 
 
 class MemoryAttachment(IdMixin, Base):

@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/wishSelection';
-import { wishSelectionDemo as demo } from '../fixtures/locales/wishSelection';
+import localizedFixtures from '../fixtures/locales/de';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -12,6 +12,7 @@ import {
   signIn,
 } from '../support/storyTimelineFixture';
 
+const demo = localizedFixtures.wishSelection;
 const ROOT = `/api/v1/spaces/${SPACE_ID}`;
 const WISH_IDS = ['wish-pasta', 'wish-lake', 'wish-spa'];
 const ROUND_ID = 'round-choice';

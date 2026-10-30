@@ -403,20 +403,29 @@ def test_parallel_owner_writes_cannot_overwrite_the_later_selection(production_c
 
 def test_old_round_tokens_cannot_change_a_closed_and_recreated_round(client, actors):  # type: ignore[no-untyped-def]
     original = start(client, actors)
-    assert client.delete(
-        path(actors), headers=headers(actors, version=original["roundToken"])
-    ).status_code == 204
+    assert (
+        client.delete(
+            path(actors), headers=headers(actors, version=original["roundToken"])
+        ).status_code
+        == 204
+    )
     replacement = start(client, actors)
     assert replacement["version"] == original["version"]
     assert replacement["roundToken"] != original["roundToken"]
-    assert client.delete(
-        path(actors), headers=headers(actors, version=original["roundToken"])
-    ).status_code == 409
-    assert client.put(
-        path(actors),
-        headers=headers(actors, version=original["roundToken"]),
-        json={"wishIds": [str(item.id) for item in actors["sources"]]},
-    ).status_code == 409
+    assert (
+        client.delete(
+            path(actors), headers=headers(actors, version=original["roundToken"])
+        ).status_code
+        == 409
+    )
+    assert (
+        client.put(
+            path(actors),
+            headers=headers(actors, version=original["roundToken"]),
+            json={"wishIds": [str(item.id) for item in actors["sources"]]},
+        ).status_code
+        == 409
+    )
     assert share(client, actors, "a", original["selectionToken"], [0]).status_code == 409
     actual = client.get(path(actors), headers=headers(actors)).json()
     assert actual["roundToken"] == replacement["roundToken"]

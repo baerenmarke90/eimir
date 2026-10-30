@@ -1,4 +1,14 @@
 const de = {
+  wishSelection: {
+    occasion: 'Unser Wochenende',
+    wishes: [
+      'Zusammen Pasta machen',
+      'Ein Spaziergang am See',
+      'Einen Tag in die Therme',
+    ],
+    nextPlan: 'Frühstück am Sonntag',
+    undatedPlan: 'Ein Abend nur für uns',
+  },
   recaps: {
     excerpt:
       'Wir sind einfach sitzen geblieben. Ohne Plan, ohne Eile. Genau das hat diesen Tag so schön gemacht.',

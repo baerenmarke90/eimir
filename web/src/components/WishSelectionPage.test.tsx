@@ -435,6 +435,48 @@ describe('WishSelectionPage', () => {
     );
   });
 
+  it('ignores a late publication response after the active account changes', async () => {
+    const { switchAccount, updateOwnWishSelection, queryClient } = renderTask();
+    let resolvePublication: (view: WishSelectionView) => void = () => {
+      throw new Error('Publication was not started.');
+    };
+    updateOwnWishSelection.mockImplementationOnce(
+      () =>
+        new Promise<WishSelectionView>((resolve) => {
+          resolvePublication = resolve;
+        }),
+    );
+    fireEvent.click(
+      await screen.findByRole('checkbox', { name: candidates[0].title }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: copy.share }));
+    await waitFor(() =>
+      expect(updateOwnWishSelection).toHaveBeenCalledTimes(1),
+    );
+    expect(
+      screen.getByRole('button', { name: taskBoundary.back }),
+    ).toHaveProperty('disabled', true);
+    switchAccount('account-b');
+    await screen.findByRole('checkbox', { name: candidates[0].title });
+    await act(async () => resolvePublication(projection('READY')));
+    expect(
+      screen.queryByRole('heading', { name: copy.sharedTitle }),
+    ).toBeNull();
+    expect(
+      screen.getByRole('checkbox', { name: candidates[0].title }),
+    ).toHaveProperty('checked', false);
+    expect(
+      queryClient.getQueryData<WishSelectionView>(
+        wishSelectionQueryKey('', 'account-b', 'space-1'),
+      )?.own.published,
+    ).toBe(false);
+    expect(
+      queryClient.getQueryData(
+        wishSelectionQueryKey('', 'account-a', 'space-1'),
+      ),
+    ).toBeUndefined();
+  });
+
   it('adds new ideas through normal idempotent Wish creation', async () => {
     const { createWish } = renderTask(projection('NO_ROUND'));
     const input = await screen.findByPlaceholderText(copy.newIdeaPlaceholder);

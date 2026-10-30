@@ -66,6 +66,10 @@ def replace_photos(
     previous = {row.attachment_id for row in extra}
     if plan.cover_attachment_id:
         previous.add(plan.cover_attachment_id)
+    if not previous and not ids:
+        # Do not dirty an initially unset cover FK with an explicit None after
+        # insertion. An empty newly created Plan must keep its initial version.
+        return
     locked = binding.lock_for_binding(session, sorted(previous | set(ids)))
     selected: list[Attachment] = []
     for photo_id in ids:

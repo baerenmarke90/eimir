@@ -406,3 +406,23 @@ def test_gallery_create_replay_is_bound_to_the_ordered_photo_intent(client, coup
         ],
     }
     assert client.post(path(couple), json=changed, headers=headers).status_code == 409
+
+
+@pytest.mark.parametrize("selection", [{}, {"attachments": []}])
+def test_empty_gallery_creation_keeps_the_initial_plan_version(client, couple, selection):  # type: ignore[no-untyped-def]
+    response = client.post(
+        path(couple), json={"title": "A simple idea", **selection}, headers=auth(couple["token_a"])
+    )
+    assert response.status_code == 201, response.text
+    plan = response.json()
+    assert plan["version"] == 1
+    current = client.get(f"{path(couple)}/{plan['id']}", headers=auth(couple["token_a"]))
+    assert current.headers["ETag"] == '"1"'
+    assert current.json()["attachments"] == []
+    updated = client.patch(
+        f"{path(couple)}/{plan['id']}",
+        json={"title": "A shared idea"},
+        headers={**auth(couple["token_a"]), "If-Match": "1"},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["version"] == 2

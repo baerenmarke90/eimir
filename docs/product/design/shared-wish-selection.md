@@ -80,7 +80,7 @@ contracts and the normative motion guideline.
 One current bounded round per Space, normalized Same-Space candidate relations,
 and separate OWNER_ONLY selections. Titles and favorite-ID sets use existing
 ProtectedPayload encryption-at-rest boundaries. No raw choices in events or logs.
-Round changes use optimistic versions; owner-selection writes carry both round
+Round changes use opaque round identity/version tokens; owner-selection writes carry both round
 and own-selection identity so a stale old-round submission cannot become consent
 in a replacement round. Partner writes do not overwrite the caller's choices.
 
@@ -140,6 +140,29 @@ ownership, source/lifecycle races and full product journeys before PR review.
 
 ## Delivery and evidence
 
-Implementation and exact-revision verification results will be recorded here
-before requesting review. The preflight image is not runtime evidence or a claim
-that backend privacy, cross-device behavior or native acceptance has passed.
+Delivered the focused `/plan/choose` task and its invitations in both Planning
+segments. Canonical Wishes, Plan imagery/galleries and the existing hub remain
+available. Native disclosure keeps reset/closure utilities below the main result.
+No new dependency, provider, entitlement, configuration or native capability.
+
+[Runtime images, behavioral coverage and provenance](references/shared-wish-selection/evidence/README.md)
+record the final source revision. This includes the complete save/result/return
+journey, 360/390/430/Expanded Light/Dark and 320 px at 200% text with reduced
+motion. Preflight and runtime evidence remain separate.
+
+Backend acceptance includes HTTP/real PostgreSQL tenant isolation, protected
+payloads, partner-list withholding, source changes, exports, membership cleanup,
+parallel writes and closed/recreated-round conflicts. Personal and round writes
+both bind to round identity, so resetting numeric versions cannot revive stale
+consent. The client rejects late account responses and retains failed drafts.
+
+Local validation uses Node 22.23.2 and supported Python 3.13.5; CI's pinned
+Python 3.14.8 remains authoritative. The additive migration follows the now-merged
+0093 recap migration. Fresh installation, Alembic schema check and an empty
+0094 -> 0093 -> 0094 round trip pass. Downgrade deliberately refuses active
+rounds; closing/exporting temporary state preserves original Wishes and Plans.
+
+Business/freemium and cross-cutting decisions above were rechecked after delivery
+and remain unchanged. The authoritative matrix is version 1.9. CI results and
+exact test totals are recorded in the pull request; no deployment or physical
+native-device acceptance is claimed.

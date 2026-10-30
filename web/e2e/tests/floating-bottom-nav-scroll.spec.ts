@@ -910,17 +910,30 @@ for (const variant of [
       variant.width >= 840 ? '.shell-nav' : '.mobile-bottom-nav',
     );
     await nav.locator('a[href^="/story"]').click();
+    const selectedStoryTab = page.getByRole('tab', {
+      name:
+        variant.view === 'timeline'
+          ? de.story.tabTimeline
+          : de.story.tabDiscover,
+      exact: true,
+    });
     if (variant.view === 'timeline')
       await page
         .getByRole('tab', { name: de.story.tabTimeline, exact: true })
         .click();
-    await expect(
-      page.getByRole('tab', { name: de.story.tabTimeline, exact: true }),
-    ).toBeVisible();
+    await expect(selectedStoryTab).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('tablist')).toHaveCount(1);
     await expect(
       page.getByText('Cooked fresh pasta together', { exact: true }).first(),
     ).toBeVisible();
+    if (variant.view === 'timeline')
+      await expect(page.locator('.story-timeline').first()).toBeVisible();
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
     const targetY = await page.evaluate(() => {
       const top = Math.min(
         550,
@@ -946,9 +959,7 @@ for (const variant of [
     await expect(page).toHaveURL(/\/plan$/);
     await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
     await nav.locator('a[href^="/story"]').click();
-    await expect(
-      page.getByRole('tab', { name: de.story.tabTimeline, exact: true }),
-    ).toBeVisible();
+    await expect(selectedStoryTab).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('tablist')).toHaveCount(1);
     await expect
       .poll(async () =>
@@ -976,9 +987,7 @@ for (const variant of [
     ).toHaveAttribute('aria-selected', 'true');
     await page.goBack();
     await expect(page).toHaveURL(/\/story/);
-    await expect(
-      page.getByRole('tab', { name: de.story.tabTimeline, exact: true }),
-    ).toBeVisible();
+    await expect(selectedStoryTab).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('tablist')).toHaveCount(1);
   });
 }
@@ -1177,18 +1186,34 @@ test.describe('primary tab touch navigation', () => {
     });
     await page.goto('/login');
     await signIn(page);
-    const historyLength = await page.evaluate(() => history.length);
+    await expect(page).toHaveURL(/\/today$/);
     await swipePrimary(page, 'next');
     await expect(page).toHaveURL(/\/story$/);
+    const diaryTab = page.getByRole('tab', {
+      name: de.story.tabTimeline,
+      exact: true,
+    });
+    await diaryTab.click();
+    await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('.story-timeline').first()).toBeVisible();
+    const historyLength = await page.evaluate(() => history.length);
     await expect(
       page.getByText('Cooked fresh pasta together', { exact: true }).first(),
     ).toBeVisible();
-    await page.evaluate(() =>
-      window.scrollTo({ top: 500, behavior: 'instant' }),
-    );
+    const targetY = await page.evaluate(() => {
+      const top = Math.min(
+        500,
+        document.documentElement.scrollHeight - innerHeight,
+      );
+      window.scrollTo({ top, behavior: 'instant' });
+      return top;
+    });
+    expect(targetY).toBeGreaterThan(100);
     await expect
-      .poll(() => page.evaluate(() => window.scrollY))
-      .toBeGreaterThan(400);
+      .poll(async () =>
+        Math.abs((await page.evaluate(() => window.scrollY)) - targetY),
+      )
+      .toBeLessThan(2);
     const storyY = await page.evaluate(() => window.scrollY);
     const reads = timelineReads;
     expect(reads).toBeGreaterThan(0);

@@ -386,12 +386,7 @@ test('shared photos: Compact/Expanded themes, 320px, 200% text and accessible ga
     document.documentElement.style.fontSize = '';
   });
   await page.goto('/story');
-  await page
-    .getByRole('button', {
-      name: storyProducts.storyFilters.toggleButton,
-      exact: true,
-    })
-    .click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await page
     .getByRole('link', { name: sharedPhotos.browse, exact: true })
     .click();

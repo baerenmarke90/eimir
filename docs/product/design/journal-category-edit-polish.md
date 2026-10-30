@@ -159,3 +159,16 @@ resolve the identity scanner's false brand match without weakening that gate.
 Language, documentation-language and project-identity audits pass locally.
 The original local full-suite attempt was stopped once it was obsolete during
 these test-helper corrections; exact-head GitHub CI remains the full-suite gate.
+
+The full Web CI subsequently passed all 2,276 tests (two existing skips), lint,
+formatting, TypeScript and the production build. Broader browser regression
+then exposed older flows that still opened Filter before selecting a browse
+destination, plus one delete helper that still selected the edit label. These
+flows now exercise the visible browse navigation and the named comment-actions
+menu while retaining their original return, error, permission and accessibility
+assertions. All six comment-delete cases, the shared-photo gallery/reflow/return
+case, the short-viewport large-text task case, and all 13 Timeline-reference
+cases pass locally. The original 42rem browse-strip width cap is retained on
+Expanded; [current bounded-strip evidence](references/journal-category-edit-polish/browse-1440-light-bounded.png)
+supplements the earlier exact-revision screenshots. Final-head CI remains the
+merge gate after this scoped CSS/test alignment; no checks were bypassed.

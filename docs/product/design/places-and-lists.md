@@ -5,6 +5,8 @@
 User request: implement the reviewed Places and Lists corrections, with a
 compact, intuitive composition consistent with Product Reference v1.
 
+Owning issue: [#1529](https://github.com/baerenmarke90/eimir/issues/1529).
+
 Baseline main: `1468e0a6e66eb5bd7b9192bf65ac357d8351b4d0`, freshly fetched.
 Reviewed actual overview/detail components, shared planning styles, relation
 picker, list mutations/reordering, checklist/pin controls, route helpers,
@@ -13,6 +15,8 @@ task lifecycle, Compact shell, tests and the user's four Android screenshots.
 ![Generated Compact composition reference](references/places-and-lists/compact-reference.png)
 
 The built-in Imagegen tool produced this full-screen reference before UI code.
+The [complete generation prompt](references/places-and-lists/reference-prompt.txt)
+is retained alongside the unchanged PNG.
 SHA-256: `407a3238a609dae082a1eeb763f54c513d842d8de44c2718edd4300e6bff71d0`.
 The prompt specifies four complete 390 × 844 views: Places overview/detail and
 Lists overview/detail, current periwinkle/ink/blue palette, 20 px gutters,

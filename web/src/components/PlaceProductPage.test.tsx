@@ -1,6 +1,13 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -112,25 +119,85 @@ function renderPlacesOverview(apis: SharedPlanningApis) {
 }
 
 beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+
+beforeEach(() => {
   window.history.replaceState(null, '', '/');
 });
 
 describe('PlaceProductPage read presentation', () => {
+  it('retains the last authorized Place during a failed refresh', async () => {
+    renderPlace(
+      createApis({
+        getPlace: vi.fn().mockRejectedValue(new Error('Network unavailable')),
+      }),
+    );
+    await screen.findByRole('alert');
+    expect(screen.getByRole('heading', { name: PLACE.name })).toBeTruthy();
+    expect(screen.getByText(PLACE.description as string)).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: i18n.t('common.retry') }),
+    ).toBeTruthy();
+  });
+
   it('leads with the authored description and keeps technical location metadata secondary', () => {
     renderPlace();
 
     expect(screen.getByText(PLACE.description as string)).toBeTruthy();
     expect(screen.getByText(PLACE.address as string)).toBeTruthy();
 
-    const summary = screen.getByText(i18n.t('m5s3.place.technicalDetails'));
+    const summary = screen.getByText(i18n.t('m5s3.place.locationHeading'));
     const details = summary.closest('details');
     expect(details).not.toBeNull();
     expect(details?.open).toBe(false);
-    expect(screen.getByText(i18n.t('m5s3.place.noMap'))).toBeTruthy();
+    expect(screen.getByText(i18n.t('m5s3.place.nameOnly'))).toBeTruthy();
   });
 });
 
 describe('PlaceProductPage editor lifecycle', () => {
+  it('does not recreate detail data after the creating query was removed', async () => {
+    let complete!: (place: PlaceDetail) => void;
+    const createPlace = vi.fn(
+      () =>
+        new Promise<PlaceDetail>((resolve) => {
+          complete = resolve;
+        }),
+    );
+    const client = renderPlacesOverview(createApis({ createPlace }));
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('button', { name: i18n.t('m5s3.place.create') }),
+    );
+    await user.type(
+      screen.getByRole('textbox', { name: i18n.t('m5s3.place.name') }),
+      'Café',
+    );
+    await user.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.common.save'),
+      }),
+    );
+    await waitFor(() => expect(createPlace).toHaveBeenCalledTimes(1));
+    act(() =>
+      client.removeQueries({
+        queryKey: authorSummaryQueryKeys.placesOverview('space-1'),
+        exact: true,
+      }),
+    );
+    await act(async () => complete({ ...PLACE, id: 'late-place' }));
+    expect(
+      client.getQueryData(
+        authorSummaryQueryKeys.placeDetail('space-1', 'late-place'),
+      ),
+    ).toBeUndefined();
+  });
+
   it('uses the shared contrast modifier for create and edit coordinate guidance', async () => {
     const user = userEvent.setup();
     renderPlacesOverview(createApis());
@@ -257,14 +324,20 @@ describe('PlaceProductPage editor lifecycle', () => {
     expect(longitude.getAttribute('aria-invalid')).toBe('false');
     expect(screen.queryByRole('alert')).toBeNull();
 
-    await user.keyboard('{Escape}');
+    fireEvent(
+      screen.getByRole('dialog'),
+      new Event('cancel', { cancelable: true }),
+    );
     await user.click(
       screen.getByRole('button', { name: i18n.t('m5s3.common.keepEditing') }),
     );
     expect(latitude.value).toBe('52.5');
     expect(longitude.value).toBe('13.4');
 
-    await user.keyboard('{Escape}');
+    fireEvent(
+      screen.getByRole('dialog'),
+      new Event('cancel', { cancelable: true }),
+    );
     await user.click(
       screen.getByRole('button', {
         name: i18n.t('m5s3.common.discardConfirm'),
@@ -275,8 +348,10 @@ describe('PlaceProductPage editor lifecycle', () => {
         screen.queryByRole('textbox', { name: i18n.t('m5s3.place.name') }),
       ).toBeNull(),
     );
-    expect(document.activeElement).toBe(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: i18n.t('common.edit') }),
+      ),
     );
   });
 
@@ -294,8 +369,10 @@ describe('PlaceProductPage editor lifecycle', () => {
         screen.queryByRole('textbox', { name: i18n.t('m5s3.place.name') }),
       ).toBeNull(),
     );
-    expect(document.activeElement).toBe(
-      screen.getByRole('button', { name: i18n.t('common.edit') }),
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: i18n.t('common.edit') }),
+      ),
     );
     expect(window.history.state?.[EDITOR_HISTORY_STATE_KEY]).toBeUndefined();
   });
@@ -318,7 +395,10 @@ describe('PlaceProductPage editor lifecycle', () => {
     );
     await waitFor(() => expect(updatePlace).toHaveBeenCalledTimes(1));
 
-    await user.keyboard('{Escape}');
+    fireEvent(
+      screen.getByRole('dialog'),
+      new Event('cancel', { cancelable: true }),
+    );
     window.history.back();
 
     expect(

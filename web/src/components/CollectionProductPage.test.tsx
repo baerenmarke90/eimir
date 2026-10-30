@@ -99,6 +99,15 @@ afterEach(() => {
 });
 
 beforeEach(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+
+beforeEach(() => {
   window.history.replaceState(null, '', '/');
 });
 
@@ -134,6 +143,9 @@ describe('CollectionProductPage', () => {
         client = queryClient;
         client.setQueryData(key, initial);
       },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.collection.sort') }),
     );
     const order = () =>
       Array.from(document.querySelectorAll('[data-sortable-item-id]')).map(
@@ -333,7 +345,7 @@ describe('CollectionProductPage', () => {
     await waitFor(() =>
       expect(fixture.order()).toEqual(['item-1', 'item-2', 'item-3']),
     );
-    expect(screen.getByDisplayValue('Passport and visa')).toBeDefined();
+    expect(screen.getByText('Passport and visa')).toBeDefined();
     fireEvent.click(
       screen.getByRole('button', { name: i18n.t('common.retry') }),
     );
@@ -721,9 +733,7 @@ describe('CollectionProductPage', () => {
           fixture.key,
         )?.items[0],
       ).toEqual(newer);
-      await waitFor(() =>
-        expect(screen.getByDisplayValue(newer.title)).toBeDefined(),
-      );
+      await waitFor(() => expect(screen.getByText(newer.title)).toBeDefined());
     },
   );
 
@@ -1009,6 +1019,9 @@ describe('CollectionProductPage', () => {
             }),
         );
       const fixture = renderToggleCollection(vi.fn(), true, reorder);
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n.t('m5s3.collection.sort') }),
+      );
       fireEvent.keyDown(
         screen.getByRole('button', {
           name: i18n.t('m5s3.collection.reorderItem', { title: 'Tickets' }),
@@ -1041,6 +1054,9 @@ describe('CollectionProductPage', () => {
         .click(screen.getByRole('link', { name: 'Switch collection' }));
       await screen.findByRole('heading', { name: nextCollection.title });
       expect(screen.queryByRole('status')).toBeNull();
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n.t('m5s3.collection.sort') }),
+      );
       const nextHandle = screen.getByRole('button', {
         name: i18n.t('m5s3.collection.reorderItem', { title: 'Coffee' }),
       });

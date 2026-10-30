@@ -294,7 +294,7 @@ type IconButtonProps = Omit<
   'aria-label' | 'title' | 'children'
 > & {
   label: string;
-  icon: 'save' | 'delete' | 'reorder' | 'add' | 'edit';
+  icon: 'save' | 'delete' | 'reorder' | 'add' | 'edit' | 'more';
   variant?: 'tertiary' | 'add';
 };
 
@@ -364,6 +364,13 @@ function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
       viewBox="0 0 24 24"
       className="list-entry-icon"
     >
+      {kind === 'more' ? (
+        <>
+          <circle cx="12" cy="5" r="1" />
+          <circle cx="12" cy="12" r="1" />
+          <circle cx="12" cy="19" r="1" />
+        </>
+      ) : null}
       {kind === 'save' ? (
         <>
           <path d="M5 3h11l3 3v15H5z" />

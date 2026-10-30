@@ -1,0 +1,328 @@
+/* Places and shared checklists opt out of the legacy planning composition. */
+.shared-content-page {
+  display: grid;
+  gap: var(--space-5);
+  max-width: var(--reading-max);
+  min-width: 0;
+  align-content: start;
+}
+.shared-content-page > .back-link {
+  margin: 0;
+  justify-self: start;
+  padding: var(--space-2) 0;
+  color: var(--color-text-secondary);
+}
+.shared-content-page > .page-heading {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+}
+.shared-content-page .page-heading-title-container {
+  margin: 0;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+.shared-content-page .page-heading h1 {
+  font: var(--font-utility-heading);
+  letter-spacing: var(--tracking-page-heading);
+  overflow-wrap: anywhere;
+}
+.shared-content-page .shared-authored-heading h1 {
+  font: var(--font-personal-heading);
+}
+
+.shared-content-page .page-heading-action {
+  width: auto;
+  flex: 0 1 auto;
+  margin-inline-start: auto;
+}
+
+.shared-content-page .planning-subsection,
+.shared-content-page .planning-danger-zone {
+  display: grid;
+  gap: var(--space-4);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.content-overview-list,
+.shared-list-items {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.content-overview-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--space-16);
+  padding: var(--space-4) var(--space-3);
+  color: var(--color-text);
+  text-decoration: none;
+  border-radius: var(--radius-large);
+  transition: background var(--duration-feedback) var(--easing-standard);
+}
+.content-overview-row:hover {
+  background: var(--color-surface);
+}
+.content-overview-row:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.content-overview-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 var(--space-12);
+  width: var(--space-12);
+  height: var(--space-12);
+  border-radius: var(--radius-medium);
+  background: var(--color-shared-surface);
+  color: var(--color-shared);
+}
+.content-overview-icon svg {
+  width: var(--space-6);
+  height: var(--space-6);
+}
+.content-overview-lists .content-overview-icon {
+  background: var(--color-brand-surface);
+}
+.content-overview-copy {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+.content-overview-copy h2 {
+  margin: 0;
+  font: var(--font-action-label);
+  overflow-wrap: anywhere;
+}
+.content-overview-copy p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  overflow-wrap: anywhere;
+}
+.content-overview-preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.content-chevron {
+  flex: 0 0 var(--space-5);
+  width: var(--space-5);
+  height: var(--space-5);
+  color: var(--color-text-secondary);
+}
+.shared-content-sheet .form-grid {
+  gap: var(--space-3);
+}
+.shared-content-sheet .form-grid label {
+  margin-top: var(--space-2);
+}
+.shared-content-sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.shared-content-sheet-actions > button {
+  flex: 1 1 auto;
+}
+.shared-content-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.shared-content-actions {
+  display: grid;
+  gap: var(--space-2);
+}
+.shared-content-actions button {
+  text-align: start;
+  justify-content: flex-start;
+}
+.shared-list-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.shared-list-toolbar > p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.shared-content-page .planning-collection-dashboard-action {
+  margin: 0;
+}
+.shared-content-page .planning-collection-dashboard-action button {
+  min-height: var(--space-12);
+  padding: var(--space-2) var(--space-3);
+  font: var(--font-supporting-copy);
+  color: var(--color-text);
+  background: var(--color-brand-surface);
+}
+.shared-content-page .planning-inline-create {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+.shared-content-page .planning-inline-create input {
+  min-width: 0;
+  flex: 1 1 0;
+  width: 0;
+}
+.shared-list-items > li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  min-width: 0;
+  border-radius: var(--radius-medium);
+  transition: background var(--duration-feedback) var(--easing-standard);
+}
+.shared-list-item-copy {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.shared-list-item-copy > p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.shared-list-items .checklist-toggle-indicator {
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+.shared-list-items .checklist-toggle-indicator svg {
+  width: 100%;
+  height: 100%;
+}
+.shared-list-items
+  .checklist-toggle[aria-pressed="true"]
+  .checklist-toggle-indicator {
+  background: var(--color-brand-strong);
+  color: var(--color-on-accent);
+}
+.shared-list-items
+  .checklist-toggle[aria-pressed="true"]
+  .checklist-toggle-indicator
+  svg {
+  width: var(--space-4);
+  height: var(--space-4);
+}
+.shared-place-address {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+.shared-place-address svg {
+  flex: 0 0 var(--space-5);
+  width: var(--space-5);
+  height: var(--space-5);
+}
+.shared-place-details {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.shared-place-details summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--space-12);
+  cursor: pointer;
+  font-weight: 600;
+}
+.shared-place-details p {
+  margin: var(--space-2) 0;
+}
+.shared-place-attribution {
+  margin: 0;
+  font: var(--font-supporting-copy);
+}
+.shared-place-attribution a {
+  color: var(--color-text-secondary);
+}
+.shared-content-page .planning-relation-list > li {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+}
+.shared-content-page .layout-section-head {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0;
+}
+.shared-content-page .layout-section-head h2 {
+  font: var(--font-section-heading);
+}
+.shared-content-page .relation-moment-add {
+  width: auto;
+  margin: 0;
+  justify-self: start;
+}
+@media (prefers-reduced-motion: reduce) {
+  .content-overview-row,
+  .shared-list-items > li {
+    transition: none;
+  }
+}
+.shared-place-intro {
+  display: grid;
+  gap: var(--space-2);
+}
+.shared-place-description {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.shared-content-page .page-heading-action button {
+  width: auto;
+  max-width: 100%;
+}
+.shared-list-items .planning-item-completed .shared-list-item-copy > p {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+}
+
+.shared-content-page button.secondary,
+.shared-content-sheet button.secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.shared-content-page button.list-entry-icon-button.list-entry-add-button,
+.shared-content-page
+  button.list-entry-icon-button.list-entry-add-button:hover:not(:disabled) {
+  background: var(--color-brand-strong);
+  color: var(--color-on-accent);
+}

@@ -815,6 +815,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
         ),
         fullPage: true,
       });
+      await emotion.screenshot({
+        path: testInfo.outputPath(`heart-emotion-field-390-${colorScheme}.png`),
+      });
+      await visibility.screenshot({
+        path: testInfo.outputPath(`heart-audience-390-${colorScheme}.png`),
+      });
     } finally {
       await context.close();
     }

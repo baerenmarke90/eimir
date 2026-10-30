@@ -379,6 +379,9 @@ for (const [width, theme, largeText] of [
       `anticipation-wir-${width}-${theme}.png`,
       { fullPage: true },
     );
+    await page.locator('.today-section-upcoming').screenshot({
+      path: info.outputPath(`anticipation-section-${width}-${theme}.png`),
+    });
     await countdown.click();
     await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN}$`));
     await page.getByRole('button', { name: taskBoundary.back }).click();

@@ -79,3 +79,10 @@
   width: 100%;
   min-width: 0;
 }
+
+/* Keep the hit area stable when the sheet opens beneath the pointer. */
+@media (hover: hover) and (pointer: fine) {
+  .photo-source-sheet button:hover:not(:disabled) {
+    transform: none;
+  }
+}

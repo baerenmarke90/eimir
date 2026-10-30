@@ -105,7 +105,8 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(
       page.getByRole('heading', { name: 'Momente', level: 1 }),
     ).toBeVisible();
-    await expect(page.getByText(de.story.timelineIntro)).toBeVisible();
+    // The content-first diary no longer repeats its heading in an intro sentence.
+    await expect(page.getByText(de.story.timelineIntro)).toHaveCount(0);
 
     const markers = page.locator('.story-timeline-marker');
     await expect(markers).toHaveCount(5);
@@ -724,7 +725,8 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(
       page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
     ).toBeVisible();
-    await expect(page.getByText(de.story.timelineIntro)).toBeVisible();
+    // The content-first diary no longer repeats its heading in an intro sentence.
+    await expect(page.getByText(de.story.timelineIntro)).toHaveCount(0);
     await expect(page.locator('.story-timeline-toolbar')).toHaveCount(0);
     await expect(page.locator('.momente-hero-highlight')).toContainText(
       'Breakfast by the canal',

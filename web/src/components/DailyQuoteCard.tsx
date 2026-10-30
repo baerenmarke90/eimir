@@ -223,6 +223,7 @@ export function DailyQuoteCard({
   spaceId,
   partnerName,
   partnerNameIsResolved = false,
+  settingsOnly = false,
 }: {
   quoteApi: DailyQuoteApi;
   entitlementsApi: EntitlementsApi;
@@ -230,6 +231,7 @@ export function DailyQuoteCard({
   spaceId: string;
   partnerName?: string;
   partnerNameIsResolved?: boolean;
+  settingsOnly?: boolean;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -268,7 +270,7 @@ export function DailyQuoteCard({
   const quoteQuery = useQuery({
     queryKey: quoteKey,
     queryFn: ({ signal }) => loadDailyQuote(quoteApi, spaceId, signal),
-    enabled: hasCapability,
+    enabled: hasCapability && !settingsOnly,
     retry: false,
     gcTime: 0,
   });
@@ -276,7 +278,7 @@ export function DailyQuoteCard({
   const catalogQuery = useQuery({
     queryKey: catalogKey,
     queryFn: ({ signal }) => loadDailyQuoteCatalog(quoteApi, spaceId, signal),
-    enabled: hasCapability,
+    enabled: settingsOpen && hasCapability,
     retry: false,
   });
 
@@ -378,12 +380,11 @@ export function DailyQuoteCard({
   const retryEntitlement = () => void entitlementQuery.refetch();
   const retryQuote = () => void quoteQuery.refetch();
 
-  if (hasCapability && quoteQuery.data?.enabled === false) {
+  if (!settingsOnly && hasCapability && quoteQuery.data?.enabled === false) {
     return null;
   }
 
   let body: React.ReactNode;
-  let settingsAvailable = false;
 
   if (entitlementQuery.isPending) {
     body = (
@@ -460,7 +461,6 @@ export function DailyQuoteCard({
       </QuoteStateMessage>
     );
   } else if (!quoteQuery.data?.quote) {
-    settingsAvailable = true;
     body = (
       <QuoteStateMessage
         className="is-empty"
@@ -470,7 +470,6 @@ export function DailyQuoteCard({
       </QuoteStateMessage>
     );
   } else {
-    settingsAvailable = true;
     const quote = quoteQuery.data.quote;
     const attribution = quote.sourceDisplay
       ? t('dailyQuote.quoteAttribution', {
@@ -497,30 +496,33 @@ export function DailyQuoteCard({
 
   return (
     <>
-      <section
-        className="daily-quote-card"
-        data-color-world="warm"
-        aria-labelledby="daily-quote-title"
-      >
-        <header className="daily-quote-header">
-          <EimirIcon name="quote" className="daily-quote-symbol" />
-          <h2 id="daily-quote-title" className="sr-only">
-            {t('dailyQuote.title')}
-          </h2>
-          {settingsAvailable ? (
-            <button
-              ref={settingsButtonRef}
-              type="button"
-              className="daily-quote-settings"
-              aria-label={t('dailyQuote.settingsAria')}
-              onClick={openSettings}
-            >
-              <span aria-hidden="true">•••</span>
-            </button>
-          ) : null}
-        </header>
-        <div className="daily-quote-content">{body}</div>
-      </section>
+      {settingsOnly ? (
+        hasCapability ? (
+          <button
+            ref={settingsButtonRef}
+            type="button"
+            className="button-link"
+            aria-label={t('dailyQuote.settingsAria')}
+            onClick={openSettings}
+          >
+            {t('dailyQuote.selectionAction')}
+          </button>
+        ) : null
+      ) : (
+        <section
+          className="daily-quote-card"
+          data-color-world="warm"
+          aria-labelledby="daily-quote-title"
+        >
+          <header className="daily-quote-header">
+            <EimirIcon name="quote" className="daily-quote-symbol" />
+            <h2 id="daily-quote-title" className="sr-only">
+              {t('dailyQuote.title')}
+            </h2>
+          </header>
+          <div className="daily-quote-content">{body}</div>
+        </section>
+      )}
 
       <ShortTaskSheet
         open={settingsOpen}

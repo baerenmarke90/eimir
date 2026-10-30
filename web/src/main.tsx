@@ -49,6 +49,7 @@ const queryClient = new QueryClient({
     queries: {
       // Quiet ordinary reads on short app resumes; live domains override this.
       staleTime: 60_000,
+      gcTime: 30 * 60_000,
       retry: false,
       refetchOnMount: true,
       refetchOnWindowFocus: true,

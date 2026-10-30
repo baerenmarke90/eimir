@@ -81,7 +81,7 @@ export function StoryRetrospective({
             </time>
           ) : null}
           <span className="momente-retrospective-action">
-            {t('story.retrospectiveOpen')} →
+            {t('story.retrospectiveOpen')}
           </span>
         </span>
       </Link>

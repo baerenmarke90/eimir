@@ -1838,18 +1838,18 @@ it('never repeats a `Diesen Monat` photo as a `Zuletzt bei euch` row', () => {
   }
 });
 
-it('keeps content the monthly strip did not select eligible for the trace', () => {
+it('adds text and overflow moments to the month without repeating them in the trace', () => {
   const html = renderMonthlyOverflowSpace();
   const monthly = sectionHtml(html, 'today-section-monthly');
   const trace = sectionHtml(html, 'today-section-recent');
 
-  // The fourth this-month photo lost only to the three-item cap, so it is
-  // not featured anywhere and the trace must still offer it.
-  expect(monthly).not.toContain('Overflow Photo D');
-  expect(trace).toContain('Overflow Photo D');
+  // Photos outside the compact strip and text moments now enrich the month.
+  expect(monthly).toContain('Overflow Photo D');
+  expect(trace).not.toContain('Overflow Photo D');
 
-  // Content the strip can never take stays in the trace too.
-  expect(trace).toContain('Quiet Heart Moment');
+  // Text highlights use the same current-month classification.
+  expect(monthly).toContain('Quiet Heart Moment');
+  expect(trace).not.toContain('Quiet Heart Moment');
 });
 
 it('keeps `Euer Moment` and the `Gerade bei euch` module out of the trace as before', () => {
@@ -2326,7 +2326,9 @@ describe('formatRelationshipDuration', () => {
             id: 'ms-recent',
             type: 'MILESTONE',
             titleOrText: 'Trace Milestone',
-            createdAt: new Date(),
+            createdAt: new Date(
+              Date.UTC(now.getFullYear(), now.getMonth() - 1, 15),
+            ),
           },
         ],
         retrospective: {

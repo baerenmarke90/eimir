@@ -391,7 +391,14 @@ function AuthenticatedAppShell({
         ) : null}
 
         <div className="product-shell-body">
-          <main id="main-content" className="product-main" tabIndex={-1}>
+          <main
+            id="main-content"
+            className="product-main"
+            data-area={
+              location.pathname.startsWith('/more') ? 'more' : undefined
+            }
+            tabIndex={-1}
+          >
             <AppSurfacePullToRefresh pathname={location.pathname} />
             {isStoryDetail ? (
               <div className="shell-detail-context">{detailBackButton}</div>

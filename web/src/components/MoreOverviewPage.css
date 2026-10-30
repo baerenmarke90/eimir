@@ -18,7 +18,7 @@
   gap: var(--space-3);
   margin-bottom: var(--space-6);
   padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
   color: var(--color-text-secondary);
   text-decoration: none;
@@ -62,22 +62,27 @@
 
 .more-footer {
   display: grid;
-  justify-items: start;
+  justify-items: stretch;
   gap: var(--space-6);
   margin-top: var(--space-8);
 }
 
 .more-logout {
-  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 48px;
   width: 100%;
   padding: var(--space-3) var(--space-4);
   border: 0;
   border-radius: var(--radius-card);
-  background: var(--color-surface-raised);
-  color: var(--color-text-secondary);
+  background: var(--color-error-surface);
+  color: var(--color-error);
   font: inherit;
+  font-weight: 650;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
 }
 
 .more-group {
@@ -241,4 +246,50 @@
   .more-destination {
     transition: none;
   }
+}
+
+.more-logout svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+.more-brand-signature {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding-block: var(--space-2) var(--space-6);
+}
+.more-brand-signature::before,
+.more-brand-signature::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--color-border-subtle);
+}
+
+/* More owns one shared surface language for all of its child routes. */
+.product-main[data-area="more"] > .page {
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
+}
+.product-main[data-area="more"] .page-heading h1 {
+  font-family: var(--font-ui);
+}
+.product-main[data-area="more"] .settings-category-list {
+  display: grid;
+  gap: var(--space-3);
+  border: 0;
+}
+.product-main[data-area="more"] .settings-category-link {
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+}
+.product-main[data-area="more"] .settings-category-content > .settings-section,
+.product-main[data-area="more"] .settings-category-content > .form-card {
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
 }

@@ -173,9 +173,6 @@ export function PrivateCollectionsListPage({ api, accountId, spaceId }: Props) {
                   <div className="private-area-card-heading">
                     <h2>{collection.title}</h2>
                   </div>
-                  <span className="private-area-card-arrow" aria-hidden="true">
-                    →
-                  </span>
                 </Link>
               </li>
             ))}

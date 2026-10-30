@@ -171,7 +171,7 @@ export function MomentPlaces({
       >
         {t('photoPlaces.title')}
       </h2>
-      {canManage && !denied ? (
+      {canManage && !denied && !query.isPending && items.length === 0 ? (
         <button
           ref={addTrigger}
           type="button"
@@ -268,21 +268,23 @@ export function MomentPlaces({
                   </a>
                 ) : null}
               </div>
-              <button
-                type="button"
-                className="tertiary moment-place-overflow"
-                aria-label={t('photoPlaces.actions', { name })}
-                title={t('photoPlaces.actions', { name })}
-                aria-haspopup="dialog"
-                aria-expanded={selected?.id === place.id}
-                onClick={() => {
-                  setSelected(place);
-                  setConfirm(false);
-                  mutation.reset();
-                }}
-              >
-                <span aria-hidden="true">⋯</span>
-              </button>
+              {canManage ? (
+                <button
+                  type="button"
+                  className="tertiary moment-place-overflow"
+                  aria-label={t('photoPlaces.actions', { name })}
+                  title={t('photoPlaces.actions', { name })}
+                  aria-haspopup="dialog"
+                  aria-expanded={selected?.id === place.id}
+                  onClick={() => {
+                    setSelected(place);
+                    setConfirm(false);
+                    mutation.reset();
+                  }}
+                >
+                  <span aria-hidden="true">⋯</span>
+                </button>
+              ) : null}
             </li>
           );
         })}

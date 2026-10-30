@@ -247,3 +247,27 @@ export function selectMonthlyStrip({
     })
     .slice(0, MONTHLY_STRIP_MAX_ITEMS);
 }
+
+/** Current-month story highlights, including text-only moments; never a total. */
+export function selectMonthlyNotes({
+  recentShared,
+  now,
+  excludeItemIds = [],
+}: {
+  recentShared: readonly DashboardItem[];
+  now: Date;
+  excludeItemIds?: readonly string[];
+}): DashboardItem[] {
+  const excluded = new Set(excludeItemIds);
+  return recentShared
+    .filter((item) => {
+      const calendar = itemCalendarMonth(item);
+      return (
+        FOCAL_SHARED_TYPES.has(item.type) &&
+        !excluded.has(item.id) &&
+        calendar?.year === now.getFullYear() &&
+        calendar.month === now.getMonth()
+      );
+    })
+    .slice(0, 4);
+}

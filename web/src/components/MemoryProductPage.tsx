@@ -683,6 +683,18 @@ export function MemoryProductPage({
               </button>
             </div>
           </form>
+          <MomentPlaces
+            key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${memory.id}:edit`}
+            apiBaseUrl={apiBaseUrl}
+            accessToken={accessToken}
+            accountId={currentAccountId}
+            spaceId={spaceId}
+            targetId={memory.id}
+            canManage
+            kind="memories"
+            offline={offline}
+            compact
+          />
           {updateMutation.error ? (
             <ProblemState
               error={updateMutation.error}
@@ -874,7 +886,7 @@ export function MemoryProductPage({
           accountId={currentAccountId}
           spaceId={spaceId}
           targetId={memory.id}
-          canManage={memory.capabilities.canEdit}
+          canManage={false}
           kind="memories"
           offline={offline}
           compact

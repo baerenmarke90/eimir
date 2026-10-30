@@ -404,11 +404,6 @@ function ActivityCard({
             {formatDateTime(item.occurredAt)}
           </time>
         </div>
-        {path ? (
-          <span className="activity-card-chevron" aria-hidden="true">
-            ›
-          </span>
-        ) : null}
       </div>
       {item.target?.title ? (
         <div className="activity-card-target">
@@ -592,11 +587,7 @@ function NotificationCard({
             {formatDateTime(item.createdAt)}
           </time>
         </div>
-        {path ? (
-          <span className="activity-card-chevron" aria-hidden="true">
-            ›
-          </span>
-        ) : !item.readAt ? (
+        {!path && !item.readAt ? (
           <button
             type="button"
             className="secondary compact-action m4-mark-read-btn"

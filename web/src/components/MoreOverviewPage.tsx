@@ -21,6 +21,7 @@ import { useProductTour } from '../client/productTour';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { useShellUtilities } from '../client/shellUtilities';
 import { Brand } from './Brand';
+import { EimirIcon } from './EimirIcon';
 import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
 import { PersonIdentity } from './PersonIdentity';
@@ -132,9 +133,6 @@ function MoreDestinationRow({
               {new Intl.NumberFormat(resolvedLocale()).format(unreadCount ?? 0)}
             </span>
           ) : null}
-          <span className="more-destination-chevron" aria-hidden="true">
-            ›
-          </span>
         </span>
       </Link>
     </li>
@@ -194,9 +192,6 @@ export function MoreOverviewPage({
           <DestinationIcon icon="search" />
         </span>
         <span>{t('navigation.searchAll')}</span>
-        <span className="more-destination-chevron" aria-hidden="true">
-          ›
-        </span>
       </Link>
 
       <div className="more-groups">
@@ -262,9 +257,6 @@ export function MoreOverviewPage({
               <span className="more-destination-copy">
                 <strong>{t('productTour.replay')}</strong>
               </span>
-              <span className="more-destination-chevron" aria-hidden="true">
-                ›
-              </span>
             </button>
           </li>
         </MoreDestinationGroup>
@@ -283,10 +275,13 @@ export function MoreOverviewPage({
       <footer className="more-footer">
         {onLogout ? (
           <button type="button" className="more-logout" onClick={onLogout}>
-            {t('header.logout')}
+            <EimirIcon name="logout" />
+            <span>{t('header.logout')}</span>
           </button>
         ) : null}
-        <Brand />
+        <div className="more-brand-signature">
+          <Brand />
+        </div>
       </footer>
     </div>
   );

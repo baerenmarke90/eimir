@@ -175,9 +175,6 @@ export function StoryYearsIndexPage({
                         : t('storyYears.pastYearHint')}
                     </span>
                   </span>
-                  <span className="story-year-arrow" aria-hidden="true">
-                    →
-                  </span>
                 </Link>
               </li>
             );

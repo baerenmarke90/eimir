@@ -1,3 +1,38 @@
+.photo-gallery {
+  min-width: 0;
+}
+.photo-gallery .media-gallery-carousel-viewport {
+  aspect-ratio: 1;
+  border-radius: var(--radius-content);
+}
+.photo-gallery .media-gallery-carousel-slide {
+  touch-action: pan-x pan-y;
+  user-select: none;
+  -webkit-touch-callout: none;
+  cursor: pointer;
+}
+.media-gallery-expand {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-pill);
+  top: var(--space-3);
+  left: var(--space-3);
+}
+.media-gallery-expand:hover {
+  background: var(--media-overlay-surface-hover);
+}
+.media-gallery-expand .eimir-icon {
+  width: var(--space-5);
+  height: var(--space-5);
+}
 .media-gallery-loading {
   animation: gallery-pulse 1.4s ease-in-out infinite;
   background: var(--color-shimmer-base);
@@ -342,4 +377,22 @@
   .media-lightbox-nav {
     transition: none;
   }
+}
+
+.media-gallery-privacy-indicator {
+  position: absolute;
+  z-index: 3;
+  top: var(--space-3);
+  right: var(--space-3);
+  pointer-events: none;
+}
+.media-gallery-privacy-indicator .sensitive-media-cover,
+.media-gallery-privacy-indicator .sensitive-media-label {
+  min-height: 0;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-pill);
+}
+.media-gallery-privacy-indicator .sensitive-media-cover {
+  background: transparent;
 }

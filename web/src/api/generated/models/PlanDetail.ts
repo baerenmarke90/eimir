@@ -27,6 +27,13 @@ import {
     AuthorSummaryToJSON,
     AuthorSummaryToJSONTyped,
 } from './AuthorSummary';
+import type { OrderedAttachmentSummary } from './OrderedAttachmentSummary';
+import {
+    OrderedAttachmentSummaryFromJSON,
+    OrderedAttachmentSummaryFromJSONTyped,
+    OrderedAttachmentSummaryToJSON,
+    OrderedAttachmentSummaryToJSONTyped,
+} from './OrderedAttachmentSummary';
 import type { AttachmentSummary } from './AttachmentSummary';
 import {
     AttachmentSummaryFromJSON,
@@ -54,6 +61,12 @@ export interface PlanDetail {
      * @memberof PlanDetail
      */
     anticipationEnabled?: boolean;
+    /**
+     * 
+     * @type {Array<OrderedAttachmentSummary>}
+     * @memberof PlanDetail
+     */
+    attachments?: Array<OrderedAttachmentSummary>;
     /**
      * 
      * @type {ResourceCapabilities}
@@ -200,6 +213,7 @@ export function PlanDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     return {
         
         'anticipationEnabled': json['anticipationEnabled'] == null ? undefined : json['anticipationEnabled'],
+        'attachments': json['attachments'] == null ? undefined : ((json['attachments'] as Array<any>).map(OrderedAttachmentSummaryFromJSON)),
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
         'coverAttachment': json['coverAttachment'] === undefined ? undefined : json['coverAttachment'] === null ? null : AttachmentSummaryFromJSON(json['coverAttachment']),
         'createdAt': (new Date(json['createdAt'])),
@@ -233,6 +247,7 @@ export function PlanDetailToJSONTyped(value?: PlanDetail | null, ignoreDiscrimin
     return {
         
         'anticipationEnabled': value['anticipationEnabled'],
+        'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(OrderedAttachmentSummaryToJSON)),
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),
         'coverAttachment': AttachmentSummaryToJSON(value['coverAttachment']),
         'createdAt': value['createdAt'].toISOString(),

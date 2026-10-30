@@ -137,6 +137,7 @@ def test_direct_create_needs_only_a_title() -> None:
         "schedule",
         "coverAttachmentId",
         "coverIsSensitive",
+        "attachments",
     }
     assert schema["required"] == ["title"]
 

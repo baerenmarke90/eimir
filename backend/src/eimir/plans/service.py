@@ -55,7 +55,7 @@ from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.identity.models import Account
 from eimir.outbox import service as outbox_service
 from eimir.places.models import Place
-from eimir.plans.media import replace_cover
+from eimir.plans.media import PhotoSelection, replace_cover, replace_photos
 from eimir.plans.models import Plan, PlanPayload, PlanStatus, shared_privacy
 from eimir.reminders import runtime as reminder_runtime
 from eimir.wishes import service as wish_service
@@ -251,6 +251,7 @@ def create_plan(
     planned_end: datetime | None = None,
     cover_attachment_id: UUID | None = None,
     cover_is_sensitive: bool | None = None,
+    photos: PhotoSelection | None = None,
 ) -> Plan:
     """Create a direct unscheduled, date-only, or timed Plan atomically."""
     status = _initial_schedule_status(planned_on, planned_start, planned_end)
@@ -268,7 +269,10 @@ def create_plan(
     )
     session.add(plan)
     _flush(session)
-    replace_cover(session, context, plan, cover_attachment_id, is_sensitive=cover_is_sensitive)
+    if photos is not None:
+        replace_photos(session, context, plan, photos)
+    else:
+        replace_cover(session, context, plan, cover_attachment_id, is_sensitive=cover_is_sensitive)
     _record(session, plan, context.account_id, EventType.PLAN_CREATED)
     _flush(session)
     if status == PlanStatus.PLANNED:
@@ -289,6 +293,7 @@ def create_plan_once(
     planned_end: datetime | None = None,
     cover_attachment_id: UUID | None = None,
     cover_is_sensitive: bool | None = None,
+    photos: PhotoSelection | None = None,
 ) -> PlanCreateResult:
     """Create a direct Plan, or return the one an earlier request with this identity created.
 
@@ -309,6 +314,7 @@ def create_plan_once(
             planned_end=planned_end,
             cover_attachment_id=cover_attachment_id,
             cover_is_sensitive=cover_is_sensitive,
+            photos=photos,
         )
         return PlanCreateResult(plan, created=True)
 
@@ -318,6 +324,11 @@ def create_plan_once(
         {
             "title": normalized_title,
             "description": description,
+            **(
+                {"attachments": [(str(photo_id), sensitive) for photo_id, sensitive in photos]}
+                if photos is not None
+                else {}
+            ),
             **(
                 {
                     "cover_attachment_id": str(cover_attachment_id),
@@ -365,6 +376,7 @@ def create_plan_once(
         planned_end=planned_end,
         cover_attachment_id=cover_attachment_id,
         cover_is_sensitive=cover_is_sensitive,
+        photos=photos,
     )
     create_receipts.attach(session, receipt_id, plan.id)
     return PlanCreateResult(plan, created=True)
@@ -426,6 +438,7 @@ def update_plan(
     anticipation_enabled: bool | None = None,
     cover_attachment_id: UUID | None = None,
     cover_is_sensitive: bool | None = None,
+    photos: PhotoSelection | None = None,
     schedule_values: tuple[date | None, datetime | None, datetime | None] | None = None,
 ) -> Plan:
     """Correct content, cover and schedule atomically; completion stays explicit."""
@@ -436,7 +449,11 @@ def update_plan(
     plan = _lock_plan(session, context, plan_id)
     _ensure_expected_version(plan, expected_version)
 
-    if "cover_attachment_id" in changed_fields or "cover_is_sensitive" in changed_fields:
+    if "attachments" in changed_fields:
+        assert photos is not None
+        replace_photos(session, context, plan, photos)
+        plan.updated_at = now()
+    elif "cover_attachment_id" in changed_fields or "cover_is_sensitive" in changed_fields:
         replace_cover(
             session,
             context,
@@ -612,7 +629,7 @@ def return_to_wish(
 
     removed_plan_id = plan.id
     actor_id = context.account_id
-    replace_cover(session, context, plan, None)
+    replace_photos(session, context, plan, [])
     session.delete(plan)
     _flush(session)
     _record(session, plan, actor_id, EventType.PLAN_DELETED)
@@ -641,7 +658,7 @@ def delete_plan(
         )
 
     actor_id = context.account_id
-    replace_cover(session, context, plan, None)
+    replace_photos(session, context, plan, [])
     session.delete(plan)
     _flush(session)
     _record(session, plan, actor_id, EventType.PLAN_DELETED)

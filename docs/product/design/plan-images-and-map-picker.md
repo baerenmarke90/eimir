@@ -97,3 +97,11 @@ The map SDK is a separate lazy chunk; a local reused ErrorBoundary and explicit
 retry contain module/network failure without destroying the parent editor.
 
 Final checks: [validation record](references/native-continuity/validation.md).
+
+## Gallery extension (#1514, 2026-10-30)
+
+The ordered gallery contract in [the gallery preflight](references/plan-photo-gallery/README.md)
+supersedes the original single-cover limit. The first photo remains the designated
+cover for overview and older clients. Reading reuses the Memory gallery, including
+swipe, full-screen and Back dismissal; classification/reordering/removal remain
+in the staged editor. Existing privacy, uncropped-image and map contracts remain.

@@ -15,7 +15,7 @@ import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
-import { MediaGallery } from './MediaGallery';
+import { GalleryExpandAction, MediaGallery } from './MediaGallery';
 import { ProblemState } from './ProblemState';
 import './MemoryPhotoGallery.css';
 
@@ -71,14 +71,10 @@ function PhotoActions({
   return (
     <>
       {revealed ? (
-        <button
-          type="button"
-          className="memory-photo-expand media-overlay"
-          onClick={openFullScreen}
-          aria-label={t('photoReactions.fullscreen')}
-        >
-          <EimirIcon name="expand" />
-        </button>
+        <GalleryExpandAction
+          className="memory-photo-expand"
+          onOpen={openFullScreen}
+        />
       ) : null}
       <button
         type="button"
@@ -234,7 +230,7 @@ export function MemoryPhotoGallery({
   };
 
   return (
-    <div className="memory-photo-gallery">
+    <div className="memory-photo-gallery photo-gallery">
       <MediaGallery
         items={photos.map(({ id, mediaType, isSensitive }) => ({
           id,

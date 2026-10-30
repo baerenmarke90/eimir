@@ -127,6 +127,21 @@ class AttachmentSummary(ApiModel):
     )
 
 
+class AttachmentEntry(ApiModel):
+    """Ordered atomic gallery binding, shared by Memory and Plan writers."""
+
+    model_config = ConfigDict(extra="forbid")
+    attachment_id: UUID
+    position: int = Field(ge=0)
+    is_sensitive: bool | None = Field(default=None, strict=True)
+
+
+class OrderedAttachmentSummary(AttachmentSummary):
+    """A bound photo with its stable position in a parent's gallery."""
+
+    position: int
+
+
 class UploadDescriptor(ApiModel):
     attachment: AttachmentDetail
     method: Literal["STREAM", "SIGNED_UPLOAD"]

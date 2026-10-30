@@ -45,29 +45,3 @@
   min-height: min(12rem, var(--plan-cover-max-height));
   padding: var(--space-4);
 }
-.plan-cover-field {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  align-items: center;
-}
-.plan-cover-field .field-help,
-.plan-cover-field .sensitive-media-checkbox {
-  flex-basis: 100%;
-  margin: 0;
-}
-.plan-cover-pick {
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-}
-.plan-cover-pick input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-.plan-cover-pick:focus-within {
-  outline: var(--space-1) solid var(--color-focus);
-  outline-offset: var(--space-1);
-}

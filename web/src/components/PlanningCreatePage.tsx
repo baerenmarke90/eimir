@@ -12,6 +12,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { WishDetail } from '../api/generated/models/WishDetail';
+import type { AttachmentEntry } from '../api/generated/models/AttachmentEntry';
+import { usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
 import {
   authorSummaryQueryKeys,
   invalidatePlaceConsumers,
@@ -36,13 +38,9 @@ import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
-import { PlanCoverField } from './PlanCover';
+import { PlanPhotosEditor } from './PlanPhotosEditor';
 import { PlaceMapPicker } from './PlaceMapPicker';
 import { createReferenceApis } from '../client/referenceFlow';
-import {
-  uploadMemoryDraftAttachment,
-  type DraftUploadPhase,
-} from '../client/memoryAttachmentDraft';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
@@ -55,8 +53,7 @@ interface PlanningCreateValues {
   readonly description?: string;
   readonly placeId?: string;
   readonly schedule?: PlanSchedule;
-  readonly coverAttachmentId?: string;
-  readonly coverIsSensitive?: boolean;
+  readonly attachments?: AttachmentEntry[];
 }
 
 interface PlanningCreateSnapshot {
@@ -79,12 +76,14 @@ export function PlanningCreatePage({
   kind,
   apiBaseUrl,
   accessToken,
+  accountId,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
   kind: PlanningCreateKind;
   apiBaseUrl?: string;
   accessToken?: string;
+  accountId?: string;
 }) {
   const { t } = useTranslation();
   const location = useLocation();
@@ -95,19 +94,18 @@ export function PlanningCreatePage({
     ?.taskOriginKey;
   const headingRef = useRef<HTMLDivElement>(null);
   const discardRef = useRef<ShortTaskSheetHandle>(null);
-  const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [coverSensitive, setCoverSensitive] = useState(false);
-  const [uploadPhase, setUploadPhase] = useState<DraftUploadPhase | null>(null);
-  const readyCovers = useRef(new WeakMap<File, string>());
-  const uploadController = useRef<AbortController | null>(null);
-  useEffect(() => () => uploadController.current?.abort(), []);
   const referenceApis = useMemo(
-    () =>
-      apiBaseUrl && accessToken
-        ? createReferenceApis(apiBaseUrl, accessToken)
-        : null,
+    () => createReferenceApis(apiBaseUrl ?? '', accessToken ?? ''),
     [apiBaseUrl, accessToken],
   );
+  const photos = usePlanPhotoDrafts({
+    apis: referenceApis,
+    apiBaseUrl: apiBaseUrl ?? '',
+    accessToken: accessToken ?? '',
+    spaceId,
+    accountId: accountId ?? '',
+  });
+  const clearPhotos = photos.clear;
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [placeId, setPlaceId] = useState('');
@@ -130,12 +128,12 @@ export function PlanningCreatePage({
   });
 
   const dirty = Boolean(
-    title || description || placeId || enrichmentDirty || coverFile,
+    title || description || placeId || enrichmentDirty || photos.items.length,
   );
-  const onClose = useCallback(
-    () => requestReturn(originKey, '/plan'),
-    [originKey, requestReturn],
-  );
+  const onClose = useCallback(() => {
+    clearPhotos();
+    requestReturn(originKey, '/plan');
+  }, [originKey, requestReturn, clearPhotos]);
   const {
     showDiscardConfirm: showDiscard,
     keepEditing,
@@ -157,34 +155,10 @@ export function PlanningCreatePage({
       assertOnlineWrite();
       let requestValues: PlanningCreateValues =
         kind === 'wish' ? { title: values.title } : values;
-      if (kind === 'plan' && coverFile) {
-        if (!referenceApis || !apiBaseUrl || !accessToken)
-          throw new Error('Plan upload transport unavailable');
-        let attachmentId = readyCovers.current.get(coverFile);
-        if (!attachmentId) {
-          const controller = new AbortController();
-          uploadController.current = controller;
-          try {
-            const ready = await uploadMemoryDraftAttachment(
-              referenceApis,
-              apiBaseUrl,
-              accessToken,
-              spaceId,
-              coverFile,
-              setUploadPhase,
-              fetch,
-              { signal: controller.signal },
-            );
-            attachmentId = ready.attachmentId;
-            readyCovers.current.set(coverFile, attachmentId);
-          } finally {
-            setUploadPhase(null);
-          }
-        }
+      if (kind === 'plan' && photos.items.length) {
         requestValues = {
           ...values,
-          coverAttachmentId: attachmentId,
-          coverIsSensitive: coverSensitive,
+          attachments: photos.entries,
         };
       }
       assertOnlineWrite();
@@ -283,7 +257,15 @@ export function PlanningCreatePage({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pending || createPlaceMutation.isPending || !title.trim()) return;
+    if (
+      pending ||
+      createPlaceMutation.isPending ||
+      !title.trim() ||
+      photos.hasPending ||
+      photos.hasFailed ||
+      photos.entries.length !== photos.items.length
+    )
+      return;
     if (!navigator.onLine) {
       setOfflineAttempt(true);
       return;
@@ -374,23 +356,13 @@ export function PlanningCreatePage({
           </div>
 
           {isPlan ? (
-            <PlanCoverField
-              file={coverFile}
-              sensitive={coverSensitive}
-              onFile={setCoverFile}
-              onRemove={() => setCoverFile(null)}
-              onSensitive={setCoverSensitive}
+            <PlanPhotosEditor
+              controller={photos}
+              spaceId={spaceId}
               disabled={pending}
+              canUpload={Boolean(apiBaseUrl && accessToken)}
+              onChange={() => setEnrichmentDirty(true)}
             />
-          ) : null}
-          {uploadPhase ? (
-            <p role="status">
-              {t(
-                uploadPhase === 'uploading'
-                  ? 'm5s3.planImage.uploading'
-                  : 'm5s3.planImage.validating',
-              )}
-            </p>
           ) : null}
           {isPlan ? (
             <details className="planning-optional-details">
@@ -537,7 +509,12 @@ export function PlanningCreatePage({
           <button type="button" className="secondary" onClick={requestClose}>
             {t('common.cancel')}
           </button>
-          <button type="submit" disabled={pending || !title.trim()}>
+          <button
+            type="submit"
+            disabled={
+              pending || !title.trim() || photos.hasPending || photos.hasFailed
+            }
+          >
             {pending ? t('m5s3.common.saving') : t('m5s3.common.save')}
           </button>
         </div>

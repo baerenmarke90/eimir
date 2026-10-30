@@ -123,7 +123,7 @@ class Plan(
     cover_attachment_id: Mapped[UUID | None] = mapped_column(
         postgresql.UUID(as_uuid=True), ForeignKey("attachments.id", ondelete="SET NULL")
     )
-    """Optional image bound exclusively to this shared Plan."""
+    """Designated leading photo; ordered supplemental bindings live beside it."""
 
     planned_on: Mapped[date | None] = mapped_column(Date)
     """Calendar day for a genuinely date-only schedule, or NULL.

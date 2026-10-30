@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AttachmentEntry } from './AttachmentEntry';
+import {
+    AttachmentEntryFromJSON,
+    AttachmentEntryFromJSONTyped,
+    AttachmentEntryToJSON,
+    AttachmentEntryToJSONTyped,
+} from './AttachmentEntry';
 import type { PlanSchedule } from './PlanSchedule';
 import {
     PlanScheduleFromJSON,
@@ -37,6 +44,12 @@ export interface PlanUpdate {
      * @memberof PlanUpdate
      */
     anticipationEnabled?: boolean;
+    /**
+     * 
+     * @type {Array<AttachmentEntry>}
+     * @memberof PlanUpdate
+     */
+    attachments?: Array<AttachmentEntry>;
     /**
      * 
      * @type {string}
@@ -99,6 +112,7 @@ export function PlanUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     return {
         
         'anticipationEnabled': json['anticipationEnabled'] == null ? undefined : json['anticipationEnabled'],
+        'attachments': json['attachments'] == null ? undefined : ((json['attachments'] as Array<any>).map(AttachmentEntryFromJSON)),
         'coverAttachmentId': json['coverAttachmentId'] === undefined ? undefined : json['coverAttachmentId'] === null ? null : json['coverAttachmentId'],
         'coverIsSensitive': json['coverIsSensitive'] == null ? undefined : json['coverIsSensitive'],
         'description': json['description'] === undefined ? undefined : json['description'] === null ? null : json['description'],
@@ -121,6 +135,7 @@ export function PlanUpdateToJSONTyped(value?: PlanUpdate | null, ignoreDiscrimin
     return {
         
         'anticipationEnabled': value['anticipationEnabled'],
+        'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(AttachmentEntryToJSON)),
         'coverAttachmentId': value['coverAttachmentId'],
         'coverIsSensitive': value['coverIsSensitive'],
         'description': value['description'],

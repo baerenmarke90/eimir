@@ -365,6 +365,16 @@ export async function installMocks(
       return;
     }
 
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+      return;
+    }
+
     // Discover uses the same authorized Dashboard read as Today for #452.
     // No historic candidate is available in these timeline/delete scenarios.
     if (

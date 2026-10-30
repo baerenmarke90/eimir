@@ -342,8 +342,8 @@
     },
     "wir-design-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 8,
-      "reason": "Personal Wir design selection, confirmed Pro writes, downgrade retention, Free reset and shared Today interactions across Compact/Expanded themes and large text."
+      "baselineTests": 11,
+      "reason": "Wir design selection and retention, quote/statistics order persistence with direct pointer tracking, and concise notification/private/profile settings across Compact/Expanded themes and large text."
     },
     "moment-relation-picker.spec.ts": {
       "disposition": "PR_CRITICAL",

@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import {
   useInfiniteQuery,
   useQuery,
@@ -14,7 +21,6 @@ import {
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { RecapsApi } from '../api/generated/apis/RecapsApi';
 import type { RecapPeriod } from '../api/generated/models/RecapPeriod';
-import type { RecapSourceView } from '../api/generated/models/RecapSourceView';
 import type { RecapView } from '../api/generated/models/RecapView';
 import { Configuration } from '../client/apiConfiguration';
 import { normalizeClientError } from '../client/problemDetails';
@@ -23,6 +29,7 @@ import {
   recapHeadline,
   recapPeriodKey,
   recapPeriodLabel,
+  recapPeriodStatus,
   recapSourcePath,
 } from '../client/recaps';
 import type { ReferenceApis } from '../client/referenceFlow';
@@ -32,11 +39,9 @@ import {
   MEMORY_CREATE_ROUTE,
   recapDetailPath,
 } from '../client/routes';
-import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
-import { MemoryPreview } from './MemoryPreview';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { ProMark } from './ProMark';
@@ -44,13 +49,14 @@ import type { ProfilePageProps } from './ProfilePage';
 import { RelationshipPassport } from './RelationshipPassport';
 import { RecapTasks } from './RecapTasks';
 import { UiState } from './UiState';
+import { RecapMedia, type RecapMediaProps } from './RecapMedia';
+import {
+  storyReadingDuration,
+  useStoryPlayback,
+} from '../client/useStoryPlayback';
 import './RelationshipRecapsPage.css';
 
 export type RecapsPageProps = ProfilePageProps & { mediaApis: ReferenceApis };
-export type RecapMediaProps = Pick<
-  RecapsPageProps,
-  'mediaApis' | 'spaceId' | 'account'
->;
 const POLL_WINDOW_MS = 120_000;
 
 async function authorized<T>(operation: Promise<T>): Promise<T> {
@@ -61,64 +67,11 @@ async function authorized<T>(operation: Promise<T>): Promise<T> {
   }
 }
 
-export function RecapMedia({
-  source,
-  mediaApis,
-  spaceId,
-  account,
-}: RecapMediaProps & { source: RecapSourceView }) {
-  const parentType =
-    source.kind === 'MEMORY' ||
-    source.kind === 'HEART_MOMENT' ||
-    source.kind === 'PLAN'
-      ? source.kind
-      : null;
-  const load = useCallback(
-    (parentId: string, attachmentId: string, signal?: AbortSignal) => {
-      if (!parentType)
-        return Promise.reject(new Error('No authorized media parent.'));
-      return loadAuthorizedStoryImage(
-        mediaApis,
-        spaceId,
-        parentType,
-        parentId,
-        attachmentId,
-        { signal, variant: 'thumbnail' },
-      );
-    },
-    [mediaApis, spaceId, parentType],
-  );
-  if (!source.available || !source.previewAttachmentId || !parentType)
-    return null;
-  return (
-    <MemoryPreview
-      memoryId={source.id}
-      attachmentId={source.previewAttachmentId}
-      loadImage={load}
-      isSensitive={source.previewIsSensitive}
-      allowReveal
-      loadingMode="near-viewport"
-      resourceScopeKey={JSON.stringify([
-        'recap-media',
-        account.id,
-        spaceId,
-        source.key,
-      ])}
-    />
-  );
-}
-
 function PeriodNote({ value }: { value: RecapView }) {
   const { t } = useTranslation();
   return (
     <p className="recap-period-note">
-      {value.savedAt
-        ? t('recaps.saved')
-        : value.isPartial
-          ? t('recaps.partial', {
-              date: recapDate(value.throughOn, resolvedLocale()),
-            })
-          : t('recaps.complete')}
+      {recapPeriodStatus(value, resolvedLocale(), t)}
     </p>
   );
 }
@@ -557,13 +510,57 @@ function RecapReader({
   const cover = value?.sources.find(
     (item) => item.available && item.previewAttachmentId,
   );
+  const autoStart = useRef(search.get('play') === '1').current;
+  // Consume playback intent once so a canonical source return stays paused.
+  useEffect(() => {
+    if (!search.has('play')) return;
+    const update = new URLSearchParams(search);
+    update.delete('play');
+    setSearch(update, { replace: true });
+  }, [search, setSearch]);
+  const pageKey = `${recapId}:${page}:${value?.version ?? 0}`;
+  const pageMedia =
+    page === 0
+      ? cover
+      : source?.available && source.previewAttachmentId
+        ? source
+        : undefined;
+  const mediaKey = `${pageKey}:${pageMedia?.key ?? ''}:${pageMedia?.previewAttachmentId ?? ''}`;
+  const [settledMedia, setSettledMedia] = useState<string | null>(null);
+  const settleMedia = useCallback(() => setSettledMedia(mediaKey), [mediaKey]);
+  const duration = storyReadingDuration(
+    page === 0
+      ? `${value?.headline ?? ''} ${value?.introduction ?? t('recaps.fallbackIntro')}`
+      : `${source?.title ?? ''} ${source?.excerpt ?? ''}`,
+  );
+  const playback = useStoryPlayback({
+    pageKey,
+    duration,
+    autoStart,
+    ready:
+      value?.status === 'READY' && (!pageMedia || settledMedia === mediaKey),
+    blocked: Boolean(
+      task ||
+        query.isError ||
+        (value &&
+          value.status !== 'PENDING' &&
+          (value.status !== 'READY' ||
+            page === pageCount - 1 ||
+            source?.available === false)),
+    ),
+    onAdvance: () => setPage(Math.min(page + 1, pageCount - 1)),
+  });
   const back = () =>
     requestReturn(
       (location.state as { taskOriginKey?: unknown } | null)?.taskOriginKey,
       `${MORE_PASSPORT_ROUTE}${search.get('tab') === 'years' ? '?tab=years' : ''}`,
     );
   return (
-    <div className="page recap-reader">
+    <div
+      className="page recap-reader"
+      data-playing={playback.running}
+      style={{ '--recap-dwell': `${duration}ms` } as CSSProperties}
+    >
       <div className="recap-reader-top">
         <button type="button" className="recap-back" onClick={back}>
           ‹ {t('recaps.back')}
@@ -616,12 +613,24 @@ function RecapReader({
                   ...value.sources.map((item) => item.key),
                   'reflections',
                 ].map((step, index) => (
-                  <span key={step} data-complete={index <= page} />
+                  <span
+                    key={step}
+                    data-complete={index < page}
+                    data-current={index === page}
+                  >
+                    <span
+                      className="recap-step-fill"
+                      key={`${step}:${pageKey}`}
+                    />
+                  </span>
                 ))}
               </div>
               <article
                 className="recap-spread"
                 key={`${recapId}:${page}`}
+                onPointerDownCapture={playback.pause}
+                onFocusCapture={playback.pause}
+                onKeyDownCapture={playback.pause}
                 aria-label={t('recaps.page', {
                   page: page + 1,
                   count: pageCount,
@@ -638,7 +647,11 @@ function RecapReader({
                     <PeriodNote value={value} />
                     {cover ? (
                       <div className="recap-reader-photo">
-                        <RecapMedia {...props} source={cover} />
+                        <RecapMedia
+                          {...props}
+                          source={cover}
+                          onSettled={settleMedia}
+                        />
                       </div>
                     ) : (
                       <div className="recap-reader-seal">
@@ -650,6 +663,9 @@ function RecapReader({
                         ? t('recaps.emptyBody')
                         : (value.introduction ?? t('recaps.fallbackIntro'))}
                     </p>
+                    {value.introduction ? (
+                      <p className="recap-ai-note">{t('recaps.aiDraft')}</p>
+                    ) : null}
                   </>
                 ) : source ? (
                   <>
@@ -666,7 +682,11 @@ function RecapReader({
                     </h1>
                     {source.available && source.previewAttachmentId ? (
                       <div className="recap-reader-photo">
-                        <RecapMedia {...props} source={source} />
+                        <RecapMedia
+                          {...props}
+                          source={source}
+                          onSettled={settleMedia}
+                        />
                       </div>
                     ) : null}
                     {source.available &&
@@ -766,18 +786,50 @@ function RecapReader({
                   className="secondary"
                   disabled={page === 0}
                   aria-label={t('recaps.previous')}
-                  onClick={() => setPage(page - 1)}
+                  onClick={() => {
+                    playback.pause();
+                    setPage(page - 1);
+                  }}
                 >
                   ←
                 </button>
-                <span aria-live="polite">
-                  {t('recaps.page', { page: page + 1, count: pageCount })}
-                </span>
+                <div className="recap-playback-center">
+                  {value.status === 'READY' ? (
+                    <button
+                      type="button"
+                      className="recap-playback-toggle"
+                      onClick={() => {
+                        if (playback.playing) playback.pause();
+                        else {
+                          if (page === pageCount - 1) setPage(0);
+                          playback.play();
+                        }
+                      }}
+                    >
+                      <span aria-hidden="true">
+                        {playback.playing ? 'Ⅱ' : '▶'}
+                      </span>
+                      {t(
+                        playback.playing
+                          ? 'recaps.pause'
+                          : page === pageCount - 1
+                            ? 'recaps.replay'
+                            : 'recaps.play',
+                      )}
+                    </button>
+                  ) : null}
+                  <span aria-live={playback.playing ? 'off' : 'polite'}>
+                    {t('recaps.page', { page: page + 1, count: pageCount })}
+                  </span>
+                </div>
                 <button
                   type="button"
                   disabled={page === pageCount - 1}
                   aria-label={t('recaps.next')}
-                  onClick={() => setPage(page + 1)}
+                  onClick={() => {
+                    playback.pause();
+                    setPage(page + 1);
+                  }}
                 >
                   →
                 </button>

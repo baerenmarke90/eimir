@@ -403,15 +403,21 @@ for (const colorScheme of ['light', 'dark'] as const) {
         name: photoPlaceCopy.setting,
       });
       await expect(control).toHaveAttribute('aria-checked', 'true');
-      await expect(
-        page.getByText(photoPlaceCopy.metadata, { exact: true }),
-      ).toBeVisible();
+      const explanation = page.locator('.settings-explanation');
+      const metadata = page.getByText(photoPlaceCopy.metadata, { exact: true });
+      await expect(explanation).not.toHaveAttribute('open');
+      await expect(metadata).toBeHidden();
       await captureScreenshot(
         page,
         testInfo,
         `1478-settings-${width}-${colorScheme}.png`,
         { fullPage: true },
       );
+      await explanation
+        .locator(':scope > summary')
+        .filter({ hasText: photoPlaceCopy.details })
+        .click();
+      await expect(metadata).toBeVisible();
       await control.click();
       await expect(control).toHaveAttribute('aria-checked', 'false');
       await expect(

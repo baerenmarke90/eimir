@@ -1,0 +1,65 @@
+.monthly-recap-entry {
+  min-inline-size: 0;
+}
+.monthly-recap-invitation {
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--color-shared-surface);
+  margin-block-end: var(--space-3);
+}
+.monthly-recap-photo {
+  aspect-ratio: 2.2;
+  overflow: hidden;
+  background: var(--color-surface-subtle);
+}
+.monthly-recap-photo .story-media-preview,
+.monthly-recap-photo .story-media-skeleton,
+.monthly-recap-photo .story-media-placeholder {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  border-radius: 0;
+}
+.monthly-recap-copy {
+  padding: var(--space-5);
+}
+.monthly-recap-kicker {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+}
+.monthly-recap-copy h3 {
+  font: var(--font-personal-heading);
+  margin-block: var(--space-2);
+  text-wrap: balance;
+}
+.monthly-recap-copy p {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+  margin-block: var(--space-3);
+}
+.monthly-recap-watch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  border-radius: var(--radius-pill);
+}
+.monthly-recap-library-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 44px;
+  color: var(--color-link);
+  font: var(--font-supporting-copy);
+}
+@media (min-width: 840px) {
+  .monthly-recap-invitation.has-photo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .monthly-recap-photo {
+    aspect-ratio: auto;
+    min-block-size: 100%;
+  }
+}

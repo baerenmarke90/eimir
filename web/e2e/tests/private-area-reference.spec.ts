@@ -425,9 +425,15 @@ async function signInAgain(page: Page): Promise<void> {
 }
 
 async function expectPrivateReferenceStructure(page: Page): Promise<void> {
-  const banner = page.getByRole('note');
-  await expect(banner).toContainText(privateArea.privacyLabel);
-  await expect(banner).toContainText(privateArea.entry.privacy);
+  const context = page.locator('.private-area-context');
+  await expect(context).toHaveAccessibleName(privateArea.privacyLabel);
+  await expect(context.locator('.private-area-intro-text')).toHaveText(
+    privateArea.entry.privacy,
+  );
+  await expect(
+    page.getByText(privateArea.entry.privacy, { exact: true }),
+  ).toHaveCount(1);
+  await expect(page.getByRole('note')).toHaveCount(0);
 
   const cards = page.locator('.private-area-destination-card');
   await expect(cards).toHaveCount(3);

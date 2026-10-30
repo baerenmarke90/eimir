@@ -77,11 +77,10 @@ export function PhotoLocationSettings({
   );
   return (
     <section className="settings-category-content settings-section">
-      <p>{t('photoPlaces.description')}</p>
-      <p className="muted">{t('photoPlaces.future')}</p>
       {query.data && !denied ? (
         <PreferenceSwitch
           label={t('photoPlaces.setting')}
+          description={t('photoPlaces.shortDescription')}
           checked={query.data.enabled}
           disabled={query.isFetching || mutation.isPending}
           onCheckedChange={(enabled) => {
@@ -99,7 +98,12 @@ export function PhotoLocationSettings({
           }}
         />
       ) : null}
-      <p className="muted">{t('photoPlaces.metadata')}</p>
+      <p className="muted">{t('photoPlaces.future')}</p>
+      <details className="settings-explanation">
+        <summary>{t('photoPlaces.details')}</summary>
+        <p>{t('photoPlaces.description')}</p>
+        <p>{t('photoPlaces.metadata')}</p>
+      </details>
       {query.isPending ? (
         <p role="status">
           {t(isClientOnline() ? 'photoPlaces.loading' : 'photoPlaces.offline')}

@@ -33,7 +33,13 @@ export function PrivateAreaFrame({
             <EimirIcon name="nurfuer" className="private-area-lock-icon" />
             {t('privateArea.eyebrow')}
           </h1>
-          <p className="private-area-intro-text">{t('privateArea.intro')}</p>
+          <p className="private-area-intro-text">
+            {t(
+              showNavigation
+                ? 'privateArea.intro'
+                : 'privateArea.entry.privacy',
+            )}
+          </p>
         </div>
       </section>
       {showNavigation ? (

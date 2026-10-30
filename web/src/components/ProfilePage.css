@@ -756,3 +756,31 @@
 .profile-passport-entry strong {
   font: var(--font-content-heading);
 }
+
+.profile-partner-disclosure {
+  min-inline-size: 0;
+}
+.profile-partner-disclosure > summary,
+.settings-explanation > summary,
+.notification-event-details > summary {
+  min-height: var(--touch-target-web);
+  padding-block: var(--space-3);
+  font: var(--font-content-heading);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.profile-partner-disclosure[open] > summary {
+  margin-bottom: var(--space-4);
+}
+summary.profile-premium-title-row {
+  display: list-item;
+  cursor: pointer;
+  min-height: var(--touch-target-web);
+  align-content: center;
+}
+summary.profile-premium-title-row h2 {
+  display: inline;
+}
+.profile-page .profile-section-intro:empty {
+  display: none;
+}

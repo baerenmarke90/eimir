@@ -33,7 +33,6 @@ import {
   PartnerBirthdayReminderSettings,
 } from './AnniversaryReminderSettings';
 import { DailyQuoteSettingsPanel } from './DailyQuoteSettingsPanel';
-import { WirStatisticsSetting } from './WirStatisticsSetting';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 import { PageHeader } from './PageHeader';
@@ -45,6 +44,7 @@ import { SettingsIndex } from './SettingsIndex';
 import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
 import { TransferPanel } from './TransferPanel';
+import { WirStatisticsSetting } from './WirStatisticsSetting';
 import './SettingsPage.css';
 
 export interface SettingsPageProps {
@@ -148,14 +148,17 @@ export function SettingsPage(props: SettingsPageProps) {
           accountId={props.account.id}
           devicePush={props.devicePush}
         />
-        <AnniversaryReminderSettings
-          rulesApi={rulesApi}
-          spaceId={props.spaceId}
-        />
-        <PartnerBirthdayReminderSettings
-          rulesApi={rulesApi}
-          spaceId={props.spaceId}
-        />
+        <details className="notification-event-details">
+          <summary>{t('notificationSettings.dates')}</summary>
+          <AnniversaryReminderSettings
+            rulesApi={rulesApi}
+            spaceId={props.spaceId}
+          />
+          <PartnerBirthdayReminderSettings
+            rulesApi={rulesApi}
+            spaceId={props.spaceId}
+          />
+        </details>
         <div className="form-actions settings-notification-inbox-action">
           <Link
             className="button-link secondary-link"

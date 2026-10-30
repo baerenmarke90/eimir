@@ -123,6 +123,18 @@ class ProjectIdentityScanTest(unittest.TestCase):
                     classify(candidate, text, match)[0], Classification.MUST_RENAME
                 )
 
+    def test_monthly_recap_prompt_exception_is_path_and_phrase_scoped(self) -> None:
+        path = Path("docs/product/design/references/1542/prompt.txt")
+        line = "Two comparable phones side by side on quiet dark canvas."
+        self.assertEqual(classify(path, line, "side by side")[0], Classification.FALSE_POSITIVE)
+        for candidate, text, match in (
+            (path, "Use SideBySide branding.", "SideBySide"),
+            (path, "Use side by side branding.", "side by side"),
+            (Path("backend/src/example.py"), line, "side by side"),
+        ):
+            with self.subTest(path=candidate, match=match):
+                self.assertEqual(classify(candidate, text, match)[0], Classification.MUST_RENAME)
+
 
 if __name__ == "__main__":
     unittest.main()

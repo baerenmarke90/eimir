@@ -43,10 +43,65 @@ Dark, large text, reduced motion, sparse/no-photo, unavailable-source, pending,
 offline and permission-denied states. Neither a screenshot nor mocked inference
 establishes actual operator-host model quality or latency.
 
-## Current delivery state
+## Implemented behavior
 
-Only the local model prompt/evidence/editorial validation is implemented locally.
-UI implementation has not started. The required public issue-linked visual
-preflight push was rejected by automatic approval review. The verified remote is
-the requested `baerenmarke90/eimir` repository; an explicit publication approval
-is still required before that blocked action is attempted again.
+The invitation is part of monthly highlights, including its existing personal
+visibility and ordering. It features a ready, nonempty current month in the last
+three calendar days, or the previous month in the first seven days. Other days
+retain a quiet Passport link. Timing uses Dashboard's server-provided viewer day;
+period/partial labels use the actual edition. Free users may watch retained
+editions; saved partial editions use the same retained-status label as the reader
+instead of promising continued growth; Wir never queues a generation. Optional query failure/denial removes
+the preview and preserves ordinary navigation. A source already featured elsewhere
+on Wir is not repeated as the invitation photo.
+
+The shared RecapMedia component owns authorized library/invitation/reader media.
+MemoryPreview reports resource completion, including cache reuse and failure,
+so a loading picture does not consume reading time. A single finite playback
+hook preserves remaining dwell time through Pause, uses text-sensitive reading
+time, pauses for content interaction/tasks/backgrounding and consumes Watch-now
+intent once. Return from an original remains paused at the same page. Playback
+stops at reflections and can be deliberately restarted. Existing editing, private
+drafts, source return and saved-artifact behavior remain unchanged.
+
+Page transitions use the existing context duration. Time-proportional playback
+uses the shared generated playback easing role; its duration is reading time,
+not an interaction-transition constant. Reduced motion opens paused and removes
+photo/progress animation while allowing deliberate static playback. Controls
+reuse the existing product-content container for narrow/large-text reflow; their
+labels remain whole and their targets do not overlap. Generated
+introductions have a localized AI-draft label, separate from authored originals.
+
+## Verification
+
+- Focused integrated playback/calendar/Today/media/motion tests: 110 passed.
+- Browser suite: all 18 scenarios passed in a fresh integrated run against main
+  `bad2cb2691ca7045ea290d6a6e63345989aab19b`. Reader/reflow scenarios also passed
+  after the final control-layout correction.
+  The first run exposed harness issues: explicit navigation to Wir was missing,
+  normal Today preference/activity responses were missing, the task closes through
+  the shared Close action, and synthetic visibility events must bubble to the
+  window listener used by TanStack Query. Corrections preserve the assertions and
+  timeout limits. No product test or privacy rule was weakened.
+- Production build, semantic token generation/check, scoped lint and typecheck passed.
+- Backend composition/model validation: 25 passed; scoped Ruff/format and strict
+  mypy passed with locked dependencies on Python 3.12.
+- The complete Web unit run found one new raw-easing violation, corrected by the
+  shared playback token; all other 2343 tests passed. The motion regression suite
+  passes with that correction. Required CI remains authoritative for the final head.
+
+Local browser QA uses available Chromium 153 through an uncommitted launch-only
+config. The pinned Playwright browser download returned HTML instead of a ZIP;
+no browser assertion or CI configuration was changed. No physical Android-device,
+actual operator-host model quality/latency or 1000-couple load claim is made.
+
+Representative implementation evidence:
+
+- [Wir Compact Light](evidence/recaps-wir-360-light.png)
+- [Wir Compact Dark](evidence/recaps-wir-390-dark.png)
+- [Wir 430 px](evidence/recaps-wir-430-light.png)
+- [Wir Expanded Dark](evidence/recaps-wir-1280-dark.png)
+- [Reader Compact Light](evidence/recaps-reader-360-light.png)
+- [Reader Compact Dark](evidence/recaps-reader-430-dark.png)
+- [Reader Expanded Dark](evidence/recaps-reader-1280-dark.png)
+- [Large text and reduced motion](evidence/recaps-playback-360-dark-large-reduced.png)

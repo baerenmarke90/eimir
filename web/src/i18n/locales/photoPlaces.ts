@@ -1,7 +1,10 @@
 const photoPlaces = {
   category: 'Erinnerungen',
   categoryIntro: 'Wie Orte aus deinen Fotos erhalten bleiben.',
-  setting: 'Orte automatisch ergänzen',
+  setting: 'Orte aus Fotos',
+  shortDescription:
+    'Aufnahmeorte beim Hinzufügen übernehmen. Nur bei Fotos mit Ortsdaten.',
+  details: 'Welche Daten werden verwendet?',
   description:
     'Enthält ein ausgewähltes Foto einen Aufnahmeort, ergänzen wir ihn beim Speichern eines gemeinsamen Moments. Für Ortsname und Adresse werden die Koordinaten und deine Sprache an den eingerichteten Ortsdienst übermittelt (standardmäßig Photon). Fotos und Kontodaten werden dabei nicht übermittelt. Private Herzmomente bleiben privat.',
   future:

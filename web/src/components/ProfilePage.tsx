@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
+import { MORE_PASSPORT_ROUTE } from '../client/routes';
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProfileIdentityPanel } from './ProfileIdentityPanel';
-import { Link } from 'react-router-dom';
-import { MORE_PASSPORT_ROUTE } from '../client/routes';
 import {
   ProfilePreferencesSection,
   RelationshipSummarySection,
@@ -49,12 +49,6 @@ export function ProfilePage(props: ProfilePageProps) {
     <div className="page profile-page">
       <PageHeader title={t('profiles.title')} />
 
-      {/* Relationship compact badge/row (if anniversary date is configured) */}
-      <RelationshipSummarySection
-        spacesApi={spacesApi}
-        spaceId={props.spaceId}
-      />
-
       {/* 1. Identity panel for current user */}
       <ProfileIdentityPanel
         {...currentProps}
@@ -63,7 +57,15 @@ export function ProfilePage(props: ProfilePageProps) {
         }}
       />
 
+      {/* Relationship compact badge/row (if anniversary date is configured) */}
+      <RelationshipSummarySection
+        spacesApi={spacesApi}
+        spaceId={props.spaceId}
+      />
+
       {/* 2. Personal and partner profile content remains ahead of product/account messaging. */}
+      <ProfilePreferencesSection {...currentProps} />
+
       <Link className="profile-passport-entry" to={MORE_PASSPORT_ROUTE}>
         <span>
           <strong>{t('recaps.shortTitle')}</strong>
@@ -71,17 +73,16 @@ export function ProfilePage(props: ProfilePageProps) {
         </span>
         <span aria-hidden="true">↗</span>
       </Link>
-      <ProfilePreferencesSection {...currentProps} />
 
       {/* 3. Account-level Premium information stays factual and secondary. */}
-      <section
+      <details
         id="profile-premium"
         className="profile-premium-section"
         aria-labelledby="profile-premium-title"
       >
-        <div className="profile-premium-title-row">
+        <summary className="profile-premium-title-row">
           <h2 id="profile-premium-title">{t('profiles.premium.title')}</h2>
-        </div>
+        </summary>
         <p className="profile-premium-lead">
           {t('profiles.premium.gamesTitle')}
         </p>
@@ -95,7 +96,7 @@ export function ProfilePage(props: ProfilePageProps) {
             <p>{t('profiles.premium.detailsBody')}</p>
           </div>
         </details>
-      </section>
+      </details>
     </div>
   );
 }

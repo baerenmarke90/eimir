@@ -1,7 +1,7 @@
 import {
   type ButtonHTMLAttributes,
-  type PointerEvent as ReactPointerEvent,
   forwardRef,
+  type PointerEvent as ReactPointerEvent,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -62,6 +62,12 @@ type DragState = {
   clientX: number;
   clientY: number;
   scrollContainer: HTMLElement;
+  initialY: number;
+  initialScroll: number;
+  row: HTMLElement;
+  handle: HTMLButtonElement;
+  parent: HTMLElement;
+  positions: Map<string, { top: number; height: number }>;
 };
 
 function scrollContainerFor(handle: HTMLElement): HTMLElement {
@@ -94,14 +100,25 @@ export function useListItemReorder({
   const dragRef = useRef<DragState | null>(null);
   const scrollFrame = useRef<number | null>(null);
   const previousRects = useRef<Map<string, number> | null>(null);
+  const listRef = useRef<HTMLElement | null>(null);
+  const animations = useRef(new Map<HTMLElement, Animation>());
   const [previewOrder, setPreviewOrder] = useState<string[] | null>(null);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const orderSignature = itemIds.join('|');
+  const confirmedOrder = useRef(orderSignature);
+  useEffect(() => {
+    if (confirmedOrder.current !== orderSignature && !dragRef.current)
+      setPreviewOrder(null);
+    confirmedOrder.current = orderSignature;
+  }, [orderSignature]);
 
   function captureRects() {
     if (!animatePreview) return;
     previousRects.current = new Map(
       Array.from(
-        document.querySelectorAll<HTMLElement>('[data-sortable-item-id]'),
+        listRef.current?.querySelectorAll<HTMLElement>(
+          '[data-sortable-item-id]',
+        ) ?? [],
       )
         .filter((row) => itemIds.includes(row.dataset.sortableItemId ?? ''))
         .map((row) => [
@@ -114,6 +131,30 @@ export function useListItemReorder({
   useLayoutEffect(() => {
     const before = previousRects.current;
     previousRects.current = null;
+    const drag = dragRef.current;
+    if (before || drag) {
+      for (const animation of animations.current.values()) animation.cancel();
+      animations.current.clear();
+    }
+    if (drag) {
+      // Moving a keyed row in the DOM can release browser pointer capture.
+      // Restore it after layout so the same handle owns the entire drag.
+      if (!drag.handle.hasPointerCapture(drag.pointerId)) {
+        drag.handle.setPointerCapture(drag.pointerId);
+      }
+      drag.row.style.removeProperty('transform');
+      const original = drag.positions.get(drag.itemId);
+      if (original) {
+        const scrollDelta = drag.scrollContainer.scrollTop - drag.initialScroll;
+        const offset =
+          original.top +
+          drag.clientY -
+          drag.initialY -
+          scrollDelta -
+          drag.row.getBoundingClientRect().top;
+        drag.row.style.transform = `translateY(${offset}px)`;
+      }
+    }
     if (
       !before ||
       window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -129,26 +170,30 @@ export function useListItemReorder({
       getComputedStyle(document.documentElement)
         .getPropertyValue('--easing-standard')
         .trim() || 'ease-out';
-    for (const row of document.querySelectorAll<HTMLElement>(
+    for (const row of listRef.current?.querySelectorAll<HTMLElement>(
       '[data-sortable-item-id]',
-    )) {
+    ) ?? []) {
+      if (row === drag?.row) continue;
       const oldTop = before.get(row.dataset.sortableItemId ?? '');
       if (oldTop === undefined || typeof row.animate !== 'function') continue;
       const displacement = oldTop - row.getBoundingClientRect().top;
       if (Math.abs(displacement) < 1) continue;
-      row.animate(
+      const animation = row.animate(
         [
           { transform: `translateY(${displacement}px)` },
           { transform: 'translateY(0)' },
         ],
         { duration: Number.isFinite(duration) ? duration : 180, easing },
       );
+      animations.current.set(row, animation);
     }
   });
 
   useEffect(
     () => () => {
+      dragRef.current?.row.style.removeProperty('transform');
       dragRef.current = null;
+      for (const animation of animations.current.values()) animation.cancel();
       if (scrollFrame.current !== null)
         cancelAnimationFrame(scrollFrame.current);
     },
@@ -156,27 +201,35 @@ export function useListItemReorder({
   );
 
   function updateTarget(drag: DragState) {
-    const element = document.elementFromPoint(drag.clientX, drag.clientY);
-    const row = element?.closest(
-      '[data-sortable-item-id]',
-    ) as HTMLElement | null;
-    const targetId = row?.dataset.sortableItemId;
-    if (
-      !row ||
-      !targetId ||
-      targetId === drag.itemId ||
-      !drag.order.includes(targetId)
-    )
-      return;
-    const bounds = row.getBoundingClientRect();
-    const placement =
-      drag.clientY >= bounds.top + bounds.height / 2 ? 'after' : 'before';
-    const next = moveSortableItem(drag.order, drag.itemId, targetId, placement);
+    const original = drag.positions.get(drag.itemId);
+    if (!original) return;
+    const scrollDelta = drag.scrollContainer.scrollTop - drag.initialScroll;
+    const center =
+      original.top +
+      original.height / 2 +
+      drag.clientY -
+      drag.initialY +
+      scrollDelta;
+    const next = drag.initialOrder.filter((id) => id !== drag.itemId);
+    const targetIndex = next.findIndex((id) => {
+      const bounds = drag.positions.get(id);
+      return bounds && center < bounds.top + bounds.height / 2;
+    });
+    next.splice(targetIndex < 0 ? next.length : targetIndex, 0, drag.itemId);
     if (!sameOrder(drag.order, next)) {
       captureRects();
       drag.order = next;
       setPreviewOrder(next);
     }
+    // The held item follows the pointer, independent of sibling FLIP motion.
+    drag.row.style.removeProperty('transform');
+    const offset =
+      original.top +
+      drag.clientY -
+      drag.initialY -
+      scrollDelta -
+      drag.row.getBoundingClientRect().top;
+    drag.row.style.transform = `translateY(${offset}px)`;
   }
 
   function autoScroll() {
@@ -215,12 +268,13 @@ export function useListItemReorder({
     if (scrollFrame.current !== null) cancelAnimationFrame(scrollFrame.current);
     scrollFrame.current = null;
 
+    captureRects();
+    drag.row.style.removeProperty('transform');
+    dragRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-
-    dragRef.current = null;
-    setPreviewOrder(null);
+    setPreviewOrder(commit ? drag.order : null);
     setActiveItemId(null);
 
     if (commit && !sameOrder(drag.initialOrder, drag.order)) {
@@ -235,6 +289,9 @@ export function useListItemReorder({
       disabled,
       onKeyDown: (event) => {
         if (disabled) return;
+        listRef.current =
+          event.currentTarget.closest('[data-sortable-item-id]')
+            ?.parentElement ?? null;
         const direction =
           event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
         if (direction === 0) return;
@@ -252,6 +309,15 @@ export function useListItemReorder({
       },
       onPointerDown: (event) => {
         if (disabled || event.button !== 0) return;
+        const row = event.currentTarget.closest<HTMLElement>(
+          '[data-sortable-item-id]',
+        );
+        const parent = row?.parentElement;
+        if (!row || !parent) return;
+        listRef.current = parent;
+        for (const animation of animations.current.values()) animation.cancel();
+        animations.current.clear();
+        const scrollContainer = scrollContainerFor(event.currentTarget);
         const initialOrder = [...itemIds];
         dragRef.current = {
           itemId,
@@ -260,7 +326,20 @@ export function useListItemReorder({
           order: initialOrder,
           clientX: event.clientX,
           clientY: event.clientY,
-          scrollContainer: scrollContainerFor(event.currentTarget),
+          scrollContainer,
+          initialY: event.clientY,
+          initialScroll: scrollContainer.scrollTop,
+          row,
+          handle: event.currentTarget,
+          parent,
+          positions: new Map(
+            Array.from(
+              parent.querySelectorAll<HTMLElement>('[data-sortable-item-id]'),
+            ).map((element) => [
+              element.dataset.sortableItemId ?? '',
+              element.getBoundingClientRect(),
+            ]),
+          ),
         };
         setPreviewOrder(initialOrder);
         setActiveItemId(itemId);
@@ -279,6 +358,10 @@ export function useListItemReorder({
       },
       onPointerUp: (event) => finishPointer(event, true),
       onPointerCancel: (event) => finishPointer(event, false),
+      onLostPointerCapture: (event) => {
+        if (!event.currentTarget.hasPointerCapture(event.pointerId))
+          finishPointer(event, false);
+      },
     };
   }
 

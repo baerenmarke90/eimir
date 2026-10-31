@@ -405,6 +405,10 @@ for (const [width, theme, largeText] of [
     await page.goto('/more/profile');
     await expect(page.locator('.profile-page')).toBeVisible();
     await expect(page.locator('.profile-passport-entry')).toHaveCount(0);
+    if (largeText)
+      await page.addStyleTag({
+        content: 'html { font-size: 200% !important; }',
+      });
     await captureScreenshot(
       page,
       info,

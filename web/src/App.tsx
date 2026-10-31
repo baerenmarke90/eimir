@@ -68,6 +68,7 @@ import {
   CHAPTER_CREATE_ROUTE,
   CHAPTER_DETAIL_ROUTE_PATTERN,
   COLLECTION_DETAIL_ROUTE_PATTERN,
+  COLLECTION_CREATE_ROUTE,
   DEFAULT_APP_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
@@ -87,6 +88,7 @@ import {
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
+  MEMORY_MAP_ROUTE,
   MORE_COLLECTIONS_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_PASSPORT_ROUTE,
@@ -141,6 +143,7 @@ import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
 import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
 import { PlaceProductPage } from './components/PlaceProductPage';
+import { MemoryMapPage } from './components/MemoryMapPage';
 import { PlacesOverviewPage } from './components/PlacesOverviewPage';
 import { PlanProductPage } from './components/PlanProductPage';
 import { PlanningCreatePage } from './components/PlanningCreatePage';
@@ -574,6 +577,10 @@ function AuthenticatedApp({
               element={<ChapterProductPage {...planningProductProps} />}
             />
             <Route
+              path={MEMORY_MAP_ROUTE}
+              element={<MemoryMapPage {...planningProductProps} />}
+            />
+            <Route
               path={MORE_PLACES_ROUTE}
               element={<PlacesOverviewPage {...planningProductProps} />}
             />
@@ -584,6 +591,16 @@ function AuthenticatedApp({
             <Route
               path={PLACE_DETAIL_ROUTE_PATTERN}
               element={<PlaceProductPage {...planningProductProps} />}
+            />
+            <Route
+              path={COLLECTION_CREATE_ROUTE}
+              element={
+                <CollectionsOverviewPage
+                  key="create-list"
+                  {...planningProductProps}
+                  initialCreate
+                />
+              }
             />
             <Route
               path={MORE_COLLECTIONS_ROUTE}
@@ -682,6 +699,7 @@ function AuthenticatedApp({
                 path={path}
                 element={
                   <DailyInsightsPage
+                    apiBaseUrl={apiBaseUrl}
                     key={`${account.id}:${spaceId}`}
                     view={insightView}
                     spaceId={spaceId}

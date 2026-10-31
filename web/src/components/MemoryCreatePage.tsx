@@ -788,6 +788,19 @@ export function MemoryCreatePage({
           >
             <legend className="sr-only">{t('memory.formAria')}</legend>
 
+            <div className="field-group immersive-create-title-field">
+              <label htmlFor="title">{t('memory.titleLabelOptional')}</label>
+              <input
+                id="title"
+                name="title"
+                maxLength={200}
+                placeholder={t('memory.titlePlaceholder')}
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                className="immersive-create-title-input"
+              />
+            </div>
+
             <div className="field-group immersive-create-date-field">
               <span id="happenedOn-label">{t('memory.dateLabel')}</span>
               {dateEditorOpen || dateSummaryText === null ? (
@@ -878,19 +891,6 @@ export function MemoryCreatePage({
                 draftValue={tagDraftText}
                 onDraftValueChange={setTagDraftText}
               />
-
-              <div className="field-group immersive-create-title-field">
-                <label htmlFor="title">{t('memory.titleLabelOptional')}</label>
-                <input
-                  id="title"
-                  name="title"
-                  maxLength={200}
-                  placeholder={t('memory.titlePlaceholder')}
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  className="immersive-create-title-input"
-                />
-              </div>
             </details>
             <div
               className="sharing-note immersive-sharing-note"

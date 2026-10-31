@@ -10,6 +10,8 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ACTIVITY_ROUTE,
+  MEMORY_MAP_ROUTE,
+  MORE_COLLECTIONS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PASSPORT_ROUTE,
   PRIMARY_APP_ROUTES,
@@ -95,6 +97,8 @@ export function taskOriginPath(
       '/today',
       '/story',
       STORY_PHOTOS_ROUTE,
+      MEMORY_MAP_ROUTE,
+      MORE_COLLECTIONS_ROUTE,
       '/plan',
       WISH_SELECTION_ROUTE,
       '/more',
@@ -119,6 +123,15 @@ export function taskOriginPath(
     if (recapReader && Number.isInteger(page) && page > 0 && page <= 13)
       safe.set('page', String(page));
     return safe.size ? `${pathname}?${safe}` : pathname;
+  }
+  if (pathname === MEMORY_MAP_ROUTE) {
+    const place = new URLSearchParams(search).get('place') ?? '';
+    const coordinates = place.split(':').map(Number);
+    const valid =
+      /^-?\d{1,3}(?:\.\d{1,16})?:-?\d{1,3}(?:\.\d{1,16})?$/.test(place) &&
+      Math.abs(coordinates[0]) <= 90 &&
+      Math.abs(coordinates[1]) <= 180;
+    return valid ? `${pathname}?${new URLSearchParams({ place })}` : pathname;
   }
   if (pathname !== '/story') return pathname;
   const input = new URLSearchParams(search);

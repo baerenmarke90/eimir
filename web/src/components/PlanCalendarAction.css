@@ -1,0 +1,11 @@
+.plan-calendar-action .button-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target-web);
+}
+.plan-calendar-action .eimir-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}

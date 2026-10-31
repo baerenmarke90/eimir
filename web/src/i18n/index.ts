@@ -2,6 +2,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import accountSettings from './locales/accountSettings';
 import appIcon from './locales/appIcon';
+import calendarPlan from './locales/calendarPlan';
 import contextTags from './locales/contextTags';
 import dailyEnergy from './locales/dailyEnergy';
 import dailyInsights from './locales/dailyInsights';
@@ -14,6 +15,7 @@ import importantDates from './locales/importantDates';
 import m5s3 from './locales/m5s3';
 import m5s5 from './locales/m5s5';
 import m5s6 from './locales/m5s6';
+import memoryMap from './locales/memoryMap';
 import memoryProduct from './locales/memoryProduct';
 import navigation from './locales/navigation';
 import notificationSettings from './locales/notificationSettings';
@@ -26,8 +28,8 @@ import privateArea from './locales/privateArea';
 import productTour from './locales/productTour';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
-import relationshipComponents from './locales/relationshipComponents';
 import recaps from './locales/recaps';
+import relationshipComponents from './locales/relationshipComponents';
 import relationshipReflections from './locales/relationshipReflections';
 import sensitiveMedia from './locales/sensitiveMedia';
 import serverAdmin from './locales/serverAdmin';
@@ -37,6 +39,7 @@ import spaceOffboarding from './locales/spaceOffboarding';
 import storyProducts from './locales/storyProducts';
 import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
+import weeklyInsights from './locales/weeklyInsights';
 import wirDesign from './locales/wirDesign';
 import wishSelection from './locales/wishSelection';
 
@@ -57,6 +60,8 @@ if (!i18n.isInitialized) {
       de: {
         translation: {
           ...de,
+          memoryMap,
+          calendarPlan,
           sensitiveMedia,
           taskBoundary,
           taskSheets,
@@ -69,6 +74,7 @@ if (!i18n.isInitialized) {
           demo,
           dailyEnergy,
           dailyInsights,
+          weeklyInsights,
           dailyQuote,
           dailyVibe,
           games,

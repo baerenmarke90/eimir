@@ -49,6 +49,10 @@ import {
 import { PatternsView, RecapView, WeekView } from './DailyInsightsViews';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
+import {
+  ClearWeeklyInsightFeedback,
+  WeeklyInsightCard,
+} from './WeeklyInsightCard';
 
 export type DailyInsightsViewId = 'week' | 'patterns' | 'recap';
 
@@ -60,6 +64,7 @@ interface DailyInsightsPageProps {
   entitlementApi: EntitlementsApi;
   dashboardApi: DashboardApi;
   profilesApi?: ProfilesApi;
+  apiBaseUrl?: string;
 }
 
 const NAV_ITEMS = [
@@ -114,12 +119,14 @@ function PeriodPicker({
         onClick={onNext}
         aria-label={nextLabel}
         disabled={!canGoNext}
-      ></button>
+      >
+        <span aria-hidden="true">›</span>
+      </button>
     </fieldset>
   );
 }
 
-function GateCard() {
+function GateCard({ children }: { children?: ReactNode }) {
   const { t } = useTranslation();
   return (
     <section
@@ -134,6 +141,7 @@ function GateCard() {
       <p className="insight-gate-reassurance">
         {t('dailyInsights.gate.keptNote')}
       </p>
+      {children}
       <Link className="insight-link" to={appRoutePath('today')}>
         {t('dailyInsights.gate.back')}
       </Link>
@@ -173,6 +181,7 @@ export function DailyInsightsPage({
   entitlementApi,
   dashboardApi,
   profilesApi,
+  apiBaseUrl = '',
 }: DailyInsightsPageProps) {
   const { t } = useTranslation();
   const [weekOffset, setWeekOffset] = useState(0);
@@ -374,7 +383,15 @@ export function DailyInsightsPage({
       />
     );
   } else if (gated) {
-    body = <GateCard />;
+    body = (
+      <GateCard>
+        <ClearWeeklyInsightFeedback
+          key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+          api={dailyCheckInsApi}
+          spaceId={spaceId}
+        />
+      </GateCard>
+    );
   } else if (isInsightsContextUnavailable(anchorQuery.error)) {
     body = (
       <UiState
@@ -427,6 +444,16 @@ export function DailyInsightsPage({
         />
       ) : (
         <WeekView
+          weeklyReview={
+            <WeeklyInsightCard
+              key={`${apiBaseUrl}:${account.id}:${spaceId}:${monday}`}
+              api={dailyCheckInsApi}
+              instance={apiBaseUrl}
+              accountId={account.id}
+              spaceId={spaceId}
+              monday={monday}
+            />
+          }
           key={monday}
           days={current}
           people={people}

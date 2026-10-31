@@ -7,7 +7,7 @@ does not shift the value at the final decimal place.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Annotated, Self
 from uuid import UUID
@@ -18,20 +18,75 @@ from pydantic.json_schema import SkipJsonSchema
 
 from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
-from eimir.api.deps import Authorization, DbSession
+from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.auth import rate_limit
 from eimir.config import get_settings
 from eimir.core.errors import ServiceUnavailableError
 from eimir.core.ids import parse_id
+from eimir.entitlements.models import Capability
 from eimir.places import service
+from eimir.places.memory_map import list_memory_map
 from eimir.places.models import Place
 from eimir.providers.photon import GeocodingUnavailableError
 from eimir.providers.place_search import search_places
 from eimir.relations.service import target_not_found
 
 router = APIRouter(tags=["places"])
+
+
+class MemoryMapEntry(ApiModel):
+    memory_id: UUID
+    title: str
+    happened_on: date
+    place_id: UUID
+    place_name: str
+    latitude: float
+    longitude: float
+
+
+class MemoryMapPage(ApiModel):
+    items: list[MemoryMapEntry]
+    next_cursor: str | None
+
+
+@router.get(
+    "/spaces/{spaceId}/memory-map",
+    response_model=MemoryMapPage,
+    operation_id="listMemoryMap",
+    responses=problem_responses(400, 401, 403, 404, 422),
+)
+def get_memory_map(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    cursor: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 100,
+) -> MemoryMapPage:
+    """Pro map over readable saved memories and places; no location tracking."""
+    ensure_capability(
+        session, authorization.space_id, Capability.MEMORIES_MAP.value, lock_grants=False
+    )
+    response.headers["Cache-Control"] = "no-store"
+    result = list_memory_map(session, authorization, cursor=cursor, limit=limit)
+    return MemoryMapPage(
+        items=[
+            MemoryMapEntry(
+                memory_id=memory.id,
+                title=memory.payload.title,
+                happened_on=memory.happened_on or memory.created_at.astimezone(UTC).date(),
+                place_id=place.id,
+                place_name=place.payload.name,
+                latitude=float(place.latitude),
+                longitude=float(place.longitude),
+            )
+            for memory, place in result.items
+            if place.latitude is not None and place.longitude is not None
+        ],
+        next_cursor=result.next_cursor,
+    )
+
 
 ETAG_HEADERS = {
     "ETag": {

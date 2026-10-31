@@ -9,6 +9,7 @@ canonical shared-Story predicate.
 from __future__ import annotations
 
 import hashlib
+import secrets
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from enum import StrEnum
@@ -24,9 +25,11 @@ if TYPE_CHECKING:
 
 from eimir.attachments.binding import MemoryAttachment
 from eimir.attachments.models import Attachment, AttachmentStatus, MediaType
+from eimir.auth import rate_limit
 from eimir.authorization import AuthorizationContext, PrivacyClass, readable
 from eimir.core import clock
 from eimir.core.ids import parse_id
+from eimir.db.locks import lock_subject
 from eimir.heart_moments.models import HeartMoment
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
@@ -36,6 +39,7 @@ from eimir.story.service import StoryKind, StoryModel, StoryRow
 from eimir.story.view_models import DiscoverSelectionSnapshot, StoryItemViewAggregate
 
 ALGORITHM_VERSION = "discover-v1"
+RENEWED_VERSION_PREFIX = "discover-v2:"
 TARGET_ITEM_COUNT = 8
 SNAPSHOT_RETENTION = timedelta(hours=48)
 RECENT_ADDITION_WINDOW = timedelta(hours=24)
@@ -902,6 +906,14 @@ def read_discover(
     )
     curated = _reauthorize_rows(session, context, refs)
     selected = {(row.kind, row.id) for row in curated}
+    snapshot = session.get(
+        DiscoverSelectionSnapshot, (context.space_id, context.account_id, selection_date)
+    )
+    renewed_at = (
+        clock.ensure_utc(snapshot.created_at)
+        if snapshot is not None and snapshot.algorithm_version.startswith(RENEWED_VERSION_PREFIX)
+        else None
+    )
     additions: list[StoryRow] = []
     for kind, model in _MODELS.items():
         # Existing (Space, created_at, id) indexes bound the recent descriptor
@@ -911,6 +923,7 @@ def read_discover(
             .where(
                 model.created_at >= instant - RECENT_ADDITION_WINDOW,
                 model.created_at <= instant,
+                *([model.created_at > renewed_at] if renewed_at is not None else []),
             )
             .order_by(model.created_at.desc(), model.id.desc())
             .limit(TARGET_ITEM_COUNT)
@@ -930,6 +943,70 @@ def read_discover(
     # occupy the next slots; a full or previously empty snapshot cannot hide them.
     combined = curated[:1] + additions + curated[1:]
     return DiscoverReadResult(selection_date=selection_date, rows=combined[:TARGET_ITEM_COUNT])
+
+
+def select_alternatives(
+    candidates: list[Candidate],
+    previous: set[StoryRef],
+    context: AuthorizationContext,
+    selection_date: date,
+    *,
+    algorithm_version: str,
+) -> tuple[StoryRef, ...]:
+    """Prefer another source; retain useful entries when history is sparse."""
+    alternatives = [candidate for candidate in candidates if candidate.ref not in previous]
+    fresh = select_candidates(
+        alternatives, context, selection_date, algorithm_version=algorithm_version
+    ).ordered_refs
+    fallback = select_candidates(
+        candidates, context, selection_date, algorithm_version=algorithm_version
+    ).ordered_refs
+    return tuple(dict.fromkeys((*fresh, *fallback)))[:TARGET_ITEM_COUNT]
+
+
+def renew_discover(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    account_timezone: str,
+) -> DiscoverReadResult:
+    """Confirm a new caller/day selection without changing authored content."""
+    instant = clock.ensure_utc(clock.now())
+    selection_date = clock.today_in(account_timezone, at=instant)
+    rate_limit.check(
+        session,
+        "discover-renewal",
+        f"{context.space_id}:{context.account_id}",
+        rate_limit.Limit(6, timedelta(minutes=1)),
+    )
+    lock_subject(
+        session,
+        "discover-renewal",
+        str(context.space_id),
+        str(context.account_id),
+        selection_date.isoformat(),
+    )
+    # The advisory lock precedes the snapshot read, including concurrent renewals.
+    session.expire_all()
+    previous = read_discover(session, context, account_timezone=account_timezone, at=instant)
+    version = f"{RENEWED_VERSION_PREFIX}{secrets.token_hex(6)}"
+    refs = select_alternatives(
+        generate_candidates(session, context, selection_date, algorithm_version=version),
+        {StoryRef(row.kind, row.id) for row in previous.rows},
+        context,
+        selection_date,
+        algorithm_version=version,
+    )
+    snapshot = session.get(
+        DiscoverSelectionSnapshot, (context.space_id, context.account_id, selection_date)
+    )
+    if snapshot is None:
+        raise RuntimeError("Discover selection was not initialized.")
+    snapshot.algorithm_version = version
+    snapshot.ordered_item_refs = _serialize_refs(refs)
+    snapshot.created_at = instant
+    session.flush()
+    return read_discover(session, context, account_timezone=account_timezone, at=instant)
 
 
 def prune_expired_snapshots(session: Session, *, at: datetime | None = None) -> int:

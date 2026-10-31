@@ -403,7 +403,22 @@ for (const [width, theme, largeText] of [
     await page.getByRole('button', { name: taskBoundary.back }).click();
     await expect(page).toHaveURL(/\/today$/);
     await page.goto('/more/profile');
-    await page.getByRole('link', { name: /Beziehungs-Pass/ }).click();
+    await expect(page.locator('.profile-page')).toBeVisible();
+    await expect(page.locator('.profile-passport-entry')).toHaveCount(0);
+    if (largeText)
+      await page.addStyleTag({
+        content: 'html { font-size: 200% !important; }',
+      });
+    await captureScreenshot(
+      page,
+      info,
+      `profile-without-passport-${width}-${theme}.png`,
+      { fullPage: true },
+    );
+    await page.goto('/more');
+    await page
+      .getByRole('link', { name: new RegExp(recapCopy.shortTitle) })
+      .click();
     await page.getByText(recapCopy.details, { exact: true }).click();
     if (largeText)
       await page.addStyleTag({
@@ -452,13 +467,17 @@ for (const [width, theme, largeText] of [
   });
 }
 
-test('Free profile explains Pro without requesting passport counts', async ({
+test('Free Passport remains reachable from More without requesting Pro counts', async ({
   page,
 }, info) => {
   const state = await fixture(page, { pro: false });
   await signIn(page);
   await page.goto('/more/profile');
-  await page.getByRole('link', { name: /Beziehungs-Pass/ }).click();
+  await expect(page.locator('.profile-passport-entry')).toHaveCount(0);
+  await page.goto('/more');
+  await page
+    .getByRole('link', { name: new RegExp(recapCopy.shortTitle) })
+    .click();
   await expect(page.getByText(recapCopy.gateBody)).toBeVisible();
   await expect(page.locator('.passport-metrics')).toHaveCount(0);
   expect(state.passportReads()).toBe(0);

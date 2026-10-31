@@ -307,3 +307,16 @@ describe('task origin privacy and lifetime', () => {
     expect(currentPath).toBe('/story');
   });
 });
+
+it('returns to the selected saved-memory map place without retaining arbitrary query text', () => {
+  expect(taskOriginPath('/story/map', '?place=52.51:13.35&body=private')).toBe(
+    '/story/map?place=52.51%3A13.35',
+  );
+  expect(taskOriginPath('/story/map', '?place=999:13')).toBe('/story/map');
+  expect(taskOriginPath('/story/map', '?place=https://other.example')).toBe(
+    '/story/map',
+  );
+  expect(taskOriginPath('/more/collections', '?title=private')).toBe(
+    '/more/collections',
+  );
+});

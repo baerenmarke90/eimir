@@ -68,6 +68,7 @@ class Capability(StrEnum):
     DAILY_QUOTE = "daily.quote"
     PARTNER_QUICK_ACTIONS_EXTENDED = "partner.quick_actions.extended"
     RELATIONSHIP_PASSPORT = "relationship.passport"
+    MEMORIES_MAP = "memories.map"
 
 
 class EntitlementGrant(IdMixin, TimestampMixin, Base):

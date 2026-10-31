@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import re
 from ipaddress import ip_address
+from threading import BoundedSemaphore
+from time import monotonic
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -131,10 +133,36 @@ def compose(evidence: list[dict[str, Any]], locale: str, period: str) -> Narrati
             {"role": "user", "content": packet},
         ],
     }
+    output = query_structured(body)
+    if output is None:
+        return None
+    try:
+        result = Narration.model_validate_json(output["message"]["content"])
+        return result if usable_narration(result, evidence) else None
+    except (ValueError, KeyError, TypeError, ValidationError, RecursionError):
+        return None
+
+
+_INFERENCE_SLOTS = BoundedSemaphore(2)
+
+
+def query_structured(
+    body: dict[str, Any], *, timeout_limit: float | None = None
+) -> dict[str, Any] | None:
+    """Shared bounded operator-local transport; never logs prompts or response bodies."""
+    settings = get_settings()
+    if not settings.recap_ai_url or len(json.dumps(body).encode()) > 24_000:
+        return None
+    if not _INFERENCE_SLOTS.acquire(blocking=False):
+        return None
+    budget = settings.recap_ai_timeout_seconds
+    if timeout_limit is not None:
+        budget = min(budget, timeout_limit)
+    deadline = monotonic() + budget
     try:
         with (
             httpx.Client(
-                timeout=httpx.Timeout(settings.recap_ai_timeout_seconds, connect=3),
+                timeout=httpx.Timeout(budget, connect=min(3, budget)),
                 trust_env=False,
                 follow_redirects=False,
             ) as client,
@@ -145,17 +173,17 @@ def compose(evidence: list[dict[str, Any]], locale: str, period: str) -> Narrati
             chunks = bytearray()
             for chunk in response.iter_bytes():
                 chunks.extend(chunk)
-                if len(chunks) > 16_384:
+                if len(chunks) > 16_384 or monotonic() > deadline:
                     return None
         output = json.loads(chunks)
-        if not isinstance(output, dict):
+        if (
+            not isinstance(output, dict)
+            or output.get("done") is not True
+            or output.get("done_reason") == "length"
+        ):
             return None
-        if output.get("done") is not True or output.get("done_reason") == "length":
-            return None
-        result = Narration.model_validate_json(output["message"]["content"])
-        if not usable_narration(result, evidence):
-            return None
-        return result
-    except (httpx.HTTPError, ValueError, KeyError, TypeError, ValidationError, RecursionError):
-        # Never log prompts, response bodies or exception strings containing content.
+        return output
+    except (httpx.HTTPError, ValueError, KeyError, TypeError, RecursionError):
         return None
+    finally:
+        _INFERENCE_SLOTS.release()

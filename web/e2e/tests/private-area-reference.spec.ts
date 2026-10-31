@@ -548,12 +548,11 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(
       page.getByText(privateArea.notes.emptyTitle, { exact: true }),
     ).toBeVisible();
-    await page
-      .getByRole('link', { name: privateArea.backToHub, exact: true })
-      .click();
+    await page.goBack();
     await expectPrivateReferenceStructure(page);
     await page
-      .getByRole('link', { name: privateArea.backToMore, exact: true })
+      .getByRole('link', { name: navigation.more, exact: true })
+      .last()
       .click();
     await expect(page).toHaveURL(/\/more$/);
     expect(unexpectedRequests).toEqual([]);

@@ -28,8 +28,8 @@ describe('PrivateAreaProductPage', () => {
     const html = renderPrivateArea('/more/private');
 
     expect(html).toContain('private-area-reference-overview');
-    expect(html).toContain(`href="/more"`);
-    expect(html).toContain(privateArea.backToMore);
+    expect(html).not.toContain('class="back-link"');
+    expect(html).not.toContain(privateArea.backToMore);
     expect(html).not.toContain('private-area-privacy-banner');
     // The same OWNER_ONLY header is rendered on every nested private route.
     // It must not imply secrecy outside the server-enforced in-app boundary.

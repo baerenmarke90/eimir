@@ -317,6 +317,9 @@ for (const [width, theme] of [
     const state = await setup(page, { start: 'wir', pro: false });
     const invitation = page.locator('.monthly-recap-invitation');
     await expect(
+      page.getByRole('link', { name: copy.allRecaps, exact: true }),
+    ).toHaveCount(0);
+    await expect(
       invitation.getByRole('link', { name: new RegExp(copy.watchNow) }),
     ).toBeVisible();
     await expect(invitation).toContainText(
@@ -359,7 +362,7 @@ test('Watch now advances automatically, pauses for a source, and finishes withou
 }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.clock.install();
-  const state = await setup(page, { start: 'wir' });
+  const state = await setup(page, { start: 'wir', pro: false });
   await page.getByRole('link', { name: new RegExp(copy.watchNow) }).click();
   await expect(page).toHaveURL(/\/more\/passport\/october$/);
   await expect(page.locator('.recap-reader')).toHaveAttribute(
@@ -408,7 +411,7 @@ test('reduced motion opens Watch now paused and playback pauses for editing', as
   await page.setViewportSize({ width: 360, height: 900 });
   await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: 'dark' });
   await page.clock.install();
-  await setup(page, { start: 'wir' });
+  await setup(page, { start: 'wir', pro: true });
   await page.getByRole('link', { name: new RegExp(copy.watchNow) }).click();
   await expect(
     page.getByRole('button', { name: copy.play, exact: true }),

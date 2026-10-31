@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { SpacesApi } from '../api/generated/apis/SpacesApi';
-import { Configuration } from '../client/apiConfiguration';
+import { loadGameParticipants } from '../client/gameParticipants';
 import { normalizeClientError } from '../client/problemDetails';
 import {
   createLocalWhoOfUsSession,
@@ -14,29 +13,6 @@ import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
-
-async function loadDefaultParticipants({
-  apiBaseUrl,
-  accessToken,
-  spaceId,
-}: {
-  apiBaseUrl: string;
-  accessToken: string;
-  spaceId: string;
-}): Promise<readonly [WhoOfUsParticipant, WhoOfUsParticipant] | null> {
-  const spacesApi = new SpacesApi(
-    new Configuration({
-      basePath: apiBaseUrl,
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }),
-  );
-  const space = await spacesApi.getSpaceApiV1SpacesSpaceIdGet({ spaceId });
-  if (space.partners.length !== 2) return null;
-  return [
-    { id: space.partners[0].id, displayName: space.partners[0].displayName },
-    { id: space.partners[1].id, displayName: space.partners[1].displayName },
-  ];
-}
 
 function questionKey(questionId: WhoOfUsQuestionId): string {
   return `games.whoOfUs.questions.${questionId}`;
@@ -299,7 +275,7 @@ export function WhoOfUsGamePanel({
       try {
         return loadParticipants
           ? await loadParticipants()
-          : await loadDefaultParticipants({ apiBaseUrl, accessToken, spaceId });
+          : await loadGameParticipants({ apiBaseUrl, accessToken, spaceId });
       } catch (error) {
         throw await normalizeClientError(error);
       }

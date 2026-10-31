@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type MouseEvent,
 } from 'react';
 import {
   useInfiniteQuery,
@@ -87,6 +88,21 @@ function Cover({
   const source = value.sources.find((item) => item.available);
   const hasPhoto = Boolean(source?.previewAttachmentId);
   const label = recapPeriodLabel(value, resolvedLocale());
+  const detailPath = `${recapDetailPath(value.id)}${value.kind === 'YEAR' ? '?tab=years' : ''}`;
+  const playbackPath = `${detailPath}${value.kind === 'YEAR' ? '&' : '?'}play=1`;
+  function openReader(event: MouseEvent<HTMLAnchorElement>, to: string) {
+    if (
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      event.altKey ||
+      event.button !== 0
+    )
+      return;
+    event.preventDefault();
+    void navigate(to, { state: { taskOriginKey: captureOrigin() } });
+  }
+
   return (
     <article
       className={`recap-cover${featured ? ' recap-cover-featured' : ''}${value.kind === 'YEAR' ? ' recap-cover-year' : ''}`}
@@ -124,21 +140,8 @@ function Cover({
         <PeriodNote value={value} />
         <Link
           className={featured ? 'button-link recap-open' : 'recap-text-link'}
-          to={`${recapDetailPath(value.id)}${value.kind === 'YEAR' ? '?tab=years' : ''}`}
-          onClick={(event) => {
-            if (
-              !event.ctrlKey &&
-              !event.metaKey &&
-              !event.shiftKey &&
-              event.button === 0
-            ) {
-              event.preventDefault();
-              void navigate(
-                `${recapDetailPath(value.id)}${value.kind === 'YEAR' ? '?tab=years' : ''}`,
-                { state: { taskOriginKey: captureOrigin() } },
-              );
-            }
-          }}
+          to={detailPath}
+          onClick={(event) => openReader(event, detailPath)}
           state={{ taskOriginKey: null }}
         >
           {value.status === 'PENDING'
@@ -146,6 +149,15 @@ function Cover({
             : t('recaps.open')}
           <span aria-hidden="true"> →</span>
         </Link>
+        {featured && value.status === 'READY' && value.sources.length > 0 ? (
+          <Link
+            className="recap-text-link"
+            to={playbackPath}
+            onClick={(event) => openReader(event, playbackPath)}
+          >
+            {t('recaps.watchNow')}
+          </Link>
+        ) : null}
       </div>
     </article>
   );
@@ -273,9 +285,6 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
   }
   return (
     <div className="page recap-library">
-      <Link className="recap-back" to="/more">
-        ‹ {t('recaps.backMore')}
-      </Link>
       <PageHeader
         eyebrow={t('recaps.automatic')}
         title={t('recaps.shortTitle')}

@@ -1567,8 +1567,11 @@ test('notification choices survive return and stay legible across themes and wid
     }),
   ).toBeVisible();
   await page
-    .getByRole('link', { name: profileIdentity.settingsBackToIndex })
+    .getByRole('link', { name: navigation.more, exact: true })
+    .last()
     .click();
+  await page.locator('a[href="/more/settings"]').click();
+  await expect(page).toHaveURL(/\/more\/settings$/);
   await page
     .getByRole('link', {
       name: profileIdentity.settingsNotifications,

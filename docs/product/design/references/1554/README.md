@@ -28,3 +28,33 @@ The reference's extra chevrons, repeated place subtitles and illustrative map he
 ## Evidence
 
 The generated reference is not implementation evidence. Actual browser journeys, theme/reflow/motion/error checks and screenshots will be recorded after implementation. No separate native capability is changed.
+
+## Implementation and verification
+
+The implemented composition uses alternating existing rose/shared tints, title-led memory destinations, localized day/month badges and the complete date. Narrow containers and large text omit only the decorative badges. Deliberate location selection uses the shared disclosure primitive; URL restoration and ordinary query refresh do not replay it. Reduced-motion hover/press and disclosure retain the same information without travel.
+
+The lazy Leaflet stylesheet could override the existing attribution background after other CSS had loaded. A bounded specificity correction in the shared Place map stylesheet makes the semantic theme background independent of import order, restoring Dark contrast for both map consumers. No provider/Leaflet behavior or picker consent flow changes.
+
+Local validation:
+
+- Production build, TypeScript, token and PWA checks passed. Existing bundle-size and dependency directive warnings remain.
+- 24 focused tests passed across MemoryMapPage, PlaceMapPicker and TaskOrigin.
+- Eight browser journeys passed without configured retries: map at 360 Light / 390 Dark / 430 Light with normal motion / 1280 Dark, 320 Dark with 200% text and failed tiles, entitlement denial, existing games and calendar handoff. The final map-only run additionally verifies reduced-motion hover behavior.
+- Browser evidence uses available Chromium 153 with an external scratch configuration. The repository-pinned Chromium 151 download returned a truncated archive; no repository dependency, browser pin, timeout or retry gate was changed. CI with the repository browser remains a pre-merge requirement.
+- The added 320px scenario found actual heading reflow and late-loaded attribution contrast failures; both were fixed before successful reruns. Assertions were not weakened. No remote CI retries occurred.
+- Biome checks, engineering-language audit, diff checks and the browser inventory passed. The new case remains PR-critical (eight cases in this spec).
+
+All actual browser screenshots use synthetic titles/dates/locations and intercepted tile images. Their synthetic green map pixels demonstrate viewport/marker/attribution composition, not real geography or live OSM availability. No user photo or original private screenshot is included in the implementation evidence.
+
+### Evidence
+
+| State | Actual browser evidence |
+| --- | --- |
+| Place selection / Compact | [360 Light](evidence/memory-map-places-360-light.webp), [390 Dark](evidence/memory-map-places-390-dark.webp), [430 Light](evidence/memory-map-places-430-light.webp) |
+| Selected memory destinations | [360 Light](evidence/memory-map-360-light.webp), [390 Dark](evidence/memory-map-390-dark.webp), [430 Light](evidence/memory-map-430-light.webp) |
+| Expanded | [Locations](evidence/memory-map-places-1280-dark.webp), [Memories](evidence/memory-map-1280-dark.webp) |
+| Failed tiles / 320px / 200% text | [Dark](evidence/memory-map-320-dark-large-tile-error.webp) |
+
+### Publication state
+
+The local design preflight and generated image were completed before UI code. Automatic approval review rejected publishing the preflight commit to the public repository, citing missing explicit authorization to disclose potentially sensitive project material. No alternate publication route was attempted. The code, reference and synthetic browser evidence are prepared locally; attaching the generated reference to #1554, pushing and opening the PR remain pending user authorization. This is a known publication/preflight gate gap, not a claim that the owning issue already contains the image or that remote CI has passed. The issue's initial `places.map` wording should be corrected to `memories.map` when that update is authorized.

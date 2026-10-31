@@ -7,16 +7,17 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import type { MemoryMapEntry } from '../api/generated/models/MemoryMapEntry';
-import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import {
   ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import { useTaskOrigin } from '../client/taskOrigin';
 import { memoryDetailPath } from '../client/routes';
+import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppErrorBoundary } from './AppErrorBoundary';
+import { EimirIcon } from './EimirIcon';
 import { PageHeader } from './PageHeader';
 import type { MapLocation } from './PlaceMapCanvas';
 import { ProblemState } from './ProblemState';
@@ -40,12 +41,14 @@ export function MemoryMapPage({
   const { captureOrigin } = useTaskOrigin();
   const location = useLocation();
   const navigate = useNavigate();
-  const [tilesLoaded, setTilesLoaded] = useState(false);
+  const [revealedPlaceId, setRevealedPlaceId] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
   const selectedId = params.get('place');
   const selectPlace = useCallback(
-    (id: string) =>
-      setParams({ place: id }, { replace: true, state: location.state }),
+    (id: string) => {
+      setRevealedPlaceId(id);
+      setParams({ place: id }, { replace: true, state: location.state });
+    },
     [setParams, location.state],
   );
   const query = useInfiniteQuery({
@@ -107,15 +110,30 @@ export function MemoryMapPage({
     [locations, t],
   );
   const selected = locations.find(({ point }) => point.id === selectedId);
+  const locale = resolvedLocale();
+  const dateFormats = useMemo(
+    () => ({
+      full: new Intl.DateTimeFormat(locale, {
+        dateStyle: 'medium',
+        timeZone: 'UTC',
+      }),
+      day: new Intl.DateTimeFormat(locale, {
+        day: 'numeric',
+        timeZone: 'UTC',
+      }),
+      month: new Intl.DateTimeFormat(locale, {
+        month: 'short',
+        timeZone: 'UTC',
+      }),
+    }),
+    [locale],
+  );
   const gated =
     query.error instanceof ClientProblemError &&
     query.error.code === 'PREMIUM_ENTITLEMENT_REQUIRED';
   return (
     <div className="page memory-map-page">
-      <PageHeader
-        title={t('memoryMap.title')}
-        description={t('memoryMap.intro')}
-      />
+      <PageHeader title={t('memoryMap.title')} />
       {gated ? (
         <UiState
           kind="empty"
@@ -137,31 +155,21 @@ export function MemoryMapPage({
         />
       ) : (
         <>
-          <p className="field-help">{t('memoryMap.privacy')}</p>
           {locations.length ? (
-            !tilesLoaded ? (
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => setTilesLoaded(true)}
+            <AppErrorBoundary
+              resetKey={`${spaceId}:${accountId}`}
+              fallback={<p role="alert">{t('m5s3.map.tileError')}</p>}
+            >
+              <Suspense
+                fallback={
+                  <div className="memory-map-loading" role="status">
+                    {t('states.loading.title')}
+                  </div>
+                }
               >
-                {t('m5s3.map.loadMap')}
-              </button>
-            ) : (
-              <AppErrorBoundary
-                resetKey={`${spaceId}:${accountId}`}
-                fallback={<p role="alert">{t('m5s3.map.tileError')}</p>}
-              >
-                <Suspense
-                  fallback={<p role="status">{t('states.loading.title')}</p>}
-                >
-                  <MapCanvas
-                    locations={points}
-                    onLocationSelect={selectPlace}
-                  />
-                </Suspense>
-              </AppErrorBoundary>
-            )
+                <MapCanvas locations={points} onLocationSelect={selectPlace} />
+              </Suspense>
+            </AppErrorBoundary>
           ) : null}
           {query.hasNextPage ? (
             <button
@@ -182,20 +190,34 @@ export function MemoryMapPage({
               aria-labelledby="map-place-heading"
               className="memory-map-selection"
             >
-              <h2 id="map-place-heading">{selected.point.label}</h2>
-              <button
-                type="button"
-                className="tertiary"
-                onClick={() =>
-                  setParams({}, { replace: true, state: location.state })
+              <div className="memory-map-selection-heading">
+                <h2 id="map-place-heading">
+                  <EimirIcon name="orte" />
+                  {selected.point.label}
+                </h2>
+                <button
+                  type="button"
+                  className="tertiary"
+                  onClick={() => {
+                    setRevealedPlaceId(null);
+                    setParams({}, { replace: true, state: location.state });
+                  }}
+                >
+                  {t('memoryMap.allPlaces')}
+                </button>
+              </div>
+              <ul
+                key={selected.point.id}
+                className={
+                  revealedPlaceId === selected.point.id
+                    ? 'eimir-motion-disclosure'
+                    : undefined
                 }
               >
-                {t('memoryMap.allPlaces')}
-              </button>
-              <ul>
                 {[...selected.memories.values()].map((entry) => (
                   <li key={entry.memoryId}>
                     <Link
+                      className="memory-map-memory"
                       to={memoryDetailPath(entry.memoryId)}
                       onClick={(event) => {
                         if (
@@ -215,15 +237,22 @@ export function MemoryMapPage({
                         }
                       }}
                     >
-                      <strong>{entry.title || t('memoryMap.untitled')}</strong>
-                      <time
-                        dateTime={entry.happenedOn.toISOString().slice(0, 10)}
-                      >
-                        {new Intl.DateTimeFormat(resolvedLocale(), {
-                          dateStyle: 'medium',
-                          timeZone: 'UTC',
-                        }).format(entry.happenedOn)}
-                      </time>
+                      <span className="memory-map-date" aria-hidden="true">
+                        <span>{dateFormats.day.format(entry.happenedOn)}</span>
+                        <span>
+                          {dateFormats.month.format(entry.happenedOn)}
+                        </span>
+                      </span>
+                      <span className="memory-map-memory-copy">
+                        <strong>
+                          {entry.title || t('memoryMap.untitled')}
+                        </strong>
+                        <time
+                          dateTime={entry.happenedOn.toISOString().slice(0, 10)}
+                        >
+                          {dateFormats.full.format(entry.happenedOn)}
+                        </time>
+                      </span>
                     </Link>
                   </li>
                 ))}
@@ -238,13 +267,22 @@ export function MemoryMapPage({
                 <li key={point.id}>
                   <button
                     type="button"
-                    className="secondary"
-                    onClick={() => selectPlace(point.id)}
-                  >
-                    {t('memoryMap.locationCount', {
+                    className="memory-map-place"
+                    aria-label={t('memoryMap.locationCount', {
                       name: point.label,
                       count: point.count,
                     })}
+                    onClick={() => selectPlace(point.id)}
+                  >
+                    <span className="memory-map-place-icon">
+                      <EimirIcon name="orte" />
+                    </span>
+                    <span className="memory-map-place-copy">
+                      <strong>{point.label}</strong>
+                      <span>
+                        {t('memoryMap.memoryCount', { count: point.count })}
+                      </span>
+                    </span>
                   </button>
                 </li>
               ))}

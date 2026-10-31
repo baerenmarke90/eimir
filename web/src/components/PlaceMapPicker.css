@@ -43,7 +43,7 @@
   fill-opacity: 1;
   stroke: var(--color-on-accent);
 }
-.place-map-viewport .leaflet-control-attribution {
+.place-map-viewport.leaflet-container .leaflet-control-attribution {
   color: var(--color-text);
   background: var(--color-surface);
 }

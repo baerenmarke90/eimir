@@ -92,3 +92,7 @@ Local follow-up validation: **1,095 backend non-integration tests passed**, with
 
 
 The library is named Eure Rueckblicke and its statistics disclosure uses the distinct Eure Geschichte heading, avoiding duplicate page/section names. Updated actual evidence: [390 Dark](evidence/recap-library-390-dark.webp), [1280 Dark](evidence/recap-library-1280-dark.webp). The complete 14-case relationship-surface suite and session-retention journeys are rerun locally after auditing the remaining old-name and removed-link selectors. The PR records final-source CI results and the earlier test corrections separately.
+
+## Saved-memory map follow-up (#1554)
+
+The Product Owner subsequently requested immediate map loading on entry, removal of the explanatory paragraphs, a plain Karte entry and livelier memory destinations. [The #1554 design/interaction record](../1554/README.md) supersedes this document's extra tile-load tap for the read-only saved-memory map. The separate Place selection composer is unchanged. Premium `memories.map`, attribution, data isolation, bounded pagination, provider-independent browsing and canonical source return remain binding.

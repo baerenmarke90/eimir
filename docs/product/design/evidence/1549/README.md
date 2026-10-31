@@ -2,10 +2,10 @@
 
 ## Baseline and scope
 
-Follow-up to #1548, based on `b76338d875cae3c07a3f3193e06da5e3cb15b52a`.
+Follow-up to #1548, updated to `b09021e521b89c7ccaf050432e06ae4e14ba0544`.
 The issue records the preflight against the initial #1548 head; its later
 lockfile and two unrelated browser-test corrections were incorporated before
-delivery. Primary navigation, View Transitions and native startup remain owned
+delivery. Primary navigation, live-content motion and native startup remain owned
 by #1548. This correction changes keyboard event ordering, not the composition,
 labels, content, layout, tokens or animation design.
 
@@ -60,6 +60,28 @@ Local browser execution uses the existing scratch Chromium 153 harness with
 zero retries. Repository browser pins and CI settings are unchanged. Fresh CI
 on the published source is required; this is not physical Android acceptance
 for #1548's separate native cold-start work.
+
+## Dependency synchronization after hosted browser failure
+
+The first hosted #1550 run used the older #1548 source. Its primary-swipe case
+failed twice at `floating-bottom-nav-scroll.spec.ts:1134` because document-level
+View Transition snapshots disabled hit-testing: no readable main-content surface
+was available for the next gesture. The same case fails identically locally.
+This is separate from the corrected secondary-tab keyboard race.
+
+The updated #1548 source removes the document snapshot overlay and animates the
+live main-content element, cancelling motion when the next gesture starts.
+The dependency is integrated with an ordinary merge commit, retaining both PR
+histories. The six primary-touch journeys pass on the combined source at
+360/390/430/1280 px, including reduced motion, immediate consecutive swipes,
+Timeline/Planning return context, native-history bounds, and vertical/horizontal
+gesture ownership. No test wait, retry or assertion is changed.
+
+Combined local validation: 107 unit/component tests passed, including the shell,
+primary swipe and original keyboard regressions. The seven keyboard/library
+browser cases were rerun on that combined source as well. Typecheck and scoped
+formatting passed. Fresh hosted checks are required for the synchronized commit;
+successful checks from the older source are not reused.
 
 | State | Actual browser evidence |
 | --- | --- |

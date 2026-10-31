@@ -13,61 +13,13 @@
     var(--easing-standard);
 }
 
-/* React's ViewTransition captures only main content. The stable top/bottom
-   navigation never moves, and both tapped and swiped roots use this contract. */
-::view-transition-old(.eimir-primary-tab-forward) {
-  animation: primary-tab-exit-left var(--duration-transition)
-    var(--easing-standard) both;
-}
-
-::view-transition-new(.eimir-primary-tab-forward) {
-  animation: primary-tab-enter-right var(--duration-transition)
-    var(--easing-enter) both;
-}
-
-::view-transition-old(.eimir-primary-tab-backward) {
-  animation: primary-tab-exit-right var(--duration-transition)
-    var(--easing-standard) both;
-}
-
-::view-transition-new(.eimir-primary-tab-backward) {
-  animation: primary-tab-enter-left var(--duration-transition)
-    var(--easing-enter) both;
-}
-
-@keyframes primary-tab-exit-left {
-  to {
-    opacity: 0.75;
-    transform: translate3d(calc(-1 * var(--space-4)), 0, 0);
-  }
-}
-
-@keyframes primary-tab-enter-right {
-  from {
-    opacity: 0.75;
-    transform: translate3d(var(--space-4), 0, 0);
-  }
-}
-
-@keyframes primary-tab-exit-right {
-  to {
-    opacity: 0.75;
-    transform: translate3d(var(--space-4), 0, 0);
-  }
-}
-
-@keyframes primary-tab-enter-left {
-  from {
-    opacity: 0.75;
-    transform: translate3d(calc(-1 * var(--space-4)), 0, 0);
-  }
-}
-
 @keyframes primary-tab-arrive {
   from {
+    opacity: 0.92;
     transform: translate3d(var(--primary-tab-entry-offset), 0, 0);
   }
   to {
+    opacity: 1;
     transform: none;
   }
 }
@@ -77,13 +29,6 @@
     transform: none;
   }
   .product-main[data-primary-tab-entry] {
-    animation: none;
-  }
-
-  ::view-transition-old(.eimir-primary-tab-forward),
-  ::view-transition-new(.eimir-primary-tab-forward),
-  ::view-transition-old(.eimir-primary-tab-backward),
-  ::view-transition-new(.eimir-primary-tab-backward) {
     animation: none;
   }
 }

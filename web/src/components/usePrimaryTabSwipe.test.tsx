@@ -118,6 +118,37 @@ describe('primary tab swipe ownership', () => {
     view.rerender(<CommitProbe pathname="/plan" />);
     expect(onNavigate).toHaveBeenCalledExactlyOnceWith('/more');
   });
+  it('keeps a live reading surface interactive during rapid consecutive tab changes', () => {
+    const navigate = vi.fn();
+    const cancel = vi.fn();
+    const animate = vi.fn(
+      (_frames: Keyframe[], _options: KeyframeAnimationOptions) =>
+        ({ cancel }) as unknown as Animation,
+    );
+    const view = render(
+      <Harness pathname="/story" routeKey="first" onNavigate={navigate} />,
+    );
+    const surface = screen.getByTestId('surface');
+    Object.defineProperty(surface, 'animate', {
+      configurable: true,
+      value: animate,
+    });
+    view.rerender(
+      <Harness pathname="/plan" routeKey="second" onNavigate={navigate} />,
+    );
+    expect(animate).toHaveBeenCalledTimes(1);
+    expect(animate.mock.calls[0]?.[1]).toMatchObject({ duration: 180 });
+    // No screenshot overlay owns input: the immediate next swipe uses the
+    // same live main element and cancels its previous entrance animation.
+    act(() => swipe(screen.getByTestId('reading')));
+    expect(cancel).toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledExactlyOnceWith('/more');
+    view.rerender(
+      <Harness pathname="/more" routeKey="third" onNavigate={navigate} />,
+    );
+    expect(animate).toHaveBeenCalledTimes(2);
+  });
+
   it.each([
     ['/today', 280, 90, '/story'],
     ['/story', 280, 90, '/plan'],

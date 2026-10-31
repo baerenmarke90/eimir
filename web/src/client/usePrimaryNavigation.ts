@@ -1,4 +1,4 @@
-import { addTransitionType, startTransition, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { isCapacitorNative } from '../pwa';
 import { PRIMARY_APP_ROUTES } from './routes';
@@ -34,24 +34,9 @@ export function usePrimaryNavigation() {
       if (root === location.pathname) return;
       const { to, ...options } = destinationFor(root);
       captureCurrent();
-      const from = PRIMARY_APP_ROUTES.findIndex(
-        (route) => route.path === location.pathname,
-      );
-      const target = PRIMARY_APP_ROUTES.findIndex(
-        (route) => route.path === root,
-      );
-      if (from < 0 || target < 0) {
-        void navigate(to, options);
-        return;
-      }
-      // A single spatial handoff for both tapped tabs and touch swipes. React
-      // coordinates native View Transitions without delaying navigation.
-      startTransition(() => {
-        addTransitionType(
-          target > from ? 'primary-tab-forward' : 'primary-tab-backward',
-        );
-        void navigate(to, options);
-      });
+      // Main-content motion is owned by the shell; navigation remains
+      // immediately interactive even during rapid consecutive tab switches.
+      void navigate(to, options);
     },
     [captureCurrent, destinationFor, location.pathname, navigate],
   );

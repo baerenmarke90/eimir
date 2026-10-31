@@ -544,7 +544,12 @@ test('drag handle moves a module by mouse while the rest of the row remains scro
     name: `${m5s5.dashboard.upcomingTitle} verschieben`,
   });
   const firstRow = page.locator('.dashboard-module-option').first();
-  await handle.scrollIntoViewIfNeeded();
+  // Raw mouse coordinates do not perform Playwright's actionability scrolling.
+  // Keep the handle above the fixed mobile navigation before measuring it.
+  await handle.evaluate((element) =>
+    element.scrollIntoView({ block: 'center', inline: 'nearest' }),
+  );
+  await handle.click({ trial: true });
   const firstBounds = await firstRow.boundingBox();
   const handleBounds = await handle.boundingBox();
   expect(firstBounds).not.toBeNull();
@@ -572,7 +577,10 @@ test('drag handle moves a module by mouse while the rest of the row remains scro
     .toBeGreaterThan(scrollBefore);
 
   await page.evaluate(() => window.scrollTo(0, 0));
-  await handle.scrollIntoViewIfNeeded();
+  await handle.evaluate((element) =>
+    element.scrollIntoView({ block: 'center', inline: 'nearest' }),
+  );
+  await handle.click({ trial: true });
   const movedHandle = await handle.boundingBox();
   expect(movedHandle).not.toBeNull();
   if (!movedHandle) return;

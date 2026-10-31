@@ -41,3 +41,21 @@ Map reads apply the shared readable predicate to both Memory and Place plus the 
 ## Verification
 
 Evidence and exact test results are recorded in the PR. Actual-browser screenshots in `evidence/` use synthetic fixtures; the generated preflight is not implementation evidence. Cover Compact 360/390/430, Expanded, Light/Dark, reduced motion, source return, explicit map tile consent, Pro denial, finite games and calendar date semantics. Existing full reciprocal reveal, content authorization and source navigation tests remain cumulative.
+
+### Actual implementation evidence
+
+Final local acceptance on the completed runtime: **43 browser journeys passed**, with zero configured local retries (`acceptance-results/.last-run.json`: `passed`, no failed tests). The affected Web unit suite passed **2353 tests** with two pre-existing configured skips and external networking disabled; after the final visual adjustments the focused calendar/map/games/settings/story checks passed **111 tests**. Build, typecheck, format, scoped lint, Ruff/mypy, engineering-language tests and canonical API-client drift checks passed. PostgreSQL acceptance runs in CI; local unavailability is not reported as a passed database test.
+
+| Surface | Compact evidence | Expanded / additional evidence |
+| --- | --- | --- |
+| Wir without recaps | [360 Light](evidence/wir-without-recaps-360-light.webp), [390 Dark](evidence/wir-without-recaps-390-dark.webp), [430 Light](evidence/wir-without-recaps-430-light.webp) | [1280 Dark](evidence/wir-without-recaps-1280-dark.webp) |
+| Eure Geschichte | [Voluntary story metrics](evidence/wir-optional-statistics-390.webp) | Canonical filtered links retained; token-sized icons and unbroken labels |
+| Eure Woche | [390 Light](evidence/insights-week-390-light.webp) | [320 Dark / 200%](evidence/insights-week-320-dark-200pct.webp), [1280 Light](evidence/insights-week-1280-light.webp) |
+| Profile without Passport | [360 Light](evidence/profile-without-passport-360-light.webp), [390 Dark](evidence/profile-without-passport-390-dark.webp), [430 Light](evidence/profile-without-passport-430-light.webp) | [1280 Dark](evidence/profile-without-passport-1280-dark.webp), [320 Light](evidence/profile-without-passport-320-light.webp), [large text](evidence/profile-without-passport-390-dark-large.webp) |
+| Saved-memory map | [360 Light](evidence/memory-map-360-light.webp), [390 Dark](evidence/memory-map-390-dark.webp), [430 Light](evidence/memory-map-430-light.webp) | [1280 Dark](evidence/memory-map-1280-dark.webp) |
+| Five playable games | [390 Light](evidence/games-390-light.webp) | [1280 Dark](evidence/games-1280-dark.webp) |
+| Calendar handoff | [Dated Plan](evidence/calendar-plan-390-light.webp) | File content, escaping/folding, all-day/instant/leap/DST cases covered |
+
+All screenshots use synthetic couple fixtures. Map tile pixels are deliberately synthetic and intercepted: these screenshots prove composition, markers, attribution and source navigation, not live provider availability or real geography. No private provider data or user photos were used.
+
+The completed 43-case run covers source return, optional statistics toggling, Profile removal plus More discovery, retained Free Passport playback, Pro-only editing, reduced-motion pause, explicit tile consent, Pro denial, finite game skip/finish/restart/exit and calendar handoff. Earlier local runs during source refinement were not used as final acceptance. Legacy Profile/Wir entry expectations and the playback test's Pro-editing fixture were corrected to the requested product contract; no assertions, timeouts, privacy checks or CI gates were relaxed. No manual GitHub workflow rerun was used.

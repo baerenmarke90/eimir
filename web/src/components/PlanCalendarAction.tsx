@@ -4,6 +4,7 @@ import { planCalendar } from '../client/planCalendar';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
+import './PlanCalendarAction.css';
 
 export function PlanCalendarAction({
   plan,
@@ -31,7 +32,7 @@ export function PlanCalendarAction({
     <div className="plan-calendar-action">
       {resource.url ? (
         <a
-          className="button secondary"
+          className="button-link secondary"
           href={resource.url}
           download={file.name}
           onClick={(event) => {

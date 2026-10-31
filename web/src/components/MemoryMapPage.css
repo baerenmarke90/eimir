@@ -55,12 +55,6 @@
   font: var(--font-supporting-copy);
   color: var(--color-text-secondary);
 }
-.plan-calendar-action .button {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: var(--touch-target-web);
-}
 
 .memory-map-marker > span {
   display: grid;

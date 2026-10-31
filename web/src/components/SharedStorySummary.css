@@ -26,7 +26,7 @@
 .shared-story-summary-metric dt {
   margin-top: var(--space-1);
   color: var(--color-text-secondary);
-  font: var(--font-supporting-copy);
+  font: var(--font-navigation-label);
   overflow-wrap: anywhere;
 }
 .shared-story-summary-metric dd {
@@ -48,6 +48,9 @@
 }
 .shared-story-summary-badge svg {
   color: var(--color-brand-text);
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
 }
 .shared-story-summary-number {
   font-family: var(--font-display);

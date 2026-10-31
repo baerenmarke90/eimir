@@ -389,7 +389,7 @@ test('reduced motion opens Watch now paused and playback pauses for editing', as
   await page.setViewportSize({ width: 360, height: 900 });
   await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: 'dark' });
   await page.clock.install();
-  await setup(page, { start: 'library', pro: false });
+  await setup(page, { start: 'library', pro: true });
   await page.getByRole('link', { name: new RegExp(copy.watchNow) }).click();
   await expect(
     page.getByRole('button', { name: copy.play, exact: true }),

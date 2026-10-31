@@ -143,6 +143,12 @@ test('all five Pro games are playable and authored sessions finish and restart',
   await captureScreenshot(page, info, 'games-390-light.png', {
     fullPage: true,
   });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await captureScreenshot(page, info, 'games-1280-dark.png', {
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
   for (const game of ['happiness', 'timeTravel'] as const) {
     await page
       .getByRole('button', { name: new RegExp(gameCopy.entries[game].title) })
@@ -159,7 +165,8 @@ test('all five Pro games are playable and authored sessions finish and restart',
 
 test('dated plan hands off an RFC calendar file without changing the plan', async ({
   page,
-}) => {
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await installMocks(page);
   await page.route(
     `**/api/v1/spaces/${SPACE_ID}/plans/calendar-plan`,
@@ -200,4 +207,7 @@ test('dated plan hands off an RFC calendar file without changing the plan', asyn
   expect(content).toContain('DTSTART;VALUE=DATE:20261114');
   expect(content).toContain('DTEND;VALUE=DATE:20261115');
   expect(content).toContain('SUMMARY:Weekend at the lake');
+  await captureScreenshot(page, info, 'calendar-plan-390-light.png', {
+    fullPage: true,
+  });
 });

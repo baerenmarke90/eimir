@@ -22,7 +22,7 @@ def protected_media(encryption):  # type: ignore[no-untyped-def]
 
 
 @pytest.mark.parametrize("preserve", [True, False])
-def test_retained_metadata_is_independent_of_association_and_requires_parent_access(
+def test_retained_metadata_follows_file_choice_and_requires_parent_access(
     protected_media, client, couple, session, preserve
 ):  # type: ignore[no-untyped-def]
     disabled = client.put(
@@ -30,7 +30,8 @@ def test_retained_metadata_is_independent_of_association_and_requires_parent_acc
         json={"enabled": False},
         headers=binding.if_match(couple["token_a"], 0),
     )
-    assert disabled.status_code == 200
+    assert disabled.status_code == 409
+    assert disabled.json()["code"] == "PHOTO_LOCATIONS_ALWAYS_ENABLED"
     raw = _with_metadata()
     request = {
         "mediaType": "IMAGE",
@@ -52,10 +53,11 @@ def test_retained_metadata_is_independent_of_association_and_requires_parent_acc
     assert client.post(path + "/finalize", json={}, headers=auth(couple["token_a"])).is_success
     service.validate(session, UUID(photo))
     session.flush()
-    assert session.get(PhotoLocationDraft, UUID(photo)) is None
+    assert session.get(PhotoLocationDraft, UUID(photo)) is not None
     assert client.get(path + "/content", headers=auth(couple["token_b"])).status_code == 404
     heart = binding.heart_moment(client, couple, attachment_id=photo)
     assert heart.status_code == 201
+    assert session.get(PhotoLocationDraft, UUID(photo)) is None
     primary = client.get(path + "/content", headers=auth(couple["token_b"]))
     assert primary.status_code == 200
     exif = Image.open(io.BytesIO(primary.content)).getexif()

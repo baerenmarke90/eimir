@@ -1,12 +1,10 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import {
-  type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
   useEffect,
   useId,
   useLayoutEffect,
-  useRef,
   useState,
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -31,6 +29,7 @@ import {
 } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { handleTabKeyDown } from '../client/tabKeyboard';
 import { textExcerpt } from '../client/textExcerpt';
 import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
 import { useTranslation } from '../i18n';
@@ -91,29 +90,18 @@ function PlanenSegmentedControl({
   plansPanelId: string;
 }) {
   const { t } = useTranslation();
-  const wishesRef = useRef<HTMLButtonElement>(null);
-  const plansRef = useRef<HTMLButtonElement>(null);
-
-  function switchTo(segment: PlanenSegment, focus: boolean): void {
-    onChange(segment);
-    if (focus) (segment === 'plans' ? plansRef : wishesRef).current?.focus();
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-    event.preventDefault();
-    switchTo(active === 'plans' ? 'wishes' : 'plans', true);
-  }
-
   return (
     <div
       className="planen-segmented"
       role="tablist"
       aria-label={t('m5s3.overview.segmentedLabel')}
-      onKeyDown={handleKeyDown}
+      onKeyDown={(event) =>
+        handleTabKeyDown(event, (tab) =>
+          onChange(tab.id === plansTabId ? 'plans' : 'wishes'),
+        )
+      }
     >
       <button
-        ref={plansRef}
         type="button"
         role="tab"
         id={plansTabId}
@@ -121,12 +109,11 @@ function PlanenSegmentedControl({
         aria-controls={plansPanelId}
         tabIndex={active === 'plans' ? 0 : -1}
         className={`planen-segment ${active === 'plans' ? 'is-active' : ''}`}
-        onClick={() => switchTo('plans', false)}
+        onClick={() => onChange('plans')}
       >
         {t('m5s3.overview.segmentPlans')}
       </button>
       <button
-        ref={wishesRef}
         type="button"
         role="tab"
         id={wishesTabId}
@@ -134,7 +121,7 @@ function PlanenSegmentedControl({
         aria-controls={wishesPanelId}
         tabIndex={active === 'wishes' ? 0 : -1}
         className={`planen-segment ${active === 'wishes' ? 'is-active' : ''}`}
-        onClick={() => switchTo('wishes', false)}
+        onClick={() => onChange('wishes')}
       >
         {t('m5s3.overview.segmentWishes')}
       </button>

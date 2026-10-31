@@ -41,6 +41,7 @@ import {
   recapDetailPath,
 } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { handleTabKeyDown } from '../client/tabKeyboard';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { PageHeader } from './PageHeader';
@@ -201,6 +202,9 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
   const started = useRef(Date.now());
   const prepared = useRef(false);
   const kind = search.get('tab') === 'years' ? 'YEAR' : 'MONTH';
+  function selectPeriod(value: 'MONTH' | 'YEAR') {
+    setSearch(value === 'YEAR' ? { tab: 'years' } : {}, { replace: true });
+  }
   const key = ['relationship-recaps', props.account.id, props.spaceId, kind];
   const query = useInfiniteQuery({
     queryKey: key,
@@ -291,7 +295,16 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
         titleAction={<ProMark label={t('recaps.pro')} />}
         description={t('recaps.intro')}
       />
-      <div className="recap-tabs" role="tablist" aria-label={t('recaps.tabs')}>
+      <div
+        className="recap-tabs"
+        role="tablist"
+        aria-label={t('recaps.tabs')}
+        onKeyDown={(event) =>
+          handleTabKeyDown(event, (tab) =>
+            selectPeriod(tab.id === 'recap-tab-YEAR' ? 'YEAR' : 'MONTH'),
+          )
+        }
+      >
         {(['MONTH', 'YEAR'] as const).map((value) => (
           <button
             key={value}
@@ -301,30 +314,7 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
             aria-selected={value === kind}
             aria-controls="recap-library-panel"
             tabIndex={value === kind ? 0 : -1}
-            onClick={() =>
-              setSearch(value === 'YEAR' ? { tab: 'years' } : {}, {
-                replace: true,
-              })
-            }
-            onKeyDown={(event) => {
-              if (
-                ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)
-              ) {
-                event.preventDefault();
-                const next =
-                  event.key === 'Home'
-                    ? 'MONTH'
-                    : event.key === 'End'
-                      ? 'YEAR'
-                      : kind === 'MONTH'
-                        ? 'YEAR'
-                        : 'MONTH';
-                setSearch(next === 'YEAR' ? { tab: 'years' } : {}, {
-                  replace: true,
-                });
-                document.getElementById(`recap-tab-${next}`)?.focus();
-              }
-            }}
+            onClick={() => selectPeriod(value)}
           >
             {t(value === 'MONTH' ? 'recaps.months' : 'recaps.years')}
           </button>

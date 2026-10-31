@@ -5,6 +5,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import navigationCopy from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 
@@ -660,6 +661,7 @@ test.describe('Global header document flow and persistent bottom navigation', ()
       await signIn(page);
 
       const destinations = [
+        { slug: 'wir', path: '/today', title: navigationCopy.today },
         {
           slug: 'momente',
           path: '/story?tab=timeline',

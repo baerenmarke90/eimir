@@ -3,10 +3,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { ClientProblemError } from '../client/problemDetails';
+import type { SharedPlanningApis } from '../client/sharedPlanning';
 import copy from '../i18n/locales/memoryMap';
 import { MemoryMapPage } from './MemoryMapPage';
+
 vi.mock('./PlaceMapCanvas', () => ({
   default: () => <div data-testid="external-map" />,
 }));
@@ -33,7 +34,7 @@ function setup(listMemoryMap: ReturnType<typeof vi.fn>) {
   );
 }
 describe('Pro memory map', () => {
-  it('groups co-located sources, opens canonical memories, and loads tiles only on request', async () => {
+  it('opens the map immediately, groups co-located sources and opens canonical memories', async () => {
     setup(
       vi.fn().mockResolvedValue({
         items: [
@@ -47,14 +48,16 @@ describe('Pro memory map', () => {
     const place = await screen.findByRole('button', {
       name: 'Lake · 2 Erinnerungen',
     });
-    expect(screen.queryByTestId('external-map')).toBeNull();
+    expect(await screen.findByTestId('external-map')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Karte laden' })).toBeNull();
     fireEvent.click(place);
     expect(
       screen.getByRole('link', { name: /By the lake/ }).getAttribute('href'),
     ).toBe('/story/memories/m1');
     expect(screen.getByRole('link', { name: /Second visit/ })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Karte laden' }));
-    expect(await screen.findByTestId('external-map')).toBeTruthy();
+    expect(
+      screen.getAllByText('30.10.2026', { selector: 'time' }),
+    ).toHaveLength(2);
   });
   it('requires the server capability without retaining a stale map', async () => {
     setup(
@@ -69,7 +72,7 @@ describe('Pro memory map', () => {
         ),
     );
     await screen.findByText(copy.proTitle);
-    expect(screen.queryByRole('button', { name: 'Karte laden' })).toBeNull();
+    expect(screen.queryByTestId('external-map')).toBeNull();
   });
   it('lets a bounded next page fill a sparse first page without automatic unbounded loading', async () => {
     const load = vi
@@ -77,9 +80,15 @@ describe('Pro memory map', () => {
       .mockResolvedValueOnce({ items: [], nextCursor: 'next' })
       .mockResolvedValueOnce({ items: [item], nextCursor: null });
     setup(load);
+    expect(screen.queryByTestId('external-map')).toBeNull();
     fireEvent.click(await screen.findByRole('button', { name: copy.loadMore }));
     await screen.findByRole('button', { name: 'Lake · 1 Erinnerung' });
     expect(load).toHaveBeenCalledTimes(2);
     expect(load.mock.calls[1][0].cursor).toBe('next');
+  });
+  it('keeps an empty map provider-free', async () => {
+    setup(vi.fn().mockResolvedValue({ items: [], nextCursor: null }));
+    await screen.findByText(copy.emptyTitle);
+    expect(screen.queryByTestId('external-map')).toBeNull();
   });
 });

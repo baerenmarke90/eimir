@@ -240,7 +240,7 @@
 
 /*
  * Primary navigation destinations share one orientation rhythm. This variant
- * keeps the same PageHeader semantics while giving Momente, Planen and Mehr a
+ * keeps the same PageHeader semantics while giving all four destinations a
  * single title scale and one header-to-content spacing contract.
  */
 .page-heading-root {

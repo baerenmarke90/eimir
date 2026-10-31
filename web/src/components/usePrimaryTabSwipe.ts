@@ -130,8 +130,7 @@ export function usePrimaryTabSwipe({
         {
           duration:
             parseFloat(style.getPropertyValue('--duration-transition')) || 180,
-          easing:
-            style.getPropertyValue('--easing-enter').trim() || 'ease-out',
+          easing: style.getPropertyValue('--easing-enter').trim() || 'ease-out',
         },
       );
       entryAnimation.current = animation;

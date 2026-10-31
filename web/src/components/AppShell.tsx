@@ -416,7 +416,6 @@ function AuthenticatedAppShell({
               children
             )}
           </main>
-
         </div>
 
         {!isFocusedTask ? (

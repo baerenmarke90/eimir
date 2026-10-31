@@ -14,6 +14,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(UnifiedPushBridge.class);
         registerPlugin(AppIconPlugin.class);
         registerPlugin(NativeSessionStoragePlugin.class);
+        registerPlugin(PlanCalendarPlugin.class);
         super.onCreate(savedInstanceState);
         if (getBridge() != null) {
             photoFileChooser = new PhotoFileChooser(getBridge());

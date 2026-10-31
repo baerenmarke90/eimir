@@ -72,6 +72,7 @@ import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
+import { PageHeader } from './PageHeader';
 import { PartnerQuickActions } from './PartnerQuickActions';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
@@ -1501,7 +1502,7 @@ export function TodayPage({
 
       {contentReady && dashboardQuery.data ? (
         <div className="today-content">
-          <h1 className="today-page-title">{t('navigation.today')}</h1>
+          <PageHeader variant="root" title={t('navigation.today')} />
 
           {orderedModuleKeys.map((key) => (
             <Fragment key={key}>{moduleContent[key]}</Fragment>

@@ -347,7 +347,12 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     await page.goto('/');
     await signIn(page);
     await expect(page).toHaveURL(/\/today$/);
-    await expect(page.locator('.today-content h1')).toBeVisible();
+    await expect(
+      page.locator('.today-content').getByRole('heading', {
+        name: navigation.today,
+        level: 1,
+      }),
+    ).toBeVisible();
 
     // 2. Open More and use the shell's safe sign-out action.
     await page
@@ -564,14 +569,17 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     await leaButton.click();
 
     // 4. Verify magic-link callback is processed and app opens (Today dashboard or default route).
-    // Couple Presence owns the page H1 without a redundant date masthead.
-    await expect(page.locator('.today-content h1')).toBeVisible({
-      timeout: 10000,
-    });
+    // Wir is the stable page H1; the couple hero is a subordinate H2.
+    await expect(
+      page.locator('.today-content').getByRole('heading', {
+        name: navigation.today,
+        level: 1,
+      }),
+    ).toBeVisible({ timeout: 10000 });
     await expect(
       page
         .locator('.couple-presence-card')
-        .getByRole('heading', { name: /Alex/i, level: 1 }),
+        .getByRole('heading', { name: /Alex/i, level: 2 }),
     ).toBeVisible();
     // DemoEntry person picker is gone
     await expect(

@@ -62,7 +62,6 @@ const ACCEPTED_ORDER = [
   '.today-section-moment',
   '.today-section-upcoming',
   '.today-section-living',
-  '.today-section-monthly',
   '.today-section-recent',
 ] as const;
 
@@ -244,8 +243,7 @@ async function settleMotion(page: Page): Promise<void> {
  * The composition order is a property of the document, not of the pixels.
  *
  * Asserting it in the DOM keeps it meaningful on Expanded, where the
- * `Gerade bei euch` and `Diesen Monat` modules deliberately share a row and
- * therefore have no meaningful top-to-bottom relationship. `expectSingleColumnVisualOrder`
+ * active contextual content retains the same content order at every width. `expectSingleColumnVisualOrder`
  * covers the Compact case, where document order and visual order must agree.
  */
 async function expectNormativeOrder(page: Page): Promise<void> {
@@ -625,101 +623,37 @@ async function capture(
 }
 
 test.describe('Today R4: the living home of a relationship', () => {
-  test('renders the real #452 Polaroid with accessible daily dismissal on Compact and Expanded', async ({
+  test('keeps server retrospectives and monthly recaps off Wir at Compact and Expanded widths', async ({
     page,
-  }, testInfo) => {
-    test.setTimeout(120_000);
-    const retrospective = {
-      id: 'mem-nostalgia',
-      type: 'MEMORY',
-      titleOrText: 'A morning by the lake',
-      occurredOn: '2025-10-23',
-      createdAt: '2025-10-24T11:00:00Z',
-      scheduledAt: null,
-      previewAttachmentId: 'att-nostalgia',
-      previewIsSensitive: false,
-    };
-    const earlierMilestone = {
-      id: 'milestone-1',
-      type: 'MILESTONE',
-      titleOrText: 'Our shared milestone',
-      occurredOn: '2025-06-02',
-      createdAt: '2025-06-02T12:00:00Z',
-      scheduledAt: null,
-      previewAttachmentId: null,
-      previewIsSensitive: false,
-    };
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  }, info) => {
     await installMocks(page, {
       ...RICH_SPACE,
-      activity: [],
-      retrospective,
-      viewerLocalDate: '2026-10-23',
-      recentShared: [MOMENT, earlierMilestone, SHARED_WISH],
+      retrospective: {
+        ...MOMENT,
+        id: 'retired-retrospective',
+        titleOrText: 'A historic retrospective',
+      },
     });
     await signInAndOpenToday(page);
-
-    const paper = page.locator('.today-living-retrospective');
-    const media = paper.locator('.today-retrospective-media img');
-    await expect(paper).toBeVisible();
-    await expect(media).toBeVisible();
-    expect(
-      await media.evaluate((img) => (img as HTMLImageElement).naturalWidth),
-    ).toBeGreaterThan(0);
-    await expect(
-      paper.getByRole('button', {
-        name: m5s5.today.living.retrospectiveDismissToday,
-      }),
-    ).toBeVisible();
-    await expect(
-      paper.getByRole('link', {
-        name: new RegExp(m5s5.today.living.retrospectiveAction),
-      }),
-    ).toHaveAttribute('href', '/story/memories/mem-nostalgia');
-
-    await expectNormativeOrder(page);
-    await expectSingleColumnVisualOrder(page);
-    await expectNoHorizontalOverflow(page);
-    await expectNoWcagViolations(page);
-    await capture(page, testInfo, 'nostalgia-390-light');
-
-    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
-    await expectNoHorizontalOverflow(page);
-    await expectNoWcagViolations(page);
-    await capture(page, testInfo, 'nostalgia-390-dark');
-
-    await page.setViewportSize({ width: 320, height: 800 });
-    await expectNoHorizontalOverflow(page);
-    await capture(page, testInfo, 'nostalgia-320-reflow');
-
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await expectNoHorizontalOverflow(page);
-    await expectNoWcagViolations(page);
-    await capture(page, testInfo, 'nostalgia-1440-expanded-dark');
-
-    await paper
-      .getByRole('button', {
-        name: m5s5.today.living.retrospectiveDismissToday,
-      })
-      .click();
-    const storedDay = await page.evaluate(() => {
-      const marker = window.localStorage.getItem(
-        'eimir:today-retrospective-dismissed:v1',
-      );
-      return marker ? JSON.parse(marker)[2] : null;
-    });
-    expect(storedDay).toBe('2026-10-23');
-    await expect(paper).toHaveCount(0);
-    await expect(page.locator('.today-living-milestone')).toBeVisible();
-    await expect(
-      page.getByText(m5s5.today.living.retrospectiveDismissed),
-    ).toHaveCount(1);
-
-    await page.reload();
-    await expect(page.locator('.today-hero')).toBeVisible();
-    await expect(page.locator('.today-living-retrospective')).toHaveCount(0);
-    await expect(page.locator('.today-living-milestone')).toBeVisible();
+    for (const [width, theme] of [
+      [390, 'light'],
+      [390, 'dark'],
+      [320, 'dark'],
+      [1440, 'dark'],
+    ] as const) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+      await expect(page.locator('.today-moment-link')).toBeVisible();
+      await expect(page.locator('.today-living-retrospective')).toHaveCount(0);
+      await expect(page.locator('.today-section-monthly')).toHaveCount(0);
+      await expect(
+        page.getByText('A historic retrospective', { exact: true }),
+      ).toHaveCount(0);
+      await expectNormativeOrder(page);
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await capture(page, info, `without-recaps-${width}-${theme}`);
+    }
   });
 
   test('keeps partner Presence hidden and dormant across Today viewports', async ({
@@ -940,7 +874,6 @@ test.describe('Today R4: the living home of a relationship', () => {
         agenda: read('.today-agenda-row'),
         moment: read('.today-moment-figure'),
         living: read('.today-living'),
-        monthly: read('.today-monthly-tile'),
         trace: read('.today-recent-tile'),
       };
     });
@@ -969,192 +902,33 @@ test.describe('Today R4: the living home of a relationship', () => {
     await expect(page.locator('.today-card-badges')).toHaveCount(0);
   });
 
-  test('shows this month as real photos and claims no total it cannot prove', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await installMocks(page, RICH_SPACE);
-    await signInAndOpenToday(page);
-
-    const strip = page.locator('.today-monthly-tile');
-    await expect(strip).toHaveCount(3);
-    for (const tile of await strip.all()) {
-      const image = tile.locator('img');
-      await expect(image).toBeVisible();
-      expect(
-        await image.evaluate((img) => (img as HTMLImageElement).naturalWidth),
-      ).toBeGreaterThan(0);
-    }
-
-    // The photo already shown large above is never repeated in the strip.
-    const monthlyHrefs = await page
-      .locator('.today-monthly-tile')
-      .evaluateAll((nodes) =>
-        nodes.map((node) => node.getAttribute('href') ?? ''),
-      );
-    expect(monthlyHrefs.some((href) => href.includes(MOMENT.id))).toBe(false);
-
-    // `recentShared` is capped server-side, so no total is asserted from it.
-    const monthlyText = await page
-      .locator('.today-section-monthly')
-      .innerText();
-    expect(monthlyText).not.toMatch(/\d+\s+gemeinsame Momente/);
-  });
-
-  test('keeps a single `Diesen Monat` photo as one plain wide band, no carousel behavior (#858)', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await installMocks(page, ONE_MONTHLY_PHOTO_SPACE);
-    await signInAndOpenToday(page);
-
-    await expect(page.locator('.today-monthly-tile')).toHaveCount(1);
-
-    const listOverflow = await page
-      .locator('.today-monthly-strip')
-      .evaluate((node) => node.scrollWidth > node.clientWidth + 1);
-    expect(listOverflow).toBe(false);
-
-    await expectNoHorizontalOverflow(page);
-  });
-
-  test('renders a `Diesen Monat` swipe carousel with two photos on Compact, second image discoverable (#858)', async ({
-    page,
-  }, testInfo) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await installMocks(page, TWO_MONTHLY_PHOTOS_SPACE);
-    await signInAndOpenToday(page);
-    await settleMotion(page);
-
-    const rects = await page
-      .locator('.today-monthly-tile')
-      .evaluateAll((nodes) =>
-        nodes.map((node) => node.getBoundingClientRect()),
-      );
-    expect(rects).toHaveLength(2);
-
-    // One horizontal row, not stacked, with the second tile already
-    // partially visible at the edge as the swipe invitation.
-    expect(Math.round(rects[0].top)).toBe(Math.round(rects[1].top));
-    expect(rects[1].left).toBeGreaterThan(rects[0].left);
-    expect(rects[1].left).toBeLessThan(390);
-
-    // The section stays a compact strip, not a near-full-screen square.
-    expect(rects[0].height).toBeLessThan(300);
-
-    // The overflow that makes swiping possible is contained in the strip
-    // itself, never leaking out to the page.
-    const monthlyInteraction = await page
-      .locator('.today-monthly-strip')
-      .evaluate((node) => {
-        const style = getComputedStyle(node);
-        const items = Array.from(
-          node.querySelectorAll<HTMLElement>('.today-monthly-item'),
-        );
-        return {
-          usesSharedTrack: node.classList.contains('eimir-media-snap-track'),
-          allItemsUseSharedSnap: items.every(
-            (item) =>
-              item.classList.contains('eimir-media-snap-item') &&
-              item.classList.contains('eimir-media-snap-item-start'),
-          ),
-          scrollSnapType: style.scrollSnapType,
-          overscrollBehaviorX: style.overscrollBehaviorX,
-          touchAction: style.touchAction,
-          overflow: node.scrollWidth > node.clientWidth + 1,
-          snapStops: items.map((item) => getComputedStyle(item).scrollSnapStop),
-        };
-      });
-    expect(monthlyInteraction.usesSharedTrack).toBe(true);
-    expect(monthlyInteraction.allItemsUseSharedSnap).toBe(true);
-    expect(monthlyInteraction.scrollSnapType).toContain('x');
-    expect(monthlyInteraction.scrollSnapType).toContain('mandatory');
-    expect(monthlyInteraction.overscrollBehaviorX).toBe('contain');
-    expect(monthlyInteraction.touchAction).toBe('manipulation');
-    expect(monthlyInteraction.overflow).toBe(true);
-    expect(monthlyInteraction.snapStops).toEqual(['always', 'always']);
-
-    await expectNoHorizontalOverflow(page);
-    await expectNoWcagViolations(page);
-    await capture(page, testInfo, 'monthly-carousel-two-390');
-  });
-
-  for (const width of [320, 390]) {
-    test(`renders a three-photo \`Diesen Monat\` scroll-snap carousel with no vertical stacking or page overflow at ${width}px (#858)`, async ({
+  for (const [count, space] of [
+    [1, ONE_MONTHLY_PHOTO_SPACE],
+    [2, TWO_MONTHLY_PHOTOS_SPACE],
+    [3, RICH_SPACE],
+  ] as const) {
+    test(`keeps real sources reachable without a monthly recap (${count} photos)`, async ({
       page,
     }) => {
-      await page.setViewportSize({ width, height: 844 });
-      await installMocks(page, RICH_SPACE, 3);
+      await page.setViewportSize({ width: 390, height: 844 });
+      await installMocks(page, space);
       await signInAndOpenToday(page);
-      await settleMotion(page);
-
-      const rects = await page
-        .locator('.today-monthly-tile')
-        .evaluateAll((nodes) =>
-          nodes.map((node) => node.getBoundingClientRect()),
-        );
-      expect(rects).toHaveLength(3);
-
-      const tops = new Set(rects.map((rect) => Math.round(rect.top)));
-      expect(tops.size).toBe(1);
-      const lefts = rects.map((rect) => Math.round(rect.left));
-      expect(new Set(lefts).size).toBe(lefts.length);
-
-      const stripOverflow = await page
-        .locator('.today-monthly-strip')
-        .evaluate((node) => node.scrollWidth > node.clientWidth + 1);
-      expect(stripOverflow).toBe(true);
-
+      await expect(page.locator('.today-section-monthly')).toHaveCount(0);
+      await expect(page.locator('.today-monthly-tile')).toHaveCount(0);
+      await expect(page.locator('.today-moment-link')).toHaveAttribute(
+        'href',
+        `/story/memories/${MOMENT.id}`,
+      );
+      const hrefs = await page
+        .locator('.today-recent-tile[href]')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('href')));
+      expect(hrefs.length).toBeGreaterThan(0);
+      expect(new Set(hrefs).size).toBe(hrefs.length);
+      expect(hrefs).not.toContain(`/story/memories/${MOMENT.id}`);
+      await expectNormativeOrder(page);
       await expectNoHorizontalOverflow(page);
     });
   }
-
-  test('never shows the same memory as both a `Diesen Monat` thumbnail and a `Zuletzt bei euch` row', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await installMocks(page, RICH_SPACE);
-    await signInAndOpenToday(page);
-
-    /*
-     * Compare the content tiles themselves, not every anchor in the section.
-     * A section's own "Alle anzeigen" link and a Heart Moment row both point
-     * at `/story`, which is shared navigation rather than a repeated item.
-     */
-    const hrefsOf = async (selector: string) =>
-      page
-        .locator(selector)
-        .evaluateAll((nodes) =>
-          nodes.map((node) => node.getAttribute('href') ?? ''),
-        );
-
-    const monthlyHrefs = await hrefsOf('.today-monthly-tile[href]');
-    const traceHrefs = await hrefsOf('.today-recent-tile[href]');
-
-    expect(monthlyHrefs.length).toBeGreaterThan(0);
-    expect(traceHrefs.length).toBeGreaterThan(0);
-
-    // No memory may be reachable as both a thumbnail up there and a row down
-    // here: whatever the strip claimed is featured content.
-    const shared = monthlyHrefs.filter((href) => traceHrefs.includes(href));
-    expect(shared, 'A memory must not appear in both sections').toEqual([]);
-
-    // Concretely: every photo of the month is in the strip and none of them
-    // is repeated below.
-    for (const photo of STRIP_PHOTOS) {
-      const href = `/story/memories/${photo.id}`;
-      expect(monthlyHrefs).toContain(href);
-      expect(traceHrefs).not.toContain(href);
-    }
-
-    // Content the strip cannot take is still offered by the trace, so the
-    // exclusion did not simply empty the section.
-    await expect(
-      page.locator('.today-section-recent').getByText(TRACE_ONLY.titleOrText),
-    ).toBeVisible();
-
-    await expectNormativeOrder(page);
-  });
 
   test('omits `Diesen Monat` and gives real shared text deliberate focal treatment when no photo exists', async ({
     page,
@@ -1172,7 +946,7 @@ test.describe('Today R4: the living home of a relationship', () => {
     await expect(page.locator('.today-section-monthly')).toHaveCount(0);
     await expect(
       page.getByRole('link', { name: recaps.profileLink }),
-    ).toHaveAttribute('href', '/more/passport');
+    ).toHaveCount(0);
     await expect(page.locator('.today-moment-figure')).toHaveCount(0);
     await expect(page.locator('.today-moment-text')).toBeVisible();
     await expect(page.getByText(TRACE_ONLY.titleOrText)).toBeVisible();
@@ -1232,7 +1006,8 @@ test.describe('Today R4: the living home of a relationship', () => {
     expect(links.filter((href) => href === commentedHref)).toHaveLength(1);
 
     // The other photos of the month are untouched, so nothing over-filtered.
-    await expect(page.locator('.today-monthly-tile')).toHaveCount(2);
+    await expect(page.locator('.today-section-monthly')).toHaveCount(0);
+    await expect(page.locator('.today-recent-tile').first()).toBeVisible();
     await expectNormativeOrder(page);
   });
 
@@ -1386,19 +1161,21 @@ test.describe('Today R4: the living home of a relationship', () => {
     await expectNormativeOrder(page);
     await expect(page.locator('.today-living')).toHaveCount(1);
 
-    // Expanded spends its width on placing the two smallest modules beside
-    // each other, rather than stretching either across the whole canvas.
+    // Removing the retired companion leaves a normal bounded content section.
     await settleMotion(page);
-    const sideBySide = await page.evaluate(() => {
+    await expect(page.locator('.today-section-monthly')).toHaveCount(0);
+    const bounds = await page.evaluate(() => {
       const living = document.querySelector('.today-section-living');
-      const monthly = document.querySelector('.today-section-monthly');
-      if (!living || !monthly) return null;
-      const a = living.getBoundingClientRect();
-      const b = monthly.getBoundingClientRect();
-      return { sameRow: Math.abs(a.top - b.top) < 4, livingWidth: a.width };
+      const content = document.querySelector('.today-content');
+      if (!living || !content) return null;
+      const section = living.getBoundingClientRect();
+      const frame = content.getBoundingClientRect();
+      return {
+        left: section.left >= frame.left,
+        right: section.right <= frame.right,
+      };
     });
-    expect(sideBySide?.sameRow).toBe(true);
-    expect(sideBySide?.livingWidth).toBeLessThan(800);
+    expect(bounds).toEqual({ left: true, right: true });
 
     await expectNoHorizontalOverflow(page);
     await expectNoWcagViolations(page);
@@ -1476,7 +1253,6 @@ test.describe('Today R4: the living home of a relationship', () => {
       'today-agenda-row',
       'today-moment',
       'today-living-action',
-      'today-monthly-tile',
       'today-recent-tile',
       'today-recent-activity-link',
     ];
@@ -1564,15 +1340,9 @@ test.describe('Today R4: the living home of a relationship', () => {
       `/story/memories/${MOMENT.id}`,
     );
 
-    // `Diesen Monat` links into Momente's Zeitleiste view (#858 follow-up),
-    // and each tile into its memory.
-    await expect(
-      page.locator('.today-section-monthly .today-section-link'),
-    ).toHaveAttribute('href', '/story?tab=timeline');
-    await expect(page.locator('.today-monthly-tile').first()).toHaveAttribute(
-      'href',
-      `/story/memories/${STRIP_PHOTOS[0].id}`,
-    );
+    await expect(page.locator('.today-section-monthly')).toHaveCount(0);
+    const recent = page.locator('.today-recent-tile').first();
+    await expect(recent).toHaveAttribute('href', /\/(story|plan)\//);
 
     // `Demnächst` offers the full planning surface.
     await expect(
@@ -1600,63 +1370,3 @@ test.describe('Today R4: the living home of a relationship', () => {
     expect(visibleText).toContain(m5s5.today.keepsake.kicker.toLowerCase());
   });
 });
-
-for (const [width, theme] of [
-  [390, 'light'],
-  [1280, 'dark'],
-] as const) {
-  test(`monthly captions use the page surface and one date at ${width} ${theme}`, async ({
-    page,
-  }, info) => {
-    const date = new Date(`${thisMonthDate(4)}T00:00:00Z`);
-    const numeric = new Intl.DateTimeFormat('de', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      timeZone: 'UTC',
-    }).format(date);
-    const readable = new Intl.DateTimeFormat('de', {
-      dateStyle: 'long',
-      timeZone: 'UTC',
-    }).format(date);
-    await installMocks(page, {
-      ...RICH_SPACE,
-      recentShared: [
-        MOMENT,
-        { ...STRIP_PHOTOS[0], titleOrText: `Erinnerung vom ${numeric}` },
-        STRIP_PHOTOS[1],
-      ],
-    });
-    await page.setViewportSize({ width, height: 1000 });
-    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
-    await signInAndOpenToday(page);
-    const tile = page.locator('.today-monthly-tile').first();
-    await expect(tile.locator('.today-monthly-caption')).toHaveText(readable);
-    await expect(tile.locator('time')).toHaveCount(0);
-    const authored = page.locator('.today-monthly-tile').nth(1);
-    await expect(authored).toContainText(STRIP_PHOTOS[1].titleOrText);
-    await expect(authored.locator('time')).toHaveCount(1);
-    const style = await tile.evaluate((node) => ({
-      underline: getComputedStyle(node).textDecorationLine,
-      caption: getComputedStyle(
-        node.querySelector('.today-monthly-caption') ?? node,
-      ).backgroundColor,
-    }));
-    expect(style).toEqual({ underline: 'none', caption: 'rgba(0, 0, 0, 0)' });
-    await tile.scrollIntoViewIfNeeded();
-    await page.evaluate(() => {
-      if (document.activeElement instanceof HTMLElement)
-        document.activeElement.blur();
-    });
-    await expectNoWcagViolations(page);
-    await expectNoHorizontalOverflow(page);
-    await page.evaluate(() => {
-      if (document.activeElement instanceof HTMLElement)
-        document.activeElement.blur();
-    });
-    await page.screenshot({
-      path: info.outputPath(`monthly-${width}-${theme}.png`),
-      fullPage: false,
-    });
-  });
-}

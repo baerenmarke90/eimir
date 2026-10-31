@@ -6,7 +6,6 @@ import {
   useMemo,
   useRef,
   useState,
-  ViewTransition,
 } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
@@ -394,38 +393,30 @@ function AuthenticatedAppShell({
         ) : null}
 
         <div className="product-shell-body">
-          <ViewTransition
-            default="none"
-            update={{
-              'primary-tab-forward': 'eimir-primary-tab-forward',
-              'primary-tab-backward': 'eimir-primary-tab-backward',
-              default: 'none',
-            }}
+          <main
+            ref={mainRef}
+            id="main-content"
+            className="product-main"
+            data-area={
+              location.pathname.startsWith('/more') ? 'more' : undefined
+            }
+            tabIndex={-1}
           >
-            <main
-              ref={mainRef}
-              id="main-content"
-              className="product-main"
-              data-area={
-                location.pathname.startsWith('/more') ? 'more' : undefined
-              }
-              tabIndex={-1}
-            >
-              <AppSurfacePullToRefresh pathname={location.pathname} />
-              {isStoryDetail ? (
-                <div className="shell-detail-context">{detailBackButton}</div>
-              ) : null}
-              {isGamesHub ? (
-                <GamesProductArea
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={accessToken}
-                  spaceId={spaceId}
-                />
-              ) : (
-                children
-              )}
-            </main>
-          </ViewTransition>
+            <AppSurfacePullToRefresh pathname={location.pathname} />
+            {isStoryDetail ? (
+              <div className="shell-detail-context">{detailBackButton}</div>
+            ) : null}
+            {isGamesHub ? (
+              <GamesProductArea
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                spaceId={spaceId}
+              />
+            ) : (
+              children
+            )}
+          </main>
+
         </div>
 
         {!isFocusedTask ? (

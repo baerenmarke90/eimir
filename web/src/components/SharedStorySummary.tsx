@@ -70,7 +70,7 @@ export function SharedStorySummary({
       className="shared-story-summary"
       aria-labelledby="shared-story-summary-heading"
     >
-      <h2 id="shared-story-summary-heading">
+      <h2 id="shared-story-summary-heading" className="today-section-title">
         {t('m5s5.dashboard.storySummaryTitle')}
       </h2>
       <dl className="shared-story-summary-values">
@@ -95,3 +95,4 @@ export function SharedStorySummary({
     </section>
   );
 }
+

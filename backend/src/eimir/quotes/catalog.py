@@ -191,6 +191,70 @@ QUOTES: tuple[DailyQuote, ...] = (
         translator=None,
         rights_basis="Public Domain (Wilhelm Busch died 1908, p.m.a. > 70 years)",
     ),
+    DailyQuote(
+        id="quote-de-love-005",
+        text="Ich bin bei dir, du seist auch noch so ferne, du bist mir nah!",
+        author_display="Johann Wolfgang von Goethe",
+        source_display="Nähe des Geliebten",
+        source_id="classic_literature",
+        category_ids=("love",),
+        locale="de",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=True,
+        original_work="Nähe des Geliebten (stanza 4, lines 1-2)",
+        source_edition=(
+            "Goethe's Werke, Band 1, Cotta, Stuttgart/Tübingen 1827, p. 58; "
+            "https://de.wikisource.org/wiki/N%C3%A4he_des_Geliebten_(1827); "
+            "line break joined and continuation lowercased; 'seyst' normalized to 'seist'"
+        ),
+        publication_year=1827,
+        translator=None,
+        rights_basis="Public Domain (Johann Wolfgang von Goethe died 1832, p.m.a. > 70 years)",
+    ),
+    DailyQuote(
+        id="quote-de-love-006",
+        text="Du bist die Ruh, der Friede mild, die Sehnsucht du, und was sie stillt.",
+        author_display="Friedrich Rückert",
+        source_display="Du bist die Ruh",
+        source_id="poetic_wisdom",
+        category_ids=("love", "serenity"),
+        locale="de",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=True,
+        original_work="Oestliche Rosen (Du bist die Ruh, first stanza)",
+        source_edition=(
+            "Friedrich Rückert: Oestliche Rosen, F. A. Brockhaus, Leipzig 1822, pp. 125-126; "
+            "https://www.schubertsong.uk/text/du-bist-die-ruh/; "
+            "original German stanza only, line breaks joined and continuations lowercased"
+        ),
+        publication_year=1822,
+        translator=None,
+        rights_basis="Public Domain (Friedrich Rückert died 1866, p.m.a. > 70 years)",
+    ),
+    DailyQuote(
+        id="quote-de-love-007",
+        text=(
+            "… der Liebe, die darin besteht, daß zwei Einsamkeiten "
+            "einander schützen, grenzen und grüßen."
+        ),
+        author_display="Rainer Maria Rilke",
+        source_display="Briefe an einen jungen Dichter · Auszug",
+        source_id="classic_literature",
+        category_ids=("love", "mindfulness"),
+        locale="de",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=True,
+        original_work="Briefe an einen jungen Dichter (letter 7, Rome, 14 May 1904)",
+        source_edition=(
+            "Rainer Maria Rilke: Briefe an einen jungen Dichter, "
+            "Insel-Verlag, Leipzig 1935, pp. 41-42; "
+            "https://imwerden.de/pdf/rilke_briefe_an_einen_jungen_dichter_1935__ocr.pdf; "
+            "sentence-ending excerpt, initial omission marked; no Kappus editorial text"
+        ),
+        publication_year=1935,
+        translator=None,
+        rights_basis="Public Domain (Rainer Maria Rilke died 1926, p.m.a. > 70 years)",
+    ),
     # German (de) - Philosophy & Stoicism
     DailyQuote(
         id="quote-de-phil-001",
@@ -423,6 +487,50 @@ QUOTES: tuple[DailyQuote, ...] = (
         rights_basis="Public Domain (Emily Brontë died 1848, p.m.a. > 70 years)",
     ),
     DailyQuote(
+        id="quote-en-love-003",
+        text="What do we live for, if it is not to make life less difficult to each other?",
+        author_display="George Eliot",
+        source_display="Middlemarch",
+        source_id="classic_literature",
+        category_ids=("love", "life"),
+        locale="en",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=True,
+        original_work="Middlemarch (Book VIII, Chapter LXXII, Dorothea's dialogue)",
+        source_edition=(
+            "George Eliot: Middlemarch, 1871-1872; "
+            "Project Gutenberg eBook 145, English original, Chapter LXXII; "
+            "https://www.gutenberg.org/files/145/145-h/145-h.htm"
+        ),
+        publication_year=1872,
+        translator=None,
+        rights_basis="Public Domain (George Eliot died 1880, p.m.a. > 70 years)",
+    ),
+    DailyQuote(
+        id="quote-en-love-004",
+        text=(
+            "No one is useless in this world, "
+            "who lightens the burden of it for any one else."
+        ),
+        author_display="Charles Dickens",
+        source_display="Our Mutual Friend",
+        source_id="classic_literature",
+        category_ids=("love", "life"),
+        locale="en",
+        rights_classification=RightsClassification.PUBLIC_DOMAIN,
+        attribution_required=True,
+        original_work="Our Mutual Friend (Book III, Chapter IX, Rokesmith's dialogue)",
+        source_edition=(
+            "Charles Dickens: Our Mutual Friend, 1865; "
+            "Project Gutenberg eBook 883, English original, Book III, Chapter IX; "
+            "https://www.gutenberg.org/files/883/883-h/883-h.htm; "
+            "narrative speech attribution omitted between the two spoken clauses"
+        ),
+        publication_year=1865,
+        translator=None,
+        rights_basis="Public Domain (Charles Dickens died 1870, p.m.a. > 70 years)",
+    ),
+    DailyQuote(
         id="quote-en-phil-001",
         text="The happiness of your life depends upon the quality of your thoughts.",
         author_display="Marcus Aurelius",
@@ -519,3 +627,4 @@ def get_quotes(
 def get_quote_by_id(quote_id: str) -> DailyQuote | None:
     """Return one quote by ID or None."""
     return QUOTE_MAP.get(quote_id)
+

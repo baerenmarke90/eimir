@@ -61,10 +61,10 @@ export function PlanCalendarAction({
           {t('calendarPlan.download')}
         </a>
       ) : null}
-      <p className="field-help">{t('calendarPlan.copyHint')}</p>
       {resource.error ? (
         <p role="status">{t('calendarPlan.unavailable')}</p>
       ) : null}
     </div>
   );
 }
+

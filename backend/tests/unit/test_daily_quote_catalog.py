@@ -23,6 +23,8 @@ def test_catalog_categories_and_sources_are_defined() -> None:
 def test_all_curated_quotes_have_complete_rights_and_attribution_metadata() -> None:
     quotes = catalog.get_quotes(active_only=False)
     assert len(quotes) >= 15
+    assert len({quote.id for quote in quotes}) == len(quotes)
+    assert len({(quote.locale, quote.text) for quote in quotes}) == len(quotes)
 
     valid_sources = {s.id for s in catalog.get_sources()}
     valid_categories = {c.id for c in catalog.get_categories()}
@@ -90,3 +92,4 @@ def test_get_quote_by_id() -> None:
 
     missing = catalog.get_quote_by_id("nonexistent-quote-id")
     assert missing is None
+

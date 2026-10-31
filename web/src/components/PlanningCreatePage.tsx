@@ -307,9 +307,7 @@ export function PlanningCreatePage({
         title={t(
           isPlan ? 'm5s3.plan.createHeading' : 'm5s3.wish.createHeading',
         )}
-        description={t(
-          isPlan ? 'm5s3.plan.createIntro' : 'm5s3.wish.createIntro',
-        )}
+        description={isPlan ? t('m5s3.plan.createIntro') : undefined}
       />
       <div ref={headingRef} tabIndex={-1} className="planning-task-focus" />
 
@@ -555,3 +553,4 @@ export function PlanningCreatePage({
     </div>
   );
 }
+

@@ -4,7 +4,6 @@
 }
 .shared-story-summary h2 {
   margin: 0 0 var(--space-4);
-  font: var(--font-content-heading);
   color: var(--color-text);
 }
 .shared-story-summary-values {
@@ -61,3 +60,4 @@
   outline: 2px solid var(--color-focus);
   outline-offset: 3px;
 }
+

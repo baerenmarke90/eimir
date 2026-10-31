@@ -480,7 +480,6 @@ export function SharedPlanningOverviewPage({
         {!wishes.isLoading && !wishes.error && wishItems.length === 0 ? (
           <div className="planen-empty-state">
             <h2>{t('m5s3.overview.wishesEmpty')}</h2>
-            <p>{t('m5s3.wish.createIntro')}</p>
           </div>
         ) : null}
         {wishItems.length ? (
@@ -528,3 +527,4 @@ export function SharedPlanningOverviewPage({
     </div>
   );
 }
+

@@ -689,9 +689,16 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   await ownTrigger.click();
   await expect(sheet).toBeVisible();
 
-  for (const label of Object.values(dailyVibe.values)) {
-    await expect(sheet.getByRole('button', { name: label })).toBeVisible();
+  for (const [value, label] of Object.entries(dailyVibe.values)) {
+    const option = sheet.getByRole('button', { name: label, exact: true });
+    await expect(option).toBeVisible();
+    await expect(option.locator('svg')).toHaveAttribute('data-vibe-icon', value);
+    await expect(option.locator('svg')).toHaveAttribute('aria-hidden', 'true');
   }
+  await sheet.screenshot({
+    path: testInfo.outputPath('vibe-six-labeled-symbols-390-light.png'),
+    animations: 'disabled',
+  });
 
   const intro = sheet.locator('.daily-vibe-sheet-intro');
   const introBox = await intro.boundingBox();
@@ -1150,3 +1157,4 @@ test('Daily Vibe keeps a committed clear pending through return and consumes a l
   expect(state.lastPatch()).toEqual({ vibe: null });
   expect(state.patchCount()).toBe(1);
 });
+

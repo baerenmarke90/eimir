@@ -21,6 +21,7 @@ import {
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { assertOnlineWrite } from '../client/connectivity';
 import { useDiscoverLayout } from '../client/useDiscoverLayout';
+import { handleTabKeyDown } from '../client/tabKeyboard';
 import {
   type ClientProblemError,
   clientProblemKind,
@@ -247,7 +248,6 @@ export function StoryProductPage({
   const { captureOrigin, resolveOrigin, registerOriginMetadata } =
     useTaskOrigin();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const viewTabsRef = useRef<HTMLDivElement>(null);
   const filterSheetRef = useRef<ShortTaskSheetHandle>(null);
   const filterTriggerRef = useRef<HTMLButtonElement>(null);
   const [draftFilters, setDraftFilters] = useState<StoryFilters>(
@@ -414,7 +414,6 @@ export function StoryProductPage({
   }, [accountId, spaceId, discoverQuery.data]);
 
   function setView(view: 'discover' | 'timeline') {
-    if (view === activeView) return;
     const nextSearch = new URLSearchParams(searchParams);
     nextSearch.set('tab', view);
     setSearchParams(nextSearch);
@@ -836,23 +835,16 @@ export function StoryProductPage({
       />
 
       <div
-        ref={viewTabsRef}
         className="planen-segmented"
         role="tablist"
         aria-label={t('story.viewToggleAria')}
-        onKeyDown={(event) => {
-          let nextView: 'discover' | 'timeline';
-          if (event.key === 'Home') nextView = 'discover';
-          else if (event.key === 'End') nextView = 'timeline';
-          else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight')
-            nextView = activeView === 'discover' ? 'timeline' : 'discover';
-          else return;
-          event.preventDefault();
-          setView(nextView);
-          viewTabsRef.current
-            ?.querySelector<HTMLButtonElement>(`#momente-tab-${nextView}`)
-            ?.focus();
-        }}
+        onKeyDown={(event) =>
+          handleTabKeyDown(event, (tab) =>
+            setView(
+              tab.id === 'momente-tab-discover' ? 'discover' : 'timeline',
+            ),
+          )
+        }
       >
         {(['discover', 'timeline'] as const).map((view) => (
           <button
@@ -864,7 +856,9 @@ export function StoryProductPage({
             aria-controls={`momente-panel-${view}`}
             tabIndex={activeView === view ? 0 : -1}
             className={`planen-segment ${activeView === view ? 'is-active' : ''}`}
-            onClick={() => setView(view)}
+            onClick={() => {
+              if (view !== activeView) setView(view);
+            }}
           >
             {t(view === 'discover' ? 'story.tabDiscover' : 'story.tabTimeline')}
           </button>

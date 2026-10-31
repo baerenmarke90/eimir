@@ -68,6 +68,7 @@ import {
   CHAPTER_CREATE_ROUTE,
   CHAPTER_DETAIL_ROUTE_PATTERN,
   COLLECTION_DETAIL_ROUTE_PATTERN,
+  COLLECTION_CREATE_ROUTE,
   DEFAULT_APP_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
@@ -590,6 +591,16 @@ function AuthenticatedApp({
             <Route
               path={PLACE_DETAIL_ROUTE_PATTERN}
               element={<PlaceProductPage {...planningProductProps} />}
+            />
+            <Route
+              path={COLLECTION_CREATE_ROUTE}
+              element={
+                <CollectionsOverviewPage
+                  key="create-list"
+                  {...planningProductProps}
+                  initialCreate
+                />
+              }
             />
             <Route
               path={MORE_COLLECTIONS_ROUTE}

@@ -109,6 +109,7 @@ export const ACTIVITY_ROUTE = '/today/activity';
 export const MORE_PEOPLE_ROUTE = '/more/people';
 export const MORE_PLACES_ROUTE = '/more/places';
 export const MORE_COLLECTIONS_ROUTE = '/more/collections';
+export const COLLECTION_CREATE_ROUTE = '/more/collections/new';
 /** Existing inbox; More exposes its shared authoritative unread state. */
 export const MORE_NOTIFICATIONS_ROUTE = '/more/notifications';
 /** Named profile destination in the More account group. */

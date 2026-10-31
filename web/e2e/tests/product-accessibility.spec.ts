@@ -1566,9 +1566,7 @@ test('notification choices survive return and stay legible across themes and wid
       hasText: notificationSettings.groupSaved,
     }),
   ).toBeVisible();
-  await page
-    .getByRole('link', { name: profileIdentity.settingsBackToIndex })
-    .click();
+  await page.goBack();
   await page
     .getByRole('link', {
       name: profileIdentity.settingsNotifications,

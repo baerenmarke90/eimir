@@ -25,7 +25,6 @@ import { ProblemState } from './ProblemState';
 import {
   DeleteConfirmation,
   LoadMoreButton,
-  PrivateAreaBackToHub,
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
   usePrivateAreaTaskContext,
@@ -144,7 +143,6 @@ export function PrivateNotesListPage({ api, accountId, spaceId }: Props) {
   return (
     <>
       <PageHeader
-        before={<PrivateAreaBackToHub />}
         title={t('privateArea.notes.title')}
         description={t('privateArea.notes.intro')}
         action={

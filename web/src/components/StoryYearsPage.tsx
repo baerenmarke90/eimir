@@ -123,14 +123,7 @@ export function StoryYearsIndexPage({
 
   return (
     <div className="page page-reading story-years-page">
-      <PageHeader
-        before={
-          <Link className="back-link" to={appRoutePath('story')}>
-            {t('storyYears.backToMoments')}
-          </Link>
-        }
-        title={t('storyYears.title')}
-      />
+      <PageHeader title={t('storyYears.title')} />
 
       {offline ? (
         <div className="inline-message" role="status">
@@ -308,11 +301,6 @@ export function StoryYearDetailPage({
   return (
     <div className="page page-reading story-year-page">
       <PageHeader
-        before={
-          <Link className="back-link" to={STORY_YEARS_ROUTE}>
-            {t('storyYears.backToYears')}
-          </Link>
-        }
         title={title}
         description={description}
         className="story-year-header"

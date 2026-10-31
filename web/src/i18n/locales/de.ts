@@ -245,6 +245,20 @@ const de = {
     timelineKicker: 'Tagebuch',
     timelineHeading: 'Gemeinsame Geschichte',
     discoverKicker: 'Entdecken',
+    discoverInvitation: 'Ein neuer Blick auf eure Geschichte',
+    discoverDaily:
+      'Täglich neu zusammengestellt. Zum Erinnern, Lächeln und Weiterstöbern.',
+    discoverRenew: 'Neu entdecken',
+    discoverRenewing: 'Wir suchen …',
+    discoverRenewed: 'Eure Auswahl ist neu zusammengestellt.',
+    discoverNewDay:
+      'Für heute wartet eine neue Auswahl. Mit „Neu entdecken“ könnt ihr sie ansehen.',
+    discoverOffline:
+      'Du bist gerade offline. Eure bisherige Auswahl bleibt hier; versuche es mit Verbindung erneut.',
+    discoverRateLimit:
+      'Ihr habt gerade schon viel entdeckt. Wartet kurz und versucht es dann noch einmal.',
+    discoverRenewError:
+      'Die neue Auswahl konnte nicht geladen werden. Eure bisherige Auswahl bleibt hier.',
     discoverHeading: 'Wiederentdecken',
     discoverSubhead: 'Kleine Momente, die für immer geblieben sind.',
     tabDiscover: 'Entdecken',
@@ -346,7 +360,7 @@ const de = {
       photoRetry: 'Erneut laden',
       recoveryRequired:
         'Der Speicherstatus dieser Fotoauswahl konnte auf diesem Gerät nicht gesichert werden. Für diesen Speicherschritt wurde keine Anfrage gesendet. Deine Worte bleiben hier erhalten. Versuche es erneut oder entferne diese Fotos vor dem Speichern.',
-      optionalDetails: 'Titel und Stichworte',
+      optionalDetails: 'Stichworte',
       resumeTitle: 'Dein Entwurf wartet auf dich',
       resumeBody:
         'Auf diesem Gerät liegt ein noch nicht abgeschlossener Eintrag. Möchtest du ihn fortsetzen?',

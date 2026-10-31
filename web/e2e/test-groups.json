@@ -235,8 +235,9 @@
       "baselineTests": 5
     },
     "story-discover-tapestry.spec.ts": {
-      "disposition": "FULL_REGRESSION",
-      "baselineTests": 5
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 16,
+      "reason": "Canonical source/return and natural content layout, explicit bounded renewal with stable confirmed results, daily freshness, offline/rate/access denial and untitled Diary photo reading."
     },
     "story-featured-metadata.spec.ts": {
       "disposition": "PR_CRITICAL",

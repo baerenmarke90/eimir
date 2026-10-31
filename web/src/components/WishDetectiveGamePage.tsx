@@ -451,11 +451,6 @@ export function WishDetectiveGamePage({
   return (
     <div className="page wish-detective-page">
       <PageHeader
-        before={
-          <Link className="back-link" to={appRoutePath('games')}>
-            {t('games.wishDetective.back')}
-          </Link>
-        }
         eyebrow={t('games.entries.wishes.role')}
         title={t('games.entries.wishes.title')}
         description={t('games.wishDetective.intro')}

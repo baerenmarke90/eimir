@@ -7,11 +7,7 @@ import {
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
 import { normalizeClientError } from '../client/problemDetails';
-import {
-  appRoutePath,
-  chapterDetailPath,
-  CHAPTER_CREATE_ROUTE,
-} from '../client/routes';
+import { chapterDetailPath, CHAPTER_CREATE_ROUTE } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
@@ -90,11 +86,6 @@ export function ChaptersOverviewPage({
   return (
     <div className="page planning-page">
       <PageHeader
-        before={
-          <Link className="back-link" to={appRoutePath('story')}>
-            {t('m5s3.common.backToStory')}
-          </Link>
-        }
         eyebrow={t('navigation.story')}
         title={t('m5s3.chapter.heading')}
         description={t('m5s3.chapter.intro')}

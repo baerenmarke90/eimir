@@ -951,8 +951,11 @@ for (const outcome of ['failure', 'success'] as const) {
       animations: 'disabled',
     });
     await page
-      .getByRole('link', { name: m5s3.common.shortBackToCollections })
+      .getByRole('link', { name: navigation.more, exact: true })
+      .last()
       .click();
+    await page.locator('a[href="/more/collections"]').click();
+    await page.goBack();
     await page.goBack();
     await expect(row.locator('.shared-list-item-copy > p')).toHaveText(
       'Hafermilch',
@@ -1282,8 +1285,11 @@ for (const view of [
         'Hafermilch',
       );
       await page
-        .getByRole('link', { name: m5s3.common.shortBackToCollections })
+        .getByRole('link', { name: navigation.more, exact: true })
+        .last()
         .click();
+      await page.locator('a[href="/more/collections"]').click();
+      await page.goBack();
       await page.goBack();
       await expect(milkRow.locator('.shared-list-item-copy > p')).toHaveText(
         'Hafermilch',

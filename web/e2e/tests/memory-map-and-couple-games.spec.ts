@@ -77,7 +77,7 @@ for (const [width, theme] of [
     ).toEqual([]);
     await memory.click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal/);
-    await page.goBack();
+    await page.locator('.shell-detail-back').click();
     await expect(page).toHaveURL(/\/story\/map\?place=/);
     await expect(
       page.getByRole('link', { name: /Afternoon by the canal/ }),

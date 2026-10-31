@@ -31,7 +31,6 @@ import { ProblemState } from './ProblemState';
 import './SharedPlanningPages.css';
 import {
   LoadMoreButton,
-  PrivateAreaBackToHub,
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
   usePrivateTaskEditorLifecycle,
@@ -135,7 +134,6 @@ export function PrivateCollectionsListPage({ api, accountId, spaceId }: Props) {
   return (
     <>
       <PageHeader
-        before={<PrivateAreaBackToHub />}
         eyebrow={t('privateArea.privacyLabel')}
         title={t('privateArea.collections.title')}
         description={t('privateArea.collections.intro')}

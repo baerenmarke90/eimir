@@ -325,7 +325,7 @@ export function StoryList({
             >
               <StoryTimelineMarker kind={item.kind} />
               <CardLink
-                className="story-card-link"
+                className={`story-card-link${presentation.titleIsDate && imageAttachment ? ' story-card-photo-led' : ''}`}
                 to={productPath}
                 data-task-item-key={itemKey}
                 onClick={(event) => onOpenItem?.(event, item, productPath)}
@@ -354,17 +354,9 @@ export function StoryList({
                     />
                   ) : null}
 
-                  <h4>
-                    {presentation.titleIsDate ? (
-                      <time
-                        dateTime={item.effectiveDate.toISOString().slice(0, 10)}
-                      >
-                        {presentation.title}
-                      </time>
-                    ) : (
-                      presentation.title
-                    )}
-                  </h4>
+                  {!presentation.titleIsDate ? (
+                    <h4>{presentation.title}</h4>
+                  ) : null}
                   {item.kind === 'HEART_MOMENT' ? (
                     <HeartEmotionBadge emotion={item.heartMoment.emotion} />
                   ) : presentation.preview ? (
@@ -372,13 +364,11 @@ export function StoryList({
                   ) : null}
 
                   <div className="story-card-footer" id={metaId}>
-                    {!presentation.titleIsDate ? (
-                      <time
-                        dateTime={item.effectiveDate.toISOString().slice(0, 10)}
-                      >
-                        {formatTimelineDate(item.effectiveDate, locale)}
-                      </time>
-                    ) : null}
+                    <time
+                      dateTime={item.effectiveDate.toISOString().slice(0, 10)}
+                    >
+                      {formatTimelineDate(item.effectiveDate, locale)}
+                    </time>
                     <span className="story-card-footer-author">
                       <span className="momente-author-meta">
                         <AuthorAvatar

@@ -431,6 +431,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/timeline"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/photos"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/discover"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/discover/renew"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/story-views", body=STORY_VIEW),
     Endpoint(
         "GET",

@@ -593,11 +593,6 @@ function CollectionProductDetail({
     <div className="page shared-content-page">
       <PageHeader
         className="shared-authored-heading"
-        before={
-          <Link className="back-link" to={MORE_COLLECTIONS_ROUTE}>
-            {t('m5s3.common.shortBackToCollections')}
-          </Link>
-        }
         title={
           <span
             style={{

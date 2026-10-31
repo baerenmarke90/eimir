@@ -49,6 +49,7 @@ const navigation = {
   quickCreateChapter: 'Kapitel',
   quickCreatePlace: 'Ort',
   quickCreateCollection: 'Gemeinsame Liste',
+  quickCreateCollectionSubline: 'Etwas gemeinsam sammeln oder abhaken',
   logout: 'Abmelden',
 };
 

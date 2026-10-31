@@ -1431,16 +1431,20 @@ export function TodayPage({
           <TodayModuleSection
             className="today-section-recent"
             title={t('m5s5.dashboard.recentTitle')}
+            headerAction={
+              <Link
+                to={ACTIVITY_ROUTE}
+                className="today-section-link today-recent-activity-link"
+                aria-label={t('m5s5.dashboard.allActivityAction')}
+              >
+                {t('m5s5.today.recent.allAction')}
+              </Link>
+            }
           >
             <div className="today-stream today-stream-recent">
               {recentSharedForTrace.slice(0, 4).map((item: DashboardItem) => (
                 <RecentSharedItemCard key={item.id} item={item} />
               ))}
-            </div>
-            <div className="today-recent-footer">
-              <Link to={ACTIVITY_ROUTE} className="today-recent-activity-link">
-                {t('m5s5.dashboard.allActivityAction')}
-              </Link>
             </div>
           </TodayModuleSection>
         ) : null}

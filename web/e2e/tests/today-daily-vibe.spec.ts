@@ -1076,6 +1076,10 @@ test('Daily Vibe adapts the same interaction for Expanded Web', async ({
   });
   await signIn(page);
 
+  await expect(page.locator('.daily-vibe-share')).toHaveClass(/button-link/);
+  await page.locator('.daily-vibe-checkin').screenshot({
+    path: testInfo.outputPath('vibe-primary-button-1280-light.png'),
+  });
   await page.getByRole('button', { name: dailyVibe.chooseAria }).click();
   const sheet = page.getByRole('dialog', { name: dailyVibe.sheetTitle });
   await expect(sheet).toBeVisible();

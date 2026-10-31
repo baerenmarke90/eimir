@@ -285,9 +285,6 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
   }
   return (
     <div className="page recap-library">
-      <Link className="recap-back" to="/more">
-        ‹ {t('recaps.backMore')}
-      </Link>
       <PageHeader
         eyebrow={t('recaps.automatic')}
         title={t('recaps.shortTitle')}

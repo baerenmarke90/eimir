@@ -93,7 +93,7 @@ describe('SettingsPage', () => {
     expect(html).toContain('href="/more/settings/appearance"');
     expect(html).toContain('href="/more/settings/data"');
     expect(html).toContain('href="/more/settings/account"');
-    expect(html).toContain('href="/more"');
+    expect(html).not.toContain('settings-back-link');
 
     expect(html).not.toContain('name="relationshipStartedOn"');
     expect(html).not.toContain('anniversary-reminder-form');
@@ -103,12 +103,12 @@ describe('SettingsPage', () => {
     expect(html).not.toContain('account-danger-zone');
   });
 
-  it('renders one focused category task at a time with Back to Settings', () => {
+  it('renders one focused category task at a time without a redundant page-local return link', () => {
     const relationship = renderSettingsPageFixture(
       '/more/settings/relationship',
     );
     expect(relationship).toContain('name="relationshipStartedOn"');
-    expect(relationship).toContain('href="/more/settings"');
+    expect(relationship).not.toContain('settings-back-link');
     expect(relationship).not.toContain('anniversary-reminder-form');
     expect(relationship).not.toContain('name="dashboardUpcomingItemLimit"');
 

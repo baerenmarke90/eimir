@@ -17,7 +17,8 @@ import {
   normalizeClientError,
 } from '../client/problemDetails';
 import { captureQueryIdentity } from '../client/queryIdentity';
-import { appRoutePath, collectionDetailPath } from '../client/routes';
+import { collectionDetailPath, MORE_COLLECTIONS_ROUTE } from '../client/routes';
+import { useTaskOrigin } from '../client/taskOrigin';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
 import { AddIcon, DestinationIcon } from './DestinationIcon';
@@ -48,15 +49,21 @@ function nextCursor<T>(page: PageShape<T>): string | undefined {
 export function CollectionsOverviewPage({
   apis,
   spaceId,
+  initialCreate = false,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
+  initialCreate?: boolean;
 }) {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const createInFlightRef = useRef(false);
-  const [createOpen, setCreateOpen] = useState(false);
+  const openingCreatedRef = useRef(false);
+  const [createOpen, setCreateOpen] = useState(initialCreate);
+  const { requestReturn } = useTaskOrigin();
+  const originKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
   const [createDirty, setCreateDirty] = useState(false);
   const createSheetRef = useRef<ShortTaskSheetHandle>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -146,8 +153,12 @@ export function CollectionsOverviewPage({
           authorSummaryQueryKeys.collectionDetail(spaceId, created.id),
           created,
         );
+        openingCreatedRef.current = true;
         createSheetRef.current?.closeForNavigation(() =>
-          navigate(collectionDetailPath(created.id)),
+          navigate(collectionDetailPath(created.id), {
+            state: location.state,
+            replace: initialCreate,
+          }),
         );
       },
     });
@@ -156,11 +167,6 @@ export function CollectionsOverviewPage({
   return (
     <div className="page shared-content-page">
       <PageHeader
-        before={
-          <Link className="back-link" to={appRoutePath('more')}>
-            {t('m5s3.common.shortBackToMore')}
-          </Link>
-        }
         title={t('m5s3.collection.overviewHeading')}
         action={
           <button
@@ -259,6 +265,8 @@ export function CollectionsOverviewPage({
           onClose={() => {
             setCreateOpen(false);
             setCreateDirty(false);
+            if (initialCreate && !openingCreatedRef.current)
+              requestReturn(originKey, MORE_COLLECTIONS_ROUTE);
           }}
         >
           {(requestClose) => (

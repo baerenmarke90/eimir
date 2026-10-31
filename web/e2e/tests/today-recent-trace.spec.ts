@@ -374,8 +374,9 @@ test('Today "Zuletzt bei euch" mini-tiles are keyboard-focusable in order with a
 
 test('Today "Zuletzt bei euch" stays regression-free on mobile and in dark mode', async ({
   page,
-}) => {
+}, info) => {
   await installMocks(page);
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/today');
   await signIn(page);
@@ -396,6 +397,14 @@ test('Today "Zuletzt bei euch" stays regression-free on mobile and in dark mode'
   }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 
+  const section = page.locator('.today-section-recent');
+  const heading = await section.locator('h2').boundingBox();
+  const action = await section.locator('.today-section-action a').boundingBox();
+  expect(action?.x).toBeGreaterThan((heading?.x ?? 0) + (heading?.width ?? 0));
+  expect(Math.abs((action?.y ?? 0) - (heading?.y ?? 0))).toBeLessThan(20);
+  await section.screenshot({
+    path: info.outputPath('wir-activity-heading-390-dark.png'),
+  });
   const result = await new AxeBuilder({ page }).analyze();
   expect(result.violations).toEqual([]);
 });

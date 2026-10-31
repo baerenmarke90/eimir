@@ -183,11 +183,6 @@ export function PlacesOverviewPage({
   return (
     <div className="page shared-content-page">
       <PageHeader
-        before={
-          <Link className="back-link" to={appRoutePath('more')}>
-            {t('m5s3.common.shortBackToMore')}
-          </Link>
-        }
         title={t('m5s3.place.heading')}
         action={
           <button

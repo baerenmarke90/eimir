@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import sharedPhotos from '../../src/i18n/locales/sharedPhotos';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import localizedFixture from '../fixtures/locales/de';
@@ -134,7 +135,10 @@ const DISCOVER_ITEMS = [
 
 async function installDiscoverApiMocks(
   page: Page,
-  options: { retrospective?: Record<string, unknown> | null } = {},
+  options: {
+    retrospective?: Record<string, unknown> | null;
+    viewerLocalDate?: string;
+  } = {},
 ): Promise<string[]> {
   const unexpectedRequests: string[] = [];
 
@@ -279,7 +283,7 @@ async function installDiscoverApiMocks(
       await fulfillJson({
         recentShared: [],
         relationshipDuration: null,
-        viewerLocalDate: '2026-09-17',
+        viewerLocalDate: options.viewerLocalDate ?? '2026-09-17',
         retrospective: options.retrospective ?? null,
         space: { partner: ALEX, spaceId: SPACE_ID },
         upcoming: [],
@@ -788,8 +792,9 @@ for (const [width, theme] of [
       'single-date',
       'Erinnerung vom 26.10.2026',
       '2026-10-26',
-      false,
+      true,
     );
+    if (width === 390) untitled.memory.attachments[0].isSensitive = true;
     await page.route(`**/api/v1/spaces/${SPACE_ID}/timeline*`, (route) =>
       route.fulfill({
         json: {
@@ -842,7 +847,30 @@ for (const [width, theme] of [
     for (const heart of hearts) expect(heart.color).toBe(heart.expected);
     // The same generated title is normalized by every StoryList consumer.
     const memory = diary.locator('.story-card-memory');
-    await expect(memory).toHaveText(/26\. Oktober 2026/);
+    await expect(memory.locator('h4')).toHaveCount(0);
+    await expect(memory.locator('time')).toHaveText('26. Oktober');
+    const photo = memory.locator('.story-media-preview').first();
+    await photo.scrollIntoViewIfNeeded();
+    await expect(photo).toBeVisible();
+    const photoWidth = await photo.evaluate(
+      (node) => node.getBoundingClientRect().width,
+    );
+    const cardWidth = await memory.evaluate(
+      (node) => node.getBoundingClientRect().width,
+    );
+    expect(photoWidth).toBeGreaterThan(cardWidth * 0.75);
+    if (width === 390) {
+      const toggle = memory.getByRole('button', {
+        name: sensitiveMedia.show,
+      });
+      await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      await toggle.click();
+      await expect(
+        memory.getByRole('button', { name: sensitiveMedia.hide }),
+      ).toHaveAttribute('aria-pressed', 'true');
+      await memory.getByRole('button', { name: sensitiveMedia.hide }).click();
+      await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    }
     await expect(memory.locator('time')).toHaveCount(1);
     await expect(memory).not.toContainText('Erinnerung vom');
     await expect(diary.locator('.story-card-visibility-private')).toHaveCount(
@@ -862,6 +890,10 @@ for (const [width, theme] of [
       if (document.activeElement instanceof HTMLElement)
         document.activeElement.blur();
     });
+    await memory.evaluate((node) => node.scrollIntoView({ block: 'center' }));
+    await memory.screenshot({
+      path: info.outputPath(`untitled-photo-${width}-${theme}.png`),
+    });
     await page.screenshot({
       path: info.outputPath(`diary-${width}-${theme}.png`),
       fullPage: false,
@@ -869,3 +901,166 @@ for (const [width, theme] of [
     expect(unexpected).toEqual([]);
   });
 }
+
+for (const [width, theme] of [
+  [360, 'light'],
+  [390, 'dark'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`Discover long authored text uses its reading width at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await installDiscoverApiMocks(page);
+    const longText = localizedFixture.diaryCategoryNotes.join(' ');
+    const note = heartMomentItem('long-note', longText, '2024-07-28');
+    await page.route(`**/api/v1/spaces/${SPACE_ID}/discover`, (route) =>
+      route.fulfill({
+        json: {
+          selectionDate: '2026-09-17',
+          lead: DISCOVER_ITEMS[2],
+          items: [
+            note,
+            DISCOVER_ITEMS[3],
+            DISCOVER_ITEMS[4],
+            DISCOVER_ITEMS[1],
+          ],
+          leadContext: null,
+        },
+      }),
+    );
+    await page.setViewportSize({ width, height: 1000 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.goto('/story?tab=discover');
+    await signIn(page);
+    await page.goto('/story?tab=discover');
+    const card = page.locator(
+      '.momente-tapestry-item[data-discover-wide="true"]',
+    );
+    await expect(card).toHaveCount(1);
+    await expect(card).toContainText(longText);
+    const grid = page.locator('.momente-tapestry').first();
+    await expect(grid).toHaveAttribute('data-discover-measured', 'true');
+    const bounds = await card.boundingBox();
+    const gridBounds = await grid.boundingBox();
+    expect(bounds?.width).toBeCloseTo(gridBounds?.width ?? 0, 0);
+    await expect(card.locator('.momente-tapestry-quote')).toHaveCSS(
+      '-webkit-line-clamp',
+      'none',
+    );
+    await card.scrollIntoViewIfNeeded();
+    await expectNoWcagViolations(page);
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: info.outputPath(`discover-readable-${width}-${theme}.png`),
+      fullPage: true,
+    });
+  });
+}
+
+test('Discover renewal confirms alternatives, guards duplicate activation and preserves content on rate/offline errors', async ({
+  page,
+}) => {
+  await installDiscoverApiMocks(page, { viewerLocalDate: '2026-09-18' });
+  await page.goto('/story?tab=discover');
+  await signIn(page);
+  await page.goto('/story?tab=discover');
+  const oldLead = page.locator('.momente-hero-highlight');
+  await expect(oldLead).toContainText('Danke');
+  await expect(
+    page.getByText(de.story.discoverNewDay, { exact: true }),
+  ).toBeVisible();
+  let requests = 0;
+  let release: () => void = () => {};
+  const waiting = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/discover/renew`,
+    async (route) => {
+      requests += 1;
+      if (requests === 1) {
+        await waiting;
+        await route.fulfill({
+          json: {
+            selectionDate: '2026-09-18',
+            lead: DISCOVER_ITEMS[4],
+            items: [DISCOVER_ITEMS[5]],
+            leadContext: null,
+          },
+        });
+      } else {
+        await route.fulfill({
+          status: 429,
+          contentType: 'application/problem+json',
+          body: JSON.stringify({
+            type: 'about:blank',
+            title: 'Too many requests',
+            status: 429,
+          }),
+        });
+      }
+    },
+  );
+  await page
+    .getByRole('button', { name: de.story.discoverRenew, exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: de.story.discoverRenewing, exact: true }),
+  ).toBeDisabled();
+  await expect(oldLead).toContainText('Danke');
+  expect(requests).toBe(1);
+  release();
+  await expect(page.locator('.momente-hero-highlight')).toContainText(
+    'Konzertabend',
+  );
+  await expect(
+    page.getByText(de.story.discoverNewDay, { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('status').filter({ hasText: de.story.discoverRenewed }),
+  ).toBeAttached();
+  await page
+    .getByRole('button', { name: de.story.discoverRenew, exact: true })
+    .click();
+  await expect(
+    page.getByText(de.story.discoverRateLimit, { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('.momente-hero-highlight')).toContainText(
+    'Konzertabend',
+  );
+  await page.context().setOffline(true);
+  await page
+    .getByRole('button', { name: de.story.discoverRenew, exact: true })
+    .click();
+  await expect(
+    page.getByText(de.story.discoverOffline, { exact: true }),
+  ).toBeVisible();
+  expect(requests).toBe(2);
+  await expect(page.locator('.momente-hero-highlight')).toContainText(
+    'Konzertabend',
+  );
+  await page.context().setOffline(false);
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/discover/renew`, (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/problem+json',
+      body: JSON.stringify({
+        type: 'about:blank',
+        title: 'Not found',
+        status: 404,
+      }),
+    }),
+  );
+  await page
+    .getByRole('button', { name: de.story.discoverRenew, exact: true })
+    .click();
+  await expect(page.locator('.momente-hero-highlight')).toHaveCount(0);
+  await expect(page.locator('.momente-tapestry-item')).toHaveCount(0);
+});

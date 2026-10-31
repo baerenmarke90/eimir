@@ -155,6 +155,7 @@ button.daily-vibe-person:focus-visible {
 }
 
 .daily-vibe-share {
+  border-radius: var(--radius-pill);
   min-height: 44px;
   justify-self: start;
 }

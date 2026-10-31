@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { SharedPhoto } from '../api/generated/models/SharedPhoto';
 import {
   clientProblemKind,
@@ -204,11 +204,6 @@ export function SharedPhotosPage({
   return (
     <div className="page page-reading shared-photos-page">
       <PageHeader
-        before={
-          <Link className="back-link" to="/story">
-            {t('storyYears.backToMoments')}
-          </Link>
-        }
         title={t('sharedPhotos.title')}
         description={t('sharedPhotos.description')}
       />

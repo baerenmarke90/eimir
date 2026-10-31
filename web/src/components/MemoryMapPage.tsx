@@ -12,8 +12,8 @@ import {
   ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
-import { useTaskOrigin } from '../client/taskOrigin';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { memoryDetailPath } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppErrorBoundary } from './AppErrorBoundary';
@@ -37,7 +37,7 @@ export function MemoryMapPage({
   apiBaseUrl?: string;
 }) {
   const { t } = useTranslation();
-  const { captureOrigin, requestReturn } = useTaskOrigin();
+  const { captureOrigin } = useTaskOrigin();
   const location = useLocation();
   const navigate = useNavigate();
   const [tilesLoaded, setTilesLoaded] = useState(false);
@@ -115,21 +115,6 @@ export function MemoryMapPage({
       <PageHeader
         title={t('memoryMap.title')}
         description={t('memoryMap.intro')}
-        before={
-          <button
-            type="button"
-            className="back-link tertiary"
-            onClick={() =>
-              requestReturn(
-                (location.state as { taskOriginKey?: unknown } | null)
-                  ?.taskOriginKey,
-                '/story?tab=timeline',
-              )
-            }
-          >
-            {t('memoryMap.back')}
-          </button>
-        }
       />
       {gated ? (
         <UiState

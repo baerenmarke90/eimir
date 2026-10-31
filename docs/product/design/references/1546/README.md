@@ -67,3 +67,25 @@ The original monthly-highlight carousel/caption/source tests, retrospective pres
 The map endpoint is registered in the central endpoint-isolation matrix, including anonymous, foreign/invented and malformed-Space cases. No backend, entitlement, storage or provider behavior changes in this Wir correction. No timeout, retry, assertion tolerance or CI gate is relaxed.
 
 Corrected local acceptance: **142 component/composition tests passed**, with typecheck, formatting, inventory and **26 engineering-language tests** passing. **Eight targeted browser cases passed without configured retries**: the ready monthly invitation at four evidence widths without its archive action, full playback/source return, reduced-motion playback/editing, monthly photo/text highlights and date-specific retrospective dismissal. The original 28 full-home cases and complete settings regressions are restored for fresh CI. Local pinned-browser download/startup and multi-case cleanup attempts were not accepted as completed product checks; the final targeted cases use isolated Chromium 153 executions with extracted software-rendering support. Repository browser pins, dependencies, timeouts, assertions and retry gates remain unchanged.
+
+
+## Completed PO follow-up batch
+
+The later PO instruction authorizes publishing the collected local changes to #1547 once complete. [Discover and capture preflight, generated references, interaction contract and navigation scope](discover-local.md) record the extension. This later instruction also supersedes the earlier requirement to retain the recap library's page-local Back link: redundant browsing-header return links are removed consistently, while focused editor/capture guards and source-reader return are retained.
+
+- Wir: recent activity uses the shared trailing heading action; Vibe sharing uses the existing primary button style.
+- Momente Discover: full authored thoughts, content-sensitive widths/natural heights, sparse native CSS placement, daily selection and deliberate renewal with confirmed replacement, bounded alternatives and preserved content on ordinary errors/offline. Day checking announces freshness without reshuffling reading.
+- Memory capture: optional title first, before date/content/media. Diary: no replacement title for untitled memories; the ordinary date stays in the footer and untitled photographs use the larger photo composition explicitly approved by the PO.
+- The recap library is named Eure Rueckblicke in localized UI copy. Internal capability and route identifiers remain compatible.
+- The plus menu opens shared-list creation with existing draft/pending/history safety and canonical result navigation.
+- Basic Discover remains Core; Pro map, recap composition and weekly insights retain their established classifications.
+
+
+| Follow-up evidence | Compact | Expanded |
+| --- | --- | --- |
+| Readable rediscovery | [360 Light](evidence/discover-readable-360-light.webp), [390 Dark](evidence/discover-readable-390-dark.webp), [430 Light](evidence/discover-readable-430-light.webp) | [1280 Dark](evidence/discover-readable-1280-dark.webp) |
+| Untitled Diary photographs and ordinary date footer | [390 Dark, concealed sensitive photo](evidence/untitled-photo-390-dark.webp), [430 Light](evidence/untitled-photo-430-light.webp) | Existing 1280 browser case also passed |
+| Title-first capture and plus-created list | [Capture](evidence/memory-title-first-390-light.webp), [Created list](evidence/list-from-plus-390-light.webp) | Reuse existing sheet adaptation |
+| Wir action alignment and Vibe primary button | [Activity heading, 390 Dark](evidence/wir-activity-heading-390-dark.webp) | [Vibe button, 1280 Light](evidence/vibe-primary-button-1280-light.webp) |
+
+Local follow-up validation: **1,095 backend non-integration tests passed**, with 24 pre-existing environment-dependent skips and 3,048 integration cases deselected for PostgreSQL CI. The full Web run passed 2,369 cases with two existing skips; its three outdated return-link expectations were corrected to the PO's new contract and passed in the final focused run (87 tests). The subsequent Discover/TaskOrigin acceptance passed 38 tests. **Sixteen Discover/Diary browser cases passed**, followed by all four large-photo cases including sensitive reveal/conceal; the shared-list create/result/dirty-discard journey passed, eight capture/Vibe/activity browser cases passed, and the map reader's canonical return passed. Representative Light/Dark 360/390/430/1280 and existing 320px/large-text/reduced-motion/axe cases are covered. OpenAPI/client generation, Mypy, Ruff, typecheck, tokens, PWA, formatting and engineering-language checks passed. Browser inventory promotes the now-mutable Discover selection flow to PR-critical; no existing coverage is removed. Scratch Chromium 153 was used locally; the repository's pinned-browser launch is not counted as acceptance. No CI workflow rerun is used for this extension; fresh remote checks are required on its actual commit.

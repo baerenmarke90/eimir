@@ -10,6 +10,7 @@ import { PRIVATE_GIFT_IDEAS_PATH } from '../client/privateArea';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import {
   type AppRouteIcon,
+  COLLECTION_CREATE_ROUTE,
   HEART_MOMENT_CREATE_ROUTE,
   MEMORY_CREATE_ROUTE,
   MILESTONE_CREATE_ROUTE,
@@ -65,6 +66,14 @@ const SHARED_TARGETS: readonly QuickCreateTarget[] = [
     sublineKey: 'navigation.quickCreateWishSubline',
     to: WISH_CREATE_ROUTE,
     icon: 'wish',
+    tone: 'planning',
+  },
+  {
+    id: 'collection',
+    labelKey: 'navigation.quickCreateCollection',
+    sublineKey: 'navigation.quickCreateCollectionSubline',
+    to: COLLECTION_CREATE_ROUTE,
+    icon: 'collections',
     tone: 'planning',
   },
   {
@@ -147,6 +156,7 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
         'plan',
         'note',
         'gift-idea',
+        'collection',
       ].includes(target.id)
         ? captureOrigin({
             focusTarget: 'quick-create',

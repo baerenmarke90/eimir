@@ -527,7 +527,7 @@ export function DailyVibeCheckIn({
         <button
           ref={triggerRef}
           type="button"
-          className="tertiary daily-vibe-share"
+          className="button-link daily-vibe-share"
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-label={triggerLabel}

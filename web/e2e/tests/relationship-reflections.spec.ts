@@ -708,6 +708,19 @@ for (const pro of [true, false])
       await expect(control).toHaveAttribute('aria-checked', 'true');
       await page.goto('/today');
       await expect(page.locator('.shared-story-summary')).toBeVisible();
+      const storyHeading = page.locator('#shared-story-summary-heading');
+      await expect(storyHeading).toHaveClass('today-section-title');
+      const sectionTypography = await page
+        .locator('.today-section-title')
+        .evaluateAll((headings) =>
+          headings.map((heading) => {
+            const style = getComputedStyle(heading);
+            return [style.fontFamily, style.fontSize, style.fontWeight];
+          }),
+        );
+      expect(sectionTypography.length).toBeGreaterThan(1);
+      for (const typography of sectionTypography)
+        expect(typography).toEqual(sectionTypography[0]);
       await expect(page.locator('.shared-story-summary-number')).toHaveText([
         '128',
         '12',

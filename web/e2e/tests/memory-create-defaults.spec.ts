@@ -1204,7 +1204,13 @@ for (const [width, colorScheme] of [
     await expect(
       page.getByLabel(de.memory.bodyLabel, { exact: true }),
     ).toBeVisible();
-    await expect(page.getByLabel(de.memory.titleLabelOptional)).toBeHidden();
+    const title = page.getByLabel(de.memory.titleLabelOptional);
+    await expect(title).toBeVisible();
+    expect(
+      await title.evaluate(
+        (node) => node.closest('fieldset')?.querySelector('input') === node,
+      ),
+    ).toBe(true);
     const text =
       'A quiet afternoon together.\n\nWe want to remember the little details.';
     await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(text);

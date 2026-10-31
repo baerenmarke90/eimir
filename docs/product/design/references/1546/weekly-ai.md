@@ -42,7 +42,7 @@ Generation has bounded input/output, timeout, concurrency and per-Space admissio
 
 ## Business and quality review
 
-This extends the existing Pro `daily.insights` capability; no new tier or capability. Ordinary Daily Check-ins, notes, reveal rules and retained source data remain Core. Cloud/Self-Hosted behavior is identical. Operator inference is optional; deterministic analysis/general recommendations remain available when it is unavailable. Bounded computation, output and admission cover hoster cost. No paid external provider or analytics are added.
+This extends the existing Pro `daily.insights` capability; no new tier or capability. Ordinary daily entries, notes, reveal rules and retained source data remain Core. Cloud/Self-Hosted behavior is identical. Operator inference is optional; deterministic analysis/general recommendations remain available when it is unavailable. Bounded computation, output and admission cover hoster cost. No paid external provider or analytics are added.
 
 Acceptance covers sparse/hidden data equivalence, group thresholds, supplied-ID validation, fallback, feedback isolation/export/deletion, entitlement and membership loss, evidence changes during inference, rate/concurrency bounds, generation/feedback failure and offline behavior, source/period changes and Compact/Expanded Light/Dark/large-text accessibility. The existing Wir archive-action correction and all other PR features remain intact.
 

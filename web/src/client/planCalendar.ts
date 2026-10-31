@@ -1,5 +1,47 @@
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 
+type CalendarPlan = Pick<
+  PlanDetail,
+  | 'id'
+  | 'spaceId'
+  | 'title'
+  | 'description'
+  | 'plannedOn'
+  | 'plannedStart'
+  | 'plannedEnd'
+  | 'updatedAt'
+  | 'version'
+>;
+
+export interface PlanCalendarEvent {
+  title: string;
+  description?: string;
+  location?: string;
+  allDay: boolean;
+  startTime: number;
+  endTime?: number;
+}
+
+/** One schedule contract for the native editor and RFC 5545 export. */
+export function planCalendarEvent(
+  plan: CalendarPlan,
+  location?: string,
+): PlanCalendarEvent | null {
+  const start = plan.plannedOn ?? plan.plannedStart;
+  if (!start) return null;
+  const allDay = Boolean(plan.plannedOn);
+  const end = allDay ? new Date(start) : plan.plannedEnd;
+  if (allDay) end?.setUTCDate(end.getUTCDate() + 1);
+  return {
+    title: plan.title,
+    description: plan.description ?? undefined,
+    location,
+    allDay,
+    startTime: start.getTime(),
+    endTime: end?.getTime(),
+  };
+}
+
 /** RFC 5545 TEXT escaping prevents content from becoming calendar properties. */
 function text(value: string): string {
   return value
@@ -34,21 +76,11 @@ function instant(value: Date): string {
 }
 
 export function planCalendar(
-  plan: Pick<
-    PlanDetail,
-    | 'id'
-    | 'spaceId'
-    | 'title'
-    | 'description'
-    | 'plannedOn'
-    | 'plannedStart'
-    | 'plannedEnd'
-    | 'updatedAt'
-    | 'version'
-  >,
+  plan: CalendarPlan,
   location?: string,
 ): string | null {
-  if (!plan.plannedOn && !plan.plannedStart) return null;
+  const event = planCalendarEvent(plan, location);
+  if (!event) return null;
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -60,18 +92,15 @@ export function planCalendar(
     `SEQUENCE:${plan.version}`,
     `SUMMARY:${text(plan.title)}`,
   ];
-  if (plan.plannedOn) {
+  if (event.allDay && event.endTime !== undefined) {
     // Generated DATE fields encode their calendar components in UTC.
-    const start = plan.plannedOn.toISOString().slice(0, 10).replace(/-/g, '');
-    const end = new Date(plan.plannedOn);
-    end.setUTCDate(end.getUTCDate() + 1);
-    lines.push(
-      `DTSTART;VALUE=DATE:${start}`,
-      `DTEND;VALUE=DATE:${end.toISOString().slice(0, 10).replace(/-/g, '')}`,
-    );
-  } else if (plan.plannedStart) {
-    lines.push(`DTSTART:${instant(plan.plannedStart)}`);
-    if (plan.plannedEnd) lines.push(`DTEND:${instant(plan.plannedEnd)}`);
+    const start = instant(new Date(event.startTime)).slice(0, 8);
+    const end = instant(new Date(event.endTime)).slice(0, 8);
+    lines.push(`DTSTART;VALUE=DATE:${start}`, `DTEND;VALUE=DATE:${end}`);
+  } else {
+    lines.push(`DTSTART:${instant(new Date(event.startTime))}`);
+    if (event.endTime !== undefined)
+      lines.push(`DTEND:${instant(new Date(event.endTime))}`);
   }
   if (plan.description) lines.push(`DESCRIPTION:${text(plan.description)}`);
   if (location) lines.push(`LOCATION:${text(location)}`);

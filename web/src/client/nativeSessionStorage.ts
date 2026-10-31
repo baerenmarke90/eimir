@@ -1,5 +1,5 @@
-import { Capacitor, registerPlugin } from '@capacitor/core';
-import { isCapacitorNativePlatform, loadReferenceClientConfig } from './config';
+import { registerPlugin } from '@capacitor/core';
+import { isAndroidApp, loadReferenceClientConfig } from './config';
 
 interface NativeSessionStoragePlugin {
   read(options: { instance: string }): Promise<{ value?: string }>;
@@ -12,7 +12,7 @@ const storage = registerPlugin<NativeSessionStoragePlugin>(
 );
 
 export function isNativeSessionStorageAvailable(): boolean {
-  return isCapacitorNativePlatform() && Capacitor.getPlatform() === 'android';
+  return isAndroidApp();
 }
 
 export async function readNativeSessionSnapshot(): Promise<string | null> {

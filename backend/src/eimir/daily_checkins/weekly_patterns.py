@@ -110,7 +110,7 @@ def observations(result: DailyInsightsResult, week_start: date) -> list[Observat
         if len(group) >= 4 and len(other) >= 8 and _weeks(group) >= 4:
             delta = _difference(other, group)
             if min(delta) >= 10:
-                weekday_candidates.append((sum(delta), weekday, len(group)))
+                weekday_candidates.append((sum(delta), weekday, len(energies)))
     if weekday_candidates:
         _, weekday, count = max(weekday_candidates, key=lambda item: (item[0], -item[1]))
         facts.append(

@@ -14,6 +14,8 @@ export default {
     'Beim Laden der Karte erhält OpenStreetMap deine IP-Adresse und den Kartenausschnitt. Titel und Inhalte eurer Erinnerungen werden nicht übermittelt. Die Ortsliste funktioniert auch ohne geladene Karte.',
   locationCount_one: '{{name}} · {{count}} Erinnerung',
   locationCount_other: '{{name}} · {{count}} Erinnerungen',
+  keyboardHelp:
+    'Erinnerungskarte. Mit den Pfeiltasten verschieben und mit Plus oder Minus zoomen. Wähle eine Markierung oder einen Ort in der Liste.',
   loadMore: 'Weitere Erinnerungsorte laden',
   allPlaces: 'Alle Orte ansehen',
   untitled: 'Erinnerung',

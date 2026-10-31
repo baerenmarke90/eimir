@@ -733,7 +733,11 @@ export function StoryProductPage({
         variant="root"
         title={t('story.timelineTitle')}
         titleAction={
-          <Link to={MEMORY_MAP_ROUTE} className="button-link secondary">
+          <Link
+            to={MEMORY_MAP_ROUTE}
+            className="button-link secondary"
+            onClick={(event) => openDiscoverItem(event, MEMORY_MAP_ROUTE)}
+          >
             <EimirIcon name="orte" />
             {t('memoryMap.entry')}
           </Link>

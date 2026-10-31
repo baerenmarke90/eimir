@@ -35,16 +35,14 @@ function setup(listMemoryMap: ReturnType<typeof vi.fn>) {
 describe('Pro memory map', () => {
   it('groups co-located sources, opens canonical memories, and loads tiles only on request', async () => {
     setup(
-      vi
-        .fn()
-        .mockResolvedValue({
-          items: [
-            item,
-            { ...item, placeId: 'p2' },
-            { ...item, memoryId: 'm2', title: 'Second visit' },
-          ],
-          nextCursor: null,
-        }),
+      vi.fn().mockResolvedValue({
+        items: [
+          item,
+          { ...item, placeId: 'p2' },
+          { ...item, memoryId: 'm2', title: 'Second visit' },
+        ],
+        nextCursor: null,
+      }),
     );
     const place = await screen.findByRole('button', {
       name: 'Lake · 2 Erinnerungen',

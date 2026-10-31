@@ -1103,7 +1103,7 @@ test('borderless surfaces retain selection, saved preferences, keyboard focus an
   ).toBeChecked();
 });
 
-test('monthly highlights include visible photo captions and dates plus distinct text and milestone moments', async ({
+test('removing monthly highlights keeps daily quote and recent sources available', async ({
   page,
 }, info) => {
   await page.clock.install({ time: new Date('2026-10-29T08:00:00Z') });

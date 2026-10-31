@@ -191,7 +191,7 @@ test('dated plan hands off an RFC calendar file without changing the plan', asyn
     page.getByRole('link', { name: calendarCopy.add }),
   ).toBeVisible();
   const calendar = await page
-    .getByRole('link', { name: calendarCopy.download })
+    .getByRole('link', { name: calendarCopy.add })
     .getAttribute('href');
   const content = await page.evaluate(
     async (url) => await (await fetch(url ?? '')).text(),

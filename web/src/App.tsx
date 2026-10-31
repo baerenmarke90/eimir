@@ -87,6 +87,7 @@ import {
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
+  MEMORY_MAP_ROUTE,
   MORE_COLLECTIONS_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_PASSPORT_ROUTE,
@@ -575,7 +576,7 @@ function AuthenticatedApp({
               element={<ChapterProductPage {...planningProductProps} />}
             />
             <Route
-              path="/story/map"
+              path={MEMORY_MAP_ROUTE}
               element={<MemoryMapPage {...planningProductProps} />}
             />
             <Route

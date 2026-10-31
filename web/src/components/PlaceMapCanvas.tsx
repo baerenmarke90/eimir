@@ -32,6 +32,8 @@ export default function PlaceMapCanvas({
   const markerRef = useRef<L.CircleMarker | null>(null);
   const selectRef = useRef(onSelect);
   selectRef.current = onSelect;
+  const locationSelectRef = useRef(onLocationSelect);
+  locationSelectRef.current = onLocationSelect;
   const [tileError, setTileError] = useState(false);
   const tileLayer = useRef<L.TileLayer | null>(null);
   const initialPoint = useRef(value);
@@ -116,7 +118,7 @@ export default function PlaceMapCanvas({
           iconAnchor: [22, 22],
         }),
       })
-        .on('click', () => onLocationSelect?.(location.id))
+        .on('click', () => locationSelectRef.current?.(location.id))
         .addTo(layer);
     }
     map.fitBounds(
@@ -128,7 +130,7 @@ export default function PlaceMapCanvas({
     return () => {
       layer.remove();
     };
-  }, [locations, onLocationSelect]);
+  }, [locations]);
 
   return (
     <div className="place-map-canvas">
@@ -136,7 +138,9 @@ export default function PlaceMapCanvas({
         ref={container}
         className="place-map-viewport"
         role="application"
-        aria-label={t('m5s3.map.keyboardHelp')}
+        aria-label={t(
+          onSelect ? 'm5s3.map.keyboardHelp' : 'memoryMap.keyboardHelp',
+        )}
       />
       {onSelect ? (
         <button

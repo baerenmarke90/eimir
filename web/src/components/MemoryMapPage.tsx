@@ -1,6 +1,11 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
 import type { MemoryMapEntry } from '../api/generated/models/MemoryMapEntry';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import {
@@ -32,14 +37,16 @@ export function MemoryMapPage({
   apiBaseUrl?: string;
 }) {
   const { t } = useTranslation();
-  const { captureOrigin } = useTaskOrigin();
+  const { captureOrigin, requestReturn } = useTaskOrigin();
+  const location = useLocation();
   const navigate = useNavigate();
   const [tilesLoaded, setTilesLoaded] = useState(false);
   const [params, setParams] = useSearchParams();
   const selectedId = params.get('place');
   const selectPlace = useCallback(
-    (id: string) => setParams({ place: id }, { replace: true }),
-    [setParams],
+    (id: string) =>
+      setParams({ place: id }, { replace: true, state: location.state }),
+    [setParams, location.state],
   );
   const query = useInfiniteQuery({
     queryKey: [
@@ -109,9 +116,19 @@ export function MemoryMapPage({
         title={t('memoryMap.title')}
         description={t('memoryMap.intro')}
         before={
-          <Link className="back-link" to="/story?tab=timeline">
+          <button
+            type="button"
+            className="back-link tertiary"
+            onClick={() =>
+              requestReturn(
+                (location.state as { taskOriginKey?: unknown } | null)
+                  ?.taskOriginKey,
+                '/story?tab=timeline',
+              )
+            }
+          >
             {t('memoryMap.back')}
-          </Link>
+          </button>
         }
       />
       {gated ? (
@@ -184,7 +201,9 @@ export function MemoryMapPage({
               <button
                 type="button"
                 className="tertiary"
-                onClick={() => setParams({}, { replace: true })}
+                onClick={() =>
+                  setParams({}, { replace: true, state: location.state })
+                }
               >
                 {t('memoryMap.allPlaces')}
               </button>

@@ -15,9 +15,11 @@
 
 @keyframes primary-tab-arrive {
   from {
+    opacity: 0.92;
     transform: translate3d(var(--primary-tab-entry-offset), 0, 0);
   }
   to {
+    opacity: 1;
     transform: none;
   }
 }

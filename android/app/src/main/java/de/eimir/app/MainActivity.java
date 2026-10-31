@@ -19,7 +19,13 @@ public class MainActivity extends BridgeActivity {
             photoFileChooser = new PhotoFileChooser(getBridge());
             getBridge().getWebView().setWebChromeClient(photoFileChooser);
         }
-        LegacyNativeDataCleanup.run(this);
+        // Android Keystore load/delete and durable preference commits may stall a
+        // fresh install or an upgrade. Keep migration out of Activity creation.
+        // Bridge.execute uses the existing Capacitor background executor.
+        if (getBridge() != null) {
+            getBridge().execute(() ->
+                LegacyNativeDataCleanup.run(getApplicationContext()));
+        }
     }
 
     @Override

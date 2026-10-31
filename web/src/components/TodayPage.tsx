@@ -1133,7 +1133,7 @@ export function TodayPage({
           ? t('wirDesign.welcome')
           : undefined
       }
-      headingLevel="h1"
+      headingLevel="h2"
       spaceTitle={
         partner
           ? t('m5s5.dashboard.partner', {
@@ -1501,9 +1501,7 @@ export function TodayPage({
 
       {contentReady && dashboardQuery.data ? (
         <div className="today-content">
-          {!relationshipPresenceVisible ? (
-            <h1 className="sr-only">{t('navigation.today')}</h1>
-          ) : null}
+          <h1 className="today-page-title">{t('navigation.today')}</h1>
 
           {orderedModuleKeys.map((key) => (
             <Fragment key={key}>{moduleContent[key]}</Fragment>

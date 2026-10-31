@@ -78,42 +78,91 @@ export function usePrimaryTabSwipe({
   const entry = useRef<{ to: string; offset: number; from: string } | null>(
     null,
   );
+  const previousRoute = useRef({ pathname, routeKey });
+  const entryAnimation = useRef<Animation | null>(null);
 
   useLayoutEffect(() => {
     const surface = surfaceRef.current;
+    const previous = previousRoute.current;
+    previousRoute.current = { pathname, routeKey };
     const pending = entry.current;
     entry.current = null;
+
+    entryAnimation.current?.cancel();
+    entryAnimation.current = null;
+    const before = PRIMARY_APP_ROUTES.findIndex(
+      (route) => route.path === previous.pathname,
+    );
+    const after = PRIMARY_APP_ROUTES.findIndex(
+      (route) => route.path === pathname,
+    );
+    if (
+      !surface ||
+      before < 0 ||
+      after < 0 ||
+      before === after ||
+      previous.routeKey === routeKey
+    )
+      return;
+
     const reducedMotion = window.matchMedia?.(
       '(prefers-reduced-motion: reduce)',
     );
-    if (
-      surface &&
-      pending?.to === pathname &&
-      pending.from !== routeKey &&
-      !reducedMotion?.matches
-    ) {
-      surface.style.setProperty(
-        '--primary-tab-entry-offset',
-        `${pending.offset}px`,
+    if (reducedMotion?.matches) return;
+    const direction = after > before ? 1 : -1;
+    const offset =
+      pending?.to === pathname && pending.from === previous.routeKey
+        ? `${pending.offset}px`
+        : direction > 0
+          ? 'var(--space-4)'
+          : 'calc(-1 * var(--space-4))';
+
+    // Animate the live content, never a document-level snapshot. The browser's
+    // View Transition overlay disables hit-testing until completion and blocks
+    // immediate consecutive swipes on Android/Chromium.
+    if (surface.animate) {
+      const style = getComputedStyle(surface);
+      const animation = surface.animate(
+        [
+          { opacity: 0.92, transform: `translate3d(${offset}, 0, 0)` },
+          { opacity: 1, transform: 'none' },
+        ],
+        {
+          duration:
+            parseFloat(style.getPropertyValue('--duration-transition')) || 180,
+          easing: style.getPropertyValue('--easing-enter').trim() || 'ease-out',
+        },
       );
-      surface.dataset.primaryTabEntry = 'true';
-      const complete = (event: Event) => {
-        if (event.type === 'change' || event.target === surface) {
-          delete surface.dataset.primaryTabEntry;
-          surface.style.removeProperty('--primary-tab-entry-offset');
-        }
+      entryAnimation.current = animation;
+      const motionChanged = () => {
+        if (reducedMotion?.matches) animation.cancel();
       };
-      surface.addEventListener('animationend', complete);
-      surface.addEventListener('animationcancel', complete);
-      reducedMotion?.addEventListener('change', complete);
+      reducedMotion?.addEventListener('change', motionChanged);
       return () => {
-        delete surface.dataset.primaryTabEntry;
-        surface.style.removeProperty('--primary-tab-entry-offset');
-        surface.removeEventListener('animationend', complete);
-        surface.removeEventListener('animationcancel', complete);
-        reducedMotion?.removeEventListener('change', complete);
+        reducedMotion?.removeEventListener('change', motionChanged);
+        animation.cancel();
+        if (entryAnimation.current === animation) entryAnimation.current = null;
       };
     }
+
+    // Fallback for older WebViews without the Web Animations API.
+    surface.style.setProperty('--primary-tab-entry-offset', offset);
+    surface.dataset.primaryTabEntry = 'true';
+    const complete = (event: Event) => {
+      if (event.type === 'change' || event.target === surface) {
+        delete surface.dataset.primaryTabEntry;
+        surface.style.removeProperty('--primary-tab-entry-offset');
+      }
+    };
+    surface.addEventListener('animationend', complete);
+    surface.addEventListener('animationcancel', complete);
+    reducedMotion?.addEventListener('change', complete);
+    return () => {
+      complete(new Event('change'));
+      surface.removeEventListener('animationend', complete);
+      surface.removeEventListener('animationcancel', complete);
+      reducedMotion?.removeEventListener('change', complete);
+    };
   }, [pathname, routeKey, surfaceRef]);
 
   // Bind ownership before the committed destination can receive another touch.
@@ -139,6 +188,8 @@ export function usePrimaryTabSwipe({
     const start = (event: TouchEvent) => {
       cancel();
       snapBack?.cancel();
+      entryAnimation.current?.cancel();
+      entryAnimation.current = null;
       suppressClick.current = false;
       const touch = event.touches[0];
       if (
@@ -206,9 +257,9 @@ export function usePrimaryTabSwipe({
         frame = window.requestAnimationFrame(() => {
           frame = 0;
           if (!gesture) return;
-          // Bounded direct feedback; never move or remount the fixed shell.
-          const limit = window.innerWidth;
-          const offset = Math.max(-limit, Math.min(limit, gesture.offset));
+          // Keep the page live and draggable; do not capture an input-blocking
+          // snapshot while the user is navigating between roots.
+          const offset = Math.max(-24, Math.min(24, gesture.offset * 0.12));
           surface.dataset.primaryTabDragging = 'true';
           surface.style.setProperty('--primary-tab-offset', `${offset}px`);
         });
@@ -245,7 +296,9 @@ export function usePrimaryTabSwipe({
           const style = getComputedStyle(surface);
           snapBack = surface.animate(
             [
-              { transform: `translateX(${current.offset}px)` },
+              {
+                transform: `translateX(${Math.max(-24, Math.min(24, current.offset * 0.12))}px)`,
+              },
               { transform: 'none' },
             ],
             {
@@ -265,7 +318,7 @@ export function usePrimaryTabSwipe({
       if (!destination) return;
       entry.current = {
         to: destination.path,
-        offset: direction * window.innerWidth + dx,
+        offset: direction * 24,
         from: routeKey,
       };
       navigateRef.current(destination.path);

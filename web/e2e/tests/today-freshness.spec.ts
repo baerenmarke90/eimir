@@ -382,10 +382,10 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   // Assert initial dashboard renders later upcoming plan as primary context
   await expect(page).toHaveURL(/\/today$/);
   await expect(
-    page.getByRole('heading', {
-      name: 'Anna & Ben',
-      level: 1,
-    }),
+    page.getByRole('heading', { name: navigation.today, level: 1 }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Anna & Ben', level: 2 }),
   ).toBeVisible();
   await expect(page.locator('.today-date-heading')).toHaveCount(0);
   const agenda = page.locator('.today-agenda-list');

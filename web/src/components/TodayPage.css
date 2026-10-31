@@ -15,6 +15,13 @@
   padding-top: 0;
 }
 
+/* A clear page identity without competing with the relationship portraits. */
+.today-page-title {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-secondary);
+  font: var(--font-content-heading);
+}
+
 .today-hero.couple-presence-card {
   position: relative;
   display: flex;

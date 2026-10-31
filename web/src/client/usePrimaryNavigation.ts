@@ -34,6 +34,8 @@ export function usePrimaryNavigation() {
       if (root === location.pathname) return;
       const { to, ...options } = destinationFor(root);
       captureCurrent();
+      // Main-content motion is owned by the shell; navigation remains
+      // immediately interactive even during rapid consecutive tab switches.
       void navigate(to, options);
     },
     [captureCurrent, destinationFor, location.pathname, navigate],

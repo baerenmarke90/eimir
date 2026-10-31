@@ -974,11 +974,20 @@ test('compact authenticated shell keeps global quick create reachable and access
   await signIn(page);
 
   await expect(page).toHaveURL(/\/today$/);
-  // Couple Presence owns the page H1 without a redundant date masthead.
+  // Wir is the single page H1; the optional relationship hero remains H2.
   await expect(
     page.getByRole('heading', {
-      name: m5s5.dashboard.durationTitle,
+      name: navigation.today,
       level: 1,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  await expect(
+    page.locator('.today-hero').getByRole('heading', {
+      name: m5s5.dashboard.durationTitle,
+      level: 2,
+      exact: true,
     }),
   ).toBeVisible();
   await expect(page.locator('.today-date-heading')).toHaveCount(0);
@@ -1068,11 +1077,20 @@ test('expanded authenticated shell keeps deep links, back, focus, and accessibil
   await signIn(page);
 
   await expect(page).toHaveURL(/\/today$/);
-  // Couple Presence owns the page H1 without a redundant date masthead.
+  // Wir is the single page H1; the optional relationship hero remains H2.
   await expect(
     page.getByRole('heading', {
-      name: m5s5.dashboard.durationTitle,
+      name: navigation.today,
       level: 1,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
+  await expect(
+    page.locator('.today-hero').getByRole('heading', {
+      name: m5s5.dashboard.durationTitle,
+      level: 2,
+      exact: true,
     }),
   ).toBeVisible();
   await expect(page.locator('.today-date-heading')).toHaveCount(0);

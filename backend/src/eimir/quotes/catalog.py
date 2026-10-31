@@ -508,10 +508,7 @@ QUOTES: tuple[DailyQuote, ...] = (
     ),
     DailyQuote(
         id="quote-en-love-004",
-        text=(
-            "No one is useless in this world, "
-            "who lightens the burden of it for any one else."
-        ),
+        text=("No one is useless in this world, who lightens the burden of it for any one else."),
         author_display="Charles Dickens",
         source_display="Our Mutual Friend",
         source_id="classic_literature",
@@ -627,4 +624,3 @@ def get_quotes(
 def get_quote_by_id(quote_id: str) -> DailyQuote | None:
     """Return one quote by ID or None."""
     return QUOTE_MAP.get(quote_id)
-

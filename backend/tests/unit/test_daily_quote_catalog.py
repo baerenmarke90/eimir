@@ -92,4 +92,3 @@ def test_get_quote_by_id() -> None:
 
     missing = catalog.get_quote_by_id("nonexistent-quote-id")
     assert missing is None
-

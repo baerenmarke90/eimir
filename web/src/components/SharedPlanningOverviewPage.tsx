@@ -527,4 +527,3 @@ export function SharedPlanningOverviewPage({
     </div>
   );
 }
-

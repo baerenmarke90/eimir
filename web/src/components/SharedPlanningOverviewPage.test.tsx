@@ -330,4 +330,3 @@ describe('SharedPlanningOverviewPage', () => {
     expect(html).toContain(i18n.t('m5s3.overview.createdBy', { name: 'Lea' }));
   });
 });
-

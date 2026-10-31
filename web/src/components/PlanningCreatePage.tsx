@@ -553,4 +553,3 @@ export function PlanningCreatePage({
     </div>
   );
 }
-

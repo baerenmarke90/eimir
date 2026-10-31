@@ -532,7 +532,11 @@ export function DashboardSettingsPanel({
     },
   });
 
-  const orderedKeys = orderedDashboardModuleKeys(preferencesQuery.data);
+  const allOrderedKeys = orderedDashboardModuleKeys(preferencesQuery.data);
+  // Retain the legacy API preference slot without offering a removed surface.
+  const orderedKeys = allOrderedKeys.filter(
+    (key) => key !== 'monthly_highlights',
+  );
   const reorder = useListItemReorder({
     itemIds: orderedKeys,
     animatePreview: true,
@@ -540,9 +544,13 @@ export function DashboardSettingsPanel({
     onReorder: (keys, moved) => {
       const isCurrentQuery = captureAuthorizedQuery(queryClient, queryKey);
       if (!isCurrentQuery()) return;
-      const next = keys as DashboardModuleKey[];
+      const visibleKeys = keys as DashboardModuleKey[];
+      let visibleIndex = 0;
+      const next = allOrderedKeys.map((key) =>
+        key === 'monthly_highlights' ? key : visibleKeys[visibleIndex++],
+      );
       const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moved);
-      const position = next.indexOf(moved as DashboardModuleKey) + 1;
+      const position = visibleKeys.indexOf(moved as DashboardModuleKey) + 1;
       const write: DashboardOrderWrite = {
         keys: next,
         sequence: ++latestOrderRequest.current,

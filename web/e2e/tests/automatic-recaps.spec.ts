@@ -305,7 +305,7 @@ for (const [width, theme] of [
   [430, 'light'],
   [1280, 'dark'],
 ] as const) {
-  test(`monthly Wir invitation at ${width} ${theme}`, async ({
+  test(`Wir without recap entries at ${width} ${theme}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width, height: 900 });
@@ -315,38 +315,19 @@ for (const [width, theme] of [
       theme,
     );
     const state = await setup(page, { start: 'wir', pro: false });
-    const invitation = page.locator('.monthly-recap-invitation');
-    await expect(
-      invitation.getByRole('link', { name: new RegExp(copy.watchNow) }),
-    ).toBeVisible();
-    await expect(invitation).toContainText(
-      new Intl.DateTimeFormat('de-DE', {
-        month: 'long',
-        year: 'numeric',
-        timeZone: 'UTC',
-      }).format(new Date('2026-10-01')),
+    await expect(page.locator('.today-content')).toBeVisible();
+    await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
+    await expect(page.locator('.today-section-monthly')).toHaveCount(0);
+    expect(state.overviewReads()).toBe(0);
+    await captureScreenshot(
+      page,
+      info,
+      `wir-without-recaps-${width}-${theme}.png`,
+      { fullPage: true },
     );
-    await expect(invitation.locator('p')).toContainText(
-      copy.partial.split('·')[1].trim(),
-    );
-    await expect(invitation.locator('img')).toBeVisible();
-    await invitation
-      .locator('img')
-      .evaluate((img: HTMLImageElement) => img.decode());
-    await captureScreenshot(page, info, `recaps-wir-${width}-${theme}.png`, {
-      fullPage: true,
-    });
     expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
-    expect(
-      (
-        await new AxeBuilder({ page })
-          .include('.today-section-monthly')
-          .analyze()
-      ).violations,
+      (await new AxeBuilder({ page }).include('.today-content').analyze())
+        .violations,
     ).toEqual([]);
     expect(state.prepares()).toBe(0);
     expect(state.writes()).toBe(0);
@@ -359,7 +340,7 @@ test('Watch now advances automatically, pauses for a source, and finishes withou
 }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.clock.install();
-  const state = await setup(page, { start: 'wir' });
+  const state = await setup(page, { start: 'library', pro: false });
   await page.getByRole('link', { name: new RegExp(copy.watchNow) }).click();
   await expect(page).toHaveURL(/\/more\/passport\/october$/);
   await expect(page.locator('.recap-reader')).toHaveAttribute(
@@ -397,7 +378,7 @@ test('Watch now advances automatically, pauses for a source, and finishes withou
   await page.clock.fastForward(90001);
   await expect(page.locator('.recap-spread h1')).toHaveText(copy.finishTitle);
   await page.locator('.recap-back').click();
-  await expect(page).toHaveURL(/\/today$/);
+  await expect(page).toHaveURL(/\/more\/passport$/);
   expect(state.prepares()).toBe(0);
   expect(state.unexpected).toEqual([]);
 });
@@ -408,7 +389,7 @@ test('reduced motion opens Watch now paused and playback pauses for editing', as
   await page.setViewportSize({ width: 360, height: 900 });
   await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: 'dark' });
   await page.clock.install();
-  await setup(page, { start: 'wir' });
+  await setup(page, { start: 'library', pro: false });
   await page.getByRole('link', { name: new RegExp(copy.watchNow) }).click();
   await expect(
     page.getByRole('button', { name: copy.play, exact: true }),
@@ -486,28 +467,14 @@ test('hidden monthly highlights do not request or reveal a recap invitation', as
   expect(state.overviewReads()).toBe(0);
 });
 
-test('an authoritative overview denial removes a previously visible recap cover', async ({
+test('Wir never starts recap discovery even when the overview would be denied', async ({
   page,
 }) => {
   const state = await setup(page, { start: 'wir' });
-  await expect(page.locator('.monthly-recap-invitation')).toBeVisible();
   state.denyOverview();
-  await page.evaluate(() => {
-    Object.defineProperty(document, 'visibilityState', {
-      configurable: true,
-      value: 'hidden',
-    });
-    document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
-  });
-  await page.evaluate(() => {
-    Object.defineProperty(document, 'visibilityState', {
-      configurable: true,
-      value: 'visible',
-    });
-    document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
-  });
+  await expect(page.locator('.today-content')).toBeVisible();
   await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
-  await expect(page.locator('.monthly-recap-library-link')).toBeVisible();
+  expect(state.overviewReads()).toBe(0);
 });
 
 for (const [width, theme] of [

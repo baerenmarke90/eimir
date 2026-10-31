@@ -46,6 +46,7 @@ import type { ReferenceApis } from '../client/referenceFlow';
 import {
   heartMomentDetailPath,
   memoryDetailPath,
+  MEMORY_MAP_ROUTE,
   milestoneDetailPath,
 } from '../client/routes';
 import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
@@ -728,7 +729,16 @@ export function StoryProductPage({
 
       <PullToRefreshIndicator state={pullRefresh} />
 
-      <PageHeader variant="root" title={t('story.timelineTitle')} />
+      <PageHeader
+        variant="root"
+        title={t('story.timelineTitle')}
+        titleAction={
+          <Link to={MEMORY_MAP_ROUTE} className="button-link secondary">
+            <EimirIcon name="orte" />
+            {t('memoryMap.entry')}
+          </Link>
+        }
+      />
 
       <div
         ref={viewTabsRef}

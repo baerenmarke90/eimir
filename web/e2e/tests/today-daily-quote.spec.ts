@@ -1174,43 +1174,17 @@ test('monthly highlights include visible photo captions and dates plus distinct 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await signIn(page);
-  const month = page.locator('.today-section-monthly');
-  await expect(month.locator('.today-monthly-caption strong')).toHaveText([
-    'Lakeside walk',
-    'Sunday together',
-    'Coffee break',
-  ]);
-  await expect(month.locator('.today-monthly-caption time')).toHaveCount(3);
-  await expect(month).toContainText('02.10.2026');
-  await expect(month).toContainText('A lovely quiet evening');
-  await expect(month).toContainText('A year of adventures');
-  await expect(
-    page.getByText('A lovely quiet evening', { exact: true }),
-  ).toHaveCount(1);
-  await expect(
-    page.getByText('A year of adventures', { exact: true }),
-  ).toHaveCount(1);
+  await expect(page.locator('.today-section-monthly')).toHaveCount(0);
   await expect(page.locator('.daily-quote-block')).toContainText(
     'A calm thought for today.',
   );
-  await expect
-    .poll(() =>
-      month
-        .locator('img')
-        .first()
-        .evaluate((img: HTMLImageElement) => img.naturalWidth),
-    )
-    .toBeGreaterThan(0);
-  await month.locator('.today-section-link').focus();
-  for (const theme of ['light', 'dark'] as const) {
-    await page.emulateMedia({ colorScheme: theme });
-    await month.scrollIntoViewIfNeeded();
-    await month.screenshot({
-      path: info.outputPath(`monthly-highlights-390-${theme}.png`),
-    });
-  }
-  await expect(month.locator('.today-section-link')).toHaveAttribute(
-    'href',
-    '/story?tab=timeline',
+  await expect(page.getByText('Lakeside walk', { exact: true })).toHaveCount(1);
+  await expect(page.getByText('Sunday together', { exact: true })).toHaveCount(
+    1,
   );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
 });

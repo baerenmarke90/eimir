@@ -14,6 +14,11 @@
 
 import * as runtime from '../runtime';
 import {
+    type MemoryMapPage,
+    MemoryMapPageFromJSON,
+    MemoryMapPageToJSON,
+} from '../models/MemoryMapPage';
+import {
     type PlaceCreate,
     PlaceCreateFromJSON,
     PlaceCreateToJSON,
@@ -63,6 +68,12 @@ export interface DeletePlaceRequest {
 export interface GetPlaceRequest {
     placeId: string;
     spaceId: string;
+}
+
+export interface ListMemoryMapRequest {
+    spaceId: string;
+    cursor?: string | null;
+    limit?: number;
 }
 
 export interface ListMomentPlacesRequest {
@@ -264,6 +275,61 @@ export class PlacesApi extends runtime.BaseAPI {
      */
     async getPlace(requestParameters: GetPlaceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlaceDetail> {
         const response = await this.getPlaceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listMemoryMap without sending the request
+     */
+    async listMemoryMapRequestOpts(requestParameters: ListMemoryMapRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling listMemoryMap().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/memory-map`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Pro map over readable saved memories and places; no location tracking.
+     * Get Memory Map
+     */
+    async listMemoryMapRaw(requestParameters: ListMemoryMapRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MemoryMapPage>> {
+        const requestOptions = await this.listMemoryMapRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MemoryMapPageFromJSON(jsonValue));
+    }
+
+    /**
+     * Pro map over readable saved memories and places; no location tracking.
+     * Get Memory Map
+     */
+    async listMemoryMap(requestParameters: ListMemoryMapRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MemoryMapPage> {
+        const response = await this.listMemoryMapRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

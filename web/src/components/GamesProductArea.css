@@ -547,3 +547,60 @@
     transform: none;
   }
 }
+
+.games-entry {
+  border: 0;
+  box-shadow: none;
+  background: var(--color-surface);
+}
+.games-entry:nth-child(even) {
+  margin-left: 0;
+}
+.games-entry:first-child {
+  min-height: 11rem;
+  background: linear-gradient(
+    135deg,
+    var(--color-shared-surface),
+    var(--color-brand-surface)
+  );
+  padding-block: var(--space-6);
+}
+.games-entry:first-child .games-entry-index {
+  width: 4rem;
+  height: 4rem;
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+}
+.games-entry:first-child h2 {
+  font-size: 1.75rem;
+}
+.games-entry-index {
+  color: var(--color-brand-text);
+  background: var(--color-shared-surface);
+}
+.games-entry-link {
+  transition: background var(--duration-feedback) var(--easing-standard);
+}
+.local-couple-session {
+  min-height: 20rem;
+  align-content: start;
+  background: linear-gradient(
+    150deg,
+    var(--color-surface),
+    var(--color-brand-surface)
+  );
+  border: 0;
+  box-shadow: none;
+}
+.local-couple-session h2 {
+  font: var(--font-personal-heading);
+  overflow-wrap: anywhere;
+}
+.local-couple-session .who-of-us-actions {
+  margin-top: var(--space-5);
+}
+@media (prefers-reduced-motion: reduce) {
+  .games-entry-link {
+    transition: none;
+  }
+}

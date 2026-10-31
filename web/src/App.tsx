@@ -141,6 +141,7 @@ import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
 import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
 import { PlaceProductPage } from './components/PlaceProductPage';
+import { MemoryMapPage } from './components/MemoryMapPage';
 import { PlacesOverviewPage } from './components/PlacesOverviewPage';
 import { PlanProductPage } from './components/PlanProductPage';
 import { PlanningCreatePage } from './components/PlanningCreatePage';
@@ -572,6 +573,10 @@ function AuthenticatedApp({
             <Route
               path={CHAPTER_DETAIL_ROUTE_PATTERN}
               element={<ChapterProductPage {...planningProductProps} />}
+            />
+            <Route
+              path="/story/map"
+              element={<MemoryMapPage {...planningProductProps} />}
             />
             <Route
               path={MORE_PLACES_ROUTE}

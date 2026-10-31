@@ -126,14 +126,13 @@ describe('TodayPage', () => {
     expect(html).toContain('aria-controls="partner-quick-actions-sheet"');
     expect(html).toContain('Weekend trip to Paris');
     expect(html).toContain('Park Picnic');
-    expect(html).toContain('Morning Smile');
+    expect(html).not.toContain('Morning Smile');
 
     // The full R4 order when every eligible role is present, top to bottom.
     const order = [
       'today-hero',
       'today-section-moment',
       'today-section-upcoming',
-      'today-section-living',
       'today-section-recent',
     ].map((section) => html.indexOf(section));
     expect(order).not.toContain(-1);
@@ -144,7 +143,7 @@ describe('TodayPage', () => {
     // image-led feature, a tinted contextual module and quiet trace tiles.
     expect(html).not.toContain('today-card-badges');
     expect(html).toContain('today-agenda-row');
-    expect(html).toContain('today-living-retrospective');
+    expect(html).not.toContain('today-living-retrospective');
     expect(html).toContain('today-recent-tile');
   });
 
@@ -769,7 +768,7 @@ describe('TodayPage', () => {
     expect(signalIndex).toBeGreaterThan(agendaIndex);
   });
 
-  it('places a genuine date-specific retrospective in the single `Gerade bei euch` slot (#850 supersedes #840 ordering)', () => {
+  it('keeps server-provided retrospectives off Wir while upcoming plans remain', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -815,19 +814,9 @@ describe('TodayPage', () => {
       </QueryClientProvider>,
     );
 
-    // #840 let a date-specific retrospective float ahead of the planning
-    // area. #850's normative order is fixed, and the retrospective is now
-    // the highest-value candidate for the one `Gerade bei euch` slot after a
-    // live partner signal - so it renders there, below `Demnächst`. The
-    // retrospective is still shown, still exactly once, and still never
-    // displaced by a generic Keepsake, which is what #840 was protecting.
-    const planningIndex = html.indexOf('today-section-upcoming');
-    const livingIndex = html.indexOf('today-section-living');
-    expect(planningIndex).toBeGreaterThan(-1);
-    expect(livingIndex).toBeGreaterThan(planningIndex);
-    expect(html).toContain('One year ago today');
-    expect(html.split('One year ago today').length - 1).toBe(1);
-    expect(html).toContain('today-living-retrospective');
+    expect(html).toContain('today-section-upcoming');
+    expect(html).not.toContain('One year ago today');
+    expect(html).not.toContain('today-living-retrospective');
   });
 
   it('uses a deliberate text-first `Euer Moment`, never an empty photo frame, when no image can render', () => {
@@ -1716,7 +1705,7 @@ it('never repeats the memory a partner commented on in `Diesen Monat` or the tra
 
   // Its underlying memory is featured content now, so neither later section
   // shows it again.
-  expect(html).toContain('today-section-monthly');
+  expect(html).not.toContain('today-section-monthly');
   expect(html).not.toContain('Commented Photo');
 
   // The unrelated entries are still there, so nothing was over-filtered.
@@ -1820,38 +1809,6 @@ function renderMonthlyOverflowSpace(): string {
   );
 }
 
-it('never repeats a `Diesen Monat` photo as a `Zuletzt bei euch` row', () => {
-  const html = renderMonthlyOverflowSpace();
-  const monthly = sectionHtml(html, 'today-section-monthly');
-  const trace = sectionHtml(html, 'today-section-recent');
-
-  // The strip took the three eligible photos below the featured one and
-  // uses the same shared media-swipe primitive as Story galleries.
-  expect(html).toContain('today-monthly-strip-3');
-  expect(html).toContain('eimir-media-snap-track');
-  expect(
-    html.split('eimir-media-snap-item eimir-media-snap-item-start').length - 1,
-  ).toBe(3);
-  for (const title of ['Strip Photo A', 'Strip Photo B', 'Strip Photo C']) {
-    expect(monthly).toContain(title);
-    expect(trace).not.toContain(title);
-  }
-});
-
-it('adds text and overflow moments to the month without repeating them in the trace', () => {
-  const html = renderMonthlyOverflowSpace();
-  const monthly = sectionHtml(html, 'today-section-monthly');
-  const trace = sectionHtml(html, 'today-section-recent');
-
-  // Photos outside the compact strip and text moments now enrich the month.
-  expect(monthly).toContain('Overflow Photo D');
-  expect(trace).not.toContain('Overflow Photo D');
-
-  // Text highlights use the same current-month classification.
-  expect(monthly).toContain('Quiet Heart Moment');
-  expect(trace).not.toContain('Quiet Heart Moment');
-});
-
 it('keeps `Euer Moment` and the `Gerade bei euch` module out of the trace as before', () => {
   const html = renderMonthlyOverflowSpace();
   const trace = sectionHtml(html, 'today-section-recent');
@@ -1895,81 +1852,6 @@ it('leaves the trace untouched when the month contributes no photos', () => {
   );
   expect(trace).not.toContain('Text Only Moment');
   expect(trace).toContain('Shared Chapter');
-});
-
-it('renders `Diesen Monat` as up to three real shared photos, never a count derived from the capped feed', () => {
-  const now = new Date();
-  // `occurredOn` is a date-only API value: the generated client materializes
-  // it at midnight UTC, so the fixture is built the same way.
-  const thisMonth = (day: number) =>
-    new Date(Date.UTC(now.getFullYear(), now.getMonth(), day));
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  queryClient.setQueryData(['m5-s5', 'dashboard', 'space-1'], {
-    space: { id: 'space-1', partner: { id: 'p-1', displayName: 'Sam' } },
-    relationshipDuration: null,
-    upcoming: [],
-    keepsake: {
-      id: 'featured',
-      type: 'MEMORY',
-      titleOrText: 'Featured Photo',
-      occurredOn: thisMonth(2),
-      previewAttachmentId: 'att-featured',
-      previewIsSensitive: false,
-    },
-    recentShared: [
-      {
-        id: 'featured',
-        type: 'MEMORY',
-        titleOrText: 'Featured Photo',
-        occurredOn: thisMonth(2),
-        previewAttachmentId: 'att-featured',
-        previewIsSensitive: false,
-      },
-      ...[1, 2, 3, 4].map((n) => ({
-        id: `strip-${n}`,
-        type: 'MEMORY',
-        titleOrText: `Strip Photo ${n}`,
-        occurredOn: thisMonth(3),
-        previewAttachmentId: `att-strip-${n}`,
-        previewIsSensitive: false,
-      })),
-    ],
-    retrospective: null,
-  });
-
-  const html = renderToStaticMarkup(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <TodayPage
-          apis={{} as M4ProductApis}
-          spaceId="space-1"
-          loadMemoryImage={() => Promise.resolve('blob:http://localhost/x')}
-        />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
-
-  expect(html).toContain('today-monthly-strip-3');
-  expect(html.split('today-monthly-tile"').length - 1).toBe(3);
-  // The photo already shown large above is not repeated in the strip.
-  expect(html).toContain('today-monthly-strip');
-  expect(html).not.toContain('att-featured-strip');
-  // No total is claimed: recentShared is capped server-side, so a count
-  // derived from it could be wrong.
-  expect(html).not.toMatch(/\d+\s+gemeinsame Momente/);
-});
-
-it('`Diesen Monat` -> Alle anzeigen opens Momente on the Zeitleiste tab, not Entdecken', () => {
-  const html = renderMonthlyOverflowSpace();
-  const monthly = sectionHtml(html, 'today-section-monthly');
-
-  // The real-smartphone Product Owner decision (#858 follow-up): the
-  // monthly strip's header action must resolve to the Story view's
-  // Zeitleiste tab, not the bare `/story` root (which defaults to
-  // Entdecken).
-  expect(monthly).toContain('href="/story?tab=timeline"');
 });
 
 it('omits `Diesen Monat` entirely when the month has no shared photo', () => {
@@ -2437,7 +2319,10 @@ describe('formatRelationshipDuration', () => {
     const MODULE_SECTIONS = DASHBOARD_MODULE_KEYS.map(
       (key) => [key, MODULE_SECTION_MARKER[key]] as const,
     ).filter(
-      ([key]) => key !== 'shared_story_summary' && key !== 'daily_quote',
+      ([key]) =>
+        key !== 'shared_story_summary' &&
+        key !== 'daily_quote' &&
+        key !== 'monthly_highlights',
     );
 
     it('renders a personal complete order in DOM order, including the presence hero', () => {
@@ -2503,9 +2388,9 @@ describe('formatRelationshipDuration', () => {
       // The retrospective content stays claimed by `Gerade bei euch`'s
       // selection even while that section itself is not rendered - hiding it
       // must not let the same content reappear in `Diesen Monat` or the trace.
-      expect(baseline).toContain('today-section-monthly');
+      expect(baseline).not.toContain('today-section-monthly');
       expect(withLivingHidden).not.toContain('today-living-retrospective');
-      expect(withLivingHidden).toContain('today-section-monthly');
+      expect(withLivingHidden).not.toContain('today-section-monthly');
       expect(withLivingHidden).toContain('Monthly Photo');
       expect(withLivingHidden).not.toContain('Weisst du noch');
     });

@@ -1,17 +1,11 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import type { M4ProductApis } from '../client/m4Product';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
-import {
-  rememberRetrospectiveDismissal,
-  retrospectiveDismissalToken,
-} from '../client/todayRetrospectiveDismissal';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
-import m5s5 from '../i18n/locales/m5s5';
 import { TodayPage } from './TodayPage';
 
 const memory = {
@@ -139,109 +133,16 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-describe('Today #452 retrospective presentation and dismissal', () => {
-  it('renders only real retrospective text without a photo-shaped placeholder', async () => {
-    renderToday();
-    expect(await screen.findByText('Our early trip together')).not.toBeNull();
-    expect(
-      document.querySelector('.today-living-retrospective'),
-    ).not.toBeNull();
-    expect(document.querySelector('.today-retrospective-photo')).not.toBeNull();
-    expect(document.querySelector('.today-retrospective-media')).toBeNull();
-    expect(
-      screen.getByRole('button', {
-        name: m5s5.today.living.retrospectiveDismissToday,
-      }),
-    ).not.toBeNull();
-    expect(
-      screen.getByRole('link', { name: /Erinnerung ansehen/i }),
-    ).not.toBeNull();
-    expect(screen.getByText('23. Oktober 2025')).not.toBeNull();
-  });
-
-  it('uses the authorized MemoryPreview for media without a second image API', async () => {
-    renderToday({ photo: true });
-    expect(await screen.findByText('Our early trip together')).not.toBeNull();
-    expect(document.querySelector('.today-retrospective-media')).not.toBeNull();
-    await waitFor(() => {
-      expect(
-        document.querySelector(
-          '.today-retrospective-media .story-media-preview',
-        ),
-      ).not.toBeNull();
-    });
-  });
-
-  it('dismisses only the retrospective, reveals fallback, and survives remount', async () => {
-    const user = userEvent.setup();
-    const first = renderToday();
-    expect(await screen.findByText('Our early trip together')).not.toBeNull();
-    await user.click(
-      screen.getByRole('button', {
-        name: m5s5.today.living.retrospectiveDismissToday,
-      }),
-    );
-
-    expect(screen.queryByText('Our early trip together')).toBeNull();
-    expect(await screen.findByText('A new shared wish')).not.toBeNull();
-    expect(
-      screen.getByText(m5s5.today.living.retrospectiveDismissed),
-    ).not.toBeNull();
-
-    first.unmount();
-    renderToday();
-    expect(await screen.findByText('A new shared wish')).not.toBeNull();
-    expect(screen.queryByText('Our early trip together')).toBeNull();
-  });
-
-  it('does not apply another Account/Space dismissal and respects hidden modules', async () => {
-    const stored = retrospectiveDismissalToken(
-      'account-1',
-      'space-1',
-      new Date('2026-10-23'),
-    );
-    if (!stored) throw new Error('Expected valid marker');
-    rememberRetrospectiveDismissal(stored);
-
-    renderToday({ accountId: 'account-2' });
-    expect(await screen.findByText('Our early trip together')).not.toBeNull();
-    cleanup();
-    renderToday({ accountId: 'account-1', spaceId: 'space-2' });
-    expect(await screen.findByText('Our early trip together')).not.toBeNull();
-    cleanup();
-    renderToday({ hideModule: true });
-    expect(screen.queryByText('Our early trip together')).toBeNull();
-    expect(document.querySelector('.today-section-living')).toBeNull();
-  });
-
-  it('uses the server calendar to restore and expire a dismissed retrospective', async () => {
-    const stored = retrospectiveDismissalToken(
-      'account-1',
-      'space-1',
-      new Date('2026-10-23'),
-    );
-    if (!stored) throw new Error('Expected server-day marker');
-    rememberRetrospectiveDismissal(stored);
-
-    renderToday({ viewerLocalDate: new Date('2026-10-23') });
-    expect(await screen.findByText('A new shared wish')).not.toBeNull();
-    expect(screen.queryByText('Our early trip together')).toBeNull();
-
-    cleanup();
-    renderToday({ viewerLocalDate: new Date('2026-10-24') });
-    expect(await screen.findByText('Our early trip together')).not.toBeNull();
-  });
-
-  it('opens the canonical Memory detail and returns with the F2 Today origin', async () => {
-    const user = userEvent.setup();
-    renderToday();
-    await user.click(
-      await screen.findByRole('link', { name: /Erinnerung ansehen/i }),
-    );
-    expect(
-      screen.getByRole('heading', { name: 'Canonical memory detail' }),
-    ).not.toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Return to Today' }));
-    expect(await screen.findByText('Our early trip together')).not.toBeNull();
-  });
+describe('Wir retrospective removal (#1546)', () => {
+  it.each([false, true])(
+    'never renders a server retrospective (media=%s)',
+    async (photo) => {
+      renderToday({ photo });
+      expect(await screen.findByText(wish.titleOrText)).not.toBeNull();
+      expect(screen.queryByText(memory.titleOrText)).toBeNull();
+      expect(document.querySelector('.today-living-retrospective')).toBeNull();
+      expect(document.querySelector('.today-section-monthly')).toBeNull();
+      expect(screen.queryByRole('link', { name: /Beziehungspass/ })).toBeNull();
+    },
+  );
 });

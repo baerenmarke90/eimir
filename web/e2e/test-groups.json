@@ -379,6 +379,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 7,
       "reason": "Places and Lists create/result/return, dirty modal boundaries, read-first entry editing, failed-save recovery, checking, sorting, removal and theme/reflow acceptance."
+    },
+    "memory-map-and-couple-games.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7,
+      "reason": "Protects saved-memory map privacy/Pro admission/source return, finite playable games, explicit tile consent and calendar date semantics."
     }
   }
 }

@@ -346,3 +346,5 @@ export const RECAP_DETAIL_ROUTE_PATTERN = `${MORE_PASSPORT_ROUTE}/:recapId`;
 export function recapDetailPath(recapId: string): string {
   return `${MORE_PASSPORT_ROUTE}/${encodeURIComponent(recapId)}`;
 }
+
+export const MEMORY_MAP_ROUTE = '/story/map';

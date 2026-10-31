@@ -114,7 +114,9 @@ function PeriodPicker({
         onClick={onNext}
         aria-label={nextLabel}
         disabled={!canGoNext}
-      ></button>
+      >
+        <span aria-hidden="true">›</span>
+      </button>
     </fieldset>
   );
 }

@@ -116,6 +116,8 @@ export * from './MemoryAttachmentSet';
 export * from './MemoryAttachmentSummary';
 export * from './MemoryCreate';
 export * from './MemoryDetail';
+export * from './MemoryMapEntry';
+export * from './MemoryMapPage';
 export * from './MemoryPage';
 export * from './MemorySummary';
 export * from './MemoryUpdate';

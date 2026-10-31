@@ -40,6 +40,7 @@ import {
 import { useTranslation } from '../i18n';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { PageHeader } from './PageHeader';
+import { PlanCalendarAction } from './PlanCalendarAction';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { PlanStoryContinuation } from './PlanStoryContinuation';
 import { PreferenceSwitch } from './PreferenceSwitch';
@@ -439,6 +440,9 @@ export function PlanProductPage({
         <p className="planen-detail-schedule">
           {scheduleLabel ?? t('m5s3.overview.undatedHeading')}
         </p>
+        {!isEditing && plan.status !== 'COMPLETED' ? (
+          <PlanCalendarAction plan={plan} location={placeName ?? undefined} />
+        ) : null}
         {plan.status === 'COMPLETED' ? (
           <p className="planen-detail-status">{planStatusWord(t, plan)}</p>
         ) : null}

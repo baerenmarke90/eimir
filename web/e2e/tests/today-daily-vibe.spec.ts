@@ -699,7 +699,7 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
     await expect(option.locator('svg')).toHaveAttribute('aria-hidden', 'true');
   }
   await sheet.screenshot({
-    path: testInfo.outputPath('vibe-six-labeled-symbols-390-light.png'),
+    path: testInfo.outputPath('today-vibe-six-labeled-symbols-390-light.png'),
     animations: 'disabled',
   });
 

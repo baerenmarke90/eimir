@@ -726,7 +726,7 @@ for (const pro of [true, false])
         '12',
         '4',
       ]);
-      await captureScreenshot(page, info, 'wir-optional-statistics-390.png', {
+      await captureScreenshot(page, info, 'today-optional-statistics-390.png', {
         fullPage: true,
       });
       await page.goto('/more/settings/today');

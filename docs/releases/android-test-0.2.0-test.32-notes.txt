@@ -1,0 +1,9 @@
+eimir. 0.2.0-test.32
+
+Build 32 bringt den aktuellen Hauptstand in die Android-App. Der App-Start wurde entlastet. Tippen und Wischen zwischen den Hauptbereichen verwenden einheitliche Übergänge; schnelle Richtungswechsel und die Tastaturbedienung der Tabs wurden korrigiert.
+
+Neu sind die Pro-Erinnerungskarte mit euren gespeicherten Orten, zusätzliche gemeinsame Spiele und die Kalenderübergabe für datierte Pläne. Das Anlegen von Erinnerungen beginnt mit dem optionalen Titel. Entdecken und die Rückblicksammlung wurden überarbeitet; eure monatlichen Highlights und die Slideshow auf Wir bleiben erhalten.
+
+Die Wochenansicht kann mehrere Wochen vergleichen und daraus begrenzte Vorschläge ableiten. Eine optionale lokale KI auf dem Testserver wählt nur aus geprüften Beobachtungen und Vorschlägen; bei fehlender KI bleibt die regelbasierte Auswertung verfügbar. Persönliches Feedback bleibt privat. Diese Funktionen benötigen den passenden aktualisierten Testserver.
+
+Über Einstellungen → App-Updates auf der bestehenden Installation aktualisieren. Nicht deinstallieren und keine App-Daten löschen. Build 32 verwendet dasselbe Paket, denselben Testsignierer und den bisherigen Testkanal und kann über Build 31 installiert werden.

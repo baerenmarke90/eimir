@@ -74,6 +74,9 @@ const m5s5 = {
       allAction: 'Alle anzeigen',
       allAriaLabel: 'Alle gemeinsamen Termine ansehen',
     },
+    recent: {
+      allAction: 'Alle anzeigen',
+    },
     pinnedCollection: {
       kicker: 'Gemeinsame Liste',
       openAction: 'Liste öffnen',

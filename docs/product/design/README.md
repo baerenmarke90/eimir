@@ -84,3 +84,5 @@ Read v1 before implementing a design slice. Start from fresh main and inspect cu
 Review the complete human journey and its states, then update the relevant domain/pattern guidance alongside implementation. Do not use an old screenshot test to reject an intentional v1 correction without checking the current contract. Equally, do not delete useful privacy, state, accessibility or navigation assertions while updating visual baselines.
 
 The [final audit #946](https://github.com/baerenmarke90/eimir/issues/946) applies v1 plus its intuitive-mobile-interaction addendum, exact-build journey evidence and existing quality gates. It remains a later Product Owner acceptance decision. The documentation adoption PR must not close the full #955 implementation program.
+
+[Relationship surfaces and saved-memory map (#1546)](references/1546/README.md) records the clarified Wir scope, games, calendar handoff, Pro map, implemented weekly AI and the completed Discover/capture/navigation follow-up.

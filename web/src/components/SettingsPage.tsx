@@ -14,14 +14,12 @@ import { RulesApi } from '../api/generated/apis/RulesApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
-import { isDemoModeConfigured } from '../client/demoMode';
 import {
   appUpdatesAvailable,
   type AppUpdatesAdapter,
 } from '../client/appUpdates';
-import { AppUpdatesPanel } from './AppUpdatesPanel';
+import { isDemoModeConfigured } from '../client/demoMode';
 import {
-  appRoutePath,
   isSettingsCategoryId,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_SETTINGS_ROUTE,
@@ -37,6 +35,7 @@ import {
   AnniversaryReminderSettings,
   PartnerBirthdayReminderSettings,
 } from './AnniversaryReminderSettings';
+import { AppUpdatesPanel } from './AppUpdatesPanel';
 import { DailyQuoteSettingsPanel } from './DailyQuoteSettingsPanel';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
@@ -272,11 +271,6 @@ export function SettingsPage(props: SettingsPageProps) {
     );
   }
 
-  const backTarget = category ? MORE_SETTINGS_ROUTE : appRoutePath('more');
-  const backLabel = category
-    ? t('profileIdentity.settingsBackToIndex')
-    : t('profileIdentity.settingsBackToMore');
-
   return (
     <div
       className={
@@ -286,12 +280,6 @@ export function SettingsPage(props: SettingsPageProps) {
       }
     >
       <PageHeader
-        before={
-          <Link className="settings-back-link" to={backTarget}>
-            <span aria-hidden="true">←</span>
-            <span>{backLabel}</span>
-          </Link>
-        }
         eyebrow={category ? t('navigation.settings') : undefined}
         title={category ? t(category.titleKey) : t('navigation.settings')}
         description={

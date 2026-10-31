@@ -346,6 +346,7 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
     await diaryTab.focus();
     await diaryTab.press('ArrowLeft');
     await expect(discoverTab).toBeFocused();
+    await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
     await expect(discoverTab).toHaveAttribute('tabindex', '0');
     await expect(diaryTab).toHaveAttribute('tabindex', '-1');
     await discoverTab.press('End');
@@ -353,10 +354,40 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
     await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
     await diaryTab.press('Home');
     await expect(discoverTab).toBeFocused();
+    await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
     await discoverTab.press('ArrowRight');
     await expect(diaryTab).toBeFocused();
+    await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
     await diaryTab.press('ArrowRight');
     await expect(discoverTab).toBeFocused();
+    await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
+
+    // Deliver a burst before React can commit either route. Every key follows
+    // the tab that actually has focus, including the reversal to the old view.
+    await discoverTab.evaluate((tab) => {
+      tab.focus();
+      for (let index = 0; index < 2; index++) {
+        document.activeElement?.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key: 'ArrowRight',
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+      }
+    });
+    await expect(discoverTab).toBeFocused();
+    await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
+    await expect(page).toHaveURL(/tab=discover/);
+    await expect(page).toHaveURL(/type=MEMORY/);
+    await expect(page).toHaveURL(/year=2026/);
+    await expect(page).toHaveURL(/order=ASC/);
+
+    await captureEvidence(
+      page,
+      testInfo,
+      'story-tabs-keyboard-burst-1440-light.png',
+    );
 
     for (const width of [360, 390, 430, 320]) {
       await page.setViewportSize({ width, height: 844 });
@@ -390,6 +421,8 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
       ['diary', diaryTab],
     ] as const) {
       await tab.click();
+      await tab.press(view === 'discover' ? 'Home' : 'End');
+      await expect(tab).toBeFocused();
       await expect(tab).toHaveAttribute('aria-selected', 'true');
       await captureEvidence(
         page,

@@ -13,7 +13,7 @@ import {
   GiftIdeaEditPage,
   GiftIdeasListPage,
 } from './GiftIdeasPage';
-import { PrivateAreaBackToMore, PrivateAreaFrame } from './PrivateAreaLayout';
+import { PrivateAreaFrame } from './PrivateAreaLayout';
 import {
   PrivateCollectionCreatePage,
   PrivateCollectionDetailPage,
@@ -54,7 +54,6 @@ function PrivateAreaOverview() {
   const { t } = useTranslation();
   return (
     <div className="private-area-reference-overview">
-      <PrivateAreaBackToMore />
       <nav
         className="private-area-destination-nav"
         aria-label={t('privateArea.navigation.aria')}

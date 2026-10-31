@@ -333,3 +333,97 @@
   flex: 1;
   background: var(--color-shared-accent);
 }
+
+/* Untitled photo memories read as photographs with their ordinary date footer. */
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card-photo-led
+  .story-card.has-image {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card-photo-led
+  .story-card.has-image
+  > .story-media-preview,
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card-photo-led
+  .story-card.has-image
+  > .story-media-skeleton,
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card-photo-led
+  .story-card.has-image
+  > .story-media-placeholder,
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card-photo-led
+  .story-card.has-image
+  > .sensitive-media-preview {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  margin: 0;
+}
+.discover-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.discover-toolbar > div {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.discover-toolbar h2 {
+  font: var(--font-content-heading);
+  margin: 0;
+}
+.discover-toolbar p,
+.discover-feedback {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+  margin-block: var(--space-2) 0;
+}
+.discover-toolbar button {
+  min-height: var(--touch-target-web);
+  border-radius: var(--radius-pill);
+}
+.story-page.story-page-unified .momente-tapestry[data-discover-measured] {
+  grid-auto-rows: var(--space-1);
+  grid-auto-flow: row;
+}
+.momente-tapestry[data-discover-measured] > * {
+  grid-row-end: span var(--discover-rows, 1);
+}
+.story-page-unified [data-discover-wide="true"] {
+  grid-column: 1 / -1;
+}
+.story-page-unified .momente-tapestry-quote {
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+.story-page-unified .momente-tapestry-note .momente-tapestry-body {
+  padding: var(--space-4);
+}
+.story-page-unified .momente-tapestry-note .momente-tapestry-kind {
+  position: static;
+  align-self: flex-end;
+  width: var(--space-5);
+  height: var(--space-5);
+  background: transparent;
+}
+@media (max-width: 359px) {
+  .story-page.story-page-unified .momente-tapestry {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

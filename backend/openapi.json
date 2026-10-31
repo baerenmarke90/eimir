@@ -3938,6 +3938,80 @@
         "title": "MemoryDetail",
         "type": "object"
       },
+      "MemoryMapEntry": {
+        "properties": {
+          "happenedOn": {
+            "format": "date",
+            "title": "Happenedon",
+            "type": "string"
+          },
+          "latitude": {
+            "title": "Latitude",
+            "type": "number"
+          },
+          "longitude": {
+            "title": "Longitude",
+            "type": "number"
+          },
+          "memoryId": {
+            "format": "uuid",
+            "title": "Memoryid",
+            "type": "string"
+          },
+          "placeId": {
+            "format": "uuid",
+            "title": "Placeid",
+            "type": "string"
+          },
+          "placeName": {
+            "title": "Placename",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "memoryId",
+          "title",
+          "happenedOn",
+          "placeId",
+          "placeName",
+          "latitude",
+          "longitude"
+        ],
+        "title": "MemoryMapEntry",
+        "type": "object"
+      },
+      "MemoryMapPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryMapEntry"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "title": "MemoryMapPage",
+        "type": "object"
+      },
       "MemoryPage": {
         "properties": {
           "hasMore": {
@@ -4619,6 +4693,19 @@
         ],
         "title": "NotificationsReadAllResult",
         "type": "object"
+      },
+      "ObservationKind": {
+        "enum": [
+          "JOINT_DAYS",
+          "ENERGY_RISING",
+          "ENERGY_FALLING",
+          "WEEKEND_HIGHER",
+          "WEEKEND_LOWER",
+          "WEEKDAY_LOWER",
+          "DIFFERENT_VIBES"
+        ],
+        "title": "ObservationKind",
+        "type": "string"
       },
       "OidcStartRequest": {
         "properties": {
@@ -7580,6 +7667,26 @@
         ],
         "title": "RecentAuthenticationView",
         "type": "object"
+      },
+      "RecommendationKey": {
+        "enum": [
+          "quiet_time",
+          "small_plan",
+          "appreciation",
+          "listening",
+          "own_pace",
+          "keep_ritual"
+        ],
+        "title": "RecommendationKey",
+        "type": "string"
+      },
+      "RecommendationRating": {
+        "enum": [
+          "HELPFUL",
+          "NOT_FITTING"
+        ],
+        "title": "RecommendationRating",
+        "type": "string"
       },
       "RecoveryConsumeRequest": {
         "properties": {
@@ -11359,6 +11466,189 @@
           "requiredHeaders"
         ],
         "title": "UploadDescriptor",
+        "type": "object"
+      },
+      "WeeklyFeedbackUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "rating": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecommendationRating"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "rating"
+        ],
+        "title": "WeeklyFeedbackUpdate",
+        "type": "object"
+      },
+      "WeeklyFeedbackView": {
+        "properties": {
+          "rating": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecommendationRating"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recommendationKey": {
+            "$ref": "#/components/schemas/RecommendationKey"
+          }
+        },
+        "required": [
+          "recommendationKey",
+          "rating"
+        ],
+        "title": "WeeklyFeedbackView",
+        "type": "object"
+      },
+      "WeeklyObservationView": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ObservationKind"
+          },
+          "sampleCount": {
+            "title": "Samplecount",
+            "type": "integer"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "weekday": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weekday"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "sampleCount"
+        ],
+        "title": "WeeklyObservationView",
+        "type": "object"
+      },
+      "WeeklyReviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "evidenceToken": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Evidencetoken",
+            "type": "string"
+          },
+          "weekStart": {
+            "format": "date",
+            "title": "Weekstart",
+            "type": "string"
+          }
+        },
+        "required": [
+          "weekStart",
+          "evidenceToken"
+        ],
+        "title": "WeeklyReviewRequest",
+        "type": "object"
+      },
+      "WeeklyReviewView": {
+        "properties": {
+          "evidenceToken": {
+            "title": "Evidencetoken",
+            "type": "string"
+          },
+          "feedback": {
+            "items": {
+              "$ref": "#/components/schemas/WeeklyFeedbackView"
+            },
+            "title": "Feedback",
+            "type": "array"
+          },
+          "general": {
+            "title": "General",
+            "type": "boolean"
+          },
+          "generatedBy": {
+            "default": "RULES",
+            "enum": [
+              "RULES",
+              "AI"
+            ],
+            "title": "Generatedby",
+            "type": "string"
+          },
+          "historyEnd": {
+            "format": "date",
+            "title": "Historyend",
+            "type": "string"
+          },
+          "historyStart": {
+            "format": "date",
+            "title": "Historystart",
+            "type": "string"
+          },
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/WeeklyObservationView"
+            },
+            "title": "Observations",
+            "type": "array"
+          },
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/RecommendationKey"
+            },
+            "title": "Recommendations",
+            "type": "array"
+          },
+          "weekEnd": {
+            "format": "date",
+            "title": "Weekend",
+            "type": "string"
+          },
+          "weekStart": {
+            "format": "date",
+            "title": "Weekstart",
+            "type": "string"
+          }
+        },
+        "required": [
+          "weekStart",
+          "weekEnd",
+          "historyStart",
+          "historyEnd",
+          "evidenceToken",
+          "observations",
+          "recommendations",
+          "feedback",
+          "general"
+        ],
+        "title": "WeeklyReviewView",
         "type": "object"
       },
       "WirDesignId": {
@@ -20267,6 +20557,291 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback/{recommendationKey}": {
+      "put": {
+        "description": "Set one caller preference; clearing retained feedback is not paywalled.",
+        "operationId": "setDailyCheckInWeeklyFeedback",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recommendationKey",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/RecommendationKey"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeeklyFeedbackUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyFeedbackView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Daily Check In Weekly Feedback",
+        "tags": [
+          "daily-check-ins"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review": {
+      "get": {
+        "description": "Read current authorized multiweek observations without running inference.",
+        "operationId": "getDailyCheckInWeeklyReview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "week_start",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Week Start",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyReviewView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Daily Check In Weekly Review",
+        "tags": [
+          "daily-check-ins"
+        ]
+      },
+      "post": {
+        "description": "Explicit bounded model selection; revisions are revalidated after inference.",
+        "operationId": "createDailyCheckInWeeklyReview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeeklyReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyReviewView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Create Daily Check In Weekly Review",
+        "tags": [
+          "daily-check-ins"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/daily-quote": {
       "get": {
         "description": "Return the deterministic quote of the day for the authorized caller.\n\nRequires that the Space holds the `daily.quote` Pro entitlement.",
@@ -20847,7 +21422,7 @@
     },
     "/api/v1/spaces/{spaceId}/discover": {
       "get": {
-        "description": "Return today's finite backend-owned curated Story selection.\n\nSnapshot order is canonical. If the original lead becomes unreadable, the\nfirst surviving reference becomes the response lead and all later\nsurvivors remain in their existing order. Nothing is refilled or\nreshuffled during that local day.",
+        "description": "Return today's finite backend-owned curated Story selection.\n\nSnapshot order is canonical. If the original lead becomes unreadable, the\nfirst surviving reference becomes the response lead and all later\nsurvivors remain in their existing order. Only deliberate renewal changes\nthe selected references during that local day.",
         "operationId": "getStoryDiscover",
         "parameters": [
           {
@@ -20893,6 +21468,69 @@
           }
         },
         "summary": "Get Story Discover",
+        "tags": [
+          "story"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/discover/renew": {
+      "post": {
+        "description": "Deliberately renew the caller's finite selection; no source content is changed.",
+        "operationId": "renewStoryDiscover",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoverSelection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Renew Story Discover",
         "tags": [
           "story"
         ]
@@ -23615,6 +24253,117 @@
         "summary": "Create Memory Comment",
         "tags": [
           "comments"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/memory-map": {
+      "get": {
+        "description": "Pro map over readable saved memories and places; no location tracking.",
+        "operationId": "listMemoryMap",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryMapPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request is syntactically valid but cannot be processed in this form."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Memory Map",
+        "tags": [
+          "places"
         ]
       }
     },

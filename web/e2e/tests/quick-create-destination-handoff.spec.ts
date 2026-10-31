@@ -1,6 +1,5 @@
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { showMemoryDetails } from '../support/memoryDiary';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -501,8 +500,12 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
 
       if (destination.primaryFieldSelector === '#body') {
         const title = page.getByLabel(de.memory.titleLabelOptional);
-        await expect(title).toBeHidden();
-        await showMemoryDetails(page);
+        await expect(title).toBeVisible();
+        expect(
+          await title.evaluate(
+            (node) => node.closest('fieldset')?.querySelector('input') === node,
+          ),
+        ).toBe(true);
         await expect(title).toBeVisible();
         await expect(title).toBeEnabled();
       }
@@ -632,7 +635,7 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
 
   test('Direct Route Entry: visiting /story/memories/new without Quick Create still works', async ({
     page,
-  }) => {
+  }, info) => {
     await installProductMocks(page);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/today');
@@ -649,10 +652,18 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
     await expect(body).not.toBeFocused();
     await assertNothingUnexpectedlyFocused(page);
     const title = page.getByLabel(de.memory.titleLabelOptional);
-    await expect(title).toBeHidden();
-    await showMemoryDetails(page);
+    await expect(title).toBeVisible();
+    expect(
+      await title.evaluate(
+        (node) => node.closest('fieldset')?.querySelector('input') === node,
+      ),
+    ).toBe(true);
     await expect(title).toBeVisible();
     await expect(title).toBeEnabled();
+    await page.screenshot({
+      path: info.outputPath('memory-title-first-390-light.png'),
+      fullPage: true,
+    });
   });
 });
 

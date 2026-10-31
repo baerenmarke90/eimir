@@ -20,6 +20,7 @@ export const authorSummaryQueryKeys = {
       : (['partner-profile', spaceId] as const),
   space: (spaceId: string) => ['space', spaceId] as const,
   spaceProfile: (spaceId: string) => ['space-profile', spaceId] as const,
+  memoryMap: (spaceId: string) => ['memory-map', spaceId] as const,
   story: (spaceId: string) => ['story', spaceId] as const,
   discover: (spaceId: string, accountId?: string) =>
     accountId
@@ -84,9 +85,14 @@ export async function invalidatePlaceConsumers(
   queryClient: QueryClient,
   spaceId: string,
 ): Promise<void> {
-  await queryClient.invalidateQueries({
-    queryKey: authorSummaryQueryKeys.places(spaceId),
-  });
+  await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: authorSummaryQueryKeys.places(spaceId),
+    }),
+    queryClient.invalidateQueries({
+      queryKey: authorSummaryQueryKeys.memoryMap(spaceId),
+    }),
+  ]);
 }
 
 /** Keep every shared Story read projection coherent after a confirmed write. */

@@ -61,7 +61,7 @@ describe('SharedStorySummary', () => {
     expect(html).not.toContain('href="/story?tab=timeline&amp;type=MILESTONE"');
   });
 
-  it('renders all three visible metrics in sequence with motifs and links', () => {
+  it('renders all three visible metrics in sequence with canonical icons and filtered source links', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <SharedStorySummary
@@ -88,9 +88,8 @@ describe('SharedStorySummary', () => {
     expect(html).toContain('href="/story?tab=timeline&amp;type=HEART_MOMENT"');
     expect(html).toContain('href="/story?tab=timeline&amp;type=MILESTONE"');
 
-    expect(html).toContain('story-badge-motif-polaroid');
-    expect(html).toContain('story-badge-motif-heart');
-    expect(html).toContain('story-badge-motif-pennant');
+    expect(html.match(/eimir-icon/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(html).not.toContain('story-badge-motif');
     expect(html).toContain('aria-hidden="true"');
   });
 

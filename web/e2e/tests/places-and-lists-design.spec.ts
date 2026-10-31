@@ -1,3 +1,5 @@
+import de from '../../src/i18n/locales/de';
+import navigation from '../../src/i18n/locales/navigation';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -443,9 +445,36 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
     }),
   ).toBeFocused();
   await page
-    .getByRole('link', { name: m5s3.common.shortBackToCollections })
+    .getByRole('link', { name: navigation.more, exact: true })
+    .last()
     .click();
-  await page.getByRole('button', { name: m5s3.collection.create }).click();
+  await page.locator('a[href="/more/collections"]').click();
+  await page.getByRole('button', { name: navigation.newContent }).click();
+  await page
+    .getByText(navigation.quickCreateCollection, { exact: true })
+    .click();
+  dialog = page.getByRole('dialog');
+  await dialog.getByLabel(m5s3.common.title, { exact: true }).fill('Draft');
+  await dialog
+    .getByRole('button', { name: de.common.cancel, exact: true })
+    .click();
+  await page
+    .getByRole('button', { name: m5s3.common.keepEditing, exact: true })
+    .click();
+  await expect(
+    dialog.getByLabel(m5s3.common.title, { exact: true }),
+  ).toHaveValue('Draft');
+  await dialog
+    .getByRole('button', { name: de.common.cancel, exact: true })
+    .click();
+  await page
+    .getByRole('button', { name: m5s3.common.discardConfirm, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/more\/collections$/);
+  await page.getByRole('button', { name: navigation.newContent }).click();
+  await page
+    .getByText(navigation.quickCreateCollection, { exact: true })
+    .click();
   dialog = page.getByRole('dialog');
   await dialog
     .getByLabel(m5s3.common.title, { exact: true })
@@ -456,8 +485,10 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await expect(page.locator('h1')).toHaveText('Unser Wochenende');
   await captureScreenshot(page, testInfo, 'list-created-390-light.png');
   await page
-    .getByRole('link', { name: m5s3.common.shortBackToCollections })
+    .getByRole('link', { name: navigation.more, exact: true })
+    .last()
     .click();
+  await page.locator('a[href="/more/collections"]').click();
   await expect(
     page.getByRole('link', { name: /Unser Wochenende/ }),
   ).toBeVisible();

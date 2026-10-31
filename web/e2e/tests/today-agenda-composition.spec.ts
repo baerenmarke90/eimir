@@ -1,24 +1,22 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import { settingsCategoryPath } from '../../src/client/routes';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
 const SPACE_ID = '00000000-0000-0000-0000-000000000010';
 const PROFILE_ID = '00000000-0000-0000-0000-000000000020';
+// Seed a complete personal order with upcoming third, as the reorder journeys
+// require. A legacy list would insert daily_quote ahead of it during migration.
+const REORDER_PREFIX = ['relationship_presence', 'keepsake', 'upcoming'];
 const MODULE_KEYS = [
-  'relationship_presence',
-  'keepsake',
-  'upcoming',
-  'pinned_collection',
-  'relationship_signal',
-  'monthly_highlights',
-  'recent_shared',
-  'shared_story_summary',
+  ...REORDER_PREFIX,
+  ...DASHBOARD_MODULE_KEYS.filter((key) => !REORDER_PREFIX.includes(key)),
 ];
 
 /**

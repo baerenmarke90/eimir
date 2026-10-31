@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type MouseEvent,
 } from 'react';
 import {
   useInfiniteQuery,
@@ -40,6 +41,7 @@ import {
   recapDetailPath,
 } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { handleTabKeyDown } from '../client/tabKeyboard';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { PageHeader } from './PageHeader';
@@ -87,6 +89,21 @@ function Cover({
   const source = value.sources.find((item) => item.available);
   const hasPhoto = Boolean(source?.previewAttachmentId);
   const label = recapPeriodLabel(value, resolvedLocale());
+  const detailPath = `${recapDetailPath(value.id)}${value.kind === 'YEAR' ? '?tab=years' : ''}`;
+  const playbackPath = `${detailPath}${value.kind === 'YEAR' ? '&' : '?'}play=1`;
+  function openReader(event: MouseEvent<HTMLAnchorElement>, to: string) {
+    if (
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      event.altKey ||
+      event.button !== 0
+    )
+      return;
+    event.preventDefault();
+    void navigate(to, { state: { taskOriginKey: captureOrigin() } });
+  }
+
   return (
     <article
       className={`recap-cover${featured ? ' recap-cover-featured' : ''}${value.kind === 'YEAR' ? ' recap-cover-year' : ''}`}
@@ -124,21 +141,8 @@ function Cover({
         <PeriodNote value={value} />
         <Link
           className={featured ? 'button-link recap-open' : 'recap-text-link'}
-          to={`${recapDetailPath(value.id)}${value.kind === 'YEAR' ? '?tab=years' : ''}`}
-          onClick={(event) => {
-            if (
-              !event.ctrlKey &&
-              !event.metaKey &&
-              !event.shiftKey &&
-              event.button === 0
-            ) {
-              event.preventDefault();
-              void navigate(
-                `${recapDetailPath(value.id)}${value.kind === 'YEAR' ? '?tab=years' : ''}`,
-                { state: { taskOriginKey: captureOrigin() } },
-              );
-            }
-          }}
+          to={detailPath}
+          onClick={(event) => openReader(event, detailPath)}
           state={{ taskOriginKey: null }}
         >
           {value.status === 'PENDING'
@@ -146,6 +150,15 @@ function Cover({
             : t('recaps.open')}
           <span aria-hidden="true"> →</span>
         </Link>
+        {featured && value.status === 'READY' && value.sources.length > 0 ? (
+          <Link
+            className="recap-text-link"
+            to={playbackPath}
+            onClick={(event) => openReader(event, playbackPath)}
+          >
+            {t('recaps.watchNow')}
+          </Link>
+        ) : null}
       </div>
     </article>
   );
@@ -189,6 +202,9 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
   const started = useRef(Date.now());
   const prepared = useRef(false);
   const kind = search.get('tab') === 'years' ? 'YEAR' : 'MONTH';
+  function selectPeriod(value: 'MONTH' | 'YEAR') {
+    setSearch(value === 'YEAR' ? { tab: 'years' } : {}, { replace: true });
+  }
   const key = ['relationship-recaps', props.account.id, props.spaceId, kind];
   const query = useInfiniteQuery({
     queryKey: key,
@@ -273,16 +289,22 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
   }
   return (
     <div className="page recap-library">
-      <Link className="recap-back" to="/more">
-        ‹ {t('recaps.backMore')}
-      </Link>
       <PageHeader
         eyebrow={t('recaps.automatic')}
         title={t('recaps.shortTitle')}
         titleAction={<ProMark label={t('recaps.pro')} />}
         description={t('recaps.intro')}
       />
-      <div className="recap-tabs" role="tablist" aria-label={t('recaps.tabs')}>
+      <div
+        className="recap-tabs"
+        role="tablist"
+        aria-label={t('recaps.tabs')}
+        onKeyDown={(event) =>
+          handleTabKeyDown(event, (tab) =>
+            selectPeriod(tab.id === 'recap-tab-YEAR' ? 'YEAR' : 'MONTH'),
+          )
+        }
+      >
         {(['MONTH', 'YEAR'] as const).map((value) => (
           <button
             key={value}
@@ -292,30 +314,7 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
             aria-selected={value === kind}
             aria-controls="recap-library-panel"
             tabIndex={value === kind ? 0 : -1}
-            onClick={() =>
-              setSearch(value === 'YEAR' ? { tab: 'years' } : {}, {
-                replace: true,
-              })
-            }
-            onKeyDown={(event) => {
-              if (
-                ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)
-              ) {
-                event.preventDefault();
-                const next =
-                  event.key === 'Home'
-                    ? 'MONTH'
-                    : event.key === 'End'
-                      ? 'YEAR'
-                      : kind === 'MONTH'
-                        ? 'YEAR'
-                        : 'MONTH';
-                setSearch(next === 'YEAR' ? { tab: 'years' } : {}, {
-                  replace: true,
-                });
-                document.getElementById(`recap-tab-${next}`)?.focus();
-              }
-            }}
+            onClick={() => selectPeriod(value)}
           >
             {t(value === 'MONTH' ? 'recaps.months' : 'recaps.years')}
           </button>

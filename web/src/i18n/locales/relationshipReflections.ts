@@ -15,7 +15,7 @@ const relationshipReflections = {
     saved: 'Vorfreude aktualisiert.',
   },
   passport: {
-    title: 'Euer Beziehungs-Pass',
+    title: 'Eure Geschichte',
     pro: 'Pro',
     intro: 'Eure Geschichte in kleinen und großen Momenten.',
     couple: '{{own}} & {{partner}}',
@@ -24,11 +24,11 @@ const relationshipReflections = {
     wirStatisticsTitle: 'Beziehungsstatistik',
     wirStatisticsToggle: 'Statistik auf Wir anzeigen',
     wirStatisticsHelp:
-      'Freiwillig für dich auf diesem Gerät. Mit dem Beziehungs-Pass kannst du eure gemeinsamen Zähler zusätzlich auf Wir einblenden. Die Einstellung im Pass bleibt unabhängig davon.',
-    wirStatisticsPro: 'Im Beziehungs-Pass mit Pro verfügbar.',
+      'Freiwillig für dich auf diesem Gerät. Hier kannst du eure gemeinsamen Zähler zusätzlich auf Wir einblenden. Die Einstellung bei euren Rückblicken bleibt unabhängig davon.',
+    wirStatisticsPro: 'Mit euren Rückblicken in Pro verfügbar.',
     statisticsToggle: 'Gemeinsame Statistik anzeigen',
     statisticsHelp:
-      'Freiwillig für dich auf diesem Gerät. Eure gemeinsamen Zähler erscheinen hier im Beziehungs-Pass.',
+      'Freiwillig für dich auf diesem Gerät. Eure gemeinsamen Zähler erscheinen hier bei euren Rückblicken.',
     nextChapter: 'Das nächste Kapitel',
     anniversary: 'Euer {{count}}. Jahrestag',
     roundDay: '{{days}} Tage gemeinsam',
@@ -55,7 +55,7 @@ const relationshipReflections = {
     empty: 'Eure Geschichte beginnt mit dem ersten festgehaltenen Moment.',
     start: 'Eure Momente entdecken',
     locked:
-      'Mit eimir. Pro seht ihr eure gemeinsame Geschichte als Beziehungs-Pass. Eine Freischaltung gilt für euch beide.',
+      'Mit eimir. Pro seht ihr eure gemeinsame Geschichte in persönlichen Rückblicken. Eine Freischaltung gilt für euch beide.',
     dataRights:
       'Eure Erinnerungen, Pläne, Orte und der Datenexport bleiben auch ohne Pro zugänglich.',
     learnMore: 'Über eimir. Pro',

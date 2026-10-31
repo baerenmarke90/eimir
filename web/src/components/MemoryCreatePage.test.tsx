@@ -153,6 +153,11 @@ const requestOf = (call: number) => fixture.create.mock.calls[call]?.[0];
 describe('Memory capture mutation ownership', () => {
   it('keeps Save disabled and sends no request for a completely empty capture', () => {
     setup();
+    expect(titleInput().closest('details')).toBeNull();
+    expect(titleInput().required).toBe(false);
+    expect(titleInput().closest('fieldset')?.querySelector('input')).toBe(
+      titleInput(),
+    );
     const save = screen.getByRole('button', {
       name: de.memory.save,
     }) as HTMLButtonElement;

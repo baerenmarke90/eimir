@@ -1133,7 +1133,7 @@ export function TodayPage({
           ? t('wirDesign.welcome')
           : undefined
       }
-      headingLevel="h1"
+      headingLevel="h2"
       spaceTitle={
         partner
           ? t('m5s5.dashboard.partner', {
@@ -1431,16 +1431,20 @@ export function TodayPage({
           <TodayModuleSection
             className="today-section-recent"
             title={t('m5s5.dashboard.recentTitle')}
+            headerAction={
+              <Link
+                to={ACTIVITY_ROUTE}
+                className="today-section-link today-recent-activity-link"
+                aria-label={t('m5s5.dashboard.allActivityAction')}
+              >
+                {t('m5s5.today.recent.allAction')}
+              </Link>
+            }
           >
             <div className="today-stream today-stream-recent">
               {recentSharedForTrace.slice(0, 4).map((item: DashboardItem) => (
                 <RecentSharedItemCard key={item.id} item={item} />
               ))}
-            </div>
-            <div className="today-recent-footer">
-              <Link to={ACTIVITY_ROUTE} className="today-recent-activity-link">
-                {t('m5s5.dashboard.allActivityAction')}
-              </Link>
             </div>
           </TodayModuleSection>
         ) : null}
@@ -1497,9 +1501,7 @@ export function TodayPage({
 
       {contentReady && dashboardQuery.data ? (
         <div className="today-content">
-          {!relationshipPresenceVisible ? (
-            <h1 className="sr-only">{t('navigation.today')}</h1>
-          ) : null}
+          <h1 className="today-page-title">{t('navigation.today')}</h1>
 
           {orderedModuleKeys.map((key) => (
             <Fragment key={key}>{moduleContent[key]}</Fragment>

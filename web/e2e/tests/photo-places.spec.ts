@@ -425,7 +425,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       ).toBeVisible();
       await expect(
         page.getByRole('link', { name: profileIdentity.settingsBackToIndex }),
-      ).toBeVisible();
+      ).toHaveCount(0);
       await page.goto('/story/memories/mem-canal');
       await expect(
         page.getByRole('heading', { name: localeFixture.photoPlaces.title }),

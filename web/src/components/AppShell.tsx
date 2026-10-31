@@ -58,7 +58,7 @@ function NavigationLink({ route }: { route: AppRouteDefinition }) {
   const hasUnread = route.id === 'more' && (unreadCount ?? 0) > 0;
   const activeArea = activeNavigationArea(location.pathname);
   const isActive = activeArea === route.id;
-  const { destinationFor, captureCurrent } = usePrimaryNavigation();
+  const { destinationFor, navigatePrimary } = usePrimaryNavigation();
 
   return (
     <Link
@@ -84,7 +84,8 @@ function NavigationLink({ route }: { route: AppRouteDefinition }) {
           });
           return;
         }
-        captureCurrent();
+        event.preventDefault();
+        navigatePrimary(route.path);
       }}
       className={`shell-nav-link${isActive ? ' shell-nav-link-active' : ''}`}
       aria-current={isActive ? 'page' : undefined}

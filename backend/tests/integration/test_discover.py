@@ -726,3 +726,66 @@ def test_concurrent_first_reads_commit_one_canonical_snapshot(engine, monkeypatc
                 ).scalar_one()
                 == 0
             )
+
+
+def _renew(client, setup: dict[str, object], *, token_key: str = "token"):  # type: ignore[no-untyped-def]
+    return client.post(
+        f"/api/v1/spaces/{setup['space'].id}/discover/renew",  # type: ignore[union-attr]
+        headers=auth(setup[token_key]),  # type: ignore[arg-type]
+    )
+
+
+def test_renewal_replaces_sources_stably_and_isolates_the_partner(
+    client, session: Session, discover_setup
+) -> None:  # type: ignore[no-untyped-def]
+    for index in range(24):
+        memory = _memory(session, discover_setup, index, date(2000 + index, 3, 2))
+        memory.created_at = FIXED_NOW - timedelta(seconds=1)
+    private = _heart(
+        session, discover_setup, date(2020, 1, 1), visibility=ContentVisibility.PRIVATE
+    )
+    session.flush()
+    before = _ordered_ids(_get(client, discover_setup).json())
+    partner_before = _ordered_ids(_get(client, discover_setup, token_key="partner_token").json())
+    response = _renew(client, discover_setup)
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "private, no-store"
+    after = _ordered_ids(response.json())
+    assert len(after) == len(set(after)) == 8
+    assert not set(before).intersection(after)
+    assert str(private.id) not in after
+    assert _ordered_ids(_get(client, discover_setup).json()) == after
+    assert (
+        _ordered_ids(_get(client, discover_setup, token_key="partner_token").json())
+        == partner_before
+    )
+
+
+def test_sparse_renewal_and_new_shared_content_after_renewal(
+    client, session: Session, discover_setup, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    first = _memory(session, discover_setup, 1, date(2020, 1, 1))
+    first.created_at = FIXED_NOW - timedelta(days=1)
+    session.flush()
+    assert _ordered_ids(_renew(client, discover_setup).json()) == [str(first.id)]
+    later = FIXED_NOW + timedelta(seconds=1)
+    monkeypatch.setattr(clock, "now", lambda: later)
+    fresh = _memory(session, discover_setup, 2, date(2021, 1, 1))
+    fresh.created_at = later
+    session.flush()
+    assert _ordered_ids(_get(client, discover_setup).json()) == [str(first.id), str(fresh.id)]
+
+
+def test_renewal_is_authorized_and_rate_limited_without_changing_the_selection(
+    client, session: Session, discover_setup
+) -> None:  # type: ignore[no-untyped-def]
+    _memory(session, discover_setup, 1, date(2020, 1, 1))
+    session.flush()
+    assert _renew(client, discover_setup, token_key="outsider_token").status_code == 404
+    for _ in range(6):
+        response = _renew(client, discover_setup)
+        assert response.status_code == 200, response.text
+    before = _ordered_ids(response.json())
+    assert _renew(client, discover_setup).status_code == 429
+    assert _ordered_ids(_get(client, discover_setup).json()) == before
+    assert _renew(client, discover_setup, token_key="partner_token").status_code == 200

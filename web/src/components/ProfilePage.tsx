@@ -1,9 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
-import { MORE_PASSPORT_ROUTE } from '../client/routes';
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProfileIdentityPanel } from './ProfileIdentityPanel';
@@ -65,14 +63,6 @@ export function ProfilePage(props: ProfilePageProps) {
 
       {/* 2. Personal and partner profile content remains ahead of product/account messaging. */}
       <ProfilePreferencesSection {...currentProps} />
-
-      <Link className="profile-passport-entry" to={MORE_PASSPORT_ROUTE}>
-        <span>
-          <strong>{t('recaps.shortTitle')}</strong>
-          <span>{t('recaps.profileLink')}</span>
-        </span>
-        <span aria-hidden="true">↗</span>
-      </Link>
 
       {/* 3. Account-level Premium information stays factual and secondary. */}
       <details

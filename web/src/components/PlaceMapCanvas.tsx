@@ -9,12 +9,22 @@ export interface MapPoint {
   longitude: number;
 }
 
+export interface MapLocation extends MapPoint {
+  id: string;
+  label: string;
+  count: number;
+}
+
 export default function PlaceMapCanvas({
   value,
   onSelect,
+  locations,
+  onLocationSelect,
 }: {
   value?: MapPoint;
-  onSelect: (point: MapPoint) => void;
+  onSelect?: (point: MapPoint) => void;
+  locations?: readonly MapLocation[];
+  onLocationSelect?: (id: string) => void;
 }) {
   const { t } = useTranslation();
   const container = useRef<HTMLDivElement>(null);
@@ -22,6 +32,8 @@ export default function PlaceMapCanvas({
   const markerRef = useRef<L.CircleMarker | null>(null);
   const selectRef = useRef(onSelect);
   selectRef.current = onSelect;
+  const locationSelectRef = useRef(onLocationSelect);
+  locationSelectRef.current = onLocationSelect;
   const [tileError, setTileError] = useState(false);
   const tileLayer = useRef<L.TileLayer | null>(null);
   const initialPoint = useRef(value);
@@ -58,7 +70,7 @@ export default function PlaceMapCanvas({
       .on('tileerror', () => setTileError(true))
       .addTo(map);
     map.on('click', (event: L.LeafletMouseEvent) =>
-      selectRef.current({
+      selectRef.current?.({
         latitude: event.latlng.lat,
         longitude: event.latlng.lng,
       }),
@@ -89,24 +101,60 @@ export default function PlaceMapCanvas({
       }).addTo(map);
   }, [value]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !locations?.length) return;
+    const layer = L.layerGroup().addTo(map);
+    for (const location of locations) {
+      const label = document.createElement('span');
+      label.textContent = String(location.count);
+      L.marker([location.latitude, location.longitude], {
+        title: location.label,
+        alt: location.label,
+        icon: L.divIcon({
+          html: label,
+          className: 'memory-map-marker',
+          iconSize: [44, 44],
+          iconAnchor: [22, 22],
+        }),
+      })
+        .on('click', () => locationSelectRef.current?.(location.id))
+        .addTo(layer);
+    }
+    map.fitBounds(
+      L.latLngBounds(
+        locations.map((point) => [point.latitude, point.longitude]),
+      ),
+      { padding: [24, 24], maxZoom: 14, animate: false },
+    );
+    return () => {
+      layer.remove();
+    };
+  }, [locations]);
+
   return (
     <div className="place-map-canvas">
       <div
         ref={container}
         className="place-map-viewport"
         role="application"
-        aria-label={t('m5s3.map.keyboardHelp')}
+        aria-label={t(
+          onSelect ? 'm5s3.map.keyboardHelp' : 'memoryMap.keyboardHelp',
+        )}
       />
-      <button
-        type="button"
-        className="secondary"
-        onClick={() => {
-          const center = mapRef.current?.getCenter();
-          if (center) onSelect({ latitude: center.lat, longitude: center.lng });
-        }}
-      >
-        {t('m5s3.map.useCenter')}
-      </button>
+      {onSelect ? (
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => {
+            const center = mapRef.current?.getCenter();
+            if (center)
+              onSelect({ latitude: center.lat, longitude: center.lng });
+          }}
+        >
+          {t('m5s3.map.useCenter')}
+        </button>
+      ) : null}
       {tileError ? (
         <p role="status">
           {t('m5s3.map.tileError')}{' '}

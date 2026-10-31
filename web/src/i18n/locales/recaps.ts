@@ -1,6 +1,6 @@
 export default {
-  title: 'Euer Beziehungs-Pass',
-  shortTitle: 'Beziehungs-Pass',
+  title: 'Eure Rückblicke',
+  shortTitle: 'Eure Rückblicke',
   pro: 'Pro',
   lead: 'Eure Geschichte. Neu erzählt.',
   intro: 'Eure Monats- und Jahresrückblicke. Aus euren gemeinsamen Momenten.',

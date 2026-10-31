@@ -1,4 +1,8 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 import {
   type MouseEvent,
@@ -14,6 +18,14 @@ import {
   useNavigate,
   useSearchParams,
 } from 'react-router-dom';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { assertOnlineWrite } from '../client/connectivity';
+import { useDiscoverLayout } from '../client/useDiscoverLayout';
+import { handleTabKeyDown } from '../client/tabKeyboard';
+import {
+  type ClientProblemError,
+  clientProblemKind,
+} from '../client/problemDetails';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
@@ -46,6 +58,7 @@ import type { ReferenceApis } from '../client/referenceFlow';
 import {
   heartMomentDetailPath,
   memoryDetailPath,
+  MEMORY_MAP_ROUTE,
   milestoneDetailPath,
 } from '../client/routes';
 import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
@@ -127,7 +140,11 @@ function buildTapestryEntry(
   nicknameFor?: (accountId: string) => string | null,
 ): TapestryEntry {
   const role = tapestryItemRole(item);
-  const presentation = storyItemPresentation(item, t, nicknameFor);
+  const original = storyItemPresentation(item, t, nicknameFor);
+  const presentation =
+    item.kind === 'HEART_MOMENT' && item.heartMoment.text.trim()
+      ? { ...original, title: item.heartMoment.text.trim() }
+      : original;
   const firstAttachment =
     item.kind === 'MEMORY' ? item.memory.attachments[0] : undefined;
   const path =
@@ -207,6 +224,22 @@ export function StoryProductPage({
   dashboardApi?: DashboardApi;
 }) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [renewing, setRenewing] = useState(false);
+  const [renewProblem, setRenewProblem] = useState<ClientProblemError | null>(
+    null,
+  );
+  const [renewed, setRenewed] = useState(false);
+  const renewal = useRef<AbortController | null>(null);
+  const scope = JSON.stringify([accountId, spaceId]);
+  const liveScope = useRef(scope);
+  liveScope.current = scope;
+  useEffect(() => {
+    const current = scope;
+    return () => {
+      if (current) renewal.current?.abort();
+    };
+  }, [scope]);
   const { nicknameFor } = usePartnerNickname();
   const location = useLocation();
   const saved = Boolean((location.state as { saved?: boolean } | null)?.saved);
@@ -215,7 +248,6 @@ export function StoryProductPage({
   const { captureOrigin, resolveOrigin, registerOriginMetadata } =
     useTaskOrigin();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const viewTabsRef = useRef<HTMLDivElement>(null);
   const filterSheetRef = useRef<ShortTaskSheetHandle>(null);
   const filterTriggerRef = useRef<HTMLButtonElement>(null);
   const [draftFilters, setDraftFilters] = useState<StoryFilters>(
@@ -307,6 +339,9 @@ export function StoryProductPage({
       });
     },
     enabled: true,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
     retry: false,
   });
   // Reuse Today's authorized #452 candidate and its canonical Query key.
@@ -322,13 +357,16 @@ export function StoryProductPage({
       }
     },
     enabled: Boolean(dashboardApi),
+    refetchOnWindowFocus: 'always',
+    refetchInterval:
+      activeView === 'discover' && !renewing ? 15 * 60_000 : false,
     retry: false,
   });
 
   const [paginationGeneration, setPaginationGeneration] = useState(0);
   const pullRefresh = usePullToRefresh({
     enabled: true,
-    blocked: storyQuery.isFetching || discoverQuery.isFetching,
+    blocked: renewing || storyQuery.isFetching || discoverQuery.isFetching,
     onRefresh: async () => {
       const [result] = await Promise.all([
         storyQuery.refetch(),
@@ -376,7 +414,6 @@ export function StoryProductPage({
   }, [accountId, spaceId, discoverQuery.data]);
 
   function setView(view: 'discover' | 'timeline') {
-    if (view === activeView) return;
     const nextSearch = new URLSearchParams(searchParams);
     nextSearch.set('tab', view);
     setSearchParams(nextSearch);
@@ -534,6 +571,11 @@ export function StoryProductPage({
     () => discoverItems.map((item) => storyItemKey(item)).join('|'),
     [discoverItems],
   );
+  const discoverDenied = ['unauthorized', 'permission', 'notFound'].includes(
+    clientProblemKind(discoverQuery.error ?? renewProblem),
+  );
+  const discoverError =
+    discoverQuery.error ?? (discoverDenied ? renewProblem : null);
   const featuredItem = discoverQuery.data?.value.lead ?? null;
   const leadContext = discoverQuery.data?.value.leadContext ?? null;
   const locale = resolvedLocale();
@@ -541,6 +583,10 @@ export function StoryProductPage({
   // paired with a new Dashboard day or presented as today's retrospective.
   const discoverDay = discoverQuery.data?.value.selectionDate;
   const dashboardDay = retrospectiveQuery.data?.viewerLocalDate;
+  const newDayAvailable =
+    discoverDay != null &&
+    dashboardDay != null &&
+    dashboardDay.getTime() > discoverDay.getTime();
   const sameSelectionDay =
     discoverDay != null &&
     dashboardDay != null &&
@@ -579,6 +625,11 @@ export function StoryProductPage({
   });
 
   const discoverTapestryRef = useRef<HTMLDivElement>(null);
+  useDiscoverLayout(
+    discoverTapestryRef,
+    `${discoverContentKey}|${visibleRetrospective?.id ?? ''}`,
+    activeView === 'discover',
+  );
   useDiscoverReveal({
     rootRef: discoverTapestryRef,
     enabled: activeView === 'discover' && discoverItems.length > 0,
@@ -686,6 +737,46 @@ export function StoryProductPage({
     void navigate(to, { state: { taskOriginKey } });
   }
 
+  async function renewSelection() {
+    if (renewal.current) return;
+    const mayReconcile = captureAuthorizedQuery(
+      queryClient,
+      authorSummaryQueryKeys.discover(spaceId, accountId),
+    );
+    const controller = new AbortController();
+    renewal.current = controller;
+    setRenewing(true);
+    setRenewProblem(null);
+    setRenewed(false);
+    try {
+      await queryClient.cancelQueries({
+        queryKey: authorSummaryQueryKeys.discover(spaceId, accountId),
+        exact: true,
+      });
+      assertOnlineWrite();
+      if (controller.signal.aborted || liveScope.current !== scope) return;
+      const value = await apis.story.renewStoryDiscover(
+        { spaceId },
+        { signal: controller.signal },
+      );
+      if (controller.signal.aborted || liveScope.current !== scope) return;
+      if (!mayReconcile()) return;
+      queryClient.setQueryData(
+        authorSummaryQueryKeys.discover(spaceId, accountId),
+        { value, source: 'network' },
+      );
+      setRenewed(true);
+    } catch (error) {
+      const problem = await normalizeClientError(error);
+      if (!controller.signal.aborted && liveScope.current === scope)
+        setRenewProblem(problem);
+    } finally {
+      if (renewal.current === controller) renewal.current = null;
+      if (!controller.signal.aborted && liveScope.current === scope)
+        setRenewing(false);
+    }
+  }
+
   const emptyState = (
     <div className="new-space-experience">
       <div className="new-space-mark" aria-hidden="true">
@@ -728,26 +819,32 @@ export function StoryProductPage({
 
       <PullToRefreshIndicator state={pullRefresh} />
 
-      <PageHeader variant="root" title={t('story.timelineTitle')} />
+      <PageHeader
+        variant="root"
+        title={t('story.timelineTitle')}
+        titleAction={
+          <Link
+            to={MEMORY_MAP_ROUTE}
+            className="button-link secondary"
+            onClick={(event) => openDiscoverItem(event, MEMORY_MAP_ROUTE)}
+          >
+            <EimirIcon name="orte" />
+            {t('memoryMap.entry')}
+          </Link>
+        }
+      />
 
       <div
-        ref={viewTabsRef}
         className="planen-segmented"
         role="tablist"
         aria-label={t('story.viewToggleAria')}
-        onKeyDown={(event) => {
-          let nextView: 'discover' | 'timeline';
-          if (event.key === 'Home') nextView = 'discover';
-          else if (event.key === 'End') nextView = 'timeline';
-          else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight')
-            nextView = activeView === 'discover' ? 'timeline' : 'discover';
-          else return;
-          event.preventDefault();
-          setView(nextView);
-          viewTabsRef.current
-            ?.querySelector<HTMLButtonElement>(`#momente-tab-${nextView}`)
-            ?.focus();
-        }}
+        onKeyDown={(event) =>
+          handleTabKeyDown(event, (tab) =>
+            setView(
+              tab.id === 'momente-tab-discover' ? 'discover' : 'timeline',
+            ),
+          )
+        }
       >
         {(['discover', 'timeline'] as const).map((view) => (
           <button
@@ -759,7 +856,9 @@ export function StoryProductPage({
             aria-controls={`momente-panel-${view}`}
             tabIndex={activeView === view ? 0 : -1}
             className={`planen-segment ${activeView === view ? 'is-active' : ''}`}
-            onClick={() => setView(view)}
+            onClick={() => {
+              if (view !== activeView) setView(view);
+            }}
           >
             {t(view === 'discover' ? 'story.tabDiscover' : 'story.tabTimeline')}
           </button>
@@ -775,25 +874,66 @@ export function StoryProductPage({
         {activeView === 'discover' && discoverQuery.isLoading ? (
           <UiState kind="loading" title={t('story.loadingAria')} />
         ) : null}
-        {activeView === 'discover' && discoverQuery.error ? (
+        {activeView === 'discover' && discoverError ? (
           <ProblemState
-            error={discoverQuery.error}
-            onRetry={() => void discoverQuery.refetch()}
+            error={discoverError}
+            onRetry={() =>
+              void discoverQuery.refetch().then((result) => {
+                if (!result.isError) setRenewProblem(null);
+              })
+            }
           />
         ) : null}
         {activeView === 'discover' &&
         discoverQuery.data &&
+        !discoverDenied &&
         !featuredItem &&
         discoverItems.length === 0
           ? emptyState
           : null}
         {activeView === 'discover' &&
         discoverQuery.data &&
+        !discoverDenied &&
         (featuredItem || discoverItems.length > 0) ? (
           <section
             className="momente-discover-page"
             aria-labelledby="momente-tab-discover"
           >
+            <div className="discover-toolbar" aria-busy={renewing}>
+              <div>
+                <h2>{t('story.discoverInvitation')}</h2>
+                <p>{t('story.discoverDaily')}</p>
+              </div>
+              <button
+                type="button"
+                className="secondary"
+                disabled={renewing || discoverQuery.isFetching}
+                onClick={() => void renewSelection()}
+              >
+                {t(renewing ? 'story.discoverRenewing' : 'story.discoverRenew')}
+              </button>
+            </div>
+            {newDayAvailable ? (
+              <p className="discover-feedback" role="status">
+                {t('story.discoverNewDay')}
+              </p>
+            ) : null}
+            {renewed ? (
+              <p className="sr-only" role="status">
+                {t('story.discoverRenewed')}
+              </p>
+            ) : null}
+            {renewProblem ? (
+              <p className="discover-feedback" role="alert">
+                {t(
+                  clientProblemKind(renewProblem) === 'offline'
+                    ? 'story.discoverOffline'
+                    : clientProblemKind(renewProblem) === 'rateLimit'
+                      ? 'story.discoverRateLimit'
+                      : 'story.discoverRenewError',
+                )}
+              </p>
+            ) : null}
             {/* 1. Featured Editorial Highlight */}
             {featuredItem && featuredPresentation ? (
               <article className="momente-hero-highlight">
@@ -917,6 +1057,9 @@ export function StoryProductPage({
                           return (
                             <Link
                               key={entry.key}
+                              data-discover-wide={
+                                presentation.title.length > 90 || undefined
+                              }
                               to={path}
                               className="momente-tapestry-item momente-tapestry-milestone momente-tapestry-reveal"
                               data-discover-reveal-key={`item:${entry.key}`}
@@ -955,6 +1098,9 @@ export function StoryProductPage({
                         return (
                           <Link
                             key={entry.key}
+                            data-discover-wide={
+                              presentation.title.length > 90 || undefined
+                            }
                             to={path}
                             className={`momente-tapestry-item momente-tapestry-${role} momente-tapestry-reveal`}
                             data-discover-reveal-key={`item:${entry.key}`}

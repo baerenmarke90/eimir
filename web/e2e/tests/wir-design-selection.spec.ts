@@ -1,6 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import copy from '../../src/i18n/locales/wirDesign';
+import quoteCopy from '../../src/i18n/locales/dailyQuote';
+import profileCopy from '../../src/i18n/locales/profileIdentity';
 import energyCopy from '../../src/i18n/locales/dailyEnergy';
 import reflections from '../../src/i18n/locales/relationshipReflections';
 import notificationCopy from '../../src/i18n/locales/notificationSettings';
@@ -432,7 +434,7 @@ test('quote and statistics order survives pointer release, keyboard movement and
   await expect(page.locator('#wir-statistics-setting')).toHaveCount(0);
   const quote = page.locator('[data-sortable-item-id="daily_quote"]');
   const grip = quote.getByRole('button', {
-    name: 'Zitat des Tages verschieben',
+    name: profileCopy.dashboardOrderHandle.replace('{{name}}', quoteCopy.title),
   });
   await grip.scrollIntoViewIfNeeded();
   const initial = await grip.boundingBox();

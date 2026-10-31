@@ -310,3 +310,32 @@ def test_manual_place_wins_and_unlinked_photo_place_stays_removed_on_retry(clien
     assert client.delete(link, headers=auth(couple["token_a"])).status_code == 204
     assert attach(client, couple, saved.json(), [photo]).status_code == 200
     assert places(client, couple, memory["id"]).json()["items"] == []
+
+
+def test_retired_switch_upgrade_enables_existing_accounts_once(monkeypatch, couple, session):  # type: ignore[no-untyped-def]
+    import importlib.util
+    from pathlib import Path
+
+    from sqlalchemy import text
+
+    anna, ben = couple["anna"], couple["ben"]
+    anna.photo_locations_enabled = False
+    anna.photo_locations_version = 4
+    ben.photo_locations_version = 7
+    session.flush()
+    path = Path(__file__).parents[2] / "alembic/versions/0096_photo_places_always_enabled.py"
+    spec = importlib.util.spec_from_file_location("photo_places_upgrade", path)
+    assert spec is not None and spec.loader is not None
+    migration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(migration)
+    monkeypatch.setattr(migration.op, "execute", lambda sql: session.execute(text(sql)))
+    migration.upgrade()
+    session.expire_all()
+    assert anna.photo_locations_enabled is True
+    assert anna.photo_locations_version == 5
+    assert ben.photo_locations_enabled is True
+    assert ben.photo_locations_version == 7
+    migration.upgrade()
+    session.expire_all()
+    assert anna.photo_locations_version == 5
+    assert ben.photo_locations_version == 7

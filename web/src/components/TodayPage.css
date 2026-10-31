@@ -19,10 +19,7 @@
 .today-page-title {
   margin: 0 0 var(--space-2);
   color: var(--color-text-secondary);
-  font-family: var(--font-display);
-  font-size: var(--font-size-lg, 1.25rem);
-  font-weight: 650;
-  line-height: 1.25;
+  font: var(--font-content-heading);
 }
 
 .today-hero.couple-presence-card {

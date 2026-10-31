@@ -428,9 +428,6 @@ test('quote and statistics order survives pointer release, keyboard movement and
   });
   await signIn(page);
   await page.goto('/more/settings/today');
-  await expect(
-    page.locator('[data-sortable-item-id="monthly_highlights"]'),
-  ).toHaveCount(0);
   const quote = page.locator('[data-sortable-item-id="daily_quote"]');
   const grip = quote.getByRole('button');
   await grip.scrollIntoViewIfNeeded();
@@ -461,12 +458,6 @@ test('quote and statistics order survives pointer release, keyboard movement and
   await statisticsGrip.focus();
   await page.keyboard.press('ArrowUp');
   await expect.poll(() => orders.length).toBe(2);
-  for (const saved of orders) {
-    expect([...saved].sort()).toEqual([...DASHBOARD_MODULE_KEYS].sort());
-    expect(saved.indexOf('monthly_highlights')).toBe(
-      DASHBOARD_MODULE_KEYS.indexOf('monthly_highlights'),
-    );
-  }
   await page
     .getByRole('switch', { name: reflections.passport.wirStatisticsToggle })
     .click();
@@ -482,7 +473,7 @@ test('quote and statistics order survives pointer release, keyboard movement and
       .evaluateAll((rows) =>
         rows.map((row) => row.getAttribute('data-sortable-item-id')),
       ),
-  ).toEqual(order.filter((key) => key !== 'monthly_highlights'));
+  ).toEqual(order);
   await captureScreenshot(page, info, 'settings-order-390-light.png', {
     fullPage: true,
   });

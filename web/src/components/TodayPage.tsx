@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, type ReactNode, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
@@ -47,8 +47,16 @@ import {
   type LivingModule,
   livingModuleContentId,
   selectLivingModule,
+  selectMonthlyNotes,
+  selectMonthlyStrip,
   selectTodayFocalItem,
 } from '../client/todayComposition';
+import {
+  clearForeignRetrospectiveDismissal,
+  isRetrospectiveDismissed,
+  rememberRetrospectiveDismissal,
+  retrospectiveDismissalToken,
+} from '../client/todayRetrospectiveDismissal';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
 import { useWirStatistics } from '../client/useWirStatistics';
@@ -72,7 +80,10 @@ import { TodayDestinationLink } from './TodayDestinationLink';
 import { TodayPinnedCollection } from './TodayPinnedCollection';
 import { UiState } from './UiState';
 import type { ReferenceApis } from '../client/referenceFlow';
-
+import {
+  MonthlyRecapInvitation,
+  useMonthlyRecapInvitation,
+} from './MonthlyRecapInvitation';
 import './TodayPage.css';
 import { useWirDesign } from '../client/wirDesign';
 import './WirDesign.css';
@@ -633,6 +644,86 @@ function TodayLivingModuleCard({
   );
 }
 
+/**
+ * `Diesen Monat` — a small strip of this month's real shared photos.
+ *
+ * Photos carry their real title and calendar date, alongside text highlights.
+ * The bounded projection deliberately makes no counted-total claim.
+ */
+function TodayMonthlyStrip({
+  items,
+  loadMemoryImage,
+}: {
+  items: readonly DashboardItem[];
+  loadMemoryImage: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
+}) {
+  const { t } = useTranslation();
+  const isCarousel = items.length > 1;
+  return (
+    <ul
+      className={`today-monthly-strip today-monthly-strip-${items.length}${
+        isCarousel ? ' eimir-media-snap-track' : ''
+      }`}
+    >
+      {items.map((item) => {
+        const path = dashboardItemPath(item.type, item.id);
+        const { title, titleIsDate } = dashboardItemTitle(item, t);
+        const tile = (
+          <span className="today-monthly-tile-media">
+            {item.previewAttachmentId ? (
+              <MemoryPreview
+                memoryId={item.id}
+                attachmentId={item.previewAttachmentId}
+                isSensitive={item.previewIsSensitive}
+                loadImage={loadMemoryImage}
+              />
+            ) : null}
+          </span>
+        );
+        return (
+          <li
+            key={item.id}
+            className={`today-monthly-item${
+              isCarousel
+                ? ' eimir-media-snap-item eimir-media-snap-item-start'
+                : ''
+            }`}
+          >
+            {path ? (
+              <TodayDestinationLink to={path} className="today-monthly-tile">
+                {tile}
+                <span className="today-monthly-caption">
+                  <strong>{title}</strong>
+                  {item.occurredOn && !titleIsDate ? (
+                    <time dateTime={item.occurredOn.toISOString()}>
+                      {formatCalendarDate(item.occurredOn)}
+                    </time>
+                  ) : null}
+                </span>
+              </TodayDestinationLink>
+            ) : (
+              <span className="today-monthly-tile">
+                {tile}
+                <span className="today-monthly-caption">
+                  <strong>{title}</strong>
+                  {item.occurredOn && !titleIsDate ? (
+                    <time dateTime={item.occurredOn.toISOString()}>
+                      {formatCalendarDate(item.occurredOn)}
+                    </time>
+                  ) : null}
+                </span>
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 export function TodayPage({
   apis,
   apiBaseUrl,
@@ -645,6 +736,7 @@ export function TodayPage({
   entitlementApi,
   collectionsApi,
   account,
+  recapMediaApis,
 }: {
   apis: M4ProductApis;
   apiBaseUrl?: string;
@@ -840,7 +932,35 @@ export function TodayPage({
   );
 
   const recentShared = dashboardQuery.data?.recentShared ?? [];
+  const retrospective = dashboardQuery.data?.retrospective;
   const serverKeepsake = dashboardQuery.data?.keepsake;
+
+  // This is local presentation state only. The authorized candidate remains
+  // server-owned; dismissal neither mutates nor caches a Memory.
+  // Wait for the Account-local Dashboard day before expiring persisted state.
+  // Only legacy servers fall back to the device day during rolling upgrades.
+  const dismissalToken = dashboardQuery.data
+    ? retrospectiveDismissalToken(
+        account?.id ?? '',
+        spaceId,
+        dashboardQuery.data.viewerLocalDate,
+      )
+    : null;
+  const [dismissedToken, setDismissedToken] = useState<string | null>(null);
+  useEffect(() => {
+    clearForeignRetrospectiveDismissal(dismissalToken);
+  }, [dismissalToken]);
+  const retrospectiveDismissed = Boolean(
+    dismissalToken &&
+      (dismissedToken === dismissalToken ||
+        isRetrospectiveDismissed(dismissalToken)),
+  );
+
+  function dismissRetrospectiveToday(): void {
+    if (!dismissalToken) return;
+    rememberRetrospectiveDismissal(dismissalToken);
+    setDismissedToken(dismissalToken);
+  }
 
   // 3. Focal shared content. The authoritative Keepsake wins when present;
   // otherwise a genuine shared story item receives intentional text-first
@@ -855,7 +975,7 @@ export function TodayPage({
   const livingModule = selectLivingModule({
     partnerId: partner?.id,
     activityItems: activityQuery.data?.items,
-    retrospective: null,
+    retrospective: retrospectiveDismissed ? null : retrospective,
     recentShared,
     excludeItemIds: focalItem ? [focalItem.item.id] : [],
     suppressPlanningFallback: Boolean(anticipation) || upcoming.length > 0,
@@ -880,8 +1000,28 @@ export function TodayPage({
   const livingContentId = livingModuleContentId(livingModule);
   if (livingContentId) featuredIds.add(livingContentId);
 
-  // Recaps live under More. Keep the recent trace free of duplicate focal content.
-  const traceExcludedIds = featuredIds;
+  // 5. Diesen Monat: this month's real shared photos, minus anything already
+  // featured above.
+  const monthlyStrip = loadMemoryImage
+    ? selectMonthlyStrip({
+        recentShared,
+        now: new Date(),
+        excludeItemIds: [...featuredIds],
+      })
+    : [];
+
+  const monthlyNotes = selectMonthlyNotes({
+    recentShared,
+    now: new Date(),
+    excludeItemIds: [...featuredIds, ...monthlyStrip.map((item) => item.id)],
+  });
+
+  // 6. Zuletzt bei euch: the quiet trace, minus everything featured above it -
+  // the photos the strip just claimed included, so a Memory is never both a
+  // thumbnail up there and a row down here.
+  const traceExcludedIds = new Set(featuredIds);
+  for (const item of [...monthlyStrip, ...monthlyNotes])
+    traceExcludedIds.add(item.id);
   const recentSharedForTrace = recentShared.filter(
     (item) => !traceExcludedIds.has(item.id),
   );
@@ -927,10 +1067,44 @@ export function TodayPage({
     dashboardPreferencesQuery.data,
     'relationship_signal',
   );
+  const monthlyHighlightsVisible = isDashboardModuleVisible(
+    dashboardPreferencesQuery.data,
+    'monthly_highlights',
+  );
   const recentSharedVisible = isDashboardModuleVisible(
     dashboardPreferencesQuery.data,
     'recent_shared',
   );
+  const monthlyRecapEnabled = Boolean(
+    contentReady &&
+      monthlyHighlightsVisible &&
+      apis.recaps &&
+      recapMediaApis &&
+      account &&
+      !dashboardQuery.isCached,
+  );
+  const monthlyRecapEdition = useMonthlyRecapInvitation({
+    api: apis.recaps,
+    today: dashboardQuery.data?.viewerLocalDate ?? new Date(),
+    instance: apiBaseUrl ?? '',
+    accountId: account?.id,
+    spaceId,
+    enabled: monthlyRecapEnabled,
+  });
+  const monthlyRecapEntry =
+    monthlyRecapEnabled && recapMediaApis && account ? (
+      <MonthlyRecapInvitation
+        edition={monthlyRecapEdition}
+        mediaApis={recapMediaApis}
+        account={account}
+        spaceId={spaceId}
+        excludeSourceIds={[
+          ...featuredIds,
+          ...monthlyStrip.map((item) => item.id),
+          ...monthlyNotes.map((item) => item.id),
+        ]}
+      />
+    ) : null;
   const sharedStorySummaryVisible =
     wirStatistics.allowed && wirStatistics.enabled && !dashboardQuery.isCached;
 
@@ -940,6 +1114,7 @@ export function TodayPage({
       !anticipation &&
       upcoming.length === 0 &&
       recentShared.length === 0 &&
+      !retrospective &&
       !livingModule &&
       !serverKeepsake &&
       !(pinnedCollectionVisible && pinnedCollectionId),
@@ -1180,8 +1355,17 @@ export function TodayPage({
               partnerName={partnerName}
               partnerAvatarUrl={partnerAvatar.avatarUrl}
               loadMemoryImage={loadMemoryImage}
+              onDismissRetrospective={
+                dismissalToken ? dismissRetrospectiveToday : undefined
+              }
             />
           </TodayModuleSection>
+        ) : null}
+
+        {dismissedToken === dismissalToken && dismissalToken ? (
+          <span role="status" className="sr-only">
+            {t('m5s5.today.living.retrospectiveDismissed')}
+          </span>
         ) : null}
 
         {activityQuery.error && relationshipSignalVisible ? (
@@ -1198,7 +1382,47 @@ export function TodayPage({
         ) : null}
       </>
     ),
-    monthly_highlights: null,
+    monthly_highlights: (
+      <>
+        {/* 5. Diesen Monat — this month's shared life, shown rather than
+                  counted. */}
+        {monthlyHighlightsVisible &&
+        (monthlyStrip.length > 0 ||
+          monthlyNotes.length > 0 ||
+          monthlyRecapEdition) ? (
+          <TodayModuleSection
+            className="today-section-monthly"
+            title={t('m5s5.today.monthly.title')}
+            headerAction={
+              <Link
+                to={`${appRoutePath('story')}?tab=timeline`}
+                className="today-section-link"
+                aria-label={t('m5s5.today.monthly.allAriaLabel')}
+              >
+                {t('m5s5.today.monthly.allAction')}
+              </Link>
+            }
+          >
+            {monthlyRecapEntry}
+            {loadMemoryImage && monthlyStrip.length > 0 ? (
+              <TodayMonthlyStrip
+                items={monthlyStrip}
+                loadMemoryImage={loadMemoryImage}
+              />
+            ) : null}
+            {monthlyNotes.length > 0 ? (
+              <div className="today-monthly-notes">
+                {monthlyNotes.map((item) => (
+                  <RecentSharedItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            ) : null}
+          </TodayModuleSection>
+        ) : monthlyHighlightsVisible ? (
+          monthlyRecapEntry
+        ) : null}
+      </>
+    ),
     recent_shared: (
       <>
         {/* 6. Zuletzt bei euch — deliberately secondary. Full activity

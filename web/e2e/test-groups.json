@@ -285,8 +285,8 @@
     },
     "today-living-home.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 23,
-      "reason": "PO #1546 removes retrospective/monthly surfaces. Retire overlapping carousel/caption cases for the removed component; preserve whole-page hierarchy, source uniqueness/navigation, keyboard, motion, theme, 320px/200% reflow and accessibility checks, with explicit recap absence for one/two/three-photo source sets."
+      "baselineTests": 28,
+      "reason": "PO #1546 clarification retains monthly highlights and retrospectives; only the ready monthly invitation archive action is removed. Preserve the complete carousel, source, dismissal, reflow, keyboard and accessibility coverage."
     },
     "today-pro-insights.spec.ts": {
       "disposition": "PR_CRITICAL",

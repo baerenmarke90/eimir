@@ -357,7 +357,7 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
     await capture(page, testInfo, 'keepsake-only-390-light');
   });
 
-  test('server retrospectives stay off Wir while upcoming plans remain', async ({
+  test('a genuine date-specific retrospective fills the single `Gerade bei euch` slot below Demnächst (#850 supersedes #840 ordering)', async ({
     page,
   }, testInfo) => {
     await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
@@ -377,11 +377,25 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
     });
     await signInAndOpenToday(page);
 
-    await expect(page.locator('.today-section-upcoming')).toBeVisible();
-    await expect(page.locator('.today-living-retrospective')).toHaveCount(0);
-    await expect(page.getByText('One year ago: our first concert')).toHaveCount(
-      0,
-    );
+    const order = await page.evaluate(() => {
+      const living = document.querySelector('.today-section-living');
+      const planning = document.querySelector('.today-section-upcoming');
+      if (!living || !planning) return null;
+      return planning.compareDocumentPosition(living) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+        ? 'planning-first'
+        : 'living-first';
+    });
+    expect(order).toBe('planning-first');
+
+    // The retrospective is still shown, exactly once, as the one contextual
+    // module - it is not dropped and not duplicated.
+    await expect(page.locator('.today-living-retrospective')).toHaveCount(1);
+    await expect(page.locator('.today-section-living')).toHaveCount(1);
+    await expect(
+      page.getByText('One year ago: our first concert'),
+    ).toBeVisible();
+    // No Keepsake exists in this scenario, so the photo feature is absent.
     await expect(page.locator('.today-moment-figure')).toHaveCount(0);
 
     await expectHorizontalReflow(page);
@@ -445,7 +459,7 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
     await expect(page.locator('.today-section-monthly')).toHaveCount(0);
     await expect(
       page.getByRole('link', { name: recaps.profileLink }),
-    ).toHaveCount(0);
+    ).toHaveAttribute('href', '/more/passport');
     await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
     await expect(page.getByRole('link', { name: recaps.watchNow })).toHaveCount(
       0,

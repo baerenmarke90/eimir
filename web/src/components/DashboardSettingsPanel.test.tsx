@@ -695,9 +695,7 @@ describe('DashboardSettingsPanel', () => {
 
       for (const entry of DASHBOARD_MODULE_CATALOG.filter(
         (entry) =>
-          entry.key !== 'shared_story_summary' &&
-          entry.key !== 'daily_quote' &&
-          entry.key !== 'monthly_highlights',
+          entry.key !== 'shared_story_summary' && entry.key !== 'daily_quote',
       )) {
         const checkbox = screen.getByRole('checkbox', {
           name: moduleLabel(entry.key),

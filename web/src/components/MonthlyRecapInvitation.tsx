@@ -99,13 +99,14 @@ export function MonthlyRecapInvitation({
           </div>
         </article>
       ) : null}
-      <TodayDestinationLink
-        to={MORE_PASSPORT_ROUTE}
-        className="monthly-recap-library-link"
-      >
-        {t(value ? 'recaps.allRecaps' : 'recaps.profileLink')}{' '}
-        <span aria-hidden="true">→</span>
-      </TodayDestinationLink>
+      {!value ? (
+        <TodayDestinationLink
+          to={MORE_PASSPORT_ROUTE}
+          className="monthly-recap-library-link"
+        >
+          {t('recaps.profileLink')} <span aria-hidden="true">→</span>
+        </TodayDestinationLink>
+      ) : null}
     </div>
   );
 }

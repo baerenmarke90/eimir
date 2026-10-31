@@ -153,7 +153,7 @@ def test_photo_binding_waits_for_account_deletion_before_membership(
     assert response.status_code in (401, 404)
 
 
-def test_shared_heart_moment_creates_places_and_off_keeps_existing_history(client, couple, session):  # type: ignore[no-untyped-def]
+def test_shared_heart_moment_rejects_legacy_disable(client, couple, session):  # type: ignore[no-untyped-def]
     photo = binding.ready_attachment(client, couple, session)
     result = binding.heart_moment(client, couple, visibility="SHARED", attachment_id=photo)
     assert result.status_code == 201
@@ -163,14 +163,14 @@ def test_shared_heart_moment_creates_places_and_off_keeps_existing_history(clien
         len(places(client, couple, target, "heart-moments", token_key="token_b").json()["items"])
         == 1
     )
-    assert set_enabled(client, couple, False, 0).status_code == 200
+    assert set_enabled(client, couple, False, 0).status_code == 409
     assert len(places(client, couple, target, "heart-moments").json()["items"]) == 1
     partner = client.get(
         "/api/v1/account/photo-location-preference", headers=auth(couple["token_b"])
     )
     assert partner.json() == {"enabled": True, "version": 0}
     second = binding.ready_attachment(client, couple, session)
-    assert session.get(PhotoLocationDraft, UUID(second)) is None
+    assert session.get(PhotoLocationDraft, UUID(second)) is not None
 
 
 def test_manual_correction_blocks_future_automatic_association(client, couple, session):  # type: ignore[no-untyped-def]
@@ -263,17 +263,19 @@ def test_shared_commit_creates_once_and_never_exposes_staged_gps(client, couple,
     assert all("52.516667" not in str(event.payload) for event in events)
 
 
-def test_off_invalidates_pending_gps_and_on_never_resurrects_it(client, couple, session):  # type: ignore[no-untyped-def]
+def test_photo_places_stay_enabled_and_legacy_writes_preserve_pending_gps(client, couple, session):  # type: ignore[no-untyped-def]
     pref = client.get("/api/v1/account/photo-location-preference", headers=auth(couple["token_a"]))
     assert pref.json() == {"enabled": True, "version": 0}
     staged = binding.ready_attachment(client, couple, session)
-    assert set_enabled(client, couple, False, 0).json() == {"enabled": False, "version": 1}
-    assert session.get(PhotoLocationDraft, UUID(staged)) is None
-    assert set_enabled(client, couple, True, 0).status_code == 409
-    assert set_enabled(client, couple, True, 1).status_code == 200
+    disabled = set_enabled(client, couple, False, 0)
+    assert disabled.status_code == 409
+    assert disabled.json()["code"] == "PHOTO_LOCATIONS_ALWAYS_ENABLED"
+    assert session.get(PhotoLocationDraft, UUID(staged)) is not None
+    assert set_enabled(client, couple, True, 0).json() == {"enabled": True, "version": 0}
+    assert set_enabled(client, couple, True, 1).status_code == 409
     memory = binding.memory(client, couple)
     assert attach(client, couple, memory, [staged]).status_code == 200
-    assert places(client, couple, memory["id"]).json()["items"] == []
+    assert len(places(client, couple, memory["id"]).json()["items"]) == 1
 
 
 def test_private_binding_discards_gps_before_later_sharing(client, couple, session):  # type: ignore[no-untyped-def]

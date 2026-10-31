@@ -11,7 +11,6 @@ import {
 } from '../client/routes';
 import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
 import { useTranslation } from '../i18n';
-import { LocalCoupleGame } from './LocalCoupleGame';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -20,13 +19,7 @@ import { WhoOfUsGamePanel } from './WhoOfUsGamePanel';
 
 export const GAMES_COUPLE_CAPABILITY = 'games.couple' as const;
 
-const GAME_ENTRIES = [
-  'moments',
-  'wishes',
-  'perspective',
-  'happiness',
-  'timeTravel',
-] as const;
+const GAME_ENTRIES = ['moments', 'wishes', 'perspective'] as const;
 
 type GameEntry = (typeof GAME_ENTRIES)[number];
 
@@ -52,9 +45,9 @@ export function GamesProductArea({
   >;
 }) {
   const { t } = useTranslation();
-  const [activeLocalGame, setActiveLocalGame] = useState<
-    'perspective' | 'happiness' | 'timeTravel' | null
-  >(null);
+  const [activeLocalGame, setActiveLocalGame] = useState<'perspective' | null>(
+    null,
+  );
   const entitlementApi = useMemo(
     () =>
       new EntitlementsApi(
@@ -86,20 +79,6 @@ export function GamesProductArea({
   const gamesUnlocked = Boolean(
     entitlementQuery.data?.capabilities.includes(GAMES_COUPLE_CAPABILITY),
   );
-
-  if (gamesUnlocked && activeLocalGame && activeLocalGame !== 'perspective') {
-    return (
-      <LocalCoupleGame
-        key={`${spaceId}:${activeLocalGame}`}
-        game={activeLocalGame}
-        apiBaseUrl={apiBaseUrl}
-        accessToken={accessToken}
-        spaceId={spaceId}
-        loadParticipants={loadPerspectiveParticipants}
-        onExit={() => setActiveLocalGame(null)}
-      />
-    );
-  }
 
   if (gamesUnlocked && activeLocalGame === 'perspective') {
     return (
@@ -134,11 +113,7 @@ export function GamesProductArea({
         <section className="games-shelf" aria-label={t('games.title')}>
           {GAME_ENTRIES.map((entry, index) => {
             const route = gamesUnlocked ? gameRoute(entry) : null;
-            const localGameAvailable =
-              gamesUnlocked &&
-              (entry === 'perspective' ||
-                entry === 'happiness' ||
-                entry === 'timeTravel');
+            const localGameAvailable = gamesUnlocked && entry === 'perspective';
             const playable = Boolean(route || localGameAvailable);
             const content = (
               <>
@@ -150,8 +125,6 @@ export function GamesProductArea({
                           'foto',
                           'wuensche',
                           'gemeinsam',
-                          'denken',
-                          'kapitel',
                         ] satisfies EimirIconName[]
                       )[index]
                     }
@@ -193,12 +166,7 @@ export function GamesProductArea({
                   className="games-entry games-entry-link games-entry-button"
                   key={entry}
                   onClick={() => {
-                    if (
-                      entry === 'perspective' ||
-                      entry === 'happiness' ||
-                      entry === 'timeTravel'
-                    )
-                      setActiveLocalGame(entry);
+                    if (entry === 'perspective') setActiveLocalGame(entry);
                   }}
                 >
                   {content}

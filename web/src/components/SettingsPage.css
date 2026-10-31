@@ -411,8 +411,10 @@
 .dashboard-module-option.is-dragging {
   position: relative;
   z-index: 1;
-  background: var(--color-surface-raised);
-  box-shadow: var(--shadow-raised);
+  background: var(--color-surface-subtle);
+  border-color: transparent;
+  outline: none;
+  box-shadow: none;
   transition: none;
 }
 
@@ -453,8 +455,7 @@
 }
 
 .dashboard-module-option:focus-within {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+  background: var(--color-surface-subtle);
 }
 
 .dashboard-module-preference[aria-busy="true"] .dashboard-module-option {
@@ -659,4 +660,26 @@
   align-items: center;
   min-height: 44px;
   padding-inline: var(--space-2);
+}
+
+.dashboard-module-option:hover {
+  background: var(--color-surface-subtle);
+}
+.dashboard-module-control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.dashboard-module-option.is-dragging
+  .list-entry-icon-button:not(:focus-visible) {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.dashboard-module-switch {
+  display: grid;
+  place-items: center;
+  min-width: var(--touch-target-web);
+  min-height: var(--touch-target-web);
+  cursor: pointer;
 }

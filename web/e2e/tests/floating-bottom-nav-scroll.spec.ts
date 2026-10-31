@@ -1104,6 +1104,51 @@ async function swipePrimary(page: Page, direction: 'next' | 'previous') {
 test.describe('primary tab touch navigation', () => {
   test.use({ hasTouch: true });
 
+  test('live primary motion stays clipped and interactive before its first frame completes', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 360, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.addInitScript(() => {
+      const animate = Element.prototype.animate;
+      Element.prototype.animate = function (...args) {
+        const animation = animate.apply(this, args);
+        if (this.matches('main.product-main')) {
+          animation.pause();
+          animation.currentTime = 0;
+        }
+        return animation;
+      };
+    });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await expect(page).toHaveURL(/\/today$/);
+    await swipePrimary(page, 'next');
+    await expect(page).toHaveURL(/\/story$/);
+    expect(
+      await page
+        .locator('main')
+        .evaluate((main) =>
+          main
+            .getAnimations()
+            .some((animation) => animation.playState === 'paused'),
+        ),
+    ).toBe(true);
+    await expectNoHorizontalOverflow(page);
+    // A second real touch must work while the previous motion is still held.
+    await swipePrimary(page, 'next');
+    await expect(page).toHaveURL(/\/plan$/);
+    await expectNoHorizontalOverflow(page);
+    await page.locator('main').evaluate((main) => {
+      for (const animation of main.getAnimations()) animation.finish();
+    });
+    await expect(page.locator('main')).not.toHaveAttribute(
+      'data-primary-tab-animating',
+      'true',
+    );
+  });
+
   for (const variant of [
     { width: 360, theme: 'light', reduced: false },
     { width: 390, theme: 'dark', reduced: true },

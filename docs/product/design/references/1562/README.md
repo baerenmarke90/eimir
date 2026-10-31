@@ -35,3 +35,58 @@ No new answer collection, storage, logs, telemetry, AI or memory access. Only ex
 Generated with built-in Imagegen before feature UI implementation. The prompt preserves the existing Momente map/tabs/Discover story, four named dock destinations and plus, adds two named experience entries and illustrates their existing first prompts plus the requested settings correction. It uses the current periwinkle/blue tokens and avoids game scores, forms and recording. Generation approximates typography, icon details, names of unrelated settings and exact spacing; these are not new requirements. Current runtime labels and supported source/category controls remain authoritative. The invented switch appearance is illustrative; reuse current accessible controls. No decorative divider, shadow or border is required by the image.
 
 Expanded keeps the same reading/action sequence with bounded line length. Full runtime Compact/Expanded, Light/Dark and large-text evidence will be added after implementation. Neither the generated image nor browser transport mocks prove real Android calendar save/cancel behavior.
+
+## Final scope and implementation
+
+The PO additionally removed Memories settings and requires photo-derived Places
+permanently enabled. The old URL redirects to the settings index. Migration 0096
+re-enables prior disabled accounts and advances their preference revision without
+backfilling stripped GPS or modifying existing Places. Authenticated legacy
+clients receive PHOTO_LOCATIONS_ALWAYS_ENABLED when attempting to disable it;
+stale If-Match writes still fail independently. No device location polling,
+background location permission or new data provider is introduced. Private-image
+exclusion, deliberately selected uploads, stripped published metadata, tenant
+isolation, manual place corrections/unlinking and cleanup remain unchanged.
+
+Glücksmomente and Zeitreise now have independent Momente routes. Their shared
+finite session is migrated rather than copied; Games retains its other three
+entries. Preserve all existing six prompts for each experience and existing
+Pro games.couple eligibility. Entry captures the same bounded TaskOrigin as
+other Momente destinations; deep entry returns safely to Momente. Instance,
+Account, Space and experience own query/session identity. Entitlement errors or
+loss unmount the active session. No answers or progress enter persistent storage.
+
+The top quote control owns its existing server preference, including ETag and
+conflict semantics. The lower quote section retains sources/categories. The top
+statistics control owns the existing personal Pro opt-in; there is no duplicate
+lower section or dead Edit jump. A shared optional row-control slot in the
+ordering panel keeps its serialized write/reorder logic unchanged. Native input
+labels retain product-sized hit areas. Drag and row focus use a quiet surface
+change without a row frame/shadow; keyboard focus remains on the actual control.
+
+## Verification
+
+The full Web suite passed 2,385 tests with two pre-existing skips before the final
+small focus/target/entry placement refinements; changed component cases are rerun
+on the final revision. TypeScript, production build, token/PWA and browser
+inventory checks passed. Backend non-integration run: 1,094 passed, 24 existing
+skips, with one environment-only missing socksio dependency diagnosed separately.
+A temporary PostgreSQL bootstrap cannot add its system user in this executor;
+real PostgreSQL integration and the migration run in the repository CI.
+
+Actual Chromium 153 browser journeys cover independent entry/direct routes,
+skip/finish/restart/return, Compact 360/390/430, Expanded, Light/Dark and reduced
+motion. Settings coverage preserves pointer/keyboard order, personal statistics
+opt-in/reload and quote opt-in/save/Wir return. Photo-place coverage preserves
+320px/200% reflow and actual saved place/read/edit/unlink journeys while removing
+only the retired settings switch/URL. No assertion tolerance or timeout is raised.
+Screenshots below use synthetic fixtures. The pinned Playwright binary download
+returned an invalid archive locally; temporary Chromium 153 was used without
+changing repository dependencies or browser pins.
+
+Actual evidence: [Glücksmomente Compact](evidence/happiness-390-dark.webp),
+[Zeitreise Compact](evidence/timeTravel-360-light.webp),
+[Expanded](evidence/timeTravel-1280-dark.webp), and
+[Wir settings after pointer/keyboard order and reload](evidence/settings-order-390-light.webp).
+The missing local socksio package was installed only in the temporary environment;
+all 12 media-configuration tests then passed. No runtime dependency changed.

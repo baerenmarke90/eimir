@@ -1,6 +1,7 @@
 /* Only a deliberate primary-tab gesture moves content; the shell stays fixed. */
 .product-shell-body:has(> [data-primary-tab-dragging]),
-.product-shell-body:has(> [data-primary-tab-entry]) {
+.product-shell-body:has(> [data-primary-tab-entry]),
+.product-shell-body:has(> [data-primary-tab-animating]) {
   overflow-x: clip;
 }
 

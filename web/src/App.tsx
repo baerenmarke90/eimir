@@ -71,6 +71,8 @@ import {
   COLLECTION_CREATE_ROUTE,
   DEFAULT_APP_ROUTE,
   GAMES_MOMENTS_ROUTE,
+  HAPPINESS_ROUTE,
+  TIME_TRAVEL_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
   HEART_MOMENT_CREATE_ROUTE,
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
@@ -138,6 +140,7 @@ import {
 } from './components/M4ProductPages';
 import { MemoryCreatePage } from './components/MemoryCreatePage';
 import { MemoryProductPage } from './components/MemoryProductPage';
+import { CoupleExperiencePage } from './components/CoupleExperiencePage';
 import { OurMomentsGamePage } from './components/OurMomentsGamePage';
 import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
 import { MilestoneProductPage } from './components/MilestoneProductPage';
@@ -654,6 +657,24 @@ function AuthenticatedApp({
               path={SEARCH_ROUTE}
               element={<SearchProductPage apis={m4Apis} spaceId={spaceId} />}
             />
+            {(['happiness', 'timeTravel'] as const).map((kind) => (
+              <Route
+                key={kind}
+                path={
+                  kind === 'happiness' ? HAPPINESS_ROUTE : TIME_TRAVEL_ROUTE
+                }
+                element={
+                  <CoupleExperiencePage
+                    key={`${account.id}:${spaceId}:${kind}`}
+                    kind={kind}
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    accountId={account.id}
+                    spaceId={spaceId}
+                  />
+                }
+              />
+            ))}
             <Route
               path={GAMES_MOMENTS_ROUTE}
               element={

@@ -209,9 +209,10 @@ test('photo places retain 320px reflow with 200% body text', async ({
   const state = await installPhotoPlaces(page);
   await signIn(page);
   await page.goto('/more/settings/memories');
-  await expect(
-    page.getByRole('switch', { name: photoPlaceCopy.setting }),
-  ).toHaveAttribute('aria-checked', 'true');
+  await expect(page).toHaveURL(/\/more\/settings$/);
+  await expect(page.locator('a[href="/more/settings/memories"]')).toHaveCount(
+    0,
+  );
   await page.addStyleTag({ content: 'body { font-size: 200% !important; }' });
   expect(
     await page.evaluate(
@@ -398,34 +399,11 @@ for (const colorScheme of ['light', 'dark'] as const) {
       });
       await signIn(page);
       await page.goto('/more/settings');
-      await page.locator('a[href="/more/settings/memories"]').click();
-      const control = page.getByRole('switch', {
-        name: photoPlaceCopy.setting,
-      });
-      await expect(control).toHaveAttribute('aria-checked', 'true');
-      const explanation = page.locator('.settings-explanation');
-      const metadata = page.getByText(photoPlaceCopy.metadata, { exact: true });
-      await expect(explanation).not.toHaveAttribute('open');
-      await expect(metadata).toBeHidden();
-      await captureScreenshot(
-        page,
-        testInfo,
-        `1478-settings-${width}-${colorScheme}.png`,
-        { fullPage: true },
-      );
-      await explanation
-        .locator(':scope > summary')
-        .filter({ hasText: photoPlaceCopy.details })
-        .click();
-      await expect(metadata).toBeVisible();
-      await control.click();
-      await expect(control).toHaveAttribute('aria-checked', 'false');
       await expect(
-        page.getByText(photoPlaceCopy.saved, { exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole('link', { name: profileIdentity.settingsBackToIndex }),
+        page.locator('a[href="/more/settings/memories"]'),
       ).toHaveCount(0);
+      await page.goto('/more/settings/memories');
+      await expect(page).toHaveURL(/\/more\/settings$/);
       await page.goto('/story/memories/mem-canal');
       await expect(
         page.getByRole('heading', { name: localeFixture.photoPlaces.title }),
@@ -491,12 +469,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(
         dialog.getByText(photoPlaceCopy.removeHint, { exact: true }),
       ).toBeVisible();
-      expect(state.writes).toEqual(['preference']);
+      expect(state.writes).toEqual([]);
       await dialog.getByRole('button', { name: photoPlaceCopy.remove }).click();
       await expect(
         page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),
       ).toHaveCount(0);
-      expect(state.writes).toEqual(['preference', 'unlink']);
+      expect(state.writes).toEqual(['unlink']);
       expect(external).toEqual([]);
       expect(state.unexpected).toEqual([]);
     });

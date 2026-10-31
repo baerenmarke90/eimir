@@ -1,0 +1,95 @@
+.couple-experience-links {
+  margin-block: var(--space-6);
+}
+.couple-experience-links > div {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+.couple-experience-links a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  min-height: var(--touch-target-web);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-subtle);
+  text-decoration: none;
+  color: var(--color-text-primary);
+  transition: background var(--duration-transition) var(--easing-standard);
+}
+.couple-experience-links a:hover {
+  background: var(--color-surface-raised);
+}
+.couple-experience-links a > .eimir-icon {
+  width: var(--space-6);
+  height: var(--space-6);
+  flex-shrink: 0;
+  color: var(--color-brand-text);
+}
+.couple-experience-links a > span:not(.pro-mark) {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1;
+}
+.couple-experience-links a strong {
+  font-weight: 650;
+}
+.couple-experience-links a > span > span {
+  color: var(--color-text-secondary);
+}
+.couple-experience-page {
+  max-width: var(--reading-max);
+  margin-inline: auto;
+}
+.couple-experience-session {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-block: var(--space-6);
+  text-align: center;
+}
+.couple-experience-progress,
+.couple-experience-privacy {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+.couple-experience-session h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 5vw, 2.25rem);
+  line-height: 1.4;
+  margin: var(--space-6) 0;
+  overflow-wrap: anywhere;
+}
+.couple-experience-session > p:not([class]) {
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+.couple-experience-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+.couple-experience-session h2:focus-visible {
+  outline: none;
+}
+
+.couple-experience-session h2 {
+  animation: couple-prompt-enter var(--duration-transition)
+    var(--easing-standard);
+}
+@keyframes couple-prompt-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .couple-experience-session h2 {
+    animation: none;
+  }
+}

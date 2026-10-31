@@ -36,7 +36,6 @@ import { DashboardSettingsPanel } from './DashboardSettingsPanel';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
-import { PhotoLocationSettings } from './PhotoLocationSettings';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
 import { SettingsIndex } from './SettingsIndex';
@@ -110,6 +109,8 @@ export function SettingsPage(props: SettingsPageProps) {
     settingsCategory && isSettingsCategoryId(settingsCategory)
       ? settingsCategory
       : null;
+  if (categoryId === 'memories')
+    return <Navigate replace to={MORE_SETTINGS_ROUTE} />;
   const category = categoryId ? settingsCategoryDefinition(categoryId) : null;
 
   const openDataCategory = () => {
@@ -175,14 +176,28 @@ export function SettingsPage(props: SettingsPageProps) {
           dashboardApi={dashboardApi}
           accountId={props.account.id}
           spaceId={props.spaceId}
-        />
-        <WirStatisticsSetting
-          api={entitlementsApi}
-          instance={props.apiBaseUrl}
-          accountId={props.account.id}
-          spaceId={props.spaceId}
+          moduleControls={{
+            shared_story_summary: (
+              <WirStatisticsSetting
+                api={entitlementsApi}
+                instance={props.apiBaseUrl}
+                accountId={props.account.id}
+                spaceId={props.spaceId}
+              />
+            ),
+            daily_quote: (
+              <DailyQuoteSettingsPanel
+                variant="toggle"
+                quoteApi={dailyQuoteApi}
+                entitlementsApi={entitlementsApi}
+                accountId={props.account.id}
+                spaceId={props.spaceId}
+              />
+            ),
+          }}
         />
         <DailyQuoteSettingsPanel
+          variant="sources"
           quoteApi={dailyQuoteApi}
           entitlementsApi={entitlementsApi}
           accountId={props.account.id}
@@ -198,15 +213,6 @@ export function SettingsPage(props: SettingsPageProps) {
       >
         <ProfileAppearancePanel id="settings-appearance-panel" />
       </div>
-    );
-  } else if (categoryId === 'memories') {
-    categoryContent = (
-      <PhotoLocationSettings
-        key={`${props.apiBaseUrl}:${props.account.id}`}
-        apiBaseUrl={props.apiBaseUrl}
-        accessToken={props.accessToken}
-        accountId={props.account.id}
-      />
     );
   } else if (categoryId === 'data') {
     categoryContent = (

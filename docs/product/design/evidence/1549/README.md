@@ -101,3 +101,34 @@ passing cases without changing the product or its accessibility requirements.
 All images contain synthetic test fixtures. They were captured from the tested
 implementation and serialized losslessly as WebP; no generated or private
 relationship content is used as acceptance evidence.
+
+## Motion-bounds follow-up before merge
+
+A green hosted browser job on the synchronized source contained a real first-attempt
+failure: translated live content temporarily enlarged a 360px document to 368px.
+Its configured retry hid that transient state. This was reproduced deterministically
+by pausing the native main-element animation at its first frame, without adding a
+delay or changing the existing overflow assertion. The old source fails at 368px;
+the corrected source remains within the viewport and accepts the next real swipe
+while the first animation is still paused.
+
+Entrance and sub-threshold snap-back motion now share their existing shell owner
+and clipping lifecycle. Completion, cancellation, a replacement animation, the
+next gesture, unmount and changes to reduced motion release the bounds safely.
+An obsolete completion callback cannot clear a newer animation's bounds. This
+changes containment, not the established composition, duration or gesture contract.
+
+#1548 and #1550 merged while this follow-up was being verified. The additional
+motion-bounds correction is delivered as a separate follow-up to their merged
+`main` source. The final combined source passes 109 targeted unit/component cases
+and all 41 cases in the full navigation and accessibility browser suites with
+zero retries. Fresh hosted
+checks are required for the published combined source; earlier green statuses are
+historical evidence only. The affected physical Android device remains outside
+this browser correction's acceptance claim.
+
+Actual return-to-Wir screenshots from the zero-retry full browser run:
+[360px Light](motion-return-360-light.webp) and
+[1280px Dark](motion-return-1280-dark.webp). Synthetic fixtures include the
+existing unavailable-insights state; screenshots document composition and fixed
+chrome, while the held-frame and real-touch assertions prove transient bounds.

@@ -55,7 +55,7 @@ provider, generated saying, modern translation or preference change is added.
 | --- | --- | --- |
 | `quote-de-love-005` | Goethe, *Nearness of the Beloved*, 1827 edition, p. 58, stanza 4, first two lines | [Proofread historical text](https://de.wikisource.org/wiki/N%C3%A4he_des_Geliebten_(1827)); line join, lowercase continuation and historical spelling normalization recorded in metadata. |
 | `quote-de-love-006` | Rueckert, *Eastern Roses*, Brockhaus 1822, pp. 125-126, first stanza | [German text and early-edition link](https://www.schubertsong.uk/text/du-bist-die-ruh/); original German only, line join and lowercase continuations recorded. No modern translation copied. |
-| `quote-de-love-007` | Rilke, letter 7 dated 14 May 1904, *Letters to a Young Poet*, Insel 1935, pp. 41-42 | [Historical edition scan](https://imwerden.de/pdf/rilke_briefe_an_einen_jungen_dichter_1935__ocr.pdf); sentence-ending excerpt visibly marks the initial omission. No editor's introduction or modern paraphrase used. |
+| `quote-de-love-007` | Rilke, *New Poems*, Insel 1907, p. 3, *Love Song*, lines 8-10 | [Proofread historical text and source scan](https://de.wikisource.org/wiki/Liebes-Lied); complete sentence about two strings becoming one voice, line breaks joined. No modern paraphrase used. |
 | `quote-en-love-003` | Eliot, *Middlemarch*, 1871-1872, Book VIII, Chapter LXXII | [English original](https://www.gutenberg.org/files/145/145-h/145-h.htm); Dorothea's dialogue about making life easier for another person. |
 | `quote-en-love-004` | Dickens, *Our Mutual Friend*, 1865, Book III, Chapter IX | [English original](https://www.gutenberg.org/files/883/883-h/883-h.htm); Rokesmith's dialogue, narrative attribution omitted between its two spoken clauses. |
 

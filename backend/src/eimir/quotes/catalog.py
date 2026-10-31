@@ -234,24 +234,23 @@ QUOTES: tuple[DailyQuote, ...] = (
     DailyQuote(
         id="quote-de-love-007",
         text=(
-            "… der Liebe, die darin besteht, daß zwei Einsamkeiten "
-            "einander schützen, grenzen und grüßen."
+            "Doch alles was uns anrührt, dich und mich, nimmt uns zusammen wie ein Bogenstrich, "
+            "der aus zwei Saiten eine Stimme zieht."
         ),
         author_display="Rainer Maria Rilke",
-        source_display="Briefe an einen jungen Dichter · Auszug",
-        source_id="classic_literature",
+        source_display="Liebes-Lied",
+        source_id="poetic_wisdom",
         category_ids=("love", "mindfulness"),
         locale="de",
         rights_classification=RightsClassification.PUBLIC_DOMAIN,
         attribution_required=True,
-        original_work="Briefe an einen jungen Dichter (letter 7, Rome, 14 May 1904)",
+        original_work="Neue Gedichte (Liebes-Lied, lines 8-10)",
         source_edition=(
-            "Rainer Maria Rilke: Briefe an einen jungen Dichter, "
-            "Insel-Verlag, Leipzig 1935, pp. 41-42; "
-            "https://imwerden.de/pdf/rilke_briefe_an_einen_jungen_dichter_1935__ocr.pdf; "
-            "sentence-ending excerpt, initial omission marked; no Kappus editorial text"
+            "Rainer Maria Rilke: Neue Gedichte, first edition, "
+            "Insel-Verlag, Leipzig 1907, p. 3; "
+            "https://de.wikisource.org/wiki/Liebes-Lied; line breaks joined"
         ),
-        publication_year=1935,
+        publication_year=1907,
         translator=None,
         rights_basis="Public Domain (Rainer Maria Rilke died 1926, p.m.a. > 70 years)",
     ),

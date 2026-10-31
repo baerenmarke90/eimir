@@ -138,15 +138,54 @@ describe('primary tab swipe ownership', () => {
     );
     expect(animate).toHaveBeenCalledTimes(1);
     expect(animate.mock.calls[0]?.[1]).toMatchObject({ duration: 180 });
+    expect(surface.getAttribute('data-primary-tab-animating')).toBe('true');
     // No screenshot overlay owns input: the immediate next swipe uses the
     // same live main element and cancels its previous entrance animation.
     act(() => swipe(screen.getByTestId('reading')));
     expect(cancel).toHaveBeenCalled();
+    expect(surface.hasAttribute('data-primary-tab-animating')).toBe(false);
     expect(navigate).toHaveBeenCalledExactlyOnceWith('/more');
     view.rerender(
       <Harness pathname="/more" routeKey="third" onNavigate={navigate} />,
     );
     expect(animate).toHaveBeenCalledTimes(2);
+    expect(surface.getAttribute('data-primary-tab-animating')).toBe('true');
+    view.unmount();
+    expect(surface.hasAttribute('data-primary-tab-animating')).toBe(false);
+  });
+
+  it('releases motion bounds on completion without letting an older animation clear its replacement', () => {
+    const first = { cancel: vi.fn() } as unknown as Animation;
+    const second = { cancel: vi.fn() } as unknown as Animation;
+    const animate = vi
+      .fn()
+      .mockReturnValueOnce(first)
+      .mockReturnValueOnce(second);
+    const navigate = vi.fn();
+    const view = render(<Harness pathname="/story" onNavigate={navigate} />);
+    const surface = screen.getByTestId('surface');
+    Object.defineProperty(surface, 'animate', {
+      configurable: true,
+      value: animate,
+    });
+    view.rerender(<Harness pathname="/plan" onNavigate={navigate} />);
+    const oldComplete = first.onfinish;
+    expect(oldComplete).toBeTypeOf('function');
+    view.rerender(<Harness pathname="/more" onNavigate={navigate} />);
+    expect(first.cancel).toHaveBeenCalled();
+    act(() =>
+      oldComplete?.call(first, new Event('finish') as AnimationPlaybackEvent),
+    );
+    expect(surface.getAttribute('data-primary-tab-animating')).toBe('true');
+    act(() =>
+      second.onfinish?.call(
+        second,
+        new Event('finish') as AnimationPlaybackEvent,
+      ),
+    );
+    expect(surface.hasAttribute('data-primary-tab-animating')).toBe(false);
+    expect(second.onfinish).toBeNull();
+    expect(second.oncancel).toBeNull();
   });
 
   it.each([
@@ -408,6 +447,35 @@ describe('primary tab swipe ownership', () => {
     fireEvent.pointerDown(card);
     fireEvent.click(card, { detail: 1 });
     expect(click).toHaveBeenCalledTimes(1);
+  });
+
+  it('bounds snap-back motion and cancels it when reduced motion becomes active', () => {
+    const media = {
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+    window.matchMedia = vi.fn().mockReturnValue(media);
+    const animation = { cancel: vi.fn() } as unknown as Animation;
+    const navigate = vi.fn();
+    render(<Harness onNavigate={navigate} />);
+    const surface = screen.getByTestId('surface');
+    Object.defineProperty(surface, 'animate', {
+      configurable: true,
+      value: vi.fn().mockReturnValue(animation),
+    });
+    act(() => swipe(screen.getByTestId('reading'), 200, 225));
+    expect(navigate).not.toHaveBeenCalled();
+    expect(surface.getAttribute('data-primary-tab-animating')).toBe('true');
+    const changed = media.addEventListener.mock.calls.find(
+      ([type]) => type === 'change',
+    )?.[1];
+    expect(changed).toBeTypeOf('function');
+    media.matches = true;
+    act(() => changed());
+    expect(animation.cancel).toHaveBeenCalled();
+    expect(surface.hasAttribute('data-primary-tab-animating')).toBe(false);
+    expect(media.removeEventListener).toHaveBeenCalledWith('change', changed);
   });
 
   it('uses the current navigation callback and keeps reduced-motion navigation immediate', () => {

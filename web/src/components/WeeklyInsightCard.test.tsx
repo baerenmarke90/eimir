@@ -94,9 +94,11 @@ it('confirms feedback before pressing it and supports removing the same intent',
   const button = screen.getByRole('button', { name: copy.ratings.HELPFUL });
   fireEvent.click(button);
   expect(button.getAttribute('aria-pressed')).toBe('false');
+  await waitFor(() => expect(put).toHaveBeenCalledTimes(1));
   accept({ recommendationKey: 'quiet_time', rating: 'HELPFUL' });
   await waitFor(() => expect(button.getAttribute('aria-pressed')).toBe('true'));
   fireEvent.click(button);
+  await waitFor(() => expect(put).toHaveBeenCalledTimes(2));
   expect(put.mock.calls[1][0].weeklyFeedbackUpdate.rating).toBeNull();
   accept({ recommendationKey: 'quiet_time', rating: null });
   await waitFor(() =>
@@ -195,4 +197,31 @@ it('allows clearing every retained caller preference without a Pro read', async 
       (call) => call[0].weeklyFeedbackUpdate.rating === null,
     ),
   ).toBe(true);
+});
+
+it('pauses background evidence refresh while a feedback intent is in flight', async () => {
+  let accept: (value: unknown) => void = () => {};
+  const put = vi.fn(
+    () =>
+      new Promise((resolve) => {
+        accept = resolve;
+      }),
+  );
+  const { api } = harness({ setDailyCheckInWeeklyFeedback: put });
+  await generate();
+  const reads = api.getDailyCheckInWeeklyReview.mock.calls.length;
+  fireEvent.click(screen.getByRole('button', { name: copy.ratings.HELPFUL }));
+  await waitFor(() => expect(put).toHaveBeenCalledTimes(1));
+  onlineManager.setOnline(false);
+  onlineManager.setOnline(true);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  expect(api.getDailyCheckInWeeklyReview).toHaveBeenCalledTimes(reads);
+  accept({ recommendationKey: 'quiet_time', rating: 'HELPFUL' });
+  await waitFor(() =>
+    expect(
+      screen
+        .getByRole('button', { name: copy.ratings.HELPFUL })
+        .getAttribute('aria-pressed'),
+    ).toBe('true'),
+  );
 });

@@ -59,13 +59,15 @@ function WeeklyInsightContent({
         { signal },
       ),
     gcTime: 0,
+    staleTime: Infinity,
     retry: false as const,
   };
   const query = useQuery({
     ...queryOptions,
-    enabled: requested,
+    enabled: requested && !busy,
     refetchInterval: 30_000,
     refetchOnWindowFocus: 'always',
+    refetchOnReconnect: 'always',
   });
   const visible =
     result?.scope === scope &&
@@ -90,6 +92,7 @@ function WeeklyInsightContent({
     setError(false);
     setResult(null);
     try {
+      await client.cancelQueries({ queryKey, exact: true });
       assertOnlineWrite();
       setRequested(true);
       const fresh = await client.fetchQuery({ ...queryOptions, staleTime: 0 });
@@ -127,6 +130,7 @@ function WeeklyInsightContent({
     setBusy(true);
     setError(false);
     try {
+      await client.cancelQueries({ queryKey, exact: true });
       assertOnlineWrite();
       const confirmed = await api.setDailyCheckInWeeklyFeedback(
         { spaceId, recommendationKey: key, weeklyFeedbackUpdate: { rating } },

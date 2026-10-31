@@ -363,13 +363,28 @@ test('Watch now advances automatically, pauses for a source, and finishes withou
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.clock.install();
   const state = await setup(page, { start: 'wir', pro: false });
+  const reader = page.locator('.recap-reader');
+  const heading = page.locator('.recap-spread h1');
+  async function advanceSpread(title: string) {
+    await expect(heading).toHaveText(title);
+    await expect(reader).toHaveAttribute('data-playing', 'true');
+    const dwell = await reader.evaluate((element) =>
+      Number.parseFloat(
+        getComputedStyle(element).getPropertyValue('--recap-dwell'),
+      ),
+    );
+    expect(Number.isFinite(dwell) && dwell > 0).toBe(true);
+    // Run the current spread's reading time after its committed content is ready.
+    // A fast-forward jump models suspension and can outrun the next timer's setup.
+    await page.clock.runFor(dwell + 1);
+  }
   await page.getByRole('link', { name: new RegExp(copy.watchNow) }).click();
   await expect(page).toHaveURL(/\/more\/passport\/october$/);
   await expect(page.locator('.recap-reader')).toHaveAttribute(
     'data-playing',
     'true',
   );
-  await page.clock.fastForward(90001);
+  await advanceSpread(fixtureCopy.monthHeadline);
   await expect(page).toHaveURL(/page=1/);
   await page.getByRole('link', { name: new RegExp(copy.source) }).click();
   await page
@@ -387,12 +402,12 @@ test('Watch now advances automatically, pauses for a source, and finishes withou
     'data-playing',
     'true',
   );
-  await page.clock.fastForward(90001);
+  await advanceSpread(fixtureCopy.photoTitle);
   await expect(page).toHaveURL(/page=2/);
   await expect(
     page.getByRole('button', { name: copy.pause, exact: true }),
   ).toBeVisible();
-  await page.clock.fastForward(90001);
+  await advanceSpread(fixtureCopy.wordsTitle);
   await expect(page.locator('.recap-spread h1')).toHaveText(copy.finishTitle);
   await expect(
     page.getByRole('button', { name: copy.replay, exact: true }),

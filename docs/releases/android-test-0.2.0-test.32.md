@@ -2,7 +2,9 @@
 
 The Product Owner requested a new test release from the latest main on
 2026-10-31. Accepted main `f7660401c60552bb8d8b33a72d98040f96bbf4c5`
-is an explicit merge parent of this isolated candidate. Preserve draft PR #1443
+is retained as the frozen main baseline in this candidate's merge ancestry.
+The test-only delivery repair in #1552 is integrated without runtime changes.
+Preserve draft PR #1443
 as the private test foundation; never merge it into main. Published test.31 and
 all previous release assets remain immutable.
 
@@ -13,6 +15,18 @@ refinements, Pro saved-memory map, finite couple games, dated Plan calendar
 handoff, multiweek observations and private weekly feedback; #1548 responsive
 native cold launch and shared primary-tab motion; and #1550 keyboard tab ordering.
 No additional product UI or native capability is implemented for packaging.
+
+The initial candidate `0a4bf36d84afc8f93ba77e5837a55df39955ef27` was rejected
+by three deterministic changed-browser cases, also seen in main's full regression.
+Two stale assertions still required the optional Memory title after narrative and
+media despite #1547's accepted title-first contract. The third measured a mouse
+drag handle at y=577.5 in a 600px viewport, behind fixed mobile navigation, so the
+gesture never reached the handle. Align the asserted title/date/narrative/media/
+visibility/action sequence with the accepted product and center/actionability-check
+the handle before both raw mouse gestures. Preserve actual reorder persistence,
+normal row scrolling, edge autoscroll, geometry, accessibility and every timeout.
+No runtime code changes and no manual same-commit retry are used for these fixes;
+the corrected candidate requires fresh exact-source checks.
 
 Retain accepted main's Product Reference v1 and owning generated preflights,
 interaction contracts and actual Compact/Expanded, Light/Dark, large-text,

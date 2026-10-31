@@ -58,6 +58,39 @@ interface Gesture {
   startedAt: number;
 }
 
+/** Keep both entry and snap-back motion bounded until completion or cancellation. */
+function animatePrimarySurface(
+  surface: HTMLElement,
+  owner: RefObject<(() => void) | null>,
+  frames: Keyframe[],
+  options: KeyframeAnimationOptions,
+): () => void {
+  owner.current?.();
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  const animation = surface.animate(frames, options);
+  surface.dataset.primaryTabAnimating = 'true';
+  const complete = () => {
+    if (owner.current !== cancel) return;
+    owner.current = null;
+    delete surface.dataset.primaryTabAnimating;
+    animation.onfinish = null;
+    animation.oncancel = null;
+    reducedMotion?.removeEventListener('change', motionChanged);
+  };
+  const cancel = () => {
+    animation.cancel();
+    complete();
+  };
+  const motionChanged = () => {
+    if (reducedMotion?.matches) cancel();
+  };
+  owner.current = cancel;
+  animation.onfinish = complete;
+  animation.oncancel = complete;
+  reducedMotion?.addEventListener('change', motionChanged);
+  return cancel;
+}
+
 /** Shell-owned root navigation; content scrollers and task layers keep priority. */
 export function usePrimaryTabSwipe({
   surfaceRef,
@@ -79,7 +112,7 @@ export function usePrimaryTabSwipe({
     null,
   );
   const previousRoute = useRef({ pathname, routeKey });
-  const entryAnimation = useRef<Animation | null>(null);
+  const mainMotionCleanup = useRef<(() => void) | null>(null);
 
   useLayoutEffect(() => {
     const surface = surfaceRef.current;
@@ -88,8 +121,7 @@ export function usePrimaryTabSwipe({
     const pending = entry.current;
     entry.current = null;
 
-    entryAnimation.current?.cancel();
-    entryAnimation.current = null;
+    mainMotionCleanup.current?.();
     const before = PRIMARY_APP_ROUTES.findIndex(
       (route) => route.path === previous.pathname,
     );
@@ -120,9 +152,11 @@ export function usePrimaryTabSwipe({
     // Animate the live content, never a document-level snapshot. The browser's
     // View Transition overlay disables hit-testing until completion and blocks
     // immediate consecutive swipes on Android/Chromium.
-    if (surface.animate) {
+    if (typeof surface.animate === 'function') {
       const style = getComputedStyle(surface);
-      const animation = surface.animate(
+      return animatePrimarySurface(
+        surface,
+        mainMotionCleanup,
         [
           { opacity: 0.92, transform: `translate3d(${offset}, 0, 0)` },
           { opacity: 1, transform: 'none' },
@@ -133,16 +167,6 @@ export function usePrimaryTabSwipe({
           easing: style.getPropertyValue('--easing-enter').trim() || 'ease-out',
         },
       );
-      entryAnimation.current = animation;
-      const motionChanged = () => {
-        if (reducedMotion?.matches) animation.cancel();
-      };
-      reducedMotion?.addEventListener('change', motionChanged);
-      return () => {
-        reducedMotion?.removeEventListener('change', motionChanged);
-        animation.cancel();
-        if (entryAnimation.current === animation) entryAnimation.current = null;
-      };
     }
 
     // Fallback for older WebViews without the Web Animations API.
@@ -174,7 +198,6 @@ export function usePrimaryTabSwipe({
     if (!surface || index < 0) return;
     let gesture: Gesture | null = null;
     let frame = 0;
-    let snapBack: Animation | undefined;
     const clearDrag = () => {
       if (frame) window.cancelAnimationFrame(frame);
       frame = 0;
@@ -187,9 +210,7 @@ export function usePrimaryTabSwipe({
     };
     const start = (event: TouchEvent) => {
       cancel();
-      snapBack?.cancel();
-      entryAnimation.current?.cancel();
-      entryAnimation.current = null;
+      mainMotionCleanup.current?.();
       suppressClick.current = false;
       const touch = event.touches[0];
       if (
@@ -291,10 +312,12 @@ export function usePrimaryTabSwipe({
       ) {
         if (
           !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches &&
-          surface.animate
+          typeof surface.animate === 'function'
         ) {
           const style = getComputedStyle(surface);
-          snapBack = surface.animate(
+          animatePrimarySurface(
+            surface,
+            mainMotionCleanup,
             [
               {
                 transform: `translateX(${Math.max(-24, Math.min(24, current.offset * 0.12))}px)`,
@@ -349,7 +372,7 @@ export function usePrimaryTabSwipe({
     window.addEventListener('resize', cancel);
     return () => {
       cancel();
-      snapBack?.cancel();
+      mainMotionCleanup.current?.();
       surface.removeEventListener('touchstart', start);
       surface.removeEventListener('touchmove', move);
       surface.removeEventListener('touchend', end);

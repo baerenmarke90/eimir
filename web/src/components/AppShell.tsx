@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  ViewTransition,
 } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
@@ -58,7 +59,7 @@ function NavigationLink({ route }: { route: AppRouteDefinition }) {
   const hasUnread = route.id === 'more' && (unreadCount ?? 0) > 0;
   const activeArea = activeNavigationArea(location.pathname);
   const isActive = activeArea === route.id;
-  const { destinationFor, captureCurrent } = usePrimaryNavigation();
+  const { destinationFor, navigatePrimary } = usePrimaryNavigation();
 
   return (
     <Link
@@ -84,7 +85,8 @@ function NavigationLink({ route }: { route: AppRouteDefinition }) {
           });
           return;
         }
-        captureCurrent();
+        event.preventDefault();
+        navigatePrimary(route.path);
       }}
       className={`shell-nav-link${isActive ? ' shell-nav-link-active' : ''}`}
       aria-current={isActive ? 'page' : undefined}
@@ -392,7 +394,14 @@ function AuthenticatedAppShell({
         ) : null}
 
         <div className="product-shell-body">
-          <main
+          <ViewTransition
+            default="none"
+            update={{
+              'primary-tab-forward': 'eimir-primary-tab-forward',
+              'primary-tab-backward': 'eimir-primary-tab-backward',
+            }}
+          >
+            <main
             ref={mainRef}
             id="main-content"
             className="product-main"
@@ -414,7 +423,8 @@ function AuthenticatedAppShell({
             ) : (
               children
             )}
-          </main>
+            </main>
+          </ViewTransition>
         </div>
 
         {!isFocusedTask ? (

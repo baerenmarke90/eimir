@@ -90,6 +90,8 @@ export function usePrimaryTabSwipe({
       surface &&
       pending?.to === pathname &&
       pending.from !== routeKey &&
+      // React owns the snapshot handoff when browser View Transitions exist.
+      typeof document.startViewTransition !== 'function' &&
       !reducedMotion?.matches
     ) {
       surface.style.setProperty(
@@ -206,9 +208,9 @@ export function usePrimaryTabSwipe({
         frame = window.requestAnimationFrame(() => {
           frame = 0;
           if (!gesture) return;
-          // Bounded direct feedback; never move or remount the fixed shell.
-          const limit = window.innerWidth;
-          const offset = Math.max(-limit, Math.min(limit, gesture.offset));
+          // A subtle touch-following offset, not a whole-screen translation:
+          // the destination is captured by the ViewTransition after release.
+          const offset = Math.max(-24, Math.min(24, gesture.offset * 0.12));
           surface.dataset.primaryTabDragging = 'true';
           surface.style.setProperty('--primary-tab-offset', `${offset}px`);
         });
@@ -245,7 +247,9 @@ export function usePrimaryTabSwipe({
           const style = getComputedStyle(surface);
           snapBack = surface.animate(
             [
-              { transform: `translateX(${current.offset}px)` },
+              {
+                transform: `translateX(${Math.max(-24, Math.min(24, current.offset * 0.12))}px)`,
+              },
               { transform: 'none' },
             ],
             {
@@ -265,7 +269,7 @@ export function usePrimaryTabSwipe({
       if (!destination) return;
       entry.current = {
         to: destination.path,
-        offset: direction * window.innerWidth + dx,
+        offset: direction * 24,
         from: routeKey,
       };
       navigateRef.current(destination.path);

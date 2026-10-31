@@ -384,8 +384,8 @@
     },
     "memory-map-and-couple-games.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 7,
-      "reason": "Protects saved-memory map privacy/Pro admission/source return, finite playable games, explicit tile consent and calendar date semantics."
+      "baselineTests": 8,
+      "reason": "Protects saved-memory map privacy/Pro admission/source return, immediate tiles after authorized entry, tile-error list fallback/reflow, finite playable games and calendar date semantics."
     }
   }
 }

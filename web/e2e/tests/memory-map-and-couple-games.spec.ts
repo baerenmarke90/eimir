@@ -1,16 +1,16 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import mapCopy from '../../src/i18n/locales/memoryMap';
-import gameCopy from '../../src/i18n/locales/games';
 import calendarCopy from '../../src/i18n/locales/calendarPlan';
+import gameCopy from '../../src/i18n/locales/games';
+import mapCopy from '../../src/i18n/locales/memoryMap';
 import {
   ACCOUNT_ID,
+  captureScreenshot,
+  installMocks,
   PARTNER_ID,
   SPACE_ID,
-  TINY_PNG,
-  installMocks,
   signIn,
-  captureScreenshot,
+  TINY_PNG,
 } from '../support/storyTimelineFixture';
 
 for (const [width, theme] of [
@@ -19,11 +19,14 @@ for (const [width, theme] of [
   [430, 'light'],
   [1280, 'dark'],
 ] as const) {
-  test(`saved memory map at ${width} ${theme}: consent, grouped sources and return`, async ({
+  test(`saved memory map at ${width} ${theme}: immediate map, grouped sources and return`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.emulateMedia({
+      colorScheme: theme,
+      reducedMotion: width === 430 ? 'no-preference' : 'reduce',
+    });
     await installMocks(page);
     let tileReads = 0;
     await page.route('https://tile.openstreetmap.org/**', async (route) => {
@@ -43,6 +46,15 @@ for (const [width, theme] of [
               latitude: 49.45,
               longitude: 7.16,
             },
+            {
+              memoryId: 'mem-walk',
+              title: 'One more walk together',
+              happenedOn: '2026-06-12',
+              placeId: 'lake',
+              placeName: 'Lake',
+              latitude: 49.45,
+              longitude: 7.16,
+            },
           ],
           nextCursor: null,
         },
@@ -53,16 +65,30 @@ for (const [width, theme] of [
     await expect(
       page.getByRole('heading', { name: mapCopy.title }),
     ).toBeVisible();
-    await expect(
-      page.getByRole('button', { name: 'Lake · 1 Erinnerung' }),
-    ).toBeVisible();
-    expect(tileReads).toBe(0);
-    await page.getByRole('button', { name: 'Lake · 1 Erinnerung' }).click();
-    const memory = page.getByRole('link', { name: /Afternoon by the canal/ });
-    await expect(memory).toHaveAttribute('href', '/story/memories/mem-canal');
-    await page.getByRole('button', { name: 'Karte laden' }).click();
+    const place = page.getByRole('button', { name: 'Lake · 2 Erinnerungen' });
+    await expect(place).toBeVisible();
     await expect(page.locator('.memory-map-marker')).toHaveCount(1);
     await expect.poll(() => tileReads).toBeGreaterThan(0);
+    await expect(page.getByRole('button', { name: 'Karte laden' })).toHaveCount(
+      0,
+    );
+    await captureScreenshot(
+      page,
+      info,
+      `memory-map-places-${width}-${theme}.png`,
+      {
+        fullPage: true,
+      },
+    );
+    await place.hover();
+    if (width !== 430) await expect(place).toHaveCSS('transform', 'none');
+    await place.click();
+    const memory = page.getByRole('link', { name: /Afternoon by the canal/ });
+    await expect(memory).toHaveAttribute('href', '/story/memories/mem-canal');
+    await expect(page.locator('.memory-map-selection ul')).toHaveCSS(
+      'animation-name',
+      width === 430 ? 'eimir-disclosure-reveal' : 'none',
+    );
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -84,6 +110,68 @@ for (const [width, theme] of [
     ).toBeVisible();
   });
 }
+
+test('failed map tiles keep memories usable at 320px with large text', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await installMocks(page);
+  await page.route('https://tile.openstreetmap.org/**', (route) =>
+    route.fulfill({ status: 503, body: '' }),
+  );
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/memory-map*`, (route) =>
+    route.fulfill({
+      json: {
+        items: [
+          {
+            memoryId: 'mem-canal',
+            title: 'A long afternoon together by the canal after our walk',
+            happenedOn: '2026-10-30',
+            placeId: 'lake',
+            placeName: 'Our favourite quiet place by the water',
+            latitude: 49.45,
+            longitude: 7.16,
+          },
+        ],
+        nextCursor: null,
+      },
+    }),
+  );
+  await signIn(page);
+  await page.getByRole('link', { name: mapCopy.entry, exact: true }).click();
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+  await expect(page.locator('.place-map-canvas [role="status"]')).toBeVisible();
+  await page
+    .getByRole('button', { name: /Our favourite quiet place by the water/ })
+    .click();
+  await expect(
+    page.getByRole('link', { name: /A long afternoon together/ }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await captureScreenshot(
+    page,
+    info,
+    'memory-map-320-dark-large-tile-error.png',
+    {
+      fullPage: true,
+    },
+  );
+  expect(
+    (await new AxeBuilder({ page }).include('.memory-map-page').analyze())
+      .violations,
+  ).toEqual([]);
+  await page.getByRole('button', { name: mapCopy.allPlaces }).click();
+  await expect(
+    page.getByRole('button', {
+      name: /Our favourite quiet place by the water/,
+    }),
+  ).toBeVisible();
+});
 
 test('map entitlement denial explains Pro without loading external tiles', async ({
   page,

@@ -1,7 +1,6 @@
 export default {
-  entry: 'Karte · Pro',
+  entry: 'Karte',
   title: 'Erinnerungskarte',
-  intro: 'Eure Erinnerungen. An den Orten, die dazugehören.',
   back: 'Zurück zu Momente',
   places: 'Orte eurer Erinnerungen',
   proTitle: 'Eure Erinnerungen auf einer Karte – mit Pro',
@@ -10,8 +9,8 @@ export default {
   emptyTitle: 'Eure Karte wartet auf den ersten Ort',
   emptyBody:
     'Verknüpft eine Erinnerung mit einem Ort mit Position. Hier erscheinen nur bereits gespeicherte Orte – ohne Standortverfolgung.',
-  privacy:
-    'Beim Laden der Karte erhält OpenStreetMap deine IP-Adresse und den Kartenausschnitt. Titel und Inhalte eurer Erinnerungen werden nicht übermittelt. Die Ortsliste funktioniert auch ohne geladene Karte.',
+  memoryCount_one: '{{count}} Erinnerung',
+  memoryCount_other: '{{count}} Erinnerungen',
   locationCount_one: '{{name}} · {{count}} Erinnerung',
   locationCount_other: '{{name}} · {{count}} Erinnerungen',
   keyboardHelp:

@@ -416,7 +416,9 @@ for (const [width, theme, largeText] of [
       { fullPage: true },
     );
     await page.goto('/more');
-    await page.getByRole('link', { name: /Beziehungs-Pass/ }).click();
+    await page
+      .getByRole('link', { name: new RegExp(recapCopy.shortTitle) })
+      .click();
     await page.getByText(recapCopy.details, { exact: true }).click();
     if (largeText)
       await page.addStyleTag({
@@ -473,7 +475,9 @@ test('Free Passport remains reachable from More without requesting Pro counts', 
   await page.goto('/more/profile');
   await expect(page.locator('.profile-passport-entry')).toHaveCount(0);
   await page.goto('/more');
-  await page.getByRole('link', { name: /Beziehungs-Pass/ }).click();
+  await page
+    .getByRole('link', { name: new RegExp(recapCopy.shortTitle) })
+    .click();
   await expect(page.getByText(recapCopy.gateBody)).toBeVisible();
   await expect(page.locator('.passport-metrics')).toHaveCount(0);
   expect(state.passportReads()).toBe(0);

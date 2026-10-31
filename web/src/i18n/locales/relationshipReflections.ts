@@ -15,7 +15,7 @@ const relationshipReflections = {
     saved: 'Vorfreude aktualisiert.',
   },
   passport: {
-    title: 'Eure Rückblicke',
+    title: 'Eure Geschichte',
     pro: 'Pro',
     intro: 'Eure Geschichte in kleinen und großen Momenten.',
     couple: '{{own}} & {{partner}}',

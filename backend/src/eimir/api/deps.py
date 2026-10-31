@@ -159,6 +159,10 @@ def photo_binding_authorization(
 
 PhotoBindingAuthorization = Annotated[AuthorizationContext, Depends(photo_binding_authorization)]
 
+# Caller-owned configuration inserts also take an Account FK key check. Reuse
+# the Account-before-Membership lifecycle barrier without upgrading its lock.
+AccountBoundAuthorization = Annotated[AuthorizationContext, Depends(photo_binding_authorization)]
+
 
 def ensure_capability(
     session: Session,

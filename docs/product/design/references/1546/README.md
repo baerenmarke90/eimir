@@ -16,13 +16,15 @@ Wir keeps daily rituals, focal content, upcoming plans, contextual signals, date
 
 Games retain the existing three flows and add two finite authored sofa sessions: optional small missions and shared memory conversation prompts. Both require two current partners, support skip, finish, restart and exit, keep no answer history and never invent source memories or relationship scores. No new runtime provider/dependency.
 
-## Weekly AI feasibility
+## Weekly AI implementation
 
-**Feasible as optional wording assistance; deliberately not activated in this UI change.** The existing operator-configured local model seam (`recaps/local_ai.py`) accepts bounded authorized source evidence. Weekly insights (`daily_checkins/insights.py`, `dailyInsightsModel.ts`) currently derive facts and privacy-aware visible observations deterministically. That separation is valuable and remains.
+The explicit PO follow-up authorizes deeper weekly analysis and recommendations. The [weekly AI contract and generated preflight](weekly-ai.md) were linked in #1546 before this extension's UI work. The existing charts, week picker, tabs, observations and recap action remain in place.
 
-A safe later implementation should send only selected already-derived, mutually revealed observations (for example shared-day count and a supported energy comparison), with period and locale, after explicit action. Never send private/vibe notes, unavailable partner values, raw profiles or missing-day guesses. The model may shorten wording; it must not calculate facts, diagnose, rate the relationship, claim causes, infer feelings or convert missing daily entries into absence of care. Existing recap wording checks are not sufficient semantic verification for health-adjacent trend language and cannot be reused blindly.
+The server derives comparable joint observations over up to eight weeks. Only dimensions with an own value and a currently VISIBLE partner value contribute. Sample thresholds cover weekly comparisons, repeated weekday/weekend differences and differing Vibe selections. Notes, names, photos, raw daily rows and hidden participation do not enter the model packet.
 
-Reuse the same operator-only local inference configuration, bounded queue/timeout and deterministic fallback; add a distinct constrained prompt/output validator, per-Space admission and rate limit before runtime use. Keep `daily.insights` entitlement and optional-module/reveal boundaries. No browser model call, new provider, user API key, automatic private-data upload or inference on every render. This PR performs the requested feasibility review, not an unreviewed expansion of daily-entry processing.
+The existing operator-local model selects supplied observation/recommendation IDs through a bounded schema; canonical localized wording renders the result. It cannot invent prose, numbers, causes, diagnoses or relationship scores. Sparse data skips inference and explicitly presents general ideas. Missing configuration, contention, timeout and invalid output retain the deterministic fallback. Generation requires a deliberate action; GET/focus/polling never triggers inference.
+
+Results stay ephemeral and tied to instance/account/Space/week plus a fresh evidence revision. Post-inference authorization and revision checks reject changed inputs; client revalidation hides obsolete results. Caller-private feedback excludes or prioritizes catalog entries for that caller only. Confirmed writes, clearing, offline errors and context changes are handled without replaying inference. A Free downgrade retains preferences and offers an explicit Core action to clear them.
 
 ## Calendar semantics and limits
 
@@ -32,7 +34,7 @@ The explicit action shares a calendar File when supported or downloads it for im
 
 ## Reuse, business and privacy
 
-The matrix records `memories.map` as Pro per the explicit PO follow-up; it is Space-owned and server-enforced. Basic Places, coordinates, direct maps and source memories remain Core, including after downgrade. Calendar handoff is Core; existing games/weekly insights/Passport retain their capabilities. No data migration or new persistence.
+The matrix records `memories.map` as Pro per the explicit PO follow-up; it is Space-owned and server-enforced. Basic Places, coordinates, direct maps and source memories remain Core, including after downgrade. Calendar handoff is Core; existing games/weekly insights/Passport retain their capabilities. The map/calendar/game changes add no persistence. The authorized weekly follow-up adds migration 0095 for at most six recommendation preferences per account and Space; no analyses or check-in content are copied into it.
 
 Leaflet BSD-2-Clause and the existing OSM tile integration are reused. Current primary sources checked: [Leaflet reference](https://leafletjs.com/reference.html), [OSM tile policy](https://operations.osmfoundation.org/policies/tiles/). Attribution remains visible, `referrerPolicy: origin`, no prefetch/offline tile packs and no tile request before explicit load. The provider receives IP/origin/viewport; memory titles, photos and source IDs stay local. Cloud/Self-Hosted use the same behavior, without a new paid provider or required user setup. The equivalent list is the provider-independent fallback.
 
@@ -51,6 +53,7 @@ The earlier PR validation covered the additional map, games, calendar, profile, 
 | Wir monthly slideshow without the archive action | [360 Light](evidence/wir-monthly-slideshow-360-light.webp), [390 Dark](evidence/wir-monthly-slideshow-390-dark.webp), [430 Light](evidence/wir-monthly-slideshow-430-light.webp) | [1280 Dark](evidence/wir-monthly-slideshow-1280-dark.webp) |
 | Monthly photo/text highlights retained | [390 Light](evidence/monthly-highlights-390-light.webp) | [390 Dark](evidence/monthly-highlights-390-dark.webp) |
 | Eure Geschichte | [Voluntary story metrics](evidence/wir-optional-statistics-390.webp) | Canonical filtered links retained; token-sized icons and unbroken labels |
+| Weekly AI and private feedback | [360 Light](evidence/weekly-ai-360-light.webp), [390 Dark](evidence/weekly-ai-390-dark.webp), [430 Light](evidence/weekly-ai-430-light.webp) | [1280 Dark](evidence/weekly-ai-1280-dark.webp), [320 Dark / 200%](evidence/weekly-ai-320-dark-200pct.webp), [sparse / failed feedback](evidence/weekly-ai-sparse-error-390.webp) |
 | Eure Woche | [390 Light](evidence/insights-week-390-light.webp) | [320 Dark / 200%](evidence/insights-week-320-dark-200pct.webp), [1280 Light](evidence/insights-week-1280-light.webp) |
 | Profile without Passport | [360 Light](evidence/profile-without-passport-360-light.webp), [390 Dark](evidence/profile-without-passport-390-dark.webp), [430 Light](evidence/profile-without-passport-430-light.webp) | [1280 Dark](evidence/profile-without-passport-1280-dark.webp), [320 Light](evidence/profile-without-passport-320-light.webp), [large text](evidence/profile-without-passport-390-dark-large.webp) |
 | Saved-memory map | [360 Light](evidence/memory-map-360-light.webp), [390 Dark](evidence/memory-map-390-dark.webp), [430 Light](evidence/memory-map-430-light.webp) | [1280 Dark](evidence/memory-map-1280-dark.webp) |

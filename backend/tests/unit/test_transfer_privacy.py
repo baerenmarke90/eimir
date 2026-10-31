@@ -10,7 +10,9 @@ from eimir.transfer.archive import TransferArchiveError
 from eimir.transfer.models import TransferScope
 
 
-@pytest.mark.parametrize("table_name", ["rule_preferences", "reminder_preferences"])
+@pytest.mark.parametrize(
+    "table_name", ["rule_preferences", "reminder_preferences", "daily_insight_feedback"]
+)
 def test_shared_import_rejects_account_scoped_configuration(table_name: str) -> None:
     member_id = uuid4()
     tables = {table_name: [{"id": str(uuid4()), "accountId": str(member_id)}]}
@@ -26,7 +28,9 @@ def test_shared_import_rejects_account_scoped_configuration(table_name: str) -> 
     assert exc_info.value.code == ErrorCode.TRANSFER_PRIVACY_SCOPE_INVALID
 
 
-@pytest.mark.parametrize("table_name", ["rule_preferences", "reminder_preferences"])
+@pytest.mark.parametrize(
+    "table_name", ["rule_preferences", "reminder_preferences", "daily_insight_feedback"]
+)
 def test_personal_import_rejects_partner_account_scoped_configuration(table_name: str) -> None:
     requester_id = uuid4()
     partner_id = uuid4()

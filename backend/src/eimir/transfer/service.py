@@ -88,10 +88,13 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
     "private/notes.json": ("private_notes",),
     "private/gift-ideas.json": ("gift_ideas",),
     "private/collections.json": ("private_collections", "private_collection_items"),
+    "private/weekly-insight-feedback.json": ("daily_insight_feedback",),
 }
 PRIVATE_FILES = frozenset(name for name in FILE_TABLES if name.startswith("private/"))
 PRIVATE_ROOTS = frozenset({"private_notes", "gift_ideas", "private_collections"})
-ACCOUNT_SCOPED_CONFIG_TABLES = frozenset({"rule_preferences", "reminder_preferences"})
+ACCOUNT_SCOPED_CONFIG_TABLES = frozenset(
+    {"rule_preferences", "reminder_preferences", "daily_insight_feedback"}
+)
 CHILD_PARENT: dict[str, tuple[str, str]] = {
     "collection_items": ("collection_id", "collections"),
     "private_collection_items": ("collection_id", "private_collections"),
@@ -137,6 +140,7 @@ INSERT_ORDER = (
     "reminder_offsets",
     "reminder_preferences",
     "rule_preferences",
+    "daily_insight_feedback",
     "comments",
     "recap_editions",
     "recap_sources",
@@ -335,6 +339,22 @@ def _portable_rows(
     all_tables = {name for names in FILE_TABLES.values() for name in names}
 
     for table_name in all_tables:
+        if table_name == "daily_insight_feedback":
+            table = _table(session, table_name, metadata)
+            rows[table_name] = (
+                []
+                if scope is TransferScope.SHARED
+                else [
+                    dict(row)
+                    for row in session.execute(
+                        select(table).where(
+                            table.c.space_id == authorization.space_id,
+                            table.c.account_id == authorization.account_id,
+                        )
+                    ).mappings()
+                ]
+            )
+            continue
         if table_name in CHILD_PARENT or table_name in RELATION_REQUIREMENTS:
             continue
         table = _table(session, table_name, metadata)

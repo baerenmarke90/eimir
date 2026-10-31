@@ -1,8 +1,9 @@
 import type { TFunction } from 'i18next';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   compact,
+  type DerivedInsight,
   daysWithValues,
   deriveBothGood,
   deriveEnergyVersusPrevious,
@@ -12,13 +13,12 @@ import {
   deriveVibeEnergy,
   deriveWeekdayEnergy,
   deriveWeekendEnergy,
-  type DerivedInsight,
   energyBand,
   energyPosition,
   goodWeekdays,
   type InsightDay,
-  type InsightModules,
   type InsightKind,
+  type InsightModules,
   type IsoDate,
   mondayOf,
   monthStart,
@@ -34,23 +34,23 @@ import {
 } from '../client/routes';
 import { useTranslation } from '../i18n';
 import {
+  type ChartDimension,
   daySummary,
   EnergyWeekChart,
   VibeWeekChart,
-  type ChartDimension,
 } from './DailyInsightsCharts';
 import {
   formatDayLong,
   formatDayNumber,
   formatDayShort,
   formatWeekdayLong,
-  WeekdayLabel,
   Handwriting,
   InsightIcon,
   type InsightIconName,
-  InsightStatement,
   type InsightPerson,
+  InsightStatement,
   PersonLegend,
+  WeekdayLabel,
 } from './DailyInsightsParts';
 
 export interface ViewProps {
@@ -155,7 +155,12 @@ function ClosingLandscape() {
 
 /* Week — Pro Screen A ---------------------------------------------------- */
 
-export function WeekView({ days, people, modules }: ViewProps) {
+export function WeekView({
+  days,
+  people,
+  modules,
+  weeklyReview,
+}: ViewProps & { weeklyReview?: ReactNode }) {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<IsoDate | null>(null);
   const withValues = daysWithValues(days);
@@ -165,7 +170,12 @@ export function WeekView({ days, people, modules }: ViewProps) {
   );
 
   if (withValues === 0) {
-    return <EmptyCard />;
+    return (
+      <>
+        <EmptyCard />
+        {weeklyReview}
+      </>
+    );
   }
 
   const statements = compact([
@@ -208,6 +218,7 @@ export function WeekView({ days, people, modules }: ViewProps) {
           ))}
         </ul>
       ) : null}
+      {weeklyReview}
       <section
         className="insight-closing"
         aria-label={t('dailyInsights.nav.recap')}

@@ -4694,6 +4694,19 @@
         "title": "NotificationsReadAllResult",
         "type": "object"
       },
+      "ObservationKind": {
+        "enum": [
+          "JOINT_DAYS",
+          "ENERGY_RISING",
+          "ENERGY_FALLING",
+          "WEEKEND_HIGHER",
+          "WEEKEND_LOWER",
+          "WEEKDAY_LOWER",
+          "DIFFERENT_VIBES"
+        ],
+        "title": "ObservationKind",
+        "type": "string"
+      },
       "OidcStartRequest": {
         "properties": {
           "invitationToken": {
@@ -7654,6 +7667,26 @@
         ],
         "title": "RecentAuthenticationView",
         "type": "object"
+      },
+      "RecommendationKey": {
+        "enum": [
+          "quiet_time",
+          "small_plan",
+          "appreciation",
+          "listening",
+          "own_pace",
+          "keep_ritual"
+        ],
+        "title": "RecommendationKey",
+        "type": "string"
+      },
+      "RecommendationRating": {
+        "enum": [
+          "HELPFUL",
+          "NOT_FITTING"
+        ],
+        "title": "RecommendationRating",
+        "type": "string"
       },
       "RecoveryConsumeRequest": {
         "properties": {
@@ -11433,6 +11466,189 @@
           "requiredHeaders"
         ],
         "title": "UploadDescriptor",
+        "type": "object"
+      },
+      "WeeklyFeedbackUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "rating": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecommendationRating"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "rating"
+        ],
+        "title": "WeeklyFeedbackUpdate",
+        "type": "object"
+      },
+      "WeeklyFeedbackView": {
+        "properties": {
+          "rating": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecommendationRating"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recommendationKey": {
+            "$ref": "#/components/schemas/RecommendationKey"
+          }
+        },
+        "required": [
+          "recommendationKey",
+          "rating"
+        ],
+        "title": "WeeklyFeedbackView",
+        "type": "object"
+      },
+      "WeeklyObservationView": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ObservationKind"
+          },
+          "sampleCount": {
+            "title": "Samplecount",
+            "type": "integer"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "weekday": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weekday"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "sampleCount"
+        ],
+        "title": "WeeklyObservationView",
+        "type": "object"
+      },
+      "WeeklyReviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "evidenceToken": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Evidencetoken",
+            "type": "string"
+          },
+          "weekStart": {
+            "format": "date",
+            "title": "Weekstart",
+            "type": "string"
+          }
+        },
+        "required": [
+          "weekStart",
+          "evidenceToken"
+        ],
+        "title": "WeeklyReviewRequest",
+        "type": "object"
+      },
+      "WeeklyReviewView": {
+        "properties": {
+          "evidenceToken": {
+            "title": "Evidencetoken",
+            "type": "string"
+          },
+          "feedback": {
+            "items": {
+              "$ref": "#/components/schemas/WeeklyFeedbackView"
+            },
+            "title": "Feedback",
+            "type": "array"
+          },
+          "general": {
+            "title": "General",
+            "type": "boolean"
+          },
+          "generatedBy": {
+            "default": "RULES",
+            "enum": [
+              "RULES",
+              "AI"
+            ],
+            "title": "Generatedby",
+            "type": "string"
+          },
+          "historyEnd": {
+            "format": "date",
+            "title": "Historyend",
+            "type": "string"
+          },
+          "historyStart": {
+            "format": "date",
+            "title": "Historystart",
+            "type": "string"
+          },
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/WeeklyObservationView"
+            },
+            "title": "Observations",
+            "type": "array"
+          },
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/RecommendationKey"
+            },
+            "title": "Recommendations",
+            "type": "array"
+          },
+          "weekEnd": {
+            "format": "date",
+            "title": "Weekend",
+            "type": "string"
+          },
+          "weekStart": {
+            "format": "date",
+            "title": "Weekstart",
+            "type": "string"
+          }
+        },
+        "required": [
+          "weekStart",
+          "weekEnd",
+          "historyStart",
+          "historyEnd",
+          "evidenceToken",
+          "observations",
+          "recommendations",
+          "feedback",
+          "general"
+        ],
+        "title": "WeeklyReviewView",
         "type": "object"
       },
       "WirDesignId": {
@@ -20336,6 +20552,291 @@
           }
         },
         "summary": "Update Daily Check In Today",
+        "tags": [
+          "daily-check-ins"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback/{recommendationKey}": {
+      "put": {
+        "description": "Set one caller preference; clearing retained feedback is not paywalled.",
+        "operationId": "setDailyCheckInWeeklyFeedback",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recommendationKey",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/RecommendationKey"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeeklyFeedbackUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyFeedbackView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Daily Check In Weekly Feedback",
+        "tags": [
+          "daily-check-ins"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review": {
+      "get": {
+        "description": "Read current authorized multiweek observations without running inference.",
+        "operationId": "getDailyCheckInWeeklyReview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "week_start",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Week Start",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyReviewView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Daily Check In Weekly Review",
+        "tags": [
+          "daily-check-ins"
+        ]
+      },
+      "post": {
+        "description": "Explicit bounded model selection; revisions are revalidated after inference.",
+        "operationId": "createDailyCheckInWeeklyReview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeeklyReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyReviewView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Create Daily Check In Weekly Review",
         "tags": [
           "daily-check-ins"
         ]

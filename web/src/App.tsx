@@ -688,6 +688,7 @@ function AuthenticatedApp({
                 path={path}
                 element={
                   <DailyInsightsPage
+                    apiBaseUrl={apiBaseUrl}
                     key={`${account.id}:${spaceId}`}
                     view={insightView}
                     spaceId={spaceId}

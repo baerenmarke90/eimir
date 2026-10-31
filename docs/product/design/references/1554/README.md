@@ -1,0 +1,30 @@
+# Saved-memory map refinement (#1554)
+
+Baseline main: `08a376bb170ba420478cba6654bca6f9f764acd1`.
+[Owning issue and Mobile Interaction Contract](https://github.com/baerenmarke90/eimir/issues/1554).
+The [generated Compact reference](generated-reference.webp) is a composition guide created before UI implementation, using the current `/story/map` and the Product Owner screenshot. The actual implementation will retain the existing four destinations/central create action, title, grouped saved locations, bounded pagination, canonical memory links and selected-place return.
+
+## Product decision
+
+The Product Owner requests immediate map opening, no explanatory paragraphs above it, a plain Karte entry without its Pro suffix, and livelier memories. This supersedes #1546's additional tile-load tap for this read-only destination only. The separate place-selection composer remains outside this change. Required provider attribution and the provider-independent place/source list remain. Premium `memories.map`, Space ownership, Cloud/Self-Hosted parity, all underlying Core content and non-destructive downgrade/export behavior are unchanged. The new entry label is not a tier reclassification.
+
+## Composition and interaction
+
+Apply Product Reference v1 R2, content-before-chrome and create/find/return continuity. Title leads directly into the existing lazy Leaflet map after successful authorized data loading. Locations remain real, coordinate-grouped destinations. Selection reveals title-led text keepsakes with locale-aware day/month accents and the full date. Color, typography and small causal transitions supply personality without fake photos, scores or fetched per-memory previews. The map DTO contains no thumbnails; no N+1 media requests are introduced.
+
+Compact is normative (360/390/430 and 320 reflow/large text); Expanded retains the same hierarchy. Reuse PageHeader, EimirIcon, UiState/ProblemState, AppErrorBoundary, TaskOrigin, semantic theme/spacing/type/motion tokens and native links/buttons. Use the existing disclosure motion for deliberate place selection, with no translation/scale under reduced motion. Touch targets remain at least 44 CSS px and the complete place list remains the keyboard alternative to markers.
+
+The reference's extra chevrons, repeated place subtitles and illustrative map height are not new requirements. Implement the requested simpler hierarchy, preserve full titles and adapt the viewport to leave browsing space. Generated geography and fixture dates are illustrative; no generated imagery ships in the runtime.
+
+## States and boundaries
+
+- Loading reserves map space; empty/denied/error responses never load third-party tiles.
+- Authorized nonempty data initializes the map without another tap; no automatic next-page traversal.
+- A tile error retains usable locations and canonical memory links with the existing retry action.
+- A memory opens its actual reader; return restores the selected place through TaskOrigin.
+- No new provider, dependency, API/schema, persistence, analytics, GPS or background tile requests.
+- Existing OSM IP/origin/viewport disclosure becomes implicit in deliberately entering the map; memory titles, source IDs and content never enter tile URLs. Attribution, origin referrer and ordinary interactive caching behavior remain.
+
+## Evidence
+
+The generated reference is not implementation evidence. Actual browser journeys, theme/reflow/motion/error checks and screenshots will be recorded after implementation. No separate native capability is changed.

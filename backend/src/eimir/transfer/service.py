@@ -15,6 +15,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 from pydantic import BaseModel
 from sqlalchemy import MetaData, Table, and_, or_, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from eimir.appearance import service as appearance_service
@@ -23,6 +24,7 @@ from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.core.clock import now
 from eimir.core.errors import BadRequestError, ConflictError, ErrorCode, NotFoundError
 from eimir.core.ids import new_id, parse_id
+from eimir.daily_checkins.models import RecommendationKey, RecommendationRating
 from eimir.identity.models import Account, AccountEmail
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.queue import enqueue
@@ -933,6 +935,7 @@ def _validate_ids_and_privacy(
     globally_seen: set[UUID] = set()
     for table_name, json_rows in tables.items():
         table_ids: set[UUID] = set()
+        feedback_keys: set[str] = set()
         for raw in json_rows:
             row = _row_snake(raw)
             raw_id = row.get("id")
@@ -987,6 +990,21 @@ def _validate_ids_and_privacy(
                         "Transfer privacy scope is invalid.",
                         ErrorCode.TRANSFER_PRIVACY_SCOPE_INVALID,
                     )
+            if table_name == "daily_insight_feedback":
+                key = row.get("recommendation_key")
+                rating = row.get("rating")
+                if (
+                    not isinstance(key, str)
+                    or not isinstance(rating, str)
+                    or key not in {item.value for item in RecommendationKey}
+                    or rating not in {item.value for item in RecommendationRating}
+                    or key in feedback_keys
+                ):
+                    raise TransferArchiveError(
+                        "Transfer recommendation preference is invalid.",
+                        ErrorCode.TRANSFER_RELATION_INVALID,
+                    )
+                feedback_keys.add(str(key))
             for column in ACCOUNT_REFERENCE_COLUMNS:
                 if (
                     row.get(column) is not None
@@ -1788,7 +1806,17 @@ def apply_import_bundle(
                     authorization=authorization,
                     ids=ids,
                 )
-                session.execute(table.insert().values(**protect_values(table_name, values)))
+                if table_name == "daily_insight_feedback":
+                    # Additive restore never replaces the caller's current choice.
+                    session.execute(
+                        pg_insert(table)
+                        .values(**values)
+                        .on_conflict_do_nothing(
+                            index_elements=["space_id", "account_id", "recommendation_key"]
+                        )
+                    )
+                else:
+                    session.execute(table.insert().values(**protect_values(table_name, values)))
     except Exception:
         for key in reversed(written_keys):
             try:

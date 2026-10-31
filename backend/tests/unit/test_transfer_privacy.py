@@ -45,3 +45,31 @@ def test_personal_import_rejects_partner_account_scoped_configuration(table_name
         )
 
     assert exc_info.value.code == ErrorCode.TRANSFER_PRIVACY_SCOPE_INVALID
+
+
+@pytest.mark.parametrize(
+    "keys, rating",
+    [
+        (["diagnosis"], "HELPFUL"),
+        (["quiet_time"], "UNKNOWN"),
+        (["quiet_time", "quiet_time"], "HELPFUL"),
+        ([["unknown"]], "HELPFUL"),
+        (["quiet_time"], {}),
+    ],
+)
+def test_personal_feedback_import_rejects_unknown_or_duplicate_catalog_values(keys, rating) -> None:
+    owner = uuid4()
+    tables = {
+        "daily_insight_feedback": [
+            {
+                "id": str(uuid4()),
+                "accountId": str(owner),
+                "recommendationKey": key,
+                "rating": rating,
+            }
+            for key in keys
+        ]
+    }
+    with pytest.raises(TransferArchiveError) as caught:
+        service._validate_ids_and_privacy(TransferScope.PERSONAL, owner, tables, {owner})
+    assert caught.value.code == ErrorCode.TRANSFER_RELATION_INVALID

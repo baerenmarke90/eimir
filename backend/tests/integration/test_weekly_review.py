@@ -8,10 +8,17 @@ from sqlalchemy import select
 
 from eimir.authorization import AuthorizationContext
 from eimir.daily_checkins import context, weekly_review
-from eimir.daily_checkins.models import DailyCheckIn, DailyInsightFeedback
+from eimir.daily_checkins.models import (
+    DailyCheckIn,
+    DailyInsightFeedback,
+    RecommendationKey,
+    RecommendationRating,
+)
 from eimir.relationship.models import DailyCheckInVisibilityMode
+from eimir.transfer import jobs
 from eimir.transfer import service as transfer
-from eimir.transfer.models import TransferScope
+from eimir.transfer.archive import validate_zip
+from eimir.transfer.models import ImportStatus, TransferScope
 from tests.conftest import auth, requires_database
 from tests.integration.test_daily_checkins_pro_insights import (
     _grant_insights,
@@ -226,3 +233,36 @@ def test_valid_model_selection_is_revalidated_and_rate_limited(
             assert response.json()["generatedBy"] == "AI"
             assert [fact["kind"] for fact in response.json()["observations"]] == ["ENERGY_RISING"]
     assert preview(client, base, couple["token_b"])["feedback"] == []
+
+
+def test_personal_feedback_archive_restores_additively_without_overwriting_current_choice(
+    session, couple
+):
+    setup(session, couple)
+    ctx = AuthorizationContext(account_id=couple["anna"].id, space_id=couple["space"].id)
+    weekly_review.set_feedback(
+        session, ctx, RecommendationKey.QUIET_TIME, RecommendationRating.HELPFUL
+    )
+    with transfer.build_export_archive(session, ctx, TransferScope.PERSONAL) as bundle:
+        bundle.seek(0, 2)
+        size = bundle.tell()
+        bundle.seek(0)
+        assert (
+            "private/weekly-insight-feedback.json"
+            in validate_zip(bundle, compressed_size=size).entries
+        )
+        bundle.seek(0)
+        operation = transfer.create_import(session, ctx, bundle, size=size)
+    weekly_review.set_feedback(
+        session, ctx, RecommendationKey.QUIET_TIME, RecommendationRating.NOT_FITTING
+    )
+    jobs.handle_validate_import(session, {"importId": str(operation.id)})
+    assert operation.status == ImportStatus.READY_TO_APPLY.value
+    transfer.request_apply(session, ctx, str(operation.id))
+    jobs.handle_apply_import(session, {"importId": str(operation.id)})
+    assert operation.status == ImportStatus.COMPLETED.value
+    assert weekly_review.feedback(session, ctx) == [
+        weekly_review.Feedback(RecommendationKey.QUIET_TIME, RecommendationRating.NOT_FITTING)
+    ]
+    with transfer.build_export_archive(session, ctx, TransferScope.SHARED) as bundle:
+        assert "private/weekly-insight-feedback.json" not in validate_zip(bundle).entries

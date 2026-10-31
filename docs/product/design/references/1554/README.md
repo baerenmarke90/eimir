@@ -27,7 +27,7 @@ The reference's extra chevrons, repeated place subtitles and illustrative map he
 
 ## Evidence
 
-The generated reference is not implementation evidence. Actual browser journeys, theme/reflow/motion/error checks and screenshots will be recorded after implementation. No separate native capability is changed.
+The generated reference is not implementation evidence. The actual browser journeys and screenshots below demonstrate the implemented result. No separate native capability is changed.
 
 ## Implementation and verification
 
@@ -55,6 +55,6 @@ All actual browser screenshots use synthetic titles/dates/locations and intercep
 | Expanded | [Locations](evidence/memory-map-places-1280-dark.webp), [Memories](evidence/memory-map-1280-dark.webp) |
 | Failed tiles / 320px / 200% text | [Dark](evidence/memory-map-320-dark-large-tile-error.webp) |
 
-### Publication state
+### Preflight publication chronology
 
-The local design preflight and generated image were completed before UI code. Automatic approval review rejected publishing the preflight commit to the public repository, citing missing explicit authorization to disclose potentially sensitive project material. No alternate publication route was attempted. The code, reference and synthetic browser evidence are prepared locally; attaching the generated reference to #1554, pushing and opening the PR remain pending user authorization. This is a known publication/preflight gate gap, not a claim that the owning issue already contains the image or that remote CI has passed. The issue's initial `places.map` wording should be corrected to `memories.map` when that update is authorized.
+The generated reference and local design record were completed in `b728ab81afbea5725aeff47e82dab3b0a2680e93` before UI implementation in `00b12ef06065cd76b5db8668cfa0b04c68230138`. Their initial publication was blocked by automatic approval review. The Product Owner explicitly authorized publishing the branch, reference and test images and merging after successful required checks. The generated reference is attached to #1554 with that publication; its earlier creation and the delayed issue attachment remain traceable rather than being described as a completed pre-code issue attachment.

@@ -393,6 +393,7 @@
 
 .dashboard-module-option {
   display: flex;
+  flex-wrap: wrap;
   min-height: 52px;
   align-items: center;
   justify-content: space-between;
@@ -420,7 +421,7 @@
 
 .dashboard-module-option-label {
   min-width: 0;
-  flex: 1;
+  flex: 1 1 8rem;
   overflow-wrap: anywhere;
   cursor: pointer;
 }
@@ -682,4 +683,13 @@
   min-width: var(--touch-target-web);
   min-height: var(--touch-target-web);
   cursor: pointer;
+}
+
+.dashboard-module-preference,
+.dashboard-upcoming-preference {
+  min-inline-size: 0;
+}
+.dashboard-module-control {
+  min-width: 0;
+  flex-wrap: wrap;
 }

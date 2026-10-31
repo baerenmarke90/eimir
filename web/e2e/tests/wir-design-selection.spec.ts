@@ -619,3 +619,41 @@ for (const [width, theme] of [
     expect(state.unexpected).toEqual([]);
   });
 }
+
+test('Free Wir controls keep readable labels and fit 320px with large text', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  const state = await fixture(page, { pro: false });
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/entitlements`, (route) =>
+    route.fulfill({
+      json: {
+        spaceId: SPACE_ID,
+        tier: 'FREE',
+        status: 'ACTIVE',
+        effectiveUntil: null,
+        isInGracePeriod: false,
+        capabilities: [],
+      },
+    }),
+  );
+  await signIn(page);
+  await page.goto('/more/settings/today');
+  const row = page.locator('[data-sortable-item-id="shared_story_summary"]');
+  await expect(row.getByRole('checkbox')).toBeDisabled();
+  await expect(row.locator('.pro-mark')).toBeVisible();
+  const label = await row
+    .locator('.dashboard-module-option-label')
+    .boundingBox();
+  expect(label?.width).toBeGreaterThan(100);
+  await captureScreenshot(page, info, 'settings-free-320-light.png', {
+    fullPage: true,
+  });
+  await reflow(page);
+  await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+  await reflow(page);
+  await captureScreenshot(page, info, 'settings-free-320-large.png', {
+    fullPage: true,
+  });
+  expect(state.unexpected).toEqual([]);
+});

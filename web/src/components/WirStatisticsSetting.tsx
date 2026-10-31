@@ -28,11 +28,6 @@ export function WirStatisticsSetting(props: {
           onRetry={() => void preference.grant.refetch()}
         />
       ) : null}
-      {!preference.grant.isPending &&
-      !preference.allowed &&
-      !preference.grant.error ? (
-        <p>{t('relationshipReflections.passport.wirStatisticsPro')}</p>
-      ) : null}
     </div>
   );
 }

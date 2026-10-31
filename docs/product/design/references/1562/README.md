@@ -90,3 +90,11 @@ Actual evidence: [Glücksmomente Compact](evidence/happiness-390-dark.webp),
 [Wir settings after pointer/keyboard order and reload](evidence/settings-order-390-light.webp).
 The missing local socksio package was installed only in the temporary environment;
 all 12 media-configuration tests then passed. No runtime dependency changed.
+
+The final Free-state review exposed a compact-row intrinsic-width regression:
+a repeated Pro explanation squeezed the statistics label into a vertical column.
+Retain the row's Pro badge and disabled control without repeating that prose;
+allow control rows to wrap naturally and let their fieldsets shrink. The exact
+320px Free view now passes normal/200% text reflow without clipping, and the
+pointer/keyboard ordering journey passes again. Evidence: [Free 320px](evidence/settings-free-320-light.webp)
+and [Free 320px with 200% text](evidence/settings-free-320-large.webp).

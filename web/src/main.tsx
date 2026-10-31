@@ -8,6 +8,7 @@ import { identityBuildVariable } from './client/identityEnvironment';
 import { isNativeSessionStorageAvailable } from './client/nativeSessionStorage';
 import { restoreNativeSession } from './client/sessionPersistence';
 import { DemoBanner } from './components/DemoBanner';
+import { NativeSessionGate } from './components/NativeSessionGate';
 import { i18n } from './i18n';
 import { registerProductionServiceWorker } from './pwa';
 import { useCapacitorShell } from './capacitorShell';
@@ -58,6 +59,12 @@ const queryClient = new QueryClient({
   },
 });
 
+// Begin secure restoration once, before React mounts; show the branded shell
+// immediately instead of leaving a blank WebView while Android Keystore runs.
+const nativeRestoration = isNativeSessionStorageAvailable()
+  ? restoreNativeSession()
+  : null;
+
 const demoMode = isDemoModeConfigured();
 const demoResetTimerEnabled =
   identityBuildVariable('DEMO_RESET_TIMER') === 'true';
@@ -71,7 +78,10 @@ const demoUrl = String(identityBuildVariable('DEMO_URL'))
 function RootApp() {
   useCapacitorShell();
   return (
-    <>
+    <NativeSessionGate
+      restoration={nativeRestoration}
+      label={i18n.t('states.loading.title')}
+    >
       {demoMode ? (
         <DemoBanner
           resetTimerEnabled={demoResetTimerEnabled}
@@ -84,7 +94,7 @@ function RootApp() {
           {i18n.t('demo.launch')}
         </a>
       ) : null}
-    </>
+    </NativeSessionGate>
   );
 }
 
@@ -106,8 +116,4 @@ function mountApplication() {
   );
 }
 
-if (isNativeSessionStorageAvailable()) {
-  void restoreNativeSession().then(mountApplication, mountApplication);
-} else {
-  mountApplication();
-}
+mountApplication();

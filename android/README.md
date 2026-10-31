@@ -71,7 +71,7 @@ Space preference inside the same Android application sandbox. Because
 `de.sidebyside.app` is intentionally preserved for store-update continuity,
 Android also preserves that sandbox during an in-place upgrade.
 
-`LegacyNativeDataCleanup` therefore runs from `MainActivity` at start until it
+`LegacyNativeDataCleanup` therefore runs on the Capacitor background executor after `MainActivity` starts until it
 has succeeded once. It only deletes the retired database, its journal/WAL sidecars, the old Space
 preference and the former owner-only cache Keystore entry. It never reads or
 migrates cached product content. Only when all three removals succeeded does it

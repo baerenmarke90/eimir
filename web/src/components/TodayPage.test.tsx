@@ -118,7 +118,7 @@ describe('TodayPage', () => {
     expect(html).not.toContain('today-date-heading');
     expect(html).not.toContain('today-date-value');
     expect(html).toMatch(
-      /<h1[^>]*class="couple-presence-title"[^>]*>Alex &amp; Marie<\/h1>/,
+      /<h2[^>]*class="couple-presence-title"[^>]*>Alex &amp; Marie<\/h2>/,
     );
     expect(html).toContain('Marie');
     expect(html).toContain('420');
@@ -347,7 +347,7 @@ describe('TodayPage', () => {
       retrospective: null,
     });
 
-    // Today remains the permanent H1; Couple Presence stays the relationship hero.
+    // Wir names the page; Couple Presence remains the dominant relationship hero.
     expect(html).toContain('today-hero');
     expect(html).toContain('couple-presence-title');
 
@@ -2516,17 +2516,18 @@ describe('formatRelationshipDuration', () => {
         const hidden = renderWithVisibility({ relationship_presence: false });
 
         expect(shown).toContain('today-hero');
-        expect(shown).toMatch(/<h1[^>]*class="couple-presence-title"/);
+        expect(shown).toMatch(/<h2[^>]*class="couple-presence-title"/);
         expect(hidden).not.toContain('today-hero');
-        expect(hidden).toContain('<h1 class="sr-only">Wir</h1>');
+        expect(shown).toContain('<h1 class="today-page-title">Wir</h1>');
+        expect(hidden).toContain('<h1 class="today-page-title">Wir</h1>');
 
-        // Exactly one H1: the couple names, or the sr-only fallback
-        // when the optional relationship module is hidden.
+        // Exactly one stable page H1 whether the configurable hero is shown
+        // or hidden; the couple's name is a subordinate heading.
         const h1Count = (html: string) =>
           (html.match(/<h1[\s>]/g) ?? []).length;
         expect(h1Count(shown)).toBe(1);
         expect(h1Count(hidden)).toBe(1);
-        expect(hidden).toContain('sr-only');
+        expect(hidden).not.toContain('<h1 class="sr-only">');
       });
 
       it('leaves every other module unaffected when the hero is hidden', () => {

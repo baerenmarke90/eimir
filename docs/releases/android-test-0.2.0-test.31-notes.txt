@@ -1,0 +1,9 @@
+eimir. 0.2.0-test.31
+
+Der Beziehungspass ist direkt auf Wir erreichbar. Am Monatsende könnt ihr einen verfügbaren Rückblick mit „Jetzt ansehen“ als Slideshow öffnen. Die Seiten wechseln automatisch, mit lesegerechter Zeit, sanften Animationen und sichtbarer Pause. Beim Bearbeiten oder Öffnen eines Originals hält die Wiedergabe an; danach kommt ihr zur gleichen Seite zurück. Reduzierte Bewegung wird berücksichtigt.
+
+Die KI bekommt klarere Vorgaben für kurze, quellenbezogene Texte. Zu lange und wiederholte Ausgaben sowie unbelegte Zahlen werden verworfen. Bestehende Rückblicke werden nicht automatisch neu geschrieben. Dafür muss auch der Testserver mit dem aktualisierten Worker laufen.
+
+Zitat und Beziehungsstatistik lassen sich in den Wir-Einstellungen mit anordnen. Die Wir-Varianten unterscheiden sich stärker; Gesten und Verschieben wurden überarbeitet. Benachrichtigungen, Profil und „Für mich“ sind übersichtlicher. Auch die neue gemeinsame Wunschauswahl aus dem aktuellen Hauptstand ist enthalten und benötigt den passenden Testserver.
+
+Über Einstellungen → App-Updates auf der bestehenden Installation aktualisieren. Nicht deinstallieren und keine App-Daten löschen. Dieses Testrelease verwendet weiterhin das bestehende Paket, denselben Testsignierer und euren bisherigen Testkanal.

@@ -313,3 +313,22 @@ def test_candidate_pool_is_bounded_without_exposing_a_total(
     assert len(body["items"]) == MAX_MEMORY_CANDIDATES
     assert "total" not in body
     assert "count" not in body
+
+
+def test_sensitive_photos_are_not_automatically_exposed_by_game_flips(
+    client, couple, session
+) -> None:  # type: ignore[no-untyped-def]
+    _grant_games(session, couple)
+    memory = _memory(
+        session, space_id=couple["space"].id, owner_id=couple["anna"].id, title="Mixed gallery"
+    )
+    hidden = _bind_media(session, memory, name="sensitive.jpg", position=0)
+    hidden.payload = hidden.payload.model_copy(update={"is_sensitive": True})
+    ordinary = _bind_media(session, memory, name="ordinary.jpg", position=1)
+    session.flush()
+    result = _candidates(client, couple)
+    assert result.status_code == 200
+    assert result.json()["items"][0]["imageAttachmentId"] == str(ordinary.id)
+    ordinary.payload = ordinary.payload.model_copy(update={"is_sensitive": True})
+    session.flush()
+    assert _candidates(client, couple).json()["items"] == []

@@ -1,0 +1,88 @@
+.photo-source-trigger {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.photo-source-options {
+  border: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.photo-source-options label,
+.photo-source-consent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-3);
+}
+
+.photo-source-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+.photo-source-footer > button {
+  flex: 1 1 auto;
+}
+
+.photo-source-options input,
+.photo-source-consent input,
+.photo-source-choice input {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.photo-source-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.photo-source-choice {
+  position: relative;
+  display: grid;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+}
+
+.photo-source-thumbnail,
+.photo-source-choice img,
+.photo-source-placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-source-choice input {
+  position: absolute;
+  inset-block-start: var(--space-2);
+  inset-inline-start: var(--space-2);
+  z-index: 1;
+}
+
+.photo-source-choice:has(:focus-visible) {
+  outline: 3px solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+
+.photo-source-sheet .field-group input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Keep the hit area stable when the sheet opens beneath the pointer. */
+@media (hover: hover) and (pointer: fine) {
+  .photo-source-sheet button:hover:not(:disabled) {
+    transform: none;
+  }
+}

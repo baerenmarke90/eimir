@@ -1,3 +1,4 @@
+import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { type FormEvent, useState } from 'react';
 import {
   useInfiniteQuery,
@@ -24,7 +25,6 @@ import { ProblemState } from './ProblemState';
 import {
   DeleteConfirmation,
   LoadMoreButton,
-  PrivateAreaBackToHub,
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
   usePrivateAreaTaskContext,
@@ -143,7 +143,6 @@ export function PrivateNotesListPage({ api, accountId, spaceId }: Props) {
   return (
     <>
       <PageHeader
-        before={<PrivateAreaBackToHub />}
         title={t('privateArea.notes.title')}
         description={t('privateArea.notes.intro')}
         action={
@@ -190,9 +189,6 @@ export function PrivateNotesListPage({ api, accountId, spaceId }: Props) {
                       <p className="private-area-excerpt">{note.body}</p>
                     ) : null}
                   </div>
-                  <span className="private-area-card-arrow" aria-hidden="true">
-                    →
-                  </span>
                 </Link>
               </li>
             ))}
@@ -344,15 +340,13 @@ export function PrivateNoteDetailPage({ api, accountId, spaceId }: Props) {
         }
         eyebrow={t('privateArea.privacyLabel')}
         title={note.title}
-        action={
+        titleAction={
           note.capabilities.canEdit ? (
-            <Link
-              className="button-link secondary-link"
+            <StoryDetailEditLink
               to={privateNoteEditPath(note.id)}
               state={navigationState}
-            >
-              {t('privateArea.edit')}
-            </Link>
+              label={t('privateArea.edit')}
+            />
           ) : undefined
         }
       />

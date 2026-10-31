@@ -454,6 +454,14 @@ for (const scenario of [
     network.releaseGesture();
     await expect(surface.getByText(scenario.confirmed)).toBeVisible();
     await expect(surface.getByText(scenario.pending)).toHaveCount(0);
+    await expect(page.locator('.snackbar')).toHaveCount(0);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `gesture-${scenario.kind}-confirmed-${scenario.width}-${scenario.theme}.png`,
+      ),
+      fullPage: true,
+      animations: 'disabled',
+    });
     await expect(
       surface.getByRole('button', {
         name: new RegExp(scenario.label.replace('?', '\\?')),

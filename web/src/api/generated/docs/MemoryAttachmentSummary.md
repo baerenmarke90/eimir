@@ -10,9 +10,11 @@ Name | Type
 `hasThumbnail` | boolean
 `height` | number
 `id` | string
+`isSensitive` | boolean
 `mediaType` | [MediaType](MediaType.md)
 `mimeType` | string
 `position` | number
+`reactions` | [Array&lt;PhotoReactionSummary&gt;](PhotoReactionSummary.md)
 `size` | number
 `status` | string
 `width` | number
@@ -27,9 +29,11 @@ const example = {
   "hasThumbnail": null,
   "height": null,
   "id": null,
+  "isSensitive": null,
   "mediaType": null,
   "mimeType": null,
   "position": null,
+  "reactions": null,
   "size": null,
   "status": null,
   "width": null,

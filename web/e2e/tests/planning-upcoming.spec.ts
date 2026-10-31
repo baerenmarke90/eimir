@@ -689,9 +689,11 @@ test('P2 Chapter to Place reads as relationship content and preserves return con
   ).toBeVisible();
   await expect(page.getByText(PLACE_DESCRIPTION)).toBeVisible();
   await expect(page.getByText(PLACE_ADDRESS)).toBeVisible();
-  await expect(
-    page.locator('details.planning-technical-details'),
-  ).not.toHaveAttribute('open', '');
+  const locationDetails = page.locator('details').filter({
+    has: page.getByText(m5s3.place.locationHeading, { exact: true }),
+  });
+  await expect(locationDetails).toBeVisible();
+  await expect(locationDetails).not.toHaveAttribute('open', '');
   await captureR3Evidence(page, testInfo, 'planning-p2-place-390-light.png');
 
   await page.getByRole('button', { name: taskBoundary.back }).click();

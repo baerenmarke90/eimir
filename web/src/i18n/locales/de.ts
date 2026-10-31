@@ -17,8 +17,7 @@ const de = {
   more: {
     eyebrow: 'Mehr',
     title: 'Alles Weitere',
-    intro:
-      'Dein Profil, persönliche Bereiche, gemeinsame Organisation und die Einstellungen von eimir. an einem verlässlichen Ort.',
+    intro: 'Persönliches, gemeinsame Listen und Einstellungen.',
     groups: {
       personal: 'Für dich',
       shared: 'Gemeinsam',
@@ -239,17 +238,31 @@ const de = {
     eyebrow: 'Momente & Erinnerungen',
     title: 'Unsere Momente',
     intro:
-      'Erinnerungen, Herzensmomente und Meilensteine – euer ruhiges Zuhause für die Dinge, die bleiben.',
+      'Erinnerungen, Herzmomente und Meilensteine – euer ruhiges Zuhause für die Dinge, die bleiben.',
     timelineTitle: 'Momente',
-    timelineIntro: 'Unsere besonderen Augenblicke – für immer festgehalten.',
+    timelineIntro: 'Eure gemeinsame Geschichte.',
     addMemory: 'Erinnerung',
-    timelineKicker: 'Zeitleiste',
+    timelineKicker: 'Tagebuch',
     timelineHeading: 'Gemeinsame Geschichte',
     discoverKicker: 'Entdecken',
-    discoverHeading: 'Momente zum Wiederentdecken',
+    discoverInvitation: 'Ein neuer Blick auf eure Geschichte',
+    discoverDaily:
+      'Täglich neu zusammengestellt. Zum Erinnern, Lächeln und Weiterstöbern.',
+    discoverRenew: 'Neu entdecken',
+    discoverRenewing: 'Wir suchen …',
+    discoverRenewed: 'Eure Auswahl ist neu zusammengestellt.',
+    discoverNewDay:
+      'Für heute wartet eine neue Auswahl. Mit „Neu entdecken“ könnt ihr sie ansehen.',
+    discoverOffline:
+      'Du bist gerade offline. Eure bisherige Auswahl bleibt hier; versuche es mit Verbindung erneut.',
+    discoverRateLimit:
+      'Ihr habt gerade schon viel entdeckt. Wartet kurz und versucht es dann noch einmal.',
+    discoverRenewError:
+      'Die neue Auswahl konnte nicht geladen werden. Eure bisherige Auswahl bleibt hier.',
+    discoverHeading: 'Wiederentdecken',
     discoverSubhead: 'Kleine Momente, die für immer geblieben sind.',
     tabDiscover: 'Entdecken',
-    tabTimeline: 'Zeitleiste',
+    tabTimeline: 'Tagebuch',
     viewToggleAria: 'Ansicht wählen',
     browseTitle: 'Durchstöbern',
     browseMilestones: 'Meilensteine',
@@ -257,12 +270,15 @@ const de = {
     browseYears: 'Jahre',
     streamAll: 'Alle in der Zeitleiste ansehen →',
     featuredHighlight: 'Besonderer Moment',
-    featuredKicker: 'Aus euren Momenten',
+    featuredKicker: 'Wisst ihr noch?',
     onThisDay_one: 'Heute vor einem Jahr',
     onThisDay_other: 'Heute vor {{count}} Jahren',
-    milestonesTitle: 'Meilensteine & gemeinsame Schritte',
+    retrospectiveHeading: 'Rückblicke',
+    retrospectiveSubhead: 'Ein Moment aus eurer gemeinsamen Geschichte.',
+    retrospectiveOpen: 'Erinnerung öffnen',
+    milestonesTitle: 'Meilensteine',
     milestonesDesc: 'Große und kleine Stationen eurer gemeinsamen Geschichte.',
-    chaptersTitle: 'Kapitel unserer Geschichte',
+    chaptersTitle: 'Kapitel',
     chaptersDesc:
       'Gemeinsame Erlebnisse und Reisen nach Lebensabschnitten bündeln.',
     yearArchiveTitle: 'Unsere Jahre',
@@ -271,7 +287,7 @@ const de = {
     loadingAria: 'Momente werden geladen',
     loadErrorTitle: 'Die Momente konnten nicht geladen werden.',
     loadErrorFallback: 'Bitte versuche es erneut.',
-    emptyTitle: 'Eure Story beginnt hier.',
+    emptyTitle: 'Eure Geschichte beginnt hier',
     emptyBody: 'Haltet euren ersten gemeinsamen Moment fest.',
     emptyAction: 'Ersten Moment festhalten',
     aria: 'Gemeinsame Story',
@@ -326,16 +342,47 @@ const de = {
   },
   memory: {
     backToStory: '← Zurück zu Momente',
-    eyebrow: 'Moment festhalten',
-    heading: 'Neue Erinnerung',
-    intro:
-      'Foto oder ein paar Worte reichen. Titel und weitere Details sind optional.',
+    eyebrow: 'Euer Tagebuch',
+    heading: 'Neuer Tagebucheintrag',
+    intro: 'Ein Gedanke, ein Foto oder eure ganze Geschichte.',
     formAria: 'Erinnerung erstellen',
     titleLabel: 'Titel',
     titleLabelOptional: 'Titel (optional)',
     titlePlaceholder: 'Zum Beispiel: Unser Tag am See',
-    bodyLabel: 'Erinnerung',
-    bodyPlaceholder: 'Was möchtet ihr von diesem Moment behalten?',
+    bodyLabel: 'Euer Tag in Worten',
+    bodyPlaceholder: 'Was möchtest du von diesem Tag festhalten?',
+    diary: {
+      legacyMedia:
+        'Ältere Fotos werden beim Fortsetzen nur in diesem geöffneten Entwurf behalten. Deine Worte, die Fotoreihenfolge und der Speicherstatus bleiben erhalten. Verfügbare Serverfotos können nach einem Neustart erneut geladen werden.',
+      photoMissing: 'Foto erneut auswählen',
+      photoUnavailable:
+        'Dieses Foto konnte nicht wieder geladen werden. Versuche es erneut oder entferne es und wähle es neu aus. Deine Worte bleiben erhalten.',
+      photoRetry: 'Erneut laden',
+      recoveryRequired:
+        'Der Speicherstatus dieser Fotoauswahl konnte auf diesem Gerät nicht gesichert werden. Für diesen Speicherschritt wurde keine Anfrage gesendet. Deine Worte bleiben hier erhalten. Versuche es erneut oder entferne diese Fotos vor dem Speichern.',
+      optionalDetails: 'Stichworte',
+      resumeTitle: 'Dein Entwurf wartet auf dich',
+      resumeBody:
+        'Auf diesem Gerät liegt ein noch nicht abgeschlossener Eintrag. Möchtest du ihn fortsetzen?',
+      resume: 'Entwurf fortsetzen',
+      startNew: 'Entwurf verwerfen und neu beginnen',
+      keepDraft: 'Entwurf behalten und schließen',
+      draft: {
+        memoryOnlyUnavailable:
+          'Dein Entwurf bleibt hier geöffnet. Die Sicherung des Speicherstatus ist auf diesem Gerät gerade nicht verfügbar. Versuche es erneut, bevor du diesen Eintrag speicherst.',
+        memoryOnly:
+          'Deine Worte und dein Speicherstatus sind auf diesem Gerät gesichert. Ausgewählte externe oder ältere Fotos bleiben nur im geöffneten Entwurf. Nach einem Neustart können verfügbare Serverfotos erneut geladen werden.',
+        loading: 'Entwurfssicherung wird vorbereitet …',
+        idle: 'Noch nicht gemeinsam gespeichert.',
+        saving: 'Entwurf wird auf diesem Gerät gesichert …',
+        saved:
+          'Entwurf auf diesem Gerät gesichert · noch nicht gemeinsam gespeichert. Wird nach 7 Tagen ohne Änderung entfernt.',
+        unavailable:
+          'Entwurf nur hier geöffnet. Die Sicherung auf diesem Gerät ist nicht verfügbar. Speichere den Eintrag vor dem Schließen.',
+        conflict:
+          'Dieser Entwurf wurde in einem anderen Fenster fortgesetzt. Öffne ihn erneut, bevor du weiterschreibst oder speicherst.',
+      },
+    },
     tagsLabel: 'Was passt zu diesem Moment?',
     tagsHelp:
       'Optional · Wähle aus, was euch später an diesen Moment erinnert.',
@@ -346,7 +393,7 @@ const de = {
       special_day: 'Besonderer Tag',
     },
     dateLabel: 'Datum',
-    dateHelp: 'Optional – wenn der Moment an einem bestimmten Tag war.',
+    dateHelp: 'Auch vergangene Tage sind möglich.',
     dateChangeAction: 'Ändern',
     photoLabel: 'Fotos',
     photoSelected: 'Foto ausgewählt',
@@ -363,6 +410,11 @@ const de = {
     photoFailedNotSaved:
       'Dieses Foto wird nicht gespeichert, solange der Upload fehlgeschlagen ist.',
     photoRemove: 'Entfernen',
+    photoEarlier: 'Nach vorn',
+    photoLater: 'Nach hinten',
+    photoMoveEarlier: '{{name}} nach vorn verschieben',
+    photoMoveLater: '{{name}} nach hinten verschieben',
+    photoMoved: '{{name}} an Position {{position}} von {{count}}.',
     photoPendingSave:
       'Warte, bis alle laufenden Foto-Uploads abgeschlossen sind.',
     photoLimitReached_one:
@@ -370,10 +422,10 @@ const de = {
     photoLimitReached_other:
       '{{count}} Fotos wurden nicht hinzugefügt, weil das Limit pro Erinnerung erreicht ist.',
     visibilityAria: 'Sichtbarkeit',
-    sharedTitle: 'Für euch beide sichtbar',
+    sharedTitle: 'Beim Speichern für euch beide sichtbar',
     sharedBody:
       'Diese Erinnerung ist für beide Personen in eurem gemeinsamen Space sichtbar.',
-    save: 'Erinnerung speichern',
+    save: 'Eintrag speichern',
     saving: 'Wird gespeichert …',
     processing: 'Erinnerung wird gespeichert und die Story aktualisiert …',
     saveErrorTitle: 'Die Erinnerung konnte nicht gespeichert werden.',

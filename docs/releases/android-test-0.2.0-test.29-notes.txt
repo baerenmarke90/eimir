@@ -1,0 +1,9 @@
+eimir. 0.2.0-test.29
+
+Ihr könnt jetzt zwischen Wir, Momente, Planen und Mehr nach links oder rechts wischen – wie im RWN-Messenger. Die Tabs unten bleiben weiterhin direkt antippbar.
+
+Beim Zurückwischen bleiben eure bisherige Scrollposition, die Auswahl in Momente und der Bereich in Planen erhalten. Bildergalerien und andere horizontale Inhalte behalten ihre eigenen Wischgesten. Vertikales Scrollen und Aktualisieren funktionieren weiter wie gewohnt.
+
+Kurze abgebrochene Gesten wechseln keinen Tab. Dialoge, Texteingaben und ungespeicherte Änderungen bleiben geschützt. Mit reduzierter Bewegung entfällt die seitliche Animation.
+
+Über Einstellungen → App-Updates auf der bestehenden Installation aktualisieren. Nicht deinstallieren und keine App-Daten löschen. Dieses Testrelease verwendet weiterhin das bestehende Paket und denselben Testsignierer.

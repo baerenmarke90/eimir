@@ -42,7 +42,7 @@ def test_the_detail_exposes_only_contracted_public_fields() -> None:
     detail = schema["components"]["schemas"]["AttachmentDetail"]  # type: ignore[index]
     contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
 
-    allowed = set(contract["attachmentPublicFields"]) | {"hasThumbnail"}
+    allowed = set(contract["attachmentPublicFields"]) | {"hasThumbnail", "isSensitive"}
     assert set(detail["properties"]) <= allowed
     assert set(contract["attachmentPublicFields"]) - {"durationSeconds"} <= set(
         detail["properties"]
@@ -71,7 +71,7 @@ def test_read_request_accepts_unbound_parent_and_content_variants() -> None:
     request = components["AttachmentReadRequest"]
     parent_type = request["properties"]["parentType"]
     values = set(parent_type.get("enum") or [])
-    assert values == {"MEMORY", "HEART_MOMENT", "NONE", "RELATED_PERSON"}
+    assert values == {"MEMORY", "HEART_MOMENT", "NONE", "RELATED_PERSON", "PLAN"}
     content_variant = request["properties"]["variant"]
     assert set(content_variant["enum"]) == {"original", "thumbnail"}
     assert content_variant["default"] == "original"
@@ -81,7 +81,7 @@ def test_read_request_accepts_unbound_parent_and_content_variants() -> None:
 def test_the_manifest_lists_the_same_variants() -> None:
     contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
     variants = {entry["parentType"] for entry in contract["attachmentReadRequestVariants"]}
-    assert variants == {"MEMORY", "HEART_MOMENT", "NONE", "RELATED_PERSON"}
+    assert variants == {"MEMORY", "HEART_MOMENT", "NONE", "RELATED_PERSON", "PLAN"}
     unbound = next(
         entry
         for entry in contract["attachmentReadRequestVariants"]

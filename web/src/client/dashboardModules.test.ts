@@ -8,6 +8,7 @@ describe('dashboardModules', () => {
   it('keeps the accepted #1189 Today defaults for accounts without a #1194 personal order', () => {
     expect(DASHBOARD_MODULE_KEYS).toEqual([
       'relationship_presence',
+      'daily_quote',
       'keepsake',
       'upcoming',
       'pinned_collection',

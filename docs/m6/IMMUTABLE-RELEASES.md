@@ -55,7 +55,8 @@ ghcr.io/baerenmarke90/eimir-web:v<product-version>
 tags, so publication integrity must never depend on a check-then-push tag sequence. The
 workflow first pushes the exact build-once image under a run-unique transport alias,
 captures the digest reported by the actual push, validates that exact digest as a single
-image manifest, and verifies that it resolves to the loaded release bytes. Only then are
+image manifest whose config digest equals the config in the verified evidence archive, and
+verifies that a pull-back resolves to the same config bytes. Only then are
 human-friendly source/version aliases reconciled as non-authoritative discovery names.
 A concurrent or later alias move cannot change the digest recorded for the release.
 
@@ -141,6 +142,15 @@ Registry manifest digests and `docker save` archive hashes identify different tr
 representations and are recorded side by side. The invariant is that the already
 verified archive is loaded and pushed without rebuild; the registry-reported digest from
 the actual push becomes the exact pull identity.
+
+Docker pushes only the `linux/amd64` runtime platform (`docker push --platform`). A
+containerd image store can keep a provenance index next to the runtime image, and an
+unqualified push would publish that index, which the single-manifest gate then refuses.
+The platform selection leaves the original evidence archives, SPDX SBOMs and GitHub
+attestations unchanged. Docker image IDs are not compared, because they are a config
+digest in the legacy store but a manifest or index digest under containerd. The
+store-independent identity is the SHA-256 of the exact config bytes in the `docker save`
+archive (`scripts/image_archive_config.py`), which the private test channel reuses.
 
 ## Previous known-good release and rollback boundary
 
@@ -230,10 +240,11 @@ After protected environment approval it:
 4. loads exact #193 backend/Web archives with `docker load` and refuses publication unless
    each image's `org.opencontainers.image.revision` and `org.opencontainers.image.version`
    labels equal the release source revision and version;
-5. pushes each image under a run-unique transport alias and captures the digest reported
-   by the actual push;
-6. validates the exact digest-qualified image as a supported single-image manifest and
-   confirms it resolves to the loaded release bytes;
+5. pushes the `linux/amd64` runtime image under a run-unique transport alias and captures
+   the digest reported by the actual push;
+6. validates the exact digest-qualified image as a supported single-image manifest whose
+   config digest equals the evidence archive's config, and confirms a pulled-back
+   `docker save` archive carries the same config bytes;
 7. reconciles `sha-<source>` and `v<version>` as non-authoritative discovery aliases,
    failing if an existing alias points elsewhere or lookup is uncertain;
 8. writes `self-hosted-image-identity.json` from the authoritative push digests;

@@ -15,9 +15,11 @@ import json
 import os
 import re
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 
+import image_archive_config
 import release_manifest
 
 REPOSITORY = "baerenmarke90/eimir"
@@ -139,6 +141,65 @@ def candidate_ready(source: str) -> bool:
     )
 
 
+def completion_matches_source(event: dict, source: str) -> bool:
+    """Admit only an owning-repository main push completion for this checkout."""
+    if not isinstance(event, dict):
+        return False
+    completed = event.get("workflow_run")
+    if not isinstance(completed, dict):
+        return False
+    origin = completed.get("head_repository")
+    if not isinstance(origin, dict):
+        return False
+    return (
+        event.get("action") == "completed"
+        and completed.get("path") in REQUIRED_WORKFLOWS
+        and completed.get("event") == "push"
+        and completed.get("head_branch") == "main"
+        and completed.get("head_sha") == source
+        and origin.get("full_name") == REPOSITORY
+        and completed.get("status") == "completed"
+        and completed.get("conclusion") == "success"
+    )
+
+
+def channel_already_selected(source: str) -> bool:
+    """Avoid rebuilding an already selected pair after repeated completions."""
+    try:
+        parent = revision(
+            gh_api(f"repos/{REPOSITORY}/git/ref/heads/{CHANNEL_BRANCH}")["object"]["sha"]
+        )
+    except GitHubError as error:
+        if error.missing:
+            return False
+        raise
+    current = gh_api(f"repos/{REPOSITORY}/contents/channel.json?ref={parent}")
+    identity = json.loads(base64.b64decode(current["content"], validate=False))
+    if identity.get("kind") != CHANNEL_KIND or identity.get("schemaVersion") != 1:
+        raise ChannelError("Existing deployment branch is not an owned test channel")
+    return revision(identity["sourceRevision"]) == source
+
+
+def check_for_publication(source: str, event_name: str, event: dict) -> bool:
+    """Check once; later main workflow completions retry unfinished candidates."""
+    if event_name == "workflow_run":
+        if not completion_matches_source(event, source):
+            print("Completion does not admit this exact main checkout")
+            return False
+    elif event_name != "workflow_dispatch":
+        raise ChannelError("Test checks require a main completion or manual retry")
+    if latest_main() != source:
+        print("Candidate was superseded on main; keeping the current channel")
+        return False
+    if not candidate_ready(source):
+        print("Required main workflows are unfinished; awaiting another completion")
+        return False
+    if channel_already_selected(source):
+        print("This source is already selected; preserving its exact image pair")
+        return False
+    return True
+
+
 def wait_for_checks(source: str, timeout: int) -> bool:
     deadline = time.monotonic() + timeout
     while True:
@@ -195,6 +256,14 @@ def evidence_records(root: Path, source: str) -> dict[str, dict]:
     return result
 
 
+def archive_config_digest(path: Path, expected_tag: str | None = None) -> str:
+    """Hash Docker save's exact config bytes, independent of image-store IDs."""
+    try:
+        return image_archive_config.archive_config_digest(path, expected_tag)
+    except image_archive_config.ArchiveConfigError as exc:
+        raise ChannelError(str(exc)) from exc
+
+
 def publish_image(
     root: Path, record: dict, source: str, version: str, attempt: str
 ) -> str:
@@ -203,6 +272,7 @@ def publish_image(
     local = f"eimir-{role}:evidence-{source}"
     repository = f"ghcr.io/{REPOSITORY}-{role}"
     target = f"{repository}:test-{source}-{attempt}"
+    config_digest = archive_config_digest(root / record["path"], local)
     run(["docker", "load", "--input", str(root / record["path"])], timeout=600)
     inspected = json.loads(run(["docker", "image", "inspect", local]))[0]
     labels = inspected["Config"]["Labels"]
@@ -218,23 +288,39 @@ def publish_image(
             "Runtime image source/version/platform labels do not match evidence"
         )
     run(["docker", "tag", local, target])
-    pushed = run(["docker", "push", target], timeout=600)
+    # Containerd archives can retain a provenance index. Deploy only the runtime
+    # platform; the original archives and GitHub attestations remain unchanged.
+    pushed = run(["docker", "push", "--platform", "linux/amd64", target], timeout=600)
     digests = re.findall(r"digest: (sha256:[0-9a-f]{64})", pushed)
     if len(set(digests)) != 1:
         raise ChannelError("Registry push did not report one unambiguous image digest")
     pinned = f"{repository}@{digests[0]}"
     manifest = json.loads(run(["docker", "manifest", "inspect", pinned]))
     if (
-        "manifests" in manifest
-        or manifest.get("config", {}).get("digest") != inspected["Id"]
+        not isinstance(manifest, dict)
+        or manifest.get("schemaVersion") != 2
+        or manifest.get("mediaType")
+        not in {
+            "application/vnd.oci.image.manifest.v1+json",
+            "application/vnd.docker.distribution.manifest.v2+json",
+        }
+        or "manifests" in manifest
+        or not isinstance(manifest.get("layers"), list)
+        or not isinstance(manifest.get("config"), dict)
+        or manifest.get("config", {}).get("digest") != config_digest
     ):
         raise ChannelError(
             "Registry digest is not the exact built single-image manifest"
         )
     run(["docker", "pull", pinned], timeout=600)
-    pulled = json.loads(run(["docker", "image", "inspect", pinned]))[0]
-    if pulled["Id"] != inspected["Id"]:
-        raise ChannelError("Registry pull-back differs from the evidence image")
+    with tempfile.TemporaryDirectory(prefix="eimir-channel-pullback-") as temporary:
+        pulled_archive = Path(temporary) / "image.tar"
+        run(
+            ["docker", "image", "save", "--output", str(pulled_archive), pinned],
+            timeout=600,
+        )
+        if archive_config_digest(pulled_archive) != config_digest:
+            raise ChannelError("Registry pull-back differs from the evidence image")
     return pinned
 
 
@@ -296,6 +382,14 @@ def export_compose(canonical: dict, backend: str, web: str) -> dict:
         "EIMIR_SMTP_STARTTLS": "true",
         "EIMIR_SMTP_USERNAME": required("EIMIR_MAIL_FROM"),
         "EIMIR_OIDC_CONNECTIONS": "[]",
+        # Optional personal-source configuration is supplied by the instance,
+        # never frozen to source defaults or the publishing runner's values.
+        "EIMIR_RECAP_AI_URL": "${EIMIR_RECAP_AI_URL:-}",
+        "EIMIR_RECAP_AI_MODEL": "${EIMIR_RECAP_AI_MODEL:-qwen3:1.7b-q4_K_M}",
+        "EIMIR_RECAP_AI_TIMEOUT_SECONDS": "${EIMIR_RECAP_AI_TIMEOUT_SECONDS:-90}",
+        "EIMIR_PHOTO_SOURCES_ENABLED": "${EIMIR_PHOTO_SOURCES_ENABLED:-true}",
+        "EIMIR_GOOGLE_PHOTOS_CLIENT_ID": "${EIMIR_GOOGLE_PHOTOS_CLIENT_ID:-}",
+        "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}",
     }
     for name in (
         "EIMIR_CURSOR_SIGNING_KEY",
@@ -470,6 +564,9 @@ def publish(source: str, artifact_root: Path, output: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
+    check = subparsers.add_parser("check")
+    check.add_argument("--revision", required=True)
+    check.add_argument("--github-output", type=Path, required=True)
     wait = subparsers.add_parser("wait")
     wait.add_argument("--revision", required=True)
     wait.add_argument("--timeout", type=int, default=3600)
@@ -487,10 +584,19 @@ def main() -> int:
             )
         if os.environ.get("GITHUB_REF") != "refs/heads/main":
             raise ChannelError("Test publication is restricted to main")
-        if args.command == "wait":
-            if not 1 <= args.timeout <= 3600:
-                raise ChannelError("Check timeout must be between 1 and 3600 seconds")
-            ready = wait_for_checks(source, args.timeout)
+        if args.command in {"check", "wait"}:
+            if args.command == "check":
+                event_name = os.environ.get("GITHUB_EVENT_NAME", "")
+                event = (
+                    json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+                    if event_name == "workflow_run"
+                    else {}
+                )
+                ready = check_for_publication(source, event_name, event)
+            else:
+                if not 1 <= args.timeout <= 3600:
+                    raise ChannelError("Check timeout must be between 1 and 3600 seconds")
+                ready = wait_for_checks(source, args.timeout)
             with args.github_output.open("a") as stream:
                 stream.write(f"ready={str(ready).lower()}\n")
         else:
@@ -509,3 +615,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

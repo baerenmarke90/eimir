@@ -6,6 +6,11 @@
   border: 0;
 }
 
+.memory-task-page .immersive-create-media {
+  display: grid;
+  gap: var(--space-3);
+}
+
 /* R1 is a page composer, not a form card around the task. Reuse the accepted
  * flattened create-surface pattern: hierarchy comes from the content/media
  * inside the page rather than from one enclosing card boundary. */
@@ -132,5 +137,85 @@
    * the rest of the R1 composer so both actions remain in the first viewport. */
   .memory-task-page .form-actions {
     gap: var(--space-1);
+  }
+}
+
+/* Diary capture gives sustained writing priority; metadata stays optional. */
+.memory-task-page.create-page
+  .immersive-create-card[aria-labelledby="memory-form-heading"]
+  .immersive-create-narrative
+  textarea {
+  min-block-size: 12rem;
+  padding: var(--space-4);
+  font: var(--font-reading-body);
+  line-height: 1.65;
+  resize: vertical;
+  overflow-y: auto;
+}
+
+.memory-task-page .memory-diary-details {
+  min-inline-size: 0;
+  border-block: 1px solid var(--color-border-subtle);
+  padding-block: var(--space-2);
+}
+
+.memory-diary-details > summary {
+  display: list-item;
+  min-block-size: 44px;
+  padding: var(--space-3) var(--space-2);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.memory-diary-details[open] > .field-group,
+.memory-diary-details[open] > fieldset {
+  margin-block: var(--space-4);
+}
+
+.memory-draft-status {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.memory-task-page .memory-draft-recovery {
+  margin-block-end: var(--space-4);
+}
+
+.memory-task-page .memory-draft-recovery h2 {
+  font-size: 1.125rem;
+}
+
+.memory-task-page .page-heading {
+  margin-block-end: var(--space-4);
+  padding-block-end: 0;
+}
+
+.memory-task-page .page-heading h1 {
+  font: var(--font-utility-heading);
+}
+
+.memory-task-page .immersive-create-media .attachment-draft-item {
+  grid-template-columns: 7rem minmax(0, 1fr);
+}
+
+.memory-task-page .attachment-draft-actions {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+}
+
+@media (max-width: 430px) {
+  .memory-task-page .immersive-create-media .attachment-draft-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .memory-task-page .attachment-draft-meta,
+  .memory-task-page .attachment-draft-actions button {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    overflow-wrap: anywhere;
   }
 }

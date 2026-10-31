@@ -234,11 +234,26 @@ For client work in particular, user-facing text, date/number formatting, and plu
 
 Normal couples must not need to configure technical infrastructure. API keys, technical URLs, provider selection, tokens, and server details belong in the backend or hoster/admin layer.
 
+The Product Owner decision for #1444 (2026-10-27) permits a narrow exception: a Pro user may link their own Immich HTTPS service address. The personal, revocable read-only credential required by Immich is handled in the dedicated consent/setup task, never as a shared operator credential or general infrastructure settings surface. See `docs/product/integrations/1444-photo-source-delivery.md`. Other integrations retain the rule above.
+
 ## Do not weaken existing gates
 
 Reuse, business-model, product-design, or cross-cutting decisions must never weaken Clean-Room, security, privacy, tenant-isolation, provenance, licensing, or engineering-language rules.
 
 ## Pull requests
+
+### CI failures and targeted retries
+
+This policy applies to human contributors and coding agents handling any pull request. Follow the [contributor retry instructions](CONTRIBUTING.md#retrying-failed-ci-jobs).
+
+- Inspect the failed job and its diagnostics before deciding whether to retry or fix the cause.
+- For a transient failure on the same commit, use **Re-run failed jobs** or a specific-job rerun. Preserve successful independent jobs; do not restart every workflow, push an empty commit, or close/reopen the PR merely to retry.
+- Code, test, or workflow fixes require a new commit and fresh relevant checks. Never copy successful statuses from an older revision or retry an old run as proof of a new commit.
+- When changing workflows, keep independent expensive checks in independently retryable jobs where practical. Matrix checks should retain `fail-fast: false` when sibling jobs can finish independently. Required aggregate checks must still reject failed, cancelled, or unexpectedly skipped required work.
+- Diagnostic artifacts produced by retried jobs must distinguish attempts or follow an explicit safe replacement contract. Preserve stable artifact names where downstream release consumers require them; review those consumers before renaming artifacts.
+- Record any retries and their reason in the PR validation results. A repeatable test failure needs a fix; retries must not hide it or weaken existing gates.
+
+### Required reviews
 
 A relevant pull request without a traceable reuse review is not merge-ready. Pure domain changes may mark the review as `not relevant` with a short rationale.
 

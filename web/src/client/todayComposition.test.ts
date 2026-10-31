@@ -34,6 +34,7 @@ function item(overrides: Partial<DashboardItem> & Pick<DashboardItem, 'id'>) {
     scheduledAt: null,
     createdAt: null,
     previewAttachmentId: null,
+    previewIsSensitive: false,
     ...overrides,
   } as DashboardItem;
 }
@@ -55,6 +56,7 @@ describe('selectTodayFocalItem', () => {
     const keepsake = item({
       id: 'keepsake',
       previewAttachmentId: 'attachment-1',
+      previewIsSensitive: false,
     });
     expect(
       selectTodayFocalItem({
@@ -429,6 +431,7 @@ describe('selectMonthlyStrip', () => {
       id,
       type: 'MEMORY',
       previewAttachmentId: `att-${id}`,
+      previewIsSensitive: false,
       occurredOn: thisMonth(day),
     });
 
@@ -462,12 +465,14 @@ describe('selectMonthlyStrip', () => {
       id: 'old',
       type: 'MEMORY',
       previewAttachmentId: 'att-old',
+      previewIsSensitive: false,
       occurredOn: occurredOn('2026-08-20'),
     });
     const lastYear = item({
       id: 'ancient',
       type: 'MEMORY',
       previewAttachmentId: 'att-ancient',
+      previewIsSensitive: false,
       occurredOn: occurredOn('2025-09-20'),
     });
 
@@ -489,6 +494,7 @@ describe('selectMonthlyStrip', () => {
       id: 'hm1',
       type: 'HEART_MOMENT',
       previewAttachmentId: 'att-hm1',
+      previewIsSensitive: false,
       occurredOn: thisMonth(5),
     });
 
@@ -505,6 +511,7 @@ describe('selectMonthlyStrip', () => {
       id: 'm-created',
       type: 'MEMORY',
       previewAttachmentId: 'att-created',
+      previewIsSensitive: false,
       // A real instant, mid-month, so its browser-local month is September
       // at every real UTC offset.
       createdAt: new Date('2026-09-07T12:00:00Z'),
@@ -528,6 +535,7 @@ describe('selectMonthlyStrip', () => {
       id: 'm-first',
       type: 'MEMORY',
       previewAttachmentId: 'att-first',
+      previewIsSensitive: false,
       occurredOn: occurredOn('2026-09-01'),
     });
     expect(itemCalendarMonth(firstOfMonth)).toEqual({ year: 2026, month: 8 });
@@ -543,6 +551,7 @@ describe('selectMonthlyStrip', () => {
       id: 'm-prev',
       type: 'MEMORY',
       previewAttachmentId: 'att-prev',
+      previewIsSensitive: false,
       occurredOn: occurredOn('2026-08-31'),
     });
     expect(itemCalendarMonth(lastOfPrevious)).toEqual({ year: 2026, month: 7 });
@@ -556,6 +565,7 @@ describe('selectMonthlyStrip', () => {
       id: 'm-middle',
       type: 'MEMORY',
       previewAttachmentId: 'att-middle',
+      previewIsSensitive: false,
       occurredOn: occurredOn('2026-09-15'),
     });
     expect(

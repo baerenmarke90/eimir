@@ -641,7 +641,7 @@ required by the current Vite build:
 |---|---|---|
 | `script-src` / `style-src` | `'self'` | Vite bundle, theme bootstrap, and CSS are external files on the same origin |
 | `script-src-attr` / `style-src-attr` | `'none'` | no inline handlers or styles embedded in HTML; CSSOM property assignments require no source allowance |
-| `img-src` | `'self' blob:` | local assets and authorized image bytes exposed through short-lived object URLs |
+| `img-src` | `'self' blob: https://tile.openstreetmap.org` | local assets, authorized image bytes through short-lived object URLs and deliberately loaded OSM raster map tiles |
 | `connect-src` | `'self'` plus explicit hosting origins | API plus direct presigned uploads/reads through `fetch()` |
 | `font-src` | `'self'` | no external font CDNs |
 | `object-src`, `frame-src`, `media-src`, `manifest-src`, `worker-src` | `'none'` | no currently approved domain requirement; video remains fail-closed |
@@ -803,3 +803,12 @@ failure does not discard the credential. Foreground/reconnect checks and bounded
 transport retry maintain the existing 15-minute access / 60-day sliding refresh /
 180-day hard session-family policy. This feature does not issue non-expiring
 tokens, bypass revocation or extend the backend's absolute family lifetime.
+
+The place picker loads OSM tiles only after explicit map intent, with a visible
+service notice and attribution. The additional image origin is exact: no
+wildcard, external script, external stylesheet or arbitrary image host is
+allowed. The per-image origin-only referrer and native app User-Agent identify
+the tile client without disclosing an app route, Account or Space ID. The
+operator-configured Photon lookup is an authenticated backend operation and
+does not add a browser connect-src origin. `check_csp_header.sh` continues to
+require the complete exact restrictive policy, including this one image origin.

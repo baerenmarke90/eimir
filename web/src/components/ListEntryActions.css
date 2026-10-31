@@ -20,6 +20,29 @@
   pointer-events: none;
 }
 
+.list-entry-icon-button.content-edit-action {
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: var(--border-surface-width) solid transparent;
+  border-radius: var(--radius-medium);
+  text-decoration: none;
+  transition:
+    background var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard);
+}
+
+.list-entry-icon-button.content-edit-action:hover:not(:disabled) {
+  color: var(--color-text);
+  background: var(--color-surface-subtle);
+  text-decoration: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list-entry-icon-button.content-edit-action {
+    transition: none;
+  }
+}
+
 .list-entry-drag-handle {
   cursor: grab;
   touch-action: none;
@@ -38,7 +61,7 @@
 button.list-entry-icon-button.list-entry-add-button {
   color: var(--color-brand);
   background: var(--color-brand-surface);
-  border: 1px solid var(--color-brand);
+  border: var(--border-surface-width) solid var(--color-brand);
   border-radius: var(--radius-medium);
   transition:
     background var(--duration-feedback) var(--easing-standard),

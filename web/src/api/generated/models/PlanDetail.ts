@@ -27,6 +27,20 @@ import {
     AuthorSummaryToJSON,
     AuthorSummaryToJSONTyped,
 } from './AuthorSummary';
+import type { OrderedAttachmentSummary } from './OrderedAttachmentSummary';
+import {
+    OrderedAttachmentSummaryFromJSON,
+    OrderedAttachmentSummaryFromJSONTyped,
+    OrderedAttachmentSummaryToJSON,
+    OrderedAttachmentSummaryToJSONTyped,
+} from './OrderedAttachmentSummary';
+import type { AttachmentSummary } from './AttachmentSummary';
+import {
+    AttachmentSummaryFromJSON,
+    AttachmentSummaryFromJSONTyped,
+    AttachmentSummaryToJSON,
+    AttachmentSummaryToJSONTyped,
+} from './AttachmentSummary';
 import type { PlanStatus } from './PlanStatus';
 import {
     PlanStatusFromJSON,
@@ -43,10 +57,28 @@ import {
 export interface PlanDetail {
     /**
      * 
+     * @type {boolean}
+     * @memberof PlanDetail
+     */
+    anticipationEnabled?: boolean;
+    /**
+     * 
+     * @type {Array<OrderedAttachmentSummary>}
+     * @memberof PlanDetail
+     */
+    attachments?: Array<OrderedAttachmentSummary>;
+    /**
+     * 
      * @type {ResourceCapabilities}
      * @memberof PlanDetail
      */
     capabilities: ResourceCapabilities;
+    /**
+     * 
+     * @type {AttachmentSummary}
+     * @memberof PlanDetail
+     */
+    coverAttachment?: AttachmentSummary | null;
     /**
      * 
      * @type {Date}
@@ -180,7 +212,10 @@ export function PlanDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
+        'anticipationEnabled': json['anticipationEnabled'] == null ? undefined : json['anticipationEnabled'],
+        'attachments': json['attachments'] == null ? undefined : ((json['attachments'] as Array<any>).map(OrderedAttachmentSummaryFromJSON)),
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
+        'coverAttachment': json['coverAttachment'] === undefined ? undefined : json['coverAttachment'] === null ? null : AttachmentSummaryFromJSON(json['coverAttachment']),
         'createdAt': (new Date(json['createdAt'])),
         'createdBy': json['createdBy'],
         'creator': AuthorSummaryFromJSON(json['creator']),
@@ -211,7 +246,10 @@ export function PlanDetailToJSONTyped(value?: PlanDetail | null, ignoreDiscrimin
 
     return {
         
+        'anticipationEnabled': value['anticipationEnabled'],
+        'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(OrderedAttachmentSummaryToJSON)),
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),
+        'coverAttachment': AttachmentSummaryToJSON(value['coverAttachment']),
         'createdAt': value['createdAt'].toISOString(),
         'createdBy': value['createdBy'],
         'creator': AuthorSummaryToJSON(value['creator']),

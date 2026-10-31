@@ -3,6 +3,7 @@ import type { TokenView } from '../api/generated/models/TokenView';
 import { normalizeClientError } from './problemDetails';
 import { clearAuthorizedMediaCache } from './authorizedMediaCache';
 import { clearRetrospectiveDismissal } from './todayRetrospectiveDismissal';
+import { clearMemoryDiaryDrafts } from './memoryDiaryDraft';
 import { createReferenceApis } from './referenceFlow';
 import {
   isNativeSessionStorageAvailable,
@@ -97,18 +98,11 @@ export async function restoreNativeSession(): Promise<void> {
     return;
   }
   const revision = storageRevision;
-  let deadline: ReturnType<typeof setTimeout> | undefined;
   try {
     await nativeWrites;
-    const raw = await Promise.race([
-      readNativeSessionSnapshot(),
-      new Promise<never>((_resolve, reject) => {
-        deadline = setTimeout(
-          () => reject(new Error('Native session read timed out')),
-          5_000,
-        );
-      }),
-    ]);
+    // The native plugin always resolves/rejects its read. A fixed timer could
+    // discard a valid session on a slow Android Keystore cold start.
+    const raw = await readNativeSessionSnapshot();
     if (revision !== storageRevision || raw === null) return;
     if (raw.length > 16_384) {
       await clearStoredSession();
@@ -121,8 +115,6 @@ export async function restoreNativeSession(): Promise<void> {
     }
   } catch {
     // No native credential is usable; never fall back to localStorage.
-  } finally {
-    clearTimeout(deadline);
   }
 }
 
@@ -198,6 +190,7 @@ function persistSession(
         sessionOwner.tokens.refreshToken !== rotatedFrom)
     ) {
       clearAuthorizedMediaCache();
+      clearMemoryDiaryDrafts();
     }
     const serialized = JSON.stringify({
       account: session.account,
@@ -271,6 +264,7 @@ export function loadStoredSession(): StoredSession | null {
 
 export function clearStoredSession(): Promise<void> {
   clearAuthorizedMediaCache();
+  clearMemoryDiaryDrafts();
   clearRetrospectiveDismissal();
   sessionOwner = null;
   try {

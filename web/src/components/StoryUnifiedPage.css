@@ -1,0 +1,429 @@
+.momente-diary-section {
+  margin-top: 0;
+  scroll-margin-top: var(--space-6);
+}
+
+/* Preserve the existing content composition within each peer mode. */
+.story-page-unified .momente-discover-page,
+.momente-diary-section {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.story-page-unified .momente-hero-highlight {
+  margin: 0;
+}
+
+.story-page-unified .momente-hero-media {
+  aspect-ratio: 4 / 3;
+}
+
+.story-page-unified .momente-hero-title {
+  font-size: 1.25rem;
+}
+
+.story-page-unified .momente-tapestry-body {
+  padding: var(--space-3);
+}
+
+.story-page-unified .momente-tapestry-item {
+  position: relative;
+  min-width: 0;
+}
+
+.story-page-unified .momente-tapestry-kind {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: grid;
+  place-items: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-brand);
+}
+
+.story-page-unified .momente-tapestry-kind svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.story-page-unified .momente-tapestry-title {
+  font-size: 1rem;
+}
+
+.story-page-unified .momente-tapestry-quote {
+  font-size: 1rem;
+  border: 0;
+  padding: 0;
+}
+
+/* The Diary remains readable as a chronology; photos act as compact anchors. */
+.story-page-unified .story-timeline {
+  --story-rail-center: 12px;
+}
+
+.story-page-unified .story-surface {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.story-page-unified .story-card-footer {
+  border: 0;
+  padding: 0;
+}
+
+.story-page-unified .momente-section-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.story-page-unified .momente-section-header {
+  flex-wrap: wrap;
+}
+
+.story-page-unified .momente-hero-body {
+  min-width: 0;
+}
+
+.story-page-unified .momente-hero-meta {
+  flex-wrap: wrap;
+}
+
+.story-page-unified .momente-hero-title,
+.story-page-unified .momente-tapestry-title {
+  overflow-wrap: anywhere;
+}
+
+.story-page-unified .momente-retrospective-compact {
+  min-width: 0;
+  margin: 0;
+}
+
+.story-page-unified .momente-hero-link.has-media {
+  grid-template-columns: minmax(0, 1fr);
+  isolation: isolate;
+}
+
+.story-page-unified .momente-hero-link.has-media > * {
+  grid-area: 1 / 1;
+}
+
+.story-page-unified .has-media .momente-hero-body {
+  align-self: end;
+  z-index: 1;
+  padding: var(--space-4);
+  padding-top: var(--space-8);
+  background: linear-gradient(transparent, var(--color-media-scrim-strong));
+  color: var(--color-text-inverse);
+}
+
+.story-page-unified .has-media .momente-hero-title,
+.story-page-unified .has-media .momente-hero-meta,
+.story-page-unified .has-media .momente-hero-kicker {
+  color: inherit;
+}
+
+.story-page.story-page-unified .momente-tapestry {
+  display: grid;
+  align-items: start;
+  grid-template-columns: repeat(
+      auto-fill,
+      minmax(min(100%, max(8rem, calc((100% - var(--space-3)) / 2))), 1fr)
+    );
+  gap: var(--space-3);
+}
+
+.story-page-unified .momente-tapestry-note .momente-tapestry-body {
+  padding-top: var(--space-10);
+}
+
+.story-page-unified .momente-retrospective-compact .momente-retrospective-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.story-page-unified
+  .momente-retrospective-compact
+  .momente-retrospective-media {
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.story-page-unified .momente-diary-section .story-timeline .story-card-footer {
+  margin: 0;
+  flex-wrap: wrap;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow-wrap: anywhere;
+  border: 0;
+  padding: 0;
+}
+
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card-link
+  .story-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 0;
+  background: var(--diary-entry-surface, transparent);
+  box-shadow: none;
+}
+
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card-link
+  .story-card
+  h4 {
+  font-size: 1rem;
+  line-height: 1.4;
+  margin: 0;
+  font-style: normal;
+}
+
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card
+  > .story-preview {
+  display: none;
+}
+
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card-link
+  .story-card.has-image {
+  grid-template-columns: 4rem minmax(0, 1fr);
+}
+
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card.has-image
+  > .story-media-preview,
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card.has-image
+  > .story-media-skeleton,
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card.has-image
+  > .story-media-placeholder,
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card.has-image
+  > .sensitive-media {
+  grid-column: 1;
+  grid-row: 1 / 4;
+  width: 4rem;
+  height: 4rem;
+  aspect-ratio: 1;
+  margin: 0;
+  object-fit: cover;
+  border-radius: var(--radius-medium);
+}
+
+/* Compact anchors retain the full touch target while the revealed icon's
+   painted material stays clear of the photograph's center. */
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .sensitive-media-preview
+  > .sensitive-media-preview-control.is-revealed {
+  inset: 0 0 auto auto;
+  padding: calc((var(--space-12) - var(--space-5)) / 2);
+  background-clip: content-box;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card.has-image
+  > h4,
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card.has-image
+  > .story-card-footer,
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card.has-image
+  > .heart-emotion-badge {
+  grid-column: 2;
+}
+
+/* Reuse the product's intrinsic-width boundary for narrow/enlarged content.
+   Metadata and titles regain the full card width before a thumbnail crowds them. */
+@container product-content (max-width: 17.5rem) {
+  .story-page-unified
+    .momente-diary-section
+    .story-timeline
+    .story-card-link
+    .story-card.has-image {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .story-page-unified
+    .momente-diary-section
+    .story-timeline
+    .story-card-link
+    .story-card.has-image
+    > * {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+@media (min-width: 768px) {
+  .story-page-unified .momente-discover-page {
+    max-width: 48rem;
+  }
+  .story-page-unified .momente-hero-media {
+    aspect-ratio: 16 / 9;
+  }
+}
+
+@media (max-width: 360px) {
+  .story-page-unified .story-timeline {
+    --story-rail-center: 7px;
+  }
+}
+
+/* Color follows the story's meaning, while the chronology stays open. */
+.story-page-unified .momente-diary-section .story-card-heart-moment {
+  --diary-entry-surface: var(--heart-emotion-surface);
+}
+
+.story-page-unified .momente-diary-section > .momente-browse-layer {
+  margin: 0 0 var(--space-2);
+}
+.story-page-unified .momente-diary-section .story-card-milestone {
+  --diary-entry-surface: var(--color-shared-surface);
+}
+.story-page-unified .momente-diary-section .story-card-memory {
+  --diary-entry-surface: var(--color-surface-raised);
+}
+.story-page-unified .momente-diary-section .story-year-month-header h2 {
+  flex: 0 1 auto;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-shared-surface);
+  color: var(--color-shared);
+  font-family: var(--font-ui);
+}
+.story-page-unified .momente-diary-section .story-year-month-header::after {
+  flex: 1;
+  background: var(--color-shared-accent);
+}
+
+/* Untitled photo memories read as photographs with their ordinary date footer. */
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card-photo-led
+  .story-card.has-image {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card-photo-led
+  .story-card.has-image
+  > .story-media-preview,
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card-photo-led
+  .story-card.has-image
+  > .story-media-skeleton,
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card-photo-led
+  .story-card.has-image
+  > .story-media-placeholder,
+.story-page-unified
+  .momente-diary-section
+  .story-timeline
+  .story-card-photo-led
+  .story-card.has-image
+  > .sensitive-media-preview {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  margin: 0;
+}
+.discover-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.discover-toolbar > div {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.discover-toolbar h2 {
+  font: var(--font-content-heading);
+  margin: 0;
+}
+.discover-toolbar p,
+.discover-feedback {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+  margin-block: var(--space-2) 0;
+}
+.discover-toolbar button {
+  min-height: var(--touch-target-web);
+  border-radius: var(--radius-pill);
+}
+.story-page.story-page-unified .momente-tapestry[data-discover-measured] {
+  grid-auto-rows: var(--space-1);
+  grid-auto-flow: row;
+}
+.momente-tapestry[data-discover-measured] > * {
+  grid-row-end: span var(--discover-rows, 1);
+}
+.story-page-unified [data-discover-wide="true"] {
+  grid-column: 1 / -1;
+}
+.story-page-unified .momente-tapestry-quote {
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+.story-page-unified .momente-tapestry-note .momente-tapestry-body {
+  padding: var(--space-4);
+}
+.story-page-unified .momente-tapestry-note .momente-tapestry-kind {
+  position: static;
+  align-self: flex-end;
+  width: var(--space-5);
+  height: var(--space-5);
+  background: transparent;
+}
+@media (max-width: 359px) {
+  .story-page.story-page-unified .momente-tapestry {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

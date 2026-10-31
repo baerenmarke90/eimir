@@ -14,11 +14,39 @@ import {
 import { useObjectUrlResources } from '../client/useObjectUrlResources';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
+import {
+  SensitiveMediaCover,
+  SensitiveMediaControl,
+  useSensitiveMediaReveals,
+} from './SensitiveMedia';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
+import { EimirIcon } from './EimirIcon';
+import './MediaGallery.css';
+
+export function GalleryExpandAction({
+  onOpen,
+  className = '',
+}: {
+  onOpen: () => void;
+  className?: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      className={`media-gallery-expand media-overlay ${className}`}
+      onClick={onOpen}
+      aria-label={t('photoReactions.fullscreen')}
+    >
+      <EimirIcon name="expand" />
+    </button>
+  );
+}
 
 export interface GalleryMediaItem {
   id: string;
   mediaType: MediaTypeValue;
+  isSensitive?: boolean;
 }
 
 export function MediaGallery({
@@ -28,6 +56,10 @@ export function MediaGallery({
   renderPreviews,
   renderCaption,
   dismissWithHistory = false,
+  directSensitiveToggle = false,
+  onPhotoLongPress,
+  renderPhotoActions,
+  renderPhotoReactions,
 }: {
   items: GalleryMediaItem[];
   loadMedia: (attachmentId: string, signal?: AbortSignal) => Promise<string>;
@@ -39,12 +71,48 @@ export function MediaGallery({
     close: (afterClose?: () => void) => void,
   ) => ReactNode;
   dismissWithHistory?: boolean;
+  directSensitiveToggle?: boolean;
+  onPhotoLongPress?: (id: string) => void;
+  renderPhotoActions?: (
+    item: GalleryMediaItem,
+    openFullScreen: () => void,
+    revealed: boolean,
+  ) => ReactNode;
+  renderPhotoReactions?: (item: GalleryMediaItem) => ReactNode;
 }) {
   const { t } = useTranslation();
   const itemIdentity = JSON.stringify(
     items.map((item) => [item.id, item.mediaType]),
   );
+  const reveals = useSensitiveMediaReveals(
+    JSON.stringify([
+      resourceScopeKey,
+      items.map((item) => [item.id, item.isSensitive]),
+    ]),
+  );
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const photoPress = useRef<{
+    timer?: ReturnType<typeof setTimeout>;
+    x: number;
+    y: number;
+    suppressClick: boolean;
+    pressed: boolean;
+  }>({ x: 0, y: 0, suppressClick: false, pressed: false });
+  const cancelPhotoPress = useCallback((suppressClick = false) => {
+    clearTimeout(photoPress.current.timer);
+    photoPress.current.timer = undefined;
+    photoPress.current.pressed = false;
+    if (suppressClick) photoPress.current.suppressClick = true;
+  }, []);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Cancel a pending gesture when its authorized media identity changes.
+  useEffect(
+    () => () => cancelPhotoPress(),
+    [resourceScopeKey, itemIdentity, cancelPhotoPress],
+  );
+  const carouselIndexRef = useRef(0);
+  useLayoutEffect(() => {
+    carouselIndexRef.current = carouselIndex;
+  }, [carouselIndex]);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const imageFocusIndex =
     activeIndex ?? (renderPreviews ? null : carouselIndex);
@@ -135,6 +203,18 @@ export function MediaGallery({
     track.scrollLeft = firstSlide.offsetLeft;
   }, [itemIdentity, items.length]);
 
+  useLayoutEffect(() => {
+    const track = carouselTrack.current;
+    if (!track || items.length < 2 || typeof ResizeObserver === 'undefined')
+      return;
+    const observer = new ResizeObserver(() => {
+      const slide = carouselSlides.current[carouselIndexRef.current];
+      if (slide) track.scrollLeft = slide.offsetLeft;
+    });
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, [items.length]);
+
   useEffect(
     () => () => {
       if (carouselScrollFrame.current !== null) {
@@ -162,6 +242,19 @@ export function MediaGallery({
     if (!track || !slide) return;
     track.scrollLeft = slide.offsetLeft;
   }, [lightboxOpen, items.length]);
+
+  useLayoutEffect(() => {
+    const track = lightboxTrack.current;
+    if (!lightboxOpen || !track || typeof ResizeObserver === 'undefined')
+      return;
+    const observer = new ResizeObserver(() => {
+      const current = activeIndexRef.current;
+      const slide = current === null ? null : lightboxSlides.current[current];
+      if (slide) track.scrollLeft = slide.offsetLeft;
+    });
+    observer.observe(track);
+    return () => observer.disconnect();
+  }, [lightboxOpen]);
 
   const changeActive = useCallback(
     (delta: number) => {
@@ -273,6 +366,7 @@ export function MediaGallery({
   }
 
   function handleCarouselScroll(track: HTMLDivElement) {
+    cancelPhotoPress(true);
     if (carouselScrollFrame.current === null) {
       carouselScrollFrame.current = window.requestAnimationFrame(() => {
         carouselScrollFrame.current = null;
@@ -417,6 +511,12 @@ export function MediaGallery({
         />
       );
     }
+    if (item.isSensitive !== false && !reveals.isRevealed(item.id))
+      return (
+        <SensitiveMediaCover>
+          {item.isSensitive === true ? <img src={url} alt="" /> : null}
+        </SensitiveMediaCover>
+      );
     return <img className={className} src={url} alt={t('gallery.imageAlt')} />;
   }
 
@@ -438,6 +538,12 @@ export function MediaGallery({
         />
       );
     }
+    if (item.isSensitive !== false && !reveals.isRevealed(item.id))
+      return (
+        <SensitiveMediaCover>
+          {item.isSensitive === true ? <img src={url} alt="" /> : null}
+        </SensitiveMediaCover>
+      );
     return (
       <span className="media-gallery-carousel-visual">
         <img
@@ -497,12 +603,88 @@ export function MediaGallery({
                       isActive ? ' is-active' : ''
                     }`}
                     data-carousel-index={index}
+                    aria-hidden={!isActive}
                     tabIndex={isActive ? 0 : -1}
-                    onClick={() => openLightbox(index)}
-                    aria-label={t('gallery.openItem', {
-                      index: index + 1,
-                      count: items.length,
-                    })}
+                    onPointerDown={(event) => {
+                      photoPress.current.suppressClick = false;
+                      if (
+                        !onPhotoLongPress ||
+                        event.button !== 0 ||
+                        item.mediaType !== MediaType.IMAGE ||
+                        !urls[item.id]
+                      )
+                        return;
+                      cancelPhotoPress();
+                      photoPress.current = {
+                        x: event.clientX,
+                        y: event.clientY,
+                        suppressClick: false,
+                        pressed: true,
+                      };
+                      photoPress.current.timer = setTimeout(() => {
+                        photoPress.current.suppressClick = true;
+                        onPhotoLongPress(item.id);
+                      }, 450);
+                    }}
+                    onPointerMove={(event) => {
+                      if (!photoPress.current.pressed) return;
+                      if (
+                        Math.hypot(
+                          event.clientX - photoPress.current.x,
+                          event.clientY - photoPress.current.y,
+                        ) > 10
+                      )
+                        cancelPhotoPress(true);
+                    }}
+                    onPointerUp={() => cancelPhotoPress()}
+                    onPointerCancel={() => cancelPhotoPress(true)}
+                    onPointerLeave={() => cancelPhotoPress()}
+                    onContextMenu={(event) => {
+                      if (
+                        !onPhotoLongPress ||
+                        item.mediaType !== MediaType.IMAGE ||
+                        !urls[item.id]
+                      )
+                        return;
+                      event.preventDefault();
+                      cancelPhotoPress(true);
+                      onPhotoLongPress(item.id);
+                    }}
+                    onClick={(event) => {
+                      cancelPhotoPress();
+                      if (
+                        onPhotoLongPress &&
+                        event.detail !== 0 &&
+                        photoPress.current.suppressClick
+                      ) {
+                        photoPress.current.suppressClick = false;
+                        return;
+                      }
+                      if (directSensitiveToggle && item.isSensitive === true)
+                        reveals.toggle(item.id);
+                      else openLightbox(index);
+                    }}
+                    aria-pressed={
+                      directSensitiveToggle && item.isSensitive === true
+                        ? reveals.isRevealed(item.id)
+                        : undefined
+                    }
+                    aria-label={
+                      directSensitiveToggle && item.isSensitive === true
+                        ? t(
+                            reveals.isRevealed(item.id)
+                              ? 'sensitiveMedia.hide'
+                              : 'sensitiveMedia.show',
+                          )
+                        : (item.isSensitive !== false &&
+                          !reveals.isRevealed(item.id)
+                            ? t('sensitiveMedia.label') + '. '
+                            : '') +
+                          t('gallery.openItem', {
+                            index: index + 1,
+                            count: items.length,
+                          })
+                    }
                   >
                     {renderCarouselMedia(item)}
                   </button>
@@ -524,7 +706,7 @@ export function MediaGallery({
             {items.length > 1 ? (
               <>
                 <span
-                  className="media-gallery-carousel-counter"
+                  className="media-gallery-carousel-counter media-overlay"
                   aria-live="polite"
                 >
                   {t('gallery.counter', {
@@ -534,7 +716,7 @@ export function MediaGallery({
                 </span>
                 <button
                   type="button"
-                  className="media-gallery-carousel-nav media-gallery-carousel-prev"
+                  className="media-gallery-carousel-nav media-gallery-carousel-prev media-overlay"
                   onPointerDown={(event) => event.preventDefault()}
                   onClick={() => changeCarousel(-1)}
                   aria-label={t('gallery.previous')}
@@ -543,7 +725,7 @@ export function MediaGallery({
                 </button>
                 <button
                   type="button"
-                  className="media-gallery-carousel-nav media-gallery-carousel-next"
+                  className="media-gallery-carousel-nav media-gallery-carousel-next media-overlay"
                   onPointerDown={(event) => event.preventDefault()}
                   onClick={() => changeCarousel(1)}
                   aria-label={t('gallery.next')}
@@ -552,7 +734,35 @@ export function MediaGallery({
                 </button>
               </>
             ) : null}
+            {directSensitiveToggle &&
+            items[carouselIndex]?.isSensitive === true &&
+            reveals.isRevealed(items[carouselIndex]!.id) ? (
+              <div
+                className="media-gallery-privacy-indicator"
+                aria-hidden="true"
+              >
+                <SensitiveMediaCover />
+              </div>
+            ) : null}
+            {items[carouselIndex]
+              ? renderPhotoActions?.(
+                  items[carouselIndex]!,
+                  () => openLightbox(carouselIndex),
+                  items[carouselIndex]?.isSensitive === false ||
+                    reveals.isRevealed(items[carouselIndex]!.id),
+                )
+              : null}
           </div>
+          {!directSensitiveToggle &&
+          items[carouselIndex]?.isSensitive === true ? (
+            <SensitiveMediaControl
+              revealed={reveals.isRevealed(items[carouselIndex]!.id)}
+              onToggle={() => reveals.toggle(items[carouselIndex]!.id)}
+            />
+          ) : null}
+          {items[carouselIndex]
+            ? renderPhotoReactions?.(items[carouselIndex]!)
+            : null}
         </section>
       )}
 
@@ -619,8 +829,18 @@ export function MediaGallery({
                     renderMedia(activeItem, 'media-lightbox-content')
                   )}
 
+                  {activeItem.isSensitive === true ? (
+                    <SensitiveMediaControl
+                      overlay
+                      revealed={reveals.isRevealed(activeItem.id)}
+                      onToggle={() => reveals.toggle(activeItem.id)}
+                    />
+                  ) : null}
                   {items.length > 1 ? (
-                    <span className="media-lightbox-counter" aria-live="polite">
+                    <span
+                      className="media-lightbox-counter media-overlay"
+                      aria-live="polite"
+                    >
                       {t('gallery.counter', {
                         index: activeIndex + 1,
                         count: items.length,
@@ -631,7 +851,7 @@ export function MediaGallery({
                   <button
                     ref={closeButton}
                     type="button"
-                    className="media-lightbox-close"
+                    className="media-lightbox-close media-overlay"
                     onClick={closeLightbox}
                     aria-label={t('gallery.close')}
                   >
@@ -642,7 +862,7 @@ export function MediaGallery({
                     <>
                       <button
                         type="button"
-                        className="media-lightbox-nav media-lightbox-prev"
+                        className="media-lightbox-nav media-lightbox-prev media-overlay"
                         onClick={() => changeActive(-1)}
                         aria-label={t('gallery.previous')}
                       >
@@ -650,7 +870,7 @@ export function MediaGallery({
                       </button>
                       <button
                         type="button"
-                        className="media-lightbox-nav media-lightbox-next"
+                        className="media-lightbox-nav media-lightbox-next media-overlay"
                         onClick={() => changeActive(1)}
                         aria-label={t('gallery.next')}
                       >

@@ -224,6 +224,30 @@ class Settings(IdentityCompatibleSettings):
 
     media_store: MediaStoreBackend = MediaStoreBackend.LOCAL
     media_root: str = "./data/media"
+    # Operator-owned Photon origin; an empty value disables reverse lookup.
+    # Only canonical saved photo coordinates and language reach this service.
+    photo_place_geocoding_url: str = "https://photon.komoot.io"
+    place_search_url: str = "https://photon.komoot.io"
+
+    # Optional local-only recap wording. Selection and complete fallback stay in Core.
+    recap_ai_url: str = ""
+    recap_ai_model: str = "qwen3:1.7b-q4_K_M"
+    recap_ai_timeout_seconds: float = Field(default=45, ge=1, le=120)
+
+    @field_validator("recap_ai_url")
+    @classmethod
+    def _recap_ai_origin(cls, value: str) -> str:
+        from eimir.recaps.local_ai import validate_local_url
+
+        return validate_local_url(value)
+
+    @field_validator("photo_place_geocoding_url", "place_search_url")
+    @classmethod
+    def _photo_place_geocoding_origin(cls, value: str) -> str:
+        from eimir.providers.photon import validate_photon_url
+
+        return validate_photon_url(value)
+
     s3_endpoint: str = ""
     s3_region: str = "us-east-1"
     s3_bucket: str = ""
@@ -273,6 +297,11 @@ class Settings(IdentityCompatibleSettings):
     # JSON list in an environment variable so multiple providers can coexist
     # without code changes.
     oidc_connections: list[OidcConnection] = Field(default_factory=list)
+
+    # Optional selected-photo integration. Secrets belong to the operator.
+    photo_sources_enabled: bool = True
+    google_photos_client_id: str = ""
+    google_photos_client_secret: SecretStr | None = None
 
     # The relying party is the application for which a passkey is valid. When
     # unset it is derived from the public address; a passkey for "app.example"
@@ -361,6 +390,24 @@ class Settings(IdentityCompatibleSettings):
         if self.encryption_at_rest is not None:
             return self.encryption_at_rest
         return EncryptionMode.DISABLED
+
+    @model_validator(mode="after")
+    def photo_sources_require_encryption(self) -> Self:
+        if (
+            self.photo_sources_enabled
+            and self.google_photos_client_id
+            and self.encryption_mode is not EncryptionMode.REQUIRED
+        ):
+            raise ValueError("Photo sources require EIMIR_ENCRYPTION_AT_REST=required.")
+        if (
+            self.photo_sources_enabled
+            and self.google_photos_client_id
+            and not self.public_base_url.startswith("https://")
+        ):
+            raise ValueError("Photo sources require an HTTPS public base URL.")
+        if bool(self.google_photos_client_id) != bool(self.google_photos_client_secret):
+            raise ValueError("Google Photos requires both operator OAuth client fields.")
+        return self
 
     @property
     def is_production(self) -> bool:

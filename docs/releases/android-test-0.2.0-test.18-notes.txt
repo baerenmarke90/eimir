@@ -1,0 +1,7 @@
+Adds automatic places from selected photos when you save a shared Memory or HeartMoment. This is Free/Core. The account-wide “Automatically add places” setting starts on; switching it off affects future photos and keeps existing places.
+
+Private HeartMoments never create shared places, including when shared later. Photos without GPS remain normal photos. Stored images and thumbnails still discard EXIF. You can correct a place or remove its link from a moment; retries preserve those choices. Maps opens only when you choose it.
+
+Includes the Pro Google Photos and personal Immich sources from test.17. Device/system photo selection remains Free/Core, and imported copies remain after disconnecting or Pro expiry. Google Photos still requires the test operator's OAuth configuration.
+
+Update through App Updates as Build 18. This keeps the existing package, original signing certificate, persistent Cloud origin and saved data. Provider/device acceptance continues in the running installation.

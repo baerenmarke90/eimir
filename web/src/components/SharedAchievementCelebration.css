@@ -28,7 +28,7 @@
   width: var(--space-12);
   height: var(--space-12);
   place-items: center;
-  border: 1px solid var(--color-shared-border);
+  border: var(--border-surface-width) solid var(--color-shared-border);
   border-radius: var(--radius-pill);
   background: var(--color-surface-raised);
   color: var(--color-success);
@@ -66,7 +66,7 @@
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   text-align: center;
-  border: 1px solid var(--color-shared-border);
+  border: var(--border-surface-width) solid var(--color-shared-border);
   border-radius: var(--radius-card);
   padding: clamp(var(--space-5), 7vw, var(--space-8)) var(--space-4);
   background: linear-gradient(

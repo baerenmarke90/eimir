@@ -1,26 +1,26 @@
-import { authorDisplayName } from '../client/authorPresentation';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import {
-  type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
   useEffect,
   useId,
   useLayoutEffect,
-  useRef,
   useState,
 } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
+import { PlanDetailToJSON } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import { WishStatus } from '../api/generated/models/WishStatus';
+import { authorDisplayName } from '../client/authorPresentation';
+import { decodePlansOverview } from '../client/overviewSnapshots';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   groupPlanningOverviewPlans,
   loadPlanningOverviewPlans,
 } from '../client/planningOverview';
 import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
-import { usePartnerNickname } from '../client/partnerNickname';
 import {
   PLAN_CREATE_ROUTE,
   planDetailPath,
@@ -29,10 +29,16 @@ import {
 } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { handleTabKeyDown } from '../client/tabKeyboard';
+import { textExcerpt } from '../client/textExcerpt';
+import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
 import { useTranslation } from '../i18n';
+import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
+import { PlanCover } from './PlanCover';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
+import { WishSelectionEntry } from './WishSelectionEntry';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
 
@@ -84,29 +90,18 @@ function PlanenSegmentedControl({
   plansPanelId: string;
 }) {
   const { t } = useTranslation();
-  const wishesRef = useRef<HTMLButtonElement>(null);
-  const plansRef = useRef<HTMLButtonElement>(null);
-
-  function switchTo(segment: PlanenSegment, focus: boolean): void {
-    onChange(segment);
-    if (focus) (segment === 'plans' ? plansRef : wishesRef).current?.focus();
-  }
-
-  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-    event.preventDefault();
-    switchTo(active === 'plans' ? 'wishes' : 'plans', true);
-  }
-
   return (
     <div
       className="planen-segmented"
       role="tablist"
       aria-label={t('m5s3.overview.segmentedLabel')}
-      onKeyDown={handleKeyDown}
+      onKeyDown={(event) =>
+        handleTabKeyDown(event, (tab) =>
+          onChange(tab.id === plansTabId ? 'plans' : 'wishes'),
+        )
+      }
     >
       <button
-        ref={plansRef}
         type="button"
         role="tab"
         id={plansTabId}
@@ -114,12 +109,11 @@ function PlanenSegmentedControl({
         aria-controls={plansPanelId}
         tabIndex={active === 'plans' ? 0 : -1}
         className={`planen-segment ${active === 'plans' ? 'is-active' : ''}`}
-        onClick={() => switchTo('plans', false)}
+        onClick={() => onChange('plans')}
       >
         {t('m5s3.overview.segmentPlans')}
       </button>
       <button
-        ref={wishesRef}
         type="button"
         role="tab"
         id={wishesTabId}
@@ -127,7 +121,7 @@ function PlanenSegmentedControl({
         aria-controls={wishesPanelId}
         tabIndex={active === 'wishes' ? 0 : -1}
         className={`planen-segment ${active === 'wishes' ? 'is-active' : ''}`}
-        onClick={() => switchTo('wishes', false)}
+        onClick={() => onChange('wishes')}
       >
         {t('m5s3.overview.segmentWishes')}
       </button>
@@ -162,9 +156,15 @@ function PlanenPanel({
 export function SharedPlanningOverviewPage({
   apis,
   spaceId,
+  accountId,
+  apiBaseUrl,
+  accessToken,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
+  accountId?: string;
+  apiBaseUrl?: string;
+  accessToken?: string;
 }) {
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
@@ -223,16 +223,25 @@ export function SharedPlanningOverviewPage({
     retry: false,
   });
 
-  const plans = useInfiniteQuery({
+  const plans = useWarmOverviewQuery({
     queryKey: ['m5-s3', 'plans', spaceId],
-    queryFn: () =>
+    accountId,
+    apiBaseUrl,
+    spaceId,
+    kind: 'plans-overview',
+    load: () =>
       apiCall(async () => ({
-        items: await loadPlanningOverviewPlans(apis, spaceId),
-        nextCursor: null,
+        pages: [
+          {
+            items: await loadPlanningOverviewPlans(apis, spaceId),
+            nextCursor: null,
+          },
+        ],
+        pageParams: [null],
       })),
-    initialPageParam: null as string | null,
-    getNextPageParam: nextCursor<PlanDetail>,
-    retry: false,
+    serialize: (value) =>
+      value.pages.flatMap((page) => page.items).map(PlanDetailToJSON),
+    deserialize: (payload) => decodePlansOverview(payload, spaceId),
   });
 
   const wishItems = (
@@ -328,6 +337,9 @@ export function SharedPlanningOverviewPage({
             onRetry={() => void plans.refetch()}
           />
         ) : null}
+        {plans.isCached ? (
+          <OverviewCacheNotice cachedAt={plans.cachedAt} />
+        ) : null}
         {!plans.isLoading && !plans.error && !hasPlans ? (
           <div className="planen-empty-state">
             <h2>{t('m5s3.overview.plansEmpty')}</h2>
@@ -349,18 +361,30 @@ export function SharedPlanningOverviewPage({
                 planGroups.focal.id,
               )}
             >
-              <span className="planen-next-schedule">
-                {planScheduleLabel(planGroups.focal)}
-              </span>
-              <strong>{planGroups.focal.title}</strong>
-              {planGroups.focal.description ? (
-                <span className="planen-next-description">
-                  {planGroups.focal.description}
+              <PlanCover
+                plan={planGroups.focal}
+                spaceId={spaceId}
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                interactive={false}
+                presentation="preview"
+              />
+              <span className="planen-next-copy">
+                <span className="planen-next-schedule">
+                  {planScheduleLabel(planGroups.focal)}
                 </span>
-              ) : null}
+                <strong>{planGroups.focal.title}</strong>
+                {planGroups.focal.description ? (
+                  <span className="planen-next-description">
+                    {textExcerpt(planGroups.focal.description)}
+                  </span>
+                ) : null}
+              </span>
             </Link>
           </section>
         ) : null}
+
+        <WishSelectionEntry segment="plans" />
 
         {planGroups.later.length ? (
           <section
@@ -443,6 +467,7 @@ export function SharedPlanningOverviewPage({
           <span aria-hidden="true">+</span>
           {t('m5s3.overview.addWish')}
         </Link>
+        <WishSelectionEntry segment="wishes" />
         {wishes.isLoading && !wishes.data ? (
           <UiState kind="loading" title={t('states.loading.title')} />
         ) : null}

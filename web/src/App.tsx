@@ -36,6 +36,7 @@ import {
 } from './client/problemDetails';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { AppIconProvider } from './client/appIconContext';
+import { WirDesignProvider } from './client/wirDesign';
 import { clearProductReadCacheInBackground } from './client/productReadCache';
 import { invalidateStoryProjections } from './client/authorSummaryConsumers';
 import {
@@ -67,6 +68,7 @@ import {
   CHAPTER_CREATE_ROUTE,
   CHAPTER_DETAIL_ROUTE_PATTERN,
   COLLECTION_DETAIL_ROUTE_PATTERN,
+  COLLECTION_CREATE_ROUTE,
   DEFAULT_APP_ROUTE,
   GAMES_MOMENTS_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
@@ -86,8 +88,11 @@ import {
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
+  MEMORY_MAP_ROUTE,
   MORE_COLLECTIONS_ROUTE,
   MORE_PROFILE_ROUTE,
+  MORE_PASSPORT_ROUTE,
+  RECAP_DETAIL_ROUTE_PATTERN,
   MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
   PLAN_CREATE_ROUTE,
@@ -101,10 +106,12 @@ import {
   STORY_PHOTOS_ROUTE,
   WISH_DETAIL_ROUTE_PATTERN,
   WISH_CREATE_ROUTE,
+  WISH_SELECTION_ROUTE,
 } from './client/routes';
 import { createSharedPlanningApis } from './client/sharedPlanning';
 import { postSnackbar } from './client/snackbar';
 import {
+  canReuseMembershipsAfterRefreshFailure,
   loadAuthorizedMemberships,
   loadAuthorizedSpaces,
   resolveActiveSpaceId,
@@ -136,12 +143,14 @@ import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
 import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
 import { PlaceProductPage } from './components/PlaceProductPage';
+import { MemoryMapPage } from './components/MemoryMapPage';
 import { PlacesOverviewPage } from './components/PlacesOverviewPage';
 import { PlanProductPage } from './components/PlanProductPage';
 import { PlanningCreatePage } from './components/PlanningCreatePage';
 import { PrivateAreaProductPage } from './components/PrivateAreaProductPage';
 import { ProblemState } from './components/ProblemState';
 import { ProfilePage } from './components/ProfilePage';
+import { RelationshipRecapsPage } from './components/RelationshipRecapsPage';
 import { RelatedPeoplePage } from './components/RelatedPeoplePage';
 import {
   ServerAdminAccessGate,
@@ -157,7 +166,9 @@ import {
 import { ThemeControl } from './components/ThemeControl';
 import { TodayPage } from './components/TodayPage';
 import { UiState } from './components/UiState';
+import { BrandedStartup } from './components/BrandedStartup';
 import { WishProductPage } from './components/WishProductPage';
+import { WishSelectionPage } from './components/WishSelectionPage';
 import { useTranslation } from './i18n';
 
 function SpaceContextGate({
@@ -170,6 +181,7 @@ function SpaceContextGate({
   onRetry: () => void;
 }) {
   const { t } = useTranslation();
+  if (loading) return <BrandedStartup label={t('states.loading.title')} />;
   return (
     <main className="setup-shell">
       <div className="entry-aura entry-aura-start" aria-hidden="true" />
@@ -422,8 +434,11 @@ function AuthenticatedApp({
     currentAccountId: account.id,
   };
   const planningProductProps = {
+    accountId: account.id,
     apis: planningApis,
     spaceId,
+    apiBaseUrl,
+    accessToken: tokens.accessToken,
   };
 
   const relationshipContent = (
@@ -472,6 +487,7 @@ function AuthenticatedApp({
                   spaceId={spaceId}
                   loadMemoryImage={loadMemoryImage}
                   profilesApi={profilesApi}
+                  dashboardApi={m4Apis.dashboard}
                 />
               }
             />
@@ -512,13 +528,23 @@ function AuthenticatedApp({
             />
             <Route
               path={appRoutePath('plan')}
-              element={<SharedPlanningOverviewPage {...planningProductProps} />}
+              element={
+                <SharedPlanningOverviewPage
+                  {...planningProductProps}
+                  accountId={account.id}
+                  apiBaseUrl={apiBaseUrl}
+                />
+              }
             />
             <Route
               path={PLAN_CREATE_ROUTE}
               element={
                 <PlanningCreatePage kind="plan" {...planningProductProps} />
               }
+            />
+            <Route
+              path={WISH_SELECTION_ROUTE}
+              element={<WishSelectionPage {...planningProductProps} />}
             />
             <Route
               path={WISH_CREATE_ROUTE}
@@ -551,6 +577,10 @@ function AuthenticatedApp({
               element={<ChapterProductPage {...planningProductProps} />}
             />
             <Route
+              path={MEMORY_MAP_ROUTE}
+              element={<MemoryMapPage {...planningProductProps} />}
+            />
+            <Route
               path={MORE_PLACES_ROUTE}
               element={<PlacesOverviewPage {...planningProductProps} />}
             />
@@ -561,6 +591,16 @@ function AuthenticatedApp({
             <Route
               path={PLACE_DETAIL_ROUTE_PATTERN}
               element={<PlaceProductPage {...planningProductProps} />}
+            />
+            <Route
+              path={COLLECTION_CREATE_ROUTE}
+              element={
+                <CollectionsOverviewPage
+                  key="create-list"
+                  {...planningProductProps}
+                  initialCreate
+                />
+              }
             />
             <Route
               path={MORE_COLLECTIONS_ROUTE}
@@ -585,6 +625,8 @@ function AuthenticatedApp({
               element={
                 <TodayPage
                   apis={m4Apis}
+                  recapMediaApis={apis}
+                  apiBaseUrl={apiBaseUrl}
                   spaceId={spaceId}
                   spacesApi={spacesApi}
                   dailyCheckInsApi={dailyCheckInsApi}
@@ -657,6 +699,7 @@ function AuthenticatedApp({
                 path={path}
                 element={
                   <DailyInsightsPage
+                    apiBaseUrl={apiBaseUrl}
                     key={`${account.id}:${spaceId}`}
                     view={insightView}
                     spaceId={spaceId}
@@ -665,6 +708,21 @@ function AuthenticatedApp({
                     entitlementApi={entitlementApi}
                     dashboardApi={m4Apis.dashboard}
                     profilesApi={profilesApi}
+                  />
+                }
+              />
+            ))}
+            {[MORE_PASSPORT_ROUTE, RECAP_DETAIL_ROUTE_PATTERN].map((path) => (
+              <Route
+                key={path}
+                path={path}
+                element={
+                  <RelationshipRecapsPage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    account={account}
+                    spaceId={spaceId}
+                    mediaApis={apis}
                   />
                 }
               />
@@ -851,7 +909,16 @@ function AuthenticatedApp({
       accountId={account.id}
       spaceId={spaceId}
     >
-      {relationshipContent}
+      <WirDesignProvider
+        key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+        api={appearanceApi}
+        entitlementsApi={entitlementApi}
+        instance={apiBaseUrl}
+        accountId={account.id}
+        spaceId={spaceId}
+      >
+        {relationshipContent}
+      </WirDesignProvider>
     </AppIconProvider>
   );
 }
@@ -1022,7 +1089,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
       if (!tokens) return [];
       return loadAuthorizedMemberships(config.apiBaseUrl, tokens.accessToken);
     },
-    enabled: !isRestoring && tokens !== null,
+    // Validate membership alongside /me when a usable access token exists.
+    enabled: tokens !== null && (!isRestoring || isAccessTokenValid(tokens)),
     retry: false,
   });
 
@@ -1095,13 +1163,9 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
 
   if (isRestoring || isSigningOut) {
     return (
-      <main className="setup-shell">
-        <ThemeControl />
-        <UiState
-          kind="loading"
-          title={t(isSigningOut ? 'header.logout' : 'spaceContext.loading')}
-        />
-      </main>
+      <BrandedStartup
+        label={t(isSigningOut ? 'header.logout' : 'states.loading.title')}
+      />
     );
   }
 
@@ -1174,14 +1238,20 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   }
 
   const memberships = membershipsQuery.data ?? [];
+  const membershipErrorBlocksApp =
+    membershipsQuery.error !== null &&
+    !canReuseMembershipsAfterRefreshFailure(
+      membershipsQuery.data,
+      membershipsQuery.error,
+    );
   if (
     membershipsQuery.isPending ||
-    membershipsQuery.error ||
+    membershipErrorBlocksApp ||
     memberships.length === 0
   ) {
     if (
       !membershipsQuery.isPending &&
-      !membershipsQuery.error &&
+      !membershipErrorBlocksApp &&
       memberships.length === 0
     ) {
       if (instanceStatusQuery.isPending) {
@@ -1219,7 +1289,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
         <ThemeControl />
         <SpaceContextGate
           loading={membershipsQuery.isPending}
-          error={membershipsQuery.error}
+          error={membershipErrorBlocksApp ? membershipsQuery.error : null}
           onRetry={() => void membershipsQuery.refetch()}
         />
       </>

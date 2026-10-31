@@ -24,7 +24,7 @@ eimir_connect="'self'"
 if [ -n "$eimir_extra_origins" ]; then
     eimir_connect="$eimir_connect $eimir_extra_origins"
 fi
-eimir_expected="default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; img-src 'self' blob:; font-src 'self'; connect-src $eimir_connect; media-src 'none'; manifest-src 'none'; worker-src 'none'"
+eimir_expected="default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; img-src 'self' blob: https://tile.openstreetmap.org; font-src 'self'; connect-src $eimir_connect; media-src 'none'; manifest-src 'none'; worker-src 'none'"
 
 if [ "$eimir_actual" != "$eimir_expected" ]; then
     echo "Unexpected Content-Security-Policy:" >&2

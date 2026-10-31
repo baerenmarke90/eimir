@@ -11,15 +11,15 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
-from eimir.api.deps import Authorization, DbSession
+from eimir.api.deps import Authorization, DbSession, PhotoBindingAuthorization
 from eimir.api.errors import problem_responses
 from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
-from eimir.api.v1.attachments import AttachmentSummary
+from eimir.api.v1.attachments import AttachmentEntry, OrderedAttachmentSummary
 from eimir.attachments import binding
 from eimir.attachments.models import MediaType
 from eimir.memories import service
-from eimir.memories.models import Memory
+from eimir.memories.models import Memory, PhotoReaction
 from eimir.memories.tags import MemoryTags, unique_tags
 
 router = APIRouter(tags=["memories"])
@@ -76,11 +76,8 @@ class MemoryUpdate(ApiModel):
         return self
 
 
-class MemoryAttachmentEntry(ApiModel):
-    model_config = ConfigDict(extra="forbid")
-
-    attachment_id: UUID
-    position: int = Field(ge=0)
+class MemoryAttachmentEntry(AttachmentEntry):
+    pass
 
 
 class MemoryAttachmentSet(ApiModel):
@@ -89,10 +86,22 @@ class MemoryAttachmentSet(ApiModel):
     attachments: list[MemoryAttachmentEntry]
 
 
-class MemoryAttachmentSummary(AttachmentSummary):
+class PhotoReactionSummary(ApiModel):
+    reaction: PhotoReaction
+    count: int
+    own: bool
+
+
+class PhotoReactionSet(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reaction: PhotoReaction | None
+
+
+class MemoryAttachmentSummary(OrderedAttachmentSummary):
     """A bound attachment plus its position in the memory gallery."""
 
-    position: int
+    reactions: list[PhotoReactionSummary] = Field(default_factory=list)
 
 
 class MemoryDetail(ApiModel):
@@ -154,11 +163,54 @@ def _memory_detail(
                 width=entry.attachment.width,
                 height=entry.attachment.height,
                 has_thumbnail=entry.attachment.has_thumbnail,
+                is_sensitive=entry.attachment.payload.is_sensitive,
                 position=entry.position,
+                reactions=[
+                    PhotoReactionSummary(
+                        reaction=choice,
+                        count=sum(
+                            item.attachment_id == entry.attachment.id and item.reaction == choice
+                            for item in memory.payload.photo_reactions
+                        ),
+                        own=any(
+                            item.attachment_id == entry.attachment.id
+                            and item.reaction == choice
+                            and item.account_id == authorization.account_id
+                            for item in memory.payload.photo_reactions
+                        ),
+                    )
+                    for choice in PhotoReaction
+                    if any(
+                        item.attachment_id == entry.attachment.id and item.reaction == choice
+                        for item in memory.payload.photo_reactions
+                    )
+                ],
             )
             for entry in bound_attachments
         ],
     )
+
+
+@router.put(
+    "/spaces/{spaceId}/memories/{memoryId}/attachments/{attachmentId}/reaction",
+    response_model=MemoryDetail,
+    operation_id="setMemoryPhotoReaction",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 409, 422)},
+)
+def set_memory_photo_reaction(
+    authorization: PhotoBindingAuthorization,
+    session: DbSession,
+    response: Response,
+    body: PhotoReactionSet,
+    memory_id: Annotated[str, Path(alias="memoryId")],
+    attachment_id: Annotated[str, Path(alias="attachmentId")],
+) -> MemoryDetail:
+    """Set or remove the caller's preset photo reaction; retries are idempotent."""
+    memory = service.set_photo_reaction(
+        session, authorization, memory_id, attachment_id, body.reaction
+    )
+    response.headers["ETag"] = etag_for(memory.version)
+    return _memory_detail(session, authorization, memory)
 
 
 @router.post(
@@ -322,7 +374,7 @@ def delete_memory(
     },
 )
 def replace_memory_attachments(
-    authorization: Authorization,
+    authorization: PhotoBindingAuthorization,
     session: DbSession,
     response: Response,
     body: MemoryAttachmentSet,
@@ -340,6 +392,7 @@ def replace_memory_attachments(
         memory_id,
         expected_version=expected_version,
         entries=[(entry.attachment_id, entry.position) for entry in body.attachments],
+        sensitivity={entry.attachment_id: entry.is_sensitive for entry in body.attachments},
     )
     response.headers["ETag"] = etag_for(memory.version)
     return _memory_detail(session, authorization, memory)

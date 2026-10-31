@@ -878,9 +878,6 @@ export function ImportantDatesPanel({
                         </span>
                       </span>
                     </span>
-                    <span className="important-date-chevron" aria-hidden="true">
-                      ›
-                    </span>
                   </button>
                 </li>
               );

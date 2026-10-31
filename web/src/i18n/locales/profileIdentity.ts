@@ -42,8 +42,7 @@ const profileIdentity = {
   settingsTitle: 'Einstellungen',
   settingsIntro:
     'Hier verwaltest du deine persönlichen App-Einstellungen, Verbindungen und Daten.',
-  settingsPageIntro:
-    'Wähle den Bereich, den du anpassen möchtest. Jede Einstellung bleibt dort, wo du sie erwartest.',
+  settingsPageIntro: 'Darstellung, gemeinsame Funktionen und dein Konto.',
   settingsIdentity: 'Profilbild und Anzeigename',
   settingsRelationship: 'Partner und Verbindung',
   settingsRelationshipIntro:
@@ -106,6 +105,7 @@ const profileIdentity = {
   dashboardModulesIntro:
     'Blende Bereiche aus oder ändere ihre Reihenfolge am Griff. Dein Partner sieht weiterhin seine eigene Auswahl.',
   dashboardOrderHandle: '{{name}} verschieben',
+  dashboardModuleConfigure: '{{name}} bearbeiten',
   dashboardOrderInstructions:
     'Am Griff ziehen oder ihn fokussieren und mit Pfeil hoch und runter verschieben.',
   dashboardOrderPosition: '{{name}}, Position {{position}} von {{total}}.',

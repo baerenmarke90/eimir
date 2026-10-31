@@ -5,11 +5,14 @@ from __future__ import annotations
 
 import base64
 import copy
+import hashlib
+import io
 import json
 import os
 import shutil
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 from pathlib import Path
@@ -40,6 +43,139 @@ def successful_runs() -> list[dict]:
         }
         for index, path in enumerate(sorted(channel.REQUIRED_WORKFLOWS), 1)
     ]
+
+
+def completion_event() -> dict:
+    return {"action": "completed", "workflow_run": successful_runs()[0]}
+
+
+class CompletionAdmissionTest(unittest.TestCase):
+    def test_every_required_main_completion_can_retry_the_exact_source(self):
+        for completed in successful_runs():
+            with self.subTest(path=completed["path"]):
+                self.assertTrue(
+                    channel.completion_matches_source(
+                        {"action": "completed", "workflow_run": completed}, SOURCE
+                    )
+                )
+
+    def test_untrusted_or_unrelated_completions_never_query_github(self):
+        for mutation in (
+            {"event": "pull_request"},
+            {"event": "workflow_dispatch"},
+            {"head_branch": "feature"},
+            {"head_sha": PREVIOUS},
+            {"head_repository": {"full_name": "other/eimir"}},
+            {"head_repository": None},
+            {"head_repository": "not-a-repository"},
+            {"path": ".github/workflows/same-name.yml"},
+            {"status": "in_progress"},
+            {"conclusion": "failure"},
+            {"conclusion": "cancelled"},
+            {"conclusion": "skipped"},
+        ):
+            event = completion_event()
+            event["workflow_run"].update(mutation)
+            with self.subTest(mutation=mutation), patch.object(channel, "gh_api") as api:
+                self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", event))
+                api.assert_not_called()
+        for event in ({}, [], {"action": "requested", "workflow_run": successful_runs()[0]}):
+            with self.subTest(event=event), patch.object(channel, "gh_api") as api:
+                self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", event))
+                api.assert_not_called()
+
+    def test_missing_checks_return_immediately_without_polling(self):
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=False) as ready,
+            patch.object(channel, "channel_already_selected") as selected,
+            patch.object(channel.time, "sleep") as sleep,
+        ):
+            self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", completion_event()))
+            ready.assert_called_once_with(SOURCE)
+            selected.assert_not_called()
+            sleep.assert_not_called()
+
+    def test_current_checked_source_is_admitted_once_and_manual_retry_is_available(self):
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=True),
+            patch.object(channel, "channel_already_selected", side_effect=[False, True, False]),
+        ):
+            self.assertTrue(channel.check_for_publication(SOURCE, "workflow_run", completion_event()))
+            self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", completion_event()))
+            self.assertTrue(channel.check_for_publication(SOURCE, "workflow_dispatch", {}))
+
+    def test_superseded_source_and_failed_checks_cannot_admit_a_build(self):
+        with (
+            patch.object(channel, "latest_main", return_value=PREVIOUS),
+            patch.object(channel, "candidate_ready") as ready,
+        ):
+            self.assertFalse(channel.check_for_publication(SOURCE, "workflow_run", completion_event()))
+            ready.assert_not_called()
+        with (
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", side_effect=channel.ChannelError("failed checks")),
+            self.assertRaises(channel.ChannelError),
+        ):
+            channel.check_for_publication(SOURCE, "workflow_run", completion_event())
+
+    def test_other_trigger_types_cannot_admit_a_build(self):
+        for event_name in ("push", "pull_request", "schedule", ""):
+            with (
+                self.subTest(event_name=event_name),
+                patch.object(channel, "gh_api") as api,
+                self.assertRaises(channel.ChannelError),
+            ):
+                channel.check_for_publication(SOURCE, event_name, {})
+            api.assert_not_called()
+
+    def test_selected_channel_requires_owned_metadata_and_real_missing_branch(self):
+        identity = {"kind": channel.CHANNEL_KIND, "schemaVersion": 1, "sourceRevision": SOURCE}
+        for current, expected in ((SOURCE, True), (PREVIOUS, False)):
+            identity["sourceRevision"] = current
+            with patch.object(channel, "gh_api", side_effect=[
+                {"object": {"sha": PREVIOUS}},
+                {"content": base64.b64encode(json.dumps(identity).encode()).decode()},
+            ]):
+                self.assertEqual(channel.channel_already_selected(SOURCE), expected)
+        with patch.object(channel, "gh_api", side_effect=channel.GitHubError("missing", missing=True)):
+            self.assertFalse(channel.channel_already_selected(SOURCE))
+        with (
+            patch.object(channel, "gh_api", side_effect=channel.GitHubError("network")),
+            self.assertRaises(channel.GitHubError),
+        ):
+            channel.channel_already_selected(SOURCE)
+        identity["kind"] = "unowned"
+        with (
+            patch.object(channel, "gh_api", side_effect=[
+                {"object": {"sha": PREVIOUS}},
+                {"content": base64.b64encode(json.dumps(identity).encode()).decode()},
+            ]),
+            self.assertRaises(channel.ChannelError),
+        ):
+            channel.channel_already_selected(SOURCE)
+
+    def test_cli_reads_completion_payload_and_writes_readiness(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            event_path = Path(temporary) / "event.json"
+            output = Path(temporary) / "output"
+            event_path.write_text(json.dumps(completion_event()))
+            environment = {
+                "GITHUB_REPOSITORY": channel.REPOSITORY,
+                "GITHUB_REF": "refs/heads/main",
+                "GITHUB_EVENT_NAME": "workflow_run",
+                "GITHUB_EVENT_PATH": str(event_path),
+            }
+            with (
+                patch.dict(os.environ, environment),
+                patch.object(channel, "latest_main", return_value=SOURCE),
+                patch.object(channel, "candidate_ready", return_value=True),
+                patch.object(channel, "channel_already_selected", return_value=False),
+                patch.object(sys, "argv", ["channel", "check", "--revision", SOURCE, "--github-output", str(output)]),
+            ):
+                self.assertEqual(channel.main(), 0)
+            self.assertEqual(output.read_text(), "ready=true\n")
 
 
 class MainCheckTest(unittest.TestCase):
@@ -171,6 +307,30 @@ class EvidenceAndImageTest(unittest.TestCase):
             self.index["artifacts"].append(record)
         self.write_index()
 
+    def write_image_archive(self, path, *, legacy=False, config=None, tag=None):
+        if config is None:
+            config = json.dumps(self.inspect()["Config"]).encode()
+        digest = hashlib.sha256(config).hexdigest()
+        config_path = digest + ".json" if legacy else "blobs/sha256/" + digest
+        manifest = [{"Config": config_path, "RepoTags": [tag] if tag else None}]
+        with tarfile.open(path, mode="w") as archive:
+            for name, content in (
+                ("manifest.json", json.dumps(manifest).encode()),
+                (config_path, config),
+            ):
+                member = tarfile.TarInfo(name)
+                member.size = len(content)
+                archive.addfile(member, io.BytesIO(content))
+        return "sha256:" + digest
+
+    def prepare_image_archive(self, *, legacy=False):
+        self.config_digest = self.write_image_archive(
+            self.root / self.index["artifacts"][0]["path"],
+            legacy=legacy,
+            tag=f"eimir-backend:evidence-{SOURCE}",
+        )
+        self.image_id = self.config_digest if legacy else "sha256:" + "a" * 64
+
     def write_index(self):
         (self.root / "evidence-index.json").write_text(json.dumps(self.index))
 
@@ -212,7 +372,7 @@ class EvidenceAndImageTest(unittest.TestCase):
 
     def inspect(self):
         return {
-            "Id": "sha256:" + "a" * 64,
+            "Id": getattr(self, "image_id", "sha256:" + "a" * 64),
             "Os": "linux",
             "Architecture": "amd64",
             "Config": {
@@ -232,26 +392,46 @@ class EvidenceAndImageTest(unittest.TestCase):
             return "test: digest: sha256:" + "b" * 64 + " size: 1000\n"
         if arguments[1:3] == ["manifest", "inspect"]:
             return json.dumps(
-                {"config": {"digest": self.inspect()["Id"]}, "layers": []}
+                {
+                    "schemaVersion": 2,
+                    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                    "config": {"digest": self.config_digest},
+                    "layers": [],
+                }
             )
+        if arguments[1:3] == ["image", "save"]:
+            self.write_image_archive(Path(arguments[4]))
         return ""
 
     def test_registry_digest_and_pull_back_are_verified(self):
-        with patch.object(channel, "run", side_effect=self.image_run) as run:
-            pinned = channel.publish_image(
-                self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
-            )
-            self.assertEqual(
-                pinned, "ghcr.io/baerenmarke90/eimir-backend@sha256:" + "b" * 64
-            )
-            self.assertTrue(
-                any(
-                    call.args[0][:2] == ["docker", "pull"]
-                    for call in run.call_args_list
+        for legacy in (False, True):
+            self.prepare_image_archive(legacy=legacy)
+            with (
+                self.subTest(legacy=legacy),
+                patch.object(channel, "run", side_effect=self.image_run) as run,
+            ):
+                pinned = channel.publish_image(
+                    self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
                 )
-            )
+                self.assertEqual(
+                    pinned, "ghcr.io/baerenmarke90/eimir-backend@sha256:" + "b" * 64
+                )
+                calls = [call.args[0] for call in run.call_args_list]
+                self.assertIn(["docker", "pull", pinned], calls)
+                self.assertTrue(
+                    any(
+                        args[:4] == ["docker", "push", "--platform", "linux/amd64"]
+                        for args in calls
+                    )
+                )
+                self.assertTrue(
+                    any(args[:3] == ["docker", "image", "save"] for args in calls)
+                )
+                # Containerd IDs can identify a manifest/index instead of config.
+                self.assertEqual(self.inspect()["Id"] == self.config_digest, legacy)
 
     def test_wrong_image_source_fails_before_push(self):
+        self.prepare_image_archive()
         inspect = self.inspect()
         inspect["Config"]["Labels"]["org.opencontainers.image.revision"] = PREVIOUS
         with (
@@ -266,9 +446,16 @@ class EvidenceAndImageTest(unittest.TestCase):
         self.assertEqual(run.call_count, 2)
 
     def test_registry_index_or_different_config_is_refused(self):
+        self.prepare_image_archive()
         for manifest in (
+            [],
             {"manifests": []},
-            {"config": {"digest": "sha256:" + "c" * 64}},
+            {
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                "config": {"digest": "sha256:" + "c" * 64},
+                "layers": [],
+            },
         ):
 
             def changed(arguments, *, manifest=manifest, **kwargs):
@@ -284,6 +471,59 @@ class EvidenceAndImageTest(unittest.TestCase):
                 channel.publish_image(
                     self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
                 )
+
+    def test_different_pull_back_config_is_refused(self):
+        self.prepare_image_archive()
+
+        def changed(arguments, **kwargs):
+            if arguments[1:3] == ["image", "save"]:
+                self.write_image_archive(Path(arguments[4]), config=b"different config")
+                return ""
+            return self.image_run(arguments, **kwargs)
+
+        with (
+            patch.object(channel, "run", side_effect=changed),
+            self.assertRaisesRegex(channel.ChannelError, "pull-back differs"),
+        ):
+            channel.publish_image(
+                self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
+            )
+
+    def test_ambiguous_corrupt_linked_or_unexpected_config_is_refused(self):
+        config = b"image config"
+        digest = hashlib.sha256(config).hexdigest()
+        name = "blobs/sha256/" + digest
+        base = {"Config": name, "RepoTags": [f"eimir-backend:evidence-{SOURCE}"]}
+        for change in ("multiple", "corrupt", "link", "duplicate", "traversal", "tag"):
+            record = copy.deepcopy(base)
+            if change == "traversal":
+                record["Config"] = "../" + name
+            if change == "tag":
+                record["RepoTags"] = ["unrelated:image"]
+            manifest = [record, record] if change == "multiple" else [record]
+            archive_path = self.root / self.index["artifacts"][0]["path"]
+            with tarfile.open(archive_path, mode="w") as archive:
+                for member_name, content in (
+                    ("manifest.json", json.dumps(manifest).encode()),
+                    (name, b"wrong bytes" if change == "corrupt" else config),
+                ):
+                    member = tarfile.TarInfo(member_name)
+                    member.size = len(content)
+                    if change == "link" and member_name == name:
+                        member.type = tarfile.SYMTYPE
+                        member.linkname = "/private"
+                    archive.addfile(member, io.BytesIO(content))
+                    if change == "duplicate" and member_name == name:
+                        archive.addfile(member, io.BytesIO(content))
+            with (
+                self.subTest(change=change),
+                patch.object(channel, "run") as run,
+                self.assertRaises(channel.ChannelError),
+            ):
+                channel.publish_image(
+                    self.root, self.index["artifacts"][0], SOURCE, "0.0.0-test.1", "1-1"
+                )
+            run.assert_not_called()
 
     def test_partial_publication_never_advances_the_branch(self):
         with (
@@ -423,6 +663,49 @@ class BranchPromotionTest(unittest.TestCase):
         self.assertEqual(self.calls[-1][1]["ref"], "refs/heads/deploy/eimir-test")
 
 
+class OptionalPhotoConfigurationTest(unittest.TestCase):
+    def test_photo_settings_are_instance_expressions_and_never_runner_values(self):
+        canonical = {
+            "services": {
+                name: {
+                    "environment": {
+                        "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "source-placeholder"
+                    }
+                }
+                for name in channel.CLOUD_SERVICES
+            }
+        }
+        with patch.dict(
+            os.environ,
+            {
+                "EIMIR_PHOTO_SOURCES_ENABLED": "false",
+                "EIMIR_GOOGLE_PHOTOS_CLIENT_ID": "runner-client",
+                "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "runner-secret",
+            },
+        ):
+            exported = channel.export_compose(canonical, BACKEND, WEB)
+        for name in ("cloud-api", "cloud-worker"):
+            env = exported["services"][name]["environment"]
+            self.assertEqual(
+                env["EIMIR_PHOTO_SOURCES_ENABLED"],
+                "${EIMIR_PHOTO_SOURCES_ENABLED:-true}",
+            )
+            self.assertEqual(
+                env["EIMIR_GOOGLE_PHOTOS_CLIENT_ID"],
+                "${EIMIR_GOOGLE_PHOTOS_CLIENT_ID:-}",
+            )
+            self.assertEqual(
+                env["EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET"],
+                "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}",
+            )
+        self.assertNotIn("runner-client", json.dumps(exported))
+        self.assertNotIn("runner-secret", json.dumps(exported))
+        self.assertNotIn(
+            "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET",
+            exported["services"]["cloud-migrate"]["environment"],
+        )
+
+
 @unittest.skipUnless(shutil.which("docker"), "Docker Compose CLI is required")
 class CanonicalWiringTest(unittest.TestCase):
     @classmethod
@@ -548,3 +831,4 @@ class CanonicalWiringTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

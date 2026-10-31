@@ -111,6 +111,15 @@ async function installFixture(page: Page) {
     const items = deleted
       ? []
       : [{ kind: 'MILESTONE', effectiveDate: milestone.createdAt, milestone }];
+    if (local === '/dashboard' && method === 'GET')
+      return json({
+        recentShared: [],
+        relationshipDuration: null,
+        retrospective: null,
+        space: { partner, spaceId },
+        upcoming: [],
+        viewerLocalDate: '2026-10-17',
+      });
     if (local === '/timeline' && method === 'GET')
       return json({ items, hasMore: false, nextCursor: null });
     if (local === '/discover' && method === 'GET')
@@ -174,10 +183,19 @@ async function openEditor(page: Page, largeText = false) {
   await page.getByLabel(de.login.email).fill('alex@example.test');
   await page.getByLabel(de.login.password).fill('long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
-  await expect(page.locator('.story-card-milestone')).toBeVisible();
-  await page.locator('.story-card-milestone').click();
+  const entry = page
+    .locator('#momente-diary')
+    .getByRole('link')
+    .filter({
+      has: page.getByRole('heading', { name: milestone.title, exact: true }),
+    });
+  await expect(entry).toBeVisible();
+  await entry.click();
+  await expect(page).toHaveURL(
+    new RegExp(`/story/milestones/${milestone.id}$`),
+  );
   await expect(
-    page.getByRole('heading', { name: milestone.title, exact: true }),
+    page.getByRole('heading', { name: milestone.title, exact: true, level: 1 }),
   ).toBeVisible();
   await page.getByRole('link', { name: copy.edit, exact: true }).click();
   if (largeText)

@@ -405,6 +405,12 @@
             "title": "Id",
             "type": "string"
           },
+          "isSensitive": {
+            "default": false,
+            "description": "Manual sensitive-content classification; never an access-control boundary.",
+            "title": "Issensitive",
+            "type": "boolean"
+          },
           "mediaType": {
             "$ref": "#/components/schemas/MediaType"
           },
@@ -466,6 +472,39 @@
         "title": "AttachmentDetail",
         "type": "object"
       },
+      "AttachmentEntry": {
+        "additionalProperties": false,
+        "description": "Ordered atomic gallery binding, shared by Memory and Plan writers.",
+        "properties": {
+          "attachmentId": {
+            "format": "uuid",
+            "title": "Attachmentid",
+            "type": "string"
+          },
+          "isSensitive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issensitive"
+          },
+          "position": {
+            "minimum": 0.0,
+            "title": "Position",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "attachmentId",
+          "position"
+        ],
+        "title": "AttachmentEntry",
+        "type": "object"
+      },
       "AttachmentFinalize": {
         "additionalProperties": false,
         "description": "Empty by contract: finalize carries no client-supplied metadata.\n\nThe server determines everything it needs to know about the file itself.",
@@ -494,6 +533,7 @@
               "MEMORY",
               "HEART_MOMENT",
               "RELATED_PERSON",
+              "PLAN",
               "NONE"
             ],
             "title": "Parenttype",
@@ -535,6 +575,12 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "isSensitive": {
+            "default": false,
+            "description": "Manual sensitive-content classification; never an access-control boundary.",
+            "title": "Issensitive",
+            "type": "boolean"
           },
           "mediaType": {
             "$ref": "#/components/schemas/MediaType"
@@ -612,6 +658,12 @@
             "minLength": 1,
             "title": "Originalname",
             "type": "string"
+          },
+          "preserveMetadata": {
+            "default": false,
+            "description": "Retain readable EXIF/ICC in the validated primary image; independent of Place association.",
+            "title": "Preservemetadata",
+            "type": "boolean"
           }
         },
         "required": [
@@ -1945,6 +1997,48 @@
         "title": "DailyVibe",
         "type": "string"
       },
+      "DashboardAnticipation": {
+        "properties": {
+          "daysRemaining": {
+            "title": "Daysremaining",
+            "type": "integer"
+          },
+          "eventAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eventat"
+          },
+          "eventOn": {
+            "format": "date",
+            "title": "Eventon",
+            "type": "string"
+          },
+          "planId": {
+            "format": "uuid",
+            "title": "Planid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "planId",
+          "title",
+          "eventOn",
+          "daysRemaining"
+        ],
+        "title": "DashboardAnticipation",
+        "type": "object"
+      },
       "DashboardItem": {
         "properties": {
           "createdAt": {
@@ -1987,6 +2081,11 @@
               }
             ],
             "title": "Previewattachmentid"
+          },
+          "previewIsSensitive": {
+            "default": false,
+            "title": "Previewissensitive",
+            "type": "boolean"
           },
           "scheduledAt": {
             "anyOf": [
@@ -2244,6 +2343,16 @@
       },
       "DashboardView": {
         "properties": {
+          "anticipation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashboardAnticipation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "keepsake": {
             "anyOf": [
               {
@@ -2976,6 +3085,17 @@
             ],
             "title": "Attachmentid"
           },
+          "attachmentIsSensitive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachmentissensitive"
+          },
           "emotion": {
             "$ref": "#/components/schemas/HeartEmotion"
           },
@@ -3151,6 +3271,17 @@
               }
             ],
             "title": "Attachmentid"
+          },
+          "attachmentIsSensitive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachmentissensitive"
           },
           "emotion": {
             "anyOf": [
@@ -3537,6 +3668,17 @@
             "title": "Attachmentid",
             "type": "string"
           },
+          "isSensitive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issensitive"
+          },
           "position": {
             "minimum": 0.0,
             "title": "Position",
@@ -3590,6 +3732,12 @@
             "title": "Id",
             "type": "string"
           },
+          "isSensitive": {
+            "default": false,
+            "description": "Manual sensitive-content classification; never an access-control boundary.",
+            "title": "Issensitive",
+            "type": "boolean"
+          },
           "mediaType": {
             "$ref": "#/components/schemas/MediaType"
           },
@@ -3607,6 +3755,13 @@
           "position": {
             "title": "Position",
             "type": "integer"
+          },
+          "reactions": {
+            "items": {
+              "$ref": "#/components/schemas/PhotoReactionSummary"
+            },
+            "title": "Reactions",
+            "type": "array"
           },
           "size": {
             "anyOf": [
@@ -3781,6 +3936,80 @@
           "attachments"
         ],
         "title": "MemoryDetail",
+        "type": "object"
+      },
+      "MemoryMapEntry": {
+        "properties": {
+          "happenedOn": {
+            "format": "date",
+            "title": "Happenedon",
+            "type": "string"
+          },
+          "latitude": {
+            "title": "Latitude",
+            "type": "number"
+          },
+          "longitude": {
+            "title": "Longitude",
+            "type": "number"
+          },
+          "memoryId": {
+            "format": "uuid",
+            "title": "Memoryid",
+            "type": "string"
+          },
+          "placeId": {
+            "format": "uuid",
+            "title": "Placeid",
+            "type": "string"
+          },
+          "placeName": {
+            "title": "Placename",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "memoryId",
+          "title",
+          "happenedOn",
+          "placeId",
+          "placeName",
+          "latitude",
+          "longitude"
+        ],
+        "title": "MemoryMapEntry",
+        "type": "object"
+      },
+      "MemoryMapPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryMapEntry"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "title": "MemoryMapPage",
         "type": "object"
       },
       "MemoryPage": {
@@ -4465,6 +4694,19 @@
         "title": "NotificationsReadAllResult",
         "type": "object"
       },
+      "ObservationKind": {
+        "enum": [
+          "JOINT_DAYS",
+          "ENERGY_RISING",
+          "ENERGY_FALLING",
+          "WEEKEND_HIGHER",
+          "WEEKEND_LOWER",
+          "WEEKDAY_LOWER",
+          "DIFFERENT_VIBES"
+        ],
+        "title": "ObservationKind",
+        "type": "string"
+      },
       "OidcStartRequest": {
         "properties": {
           "invitationToken": {
@@ -4518,6 +4760,94 @@
           "at"
         ],
         "title": "OnceSchedule",
+        "type": "object"
+      },
+      "OrderedAttachmentSummary": {
+        "description": "A bound photo with its stable position in a parent's gallery.",
+        "properties": {
+          "hasThumbnail": {
+            "title": "Hasthumbnail",
+            "type": "boolean"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "isSensitive": {
+            "default": false,
+            "description": "Manual sensitive-content classification; never an access-control boundary.",
+            "title": "Issensitive",
+            "type": "boolean"
+          },
+          "mediaType": {
+            "$ref": "#/components/schemas/MediaType"
+          },
+          "mimeType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mimetype"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "mediaType",
+          "mimeType",
+          "size",
+          "width",
+          "height",
+          "hasThumbnail",
+          "position"
+        ],
+        "title": "OrderedAttachmentSummary",
         "type": "object"
       },
       "PartnerEnergyHidden": {
@@ -4991,6 +5321,38 @@
         "title": "PersonRelationship",
         "type": "string"
       },
+      "PhotoLocationPreference": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "version"
+        ],
+        "title": "PhotoLocationPreference",
+        "type": "object"
+      },
+      "PhotoLocationPreferenceUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "PhotoLocationPreferenceUpdate",
+        "type": "object"
+      },
       "PhotoParentType": {
         "enum": [
           "MEMORY",
@@ -4998,6 +5360,255 @@
         ],
         "title": "PhotoParentType",
         "type": "string"
+      },
+      "PhotoReaction": {
+        "enum": [
+          "LOVE",
+          "LAUGH",
+          "SURPRISE",
+          "SAD",
+          "CELEBRATE",
+          "LIKE"
+        ],
+        "title": "PhotoReaction",
+        "type": "string"
+      },
+      "PhotoReactionSet": {
+        "additionalProperties": false,
+        "properties": {
+          "reaction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PhotoReaction"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "reaction"
+        ],
+        "title": "PhotoReactionSet",
+        "type": "object"
+      },
+      "PhotoReactionSummary": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "own": {
+            "title": "Own",
+            "type": "boolean"
+          },
+          "reaction": {
+            "$ref": "#/components/schemas/PhotoReaction"
+          }
+        },
+        "required": [
+          "reaction",
+          "count",
+          "own"
+        ],
+        "title": "PhotoReactionSummary",
+        "type": "object"
+      },
+      "PhotoSelectionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "consent": {
+            "const": true,
+            "title": "Consent",
+            "type": "boolean"
+          },
+          "maxItems": {
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Maxitems",
+            "type": "integer"
+          },
+          "mediaRecoveryPolicy": {
+            "anyOf": [
+              {
+                "const": "memory-only-v1",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mediarecoverypolicy"
+          },
+          "source": {
+            "enum": [
+              "google",
+              "immich"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "maxItems",
+          "consent"
+        ],
+        "title": "PhotoSelectionCreate",
+        "type": "object"
+      },
+      "PhotoSelectionItemView": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "PhotoSelectionItemView",
+        "type": "object"
+      },
+      "PhotoSelectionView": {
+        "properties": {
+          "authorizationUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorizationurl"
+          },
+          "hasMore": {
+            "title": "Hasmore",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PhotoSelectionItemView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "pickerUri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pickeruri"
+          },
+          "pollAfterSeconds": {
+            "default": 5,
+            "title": "Pollafterseconds",
+            "type": "integer"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "status",
+          "items",
+          "hasMore"
+        ],
+        "title": "PhotoSelectionView",
+        "type": "object"
+      },
+      "PhotoSourceAvailability": {
+        "properties": {
+          "canImport": {
+            "title": "Canimport",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "googleAvailable": {
+            "title": "Googleavailable",
+            "type": "boolean"
+          },
+          "immichConnected": {
+            "title": "Immichconnected",
+            "type": "boolean"
+          },
+          "immichConnectionToken": {
+            "title": "Immichconnectiontoken",
+            "type": "string"
+          },
+          "immichOrigin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Immichorigin"
+          }
+        },
+        "required": [
+          "enabled",
+          "googleAvailable",
+          "immichConnected",
+          "immichConnectionToken",
+          "canImport"
+        ],
+        "title": "PhotoSourceAvailability",
+        "type": "object"
+      },
+      "PhotoSourceConnectionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "apiKey": {
+            "format": "password",
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Apikey",
+            "type": "string",
+            "writeOnly": true
+          },
+          "consent": {
+            "const": true,
+            "title": "Consent",
+            "type": "boolean"
+          },
+          "origin": {
+            "maxLength": 512,
+            "minLength": 10,
+            "title": "Origin",
+            "type": "string"
+          }
+        },
+        "required": [
+          "origin",
+          "apiKey",
+          "consent"
+        ],
+        "title": "PhotoSourceConnectionCreate",
+        "type": "object"
       },
       "PlaceCreate": {
         "additionalProperties": false,
@@ -5069,6 +5680,17 @@
             ],
             "title": "Description"
           },
+          "geocodingSource": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Geocodingsource"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -5131,6 +5753,84 @@
           "capabilities"
         ],
         "title": "PlaceDetail",
+        "type": "object"
+      },
+      "PlaceLookupCandidate": {
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "latitude": {
+            "title": "Latitude",
+            "type": "number"
+          },
+          "longitude": {
+            "title": "Longitude",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "address",
+          "latitude",
+          "longitude"
+        ],
+        "title": "PlaceLookupCandidate",
+        "type": "object"
+      },
+      "PlaceLookupRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "locale": {
+            "default": "en",
+            "maxLength": 16,
+            "title": "Locale",
+            "type": "string"
+          },
+          "query": {
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "PlaceLookupRequest",
+        "type": "object"
+      },
+      "PlaceLookupResult": {
+        "properties": {
+          "attribution": {
+            "default": "© OpenStreetMap contributors",
+            "title": "Attribution",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PlaceLookupCandidate"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "PlaceLookupResult",
         "type": "object"
       },
       "PlacePage": {
@@ -5241,6 +5941,24 @@
         "additionalProperties": false,
         "description": "Direct Plan creation with an optional atomic schedule.\n\nLifecycle state remains server-owned. Omitting ``schedule`` creates an\n``IDEA``; supplying a valid date-only or timed schedule creates a\n``PLANNED`` Plan in the same transaction.",
         "properties": {
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/AttachmentEntry"
+            },
+            "maxItems": 20,
+            "title": "Attachments",
+            "type": "array"
+          },
+          "coverAttachmentId": {
+            "format": "uuid",
+            "title": "Coverattachmentid",
+            "type": "string"
+          },
+          "coverIsSensitive": {
+            "default": false,
+            "title": "Coverissensitive",
+            "type": "boolean"
+          },
           "description": {
             "title": "Description",
             "type": "string"
@@ -5267,8 +5985,30 @@
       },
       "PlanDetail": {
         "properties": {
+          "anticipationEnabled": {
+            "default": false,
+            "title": "Anticipationenabled",
+            "type": "boolean"
+          },
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/OrderedAttachmentSummary"
+            },
+            "title": "Attachments",
+            "type": "array"
+          },
           "capabilities": {
             "$ref": "#/components/schemas/ResourceCapabilities"
+          },
+          "coverAttachment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttachmentSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "createdAt": {
             "format": "date-time",
@@ -5500,8 +6240,36 @@
       },
       "PlanUpdate": {
         "additionalProperties": false,
-        "description": "Domain correction without changing lifecycle status.\n\nSchedule fields remain owned by ``/schedule`` and ``/unschedule``.\n``experiencedOn`` is the one exception: it may be corrected on a completed\nPlan without reopening it (M3-D04).",
+        "description": "Atomic content, image and optional schedule correction.\n\nExplicit null ``schedule`` removes the date; omission preserves it.\n``experiencedOn`` is the one exception: it may be corrected on a completed\nPlan without reopening it (M3-D04).",
         "properties": {
+          "anticipationEnabled": {
+            "title": "Anticipationenabled",
+            "type": "boolean"
+          },
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/AttachmentEntry"
+            },
+            "maxItems": 20,
+            "title": "Attachments",
+            "type": "array"
+          },
+          "coverAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverattachmentid"
+          },
+          "coverIsSensitive": {
+            "title": "Coverissensitive",
+            "type": "boolean"
+          },
           "description": {
             "anyOf": [
               {
@@ -5529,6 +6297,16 @@
               }
             ],
             "title": "Placeid"
+          },
+          "schedule": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanSchedule"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "title": {
             "title": "Title",
@@ -6366,6 +7144,492 @@
         "title": "Readiness",
         "type": "object"
       },
+      "RecapDraftView": {
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "text",
+          "version"
+        ],
+        "title": "RecapDraftView",
+        "type": "object"
+      },
+      "RecapKind": {
+        "enum": [
+          "MONTH",
+          "YEAR"
+        ],
+        "title": "RecapKind",
+        "type": "string"
+      },
+      "RecapOverview": {
+        "properties": {
+          "canCompose": {
+            "title": "Cancompose",
+            "type": "boolean"
+          },
+          "editions": {
+            "items": {
+              "$ref": "#/components/schemas/RecapView"
+            },
+            "title": "Editions",
+            "type": "array"
+          },
+          "hasMore": {
+            "title": "Hasmore",
+            "type": "boolean"
+          },
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/RecapPeriod"
+            },
+            "title": "Periods",
+            "type": "array"
+          }
+        },
+        "required": [
+          "canCompose",
+          "editions",
+          "periods",
+          "hasMore"
+        ],
+        "title": "RecapOverview",
+        "type": "object"
+      },
+      "RecapPeriod": {
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/RecapKind"
+          },
+          "month": {
+            "default": 0,
+            "maximum": 12.0,
+            "minimum": 0.0,
+            "title": "Month",
+            "type": "integer"
+          },
+          "year": {
+            "maximum": 2100.0,
+            "minimum": 1900.0,
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "year"
+        ],
+        "title": "RecapPeriod",
+        "type": "object"
+      },
+      "RecapReflectionUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "shared": {
+            "title": "Shared",
+            "type": "boolean"
+          },
+          "text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 0.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "text",
+          "shared",
+          "version"
+        ],
+        "title": "RecapReflectionUpdate",
+        "type": "object"
+      },
+      "RecapReflectionView": {
+        "properties": {
+          "displayName": {
+            "title": "Displayname",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ownerId": {
+            "format": "uuid",
+            "title": "Ownerid",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "ownerId",
+          "displayName",
+          "text",
+          "version"
+        ],
+        "title": "RecapReflectionView",
+        "type": "object"
+      },
+      "RecapRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/RecapKind"
+          },
+          "month": {
+            "default": 0,
+            "maximum": 12.0,
+            "minimum": 0.0,
+            "title": "Month",
+            "type": "integer"
+          },
+          "refresh": {
+            "default": false,
+            "title": "Refresh",
+            "type": "boolean"
+          },
+          "variant": {
+            "default": 0,
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Variant",
+            "type": "integer"
+          },
+          "year": {
+            "maximum": 2100.0,
+            "minimum": 1900.0,
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "year"
+        ],
+        "title": "RecapRequest",
+        "type": "object"
+      },
+      "RecapSelectionUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "sourceKeys": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Sourcekeys",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sourceKeys"
+        ],
+        "title": "RecapSelectionUpdate",
+        "type": "object"
+      },
+      "RecapSelectionView": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RecapSourceView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "selectedKeys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Selectedkeys",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "selectedKeys"
+        ],
+        "title": "RecapSelectionView",
+        "type": "object"
+      },
+      "RecapSourceKind": {
+        "enum": [
+          "MEMORY",
+          "HEART_MOMENT",
+          "MILESTONE",
+          "CHAPTER",
+          "PLAN"
+        ],
+        "title": "RecapSourceKind",
+        "type": "string"
+      },
+      "RecapSourceView": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RecapSourceKind"
+          },
+          "occurredOn": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occurredon"
+          },
+          "previewAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previewattachmentid"
+          },
+          "previewIsSensitive": {
+            "title": "Previewissensitive",
+            "type": "boolean"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "id",
+          "occurredOn",
+          "version",
+          "title",
+          "excerpt",
+          "previewAttachmentId",
+          "previewIsSensitive",
+          "available"
+        ],
+        "title": "RecapSourceView",
+        "type": "object"
+      },
+      "RecapView": {
+        "properties": {
+          "generatedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generatedat"
+          },
+          "headline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Headline"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "introduction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Introduction"
+          },
+          "isPartial": {
+            "title": "Ispartial",
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RecapKind"
+          },
+          "locale": {
+            "title": "Locale",
+            "type": "string"
+          },
+          "month": {
+            "default": 0,
+            "maximum": 12.0,
+            "minimum": 0.0,
+            "title": "Month",
+            "type": "integer"
+          },
+          "ownDraft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecapDraftView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reflections": {
+            "items": {
+              "$ref": "#/components/schemas/RecapReflectionView"
+            },
+            "title": "Reflections",
+            "type": "array"
+          },
+          "savedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Savedat"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/RecapSourceView"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "startsOn": {
+            "format": "date",
+            "title": "Startson",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "theme": {
+            "title": "Theme",
+            "type": "string"
+          },
+          "throughOn": {
+            "format": "date",
+            "title": "Throughon",
+            "type": "string"
+          },
+          "variant": {
+            "title": "Variant",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "year": {
+            "maximum": 2100.0,
+            "minimum": 1900.0,
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "year",
+          "id",
+          "variant",
+          "version",
+          "startsOn",
+          "throughOn",
+          "isPartial",
+          "status",
+          "theme",
+          "generatedAt",
+          "savedAt",
+          "locale",
+          "headline",
+          "introduction",
+          "sources",
+          "reflections",
+          "ownDraft"
+        ],
+        "title": "RecapView",
+        "type": "object"
+      },
       "RecentAuthenticationClient": {
         "enum": [
           "web",
@@ -6403,6 +7667,26 @@
         ],
         "title": "RecentAuthenticationView",
         "type": "object"
+      },
+      "RecommendationKey": {
+        "enum": [
+          "quiet_time",
+          "small_plan",
+          "appreciation",
+          "listening",
+          "own_pace",
+          "keep_ritual"
+        ],
+        "title": "RecommendationKey",
+        "type": "string"
+      },
+      "RecommendationRating": {
+        "enum": [
+          "HELPFUL",
+          "NOT_FITTING"
+        ],
+        "title": "RecommendationRating",
+        "type": "string"
       },
       "RecoveryConsumeRequest": {
         "properties": {
@@ -6685,6 +7969,61 @@
           "localTime"
         ],
         "title": "RelationshipDayCountSchedule",
+        "type": "object"
+      },
+      "RelationshipPassportView": {
+        "properties": {
+          "completedPlans": {
+            "title": "Completedplans",
+            "type": "integer"
+          },
+          "heartMoments": {
+            "title": "Heartmoments",
+            "type": "integer"
+          },
+          "memories": {
+            "title": "Memories",
+            "type": "integer"
+          },
+          "milestones": {
+            "title": "Milestones",
+            "type": "integer"
+          },
+          "partner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashboardPartner"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "places": {
+            "title": "Places",
+            "type": "integer"
+          },
+          "relationshipDuration": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashboardRelationshipDuration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "partner",
+          "relationshipDuration",
+          "memories",
+          "heartMoments",
+          "milestones",
+          "completedPlans",
+          "places"
+        ],
+        "title": "RelationshipPassportView",
         "type": "object"
       },
       "ReminderDetail": {
@@ -10129,6 +11468,227 @@
         "title": "UploadDescriptor",
         "type": "object"
       },
+      "WeeklyFeedbackUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "rating": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecommendationRating"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "rating"
+        ],
+        "title": "WeeklyFeedbackUpdate",
+        "type": "object"
+      },
+      "WeeklyFeedbackView": {
+        "properties": {
+          "rating": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecommendationRating"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recommendationKey": {
+            "$ref": "#/components/schemas/RecommendationKey"
+          }
+        },
+        "required": [
+          "recommendationKey",
+          "rating"
+        ],
+        "title": "WeeklyFeedbackView",
+        "type": "object"
+      },
+      "WeeklyObservationView": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ObservationKind"
+          },
+          "sampleCount": {
+            "title": "Samplecount",
+            "type": "integer"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "weekday": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weekday"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "sampleCount"
+        ],
+        "title": "WeeklyObservationView",
+        "type": "object"
+      },
+      "WeeklyReviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "evidenceToken": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Evidencetoken",
+            "type": "string"
+          },
+          "weekStart": {
+            "format": "date",
+            "title": "Weekstart",
+            "type": "string"
+          }
+        },
+        "required": [
+          "weekStart",
+          "evidenceToken"
+        ],
+        "title": "WeeklyReviewRequest",
+        "type": "object"
+      },
+      "WeeklyReviewView": {
+        "properties": {
+          "evidenceToken": {
+            "title": "Evidencetoken",
+            "type": "string"
+          },
+          "feedback": {
+            "items": {
+              "$ref": "#/components/schemas/WeeklyFeedbackView"
+            },
+            "title": "Feedback",
+            "type": "array"
+          },
+          "general": {
+            "title": "General",
+            "type": "boolean"
+          },
+          "generatedBy": {
+            "default": "RULES",
+            "enum": [
+              "RULES",
+              "AI"
+            ],
+            "title": "Generatedby",
+            "type": "string"
+          },
+          "historyEnd": {
+            "format": "date",
+            "title": "Historyend",
+            "type": "string"
+          },
+          "historyStart": {
+            "format": "date",
+            "title": "Historystart",
+            "type": "string"
+          },
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/WeeklyObservationView"
+            },
+            "title": "Observations",
+            "type": "array"
+          },
+          "recommendations": {
+            "items": {
+              "$ref": "#/components/schemas/RecommendationKey"
+            },
+            "title": "Recommendations",
+            "type": "array"
+          },
+          "weekEnd": {
+            "format": "date",
+            "title": "Weekend",
+            "type": "string"
+          },
+          "weekStart": {
+            "format": "date",
+            "title": "Weekstart",
+            "type": "string"
+          }
+        },
+        "required": [
+          "weekStart",
+          "weekEnd",
+          "historyStart",
+          "historyEnd",
+          "evidenceToken",
+          "observations",
+          "recommendations",
+          "feedback",
+          "general"
+        ],
+        "title": "WeeklyReviewView",
+        "type": "object"
+      },
+      "WirDesignId": {
+        "enum": [
+          "warm",
+          "modern",
+          "classic"
+        ],
+        "title": "WirDesignId",
+        "type": "string"
+      },
+      "WirDesignPreferencePatch": {
+        "properties": {
+          "designId": {
+            "$ref": "#/components/schemas/WirDesignId"
+          }
+        },
+        "required": [
+          "designId"
+        ],
+        "title": "WirDesignPreferencePatch",
+        "type": "object"
+      },
+      "WirDesignPreferenceView": {
+        "properties": {
+          "designId": {
+            "$ref": "#/components/schemas/WirDesignId"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "designId",
+          "version"
+        ],
+        "title": "WirDesignPreferenceView",
+        "type": "object"
+      },
       "WishCreate": {
         "additionalProperties": false,
         "description": "A wish is created from exactly one client field.\n\n``extra=\"forbid\"`` is more than hygiene here: M3-D01/D02 make\n``status``, ``createdBy``, ``spaceId``, and ``version`` server-controlled.\nA request supplying those fields is rejected rather than silently stripped,\nso the client cannot believe it successfully set them.",
@@ -10235,6 +11795,218 @@
           "hasMore"
         ],
         "title": "WishPage",
+        "type": "object"
+      },
+      "WishSelectionCandidateView": {
+        "properties": {
+          "planId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WishStatus"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "wishId": {
+            "format": "uuid",
+            "title": "Wishid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "wishId",
+          "title",
+          "version",
+          "status",
+          "planId"
+        ],
+        "title": "WishSelectionCandidateView",
+        "type": "object"
+      },
+      "WishSelectionOwnView": {
+        "properties": {
+          "favoriteWishIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Favoritewishids",
+            "type": "array"
+          },
+          "published": {
+            "title": "Published",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "favoriteWishIds",
+          "published",
+          "version"
+        ],
+        "title": "WishSelectionOwnView",
+        "type": "object"
+      },
+      "WishSelectionRoundUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "wishIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 2,
+            "title": "Wishids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "wishIds"
+        ],
+        "title": "WishSelectionRoundUpdate",
+        "type": "object"
+      },
+      "WishSelectionUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "favoriteWishIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Favoritewishids",
+            "type": "array"
+          },
+          "published": {
+            "title": "Published",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "favoriteWishIds",
+          "published"
+        ],
+        "title": "WishSelectionUpdate",
+        "type": "object"
+      },
+      "WishSelectionView": {
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/WishSelectionCandidateView"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "commonWishIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Commonwishids",
+            "type": "array"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "own": {
+            "$ref": "#/components/schemas/WishSelectionOwnView"
+          },
+          "resultState": {
+            "enum": [
+              "NO_ROUND",
+              "CHOOSING",
+              "WAITING",
+              "READY",
+              "NEEDS_IDEAS"
+            ],
+            "title": "Resultstate",
+            "type": "string"
+          },
+          "roundToken": {
+            "title": "Roundtoken",
+            "type": "string"
+          },
+          "selectionToken": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectiontoken"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "title",
+          "candidates",
+          "own",
+          "selectionToken",
+          "roundToken",
+          "resultState",
+          "commonWishIds"
+        ],
+        "title": "WishSelectionView",
         "type": "object"
       },
       "WishStatus": {
@@ -10423,6 +12195,109 @@
           }
         },
         "summary": "Delete the authenticated Account",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/api/v1/account/photo-location-preference": {
+      "get": {
+        "operationId": "getPhotoLocationPreference",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoLocationPreference"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          }
+        },
+        "summary": "Get Photo Location Preference",
+        "tags": [
+          "account"
+        ]
+      },
+      "put": {
+        "operationId": "setPhotoLocationPreference",
+        "parameters": [
+          {
+            "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoLocationPreferenceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoLocationPreference"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Photo Location Preference",
         "tags": [
           "account"
         ]
@@ -15276,6 +17151,177 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/appearance/wir-design": {
+      "get": {
+        "description": "Read only the caller's personal composition, including after Pro expiry.",
+        "operationId": "getWirDesignPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WirDesignPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Wir Design Preference",
+        "tags": [
+          "appearance"
+        ]
+      },
+      "patch": {
+        "description": "Save a personal cosmetic. Warm is Free; new alternatives require Pro.",
+        "operationId": "updateWirDesignPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WirDesignPreferencePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WirDesignPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Wir Design Preference",
+        "tags": [
+          "appearance"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/attachments": {
       "post": {
         "operationId": "createAttachmentUpload",
@@ -18511,6 +20557,291 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback/{recommendationKey}": {
+      "put": {
+        "description": "Set one caller preference; clearing retained feedback is not paywalled.",
+        "operationId": "setDailyCheckInWeeklyFeedback",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recommendationKey",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/RecommendationKey"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeeklyFeedbackUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyFeedbackView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Daily Check In Weekly Feedback",
+        "tags": [
+          "daily-check-ins"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review": {
+      "get": {
+        "description": "Read current authorized multiweek observations without running inference.",
+        "operationId": "getDailyCheckInWeeklyReview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "week_start",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Week Start",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyReviewView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Daily Check In Weekly Review",
+        "tags": [
+          "daily-check-ins"
+        ]
+      },
+      "post": {
+        "description": "Explicit bounded model selection; revisions are revalidated after inference.",
+        "operationId": "createDailyCheckInWeeklyReview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeeklyReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyReviewView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Create Daily Check In Weekly Review",
+        "tags": [
+          "daily-check-ins"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/daily-quote": {
       "get": {
         "description": "Return the deterministic quote of the day for the authorized caller.\n\nRequires that the Space holds the `daily.quote` Pro entitlement.",
@@ -19091,7 +21422,7 @@
     },
     "/api/v1/spaces/{spaceId}/discover": {
       "get": {
-        "description": "Return today's finite backend-owned curated Story selection.\n\nSnapshot order is canonical. If the original lead becomes unreadable, the\nfirst surviving reference becomes the response lead and all later\nsurvivors remain in their existing order. Nothing is refilled or\nreshuffled during that local day.",
+        "description": "Return today's finite backend-owned curated Story selection.\n\nSnapshot order is canonical. If the original lead becomes unreadable, the\nfirst surviving reference becomes the response lead and all later\nsurvivors remain in their existing order. Only deliberate renewal changes\nthe selected references during that local day.",
         "operationId": "getStoryDiscover",
         "parameters": [
           {
@@ -19137,6 +21468,69 @@
           }
         },
         "summary": "Get Story Discover",
+        "tags": [
+          "story"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/discover/renew": {
+      "post": {
+        "description": "Deliberately renew the caller's finite selection; no source content is changed.",
+        "operationId": "renewStoryDiscover",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoverSelection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Renew Story Discover",
         "tags": [
           "story"
         ]
@@ -21511,6 +23905,115 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/memories/{memoryId}/attachments/{attachmentId}/reaction": {
+      "put": {
+        "description": "Set or remove the caller's preset photo reaction; retries are idempotent.",
+        "operationId": "setMemoryPhotoReaction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memoryId",
+            "required": true,
+            "schema": {
+              "title": "Memoryid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "attachmentId",
+            "required": true,
+            "schema": {
+              "title": "Attachmentid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoReactionSet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryDetail"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Memory Photo Reaction",
+        "tags": [
+          "memories"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/memories/{memoryId}/comments": {
       "get": {
         "operationId": "listMemoryComments",
@@ -21750,6 +24253,117 @@
         "summary": "Create Memory Comment",
         "tags": [
           "comments"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/memory-map": {
+      "get": {
+        "description": "Pro map over readable saved memories and places; no location tracking.",
+        "operationId": "listMemoryMap",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryMapPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request is syntactically valid but cannot be processed in this form."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Memory Map",
+        "tags": [
+          "places"
         ]
       }
     },
@@ -22517,6 +25131,125 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/moments/{kind}/{targetId}/places": {
+      "get": {
+        "operationId": "listMomentPlaces",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "pattern": "^(memories|heart-moments)$",
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "targetId",
+            "required": true,
+            "schema": {
+              "title": "Targetid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacePage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request is syntactically valid but cannot be processed in this form."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "List Moment Places",
+        "tags": [
+          "places"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/notifications": {
       "get": {
         "operationId": "getNotifications",
@@ -23063,6 +25796,636 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/photo-selections": {
+      "post": {
+        "operationId": "startPhotoSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSelectionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoSelectionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Start",
+        "tags": [
+          "photo-sources"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}": {
+      "delete": {
+        "operationId": "cancelPhotoSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "selectionId",
+            "required": true,
+            "schema": {
+              "title": "Selectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Cancel",
+        "tags": [
+          "photo-sources"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}": {
+      "post": {
+        "operationId": "readSelectedPhoto",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "selectionId",
+            "required": true,
+            "schema": {
+              "title": "Selectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "itemId",
+            "required": true,
+            "schema": {
+              "title": "Itemid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "thumbnail",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Thumbnail",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Read",
+        "tags": [
+          "photo-sources"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/poll": {
+      "post": {
+        "operationId": "pollPhotoSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "selectionId",
+            "required": true,
+            "schema": {
+              "title": "Selectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "more",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "More",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoSelectionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Poll",
+        "tags": [
+          "photo-sources"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photo-sources": {
+      "get": {
+        "operationId": "getPhotoSources",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoSourceAvailability"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Sources",
+        "tags": [
+          "photo-sources"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photo-sources/immich": {
+      "delete": {
+        "operationId": "disconnectImmichPhotoSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Disconnect",
+        "tags": [
+          "photo-sources"
+        ]
+      },
+      "put": {
+        "operationId": "connectImmichPhotoSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoSourceConnectionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Connect",
+        "tags": [
+          "photo-sources"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/photos": {
       "get": {
         "description": "Browse READY images from currently shared Memory and HeartMoment parents.\n\nOwner-private media is excluded even for its owner. Media bytes still use\nthe existing parent-bound attachment read authorization.",
@@ -23337,6 +26700,99 @@
           }
         },
         "summary": "Create Place",
+        "tags": [
+          "places"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/places/lookup": {
+      "post": {
+        "description": "Search only on explicit user intent; never persist or log query content.",
+        "operationId": "lookupPlaces",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaceLookupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceLookupResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Lookup Places",
         "tags": [
           "places"
         ]
@@ -27818,6 +31274,734 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/recaps": {
+      "get": {
+        "operationId": "getRecapOverview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 10000,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RecapKind"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecapOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Overview",
+        "tags": [
+          "recaps"
+        ]
+      },
+      "post": {
+        "operationId": "requestRelationshipRecap",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecapRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecapView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Request Recap",
+        "tags": [
+          "recaps"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/recaps/prepare": {
+      "post": {
+        "operationId": "prepareRelationshipRecaps",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Prepare",
+        "tags": [
+          "recaps"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/recaps/{recapId}": {
+      "get": {
+        "operationId": "getRelationshipRecap",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recapId",
+            "required": true,
+            "schema": {
+              "title": "Recapid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecapView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Recap",
+        "tags": [
+          "recaps"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/recaps/{recapId}/reflection": {
+      "delete": {
+        "operationId": "withdrawRecapReflection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recapId",
+            "required": true,
+            "schema": {
+              "title": "Recapid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Withdraw",
+        "tags": [
+          "recaps"
+        ]
+      },
+      "put": {
+        "operationId": "updateRecapReflection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recapId",
+            "required": true,
+            "schema": {
+              "title": "Recapid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecapReflectionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecapView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Reflect",
+        "tags": [
+          "recaps"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/recaps/{recapId}/save": {
+      "post": {
+        "operationId": "saveRecapEdition",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recapId",
+            "required": true,
+            "schema": {
+              "title": "Recapid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecapView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Save",
+        "tags": [
+          "recaps"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/recaps/{recapId}/selection": {
+      "get": {
+        "operationId": "getRecapSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recapId",
+            "required": true,
+            "schema": {
+              "title": "Recapid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecapSelectionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Selection",
+        "tags": [
+          "recaps"
+        ]
+      },
+      "put": {
+        "operationId": "updateRecapSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recapId",
+            "required": true,
+            "schema": {
+              "title": "Recapid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecapSelectionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecapView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Selection",
+        "tags": [
+          "recaps"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/related-persons": {
       "get": {
         "operationId": "list_related_persons_api_v1_spaces__spaceId__related_persons_get",
@@ -28239,6 +32423,69 @@
         "summary": "Update Related Person",
         "tags": [
           "people"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/relationship-passport": {
+      "get": {
+        "description": "Return the Pro presentation without gating any underlying Core data.",
+        "operationId": "getRelationshipPassport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationshipPassportView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Relationship Passport",
+        "tags": [
+          "dashboard"
         ]
       }
     },
@@ -29776,6 +34023,316 @@
         "summary": "Apply Transfer Import",
         "tags": [
           "transfer"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/wish-selection": {
+      "delete": {
+        "operationId": "closeWishSelectionRound",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Close Wish Selection Round",
+        "tags": [
+          "wish-selections"
+        ]
+      },
+      "get": {
+        "operationId": "getWishSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishSelectionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Wish Selection",
+        "tags": [
+          "wish-selections"
+        ]
+      },
+      "put": {
+        "operationId": "replaceWishSelectionRound",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WishSelectionRoundUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishSelectionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Replace Wish Selection Round",
+        "tags": [
+          "wish-selections"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/wish-selection/own": {
+      "put": {
+        "operationId": "updateOwnWishSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WishSelectionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishSelectionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Own Wish Selection",
+        "tags": [
+          "wish-selections"
         ]
       }
     },

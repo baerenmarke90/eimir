@@ -1,14 +1,14 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
   type RefObject,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import { Link } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ProfilesApi } from '../client/mediaApis';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
@@ -19,15 +19,15 @@ import { ProfileVisibility } from '../api/generated/models/ProfileVisibility';
 import type { SpaceProfileView } from '../api/generated/models/SpaceProfileView';
 import { Configuration } from '../client/apiConfiguration';
 import { invalidateDashboard } from '../client/dashboardQueries';
-import { settingsCategoryPath } from '../client/routes';
-import { normalizeClientError } from '../client/problemDetails';
+import { ProfilesApi } from '../client/mediaApis';
 import { usePartnerNickname } from '../client/partnerNickname';
+import { normalizeClientError } from '../client/problemDetails';
 import {
   CATEGORIES,
   type ProfilePreferenceDraft,
-  SENTIMENTS,
   profilePreferenceCreateFromDraft,
   profilePreferenceUpdateFromDraft,
+  SENTIMENTS,
 } from '../client/profilePreferenceDraft';
 import {
   calculateNextAnniversary,
@@ -35,6 +35,7 @@ import {
   formatAnniversaryDetail,
   formatRelationshipDuration,
 } from '../client/relationshipPreview';
+import { settingsCategoryPath } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddIcon, DestinationIcon } from './DestinationIcon';
 import { PartnerIdentityPanel } from './PartnerIdentityPanel';
@@ -449,6 +450,7 @@ export function PreferenceDialog({
   restoreFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const { t } = useTranslation();
+  const privacyNoticeId = useId();
   const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLSelectElement>(null);
@@ -525,6 +527,7 @@ export function PreferenceDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="pref-dialog-heading"
+        aria-describedby={privateNote ? privacyNoticeId : undefined}
         onAnimationEnd={(event) => {
           if (
             event.target !== event.currentTarget ||
@@ -559,6 +562,9 @@ export function PreferenceDialog({
           className="form-grid"
           onSubmit={submit}
         >
+          {privateNote ? (
+            <PrivatePartnerNotesPrivacyNotice id={privacyNoticeId} />
+          ) : null}
           <div className="field-group">
             <label
               htmlFor={`preference-category-${privateNote ? 'private' : 'self'}`}
@@ -1010,7 +1016,19 @@ export function PartnerProfileSection({
   );
 }
 
-/** Private partner notes section with visually explicit privacy indicator (+ Notiz). */
+function PrivatePartnerNotesPrivacyNotice({ id }: { id?: string }) {
+  const { t } = useTranslation();
+  return (
+    <div id={id} className="private-partner-notes-badge" role="note">
+      <span className="private-partner-notes-icon" aria-hidden="true">
+        <DestinationIcon icon="private" />
+      </span>
+      <span>{t('privateArea.entry.privacy')}</span>
+    </div>
+  );
+}
+
+/** Private partner notes section with visually explicit privacy indicator. */
 export function PrivatePartnerNotesSection({
   profilesApi,
   spaceId,
@@ -1027,12 +1045,7 @@ export function PrivatePartnerNotesSection({
   const { t } = useTranslation();
   return (
     <div className="private-partner-notes-wrapper">
-      <div className="private-partner-notes-badge" role="note">
-        <span className="private-partner-notes-icon" aria-hidden="true">
-          <DestinationIcon icon="private" />
-        </span>
-        <span>{t('privateArea.entry.privacy')}</span>
-      </div>
+      <PrivatePartnerNotesPrivacyNotice />
       <PreferenceManager
         profilesApi={profilesApi}
         spaceId={spaceId}
@@ -1155,7 +1168,10 @@ export function ProfilePreferencesSection({
       ) : null}
 
       {partner ? (
-        <>
+        <details className="profile-partner-disclosure">
+          <summary>
+            {t('profiles.partnerSection', { name: partnerName })}
+          </summary>
           <div className="profile-partner-block">
             <PartnerIdentityPanel
               key={`${account.id}:${spaceId}:${partner.id}`}
@@ -1180,7 +1196,7 @@ export function ProfilePreferencesSection({
               items={privatePartnerNotes}
             />
           ) : null}
-        </>
+        </details>
       ) : null}
     </div>
   );

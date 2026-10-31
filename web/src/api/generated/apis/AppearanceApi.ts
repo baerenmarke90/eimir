@@ -28,8 +28,22 @@ import {
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
+import {
+    type WirDesignPreferencePatch,
+    WirDesignPreferencePatchFromJSON,
+    WirDesignPreferencePatchToJSON,
+} from '../models/WirDesignPreferencePatch';
+import {
+    type WirDesignPreferenceView,
+    WirDesignPreferenceViewFromJSON,
+    WirDesignPreferenceViewToJSON,
+} from '../models/WirDesignPreferenceView';
 
 export interface GetAppIconPreferenceRequest {
+    spaceId: string;
+}
+
+export interface GetWirDesignPreferenceRequest {
     spaceId: string;
 }
 
@@ -37,6 +51,12 @@ export interface UpdateAppIconPreferenceRequest {
     spaceId: string;
     ifMatch: string;
     appIconPreferencePatch: AppIconPreferencePatch;
+}
+
+export interface UpdateWirDesignPreferenceRequest {
+    spaceId: string;
+    ifMatch: string;
+    wirDesignPreferencePatch: WirDesignPreferencePatch;
 }
 
 /**
@@ -88,6 +108,53 @@ export class AppearanceApi extends runtime.BaseAPI {
      */
     async getAppIconPreference(requestParameters: GetAppIconPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppIconPreferenceView> {
         const response = await this.getAppIconPreferenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getWirDesignPreference without sending the request
+     */
+    async getWirDesignPreferenceRequestOpts(requestParameters: GetWirDesignPreferenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getWirDesignPreference().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/appearance/wir-design`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Read only the caller\'s personal composition, including after Pro expiry.
+     * Get Wir Design Preference
+     */
+    async getWirDesignPreferenceRaw(requestParameters: GetWirDesignPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WirDesignPreferenceView>> {
+        const requestOptions = await this.getWirDesignPreferenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WirDesignPreferenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Read only the caller\'s personal composition, including after Pro expiry.
+     * Get Wir Design Preference
+     */
+    async getWirDesignPreference(requestParameters: GetWirDesignPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WirDesignPreferenceView> {
+        const response = await this.getWirDesignPreferenceRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -156,6 +223,74 @@ export class AppearanceApi extends runtime.BaseAPI {
      */
     async updateAppIconPreference(requestParameters: UpdateAppIconPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppIconPreferenceView> {
         const response = await this.updateAppIconPreferenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateWirDesignPreference without sending the request
+     */
+    async updateWirDesignPreferenceRequestOpts(requestParameters: UpdateWirDesignPreferenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling updateWirDesignPreference().'
+            );
+        }
+
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling updateWirDesignPreference().'
+            );
+        }
+
+        if (requestParameters['wirDesignPreferencePatch'] == null) {
+            throw new runtime.RequiredError(
+                'wirDesignPreferencePatch',
+                'Required parameter "wirDesignPreferencePatch" was null or undefined when calling updateWirDesignPreference().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/appearance/wir-design`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: WirDesignPreferencePatchToJSON(requestParameters['wirDesignPreferencePatch']),
+        };
+    }
+
+    /**
+     * Save a personal cosmetic. Warm is Free; new alternatives require Pro.
+     * Update Wir Design Preference
+     */
+    async updateWirDesignPreferenceRaw(requestParameters: UpdateWirDesignPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WirDesignPreferenceView>> {
+        const requestOptions = await this.updateWirDesignPreferenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WirDesignPreferenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Save a personal cosmetic. Warm is Free; new alternatives require Pro.
+     * Update Wir Design Preference
+     */
+    async updateWirDesignPreference(requestParameters: UpdateWirDesignPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WirDesignPreferenceView> {
+        const response = await this.updateWirDesignPreferenceRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

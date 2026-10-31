@@ -116,6 +116,15 @@ attention under the existing policy: no known security finding in the lock,
 Dependabot updates are not left unresolved, and processing runs exclusively
 in a background job under resource limits — never in the request path.
 
+`google-auth-oauthlib` is the official maintained Web OAuth client for the
+optional Google Photos Picker (#1444, 2026-10-27). It supplies PKCE/state and
+OAuth protocol handling instead of a custom token-flow implementation. Its
+Apache-2.0 license is recorded below using the package metadata spelling so the
+inventory gate can verify it exactly. The locked transitive Google auth,
+requests-oauthlib and oauthlib dependencies remain in `backend/uv.lock`; no
+upstream server code or Immich SDK is bundled. The application requests online
+Picker-only access and bounds transport without persisting refresh tokens.
+
 ## Backend — Runtime
 
 | Package | Version | Source | License |
@@ -130,6 +139,7 @@ in a background job under resource limits — never in the request path.
 | uuid6 | 2025.0.1 | PyPI | MIT |
 | argon2-cffi | 25.1.0 | PyPI | MIT |
 | httpx | 0.28.1 | PyPI | BSD-3-Clause |
+| google-auth-oauthlib | 1.5.0 | PyPI | Apache 2.0 |
 | pyjwt[crypto] | 2.15.1 | PyPI | MIT |
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
 | pywebpush | 2.5.0 | PyPI | MPL-2.0 |
@@ -158,6 +168,7 @@ in a background job under resource limits — never in the request path.
 | react | 19.2.8 | npm | MIT |
 | react-dom | 19.2.8 | npm | MIT |
 | react-router-dom | 7.18.2 | npm | MIT |
+| leaflet | 1.9.4 | npm / Leaflet | BSD-2-Clause |
 
 ## Web — M2-S8 Development
 
@@ -166,6 +177,7 @@ in a background job under resource limits — never in the request path.
 | @types/react | 19.2.18 | npm | MIT |
 | @types/react-dom | 19.2.5 | npm | MIT |
 | @types/node | 24.19.1 | npm | MIT |
+| @types/leaflet | 1.9.22 | npm / DefinitelyTyped | MIT |
 | typescript | 7.0.2 | npm | Apache-2.0 |
 | rolldown | 1.2.14 | npm | MIT |
 | vite | 8.2.4 | npm | MIT |
@@ -216,6 +228,20 @@ These Web dependencies serve only the thin S8 reference flow. They do not
 pull M5 functionality such as persistent Offline Caches, complete navigation,
 or Client Parity forward. The generated `typescript-fetch` code remains free
 of additional runtime dependencies and uses the browser Fetch API.
+
+### Explicit place map selection (2026-10-29)
+
+Leaflet is loaded only inside the deliberately opened place-map task. It reuses
+browser map interaction, keyboard panning, zoom and attribution instead of
+implementing a map engine. Raster tiles come from OpenStreetMap under its public
+best-effort tile policy, with visible OSM attribution and ordinary HTTP caching;
+there are no bulk/offline tile downloads. Photon search reuses the existing
+backend provider normalization and an operator-controlled origin. It adds no
+Python dependency, end-user key or paid account. Google Maps and MapLibre were
+reviewed; billing/key setup and a separate vector-style boundary are unnecessary
+for this bounded choice task. Existing places and manual coordinates survive
+provider outages. The preflight, privacy disclosure and provider terms are
+recorded in `docs/product/design/plan-images-and-map-picker.md`.
 
 ## Web — Browser QA Development
 
@@ -342,10 +368,16 @@ This assessment is not legal advice.
 
 ## Assets
 
+The #1471 Android photo-location preflight at `docs/product/design/references/android-photo-location-import/compact-permission-reference.png` is an original ImageGen workflow asset generated on 2026-10-27 from the existing #1444 diary composition. It guides permission-layer placement only, with no separate public license grant; illustrative OEM wording is not runtime product copy. The embedded cabin image retains the existing Darkmoon_Art/Pixabay 3374201 CC0 provenance. Exact prompt and scope are recorded beside the image.
+
+The automatic photo places preflight `docs/product/design/references/1459/compact-current.png` is an original image generated through the eimir. project ImageGen workflow on 2026-10-27. It is a project asset with no separate public license grant; its illustrative photo is generated, not a third-party stock image. See the adjacent README and prompt for scope and provenance.
+
+The actual browser renders `docs/product/design/references/1459/evidence/1459-*.png` use synthetic account/content fixtures and the existing cabin/lake photograph by Darkmoon_Art (Pixabay 3374201). UI screenshots are project assets with no separate public license grant; the embedded photograph is CC0 1.0 Universal as recorded in `backend/demo_assets/manifest.json`. The evidence README names the runtime source and validation limits.
+
 The repository now contains project-specific image and SVG assets. They were
 created for eimir. or its Roadmap and M2 handoff; assets of unclear
-third-party or predecessor origin continue to be excluded. The product images
-are explicitly mockups, not screenshots of an already finished application.
+third-party or predecessor origin continue to be excluded. The store preview images
+are explicitly mockups. Runtime QA screenshots are identified separately below.
 
 No separate public license is currently granted for files marked below as
 **project assets**. This classification does not change the still-open license
@@ -353,6 +385,8 @@ decision for the project's own source code.
 
 | Asset | Origin | Creator | License |
 |---|---|---|---|
+| `docs/product/design/references/1444/photo-source-sheet-delivery.png` | Generated whole-diary/source-sheet preflight for #1444, 2026-10-27 | eimir. project workflow using ImageGen | project asset; no separate public license grant |
+| `docs/product/design/references/1444/evidence/photo-source-*.png` (eight named files in its README) | Actual local browser renders of the project UI using synthetic account data and the existing cabin/lake demo fixture | eimir. project workflow; embedded photo by Darkmoon_Art (Pixabay 3374201) | UI screenshots: project asset, no separate public license grant; embedded photo: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
 | `docs/assets/playstore/app-icon.png` | eimir. product preview | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/assets/playstore/feature-graphic.png` | eimir. product preview | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/assets/playstore/screen-01-onboarding.png` | eimir. product mockup | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
@@ -383,3 +417,27 @@ build separately.
 
 New assets are documented here in the same change. If origin, license, or
 creator is unclear, the asset is not admitted until Provenance is resolved.
+
+The native-continuity/passport and unified Plan/map preflight PNGs in
+`docs/product/design/references/native-continuity/` were generated with ImageGen
+on 2026-10-29 against the recorded repository baseline. They are project assets
+with no separate public license grant; exact prompts are adjacent. Evidence
+PNGs in its `evidence/` directory are actual browser renders with synthetic
+couple data. The Plan cover fixture is Darkmoon_Art/Pixabay 3374201 under CC0,
+as recorded in `backend/demo_assets/manifest.json`. The synthetic map tiles in
+browser evidence are a test fixture, not a third-party cartographic screenshot.
+
+## Optional local recap inference and reference assets (#1528)
+
+| Component / asset | Version / origin | License / use |
+| --- | --- | --- |
+| Ollama, optional operator container | `ollama/ollama:0.40.12@sha256:20d1bbfbabe1c97ba4b16301f08a20d8484bcf77047742a3cb71c613d8e12d0b`, [upstream](https://github.com/ollama/ollama) | MIT; local CPU inference; no runtime package dependency added to API/worker |
+| Qwen3 1.7B quantized model | Operator download `qwen3:1.7b-q4_K_M`, [model card](https://huggingface.co/Qwen/Qwen3-1.7B) / [distribution](https://ollama.com/library/qwen3:1.7b-q4_K_M) | Apache-2.0; not bundled in application releases; downloaded into the operator's model volume |
+| `docs/product/design/references/automatic-relationship-recaps/compact-reference.png` | eimir. workflow, built-in ImageGen, 2026-10-30; exact prompt alongside | Project-owned illustrative UI reference; not production user content |
+| `web/e2e/fixtures/recap-lake.webp` | eimir. workflow, built-in ImageGen, 2026-10-30; illustrative empty lake/jetty photograph | Project-owned test fixture only; no claimed user location/person/event; no production fallback photograph |
+| `docs/product/design/references/automatic-relationship-recaps/evidence/*.png` | Playwright screenshots of the real eimir. UI using explicitly synthetic fixtures | Project validation evidence; no real couple data |
+
+The optional model is not assumed immutable from its tag alone. Operators can
+record `ollama list`'s model identifier after download, and should review model
+updates deliberately. See [local recap operations](LOCAL-RECAP-AI.md) for resource,
+privacy, fallback and deployment behavior. No paid remote model provider is used.

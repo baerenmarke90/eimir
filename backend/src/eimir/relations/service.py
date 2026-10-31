@@ -24,7 +24,7 @@ from datetime import UTC, date, datetime, time
 from typing import TYPE_CHECKING, Literal, Protocol, cast
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert as postgres_insert
 from sqlalchemy.orm import Session
 
@@ -39,6 +39,7 @@ from eimir.authorization import (
 from eimir.chapters.models import Chapter
 from eimir.core.errors import DomainError, NotFoundError
 from eimir.db.base import Base
+from eimir.db.locks import lock_subject
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.heart_moments.models import HeartMoment
 from eimir.memories.models import Memory
@@ -263,6 +264,8 @@ def link(
     parent_id: UUID | str,
     target_id: UUID | str,
     kind: RelationKind,
+    *,
+    automatic: bool = False,
 ) -> None:
     """Link parent and target idempotently using Parent -> Target lock order."""
     parent = cast(
@@ -270,6 +273,9 @@ def link(
         require_writable_locked(session, kind.parent, context, parent_id),
     )
     target = _require_relatable_target(session, context, kind, target_id)
+
+    if kind in (PLACE_MEMORIES, PLACE_HEART_MOMENTS):
+        lock_subject(session, "photo-place-target", str(target.id))
 
     values: dict[str, object] = {
         kind.parent_column: parent.id,
@@ -279,6 +285,8 @@ def link(
     }
     if kind.shared_target_only:
         values["target_privacy_class"] = target.privacy_class
+    if kind in (PLACE_MEMORIES, PLACE_HEART_MOMENTS):
+        values["photo_generated"] = automatic
 
     statement = (
         postgres_insert(kind.relation)
@@ -289,6 +297,16 @@ def link(
         .returning(kind.relation.__table__.c[kind.parent_column])
     )
     created = session.execute(statement).first() is not None
+    if not automatic and kind in (PLACE_MEMORIES, PLACE_HEART_MOMENTS):
+        table = kind.relation.__table__
+        session.execute(
+            update(kind.relation)
+            .where(
+                table.c[kind.parent_column] == parent.id,
+                table.c[kind.target_column] == target.id,
+            )
+            .values(photo_generated=False)
+        )
     _flush(session)
     if created:
         _record(session, kind, parent, target.id, context.account_id, kind.linked_event)
@@ -308,6 +326,8 @@ def unlink(
         require_writable_locked(session, kind.parent, context, parent_id),
     )
     target = _require_relatable_target(session, context, kind, target_id)
+    if kind in (PLACE_MEMORIES, PLACE_HEART_MOMENTS):
+        lock_subject(session, "photo-place-target", str(target.id))
     table = kind.relation.__table__
     removed = session.execute(
         delete(kind.relation)

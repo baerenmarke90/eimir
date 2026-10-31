@@ -1,3 +1,4 @@
+import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { type FormEvent, useState } from 'react';
 import {
   useInfiniteQuery,
@@ -26,7 +27,6 @@ import { ProblemState } from './ProblemState';
 import {
   DeleteConfirmation,
   LoadMoreButton,
-  PrivateAreaBackToHub,
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
   usePrivateAreaTaskContext,
@@ -239,7 +239,6 @@ export function GiftIdeasListPage({ api, accountId, spaceId }: Props) {
   return (
     <>
       <PageHeader
-        before={<PrivateAreaBackToHub />}
         title={t('privateArea.gifts.title')}
         description={t('privateArea.gifts.intro')}
         action={
@@ -287,9 +286,6 @@ export function GiftIdeasListPage({ api, accountId, spaceId }: Props) {
                       <p className="private-area-excerpt">{gift.description}</p>
                     ) : null}
                   </div>
-                  <span className="private-area-card-arrow" aria-hidden="true">
-                    →
-                  </span>
                 </Link>
               </li>
             ))}
@@ -441,15 +437,13 @@ export function GiftIdeaDetailPage({ api, accountId, spaceId }: Props) {
         eyebrow={t('privateArea.privacyLabel')}
         title={gift.title}
         description={t(`privateArea.gifts.status.${gift.status}`)}
-        action={
+        titleAction={
           gift.capabilities.canEdit ? (
-            <Link
-              className="button-link secondary-link"
+            <StoryDetailEditLink
               to={privateGiftIdeaEditPath(gift.id)}
               state={navigationState}
-            >
-              {t('privateArea.edit')}
-            </Link>
+              label={t('privateArea.edit')}
+            />
           ) : undefined
         }
       />

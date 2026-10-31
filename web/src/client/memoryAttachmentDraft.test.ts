@@ -14,6 +14,7 @@ function uploadingAttachment() {
     createdAt: new Date('2026-08-29T20:00:00Z'),
     durationSeconds: null,
     hasThumbnail: false,
+    isSensitive: false,
     height: null,
     mediaType: 'IMAGE',
     mimeType: 'image/jpeg',
@@ -152,56 +153,70 @@ describe('uploadMemoryDraftAttachment', () => {
     }
   });
 
-  it('starts upload immediately, exposes validation, and resolves only after READY', async () => {
-    const phases: string[] = [];
-    const attachment = uploadingAttachment();
-    const apis = {
-      auth: {},
-      memories: {},
-      attachments: {
-        createAttachmentUpload: vi.fn(async () => ({
-          attachment,
-          method: UploadDescriptorMethodEnum.STREAM,
-          requiredHeaders: { 'Content-Type': 'image/jpeg' },
-          uploadUrl: '/api/v1/spaces/space-1/attachments/attachment-1/content',
-        })),
-        finalizeAttachmentUpload: vi.fn(async () => ({
-          ...attachment,
-          status: 'PROCESSING',
-        })),
-        getAttachment: vi.fn(async () => ({ ...attachment, status: 'READY' })),
-      },
-      story: {},
-    } as unknown as ReferenceApis;
-    const fetchApi = vi.fn(
-      async () => new Response(null, { status: 204 }),
-    ) as unknown as typeof fetch;
+  it.each([true, undefined])(
+    'starts upload immediately with metadata preservation %s, exposes validation, and resolves only after READY',
+    async (preserveMetadata) => {
+      const phases: string[] = [];
+      const attachment = uploadingAttachment();
+      const apis = {
+        auth: {},
+        memories: {},
+        attachments: {
+          createAttachmentUpload: vi.fn(async () => ({
+            attachment,
+            method: UploadDescriptorMethodEnum.STREAM,
+            requiredHeaders: { 'Content-Type': 'image/jpeg' },
+            uploadUrl:
+              '/api/v1/spaces/space-1/attachments/attachment-1/content',
+          })),
+          finalizeAttachmentUpload: vi.fn(async () => ({
+            ...attachment,
+            status: 'PROCESSING',
+          })),
+          getAttachment: vi.fn(async () => ({
+            ...attachment,
+            status: 'READY',
+          })),
+        },
+        story: {},
+      } as unknown as ReferenceApis;
+      const fetchApi = vi.fn(
+        async () => new Response(null, { status: 204 }),
+      ) as unknown as typeof fetch;
 
-    const result = await uploadMemoryDraftAttachment(
-      apis,
-      'https://api.example.invalid',
-      'token',
-      'space-1',
-      new File(['image'], 'test.jpg', { type: 'image/jpeg' }),
-      (phase) => phases.push(phase),
-      fetchApi,
-    );
+      const result = await uploadMemoryDraftAttachment(
+        apis,
+        'https://api.example.invalid',
+        'token',
+        'space-1',
+        new File(['image'], 'test.jpg', { type: 'image/jpeg' }),
+        (phase) => phases.push(phase),
+        fetchApi,
+        { preserveMetadata },
+      );
 
-    expect(phases).toEqual(['uploading', 'validating']);
-    expect(result).toEqual({ attachmentId: 'attachment-1' });
-    expect(apis.attachments.finalizeAttachmentUpload).toHaveBeenCalledWith({
-      spaceId: 'space-1',
-      attachmentId: 'attachment-1',
-      body: {},
-    });
-    expect(apis.attachments.getAttachment).toHaveBeenCalledWith(
-      {
+      expect(phases).toEqual(['uploading', 'validating']);
+      expect(result).toEqual({ attachmentId: 'attachment-1' });
+      expect(apis.attachments.createAttachmentUpload).toHaveBeenCalledWith({
+        spaceId: 'space-1',
+        attachmentUploadCreate: expect.objectContaining({
+          preserveMetadata: preserveMetadata ?? false,
+        }),
+      });
+      expect(apis.attachments.finalizeAttachmentUpload).toHaveBeenCalledWith({
         spaceId: 'space-1',
         attachmentId: 'attachment-1',
-      },
-      { signal: undefined },
-    );
-  });
+        body: {},
+      });
+      expect(apis.attachments.getAttachment).toHaveBeenCalledWith(
+        {
+          spaceId: 'space-1',
+          attachmentId: 'attachment-1',
+        },
+        { signal: undefined },
+      );
+    },
+  );
 
   it('fails when server-side validation rejects the uploaded image', async () => {
     const phases: string[] = [];
@@ -555,4 +570,53 @@ describe('createMemoryWithReadyAttachments', () => {
     expect(apis.memories.createMemory).toHaveBeenCalledTimes(1);
     expect(apis.memories.replaceMemoryAttachments).not.toHaveBeenCalled();
   });
+});
+
+it('binds the exact submitted classification with the initial shared gallery and preserves it on failure', async () => {
+  const memory = {
+    id: 'confirmed',
+    version: 1,
+    attachments: [],
+  } as unknown as MemoryDetail;
+  const failure = new Error('write failed');
+  const apis = {
+    memories: { replaceMemoryAttachments: vi.fn().mockRejectedValue(failure) },
+  } as unknown as ReferenceApis;
+  await expect(
+    completeMemoryAttachmentBinding(apis, 'space', memory, ['photo'], false, [
+      true,
+    ]),
+  ).rejects.toMatchObject({ attachmentSensitivity: [true], cause: failure });
+  expect(apis.memories.replaceMemoryAttachments).toHaveBeenCalledWith({
+    spaceId: 'space',
+    memoryId: 'confirmed',
+    ifMatch: '1',
+    memoryAttachmentSet: {
+      attachments: [{ attachmentId: 'photo', position: 0, isSensitive: true }],
+    },
+  });
+});
+
+it('does not report a completed bind when its classification differs after a lost response', async () => {
+  const memory = {
+    id: 'confirmed',
+    version: 1,
+    attachments: [],
+  } as unknown as MemoryDetail;
+  const apis = {
+    memories: {
+      getMemory: vi.fn().mockResolvedValue({
+        ...memory,
+        version: 2,
+        attachments: [{ id: 'photo', position: 0, isSensitive: false }],
+      }),
+      replaceMemoryAttachments: vi.fn(),
+    },
+  } as unknown as ReferenceApis;
+  await expect(
+    completeMemoryAttachmentBinding(apis, 'space', memory, ['photo'], true, [
+      true,
+    ]),
+  ).rejects.toMatchObject({ cause: { kind: 'conflict' } });
+  expect(apis.memories.replaceMemoryAttachments).not.toHaveBeenCalled();
 });

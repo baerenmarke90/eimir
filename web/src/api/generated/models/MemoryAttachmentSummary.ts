@@ -20,6 +20,13 @@ import {
     MediaTypeToJSON,
     MediaTypeToJSONTyped,
 } from './MediaType';
+import type { PhotoReactionSummary } from './PhotoReactionSummary';
+import {
+    PhotoReactionSummaryFromJSON,
+    PhotoReactionSummaryFromJSONTyped,
+    PhotoReactionSummaryToJSON,
+    PhotoReactionSummaryToJSONTyped,
+} from './PhotoReactionSummary';
 
 /**
  * A bound attachment plus its position in the memory gallery.
@@ -46,6 +53,12 @@ export interface MemoryAttachmentSummary {
      */
     id: string;
     /**
+     * Manual sensitive-content classification; never an access-control boundary.
+     * @type {boolean}
+     * @memberof MemoryAttachmentSummary
+     */
+    isSensitive?: boolean;
+    /**
      * 
      * @type {MediaType}
      * @memberof MemoryAttachmentSummary
@@ -63,6 +76,12 @@ export interface MemoryAttachmentSummary {
      * @memberof MemoryAttachmentSummary
      */
     position: number;
+    /**
+     * 
+     * @type {Array<PhotoReactionSummary>}
+     * @memberof MemoryAttachmentSummary
+     */
+    reactions?: Array<PhotoReactionSummary>;
     /**
      * 
      * @type {number}
@@ -114,9 +133,11 @@ export function MemoryAttachmentSummaryFromJSONTyped(json: any, ignoreDiscrimina
         'hasThumbnail': json['hasThumbnail'],
         'height': json['height'],
         'id': json['id'],
+        'isSensitive': json['isSensitive'] == null ? undefined : json['isSensitive'],
         'mediaType': MediaTypeFromJSON(json['mediaType']),
         'mimeType': json['mimeType'],
         'position': json['position'],
+        'reactions': json['reactions'] == null ? undefined : ((json['reactions'] as Array<any>).map(PhotoReactionSummaryFromJSON)),
         'size': json['size'],
         'status': json['status'],
         'width': json['width'],
@@ -137,9 +158,11 @@ export function MemoryAttachmentSummaryToJSONTyped(value?: MemoryAttachmentSumma
         'hasThumbnail': value['hasThumbnail'],
         'height': value['height'],
         'id': value['id'],
+        'isSensitive': value['isSensitive'],
         'mediaType': MediaTypeToJSON(value['mediaType']),
         'mimeType': value['mimeType'],
         'position': value['position'],
+        'reactions': value['reactions'] == null ? undefined : ((value['reactions'] as Array<any>).map(PhotoReactionSummaryToJSON)),
         'size': value['size'],
         'status': value['status'],
         'width': value['width'],

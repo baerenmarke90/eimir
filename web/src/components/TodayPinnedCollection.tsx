@@ -529,9 +529,6 @@ export function TodayPinnedCollection({
             to={collectionDetailPath(collection.id)}
           >
             {t('m5s5.today.pinnedCollection.sharedAchievementAction')}
-            <span className="shared-achievement-cta-arrow" aria-hidden="true">
-              ›
-            </span>
           </Link>
         }
       />

@@ -24,6 +24,7 @@
 
 export type DashboardModuleKey =
   | 'relationship_presence'
+  | 'daily_quote'
   | 'upcoming'
   | 'pinned_collection'
   | 'keepsake'
@@ -48,6 +49,7 @@ export interface DashboardModuleCatalogEntry {
 export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
   [
     { key: 'relationship_presence', labelKey: 'm5s5.today.roles.hero' },
+    { key: 'daily_quote', labelKey: 'dailyQuote.title' },
     { key: 'keepsake', labelKey: 'm5s5.today.keepsake.kicker' },
     { key: 'upcoming', labelKey: 'm5s5.dashboard.upcomingTitle' },
     {
@@ -59,7 +61,7 @@ export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
     { key: 'recent_shared', labelKey: 'm5s5.dashboard.recentTitle' },
     {
       key: 'shared_story_summary',
-      labelKey: 'm5s5.dashboard.storySummarySettingsTitle',
+      labelKey: 'relationshipReflections.passport.wirStatisticsTitle',
     },
   ];
 

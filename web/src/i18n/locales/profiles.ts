@@ -1,4 +1,5 @@
 const profiles = {
+  partnerSection: 'Über {{name}}',
   eyebrow: 'Profil',
   title: 'Du und dein Partner',
   intro:
@@ -8,13 +9,13 @@ const profiles = {
   accountName: 'Anzeigename',
   premium: {
     eyebrow: 'Premium',
-    title: 'eimir.Pro',
+    title: 'eimir. Pro',
     badge: 'Pro',
-    gamesTitle: 'Mehr gemeinsame Momente mit eimir.Pro.',
+    gamesTitle: 'Spiele, Einblicke und persönliche Extras.',
     gamesBody:
       'Pro ergänzt eure gemeinsame Welt um Spiele, vertiefende Einblicke, das Zitat des Tages und zusätzliche persönliche Partneraktionen. Eure normalen Erinnerungen, Wünsche, Pläne und „Ich denke an dich“ bleiben davon unabhängig.',
-    action: 'Premium ansehen',
-    detailsTitle: 'Ein Premium-Bereich für euch beide',
+    action: 'Pro ansehen',
+    detailsTitle: 'Ein Zugang für euch beide',
     detailsBody:
       'Ein Pro-Zugang gilt für euren gemeinsamen Bereich und schaltet die enthaltenen Pro-Funktionen für euch beide frei. Eure bestehenden Inhalte und die kostenlosen Beziehungsfunktionen bleiben unabhängig davon erhalten.',
   },

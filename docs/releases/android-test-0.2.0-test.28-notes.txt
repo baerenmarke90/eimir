@@ -1,0 +1,13 @@
+eimir. 0.2.0-test.28
+
+Mehr und die Einstellungen sind übersichtlicher: mit klarer Abmeldung, runder Suche, einheitlichen Symbolen und ruhigerem Seitenaufbau. Die moderne Wir-Ansicht zeigt euch beide stärker im Mittelpunkt; das Tagebuch erhält klarere Farben und weniger wiederholte Beschriftungen.
+
+Das Tageszitat hat ein Zitat-Symbol. Kategorien und Quellen findet ihr unter Mehr → Einstellungen → Wir. Monatsrückblicke zeigen mehr Inhalte mit passenden Bildunterschriften und Datumsangaben.
+
+Orte zu Erinnerungen werden im Bearbeiten-Modus verwaltet. Beim Lesen bleiben Adresse und Karte im Vordergrund. Die Rückkehr aus einem Ort führt wieder zur ursprünglichen Erinnerung; ungespeicherte Eingaben bleiben geschützt.
+
+Bereits geladene Bilder müssen beim erneuten Öffnen und nach einem App-Neustart seltener neu geladen werden. Der Zugriff wird weiterhin geprüft; das ist keine Offline-Freigabe für Medien.
+
+Auch bei starker Vergrößerung bleiben lange Überschriften innerhalb der Seitenbreite.
+
+Über Einstellungen → App-Updates auf der bestehenden Installation aktualisieren. Nicht deinstallieren und keine App-Daten löschen. Dieses Testrelease verwendet weiterhin das bestehende Paket und denselben Testsignierer.

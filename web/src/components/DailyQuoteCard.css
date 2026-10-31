@@ -2,10 +2,17 @@
   position: relative;
   display: grid;
   min-width: 0;
-  gap: var(--space-3);
+  gap: var(--space-2);
   margin-block: var(--space-3) var(--space-5);
+  padding: 0;
+  border: 0;
+  color: var(--color-text);
+}
+
+.daily-quote-content {
   padding: var(--space-4);
   overflow: hidden;
+  border: 0;
   border-radius: var(--radius-card);
   background:
     radial-gradient(
@@ -22,50 +29,19 @@
   color: var(--color-text);
 }
 
-.daily-quote-card::before {
-  position: absolute;
-  top: 2.65rem;
-  right: var(--space-4);
-  color: color-mix(in srgb, var(--color-brand) 28%, transparent);
-  content: "“";
-  font-family: var(--font-display);
-  font-size: clamp(3.25rem, 15vw, 5rem);
-  line-height: 1;
-  pointer-events: none;
-}
-
-.daily-quote-card > * {
+.daily-quote-card > :not(.sr-only) {
   position: relative;
   z-index: 1;
   min-width: 0;
 }
 
-.daily-quote-header {
-  display: flex;
-  min-width: 0;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.daily-quote-heading-group {
-  min-width: 0;
-}
-
-.daily-quote-heading {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-}
-
 .daily-quote-settings {
   display: grid;
+  flex-shrink: 0;
   width: 44px;
   min-width: 44px;
   height: 44px;
-  margin: calc(var(--space-2) * -1) calc(var(--space-2) * -1) 0 0;
+  margin: 0;
   padding: 0;
   place-items: center;
   border: 0;
@@ -90,49 +66,29 @@
 
 .daily-quote-block {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
   margin: 0;
-  padding: var(--space-2) 0 0;
+  padding: 0;
+  border: 0;
 }
 
 .daily-quote-block p {
-  max-width: 30ch;
+  max-width: 48ch;
   margin: 0;
   overflow-wrap: break-word;
   font-family: var(--font-display);
-  font-size: clamp(1.2rem, 5.4vw, 1.55rem);
+  font-size: clamp(1.05rem, 4.4vw, 1.25rem);
   font-weight: 520;
   line-height: 1.42;
   letter-spacing: -0.01em;
-  hyphens: auto;
+  hyphens: manual;
 }
 
 .daily-quote-block footer {
   max-width: 38ch;
   color: var(--color-text-secondary);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   line-height: 1.4;
-  overflow-wrap: break-word;
-}
-
-.daily-quote-categories {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.daily-quote-categories li {
-  max-width: 100%;
-  padding: 0.35rem 0.7rem;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--color-surface) 62%, transparent);
-  color: var(--color-text-secondary);
-  font-size: 0.72rem;
-  line-height: 1.35;
   overflow-wrap: break-word;
 }
 
@@ -181,7 +137,7 @@
   min-height: 44px;
   margin-top: var(--space-1);
   padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   background: var(--color-surface);
   color: var(--color-text);
@@ -263,7 +219,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: 0.55rem 0.85rem;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   background: var(--color-surface);
   color: var(--color-text);
@@ -349,9 +305,9 @@
   height: 1.6rem;
   place-items: center;
   justify-self: end;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: 0.5rem;
-  background: var(--color-surface);
+  background: var(--color-surface-subtle);
   color: var(--color-on-accent);
   font-size: 0.85rem;
 }
@@ -388,12 +344,11 @@
 
 @media (min-width: 840px) {
   .daily-quote-card {
-    width: min(100%, 46rem);
-    margin-inline: auto;
+    width: 100%;
   }
 
   .daily-quote-block p {
-    font-size: 1.45rem;
+    font-size: 1.25rem;
   }
 
   .daily-quote-preference-actions {
@@ -429,7 +384,7 @@
 }
 
 @media (forced-colors: active) {
-  .daily-quote-card,
+  .daily-quote-content,
   .daily-quote-category,
   .daily-quote-source-check {
     border: 1px solid CanvasText;

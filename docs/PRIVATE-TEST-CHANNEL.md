@@ -8,22 +8,37 @@ Android APK publication remains the separate #1331/#1332 channel.
 
 ## Automatic publication
 
-After a push to `main`, the private-channel jobs in `.github/workflows/release-publish.yml`:
+After a push to `main`, the private-channel jobs in `.github/workflows/release-publish.yml`
+are triggered by successful completions of the required main workflows:
 
-1. Runs the channel contracts. Publication additionally requires the repository
+1. Publication requires the repository
    Actions variable `EIMIR_TEST_CHANNEL_ENABLED=true`, the owning repository and
    its `main` ref. Pull requests never receive publishing permissions.
-2. Waits up to one hour for the exact revision's newest push runs of CI, Web
+2. Checks once for the exact revision's newest push runs of CI, Web
    Browser QA, CodeQL SAST, Self-Hosted Deployment Guard and Self-Hosted Recovery.
    Missing, pending, skipped, failed or cancelled workflows cannot admit a build.
-   A newer `main` stops a waiting candidate.
+   An unfinished candidate exits without building; the next required workflow
+   completion retries it. No runner waits for other workflows. Completion events
+   must originate from an owning-repository main push and match the exact checkout;
+   PRs, forks, other branches and superseded revisions cannot admit publication.
+   A revision already selected on the channel is not rebuilt on duplicate events.
+   Completion queues are separated by source revision and event origin, so a late
+   older or fork completion cannot evict the current candidate. Final publication
+   retains pending candidates, remains globally serialized, and rechecks current
+   main and all required checks before it can advance the channel.
    Browser QA therefore runs for every main push, including backend-only and
    operator changes; pull-request browser path filters remain unchanged.
-3. Reuses Release Evidence with Android excluded: build-once runtime archives,
-   hashes, SPDX SBOMs and verified attestations. Nothing builds on the Docker host.
+3. Runs the channel contracts, then reuses Release Evidence with Android excluded:
+   build-once runtime archives, hashes, SPDX SBOMs and verified attestations.
+   Nothing builds on the Docker host.
 4. Loads both archives, verifies source/version/platform labels, publishes to the
    existing GHCR backend/Web packages and checks the exact registry manifests and
-   pulled-back image identities.
+   pulled-back image identities. Docker pushes only `linux/amd64`, so containerd
+   provenance indexes are not deployment references. The single registry
+   manifest's config digest must match the exact config bytes in the verified
+   build archive and a fresh pull-back save archive. Docker image IDs are not
+   used as config digests because their meaning depends on the image store.
+   Original evidence archives, SBOMs and GitHub attestations remain intact.
 5. Publishes one generated commit on `deploy/eimir-test` after both images exist.
    Current `main` and CI are rechecked before promotion. Ref updates are never
    forced, so a concurrent writer is refused.
@@ -43,7 +58,7 @@ Merge the implementation PR through ordinary required checks. Then:
 1. Under repository **Settings → Secrets and variables → Actions → Variables**,
    add `EIMIR_TEST_CHANNEL_ENABLED` with value `true`. It is not a secret.
 2. Set the variable before merging to let the first main push publish the channel.
-   For an immediate retry, run **Actions → Publish Immutable Release → Run workflow**,
+   To retry after checks finish, run **Actions → Publish Immutable Release → Run workflow**,
    branch **main**, with **private_test_channel=true**, release version `0.0.0`,
    and **confirm_publish=false**. The private selector excludes all product-release
    jobs; the placeholder version is unused. Subsequent main pushes are automatic.
@@ -113,6 +128,22 @@ Allowed hosts JSON includes the public hostname, `localhost` and `127.0.0.1` for
 loopback readiness. WebAuthn origins use the exact public HTTPS origin. Values
 are required rather than regenerated. Filled values, account emails, SMTP
 credentials, keys and the journal UUID never enter the generated Git branch.
+
+## Optional personal photo sources
+
+The generated API/worker environment retains instance-local expressions for
+`EIMIR_PHOTO_SOURCES_ENABLED` (default true), `EIMIR_GOOGLE_PHOTOS_CLIENT_ID`
+and `EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET` (both empty by default). Publishing never
+reads or freezes these operator values into Git. Existing local picking and
+source disconnect remain available when new source tasks are disabled.
+
+Append the existing approved Google Web OAuth app values to the existing Arcane
+environment, without replacing any current key or setting. Register the exact
+`${EIMIR_PUBLIC_BASE_URL}/api/v1/photo-sources/google/callback` redirect (one slash).
+This is the product callback; the older standalone probe callback is separate.
+Google stays hidden until configured and still requires the operator's appropriate
+testing audience/verification. Personal Immich requires no shared operator key.
+See [the source contract](product/integrations/1444-photo-source-delivery.md).
 
 ## Connect Arcane once
 
@@ -190,3 +221,14 @@ GitHub; runtime data and secrets stay local to the operator.
 No business/freemium impact: no Free/Core or Premium classification, entitlement,
 quota, ownership, export or downgrade behavior changes. No end-user provider
 setup is added. Released Self-Hosted/Production contracts remain unchanged.
+
+
+## Optional automatic recap wording
+
+The application channel forwards the optional `EIMIR_RECAP_AI_URL`,
+`EIMIR_RECAP_AI_MODEL` and `EIMIR_RECAP_AI_TIMEOUT_SECONDS` expressions to API and
+worker. Keep local inference in a separate Arcane project on `eimir-test-data`,
+so an application Git Sync update does not remove an operator-added service.
+The complete CPU-only setup, model download commands, fallback and disable path
+are in [Local recap AI](LOCAL-RECAP-AI.md). No public model port or paid API is
+required; existing application image/digest admission remains unchanged.

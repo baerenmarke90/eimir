@@ -1,12 +1,10 @@
 import { type ReactNode, useCallback, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  PRIVATE_AREA_ROOT_PATH,
   PRIVATE_COLLECTIONS_PATH,
   PRIVATE_GIFT_IDEAS_PATH,
   PRIVATE_NOTES_PATH,
 } from '../client/privateArea';
-import { appRoutePath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
@@ -33,7 +31,13 @@ export function PrivateAreaFrame({
             <EimirIcon name="nurfuer" className="private-area-lock-icon" />
             {t('privateArea.eyebrow')}
           </h1>
-          <p className="private-area-intro-text">{t('privateArea.intro')}</p>
+          <p className="private-area-intro-text">
+            {t(
+              showNavigation
+                ? 'privateArea.intro'
+                : 'privateArea.entry.privacy',
+            )}
+          </p>
         </div>
       </section>
       {showNavigation ? (
@@ -54,15 +58,6 @@ export function PrivateAreaFrame({
       ) : null}
       {children}
     </div>
-  );
-}
-
-export function PrivateAreaBackToHub() {
-  const { t } = useTranslation();
-  return (
-    <Link className="back-link" to={PRIVATE_AREA_ROOT_PATH}>
-      {t('privateArea.backToHub')}
-    </Link>
   );
 }
 
@@ -171,15 +166,6 @@ export function PrivateEditorDiscardSheet({
         </button>
       </div>
     </ShortTaskSheet>
-  );
-}
-
-export function PrivateAreaBackToMore() {
-  const { t } = useTranslation();
-  return (
-    <Link className="back-link" to={appRoutePath('more')}>
-      {t('privateArea.backToMore')}
-    </Link>
   );
 }
 

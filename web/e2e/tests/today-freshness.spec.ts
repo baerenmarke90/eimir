@@ -1,9 +1,8 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
-import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -24,6 +23,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   const unexpectedRequests: string[] = [];
   let dashboardRequestCount = 0;
   let isRescheduled = false;
+  let planPatchCount = 0;
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
@@ -40,6 +40,16 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
 
     if (method === 'GET' && pathname.endsWith('/partner-nickname')) {
       await fulfillJson({ partnerId: null, nickname: null, version: 0 });
+      return;
+    }
+
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
       return;
     }
 
@@ -200,6 +210,9 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
             startedOn: '2026-01-01',
           },
           retrospective: null,
+          keepsake: null,
+          thinkingOfYouAvailableAt: null,
+          sharedStorySummary: { memories: 0, heartMoments: 0, milestones: 0 },
           recentShared: [],
           upcoming: [
             {
@@ -223,6 +236,9 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
             startedOn: '2026-01-01',
           },
           retrospective: null,
+          keepsake: null,
+          thinkingOfYouAvailableAt: null,
+          sharedStorySummary: { memories: 0, heartMoments: 0, milestones: 0 },
           recentShared: [],
           upcoming: [
             {
@@ -276,9 +292,14 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
     }
 
     if (
-      method === 'POST' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}/schedule`
+      method === 'PATCH' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}`
     ) {
+      planPatchCount++;
+      expect(request.postDataJSON()).toMatchObject({
+        title: 'Later October trip',
+        schedule: { plannedStart: expect.stringMatching(/^2026-09-05T.*Z$/) },
+      });
       isRescheduled = true;
       await fulfillJson({
         id: PLAN_ID,
@@ -361,18 +382,16 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   // Assert initial dashboard renders later upcoming plan as primary context
   await expect(page).toHaveURL(/\/today$/);
   await expect(
-    page.getByRole('heading', {
-      name: m5s5.today.headerTitle,
-      level: 1,
-    }),
+    page.getByRole('heading', { name: navigation.today, level: 1 }),
   ).toBeVisible();
   await expect(
-    page.getByRole('heading', {
-      name: 'Anna & Ben',
-      level: 2,
-    }),
+    page.getByRole('heading', { name: 'Anna & Ben', level: 2 }),
   ).toBeVisible();
-  await expect(page.getByText('Later October trip')).toBeVisible();
+  await expect(page.locator('.today-date-heading')).toHaveCount(0);
+  const agenda = page.locator('.today-agenda-list');
+  await expect(
+    agenda.getByText('Later October trip', { exact: true }),
+  ).toBeVisible();
   expect(dashboardRequestCount).toBe(1);
 
   // Step 2: Pull-to-refresh is an app-level mobile interaction on Today.
@@ -414,7 +433,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   await expect.poll(() => dashboardRequestCount).toBe(requestsBeforePull + 1);
 
   // Step 3: Navigate to plan details via in-app UI click (NO page.reload())
-  await page.getByRole('link', { name: /Later October trip/ }).click();
+  await agenda.getByRole('link', { name: /Later October trip/ }).click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
   await expect(
     page.getByRole('heading', {
@@ -424,7 +443,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   ).toBeVisible();
 
   // Reschedule to an earlier timed date using the #838 date + optional-time contract.
-  await page.getByText(m5s3.plan.actionsHeading).click();
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
   const dateInput = page.locator('#plan-schedule-date');
   const timeInput = page.locator('#plan-schedule-time');
   await expect(dateInput).toBeVisible();
@@ -432,12 +451,19 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   await dateInput.fill('2026-09-05');
   await timeInput.fill('10:00');
 
-  // Submit the reschedule form and wait for the response
+  // One unified editor Save must still invalidate the derived overview.
   const rescheduleButton = page.getByRole('button', {
-    name: m5s3.plan.reschedule,
+    name: m5s3.common.saveChanges,
   });
   await rescheduleButton.click();
-  await expect(rescheduleButton).toBeEnabled();
+  await expect(rescheduleButton).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', {
+      name: 'Earlier September outing',
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(planPatchCount).toBe(1);
 
   // Step 4: Navigate back to Wir via client-side link (NO page.reload())
   await page.getByRole('link', { name: navigation.today }).click();
@@ -448,7 +474,9 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
 
   // Step 6: Verify the rescheduled item is now visible in the Shared Planning
   // Horizon agenda, and the stale title is gone
-  await expect(page.getByText('Earlier September outing')).toBeVisible();
+  await expect(
+    agenda.getByText('Earlier September outing', { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText('Later October trip')).toHaveCount(0);
 
   // Step 7: Verify no unexpected network requests occurred

@@ -1,24 +1,22 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import { settingsCategoryPath } from '../../src/client/routes';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
 const SPACE_ID = '00000000-0000-0000-0000-000000000010';
 const PROFILE_ID = '00000000-0000-0000-0000-000000000020';
+// Seed a complete personal order with upcoming third, as the reorder journeys
+// require. A legacy list would insert daily_quote ahead of it during migration.
+const REORDER_PREFIX = ['relationship_presence', 'keepsake', 'upcoming'];
 const MODULE_KEYS = [
-  'relationship_presence',
-  'keepsake',
-  'upcoming',
-  'pinned_collection',
-  'relationship_signal',
-  'monthly_highlights',
-  'recent_shared',
-  'shared_story_summary',
+  ...REORDER_PREFIX,
+  ...DASHBOARD_MODULE_KEYS.filter((key) => !REORDER_PREFIX.includes(key)),
 ];
 
 /**
@@ -546,7 +544,12 @@ test('drag handle moves a module by mouse while the rest of the row remains scro
     name: `${m5s5.dashboard.upcomingTitle} verschieben`,
   });
   const firstRow = page.locator('.dashboard-module-option').first();
-  await handle.scrollIntoViewIfNeeded();
+  // Raw mouse coordinates do not perform Playwright's actionability scrolling.
+  // Keep the handle above the fixed mobile navigation before measuring it.
+  await handle.evaluate((element) =>
+    element.scrollIntoView({ block: 'center', inline: 'nearest' }),
+  );
+  await handle.click({ trial: true });
   const firstBounds = await firstRow.boundingBox();
   const handleBounds = await handle.boundingBox();
   expect(firstBounds).not.toBeNull();
@@ -574,7 +577,10 @@ test('drag handle moves a module by mouse while the rest of the row remains scro
     .toBeGreaterThan(scrollBefore);
 
   await page.evaluate(() => window.scrollTo(0, 0));
-  await handle.scrollIntoViewIfNeeded();
+  await handle.evaluate((element) =>
+    element.scrollIntoView({ block: 'center', inline: 'nearest' }),
+  );
+  await handle.click({ trial: true });
   const movedHandle = await handle.boundingBox();
   expect(movedHandle).not.toBeNull();
   if (!movedHandle) return;

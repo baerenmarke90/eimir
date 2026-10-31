@@ -9,6 +9,8 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { PlansApi } from '../api/generated/apis/PlansApi';
+import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import {
@@ -72,15 +74,21 @@ function deferred<T>() {
 function Harness({
   client,
   account = 'account-1',
+  entryState,
   onSaved,
 }: {
   client: QueryClient;
   account?: string;
+  entryState?: object;
   onSaved: () => Promise<void>;
 }) {
   return (
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/story/memories/new']}>
+      <MemoryRouter
+        initialEntries={[
+          { pathname: '/story/memories/new', state: entryState },
+        ]}
+      >
         <TaskOriginProvider key={account} accountId={account} spaceId="space-1">
           <Routes>
             <Route
@@ -145,6 +153,11 @@ const requestOf = (call: number) => fixture.create.mock.calls[call]?.[0];
 describe('Memory capture mutation ownership', () => {
   it('keeps Save disabled and sends no request for a completely empty capture', () => {
     setup();
+    expect(titleInput().closest('details')).toBeNull();
+    expect(titleInput().required).toBe(false);
+    expect(titleInput().closest('fieldset')?.querySelector('input')).toBe(
+      titleInput(),
+    );
     const save = screen.getByRole('button', {
       name: de.memory.save,
     }) as HTMLButtonElement;
@@ -198,7 +211,7 @@ describe('Memory capture mutation ownership', () => {
     enterTitle();
     submit();
     submit();
-    expect(fixture.create).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(fixture.create).toHaveBeenCalledTimes(1));
     expect(titleInput().closest('fieldset')?.disabled).toBe(true);
     expect(screen.getByText(taskBoundary.pending)).toBeTruthy();
     expect(screen.queryByText('Actual result destination')).toBeNull();
@@ -520,5 +533,75 @@ describe('Memory capture mutation ownership', () => {
     const dirty = new Event('beforeunload', { cancelable: true });
     window.dispatchEvent(dirty);
     expect(dirty.defaultPrevented).toBe(true);
+  });
+});
+
+describe('Confirmed Plan handoff to Memory capture', () => {
+  const entryState = {
+    sourcePlan: {
+      id: 'plan-1',
+      spaceId: 'space-1',
+      accountId: 'account-1',
+      instance: 'http://api.example.test',
+    },
+  };
+  const source = {
+    id: 'plan-1',
+    spaceId: 'space-1',
+    title: 'A quiet evening',
+    description: 'Bring our camera.',
+    status: 'COMPLETED',
+    experiencedOn: new Date('2026-10-18T00:00:00Z'),
+    capabilities: { canEdit: true },
+  } as PlanDetail;
+  it('freshly reads the scoped completed Plan, seeds an editable draft and leaves creation deliberate', async () => {
+    const get = vi
+      .spyOn(PlansApi.prototype, 'getPlan')
+      .mockResolvedValue(source);
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const view = render(
+      <Harness client={client} entryState={entryState} onSaved={vi.fn()} />,
+    );
+    await waitFor(() => expect(titleInput().value).toBe(source.title));
+    expect(
+      (screen.getByLabelText(de.memory.bodyLabel) as HTMLTextAreaElement).value,
+    ).toBe(source.description);
+    expect(fixture.create).not.toHaveBeenCalled();
+    expect(get).toHaveBeenCalledTimes(1);
+    view.unmount();
+    get.mockClear();
+    render(
+      <Harness
+        client={client}
+        entryState={entryState}
+        account="account-2"
+        onSaved={vi.fn()}
+      />,
+    );
+    expect(titleInput().value).toBe('');
+    expect(get).not.toHaveBeenCalled();
+  });
+  it('never replaces words entered before a slow source read completes', async () => {
+    const read = deferred<PlanDetail>();
+    vi.spyOn(PlansApi.prototype, 'getPlan').mockImplementation(
+      () => read.promise,
+    );
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <Harness client={client} entryState={entryState} onSaved={vi.fn()} />,
+    );
+    fireEvent.change(screen.getByLabelText(de.memory.bodyLabel), {
+      target: { value: 'My own words' },
+    });
+    await act(async () => read.resolve(source));
+    expect(
+      (screen.getByLabelText(de.memory.bodyLabel) as HTMLTextAreaElement).value,
+    ).toBe('My own words');
+    expect(titleInput().value).toBe('');
+    expect(fixture.create).not.toHaveBeenCalled();
   });
 });

@@ -1,3 +1,4 @@
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -32,6 +33,7 @@ async function installProductMocks(page: Page): Promise<void> {
   let savedMilestone: Record<string, unknown> | null = null;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -442,7 +444,7 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
       action: () => navigation.quickCreateMemory,
       urlPattern: /\/story\/memories\/new$/,
       heading: () => de.memory.heading,
-      primaryFieldSelector: '#title',
+      primaryFieldSelector: '#body',
     },
     {
       action: () => navigation.quickCreateHeartMoment,
@@ -495,6 +497,18 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
       await expect(primaryField).toBeInViewport();
       await expect(primaryField).not.toBeFocused();
       await assertNothingUnexpectedlyFocused(page);
+
+      if (destination.primaryFieldSelector === '#body') {
+        const title = page.getByLabel(de.memory.titleLabelOptional);
+        await expect(title).toBeVisible();
+        expect(
+          await title.evaluate(
+            (node) => node.closest('fieldset')?.querySelector('input') === node,
+          ),
+        ).toBe(true);
+        await expect(title).toBeVisible();
+        await expect(title).toBeEnabled();
+      }
     });
   }
 
@@ -621,7 +635,7 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
 
   test('Direct Route Entry: visiting /story/memories/new without Quick Create still works', async ({
     page,
-  }) => {
+  }, info) => {
     await installProductMocks(page);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/today');
@@ -631,7 +645,25 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
     await expect(
       page.getByRole('heading', { name: de.memory.heading }),
     ).toBeVisible();
-    await expect(page.locator('#title')).toBeVisible();
+    const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
+    await expect(body).toBeVisible();
+    await expect(body).toBeInViewport();
+    await expect(body).toBeEnabled();
+    await expect(body).not.toBeFocused();
+    await assertNothingUnexpectedlyFocused(page);
+    const title = page.getByLabel(de.memory.titleLabelOptional);
+    await expect(title).toBeVisible();
+    expect(
+      await title.evaluate(
+        (node) => node.closest('fieldset')?.querySelector('input') === node,
+      ),
+    ).toBe(true);
+    await expect(title).toBeVisible();
+    await expect(title).toBeEnabled();
+    await page.screenshot({
+      path: info.outputPath('memory-title-first-390-light.png'),
+      fullPage: true,
+    });
   });
 });
 

@@ -13,6 +13,7 @@ const dailyQuote = {
   retry: 'Erneut versuchen',
   settingsAria: 'Deine Einstellungen für das Zitat des Tages öffnen',
   settingsTitle: 'Zitat des Tages',
+  selectionAction: 'Rubriken und Quellen',
   settingsIntro:
     'Blende deinen persönlichen täglichen Impuls auf „Wir“ ein oder aus. Rubriken und Quellen bleiben gespeichert.',
   settingsLoading: 'Deine Zitat-Einstellung wird geladen …',

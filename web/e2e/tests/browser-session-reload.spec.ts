@@ -1,7 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import demoDe from '../../src/i18n/locales/demo';
-import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 
@@ -349,24 +348,24 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     await signIn(page);
     await expect(page).toHaveURL(/\/today$/);
     await expect(
-      page.getByRole('heading', { name: m5s5.today.headerTitle, level: 1 }),
+      page.locator('.today-content').getByRole('heading', {
+        name: navigation.today,
+        level: 1,
+      }),
     ).toBeVisible();
 
-    // 2. Open header profile menu and click logout
-    const menuButton = page.getByRole('button', {
-      name: navigation.profileMenu,
-    });
-    await menuButton.click();
+    // 2. Open More and use the shell's safe sign-out action.
+    await page
+      .getByRole('link', { name: navigation.more, exact: true })
+      .click();
     const logoutButton = page.getByRole('button', { name: de.header.logout });
     await logoutButton.click();
 
     // Remote cleanup still owns the original credentials and document.
     await expect.poll(() => signOutRequests).toBe(1);
     await expect(page.getByRole('status')).toContainText(de.header.logout);
-    await expect(
-      page.getByRole('heading', { name: m5s5.today.headerTitle, level: 1 }),
-    ).not.toBeVisible();
-    await expect(page).toHaveURL(/\/today$/);
+    await expect(page.locator('.more-page')).not.toBeVisible();
+    await expect(page).toHaveURL(/\/more$/);
     expect(
       await page.evaluate(() => sessionStorage.getItem('eimir-session-v1')),
     ).not.toBeNull();
@@ -570,12 +569,13 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     await leaButton.click();
 
     // 4. Verify magic-link callback is processed and app opens (Today dashboard or default route).
-    // Today owns the page H1; Couple Presence remains the relationship hero below it.
+    // Wir is the stable page H1; the couple hero is a subordinate H2.
     await expect(
-      page.getByRole('heading', { name: m5s5.today.headerTitle, level: 1 }),
-    ).toBeVisible({
-      timeout: 10000,
-    });
+      page.locator('.today-content').getByRole('heading', {
+        name: navigation.today,
+        level: 1,
+      }),
+    ).toBeVisible({ timeout: 10000 });
     await expect(
       page
         .locator('.couple-presence-card')

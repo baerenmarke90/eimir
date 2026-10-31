@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { SharedPhoto } from '../api/generated/models/SharedPhoto';
 import {
   clientProblemKind,
@@ -204,12 +204,6 @@ export function SharedPhotosPage({
   return (
     <div className="page page-reading shared-photos-page">
       <PageHeader
-        before={
-          <Link className="back-link" to="/story">
-            {t('storyYears.backToMoments')}
-          </Link>
-        }
-        eyebrow={t('sharedPhotos.eyebrow')}
         title={t('sharedPhotos.title')}
         description={t('sharedPhotos.description')}
       />
@@ -249,6 +243,7 @@ export function SharedPhotosPage({
             items={photos.map((photo) => ({
               id: photoResourceId(photo),
               mediaType: photo.attachment.mediaType,
+              isSensitive: photo.attachment.isSensitive,
             }))}
             loadMedia={(id, signal) => {
               const photo = photos.find((item) => photoResourceId(item) === id);
@@ -286,6 +281,7 @@ export function SharedPhotosPage({
                           <MemoryPreview
                             memoryId={photo.parentId}
                             attachmentId={photo.attachment.id}
+                            isSensitive={photo.attachment.isSensitive}
                             resourceScopeKey={`${scope}:${photo.parentType}:${photo.parentId}:preview`}
                             loadingMode="near-viewport"
                             loadImage={(_parent, _attachment, signal) =>

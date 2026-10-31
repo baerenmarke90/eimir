@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import ClassVar
 from uuid import UUID
 
+from pydantic import Field
 from sqlalchemy import (
     BigInteger,
     CheckConstraint,
@@ -56,14 +57,21 @@ class AttachmentPayload(ProtectedPayload):
     authorization, or content type (Media Pipeline, section 5).
 
     ``captured_at`` and ``orientation`` form the M2-D14 allowlist. Everything
-    else is discarded during ingest. They remain inside the protected payload
+    else is discarded from the attachment projection during ingest. Selected-photo
+    GPS uses a separate, consumed owner-only PhotoLocationDraft (#1459), never
+    this payload. The allowlisted fields remain inside the protected payload
     rather than columns so capture time does not accidentally become sortable,
     indexable server metadata.
+
+    ``preserve_metadata`` is transient worker intent for selected moment primary
+    files (ADR 0014), independent of permission to associate a Place.
     """
 
     original_name: str
+    is_sensitive: bool = False
     captured_at: datetime | None = None
     orientation: int | None = None
+    preserve_metadata: bool = False
 
 
 class Attachment(
@@ -192,4 +200,41 @@ class Attachment(
         # Cleanup searches by state and age rather than by space.
         Index("ix_attachments_status_created_at", "status", "created_at"),
         Index("ix_attachments_status_ready_at", "status", "ready_at"),
+    )
+
+
+class PhotoLocationPayload(ProtectedPayload):
+    """Owner-only transient coordinates; never an attachment API projection."""
+
+    attachment_id: UUID
+    owner_id: UUID
+    latitude: float = Field(ge=-90, le=90, allow_inf_nan=False, repr=False)
+    longitude: float = Field(ge=-180, le=180, allow_inf_nan=False, repr=False)
+
+
+class PhotoLocationDraft(Base):
+    """Consumed on shared binding, discarded on private binding or preference OFF.
+
+    Attachment is the lifecycle parent. Owner ID deliberately has no second
+    Account FK: the worker already holds Attachment and must not wait for an
+    Account key lock while deletion holds Account and drains attachments.
+    """
+
+    __tablename__ = "photo_location_drafts"
+
+    # Reuse the Attachment identity and the payload lifecycle's canonical `id` column.
+    id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("attachments.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    owner_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True), nullable=False, index=True
+    )
+    preference_version: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    crypto_version: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=0, server_default=sql_text("0")
+    )
+    payload: Mapped[PhotoLocationPayload] = mapped_column(
+        ProtectedPayloadJSON(PhotoLocationPayload), nullable=False
     )

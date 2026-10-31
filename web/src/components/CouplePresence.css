@@ -4,7 +4,7 @@
   gap: var(--space-4);
   padding: var(--space-5);
   background: var(--color-surface);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-soft);
   transition: border-color var(--duration-feedback) var(--easing-standard);
@@ -151,13 +151,13 @@
   width: 100%;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   text-align: center;
 }
 
 .today-hero.couple-presence-card .couple-presence-avatar-anchor {
   align-self: center;
-  margin: var(--space-1) 0;
+  margin: var(--space-2) 0 var(--space-1);
 }
 
 .today-hero.couple-presence-card .couple-presence-details {
@@ -189,7 +189,7 @@
 .today-hero.couple-presence-card
   .couple-presence-avatar-adornment
   .daily-energy-avatar-control {
-  left: 40px;
+  left: clamp(3rem, 11vw, 4.25rem);
 }
 
 .today-hero.couple-presence-card
@@ -204,6 +204,11 @@
   }
 
   .today-hero.couple-presence-card .couple-presence-title {
-    font-size: 1.25rem;
+    font-size: 1.85rem;
   }
+}
+.couple-presence-context {
+  width: 100%;
+  min-width: 0;
+  margin-top: var(--space-3);
 }

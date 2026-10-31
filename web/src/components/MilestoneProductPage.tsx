@@ -282,9 +282,7 @@ export function MilestoneProductPage({
                 )}
               </button>
             }
-            eyebrow={t('milestoneProduct.createEyebrow')}
             title={t('milestoneProduct.createHeading')}
-            description={t('milestoneProduct.createIntro')}
             className="create-heading"
           />
         }
@@ -397,9 +395,7 @@ export function MilestoneProductPage({
                 {t('milestoneProduct.backToMilestone')}
               </Link>
             }
-            eyebrow={t('milestoneProduct.editEyebrow')}
             title={t('milestoneProduct.editHeading')}
-            description={t('milestoneProduct.editIntro')}
           />
           <UiState
             kind={offline ? 'offline' : 'permission'}
@@ -449,9 +445,7 @@ export function MilestoneProductPage({
             {t('milestoneProduct.backToMilestone')}
           </Link>
         }
-        eyebrow={t('milestoneProduct.editEyebrow')}
         title={t('milestoneProduct.editHeading')}
-        description={t('milestoneProduct.editIntro')}
         sectionLabelledBy="milestone-edit-heading"
         sectionHeading={t('milestoneProduct.formAria')}
       >

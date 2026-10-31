@@ -34,6 +34,7 @@ from eimir.api.v1 import (
     milestones,
     notification_preferences,
     people,
+    photo_sources,
     place_relations,
     places,
     plans,
@@ -41,6 +42,7 @@ from eimir.api.v1 import (
     private_collections,
     profiles,
     push_endpoints,
+    recaps,
     recent_authentication,
     reminders,
     rules,
@@ -51,6 +53,7 @@ from eimir.api.v1 import (
     spaces,
     story,
     transfer,
+    wish_selections,
     wishes,
 )
 
@@ -73,9 +76,11 @@ normal_router.include_router(session_context.router)
 normal_router.include_router(demo.router)
 normal_router.include_router(invitations.router)
 normal_router.include_router(attachments.router)
+normal_router.include_router(photo_sources.router)
 normal_router.include_router(story.router)
 normal_router.include_router(search.router)
 normal_router.include_router(dashboard.router)
+normal_router.include_router(recaps.router)
 normal_router.include_router(engagement.router)
 normal_router.include_router(notification_preferences.router)
 normal_router.include_router(push_endpoints.router)
@@ -91,6 +96,7 @@ normal_router.include_router(spaces.router)
 normal_router.include_router(entitlements.router)
 normal_router.include_router(games.router)
 normal_router.include_router(wishes.router)
+normal_router.include_router(wish_selections.router)
 normal_router.include_router(places.router)
 normal_router.include_router(place_relations.router)
 normal_router.include_router(plans.router)

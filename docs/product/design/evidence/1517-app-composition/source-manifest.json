@@ -1,0 +1,387 @@
+{
+  "baseline": "44cd3d59bd33a47472b320025efd6bc9ab22a26d",
+  "sources": [
+    {
+      "path": "web/e2e/tests/floating-bottom-nav-scroll.spec.ts",
+      "sha256": "a3b489ac51d48e830d09d3b927c16c45ab51f28430b58d654e6b66586e1b8fd9"
+    },
+    {
+      "path": "web/e2e/tests/momente-timeline-reference.spec.ts",
+      "sha256": "315685fd18a1aaeeae06d00718b0c85990245e50fa83e2930708270abb7a48c3"
+    },
+    {
+      "path": "web/e2e/tests/photo-places.spec.ts",
+      "sha256": "24b46c9ec9079822e4edcdc79f58a1d552121c12ad61b71d52cac743ea1d5917"
+    },
+    {
+      "path": "web/e2e/tests/product-consistency.spec.ts",
+      "sha256": "b41b9139b57687877e007027cc5a00884becd950ab93f90e1fa3c5928ddcf2ec"
+    },
+    {
+      "path": "web/e2e/tests/shared-photos.spec.ts",
+      "sha256": "c2b7dc2e34d3fa7051c568673f9a2d669b26b90d36651bb84976d0dda0cd2f18"
+    },
+    {
+      "path": "web/e2e/tests/today-daily-quote.spec.ts",
+      "sha256": "5bdb1b0f5e5707c0d12159c6e0270f7cc3225b4f25945c3efd5e4555b094ee68"
+    },
+    {
+      "path": "web/e2e/tests/today-living-home.spec.ts",
+      "sha256": "6793fb4d0b8d24f09a265e3517b3dab08ad88bace19e4877ac4bbc17fe849b43"
+    },
+    {
+      "path": "web/e2e/tests/today-recent-trace.spec.ts",
+      "sha256": "174e183b1bbddb00d5ba1cefb714a5e102217ee083df376270d0d9e824684bcd"
+    },
+    {
+      "path": "web/src/client/apiConfiguration.ts",
+      "sha256": "232f6a291a2bb670147e1b4fc224dd2e79e71c116bd6bc0d9379c60a0cbba7a8"
+    },
+    {
+      "path": "web/src/client/authorizedMediaCache.ts",
+      "sha256": "c07e91236e4f38e9db11bb381392471af5de8d88d50241b749eefdecf45f2131"
+    },
+    {
+      "path": "web/src/client/durableMediaStore.test.ts",
+      "sha256": "7dacf306a2f66312a56ba926c78b0f450336116f76b160f59bc27c35752c3026"
+    },
+    {
+      "path": "web/src/client/durableMediaStore.ts",
+      "sha256": "2a2cad1b4b97f96c2921b78ab81568727e7c55be99cf4a16e27e6f4a2010de72"
+    },
+    {
+      "path": "web/src/client/photoPlaces.test.ts",
+      "sha256": "9808e6ba099164076768b151d6cebe24ae0c2de00e66ced1eb4550f661ca2267"
+    },
+    {
+      "path": "web/src/client/taskOrigin.test.tsx",
+      "sha256": "9bff7969ed2e18d30d19b9f3d4e8c93176b8f48314cc7f5a14047be0512db62c"
+    },
+    {
+      "path": "web/src/client/taskOrigin.tsx",
+      "sha256": "842fd1cd7501ba83193f227fffd90cb91a054fe6a1bd8041d64ef790b000bd17"
+    },
+    {
+      "path": "web/src/client/todayComposition.ts",
+      "sha256": "18f9027fa79100020a840cad37a2333e90734bf87544ef98450142f1f755d166"
+    },
+    {
+      "path": "web/src/components/ActivityProductPage.test.tsx",
+      "sha256": "462eaedc1ea377bc850fa0efe4b3ac7bf19f905e5998dd33936edc29e7b3b0ee"
+    },
+    {
+      "path": "web/src/components/AnticipationCard.tsx",
+      "sha256": "68dcea9bb9cccf13a2555e4f057678dd63eef1c2362c93373d38c2d32a9642f3"
+    },
+    {
+      "path": "web/src/components/AppShell.tsx",
+      "sha256": "af09b2a9a7a4c5b37faf16f722e805ad10de7e8a873f1a1ee64eb08fe2d6a163"
+    },
+    {
+      "path": "web/src/components/ChapterCreatePage.tsx",
+      "sha256": "ac5532c58fe8752a6a8df7ed6b18af0968bacf27cda1d0eb4813e3cce481a1ba"
+    },
+    {
+      "path": "web/src/components/DailyInsightsPage.tsx",
+      "sha256": "be4f9943e3897b6bbd5a59d5ea9a60bfa9fa81822edd61b1d37355970433da05"
+    },
+    {
+      "path": "web/src/components/DailyInsightsViews.tsx",
+      "sha256": "ccccb80309915ddb98891e3ba702bc7a4692c598bb94e31324a0fc6e4c18cce5"
+    },
+    {
+      "path": "web/src/components/DailyQuoteCard.css",
+      "sha256": "9c2df30f8c984ce5be069381a2249edc649fd196dc0d528abb4f0cd8310f2697"
+    },
+    {
+      "path": "web/src/components/DailyQuoteCard.test.tsx",
+      "sha256": "e65328ce96c368e6e2ca740f9606dc7b1ef777329f92d2343627b00ec2f881d6"
+    },
+    {
+      "path": "web/src/components/DailyQuoteCard.tsx",
+      "sha256": "e3cfe162a15b4e558694796fe13dc024aa2bd8e1ea3adceb589c00c3cbbd0c11"
+    },
+    {
+      "path": "web/src/components/DailyQuoteSettingsPanel.tsx",
+      "sha256": "a034c0c7d690cb308bacf4f12d80cfff1008cc669f09b707d1280c5674e9673f"
+    },
+    {
+      "path": "web/src/components/DailyVibeCheckIn.test.tsx",
+      "sha256": "0db82fc9d8f3001fbe3da27bc4818b0283df87924d262b56babbdeda7db4fc4e"
+    },
+    {
+      "path": "web/src/components/DailyVibeCheckIn.tsx",
+      "sha256": "885b446d31b4c6cc2693acd7f6dc2bbf837227f90da0bcd28b3e990056dbe0cb"
+    },
+    {
+      "path": "web/src/components/EimirIcon.tsx",
+      "sha256": "1cd73202ed64e16f12f29a7e0941335e711872e7bdefc05946380d6325057a7f"
+    },
+    {
+      "path": "web/src/components/GamesProductArea.tsx",
+      "sha256": "79d4d46e496e5310972b92ad2e6fe9fb92c51108f84bbac3fa8eb111d3975138"
+    },
+    {
+      "path": "web/src/components/GiftIdeasPage.tsx",
+      "sha256": "7fd8e3df4f00901724502d6bbd8f03b9c19c6758890c6141ebd1f1d292d47dc2"
+    },
+    {
+      "path": "web/src/components/HeartMomentProductPage.tsx",
+      "sha256": "159a7cd85b12bc9e05db666e7c701438661d6914fca496dc1b7f7b7b6553e11b"
+    },
+    {
+      "path": "web/src/components/ImportantDatesPanel.tsx",
+      "sha256": "6d0ac0ac5aee120afcc755bc0249969d736ca3876ed57b4b328f91e2464caa16"
+    },
+    {
+      "path": "web/src/components/M4ProductPages.tsx",
+      "sha256": "c00e049c111834c90523f5f86186917757d3b7891aa77de90577f7728a4b824b"
+    },
+    {
+      "path": "web/src/components/MemoryCreatePage.tsx",
+      "sha256": "9fac6b1e1d1a20c0444a8f5e1f7819fd3eb5d62eb4e895b7ad18f6570fc0cca9"
+    },
+    {
+      "path": "web/src/components/MemoryProductPage.tsx",
+      "sha256": "ba5d935df91c0a377c93a68f4a19231da54d3c3a8ab041321e43a584f4657b7b"
+    },
+    {
+      "path": "web/src/components/MilestoneProductPage.tsx",
+      "sha256": "040ba73cc0d0f87e1621509bc52db41dfcf676a97c89f6bc32e4bed1503ce9f0"
+    },
+    {
+      "path": "web/src/components/MomentPlaces.tsx",
+      "sha256": "2c01b4202629370d6abe2698a7912e00e1b66697cc49e76adcfd9ede69580cb9"
+    },
+    {
+      "path": "web/src/components/MoreOverviewPage.css",
+      "sha256": "eeb6bdc2e0b53f6f40604be627229ee1df40b41a87bfdcf13862ffe21435f54d"
+    },
+    {
+      "path": "web/src/components/MoreOverviewPage.tsx",
+      "sha256": "fadb9641d27db9442f2dba44eefc7812a4824aa9e3e8ee774dfd6087397bfd17"
+    },
+    {
+      "path": "web/src/components/NotificationsProductPage.test.tsx",
+      "sha256": "b20583e230d799d230d5dbb9882389b30e299d3a18488d8c30e5ff8e249f69e4"
+    },
+    {
+      "path": "web/src/components/PhotoPlaces.test.tsx",
+      "sha256": "9d241664d54c4e657a4c465a5a777c8dcc75c7f2defd3644111089a2f387d38b"
+    },
+    {
+      "path": "web/src/components/PlanProductPage.test.tsx",
+      "sha256": "60f66be522f5c6f65da019108089a1f5937e0e4834f08b88ba00cb8bb7f7ead2"
+    },
+    {
+      "path": "web/src/components/PlanProductPage.tsx",
+      "sha256": "9adb9916644adc1418b37aca4c1a7452890c669f3bc8deee1337595c2bef2ef5"
+    },
+    {
+      "path": "web/src/components/PlanningCreatePage.tsx",
+      "sha256": "357b1d0029391a0d97cd04fba52970012cbf5c0b0f7f5ab72c93bd613fd25032"
+    },
+    {
+      "path": "web/src/components/PlanningReference.css",
+      "sha256": "f60a8770fde254803f62d6b5447e557ddcfd99c3c5b7b76e1441f620853fb258"
+    },
+    {
+      "path": "web/src/components/PrivateAreaCards.test.tsx",
+      "sha256": "38da268cde5342870c585249759ff075e31e06264449fef15bf40bb09575dca4"
+    },
+    {
+      "path": "web/src/components/PrivateAreaProductPage.tsx",
+      "sha256": "8e7b87811145ba4e4c0abe094721f0202561718e35004ddc90cd82c2686ece86"
+    },
+    {
+      "path": "web/src/components/PrivateCollectionsPage.tsx",
+      "sha256": "4f64ce89a9e95f5656f9f7eb3e0c4948857a9e4a25928102329f6f6dca412bd0"
+    },
+    {
+      "path": "web/src/components/PrivateNotesPage.tsx",
+      "sha256": "919c65b7e5fdd1587b66e30bc7f97110559790699abfab39bd15e6199701b64f"
+    },
+    {
+      "path": "web/src/components/ProfilePage.tsx",
+      "sha256": "c8a16c3538d596a06fb29187a41c5fe866aa998eade9307b3907ef5e2a8e70e5"
+    },
+    {
+      "path": "web/src/components/RelatedPeoplePage.tsx",
+      "sha256": "0443ac021a4cdcf42efea99eff3028b976c5f95fad8d463456e473b703fa7a1f"
+    },
+    {
+      "path": "web/src/components/RelationshipPassport.tsx",
+      "sha256": "27fc2b348e6b575b00521786f2ea81fbe039352cc52b1b65f7846c2e9230f680"
+    },
+    {
+      "path": "web/src/components/RelationshipReflections.css",
+      "sha256": "e4e26c3c9e08dd0eacb16a93757daa4f5dddf0c2d17a1398ff6ff02a3222b058"
+    },
+    {
+      "path": "web/src/components/SettingsIndex.css",
+      "sha256": "79c46e98d36d671bf25dc67005a21bb23012115bdee3776faefd3b7296f3cf05"
+    },
+    {
+      "path": "web/src/components/SettingsIndex.tsx",
+      "sha256": "e1bdc8d627c68ddfb4ebc0a9c190deec5294f95988a1f62f88134f53dc547413"
+    },
+    {
+      "path": "web/src/components/SettingsPage.tsx",
+      "sha256": "5489b61e413cb3772d7d63b309067023286fd2eec717c3b8a62f593a401567b3"
+    },
+    {
+      "path": "web/src/components/SharedPhotosPage.tsx",
+      "sha256": "d028d4ffbae0459d313caf60c9c675a014115882d9ebb0577c4de87f2fad4f60"
+    },
+    {
+      "path": "web/src/components/StoryList.test.tsx",
+      "sha256": "36f6a6aa1835840ef51cda3e07bdf87061e8396900c91af93f2a75724805a2c0"
+    },
+    {
+      "path": "web/src/components/StoryProductPage.tsx",
+      "sha256": "80882bfbda3d0780d75a24a18bfd60b6ffd73048f629efc080d480f1f655ca31"
+    },
+    {
+      "path": "web/src/components/StoryRetrospective.tsx",
+      "sha256": "83ff9f0f73661c176b35bde98c577293914720c99f5be9c7211cae5f72327177"
+    },
+    {
+      "path": "web/src/components/StoryUnifiedPage.css",
+      "sha256": "f1f07187b46adae139e7252be37df96170a7006457d4f6824e149a8b3d879f72"
+    },
+    {
+      "path": "web/src/components/StoryYearsPage.tsx",
+      "sha256": "2800600197cdc4bbe02d7c0280166de93646f7985eece80e1d69da88432d5aff"
+    },
+    {
+      "path": "web/src/components/TodayPage.css",
+      "sha256": "da3fd9a3ad24a9b0868223231c905746e914459c09764ba5ebc69673e0ece690"
+    },
+    {
+      "path": "web/src/components/TodayPage.test.tsx",
+      "sha256": "a2ff4d714bb2b354f9bfe200ad4c0cb856b8a618c4ee3fd637707fadb99e8aeb"
+    },
+    {
+      "path": "web/src/components/TodayPage.tsx",
+      "sha256": "a39b0ffe477a15cef569276abc0c94c12c0fbc50640abacce9153996ac66865b"
+    },
+    {
+      "path": "web/src/components/TodayPinnedCollection.tsx",
+      "sha256": "ef0459934abd38a07b903ea71bb74e8184fc83a9fab34eac73c301539900f712"
+    },
+    {
+      "path": "web/src/components/WirDesign.css",
+      "sha256": "6c9227d62d4c4b5590140bbd15f3bc7423965a8530033a06c7d6a6cd0566e53b"
+    },
+    {
+      "path": "web/src/i18n/locales/dailyInsights.ts",
+      "sha256": "035a6da2a52a0a2e08492db73c0623b9ccf0db8298b5b6d5e466d54890def0ce"
+    },
+    {
+      "path": "web/src/i18n/locales/dailyQuote.ts",
+      "sha256": "addfbdb3f59f370bef1583cc778d74c2e4b70d5526343143e6a26ea04f3a547b"
+    },
+    {
+      "path": "web/src/i18n/locales/de.ts",
+      "sha256": "44bec3eb8901762f87a60c7f248cb8b0900f7ed0c209106be37a3ead3684acf7"
+    },
+    {
+      "path": "web/src/i18n/locales/games.ts",
+      "sha256": "45550f870f1f457fd8413774fab2834f999262af359a76c5f26db85af532a9ed"
+    },
+    {
+      "path": "web/src/i18n/locales/m5s3.ts",
+      "sha256": "c19e07c0fc5455e1a60493e0b42209a9ec4149a1d7593c2d394b82cef80e4abd"
+    },
+    {
+      "path": "web/src/i18n/locales/m5s5.ts",
+      "sha256": "bed54f41f3b95e512b428b9ecc9c6a6ded8dac1da80dcb35b912e5b87f5bfa8e"
+    },
+    {
+      "path": "web/src/i18n/locales/navigation.ts",
+      "sha256": "325d050fb57219ad7185b90c6dddfc66150e17cd9d51e2fd764ecd37cab88ee7"
+    },
+    {
+      "path": "web/src/i18n/locales/people.ts",
+      "sha256": "6e2feaafd50f1dee82b052081e18aa5fdcaea3ba2bac41428245ccf98f43840f"
+    },
+    {
+      "path": "web/src/i18n/locales/profileIdentity.ts",
+      "sha256": "424a567690248234cd5b8fa55fb2d1e5b3bf2e1e6bfe1900dbc6c664c099f275"
+    },
+    {
+      "path": "web/src/i18n/locales/profiles.ts",
+      "sha256": "1cd9e6f9027e6ef869d944ffff10605cf1cca66f20941da9a86a18ad9ad4d91f"
+    },
+    {
+      "path": "web/src/i18n/locales/sharedPhotos.ts",
+      "sha256": "8ce4bda9b58f991d8aecb4b66ae885da0476d0bd8c33e7e074e8220fca414be0"
+    },
+    {
+      "path": "web/src/i18n/locales/storyProducts.ts",
+      "sha256": "65f48edcb049a1cbb22982445521a290dec42558a9f55e05cd889ee301984c2a"
+    },
+    {
+      "path": "web/src/main.tsx",
+      "sha256": "6291b693a505c3e9d297ecc26dd6a75b7a54692961ee1a9acd3aed30b7334e0d"
+    }
+  ],
+  "images": [
+    {
+      "path": "01-momente-timeline-390-light.png",
+      "sha256": "db56b19a09949c7ec88f28309d71e954c430aa7db7adb84930049c61a7b7e3bb"
+    },
+    {
+      "path": "02-momente-timeline-390-dark.png",
+      "sha256": "3cf80e4fc237d70e7e2e3b45c83283dceb474dcf0ec9fe28c5d1e3d5e6149b71"
+    },
+    {
+      "path": "borderless-preferences-390-dark.png",
+      "sha256": "5dc027016f26915c7f33c94a7af897a329656a2162e2db7dd8eea014ef1f9940"
+    },
+    {
+      "path": "monthly-highlights-390-dark.png",
+      "sha256": "2c978f8beeaa3840a25dd430ee38c1c26be76ce06963870ac2e1cdf8feea6769"
+    },
+    {
+      "path": "monthly-highlights-390-light.png",
+      "sha256": "7b73ebf3d072bfcac1b7ac74d0a70c617c887a8fcc2d4787c388ae4d69d65568"
+    },
+    {
+      "path": "more-1280-light.png",
+      "sha256": "2432f6d2321e0e25f26b2006e238bdc1ba4fc2e60a759cbbabb61e7678ea80d2"
+    },
+    {
+      "path": "more-360-light.png",
+      "sha256": "f2cc30a42b5907ef6d337134fe68ab572b69c338d4f14567097b82135e20b3d4"
+    },
+    {
+      "path": "more-footer-390-dark.png",
+      "sha256": "b73f08d0a3566c1540e31977e358c1a0647ddc751ae9cfe902ad578200a93c0c"
+    },
+    {
+      "path": "passport-pro-390-dark-large-text.png",
+      "sha256": "32a033093a9b9a731642715df8fde21dc01b5ce777ae9b33dd7e36073362c1ca"
+    },
+    {
+      "path": "today-daily-quote-preferences-390-light.png",
+      "sha256": "b5ae26b520e0a628c2460af7567a53c4213ae0c50b9759f08b24194065766088"
+    },
+    {
+      "path": "wir-modern-1280-dark.png",
+      "sha256": "1a7a6871284f498d39e40af861d47e1fd00cabb9e3460a97e38a6612d0282cd4"
+    },
+    {
+      "path": "wir-modern-360-light.png",
+      "sha256": "a0c53394cbc5164ac493fb6107bd6aaee39e0bcad1ff4d55732ae09fd4e2fcee"
+    },
+    {
+      "path": "wir-modern-390-dark-large.png",
+      "sha256": "9ac54097a39e5d3977e6b1641907bd10a00cb2e9a9074b28ab2d5213975fcd97"
+    },
+    {
+      "path": "wir-modern-390-dark.png",
+      "sha256": "fa98853413e070603d1736847fc86275b2dc62dc30817217b46337782384590d"
+    }
+  ]
+}

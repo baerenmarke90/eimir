@@ -29,6 +29,7 @@ const dashboard = {
       createdAt: null,
       scheduledAt: new Date('2026-09-20T10:00:00Z'),
       previewAttachmentId: null,
+      previewIsSensitive: false,
     },
   ],
   keepsake: null,
@@ -41,6 +42,7 @@ const dashboard = {
       createdAt: null,
       scheduledAt: null,
       previewAttachmentId: null,
+      previewIsSensitive: false,
     },
   ],
   retrospective: null,
@@ -146,7 +148,7 @@ describe('Today R4 origin and partial-failure behavior', () => {
 
     await user.click(
       await screen.findByRole('link', {
-        name: /A trip to the coast together/i,
+        name: /^A trip to the coast together/i,
       }),
     );
     expect(

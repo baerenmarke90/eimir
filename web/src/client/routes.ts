@@ -86,6 +86,7 @@ export const PRIMARY_APP_ROUTES = APP_ROUTES.filter(
 );
 
 export const DEFAULT_APP_ROUTE = APP_ROUTES[0].path;
+export const WISH_SELECTION_ROUTE = '/plan/choose';
 
 export function appRoutePath(id: AppRouteId): string {
   const route = APP_ROUTES.find((candidate) => candidate.id === id);
@@ -95,7 +96,7 @@ export function appRoutePath(id: AppRouteId): string {
 
 /* Secondary destinations ------------------------------------------------- */
 
-/** A global utility rather than an area; reachable from the Web app bar. */
+/** Global search keeps its canonical path and is discovered under More. */
 export const SEARCH_ROUTE = '/search';
 
 /**
@@ -108,9 +109,10 @@ export const ACTIVITY_ROUTE = '/today/activity';
 export const MORE_PEOPLE_ROUTE = '/more/people';
 export const MORE_PLACES_ROUTE = '/more/places';
 export const MORE_COLLECTIONS_ROUTE = '/more/collections';
-/** Existing surface; the Web shell exposes it as the header bell utility. */
+export const COLLECTION_CREATE_ROUTE = '/more/collections/new';
+/** Existing inbox; More exposes its shared authoritative unread state. */
 export const MORE_NOTIFICATIONS_ROUTE = '/more/notifications';
-/** Existing surface; the Web shell exposes it through the avatar/account tree. */
+/** Named profile destination in the More account group. */
 export const MORE_PROFILE_ROUTE = '/more/profile';
 export const MORE_SETTINGS_ROUTE = '/more/settings';
 
@@ -118,6 +120,7 @@ export const SETTINGS_CATEGORY_IDS = [
   'relationship',
   'notifications',
   'today',
+  'memories',
   'appearance',
   'data',
   'account',
@@ -132,6 +135,7 @@ export const SETTINGS_CATEGORY_ROUTES = {
   relationship: `${MORE_SETTINGS_ROUTE}/relationship`,
   notifications: `${MORE_SETTINGS_ROUTE}/notifications`,
   today: `${MORE_SETTINGS_ROUTE}/today`,
+  memories: `${MORE_SETTINGS_ROUTE}/memories`,
   appearance: `${MORE_SETTINGS_ROUTE}/appearance`,
   data: `${MORE_SETTINGS_ROUTE}/data`,
   account: `${MORE_SETTINGS_ROUTE}/account`,
@@ -256,6 +260,7 @@ export function rewriteLegacyPath(pathname: string): string | null {
  * while keeping existing deep links stable without URL migrations.
  */
 export function activeNavigationArea(pathname: string): AppRouteId | null {
+  if (pathname === SEARCH_ROUTE) return 'more';
   if (pathname === '/today' || pathname.startsWith('/today/')) return 'today';
   if (
     pathname === '/story' ||
@@ -337,3 +342,12 @@ export function collectionDetailPath(collectionId: string): string {
 export const MORE_INSIGHTS_ROUTE = '/more/insights';
 export const MORE_INSIGHTS_PATTERNS_ROUTE = `${MORE_INSIGHTS_ROUTE}/patterns`;
 export const MORE_INSIGHTS_RECAP_ROUTE = `${MORE_INSIGHTS_ROUTE}/recap`;
+
+/** Automatic relationship recaps, discovered in More and the profile. */
+export const MORE_PASSPORT_ROUTE = '/more/passport';
+export const RECAP_DETAIL_ROUTE_PATTERN = `${MORE_PASSPORT_ROUTE}/:recapId`;
+export function recapDetailPath(recapId: string): string {
+  return `${MORE_PASSPORT_ROUTE}/${encodeURIComponent(recapId)}`;
+}
+
+export const MEMORY_MAP_ROUTE = '/story/map';

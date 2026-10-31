@@ -1,0 +1,7 @@
+Adds selected-photo import to the shared diary: Google Photos and your own public HTTPS Immich service are Pro features. Personal Immich access uses a dedicated read-only key and belongs only to your account. Photos become shared only when you save the diary entry.
+
+Keeps the normal device/system photo picker available without Pro. Imported copies remain after disconnecting a source or after Pro expires. Draft recovery, cancellation and interrupted-save handling retain authored text and photos.
+
+Includes the latest identity-link and draft-selection safeguards. The existing App Updates feature, package and original test signing identity remain unchanged. Google Photos requires the test server's operator OAuth configuration.
+
+Install Build 17 through App Updates, then open Moments and choose Other photo source while writing or editing a diary entry. Real provider/device acceptance follows in the running test installation.

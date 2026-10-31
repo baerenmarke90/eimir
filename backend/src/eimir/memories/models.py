@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from enum import StrEnum
 from typing import ClassVar
 from uuid import UUID
 
-from pydantic import Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import (
     CheckConstraint,
     Date,
@@ -30,6 +31,23 @@ from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, ProtectedPayload
 from eimir.memories.tags import MemoryTags, unique_tags
 
 
+class PhotoReaction(StrEnum):
+    LOVE = "LOVE"
+    LAUGH = "LAUGH"
+    SURPRISE = "SURPRISE"
+    SAD = "SAD"
+    CELEBRATE = "CELEBRATE"
+    LIKE = "LIKE"
+
+
+class MemoryPhotoReaction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    attachment_id: UUID
+    account_id: UUID
+    reaction: PhotoReaction
+
+
 class MemoryPayload(ProtectedPayload):
     """Protected content of a memory.
 
@@ -41,8 +59,19 @@ class MemoryPayload(ProtectedPayload):
     title: str
     body: str
     tags: MemoryTags = Field(default_factory=list)
+    photo_reactions: list[MemoryPhotoReaction] = Field(default_factory=list, max_length=40)
 
     _unique_tags = field_validator("tags")(unique_tags)
+
+    @field_validator("photo_reactions")
+    @classmethod
+    def _unique_photo_reactions(
+        cls, values: list[MemoryPhotoReaction]
+    ) -> list[MemoryPhotoReaction]:
+        keys = [(value.attachment_id, value.account_id) for value in values]
+        if len(keys) != len(set(keys)):
+            raise ValueError("Each account may react once per photo.")
+        return values
 
 
 class Memory(

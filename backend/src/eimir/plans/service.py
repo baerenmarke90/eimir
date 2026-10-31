@@ -47,7 +47,7 @@ from eimir.authorization import (
     require_writable_locked,
 )
 from eimir.core import cursor as cursor_codec
-from eimir.core.clock import today_in
+from eimir.core.clock import now, today_in
 from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
 from eimir.create_receipts import service as create_receipts
 from eimir.create_receipts.models import CreateReceiptResourceType
@@ -55,6 +55,7 @@ from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.identity.models import Account
 from eimir.outbox import service as outbox_service
 from eimir.places.models import Place
+from eimir.plans.media import PhotoSelection, replace_cover, replace_photos
 from eimir.plans.models import Plan, PlanPayload, PlanStatus, shared_privacy
 from eimir.reminders import runtime as reminder_runtime
 from eimir.wishes import service as wish_service
@@ -248,6 +249,9 @@ def create_plan(
     planned_on: date | None = None,
     planned_start: datetime | None = None,
     planned_end: datetime | None = None,
+    cover_attachment_id: UUID | None = None,
+    cover_is_sensitive: bool | None = None,
+    photos: PhotoSelection | None = None,
 ) -> Plan:
     """Create a direct unscheduled, date-only, or timed Plan atomically."""
     status = _initial_schedule_status(planned_on, planned_start, planned_end)
@@ -265,6 +269,10 @@ def create_plan(
     )
     session.add(plan)
     _flush(session)
+    if photos is not None:
+        replace_photos(session, context, plan, photos)
+    else:
+        replace_cover(session, context, plan, cover_attachment_id, is_sensitive=cover_is_sensitive)
     _record(session, plan, context.account_id, EventType.PLAN_CREATED)
     _flush(session)
     if status == PlanStatus.PLANNED:
@@ -283,6 +291,9 @@ def create_plan_once(
     planned_on: date | None = None,
     planned_start: datetime | None = None,
     planned_end: datetime | None = None,
+    cover_attachment_id: UUID | None = None,
+    cover_is_sensitive: bool | None = None,
+    photos: PhotoSelection | None = None,
 ) -> PlanCreateResult:
     """Create a direct Plan, or return the one an earlier request with this identity created.
 
@@ -301,6 +312,9 @@ def create_plan_once(
             planned_on=planned_on,
             planned_start=planned_start,
             planned_end=planned_end,
+            cover_attachment_id=cover_attachment_id,
+            cover_is_sensitive=cover_is_sensitive,
+            photos=photos,
         )
         return PlanCreateResult(plan, created=True)
 
@@ -310,6 +324,19 @@ def create_plan_once(
         {
             "title": normalized_title,
             "description": description,
+            **(
+                {"attachments": [(str(photo_id), sensitive) for photo_id, sensitive in photos]}
+                if photos is not None
+                else {}
+            ),
+            **(
+                {
+                    "cover_attachment_id": str(cover_attachment_id),
+                    "cover_is_sensitive": bool(cover_is_sensitive),
+                }
+                if cover_attachment_id
+                else {}
+            ),
             "place_id": str(place_id) if place_id is not None else None,
             "planned_on": planned_on.isoformat() if planned_on else None,
             "planned_start": planned_start.isoformat() if planned_start else None,
@@ -347,6 +374,9 @@ def create_plan_once(
         planned_on=planned_on,
         planned_start=planned_start,
         planned_end=planned_end,
+        cover_attachment_id=cover_attachment_id,
+        cover_is_sensitive=cover_is_sensitive,
+        photos=photos,
     )
     create_receipts.attach(session, receipt_id, plan.id)
     return PlanCreateResult(plan, created=True)
@@ -405,8 +435,13 @@ def update_plan(
     description: str | None,
     place_id: UUID | str | None,
     experienced_on: date | None,
+    anticipation_enabled: bool | None = None,
+    cover_attachment_id: UUID | None = None,
+    cover_is_sensitive: bool | None = None,
+    photos: PhotoSelection | None = None,
+    schedule_values: tuple[date | None, datetime | None, datetime | None] | None = None,
 ) -> Plan:
-    """Correct plan content without changing lifecycle status (M3-D04)."""
+    """Correct content, cover and schedule atomically; completion stays explicit."""
     next_place_id = (
         _resolve_place(session, context, place_id) if "place_id" in changed_fields else None
     )
@@ -414,8 +449,38 @@ def update_plan(
     plan = _lock_plan(session, context, plan_id)
     _ensure_expected_version(plan, expected_version)
 
+    if "attachments" in changed_fields:
+        assert photos is not None
+        replace_photos(session, context, plan, photos)
+        plan.updated_at = now()
+    elif "cover_attachment_id" in changed_fields or "cover_is_sensitive" in changed_fields:
+        replace_cover(
+            session,
+            context,
+            plan,
+            cover_attachment_id
+            if "cover_attachment_id" in changed_fields
+            else plan.cover_attachment_id,
+            is_sensitive=cover_is_sensitive,
+        )
+        plan.updated_at = now()
+    if "schedule" in changed_fields:
+        if plan.status == PlanStatus.COMPLETED.value:
+            raise ConflictError(
+                "A completed plan cannot be scheduled.", PLAN_STATUS_TRANSITION_INVALID
+            )
+        planned_on, planned_start, planned_end = schedule_values or (None, None, None)
+        plan.status = _initial_schedule_status(planned_on, planned_start, planned_end).value
+        plan.planned_on, plan.planned_start, plan.planned_end = (
+            planned_on,
+            planned_start,
+            planned_end,
+        )
     if "place_id" in changed_fields:
         plan.place_id = next_place_id
+    if "anticipation_enabled" in changed_fields:
+        assert anticipation_enabled is not None
+        plan.anticipation_enabled = anticipation_enabled
 
     next_title = plan.payload.title
     next_description = plan.payload.description
@@ -438,6 +503,8 @@ def update_plan(
     _flush(session)
     _record(session, plan, context.account_id, EventType.PLAN_UPDATED)
     _flush(session)
+    if "schedule" in changed_fields:
+        reminder_runtime.reconcile_space(session, context.space_id)
     return plan
 
 
@@ -562,6 +629,7 @@ def return_to_wish(
 
     removed_plan_id = plan.id
     actor_id = context.account_id
+    replace_photos(session, context, plan, [])
     session.delete(plan)
     _flush(session)
     _record(session, plan, actor_id, EventType.PLAN_DELETED)
@@ -590,6 +658,7 @@ def delete_plan(
         )
 
     actor_id = context.account_id
+    replace_photos(session, context, plan, [])
     session.delete(plan)
     _flush(session)
     _record(session, plan, actor_id, EventType.PLAN_DELETED)

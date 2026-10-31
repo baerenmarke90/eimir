@@ -8,9 +8,9 @@
  * available as text.
  */
 .daily-insights {
-  --insight-own: #d9634f;
-  --insight-partner: #7d69c4;
-  --insight-ink: #3b2b34;
+  --insight-own: var(--color-brand-text);
+  --insight-partner: var(--color-private);
+  --insight-ink: var(--color-text);
   --insight-track: color-mix(
     in srgb,
     var(--color-border-subtle) 70%,
@@ -48,14 +48,14 @@
 }
 
 :root[data-theme="dark"] .daily-insights {
-  --insight-own: #f08a76;
-  --insight-partner: #a898ea;
+  --insight-own: var(--color-brand-text);
+  --insight-partner: var(--color-private);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) .daily-insights {
-    --insight-own: #f08a76;
-    --insight-partner: #a898ea;
+    --insight-own: var(--color-brand-text);
+    --insight-partner: var(--color-private);
   }
 }
 
@@ -149,7 +149,7 @@
   font-weight: 650;
   text-align: center;
   text-decoration: none;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
   hyphens: auto;
 }
 
@@ -216,10 +216,10 @@
   gap: var(--space-3);
   min-width: 0;
   padding: var(--space-4);
-  border: 1px solid var(--insight-card-line);
+  border: 0;
   border-radius: var(--radius-card);
-  background: var(--insight-card-surface);
-  box-shadow: 0 6px 22px var(--color-shadow-soft);
+  background: var(--color-surface);
+  box-shadow: none;
 }
 
 .insight-card-header {
@@ -1160,4 +1160,22 @@
   .insight-wd-narrow {
     display: inline;
   }
+}
+
+/* Weekly reflection shares the current album surface and token-led hierarchy. */
+.daily-insights[data-view="week"] .insight-chart-card {
+  background: transparent;
+  padding-inline: 0;
+  border-radius: 0;
+}
+.daily-insights[data-view="week"] .insight-closing {
+  padding-bottom: var(--space-5);
+  background: var(--color-shared-surface);
+}
+.daily-insights[data-view="week"] .insight-landscape,
+.daily-insights[data-view="week"] .insight-closing > .insight-handwriting {
+  display: none;
+}
+.daily-insights[data-view="week"] .insight-statements-grid {
+  gap: var(--space-3);
 }

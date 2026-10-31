@@ -1,0 +1,53 @@
+{
+  "sourceCommit": "cd30e79102a7c02aa1a960bf7aa7eaddf7950020",
+  "baselineMain": "9e7ef004",
+  "fixture": "web/e2e/fixtures/locales/de.ts: wishSelection",
+  "test": "web/e2e/tests/shared-wish-selection.spec.ts",
+  "browser": "Playwright Chromium",
+  "images": [
+    {
+      "file": "wish-selection-hub-390-light.png",
+      "sha256": "c2fdb12cfc06fa98ffbbc25b1b6ecb890b1078ad224eb3d848f767c586659a20"
+    },
+    {
+      "file": "wish-selection-no-match-390-light.png",
+      "sha256": "6b1bbbc15c9be27246b2b6fca4883074d1b4c821368e6f80a21bc6e6d1b40283"
+    },
+    {
+      "file": "wish-selection-plan-390-light.png",
+      "sha256": "141f718e50f1edfc664b66cde0d818bbb15f1bfb5c9c4e7824b6d4d48d2477d7"
+    },
+    {
+      "file": "wish-selection-private-390-light.png",
+      "sha256": "538a7e1ab68f0ebb40a8a32021786bbfc75f073986cc582e51d2e52cde980cee"
+    },
+    {
+      "file": "wish-selection-result-1280-dark.png",
+      "sha256": "6cff2f4dec920ee30421a93a87d5531e192bbc79a0b3badd8a08e78f1054c5b1"
+    },
+    {
+      "file": "wish-selection-result-320-light-large-reduced.png",
+      "sha256": "55c71fe8c9ef8b8233e3e7099c7916f823ebc23e81fc2fa5bae5d9c34e83dc8b"
+    },
+    {
+      "file": "wish-selection-result-360-light.png",
+      "sha256": "624b6a756329678918d1ff44751fc50745cb5aec862159cf2b00042006981489"
+    },
+    {
+      "file": "wish-selection-result-390-dark.png",
+      "sha256": "535fe2d642211ad43755a804ce6aefc63028d0e318cb1dc4044ad58795f0af2a"
+    },
+    {
+      "file": "wish-selection-result-390-light.png",
+      "sha256": "c620c62299c12120f619cba0a127464a20e865f0b3befacadf6c5705ad161943"
+    },
+    {
+      "file": "wish-selection-result-430-light.png",
+      "sha256": "43a50af923b36ba6359077a57aafe7d4eecc91683c56df83768b85c01f9e3d4d"
+    },
+    {
+      "file": "wish-selection-setup-390-light.png",
+      "sha256": "925b5990db70a5d5e32dc337c3d300eb17ea472fb9f1d0ad1253d63d9b3186d4"
+    }
+  ]
+}

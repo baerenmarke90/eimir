@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import navigation from '../../src/i18n/locales/navigation';
 import profiles from '../../src/i18n/locales/profiles';
 
 const ACCOUNT_ID = '00000000-0000-4000-8000-000000000001';
@@ -168,6 +169,15 @@ async function installMocks(
   return { writes };
 }
 
+async function openPartnerDetails(page: Page): Promise<void> {
+  const details = page.locator('.profile-partner-disclosure');
+  await expect(details).toBeVisible();
+  if (!(await details.evaluate((node: HTMLDetailsElement) => node.open))) {
+    await details.locator(':scope > summary').click();
+  }
+  await expect(details).toHaveAttribute('open');
+}
+
 test('partner nickname remains private to the viewer and follows profile edits into Wir', async ({
   page,
 }, info) => {
@@ -178,6 +188,7 @@ test('partner nickname remains private to the viewer and follows profile edits i
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page).toHaveURL(/\/more\/profile$/);
+  await openPartnerDetails(page);
 
   const editor = page.locator('.partner-nickname');
   await expect(
@@ -208,6 +219,7 @@ test('partner nickname remains private to the viewer and follows profile edits i
     window.localStorage.setItem('eimir.theme', 'dark');
   });
   await page.reload();
+  await openPartnerDetails(page);
   await page.evaluate(() => {
     document.documentElement.style.fontSize = '200%';
   });
@@ -233,11 +245,15 @@ test('partner nickname remains private to the viewer and follows profile edits i
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
 
-  await page.goto('/today');
+  await page.getByRole('link', { name: navigation.today, exact: true }).click();
+  await expect(page).toHaveURL(/\/today$/);
   await expect(page.getByText('Lea & Sternchen')).toBeVisible();
   await capture(page, info, 'nickname-wir-390-light.png');
 
-  await page.goto('/more/profile');
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await page.getByRole('link', { name: navigation.profile }).click();
+  await expect(page).toHaveURL(/\/more\/profile$/);
+  await openPartnerDetails(page);
   await editor.getByRole('button', { name: profiles.nickname.edit }).click();
   await editor.getByRole('button', { name: profiles.nickname.remove }).click();
   await expect(
@@ -248,6 +264,11 @@ test('partner nickname remains private to the viewer and follows profile edits i
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.evaluate(() => window.localStorage.setItem('eimir.theme', 'dark'));
   await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await openPartnerDetails(page);
+  await expect(
+    editor.getByText(profiles.nickname.fallback.replace('{{name}}', 'Alex')),
+  ).toBeVisible();
   await editor.scrollIntoViewIfNeeded();
   await capture(page, info, 'nickname-profile-1280-dark-removed.png');
 });

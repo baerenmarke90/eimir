@@ -20,7 +20,6 @@ import {
 import { clientProblemKind } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
 import { PreferenceSwitch } from './PreferenceSwitch';
-import { ProMark } from './ProMark';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './DailyQuoteCard.css';
 
@@ -223,6 +222,7 @@ export function DailyQuoteCard({
   spaceId,
   partnerName,
   partnerNameIsResolved = false,
+  settingsOnly = false,
 }: {
   quoteApi: DailyQuoteApi;
   entitlementsApi: EntitlementsApi;
@@ -230,6 +230,7 @@ export function DailyQuoteCard({
   spaceId: string;
   partnerName?: string;
   partnerNameIsResolved?: boolean;
+  settingsOnly?: boolean;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -268,7 +269,7 @@ export function DailyQuoteCard({
   const quoteQuery = useQuery({
     queryKey: quoteKey,
     queryFn: ({ signal }) => loadDailyQuote(quoteApi, spaceId, signal),
-    enabled: hasCapability,
+    enabled: hasCapability && !settingsOnly,
     retry: false,
     gcTime: 0,
   });
@@ -276,7 +277,7 @@ export function DailyQuoteCard({
   const catalogQuery = useQuery({
     queryKey: catalogKey,
     queryFn: ({ signal }) => loadDailyQuoteCatalog(quoteApi, spaceId, signal),
-    enabled: hasCapability,
+    enabled: settingsOpen && hasCapability,
     retry: false,
   });
 
@@ -349,17 +350,6 @@ export function DailyQuoteCard({
     },
   });
 
-  const categoryNames = useMemo(
-    () =>
-      new Map(
-        (catalogQuery.data?.categories ?? []).map((category) => [
-          category.id,
-          category.name,
-        ]),
-      ),
-    [catalogQuery.data],
-  );
-
   const openSettings = () => {
     saveMutation.reset();
     setDraft(null);
@@ -389,12 +379,11 @@ export function DailyQuoteCard({
   const retryEntitlement = () => void entitlementQuery.refetch();
   const retryQuote = () => void quoteQuery.refetch();
 
-  if (hasCapability && quoteQuery.data?.enabled === false) {
+  if (!settingsOnly && hasCapability && quoteQuery.data?.enabled === false) {
     return null;
   }
 
   let body: React.ReactNode;
-  let settingsAvailable = false;
 
   if (entitlementQuery.isPending) {
     body = (
@@ -471,7 +460,6 @@ export function DailyQuoteCard({
       </QuoteStateMessage>
     );
   } else if (!quoteQuery.data?.quote) {
-    settingsAvailable = true;
     body = (
       <QuoteStateMessage
         className="is-empty"
@@ -481,11 +469,7 @@ export function DailyQuoteCard({
       </QuoteStateMessage>
     );
   } else {
-    settingsAvailable = true;
     const quote = quoteQuery.data.quote;
-    const visibleCategories = quote.categoryIds
-      .map((id) => categoryNames.get(id))
-      .filter((name): name is string => Boolean(name));
     const attribution = quote.sourceDisplay
       ? t('dailyQuote.quoteAttribution', {
           author: quote.authorDisplay,
@@ -496,22 +480,10 @@ export function DailyQuoteCard({
         });
 
     body = (
-      <>
-        <blockquote className="daily-quote-block">
-          <p>„{quote.text}“</p>
-          {quote.attributionRequired ? <footer>{attribution}</footer> : null}
-        </blockquote>
-        {visibleCategories.length > 0 ? (
-          <ul
-            className="daily-quote-categories"
-            aria-label={t('dailyQuote.categories')}
-          >
-            {visibleCategories.map((name) => (
-              <li key={name}>{name}</li>
-            ))}
-          </ul>
-        ) : null}
-      </>
+      <blockquote className="daily-quote-block">
+        <p>„{quote.text}“</p>
+        {quote.attributionRequired ? <footer>{attribution}</footer> : null}
+      </blockquote>
     );
   }
 
@@ -523,37 +495,30 @@ export function DailyQuoteCard({
 
   return (
     <>
-      <section
-        className="daily-quote-card"
-        data-color-world="warm"
-        aria-labelledby="daily-quote-title"
-      >
-        <header className="daily-quote-header">
-          <div className="daily-quote-heading-group">
-            <span className="today-section-kicker">
-              {t('dailyQuote.kicker')}
-            </span>
-            <div className="daily-quote-heading">
-              <h2 id="daily-quote-title" className="today-section-title">
-                {t('dailyQuote.title')}
-              </h2>
-              <ProMark label={t('dailyQuote.pro')} />
-            </div>
-          </div>
-          {settingsAvailable ? (
-            <button
-              ref={settingsButtonRef}
-              type="button"
-              className="daily-quote-settings"
-              aria-label={t('dailyQuote.settingsAria')}
-              onClick={openSettings}
-            >
-              <span aria-hidden="true">•••</span>
-            </button>
-          ) : null}
-        </header>
-        {body}
-      </section>
+      {settingsOnly ? (
+        hasCapability ? (
+          <button
+            ref={settingsButtonRef}
+            type="button"
+            className="button-link"
+            aria-label={t('dailyQuote.settingsAria')}
+            onClick={openSettings}
+          >
+            {t('dailyQuote.selectionAction')}
+          </button>
+        ) : null
+      ) : (
+        <section
+          className="daily-quote-card"
+          data-color-world="warm"
+          aria-labelledby="daily-quote-title"
+        >
+          <h2 id="daily-quote-title" className="sr-only">
+            {t('dailyQuote.title')}
+          </h2>
+          <div className="daily-quote-content">{body}</div>
+        </section>
+      )}
 
       <ShortTaskSheet
         open={settingsOpen}

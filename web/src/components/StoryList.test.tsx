@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { StoryItemFromJSON } from '../api/generated/models/StoryItem';
 import { StoryList } from './StoryList';
+import de from '../i18n/locales/de';
 
 const loadMemoryImage = async () => 'blob:test-image';
 const loadHeartMomentImage = async () => 'blob:test-heart-image';
@@ -175,6 +176,7 @@ describe('StoryList', () => {
             mediaType: 'IMAGE',
             mimeType: 'image/jpeg',
             hasThumbnail: true,
+            isSensitive: false,
             width: 800,
             height: 800,
             size: 1024,
@@ -249,6 +251,7 @@ describe('StoryList', () => {
           mediaType: 'IMAGE',
           mimeType: 'image/jpeg',
           hasThumbnail: true,
+          isSensitive: false,
           width: 800,
           height: 800,
           size: 1024,
@@ -285,6 +288,7 @@ describe('StoryList', () => {
             mediaType: 'IMAGE',
             mimeType: 'image/jpeg',
             hasThumbnail: true,
+            isSensitive: false,
             width: 800,
             height: 800,
             size: 1024,
@@ -338,6 +342,6 @@ describe('StoryList', () => {
       />,
     );
     expect(html).toContain('role="status"');
-    expect(html).toContain('Eure Story beginnt hier.');
+    expect(html).toContain(de.story.emptyTitle);
   });
 });

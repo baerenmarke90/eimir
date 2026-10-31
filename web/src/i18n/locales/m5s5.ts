@@ -34,10 +34,10 @@ const m5s5 = {
     pinnedCollectionSettingsTitle: 'Angeheftete Liste',
     recentKicker: 'Aktivitäten',
     recentTitle: 'Zuletzt bei euch',
-    allActivityAction: 'Alle Aktivitäten ansehen →',
+    allActivityAction: 'Alle Aktivitäten ansehen',
     recentEmpty: 'Noch keine gemeinsamen Einträge vorhanden.',
     storySummaryKicker: 'Was schon zu euch gehört',
-    storySummaryTitle: 'Eure gemeinsame Geschichte wächst',
+    storySummaryTitle: 'Eure Geschichte',
     storySummaryIntro:
       'Hier könnt ihr einzelne Spuren wiederfinden und weiterblättern.',
     storySummarySettingsTitle: 'Geschichte in Zahlen',
@@ -51,9 +51,9 @@ const m5s5 = {
     storySummaryMilestonesCount_one: '{{count}} Meilenstein',
     storySummaryMilestonesCount_other: '{{count}} Meilensteine',
     itemFallback: 'Gemeinsamer Eintrag',
+    anniversaryTitle: 'Euer Jahrestag',
   },
   today: {
-    headerTitle: 'Heute',
     roles: {
       hero: 'Paar-Präsenz',
       relationshipSignal: 'Bei euch passiert',
@@ -62,7 +62,7 @@ const m5s5 = {
     },
     keepsake: {
       kicker: 'Euer Moment',
-      title: 'Zuletzt gemeinsam festgehalten',
+      title: 'Euer Moment',
       compactTitle: 'Euer nächster gemeinsamer Moment',
       compactBody:
         'Sobald ihr ein Foto zu einer Erinnerung legt, steht es hier groß.',
@@ -73,6 +73,9 @@ const m5s5 = {
     upcoming: {
       allAction: 'Alle anzeigen',
       allAriaLabel: 'Alle gemeinsamen Termine ansehen',
+    },
+    recent: {
+      allAction: 'Alle anzeigen',
     },
     pinnedCollection: {
       kicker: 'Gemeinsame Liste',
@@ -130,7 +133,7 @@ const m5s5 = {
   },
   search: {
     eyebrow: 'Suche',
-    title: 'In euren Dingen suchen',
+    title: 'Suche',
     intro: 'Durchsuche gemeinsame Inhalte und deine eigenen privaten Einträge.',
     label: 'Suchbegriff',
     placeholder: 'Zum Beispiel Urlaub, Konzert oder Geschenk',
@@ -139,8 +142,7 @@ const m5s5 = {
     submit: 'Suchen',
     searching: 'Suche läuft …',
     startTitle: 'Wonach suchst du?',
-    startBody:
-      'Gib einen Suchbegriff ein. Ohne Suchbegriff werden keine Daten abgefragt.',
+    startBody: 'Zum Beispiel ein Ort, ein Erlebnis oder eine Geschenkidee.',
     emptyTitle: 'Nichts gefunden',
     emptyBody: 'Versuche einen anderen Begriff oder einen anderen Inhaltstyp.',
     resultFallback: 'Eintrag ohne Titel',
@@ -150,7 +152,7 @@ const m5s5 = {
   },
   activity: {
     eyebrow: 'Aktivität',
-    title: 'Was bei euch passiert ist',
+    title: 'Aktivitäten',
     intro: 'Gemeinsame Änderungen und neue Inhalte in zeitlicher Reihenfolge.',
     emptyTitle: 'Noch keine Aktivität',
     emptyBody: 'Sobald etwas Gemeinsames passiert, erscheint es hier.',
@@ -160,7 +162,7 @@ const m5s5 = {
   },
   notifications: {
     eyebrow: 'Benachrichtigungen',
-    title: 'Für dich',
+    title: 'Benachrichtigungen',
     intro: 'Benachrichtigungen aus eurem gemeinsamen Raum.',
     previewTitle: 'Benachrichtigungen',
     emptyPreview: 'Keine neuen Benachrichtigungen',
@@ -202,7 +204,7 @@ const m5s5 = {
   },
   kind: {
     MEMORY: 'Erinnerung',
-    HEART_MOMENT: 'Herzensmoment',
+    HEART_MOMENT: 'Herzmoment',
     MILESTONE: 'Meilenstein',
     WISH: 'Wunsch',
     PLAN: 'Plan',

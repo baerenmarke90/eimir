@@ -1,3 +1,5 @@
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { showMemoryDetails } from '../support/memoryDiary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -50,6 +52,7 @@ async function installApiMocks(page: Page): Promise<void> {
   let savedMemory: Record<string, unknown> | null = null;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -169,6 +172,7 @@ async function installApiMocks(page: Page): Promise<void> {
       width: 1200,
       height: 800,
       hasThumbnail: true,
+      isSensitive: false,
       createdAt: TEST_NOW,
       updatedAt: TEST_NOW,
       position: 0,
@@ -275,22 +279,22 @@ async function openMemoryCreate(page: Page): Promise<void> {
 }
 
 test.describe('R1 Memory Create evidence', () => {
+  // One test per viewport and theme: each journey (mocked identity, Today, Memory
+  // composer, screenshot) gets its own lifecycle and timeout budget instead of
+  // sharing one budget across the whole matrix (#1445).
   for (const colorScheme of ['light', 'dark'] as const) {
-    test(`initial empty composition matrix (${colorScheme})`, async ({
-      page,
-    }) => {
-      const context = page.context();
-      for (const width of [320, 360, 390, 430, 1280]) {
-        const matrixPage = await context.newPage();
-        await matrixPage.emulateMedia({ colorScheme });
-        await matrixPage.setViewportSize({ width, height: 900 });
-        await openMemoryCreate(matrixPage);
-        await matrixPage.screenshot({
+    for (const width of [320, 360, 390, 430, 1280]) {
+      test(`initial empty composition at ${width} px (${colorScheme})`, async ({
+        page,
+      }) => {
+        await page.emulateMedia({ colorScheme });
+        await page.setViewportSize({ width, height: 900 });
+        await openMemoryCreate(page);
+        await page.screenshot({
           path: path.join(EVIDENCE_DIR, `r1-empty-${width}-${colorScheme}.png`),
         });
-        await matrixPage.close();
-      }
-    });
+      });
+    }
   }
 
   test('text-only capture: narrative visible immediately, no photo placeholder', async ({
@@ -311,6 +315,7 @@ test.describe('R1 Memory Create evidence', () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 900 });
     await openMemoryCreate(page);
+    await showMemoryDetails(page);
     await page
       .getByLabel(de.memory.titleLabelOptional, { exact: true })
       .fill('Unser Tag am See');
@@ -343,6 +348,7 @@ test.describe('R1 Memory Create evidence', () => {
       await page
         .getByLabel(de.memory.bodyLabel, { exact: true })
         .fill('Wir haben heute den ganzen Nachmittag am See verbracht.');
+      await showMemoryDetails(page);
       await page
         .getByLabel(de.memory.titleLabelOptional, { exact: true })
         .fill('Unser Tag am See');

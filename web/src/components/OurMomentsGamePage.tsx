@@ -446,11 +446,6 @@ export function OurMomentsGamePage({
   return (
     <div className="page our-moments-page">
       <PageHeader
-        before={
-          <Link className="back-link" to={appRoutePath('games')}>
-            {t('games.momentsGame.back')}
-          </Link>
-        }
         eyebrow={t('games.entries.moments.role')}
         title={t('games.entries.moments.title')}
         description={t('games.momentsGame.intro')}

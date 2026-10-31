@@ -19,6 +19,7 @@ const image = (id: string, position = 0) => ({
   mediaType: 'IMAGE',
   mimeType: 'image/jpeg',
   hasThumbnail: true,
+  isSensitive: false,
   width: 800,
   height: 500,
   size: 1,

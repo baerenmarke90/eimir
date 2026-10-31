@@ -1,3 +1,4 @@
+import { fulfillUnconfiguredPhotoSources } from './photoSources';
 import { fulfillDefaultAppIcon } from './appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -86,6 +87,7 @@ export function getTimelineItems() {
             mediaType: 'IMAGE',
             mimeType: 'image/jpeg',
             hasThumbnail: true,
+            isSensitive: false,
             width: 800,
             height: 800,
             size: 1024,
@@ -112,6 +114,7 @@ export function getTimelineItems() {
             mediaType: 'IMAGE',
             mimeType: 'image/jpeg',
             hasThumbnail: true,
+            isSensitive: false,
             width: 800,
             height: 800,
             size: 1024,
@@ -179,6 +182,7 @@ export async function installMocks(
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -357,6 +361,36 @@ export async function installMocks(
         items,
         hasMore: false,
         nextCursor: null,
+      });
+      return;
+    }
+
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+      return;
+    }
+
+    // Discover uses the same authorized Dashboard read as Today for #452.
+    // No historic candidate is available in these timeline/delete scenarios.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/dashboard`
+    ) {
+      await fulfillJson({
+        recentShared: [],
+        relationshipDuration: null,
+        retrospective: null,
+        space: {
+          partner: options.asPartner ? ME : PARTNER,
+          spaceId: SPACE_ID,
+        },
+        upcoming: [],
+        viewerLocalDate: '2026-09-17',
       });
       return;
     }

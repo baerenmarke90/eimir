@@ -81,6 +81,7 @@ class DashboardItem:
     scheduled_at: datetime | None = None
     created_at: datetime | None = None
     preview_attachment_id: UUID | None = None
+    preview_is_sensitive: bool = False
 
 
 @dataclass(frozen=True)
@@ -94,6 +95,100 @@ class DashboardView:
     upcoming: list[DashboardItem]
     recent_shared: list[DashboardItem]
     thinking_of_you_available_at: datetime | None
+
+
+@dataclass(frozen=True)
+class Anticipation:
+    plan_id: UUID
+    title: str
+    event_on: date
+    days_remaining: int
+    event_at: datetime | None = None
+
+
+@dataclass(frozen=True)
+class RelationshipPassport:
+    partner: PartnerSummary | None
+    relationship_duration: RelationshipDuration | None
+    memories: int
+    heart_moments: int
+    milestones: int
+    completed_plans: int
+    places: int
+
+
+def read_anticipation(
+    session: Session,
+    authorization: AuthorizationContext,
+    *,
+    at: datetime | None = None,
+) -> Anticipation | None:
+    """Select one explicitly highlighted Plan independently of agenda limits."""
+    account = session.get(Account, authorization.account_id)
+    if account is None:
+        raise RuntimeError("Authorized Dashboard account disappeared.")
+    instant = clock.ensure_utc(at if at is not None else clock.now())
+    zone = clock.resolve_zone(account.timezone).key
+    today = clock.today_in(zone, at=instant)
+    event_day = func.coalesce(Plan.planned_on, cast(func.timezone(zone, Plan.planned_start), Date))
+    plan = session.execute(
+        readable(Plan, authorization)
+        .where(
+            Plan.anticipation_enabled.is_(True),
+            Plan.status == PlanStatus.PLANNED.value,
+            event_day >= today,
+        )
+        .order_by(event_day, Plan.planned_start.asc().nulls_first(), Plan.id)
+        .limit(1)
+    ).scalar_one_or_none()
+    if plan is None:
+        return None
+    day = plan.planned_on
+    if day is None:
+        if plan.planned_start is None:
+            raise RuntimeError("Scheduled anticipation Plan has no start.")
+        day = clock.ensure_utc(plan.planned_start).astimezone(clock.resolve_zone(zone)).date()
+    return Anticipation(
+        plan_id=plan.id,
+        title=_bounded(plan.payload.title) or "",
+        event_on=day,
+        days_remaining=(day - today).days,
+        event_at=clock.ensure_utc(plan.planned_start) if plan.planned_start is not None else None,
+    )
+
+
+def read_relationship_passport(
+    session: Session,
+    authorization: AuthorizationContext,
+) -> RelationshipPassport:
+    """Read shared-only lifetime aggregates after the caller's Pro check."""
+    from eimir.story.service import read_shared_story_counts
+
+    account = session.get(Account, authorization.account_id)
+    if account is None:
+        raise RuntimeError("Authorized Dashboard account disappeared.")
+    profile = session.execute(
+        select(SpaceProfile).where(SpaceProfile.space_id == authorization.space_id)
+    ).scalar_one_or_none()
+    story = read_shared_story_counts(session, authorization)
+    completed = readable(Plan, authorization).where(
+        Plan.status == PlanStatus.COMPLETED.value,
+        Plan.privacy_class == PrivacyClass.SPACE_SHARED.value,
+    )
+    places = readable(Place, authorization).where(
+        Place.privacy_class == PrivacyClass.SPACE_SHARED.value
+    )
+    return RelationshipPassport(
+        partner=_partner(session, authorization),
+        relationship_duration=_relationship_duration(profile, clock.today_in(account.timezone)),
+        memories=story.memories,
+        heart_moments=story.heart_moments,
+        milestones=story.milestones,
+        completed_plans=session.execute(
+            select(func.count()).select_from(completed.subquery())
+        ).scalar_one(),
+        places=session.execute(select(func.count()).select_from(places.subquery())).scalar_one(),
+    )
 
 
 def read_dashboard(
@@ -320,7 +415,11 @@ def _retrospective(
         galleries = attachments_of_memories(session, [chosen.id])
         for bound in galleries.get(chosen.id, []):
             if bound.attachment.status == AttachmentStatus.READY:
-                chosen = replace(chosen, preview_attachment_id=bound.attachment.id)
+                chosen = replace(
+                    chosen,
+                    preview_attachment_id=bound.attachment.id,
+                    preview_is_sensitive=bound.attachment.payload.is_sensitive,
+                )
                 break
     return chosen
 
@@ -343,9 +442,11 @@ def _keepsake(
     galleries = attachments_of_memories(session, [memory.id for memory in memories])
     for memory in memories:
         preview_id = None
+        preview_sensitive = False
         for bound in galleries.get(memory.id, []):
             if bound.attachment.status == AttachmentStatus.READY:
                 preview_id = bound.attachment.id
+                preview_sensitive = bound.attachment.payload.is_sensitive
                 break
         if preview_id is not None:
             return DashboardItem(
@@ -355,6 +456,7 @@ def _keepsake(
                 occurred_on=memory.happened_on,
                 created_at=memory.created_at,
                 preview_attachment_id=preview_id,
+                preview_is_sensitive=preview_sensitive,
             )
     return None
 
@@ -522,9 +624,11 @@ def _recent_shared(
 
     for memory in memories:
         preview_id = None
+        preview_sensitive = False
         for bound in memory_galleries.get(memory.id, []):
             if bound.attachment.status == AttachmentStatus.READY:
                 preview_id = bound.attachment.id
+                preview_sensitive = bound.attachment.payload.is_sensitive
                 break
         candidates.append(
             DashboardItem(
@@ -534,6 +638,7 @@ def _recent_shared(
                 occurred_on=memory.happened_on,
                 created_at=memory.created_at,
                 preview_attachment_id=preview_id,
+                preview_is_sensitive=preview_sensitive,
             )
         )
 

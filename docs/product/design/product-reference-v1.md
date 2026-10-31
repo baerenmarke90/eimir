@@ -56,7 +56,7 @@ Calm means a composed sequence with useful detail, not vacant hero frames or mis
 
 ### Navigation and thumb reach
 
-Keep four labeled destinations: the localized equivalents of **Wir, Momente, Planen, Mehr**. The central plus is an action, not a fifth destination. Games remain under More; Chapters belong to Moments even where a compatible URL retains a planning prefix. Profile and Settings have named, discoverable More entries; an avatar may remain a shortcut.
+Keep four labeled destinations: the localized equivalents of **Wir, Momente, Planen, Mehr**. The central plus is an action, not a fifth destination. Games remain under More; Chapters belong to Moments even where a compatible URL retains a planning prefix. Profile and Settings have named, discoverable More entries. The [2026-10-29 PO decision](mobile-header-more.md), tracked in #1507, consolidates identity/account utilities, search, notifications and the brand under More, removes the Compact/Medium global header and retains Expanded top navigation.
 
 Primary Compact actions must remain comfortably reachable, with product targets of at least 44 CSS px on Web and 48 dp on Android. Respect safe areas, large text, small-height screens and the software keyboard. Do not hide primary actions behind horizontal discovery or hover. A focused composer uses task-specific Back/Close and completion controls so root navigation and global create do not compete with saving. Expanded preserves the same task and route meaning.
 
@@ -170,3 +170,10 @@ Before UI code, each slice records its Mobile Interaction Contract or Product De
 For every material journey, review **Open → interact → save/complete → observe result → return**, including failures and interruptions. Capture representative empty, sparse, dense, loading, error/retry, offline and success states where applicable. Validate around 360/390/430 px, 320 CSS px reflow, small height, large text, keyboard/assistive technology, Light/Dark, reduced motion and relevant Expanded layouts. Ordinary Web product changes require no separate native-screen acceptance because the same React/Vite UI ships through Capacitor. Real-device evidence is required when a change touches the Capacitor wrapper or a native platform capability. Record exact commit/build and evidence limits.
 
 [#946](https://github.com/baerenmarke90/eimir/issues/946), including its intuitive-mobile-interaction addendum, is the final product gate. It must use this v1 direction and the current normative extensions rather than reconstructing superseded references. Screenshots alone and green CI alone cannot establish product acceptance. Documentation adoption does not complete #955 or #946.
+
+
+## PO addendum: coherent section boundaries (2026-10-29, #1508)
+
+A couple-facing section uses one consistent anatomy: section heading and contextual action first, then its content surface. The heading remains outside that surface. A title that is itself the personal content (a Memory title, Plan name or couple identity) can remain inside its card; it is not a second section header. Do not mix inside/outside section headings between neighboring modules or use decorative colored left rules as a substitute for hierarchy. Keep spacing deliberate and quote attribution readable and close to the quote. Existing content-specific composition, privacy, accessibility and task boundaries remain binding.
+
+This PO decision supersedes inconsistent legacy module/card heading placement. Use real shared content to enrich a sparse Hero; no invented relationship scores, streaks or filler widgets. Functional navigation retains the approved existing glyph grammar: the same-day launcher/startup correction does not authorize a navigation redesign.

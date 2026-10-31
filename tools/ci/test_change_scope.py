@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import fnmatch
+import re
 import unittest
+from pathlib import Path
 
-from change_scope import SCOPES, classify_paths
+from change_scope import (
+    PREFLIGHT_TOOLING_TESTS,
+    SCOPES,
+    SELF_VALIDATING_TOOLING_OWNERS,
+    classify_paths,
+)
+
+ROOT = Path(__file__).resolve().parents[2]
 
 ACCOUNT_DELETION_RECOVERY_RUNTIME_PATHS = (
     "backend/src/eimir/identity/deletion.py",
@@ -243,6 +253,41 @@ class ChangeScopeTest(unittest.TestCase):
     def test_filter_changes_fail_closed(self) -> None:
         self.assertTrue(all(classify_paths(["tools/ci/change_scope.py"]).values()))
 
+    def test_preflight_tools_do_not_enable_unrelated_runtime_gates(self) -> None:
+        for path in PREFLIGHT_TOOLING_TESTS:
+            with self.subTest(path=path):
+                self.assert_scope([path], enabled=set())
+
+    def test_preflight_tools_are_tested_before_scope_selection(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        preflight = workflow.split("\n  changes:\n", 1)[1].split("\n  backend:\n", 1)[0]
+        before_selection = preflight.split("      - name: Determine relevant change scopes", 1)[0]
+        self.assertNotIn("    if:", preflight)
+        self.assertNotIn("        if:", before_selection)
+        for path, test in PREFLIGHT_TOOLING_TESTS.items():
+            with self.subTest(path=path):
+                self.assertTrue((ROOT / path).is_file(), "stale preflight entry")
+                self.assertTrue((ROOT / test).is_file(), "missing owner test")
+                self.assertIn(f"python3 {test}", before_selection)
+
+    def test_preflight_tools_preserve_mixed_diff_safety(self) -> None:
+        tools = list(PREFLIGHT_TOOLING_TESTS)
+        self.assert_scope(
+            [*tools, "backend/src/eimir/memories/service.py"],
+            enabled={"backend", "backend_integration"},
+        )
+        self.assert_scope(
+            [*tools, "compose.yaml"],
+            enabled={"self_hosted", "deployment_guard", "recovery"},
+        )
+        for path in (
+            "tools/ci/change_scope.py",
+            "tools/ci/test_change_scope.py",
+            "tools/ci/future.py",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(all(classify_paths([*tools, path]).values()))
+
     def test_ci_workflow_changes_fail_closed(self) -> None:
         self.assertTrue(all(classify_paths([".github/workflows/ci.yml"]).values()))
 
@@ -258,9 +303,75 @@ class ChangeScopeTest(unittest.TestCase):
 
     def test_non_allowlisted_workflow_changes_stay_fail_closed(self) -> None:
         for path in (
-            ".github/workflows/release-publish.yml",
             ".github/workflows/runtime-environment-drift-guard.yml",
             ".github/workflows/future.yml",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(all(classify_paths([path]).values()))
+
+    @staticmethod
+    def pull_request_paths(workflow: str) -> list[str]:
+        text = (ROOT / workflow).read_text(encoding="utf-8")
+        block = text.split("  pull_request:\n    paths:\n", 1)[1].split("\n  workflow_dispatch:", 1)[0]
+        return re.findall(r"""^      - ["']([^"']+)["']$""", block, re.MULTILINE)
+
+    def test_self_validating_tooling_does_not_enable_core_gates(self) -> None:
+        for path in SELF_VALIDATING_TOOLING_OWNERS:
+            with self.subTest(path=path):
+                self.assert_scope([path], enabled=set())
+        self.assert_scope(list(SELF_VALIDATING_TOOLING_OWNERS), enabled=set())
+        self.assert_scope(
+            [*SELF_VALIDATING_TOOLING_OWNERS, "docs/m6/IMMUTABLE-RELEASES.md"],
+            enabled=set(),
+        )
+
+    def test_self_validating_tooling_is_actually_validated_by_its_owner(self) -> None:
+        # Skipping the core gates is only safe while a pull request touching these
+        # files still triggers the owning workflow, which runs their tests.
+        for path, owner in SELF_VALIDATING_TOOLING_OWNERS.items():
+            with self.subTest(path=path, owner=owner):
+                self.assertTrue((ROOT / path).is_file(), "stale allowlist entry")
+                self.assertTrue(
+                    owner in SELF_VALIDATING_TOOLING_OWNERS
+                    and SELF_VALIDATING_TOOLING_OWNERS[owner] == owner,
+                    "owner must be an allowlisted workflow that owns itself",
+                )
+                patterns = self.pull_request_paths(owner)
+                self.assertTrue(
+                    any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns),
+                    "not covered by the owner's pull_request.paths",
+                )
+                if Path(path).name.startswith("test_"):
+                    workflow = (ROOT / owner).read_text(encoding="utf-8")
+                    self.assertIn(f"python3 {path}", workflow, "test is not run by its owner")
+
+    def test_self_validating_tooling_keeps_other_scopes_in_mixed_prs(self) -> None:
+        self.assert_scope(
+            [".github/workflows/release-publish.yml", "backend/tests/test_config.py"],
+            enabled={"backend"},
+        )
+        self.assert_scope(
+            ["scripts/image_archive_config.py", "backend/alembic/versions/0001_x.py"],
+            enabled={"backend", "backend_integration", "recovery"},
+        )
+
+    def test_self_validating_tooling_cannot_hide_unknown_or_ci_changes(self) -> None:
+        for other in ("future-build-system/config.toml", "tools/ci/change_scope.py"):
+            with self.subTest(other=other):
+                result = classify_paths(["scripts/android_launcher_identity.py", other])
+                self.assertTrue(all(result.values()))
+
+    def test_files_shared_with_other_consumers_stay_fail_closed(self) -> None:
+        # release_manifest.py is also used by release-candidate.yml and the
+        # project-identity scan; the manifest test is run by both workflows.
+        # android_test_release.py is not referenced or tested by any workflow.
+        for path in (
+            "scripts/release_manifest.py",
+            "scripts/android_test_release.py",
+            "tools/ci/test_release_manifest.py",
+            ".github/workflows/release-candidate.yml",
+            "scripts/self_hosted_release.py",
+            "tools/ci/test_change_scope.py",
         ):
             with self.subTest(path=path):
                 self.assertTrue(all(classify_paths([path]).values()))
@@ -287,3 +398,4 @@ class ChangeScopeTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

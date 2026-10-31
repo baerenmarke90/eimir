@@ -127,7 +127,6 @@ async function edit(body = 'Original words') {
   const user = userEvent.setup();
   const card = screen.getByText(body, { selector: 'p' }).closest('li');
   if (!card) throw new Error('Expected comment card');
-  await user.click(within(card).getByLabelText(copy.edit));
   await user.click(within(card).getByRole('button', { name: copy.edit }));
   const field = within(card).getByRole<HTMLTextAreaElement>('textbox');
   fireEvent.change(field, { target: { value: 'Submitted words' } });

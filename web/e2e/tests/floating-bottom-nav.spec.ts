@@ -1,3 +1,5 @@
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { showMemoryDetails } from '../support/memoryDiary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expectToday } from '../support/today';
 import AxeBuilder from '@axe-core/playwright';
@@ -18,7 +20,7 @@ const TEST_NOW = '2026-09-01T10:00:00Z';
 
 const EVIDENCE_DIR = path.resolve(
   __dirname,
-  '../../../docs/design/eimir/screenshots/882-floating-nav',
+  '../../../docs/product/design/references/today-clarity/navigation',
 );
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
@@ -34,6 +36,7 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 async function installApiMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -276,14 +279,14 @@ async function waitForGamesHub(page: Page): Promise<void> {
   await expect(page.locator('.games-access-panel')).toHaveCount(0);
 }
 
-test.describe('Floating Bottom Navigation (#882/#905)', () => {
+test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
   test.beforeAll(() => {
     if (!fs.existsSync(EVIDENCE_DIR)) {
       fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
     }
   });
 
-  test('shell composition: four destinations + centered Quick Create before Planen in one floating shell', async ({
+  test('shell composition: four destinations + centered Quick Create before Planen in one docked shell', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -339,10 +342,34 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     const shellBox = await floatingShell.boundingBox();
     expect(shellBox).not.toBeNull();
     if (shellBox) {
-      expect(shellBox.x).toBeGreaterThan(0);
-      expect(shellBox.x + shellBox.width).toBeLessThan(390);
-      expect(844 - (shellBox.y + shellBox.height)).toBeGreaterThanOrEqual(8);
+      expect(shellBox.x).toBe(0);
+      expect(shellBox.width).toBe(390);
+      expect(shellBox.y + shellBox.height).toBe(844);
     }
+
+    // Keep the dock and its targets comfortably sized without changing navigation.
+    const dockSize = await floatingShell.evaluate((element) => {
+      const links = Array.from(
+        element.querySelectorAll('.mobile-bottom-nav .shell-nav-link'),
+      );
+      const trigger = element.querySelector(
+        '.mobile-quick-create .quick-create-trigger',
+      );
+      if (links.length !== 4 || !trigger)
+        throw new Error('Missing bottom navigation controls');
+      return {
+        height: element.getBoundingClientRect().height,
+        linkHeights: links.map((link) => link.getBoundingClientRect().height),
+        fontSizes: links.map((link) =>
+          Number.parseFloat(getComputedStyle(link).fontSize),
+        ),
+        triggerHeight: trigger.getBoundingClientRect().height,
+      };
+    });
+    expect(dockSize.height).toBeGreaterThanOrEqual(70);
+    expect(Math.min(...dockSize.linkHeights)).toBeGreaterThanOrEqual(56);
+    expect(Math.min(...dockSize.fontSizes)).toBeGreaterThanOrEqual(12);
+    expect(dockSize.triggerHeight).toBeGreaterThanOrEqual(52);
 
     await expectNoHorizontalOverflow(page);
   });
@@ -908,7 +935,7 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     expect(todayAxe.violations).toEqual([]);
   });
 
-  test('200 percent zoom / large-text: floating navigation remains usable and collision-free', async ({
+  test('200 percent zoom / large-text: docked navigation remains usable and collision-free', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 780, height: 844 });
@@ -1086,6 +1113,7 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
 
     await page.setViewportSize({ width: 390, height: 500 });
     await page.goto('/story/memories/new');
+    await showMemoryDetails(page);
     const titleInput = page.getByLabel(de.memory.titleLabelOptional);
     await titleInput.focus();
     await page.screenshot({

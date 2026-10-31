@@ -11,6 +11,80 @@
   gap: var(--space-8);
 }
 
+.more-search-entry {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.more-search-entry > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+
+.more-search-entry:focus-visible,
+.more-logout:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.more-profile-label {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.more-destination-trailing {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.more-unread-count {
+  min-width: 1.5rem;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: 0.875rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+.more-footer {
+  display: grid;
+  justify-items: stretch;
+  gap: var(--space-6);
+  margin-top: var(--space-8);
+}
+
+.more-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-error-surface);
+  color: var(--color-error);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  text-align: center;
+}
+
 .more-group {
   display: grid;
   gap: var(--space-2);
@@ -29,7 +103,25 @@
 .more-destinations {
   margin: 0;
   padding: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
   list-style: none;
+}
+
+.more-destinations > li + li {
+  border-top: var(--border-surface-width) solid var(--color-border-subtle);
+}
+
+.more-group-separated .more-destinations {
+  display: grid;
+  gap: var(--space-3);
+  background: transparent;
+}
+
+.more-group-separated .more-destinations > li {
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
 }
 
 .more-destinations > li {
@@ -42,7 +134,8 @@
   grid-template-columns: 2.75rem minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
   color: var(--color-text);
   text-decoration: none;
   transition:
@@ -153,4 +246,51 @@
   .more-destination {
     transition: none;
   }
+}
+
+.more-logout svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+.more-brand-signature {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding-block: var(--space-2) var(--space-6);
+}
+.more-brand-signature::before,
+.more-brand-signature::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--color-border-subtle);
+}
+
+/* More owns one shared surface language for all of its child routes. */
+.product-main[data-area="more"] > .page {
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
+}
+.product-main[data-area="more"] .page-heading h1 {
+  font-family: var(--font-ui);
+  overflow-wrap: anywhere;
+}
+.product-main[data-area="more"] .settings-category-list {
+  display: grid;
+  gap: var(--space-3);
+  border: 0;
+}
+.product-main[data-area="more"] .settings-category-link {
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+}
+.product-main[data-area="more"] .settings-category-content > .settings-section,
+.product-main[data-area="more"] .settings-category-content > .form-card {
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
 }

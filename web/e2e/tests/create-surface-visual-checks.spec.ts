@@ -1,3 +1,5 @@
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { showMemoryDetails } from '../support/memoryDiary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -15,11 +17,8 @@ const MEMORY_TITLE = 'Ein ruhiger Sonntagmorgen';
 const MEMORY_BODY =
   'Wir haben lange geschlafen und dann gemeinsam Pfannkuchen gemacht.';
 
-// Covers the initials the drop cap must stay visually controlled for: a
-// narrow letter (S), and the widest common German-copy letters (W, M) plus
-// one more (A) — the width-consistency regression the real drop-cap element
-// exists to fix.
-const DROP_CAP_CASES = [
+// Representative authored prose remains intact at each reading width.
+const PROSE_CASES = [
   {
     id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     title: 'S wie Anfang',
@@ -39,6 +38,11 @@ const DROP_CAP_CASES = [
     id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
     title: 'M wie Anfang',
     body: 'Mitten in der Nacht sind wir aufgewacht, weil es draußen so heftig gewittert hat.',
+  },
+  {
+    id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+    title: 'Kleiner Anfang',
+    body: 'we enjoyed the morning together.\n\nLater we went for a walk.',
   },
 ] as const;
 
@@ -61,12 +65,12 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 /**
  * A focused mock harness for the create-surface visual regression checks:
  * the inline shared-visibility metadata on Memory Create, the local "today"
- * date default on HeartMoment/Milestone Create, and the Memory Detail drop
- * cap.
+ * date default on HeartMoment/Milestone Create, and readable Memory Detail prose.
  */
 async function installApiMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -185,7 +189,7 @@ async function installApiMocks(page: Page): Promise<void> {
       return;
     }
 
-    for (const memoryCase of DROP_CAP_CASES) {
+    for (const memoryCase of PROSE_CASES) {
       if (
         method === 'GET' &&
         pathname === `/api/v1/spaces/${SPACE_ID}/memories/${memoryCase.id}`
@@ -361,6 +365,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       document.documentElement.style.fontSize = '';
     });
 
+    await showMemoryDetails(page);
     await page.getByText(contextTags.suggestions, { exact: true }).click();
     const homeTag = page.getByRole('checkbox', {
       name: de.memory.tagLabels.home,
@@ -445,6 +450,8 @@ for (const width of [390, 320] as const) {
 
       await expectSharingMetadataAligned(page);
 
+      await showMemoryDetails(page);
+
       const title = page.getByLabel(de.memory.titleLabelOptional);
       const media = page.locator('.immersive-create-media');
       const picker = media.locator('.file-picker');
@@ -494,10 +501,11 @@ for (const width of [390, 320] as const) {
         throw new Error('Memory Create form children not found.');
       }
       expect(Object.values(domOrder).every((index) => index >= 0)).toBe(true);
-      expect(domOrder.mediaIndex).toBeLessThan(domOrder.narrativeIndex);
-      expect(domOrder.narrativeIndex).toBeLessThan(domOrder.titleFieldIndex);
+      // #1547 makes the optional title the first Memory capture field.
       expect(domOrder.titleFieldIndex).toBeLessThan(domOrder.dateFieldIndex);
-      expect(domOrder.dateFieldIndex).toBeLessThan(domOrder.noteIndex);
+      expect(domOrder.dateFieldIndex).toBeLessThan(domOrder.narrativeIndex);
+      expect(domOrder.narrativeIndex).toBeLessThan(domOrder.mediaIndex);
+      expect(domOrder.mediaIndex).toBeLessThan(domOrder.noteIndex);
       expect(domOrder.noteIndex).toBeLessThan(domOrder.actionsIndex);
 
       const [
@@ -552,8 +560,8 @@ for (const width of [390, 320] as const) {
       expect(noteBox.y + noteBox.height).toBeLessThanOrEqual(actionsBox.y);
       expect(noteBox.y + noteBox.height).toBeLessThanOrEqual(saveBox.y);
 
-      // 3. Spacing above (from the date field) and below (to actions) is intentional and balanced
-      const spacingAbove = noteBox.y - (dateFieldBox.y + dateFieldBox.height);
+      // 3. Optional enrichment and the completion cue retain deliberate separation
+      const spacingAbove = noteBox.y - (titleFieldBox.y + titleFieldBox.height);
       const spacingBelow = actionsBox.y - (noteBox.y + noteBox.height);
       expect(spacingAbove).toBeGreaterThanOrEqual(10);
       expect(spacingBelow).toBeGreaterThanOrEqual(10);
@@ -663,6 +671,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       const dateField = page.locator('.immersive-create-date-field');
       const dateSummary = dateField.locator('.immersive-create-date-summary');
       const dateInput = dateField.locator('#happenedOn');
+      await showMemoryDetails(page);
       const title = page.getByLabel(de.memory.titleLabelOptional);
 
       await expect(dateSummary).toBeVisible();
@@ -801,6 +810,7 @@ test('Memory Create date summary stays stable under 320px reflow, reduced motion
     const dateField = page.locator('.immersive-create-date-field');
     const dateSummary = dateField.locator('.immersive-create-date-summary');
     const dateInput = dateField.locator('#happenedOn');
+    await showMemoryDetails(page);
     const title = page.getByLabel(de.memory.titleLabelOptional);
 
     // --- 320px Reflow with Touch ---
@@ -979,7 +989,7 @@ test('Milestone Create defaults the date to local today and stays typeable', asy
 });
 
 for (const colorScheme of ['light', 'dark'] as const) {
-  test(`Memory Detail keeps an inline, enlarged drop cap on the body paragraph (${colorScheme})`, async ({
+  test(`Memory Detail keeps authored prose readable with the restored initial (${colorScheme})`, async ({
     page,
   }, testInfo) => {
     await page.emulateMedia({ colorScheme });
@@ -993,35 +1003,28 @@ for (const colorScheme of ['light', 'dark'] as const) {
     ).toBeVisible();
 
     const body = page.locator('.memory-detail-body');
-    const letter = body.locator('.drop-cap-letter');
     await expect(body).toBeVisible();
-    await expect(letter).toBeVisible();
-    await expect(letter).toHaveText('W');
-    // The rest of the paragraph's real text must be unaffected — the split
-    // is purely visual, not a rewording or duplication of the content.
     await expect(body).toHaveText(MEMORY_BODY);
-
-    const [bodyFontSize, letterStyle] = await Promise.all([
-      body.evaluate((el) => Number.parseFloat(getComputedStyle(el).fontSize)),
-      letter.evaluate((el) => {
-        const style = getComputedStyle(el);
-        return {
-          float: style.float,
-          display: style.display,
-          fontSize: Number.parseFloat(style.fontSize),
-        };
-      }),
-    ]);
-    // Deliberately not a classic floated drop cap: it stays part of the
-    // normal inline text flow (no reserved column, no text wrapping around
-    // it) so the word it starts always reads as one unit.
-    expect(letterStyle.float).toBe('none');
-    expect(letterStyle.display).toBe('inline');
-    expect(letterStyle.fontSize).toBeGreaterThan(bodyFontSize * 1.2);
-    expect(letterStyle.fontSize).toBeLessThan(bodyFontSize * 2);
+    const initial = body.locator('.drop-cap-letter');
+    await expect(initial).toHaveText('W');
+    const fontSize = await body.evaluate((el) =>
+      Number.parseFloat(getComputedStyle(el).fontSize),
+    );
+    expect(fontSize).toBeGreaterThanOrEqual(16);
+    const initialStyle = await initial.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return {
+        fontSize: Number.parseFloat(style.fontSize),
+        textTransform: style.textTransform,
+        float: style.float,
+      };
+    });
+    expect(initialStyle.fontSize).toBeGreaterThan(fontSize);
+    expect(initialStyle.textTransform).toBe('uppercase');
+    expect(initialStyle.float).toBe('none');
 
     await page.screenshot({
-      path: testInfo.outputPath(`memory-detail-drop-cap-${colorScheme}.png`),
+      path: testInfo.outputPath(`memory-detail-prose-${colorScheme}.png`),
     });
 
     await page.setViewportSize({ width: 390, height: 844 });
@@ -1060,73 +1063,23 @@ for (const colorScheme of ['light', 'dark'] as const) {
   });
 }
 
-/**
- * Measures the drop-cap letter's box and the immediately following text's
- * position for one memory, at whatever viewport is currently set.
- */
-async function measureDropCapGap(
-  page: Page,
-  memoryCase: (typeof DROP_CAP_CASES)[number],
-): Promise<{ letterBox: { x: number; width: number }; restX: number }> {
-  await page.goto(`/story/memories/${memoryCase.id}`);
-  await expect(
-    page.getByRole('heading', { name: memoryCase.title }),
-  ).toBeVisible();
-
-  const letter = page.locator('.drop-cap-letter');
-  await expect(letter).toHaveText(memoryCase.body[0]);
-
-  const [letterBox, restRect] = await Promise.all([
-    letter.boundingBox(),
-    page.locator('.memory-detail-body').evaluate((el) => {
-      // The rest of the text is a plain text node right after the letter
-      // span; measure its first character via a Range so we can compare
-      // its left edge against the drop cap's right edge.
-      const range = document.createRange();
-      const textNode = Array.from(el.childNodes).find(
-        (node) => node.nodeType === Node.TEXT_NODE,
-      );
-      if (!textNode) return null;
-      range.setStart(textNode, 0);
-      range.setEnd(textNode, 1);
-      const rect = range.getBoundingClientRect();
-      return { x: rect.x };
-    }),
-  ]);
-  if (!letterBox || !restRect) {
-    throw new Error(
-      `Drop cap or body text did not render for ${memoryCase.title}.`,
-    );
-  }
-  return { letterBox, restX: restRect.x };
-}
-
-// Desktop and mobile deliberately share the same inline drop-cap logic (see
-// MemoryProductPage.css) — only the font-size scales between them — so one
-// parametrized check covers both: the letter must stay flush against the
-// rest of its word ("Mitten", not "M itten") at every breakpoint.
-for (const viewport of [
-  { name: 'desktop 1440px', width: 1440, height: 900 },
-  { name: 'desktop 1920px', width: 1920, height: 1080 },
-  { name: 'mobile 390px', width: 390, height: 844 },
-] as const) {
-  test(`Memory Detail drop cap stays flush against the rest of its word for S/W/A/M initials (${viewport.name})`, async ({
+for (const width of [390, 1440]) {
+  test(`Memory Detail preserves complete prose at ${width}px`, async ({
     page,
   }) => {
     await installApiMocks(page);
     await page.goto('/today');
     await signIn(page);
-    await page.setViewportSize(viewport);
-
-    for (const memoryCase of DROP_CAP_CASES) {
-      const { letterBox, restX } = await measureDropCapGap(page, memoryCase);
-      // The following text must start at or after the drop cap's right
-      // edge (never underneath/overlapping it), and the gap itself must
-      // read as normal inline text spacing, not the initial standing apart
-      // from the rest of its own word as a separate character.
-      const gap = restX - (letterBox.x + letterBox.width);
-      expect(gap).toBeGreaterThanOrEqual(-1);
-      expect(gap).toBeLessThanOrEqual(3);
+    await page.setViewportSize({ width, height: 900 });
+    for (const memoryCase of PROSE_CASES) {
+      await page.goto(`/story/memories/${memoryCase.id}`);
+      await expect(page.locator('.memory-detail-body')).toHaveText(
+        memoryCase.body.split(/\n\n/),
+      );
+      const initial = page.locator('.drop-cap-letter');
+      await expect(initial).toHaveCount(1);
+      await expect(initial).toHaveText(memoryCase.body[0]);
+      await expect(initial).toHaveCSS('text-transform', 'uppercase');
       await expectNoHorizontalOverflow(page);
     }
   });

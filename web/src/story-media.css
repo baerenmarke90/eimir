@@ -60,7 +60,7 @@
 .story-media-placeholder {
   display: grid;
   place-items: center;
-  border: 1px dashed var(--color-border);
+  border: var(--border-surface-width) dashed var(--color-border);
   padding: 1rem;
   background: var(--color-surface-subtle);
   color: var(--color-text-muted);

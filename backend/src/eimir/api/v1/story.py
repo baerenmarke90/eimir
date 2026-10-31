@@ -21,7 +21,7 @@ from pydantic import Field, RootModel
 from sqlalchemy import select
 
 from eimir.api.authors import resolve_author_summaries
-from eimir.api.deps import Authorization, DbSession, Tenant
+from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession, Tenant
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.api.v1.attachments import AttachmentSummary
@@ -200,6 +200,7 @@ def _attachment_summary(attachment: Attachment) -> AttachmentSummary:
         width=attachment.width,
         height=attachment.height,
         has_thumbnail=attachment.has_thumbnail,
+        is_sensitive=attachment.payload.is_sensitive,
     )
 
 
@@ -276,8 +277,8 @@ def get_story_discover(
 
     Snapshot order is canonical. If the original lead becomes unreadable, the
     first surviving reference becomes the response lead and all later
-    survivors remain in their existing order. Nothing is refilled or
-    reshuffled during that local day.
+    survivors remain in their existing order. Only deliberate renewal changes
+    the selected references during that local day.
     """
     result = discover_service.read_discover(
         session,
@@ -293,6 +294,33 @@ def get_story_discover(
         lead=lead,
         items=items,
         lead_context=lead_context,
+    )
+
+
+@router.post(
+    "/spaces/{spaceId}/discover/renew",
+    response_model=DiscoverSelection,
+    operation_id="renewStoryDiscover",
+    responses=problem_responses(401, 404, 429),
+)
+def renew_story_discover(
+    authorization: AccountBoundAuthorization,
+    tenant: Tenant,
+    session: DbSession,
+    response: Response,
+) -> DiscoverSelection:
+    """Deliberately renew the caller's finite selection; no source content is changed."""
+    result = discover_service.renew_discover(
+        session, authorization, account_timezone=tenant.account.timezone
+    )
+    projected = project_story_items(session, authorization, result.rows)
+    lead = projected[0] if projected else None
+    response.headers["Cache-Control"] = "private, no-store"
+    return DiscoverSelection(
+        selection_date=result.selection_date,
+        lead=lead,
+        items=projected[1:] if projected else [],
+        lead_context=_lead_context(result.selection_date, lead, result.rows),
     )
 
 

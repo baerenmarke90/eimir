@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
-import { captureQueryIdentity } from '../client/queryIdentity';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
@@ -15,6 +15,7 @@ import {
   selectedDashboardCollectionId,
 } from '../client/dashboardPreferences';
 import {
+  ClientProblemError,
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
@@ -23,6 +24,8 @@ type Selection = {
   accountId: string;
   spaceId: string;
   selectedCollectionId: string | null;
+  api: DashboardApi;
+  isCurrentQuery: () => boolean;
 };
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
@@ -69,10 +72,12 @@ export function useCollectionPin({
     networkMode: 'always',
     retry: false,
     mutationFn: (selection: Selection) => {
-      if (!dashboardApi) throw new Error('Dashboard API is not available.');
+      // A query may be denied or replaced while onMutate awaits cancellation.
+      if (!selection.isCurrentQuery())
+        throw new ClientProblemError('permission');
       assertOnlineWrite();
       return apiCall(() =>
-        dashboardApi.updateDashboardModulePreference({
+        selection.api.updateDashboardModulePreference({
           moduleKey: PINNED_COLLECTION_MODULE_KEY,
           spaceId: selection.spaceId,
           dashboardModulePreferenceUpdate: {
@@ -87,11 +92,16 @@ export function useCollectionPin({
         selection.accountId,
         selection.spaceId,
       );
-      const isCurrentQuery = captureQueryIdentity(queryClient, key);
-      await queryClient.cancelQueries({ queryKey: key, exact: true });
-      const previous = queryClient
-        .getQueryData<DashboardModulePreferenceList>(key)
-        ?.items.find((item) => item.moduleKey === PINNED_COLLECTION_MODULE_KEY);
+      const isCurrentQuery = selection.isCurrentQuery;
+      if (isCurrentQuery())
+        await queryClient.cancelQueries({ queryKey: key, exact: true });
+      const previous = isCurrentQuery()
+        ? queryClient
+            .getQueryData<DashboardModulePreferenceList>(key)
+            ?.items.find(
+              (item) => item.moduleKey === PINNED_COLLECTION_MODULE_KEY,
+            )
+        : undefined;
       if (isCurrentQuery()) {
         queryClient.setQueryData<DashboardModulePreferenceList>(
           key,
@@ -116,9 +126,13 @@ export function useCollectionPin({
         );
       }
       // Keep the actual structurally shared row as the transaction's owner.
-      const optimistic = queryClient
-        .getQueryData<DashboardModulePreferenceList>(key)
-        ?.items.find((item) => item.moduleKey === PINNED_COLLECTION_MODULE_KEY);
+      const optimistic = isCurrentQuery()
+        ? queryClient
+            .getQueryData<DashboardModulePreferenceList>(key)
+            ?.items.find(
+              (item) => item.moduleKey === PINNED_COLLECTION_MODULE_KEY,
+            )
+        : undefined;
       return { key, previous, optimistic, isCurrentQuery };
     },
     onError: async (error, selection, context) => {
@@ -201,11 +215,19 @@ export function useCollectionPin({
   const isSaving = Boolean(
     pendingSelection &&
       pendingSelection.accountId === accountId &&
-      pendingSelection.spaceId === spaceId,
+      pendingSelection.spaceId === spaceId &&
+      pendingSelection.isCurrentQuery(),
   );
-  const selectedCollectionId = isSaving
-    ? pendingSelection?.selectedCollectionId
-    : selectedDashboardCollectionId(query.data, PINNED_COLLECTION_MODULE_KEY);
+  const canReadPreferences = ![
+    'unauthorized',
+    'permission',
+    'notFound',
+  ].includes(clientProblemKind(query.error));
+  const selectedCollectionId = !canReadPreferences
+    ? null
+    : isSaving
+      ? pendingSelection?.selectedCollectionId
+      : selectedDashboardCollectionId(query.data, PINNED_COLLECTION_MODULE_KEY);
   const isBlocked =
     !query.data || query.isFetching || Boolean(query.error) || activeWrites > 0;
 
@@ -220,7 +242,15 @@ export function useCollectionPin({
       queryClient.isMutating({ mutationKey, exact: true }) > 0
     )
       return;
-    const selection = { accountId, spaceId, selectedCollectionId };
+    const isCurrentQuery = captureAuthorizedQuery(queryClient, queryKey);
+    if (!isCurrentQuery()) return;
+    const selection: Selection = {
+      accountId,
+      spaceId,
+      selectedCollectionId,
+      api: dashboardApi,
+      isCurrentQuery,
+    };
     inFlightRef.current = selection;
     setPendingSelection(selection);
     mutation.mutate(selection);
@@ -238,7 +268,8 @@ export function useCollectionPin({
     error:
       query.error ??
       (mutation.variables?.accountId === accountId &&
-      mutation.variables.spaceId === spaceId
+      mutation.variables.spaceId === spaceId &&
+      mutation.variables.isCurrentQuery()
         ? mutation.error
         : null),
     changeSelection,

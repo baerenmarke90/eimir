@@ -85,7 +85,12 @@ class ProjectIdentityMigrationContractTest(unittest.TestCase):
         main_activity = read(
             "android/app/src/main/java/de/eimir/app/MainActivity.java"
         )
-        self.assertIn("LegacyNativeDataCleanup.run(this)", main_activity)
+        # The once-only migration must never block the Activity's first frame.
+        self.assertIn("getBridge().execute(() ->", main_activity)
+        self.assertIn(
+            "LegacyNativeDataCleanup.run(getApplicationContext())", main_activity
+        )
+        self.assertNotIn("LegacyNativeDataCleanup.run(this)", main_activity)
 
     def test_browser_state_has_canonical_write_and_legacy_read_keys(self) -> None:
         session = read("web/src/client/sessionPersistence.ts")

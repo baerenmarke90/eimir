@@ -1,0 +1,5 @@
+Fotos in Momenten behalten auf Wunsch ihre Aufnahmedaten. Die Momentansicht enthält außerdem die neuen Fotoreaktionen und die überarbeitete Fotodarstellung.
+
+Die Google-Fotoauswahl ist sicherer an die begonnene Anmeldung gebunden. Ausgewählte Fotos und offene Entwürfe werden bei der Wiederherstellung besser geschützt.
+
+Build 22 bringt diese Änderungen der aktuellen Testumgebung in die Android-App. Das Update lässt sich über App-Updates über Build 21 installieren. Die bestehende Installation bleibt erhalten.

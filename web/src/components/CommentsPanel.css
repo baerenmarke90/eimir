@@ -15,7 +15,7 @@
 .comment-card {
   display: grid;
   gap: var(--space-2);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-medium);
   padding: var(--space-4);
   background: var(--color-surface-subtle);
@@ -28,6 +28,7 @@
 
 .comment-head {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--space-2);
@@ -61,8 +62,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
   border-radius: var(--radius-pill);
   cursor: pointer;
   list-style: none;
@@ -88,7 +90,7 @@
   top: 100%;
   margin-top: var(--space-1);
   background: var(--color-surface-raised);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-medium);
   box-shadow: var(--shadow-card);
   padding: var(--space-1);
@@ -136,7 +138,7 @@
   min-height: 44px;
   padding: var(--space-1);
   border-radius: var(--radius-medium);
-  border: 1px solid transparent;
+  border: var(--border-surface-width) solid transparent;
   background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;

@@ -105,8 +105,8 @@ describe('GamesProductArea', () => {
     });
     expectFiveGameEntries();
     expect(document.querySelector('.games-access-panel')).toBeNull();
-    expectGameStatus(games.status.comingSoon, 2);
-    expectGameStatus(games.status.playNow, 3);
+    expectGameStatus(games.status.comingSoon, 0);
+    expectGameStatus(games.status.playNow, 5);
 
     expect(momentsLink.textContent).toContain(games.status.playNow);
     expect(momentsLink.getAttribute('href')).toBe(GAMES_MOMENTS_ROUTE);

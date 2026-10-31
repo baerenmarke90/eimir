@@ -10,6 +10,7 @@ import {
 } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -159,14 +160,10 @@ async function installMocks(
       pathname === `/api/v1/spaces/${SPACE_ID}/dashboard/preferences`
     ) {
       await fulfillJson({
-        modules: [
-          { module: 'UPCOMING', visible: true },
-          { module: 'KEEPSAKE', visible: true },
-          { module: 'RELATIONSHIP_SIGNAL', visible: true },
-          { module: 'MONTHLY_HIGHLIGHTS', visible: true },
-          { module: 'RECENT_SHARED', visible: true },
-          { module: 'SHARED_STORY_SUMMARY', visible: true },
-        ],
+        items: DASHBOARD_MODULE_KEYS.map((moduleKey) => ({
+          moduleKey,
+          visible: true,
+        })),
       });
       return;
     }
@@ -198,211 +195,61 @@ async function signIn(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/today$/);
 }
 
-test('three-metric state renders circular story badges on 390x844 light mode matching PO mockup', async ({
-  page,
-}, testInfo) => {
-  await installMocks(page, {
-    memories: 10,
-    heartMoments: 1,
-    milestones: 3,
-  });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/today');
-  await signIn(page);
-
-  const section = page.locator('.shared-story-summary');
-  await expect(section).toBeVisible();
-
-  await expect(
-    section.getByRole('heading', {
-      level: 2,
-      name: m5s5.dashboard.storySummaryTitle,
-    }),
-  ).toBeVisible();
-
-  const links = section.locator('.shared-story-summary-badge');
-  await expect(links).toHaveCount(3);
-
-  await expect(links.nth(0)).toHaveAttribute(
-    'href',
-    '/story?tab=timeline&type=MEMORY',
-  );
-  await expect(links.nth(1)).toHaveAttribute(
-    'href',
-    '/story?tab=timeline&type=HEART_MOMENT',
-  );
-  await expect(links.nth(2)).toHaveAttribute(
-    'href',
-    '/story?tab=timeline&type=MILESTONE',
-  );
-
-  await expect(links.nth(0)).toHaveAttribute('aria-label', '10 Momente');
-  await expect(links.nth(1)).toHaveAttribute('aria-label', '1 Herzmoment');
-  await expect(links.nth(2)).toHaveAttribute('aria-label', '3 Meilensteine');
-
-  for (let i = 0; i < 3; i++) {
-    const box = await links.nth(i).boundingBox();
-    expect(box).not.toBeNull();
-    expect(box?.width).toBeGreaterThanOrEqual(44);
-    expect(box?.height).toBeGreaterThanOrEqual(44);
-  }
-
-  const boxLeft = await links.nth(0).boundingBox();
-  const boxCenter = await links.nth(1).boundingBox();
-  const boxRight = await links.nth(2).boundingBox();
-  expect(boxLeft).not.toBeNull();
-  expect(boxCenter).not.toBeNull();
-  expect(boxRight).not.toBeNull();
-  if (boxLeft && boxCenter && boxRight) {
-    expect(boxCenter.width).toBeGreaterThan(boxLeft.width);
-    expect(boxCenter.height).toBeGreaterThan(boxLeft.height);
-    expect(boxCenter.width).toBeGreaterThan(boxRight.width);
-    expect(boxCenter.height).toBeGreaterThan(boxRight.height);
-  }
-
-  const isOverflowing = await page.evaluate(() => {
-    const el = document.documentElement;
-    return el.scrollWidth > el.clientWidth;
-  });
-  expect(isOverflowing).toBe(false);
-
-  await section.scrollIntoViewIfNeeded();
-  await captureScreenshot(
+// The PO retired the Today presentation; its retained component still has
+// direct eligibility/count/link coverage in SharedStorySummary.test.tsx.
+for (const scenario of [
+  { width: 390, height: 844, colorScheme: 'light', milestones: 3 },
+  { width: 390, height: 844, colorScheme: 'dark', milestones: 3 },
+  { width: 390, height: 844, colorScheme: 'light', milestones: 0 },
+  { width: 320, height: 600, colorScheme: 'light', milestones: 3 },
+  { width: 320, height: 600, colorScheme: 'light', milestones: 0 },
+] as const) {
+  test(`retired Today statistics stay hidden with a visible preference at ${scenario.width}px (${scenario.colorScheme}, ${scenario.milestones} milestones)`, async ({
     page,
-    testInfo,
-    'story-summary-390-3metrics-light.png',
-  );
-});
-
-test('three-metric state renders on 390x844 dark mode', async ({
-  page,
-}, testInfo) => {
-  await installMocks(page, {
-    memories: 10,
-    heartMoments: 1,
-    milestones: 3,
+  }, testInfo) => {
+    await installMocks(page, {
+      memories: 10,
+      heartMoments: 1,
+      milestones: scenario.milestones,
+    });
+    await page.emulateMedia({
+      colorScheme: scenario.colorScheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(
+      (theme) => localStorage.setItem('eimir.theme', theme),
+      scenario.colorScheme,
+    );
+    await page.setViewportSize({
+      width: scenario.width,
+      height: scenario.height,
+    });
+    await page.goto('/today');
+    await signIn(page);
+    await expect(page.locator('.today-section-recent')).toBeVisible();
+    await expect(page.locator('.shared-story-summary')).toHaveCount(0);
+    await expect(
+      page.getByRole('heading', {
+        level: 2,
+        name: m5s5.dashboard.storySummaryTitle,
+      }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('link', { name: m5s5.dashboard.allActivityAction }),
+    ).toHaveAttribute('href', '/today/activity');
+    await expect(
+      page.locator('.today-section-recent').getByRole('link').first(),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
+    ).toBe(true);
+    await captureScreenshot(
+      page,
+      testInfo,
+      `retired-story-summary-${scenario.width}-${scenario.colorScheme}-${scenario.milestones}.png`,
+      { fullPage: true },
+    );
   });
-  await page.emulateMedia({ colorScheme: 'dark' });
-  await page.addInitScript(() => localStorage.setItem('eimir.theme', 'dark'));
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/today');
-  await signIn(page);
-
-  const section = page.locator('.shared-story-summary');
-  await expect(section).toBeVisible();
-  await section.scrollIntoViewIfNeeded();
-  await captureScreenshot(
-    page,
-    testInfo,
-    'story-summary-390-3metrics-dark.png',
-  );
-});
-
-test('two-metric state is deliberately centered and balanced with no placeholder', async ({
-  page,
-}, testInfo) => {
-  await installMocks(page, {
-    memories: 10,
-    heartMoments: 1,
-    milestones: 0,
-  });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/today');
-  await signIn(page);
-
-  const section = page.locator('.shared-story-summary');
-  await expect(section).toBeVisible();
-
-  const metrics = section.locator('.shared-story-summary-metric');
-  await expect(metrics).toHaveCount(2);
-
-  const links = section.locator('.shared-story-summary-badge');
-  await expect(links).toHaveCount(2);
-
-  const containerBox = await section
-    .locator('.shared-story-summary-values')
-    .boundingBox();
-  const firstBox = await metrics.first().boundingBox();
-  const lastBox = await metrics.last().boundingBox();
-  expect(containerBox).not.toBeNull();
-  expect(firstBox).not.toBeNull();
-  expect(lastBox).not.toBeNull();
-
-  if (containerBox && firstBox && lastBox) {
-    const leftMargin = firstBox.x - containerBox.x;
-    const rightMargin =
-      containerBox.x + containerBox.width - (lastBox.x + lastBox.width);
-    expect(Math.abs(leftMargin - rightMargin)).toBeLessThanOrEqual(4);
-  }
-
-  await section.scrollIntoViewIfNeeded();
-  await captureScreenshot(
-    page,
-    testInfo,
-    'story-summary-390-2metrics-light.png',
-  );
-});
-
-test('320 CSS px reflow keeps 3 metrics readable without horizontal scroll', async ({
-  page,
-}, testInfo) => {
-  await installMocks(page, {
-    memories: 10,
-    heartMoments: 1,
-    milestones: 3,
-  });
-  await page.setViewportSize({ width: 320, height: 600 });
-  await page.goto('/today');
-  await signIn(page);
-
-  const section = page.locator('.shared-story-summary');
-  await expect(section).toBeVisible();
-
-  const isOverflowing = await page.evaluate(() => {
-    const el = document.documentElement;
-    return el.scrollWidth > el.clientWidth;
-  });
-  expect(isOverflowing).toBe(false);
-
-  const links = section.locator('.shared-story-summary-badge');
-  await expect(links).toHaveCount(3);
-
-  await section.scrollIntoViewIfNeeded();
-  await captureScreenshot(
-    page,
-    testInfo,
-    'story-summary-320-3metrics-light.png',
-  );
-});
-
-test('320 CSS px reflow keeps 2 metrics readable without horizontal scroll', async ({
-  page,
-}, testInfo) => {
-  await installMocks(page, {
-    memories: 10,
-    heartMoments: 1,
-    milestones: 0,
-  });
-  await page.setViewportSize({ width: 320, height: 600 });
-  await page.goto('/today');
-  await signIn(page);
-
-  const section = page.locator('.shared-story-summary');
-  await expect(section).toBeVisible();
-
-  const metrics = section.locator('.shared-story-summary-metric');
-  await expect(metrics).toHaveCount(2);
-
-  const isOverflowing = await page.evaluate(() => {
-    const el = document.documentElement;
-    return el.scrollWidth > el.clientWidth;
-  });
-  expect(isOverflowing).toBe(false);
-
-  await section.scrollIntoViewIfNeeded();
-  await captureScreenshot(
-    page,
-    testInfo,
-    'story-summary-320-2metrics-light.png',
-  );
-});
+}

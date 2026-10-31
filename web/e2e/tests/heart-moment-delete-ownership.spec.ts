@@ -12,11 +12,11 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
-  ME,
-  SPACE_ID,
   captureScreenshot,
   getTimelineItems,
   installMocks,
+  ME,
+  SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -106,7 +106,10 @@ async function openJourney(
       page.getByText(copy.commentsPrivate, { exact: true }),
     ).toBeVisible();
   } else {
-    await page.getByRole('link', { name: /Thinking of you/ }).click();
+    await page
+      .locator('#momente-diary')
+      .getByRole('link', { name: /Thinking of you/ })
+      .click();
   }
   await page.getByRole('link', { name: copy.edit, exact: true }).click();
   await expect(

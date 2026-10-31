@@ -1,0 +1,20 @@
+export default {
+  open: 'Auf dieses Foto reagieren',
+  choose: 'Reaktion auswählen',
+  summary: 'Reaktionen auf dieses Foto',
+  fullscreen: 'Foto im Vollbild öffnen',
+  saved: 'Reaktion gespeichert.',
+  removed: 'Reaktion entfernt.',
+  chip: '{{name}}: {{count}} Reaktion. Mit dieser Reaktion antworten.',
+  chip_other: '{{name}}: {{count}} Reaktionen. Mit dieser Reaktion antworten.',
+  ownChip: '{{name}}: {{count}} Reaktion. Deine Reaktion entfernen.',
+  ownChip_other: '{{name}}: {{count}} Reaktionen. Deine Reaktion entfernen.',
+  names: {
+    LOVE: 'Liebe',
+    LAUGH: 'Lachen',
+    SURPRISE: 'Staunen',
+    SAD: 'Traurig',
+    CELEBRATE: 'Feiern',
+    LIKE: 'Gefällt mir',
+  },
+};

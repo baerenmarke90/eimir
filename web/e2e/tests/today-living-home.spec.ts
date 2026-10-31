@@ -1,12 +1,14 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import AxeBuilder from '@axe-core/playwright';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import recaps from '../../src/i18n/locales/recaps';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 
 /*
  * Product Reference v1 R4 calibrates `/today` as the living home of a
@@ -73,6 +75,7 @@ const UPCOMING = [
     occurredOn: null,
     createdAt: inDays(-3),
     previewAttachmentId: null,
+    previewIsSensitive: false,
   },
   {
     id: 'plan-2',
@@ -82,6 +85,7 @@ const UPCOMING = [
     occurredOn: null,
     createdAt: inDays(-2),
     previewAttachmentId: null,
+    previewIsSensitive: false,
   },
   {
     id: 'plan-3',
@@ -91,6 +95,7 @@ const UPCOMING = [
     occurredOn: inDaysDate(25),
     createdAt: inDays(-9),
     previewAttachmentId: null,
+    previewIsSensitive: false,
   },
 ];
 
@@ -102,6 +107,7 @@ const MOMENT = {
   createdAt: thisMonth(2),
   scheduledAt: null,
   previewAttachmentId: 'att-moment',
+  previewIsSensitive: false,
 };
 
 const STRIP_PHOTOS = [1, 2, 3].map((n) => ({
@@ -112,6 +118,7 @@ const STRIP_PHOTOS = [1, 2, 3].map((n) => ({
   createdAt: thisMonth(3 + n),
   scheduledAt: null,
   previewAttachmentId: `att-strip-${n}`,
+  previewIsSensitive: false,
 }));
 
 const SHARED_WISH = {
@@ -122,16 +129,25 @@ const SHARED_WISH = {
   createdAt: inDays(-40),
   scheduledAt: null,
   previewAttachmentId: null,
+  previewIsSensitive: false,
 };
 
+// Current-month prose now belongs in monthly highlights. Older shared content
+// remains reachable in the independent recent trace, without duplication.
+const previousMonthDate = new Date(
+  Date.UTC(NOW.getFullYear(), NOW.getMonth() - 1, 3),
+)
+  .toISOString()
+  .slice(0, 10);
 const TRACE_ONLY = {
   id: 'hm-1',
   type: 'HEART_MOMENT',
   titleOrText: 'Kleine Alltagsmomente',
-  occurredOn: thisMonthDate(3),
-  createdAt: thisMonth(3),
+  occurredOn: previousMonthDate,
+  createdAt: `${previousMonthDate}T12:00:00Z`,
   scheduledAt: null,
   previewAttachmentId: null,
+  previewIsSensitive: false,
 };
 
 const RICH_SPACE = {
@@ -301,6 +317,7 @@ async function installMocks(
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillEmptyMomentPlaces(route)) return;
     const request = route.request();
     const method = request.method();
     const { pathname } = new URL(request.url());
@@ -310,6 +327,16 @@ async function installMocks(
         contentType: 'application/json',
         body: JSON.stringify(body),
       });
+
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+      return;
+    }
 
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
@@ -610,6 +637,7 @@ test.describe('Today R4: the living home of a relationship', () => {
       createdAt: '2025-10-24T11:00:00Z',
       scheduledAt: null,
       previewAttachmentId: 'att-nostalgia',
+      previewIsSensitive: false,
     };
     const earlierMilestone = {
       id: 'milestone-1',
@@ -619,6 +647,7 @@ test.describe('Today R4: the living home of a relationship', () => {
       createdAt: '2025-06-02T12:00:00Z',
       scheduledAt: null,
       previewAttachmentId: null,
+      previewIsSensitive: false,
     };
     await page.setViewportSize({ width: 390, height: 844 });
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
@@ -802,11 +831,18 @@ test.describe('Today R4: the living home of a relationship', () => {
     await capture(page, testInfo, '390-dark');
   });
 
-  test('brings the relationship hero and `Euer Moment` into the first phone viewport', async ({
+  test('Classic brings the relationship hero and `Euer Moment` into the first phone viewport', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installMocks(page, RICH_SPACE);
+    // #1494 retains these original large-portrait bounds in the saved Classic design.
+    await page.route('**/appearance/wir-design', (route) =>
+      route.fulfill({
+        json: { designId: 'classic', version: 1 },
+        headers: { ETag: '"classic:1"' },
+      }),
+    );
     await signInAndOpenToday(page);
 
     await settleMotion(page);
@@ -816,26 +852,28 @@ test.describe('Today R4: the living home of a relationship', () => {
         return node ? Math.round(node.getBoundingClientRect().top) : null;
       };
       return {
-        dateTitle: top('.today-date-title'),
+        removedDateHeading: document.querySelectorAll('.today-date-heading')
+          .length,
+        headings: document.querySelectorAll('.today-content h1').length,
         avatar: top('.partner-avatar-pair-action'),
+        avatarDiameter: document
+          .querySelector('.today-hero .partner-avatar-primary')
+          ?.getBoundingClientRect().width,
         relationshipTitle: top('.couple-presence-title'),
         moment: top('.today-section-moment'),
         momentImage: top('.today-moment-media'),
       };
     });
 
-    // #1155 put the date first; #1206 made the avatar pair the relationship
-    // action before the names. Keep both near the top, with the full identity
-    // visible in the first part of the phone viewport.
-    expect(metrics.dateTitle).not.toBeNull();
-    expect(metrics.dateTitle as number).toBeLessThan(120);
+    // Photo-first Wir: no date masthead, larger portraits and a single H1.
+    // The focal Memory must still enter the first phone viewport.
+    expect(metrics.removedDateHeading).toBe(0);
+    expect(metrics.headings).toBe(1);
+    expect(metrics.avatarDiameter).toBeGreaterThanOrEqual(115);
     expect(metrics.avatar).not.toBeNull();
-    expect(metrics.avatar as number).toBeLessThan(260);
-    expect(metrics.avatar as number).toBeGreaterThan(
-      metrics.dateTitle as number,
-    );
+    expect(metrics.avatar as number).toBeLessThan(200);
     expect(metrics.relationshipTitle).not.toBeNull();
-    expect(metrics.relationshipTitle as number).toBeLessThan(320);
+    expect(metrics.relationshipTitle as number).toBeLessThan(385);
     expect(metrics.relationshipTitle as number).toBeGreaterThan(
       metrics.avatar as number,
     );
@@ -855,7 +893,9 @@ test.describe('Today R4: the living home of a relationship', () => {
 
     // #854's default of 1 is visibly effective: one calm, complete entry.
     await expect(page.locator('.today-agenda-row')).toHaveCount(1);
-    await expect(page.getByText(UPCOMING[0].titleOrText)).toBeVisible();
+    await expect(
+      page.locator('.today-agenda-list').getByText(UPCOMING[0].titleOrText),
+    ).toBeVisible();
     await expect(page.getByText(UPCOMING[1].titleOrText)).toHaveCount(0);
 
     // Today never stores a limit of its own; the section is a pure consumer
@@ -893,6 +933,7 @@ test.describe('Today R4: the living home of a relationship', () => {
           background: style.backgroundColor,
           radius: style.borderTopLeftRadius,
           shadow: style.boxShadow,
+          border: style.borderTopWidth,
         };
       };
       return {
@@ -908,11 +949,17 @@ test.describe('Today R4: the living home of a relationship', () => {
       expect(value, `${name} must render`).not.toBeNull();
     }
 
-    // The raised agenda tile and the flat secondary trace tile must not be
-    // the same surface: elevation is what separates primary from secondary.
-    expect(grammar.agenda?.shadow).not.toBe('none');
+    // Both tiles stay flat and borderless; their fills retain the hierarchy.
+    expect(grammar.agenda?.shadow).toBe('none');
     expect(grammar.trace?.shadow).toBe('none');
+    expect(grammar.agenda?.border).toBe('0px');
+    expect(grammar.trace?.border).toBe('0px');
     expect(grammar.agenda?.background).not.toBe(grammar.trace?.background);
+    await page.locator('.today-agenda-row').first().hover();
+    await expect(page.locator('.today-agenda-row').first()).toHaveCSS(
+      'box-shadow',
+      'none',
+    );
 
     // The contextual module is a tinted panel, distinct from both.
     expect(grammar.living?.background).not.toBe(grammar.agenda?.background);
@@ -1123,6 +1170,9 @@ test.describe('Today R4: the living home of a relationship', () => {
     await signInAndOpenToday(page);
 
     await expect(page.locator('.today-section-monthly')).toHaveCount(0);
+    await expect(
+      page.getByRole('link', { name: recaps.profileLink }),
+    ).toHaveAttribute('href', '/more/passport');
     await expect(page.locator('.today-moment-figure')).toHaveCount(0);
     await expect(page.locator('.today-moment-text')).toBeVisible();
     await expect(page.getByText(TRACE_ONLY.titleOrText)).toBeVisible();
@@ -1292,6 +1342,18 @@ test.describe('Today R4: the living home of a relationship', () => {
 
     await expectNoWcagViolations(page);
     await capture(page, testInfo, '320-reflow');
+
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+    const heroBounds = await page
+      .locator('.today-hero .partner-avatar-pair')
+      .evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, viewport: innerWidth };
+      });
+    expect(heroBounds.left).toBeGreaterThanOrEqual(0);
+    expect(heroBounds.right).toBeLessThanOrEqual(heroBounds.viewport);
   });
 
   test('keeps hero and `Demnächst` from consuming a small-height phone screen', async ({
@@ -1348,10 +1410,17 @@ test.describe('Today R4: the living home of a relationship', () => {
     await capture(page, testInfo, '1440-dark');
   });
 
-  test('preserves the R4 composition at the remaining Compact and wide evidence widths', async ({
+  test('Classic preserves the R4 composition at the remaining Compact and wide evidence widths', async ({
     page,
   }, testInfo) => {
     await installMocks(page, RICH_SPACE);
+    // The new default is compact Warm; this regression protects the retained original.
+    await page.route('**/appearance/wir-design', (route) =>
+      route.fulfill({
+        json: { designId: 'classic', version: 1 },
+        headers: { ETag: '"classic:1"' },
+      }),
+    );
     await page.emulateMedia({ colorScheme: 'light' });
     await page.setViewportSize({ width: 360, height: 800 });
     await signInAndOpenToday(page);
@@ -1368,6 +1437,12 @@ test.describe('Today R4: the living home of a relationship', () => {
       await settleMotion(page);
       await expectNormativeOrder(page);
       await expectNoHorizontalOverflow(page);
+      const diameter = await page
+        .locator('.today-hero .partner-avatar-primary')
+        .evaluate((node) => node.getBoundingClientRect().width);
+      expect(diameter).toBeGreaterThanOrEqual(
+        viewport.width >= 768 ? 140 : 105,
+      );
       await capture(page, testInfo, viewport.name);
     }
   });
@@ -1525,3 +1600,63 @@ test.describe('Today R4: the living home of a relationship', () => {
     expect(visibleText).toContain(m5s5.today.keepsake.kicker.toLowerCase());
   });
 });
+
+for (const [width, theme] of [
+  [390, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`monthly captions use the page surface and one date at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    const date = new Date(`${thisMonthDate(4)}T00:00:00Z`);
+    const numeric = new Intl.DateTimeFormat('de', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(date);
+    const readable = new Intl.DateTimeFormat('de', {
+      dateStyle: 'long',
+      timeZone: 'UTC',
+    }).format(date);
+    await installMocks(page, {
+      ...RICH_SPACE,
+      recentShared: [
+        MOMENT,
+        { ...STRIP_PHOTOS[0], titleOrText: `Erinnerung vom ${numeric}` },
+        STRIP_PHOTOS[1],
+      ],
+    });
+    await page.setViewportSize({ width, height: 1000 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await signInAndOpenToday(page);
+    const tile = page.locator('.today-monthly-tile').first();
+    await expect(tile.locator('.today-monthly-caption')).toHaveText(readable);
+    await expect(tile.locator('time')).toHaveCount(0);
+    const authored = page.locator('.today-monthly-tile').nth(1);
+    await expect(authored).toContainText(STRIP_PHOTOS[1].titleOrText);
+    await expect(authored.locator('time')).toHaveCount(1);
+    const style = await tile.evaluate((node) => ({
+      underline: getComputedStyle(node).textDecorationLine,
+      caption: getComputedStyle(
+        node.querySelector('.today-monthly-caption') ?? node,
+      ).backgroundColor,
+    }));
+    expect(style).toEqual({ underline: 'none', caption: 'rgba(0, 0, 0, 0)' });
+    await tile.scrollIntoViewIfNeeded();
+    await page.evaluate(() => {
+      if (document.activeElement instanceof HTMLElement)
+        document.activeElement.blur();
+    });
+    await expectNoWcagViolations(page);
+    await expectNoHorizontalOverflow(page);
+    await page.evaluate(() => {
+      if (document.activeElement instanceof HTMLElement)
+        document.activeElement.blur();
+    });
+    await page.screenshot({
+      path: info.outputPath(`monthly-${width}-${theme}.png`),
+      fullPage: false,
+    });
+  });
+}

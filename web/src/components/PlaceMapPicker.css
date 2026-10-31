@@ -1,0 +1,52 @@
+.place-map-task,
+.place-map-search,
+.place-map-choice,
+.place-map-canvas {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.place-map-results {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.place-map-results button {
+  display: grid;
+  gap: var(--space-1);
+  width: 100%;
+  text-align: start;
+  color: var(--color-text);
+  border-radius: var(--radius-small);
+}
+.place-map-results button[aria-pressed="true"] {
+  background: var(--color-shared-surface);
+}
+.place-map-results span {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.place-map-viewport {
+  height: clamp(16rem, 45dvh, 24rem);
+  width: 100%;
+  border-radius: var(--radius-medium);
+  isolation: isolate;
+  z-index: 0;
+}
+.place-map-viewport .leaflet-control-zoom a {
+  width: var(--space-12);
+  height: var(--space-12);
+  line-height: var(--space-12);
+}
+.place-map-selected-marker {
+  fill: var(--color-brand-strong);
+  fill-opacity: 1;
+  stroke: var(--color-on-accent);
+}
+.place-map-viewport.leaflet-container .leaflet-control-attribution {
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+.place-map-viewport .leaflet-control-attribution a {
+  color: var(--color-link-text);
+}

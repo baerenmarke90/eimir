@@ -399,6 +399,7 @@ function AuthenticatedAppShell({
             update={{
               'primary-tab-forward': 'eimir-primary-tab-forward',
               'primary-tab-backward': 'eimir-primary-tab-backward',
+              default: 'none',
             }}
           >
             <main

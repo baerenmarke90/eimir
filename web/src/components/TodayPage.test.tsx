@@ -2511,15 +2511,17 @@ describe('formatRelationshipDuration', () => {
     });
 
     describe('relationship_presence (Couple Presence hero)', () => {
-      it('hides the hero without an empty shell, replacing it with a valid page heading', () => {
+      it('keeps the shared root heading when the configurable hero is hidden', () => {
         const shown = renderWithVisibility({});
         const hidden = renderWithVisibility({ relationship_presence: false });
 
         expect(shown).toContain('today-hero');
         expect(shown).toMatch(/<h2[^>]*class="couple-presence-title"/);
         expect(hidden).not.toContain('today-hero');
-        expect(shown).toContain('<h1 class="today-page-title">Wir</h1>');
-        expect(hidden).toContain('<h1 class="today-page-title">Wir</h1>');
+        expect(shown).toContain('<h1>Wir</h1>');
+        expect(hidden).toContain('<h1>Wir</h1>');
+        expect(shown).toContain('page-heading-root');
+        expect(hidden).toContain('page-heading-root');
 
         // Exactly one stable page H1 whether the configurable hero is shown
         // or hidden; the couple's name is a subordinate heading.

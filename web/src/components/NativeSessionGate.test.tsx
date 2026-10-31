@@ -11,11 +11,11 @@ it('shows a branded first frame while native secure restoration is pending', asy
     complete = resolve;
   });
   render(
-    <NativeSessionGate restoration={restoration} label="Wird geladen">
+    <NativeSessionGate restoration={restoration} label="Loading">
       <p>Authenticated content</p>
     </NativeSessionGate>,
   );
-  expect(screen.getByRole('status').textContent).toContain('Wird geladen');
+  expect(screen.getByRole('status').textContent).toContain('Loading');
   expect(screen.queryByText('Authenticated content')).toBeNull();
   await act(async () => complete());
   expect(screen.getByText('Authenticated content')).toBeTruthy();
@@ -23,7 +23,7 @@ it('shows a branded first frame while native secure restoration is pending', asy
 
 it('renders the ordinary Web tree without a restoration boundary', () => {
   render(
-    <NativeSessionGate restoration={null} label="Wird geladen">
+    <NativeSessionGate restoration={null} label="Loading">
       <p>Public content</p>
     </NativeSessionGate>,
   );

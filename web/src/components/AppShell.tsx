@@ -402,27 +402,27 @@ function AuthenticatedAppShell({
             }}
           >
             <main
-            ref={mainRef}
-            id="main-content"
-            className="product-main"
-            data-area={
-              location.pathname.startsWith('/more') ? 'more' : undefined
-            }
-            tabIndex={-1}
-          >
-            <AppSurfacePullToRefresh pathname={location.pathname} />
-            {isStoryDetail ? (
-              <div className="shell-detail-context">{detailBackButton}</div>
-            ) : null}
-            {isGamesHub ? (
-              <GamesProductArea
-                apiBaseUrl={apiBaseUrl}
-                accessToken={accessToken}
-                spaceId={spaceId}
-              />
-            ) : (
-              children
-            )}
+              ref={mainRef}
+              id="main-content"
+              className="product-main"
+              data-area={
+                location.pathname.startsWith('/more') ? 'more' : undefined
+              }
+              tabIndex={-1}
+            >
+              <AppSurfacePullToRefresh pathname={location.pathname} />
+              {isStoryDetail ? (
+                <div className="shell-detail-context">{detailBackButton}</div>
+              ) : null}
+              {isGamesHub ? (
+                <GamesProductArea
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={accessToken}
+                  spaceId={spaceId}
+                />
+              ) : (
+                children
+              )}
             </main>
           </ViewTransition>
         </div>

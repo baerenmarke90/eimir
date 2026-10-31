@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planCalendar } from './planCalendar';
+import { planCalendar, planCalendarEvent } from './planCalendar';
 const plan = {
   id: 'plan',
   spaceId: 'space',
@@ -12,6 +12,36 @@ const plan = {
   version: 3,
 };
 describe('Plan calendar handoff', () => {
+  it('uses the same all-day payload for native editors without timezone conversion', () => {
+    expect(planCalendarEvent(plan, 'At the lake')).toEqual({
+      title: plan.title,
+      description: undefined,
+      location: 'At the lake',
+      allDay: true,
+      startTime: Date.parse('2028-02-29T00:00:00Z'),
+      endTime: Date.parse('2028-03-01T00:00:00Z'),
+    });
+    expect(plan.plannedOn.toISOString()).toBe('2028-02-29T00:00:00.000Z');
+  });
+  it('hands off exact instants across DST and leaves an unknown end unset', () => {
+    const timed = {
+      ...plan,
+      plannedOn: null,
+      plannedStart: new Date('2026-10-25T02:30:00+02:00'),
+    };
+    expect(planCalendarEvent(timed)).toMatchObject({
+      allDay: false,
+      startTime: Date.parse('2026-10-25T00:30:00Z'),
+      endTime: undefined,
+    });
+    expect(
+      planCalendarEvent({
+        ...timed,
+        plannedEnd: new Date('2026-10-25T03:30:00+01:00'),
+      })?.endTime,
+    ).toBe(Date.parse('2026-10-25T02:30:00Z'));
+    expect(planCalendarEvent({ ...plan, plannedOn: null })).toBeNull();
+  });
   it('preserves a pure calendar day across leap and month boundaries', () => {
     const result = planCalendar(plan);
     expect(result).toContain('DTSTART;VALUE=DATE:20280229\r\n');

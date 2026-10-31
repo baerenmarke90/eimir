@@ -376,3 +376,31 @@ Browser/PWA sessions retain their existing tab-scoped sessionStorage behavior.
 Real Android process restart, in-place update, logout/relaunch and Keystore
 failure acceptance must still be checked on a device; JVM cryptography and Web
 bridge tests do not establish those physical outcomes.
+
+## Plan calendar handoff (#1560)
+
+The existing Plan action uses the bounded `PlanCalendar` Capacitor plugin on
+Android. It opens the installed calendar editor through Android's documented
+[`ACTION_INSERT` / CalendarContract](https://developer.android.com/identity/providers/calendar-provider#intents).
+The selected calendar app owns review, saving and cancellation. No calendar
+read/write permission, Google account, provider SDK or direct database write is
+required. Resolving the bridge means only that the editor opened, never that a
+calendar event was saved. An unavailable app, failed launch or older APK receives
+a localized recovery state. There is no automatic retry or background export.
+
+`planCalendarEvent` is the common schedule contract for this adapter and the
+existing browser RFC 5545 export: all-day dates use UTC-midnight carriers and
+an exclusive next-day end; timed schedules preserve exact instants and omit an
+unknown end. The native boundary accepts only bounded plain strings, a strict
+boolean and finite integral timestamps; it fixes the intent action and URI.
+Only the deliberately selected title, description, place label and schedule
+leave the app. No credentials, IDs, files, telemetry or calendar data are read.
+There is no paid capability, managed cost, quota or Cloud/Self-Hosted difference.
+
+Browser clients retain Web Share when a calendar File is supported and a
+resource-owned download otherwise, including recovery after sharing fails.
+`PlanCalendarTest` verifies the native intent and hostile-input boundary in the
+existing Android API 28/36/37.1 workflow. The bridge registration is checked
+alongside other wrapper capabilities. Installed third-party calendar behavior,
+physical-device Back/TalkBack and save/cancel acceptance remain separate from
+these contract checks and browser/component coverage.

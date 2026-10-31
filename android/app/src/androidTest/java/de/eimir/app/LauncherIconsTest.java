@@ -122,6 +122,7 @@ public class LauncherIconsTest {
                 assertNotNull(shell.getBridge().getPlugin("AppIcon"));
                 assertNotNull(shell.getBridge().getPlugin("NativeSessionStorage"));
                 assertNotNull(shell.getBridge().getPlugin("EimirUnifiedPush"));
+                assertNotNull(shell.getBridge().getPlugin("PlanCalendar"));
             });
         }
     }

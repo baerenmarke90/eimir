@@ -2,7 +2,7 @@
 
 ## Baseline and scope
 
-Follow-up to #1548, updated to `b09021e521b89c7ccaf050432e06ae4e14ba0544`.
+Follow-up to #1548, updated to `ad9cbf379016f11540631ed92ba19b194fc418ef`.
 The issue records the preflight against the initial #1548 head; its later
 lockfile and two unrelated browser-test corrections were incorporated before
 delivery. Primary navigation, live-content motion and native startup remain owned
@@ -82,6 +82,16 @@ primary swipe and original keyboard regressions. The seven keyboard/library
 browser cases were rerun on that combined source as well. Typecheck and scoped
 formatting passed. Fresh hosted checks are required for the synchronized commit;
 successful checks from the older source are not reused.
+
+The subsequent dependency audit found two remaining accessibility cases that
+still expected the old hero H1. #1548 now records the actual page contract:
+exactly one localized Wir H1 and the distinct relationship hero H2. Both Compact
+and Expanded keyboard/Quick Create/Back/axe journeys pass locally with those
+stronger assertions. The audit also checked the existing session/freshness,
+Today and partner browser suites for equivalent heading assumptions; no other
+obsolete hero-as-H1 assertion remains. These test-only corrections are included
+through the dependency merge, bringing the targeted browser evidence to 15
+passing cases without changing the product or its accessibility requirements.
 
 | State | Actual browser evidence |
 | --- | --- |

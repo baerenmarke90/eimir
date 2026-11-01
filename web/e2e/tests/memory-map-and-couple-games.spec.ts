@@ -621,6 +621,25 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           'animation-name',
           width === 430 ? 'experience-note-enter' : 'none',
         );
+        if (width === 430) {
+          // Inspect the entrance in progress rather than waiting away a
+          // contrast failure caused by fading text and controls together.
+          await reveal.evaluate((element) => {
+            const entrance = element
+              .getAnimations()
+              .find(
+                (animation) =>
+                  animation instanceof CSSAnimation &&
+                  animation.animationName === 'experience-note-enter',
+              );
+            if (!entrance?.effect)
+              throw new Error('Experience entrance animation is unavailable.');
+            entrance.pause();
+            entrance.currentTime =
+              Number(entrance.effect.getTiming().duration) / 2;
+          });
+          await expect(reveal).toHaveCSS('opacity', '1');
+        }
         expect(
           await partnerPage.evaluate(
             () => document.documentElement.scrollWidth <= innerWidth,
@@ -636,6 +655,10 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           .include('.today-page')
           .analyze();
         expect(receiverAxe.violations).toEqual([]);
+        if (width === 430)
+          await reveal.evaluate((element) => {
+            for (const animation of element.getAnimations()) animation.play();
+          });
         await reveal
           .getByRole('link', { name: experienceCopy.incoming.open })
           .click();

@@ -76,7 +76,6 @@ describe('Authored shared couple experiences', () => {
           : '/story/time-travel/new',
       );
       expect(await screen.findByText(copy.empty[kind])).toBeTruthy();
-      expect(screen.queryByText(/nichts aufgezeichnet oder gespeichert/)).toBeNull();
     },
   );
   it('keeps authored history readable after losing Pro', async () => {

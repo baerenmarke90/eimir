@@ -497,8 +497,8 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         await expect(page.locator('[data-focused-task="true"]')).toBeVisible();
         const words =
           kind === 'happiness'
-            ? 'Dein Lachen beim Frühstück hat meinen Tag schöner gemacht.'
-            : 'Weißt du noch, wie wir im Regen am See gelacht haben?';
+            ? 'Your laughter at breakfast made my day brighter.'
+            : 'Do you remember laughing together in the rain by the lake?';
         await page
           .getByRole('textbox', { name: experienceCopy.write[kind] })
           .fill(words);

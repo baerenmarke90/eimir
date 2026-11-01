@@ -110,7 +110,9 @@ heading wrap rule fixes the long German heading at 320 px / 200% text.
 Local checks: Web build/typecheck/lint/format, registered test inventory, focused
 component/draft/native wake tests, backend Ruff and Mypy, API contract checks,
 and exact OpenAPI Generator 7.24.0 regeneration (786 files, no differences).
-The initial complete Web run exposed old catalog expectations and a removed
+The final complete Web suite passes: 2408 tests, two intentional skips. All ten
+viewport/kind browser journeys pass on the final UI composition. The initial
+complete Web run exposed old catalog expectations and a removed
 conversation-only copy assertion; both were corrected and verified. The
 backend unit run had 1084 passes and two failures: the changed DTO expectation
 and a missing environment-only `socksio` package. After correcting the DTO
@@ -128,3 +130,12 @@ because a real PostgreSQL service is unavailable. No SQLite substitute is used.
 Actual Android device delivery and keyboard/IME behavior still require the
 normal installed-device release acceptance; mocked provider and browser results
 do not establish that acceptance. No transport/provider/native bridge changed.
+
+The initial CI revision was inspected: change detection rejected German
+synthetic author text and an obsolete German assertion in engineering tests;
+Web Reference Flow also caught one unformatted assertion. Fixtures now use
+English authored sample content, the obsolete assertion is removed, and
+format/language checks pass locally. The failed Backend Integration aggregate
+had not run PostgreSQL because change detection failed; it is not reported as
+a database result. Fixes receive a new commit and fresh checks, with no manual
+workflow reruns.

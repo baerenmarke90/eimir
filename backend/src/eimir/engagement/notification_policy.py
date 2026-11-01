@@ -15,7 +15,7 @@ from uuid import UUID
 
 from eimir.engagement.models import NotificationKind
 
-POLICY_VERSION = 3
+POLICY_VERSION = 4
 GENERIC_PRESENTATION_KEY = "notification.generic"
 DIGEST_WINDOW = timedelta(hours=1)
 
@@ -70,6 +70,34 @@ class NotificationPolicy:
 # exists; there is no one-off push fallback.
 POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
     {
+        NotificationKind.TRANSFER_READY: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.TRANSFER_COMPLETED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.TRANSFER_FAILED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.PLAN_CREATED: NotificationPolicy(
+            DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
+        ),
+        NotificationKind.PLAN_CHANGED: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
+        NotificationKind.PLAN_CANCELLED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.WISH_SELECTION_SHARED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.WISH_SELECTION_READY: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.PHOTO_REACTION: NotificationPolicy(
+            DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
+        ),
+        NotificationKind.PARTNER_JOINED: NotificationPolicy(
+            DeliveryClass.IN_APP_ONLY, GENERIC_PREVIEW
+        ),
         NotificationKind.COUPLE_EXPERIENCE_SHARED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),

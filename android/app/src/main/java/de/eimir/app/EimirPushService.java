@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.unifiedpush.android.connector.FailedReason;
@@ -20,12 +21,14 @@ import org.unifiedpush.android.connector.PushService;
 import org.unifiedpush.android.connector.data.PushEndpoint;
 import org.unifiedpush.android.connector.data.PushMessage;
 
-/** A wake has no content or route target; authenticated Web fetches the inbox. */
+/** A wake carries at most an opaque reference; authenticated Web resolves access. */
 public final class EimirPushService extends PushService {
     private static final String NOTIFICATION_URL = "de.sidebyside.app://notifications";
     private static final String CHANNEL_ID = "eimir_notifications";
     /** One generic notification at most: repeated wakes update it instead of stacking. */
     private static final int WAKE_NOTIFICATION_ID = 1;
+    static final String EXTRA_ACCOUNT = "eimir.notification.account";
+    static final String EXTRA_NOTIFICATION = "eimir.notification.id";
 
     /** Remove the generic notification, e.g. after disable, sign-out or an Account switch. */
     static void cancelWakeNotification(Context context) {
@@ -40,10 +43,14 @@ public final class EimirPushService extends PushService {
     @Override
     public void onMessage(PushMessage message, String instance) {
         if (!instance.equals(UnifiedPushBridge.activeInstance(this)) || !message.getDecrypted()) return;
+        String notificationId = null;
         try {
             JSONObject payload = new JSONObject(new String(message.getContent(), StandardCharsets.UTF_8));
-            if (payload.length() != 1 || !"wake".equals(payload.optString("type"))) return;
-        } catch (JSONException error) {
+            if (!"wake".equals(payload.optString("type"))) return;
+            if (payload.length() == 2 && payload.has("notificationId")) {
+                notificationId = UUID.fromString(payload.getString("notificationId")).toString();
+            } else if (payload.length() != 1) return;
+        } catch (JSONException | IllegalArgumentException error) {
             return;
         }
 
@@ -61,7 +68,9 @@ public final class EimirPushService extends PushService {
             NotificationManager.IMPORTANCE_DEFAULT
         ));
 
-        Intent open = notificationIntent(this);
+        Intent open = notificationIntent(this)
+            .putExtra(EXTRA_ACCOUNT, instance)
+            .putExtra(EXTRA_NOTIFICATION, notificationId);
         PendingIntent tap = PendingIntent.getActivity(
             this, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );

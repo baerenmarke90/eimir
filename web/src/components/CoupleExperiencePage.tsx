@@ -3,18 +3,17 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useMemo } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
+import { GamesApi } from '../api/generated/apis/GamesApi';
+import type { CoupleExperienceQuestions } from '../api/generated/models/CoupleExperienceQuestions';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { MemoriesApi } from '../api/generated/apis/MemoriesApi';
 import type { MemoryPage } from '../api/generated/models/MemoryPage';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
 import { ExperienceKind } from '../api/generated/models/ExperienceKind';
 import { Configuration } from '../client/apiConfiguration';
-import {
-  COUPLE_EXPERIENCE_PROMPT_IDS,
-  isCoupleExperiencePromptId,
-} from '../client/coupleExperiencePrompts';
+import { isCoupleExperiencePromptId } from '../client/coupleExperiencePrompts';
 import { loadGameParticipants } from '../client/gameParticipants';
 import { normalizeClientError } from '../client/problemDetails';
 import {
@@ -24,6 +23,7 @@ import {
 } from '../client/routes';
 import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
 import { resolvedLocale, useTranslation } from '../i18n';
+import experienceCopy from '../i18n/locales/coupleExperiences';
 import { MemoryCreatePage } from './MemoryCreatePage';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -33,53 +33,6 @@ import { UiState } from './UiState';
 import './CoupleExperiences.css';
 
 type Experience = 'happiness' | 'timeTravel';
-
-function ExperiencePrompts({
-  kind,
-  route,
-}: {
-  kind: Experience;
-  route: string;
-}) {
-  const { t } = useTranslation();
-  const [index, setIndex] = useState(0);
-  const id = COUPLE_EXPERIENCE_PROMPT_IDS[index];
-  return (
-    <section
-      className="couple-experience-prompts"
-      aria-labelledby="experience-prompt-heading"
-    >
-      <p className="eyebrow">
-        {t('coupleExperiences.prompts.progress', {
-          current: index + 1,
-          total: COUPLE_EXPERIENCE_PROMPT_IDS.length,
-        })}
-      </p>
-      <h2 id="experience-prompt-heading" aria-live="polite" aria-atomic="true">
-        {t(`coupleExperiences.prompts.${kind}.${id}`)}
-      </h2>
-      <div className="form-actions">
-        <TaskOriginLink
-          className="button-link"
-          to={`${route}/new?prompt=${id}`}
-        >
-          {t('coupleExperiences.prompts.answer')}
-        </TaskOriginLink>
-        <button
-          type="button"
-          className="secondary"
-          onClick={() =>
-            setIndex(
-              (value) => (value + 1) % COUPLE_EXPERIENCE_PROMPT_IDS.length,
-            )
-          }
-        >
-          {t('coupleExperiences.prompts.next')}
-        </button>
-      </div>
-    </section>
-  );
-}
 
 export function CoupleExperiencePage({
   kind,
@@ -91,6 +44,7 @@ export function CoupleExperiencePage({
   loadEntitlement,
   loadParticipants,
   loadHistory,
+  loadQuestions,
 }: {
   kind: Experience;
   accountId: string;
@@ -103,9 +57,11 @@ export function CoupleExperiencePage({
     readonly [WhoOfUsParticipant, WhoOfUsParticipant] | null
   >;
   loadHistory?: (cursor?: string) => Promise<MemoryPage>;
+  loadQuestions?: () => Promise<CoupleExperienceQuestions>;
 }) {
   const { t } = useTranslation();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const client = useQueryClient();
   const config = useMemo(
     () =>
@@ -117,16 +73,13 @@ export function CoupleExperiencePage({
   );
   const entitlements = useMemo(() => new EntitlementsApi(config), [config]);
   const memories = useMemo(() => new MemoriesApi(config), [config]);
+  const games = useMemo(() => new GamesApi(config), [config]);
   const origin =
     kind === 'happiness'
       ? ExperienceKind.HAPPINESS
       : ExperienceKind.TIME_TRAVEL;
   const route = kind === 'happiness' ? HAPPINESS_ROUTE : TIME_TRAVEL_ROUTE;
   const creating = location.pathname === `${route}/new`;
-  const requestedPrompt = new URLSearchParams(location.search).get('prompt');
-  const prompt = isCoupleExperiencePromptId(requestedPrompt)
-    ? t(`coupleExperiences.prompts.${kind}.${requestedPrompt}`)
-    : undefined;
   const scope = [apiBaseUrl, accountId, spaceId];
   const entitlement = useQuery({
     queryKey: ['couple-experience-entitlement', ...scope],
@@ -184,6 +137,40 @@ export function CoupleExperiencePage({
     !entitlement.error &&
     entitlement.data?.capabilities.includes('games.couple');
   const partner = participants.data?.find((person) => person.id !== accountId);
+  const questions = useQuery({
+    queryKey: ['couple-experience-questions', ...scope, origin],
+    queryFn: async ({ signal }) => {
+      try {
+        return await (loadQuestions
+          ? loadQuestions()
+          : games.getCoupleExperienceQuestions(
+              { spaceId, kind: origin },
+              { signal },
+            ));
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    enabled: Boolean(allowed && partner && !creating),
+    retry: false,
+    gcTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+    refetchInterval: (query) =>
+      query.state.data
+        ? Math.max(1000, query.state.data.refreshAfterSeconds * 1000)
+        : false,
+    refetchIntervalInBackground: false,
+  });
+  const pool = experienceCopy.questions[kind];
+  const isKnownQuestion = (id: string) => Object.hasOwn(pool, id);
+  const dailyIds = questions.data?.questionIds ?? [];
+  const validQuestions =
+    dailyIds.length === 3 &&
+    new Set(dailyIds).size === 3 &&
+    dailyIds.every(isKnownQuestion);
+  const selectedId = searchParams.get('question');
+  const legacyPromptId = searchParams.get('prompt');
   const state =
     entitlement.isPending || participants.isPending ? (
       <UiState kind="loading" title={t('states.loading.title')} />
@@ -217,8 +204,14 @@ export function CoupleExperiencePage({
         accountId={accountId}
         spaceId={spaceId}
         experienceKind={origin}
-        experiencePrompt={prompt}
         partnerName={partner?.displayName}
+        experienceQuestion={
+          selectedId && isKnownQuestion(selectedId)
+            ? t(`coupleExperiences.questions.${kind}.${selectedId}`)
+            : isCoupleExperiencePromptId(legacyPromptId)
+              ? t(`coupleExperiences.prompts.${kind}.${legacyPromptId}`)
+              : undefined
+        }
         onSaved={async () => {
           await client.invalidateQueries({
             queryKey: ['couple-experience-history', ...scope],
@@ -235,20 +228,43 @@ export function CoupleExperiencePage({
         titleAction={<ProMark label={t('coupleExperiences.pro')} />}
       />
       {state ?? (
-        <ExperiencePrompts
-          key={`${apiBaseUrl}:${accountId}:${spaceId}:${kind}`}
-          kind={kind}
-          route={route}
-        />
+        <>
+          <section
+            className="couple-experience-questions"
+            aria-labelledby="experience-questions-heading"
+          >
+            <h2 id="experience-questions-heading">
+              {t('coupleExperiences.questionsTitle')}
+            </h2>
+            {questions.isPending ? (
+              <UiState kind="loading" title={t('states.loading.title')} />
+            ) : questions.error || !validQuestions ? (
+              <p>{t('coupleExperiences.questionsUnavailable')}</p>
+            ) : (
+              <ul>
+                {dailyIds.map((id) => (
+                  <li key={id}>
+                    <TaskOriginLink
+                      to={`${route}/new?question=${encodeURIComponent(id)}`}
+                    >
+                      <span>
+                        {t(`coupleExperiences.questions.${kind}.${id}`)}
+                      </span>
+                      <span aria-hidden="true">›</span>
+                    </TaskOriginLink>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <TaskOriginLink
+            className="button-link experience-create-action"
+            to={`${route}/new`}
+          >
+            {t(`coupleExperiences.create.${kind}`)}
+          </TaskOriginLink>
+        </>
       )}
-      {state === null ? (
-        <TaskOriginLink
-          className="button-link experience-create-action"
-          to={`${route}/new`}
-        >
-          {t(`coupleExperiences.create.${kind}`)}
-        </TaskOriginLink>
-      ) : null}
       {!creating ? (
         <section
           className="couple-experience-history"
@@ -281,13 +297,7 @@ export function CoupleExperiencePage({
                           <span className="couple-experience-author">
                             {entry.author.displayName}
                           </span>
-                          {COUPLE_EXPERIENCE_PROMPT_IDS.some(
-                            (id) =>
-                              entry.title ===
-                              t(`coupleExperiences.prompts.${kind}.${id}`),
-                          ) ? (
-                            <h3>{entry.title}</h3>
-                          ) : null}
+                          {entry.title ? <h3>{entry.title}</h3> : null}
                           <p>{entry.body.slice(0, 280)}</p>
                           <time dateTime={entry.createdAt.toISOString()}>
                             {new Intl.DateTimeFormat(resolvedLocale(), {

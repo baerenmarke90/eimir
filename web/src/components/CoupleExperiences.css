@@ -2,26 +2,6 @@
   margin-block: var(--space-6);
 }
 
-.couple-experience-prompts {
-  display: grid;
-  gap: var(--space-4);
-  margin-block: var(--space-4);
-  padding: var(--space-5);
-  border-radius: var(--radius-card);
-  background: var(--color-surface-subtle);
-}
-
-.couple-experience-prompts h2,
-.couple-experience-selected-prompt {
-  margin: 0;
-  font: var(--font-content-heading);
-  overflow-wrap: anywhere;
-}
-
-.couple-experience-prompts .eyebrow {
-  margin: 0;
-}
-
 .couple-experience-history-entry h3 {
   font: var(--font-content-heading);
   overflow-wrap: anywhere;
@@ -29,8 +9,48 @@
 
 .experience-create-action {
   width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   min-height: var(--touch-target-web);
   margin-block: var(--space-4);
+}
+.couple-experience-questions ul {
+  list-style: none;
+  padding: 0;
+}
+.couple-experience-questions li + li {
+  border-block-start: 1px solid var(--color-border);
+}
+.couple-experience-questions a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--touch-target-web);
+  padding-block: var(--space-4);
+  color: var(--color-text-primary);
+  font: var(--font-reading-body);
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+.couple-experience-questions a > span:first-child {
+  min-width: 0;
+}
+.couple-experience-questions a > span:last-child {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+.couple-experience-questions a:hover {
+  color: var(--color-brand-text);
+}
+.experience-selected-question {
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+  background: var(--color-brand-surface);
+  overflow-wrap: anywhere;
+}
+.experience-selected-question p {
+  margin: 0;
 }
 .couple-experience-history {
   margin-block: var(--space-6);
@@ -103,9 +123,11 @@
 }
 @keyframes experience-symbol-enter {
   from {
+    opacity: 0;
     transform: scale(0.8);
   }
   to {
+    opacity: 1;
     transform: scale(1);
   }
 }
@@ -159,6 +181,25 @@
 .couple-experience-page {
   max-width: var(--reading-max);
   margin-inline: auto;
+}
+.couple-experience-page .page-heading > div,
+.couple-experience-page .page-heading-title-container {
+  min-width: 0;
+}
+.couple-experience-page
+  .page-heading-has-title-action
+  .page-heading-title-container {
+  flex-wrap: wrap;
+}
+.couple-experience-page
+  .page-heading-has-title-action
+  .page-heading-title-container
+  h1 {
+  flex: 1 0 auto;
+  max-width: 100%;
+}
+.couple-experience-page h1 {
+  overflow-wrap: anywhere;
 }
 
 .shared-experience-section {

@@ -17,7 +17,9 @@ from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext, PrivacyClass, readable
 from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
+from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.identity.models import Account
+from eimir.outbox import service as outbox_service
 from eimir.plans.models import Plan
 from eimir.relationship import service as relationship
 from eimir.relationship.models import Membership, MembershipStatus
@@ -242,7 +244,28 @@ def replace_round(
             )
         )
     session.flush()
+    _record_shared_action(session, context, current, EventType.WISH_SELECTION_SHARED)
     return get_selection(session, context)
+
+
+def _record_shared_action(
+    session: Session, context: AuthorizationContext, round: WishSelectionRound, kind: EventType
+) -> None:
+    """Publish only a shared round or a fully revealed result, never a vote."""
+    for member in _members(session, context):
+        if member.account_id != context.account_id:
+            outbox_service.record(
+                session,
+                DomainEvent(
+                    type=kind,
+                    space_id=context.space_id,
+                    actor_id=context.account_id,
+                    subject_type="wish_selection",
+                    subject_id=round.id,
+                    resource_version=round.version,
+                    payload=PublicEventPayload(recipient_id=member.account_id),
+                ),
+            )
 
 
 def update_own_selection(
@@ -289,7 +312,10 @@ def update_own_selection(
         # must not overwrite the user's later deliberate decision.
         own.version += 1
     session.flush()
-    return get_selection(session, context)
+    result = get_selection(session, context)
+    if result.result_state == "READY" and current.result_state != "READY":
+        _record_shared_action(session, context, current.round, EventType.WISH_SELECTION_READY)
+    return result
 
 
 def close_round(session: Session, context: AuthorizationContext, *, expected_token: str) -> None:

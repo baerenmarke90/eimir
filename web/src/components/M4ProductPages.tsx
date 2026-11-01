@@ -27,6 +27,7 @@ import { authorDisplayName } from '../client/authorPresentation';
 import { assertOnlineWrite } from '../client/connectivity';
 import {
   engagementTargetPath,
+  notificationPath,
   type M4ProductApis,
   opaqueNextCursor,
   searchResultPath,
@@ -614,7 +615,7 @@ function NotificationCard({
   onOpen?: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
 }) {
   const { t } = useTranslation();
-  const path = engagementTargetPath(item.targetType, item.targetId);
+  const path = notificationPath(item);
   const isOwn = Boolean(
     currentAccountId && item.actor?.id === currentAccountId,
   );

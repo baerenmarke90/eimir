@@ -14,6 +14,16 @@
 
 import * as runtime from '../runtime';
 import {
+    type CoupleExperienceQuestions,
+    CoupleExperienceQuestionsFromJSON,
+    CoupleExperienceQuestionsToJSON,
+} from '../models/CoupleExperienceQuestions';
+import {
+    type ExperienceKind,
+    ExperienceKindFromJSON,
+    ExperienceKindToJSON,
+} from '../models/ExperienceKind';
+import {
     type GameMemoryCandidateSet,
     GameMemoryCandidateSetFromJSON,
     GameMemoryCandidateSetToJSON,
@@ -29,6 +39,11 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 
+export interface GetCoupleExperienceQuestionsRequest {
+    kind: ExperienceKind;
+    spaceId: string;
+}
+
 export interface GetGameMomentCandidatesRequest {
     spaceId: string;
 }
@@ -41,6 +56,61 @@ export interface GetGameWishCandidatesRequest {
  * 
  */
 export class GamesApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for getCoupleExperienceQuestions without sending the request
+     */
+    async getCoupleExperienceQuestionsRequestOpts(requestParameters: GetCoupleExperienceQuestionsRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['kind'] == null) {
+            throw new runtime.RequiredError(
+                'kind',
+                'Required parameter "kind" was null or undefined when calling getCoupleExperienceQuestions().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getCoupleExperienceQuestions().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/experiences/{kind}/questions`;
+        urlPath = urlPath.replace('{kind}', encodeURIComponent(String(requestParameters['kind'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Three stable inspirations per shared calendar day, without an answer limit.
+     * Get Couple Experience Questions
+     */
+    async getCoupleExperienceQuestionsRaw(requestParameters: GetCoupleExperienceQuestionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CoupleExperienceQuestions>> {
+        const requestOptions = await this.getCoupleExperienceQuestionsRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CoupleExperienceQuestionsFromJSON(jsonValue));
+    }
+
+    /**
+     * Three stable inspirations per shared calendar day, without an answer limit.
+     * Get Couple Experience Questions
+     */
+    async getCoupleExperienceQuestions(requestParameters: GetCoupleExperienceQuestionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CoupleExperienceQuestions> {
+        const response = await this.getCoupleExperienceQuestionsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getGameMomentCandidates without sending the request

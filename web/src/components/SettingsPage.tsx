@@ -222,9 +222,12 @@ export function SettingsPage(props: SettingsPageProps) {
         className="settings-category-content settings-data-block"
       >
         <TransferPanel
+          key={`${props.account.id}:${props.spaceId}:${location.search}`}
           apiBaseUrl={props.apiBaseUrl}
           accessToken={props.accessToken}
           spaceId={props.spaceId}
+          requestedExportId={new URLSearchParams(location.search).get('export')}
+          requestedImportId={new URLSearchParams(location.search).get('import')}
         />
       </div>
     );

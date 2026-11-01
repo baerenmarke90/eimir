@@ -38,17 +38,30 @@ public final class UnifiedPushBridge extends Plugin {
     @Override
     public void load() {
         current = new WeakReference<>(this);
+        publishNotificationIntent(getActivity().getIntent());
     }
 
     @Override
     protected void handleOnNewIntent(Intent intent) {
         super.handleOnNewIntent(intent);
+        publishNotificationIntent(intent);
+    }
+
+    private void publishNotificationIntent(Intent intent) {
         if (!EimirPushService.isNotificationIntent(intent)) return;
         String accountId = activeInstance(getContext());
         if (accountId == null) return;
+        String intendedAccount = intent.getStringExtra(EimirPushService.EXTRA_ACCOUNT);
+        if (intendedAccount != null && !accountId.equals(intendedAccount)) return;
         // Authentication may still be restoring. Keep this separate from the
         // general App URL event, whose first listener is the identity intake.
-        notifyListeners("notificationOpen", new JSObject().put("accountId", accountId), true);
+        JSObject event = new JSObject().put("accountId", accountId);
+        String notificationId = intent.getStringExtra(EimirPushService.EXTRA_NOTIFICATION);
+        if (notificationId != null) {
+            try { event.put("notificationId", UUID.fromString(notificationId).toString()); }
+            catch (IllegalArgumentException ignored) { /* Resolve through the safe inbox. */ }
+        }
+        notifyListeners("notificationOpen", event, true);
     }
 
     static String activeInstance(Context context) {
@@ -219,6 +232,7 @@ public final class UnifiedPushBridge extends Plugin {
         result.put("endpoint", endpoint.getUrl());
         result.put("p256dh", keys.getPubKey());
         result.put("auth", keys.getAuth());
+        result.put("notificationReferenceVersion", 1);
         plugin.notifyListeners("endpoint", result, true);
     }
 

@@ -154,9 +154,15 @@ reflow checks. Browser Back returns from the saved source to retained history.
   Reference routing negotiates native and server capability; legacy peers keep
   their existing one-field encrypted wake. Unit tests cover both modes and
   account/Space changes while a tap is pending.
-- Real installed-device encrypted Push delivery, physical keyboard/IME and
-  device lifecycle acceptance have not been performed. Compilation, transport
-  tests and browser mocks do not replace those gates. Remote CI and the owning
-  issue/draft PR publication follows the explicit authorization above. The
+- Installed Android acceptance uses the existing API 28/36/37.1 emulator matrix,
+  with six dedicated cases for neutral system notifications, real PendingIntent
+  taps, cold-start retention, legacy wakes, wrong-account rejection and malformed
+  input. The test crosses the native service/Android notification/Capacitor
+  boundary with synthetic already-decrypted connector messages; external
+  distributor delivery/decryption and physical keyboard/IME are separate from
+  that claim. The local emulator could not start within available disk space;
+  task-owned image/data files were removed without altering unrelated files.
+  Remote CI and the owning issue/draft PR publication follow the explicit
+  authorization above. The
   requested test release must use the existing release-channel rules; this
   implementation does not bypass review, checks or channel admission.

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Fragment, type ReactNode, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
@@ -10,6 +10,7 @@ import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
+import { DashboardModulePreferenceListToJSON } from '../api/generated/models/DashboardModulePreferenceList';
 import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
 import { DashboardViewToJSON } from '../api/generated/models/DashboardView';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
@@ -35,7 +36,10 @@ import {
   PARTNER_PRESENCE_PRODUCT_ENABLED,
   usePartnerPresence,
 } from '../client/presence';
-import { normalizeClientError } from '../client/problemDetails';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   calculateRelationshipDuration,
@@ -694,6 +698,7 @@ export function TodayPage({
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
+  const queryClient = useQueryClient();
   const wirStatistics = useWirStatistics({
     api: entitlementApi,
     instance: apiBaseUrl ?? '',
@@ -706,9 +711,44 @@ export function TodayPage({
     apiBaseUrl,
     spaceId,
     kind: 'dashboard-overview',
-    load: (signal) =>
-      apiCall(() => apis.dashboard.getDashboard({ spaceId }, { signal })),
-    serialize: DashboardViewToJSON,
+    load: async (signal) => {
+      const [dashboard, modulePreferences] = await Promise.all([
+        apiCall(() => apis.dashboard.getDashboard({ spaceId }, { signal })),
+        account?.id
+          ? queryClient
+              .fetchQuery({
+                queryKey: dashboardPreferencesQueryKey(account.id, spaceId),
+                queryFn: ({ signal: preferenceSignal }) =>
+                  apiCall(() =>
+                    apis.dashboard.listDashboardModulePreferences(
+                      { spaceId },
+                      { signal: preferenceSignal },
+                    ),
+                  ),
+                // Persist server-confirmed choices, never another pending
+                // settings mutation's optimistic query value.
+                staleTime: 0,
+                retry: false,
+              })
+              .catch((error: unknown) => {
+                if (
+                  ['unauthorized', 'permission', 'notFound'].includes(
+                    clientProblemKind(error),
+                  )
+                )
+                  throw error;
+                return undefined;
+              })
+          : undefined,
+      ]);
+      return { ...dashboard, modulePreferences };
+    },
+    serialize: (value) => ({
+      ...DashboardViewToJSON(value),
+      modulePreferences: DashboardModulePreferenceListToJSON(
+        value.modulePreferences,
+      ),
+    }),
     deserialize: (payload) => decodeDashboardOverview(payload, spaceId),
   });
   const spaceConfigurationQuery = useQuery(
@@ -736,14 +776,18 @@ export function TodayPage({
       apiCall(() => apis.dashboard.listDashboardModulePreferences({ spaceId })),
     enabled: Boolean(account?.id && spaceId),
     retry: false,
+    staleTime: 60_000,
   });
 
+  const dashboardPreferences =
+    dashboardPreferencesQuery.data ?? dashboardQuery.data?.modulePreferences;
+
   const pinnedCollectionId = selectedDashboardCollectionId(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'pinned_collection',
   );
   const pinnedCollectionVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'pinned_collection',
   );
   const pinnedCollectionQuery = useQuery({
@@ -864,11 +908,11 @@ export function TodayPage({
           item.id === anticipation.planId
         ),
     ),
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
   );
 
   const relationshipSignalVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'relationship_signal',
   );
   const recentShared = dashboardQuery.data?.recentShared ?? [];
@@ -1011,26 +1055,32 @@ export function TodayPage({
   const preferencesUnresolved =
     dashboardPreferencesQuery.isPending &&
     dashboardPreferencesQuery.fetchStatus !== 'idle';
-  const contentReady = Boolean(dashboardQuery.data) && !preferencesUnresolved;
+  const preferencesDenied = ['unauthorized', 'permission', 'notFound'].includes(
+    clientProblemKind(dashboardPreferencesQuery.error),
+  );
+  const contentReady =
+    Boolean(dashboardQuery.data) &&
+    !preferencesDenied &&
+    (!preferencesUnresolved || Boolean(dashboardPreferences));
 
   const relationshipPresenceVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'relationship_presence',
   );
   const upcomingVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'upcoming',
   );
   const keepsakeVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'keepsake',
   );
   const monthlyHighlightsVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'monthly_highlights',
   );
   const recentSharedVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'recent_shared',
   );
   const monthlyRecapEnabled = Boolean(
@@ -1173,10 +1223,7 @@ export function TodayPage({
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {
     shared_experience:
       incomingExperience &&
-      isDashboardModuleVisible(
-        dashboardPreferencesQuery.data,
-        'shared_experience',
-      ) ? (
+      isDashboardModuleVisible(dashboardPreferences, 'shared_experience') ? (
         <SharedExperienceReveal
           entry={incomingExperience}
           partnerName={partnerName}
@@ -1431,9 +1478,7 @@ export function TodayPage({
       </>
     ),
   };
-  const orderedModuleKeys = orderedDashboardModuleKeys(
-    dashboardPreferencesQuery.data,
-  );
+  const orderedModuleKeys = orderedDashboardModuleKeys(dashboardPreferences);
 
   return (
     <div
@@ -1444,7 +1489,9 @@ export function TodayPage({
       }
     >
       {(dashboardQuery.isLoading ||
-        (Boolean(dashboardQuery.data) && preferencesUnresolved)) && (
+        (Boolean(dashboardQuery.data) &&
+          preferencesUnresolved &&
+          !dashboardPreferences)) && (
         <UiState kind="loading" title={t('states.loading.title')} />
       )}
       {dashboardQuery.error && (

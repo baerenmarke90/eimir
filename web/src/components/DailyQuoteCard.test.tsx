@@ -105,6 +105,7 @@ function renderCard({
   entitlementError,
   saveError,
   settingsOnly = false,
+  preferenceEnabled = true,
 }: {
   capabilities?: string[];
   quoteResult?: DailyQuoteResponse;
@@ -112,6 +113,7 @@ function renderCard({
   entitlementError?: unknown;
   saveError?: unknown;
   settingsOnly?: boolean;
+  preferenceEnabled?: boolean;
 } = {}) {
   const getEntitlements = entitlementError
     ? vi.fn().mockRejectedValue(entitlementError)
@@ -128,7 +130,9 @@ function renderCard({
   const getDailyQuoteCatalog = vi.fn().mockResolvedValue(catalog);
   const getDailyQuotePreferencesRaw = vi
     .fn()
-    .mockResolvedValue(rawResponse(preference));
+    .mockResolvedValue(
+      rawResponse({ ...preference, enabled: preferenceEnabled }),
+    );
   const updateDailyQuotePreferencesRaw = saveError
     ? vi.fn().mockRejectedValue(saveError)
     : vi.fn().mockImplementation(
@@ -312,20 +316,19 @@ describe('DailyQuoteCard', () => {
     expect(api.updateDailyQuotePreferencesRaw).not.toHaveBeenCalled();
   });
 
-  it('disables the personal quote without dropping source/category selections', async () => {
+  it('edits selections while display is disabled without a duplicate switch or visibility write', async () => {
     const user = userEvent.setup();
-    const api = renderCard({ settingsOnly: true });
+    const api = renderCard({ settingsOnly: true, preferenceEnabled: false });
 
     await user.click(
       await screen.findByRole('button', { name: dailyQuote.settingsAria }),
     );
-    const visibility = screen.getByRole('switch', {
-      name: dailyQuote.enabledLabel,
-    });
-    expect(visibility.getAttribute('aria-checked')).toBe('true');
-
-    await user.click(visibility);
-    expect(visibility.getAttribute('aria-checked')).toBe('false');
+    expect(
+      screen.queryByRole('switch', {
+        name: dailyQuote.enabledLabel,
+      }),
+    ).toBeNull();
+    await user.click(screen.getByRole('checkbox', { name: /Mindfulness/u }));
     await user.click(screen.getByRole('button', { name: dailyQuote.done }));
 
     await waitFor(() =>
@@ -336,8 +339,7 @@ describe('DailyQuoteCard', () => {
         spaceId: SPACE_ID,
         ifMatch: '"quote-pref:2"',
         dailyQuotePreferencePatch: {
-          enabled: false,
-          selectedCategoryIds: ['love'],
+          selectedCategoryIds: ['love', 'mindfulness'],
           selectedSourceIds: ['classic_literature'],
         },
       }),
@@ -394,7 +396,6 @@ describe('DailyQuoteCard', () => {
         spaceId: SPACE_ID,
         ifMatch: '"quote-pref:2"',
         dailyQuotePreferencePatch: expect.objectContaining({
-          enabled: true,
           selectedCategoryIds: ['love', 'mindfulness'],
           selectedSourceIds: ['classic_literature'],
         }),

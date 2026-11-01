@@ -2485,6 +2485,23 @@ describe('formatRelationshipDuration', () => {
       });
     });
 
+    it('renders saved module choices with saved content while their background read is pending', () => {
+      const html = renderTodayPage(
+        {
+          ...allModulesEligibleDashboard(),
+          modulePreferences: {
+            items: [{ moduleKey: 'relationship_presence', visible: false }],
+          },
+        },
+        undefined,
+        { preferencesPending: true },
+      );
+      expect(html).toContain('today-content');
+      expect(html).toContain('today-section-upcoming');
+      expect(html).not.toContain('today-hero');
+      expect(html).not.toContain(de.states.loading.title);
+    });
+
     it('never flashes a persisted-hidden module while Dashboard preferences are still pending, even though Dashboard data already arrived', () => {
       const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },

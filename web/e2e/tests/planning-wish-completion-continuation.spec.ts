@@ -376,6 +376,62 @@ async function captureEvidence(
 }
 
 for (const scenario of visualScenarios) {
+  test(`Wish continuation uses standard controls with visible field boundaries: ${scenario.name}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize(scenario.viewport);
+    await page.addInitScript(
+      (theme) => localStorage.setItem('eimir.theme', theme),
+      scenario.theme,
+    );
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await installMocks(page);
+    await signIn(page);
+    await page.goto(`/plan/wishes/${WISH_ID}`);
+    const disclosure = page.locator('.wish-operations > summary');
+    await expect(disclosure).toHaveClass('button-link');
+    const actionStyle = await disclosure.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return {
+        background: style.backgroundColor,
+        color: style.color,
+        minHeight: parseFloat(style.minHeight),
+      };
+    });
+    expect(actionStyle.background).not.toBe('rgba(0, 0, 0, 0)');
+    expect(actionStyle.minHeight).toBeGreaterThanOrEqual(44);
+    await disclosure.click();
+    for (const selector of [
+      '#wish-plan-title',
+      '#wish-plan-description',
+      '#wish-plan-place',
+      '#wish-plan-schedule-date',
+      '#wish-plan-schedule-time',
+    ]) {
+      const control = page.locator(selector);
+      await expect(control).toBeVisible();
+      const border = await control.evaluate(
+        (node) => getComputedStyle(node).borderTopWidth,
+      );
+      expect(parseFloat(border)).toBeGreaterThanOrEqual(1);
+    }
+    await page.locator('#wish-plan-title').fill('Our shared next step');
+    await assertNoHorizontalOverflow(page);
+    await captureR3Evidence(
+      page,
+      info,
+      `wish-visible-controls-${scenario.name}.png`,
+      true,
+    );
+    await assertNoWcagViolations(page);
+    await page
+      .getByRole('button', { name: m5s3.wish.complete, exact: true })
+      .click();
+    await expect(
+      page.getByRole('heading', { name: m5s3.wish.completionTitle }),
+    ).toBeVisible();
+  });
+
   test(`fulfilled Wish continuation: ${scenario.name}`, async ({
     page,
   }, testInfo) => {

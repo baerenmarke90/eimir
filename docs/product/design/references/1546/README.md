@@ -1,5 +1,7 @@
 # Relationship surfaces, games, calendar and saved-memory map (#1546)
 
+The [November 1 PO correction](../20261101-corrections/README.md) restores the authored prompts inside the standalone shared experiences from #1566/#1567, with text responses through the canonical Memory composer. It supersedes the answerless local-session behavior below while retaining the prompt inventory and existing capability boundaries.
+
 Product Owner scope clarification: remove only the Wir action labeled “Alle Rückblicke”. Monthly highlights, date-specific retrospectives, their personal settings and the monthly slideshow invitation remain. Also align Eure Geschichte and Eure Woche, remove the duplicate Passport entry from Profile, finish the game shelf, hand dated Plans to a calendar and add a Pro memory map. Requested delivery is a merge-ready PR; merge/release is not authorized by this task.
 
 ## Design preflight

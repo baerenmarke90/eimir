@@ -70,6 +70,7 @@ export function MemoryCreatePage({
   accountId,
   onSaved,
   experienceKind,
+  experiencePrompt,
   partnerName,
 }: {
   accessToken: string;
@@ -78,6 +79,7 @@ export function MemoryCreatePage({
   accountId: string;
   onSaved: () => Promise<void>;
   experienceKind?: ExperienceKind;
+  experiencePrompt?: string;
   partnerName?: string;
 }) {
   const { t } = useTranslation();
@@ -91,7 +93,9 @@ export function MemoryCreatePage({
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const [initialDate] = useState(localDateInputValue);
-  const [title, setTitle] = useState(() => searchParams.get('title') ?? '');
+  const [title, setTitle] = useState(
+    () => experiencePrompt ?? searchParams.get('title') ?? '',
+  );
   const [body, setBody] = useState('');
   const [tags, setTags] = useState<MemoryTag[]>([]);
   const [tagDraftDirty, setTagDraftDirty] = useState(false);
@@ -246,7 +250,7 @@ export function MemoryCreatePage({
       ),
   );
   const dirty = Boolean(
-    title ||
+    (title && title !== experiencePrompt) ||
       body ||
       tags.length ||
       tagDraftDirty ||
@@ -254,7 +258,9 @@ export function MemoryCreatePage({
       happenedOn !== initialDate,
   );
   const hasUserContent = Boolean(
-    title.trim() || body.trim() || attachments.items.length,
+    (!experienceKind && title.trim()) ||
+      body.trim() ||
+      attachments.items.length,
   );
   const draftSnapshot = useMemo<MemoryDiaryDraft>(
     () => ({
@@ -730,6 +736,14 @@ export function MemoryCreatePage({
   }
   const narrativeField = (
     <div className="field-group immersive-create-narrative">
+      {experienceKind && title ? (
+        <p
+          className="couple-experience-selected-prompt"
+          id="experience-selected-prompt"
+        >
+          {title}
+        </p>
+      ) : null}
       <label htmlFor="body">
         {t(
           experienceKind
@@ -750,6 +764,9 @@ export function MemoryCreatePage({
             ? `coupleExperiences.placeholder.${experienceName}`
             : 'memory.bodyPlaceholder',
         )}
+        aria-describedby={
+          experienceKind && title ? 'experience-selected-prompt' : undefined
+        }
       />
     </div>
   );

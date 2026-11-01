@@ -150,7 +150,7 @@
     },
     "planning-wish-completion-continuation.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 6
+      "baselineTests": 10
     },
     "private-area-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -369,8 +369,8 @@
     },
     "product-consistency.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 7,
-      "reason": "The PO-approved combined Moments composition must preserve manual Place linking, modal return, icon/rail alignment, theme, Compact/Expanded and large-text reflow."
+      "baselineTests": 11,
+      "reason": "The PO-approved combined Moments composition must preserve manual Place linking, modal return, icon/rail alignment, theme, Compact/Expanded and large-text reflow. Saved Wir content and module choices appear during background refresh only after current membership authorization."
     },
     "shared-wish-selection.spec.ts": {
       "disposition": "PR_CRITICAL",

@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import taskCopy from '../../src/i18n/locales/taskBoundary';
 import experienceCopy from '../../src/i18n/locales/coupleExperiences';
+import de from '../../src/i18n/locales/de';
 import calendarCopy from '../../src/i18n/locales/calendarPlan';
 import gameCopy from '../../src/i18n/locales/games';
 import mapCopy from '../../src/i18n/locales/memoryMap';
@@ -519,10 +520,13 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           .click();
         await expect(page).toHaveURL(new RegExp(base + '$'));
         await page
-          .getByRole('link', { name: experienceCopy.create[kind] })
+          .getByRole('link', { name: experienceCopy.prompts.answer })
           .click();
-        await expect(page).toHaveURL(new RegExp(base + '/new$'));
+        await expect(page).toHaveURL(new RegExp(base + '/new\\?prompt=first$'));
         await expect(page.locator('[data-focused-task="true"]')).toBeVisible();
+        await expect(
+          page.locator('.couple-experience-selected-prompt'),
+        ).toHaveText(experienceCopy.prompts[kind].first);
         const words =
           kind === 'happiness'
             ? 'Your laughter at breakfast made my day brighter.'
@@ -530,6 +534,24 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         await page
           .getByRole('textbox', { name: experienceCopy.write[kind] })
           .fill(words);
+        if (kind === 'happiness' && width === 360) {
+          await expect(
+            page.getByText(de.memory.diary.draft.saved, { exact: true }),
+          ).toBeVisible();
+          page.once('dialog', (dialog) => dialog.accept());
+          await page.goto(`${base}/new?prompt=second`, {
+            waitUntil: 'domcontentloaded',
+          });
+          await page
+            .getByRole('button', { name: de.memory.diary.resume, exact: true })
+            .click();
+          await expect(
+            page.getByRole('textbox', { name: experienceCopy.write[kind] }),
+          ).toHaveValue(words);
+          await expect(
+            page.locator('.couple-experience-selected-prompt'),
+          ).toHaveText(experienceCopy.prompts[kind].first);
+        }
         await page.setViewportSize({ width, height: 900 });
         await page.emulateMedia({
           colorScheme: theme,
@@ -564,6 +586,7 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
             .click();
         await expect(page).toHaveURL(new RegExp('/story/memories/experience-'));
         await expect(page.getByText(words, { exact: true })).toBeVisible();
+        expect(notes[0].title).toBe(experienceCopy.prompts[kind].first);
         expect(
           notes.filter(
             (note) =>
@@ -576,6 +599,11 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           page
             .locator('.couple-experience-history-entry')
             .filter({ hasText: words }),
+        ).toBeVisible();
+        await expect(
+          page
+            .locator('.couple-experience-history-entry')
+            .getByRole('heading', { name: experienceCopy.prompts[kind].first }),
         ).toBeVisible();
         await signIn(partnerPage);
         await partnerPage.goto('/today', { waitUntil: 'domcontentloaded' });

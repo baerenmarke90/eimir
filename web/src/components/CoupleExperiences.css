@@ -2,6 +2,31 @@
   margin-block: var(--space-6);
 }
 
+.couple-experience-prompts {
+  display: grid;
+  gap: var(--space-4);
+  margin-block: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-subtle);
+}
+
+.couple-experience-prompts h2,
+.couple-experience-selected-prompt {
+  margin: 0;
+  font: var(--font-content-heading);
+  overflow-wrap: anywhere;
+}
+
+.couple-experience-prompts .eyebrow {
+  margin: 0;
+}
+
+.couple-experience-history-entry h3 {
+  font: var(--font-content-heading);
+  overflow-wrap: anywhere;
+}
+
 .experience-create-action {
   width: fit-content;
   min-height: var(--touch-target-web);

@@ -105,6 +105,7 @@ declare('radius-media', rem('radius.large'));
 declare('radius-content', rem('radius.card'));
 declare('radius-sheet-top', rem('radius.sheet'));
 declare('border-surface-width', value('border.surfaceFrame'));
+declare('border-control-width', value('border.controlFrame'));
 declare('touch-target-web', value('size.touchTarget.webMinimum'));
 declare('space-content-group', rem('spacing.3'));
 declare('space-section', rem('spacing.8'));

@@ -643,22 +643,27 @@ test('personal visibility hides the Wir card and Settings -> Wir restores it', a
 
   await openQuoteSettings(page);
   const sheet = page.locator('.daily-quote-preferences-sheet');
-  const sheetToggle = sheet.getByRole('switch', {
-    name: dailyQuote.enabledLabel,
-  });
-  await expect(sheetToggle).toHaveAttribute('aria-checked', 'true');
-  await sheetToggle.click();
-  await page.getByRole('button', { name: dailyQuote.done }).click();
+  await expect(
+    sheet.getByRole('switch', {
+      name: dailyQuote.enabledLabel,
+    }),
+  ).toHaveCount(0);
+  await page.getByRole('button', { name: dailyQuote.cancel }).click();
 
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: dailyQuote.settingsAria }),
   ).toBeFocused();
+  const visibility = page.locator('#settings-dashboard').getByRole('checkbox', {
+    name: dailyQuote.title,
+    exact: true,
+  });
+  await expect(visibility).toBeChecked();
+  await visibility.click();
+  await expect(visibility).not.toBeChecked();
   await page.getByRole('link', { name: navigation.today, exact: true }).click();
   await expect(page.locator('.daily-quote-card')).toHaveCount(0);
-  expect(requests.patches.at(-1)?.body).toEqual(
-    expect.objectContaining({ enabled: false }),
-  );
+  expect(requests.patches.at(-1)?.body).toEqual({ enabled: false });
 
   await page.getByRole('link', { name: navigation.more, exact: true }).click();
   await expect(page).toHaveURL(/\/more$/);

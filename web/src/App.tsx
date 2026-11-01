@@ -1013,6 +1013,15 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
           );
         }
 
+        if (
+          cancelled ||
+          loadStoredSession()?.tokens.refreshToken !==
+            currentTokens.refreshToken
+        )
+          return;
+        // A rotated token can authorize membership reads while /me refreshes.
+        setTokens(currentTokens);
+
         const apis = createReferenceApis(
           config.apiBaseUrl,
           currentTokens.accessToken,
@@ -1111,7 +1120,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   });
 
   const membershipsQuery = useQuery({
-    queryKey: ['account-memberships'],
+    queryKey: ['account-memberships', config.apiBaseUrl, account?.id],
     queryFn: async () => {
       if (!tokens) return [];
       return loadAuthorizedMemberships(config.apiBaseUrl, tokens.accessToken);
@@ -1188,7 +1197,18 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     postSnackbar('snackbar.spaceSwitched');
   }
 
-  if (isRestoring || isSigningOut) {
+  // A current authenticated membership response already authorizes this Space.
+  // Account metadata may finish in the background without blocking its UI.
+  const restoredSpaceAuthorized = Boolean(
+    tokens &&
+      account &&
+      isAccessTokenValid(tokens) &&
+      membershipsQuery.isFetchedAfterMount &&
+      membershipsQuery.isSuccess &&
+      !membershipsQuery.error &&
+      resolveActiveSpaceId(membershipsQuery.data, spaceId),
+  );
+  if ((isRestoring && !restoredSpaceAuthorized) || isSigningOut) {
     return (
       <BrandedStartup
         label={t(isSigningOut ? 'header.logout' : 'states.loading.title')}

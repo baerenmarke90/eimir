@@ -91,6 +91,7 @@ def test_memory_map_is_bounded_tenant_scoped_and_non_destructive_on_downgrade(
             media_type=MediaType.IMAGE.value,
             declared_mime_type="image/jpeg",
             declared_size=100,
+            ready_at=now() if index != 0 else None,
             payload=AttachmentPayload(original_name="map.jpg", is_sensitive=True),
         )
         session.add(attachment)

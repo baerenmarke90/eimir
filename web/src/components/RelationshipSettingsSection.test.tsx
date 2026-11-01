@@ -147,7 +147,7 @@ describe('RelationshipSettingsSection', () => {
     });
 
     expect(screen.queryByRole('combobox')).toBeNull();
-    expect(screen.queryByText(/Beziehungsdauer anzeigen als/i)).toBeNull();
+    expect(document.getElementById('relationship-duration-mode')).toBeNull();
     expect(
       screen.getByRole('checkbox', { name: /Gemeinsame Zeit anzeigen/i }),
     ).toBeDefined();

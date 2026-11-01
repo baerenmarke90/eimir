@@ -116,7 +116,7 @@ describe('calculateRelationshipDuration', () => {
 describe('formatRelationshipDuration', () => {
   it('formats a missing duration as unavailable', () => {
     expect(formatRelationshipDuration(null, i18n.t)).toBe(
-      'Tragt ein, seit wann ihr zusammen seid.',
+      i18n.t('profiles.relationshipNotAvailable'),
     );
   });
 

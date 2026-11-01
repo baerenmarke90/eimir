@@ -51,7 +51,9 @@ unchanged.
   Web build passed. Existing bundler directive/chunk-size warnings remain.
 - Browser fixtures use synthetic accounts and dates; these captures do not
   claim live-service or physical-device acceptance. All four final-source
-  journeys passed. No CI retry was used.
+  journeys passed. The engineering-language audit also passed after replacing
+  newly introduced legacy-copy literals in tests with the existing locale
+  resource and explicit selector identity. No CI retry was used.
 
 | State | Today | Relationship Settings |
 | --- | --- | --- |

@@ -311,6 +311,19 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           const request = route.request();
           const url = new URL(request.url());
           const path = url.pathname;
+          if (path.endsWith('/questions') && path.includes('/experiences/'))
+            return route.fulfill({
+              json: {
+                kind: kind === 'happiness' ? 'HAPPINESS' : 'TIME_TRAVEL',
+                localDate: '2026-11-01',
+                refreshAfterSeconds: 3600,
+                questionIds: Object.keys(experienceCopy.questions[kind]).slice(
+                  0,
+                  3,
+                ),
+              },
+            });
+
           if (path === `/api/v1/spaces/${SPACE_ID}/entitlements`)
             return route.fulfill({
               json: {
@@ -519,14 +532,42 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           })
           .click();
         await expect(page).toHaveURL(new RegExp(base + '$'));
-        await page
-          .getByRole('link', { name: experienceCopy.prompts.answer })
-          .click();
-        await expect(page).toHaveURL(new RegExp(base + '/new\\?prompt=first$'));
-        await expect(page.locator('[data-focused-task="true"]')).toBeVisible();
+        await page.setViewportSize({ width, height: 900 });
+        await page.emulateMedia({
+          colorScheme: theme,
+          reducedMotion: 'reduce',
+        });
+        await page.addStyleTag({
+          content: `html { font-size: ${width === 320 ? '200%' : '100%'}; }`,
+        });
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+        ).toBe(true);
+        await captureScreenshot(
+          page,
+          info,
+          `${kind}-questions-${width}-${theme}.png`,
+          { fullPage: true },
+        );
+        expect(
+          (
+            await new AxeBuilder({ page })
+              .include('.couple-experience-page')
+              .analyze()
+          ).violations,
+        ).toEqual([]);
+        const question = Object.values(experienceCopy.questions[kind])[0];
         await expect(
-          page.locator('.couple-experience-selected-prompt'),
-        ).toHaveText(experienceCopy.prompts[kind].first);
+          page.locator('.couple-experience-questions a'),
+        ).toHaveCount(3);
+        await page.getByRole('link', { name: question, exact: true }).click();
+        await expect(page).toHaveURL(new RegExp(base + '/new\\?question='));
+        await expect(page.locator('.experience-selected-question')).toHaveText(
+          question,
+        );
+        await expect(page.locator('[data-focused-task="true"]')).toBeVisible();
         const words =
           kind === 'happiness'
             ? 'Your laughter at breakfast made my day brighter.'
@@ -549,8 +590,8 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
             page.getByRole('textbox', { name: experienceCopy.write[kind] }),
           ).toHaveValue(words);
           await expect(
-            page.locator('.couple-experience-selected-prompt'),
-          ).toHaveText(experienceCopy.prompts[kind].first);
+            page.locator('.experience-selected-question'),
+          ).toHaveText(question);
         }
         await page.setViewportSize({ width, height: 900 });
         await page.emulateMedia({
@@ -584,9 +625,9 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           await page
             .getByRole('button', { name: taskCopy.verify, exact: true })
             .click();
-        await expect(page).toHaveURL(new RegExp('/story/memories/experience-'));
+        await expect(page).toHaveURL(/\/story\/memories\/experience-/);
         await expect(page.getByText(words, { exact: true })).toBeVisible();
-        expect(notes[0].title).toBe(experienceCopy.prompts[kind].first);
+        expect(notes[0].title).toBe(question);
         expect(
           notes.filter(
             (note) =>
@@ -594,7 +635,10 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
               (kind === 'happiness' ? 'HAPPINESS' : 'TIME_TRAVEL'),
           ),
         ).toHaveLength(1);
-        await page.goto(base, { waitUntil: 'domcontentloaded' });
+        if (kind === 'happiness' && width === 360)
+          await page.goto(base, { waitUntil: 'domcontentloaded' });
+        else await page.goBack();
+        await expect(page).toHaveURL(new RegExp(base + '$'));
         await expect(
           page
             .locator('.couple-experience-history-entry')
@@ -603,7 +647,7 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         await expect(
           page
             .locator('.couple-experience-history-entry')
-            .getByRole('heading', { name: experienceCopy.prompts[kind].first }),
+            .getByRole('heading', { name: question }),
         ).toBeVisible();
         await signIn(partnerPage);
         await partnerPage.goto('/today', { waitUntil: 'domcontentloaded' });
@@ -622,8 +666,7 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           width === 430 ? 'experience-note-enter' : 'none',
         );
         if (width === 430) {
-          // Inspect the entrance in progress rather than waiting away a
-          // contrast failure caused by fading text and controls together.
+          // Assert contrast while the entrance is in progress, not after it.
           await reveal.evaluate((element) => {
             const entrance = element
               .getAnimations()
@@ -655,10 +698,6 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           .include('.today-page')
           .analyze();
         expect(receiverAxe.violations).toEqual([]);
-        if (width === 430)
-          await reveal.evaluate((element) => {
-            for (const animation of element.getAnimations()) animation.play();
-          });
         await reveal
           .getByRole('link', { name: experienceCopy.incoming.open })
           .click();

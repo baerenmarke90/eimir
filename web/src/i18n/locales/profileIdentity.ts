@@ -120,7 +120,8 @@ const profileIdentity = {
   anniversaryReminderToggle: 'An unseren Jahrestag erinnern',
   anniversaryReminderToggleHelp:
     'Sendet dir rechtzeitig persönliche Benachrichtigungen vor eurem Jahrestag.',
-  anniversaryReminderDaysHeading: 'Erinnerungszeitpunkte vor dem Jahrestag',
+  anniversaryReminderDaysHeading: 'Erinnerungszeitpunkte',
+  anniversaryReminderDay0: 'Am Jahrestag',
   anniversaryReminderDay30: '30 Tage vorher',
   anniversaryReminderDay7: '7 Tage vorher',
   anniversaryReminderDay1: '1 Tag vorher',
@@ -132,8 +133,8 @@ const profileIdentity = {
   partnerBirthdayReminderToggle: 'An den Geburtstag meines Partners erinnern',
   partnerBirthdayReminderToggleHelp:
     'Diese persönliche Einstellung betrifft nur deine Erinnerungen. Der Geburtstag selbst bleibt für euch sichtbar.',
-  partnerBirthdayReminderDaysHeading:
-    'Erinnerungszeitpunkte vor dem Geburtstag',
+  partnerBirthdayReminderDaysHeading: 'Erinnerungszeitpunkte',
+  partnerBirthdayReminderDay0: 'Am Geburtstag',
   partnerBirthdayReminderDay14: '14 Tage vorher',
   partnerBirthdayReminderDay7: '7 Tage vorher',
   partnerBirthdayReminderDay1: '1 Tag vorher',

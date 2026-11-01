@@ -370,7 +370,7 @@ export function NotificationSettingsPanel({
                     <summary>{t('notificationSettings.individual')}</summary>
                     {items.map((item) => {
                       const event = t(
-                        `notificationSettings.${KIND_KEYS[item.kind]}`,
+                        `notificationSettings.${KIND_KEYS[item.kind as keyof typeof KIND_KEYS]}`,
                       );
                       return (
                         <div className="notification-event" key={item.kind}>

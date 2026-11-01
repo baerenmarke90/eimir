@@ -9,7 +9,7 @@ from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select, update
+from sqlalchemy import and_, delete, func, literal, or_, select, update
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
@@ -45,6 +45,9 @@ from eimir.places.models import Place
 from eimir.plans.models import Plan
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders import delivery as reminder_delivery
+from eimir.transfer.models import TransferExport, TransferImport
+from eimir.wish_selections import service as wish_selections
+from eimir.wish_selections.models import WishSelectionRound
 from eimir.wishes.models import Wish
 
 log = logging.getLogger(__name__)
@@ -68,6 +71,9 @@ _OWN_NOISE_KINDS = {
 }
 
 _TARGET_MODELS: dict[EngagementTarget, Any] = {
+    EngagementTarget.TRANSFER_EXPORT: TransferExport,
+    EngagementTarget.TRANSFER_IMPORT: TransferImport,
+    EngagementTarget.WISH_SELECTION: WishSelectionRound,
     EngagementTarget.MEMORY: Memory,
     EngagementTarget.HEART_MOMENT: HeartMoment,
     EngagementTarget.MILESTONE: Milestone,
@@ -234,6 +240,81 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             NotificationKind.COUPLE_EXPERIENCE_SHARED,
         )
 
+    if (
+        event_type in {EventType.PLAN_CREATED, EventType.PLAN_SCHEDULED}
+        and event.payload.due_at is not None
+        and clock.ensure_utc(event.payload.due_at) > clock.now()
+    ):
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.PLAN,
+            event.subject_id,
+            NotificationKind.PLAN_CREATED,
+            expires_at=event.payload.due_at,
+        )
+    if event_type in {EventType.PLAN_ATTENDANCE_CHANGED, EventType.PLAN_CANCELLED}:
+        deadline = event.payload.due_at
+        if deadline is not None and clock.ensure_utc(deadline) > clock.now():
+            cancelled = event_type is EventType.PLAN_CANCELLED
+            _project_target_notification(
+                session,
+                event,
+                None if cancelled else EngagementTarget.PLAN,
+                None if cancelled else event.subject_id,
+                NotificationKind.PLAN_CANCELLED if cancelled else NotificationKind.PLAN_CHANGED,
+                expires_at=deadline,
+            )
+    if event_type in {EventType.WISH_SELECTION_SHARED, EventType.WISH_SELECTION_READY}:
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.WISH_SELECTION,
+            event.subject_id,
+            NotificationKind.WISH_SELECTION_SHARED
+            if event_type is EventType.WISH_SELECTION_SHARED
+            else NotificationKind.WISH_SELECTION_READY,
+        )
+    if event_type is EventType.PHOTO_REACTION_CHANGED:
+        memory = session.get(Memory, event.subject_id)
+        if memory is not None and any(
+            reaction.account_id == event.actor_id for reaction in memory.payload.photo_reactions
+        ):
+            _project_target_notification(
+                session,
+                event,
+                EngagementTarget.MEMORY,
+                event.subject_id,
+                NotificationKind.PHOTO_REACTION,
+            )
+        else:
+            session.execute(
+                delete(Notification).where(
+                    Notification.space_id == event.space_id,
+                    Notification.recipient_account_id == event.payload.recipient_id,
+                    Notification.kind == NotificationKind.PHOTO_REACTION.value,
+                    Notification.target_type == EngagementTarget.MEMORY.value,
+                    Notification.target_id == event.subject_id,
+                )
+            )
+    if event_type is EventType.PARTNER_JOINED:
+        _project_target_notification(session, event, None, None, NotificationKind.PARTNER_JOINED)
+    if event_type in {
+        EventType.TRANSFER_READY,
+        EventType.TRANSFER_COMPLETED,
+        EventType.TRANSFER_FAILED,
+    } and event.subject_type in {"transfer_export", "transfer_import"}:
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.TRANSFER_EXPORT
+            if event.subject_type == "transfer_export"
+            else EngagementTarget.TRANSFER_IMPORT,
+            event.subject_id,
+            NotificationKind(event_type.value),
+            expires_at=event.payload.due_at,
+        )
+
     push.ensure_deliveries_for_source_event(session, event.id)
     email_delivery.ensure_deliveries_for_source_event(session, event.id)
 
@@ -318,12 +399,19 @@ def _insert_activity(
 def _project_target_notification(
     session: Session,
     event: OutboxEvent,
-    target_type: EngagementTarget,
-    target_id: UUID,
+    target_type: EngagementTarget | None,
+    target_id: UUID | None,
     notification_kind: NotificationKind,
+    *,
+    expires_at: datetime | None = None,
 ) -> None:
     recipient_id = event.payload.recipient_id
-    if recipient_id is None or recipient_id == event.actor_id:
+    self_outcome = notification_kind in {
+        NotificationKind.TRANSFER_READY,
+        NotificationKind.TRANSFER_COMPLETED,
+        NotificationKind.TRANSFER_FAILED,
+    }
+    if recipient_id is None or (recipient_id == event.actor_id and not self_outcome):
         return
 
     active_recipient = session.execute(
@@ -337,26 +425,55 @@ def _project_target_notification(
         return
 
     context = AuthorizationContext(account_id=recipient_id, space_id=event.space_id)
-    if not _target_is_projectable(session, context, target_type, target_id):
+    if (
+        target_type is not None
+        and target_id is not None
+        and not _target_is_projectable(session, context, target_type, target_id)
+    ):
         return
 
-    statement = (
-        postgresql.insert(Notification)
-        .values(
-            space_id=event.space_id,
-            recipient_account_id=recipient_id,
-            source_event_id=event.id,
-            kind=notification_kind.value,
-            actor_id=event.actor_id,
-            target_type=target_type.value,
-            target_id=target_id,
-            created_at=event.created_at,
-            in_app_visible=notification_preferences.in_app_enabled(
-                session, account_id=recipient_id, kind=notification_kind.value
+    insert = postgresql.insert(Notification).values(
+        space_id=event.space_id,
+        recipient_account_id=recipient_id,
+        source_event_id=event.id,
+        kind=notification_kind.value,
+        actor_id=event.actor_id,
+        target_type=target_type.value if target_type else None,
+        target_id=target_id,
+        created_at=event.created_at,
+        expires_at=expires_at,
+        in_app_visible=notification_preferences.in_app_enabled(
+            session, account_id=recipient_id, kind=notification_kind.value
+        ),
+    )
+    if notification_kind in {
+        NotificationKind.PHOTO_REACTION,
+        NotificationKind.WISH_SELECTION_SHARED,
+        NotificationKind.WISH_SELECTION_READY,
+    }:
+        statement = insert.on_conflict_do_update(
+            index_elements=["recipient_account_id", "space_id", "kind", "target_type", "target_id"],
+            index_where=Notification.kind.in_(
+                ["PHOTO_REACTION", "WISH_SELECTION_SHARED", "WISH_SELECTION_READY"]
+            ),
+            set_={
+                "created_at": insert.excluded.created_at,
+                "source_event_id": insert.excluded.source_event_id,
+                "read_at": None,
+                "in_app_visible": insert.excluded.in_app_visible,
+            },
+            where=or_(
+                Notification.created_at < insert.excluded.created_at,
+                and_(
+                    Notification.created_at == insert.excluded.created_at,
+                    Notification.source_event_id < insert.excluded.source_event_id,
+                ),
             ),
         )
-        .on_conflict_do_nothing(index_elements=["recipient_account_id", "source_event_id", "kind"])
-    )
+    else:
+        statement = insert.on_conflict_do_nothing(
+            index_elements=["recipient_account_id", "source_event_id", "kind"]
+        )
     session.execute(statement)
 
 
@@ -366,6 +483,22 @@ def _target_is_projectable(
     target_type: EngagementTarget,
     target_id: UUID,
 ) -> bool:
+    if target_type in {EngagementTarget.TRANSFER_EXPORT, EngagementTarget.TRANSFER_IMPORT}:
+        model = _TARGET_MODELS[target_type]
+        return (
+            session.scalar(
+                select(model.id).where(
+                    model.id == target_id,
+                    model.space_id == context.space_id,
+                    model.created_by == context.account_id,
+                    model.expires_at > clock.now(),
+                )
+            )
+            is not None
+        )
+    if target_type is EngagementTarget.WISH_SELECTION:
+        current = wish_selections.get_selection(session, context)
+        return current.round is not None and current.round.id == target_id
     model = _TARGET_MODELS[target_type]
     statement = readable(model, context).where(
         model.id == target_id,
@@ -378,9 +511,49 @@ def _projectable_predicate(
     target_type_column: Any,
     target_id_column: Any,
     context: AuthorizationContext,
+    session: Session,
+    selection: wish_selections.SelectionProjection | None = None,
 ) -> Any:
     clauses: list[Any] = [target_type_column.is_(None)]
     for target_type, model in _TARGET_MODELS.items():
+        if target_type in {EngagementTarget.TRANSFER_EXPORT, EngagementTarget.TRANSFER_IMPORT}:
+            if selection is None:
+                continue
+            exists = (
+                select(model.id)
+                .where(
+                    model.id == target_id_column,
+                    model.space_id == context.space_id,
+                    model.created_by == context.account_id,
+                    model.expires_at > clock.now(),
+                    or_(
+                        and_(
+                            Notification.kind == NotificationKind.TRANSFER_READY.value,
+                            model.status.in_(["READY", "READY_TO_APPLY"]),
+                        ),
+                        and_(
+                            Notification.kind == NotificationKind.TRANSFER_COMPLETED.value,
+                            model.status == "COMPLETED",
+                        ),
+                        and_(
+                            Notification.kind == NotificationKind.TRANSFER_FAILED.value,
+                            model.status == "FAILED",
+                        ),
+                    ),
+                )
+                .exists()
+            )
+            clauses.append(and_(target_type_column == target_type.value, exists))
+            continue
+        if target_type is EngagementTarget.WISH_SELECTION:
+            if selection is not None and selection.round is not None:
+                clauses.append(
+                    and_(
+                        target_type_column == target_type.value,
+                        target_id_column == selection.round.id,
+                    )
+                )
+            continue
         exists = (
             readable(model, context)
             .where(
@@ -394,6 +567,32 @@ def _projectable_predicate(
     return or_(*clauses)
 
 
+def _current_notification_predicate(session: Session, context: AuthorizationContext) -> Any:
+    current = wish_selections.get_selection(session, context)
+    return and_(
+        or_(
+            Notification.kind.not_in(
+                [NotificationKind.PLAN_CREATED.value, NotificationKind.PLAN_CHANGED.value]
+            ),
+            select(Plan.id)
+            .where(
+                Plan.id == Notification.target_id,
+                Plan.space_id == context.space_id,
+                Plan.status == "PLANNED",
+            )
+            .exists(),
+        ),
+        or_(Notification.expires_at.is_(None), Notification.expires_at > clock.now()),
+        _projectable_predicate(
+            Notification.target_type, Notification.target_id, context, session, current
+        ),
+        or_(
+            Notification.kind != NotificationKind.WISH_SELECTION_READY.value,
+            literal(current.result_state == "READY"),
+        ),
+    )
+
+
 def notification_target_available(
     session: Session, notification: Notification, context: AuthorizationContext
 ) -> bool:
@@ -404,7 +603,7 @@ def notification_target_available(
                 Notification.id == notification.id,
                 Notification.space_id == context.space_id,
                 Notification.recipient_account_id == context.account_id,
-                _projectable_predicate(Notification.target_type, Notification.target_id, context),
+                _current_notification_predicate(session, context),
             )
         ).scalar_one_or_none()
         is not None
@@ -470,7 +669,7 @@ def read_activity(
     binding = _activity_binding(context, scope)
     statement = select(Activity).where(
         Activity.space_id == context.space_id,
-        _projectable_predicate(Activity.target_type, Activity.target_id, context),
+        _projectable_predicate(Activity.target_type, Activity.target_id, context, session),
     )
     if scope == ActivityScope.OWN:
         statement = statement.where(Activity.actor_id == context.account_id)
@@ -516,7 +715,7 @@ def read_notifications(
         Notification.space_id == context.space_id,
         Notification.recipient_account_id == context.account_id,
         Notification.in_app_visible.is_(True),
-        _projectable_predicate(Notification.target_type, Notification.target_id, context),
+        _current_notification_predicate(session, context),
     )
     if cursor is not None:
         created_at, item_id = _decode_position(cursor, binding)
@@ -548,7 +747,7 @@ def unread_count(session: Session, context: AuthorizationContext) -> int:
         Notification.recipient_account_id == context.account_id,
         Notification.read_at.is_(None),
         Notification.in_app_visible.is_(True),
-        _projectable_predicate(Notification.target_type, Notification.target_id, context),
+        _current_notification_predicate(session, context),
     )
     return int(session.execute(statement).scalar_one())
 
@@ -557,6 +756,8 @@ def mark_notification_read(
     session: Session,
     context: AuthorizationContext,
     notification_id: UUID | str,
+    *,
+    include_external: bool = False,
 ) -> Notification:
     identifier = notification_id if isinstance(notification_id, UUID) else parse_id(notification_id)
     if identifier is None:
@@ -570,8 +771,8 @@ def mark_notification_read(
             Notification.id == identifier,
             Notification.space_id == context.space_id,
             Notification.recipient_account_id == context.account_id,
-            Notification.in_app_visible.is_(True),
-            _projectable_predicate(Notification.target_type, Notification.target_id, context),
+            or_(Notification.in_app_visible.is_(True), literal(include_external)),
+            _current_notification_predicate(session, context),
         )
         .with_for_update()
     )
@@ -597,7 +798,7 @@ def mark_all_notifications_read(
             Notification.read_at.is_(None),
             Notification.in_app_visible.is_(True),
             Notification.created_at <= cutoff,
-            _projectable_predicate(Notification.target_type, Notification.target_id, context),
+            _current_notification_predicate(session, context),
         )
         .values(read_at=cutoff)
     )

@@ -34,19 +34,21 @@ interface RuleReminderSettingsProps {
 
 const ANNIVERSARY_RULE_KEY = 'relationship_anniversary_reminder';
 const PARTNER_BIRTHDAY_RULE_KEY = 'partner_birthday_reminder';
-const ANNIVERSARY_DEFAULT_DAYS = [30, 7, 1];
-const PARTNER_BIRTHDAY_DEFAULT_DAYS = [14, 7, 1];
+const ANNIVERSARY_DEFAULT_DAYS = [30, 0];
+const PARTNER_BIRTHDAY_DEFAULT_DAYS = [14, 0];
 
 const ANNIVERSARY_DAY_PRESETS: DayPreset[] = [
   { days: 30, labelKey: 'profileIdentity.anniversaryReminderDay30' },
   { days: 7, labelKey: 'profileIdentity.anniversaryReminderDay7' },
   { days: 1, labelKey: 'profileIdentity.anniversaryReminderDay1' },
+  { days: 0, labelKey: 'profileIdentity.anniversaryReminderDay0' },
 ];
 
 const PARTNER_BIRTHDAY_DAY_PRESETS: DayPreset[] = [
   { days: 14, labelKey: 'profileIdentity.partnerBirthdayReminderDay14' },
   { days: 7, labelKey: 'profileIdentity.partnerBirthdayReminderDay7' },
   { days: 1, labelKey: 'profileIdentity.partnerBirthdayReminderDay1' },
+  { days: 0, labelKey: 'profileIdentity.partnerBirthdayReminderDay0' },
 ];
 
 function sameDays(left: number[], right: number[]): boolean {

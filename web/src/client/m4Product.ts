@@ -141,9 +141,30 @@ export function engagementTargetPath(
       return chapterDetailPath(targetId);
     case 'COLLECTION':
       return collectionDetailPath(targetId);
+    case 'WISH_SELECTION':
+      return '/plan/choose';
+    case 'TRANSFER_EXPORT':
+      return `/more/settings/data?export=${encodeURIComponent(targetId)}`;
+    case 'TRANSFER_IMPORT':
+      return `/more/settings/data?import=${encodeURIComponent(targetId)}`;
     default:
       return null;
   }
+}
+
+export function notificationPath(item: {
+  kind: string;
+  targetType: EngagementTarget | null;
+  targetId: string | null;
+}): string | null {
+  return (
+    engagementTargetPath(item.targetType, item.targetId) ??
+    (item.kind === 'PLAN_CANCELLED'
+      ? '/plan'
+      : item.kind === 'PARTNER_JOINED'
+        ? '/today'
+        : null)
+  );
 }
 
 export function opaqueNextCursor(page: {

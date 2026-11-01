@@ -45,6 +45,7 @@ export * from './CommentDetail';
 export * from './CommentPage';
 export * from './CommentUpdate';
 export * from './ContentVisibility';
+export * from './CoupleExperienceQuestions';
 export * from './DailyCheckInEnergyView';
 export * from './DailyCheckInInsightDayView';
 export * from './DailyCheckInInsightSummaryView';

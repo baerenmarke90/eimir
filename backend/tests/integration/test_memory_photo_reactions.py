@@ -3,8 +3,13 @@
 from uuid import UUID, uuid4
 
 import pytest
+from sqlalchemy import func, select
 
+from eimir.authorization import AuthorizationContext
+from eimir.engagement import service as engagement
+from eimir.engagement.models import Notification, NotificationKind, PushDelivery
 from eimir.memories.models import Memory
+from eimir.outbox.models import OutboxEvent
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 from tests.integration.test_attachment_binding import (
     base_path,
@@ -139,3 +144,47 @@ def test_rejects_foreign_unbound_missing_and_invalid_photo_targets(
         client.get(path, headers=auth(couple["token_a"])).json()["attachments"][0]["reactions"]
         == []
     )
+
+
+def test_incoming_reactions_coalesce_without_push_and_retraction_removes_notice(
+    client, couple, photo_memory, session
+):  # type: ignore[no-untyped-def]
+    source, photo, _ = photo_memory
+    endpoint = f"{source}/attachments/{photo}/reaction"
+    context = AuthorizationContext(couple["anna"].id, couple["space"].id)
+
+    def project():
+        for event in session.scalars(
+            select(OutboxEvent).order_by(OutboxEvent.created_at, OutboxEvent.id)
+        ):
+            engagement.project_event(session, event)
+        session.flush()
+
+    assert (
+        client.put(endpoint, json={"reaction": "LOVE"}, headers=auth(couple["token_b"])).status_code
+        == 200
+    )
+    project()
+    notice = session.scalar(
+        select(Notification).where(Notification.kind == NotificationKind.PHOTO_REACTION.value)
+    )
+    assert notice is not None and notice.recipient_account_id == couple["anna"].id
+    assert session.scalar(select(func.count()).select_from(PushDelivery)) == 0
+    engagement.mark_notification_read(session, context, notice.id)
+    project()
+    session.refresh(notice)
+    assert notice.read_at is not None
+    assert (
+        client.put(endpoint, json={"reaction": "LIKE"}, headers=auth(couple["token_b"])).status_code
+        == 200
+    )
+    project()
+    session.refresh(notice)
+    assert notice.read_at is None
+    assert session.scalar(select(func.count()).select_from(Notification)) == 1
+    assert (
+        client.put(endpoint, json={"reaction": None}, headers=auth(couple["token_b"])).status_code
+        == 200
+    )
+    project()
+    assert not engagement.read_notifications(session, context).items

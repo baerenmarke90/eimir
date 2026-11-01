@@ -29,7 +29,7 @@ path converts a calendar date into a fabricated midnight/noon timestamp.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -46,6 +46,7 @@ from eimir.authorization import (
     require_writable,
     require_writable_locked,
 )
+from eimir.core import clock
 from eimir.core import cursor as cursor_codec
 from eimir.core.clock import now, today_in
 from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
@@ -57,6 +58,7 @@ from eimir.outbox import service as outbox_service
 from eimir.places.models import Place
 from eimir.plans.media import PhotoSelection, replace_cover, replace_photos
 from eimir.plans.models import Plan, PlanPayload, PlanStatus, shared_privacy
+from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders import runtime as reminder_runtime
 from eimir.wishes import service as wish_service
 from eimir.wishes.models import Wish, WishStatus
@@ -135,8 +137,17 @@ def _ensure_expected_version(plan: Plan, expected_version: int) -> None:
         )
 
 
-def _record(session: Session, plan: Plan, actor_id: UUID, event_type: EventType) -> None:
+def _record(
+    session: Session,
+    plan: Plan,
+    actor_id: UUID,
+    event_type: EventType,
+    *,
+    due_at: datetime | None = None,
+) -> None:
     """Record an event without plan title or description (M3-D13)."""
+    if event_type in {EventType.PLAN_CREATED, EventType.PLAN_SCHEDULED}:
+        due_at = _schedule_deadline(session, plan, actor_id)
     outbox_service.record(
         session,
         DomainEvent(
@@ -146,8 +157,77 @@ def _record(session: Session, plan: Plan, actor_id: UUID, event_type: EventType)
             subject_type=_PLAN_SUBJECT_TYPE,
             subject_id=plan.id,
             resource_version=plan.version,
-            payload=PublicEventPayload(),
+            payload=PublicEventPayload(
+                recipient_id=session.scalar(
+                    select(Membership.account_id)
+                    .where(
+                        Membership.space_id == plan.space_id,
+                        Membership.account_id != actor_id,
+                        Membership.status == MembershipStatus.ACTIVE.value,
+                    )
+                    .limit(1)
+                )
+                if event_type
+                in {
+                    EventType.PLAN_CREATED,
+                    EventType.PLAN_SCHEDULED,
+                    EventType.PLAN_ATTENDANCE_CHANGED,
+                    EventType.PLAN_CANCELLED,
+                }
+                else None,
+                due_at=due_at,
+            ),
         ),
+    )
+
+
+def _schedule_deadline(session: Session, plan: Plan, actor_id: UUID) -> datetime | None:
+    if plan.planned_start is not None:
+        return clock.ensure_utc(plan.planned_start)
+    if plan.planned_on is not None:
+        actor = session.get(Account, actor_id)
+        # Date-only Plans remain relevant for their whole local calendar day.
+        return clock.resolve_local(
+            plan.planned_on + timedelta(days=1),
+            time.min,
+            clock.resolve_zone(actor.timezone if actor else "UTC"),
+        )
+    return None
+
+
+def _attendance_changed(
+    session: Session,
+    plan: Plan,
+    actor_id: UUID,
+    previous: tuple[date | None, datetime | None, datetime | None, UUID | None],
+    deadline: datetime | None,
+    *,
+    cancelled: bool = False,
+) -> None:
+    if plan.status == PlanStatus.COMPLETED.value:
+        return
+    current = (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id)
+    if not cancelled and current == previous:
+        return
+    if not cancelled and previous[0] is None and previous[1] is None:
+        if plan.planned_on is not None or plan.planned_start is not None:
+            _record(session, plan, actor_id, EventType.PLAN_SCHEDULED)
+        return
+    cancelled = cancelled or (plan.planned_on is None and plan.planned_start is None)
+    instant = now()
+    deadlines = [
+        value
+        for value in (deadline, _schedule_deadline(session, plan, actor_id))
+        if value is not None and instant < value <= instant + timedelta(hours=48)
+    ]
+    if not deadlines:
+        return
+    _record(
+        session,
+        plan,
+        actor_id,
+        EventType.PLAN_CANCELLED if cancelled else EventType.PLAN_ATTENDANCE_CHANGED,
+        due_at=max(deadlines),
     )
 
 
@@ -448,6 +528,8 @@ def update_plan(
 
     plan = _lock_plan(session, context, plan_id)
     _ensure_expected_version(plan, expected_version)
+    previous = (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id)
+    previous_deadline = _schedule_deadline(session, plan, context.account_id)
 
     if "attachments" in changed_fields:
         assert photos is not None
@@ -502,6 +584,7 @@ def update_plan(
 
     _flush(session)
     _record(session, plan, context.account_id, EventType.PLAN_UPDATED)
+    _attendance_changed(session, plan, context.account_id, previous, previous_deadline)
     _flush(session)
     if "schedule" in changed_fields:
         reminder_runtime.reconcile_space(session, context.space_id)
@@ -521,6 +604,8 @@ def schedule_plan(
     """Apply ``IDEA -> PLANNED`` or replace a ``PLANNED`` schedule."""
     plan = _lock_plan(session, context, plan_id)
     _ensure_expected_version(plan, expected_version)
+    previous = (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id)
+    previous_deadline = _schedule_deadline(session, plan, context.account_id)
 
     if plan.status == PlanStatus.COMPLETED.value:
         raise ConflictError(
@@ -536,6 +621,7 @@ def schedule_plan(
 
     _flush(session)
     _record(session, plan, context.account_id, EventType.PLAN_UPDATED)
+    _attendance_changed(session, plan, context.account_id, previous, previous_deadline)
     _flush(session)
     reminder_runtime.reconcile_space(session, context.space_id)
     return plan
@@ -551,6 +637,8 @@ def unschedule_plan(
     """Apply ``PLANNED -> IDEA`` and discard either schedule representation."""
     plan = _lock_plan(session, context, plan_id)
     _ensure_expected_version(plan, expected_version)
+    previous = (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id)
+    previous_deadline = _schedule_deadline(session, plan, context.account_id)
 
     if plan.status != PlanStatus.PLANNED.value:
         raise ConflictError(
@@ -565,6 +653,7 @@ def unschedule_plan(
 
     _flush(session)
     _record(session, plan, context.account_id, EventType.PLAN_UPDATED)
+    _attendance_changed(session, plan, context.account_id, previous, previous_deadline)
     _flush(session)
     reminder_runtime.reconcile_space(session, context.space_id)
     return plan
@@ -630,6 +719,14 @@ def return_to_wish(
     removed_plan_id = plan.id
     actor_id = context.account_id
     replace_photos(session, context, plan, [])
+    _attendance_changed(
+        session,
+        plan,
+        actor_id,
+        (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id),
+        _schedule_deadline(session, plan, actor_id),
+        cancelled=True,
+    )
     session.delete(plan)
     _flush(session)
     _record(session, plan, actor_id, EventType.PLAN_DELETED)
@@ -659,6 +756,14 @@ def delete_plan(
 
     actor_id = context.account_id
     replace_photos(session, context, plan, [])
+    _attendance_changed(
+        session,
+        plan,
+        actor_id,
+        (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id),
+        _schedule_deadline(session, plan, actor_id),
+        cancelled=True,
+    )
     session.delete(plan)
     _flush(session)
     _record(session, plan, actor_id, EventType.PLAN_DELETED)

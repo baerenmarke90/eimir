@@ -578,7 +578,11 @@ test('quote and statistics order survives pointer release, keyboard movement and
   const rowBounds = await failedQuote.boundingBox();
   if (!errorBounds || !rowBounds) throw new Error('Missing quote recovery');
   expect(Math.abs(errorBounds.width - rowBounds.width)).toBeLessThan(1);
-  await captureScreenshot(failedQuote, info, 'settings-quote-error-1280-dark.png');
+  await captureScreenshot(
+    failedQuote,
+    info,
+    'settings-quote-error-1280-dark.png',
+  );
   const issues = await new AxeBuilder({ page })
     .include('.settings-category-page')
     .analyze();

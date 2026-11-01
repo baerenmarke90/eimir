@@ -61,9 +61,8 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
         self.assertNotIn("contents: write", self.workflow)
         self.assertNotIn("packages: write", self.workflow)
 
-    def test_workflow_does_not_consume_signing_or_repository_secrets(self) -> None:
+    def test_workflow_only_accepts_public_client_configuration_without_server_or_signing_keys(self) -> None:
         forbidden = (
-            "${{ secrets.",
             "EIMIR_RELEASE_KEYSTORE",
             "EIMIR_RELEASE_KEYSTORE_PASSWORD",
             "EIMIR_RELEASE_KEY_ALIAS",
@@ -72,6 +71,10 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
         for marker in forbidden:
             with self.subTest(marker=marker):
                 self.assertNotIn(marker, self.workflow)
+        self.assertEqual(
+            set(re.findall(r"secrets\.([A-Za-z0-9_]+)", self.workflow)),
+            {"EIMIR_ANDROID_GOOGLE_SERVICES_JSON"},
+        )
 
     def test_all_external_actions_are_immutable_sha_pins(self) -> None:
         seen: dict[str, set[str]] = {}
@@ -211,7 +214,7 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
     def test_apk_and_aab_packaging_and_badging_verified(self) -> None:
         self.assertIn("dump badging", self.workflow)
         self.assertIn("build-tools/36.0.0/aapt", self.workflow)
-        self.assertIn("package: name='de.sidebyside.app'", self.workflow)
+        self.assertIn("package: name='de.eimir.app'", self.workflow)
         self.assertIn("scripts/android_launcher_identity.py", self.workflow)
         self.assertIn("cmdline-tools/latest/bin/apkanalyzer", self.workflow)
         self.assertIn("public/index.html", self.workflow)

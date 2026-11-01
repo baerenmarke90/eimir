@@ -128,31 +128,31 @@ jobs:
               | sed -n 's/.*_id=\([0-9]*\),.*/\1/p' | tr -d '\r')
             [[ "$external_photo_id" =~ ^[0-9]+$ ]]
             external_photo_uri="content://media/external_primary/images/media/$external_photo_id"
-            ! grep -F 'owner_package_name=de.sidebyside.app' external-photo-owner.log
+            ! grep -F 'owner_package_name=de.eimir.app' external-photo-owner.log
           fi
           adb -e shell cat /proc/meminfo > guest-memory-before-tests.log
           timeout 180 adb -e shell am instrument -w -r \
             -e externalPhotoUri "$external_photo_uri" \
-            -e class de.eimir.app.LauncherIconsTest,de.eimir.app.UnifiedPushAccountReplacementTest,de.eimir.app.PhotoFileChooserTest,de.eimir.app.PlanCalendarTest \
-            de.sidebyside.app.debug.test/de.eimir.app.PushFixtureRunner \
+            -e class de.eimir.app.LauncherIconsTest,de.eimir.app.UnifiedPushAccountReplacementTest,de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.FcmServiceOwnershipTest,de.eimir.app.PushStorageFailureTest,de.eimir.app.PhotoFileChooserTest,de.eimir.app.PlanCalendarTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
           grep -Eq '^OK \([1-9][0-9]* tests?\)' instrumentation.log
           # Exercise actual Android notification/PendingIntent and retained bridge
           # handoff separately, preserving the existing fixture's time budget.
           timeout 180 adb -e shell am instrument -w -r \
             -e class de.eimir.app.NotificationOpenTest \
-            de.sidebyside.app.debug.test/de.eimir.app.PushFixtureRunner \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee notification-open.log
           grep -Eq '^OK \(6 tests\)' notification-open.log
           if [ '${{ matrix.api }}' != '28' ]; then
-            adb -e exec-out run-as de.sidebyside.app.debug cat files/native-photo-picker.png > native-photo-picker.png
+            adb -e exec-out run-as de.eimir.app.debug cat files/native-photo-picker.png > native-photo-picker.png
             test -s native-photo-picker.png
           fi
       - name: Actual Android File through Web upload, API, worker and shared Place
         if: matrix.api == 36
         run: |
           adb_path="$ANDROID_HOME/platform-tools/adb"
-          "$adb_path" -e exec-out run-as de.sidebyside.app.debug cat files/native-selected-photo.jpg > android/native-selected-photo.jpg
+          "$adb_path" -e exec-out run-as de.eimir.app.debug cat files/native-selected-photo.jpg > android/native-selected-photo.jpg
           test -s android/native-selected-photo.jpg
           bash scripts/test_android_photo_pipeline.sh
       - name: Capture native fixture diagnostics
@@ -164,8 +164,8 @@ jobs:
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b crash -d -t 200 \
             > native-crash.log 2>&1 || true
           for proof in native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg; do
-            if "$ANDROID_HOME/platform-tools/adb" -e shell run-as de.sidebyside.app.debug test -f "files/$proof"; then
-              "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.sidebyside.app.debug \
+            if "$ANDROID_HOME/platform-tools/adb" -e shell run-as de.eimir.app.debug test -f "files/$proof"; then
+              "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.eimir.app.debug \
                 cat "files/$proof" > "$proof"
             else
               rm -f "$proof"
@@ -175,7 +175,7 @@ jobs:
         if: failure()
         working-directory: android
         run: |
-          timeout 15 "$ANDROID_HOME/platform-tools/adb" -e shell dumpsys activity exit-info de.sidebyside.app.debug \
+          timeout 15 "$ANDROID_HOME/platform-tools/adb" -e shell dumpsys activity exit-info de.eimir.app.debug \
             > native-exit-info.log 2>&1 || true
       - name: Upload native verification results
         if: always()

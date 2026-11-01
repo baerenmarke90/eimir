@@ -15,6 +15,7 @@ import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../client/apiConfiguration';
 import { isDemoModeConfigured } from '../client/demoMode';
+import type { DevicePushController } from '../client/devicePush';
 import {
   isSettingsCategoryId,
   MORE_NOTIFICATIONS_ROUTE,
@@ -24,7 +25,6 @@ import {
   settingsCategoryPath,
 } from '../client/routes';
 import { settingsCategoryDefinition } from '../client/settingsNavigation';
-import type { DevicePushController } from '../client/unifiedPush';
 import { useTranslation } from '../i18n';
 import { AccountSettingsPanel } from './AccountSettingsPanel';
 import {

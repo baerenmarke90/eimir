@@ -1,0 +1,25 @@
+# Explicit FCM opt-in fragment for the canonical root Compose topology.
+# No services, networks or stores are added. Without this fragment, no sender
+# file is required or mounted. The private-channel exporter reuses this mount.
+x-fcm-runtime: &fcm-runtime
+  environment:
+    EIMIR_PUSH_FCM_PROJECT_ID: "${EIMIR_PUSH_FCM_PROJECT_ID:?Set the operator Firebase project ID}"
+    EIMIR_PUSH_FCM_ANDROID_PACKAGE: "${EIMIR_PUSH_FCM_ANDROID_PACKAGE:?Set the Android application package}"
+    EIMIR_PUSH_FCM_CREDENTIALS_FILE: /run/secrets/eimir-fcm-sender.json
+  volumes:
+    - type: bind
+      source: "${EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE:?Set the absolute private sender file on the Docker host}"
+      target: /run/secrets/eimir-fcm-sender.json
+      read_only: true
+      bind:
+        create_host_path: false
+
+services:
+  api:
+    <<: *fcm-runtime
+  worker:
+    <<: *fcm-runtime
+  cloud-api:
+    <<: *fcm-runtime
+  cloud-worker:
+    <<: *fcm-runtime

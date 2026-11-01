@@ -69,7 +69,7 @@ describe('trusted external identity URLs', () => {
     'http://instance.example/auth/signup?token=proof',
     'https://instance.example:444/auth/signup?token=proof',
     'https://user:password@instance.example/auth/signup?token=proof',
-    'de.sidebyside.app://recent-authentication/oidc?token=proof',
+    'de.eimir.app://recent-authentication/oidc?token=proof',
     'javascript:alert(1)',
     '/auth/signup?token=proof',
     `${ORIGIN}/story?token=proof`,

@@ -34,7 +34,7 @@ const notificationSettings = {
   pushUnavailable: 'Push ist derzeit nicht verfügbar.',
   deviceTitle: 'Auf diesem Gerät',
   deviceIntro:
-    'Wähle einen Push-Dienst auf deinem Gerät. Hinweise zeigen keine privaten Inhalte; die Nachrichten findest du in eimir.',
+    'Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.',
   deviceLoading: 'Push-Einrichtung wird geprüft …',
   deviceUnavailable: 'Push ist auf dieser Installation nicht verfügbar.',
   deviceOff: 'Push ist auf diesem Gerät aus.',

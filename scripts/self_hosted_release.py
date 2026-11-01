@@ -25,6 +25,7 @@ except ModuleNotFoundError:  # Direct ``python scripts/...`` execution.
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPOSE_FILE = ROOT / "compose.yaml"
+FCM_COMPOSE_FILE = ROOT / "deploy" / "push-fcm.compose.yaml"
 RUNTIME_CHECKER = ROOT / "scripts" / "check_runtime_environment.py"
 DEFAULT_IMAGE_IDENTITY = ROOT / "self-hosted-image-identity.json"
 SHA40_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -260,8 +261,8 @@ def compose_environment(
     return environment
 
 
-def compose_prefix(env_file: Path) -> list[str]:
-    return [
+def compose_prefix(env_file: Path, *, with_fcm: bool = False) -> list[str]:
+    command = [
         "docker",
         "compose",
         "--profile",
@@ -271,6 +272,11 @@ def compose_prefix(env_file: Path) -> list[str]:
         "--file",
         str(COMPOSE_FILE),
     ]
+    if with_fcm:
+        if not FCM_COMPOSE_FILE.is_file():
+            raise ReleaseOperationError("the selected bundle has no FCM opt-in fragment")
+        command.extend(["--file", str(FCM_COMPOSE_FILE)])
+    return command
 
 
 def run_checked(command: list[str], *, action: str, environment: dict[str, str]) -> None:
@@ -289,6 +295,7 @@ def validate_release(
     backend: str,
     web: str,
     image_identity_only: bool,
+    with_fcm: bool = False,
 ) -> None:
     command = [
         sys.executable,
@@ -304,6 +311,8 @@ def validate_release(
     ]
     if image_identity_only:
         command.append("--image-identity-only")
+    if with_fcm:
+        command.append("--with-fcm")
     run_checked(
         command,
         action="Self-Hosted release validation",
@@ -312,7 +321,7 @@ def validate_release(
 
 
 def pull_release(
-    env_file: Path, identity_file: Path, *, backend: str, web: str
+    env_file: Path, identity_file: Path, *, backend: str, web: str, with_fcm: bool = False
 ) -> None:
     validate_release(
         env_file,
@@ -320,16 +329,17 @@ def pull_release(
         backend=backend,
         web=web,
         image_identity_only=True,
+        with_fcm=with_fcm,
     )
     run_checked(
-        [*compose_prefix(env_file), "pull"],
+        [*compose_prefix(env_file, with_fcm=with_fcm), "pull"],
         action="Self-Hosted release image pull",
         environment=compose_environment(backend=backend, web=web, identity_file=identity_file),
     )
 
 
 def bootstrap_deletion_authority(
-    env_file: Path, identity_file: Path, *, backend: str, web: str
+    env_file: Path, identity_file: Path, *, backend: str, web: str, with_fcm: bool = False
 ) -> None:
     validate_release(
         env_file,
@@ -337,16 +347,17 @@ def bootstrap_deletion_authority(
         backend=backend,
         web=web,
         image_identity_only=True,
+        with_fcm=with_fcm,
     )
     environment = compose_environment(backend=backend, web=web, identity_file=identity_file)
     run_checked(
-        [*compose_prefix(env_file), "pull", "api"],
+        [*compose_prefix(env_file, with_fcm=with_fcm), "pull", "api"],
         action="Self-Hosted bootstrap image pull",
         environment=environment,
     )
     run_checked(
         [
-            *compose_prefix(env_file),
+            *compose_prefix(env_file, with_fcm=with_fcm),
             "run",
             "--rm",
             "--no-deps",
@@ -362,7 +373,7 @@ def bootstrap_deletion_authority(
 
 
 def deploy_release(
-    env_file: Path, identity_file: Path, *, backend: str, web: str
+    env_file: Path, identity_file: Path, *, backend: str, web: str, with_fcm: bool = False
 ) -> None:
     validate_release(
         env_file,
@@ -370,11 +381,12 @@ def deploy_release(
         backend=backend,
         web=web,
         image_identity_only=False,
+        with_fcm=with_fcm,
     )
     environment = compose_environment(backend=backend, web=web, identity_file=identity_file)
     for action, arguments in DEPLOY_SEQUENCE:
         run_checked(
-            [*compose_prefix(env_file), *arguments],
+            [*compose_prefix(env_file, with_fcm=with_fcm), *arguments],
             action=action,
             environment=environment,
         )
@@ -383,6 +395,10 @@ def deploy_release(
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env-file", type=Path, default=ROOT / ".env")
+    parser.add_argument(
+        "--with-fcm", action="store_true",
+        help="Include the shipped FCM credential-mount fragment in validation and all operations",
+    )
     parser.add_argument(
         "--image-identity",
         type=Path,
@@ -403,6 +419,21 @@ def main(argv: list[str] | None = None) -> int:
         require_release_environment(values)
         backend, web = load_release_identity(args.image_identity, values)
         reject_conflicting_image_overrides(values, backend=backend, web=web)
+        fcm_keys = (
+            "EIMIR_PUSH_FCM_PROJECT_ID", "EIMIR_PUSH_FCM_ANDROID_PACKAGE",
+            "EIMIR_PUSH_FCM_CREDENTIALS_FILE", "EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE",
+        )
+        fcm_inputs = {}
+        for key in fcm_keys:
+            override = process_value(key)
+            fcm_inputs[key] = (override if override is not None else values.get(key, "")).strip()
+        if any(fcm_inputs.values()) and not args.with_fcm:
+            raise ReleaseOperationError("configured FCM requires the explicit --with-fcm opt-in")
+        if args.with_fcm:
+            compose_prefix(args.env_file, with_fcm=True)
+            source = Path(fcm_inputs["EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE"])
+            if not source.is_absolute() or not source.is_file():
+                raise ReleaseOperationError("FCM requires an existing absolute regular host file")
 
         if args.operation == "validate":
             validate_release(
@@ -411,6 +442,7 @@ def main(argv: list[str] | None = None) -> int:
                 backend=backend,
                 web=web,
                 image_identity_only=False,
+                with_fcm=args.with_fcm,
             )
         elif args.operation == "pull":
             pull_release(
@@ -418,6 +450,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.image_identity,
                 backend=backend,
                 web=web,
+                with_fcm=args.with_fcm,
             )
         elif args.operation == "bootstrap-deletion-authority":
             bootstrap_deletion_authority(
@@ -425,6 +458,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.image_identity,
                 backend=backend,
                 web=web,
+                with_fcm=args.with_fcm,
             )
         elif args.operation == "deploy":
             deploy_release(
@@ -432,6 +466,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.image_identity,
                 backend=backend,
                 web=web,
+                with_fcm=args.with_fcm,
             )
     except ReleaseOperationError as exc:
         print(f"Self-Hosted release operation refused: {exc}", file=sys.stderr)

@@ -5,7 +5,7 @@ import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { NotificationChannel } from '../api/generated/models/NotificationChannel';
 import { NotificationKind } from '../api/generated/models/NotificationKind';
 import type { NotificationPreferencesView } from '../api/generated/models/NotificationPreferencesView';
-import type { DevicePushController } from '../client/unifiedPush';
+import type { DevicePushController } from '../client/devicePush';
 import notificationSettings from '../i18n/locales/notificationSettings';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 

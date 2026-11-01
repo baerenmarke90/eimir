@@ -107,8 +107,10 @@ verification rules remain unchanged.
 
 ## 4. Android signing boundary
 
-When Android is selected, #194 freezes `de.sidebyside.app`, the `versionName`
-contract, publisher-supplied `versionCode` and external release signing.
+When Android is selected, #565 uses `de.eimir.app` for the new eimir. installation.
+The `versionName` contract, publisher-supplied monotonic `versionCode` within that
+package, and external release signing remain required. Historical #194 artifacts
+retain their original package and attestations; they are not rewritten.
 
 #193 deliberately does **not** consume Android signing secrets. Its optional APK/AAB
 outputs are release-mode, unsigned evidence candidates. This prevents release
@@ -131,7 +133,7 @@ for a different signed store artifact.
 Both container builds receive exactly `EIMIR_BUILD_REVISION=$GITHUB_SHA`.
 `evidence-index.json` records the same source revision. Android packaging is built
 from `android/` (#1008 Slice B); its product identity is verified dynamically
-via `aapt dump badging` from the built APK (`package: name='de.sidebyside.app'
+via `aapt dump badging` from the built APK (`package: name='de.eimir.app'
 versionCode='...' versionName='...'`), and `evidence-index.json` records canonical
 `apiBaseUrl` and `launchableActivity` (`de.eimir.app.MainActivity`). Its monotonic
 `versionCode` is supplied as a workflow input (`-PeimirVersionCode`), and `versionName`
@@ -153,8 +155,12 @@ permissions:
   contents: read
 ```
 
-The build/SBOM job also has only `contents: read`. It receives no signing secret and
-no repository secret.
+The build/SBOM job also has only `contents: read`. It receives no signing or
+server credential. An explicit Android FCM build may receive only the named
+`EIMIR_ANDROID_GOOGLE_SERVICES_JSON` client configuration, whose identifiers are
+public once packaged in the app. It is validated against the selected project
+and `de.eimir.app` before the build and removed afterward. Pull-request and
+Android-excluded evidence do not require or use this optional build input.
 
 Only the isolated attestation job receives:
 

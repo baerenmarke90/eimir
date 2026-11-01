@@ -1,17 +1,5 @@
 package de.eimir.app;
 
-import android.Manifest;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.net.Uri;
-import android.os.Build;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
-import androidx.core.content.ContextCompat;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.json.JSONException;
@@ -21,92 +9,39 @@ import org.unifiedpush.android.connector.PushService;
 import org.unifiedpush.android.connector.data.PushEndpoint;
 import org.unifiedpush.android.connector.data.PushMessage;
 
-/** A wake carries at most an opaque reference; authenticated Web resolves access. */
+/** UnifiedPush receipt remains independent of the direct Firebase transport. */
 public final class EimirPushService extends PushService {
-    private static final String NOTIFICATION_URL = "de.sidebyside.app://notifications";
-    private static final String CHANNEL_ID = "eimir_notifications";
-    /** One generic notification at most: repeated wakes update it instead of stacking. */
-    private static final int WAKE_NOTIFICATION_ID = 1;
-    static final String EXTRA_ACCOUNT = "eimir.notification.account";
-    static final String EXTRA_NOTIFICATION = "eimir.notification.id";
-
-    /** Remove the generic notification, e.g. after disable, sign-out or an Account switch. */
-    static void cancelWakeNotification(Context context) {
-        NotificationManagerCompat.from(context).cancel(WAKE_NOTIFICATION_ID);
-    }
-
     @Override
     public void onNewEndpoint(PushEndpoint endpoint, String instance) {
-        UnifiedPushBridge.endpoint(this, endpoint, instance);
+        NativePushBridge.endpoint(this, endpoint, instance);
     }
 
     @Override
     public void onMessage(PushMessage message, String instance) {
-        if (!instance.equals(UnifiedPushBridge.activeInstance(this)) || !message.getDecrypted()) return;
+        PushActivation active = PushActivation.read(this);
+        if (active == null || !"unifiedpush".equals(active.providerKey)
+                || !active.activationId.equals(instance) || !message.getDecrypted()
+                || message.getContent().length > 256) return;
         String notificationId = null;
         try {
             JSONObject payload = new JSONObject(new String(message.getContent(), StandardCharsets.UTF_8));
             if (!"wake".equals(payload.optString("type"))) return;
             if (payload.length() == 2 && payload.has("notificationId")) {
-                notificationId = UUID.fromString(payload.getString("notificationId")).toString();
+                String raw = payload.getString("notificationId");
+                notificationId = UUID.fromString(raw).toString();
+                if (!notificationId.equals(raw)) return;
             } else if (payload.length() != 1) return;
-        } catch (JSONException | IllegalArgumentException error) {
-            return;
-        }
-
-        UnifiedPushBridge.wake(this, instance);
-        if (MainActivity.isForeground()) return;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        NotificationManager manager = getSystemService(NotificationManager.class);
-        if (manager == null) return;
-        manager.createNotificationChannel(new NotificationChannel(
-            CHANNEL_ID,
-            getString(R.string.push_channel_name),
-            NotificationManager.IMPORTANCE_DEFAULT
-        ));
-
-        Intent open = notificationIntent(this)
-            .putExtra(EXTRA_ACCOUNT, instance)
-            .putExtra(EXTRA_NOTIFICATION, notificationId);
-        PendingIntent tap = PendingIntent.getActivity(
-            this, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-        NotificationCompat.Builder notification = new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_monochrome)
-            .setContentTitle(getString(R.string.app_name))
-            .setContentText(getString(R.string.push_notification_body))
-            .setContentIntent(tap)
-            .setAutoCancel(true)
-            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE);
-        try {
-            NotificationManagerCompat.from(this).notify(WAKE_NOTIFICATION_ID, notification.build());
-        } catch (SecurityException ignored) {
-            // Permission can be revoked after the check above.
-        }
-    }
-
-    static Intent notificationIntent(Context context) {
-        return new Intent(Intent.ACTION_VIEW, Uri.parse(NOTIFICATION_URL), context, LauncherActivity.class)
-            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-    }
-
-    static boolean isNotificationIntent(Intent intent) {
-        if (intent == null || !Intent.ACTION_VIEW.equals(intent.getAction()) || intent.getData() == null) return false;
-        String url = intent.getData().toString();
-        return NOTIFICATION_URL.equals(url) || (NOTIFICATION_URL + "/").equals(url);
+        } catch (JSONException | IllegalArgumentException invalid) { return; }
+        NativePushNotifications.present(this, active, notificationId);
     }
 
     @Override
     public void onRegistrationFailed(FailedReason reason, String instance) {
-        UnifiedPushBridge.unavailable(this, instance, reason.name());
+        NativePushBridge.unavailable(this, instance, reason.name());
     }
 
     @Override
     public void onUnregistered(String instance) {
-        UnifiedPushBridge.unavailable(this, instance, "UNREGISTERED");
+        NativePushBridge.unavailable(this, instance, "UNREGISTERED");
     }
 }

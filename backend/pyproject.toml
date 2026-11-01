@@ -37,6 +37,7 @@ dependencies = [
     # zu dekodieren. Registriert sich als Plugin in Pillow.
     "pillow-heif>=1.1",
     "google-auth-oauthlib>=1.5.0",
+    "google-auth[requests]>=2.62,<3",
 ]
 
 [dependency-groups]

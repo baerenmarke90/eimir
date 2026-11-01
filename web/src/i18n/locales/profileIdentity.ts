@@ -99,11 +99,8 @@ const profileIdentity = {
   settingsTodayIntro:
     'Lege fest, welche Bereiche und wie viele kommende Einträge du auf „Wir“ sehen möchtest.',
   settingsDashboard: 'Inhalte auf „Wir“',
-  settingsDashboardIntro:
-    'Entscheide, welche Bereiche auf „Wir“ für dich sichtbar sind.',
   dashboardModulesTitle: 'Sichtbare Bereiche',
-  dashboardModulesIntro:
-    'Blende Bereiche aus oder ändere ihre Reihenfolge am Griff. Dein Partner sieht weiterhin seine eigene Auswahl.',
+  dashboardModulesIntro: 'Bereiche auswählen und sortieren.',
   dashboardOrderHandle: '{{name}} verschieben',
   dashboardModuleConfigure: '{{name}} bearbeiten',
   dashboardOrderInstructions:

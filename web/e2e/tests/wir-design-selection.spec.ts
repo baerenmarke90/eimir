@@ -235,6 +235,45 @@ async function reflow(page: Page) {
     JSON.stringify(overflow),
   ).toBe(true);
 }
+
+async function alignedVisibilityControls(page: Page) {
+  const centers = await page
+    .locator('.dashboard-module-option input[type="checkbox"]')
+    .evaluateAll((inputs) =>
+      inputs.map((input) => {
+        const bounds = input.getBoundingClientRect();
+        return bounds.x + bounds.width / 2;
+      }),
+    );
+  expect(centers.length).toBe(DASHBOARD_MODULE_KEYS.length);
+  expect(Math.max(...centers) - Math.min(...centers)).toBeLessThan(1);
+  const targets = await page
+    .locator('.dashboard-module-option')
+    .evaluateAll((rows) =>
+      rows.map((row) => {
+        const label = row.querySelector('.dashboard-module-option-label');
+        const target = row.querySelector('.dashboard-module-switch');
+        if (!label || !target) throw new Error('Missing visibility control');
+        const text = label.getBoundingClientRect();
+        const bounds = target.getBoundingClientRect();
+        return {
+          width: bounds.width,
+          height: bounds.height,
+          overlapsLabel:
+            bounds.left < text.right &&
+            bounds.right > text.left &&
+            bounds.top < text.bottom &&
+            bounds.bottom > text.top,
+        };
+      }),
+    );
+  expect(targets).toHaveLength(DASHBOARD_MODULE_KEYS.length);
+  for (const target of targets) {
+    expect(target.width).toBeGreaterThanOrEqual(44);
+    expect(target.height).toBeGreaterThanOrEqual(44);
+    expect(target.overlapsLabel).toBe(false);
+  }
+}
 for (const [width, theme, large] of [
   [320, 'light', false],
   [360, 'light', false],
@@ -432,6 +471,7 @@ test('quote and statistics order survives pointer release, keyboard movement and
   await page.goto('/more/settings/today');
   await expect(page.locator('.dashboard-module-configure')).toHaveCount(0);
   await expect(page.locator('#wir-statistics-setting')).toHaveCount(0);
+  await alignedVisibilityControls(page);
   const quote = page.locator('[data-sortable-item-id="daily_quote"]');
   const grip = quote.getByRole('button', {
     name: profileCopy.dashboardOrderHandle.replace('{{name}}', quoteCopy.title),
@@ -485,6 +525,24 @@ test('quote and statistics order survives pointer release, keyboard movement and
   await captureScreenshot(page, info, 'settings-order-390-light.png', {
     fullPage: true,
   });
+  for (const [width, theme] of [
+    [360, 'light'],
+    [430, 'dark'],
+    [1280, 'dark'],
+  ] as const) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme });
+    await alignedVisibilityControls(page);
+    await reflow(page);
+    await captureScreenshot(
+      page,
+      info,
+      `settings-aligned-${width}-${theme}.png`,
+      {
+        fullPage: true,
+      },
+    );
+  }
   await page.goto('/today');
   await expect(page.locator('.shared-story-summary')).toBeVisible();
   expect(
@@ -500,6 +558,40 @@ test('quote and statistics order survives pointer release, keyboard movement and
   ).toBe(true);
   await page.reload();
   await expect(page.locator('.shared-story-summary')).toBeVisible();
+
+  let quoteFailure = true;
+  await page.route('**/daily-quote/preferences', (route) =>
+    quoteFailure
+      ? route.fulfill({
+          status: 503,
+          json: { title: 'Synthetic outage', status: 503 },
+        })
+      : route.fallback(),
+  );
+  await page.goto('/more/settings/today');
+  await page.reload();
+  const failedQuote = page.locator('[data-sortable-item-id="daily_quote"]');
+  const failure = failedQuote.getByRole('status');
+  await expect(failure).toContainText(quoteCopy.preferencesUnavailable);
+  await alignedVisibilityControls(page);
+  const errorBounds = await failure.boundingBox();
+  const rowBounds = await failedQuote.boundingBox();
+  if (!errorBounds || !rowBounds) throw new Error('Missing quote recovery');
+  expect(Math.abs(errorBounds.width - rowBounds.width)).toBeLessThan(1);
+  await captureScreenshot(
+    failedQuote,
+    info,
+    'settings-quote-error-1280-dark.png',
+  );
+  const issues = await new AxeBuilder({ page })
+    .include('.settings-category-page')
+    .analyze();
+  expect(issues.violations).toEqual([]);
+  quoteFailure = false;
+  await failedQuote.getByRole('button', { name: quoteCopy.retry }).click();
+  await expect(failure).toHaveCount(0);
+  await expect(failedQuote.getByRole('checkbox')).toBeEnabled();
+  await alignedVisibilityControls(page);
   expect(state.unexpected).toEqual([]);
 });
 
@@ -642,6 +734,7 @@ test('Free Wir controls keep readable labels and fit 320px with large text', asy
   const row = page.locator('[data-sortable-item-id="shared_story_summary"]');
   await expect(row.getByRole('checkbox')).toBeDisabled();
   await expect(row.locator('.pro-mark')).toBeVisible();
+  await alignedVisibilityControls(page);
   const label = await row
     .locator('.dashboard-module-option-label')
     .boundingBox();
@@ -652,6 +745,7 @@ test('Free Wir controls keep readable labels and fit 320px with large text', asy
   await reflow(page);
   await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
   await reflow(page);
+  await alignedVisibilityControls(page);
   await captureScreenshot(page, info, 'settings-free-320-large.png', {
     fullPage: true,
   });

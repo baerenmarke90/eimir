@@ -166,9 +166,11 @@ export function DailyQuoteSettingsPanel({
         <h2 id="settings-daily-quote-heading">
           {t('dailyQuote.settingsTitle')}
         </h2>
-        <p className="settings-section-intro">
-          {t('dailyQuote.settingsIntro')}
-        </p>
+        {variant !== 'sources' ? (
+          <p className="settings-section-intro">
+            {t('dailyQuote.settingsIntro')}
+          </p>
+        ) : null}
       </div>
 
       {entitlementQuery.isPending ? (

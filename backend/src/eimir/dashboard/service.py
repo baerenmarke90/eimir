@@ -85,6 +85,44 @@ class DashboardItem:
 
 
 @dataclass(frozen=True)
+class DashboardExperience:
+    id: UUID
+    kind: str
+    text: str
+    author_id: UUID
+    happened_on: date | None
+    created_at: datetime
+
+
+def read_incoming_experience(
+    session: Session, authorization: AuthorizationContext
+) -> DashboardExperience | None:
+    partner = _partner(session, authorization)
+    if partner is None:
+        return None
+    memory = session.execute(
+        readable(Memory, authorization)
+        .where(
+            Memory.owner_id == partner.id,
+            Memory.experience_kind.is_not(None),
+            Memory.privacy_class == PrivacyClass.SPACE_SHARED.value,
+        )
+        .order_by(Memory.created_at.desc(), Memory.id.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    if memory is None:
+        return None
+    return DashboardExperience(
+        id=memory.id,
+        kind=memory.experience_kind or "",
+        text=memory.payload.body[:280],
+        author_id=memory.owner_id,
+        happened_on=memory.happened_on,
+        created_at=memory.created_at,
+    )
+
+
+@dataclass(frozen=True)
 class DashboardView:
     space_id: UUID
     viewer_local_date: date

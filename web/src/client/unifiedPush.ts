@@ -12,6 +12,7 @@ import {
   notificationUnreadCountQueryKey,
 } from './notificationQueries';
 import { MORE_NOTIFICATIONS_ROUTE } from './routes';
+import { dashboardQueryKey } from './dashboardQueries';
 import { postSnackbar } from './snackbar';
 import {
   isDocumentLeaveBlocked,
@@ -312,6 +313,9 @@ export function useUnifiedPush({
         });
         void queryClient.invalidateQueries({
           queryKey: notificationsListQueryKey(activeSpaceId),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: dashboardQueryKey(activeSpaceId),
         });
       }),
       nativePush.addListener(

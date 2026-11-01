@@ -27,6 +27,7 @@ from eimir.authorization import PrivacyClass, PrivateResourceMixin, ResourceAbse
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
 from eimir.db.protected_payload import ProtectedPayloadJSON
+from eimir.domain.experiences import ExperienceKind
 from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, ProtectedPayload
 from eimir.memories.tags import MemoryTags, unique_tags
 
@@ -90,6 +91,7 @@ class Memory(
     )
 
     happened_on: Mapped[date | None] = mapped_column(Date)
+    experience_kind: Mapped[str | None] = mapped_column(String(16))
     crypto_version: Mapped[int] = mapped_column(
         SmallInteger,
         nullable=False,
@@ -102,6 +104,28 @@ class Memory(
     )
 
     __table_args__ = (
+        CheckConstraint(
+            "experience_kind IS NULL OR experience_kind IN ("
+            + ", ".join(f"'{kind.value}'" for kind in ExperienceKind)
+            + ")",
+            name="memory_experience_kind_allowed",
+        ),
+        Index(
+            "ix_memories_space_experience_created_id",
+            "space_id",
+            "experience_kind",
+            "created_at",
+            "id",
+            postgresql_where=text("experience_kind IS NOT NULL"),
+        ),
+        Index(
+            "ix_memories_space_experience_author_created_id",
+            "space_id",
+            "owner_id",
+            "created_at",
+            "id",
+            postgresql_where=text("experience_kind IS NOT NULL"),
+        ),
         CheckConstraint("privacy_class = 'SPACE_SHARED'", name="privacy_is_space_shared"),
         CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
         # Supports the composite foreign key used by place-memory relations.

@@ -4,7 +4,7 @@ import { useTaskOrigin } from '../client/taskOrigin';
 import { PreviewCardLink } from './PreviewCardLink';
 
 /** All Today content links share the same safe task-return contract. */
-export function TodayDestinationLink({
+export function TaskOriginLink({
   to,
   className,
   ariaLabel,
@@ -45,3 +45,5 @@ export function TodayDestinationLink({
     </DestinationLink>
   );
 }
+
+export { TaskOriginLink as TodayDestinationLink };

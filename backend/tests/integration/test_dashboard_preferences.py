@@ -96,6 +96,7 @@ def test_catalog_keys_are_stable_and_unique() -> None:
     keys = [definition.key.value for definition in CATALOG]
     assert keys == [
         "relationship_presence",
+        "shared_experience",
         "daily_quote",
         "keepsake",
         "upcoming",
@@ -193,6 +194,7 @@ def test_missing_override_returns_effective_default_for_every_registered_module(
     assert response.json() == {
         "items": [
             {"moduleKey": "relationship_presence", "visible": True},
+            {"moduleKey": "shared_experience", "visible": True},
             {"moduleKey": "daily_quote", "visible": True},
             {"moduleKey": "keepsake", "visible": True},
             {"moduleKey": "upcoming", "visible": True, "itemLimit": 1},
@@ -665,6 +667,6 @@ def test_legacy_full_order_adds_quote_without_resetting_existing_positions(clien
     assert response.status_code == 200, response.text
     actual = [item["moduleKey"] for item in response.json()["items"]]
     assert [key for key in actual if key != "daily_quote"] == legacy
-    assert actual.index("daily_quote") == actual.index("relationship_presence") + 1
+    assert actual.index("daily_quote") == actual.index("shared_experience") + 1
     reloaded = _preferences(client, couple["space"].id, couple["token_a"])
     assert [item["moduleKey"] for item in reloaded.json()["items"]] == actual

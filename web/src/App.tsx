@@ -657,24 +657,25 @@ function AuthenticatedApp({
               path={SEARCH_ROUTE}
               element={<SearchProductPage apis={m4Apis} spaceId={spaceId} />}
             />
-            {(['happiness', 'timeTravel'] as const).map((kind) => (
-              <Route
-                key={kind}
-                path={
-                  kind === 'happiness' ? HAPPINESS_ROUTE : TIME_TRAVEL_ROUTE
-                }
-                element={
-                  <CoupleExperiencePage
-                    key={`${account.id}:${spaceId}:${kind}`}
-                    kind={kind}
-                    apiBaseUrl={apiBaseUrl}
-                    accessToken={tokens.accessToken}
-                    accountId={account.id}
-                    spaceId={spaceId}
-                  />
-                }
-              />
-            ))}
+            {(['happiness', 'timeTravel'] as const).flatMap((kind) =>
+              ['', '/new'].map((suffix) => (
+                <Route
+                  key={`${kind}${suffix}`}
+                  path={`${kind === 'happiness' ? HAPPINESS_ROUTE : TIME_TRAVEL_ROUTE}${suffix}`}
+                  element={
+                    <CoupleExperiencePage
+                      key={`${account.id}:${spaceId}:${kind}`}
+                      kind={kind}
+                      onSaved={refreshStory}
+                      apiBaseUrl={apiBaseUrl}
+                      accessToken={tokens.accessToken}
+                      accountId={account.id}
+                      spaceId={spaceId}
+                    />
+                  }
+                />
+              )),
+            )}
             <Route
               path={GAMES_MOMENTS_ROUTE}
               element={

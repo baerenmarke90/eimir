@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `body` | string
+`experienceKind` | [ExperienceKind](ExperienceKind.md)
 `happenedOn` | Date
 `tags` | Array&lt;string&gt;
 `title` | string
@@ -19,6 +20,7 @@ import type { MemoryCreate } from ''
 // TODO: Update the object below with actual values
 const example = {
   "body": null,
+  "experienceKind": null,
   "happenedOn": null,
   "tags": null,
   "title": null,

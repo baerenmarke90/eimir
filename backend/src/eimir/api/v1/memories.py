@@ -18,6 +18,7 @@ from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.api.v1.attachments import AttachmentEntry, OrderedAttachmentSummary
 from eimir.attachments import binding
 from eimir.attachments.models import MediaType
+from eimir.domain.experiences import ExperienceKind
 from eimir.memories import service
 from eimir.memories.models import Memory, PhotoReaction
 from eimir.memories.tags import MemoryTags, unique_tags
@@ -39,6 +40,7 @@ class MemoryCreate(ApiModel):
     body: str = ""
     happened_on: date | None = None
     tags: MemoryTags = Field(default_factory=list)
+    experience_kind: ExperienceKind | None = None
 
     _unique_tags = field_validator("tags")(unique_tags)
 
@@ -118,6 +120,7 @@ class MemoryDetail(ApiModel):
     author: AuthorSummary
     capabilities: ResourceCapabilities
     attachments: list[MemoryAttachmentSummary]
+    experience_kind: ExperienceKind | None = None
 
 
 class MemoryPage(ApiModel):
@@ -142,6 +145,9 @@ def _memory_detail(
         author_id=memory.owner_id,
         title=memory.payload.title,
         body=memory.payload.body,
+        experience_kind=ExperienceKind(memory.experience_kind)
+        if memory.experience_kind is not None
+        else None,
         tags=memory.payload.tags,
         happened_on=memory.happened_on,
         version=memory.version,
@@ -229,7 +235,7 @@ def set_memory_photo_reaction(
             "model": MemoryDetail,
         },
         201: {"headers": ETAG_HEADERS},
-        **problem_responses(401, 404, 409, 422),
+        **problem_responses(401, 403, 404, 409, 422),
     },
 )
 def create_memory(
@@ -254,6 +260,7 @@ def create_memory(
         title=body.title,
         body=body.body,
         tags=body.tags,
+        experience_kind=body.experience_kind,
         happened_on=body.happened_on,
     )
     if not result.created:
@@ -274,6 +281,7 @@ def list_memories(
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     year: Annotated[int | None, Query(ge=1900, le=2100)] = None,
+    experience_kind: Annotated[ExperienceKind | None, Query(alias="experienceKind")] = None,
 ) -> MemoryPage:
     page = service.list_memories(
         session,
@@ -281,6 +289,7 @@ def list_memories(
         cursor=cursor,
         limit=limit,
         year=year,
+        experience_kind=experience_kind,
     )
     authors = resolve_author_summaries(session, {memory.owner_id for memory in page.items})
     return MemoryPage(

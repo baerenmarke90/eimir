@@ -757,7 +757,7 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **kind** | `NotificationKind` |  | [Defaults to `undefined`] [Enum: COMMENT_CREATED, THINKING_OF_YOU, PARTNER_KISS, PARTNER_CHECK_IN, REMINDER_DUE] |
+| **kind** | `NotificationKind` |  | [Defaults to `undefined`] [Enum: COUPLE_EXPERIENCE_SHARED, COMMENT_CREATED, THINKING_OF_YOU, PARTNER_KISS, PARTNER_CHECK_IN, REMINDER_DUE] |
 | **channel** | `NotificationChannel` |  | [Defaults to `undefined`] [Enum: IN_APP, PUSH, EMAIL] |
 | **notificationPreferenceUpdate** | [NotificationPreferenceUpdate](NotificationPreferenceUpdate.md) |  | |
 

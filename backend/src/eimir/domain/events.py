@@ -19,6 +19,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from eimir.authorization import ContentVisibility
+from eimir.domain.experiences import ExperienceKind
 
 
 class EventType(StrEnum):
@@ -112,6 +113,7 @@ class PublicEventPayload(BaseModel):
 
     has_attachment: bool | None = None
     visibility: ContentVisibility | None = None
+    experience_kind: ExperienceKind | None = None
 
     target_type: Literal["MEMORY", "HEART_MOMENT", "MILESTONE"] | None = None
     target_id: UUID | None = None

@@ -12,6 +12,7 @@ Name | Type
 `body` | string
 `capabilities` | [ResourceCapabilities](ResourceCapabilities.md)
 `createdAt` | Date
+`experienceKind` | [ExperienceKind](ExperienceKind.md)
 `happenedOn` | Date
 `id` | string
 `spaceId` | string
@@ -33,6 +34,7 @@ const example = {
   "body": null,
   "capabilities": null,
   "createdAt": null,
+  "experienceKind": null,
   "happenedOn": null,
   "id": null,
   "spaceId": null,

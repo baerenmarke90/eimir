@@ -96,6 +96,8 @@ export function taskOriginPath(
     ![
       '/today',
       '/story',
+      '/story/happiness',
+      '/story/time-travel',
       STORY_PHOTOS_ROUTE,
       MEMORY_MAP_ROUTE,
       MORE_COLLECTIONS_ROUTE,

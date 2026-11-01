@@ -91,6 +91,13 @@ def _effective_choice(
             NotificationPreference.channel == channel.value,
         )
     ).scalar_one_or_none()
+    if choice is None and kind == NotificationKind.COUPLE_EXPERIENCE_SHARED.value:
+        return _effective_choice(
+            session,
+            account_id=account_id,
+            kind=NotificationKind.THINKING_OF_YOU.value,
+            channel=channel,
+        )
     return choice if choice is not None else True
 
 
@@ -105,7 +112,12 @@ def own_push_choices(session: Session, *, account_id: UUID) -> dict[Notification
     overrides: dict[str, bool] = {kind: enabled for kind, enabled in rows}
     return {
         kind: bool(
-            overrides.get(kind.value, not notification_policy.digest_kind_allowed(kind.value))
+            overrides.get(
+                kind.value,
+                overrides.get(NotificationKind.THINKING_OF_YOU.value, True)
+                if kind is NotificationKind.COUPLE_EXPERIENCE_SHARED
+                else not notification_policy.digest_kind_allowed(kind.value),
+            )
         )
         if notification_policy.push_choice_allowed(kind.value)
         else False
@@ -122,7 +134,15 @@ def own_in_app_choices(session: Session, *, account_id: UUID) -> dict[Notificati
         )
     ).tuples()
     overrides: dict[str, bool] = {kind: enabled for kind, enabled in rows}
-    return {kind: overrides.get(kind.value, True) for kind in NotificationKind}
+    return {
+        kind: overrides.get(
+            kind.value,
+            overrides.get(NotificationKind.THINKING_OF_YOU.value, True)
+            if kind is NotificationKind.COUPLE_EXPERIENCE_SHARED
+            else True,
+        )
+        for kind in NotificationKind
+    }
 
 
 def own_email_choices(session: Session, *, account_id: UUID) -> dict[NotificationKind, bool]:

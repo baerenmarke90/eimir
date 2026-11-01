@@ -28,7 +28,12 @@ foundation. It does not introduce the previously rejected daily summary.
    carries standard JWE ciphertext bound to the current activation. Names, kinds,
    titles and the canonical notification ID stay inside that envelope; the key
    is registered over authenticated HTTPS and stored through the protected-payload
-   boundary. Legacy registrations keep their generic wake. The UnifiedPush wake may carry
+   boundary. The key is bound to the registering device-session family. Delivery
+   locks and rechecks that family for revocation, inactivity and absolute expiry;
+   a short-lived access-token expiry alone does not interrupt background previews.
+   Token rotation preserves the binding; a fresh authenticated registration can
+   rebind the same endpoint after sign-in. Invalid families retain only the legacy
+   generic wake. Legacy registrations keep their generic wake. The UnifiedPush wake may carry
    only a canonical Notification ID, never actor, category, title, body, photo,
    private choice, filename or an arbitrary route. Legacy wakes open the Center.
 6. A tap resolves current authenticated recipient state and opens its canonical

@@ -53,6 +53,13 @@ def upgrade() -> None:
             nullable=False,
             unique=True,
         ),
+        sa.Column(
+            "device_session_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("device_sessions.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
         sa.Column("crypto_version", sa.SmallInteger(), nullable=False, server_default=sa.text("0")),
         sa.Column("payload", postgresql.JSONB(), nullable=False),
         sa.CheckConstraint("crypto_version >= 0", name="preview_secret_crypto_valid"),

@@ -444,6 +444,12 @@ class PushPreviewSecret(IdMixin, Base):
         nullable=False,
         unique=True,
     )
+    device_session_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("device_sessions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     crypto_version: Mapped[int] = mapped_column(
         SmallInteger, nullable=False, default=CRYPTO_VERSION_PLAINTEXT, server_default=text("0")
     )

@@ -1,5 +1,5 @@
 {
-  "generatedAtUtc": "2026-11-01T23:31:37.927256+00:00",
+  "generatedAtUtc": "2026-11-01T23:56:17.301417+00:00",
   "baselineMain": "36ccc13a162502a7122820a32b45569c17b72521",
   "sourceFiles": [
     {
@@ -68,7 +68,7 @@
     },
     {
       "path": "backend/alembic/versions/0099_contextual_reminder_notifications.py",
-      "sha256": "0ce79ddcfc18df5f71a58dfa9d9dfa7e6d491e518534bc781cdb85be81aa1a54"
+      "sha256": "4611a9a224369def3d43320b08f9b5bc4ca9b5c684ffc0922342258d4b6db5d3"
     },
     {
       "path": "backend/openapi.json",
@@ -84,7 +84,7 @@
     },
     {
       "path": "backend/src/eimir/api/v1/push_endpoints.py",
-      "sha256": "3b08f925ac7da7e3b282cce06d72e617bea4f528c8847c5f92d1149dc0fb9bea"
+      "sha256": "00468bc1379c1a43165fb7e2ceee709f4b407209957c54f24ef9d23cc890ff37"
     },
     {
       "path": "backend/src/eimir/domain/events.py",
@@ -96,7 +96,7 @@
     },
     {
       "path": "backend/src/eimir/engagement/models.py",
-      "sha256": "41a8a1b168aed269b10bd93210933ae12a2755593b9ff370dc505f73851d6454"
+      "sha256": "0f84865c9f750244f9f9ab0bb2016713efe430e86e5a3c69b899ab55a0251a69"
     },
     {
       "path": "backend/src/eimir/engagement/notification_policy.py",
@@ -112,7 +112,7 @@
     },
     {
       "path": "backend/src/eimir/engagement/push.py",
-      "sha256": "6537a5a90512476cca63ac26fce949b580c50f1aefd5e9cec357ff56330d303d"
+      "sha256": "b89ce791f8f164f2f07d903f9428812d235f64a19fc1aea21bbac707272d441a"
     },
     {
       "path": "backend/src/eimir/engagement/push_preview.py",
@@ -136,11 +136,11 @@
     },
     {
       "path": "backend/tests/integration/test_contextual_push.py",
-      "sha256": "81f3e0ecd7e94aa4bd6cef88cd1a351fd75a33c1aa154776cabd087574e8a43f"
+      "sha256": "da00423dd21c1b5afdfbc1a6324f235ec7d32c77fd0af94ebfff27d6558dae79"
     },
     {
       "path": "backend/tests/integration/test_push_endpoints_api.py",
-      "sha256": "1b1cb3fab3f520c0bc8609d0146881e3f75bb44f190f647678f72bf8b3ec38a7"
+      "sha256": "1b3772831305e926e501f5f29814a5981c647afd604aed7a12a5da85e06f987d"
     },
     {
       "path": "backend/tests/unit/test_fcm_push.py",
@@ -265,7 +265,10 @@
     "rollbackAndPipelineGroupPassed": 3,
     "groupsOverlap": true,
     "schemaDrift": "No new upgrade operations detected",
-    "mypySourceFiles": 332
+    "mypySourceFiles": 332,
+    "finalCombinedWithSessionBindingPassed": 1307,
+    "finalSessionRegistrationGroupPassed": 20,
+    "sessionBoundary": "Real PostgreSQL: revoked/deleted/inactivity/absolute expiry suppress rich content; access expiry/rotation retain it; a fresh family rebinds the same endpoint; foreign/missing family rejected. Family lock precedes the current clock check."
   },
   "web": {
     "fullSuitePassed": 2465,

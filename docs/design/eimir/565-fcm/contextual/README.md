@@ -11,6 +11,10 @@ were prepared for the Product Owner follow-up in #565.
   registration/privacy group passed 24 and rollback/pipeline group passed three.
   Actual upgrade/downgrade preserves authored reminders and legacy registration.
   A fresh migrated database matches model metadata; mypy checks 332 source files.
+  The final session/auth/pipeline run passed 1,307 cases; the overlapping final
+  family/registration group passed 20. Revoked, deleted and expired families lose
+  rich content; normal access expiry/rotation keeps it. Fresh sign-in rebinds
+  the same endpoint. Account-before-family locks serialize revocation and handoff.
 - The complete Web run passed 2,465 tests with two existing skips. One unchanged
   durable-media LRU test timed out at its existing five-second bound during
   parallel local work. Only that file was retried: all six cases passed. No test

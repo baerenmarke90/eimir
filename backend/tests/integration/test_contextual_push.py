@@ -16,8 +16,10 @@ from joserfc import jwe
 from joserfc.jwk import OctKey
 from sqlalchemy import inspect, select, text
 
+from eimir.auth import sessions
 from eimir.authorization import AuthorizationContext
 from eimir.core import clock
+from eimir.core.errors import UnauthenticatedError
 from eimir.db.base import Base
 from eimir.engagement import push, push_preview
 from eimir.engagement import service as engagement
@@ -65,6 +67,7 @@ def test_creation_uses_existing_pipeline_encrypts_preview_and_deletion_reauthori
             provider_key="fcm",
             endpoint_value=ENDPOINT,
             preview_key=KEY,
+            preview_session_id=sessions.resolve(session, actors["token_b"])[0].id,
         )
         session.flush()
         secret = session.scalar(select(PushPreviewSecret))
@@ -146,6 +149,7 @@ def test_legacy_reregistration_removes_preview_capability_without_changing_endpo
         provider_key="fcm",
         endpoint_value=ENDPOINT,
         preview_key=KEY,
+        preview_session_id=sessions.resolve(session, actors["token_b"])[0].id,
     )
     session.flush()
     assert session.scalar(select(PushPreviewSecret)) is not None
@@ -154,6 +158,100 @@ def test_legacy_reregistration_removes_preview_capability_without_changing_endpo
     )
     session.flush()
     assert legacy.id == endpoint.id
+    assert session.scalar(select(PushPreviewSecret)) is None
+
+
+@pytest.mark.parametrize(
+    "family_state", ["revoked", "inactive", "absolute", "deleted", "access-expired", "rotated"]
+)
+def test_delivery_rechecks_bound_family_and_fresh_login_rebinds_same_endpoint(
+    client, session, actors, family_state
+):
+    family, tokens = sessions.start_session(session, actors["b"])
+    session.flush()
+    endpoint = push.register_endpoint(
+        session,
+        account_id=actors["b"].id,
+        provider_key="fcm",
+        endpoint_value=ENDPOINT,
+        preview_key=KEY,
+        preview_session_id=family.id,
+    )
+    session.flush()
+    before = clock.now() - timedelta(seconds=1)
+    if family_state == "revoked":
+        sessions.revoke(family)
+    elif family_state == "inactive":
+        family.expires_at = before
+    elif family_state == "absolute":
+        family.absolute_expires_at = before
+    elif family_state == "deleted":
+        session.delete(family)
+    elif family_state == "access-expired":
+        family.access_expires_at = before
+    else:
+        sessions.refresh_session(session, tokens.refresh_token)
+    session.flush()
+
+    provider = FakePushProvider()
+    push.providers.register("fcm", provider)
+
+    def deliver_new_creation():
+        reminder = create(client, actors)
+        event = session.scalar(
+            select(OutboxEvent).where(OutboxEvent.subject_id == UUID(reminder["id"]))
+        )
+        engagement.project_event(session, event)
+        session.flush()
+        notice = session.scalar(
+            select(Notification).where(Notification.source_event_id == event.id)
+        )
+        delivery = session.scalar(
+            select(PushDelivery).where(PushDelivery.notification_id == notice.id)
+        )
+        push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+        return provider.calls[-1]["notificationReference"]
+
+    try:
+        valid = family_state in {"access-expired", "rotated"}
+        reference = deliver_new_creation()
+        assert ("encryptedPreview" in reference) is valid
+        assert not {"name", "title", "preview"}.intersection(reference)
+        if not valid:
+            fresh_family, _ = sessions.start_session(session, actors["b"])
+            session.flush()
+            rebound = push.register_endpoint(
+                session,
+                account_id=actors["b"].id,
+                provider_key="fcm",
+                endpoint_value=ENDPOINT,
+                preview_key=KEY,
+                preview_session_id=fresh_family.id,
+            )
+            session.flush()
+            assert rebound.id == endpoint.id
+            assert session.scalar(select(PushPreviewSecret)).device_session_id == fresh_family.id
+            assert "encryptedPreview" in deliver_new_creation()
+    finally:
+        push.providers.clear()
+
+
+@pytest.mark.parametrize("family_owner", ["missing", "foreign"])
+def test_preview_registration_requires_live_family_of_endpoint_owner(session, actors, family_owner):
+    family_id = (
+        sessions.resolve(session, actors["token_outsider"])[0].id
+        if family_owner == "foreign"
+        else None
+    )
+    with pytest.raises(UnauthenticatedError):
+        push.register_endpoint(
+            session,
+            account_id=actors["b"].id,
+            provider_key="fcm",
+            endpoint_value=ENDPOINT,
+            preview_key=KEY,
+            preview_session_id=family_id,
+        )
     assert session.scalar(select(PushPreviewSecret)) is None
 
 
@@ -171,6 +269,7 @@ def test_preview_catalog_rollback_preserves_authored_reminders_and_legacy_regist
         provider_key="fcm",
         endpoint_value=ENDPOINT,
         preview_key=KEY,
+        preview_session_id=sessions.resolve(session, actors["token_b"])[0].id,
     )
     session.flush()
     path = Path(__file__).parents[2] / "alembic/versions/0099_contextual_reminder_notifications.py"

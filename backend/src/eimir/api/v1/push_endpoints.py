@@ -10,7 +10,7 @@ from fastapi import APIRouter, Path, Response, status
 from fastapi.responses import JSONResponse
 from pydantic import ConfigDict, Field, field_validator
 
-from eimir.api.deps import CurrentAccount, DbSession
+from eimir.api.deps import CurrentAccount, CurrentSession, DbSession
 from eimir.api.errors import problem, problem_responses
 from eimir.api.schema import ApiModel
 from eimir.auth import rate_limit
@@ -164,7 +164,7 @@ def get_unified_push_configuration(
 )
 def register_own_push_endpoint(
     body: PushEndpointRegistration,
-    account: CurrentAccount,
+    device_session: CurrentSession,
     session: DbSession,
     response: Response,
 ) -> PushEndpointRegistrationResult:
@@ -180,15 +180,19 @@ def register_own_push_endpoint(
         raise ValidationError(
             "Preview protocol is unavailable for this transport.", ErrorCode.PUSH_ENDPOINT_INVALID
         )
-    rate_limit.check(session, _REGISTER_ACTION, str(account.id), _REGISTER_LIMIT)
-    endpoint = push.register_endpoint(
-        session,
-        account_id=account.id,
-        provider_key=body.provider_key,
-        endpoint_value=body.endpoint_value,
-        registration_identity=provider.registration_identity(body.endpoint_value),
-        preview_key=body.encrypted_preview.key if body.encrypted_preview is not None else None,
-    )
+    # Authentication marks this family as used. Do not flush that write before
+    # registration takes its Account -> device-session lifecycle locks.
+    with session.no_autoflush:
+        rate_limit.check(session, _REGISTER_ACTION, str(device_session.account_id), _REGISTER_LIMIT)
+        endpoint = push.register_endpoint(
+            session,
+            account_id=device_session.account_id,
+            provider_key=body.provider_key,
+            endpoint_value=body.endpoint_value,
+            registration_identity=provider.registration_identity(body.endpoint_value),
+            preview_key=body.encrypted_preview.key if body.encrypted_preview is not None else None,
+            preview_session_id=device_session.id if body.encrypted_preview is not None else None,
+        )
     response.headers["Cache-Control"] = "private, no-store"
     return PushEndpointRegistrationResult(id=endpoint.id)
 

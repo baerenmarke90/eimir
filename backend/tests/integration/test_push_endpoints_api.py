@@ -14,9 +14,11 @@ from pydantic import SecretStr
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
+from eimir.auth import sessions
 from eimir.config import Settings
 from eimir.engagement import fcm_push, push, unified_push
 from eimir.engagement.models import PushEndpoint, PushEndpointSecret, PushPreviewSecret
+from eimir.identity.models import DeviceSession
 from tests.conftest import auth, make_account, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -422,6 +424,13 @@ def test_preview_registration_is_owned_private_optional_and_legacy_compatible(
     preview = session.scalar(select(PushPreviewSecret))
     assert str(preview.push_endpoint_id) == endpoint_id and preview.payload.key == key
     assert preview.crypto_version == 2
+    original_family = preview.device_session_id
+    sessions.revoke(session.get(DeviceSession, original_family))
+    session.flush()
+    headers = auth(sign_in(session, account))
+    rebound = client.post(BASE, headers=headers, json=body)
+    assert rebound.status_code == 200 and rebound.json()["id"] == endpoint_id
+    assert session.scalar(select(PushPreviewSecret)).device_session_id != original_family
     # A rollback worker still reads the exact pre-preview registration shape.
     assert session.scalar(select(PushEndpointSecret)).payload.value == endpoint
     assert client.delete(f"{BASE}/{endpoint_id}", headers=foreign_headers).status_code == 404

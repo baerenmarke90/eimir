@@ -103,6 +103,12 @@ visible; icon/graphic strokes, native affordances, chart symbols and separators
 between overlapping portraits retain their content meaning. This supersedes
 older advice to give secondary buttons or ordinary surfaces a subtle outline.
 
+The #1574 follow-up confirms that this includes standard text, multiline,
+select and date/time fields. `border.controlFrame` is zero in ordinary themes;
+filled tonal surfaces and persistent labels identify inputs. Keep visible
+keyboard focus, validation, native affordances and system forced-colors
+boundaries. Do not reintroduce a frame through a component override or shadow.
+
 Reuse the existing radius vocabulary by purpose: `none` for flush content; `small` for small details; `medium` for compact controls; `large` for media, inputs and buttons; `card` for an independent content unit; `sheet` for sheet top corners; `hero` only for a justified large focal surface; `pill` for appropriate filters/tabs and identity shapes. No screen needs to demonstrate every radius.
 
 - Separators aid scanning where adjacency is ambiguous; they are not required between every piece of content.

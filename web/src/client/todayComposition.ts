@@ -22,17 +22,12 @@ export const MONTHLY_STRIP_MAX_ITEMS = 3;
  * The kinds of module the single `Gerade bei euch` slot can hold, in the
  * order they take precedence.
  */
-export type LivingModuleKind =
-  | 'partner_signal'
-  | 'retrospective'
-  | 'wish'
-  | 'plan'
-  | 'milestone';
+export type LivingModuleKind = 'partner_signal' | 'wish' | 'plan' | 'milestone';
 
 export type LivingModule =
   | { kind: 'partner_signal'; activityItem: ActivityItem }
   | {
-      kind: 'retrospective' | 'wish' | 'plan' | 'milestone';
+      kind: 'wish' | 'plan' | 'milestone';
       item: DashboardItem;
     };
 
@@ -78,9 +73,8 @@ export function selectTodayFocalItem({
  * Exactly one module is shown, never a stack. The chain is ordered by how
  * *current* and how *mutual* each candidate is:
  *
- * 1. the server-curated daily retrospective (`Weißt du noch?`);
- * 2. a genuine partner interaction (the partner commented on shared content);
- * 3. a shared wish, then a shared plan, then a shared milestone — stable shared
+ * 1. a genuine partner interaction (the partner commented on shared content);
+ * 2. a shared wish, then a shared plan, then a shared milestone — stable shared
  *    content that keeps the slot meaningful on a quiet day.
  *
  * `excludeItemIds` keeps the slot from repeating something the page already
@@ -96,25 +90,17 @@ export function selectTodayFocalItem({
 export function selectLivingModule({
   partnerId,
   activityItems,
-  retrospective,
   recentShared,
   excludeItemIds,
   suppressPlanningFallback = false,
 }: {
   partnerId: string | null | undefined;
   activityItems: readonly ActivityItem[] | undefined;
-  retrospective: DashboardItem | null | undefined;
   recentShared: readonly DashboardItem[];
   excludeItemIds?: readonly string[];
   suppressPlanningFallback?: boolean;
 }): LivingModule | null {
   const excluded = new Set(excludeItemIds ?? []);
-
-  // The PO's daily rediscovery slot takes precedence; all candidates still
-  // share one composition and the same no-duplicate boundary.
-  if (retrospective && !excluded.has(retrospective.id)) {
-    return { kind: 'retrospective', item: retrospective };
-  }
 
   // Only a genuine partner comment counts. An item the viewer wrote, or one
   // with no attributable actor, is not a signal *from* the partner.

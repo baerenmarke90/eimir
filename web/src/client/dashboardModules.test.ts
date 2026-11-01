@@ -13,6 +13,7 @@ describe('dashboardModules', () => {
       'keepsake',
       'upcoming',
       'pinned_collection',
+      'retrospective',
       'relationship_signal',
       'monthly_highlights',
       'recent_shared',

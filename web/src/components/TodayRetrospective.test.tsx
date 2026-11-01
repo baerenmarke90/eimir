@@ -87,9 +87,7 @@ function renderToday({
   });
   client.setQueryData(['m5-s5', 'dashboard', spaceId], data);
   client.setQueryData(dashboardPreferencesQueryKey(accountId, spaceId), {
-    items: hideModule
-      ? [{ moduleKey: 'relationship_signal', visible: false }]
-      : [],
+    items: hideModule ? [{ moduleKey: 'retrospective', visible: false }] : [],
   });
   const apis = {
     dashboard: {
@@ -97,7 +95,7 @@ function renderToday({
       listDashboardModulePreferences: () =>
         Promise.resolve({
           items: hideModule
-            ? [{ moduleKey: 'relationship_signal', visible: false }]
+            ? [{ moduleKey: 'retrospective', visible: false }]
             : [],
         }),
     },
@@ -154,8 +152,21 @@ describe('Today #452 retrospective presentation and dismissal', () => {
       }),
     ).not.toBeNull();
     expect(
-      screen.getByRole('link', { name: /Erinnerung ansehen/i }),
+      screen
+        .getByRole('link', { name: /Erinnerung ansehen/i })
+        .classList.contains('button-link'),
+    ).toBe(true);
+    expect(
+      screen.getByRole('heading', {
+        name: m5s5.today.living.retrospectiveLabel,
+      }),
     ).not.toBeNull();
+    expect(
+      document.querySelector(
+        '.today-section-retrospective .today-living-retrospective',
+      ),
+    ).not.toBeNull();
+    expect(screen.getByText('A new shared wish')).not.toBeNull();
     expect(screen.getByText('23. Oktober 2025')).not.toBeNull();
   });
 
@@ -172,7 +183,7 @@ describe('Today #452 retrospective presentation and dismissal', () => {
     });
   });
 
-  it('dismisses only the retrospective, reveals fallback, and survives remount', async () => {
+  it('dismisses only rediscovery, preserves the contextual module, and survives remount', async () => {
     const user = userEvent.setup();
     const first = renderToday();
     expect(await screen.findByText('Our early trip together')).not.toBeNull();
@@ -211,7 +222,8 @@ describe('Today #452 retrospective presentation and dismissal', () => {
     cleanup();
     renderToday({ hideModule: true });
     expect(screen.queryByText('Our early trip together')).toBeNull();
-    expect(document.querySelector('.today-section-living')).toBeNull();
+    expect(document.querySelector('.today-section-retrospective')).toBeNull();
+    expect(document.querySelector('.today-section-living')).not.toBeNull();
   });
 
   it('uses the server calendar to restore and expire a dismissed retrospective', async () => {

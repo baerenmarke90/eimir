@@ -1,0 +1,5 @@
+„Weißt du noch?“ ist jetzt ein eigenes Modul auf Wir. Du kannst es unabhängig von „Gerade bei euch“ ein- und ausblenden und verschieben. „Erinnerung ansehen“ hat den gewohnten blauen Button, auch beim warmen Wir-Design.
+
+Die störenden Ränder um Eingabefelder sind entfernt, auch bei „Wunsch weiterführen“. Beschriftungen und Tastaturbedienung bleiben klar erkennbar.
+
+Die täglichen Fragen und der Benachrichtigungsworkflow aus test.37 bleiben enthalten.

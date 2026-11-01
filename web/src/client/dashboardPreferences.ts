@@ -74,6 +74,7 @@ export function orderedDashboardModuleKeys(
       (key) =>
         key === 'daily_quote' ||
         key === 'shared_experience' ||
+        key === 'retrospective' ||
         keys.includes(key),
     );
   if (

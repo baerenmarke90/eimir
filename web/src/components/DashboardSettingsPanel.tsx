@@ -610,16 +610,15 @@ export function DashboardSettingsPanel({
         <h2 id="settings-dashboard-heading">
           {t('profileIdentity.settingsDashboard')}
         </h2>
-        <p className="settings-section-intro">
-          {t('profileIdentity.settingsDashboardIntro')}
-        </p>
       </div>
 
       <fieldset
         className="dashboard-module-preference"
         aria-busy={preferencesQuery.isPending}
       >
-        <legend>{t('profileIdentity.dashboardModulesTitle')}</legend>
+        <legend className="sr-only">
+          {t('profileIdentity.dashboardModulesTitle')}
+        </legend>
         <p className="dashboard-module-question">
           {t('profileIdentity.dashboardModulesIntro')}
         </p>
@@ -663,68 +662,71 @@ export function DashboardSettingsPanel({
                 {hasDedicatedSetting ? (
                   (customControl ?? null)
                 ) : (
-                  <input
-                    id={`dashboard-visible-${entry.key}`}
-                    aria-label={t(entry.labelKey)}
-                    type="checkbox"
-                    checked={pendingVisibility[rowScope]?.visible ?? visible}
-                    disabled={isRowPending || preferencesQuery.isPending}
-                    onChange={(event) => {
-                      if (
-                        visibilityWrites.current.has(rowScope) ||
-                        (entry.key === UPCOMING_MODULE_KEY &&
-                          (upcomingWriteRef.current?.scope === settingsScope ||
-                            queryClient.isMutating({
-                              mutationKey: upcomingMutationKey,
-                              exact: true,
-                            }) > 0))
-                      ) {
-                        return;
-                      }
-                      // The mutation cache also prevents duplicate admission
-                      // across a panel unmount/remount while a request is in flight.
-                      const existing = queryClient
-                        .getMutationCache()
-                        .findAll({
-                          mutationKey: visibilityMutationKey,
-                          exact: true,
-                        })
-                        .some(
-                          (mutation) =>
-                            mutation.state.status === 'pending' &&
-                            (
-                              mutation.state.variables as
-                                | VisibilityWrite
-                                | undefined
-                            )?.moduleKey === entry.key,
+                  <label className="dashboard-module-switch">
+                    <input
+                      id={`dashboard-visible-${entry.key}`}
+                      aria-label={t(entry.labelKey)}
+                      type="checkbox"
+                      checked={pendingVisibility[rowScope]?.visible ?? visible}
+                      disabled={isRowPending || preferencesQuery.isPending}
+                      onChange={(event) => {
+                        if (
+                          visibilityWrites.current.has(rowScope) ||
+                          (entry.key === UPCOMING_MODULE_KEY &&
+                            (upcomingWriteRef.current?.scope ===
+                              settingsScope ||
+                              queryClient.isMutating({
+                                mutationKey: upcomingMutationKey,
+                                exact: true,
+                              }) > 0))
+                        ) {
+                          return;
+                        }
+                        // The mutation cache also prevents duplicate admission
+                        // across a panel unmount/remount while a request is in flight.
+                        const existing = queryClient
+                          .getMutationCache()
+                          .findAll({
+                            mutationKey: visibilityMutationKey,
+                            exact: true,
+                          })
+                          .some(
+                            (mutation) =>
+                              mutation.state.status === 'pending' &&
+                              (
+                                mutation.state.variables as
+                                  | VisibilityWrite
+                                  | undefined
+                              )?.moduleKey === entry.key,
+                          );
+                        if (existing) return;
+                        const isCurrentQuery = captureAuthorizedQuery(
+                          queryClient,
+                          queryKey,
                         );
-                      if (existing) return;
-                      const isCurrentQuery = captureAuthorizedQuery(
-                        queryClient,
-                        queryKey,
-                      );
-                      if (!isCurrentQuery()) return;
-                      const write: VisibilityWrite = {
-                        id: ++nextVisibilityId.current,
-                        scope: settingsScope,
-                        rowScope,
-                        moduleKey: entry.key,
-                        visible: event.target.checked,
-                        key: queryKey,
-                        isCurrentQuery,
-                        api: dashboardApi,
-                        spaceId,
-                      };
-                      visibilityWrites.current.set(rowScope, write);
-                      setPendingVisibility((current) => ({
-                        ...current,
-                        [rowScope]: { id: write.id, visible: write.visible },
-                      }));
-                      setSavedModuleKey(null);
-                      setVisibilityError(null);
-                      visibilityMutation.mutate(write);
-                    }}
-                  />
+                        if (!isCurrentQuery()) return;
+                        const write: VisibilityWrite = {
+                          id: ++nextVisibilityId.current,
+                          scope: settingsScope,
+                          rowScope,
+                          moduleKey: entry.key,
+                          visible: event.target.checked,
+                          key: queryKey,
+                          isCurrentQuery,
+                          api: dashboardApi,
+                          spaceId,
+                        };
+                        visibilityWrites.current.set(rowScope, write);
+                        setPendingVisibility((current) => ({
+                          ...current,
+                          [rowScope]: { id: write.id, visible: write.visible },
+                        }));
+                        setSavedModuleKey(null);
+                        setVisibilityError(null);
+                        visibilityMutation.mutate(write);
+                      }}
+                    />
+                  </label>
                 )}
                 <ListEntryIconButton
                   icon="reorder"
@@ -740,13 +742,13 @@ export function DashboardSettingsPanel({
         </div>
         <p
           id="dashboard-order-instructions"
-          className="dashboard-order-instructions"
+          className="dashboard-order-instructions sr-only"
         >
           {t('profileIdentity.dashboardOrderInstructions')}
         </p>
       </fieldset>
 
-      <p className="dashboard-module-status" role="status" aria-live="polite">
+      <p className="sr-only" role="status" aria-live="polite">
         {orderAnnouncement?.scope === settingsScope
           ? orderAnnouncement.message
           : null}

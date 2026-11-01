@@ -104,12 +104,16 @@ function renderCard({
   quoteError,
   entitlementError,
   saveError,
+  settingsOnly = false,
+  preferenceEnabled = true,
 }: {
   capabilities?: string[];
   quoteResult?: DailyQuoteResponse;
   quoteError?: unknown;
   entitlementError?: unknown;
   saveError?: unknown;
+  settingsOnly?: boolean;
+  preferenceEnabled?: boolean;
 } = {}) {
   const getEntitlements = entitlementError
     ? vi.fn().mockRejectedValue(entitlementError)
@@ -126,7 +130,9 @@ function renderCard({
   const getDailyQuoteCatalog = vi.fn().mockResolvedValue(catalog);
   const getDailyQuotePreferencesRaw = vi
     .fn()
-    .mockResolvedValue(rawResponse(preference));
+    .mockResolvedValue(
+      rawResponse({ ...preference, enabled: preferenceEnabled }),
+    );
   const updateDailyQuotePreferencesRaw = saveError
     ? vi.fn().mockRejectedValue(saveError)
     : vi.fn().mockImplementation(
@@ -172,6 +178,7 @@ function renderCard({
     <QueryClientProvider client={client}>
       <MemoryRouter>
         <DailyQuoteCard
+          settingsOnly={settingsOnly}
           quoteApi={quoteApi}
           entitlementsApi={entitlementsApi}
           accountId={ACCOUNT_ID}
@@ -200,13 +207,9 @@ describe('DailyQuoteCard', () => {
     expect(
       screen
         .getByRole('heading', { name: dailyQuote.title })
-        .classList.contains('today-section-title'),
+        .classList.contains('sr-only'),
     ).toBe(true);
-    expect(
-      screen
-        .getByText(dailyQuote.kicker)
-        .classList.contains('today-section-kicker'),
-    ).toBe(true);
+    expect(screen.queryByText(dailyQuote.kicker)).toBeNull();
     expect(api.getDailyQuote).not.toHaveBeenCalled();
     expect(api.getDailyQuoteCatalog).not.toHaveBeenCalled();
     expect(
@@ -216,7 +219,7 @@ describe('DailyQuoteCard', () => {
     ).not.toBeTruthy();
   });
 
-  it('renders the server-resolved Pro quote with attribution and catalog labels', async () => {
+  it('keeps the quotation and accessible heading without a decorative symbol', async () => {
     renderCard();
 
     expect(await screen.findByText('„A server-resolved quote.“')).toBeTruthy();
@@ -228,13 +231,21 @@ describe('DailyQuoteCard', () => {
         }),
       ),
     ).toBeTruthy();
-    expect(screen.getByText('Love')).toBeTruthy();
-    expect(screen.getByText('Mindfulness')).toBeTruthy();
+    expect(document.querySelector('.daily-quote-symbol')).toBeNull();
     expect(
-      screen.getByRole('button', {
+      screen
+        .getByRole('heading', { name: dailyQuote.title })
+        .classList.contains('sr-only'),
+    ).toBe(true);
+    expect(screen.queryByText('Love')).toBeNull();
+    expect(screen.queryByText('Mindfulness')).toBeNull();
+    expect(screen.queryByText(dailyQuote.kicker)).toBeNull();
+    expect(document.querySelector('.daily-quote-card .pro-mark')).toBeNull();
+    expect(
+      screen.queryByRole('button', {
         name: dailyQuote.settingsAria,
       }),
-    ).toBeTruthy();
+    ).toBeNull();
   });
 
   it('falls back to quiet discovery when Pro is removed between entitlement and quote reads', async () => {
@@ -293,7 +304,7 @@ describe('DailyQuoteCard', () => {
       value: false,
     });
     const user = userEvent.setup();
-    const api = renderCard();
+    const api = renderCard({ settingsOnly: true });
 
     await user.click(
       await screen.findByRole('button', { name: dailyQuote.settingsAria }),
@@ -305,20 +316,19 @@ describe('DailyQuoteCard', () => {
     expect(api.updateDailyQuotePreferencesRaw).not.toHaveBeenCalled();
   });
 
-  it('disables the personal quote without dropping source/category selections', async () => {
+  it('edits selections while display is disabled without a duplicate switch or visibility write', async () => {
     const user = userEvent.setup();
-    const api = renderCard();
+    const api = renderCard({ settingsOnly: true, preferenceEnabled: false });
 
     await user.click(
       await screen.findByRole('button', { name: dailyQuote.settingsAria }),
     );
-    const visibility = screen.getByRole('switch', {
-      name: dailyQuote.enabledLabel,
-    });
-    expect(visibility.getAttribute('aria-checked')).toBe('true');
-
-    await user.click(visibility);
-    expect(visibility.getAttribute('aria-checked')).toBe('false');
+    expect(
+      screen.queryByRole('switch', {
+        name: dailyQuote.enabledLabel,
+      }),
+    ).toBeNull();
+    await user.click(screen.getByRole('checkbox', { name: /Mindfulness/u }));
     await user.click(screen.getByRole('button', { name: dailyQuote.done }));
 
     await waitFor(() =>
@@ -329,8 +339,7 @@ describe('DailyQuoteCard', () => {
         spaceId: SPACE_ID,
         ifMatch: '"quote-pref:2"',
         dailyQuotePreferencePatch: {
-          enabled: false,
-          selectedCategoryIds: ['love'],
+          selectedCategoryIds: ['love', 'mindfulness'],
           selectedSourceIds: ['classic_literature'],
         },
       }),
@@ -341,6 +350,7 @@ describe('DailyQuoteCard', () => {
   it('keeps the preference draft open on an optimistic concurrency conflict', async () => {
     const user = userEvent.setup();
     const api = renderCard({
+      settingsOnly: true,
       saveError: new ClientProblemError(
         'conflict',
         409,
@@ -361,7 +371,7 @@ describe('DailyQuoteCard', () => {
 
   it('edits only the caller preference and round-trips the server ETag', async () => {
     const user = userEvent.setup();
-    const api = renderCard();
+    const api = renderCard({ settingsOnly: true });
 
     const settings = await screen.findByRole('button', {
       name: dailyQuote.settingsAria,
@@ -386,7 +396,6 @@ describe('DailyQuoteCard', () => {
         spaceId: SPACE_ID,
         ifMatch: '"quote-pref:2"',
         dailyQuotePreferencePatch: expect.objectContaining({
-          enabled: true,
           selectedCategoryIds: ['love', 'mindfulness'],
           selectedSourceIds: ['classic_literature'],
         }),

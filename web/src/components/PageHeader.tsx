@@ -27,7 +27,7 @@ export function PageHeader({
     <>
       {before}
       <header
-        className={`page-heading ${variantClassName} ${className}`.trim()}
+        className={`page-heading ${titleAction ? 'page-heading-has-title-action' : ''} ${variantClassName} ${className}`.trim()}
       >
         <div>
           {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}

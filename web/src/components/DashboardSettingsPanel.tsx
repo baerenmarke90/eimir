@@ -1,8 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import {
+  type QueryClient,
+  useMutation,
+  useMutationState,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { useRef, useState, type ReactNode } from 'react';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
 import type { DashboardModulePreferenceView } from '../api/generated/models/DashboardModulePreferenceView';
+import { assertOnlineWrite } from '../client/connectivity';
 import {
   DASHBOARD_MODULE_CATALOG,
   type DashboardModuleKey,
@@ -12,21 +19,68 @@ import {
   effectiveUpcomingItemLimit,
   isDashboardModuleVisible,
   orderedDashboardModuleKeys,
-  withDashboardModuleOrder,
-  type UpcomingItemLimit,
   UPCOMING_ITEM_LIMITS,
   UPCOMING_MODULE_KEY,
+  type UpcomingItemLimit,
+  withDashboardModuleOrder,
 } from '../client/dashboardPreferences';
-import { normalizeClientError } from '../client/problemDetails';
+import { invalidateDashboard } from '../client/dashboardQueries';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { useTranslation } from '../i18n';
-import { ProblemState } from './ProblemState';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
+import { ProblemState } from './ProblemState';
+import { ProMark } from './ProMark';
 
 export interface DashboardSettingsPanelProps {
   dashboardApi: DashboardApi;
   accountId: string;
   spaceId: string;
+  moduleControls?: Partial<Record<DashboardModuleKey, ReactNode>>;
 }
+
+type PreferenceQueryWrite = {
+  moduleKey: DashboardModuleKey;
+  key: ReturnType<typeof dashboardPreferencesQueryKey>;
+  isCurrentQuery: () => boolean;
+};
+
+type PreferenceRowContext = {
+  previous: DashboardModulePreferenceView | undefined;
+  optimistic: DashboardModulePreferenceView | undefined;
+};
+
+type UpcomingLimitWrite = PreferenceQueryWrite & {
+  scope: string;
+  itemLimit: UpcomingItemLimit;
+  api: DashboardApi;
+  spaceId: string;
+};
+
+type DashboardOrderWrite = {
+  keys: DashboardModuleKey[];
+  sequence: number;
+  scope: string;
+  key: ReturnType<typeof dashboardPreferencesQueryKey>;
+  isCurrentQuery: () => boolean;
+  api: DashboardApi;
+  spaceId: string;
+};
+
+type VisibilityWrite = {
+  id: number;
+  scope: string;
+  rowScope: string;
+  moduleKey: DashboardModuleKey;
+  visible: boolean;
+  key: ReturnType<typeof dashboardPreferencesQueryKey>;
+  isCurrentQuery: () => boolean;
+  api: DashboardApi;
+  spaceId: string;
+};
 
 function patchPreference(
   old: DashboardModulePreferenceList | undefined,
@@ -44,7 +98,69 @@ function patchPreference(
   return { items };
 }
 
+/** One atomic Dashboard facet write, shared by visibility and upcoming limits. */
+async function beginPreferenceFacetWrite(
+  client: QueryClient,
+  write: PreferenceQueryWrite,
+  facet: Partial<DashboardModulePreferenceView>,
+): Promise<PreferenceRowContext | null> {
+  if (!write.isCurrentQuery()) return null;
+  await client.cancelQueries({ queryKey: write.key, exact: true });
+  if (!write.isCurrentQuery()) return null;
+  const previous = client
+    .getQueryData<DashboardModulePreferenceList>(write.key)
+    ?.items.find((item) => item.moduleKey === write.moduleKey);
+  client.setQueryData<DashboardModulePreferenceList>(write.key, (current) =>
+    current ? patchPreference(current, write.moduleKey, facet) : current,
+  );
+  const optimistic = client
+    .getQueryData<DashboardModulePreferenceList>(write.key)
+    ?.items.find((item) => item.moduleKey === write.moduleKey);
+  return { previous, optimistic };
+}
+
+/** A stale result cannot replace a later read or a different Query identity. */
+function settlePreferenceFacetWrite(
+  client: QueryClient,
+  write: PreferenceQueryWrite,
+  context: PreferenceRowContext | null | undefined,
+  confirmedFacet?: Partial<DashboardModulePreferenceView>,
+): boolean {
+  if (!context?.optimistic || !write.isCurrentQuery()) return false;
+  const current = client.getQueryData<DashboardModulePreferenceList>(write.key);
+  if (
+    !current ||
+    current.items.find((item) => item.moduleKey === write.moduleKey) !==
+      context.optimistic
+  ) {
+    return false;
+  }
+  const previous = context.previous;
+  client.setQueryData<DashboardModulePreferenceList>(write.key, (data) => {
+    if (
+      !data ||
+      data.items.find((item) => item.moduleKey === write.moduleKey) !==
+        context.optimistic
+    ) {
+      return data;
+    }
+    if (confirmedFacet) {
+      return patchPreference(data, write.moduleKey, confirmedFacet);
+    }
+    return {
+      ...data,
+      items: previous
+        ? data.items.map((item) =>
+            item === context.optimistic ? previous : item,
+          )
+        : data.items.filter((item) => item !== context.optimistic),
+    };
+  });
+  return true;
+}
+
 export function DashboardSettingsPanel({
+  moduleControls,
   dashboardApi,
   accountId,
   spaceId,
@@ -52,16 +168,58 @@ export function DashboardSettingsPanel({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const queryKey = dashboardPreferencesQueryKey(accountId, spaceId);
-  const [pendingLimit, setPendingLimit] = useState<UpcomingItemLimit | null>(
+  const [pendingLimit, setPendingLimit] = useState<UpcomingLimitWrite | null>(
     null,
   );
-  const [saved, setSaved] = useState(false);
+  const [savedLimitScope, setSavedLimitScope] = useState<string | null>(null);
+  const [limitError, setLimitError] = useState<{
+    scope: string;
+    error: unknown;
+  } | null>(null);
+  const upcomingWriteRef = useRef<UpcomingLimitWrite | null>(null);
+  const upcomingMutationKey = ['dashboard-upcoming-limit', accountId, spaceId];
+  const pendingUpcomingMutations = useMutationState({
+    filters: {
+      mutationKey: upcomingMutationKey,
+      exact: true,
+      status: 'pending',
+    },
+    select: (entry) => entry.state.variables as UpcomingLimitWrite | undefined,
+  });
   const [savedModuleKey, setSavedModuleKey] =
     useState<DashboardModuleKey | null>(null);
+  // Each independently submitted row remains pending until its own write settles.
+  // Scoped keys prevent callbacks from an old Account/Space affecting a new task.
+  const settingsScope = JSON.stringify([accountId, spaceId]);
+  const activeSettingsScope = useRef(settingsScope);
+  activeSettingsScope.current = settingsScope;
+  const visibilityWrites = useRef(new Map<string, VisibilityWrite>());
+  const nextVisibilityId = useRef(0);
   const [pendingVisibility, setPendingVisibility] = useState<
-    Partial<Record<DashboardModuleKey, boolean>>
+    Record<string, { id: number; visible: boolean }>
   >({});
-  const [orderAnnouncement, setOrderAnnouncement] = useState('');
+  const [visibilityError, setVisibilityError] = useState<{
+    scope: string;
+    error: unknown;
+  } | null>(null);
+  const visibilityMutationKey = ['dashboard-visibility', accountId, spaceId];
+  const pendingVisibilityMutations = useMutationState({
+    filters: {
+      mutationKey: visibilityMutationKey,
+      exact: true,
+      status: 'pending',
+    },
+    select: (mutation) =>
+      (mutation.state.variables as VisibilityWrite | undefined)?.moduleKey,
+  });
+  const [orderAnnouncement, setOrderAnnouncement] = useState<{
+    scope: string;
+    message: string;
+  } | null>(null);
+  const [orderError, setOrderError] = useState<{
+    scope: string;
+    error: unknown;
+  } | null>(null);
   const latestOrderRequest = useRef(0);
 
   const preferencesQuery = useQuery({
@@ -76,117 +234,311 @@ export function DashboardSettingsPanel({
     retry: false,
   });
 
-  const mutation = useMutation({
-    mutationFn: async (itemLimit: UpcomingItemLimit) => {
+  const upcomingMutation = useMutation({
+    mutationKey: upcomingMutationKey,
+    networkMode: 'always',
+    retry: false,
+    mutationFn: async (write: UpcomingLimitWrite) => {
+      // The submitted identity must still own the original authorized read.
+      if (!write.isCurrentQuery()) {
+        throw new Error('Dashboard preference read is no longer authorized.');
+      }
+      assertOnlineWrite();
       try {
-        return await dashboardApi.updateDashboardModulePreference({
+        return await write.api.updateDashboardModulePreference({
           moduleKey: UPCOMING_MODULE_KEY,
-          spaceId,
-          dashboardModulePreferenceUpdate: { itemLimit },
+          spaceId: write.spaceId,
+          dashboardModulePreferenceUpdate: { itemLimit: write.itemLimit },
         });
       } catch (error) {
         throw await normalizeClientError(error);
       }
     },
-    onMutate: (itemLimit) => {
-      setPendingLimit(itemLimit);
-      setSaved(false);
-    },
-    onSuccess: (updated) => {
-      queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
-        patchPreference(old, updated.moduleKey, {
+    onMutate: (write) =>
+      beginPreferenceFacetWrite(queryClient, write, {
+        itemLimit: write.itemLimit,
+      }),
+    onSuccess: (updated, write, context) => {
+      if (write.isCurrentQuery())
+        void invalidateDashboard(queryClient, write.spaceId);
+      const committed = settlePreferenceFacetWrite(
+        queryClient,
+        write,
+        context,
+        {
           itemLimit: updated.itemLimit,
-        }),
+        },
       );
-      setPendingLimit(null);
-      setSaved(true);
+      if (
+        committed &&
+        activeSettingsScope.current === write.scope &&
+        write.isCurrentQuery()
+      ) {
+        setSavedLimitScope(write.scope);
+      }
     },
-    onError: () => {
-      setPendingLimit(null);
-      setSaved(false);
+    onError: async (error, write, context) => {
+      settlePreferenceFacetWrite(queryClient, write, context);
+      if (
+        write.isCurrentQuery() &&
+        ['unauthorized', 'permission', 'notFound'].includes(
+          clientProblemKind(error),
+        )
+      ) {
+        await queryClient.resetQueries({ queryKey: write.key, exact: true });
+      }
+      if (
+        activeSettingsScope.current === write.scope &&
+        write.isCurrentQuery()
+      ) {
+        setSavedLimitScope(null);
+        setLimitError({ scope: write.scope, error });
+      }
+    },
+    onSettled: (_updated, _error, write) => {
+      if (upcomingWriteRef.current === write) upcomingWriteRef.current = null;
+      setPendingLimit((current) => (current === write ? null : current));
     },
   });
 
+  function changeUpcomingLimit(itemLimit: UpcomingItemLimit) {
+    if (
+      preferencesQuery.isPending ||
+      preferencesQuery.error ||
+      upcomingWriteRef.current?.scope === settingsScope ||
+      queryClient.isMutating({
+        mutationKey: upcomingMutationKey,
+        exact: true,
+      }) > 0 ||
+      visibilityWrites.current.has(`${settingsScope}:${UPCOMING_MODULE_KEY}`) ||
+      queryClient
+        .getMutationCache()
+        .findAll({ mutationKey: visibilityMutationKey, exact: true })
+        .some(
+          (mutation) =>
+            mutation.state.status === 'pending' &&
+            (mutation.state.variables as VisibilityWrite | undefined)
+              ?.moduleKey === UPCOMING_MODULE_KEY,
+        )
+    ) {
+      return;
+    }
+    const isCurrentQuery = captureAuthorizedQuery(queryClient, queryKey);
+    if (!isCurrentQuery()) return;
+    const write: UpcomingLimitWrite = {
+      scope: settingsScope,
+      key: queryKey,
+      moduleKey: UPCOMING_MODULE_KEY,
+      itemLimit,
+      api: dashboardApi,
+      spaceId,
+      isCurrentQuery,
+    };
+    upcomingWriteRef.current = write;
+    setPendingLimit(write);
+    setSavedLimitScope(null);
+    setLimitError(null);
+    upcomingMutation.mutate(write);
+  }
+
   const visibilityMutation = useMutation({
-    mutationFn: async ({
-      moduleKey,
-      visible,
-    }: {
-      moduleKey: DashboardModuleKey;
-      visible: boolean;
-      previousVisible: boolean;
-    }) => {
+    mutationKey: visibilityMutationKey,
+    // Never park a preference write for replay after reconnect.
+    networkMode: 'always',
+    retry: false,
+    mutationFn: async (write: VisibilityWrite) => {
+      if (!write.isCurrentQuery()) {
+        throw new Error('Dashboard preference read is no longer authorized.');
+      }
+      assertOnlineWrite();
       try {
-        return await dashboardApi.updateDashboardModulePreference({
-          moduleKey,
-          spaceId,
-          dashboardModulePreferenceUpdate: { visible },
+        return await write.api.updateDashboardModulePreference({
+          moduleKey: write.moduleKey,
+          spaceId: write.spaceId,
+          dashboardModulePreferenceUpdate: { visible: write.visible },
         });
       } catch (error) {
         throw await normalizeClientError(error);
       }
     },
-    onSuccess: (updated) => {
-      queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
-        patchPreference(old, updated.moduleKey, { visible: updated.visible }),
+    onMutate: (write) =>
+      beginPreferenceFacetWrite(queryClient, write, {
+        visible: write.visible,
+      }),
+    onSuccess: (updated, write, context) => {
+      if (write.isCurrentQuery())
+        void invalidateDashboard(queryClient, write.spaceId);
+      // A later authoritative read or another write can replace this row.
+      // Only the submitted optimistic row may consume its own response.
+      const committed = settlePreferenceFacetWrite(
+        queryClient,
+        write,
+        context,
+        {
+          visible: updated.visible,
+        },
       );
-      setPendingVisibility((old) => {
-        const next = { ...old };
-        delete next[updated.moduleKey as DashboardModuleKey];
-        return next;
-      });
-      setSavedModuleKey(updated.moduleKey as DashboardModuleKey);
+      if (
+        committed &&
+        activeSettingsScope.current === write.scope &&
+        write.isCurrentQuery()
+      ) {
+        setSavedModuleKey(write.moduleKey);
+      }
     },
-    onError: (_error, { moduleKey, previousVisible }) => {
-      queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
-        patchPreference(old, moduleKey, { visible: previousVisible }),
-      );
-      setPendingVisibility((old) => {
-        const next = { ...old };
-        delete next[moduleKey];
+    onError: async (error, write, context) => {
+      // Roll back the exact optimistic object, never a newer read or sibling.
+      settlePreferenceFacetWrite(queryClient, write, context);
+      if (
+        write.isCurrentQuery() &&
+        ['unauthorized', 'permission', 'notFound'].includes(
+          clientProblemKind(error),
+        )
+      ) {
+        await queryClient.resetQueries({ queryKey: write.key, exact: true });
+      }
+      if (
+        activeSettingsScope.current === write.scope &&
+        write.isCurrentQuery()
+      ) {
+        setSavedModuleKey(null);
+        setVisibilityError({ scope: write.scope, error });
+      }
+    },
+    onSettled: (_result, _error, write) => {
+      if (visibilityWrites.current.get(write.rowScope) === write) {
+        visibilityWrites.current.delete(write.rowScope);
+      }
+      setPendingVisibility((current) => {
+        if (current[write.rowScope]?.id !== write.id) return current;
+        const next = { ...current };
+        delete next[write.rowScope];
         return next;
       });
-      setSavedModuleKey(null);
     },
   });
 
   const orderMutation = useMutation({
     mutationKey: ['dashboard-order', accountId, spaceId],
+    // Existing serialization is required for rapid keyboard/drag reorders.
     scope: { id: `dashboard-order:${accountId}:${spaceId}` },
-    mutationFn: async ({
-      keys,
-    }: {
-      keys: DashboardModuleKey[];
-      sequence: number;
-    }) => {
+    networkMode: 'always',
+    retry: false,
+    mutationFn: async (write: DashboardOrderWrite) => {
+      if (
+        activeSettingsScope.current !== write.scope ||
+        !write.isCurrentQuery()
+      ) {
+        throw new Error('Dashboard order task is no longer authorized.');
+      }
+      assertOnlineWrite();
       try {
-        return await dashboardApi.updateDashboardModuleOrder({
-          spaceId,
-          dashboardModuleOrderUpdate: { moduleKeys: keys },
+        return await write.api.updateDashboardModuleOrder({
+          spaceId: write.spaceId,
+          dashboardModuleOrderUpdate: { moduleKeys: write.keys },
         });
       } catch (error) {
         throw await normalizeClientError(error);
       }
     },
-    onMutate: ({ keys }) => {
-      queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
-        withDashboardModuleOrder(old, keys),
+    onMutate: async (write) => {
+      if (
+        activeSettingsScope.current !== write.scope ||
+        !write.isCurrentQuery()
+      ) {
+        return null;
+      }
+      await queryClient.cancelQueries({ queryKey: write.key, exact: true });
+      if (
+        activeSettingsScope.current !== write.scope ||
+        !write.isCurrentQuery()
+      ) {
+        return null;
+      }
+      const current = queryClient.getQueryData<DashboardModulePreferenceList>(
+        write.key,
       );
-    },
-    onSuccess: (savedOrder, { sequence }) => {
-      if (sequence !== latestOrderRequest.current) return;
-      queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
-        withDashboardModuleOrder(
-          old,
-          savedOrder.items.map((item) => item.moduleKey as DashboardModuleKey),
-        ),
+      if (!current) return null;
+      queryClient.setQueryData<DashboardModulePreferenceList>(
+        write.key,
+        (old) => (old ? withDashboardModuleOrder(old, write.keys) : old),
       );
-      setOrderAnnouncement(t('profileIdentity.dashboardModuleSaved'));
+      return { optimisticKeys: write.keys };
     },
-    onError: (_error, { sequence }) => {
-      if (sequence !== latestOrderRequest.current) return;
-      setOrderAnnouncement(t('profileIdentity.dashboardOrderFailed'));
-      void queryClient.invalidateQueries({ queryKey });
+    onSuccess: (savedOrder, write, context) => {
+      if (write.isCurrentQuery())
+        void invalidateDashboard(queryClient, write.spaceId);
+      if (
+        !context ||
+        write.sequence !== latestOrderRequest.current ||
+        activeSettingsScope.current !== write.scope ||
+        !write.isCurrentQuery()
+      ) {
+        return;
+      }
+      const current = queryClient.getQueryData<DashboardModulePreferenceList>(
+        write.key,
+      );
+      if (
+        !current ||
+        orderedDashboardModuleKeys(current).some(
+          (key, index) => key !== context.optimisticKeys[index],
+        )
+      ) {
+        // A later authoritative read or independently submitted order wins.
+        return;
+      }
+      queryClient.setQueryData<DashboardModulePreferenceList>(
+        write.key,
+        (old) =>
+          old &&
+          orderedDashboardModuleKeys(old).every(
+            (key, index) => key === context.optimisticKeys[index],
+          )
+            ? withDashboardModuleOrder(
+                old,
+                savedOrder.items.map(
+                  (item) => item.moduleKey as DashboardModuleKey,
+                ),
+              )
+            : old,
+      );
+      setOrderError(null);
+      setOrderAnnouncement({
+        scope: write.scope,
+        message: t('profileIdentity.dashboardModuleSaved'),
+      });
+    },
+    onError: (error, write, context) => {
+      if (
+        !context ||
+        write.sequence !== latestOrderRequest.current ||
+        activeSettingsScope.current !== write.scope ||
+        !write.isCurrentQuery()
+      ) {
+        return;
+      }
+      const current = queryClient.getQueryData<DashboardModulePreferenceList>(
+        write.key,
+      );
+      if (
+        !current ||
+        orderedDashboardModuleKeys(current).some(
+          (key, index) => key !== context.optimisticKeys[index],
+        )
+      ) {
+        // Do not invalidate an independent newer read or another task.
+        return;
+      }
+      setOrderError({ scope: write.scope, error });
+      setOrderAnnouncement({
+        scope: write.scope,
+        message: t('profileIdentity.dashboardOrderFailed'),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: write.key,
+        exact: true,
+      });
     },
   });
 
@@ -196,40 +548,64 @@ export function DashboardSettingsPanel({
     animatePreview: true,
     disabled: preferencesQuery.isPending || Boolean(preferencesQuery.error),
     onReorder: (keys, moved) => {
+      const isCurrentQuery = captureAuthorizedQuery(queryClient, queryKey);
+      if (!isCurrentQuery()) return;
       const next = keys as DashboardModuleKey[];
       const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moved);
       const position = next.indexOf(moved as DashboardModuleKey) + 1;
-      orderMutation.mutate({
+      const write: DashboardOrderWrite = {
         keys: next,
         sequence: ++latestOrderRequest.current,
-      });
+        scope: settingsScope,
+        key: queryKey,
+        isCurrentQuery,
+        api: dashboardApi,
+        spaceId,
+      };
+      setOrderError(null);
+      orderMutation.mutate(write);
       if (entry) {
-        setOrderAnnouncement(
-          t('profileIdentity.dashboardOrderPosition', {
+        setOrderAnnouncement({
+          scope: settingsScope,
+          message: t('profileIdentity.dashboardOrderPosition', {
             name: t(entry.labelKey),
             position,
-            total: next.length,
+            total: keys.length,
           }),
-        );
+        });
       }
     },
   });
 
   const confirmedLimit = effectiveUpcomingItemLimit(preferencesQuery.data);
-  const selectedLimit = pendingLimit ?? confirmedLimit;
-  const status = mutation.isPending
+  const pendingUpcoming = pendingUpcomingMutations.find((write) =>
+    write?.isCurrentQuery(),
+  );
+  const activePendingLimit =
+    pendingLimit?.scope === settingsScope ? pendingLimit : pendingUpcoming;
+  const isLimitPending =
+    Boolean(activePendingLimit) || pendingUpcomingMutations.length > 0;
+  const selectedLimit = activePendingLimit?.itemLimit ?? confirmedLimit;
+  const isUpcomingVisibilityPending =
+    pendingVisibility[`${settingsScope}:${UPCOMING_MODULE_KEY}`] !==
+      undefined || pendingVisibilityMutations.includes(UPCOMING_MODULE_KEY);
+  const status = isLimitPending
     ? t('profileIdentity.dashboardUpcomingSaving')
-    : saved
+    : savedLimitScope === settingsScope
       ? t('profileIdentity.dashboardUpcomingSaved')
       : preferencesQuery.isPending
         ? t('profileIdentity.dashboardUpcomingLoading')
         : null;
 
-  const visibilityStatus = visibilityMutation.isPending
-    ? t('profileIdentity.dashboardModuleSaving')
-    : savedModuleKey
-      ? t('profileIdentity.dashboardModuleSaved')
-      : null;
+  const visibilityStatus =
+    pendingVisibilityMutations.length > 0 ||
+    Object.keys(pendingVisibility).some((key) =>
+      key.startsWith(`${settingsScope}:`),
+    )
+      ? t('profileIdentity.dashboardModuleSaving')
+      : savedModuleKey
+        ? t('profileIdentity.dashboardModuleSaved')
+        : null;
 
   return (
     <section
@@ -241,16 +617,15 @@ export function DashboardSettingsPanel({
         <h2 id="settings-dashboard-heading">
           {t('profileIdentity.settingsDashboard')}
         </h2>
-        <p className="settings-section-intro">
-          {t('profileIdentity.settingsDashboardIntro')}
-        </p>
       </div>
 
       <fieldset
         className="dashboard-module-preference"
         aria-busy={preferencesQuery.isPending}
       >
-        <legend>{t('profileIdentity.dashboardModulesTitle')}</legend>
+        <legend className="sr-only">
+          {t('profileIdentity.dashboardModulesTitle')}
+        </legend>
         <p className="dashboard-module-question">
           {t('profileIdentity.dashboardModulesIntro')}
         </p>
@@ -264,51 +639,102 @@ export function DashboardSettingsPanel({
               preferencesQuery.data,
               entry.key,
             );
+            const rowScope = `${settingsScope}:${entry.key}`;
             const isRowPending =
-              visibilityMutation.isPending &&
-              visibilityMutation.variables?.moduleKey === entry.key;
+              pendingVisibility[rowScope] !== undefined ||
+              pendingVisibilityMutations.includes(entry.key) ||
+              (entry.key === UPCOMING_MODULE_KEY && isLimitPending);
+            const customControl = moduleControls?.[entry.key];
+            const hasDedicatedSetting =
+              customControl !== undefined ||
+              entry.key === 'shared_story_summary';
             return (
               <div
                 key={entry.key}
                 className={`dashboard-module-option${reorder.activeItemId === entry.key ? ' is-dragging' : ''}`}
                 data-sortable-item-id={entry.key}
               >
-                <label
-                  className="dashboard-module-option-label"
-                  htmlFor={`dashboard-visible-${entry.key}`}
-                >
-                  {t(entry.labelKey)}
-                </label>
-                <input
-                  id={`dashboard-visible-${entry.key}`}
-                  aria-label={t(entry.labelKey)}
-                  type="checkbox"
-                  checked={pendingVisibility[entry.key] ?? visible}
-                  disabled={isRowPending || preferencesQuery.isPending}
-                  onChange={(event) => {
-                    const visible = event.target.checked;
-                    const previousVisible = isDashboardModuleVisible(
-                      queryClient.getQueryData<DashboardModulePreferenceList>(
-                        queryKey,
-                      ),
-                      entry.key,
-                    );
-                    queryClient.setQueryData<DashboardModulePreferenceList>(
-                      queryKey,
-                      (old) => patchPreference(old, entry.key, { visible }),
-                    );
-                    setPendingVisibility((old) => ({
-                      ...old,
-                      [entry.key]: visible,
-                    }));
-                    setSavedModuleKey(null);
-                    visibilityMutation.mutate({
-                      moduleKey: entry.key,
-                      visible,
-                      previousVisible,
-                    });
-                  }}
-                />
+                {hasDedicatedSetting ? (
+                  <span className="dashboard-module-option-label">
+                    {t(entry.labelKey)} <ProMark label={t('dailyQuote.pro')} />
+                  </span>
+                ) : (
+                  <label
+                    className="dashboard-module-option-label"
+                    htmlFor={`dashboard-visible-${entry.key}`}
+                  >
+                    {t(entry.labelKey)}
+                  </label>
+                )}
+                {hasDedicatedSetting ? (
+                  (customControl ?? null)
+                ) : (
+                  <label className="dashboard-module-switch">
+                    <input
+                      id={`dashboard-visible-${entry.key}`}
+                      aria-label={t(entry.labelKey)}
+                      type="checkbox"
+                      checked={pendingVisibility[rowScope]?.visible ?? visible}
+                      disabled={isRowPending || preferencesQuery.isPending}
+                      onChange={(event) => {
+                        if (
+                          visibilityWrites.current.has(rowScope) ||
+                          (entry.key === UPCOMING_MODULE_KEY &&
+                            (upcomingWriteRef.current?.scope ===
+                              settingsScope ||
+                              queryClient.isMutating({
+                                mutationKey: upcomingMutationKey,
+                                exact: true,
+                              }) > 0))
+                        ) {
+                          return;
+                        }
+                        // The mutation cache also prevents duplicate admission
+                        // across a panel unmount/remount while a request is in flight.
+                        const existing = queryClient
+                          .getMutationCache()
+                          .findAll({
+                            mutationKey: visibilityMutationKey,
+                            exact: true,
+                          })
+                          .some(
+                            (mutation) =>
+                              mutation.state.status === 'pending' &&
+                              (
+                                mutation.state.variables as
+                                  | VisibilityWrite
+                                  | undefined
+                              )?.moduleKey === entry.key,
+                          );
+                        if (existing) return;
+                        const isCurrentQuery = captureAuthorizedQuery(
+                          queryClient,
+                          queryKey,
+                        );
+                        if (!isCurrentQuery()) return;
+                        const write: VisibilityWrite = {
+                          id: ++nextVisibilityId.current,
+                          scope: settingsScope,
+                          rowScope,
+                          moduleKey: entry.key,
+                          visible: event.target.checked,
+                          key: queryKey,
+                          isCurrentQuery,
+                          api: dashboardApi,
+                          spaceId,
+                        };
+                        visibilityWrites.current.set(rowScope, write);
+                        setPendingVisibility((current) => ({
+                          ...current,
+                          [rowScope]: { id: write.id, visible: write.visible },
+                        }));
+                        setSavedModuleKey(null);
+                        setVisibilityError(null);
+                        visibilityMutation.mutate(write);
+                      }}
+                    />
+                  </label>
+                )}
                 <ListEntryIconButton
                   icon="reorder"
                   label={t('profileIdentity.dashboardOrderHandle', {
@@ -323,17 +749,19 @@ export function DashboardSettingsPanel({
         </div>
         <p
           id="dashboard-order-instructions"
-          className="dashboard-order-instructions"
+          className="dashboard-order-instructions sr-only"
         >
           {t('profileIdentity.dashboardOrderInstructions')}
         </p>
       </fieldset>
 
-      <p className="dashboard-module-status" role="status" aria-live="polite">
-        {orderAnnouncement}
+      <p className="sr-only" role="status" aria-live="polite">
+        {orderAnnouncement?.scope === settingsScope
+          ? orderAnnouncement.message
+          : null}
       </p>
-      {orderMutation.error ? (
-        <ProblemState error={orderMutation.error} />
+      {orderError?.scope === settingsScope ? (
+        <ProblemState error={orderError.error} />
       ) : null}
 
       {visibilityStatus ? (
@@ -341,13 +769,13 @@ export function DashboardSettingsPanel({
           {visibilityStatus}
         </p>
       ) : null}
-      {visibilityMutation.error ? (
-        <ProblemState error={visibilityMutation.error} />
+      {visibilityError?.scope === settingsScope ? (
+        <ProblemState error={visibilityError.error} />
       ) : null}
 
       <fieldset
         className="dashboard-upcoming-preference"
-        aria-busy={mutation.isPending || preferencesQuery.isPending}
+        aria-busy={isLimitPending || preferencesQuery.isPending}
       >
         <legend>{t('profileIdentity.dashboardUpcomingTitle')}</legend>
         <p className="dashboard-upcoming-question">
@@ -368,10 +796,20 @@ export function DashboardSettingsPanel({
                 name="dashboardUpcomingItemLimit"
                 value={itemLimit}
                 checked={selectedLimit === itemLimit}
-                disabled={mutation.isPending || preferencesQuery.isPending}
-                onChange={() => mutation.mutate(itemLimit)}
+                disabled={
+                  isLimitPending ||
+                  isUpcomingVisibilityPending ||
+                  preferencesQuery.isPending ||
+                  Boolean(preferencesQuery.error)
+                }
+                onChange={() => changeUpcomingLimit(itemLimit)}
               />
-              <span>{itemLimit}</span>
+              <span>
+                {itemLimit}
+                {selectedLimit === itemLimit ? (
+                  <span aria-hidden="true"> ✓</span>
+                ) : null}
+              </span>
             </label>
           ))}
         </div>
@@ -393,7 +831,9 @@ export function DashboardSettingsPanel({
           onRetry={() => void preferencesQuery.refetch()}
         />
       ) : null}
-      {mutation.error ? <ProblemState error={mutation.error} /> : null}
+      {limitError?.scope === settingsScope ? (
+        <ProblemState error={limitError.error} />
+      ) : null}
     </section>
   );
 }

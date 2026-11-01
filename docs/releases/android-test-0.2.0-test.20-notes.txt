@@ -1,0 +1,7 @@
+Restores the Android photo/media picker after the previous update opened the document selector. Selected gallery originals can again deliver their authorized photo-location metadata to the existing upload flow. Supported newer system pickers request location sharing directly; older systems retain the optional Android photo-metadata permission.
+
+Also fixes the Places section staying empty after a photo is added to a recently opened Memory or shared HeartMoment. Server-confirmed places now appear immediately after saving.
+
+Install Build 20 through App Updates, then select the original gallery photo again and save the moment. Existing uploaded copies that already lost their location cannot reconstruct it automatically. Automatic places must be enabled and Android's photo-location access must be allowed.
+
+The complete acceptance uses an externally owned camera photo, the real multi-photo picker, actual selected File bytes, the Web uploader, API, background worker and a canonical saved Place. Free/Core access, private/shared boundaries, manual corrections and existing data remain intact. The app requests no live location or library-wide read permission; no new provider or native media cache is added. The original package, signing certificate, Cloud origin and updater remain unchanged.

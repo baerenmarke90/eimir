@@ -15,13 +15,17 @@ import './PlanStoryContinuation.css';
  */
 export function PlanStoryContinuation({
   apis: _apis,
-  spaceId: _spaceId,
+  spaceId,
+  accountId,
+  apiBaseUrl,
   plan,
   focusOnMount = false,
   sharedAchievementEnabled = false,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
+  accountId?: string;
+  apiBaseUrl?: string;
   plan: PlanDetail;
   focusOnMount?: boolean;
   sharedAchievementEnabled?: boolean;
@@ -44,7 +48,19 @@ export function PlanStoryContinuation({
       selectedKey: plan.id,
     });
     void navigate(to, {
-      state: taskOriginKey ? { taskOriginKey } : undefined,
+      state: {
+        taskOriginKey,
+        ...(to === MEMORY_CREATE_ROUTE && accountId && apiBaseUrl
+          ? {
+              sourcePlan: {
+                id: plan.id,
+                spaceId,
+                accountId,
+                instance: apiBaseUrl,
+              },
+            }
+          : {}),
+      },
     });
   }
 
@@ -80,6 +96,7 @@ export function PlanStoryContinuation({
           {t('m5s3.plan.completedTitle')}
         </h2>
       )}
+      <p>{t('m5s3.plan.completedBody')}</p>
       <p className="plan-completed-intro">{t('m5s3.planStory.intro')}</p>
       <div className="plan-story-actions">
         <button

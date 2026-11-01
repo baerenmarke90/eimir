@@ -12,6 +12,9 @@
   --font-utility-heading:
     600 1.75rem / 1.2 "Instrument Sans", "Arial", sans-serif;
   --tracking-utility-heading: -0.01em;
+  --font-memory-detail-heading:
+    500 1.5625rem / 1.25 "Instrument Sans", "Arial", sans-serif;
+  --tracking-memory-detail-heading: -0.024em;
   --font-section-heading:
     600 1.375rem / 1.25 "Instrument Sans", "Arial", sans-serif;
   --tracking-section-heading: 0em;
@@ -25,9 +28,22 @@
   --tracking-navigation-label: 0.02em;
   --font-action-label: 600 1rem / 1.5 "Instrument Sans", "Arial", sans-serif;
   --tracking-action-label: 0em;
+  --media-overlay-surface: #140c1299;
+  --media-overlay-surface-hover: #140c12b8;
+  --media-overlay-edge: #ffffff59;
+  --media-overlay-foreground: #ffffff;
+  --media-overlay-backdrop-blur: 8px;
+  --navigation-surface-opacity: 72%;
+  --navigation-backdrop-blur: 24px;
+  --map-dark-tile-filter: invert(1) hue-rotate(180deg) brightness(0.85)
+    saturate(0.7);
+  --sensitive-media-blur: 12px;
   --radius-media: 1rem;
   --radius-content: 1.25rem;
   --radius-sheet-top: 1.5rem;
+  --border-surface-width: 0px;
+  --border-control-width: 0px;
+  --touch-target-web: 44px;
   --space-content-group: 0.75rem;
   --space-section: 2rem;
   --page-gutter-narrow: 16px;
@@ -39,17 +55,27 @@
   --easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --easing-enter: cubic-bezier(0, 0, 0.2, 1);
   --easing-exit: cubic-bezier(0.4, 0, 1, 1);
+  --easing-playback: cubic-bezier(0, 0, 1, 1);
   --elevation-overlay: 0px 8px 32px 0px var(--color-shadow-overlay);
   --color-link-text: #3055b8;
+  --color-action-primary: #3055b8;
+  --color-on-action-primary: #ffffff;
+  --memory-detail-background: #f7f8fc;
 }
 
 :root[data-theme="dark"] {
   --color-link-text: #b7c8ff;
+  --color-action-primary: #354778;
+  --color-on-action-primary: #ffffff;
+  --memory-detail-background: #151a28;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
     --color-link-text: #b7c8ff;
+    --color-action-primary: #354778;
+    --color-on-action-primary: #ffffff;
+    --memory-detail-background: #151a28;
   }
 }
 
@@ -79,5 +105,12 @@
     --duration-feedback: 0ms;
     --duration-transition: 0ms;
     --duration-context: 0ms;
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --border-surface-width: 1px;
+    --border-control-width: 1px;
   }
 }

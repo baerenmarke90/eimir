@@ -76,3 +76,36 @@ Unit/component regressions cover shared transport cancellation, failed-load
 retry, login rotation/isolation, origin/Space/parent/variant isolation, avatar
 replacement, stale-context rendering, LRU byte/count limits, age expiry and
 late completions after invalidation.
+
+## Durable app storage — #1517 (2026-10-30)
+
+The Product Owner explicitly requested app-owned persistent storage. This
+supersedes the memory-only delivery boundary above; it does not change the
+per-read parent authorization contract. Browser and Capacitor now share an
+IndexedDB byte store behind the existing authorized loader. RWN Messenger's
+bounded preview-cache ownership and targeted invalidation informed the design;
+no native Kotlin implementation was copied.
+
+The existing RAM cache remains bounded at 48 MiB / 192 entries / 30 minutes.
+The disposable disk tier retains at most 128 MiB / 512 entries / seven days,
+evicting least recently used entries when writing. It stores binary Blobs and
+local age/ownership metadata, never bearer tokens, signed URLs or Object URLs.
+Origin, Account, Space, parent, attachment and variant are separate identities.
+Only session-bound configured clients receive a disk namespace; custom clients
+stay memory-only. An opaque local epoch is rotated synchronously before queued
+cleanup on logout, login replacement, Space change and product-cache reset.
+Lease and epoch checks fence late reads/writes. Parent denial removes all variants.
+
+Disk hits still require fresh authorized read-access; this is not offline media
+viewing. Authenticated private bytes now reside in app/browser storage, subject
+to device/browser access controls; this feature does not claim local encryption.
+Storage denial, quota exhaustion or browser eviction falls back to the network
+and bounded RAM tier. Browser data clearing/uninstall can discard the cache.
+Approved existing domain read snapshots and draft policies remain unchanged;
+we deliberately do not serialize the complete QueryClient or credentials.
+
+Ordinary query projections now remain in RAM for 30 minutes of inactivity,
+while retaining the existing one-minute freshness and explicit mutation/live
+invalidation contracts. Returning to a screen keeps its current data visible
+while necessary background updates run. This does not promise zero requests or
+complete domain persistence after process death.

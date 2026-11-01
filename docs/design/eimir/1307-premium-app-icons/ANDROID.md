@@ -70,3 +70,50 @@ quotas, provider costs and entitlement enforcement are unchanged.
 The test-channel sideload App Links must target the permanently enabled shell,
 not the selectable Original alias. Preserve package/signing identity and use a
 higher version code for delivery; never replace published APK bytes.
+
+## All-variant home-screen mask correction — 2026-10-26
+
+The owner reported an installed Android home-screen regression: Lavender
+appeared as an undersized pre-rounded tile within the OS launcher mask.
+The same original resource contract affected all eleven choices. The existing
+generator puts every exact approved poster tile into the central 288px of a
+transparent 432px foreground. Android's effective mask is 72dp inside a 108dp
+canvas; the old tile covered that viewport without overscan, making the
+source tile's rounded boundary visible.
+
+Every choice now references a generated, centered \`132dp\` foreground
+\`layer-list\`. The original 288/432 bitmap tile therefore spans \`88dp\`,
+overscanning the mask by 8dp per side. This retains the exact approved artwork
+and lets the Android launcher decide the final outer mask (round/squircle/etc.)
+without displaying another rounded square inside it. It does not force a
+square icon on launchers whose system mask is circular.
+
+The build-time generator remains the source of all eleven resources.
+\`python3 scripts/test_android_adaptive_icon_resources.py\` checks alias mapping,
+resource XML, dimensions and matching source images for every choice; the API
+28/36 native launcher workflow validates the compiled drawable geometry and
+existing selection/session entry behaviour. No Java/React production logic,
+permissions, origin, package/signing identity, provider or dependency changes.
+
+**Still required:** a signed higher-version test APK with the same existing
+package/signer, in-place data/session upgrade, and visual inspection of every
+choice on the owner's real launcher (home, app drawer, system mask/theme modes).
+Static validation or an emulator alone cannot close #1307. Previously captured
+native screenshots are evidence of the old build, not this correction.
+
+## PO correction on 2026-10-29 (#1508)
+
+The launcher complaint supersedes the 2026-10-26 overscan geometry. A 132dp
+layer painted the approved 288/432 tile at 88dp, clipping the mark on Pixel's
+mask. Use a centered 99dp layer: the tile becomes 66dp and the meaningful mark
+fits within the platform safe region. Keep the approved pixels and all eleven
+stable launcher aliases. Each native background now derives from that approved
+variant's top-edge color; the historic shared red background must not form a
+ring around the smaller tile. Android still owns the outer launcher mask.
+
+Use the existing AndroidX SplashScreen compatibility library with a static
+approved logo, an opaque theme-aware background and the normal post-splash
+activity theme. Public Web restoration uses the same restrained brand presence;
+no private relationship content is rendered before authorization. Package,
+signer, update channels, existing selected variant and user data are unchanged.
+A resource/build proof is not a claim of acceptance on the owner's Pixel.

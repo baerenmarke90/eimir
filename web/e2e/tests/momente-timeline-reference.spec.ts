@@ -1,11 +1,12 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import taskSheets from '../../src/i18n/locales/taskSheets';
 import {
-  ME,
   captureScreenshot,
   installMocks,
+  ME,
   signIn,
 } from '../support/storyTimelineFixture';
 
@@ -17,6 +18,21 @@ const ME_ATTRIBUTION = de.story.byAuthor.replace(
   '{{author}}',
   ME.displayName.replace(/ .*/u, ''),
 );
+
+async function openDiaryOptions(page: Page) {
+  await page
+    .getByRole('button', {
+      name: storyProducts.storyFilters.toggleButton,
+      exact: true,
+    })
+    .click();
+  const sheet = page.getByRole('dialog', {
+    name: storyProducts.storyFilters.aria,
+    exact: true,
+  });
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
 
 async function expectCompactCommentHandoff(page: Page): Promise<void> {
   const panel = page.locator('.comments-panel-compact');
@@ -89,7 +105,8 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(
       page.getByRole('heading', { name: 'Momente', level: 1 }),
     ).toBeVisible();
-    await expect(page.getByText(de.story.timelineIntro)).toBeVisible();
+    // The content-first diary no longer repeats its heading in an intro sentence.
+    await expect(page.getByText(de.story.timelineIntro)).toHaveCount(0);
 
     const markers = page.locator('.story-timeline-marker');
     await expect(markers).toHaveCount(5);
@@ -135,14 +152,15 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     );
 
     const compactAuthor = imageMemoryCard.locator('.momente-author-meta');
-    await expect(compactAuthor.locator('.sr-only')).toHaveCount(0);
+    await expect(compactAuthor).toHaveCount(0);
     await expect(imageMemoryCard.locator('.story-card-author')).toHaveCount(0);
     await expect(
       compactAuthor.getByRole('img', { name: ME.displayName }),
-    ).toHaveCount(1);
+    ).toHaveCount(0);
     await expect(imageMemoryCard).not.toContainText(SELF_ATTRIBUTION);
 
     const browseShell = page.locator('.momente-browse-links');
+    await expect(browseShell).toBeVisible();
     const browseLink = page.locator('.momente-browse-link').first();
     const browseShape = await browseShell.evaluate((element) => {
       const style = getComputedStyle(element);
@@ -164,6 +182,16 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     expect(browseShape.radius).toBe(browseShape.expectedRadius);
     expect(browseShape.shadow).not.toBe('none');
     expect(browseLinkShape.radius).toBe(browseLinkShape.expectedRadius);
+    await captureScreenshot(
+      page,
+      testInfo,
+      'momente-diary-options-390-light.png',
+    );
+    const browseSheet = await openDiaryOptions(page);
+    await browseSheet
+      .getByRole('button', { name: taskSheets.close, exact: true })
+      .click();
+    await expect(browseSheet).not.toBeVisible();
 
     const compactEmotion = heartMomentCard.locator(
       '.heart-emotion-badge--compact',
@@ -296,6 +324,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     expect(hasHorizontalOverflow).toBe(false);
 
     const browseLinks = page.locator('.momente-browse-link');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(browseLinks).toHaveCount(4);
     expect(
       await browseLinks.evaluateAll((links) =>
@@ -315,6 +344,16 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       expect(box.x).toBeGreaterThanOrEqual(0);
       expect(box.x + box.width).toBeLessThanOrEqual(320);
     }
+    await captureScreenshot(
+      page,
+      testInfo,
+      'momente-diary-options-320-reflow.png',
+    );
+    const browseSheet = await openDiaryOptions(page);
+    await browseSheet
+      .getByRole('button', { name: taskSheets.close, exact: true })
+      .click();
+    await expect(browseSheet).not.toBeVisible();
 
     const compactEmotion = page
       .locator('.story-card-heart-moment .heart-emotion-badge--compact')
@@ -373,6 +412,16 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       .locator('.momente-browse-links')
       .evaluate((element) => element.getBoundingClientRect().width);
     expect(browseWidth).toBeLessThan(700);
+    await captureScreenshot(
+      page,
+      testInfo,
+      'momente-diary-options-1440-expanded.png',
+    );
+    const browseSheet = await openDiaryOptions(page);
+    await browseSheet
+      .getByRole('button', { name: taskSheets.close, exact: true })
+      .click();
+    await expect(browseSheet).not.toBeVisible();
 
     await captureScreenshot(
       page,
@@ -556,7 +605,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     }
   });
 
-  test('Timeline uses avatar-only partner attribution while detail keeps first-name provenance (#1064)', async ({
+  test('Timeline omits partner identity while detail keeps first-name provenance', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -565,12 +614,12 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.goto('/story?tab=timeline');
     await page.waitForSelector('.story-timeline');
 
-    const authorMeta = page.locator('.momente-author-meta').first();
-    await expect(authorMeta.locator('.sr-only')).toHaveCount(0);
+    const authorMeta = page.locator('.momente-author-meta');
+    await expect(authorMeta).toHaveCount(0);
     await expect(page.locator('.story-card-author')).toHaveCount(0);
     await expect(
       authorMeta.getByRole('img', { name: ME.displayName }),
-    ).toHaveCount(1);
+    ).toHaveCount(0);
     const timelineText = await page
       .locator('.story-timeline')
       .allTextContents();
@@ -678,7 +727,8 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(
       page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
     ).toBeVisible();
-    await expect(page.getByText(de.story.timelineIntro)).toBeVisible();
+    // The content-first diary no longer repeats its heading in an intro sentence.
+    await expect(page.getByText(de.story.timelineIntro)).toHaveCount(0);
     await expect(page.locator('.story-timeline-toolbar')).toHaveCount(0);
     await expect(page.locator('.momente-hero-highlight')).toContainText(
       'Breakfast by the canal',
@@ -686,11 +736,13 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     const discoverAuthor = page
       .locator('.momente-hero-meta .momente-author-meta')
       .first();
-    await expect(discoverAuthor.locator('.sr-only')).toHaveCount(0);
+    await expect(discoverAuthor).toHaveCount(0);
     await expect(
       discoverAuthor.getByRole('img', { name: ME.displayName }),
-    ).toHaveCount(1);
-    await expect(discoverAuthor).not.toContainText(SELF_ATTRIBUTION);
+    ).toHaveCount(0);
+    await expect(page.locator('.momente-hero-highlight')).not.toContainText(
+      SELF_ATTRIBUTION,
+    );
 
     await captureScreenshot(
       page,

@@ -14,6 +14,11 @@
 
 import * as runtime from '../runtime';
 import {
+    type MemoryMapPage,
+    MemoryMapPageFromJSON,
+    MemoryMapPageToJSON,
+} from '../models/MemoryMapPage';
+import {
     type PlaceCreate,
     PlaceCreateFromJSON,
     PlaceCreateToJSON,
@@ -23,6 +28,16 @@ import {
     PlaceDetailFromJSON,
     PlaceDetailToJSON,
 } from '../models/PlaceDetail';
+import {
+    type PlaceLookupRequest,
+    PlaceLookupRequestFromJSON,
+    PlaceLookupRequestToJSON,
+} from '../models/PlaceLookupRequest';
+import {
+    type PlaceLookupResult,
+    PlaceLookupResultFromJSON,
+    PlaceLookupResultToJSON,
+} from '../models/PlaceLookupResult';
 import {
     type PlacePage,
     PlacePageFromJSON,
@@ -55,10 +70,29 @@ export interface GetPlaceRequest {
     spaceId: string;
 }
 
+export interface ListMemoryMapRequest {
+    spaceId: string;
+    cursor?: string | null;
+    limit?: number;
+}
+
+export interface ListMomentPlacesRequest {
+    kind: string;
+    targetId: string;
+    spaceId: string;
+    cursor?: string | null;
+    limit?: number;
+}
+
 export interface ListPlacesRequest {
     spaceId: string;
     cursor?: string | null;
     limit?: number;
+}
+
+export interface LookupPlacesRequest {
+    spaceId: string;
+    placeLookupRequest: PlaceLookupRequest;
 }
 
 export interface UpdatePlaceRequest {
@@ -245,6 +279,130 @@ export class PlacesApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for listMemoryMap without sending the request
+     */
+    async listMemoryMapRequestOpts(requestParameters: ListMemoryMapRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling listMemoryMap().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/memory-map`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Pro map over readable saved memories and places; no location tracking.
+     * Get Memory Map
+     */
+    async listMemoryMapRaw(requestParameters: ListMemoryMapRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MemoryMapPage>> {
+        const requestOptions = await this.listMemoryMapRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MemoryMapPageFromJSON(jsonValue));
+    }
+
+    /**
+     * Pro map over readable saved memories and places; no location tracking.
+     * Get Memory Map
+     */
+    async listMemoryMap(requestParameters: ListMemoryMapRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MemoryMapPage> {
+        const response = await this.listMemoryMapRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listMomentPlaces without sending the request
+     */
+    async listMomentPlacesRequestOpts(requestParameters: ListMomentPlacesRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['kind'] == null) {
+            throw new runtime.RequiredError(
+                'kind',
+                'Required parameter "kind" was null or undefined when calling listMomentPlaces().'
+            );
+        }
+
+        if (requestParameters['targetId'] == null) {
+            throw new runtime.RequiredError(
+                'targetId',
+                'Required parameter "targetId" was null or undefined when calling listMomentPlaces().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling listMomentPlaces().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/moments/{kind}/{targetId}/places`;
+        urlPath = urlPath.replace('{kind}', encodeURIComponent(String(requestParameters['kind'])));
+        urlPath = urlPath.replace('{targetId}', encodeURIComponent(String(requestParameters['targetId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * List Moment Places
+     */
+    async listMomentPlacesRaw(requestParameters: ListMomentPlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlacePage>> {
+        const requestOptions = await this.listMomentPlacesRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PlacePageFromJSON(jsonValue));
+    }
+
+    /**
+     * List Moment Places
+     */
+    async listMomentPlaces(requestParameters: ListMomentPlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlacePage> {
+        const response = await this.listMomentPlacesRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for listPlaces without sending the request
      */
     async listPlacesRequestOpts(requestParameters: ListPlacesRequest): Promise<runtime.RequestOpts> {
@@ -294,6 +452,63 @@ export class PlacesApi extends runtime.BaseAPI {
      */
     async listPlaces(requestParameters: ListPlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlacePage> {
         const response = await this.listPlacesRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for lookupPlaces without sending the request
+     */
+    async lookupPlacesRequestOpts(requestParameters: LookupPlacesRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling lookupPlaces().'
+            );
+        }
+
+        if (requestParameters['placeLookupRequest'] == null) {
+            throw new runtime.RequiredError(
+                'placeLookupRequest',
+                'Required parameter "placeLookupRequest" was null or undefined when calling lookupPlaces().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/places/lookup`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PlaceLookupRequestToJSON(requestParameters['placeLookupRequest']),
+        };
+    }
+
+    /**
+     * Search only on explicit user intent; never persist or log query content.
+     * Lookup Places
+     */
+    async lookupPlacesRaw(requestParameters: LookupPlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PlaceLookupResult>> {
+        const requestOptions = await this.lookupPlacesRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PlaceLookupResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Search only on explicit user intent; never persist or log query content.
+     * Lookup Places
+     */
+    async lookupPlaces(requestParameters: LookupPlacesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlaceLookupResult> {
+        const response = await this.lookupPlacesRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

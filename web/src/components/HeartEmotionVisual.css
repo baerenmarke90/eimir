@@ -174,15 +174,6 @@
   border: 0;
 }
 
-.heart-moment-create-field.heart-emotion-picker {
-  grid-column: 1 / -1;
-  padding: var(--space-4);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-raised);
-}
-
 .heart-emotion-picker > legend {
   margin-bottom: var(--space-3);
   color: var(--color-text);
@@ -219,7 +210,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: 0.58rem 0.7rem;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
   color: var(--color-text);
@@ -246,7 +237,7 @@
     var(--heart-emotion-surface) 82%,
     var(--color-surface) 18%
   );
-  box-shadow: 0 0 0 1px
+  box-shadow: 0 0 0 var(--border-surface-width)
     color-mix(in srgb, var(--heart-emotion-accent) 24%, transparent);
 }
 

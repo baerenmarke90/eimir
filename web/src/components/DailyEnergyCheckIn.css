@@ -32,7 +32,7 @@
   width: 30px;
   height: 22px;
   place-items: center;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--color-surface) 94%, transparent);
   box-shadow: 0 2px 8px var(--color-shadow-card);
@@ -61,8 +61,8 @@
 .daily-energy-badge[data-pending="true"] .daily-energy-avatar-chip {
   border-color: var(--color-brand);
   box-shadow:
-    0 0 0 2px var(--color-surface),
-    0 0 0 3px var(--color-brand);
+    0 0 0 var(--border-surface-width) var(--color-surface),
+    0 0 0 var(--border-surface-width) var(--color-brand);
 }
 
 .daily-energy-badge:disabled {
@@ -135,7 +135,7 @@
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
   padding: var(--space-5) var(--space-4) var(--space-4);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   background: var(--color-surface);
   color: var(--color-text);
@@ -223,11 +223,11 @@
   width: 28px;
   height: 28px;
   margin-top: -11px;
-  border: 5px solid var(--color-surface);
+  border: var(--border-surface-width) solid var(--color-surface);
   border-radius: var(--radius-pill);
   background: var(--color-brand);
   box-shadow:
-    0 0 0 1px var(--color-border-subtle),
+    0 0 0 var(--border-surface-width) var(--color-border-subtle),
     var(--shadow-soft);
   appearance: none;
 }
@@ -235,11 +235,11 @@
 .daily-energy-slider::-moz-range-thumb {
   width: 20px;
   height: 20px;
-  border: 5px solid var(--color-surface);
+  border: var(--border-surface-width) solid var(--color-surface);
   border-radius: var(--radius-pill);
   background: var(--color-brand);
   box-shadow:
-    0 0 0 1px var(--color-border-subtle),
+    0 0 0 var(--border-surface-width) var(--color-border-subtle),
     var(--shadow-soft);
 }
 

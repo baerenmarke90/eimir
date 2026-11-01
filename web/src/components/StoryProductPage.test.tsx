@@ -1,10 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createMemoryRouter, MemoryRouter } from 'react-router-dom';
+import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { StoryKind } from '../api/generated/models/StoryKind';
 import { StoryOrder } from '../api/generated/models/StoryOrder';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { dashboardQueryKey } from '../client/dashboardQueries';
 import {
   parseStoryFilters,
   storyCacheResourceId,
@@ -16,7 +18,11 @@ import { StoryProductPage } from './StoryProductPage';
 
 const loadMemoryImage = async () => 'blob:test-image';
 
-function renderStoryPage(route: string, cachedData: unknown): string {
+function renderStoryPage(
+  route: string,
+  cachedData: unknown,
+  options?: { dashboard?: unknown; selectionDate?: Date },
+): string {
   const query = route.includes('?') ? route.slice(route.indexOf('?') + 1) : '';
   const filters = parseStoryFilters(new URLSearchParams(query));
   const cacheKey = storyCacheResourceId(filters);
@@ -37,13 +43,17 @@ function renderStoryPage(route: string, cachedData: unknown): string {
     authorSummaryQueryKeys.discover('space-1', 'account-1'),
     {
       value: {
-        items: (cachedData as any).items || [],
-        lead: (cachedData as any).items?.[0] || null,
+        items: (cachedData as { items?: unknown[] }).items ?? [],
+        lead: (cachedData as { items?: unknown[] }).items?.[0] ?? null,
         leadContext: null,
+        selectionDate: options?.selectionDate,
       },
       source: 'network',
     },
   );
+  if (options?.dashboard) {
+    queryClient.setQueryData(dashboardQueryKey('space-1'), options.dashboard);
+  }
 
   return renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>
@@ -53,14 +63,138 @@ function renderStoryPage(route: string, cachedData: unknown): string {
           accountId="account-1"
           spaceId="space-1"
           loadMemoryImage={loadMemoryImage}
+          dashboardApi={options?.dashboard ? ({} as DashboardApi) : undefined}
         />
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
 
+describe('Momente retrospective integration (#601)', () => {
+  const selectionDate = new Date('2026-08-24T00:00:00Z');
+  const lead = {
+    kind: 'MEMORY',
+    effectiveDate: selectionDate,
+    memory: {
+      id: 'discover-lead',
+      title: 'Unser aktueller Moment',
+      happenedOn: selectionDate,
+      createdAt: selectionDate,
+      attachments: [],
+      author: { id: 'author-1', displayName: 'Lea' },
+      capabilities: { canEdit: true, canDelete: true, canComment: true },
+    },
+  };
+  const discover = { items: [lead], hasMore: false, nextCursor: null };
+  const retrospective = {
+    id: 'historic-memory',
+    type: 'MEMORY',
+    titleOrText: 'That day by the lake',
+    occurredOn: new Date('2025-08-24T00:00:00Z'),
+    createdAt: null,
+    scheduledAt: null,
+    previewAttachmentId: 'lake-ready-photo',
+    previewIsSensitive: false,
+  };
+  const dashboard = {
+    viewerLocalDate: selectionDate,
+    retrospective,
+  };
+
+  it('shows the real Today candidate alongside Discover without reselecting Story items', () => {
+    const html = renderStoryPage('/story?tab=discover', discover, {
+      selectionDate,
+      dashboard,
+    });
+    expect(html).toContain('momente-retrospective');
+    expect(html).toContain('That day by the lake');
+    expect(html).toContain('href="/story/memories/historic-memory"');
+    expect(html).toContain('data-media-deferred="true"');
+    expect(html).toContain('Unser aktueller Moment');
+  });
+
+  it('does not render the same authorized content twice when it is already the featured lead', () => {
+    const html = renderStoryPage(
+      '/story?tab=discover',
+      {
+        ...discover,
+        items: [{ ...lead, memory: { ...lead.memory, id: retrospective.id } }],
+      },
+      { selectionDate, dashboard },
+    );
+    expect(html).not.toContain('momente-retrospective');
+    expect(html).toContain('momente-hero-highlight');
+  });
+
+  it('shows the complete authorized selection without duplicating the lead or retrospective', () => {
+    const items = Array.from({ length: 8 }, (_, index) => ({
+      ...lead,
+      memory: {
+        ...lead.memory,
+        id: `memory-${index}`,
+        title: `Keepsake ${index}`,
+      },
+    }));
+    const html = renderStoryPage(
+      '/story',
+      { ...discover, items },
+      {
+        selectionDate,
+        dashboard: {
+          ...dashboard,
+          retrospective: { ...retrospective, id: 'memory-4' },
+        },
+      },
+    );
+    const discovery = html.slice(
+      html.indexOf('class="momente-discover-page"'),
+      html.indexOf('id="momente-diary"'),
+    );
+    const destinations = Array.from(
+      discovery.matchAll(/href="(\/story\/memories\/[^"\s]+)"/g),
+      (match) => match[1],
+    );
+    expect(destinations).toHaveLength(8);
+    expect(new Set(destinations).size).toBe(8);
+    for (const item of items)
+      expect(destinations).toContain(`/story/memories/${item.memory.id}`);
+  });
+
+  it('suppresses stale or absent candidates rather than inventing a moment', () => {
+    const stale = renderStoryPage('/story?tab=discover', discover, {
+      selectionDate: new Date('2026-08-23T00:00:00Z'),
+      dashboard,
+    });
+    const absent = renderStoryPage('/story?tab=discover', discover, {
+      selectionDate,
+      dashboard: { ...dashboard, retrospective: null },
+    });
+    const missingCalendarContext = renderStoryPage(
+      '/story?tab=discover',
+      discover,
+      { dashboard: { retrospective } },
+    );
+    expect(stale).not.toContain('momente-retrospective');
+    expect(absent).not.toContain('momente-retrospective');
+    expect(missingCalendarContext).not.toContain('momente-retrospective');
+    expect(stale).toContain('Unser aktueller Moment');
+    expect(absent).toContain('Unser aktueller Moment');
+  });
+
+  it('keeps Timeline independent from the Today retrospective', () => {
+    const html = renderStoryPage('/story?tab=timeline', discover, {
+      selectionDate,
+      dashboard,
+    });
+    expect(html).not.toContain('momente-retrospective');
+    expect(html).toContain('role="tablist"');
+    expect(html).not.toContain('momente-diary-title');
+    expect(html).not.toContain('momente-discover-title');
+  });
+});
+
 describe('StoryProductPage', () => {
-  it('renders tab switcher and discovery view by default', () => {
+  it('defaults to Discover with the independent Diary panel hidden', () => {
     const html = renderStoryPage('/story', {
       items: [
         {
@@ -72,7 +206,9 @@ describe('StoryProductPage', () => {
             notes: 'Wonderful sunset together',
             occurredOn: new Date('2026-08-26T00:00:00Z'),
             createdAt: new Date('2026-08-26T00:00:00Z'),
-            attachments: [{ id: 'att-1', mediaType: 'image/jpeg' }],
+            attachments: [
+              { id: 'att-1', mediaType: 'image/jpeg', isSensitive: false },
+            ],
             author: { id: 'author-1', displayName: 'Alex' },
             creator: { id: 'author-1', displayName: 'Alex' },
             capabilities: { canComment: true, canDelete: true, canEdit: true },
@@ -94,9 +230,13 @@ describe('StoryProductPage', () => {
       nextCursor: null,
     });
 
-    expect(html).toContain('momente-tabs');
+    expect(html).toContain('role="tablist"');
+    expect(html).not.toContain('momente-diary-title');
+    expect(html).not.toContain('momente-discover-title');
     expect(html).toContain('momente-discover-page');
     expect(html).toContain('momente-hero-highlight');
+    expect(html).toContain('aria-labelledby="momente-tab-timeline" hidden=""');
+    expect(html).not.toContain('class="story-timeline"');
     expect(html).toContain('Summer Lake Vacation');
     expect(html).toContain('momente-tapestry');
     expect(html).toContain('I love you more each day');
@@ -114,7 +254,9 @@ describe('StoryProductPage', () => {
             notes: 'Wonderful sunset together',
             occurredOn: new Date('2026-08-26T00:00:00Z'),
             createdAt: new Date('2026-08-26T00:00:00Z'),
-            attachments: [{ id: 'att-1', mediaType: 'image/jpeg' }],
+            attachments: [
+              { id: 'att-1', mediaType: 'image/jpeg', isSensitive: false },
+            ],
             author: { id: 'author-1', displayName: 'Alex' },
             creator: { id: 'author-1', displayName: 'Alex' },
             capabilities: { canComment: true, canDelete: true, canEdit: true },
@@ -157,7 +299,7 @@ describe('StoryProductPage', () => {
 
     // Each content type keeps a distinct presentation role, not one shared
     // equal-sized card shell (regression #790)
-    expect(html).toContain('momente-tapestry-media');
+    expect(html).toContain('momente-hero-media');
     expect(html).toContain('momente-tapestry-note');
     expect(html).toContain('momente-tapestry-milestone');
     // The Heart Moment renders as a quoted note, not a titled card
@@ -178,7 +320,9 @@ describe('StoryProductPage', () => {
               notes: 'Wonderful sunset together',
               occurredOn: new Date('2026-08-26T00:00:00Z'),
               createdAt: new Date('2026-08-26T00:00:00Z'),
-              attachments: [{ id: 'att-1', mediaType: 'image/jpeg' }],
+              attachments: [
+                { id: 'att-1', mediaType: 'image/jpeg', isSensitive: false },
+              ],
               author: { id: 'author-1', displayName: 'Alex' },
               creator: { id: 'author-1', displayName: 'Alex' },
               capabilities: {
@@ -197,7 +341,9 @@ describe('StoryProductPage', () => {
               notes: 'Fresh air, quiet trail',
               occurredOn: new Date('2026-08-20T00:00:00Z'),
               createdAt: new Date('2026-08-20T00:00:00Z'),
-              attachments: [{ id: 'att-2', mediaType: 'image/jpeg' }],
+              attachments: [
+                { id: 'att-2', mediaType: 'image/jpeg', isSensitive: false },
+              ],
               author: { id: 'author-1', displayName: 'Alex' },
               creator: { id: 'author-1', displayName: 'Alex' },
               capabilities: {
@@ -230,7 +376,10 @@ describe('StoryProductPage', () => {
       expect(heroHtml).not.toContain('data-media-deferred="true"');
 
       // Tapestry entries carry their own reveal key/class...
-      const tapestryHtml = html.slice(tapestryStart);
+      const tapestryHtml = html.slice(
+        tapestryStart,
+        html.indexOf('id="momente-diary"'),
+      );
       expect(tapestryHtml).toContain('momente-tapestry-reveal');
       expect(tapestryHtml).toContain(
         'data-discover-reveal-key="item:memory-mem-2"',
@@ -245,7 +394,7 @@ describe('StoryProductPage', () => {
     });
   });
 
-  it('shows only the first name in Discover attribution, never the full display name (#791 second follow-up)', () => {
+  it('omits author avatars and names in the Memories overview', () => {
     const html = renderStoryPage('/story', {
       items: [
         {
@@ -257,7 +406,9 @@ describe('StoryProductPage', () => {
             notes: 'Wonderful sunset together',
             occurredOn: new Date('2026-08-26T00:00:00Z'),
             createdAt: new Date('2026-08-26T00:00:00Z'),
-            attachments: [{ id: 'att-1', mediaType: 'image/jpeg' }],
+            attachments: [
+              { id: 'att-1', mediaType: 'image/jpeg', isSensitive: false },
+            ],
             author: { id: 'author-1', displayName: 'Alex Winter' },
             creator: { id: 'author-1', displayName: 'Alex Winter' },
             capabilities: { canComment: true, canDelete: true, canEdit: true },
@@ -279,16 +430,16 @@ describe('StoryProductPage', () => {
       nextCursor: null,
     });
 
-    // Discover keeps author identity on the avatar without visible prose.
+    // Overview identity stays in the canonical detail.
     expect(html).not.toContain('>von Alex</span>');
     expect(html).not.toContain('>von Lea</span>');
     expect(html).not.toContain('class="sr-only">von Alex</span>');
     expect(html).not.toContain('class="sr-only">von Lea</span>');
-    expect(html).toContain('role="img" aria-label="Alex Winter"');
-    expect(html).toContain('role="img" aria-label="Lea Sommer"');
+    expect(html).not.toContain('role="img" aria-label="Alex Winter"');
+    expect(html).not.toContain('role="img" aria-label="Lea Sommer"');
   });
 
-  it('uses avatar-only attribution for the current account in Discover (#1064)', () => {
+  it('omits the current account avatar in the Memories overview', () => {
     const html = renderStoryPage('/story', {
       items: [
         {
@@ -315,7 +466,7 @@ describe('StoryProductPage', () => {
       de.story.byAuthor.replace('{{author}}', de.story.authorSelf),
     );
     expect(html).not.toContain('class="sr-only">von Alex</span>');
-    expect(html).toContain('role="img" aria-label="Alex Winter"');
+    expect(html).not.toContain('role="img" aria-label="Alex Winter"');
   });
 
   it('renders timeline view when requested via query parameter', () => {
@@ -342,14 +493,12 @@ describe('StoryProductPage', () => {
 
     expect(html).toContain('story-timeline');
     expect(html).toContain('story-filter-container');
+    expect(html).not.toContain('momente-hero-highlight');
+    expect(html).toContain('aria-labelledby="momente-tab-discover" hidden=""');
     expect(html).toContain('Summer Lake Vacation');
 
-    // #858 follow-up: `Diesen Monat -> Alle anzeigen` links here, so
-    // Zeitleiste must be the active tab immediately on landing, not just the
-    // rendered content.
-    expect(html).toMatch(
-      /aria-selected="true" class="momente-tab-btn active"[^>]*>[\s\S]*?Zeitleiste/,
-    );
+    expect(html).toContain('id="momente-diary"');
+    expect(html).toContain('role="tablist"');
   });
 
   it('renders empty welcoming state when no moments exist', () => {
@@ -384,18 +533,12 @@ describe('StoryProductPage', () => {
       nextCursor: null,
     });
 
-    expect(html).toContain('momente-tapestry-milestone');
+    expect(html).toContain('momente-hero-highlight');
     expect(html).toContain('Moved in together');
-    expect(html).toContain('momente-browse-layer');
-    expect(html).toContain(de.story.browseMilestones);
-    expect(html).toContain(de.story.browseChapters);
-    expect(html).toContain(de.story.browseYears);
-    expect(html).toContain('href="/story?tab=timeline&amp;type=MILESTONE"');
-    expect(html).toContain('href="/story/chapters"');
-    expect(html).toContain('href="/story/years"');
-    expect(html).not.toContain(de.story.milestonesDesc);
-    expect(html).not.toContain('momente-archive-links');
-    expect(html).not.toContain('momente-year-archive');
+    expect(html).not.toContain('momente-diary-title');
+    expect(html).not.toContain('momente-discover-title');
+    expect(html).not.toContain(storyProducts.storyFilters.toggleButton);
+    expect(html).toContain('role="tablist"');
   });
 
   describe('canonical Discover ordering and presentation', () => {
@@ -415,7 +558,7 @@ describe('StoryProductPage', () => {
               addEventListener: () => {},
               removeEventListener: () => {},
             }),
-          } as any;
+          } as unknown as Window & typeof globalThis;
 
           const html = renderStoryPage('/story', {
             items: [
@@ -464,10 +607,7 @@ describe('StoryProductPage', () => {
           expect(tapestryStart).toBeGreaterThan(-1);
 
           // Canonical backend order: Spring Picnic is BEFORE Late August Vacation
-          const springPicnicIndex = html.indexOf(
-            'Spring Picnic',
-            tapestryStart,
-          );
+          const springPicnicIndex = html.indexOf('Spring Picnic');
           const lateAugustIndex = html.indexOf(
             'Late August Vacation',
             tapestryStart,
@@ -508,8 +648,9 @@ describe('StoryProductPage', () => {
       expect(tapestryStart).toBeGreaterThan(-1);
       const tapestryHtml = html.slice(tapestryStart);
 
-      // All 14 items should be rendered, because Discover is now bounded by the backend
-      expect(tapestryHtml).toContain('Moment 0');
+      // The lead appears once, outside the uncapped backend selection.
+      expect(html).toContain('Moment 0');
+      expect(tapestryHtml).not.toContain('Moment 0');
       expect(tapestryHtml).toContain('Moment 11');
       expect(tapestryHtml).toContain('Moment 12');
       expect(tapestryHtml).toContain('Moment 13');
@@ -568,13 +709,18 @@ describe('StoryProductPage', () => {
       expect(html).toContain('Juli 2026');
 
       // Server order (DESC by default) is preserved: newer month heads first.
-      const augustIndex = html.indexOf('August 2026');
-      const julyIndex = html.indexOf('Juli 2026');
+      const diaryStart = html.indexOf('id="momente-diary"');
+      const augustIndex = html.indexOf('August 2026', diaryStart);
+      const julyIndex = html.indexOf('Juli 2026', diaryStart);
       expect(augustIndex).toBeGreaterThan(-1);
       expect(julyIndex).toBeGreaterThan(-1);
       expect(augustIndex).toBeLessThan(julyIndex);
-      expect(html.indexOf('Late August Vacation')).toBeLessThan(julyIndex);
-      expect(html.indexOf('Spring Picnic')).toBeGreaterThan(julyIndex);
+      expect(html.indexOf('Late August Vacation', augustIndex)).toBeLessThan(
+        julyIndex,
+      );
+      expect(html.indexOf('Spring Picnic', julyIndex)).toBeGreaterThan(
+        julyIndex,
+      );
     });
 
     it('keeps one near-end pagination sentinel after the last month group without permanent pagination chrome', () => {

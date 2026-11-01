@@ -1,0 +1,103 @@
+.memory-photo-gallery .memory-photo-react {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-pill);
+}
+.memory-photo-react {
+  right: var(--space-3);
+  bottom: var(--space-3);
+}
+.memory-photo-react:hover {
+  background: var(--media-overlay-surface-hover);
+}
+.memory-photo-react .eimir-icon {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+.memory-photo-picker {
+  min-width: 0;
+  margin: 0;
+  position: absolute;
+  z-index: 6;
+  inset-inline: var(--space-1);
+  bottom: var(--space-4);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(44px, 1.75rem), 1fr));
+  padding: var(--space-1);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  box-shadow: var(--elevation-overlay);
+  animation: memory-photo-picker-arrive var(--duration-feedback)
+    var(--easing-enter);
+}
+.memory-photo-picker button {
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 0;
+  font-size: 1.5rem;
+  background: transparent;
+  box-shadow: none;
+}
+.memory-photo-picker button[aria-pressed="true"],
+.memory-photo-picker button:hover {
+  background: var(--color-surface-subtle);
+}
+.memory-photo-reactions {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-start: var(--space-2);
+}
+.memory-photo-reactions button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.memory-photo-reactions button[aria-pressed="true"] {
+  background: var(--color-shared-surface);
+  border-color: var(--color-brand-strong);
+}
+.memory-photo-gallery .media-gallery-carousel-counter {
+  bottom: auto;
+  top: var(--space-3);
+  right: var(--space-3);
+}
+.memory-photo-gallery
+  .media-gallery-carousel:has(.media-gallery-carousel-counter)
+  .media-gallery-privacy-indicator {
+  top: var(--space-12);
+}
+@keyframes memory-photo-picker-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .memory-photo-picker {
+    animation: none;
+  }
+}

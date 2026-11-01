@@ -131,6 +131,17 @@ Light and Dark both retain clear dates, scope and readable prose. Dark photos ke
 
 **Acceptance journey:** choose a year/type in Timeline, load/open an older text/photo item and return to the same scope/position; switch to unfiltered Discover and back to restored Timeline; create, observe and find a result; test no-match, paging error, long text and private exclusion.
 
+### Product Owner follow-up #1570
+
+Memories, Diary and Map are three peer modes with one shared selector. The canonical
+map route retains non-sensitive Diary filters through selection and source return.
+Place the Diary filter action beside its first visible month, with an empty/loading
+fallback. Overview cards omit author avatars; canonical details retain authorship.
+Map markers show authorized photo previews and memory-count badges, with equivalent
+photo/source browsing below. Conceal sensitive media and retain text-only/error
+fallbacks and provider attribution. The shared resolved appearance controls map
+pixels and controls; there is no separate map preference.
+
 ## R3 — Planen
 
 ### Human outcome and hierarchy
@@ -189,7 +200,7 @@ Use a restrained focal tint and neutral agenda surfaces in Light/Dark. Dates, ra
 
 | Order | Compact composition | Behavior |
 | --- | --- | --- |
-| 1 | Quiet shared root header | Search and notifications remain recognizable utilities |
+| 1 | Content begins below the safe top inset | Per [PO decision #1507](mobile-header-more.md), Compact/Medium has no global header; global search and notifications are named More destinations with unread state on More |
 | 2 | Personal relationship context | Actual avatar pair/names and optional duration; no ceremonial frame or decorative technical state |
 | 3 | Contextual relationship impulse | Existing intentional action with honest pending/result feedback; never auto-send |
 | 4 | One real keepsake | Large photo with caption or actual readable thought; this is the visual focal point |
@@ -198,6 +209,22 @@ Use a restrained focal tint and neutral agenda surfaces in Light/Dark. Dates, ra
 | 7 | Grouped story summary | Quiet closing reflection with truthful counts and correct destinations |
 
 Preserve the accepted Today orchestration and selection/preferences. A feature does not earn a permanent slot because it exists. Irrelevant modules disappear. Current, next and rediscovery have different shapes and weights; no equal widgets, dashboard builder or placeholder grid. The existing Account-and-Space-scoped Settings preference may reorder or hide supported modules without changing the partner's view; hidden modules keep their place and new modules receive a stable default place. This does not turn the Today reading surface into a widget editor. Optional Vibe/Energy and Daily Quote follow their own configuration and entitlement contracts; they do not change the default order of the supported modules.
+
+**PO follow-up #1570:** The existing rediscovery slot is eligible daily when
+shared historic content exists. Prefer exact anniversaries; otherwise rotate a
+bounded authorized pool with one stable Space/day choice. This explicit request
+supersedes the former one-weekday fallback and partner-signal-first priority for
+that slot. Preserve personal visibility/dismissal, privacy and source navigation;
+avoid duplicating the selected source in the focal region or monthly highlights.
+Do not add a second widget stack or infer an engagement score.
+
+**PO follow-up #1574:** Daily rediscovery is an independent `retrospective`
+module, with its own “Weißt du noch?” section heading and personal visibility
+and ordering. It no longer occupies “Gerade bei euch”; an eligible partner
+signal can appear alongside it. Keep the source out of the focal, contextual,
+monthly and activity selections, including when the module is hidden. The
+existing daily dismissal and canonical source/return contract remain. Its
+“Erinnerung ansehen” destination uses the shared filled blue action.
 
 ### Mobile interaction contract and continuity
 
@@ -246,7 +273,7 @@ Light/Dark use neutral photo captions, restrained surface contrast and unchanged
 | Settings category | Back to index, precise title, existing controls and visible state; one local Save for staged submission or clear immediate feedback for immediate controls |
 | Data/account action | Explicit scope, validation, authentication and consequences; offboarding, sign-out and account deletion remain distinct |
 
-The avatar remains a shortcut. Named Profile and Settings links under More remove dependence on discovering an avatar menu (D6). Personal preferences precede commercial information. A compact eimir. Pro entry must reflect actual availability without invented price, entitlement or account-management capability. Games keeps its current Premium boundary.
+Per [PO decision #1507](mobile-header-more.md), More groups global search, the current-user avatar/name and named Profile, Notifications, Activity and Settings entries, capability-gated administration, safe sign-out and a quiet brand footer. Compact/Medium has no persistent global header; Expanded retains top navigation. An unread dot and accessible label on More use the existing recipient count; entering More does not mark notifications read. This replaces the former avatar-menu shortcut while preserving D6. Personal preferences precede commercial information. A compact eimir. Pro entry must reflect actual availability without invented price, entitlement or account-management capability. Games keeps its current Premium boundary.
 
 ### Mobile interaction contract and continuity
 
@@ -284,3 +311,10 @@ Each reference's composition must remain complete with sparse content and unders
 These references preserve existing product entities, authorization, Free/Core/Premium boundaries, data ownership and Cloud/Self-Hosted behavior. Privacy, accessibility, recovery and essential export remain non-paywallable. Durable drafts, new media types/derivatives, new reminder channels and unsupported native features need separate owning scope and resource/privacy review.
 
 After F1/F2, the accepted sequence is R1 → R2 → R3 → R4 → R5, followed by bounded propagation and retirement in the [roadmap](implementation-roadmap.md). Historical audit trust findings remain gates until resolved; approving these references does not declare runtime compliance or complete final product audit #946.
+
+### Pro information destination (#1570)
+
+Pro information belongs to Settings > App and Account. Profile remains personal.
+Current capability groups and the shared Space entitlement are explained there;
+Pro discovery links and the old Profile anchor resolve to the same destination.
+This is information placement, not a new capability or billing surface.

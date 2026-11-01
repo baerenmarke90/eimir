@@ -19,12 +19,22 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from eimir.authorization import ContentVisibility
+from eimir.domain.experiences import ExperienceKind
 
 
 class EventType(StrEnum):
     """Event catalog. A shipped name is never renamed."""
 
     MEMORY_CREATED = "MEMORY_CREATED"
+    PHOTO_REACTION_CHANGED = "PHOTO_REACTION_CHANGED"
+    TRANSFER_READY = "TRANSFER_READY"
+    TRANSFER_COMPLETED = "TRANSFER_COMPLETED"
+    TRANSFER_FAILED = "TRANSFER_FAILED"
+    PLAN_ATTENDANCE_CHANGED = "PLAN_ATTENDANCE_CHANGED"
+    PLAN_SCHEDULED = "PLAN_SCHEDULED"
+    PLAN_CANCELLED = "PLAN_CANCELLED"
+    WISH_SELECTION_SHARED = "WISH_SELECTION_SHARED"
+    WISH_SELECTION_READY = "WISH_SELECTION_READY"
     MEMORY_UPDATED = "MEMORY_UPDATED"
     MEMORY_DELETED = "MEMORY_DELETED"
     HEART_MOMENT_CREATED = "HEART_MOMENT_CREATED"
@@ -112,6 +122,7 @@ class PublicEventPayload(BaseModel):
 
     has_attachment: bool | None = None
     visibility: ContentVisibility | None = None
+    experience_kind: ExperienceKind | None = None
 
     target_type: Literal["MEMORY", "HEART_MOMENT", "MILESTONE"] | None = None
     target_id: UUID | None = None

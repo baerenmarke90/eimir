@@ -36,6 +36,8 @@ export function surfaceRefreshDecision(
     pathname === '/today' ||
     pathname === '/today/activity' ||
     pathname === '/story/years' ||
+    pathname === '/story/happiness' ||
+    pathname === '/story/time-travel' ||
     /^\/story\/years\/[^/]+$/.test(pathname) ||
     pathname === '/plan' ||
     pathname === '/story/chapters' ||

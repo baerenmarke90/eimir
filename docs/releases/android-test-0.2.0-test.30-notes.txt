@@ -1,0 +1,9 @@
+eimir. 0.2.0-test.30
+
+Neu im Beziehungs-Pass: Monats- und Jahresrückblicke auf eure gemeinsamen Erinnerungen. Ihr könnt Rückblicke lesen, persönliche Gedanken ergänzen und ausgewählte Ausgaben aufbewahren. Die Rückblicke gehören zu eimir. Pro und benötigen den aktualisierten Testserver.
+
+Orte und gemeinsame Listen sind auf dem Smartphone übersichtlicher gestaltet. In Momente sind die Ansichten Entdecken und Tagebuch wieder direkt über die Tabs erreichbar. Tagebuchfarben, Bildunterschriften und Bearbeitungsaktionen wurden verbessert.
+
+Auf Wir sind Vorfreude, Countdown und Schnellaktionen klarer angeordnet. Die Zeitleiste zeigt ausgerichtete Markierungen und einen besser erkennbaren Filter. Das Wischen zwischen Wir, Momente, Planen und Mehr bleibt erhalten.
+
+Über Einstellungen → App-Updates auf der bestehenden Installation aktualisieren. Nicht deinstallieren und keine App-Daten löschen. Dieses Testrelease verwendet weiterhin das bestehende Paket und denselben Testsignierer.

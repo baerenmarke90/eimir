@@ -1,4 +1,5 @@
 const profiles = {
+  partnerSection: 'Über {{name}}',
   eyebrow: 'Profil',
   title: 'Du und dein Partner',
   intro:
@@ -8,15 +9,33 @@ const profiles = {
   accountName: 'Anzeigename',
   premium: {
     eyebrow: 'Premium',
-    title: 'eimir.Pro',
+    title: 'eimir. Pro',
     badge: 'Pro',
-    gamesTitle: 'Mehr gemeinsame Momente mit eimir.Pro.',
+    gamesTitle: 'Spiele, Einblicke und persönliche Extras.',
     gamesBody:
       'Pro ergänzt eure gemeinsame Welt um Spiele, vertiefende Einblicke, das Zitat des Tages und zusätzliche persönliche Partneraktionen. Eure normalen Erinnerungen, Wünsche, Pläne und „Ich denke an dich“ bleiben davon unabhängig.',
-    action: 'Premium ansehen',
-    detailsTitle: 'Ein Premium-Bereich für euch beide',
+    action: 'Pro ansehen',
+    detailsTitle: 'Ein Zugang für euch beide',
     detailsBody:
       'Ein Pro-Zugang gilt für euren gemeinsamen Bereich und schaltet die enthaltenen Pro-Funktionen für euch beide frei. Eure bestehenden Inhalte und die kostenlosen Beziehungsfunktionen bleiben unabhängig davon erhalten.',
+    features: {
+      experiences: {
+        title: 'Spiele und gemeinsame Erlebnisse',
+        body: 'Spielt zusammen, haltet Glücksmomente fest oder schickt euch eine Zeitreise.',
+      },
+      history: {
+        title: 'Rückblicke, Einblicke und Erinnerungskarte',
+        body: 'Entdeckt eure Geschichte auf der Karte, in Rückblicken und mit vertiefenden Einblicken in eure gemeinsame Zeit.',
+      },
+      personal: {
+        title: 'Zitate und persönliche Gestaltung',
+        body: 'Ein Zitat für euren Tag, zusätzliche App-Symbole und persönliche Extras für eure Wir-Seite.',
+      },
+      photos: {
+        title: 'Verbundene Fotodienste',
+        body: 'Wählt auch Fotos aus eurem verbundenen Immich oder Google Fotos aus. Eure eigenen Gerätefotos bleiben kostenlos nutzbar.',
+      },
+    },
   },
   relationshipTitle: 'Eure Beziehung',
   relationshipIntro:
@@ -25,9 +44,6 @@ const profiles = {
   relationshipDurationLabel: 'Gemeinsame Zeit anzeigen',
   relationshipDurationHelp:
     'Zeigt eure gemeinsame Zeit auf „Wir“ und an passenden Stellen in eimir.',
-  relationshipModeLabel: 'Beziehungsdauer anzeigen als',
-  relationshipModeYearsMonths: 'Jahre und Monate',
-  relationshipModeDays: 'Tage',
   relationshipPreviewTitle: 'Vorschau',
   relationshipCurrentLabel: 'Aktuell',
   nextAnniversaryLabel: 'Nächster Jahrestag',
@@ -38,8 +54,6 @@ const profiles = {
   relationshipNotificationHint:
     'Jahrestag-Erinnerungen in den Benachrichtigungseinstellungen verwalten',
   relationshipCurrent: 'Aktuell: {{duration}}',
-  relationshipYearsMonths: '{{years}} Jahre, {{months}} Monate',
-  relationshipDays: '{{days}} Tage',
   relationshipDurationTitle: 'Eure Zeit',
   relationshipNotAvailable: 'Tragt ein, seit wann ihr zusammen seid.',
   relationshipSave: 'Änderungen speichern',

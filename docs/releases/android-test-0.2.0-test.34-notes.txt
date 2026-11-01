@@ -1,0 +1,9 @@
+eimir. 0.2.0-test.34
+
+Die zusätzlichen Beschreibungen beim Kalenderexport und bei Wünschen sind entfernt. Der Hinweis „Noch keine Wünsche festgehalten. Sammelt hier, was ihr irgendwann gemeinsam erleben möchtet.“ bleibt erhalten.
+
+„Eure Geschichte“ verwendet jetzt dieselbe Schrift wie die übrigen Abschnittsüberschriften. Der Vibecheck zeigt klar erkennbare Gesichtsausdrücke sowie ein Herz für Nähe und einen Mond für Ruhe.
+
+Fünf sorgfältig ausgewählte Zitate zu Partnerschaft und Verbundenheit ergänzen den Katalog. Die neuen Zitate werden über die aktualisierte Testinstallation auf dem Server bereitgestellt.
+
+Build 34 aktualisiert die bestehende Installation mit demselben Paket und Signaturschlüssel. Das Update findet ihr unter Einstellungen → App-Updates.

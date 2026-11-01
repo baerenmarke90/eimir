@@ -16,11 +16,7 @@ import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
 import m5s5 from '../i18n/locales/m5s5';
-import {
-  formatRelationshipDuration,
-  formatTodayHeaderDate,
-  TodayPage,
-} from './TodayPage';
+import { formatRelationshipDuration, TodayPage } from './TodayPage';
 
 /**
  * By default this seeds an already-resolved (empty-override) Dashboard
@@ -82,9 +78,36 @@ function renderTodayPage(
 }
 
 describe('TodayPage', () => {
-  it('formats the Today date in the compact reference hierarchy', () => {
-    const label = formatTodayHeaderDate(new Date('2026-09-21T12:00:00.000Z'));
-    expect(label).toContain('21. September 2026');
+  it('does not repeat an incoming time-travel source in the independent retrospective', () => {
+    const memory = {
+      id: 'shared-time-travel',
+      type: 'MEMORY',
+      titleOrText: 'Our early adventure',
+      occurredOn: new Date('2020-01-01'),
+      createdAt: new Date(),
+    };
+    const html = renderTodayPage({
+      space: {
+        id: 'space-1',
+        partner: { id: 'partner-1', displayName: 'Marie' },
+      },
+      upcoming: [],
+      recentShared: [memory],
+      keepsake: memory,
+      retrospective: memory,
+      incomingExperience: {
+        id: memory.id,
+        kind: 'TIME_TRAVEL',
+        text: memory.titleOrText,
+        authorId: 'partner-1',
+        happenedOn: memory.occurredOn,
+        createdAt: new Date(),
+      },
+    });
+    expect(html).toContain('shared-experience-section');
+    expect(html).not.toContain('today-section-retrospective');
+    expect(html).not.toContain('today-section-moment');
+    expect(html.split(memory.titleOrText).length - 1).toBe(1);
   });
 
   it('renders couple presence hero, days together, the partner quick-actions trigger, and the composed modules', () => {
@@ -93,7 +116,11 @@ describe('TodayPage', () => {
         id: 'space-1',
         partner: { id: 'partner-1', displayName: 'Marie' },
       },
-      relationshipDuration: { daysTogether: 420 },
+      relationshipDuration: {
+        daysTogether: 420,
+        displayMode: DurationDisplayMode.DAYS,
+        startedOn: new Date('2025-01-01T00:00:00Z'),
+      },
       upcoming: [
         {
           id: 'plan-1',
@@ -124,11 +151,13 @@ describe('TodayPage', () => {
       },
     });
 
-    expect(html).toContain('today-date-heading');
-    expect(html).toContain('today-date-title');
-    expect(html).toContain('Heute');
+    expect(html).not.toContain('today-date-heading');
+    expect(html).not.toContain('today-date-value');
+    expect(html).toMatch(
+      /<h2[^>]*class="couple-presence-title"[^>]*>Alex &amp; Marie<\/h2>/,
+    );
     expect(html).toContain('Marie');
-    expect(html).toContain('420');
+    expect(html).toContain('1 Jahr, 1 Monat, 24 Tage zusammen');
     expect(html).toContain('partner-avatar-pair-action');
     expect(html).toContain('aria-controls="partner-quick-actions-sheet"');
     expect(html).toContain('Weekend trip to Paris');
@@ -140,7 +169,7 @@ describe('TodayPage', () => {
       'today-hero',
       'today-section-moment',
       'today-section-upcoming',
-      'today-section-living',
+      'today-section-retrospective',
       'today-section-recent',
     ].map((section) => html.indexOf(section));
     expect(order).not.toContain(-1);
@@ -354,7 +383,7 @@ describe('TodayPage', () => {
       retrospective: null,
     });
 
-    // Today remains the permanent H1; Couple Presence stays the relationship hero.
+    // Wir names the page; Couple Presence remains the dominant relationship hero.
     expect(html).toContain('today-hero');
     expect(html).toContain('couple-presence-title');
 
@@ -467,6 +496,7 @@ describe('TodayPage', () => {
         titleOrText: 'Photo Memory',
         occurredOn: new Date('2026-09-01T12:00:00Z'),
         previewAttachmentId: 'att-123',
+        previewIsSensitive: false,
       },
       recentShared: [
         {
@@ -475,6 +505,7 @@ describe('TodayPage', () => {
           titleOrText: 'Photo Memory',
           occurredOn: new Date('2026-09-01T12:00:00Z'),
           previewAttachmentId: 'att-123',
+          previewIsSensitive: false,
         },
         {
           id: 'mem-text',
@@ -535,6 +566,7 @@ describe('TodayPage', () => {
         titleOrText: 'Anniversary Trip',
         occurredOn: new Date('2026-01-01T12:00:00Z'),
         previewAttachmentId: 'att-old',
+        previewIsSensitive: false,
       },
       recentShared: [
         {
@@ -599,6 +631,7 @@ describe('TodayPage', () => {
         titleOrText: 'Beach Day',
         occurredOn: new Date('2026-09-01T12:00:00Z'),
         previewAttachmentId: 'att-123',
+        previewIsSensitive: false,
       },
       recentShared: [],
       retrospective: null,
@@ -647,6 +680,7 @@ describe('TodayPage', () => {
         titleOrText: 'Beach Day',
         occurredOn: new Date('2026-09-01T12:00:00Z'),
         previewAttachmentId: 'att-123',
+        previewIsSensitive: false,
       },
       recentShared: [
         {
@@ -717,6 +751,7 @@ describe('TodayPage', () => {
         titleOrText: 'Sunset Photo',
         occurredOn: new Date('2026-09-01T12:00:00Z'),
         previewAttachmentId: 'att-123',
+        previewIsSensitive: false,
       },
       recentShared: [],
       retrospective: null,
@@ -770,7 +805,7 @@ describe('TodayPage', () => {
     expect(signalIndex).toBeGreaterThan(agendaIndex);
   });
 
-  it('places a genuine date-specific retrospective in the single `Gerade bei euch` slot (#850 supersedes #840 ordering)', () => {
+  it('places daily rediscovery in its own section below upcoming', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -816,16 +851,12 @@ describe('TodayPage', () => {
       </QueryClientProvider>,
     );
 
-    // #840 let a date-specific retrospective float ahead of the planning
-    // area. #850's normative order is fixed, and the retrospective is now
-    // the highest-value candidate for the one `Gerade bei euch` slot after a
-    // live partner signal - so it renders there, below `Demnächst`. The
-    // retrospective is still shown, still exactly once, and still never
-    // displaced by a generic Keepsake, which is what #840 was protecting.
+    // Rediscovery has its own module and never occupies the contextual slot.
     const planningIndex = html.indexOf('today-section-upcoming');
-    const livingIndex = html.indexOf('today-section-living');
+    const retrospectiveIndex = html.indexOf('today-section-retrospective');
     expect(planningIndex).toBeGreaterThan(-1);
-    expect(livingIndex).toBeGreaterThan(planningIndex);
+    expect(retrospectiveIndex).toBeGreaterThan(planningIndex);
+    expect(html).not.toContain('today-section-living');
     expect(html).toContain('One year ago today');
     expect(html.split('One year ago today').length - 1).toBe(1);
     expect(html).toContain('today-living-retrospective');
@@ -842,6 +873,7 @@ describe('TodayPage', () => {
         titleOrText: 'Photo Memory',
         occurredOn: new Date('2026-09-01T12:00:00Z'),
         previewAttachmentId: 'att-123',
+        previewIsSensitive: false,
       },
       recentShared: [
         {
@@ -850,6 +882,7 @@ describe('TodayPage', () => {
           titleOrText: 'Photo Memory',
           occurredOn: new Date('2026-09-01T12:00:00Z'),
           previewAttachmentId: 'att-123',
+          previewIsSensitive: false,
         },
       ],
       retrospective: null,
@@ -923,8 +956,8 @@ describe('TodayPage', () => {
       </QueryClientProvider>,
     );
 
-    // Renders section with distinct kicker and heading (no duplicate wording)
-    expect(html).toContain(m5s5.dashboard.recentKicker);
+    // The section needs one heading, without a synonymous activity kicker.
+    expect(html).not.toContain('today-section-kicker');
     expect(html).toContain(m5s5.dashboard.recentTitle);
     // The descriptive subline read as redundant activity-log copy and was
     // removed per Product Owner review; the section no longer renders one.
@@ -1044,6 +1077,7 @@ describe('TodayPage', () => {
 
     // Zero duplication: the upcoming item appears exactly once
     expect(html.split('Candlelight Dinner').length - 1).toBe(1);
+    expect(html).not.toContain('today-hero-context');
   });
 
   it('omits the planning area entirely when neither upcoming item nor relationship activity exists', () => {
@@ -1148,10 +1182,9 @@ describe('TodayPage', () => {
     expect(html).toContain('today-section-upcoming');
     expect(html).toContain('today-agenda-row');
     expect(html).toContain('Cooking Night');
-    // Demnächst carries the same red-eyebrow/title hierarchy as the other
-    // Today modules (e.g. `Euer Moment`), not a locally styled heading.
-    expect(html).toContain('today-section-kicker');
-    expect(html).toContain('Euer Ausblick');
+    // The PO refinement keeps one upcoming heading instead of a repeated label.
+    expect(html).not.toContain('today-section-kicker');
+    expect(html).not.toContain(m5s5.dashboard.upcomingKicker);
     // Nothing qualifies for the contextual slot, so the section is omitted
     // entirely rather than rendered as an empty placeholder.
     expect(html).not.toContain('today-section-living');
@@ -1590,7 +1623,7 @@ describe('TodayPage', () => {
     });
 
     expect(html).toContain('today-hero-duration-link');
-    expect(html).toContain('3 Jahre, 2 Monate zusammen');
+    expect(html).toContain('3 Jahre, 2 Monate, 1 Tag zusammen');
     expect(html).not.toContain('today-hero-settings-link');
   });
 });
@@ -1623,6 +1656,7 @@ function renderWithPartnerComment(commentTargetId: string): string {
       titleOrText: 'Featured Photo',
       occurredOn: thisMonth(2),
       previewAttachmentId: 'att-featured',
+      previewIsSensitive: false,
     },
     recentShared: [
       {
@@ -1631,6 +1665,7 @@ function renderWithPartnerComment(commentTargetId: string): string {
         titleOrText: 'Featured Photo',
         occurredOn: thisMonth(2),
         previewAttachmentId: 'att-featured',
+        previewIsSensitive: false,
       },
       {
         id: 'mem-commented',
@@ -1638,6 +1673,7 @@ function renderWithPartnerComment(commentTargetId: string): string {
         titleOrText: 'Commented Photo',
         occurredOn: thisMonth(3),
         previewAttachmentId: 'att-commented',
+        previewIsSensitive: false,
       },
       {
         id: 'mem-other',
@@ -1645,6 +1681,7 @@ function renderWithPartnerComment(commentTargetId: string): string {
         titleOrText: 'Other Photo',
         occurredOn: thisMonth(4),
         previewAttachmentId: 'att-other',
+        previewIsSensitive: false,
       },
       {
         id: 'ms-1',
@@ -1760,6 +1797,7 @@ function renderMonthlyOverflowSpace(): string {
     titleOrText: title,
     occurredOn: thisMonth(day),
     previewAttachmentId: `att-${id}`,
+    previewIsSensitive: false,
   });
 
   const queryClient = new QueryClient({
@@ -1783,6 +1821,7 @@ function renderMonthlyOverflowSpace(): string {
         titleOrText: 'Quiet Heart Moment',
         occurredOn: thisMonth(6),
         previewAttachmentId: null,
+        previewIsSensitive: false,
       },
       {
         id: 'ms-1',
@@ -1790,6 +1829,7 @@ function renderMonthlyOverflowSpace(): string {
         titleOrText: 'Shared Milestone',
         occurredOn: thisMonth(7),
         previewAttachmentId: null,
+        previewIsSensitive: false,
       },
     ],
     retrospective: null,
@@ -1830,18 +1870,18 @@ it('never repeats a `Diesen Monat` photo as a `Zuletzt bei euch` row', () => {
   }
 });
 
-it('keeps content the monthly strip did not select eligible for the trace', () => {
+it('adds text and overflow moments to the month without repeating them in the trace', () => {
   const html = renderMonthlyOverflowSpace();
   const monthly = sectionHtml(html, 'today-section-monthly');
   const trace = sectionHtml(html, 'today-section-recent');
 
-  // The fourth this-month photo lost only to the three-item cap, so it is
-  // not featured anywhere and the trace must still offer it.
-  expect(monthly).not.toContain('Overflow Photo D');
-  expect(trace).toContain('Overflow Photo D');
+  // Photos outside the compact strip and text moments now enrich the month.
+  expect(monthly).toContain('Overflow Photo D');
+  expect(trace).not.toContain('Overflow Photo D');
 
-  // Content the strip can never take stays in the trace too.
-  expect(trace).toContain('Quiet Heart Moment');
+  // Text highlights use the same current-month classification.
+  expect(monthly).toContain('Quiet Heart Moment');
+  expect(trace).not.toContain('Quiet Heart Moment');
 });
 
 it('keeps `Euer Moment` and the `Gerade bei euch` module out of the trace as before', () => {
@@ -1908,6 +1948,7 @@ it('renders `Diesen Monat` as up to three real shared photos, never a count deri
       titleOrText: 'Featured Photo',
       occurredOn: thisMonth(2),
       previewAttachmentId: 'att-featured',
+      previewIsSensitive: false,
     },
     recentShared: [
       {
@@ -1916,6 +1957,7 @@ it('renders `Diesen Monat` as up to three real shared photos, never a count deri
         titleOrText: 'Featured Photo',
         occurredOn: thisMonth(2),
         previewAttachmentId: 'att-featured',
+        previewIsSensitive: false,
       },
       ...[1, 2, 3, 4].map((n) => ({
         id: `strip-${n}`,
@@ -1923,6 +1965,7 @@ it('renders `Diesen Monat` as up to three real shared photos, never a count deri
         titleOrText: `Strip Photo ${n}`,
         occurredOn: thisMonth(3),
         previewAttachmentId: `att-strip-${n}`,
+        previewIsSensitive: false,
       })),
     ],
     retrospective: null,
@@ -1995,6 +2038,7 @@ it('never exposes the internal `keepsake` term to users', () => {
       titleOrText: 'Photo Memory',
       occurredOn: new Date('2026-09-01T12:00:00Z'),
       previewAttachmentId: 'att-123',
+      previewIsSensitive: false,
     },
     recentShared: [],
     retrospective: null,
@@ -2018,7 +2062,8 @@ it('never exposes the internal `keepsake` term to users', () => {
     .replace(/\s+/g, ' ')
     .toLowerCase();
   expect(visibleText).not.toContain('keepsake');
-  expect(html).toContain(m5s5.today.keepsake.kicker);
+  expect(html).toContain(m5s5.today.keepsake.title);
+  expect(html).not.toContain('today-section-kicker');
 });
 
 it('keeps the partner quick-actions trigger in the hero, unchanged by the recomposition', () => {
@@ -2046,112 +2091,42 @@ it('keeps the partner quick-actions trigger in the hero, unchanged by the recomp
 });
 
 describe('formatRelationshipDuration', () => {
-  it('formats DAYS mode for singular and plural', () => {
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 1,
-          displayMode: DurationDisplayMode.DAYS,
-          startedOn: new Date('2026-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('1 Tag zusammen');
-
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 1178,
-          displayMode: DurationDisplayMode.DAYS,
-          startedOn: new Date('2023-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('1178 Tage zusammen');
-  });
-
-  it('formats YEARS_MONTHS mode with singular and plural units', () => {
-    // Exactly 3 years, 2 months:
-    // start 2023-01-01, + 1156 days -> 2026-03-02
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 1156,
-          displayMode: DurationDisplayMode.YEARS_MONTHS,
-          startedOn: new Date('2023-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('3 Jahre, 2 Monate zusammen');
-
-    // 1 year, 1 month:
-    // start 2025-01-01, + 396 days -> 2026-02-01
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 396,
-          displayMode: DurationDisplayMode.YEARS_MONTHS,
-          startedOn: new Date('2025-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('1 Jahr, 1 Monat zusammen');
-  });
-
-  it('formats YEARS_MONTHS mode when months == 0', () => {
-    // Exactly 3 years, 0 months:
-    // start 2023-01-01, + 1096 days -> 2026-01-01
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 1096,
-          displayMode: DurationDisplayMode.YEARS_MONTHS,
-          startedOn: new Date('2023-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('3 Jahre zusammen');
-  });
-
-  it('formats YEARS_MONTHS mode when years == 0 and months > 0', () => {
-    // 0 years, 2 months:
-    // start 2026-01-01, + 62 days -> 2026-03-04
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 62,
-          displayMode: DurationDisplayMode.YEARS_MONTHS,
-          startedOn: new Date('2026-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('2 Monate zusammen');
-
-    // 0 years, 1 month:
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 32,
-          displayMode: DurationDisplayMode.YEARS_MONTHS,
-          startedOn: new Date('2026-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('1 Monat zusammen');
-  });
-
-  it('falls back to days when years == 0 and months == 0', () => {
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 15,
-          displayMode: DurationDisplayMode.YEARS_MONTHS,
-          startedOn: new Date('2026-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('15 Tage zusammen');
-  });
+  it.each([DurationDisplayMode.DAYS, DurationDisplayMode.YEARS_MONTHS])(
+    'uses automatic shared time for legacy %s preferences and a server snapshot',
+    (displayMode) => {
+      const startedOn = new Date('2025-01-01T00:00:00Z');
+      expect(
+        formatRelationshipDuration(
+          { daysTogether: 1, displayMode, startedOn },
+          i18n.t,
+        ),
+      ).toBe('1 Tag zusammen');
+      expect(
+        formatRelationshipDuration(
+          { daysTogether: 364, displayMode, startedOn },
+          i18n.t,
+        ),
+      ).toBe('364 Tage zusammen');
+      expect(
+        formatRelationshipDuration(
+          { daysTogether: 365, displayMode, startedOn },
+          i18n.t,
+        ),
+      ).toBe('1 Jahr, 0 Tage zusammen');
+      expect(
+        formatRelationshipDuration(
+          { daysTogether: 395, displayMode, startedOn },
+          i18n.t,
+        ),
+      ).toBe('1 Jahr, 30 Tage zusammen');
+      expect(
+        formatRelationshipDuration(
+          { daysTogether: 396, displayMode, startedOn },
+          i18n.t,
+        ),
+      ).toBe('1 Jahr, 1 Monat, 0 Tage zusammen');
+    },
+  );
 
   describe('issue #617: keep third-party dates out of the planning area', () => {
     it('renders the shared plan in the planning area when upcoming contains a couple plan', () => {
@@ -2290,6 +2265,7 @@ describe('formatRelationshipDuration', () => {
           titleOrText: 'Keepsake Photo',
           occurredOn: thisMonth(1),
           previewAttachmentId: 'att-keepsake',
+          previewIsSensitive: false,
         },
         recentShared: [
           {
@@ -2298,6 +2274,7 @@ describe('formatRelationshipDuration', () => {
             titleOrText: 'Keepsake Photo',
             occurredOn: thisMonth(1),
             previewAttachmentId: 'att-keepsake',
+            previewIsSensitive: false,
           },
           {
             id: 'mem-monthly',
@@ -2305,12 +2282,15 @@ describe('formatRelationshipDuration', () => {
             titleOrText: 'Monthly Photo',
             occurredOn: thisMonth(2),
             previewAttachmentId: 'att-monthly',
+            previewIsSensitive: false,
           },
           {
             id: 'ms-recent',
             type: 'MILESTONE',
             titleOrText: 'Trace Milestone',
-            createdAt: new Date(),
+            createdAt: new Date(
+              Date.UTC(now.getFullYear(), now.getMonth() - 1, 15),
+            ),
           },
         ],
         retrospective: {
@@ -2318,6 +2298,14 @@ describe('formatRelationshipDuration', () => {
           type: 'HEART_MOMENT',
           titleOrText: 'Weisst du noch',
           occurredOn: new Date('2020-01-01T00:00:00Z'),
+        },
+        incomingExperience: {
+          id: 'experience-incoming',
+          kind: 'HAPPINESS',
+          text: 'A shared appreciation',
+          authorId: 'partner-1',
+          happenedOn: null,
+          createdAt: new Date(),
         },
         sharedStorySummary: {
           memories: 4,
@@ -2338,6 +2326,19 @@ describe('formatRelationshipDuration', () => {
         ['m5-s5', 'dashboard', 'space-1'],
         allModulesEligibleDashboard(),
       );
+      queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+        items: [
+          {
+            id: 'partner-comment',
+            kind: 'COMMENT_CREATED',
+            actorId: 'partner-1',
+            targetType: 'MEMORY',
+            targetId: 'another-shared-memory',
+            createdAt: new Date(),
+          },
+        ],
+        nextCursor: null,
+      });
       // A resolved (possibly empty) preferences response - not pending, see
       // the dedicated "never flashes" test below for the pending case.
       queryClient.setQueryData(
@@ -2406,9 +2407,12 @@ describe('formatRelationshipDuration', () => {
      */
     const MODULE_SECTION_MARKER: Record<DashboardModuleKey, string> = {
       relationship_presence: 'today-hero',
+      shared_experience: 'shared-experience-section',
+      daily_quote: 'daily-quote-card',
       upcoming: 'today-section-upcoming',
       pinned_collection: 'today-section-pinned-collection',
       keepsake: 'today-section-moment',
+      retrospective: 'today-section-retrospective',
       relationship_signal: 'today-section-living',
       monthly_highlights: 'today-section-monthly',
       recent_shared: 'today-section-recent',
@@ -2417,6 +2421,8 @@ describe('formatRelationshipDuration', () => {
 
     const MODULE_SECTIONS = DASHBOARD_MODULE_KEYS.map(
       (key) => [key, MODULE_SECTION_MARKER[key]] as const,
+    ).filter(
+      ([key]) => key !== 'shared_story_summary' && key !== 'daily_quote',
     );
 
     it('renders a personal complete order in DOM order, including the presence hero', () => {
@@ -2440,9 +2446,7 @@ describe('formatRelationshipDuration', () => {
       for (const [, sectionClass] of MODULE_SECTIONS) {
         expect(html).toContain(sectionClass);
       }
-      expect(html.indexOf('today-section-recent')).toBeLessThan(
-        html.indexOf('shared-story-summary'),
-      );
+      expect(html).not.toContain('shared-story-summary');
     });
 
     it.each(MODULE_SECTIONS)(
@@ -2469,38 +2473,46 @@ describe('formatRelationshipDuration', () => {
       },
     );
 
-    it('hiding one module does not change what another module selects (no duplicate content leaks in)', () => {
-      const baseline = renderWithVisibility({});
-      const withLivingHidden = renderWithVisibility({
-        relationship_signal: false,
-      });
+    it('keeps the retired story statistics hidden even with an explicit visible preference', () => {
+      expect(
+        renderWithVisibility({ shared_story_summary: true }),
+      ).not.toContain('shared-story-summary');
+    });
 
-      // The retrospective content stays claimed by `Gerade bei euch`'s
-      // selection even while that section itself is not rendered - hiding it
-      // must not let the same content reappear in `Diesen Monat` or the trace.
-      expect(baseline).toContain('today-section-monthly');
-      expect(withLivingHidden).not.toContain('today-living-retrospective');
-      expect(withLivingHidden).toContain('today-section-monthly');
-      expect(withLivingHidden).toContain('Monthly Photo');
-      expect(withLivingHidden).not.toContain('Weisst du noch');
+    it('hides rediscovery independently without leaking its source into other modules', () => {
+      const baseline = renderWithVisibility({});
+      const hidden = renderWithVisibility({ retrospective: false });
+      expect(baseline).toContain('today-section-retrospective');
+      expect(hidden).not.toContain('today-section-retrospective');
+      expect(hidden).toContain('today-section-living');
+      expect(hidden).toContain('today-section-monthly');
+      expect(hidden).toContain('Monthly Photo');
+      expect(hidden).not.toContain('Weisst du noch');
+      expect(renderWithVisibility({ relationship_signal: false })).toContain(
+        'today-section-retrospective',
+      );
     });
 
     describe('relationship_presence (Couple Presence hero)', () => {
-      it('hides the hero without an empty shell, replacing it with a valid page heading', () => {
+      it('keeps the shared root heading when the configurable hero is hidden', () => {
         const shown = renderWithVisibility({});
         const hidden = renderWithVisibility({ relationship_presence: false });
 
         expect(shown).toContain('today-hero');
+        expect(shown).toMatch(/<h2[^>]*class="couple-presence-title"/);
         expect(hidden).not.toContain('today-hero');
+        expect(shown).toContain('<h1>Wir</h1>');
+        expect(hidden).toContain('<h1>Wir</h1>');
+        expect(shown).toContain('page-heading-root');
+        expect(hidden).toContain('page-heading-root');
 
-        // Exactly one <h1> either way: the real heading inside the hero, or
-        // the quiet sr-only fallback that takes its place - never zero,
-        // never two.
+        // Exactly one stable page H1 whether the configurable hero is shown
+        // or hidden; the couple's name is a subordinate heading.
         const h1Count = (html: string) =>
           (html.match(/<h1[\s>]/g) ?? []).length;
         expect(h1Count(shown)).toBe(1);
         expect(h1Count(hidden)).toBe(1);
-        expect(hidden).toContain('sr-only');
+        expect(hidden).not.toContain('<h1 class="sr-only">');
       });
 
       it('leaves every other module unaffected when the hero is hidden', () => {
@@ -2511,6 +2523,23 @@ describe('formatRelationshipDuration', () => {
           expect(hidden).toContain(sectionClass);
         }
       });
+    });
+
+    it('renders saved module choices with saved content while their background read is pending', () => {
+      const html = renderTodayPage(
+        {
+          ...allModulesEligibleDashboard(),
+          modulePreferences: {
+            items: [{ moduleKey: 'relationship_presence', visible: false }],
+          },
+        },
+        undefined,
+        { preferencesPending: true },
+      );
+      expect(html).toContain('today-content');
+      expect(html).toContain('today-section-upcoming');
+      expect(html).not.toContain('today-hero');
+      expect(html).not.toContain(de.states.loading.title);
     });
 
     it('never flashes a persisted-hidden module while Dashboard preferences are still pending, even though Dashboard data already arrived', () => {
@@ -2546,5 +2575,60 @@ describe('formatRelationshipDuration', () => {
       }
       expect(html).toContain(de.states.loading.title);
     });
+  });
+});
+
+describe('Today content clarity', () => {
+  const memory = (title: string) => ({
+    space: { id: 'space-1', partner: null },
+    relationshipDuration: null,
+    upcoming: [],
+    retrospective: null,
+    recentShared: [
+      {
+        id: 'memory-1',
+        type: 'MEMORY',
+        titleOrText: title,
+        occurredOn: new Date('2026-10-27'),
+        createdAt: null,
+        scheduledAt: null,
+      },
+    ],
+  });
+  it('presents an automatically titled Memory date once in the focal item', () => {
+    const html = renderTodayPage(memory('Erinnerung vom 27.10.2026'));
+    const focal = html
+      .split('today-moment-text-content')[1]
+      .split('</article>')[0];
+    expect(focal).toContain('27. Oktober 2026');
+    expect(focal).not.toContain('Erinnerung vom');
+    expect(focal).not.toContain('today-moment-text-date');
+  });
+  it('retains an authored Memory title with its separate date', () => {
+    const html = renderTodayPage(memory('An evening by the lake'));
+    const focal = html
+      .split('today-moment-text-content')[1]
+      .split('</article>')[0];
+    expect(focal).toContain('An evening by the lake');
+    expect(focal).toContain('today-moment-text-date');
+    expect(focal).toContain('27.10.2026');
+  });
+  it('names the otherwise untitled anniversary and includes its next year', () => {
+    const html = renderTodayPage({
+      ...memory('A memory'),
+      upcoming: [
+        {
+          id: 'anniversary-1',
+          type: 'ANNIVERSARY',
+          titleOrText: null,
+          occurredOn: new Date('2027-05-14'),
+          scheduledAt: null,
+          createdAt: null,
+        },
+      ],
+    });
+    expect(html).toContain('Euer Jahrestag');
+    expect(html).toContain('14. Mai 2027');
+    expect(html).not.toContain('Gemeinsamer Eintrag');
   });
 });

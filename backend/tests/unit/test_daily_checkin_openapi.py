@@ -9,6 +9,8 @@ def test_daily_check_in_contract_has_reveal_aware_today_and_insights_routes() ->
     assert daily_paths == {
         "/api/v1/spaces/{spaceId}/daily-check-in/today",
         "/api/v1/spaces/{spaceId}/daily-check-in/insights",
+        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
+        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback/{recommendationKey}",
     }
     today_route = schema["paths"]["/api/v1/spaces/{spaceId}/daily-check-in/today"]
     assert set(today_route) == {"get", "patch"}

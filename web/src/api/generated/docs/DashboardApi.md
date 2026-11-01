@@ -5,6 +5,7 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**getDashboard**](DashboardApi.md#getdashboard) | **GET** /api/v1/spaces/{spaceId}/dashboard | Get Dashboard |
+| [**getRelationshipPassport**](DashboardApi.md#getrelationshippassport) | **GET** /api/v1/spaces/{spaceId}/relationship-passport | Get Relationship Passport |
 | [**listDashboardModulePreferences**](DashboardApi.md#listdashboardmodulepreferences) | **GET** /api/v1/spaces/{spaceId}/dashboard/preferences | List Dashboard Module Preferences |
 | [**updateDashboardModuleOrder**](DashboardApi.md#updatedashboardmoduleorder) | **PUT** /api/v1/spaces/{spaceId}/dashboard/preferences/order | Update Dashboard Module Order |
 | [**updateDashboardModulePreference**](DashboardApi.md#updatedashboardmodulepreference) | **PATCH** /api/v1/spaces/{spaceId}/dashboard/preferences/{moduleKey} | Update Dashboard Module Preference |
@@ -77,6 +78,76 @@ No authorization required
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getRelationshipPassport
+
+> RelationshipPassportView getRelationshipPassport(spaceId)
+
+Get Relationship Passport
+
+Return the Pro presentation without gating any underlying Core data.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  DashboardApi,
+} from '';
+import type { GetRelationshipPassportRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new DashboardApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetRelationshipPassportRequest;
+
+  try {
+    const data = await api.getRelationshipPassport(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**RelationshipPassportView**](RelationshipPassportView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

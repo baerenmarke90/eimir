@@ -8,7 +8,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Path, Request, Response, status
 from fastapi.responses import StreamingResponse
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, StrictBool, model_validator
 
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
@@ -47,6 +47,13 @@ class AttachmentUploadCreate(ApiModel):
     original_name: str = Field(min_length=1, max_length=255)
     expected_mime_type: str = Field(min_length=1, max_length=128)
     expected_size: int = Field(gt=0)
+    preserve_metadata: StrictBool = Field(
+        default=False,
+        description=(
+            "Retain readable EXIF/ICC in the validated primary image; "
+            "independent of Place association."
+        ),
+    )
 
 
 class AttachmentFinalize(ApiModel):
@@ -61,7 +68,7 @@ class AttachmentFinalize(ApiModel):
 class AttachmentReadRequest(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
-    parent_type: Literal["MEMORY", "HEART_MOMENT", "RELATED_PERSON", "NONE"] = "NONE"
+    parent_type: Literal["MEMORY", "HEART_MOMENT", "RELATED_PERSON", "PLAN", "NONE"] = "NONE"
     parent_id: UUID | None = None
     variant: ReadVariant = Field(
         default="original",
@@ -90,6 +97,10 @@ class AttachmentDetail(ApiModel):
     height: int | None
     duration_seconds: int | None
     has_thumbnail: bool
+    is_sensitive: bool = Field(
+        default=False,
+        description="Manual sensitive-content classification; never an access-control boundary.",
+    )
     version: int
     created_at: datetime
 
@@ -110,6 +121,25 @@ class AttachmentSummary(ApiModel):
     width: int | None
     height: int | None
     has_thumbnail: bool
+    is_sensitive: bool = Field(
+        default=False,
+        description="Manual sensitive-content classification; never an access-control boundary.",
+    )
+
+
+class AttachmentEntry(ApiModel):
+    """Ordered atomic gallery binding, shared by Memory and Plan writers."""
+
+    model_config = ConfigDict(extra="forbid")
+    attachment_id: UUID
+    position: int = Field(ge=0)
+    is_sensitive: bool | None = Field(default=None, strict=True)
+
+
+class OrderedAttachmentSummary(AttachmentSummary):
+    """A bound photo with its stable position in a parent's gallery."""
+
+    position: int
 
 
 class UploadDescriptor(ApiModel):
@@ -137,6 +167,7 @@ def _detail(attachment: Attachment) -> AttachmentDetail:
         height=attachment.height,
         duration_seconds=attachment.duration_seconds,
         has_thumbnail=attachment.has_thumbnail,
+        is_sensitive=attachment.payload.is_sensitive,
         version=attachment.version,
         created_at=attachment.created_at,
     )
@@ -198,6 +229,7 @@ def create_attachment_upload(
         original_name=body.original_name,
         expected_mime_type=body.expected_mime_type,
         expected_size=body.expected_size,
+        preserve_metadata=body.preserve_metadata,
     )
     _no_store(response)
 

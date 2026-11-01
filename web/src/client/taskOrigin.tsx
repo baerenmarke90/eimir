@@ -10,8 +10,13 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ACTIVITY_ROUTE,
+  MEMORY_MAP_ROUTE,
+  MORE_COLLECTIONS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
+  MORE_PASSPORT_ROUTE,
+  PRIMARY_APP_ROUTES,
   STORY_PHOTOS_ROUTE,
+  WISH_SELECTION_ROUTE,
 } from './routes';
 import { parseStoryFilters, storyFiltersToSearch } from './storyProduct';
 
@@ -46,6 +51,12 @@ interface OriginStore {
   scope: string;
   entries: Map<string, StoredOrigin>;
   metadata: { path: string; value: TaskOriginMetadata } | null;
+  primaryRoots: Map<string, string>;
+}
+
+export interface PrimaryDestination {
+  to: string;
+  returnKey?: string;
 }
 
 interface TaskOriginContract {
@@ -53,6 +64,7 @@ interface TaskOriginContract {
   resolveOrigin: (key: unknown) => TaskOrigin | null;
   requestReturn: (key: unknown, fallback?: string) => void;
   registerOriginMetadata: (metadata: TaskOriginMetadata) => () => void;
+  primaryDestination: (root: string) => PrimaryDestination;
 }
 
 const TaskOriginContext = createContext<TaskOriginContract | null>(null);
@@ -68,21 +80,69 @@ export function taskOriginPath(
   const secondaryDetail = /^\/plan\/(places|chapters)\/(?!new$)[^/]+$/.test(
     pathname,
   );
+  const momentDetail =
+    /^\/story\/(memories|heart-moments)\/(?!new$)[^/]+$/.test(pathname);
+  // Shared Memory location editing returns to its owning editor, without query data.
+  const memoryEditor = /^\/story\/memories\/(?!new\/)[^/]+\/edit$/.test(
+    pathname,
+  );
+  const recapReader = /^\/more\/passport\/[^/]+$/.test(pathname);
   if (
+    !recapReader &&
+    !memoryEditor &&
     !planningDetail &&
     !secondaryDetail &&
+    !momentDetail &&
     ![
       '/today',
       '/story',
+      '/story/happiness',
+      '/story/time-travel',
       STORY_PHOTOS_ROUTE,
+      MEMORY_MAP_ROUTE,
+      MORE_COLLECTIONS_ROUTE,
       '/plan',
+      WISH_SELECTION_ROUTE,
       '/more',
+      MORE_PASSPORT_ROUTE,
       '/search',
       ACTIVITY_ROUTE,
       MORE_NOTIFICATIONS_ROUTE,
+      MORE_PASSPORT_ROUTE,
     ].includes(pathname)
   )
     return null;
+  if (recapReader || pathname === MORE_PASSPORT_ROUTE) {
+    const input = new URLSearchParams(search);
+    const safe = new URLSearchParams();
+    if (input.get('tab') === 'years') safe.set('tab', 'years');
+    if (
+      pathname === MORE_PASSPORT_ROUTE &&
+      input.get('details') === 'relationship'
+    )
+      safe.set('details', 'relationship');
+    const page = Number(input.get('page'));
+    if (recapReader && Number.isInteger(page) && page > 0 && page <= 13)
+      safe.set('page', String(page));
+    return safe.size ? `${pathname}?${safe}` : pathname;
+  }
+  if (pathname === ACTIVITY_ROUTE) {
+    return new URLSearchParams(search).get('scope') === 'own'
+      ? `${pathname}?scope=own`
+      : pathname;
+  }
+  if (pathname === MEMORY_MAP_ROUTE) {
+    const input = new URLSearchParams(search);
+    const safe = storyFiltersToSearch(parseStoryFilters(input));
+    const place = input.get('place') ?? '';
+    const coordinates = place.split(':').map(Number);
+    const valid =
+      /^-?\d{1,3}(?:\.\d{1,16})?:-?\d{1,3}(?:\.\d{1,16})?$/.test(place) &&
+      Math.abs(coordinates[0]) <= 90 &&
+      Math.abs(coordinates[1]) <= 180;
+    if (valid) safe.set('place', place);
+    return safe.size ? `${pathname}?${safe}` : pathname;
+  }
   if (pathname !== '/story') return pathname;
   const input = new URLSearchParams(search);
   const safe = storyFiltersToSearch(parseStoryFilters(input));
@@ -109,16 +169,19 @@ export function TaskOriginProvider({
     scope,
     entries: new Map(),
     metadata: null,
+    primaryRoots: new Map(),
   });
   // Invalidate synchronously, including callbacks retained by a late task result.
   if (storeRef.current.scope !== scope) {
     storeRef.current.active = false;
     storeRef.current.entries.clear();
+    storeRef.current.primaryRoots.clear();
     storeRef.current = {
       active: true,
       scope,
       entries: new Map(),
       metadata: null,
+      primaryRoots: new Map(),
     };
   }
   const generation = storeRef.current;
@@ -170,6 +233,13 @@ export function TaskOriginProvider({
         capturedAt: Date.now(),
       };
       store.entries.set(key, origin);
+      // Root references share the existing origin lifetime and privacy boundary.
+      // Details, editors, private content and global search are never resumed.
+      if (
+        PRIMARY_APP_ROUTES.some((route) => route.path === location.pathname)
+      ) {
+        store.primaryRoots.set(location.pathname, key);
+      }
       while (store.entries.size > MAX_ORIGINS) {
         const oldest = store.entries.keys().next().value;
         if (oldest) store.entries.delete(oldest);
@@ -186,7 +256,7 @@ export function TaskOriginProvider({
       );
       return key;
     },
-    [path, generation],
+    [path, generation, location.pathname],
   );
 
   const resolveOrigin = useCallback(
@@ -226,6 +296,18 @@ export function TaskOriginProvider({
     [navigate, resolveStored, generation],
   );
 
+  const primaryDestination = useCallback(
+    (root: string): PrimaryDestination => {
+      if (!PRIMARY_APP_ROUTES.some((route) => route.path === root))
+        return { to: '/today' };
+      const key = generation.primaryRoots.get(root);
+      const origin = resolveStored(key);
+      if (!origin || origin.to.split('?')[0] !== root) return { to: root };
+      return { to: origin.to, returnKey: key };
+    },
+    [generation, resolveStored],
+  );
+
   const registerOriginMetadata = useCallback(
     (metadata: TaskOriginMetadata) => {
       if (!path || storeRef.current !== generation) return () => {};
@@ -245,6 +327,7 @@ export function TaskOriginProvider({
       storeRef.current.active = false;
       storeRef.current.entries.clear();
       storeRef.current.metadata = null;
+      storeRef.current.primaryRoots.clear();
     };
   }, []);
 
@@ -254,8 +337,15 @@ export function TaskOriginProvider({
       resolveOrigin,
       requestReturn,
       registerOriginMetadata,
+      primaryDestination,
     }),
-    [captureOrigin, resolveOrigin, requestReturn, registerOriginMetadata],
+    [
+      captureOrigin,
+      resolveOrigin,
+      requestReturn,
+      registerOriginMetadata,
+      primaryDestination,
+    ],
   );
   return (
     <TaskOriginContext.Provider value={value}>
@@ -276,6 +366,7 @@ export function useTaskOrigin(): TaskOriginContract {
         void navigate(fallback, { replace: true });
       },
       registerOriginMetadata: () => () => {},
+      primaryDestination: (root) => ({ to: root }),
     }),
     [navigate],
   );

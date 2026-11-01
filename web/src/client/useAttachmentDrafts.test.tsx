@@ -103,6 +103,9 @@ describe('useAttachmentDrafts context and generation binding (#700)', () => {
     expect(result.current.items[0]?.status).toBe('uploading');
     expect(result.current.hasPending).toBe(true);
     expect(capturedSignal?.aborted).toBe(false);
+    expect(uploadFn.mock.calls[0]?.[7]).toEqual(
+      expect.objectContaining({ preserveMetadata: true }),
+    );
 
     // Rerender under Space B
     act(() => {

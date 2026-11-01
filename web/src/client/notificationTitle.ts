@@ -16,6 +16,24 @@ export function getNotificationItemTitle(
       ? authorDisplayName(item.actor)
       : undefined;
   const targetTitle = item.target?.title;
+  if (
+    [
+      'PLAN_CREATED',
+      'PLAN_CHANGED',
+      'PLAN_CANCELLED',
+      'WISH_SELECTION_SHARED',
+      'WISH_SELECTION_READY',
+      'PHOTO_REACTION',
+      'PARTNER_JOINED',
+      'TRANSFER_READY',
+      'TRANSFER_COMPLETED',
+      'TRANSFER_FAILED',
+    ].includes(item.kind)
+  ) {
+    return t(`coupleExperiences.notifications.${item.kind}`, {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
+  }
 
   if (item.kind === 'COMMENT_CREATED') {
     if (actorName && targetTitle) {
@@ -34,6 +52,11 @@ export function getNotificationItemTitle(
     }
     return t('m5s5.notificationKind.COMMENT_CREATED');
   }
+
+  if (item.kind === 'COUPLE_EXPERIENCE_SHARED')
+    return t('coupleExperiences.notification', {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
 
   if (item.kind === 'THINKING_OF_YOU') {
     return actorName

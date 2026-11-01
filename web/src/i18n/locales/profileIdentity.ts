@@ -42,8 +42,7 @@ const profileIdentity = {
   settingsTitle: 'Einstellungen',
   settingsIntro:
     'Hier verwaltest du deine persönlichen App-Einstellungen, Verbindungen und Daten.',
-  settingsPageIntro:
-    'Wähle den Bereich, den du anpassen möchtest. Jede Einstellung bleibt dort, wo du sie erwartest.',
+  settingsPageIntro: 'Darstellung, gemeinsame Funktionen und dein Konto.',
   settingsIdentity: 'Profilbild und Anzeigename',
   settingsRelationship: 'Partner und Verbindung',
   settingsRelationshipIntro:
@@ -100,12 +99,10 @@ const profileIdentity = {
   settingsTodayIntro:
     'Lege fest, welche Bereiche und wie viele kommende Einträge du auf „Wir“ sehen möchtest.',
   settingsDashboard: 'Inhalte auf „Wir“',
-  settingsDashboardIntro:
-    'Entscheide, welche Bereiche auf „Wir“ für dich sichtbar sind.',
   dashboardModulesTitle: 'Sichtbare Bereiche',
-  dashboardModulesIntro:
-    'Blende Bereiche aus oder ändere ihre Reihenfolge am Griff. Dein Partner sieht weiterhin seine eigene Auswahl.',
+  dashboardModulesIntro: 'Bereiche auswählen und sortieren.',
   dashboardOrderHandle: '{{name}} verschieben',
+  dashboardModuleConfigure: '{{name}} bearbeiten',
   dashboardOrderInstructions:
     'Am Griff ziehen oder ihn fokussieren und mit Pfeil hoch und runter verschieben.',
   dashboardOrderPosition: '{{name}}, Position {{position}} von {{total}}.',
@@ -123,7 +120,8 @@ const profileIdentity = {
   anniversaryReminderToggle: 'An unseren Jahrestag erinnern',
   anniversaryReminderToggleHelp:
     'Sendet dir rechtzeitig persönliche Benachrichtigungen vor eurem Jahrestag.',
-  anniversaryReminderDaysHeading: 'Erinnerungszeitpunkte vor dem Jahrestag',
+  anniversaryReminderDaysHeading: 'Erinnerungszeitpunkte',
+  anniversaryReminderDay0: 'Am Jahrestag',
   anniversaryReminderDay30: '30 Tage vorher',
   anniversaryReminderDay7: '7 Tage vorher',
   anniversaryReminderDay1: '1 Tag vorher',
@@ -135,8 +133,8 @@ const profileIdentity = {
   partnerBirthdayReminderToggle: 'An den Geburtstag meines Partners erinnern',
   partnerBirthdayReminderToggleHelp:
     'Diese persönliche Einstellung betrifft nur deine Erinnerungen. Der Geburtstag selbst bleibt für euch sichtbar.',
-  partnerBirthdayReminderDaysHeading:
-    'Erinnerungszeitpunkte vor dem Geburtstag',
+  partnerBirthdayReminderDaysHeading: 'Erinnerungszeitpunkte',
+  partnerBirthdayReminderDay0: 'Am Geburtstag',
   partnerBirthdayReminderDay14: '14 Tage vorher',
   partnerBirthdayReminderDay7: '7 Tage vorher',
   partnerBirthdayReminderDay1: '1 Tag vorher',
@@ -146,9 +144,9 @@ const profileIdentity = {
   settingsData: 'Daten und Portabilität',
   settingsDataIntro:
     'Exportiere deine Daten oder importiere unterstützte Inhalte mit den bestehenden Prüfungen.',
-  settingsAccount: 'Konto und gemeinsamer Bereich',
+  settingsAccount: 'App und Konto',
   settingsAccountIntro:
-    'Verlassen des gemeinsamen Bereichs und Löschen deines Kontos bleiben getrennte, bewusst bestätigte Aktionen.',
+    'eimir. Pro und dein Konto. Eure gemeinsamen Inhalte bleiben geschützt.',
   settingsBackToMore: 'Zurück zu Mehr',
   settingsBackToIndex: 'Zurück zu Einstellungen',
   settingsSensitiveEyebrow: 'Mit Bedacht',

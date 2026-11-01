@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { applyRouteEntryHandoff } from '../client/routeEntryHandoff';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
@@ -53,12 +53,21 @@ export function RouteEntryHandoff(): null {
   const location = useLocation();
   const navigationType = useNavigationType();
   const { resolveOrigin } = useTaskOrigin();
+  const previousPath = useRef<string | null>(null);
 
   useEffect(() => {
     const state = location.state as {
       taskReturnKey?: unknown;
       taskOriginKey?: unknown;
+      inPlaceRouteUpdate?: boolean;
+      focusStoryView?: boolean;
     } | null;
+    const samePath = previousPath.current === location.pathname;
+    previousPath.current = location.pathname;
+    // Playback/query state is not a new destination. Preserve its opaque return
+    // context without repeatedly moving focus or scrolling the reader.
+    if (samePath && !location.hash && state?.inPlaceRouteUpdate === true)
+      return undefined;
     const origin = resolveOrigin(state?.taskReturnKey);
     if (
       origin &&
@@ -84,6 +93,15 @@ export function RouteEntryHandoff(): null {
     // change between two hash-less routes must still re-run the handoff.
     const frame = resolveOrigin(state?.taskOriginKey)
       ? window.requestAnimationFrame(() => {
+          // Keyboard selection owns focus across the Story/Map route boundary.
+          // Keep its selected peer tab ahead of generic source-reader focus.
+          if (
+            state?.focusStoryView === true &&
+            document.querySelector(
+              '.story-view-tabs [role="tab"][aria-selected="true"]',
+            )
+          )
+            return;
           const heading = document.querySelector<HTMLElement>('main h1');
           if (heading) {
             heading.tabIndex = -1;

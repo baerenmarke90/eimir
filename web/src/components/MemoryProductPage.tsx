@@ -1,5 +1,12 @@
+import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type FormEvent, useCallback, useLayoutEffect, useState } from 'react';
+import {
+  type FormEvent,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import {
@@ -13,20 +20,20 @@ import {
 } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { splitFirstGrapheme } from '../client/graphemeSplit';
-import { usePartnerNickname } from '../client/partnerNickname';
 import {
   type MemoryEditValues,
+  isGeneratedMemoryTitle,
   memoryDateInputValue,
   memoryIfMatch,
   memoryUpdatePayload,
 } from '../client/memoryProduct';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
+  ClientProblemError,
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
-import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { loadProductWithReadCache } from '../client/productReadCache';
-import { useStoryDeletion } from '../client/useStoryDeletion';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
@@ -34,27 +41,35 @@ import {
   memoryEditPath,
 } from '../client/routes';
 import { postSnackbar } from '../client/snackbar';
+import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
 import {
   formatAttachmentDraftContextKey,
   useAttachmentDrafts,
 } from '../client/useAttachmentDrafts';
+import { useStoryDeletion } from '../client/useStoryDeletion';
+import { useTaskActivation } from '../client/useTaskActivation';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
-import { MediaGallery } from './MediaGallery';
+import { MemoryPhotoGallery } from './MemoryPhotoGallery';
 import { MemoryPreview } from './MemoryPreview';
 import {
   MEMORY_TAGS,
-  MemoryTagChoices,
   type MemoryTag,
+  MemoryTagChoices,
 } from './MemoryTagChoices';
+import { MomentPlaces } from './MomentPlaces';
 import { PageHeader } from './PageHeader';
+import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
 import { StoryEditorPageShell } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { UiState } from './UiState';
 
 export type MemoryProductMode = 'detail' | 'edit';
@@ -95,6 +110,7 @@ export function MemoryProductPage({
     signal?: AbortSignal,
   ) => Promise<string>;
 }) {
+  const [commentHost, setCommentHost] = useState<HTMLSpanElement | null>(null);
   const { t } = useTranslation();
   const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
@@ -136,6 +152,13 @@ export function MemoryProductPage({
     spaceId,
     memoryId,
   ] as const;
+  const sensitiveDraftKey = JSON.stringify([contextKey, memoryId, mode]);
+  const [sensitiveDraft, setSensitiveDraft] = useState<{
+    key: string;
+    values: Record<string, boolean>;
+  }>({ key: sensitiveDraftKey, values: {} });
+  const sensitiveValues =
+    sensitiveDraft.key === sensitiveDraftKey ? sensitiveDraft.values : {};
   const [removedAttachmentState, setRemovedAttachmentState] = useState<{
     contextKey: string;
     ids: Set<string>;
@@ -186,6 +209,9 @@ export function MemoryProductPage({
     enabled: Boolean(memoryId),
     retry: false,
   });
+  const editForm = useRef<HTMLFormElement>(null);
+  const [placeExit, setPlaceExit] = useState<(() => void) | null>(null);
+  const placeExitSheet = useRef<ShortTaskSheetHandle>(null);
   const [tagDraft, setTagDraft] = useState<{
     memoryId: string;
     tags: MemoryTag[];
@@ -219,16 +245,24 @@ export function MemoryProductPage({
     maxAttachments: MAX_MEMORY_ATTACHMENTS - keptBoundAttachmentCount,
   });
 
+  const captureSaveOwnership = useTaskActivation(
+    mode === 'edit',
+    JSON.stringify([apiBaseUrl, contextKey, memoryId, location.key]),
+  );
+
   const updateMutation = useMutation({
     mutationKey: updateKey,
     mutationFn: async ({
       memory,
       values,
+      isCurrent,
     }: {
+      isCurrent: () => boolean;
       memory: MemoryDetail;
       values: MemoryEditValues;
     }) => {
       try {
+        if (!isCurrent()) throw new ClientProblemError('permission');
         let updated = await apis.memories.updateMemory({
           spaceId,
           memoryId: memory.id,
@@ -236,8 +270,11 @@ export function MemoryProductPage({
           memoryUpdate: memoryUpdatePayload(values),
         });
 
+        if (!isCurrent()) throw new ClientProblemError('permission');
         const attachmentsChanged =
-          attachments.readyIds.length > 0 || removedAttachmentIds.size > 0;
+          attachments.readyIds.length > 0 ||
+          removedAttachmentIds.size > 0 ||
+          Object.keys(sensitiveValues).length > 0;
         if (attachmentsChanged) {
           const existing = [...updated.attachments]
             .sort((left, right) => left.position - right.position)
@@ -252,17 +289,36 @@ export function MemoryProductPage({
               attachments: attachmentIds.map((attachmentId, position) => ({
                 attachmentId,
                 position,
+                isSensitive:
+                  sensitiveValues[attachmentId] ??
+                  attachments.items.find(
+                    (item) => item.attachmentId === attachmentId,
+                  )?.isSensitive ??
+                  updated.attachments.find((item) => item.id === attachmentId)
+                    ?.isSensitive,
               })),
             },
           });
         }
+        const observed = queryClient.getQueryData<{ value: MemoryDetail }>(
+          memoryKey,
+        );
+        if (observed && observed.value.version > updated.version)
+          throw new ClientProblemError('conflict', 409);
+        protectSensitiveMediaProjections(
+          queryClient,
+          updated.spaceId,
+          updated.attachments,
+        );
         return updated;
       } catch (error) {
         throw await normalizeClientError(error);
       }
     },
-    onMutate: async ({ memory, values }) => {
+    onMutate: async ({ memory, values, isCurrent }) => {
+      if (!isCurrent()) throw new ClientProblemError('permission');
       await queryClient.cancelQueries({ queryKey: memoryKey });
+      if (!isCurrent()) throw new ClientProblemError('permission');
       const previous = queryClient.getQueryData(memoryKey);
       queryClient.setQueryData(memoryKey, {
         value: {
@@ -279,12 +335,21 @@ export function MemoryProductPage({
       });
       return { previous };
     },
-    onError: (_error, _variables, context) => {
-      if (context?.previous)
+    onError: (_error, variables, context) => {
+      if (!variables.isCurrent()) return;
+      const observed = queryClient.getQueryData<{ value: MemoryDetail }>(
+        memoryKey,
+      );
+      if (
+        context?.previous &&
+        (!observed || observed.value.version <= variables.memory.version)
+      )
         queryClient.setQueryData(memoryKey, context.previous);
       void queryClient.invalidateQueries({ queryKey: memoryKey });
     },
-    onSuccess: async (memory) => {
+    onSuccess: async (memory, request) => {
+      if (!request.isCurrent()) return;
+      setSensitiveDraft({ key: sensitiveDraftKey, values: {} });
       attachments.clear();
       setRemovedAttachmentIds(new Set());
       queryClient.setQueryData(memoryKey, { value: memory, source: 'network' });
@@ -293,6 +358,7 @@ export function MemoryProductPage({
         queryClient.invalidateQueries({ queryKey: memoryKey }),
         invalidateDashboard(queryClient, spaceId),
       ]);
+      if (!request.isCurrent()) return;
       navigate(memoryDetailPath(memory.id), {
         replace: true,
         state: { taskOriginKey: originKey },
@@ -404,9 +470,7 @@ export function MemoryProductPage({
                 {t('memoryProduct.backToMemory')}
               </Link>
             }
-            eyebrow={t('memoryProduct.editEyebrow')}
             title={t('memoryProduct.editHeading')}
-            description={t('memoryProduct.editIntro')}
           />
           <UiState
             kind={offline ? 'offline' : 'permission'}
@@ -436,8 +500,11 @@ export function MemoryProductPage({
       )
         return;
       const data = new FormData(event.currentTarget);
+      const ownsTask = captureSaveOwnership();
+      const ownsRead = captureAuthorizedQuery(queryClient, memoryKey);
       updateMutation.mutate({
         memory: editableMemory,
+        isCurrent: () => ownsTask() && ownsRead(),
         values: {
           title: String(data.get('title') || ''),
           body: String(data.get('body') || ''),
@@ -458,15 +525,14 @@ export function MemoryProductPage({
             {t('memoryProduct.backToMemory')}
           </Link>
         }
-        eyebrow={t('memoryProduct.editEyebrow')}
         title={t('memoryProduct.editHeading')}
-        description={t('memoryProduct.editIntro')}
         headerClassName="create-heading"
         sectionLabelledBy="memory-edit-heading"
         sectionHeading={t('memoryProduct.formAria')}
       >
         <>
           <form
+            ref={editForm}
             key={memory.version}
             onSubmit={submit}
             className="form-grid memory-form"
@@ -512,7 +578,8 @@ export function MemoryProductPage({
               <fieldset className="memory-existing-attachments">
                 <legend>{t('memoryProduct.existingPhotosHeading')}</legend>
                 <p className="field-help">
-                  {t('memoryProduct.existingPhotosHelp')}
+                  {t('memoryProduct.existingPhotosHelp')}{' '}
+                  {t('sensitiveMedia.help')}
                 </p>
                 <ul className="memory-edit-attachment-list">
                   {readyAttachments.map((attachment) => {
@@ -527,9 +594,32 @@ export function MemoryProductPage({
                         <MemoryPreview
                           memoryId={memory.id}
                           attachmentId={attachment.id}
+                          isSensitive={
+                            sensitiveValues[attachment.id] ??
+                            attachment.isSensitive
+                          }
                           loadImage={loadMemoryImage}
                         />
                         <div className="memory-edit-attachment-actions">
+                          <SensitiveMediaCheckbox
+                            checked={
+                              sensitiveValues[attachment.id] ??
+                              attachment.isSensitive ??
+                              true
+                            }
+                            disabled={removed || updateMutation.isPending}
+                            onChange={(value) =>
+                              setSensitiveDraft((current) => ({
+                                key: sensitiveDraftKey,
+                                values: {
+                                  ...(current.key === sensitiveDraftKey
+                                    ? current.values
+                                    : {}),
+                                  [attachment.id]: value,
+                                },
+                              }))
+                            }
+                          />
                           {removed ? (
                             <span role="status">
                               {t('memoryProduct.photoMarkedForRemoval')}
@@ -564,8 +654,22 @@ export function MemoryProductPage({
             </div>
             <AttachmentDraftPicker
               id="memory-edit-images"
+              disabled={updateMutation.isPending}
               attachments={attachments}
               multiple
+            />
+            <PhotoSourcePicker
+              apiBaseUrl={apiBaseUrl}
+              accessToken={accessToken}
+              accountId={currentAccountId}
+              spaceId={spaceId}
+              remaining={Math.max(
+                0,
+                MAX_MEMORY_ATTACHMENTS -
+                  keptBoundAttachmentCount -
+                  attachments.items.length,
+              )}
+              beginSelection={attachments.beginSelection}
             />
 
             <div className="form-actions">
@@ -591,6 +695,76 @@ export function MemoryProductPage({
               </button>
             </div>
           </form>
+          <MomentPlaces
+            key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${memory.id}:edit`}
+            apiBaseUrl={apiBaseUrl}
+            accessToken={accessToken}
+            accountId={currentAccountId}
+            spaceId={spaceId}
+            targetId={memory.id}
+            canManage
+            onNavigate={(proceed) => {
+              if (updateMutation.isPending || attachments.hasPending) return;
+              const ownsTask = captureSaveOwnership();
+              const ownsRead = captureAuthorizedQuery(queryClient, memoryKey);
+              const proceedIfCurrent = () => {
+                if (ownsTask() && ownsRead()) proceed();
+              };
+              const data = editForm.current
+                ? new FormData(editForm.current)
+                : null;
+              const changed =
+                data &&
+                (String(data.get('title') ?? '') !== memory.title ||
+                  String(data.get('body') ?? '') !== (memory.body ?? '') ||
+                  String(data.get('happenedOn') ?? '') !==
+                    memoryDateInputValue(memory.happenedOn));
+              if (
+                changed ||
+                attachments.items.length > 0 ||
+                removedAttachmentIds.size > 0 ||
+                Object.keys(sensitiveValues).length > 0 ||
+                JSON.stringify(selectedTags) !==
+                  JSON.stringify(memory.tags ?? [])
+              ) {
+                setPlaceExit(() => proceedIfCurrent);
+              } else proceedIfCurrent();
+            }}
+            kind="memories"
+            offline={offline}
+            compact
+          />
+          <ShortTaskSheet
+            ref={placeExitSheet}
+            open={placeExit !== null}
+            role="alertdialog"
+            title={t('taskBoundary.discardTitle')}
+            onClose={() => setPlaceExit(null)}
+          >
+            <p>{t('taskBoundary.discardBody')}</p>
+            <div className="form-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setPlaceExit(null)}
+              >
+                {t('taskBoundary.keepEditing')}
+              </button>
+              <button
+                type="button"
+                className="danger"
+                onClick={() => {
+                  const proceed = placeExit;
+                  placeExitSheet.current?.closeForNavigation(() => {
+                    setPlaceExit(null);
+                    proceed?.();
+                  });
+                }}
+              >
+                {t('taskBoundary.discard')}
+              </button>
+            </div>
+          </ShortTaskSheet>
           {updateMutation.error ? (
             <ProblemState
               error={updateMutation.error}
@@ -654,12 +828,14 @@ export function MemoryProductPage({
     );
   }
 
-  const memoryEyebrow = memory.happenedOn
-    ? `${t('memoryProduct.detailEyebrow').toUpperCase()} · ${formatDateOnly(memory.happenedOn)}`
-    : t('memoryProduct.detailEyebrow').toUpperCase();
+  const dateLabel = memory.happenedOn
+    ? formatDateOnly(memory.happenedOn)
+    : t('memoryProduct.noDate');
+  const hasAuthoredTitle = Boolean(
+    memory.title.trim() &&
+      !isGeneratedMemoryTitle(memory.title, memory.happenedOn, t),
+  );
 
-  const bodyText = memory.body || t('memoryProduct.noBody');
-  const { first: bodyDropCap, rest: bodyRest } = splitFirstGrapheme(bodyText);
   const provenanceAuthor = storyAuthorLabel(
     memory.author,
     currentAccountId,
@@ -668,8 +844,20 @@ export function MemoryProductPage({
 
   return (
     <StoryDetailPageShell
-      eyebrow={memoryEyebrow}
-      title={memory.title}
+      title={hasAuthoredTitle ? memory.title : dateLabel}
+      description={
+        hasAuthoredTitle ? (
+          <time
+            dateTime={
+              memory.happenedOn
+                ? memoryDateInputValue(memory.happenedOn)
+                : undefined
+            }
+          >
+            {dateLabel}
+          </time>
+        ) : undefined
+      }
       titleAction={
         memory.capabilities.canEdit && !offline ? (
           <StoryDetailEditLink
@@ -706,12 +894,29 @@ export function MemoryProductPage({
       containerClassName="memory-detail-container"
       articleClassName="memory-detail-card"
     >
-      <p className="memory-detail-body">
-        {bodyDropCap ? (
-          <span className="drop-cap-letter">{bodyDropCap}</span>
-        ) : null}
-        {bodyRest}
-      </p>
+      {memory.body.trim() ? (
+        <div className="memory-diary-prose">
+          {memory.body.split(/\r?\n[\t ]*\r?\n/).map((paragraph, index) => {
+            const initial = index === 0 ? splitFirstGrapheme(paragraph) : null;
+            return (
+              <p
+                className="memory-detail-body"
+                // biome-ignore lint/suspicious/noArrayIndexKey: Read-only paragraphs have no state or reorder interaction.
+                key={index}
+              >
+                {initial ? (
+                  <>
+                    <span className="drop-cap-letter">{initial.first}</span>
+                    {initial.rest}
+                  </>
+                ) : (
+                  paragraph
+                )}
+              </p>
+            );
+          })}
+        </div>
+      ) : null}
 
       {(memory.tags ?? []).length > 0 ? (
         <section aria-label={t('memory.tagsLabel')}>
@@ -727,22 +932,39 @@ export function MemoryProductPage({
         </section>
       ) : null}
 
-      {readyAttachments.length > 0 ? (
-        <section aria-label={t('memory.photoLabel')}>
-          <MediaGallery
-            items={readyAttachments.map((attachment) => ({
-              id: attachment.id,
-              mediaType: attachment.mediaType,
-            }))}
-            loadMedia={(attachmentId, signal) =>
-              loadMemoryImage(memory.id, attachmentId, signal)
-            }
-            resourceScopeKey={`memory:${memory.id}`}
-          />
-        </section>
-      ) : null}
+      <div className="memory-media-context">
+        {readyAttachments.length > 0 ? (
+          <section aria-label={t('memory.photoLabel')}>
+            <MemoryPhotoGallery
+              commentTriggerRef={setCommentHost}
+              key={`memory:${apiBaseUrl}:${currentAccountId}:${spaceId}:${mode}:${memory.id}`}
+              memory={memory}
+              apis={apis}
+              accountId={currentAccountId}
+              offline={offline}
+              loadImage={(attachmentId, signal) =>
+                loadMemoryImage(memory.id, attachmentId, signal)
+              }
+              scope={`memory:${apiBaseUrl}:${currentAccountId}:${spaceId}:${mode}:${memory.id}`}
+            />
+          </section>
+        ) : null}
 
+        <MomentPlaces
+          key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${memory.id}`}
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          accountId={currentAccountId}
+          spaceId={spaceId}
+          targetId={memory.id}
+          canManage={false}
+          kind="memories"
+          offline={offline}
+          compact
+        />
+      </div>
       <CommentsPanel
+        triggerContainer={commentHost}
         commentsApi={apis.comments}
         spaceId={spaceId}
         parentKind="memory"

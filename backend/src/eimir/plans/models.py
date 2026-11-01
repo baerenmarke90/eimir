@@ -8,9 +8,11 @@ from typing import ClassVar
 from uuid import UUID
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
+    ForeignKey,
     ForeignKeyConstraint,
     Index,
     SmallInteger,
@@ -118,6 +120,11 @@ class Plan(
     plans do not conflict with one another.
     """
 
+    cover_attachment_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("attachments.id", ondelete="SET NULL")
+    )
+    """Designated leading photo; ordered supplemental bindings live beside it."""
+
     planned_on: Mapped[date | None] = mapped_column(Date)
     """Calendar day for a genuinely date-only schedule, or NULL.
 
@@ -129,6 +136,9 @@ class Plan(
 
     planned_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     planned_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    anticipation_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     experienced_on: Mapped[date | None] = mapped_column(Date)
     """Calendar day on which the experience happened, not an instant.
 
@@ -148,6 +158,7 @@ class Plan(
     )
 
     __table_args__ = (
+        UniqueConstraint("cover_attachment_id", name="uq_plans_cover_attachment"),
         CheckConstraint("privacy_class = 'SPACE_SHARED'", name="privacy_is_space_shared"),
         CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
         # A schedule has exactly one semantic start representation. Keeping the
@@ -211,6 +222,7 @@ class Plan(
         Index("ix_plans_place_id", "place_id"),
         Index("ix_plans_space_id_created_at_id", "space_id", "created_at", "id"),
         Index("ix_plans_space_id_status", "space_id", "status"),
+        Index("ix_plans_space_id_anticipation", "space_id", "anticipation_enabled", "status"),
         Index("ix_plans_space_id_planned_on", "space_id", "planned_on"),
         Index("ix_plans_space_id_planned_start", "space_id", "planned_start"),
     )

@@ -115,7 +115,7 @@ def test_anniversary_precedes_older_history_and_is_stable_for_both_partners(
         assert response.json()["retrospective"]["occurredOn"] == "2025-10-23"
 
 
-def test_quiet_fallback_returns_earliest_event_only_once_each_space_week(
+def test_daily_fallback_is_shared_stable_and_rotates_on_the_next_day(
     client, session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
     first = _memory(couple, "First shared day", date(2020, 3, 1))
@@ -125,17 +125,20 @@ def test_quiet_fallback_returns_earliest_event_only_once_each_space_week(
     chosen_day = _fallback_day(couple["space"].id)
     _freeze(monkeypatch, chosen_day)
 
+    selected_ids = set()
     for token in (couple["token_a"], couple["token_b"], couple["token_a"]):
         response = _dashboard(client, couple, token)
         assert response.status_code == 200, response.text
         assert response.headers["cache-control"] == "private, no-store"
-        assert response.json()["retrospective"]["id"] == str(first.id)
+        selected_ids.add(response.json()["retrospective"]["id"])
         assert response.json()["retrospective"]["type"] == "MEMORY"
 
     _freeze(monkeypatch, chosen_day + timedelta(days=1))
     off_day = _dashboard(client, couple, couple["token_a"])
     assert off_day.status_code == 200, off_day.text
-    assert off_day.json()["retrospective"] is None
+    assert len(selected_ids) == 1
+    assert selected_ids <= {str(first.id), str(later.id)}
+    assert off_day.json()["retrospective"]["id"] in {str(first.id), str(later.id)} - selected_ids
 
 
 def test_no_recent_or_future_event_can_become_early_memory_fallback(
@@ -191,6 +194,37 @@ def test_fallback_excludes_private_partner_and_foreign_space_content(
         assert _dashboard(client, couple, token).json()["retrospective"] is None
 
 
+def test_daily_fallback_includes_shared_thoughts_and_milestones_without_memories(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    heart = HeartMoment(
+        space_id=couple["space"].id,
+        owner_id=couple["anna"].id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        happened_on=date(2021, 2, 2),
+        payload=HeartMomentPayload(text="A shared thought", emotion=HeartEmotion.GRATEFUL),
+    )
+    milestone = Milestone(
+        space_id=couple["space"].id,
+        owner_id=couple["ben"].id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        happened_on=date(2021, 3, 3),
+        payload=MilestonePayload(title="Our landmark"),
+    )
+    session.add_all([heart, milestone])
+    session.flush()
+    selected = set()
+    for day in (date(2026, 5, 12), date(2026, 5, 13)):
+        _freeze(monkeypatch, day)
+        same_day = {
+            _dashboard(client, couple, token).json()["retrospective"]["id"]
+            for token in (couple["token_a"], couple["token_b"])
+        }
+        assert len(same_day) == 1
+        selected.update(same_day)
+    assert selected == {str(heart.id), str(milestone.id)}
+
+
 def test_undated_memory_uses_creation_day_in_viewer_timezone_for_anniversary(
     client, session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
@@ -211,13 +245,13 @@ def test_undated_memory_uses_creation_day_in_viewer_timezone_for_anniversary(
     assert actual["createdAt"].startswith("2025-08-31T00:30:00")
 
 
-def test_fallback_prefers_event_date_to_later_upload_date_and_uses_ready_photo_only(
+def test_fallback_uses_historic_event_date_and_ready_photo_only(
     client, session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
     day = _fallback_day(couple["space"].id)
     _freeze(monkeypatch, day)
     early_event = _memory(couple, "Early event", date(2020, 4, 1))
-    later_event = _memory(couple, "Later event", date(2021, 4, 2))
+    later_event = _memory(couple, "Recent event", day)
     session.add_all([early_event, later_event])
     session.flush()
     early_event.created_at = datetime(2025, 10, 1, tzinfo=UTC)

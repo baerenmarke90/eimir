@@ -11,7 +11,7 @@
   grid-template-columns: 6rem minmax(0, 1fr) auto;
   gap: 0.85rem;
   align-items: center;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   padding: 0.75rem;
   background: var(--color-background);
@@ -88,7 +88,7 @@
 }
 
 .attachment-draft-actions button {
-  min-height: 36px;
+  min-height: 44px;
   padding: 0.45rem 0.65rem;
   font-size: 0.8rem;
 }
@@ -106,4 +106,10 @@
     grid-column: 1 / -1;
     justify-content: flex-start;
   }
+}
+.attachment-preview-placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-muted);
 }

@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
@@ -11,6 +17,7 @@ import {
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { i18n } from '../i18n';
+import { ClientProblemError } from '../client/problemDetails';
 import { PlanProductPage } from './PlanProductPage';
 
 function renderEditor(status: PlanDetail['status']) {
@@ -89,7 +96,15 @@ function renderEditor(status: PlanDetail['status']) {
     </QueryClientProvider>,
   );
 
-  return { requestBodies, updatePlan };
+  return {
+    requestBodies,
+    updatePlan,
+    queryClient,
+    plan,
+    setServer: (next: PlanDetail) => {
+      saved = next;
+    },
+  };
 }
 
 async function editDescription() {
@@ -132,6 +147,11 @@ describe('PlanProductPage editor request serialization', () => {
           description: 'Updated note',
           placeId: null,
           title: 'Evening together',
+          anticipationEnabled: false,
+          schedule:
+            status === 'PLANNED'
+              ? { plannedStart: '2026-11-21T21:00:00.000Z' }
+              : null,
         },
       ]);
     },
@@ -151,7 +171,59 @@ describe('PlanProductPage editor request serialization', () => {
         experiencedOn: '2026-10-18',
         placeId: null,
         title: 'Evening together',
+        anticipationEnabled: false,
       },
     ]);
+  });
+});
+
+it('keeps the initiating version during background reads and rebases only on deliberate retry without losing the draft', async () => {
+  const h = renderEditor('PLANNED');
+  h.updatePlan.mockRejectedValueOnce(
+    new ClientProblemError('conflict', 409, 'CONFLICT'),
+  );
+  await editDescription();
+  fireEvent.change(screen.getByLabelText(i18n.t('m5s3.plan.plannedDate')), {
+    target: { value: '2026-12-12' },
+  });
+  const latest = { ...h.plan, title: 'Partner correction', version: 4 };
+  h.setServer(latest);
+  act(() =>
+    h.queryClient.setQueryData(
+      authorSummaryQueryKeys.planDetail('space-1', h.plan.id),
+      latest,
+    ),
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
+  );
+  await screen.findByText(i18n.t('states.conflict.title'));
+  expect(h.updatePlan.mock.calls[0][0]).toMatchObject({ ifMatch: '3' });
+  fireEvent.click(screen.getByRole('button', { name: i18n.t('common.retry') }));
+  await waitFor(() =>
+    expect(
+      h.queryClient.getQueryState(
+        authorSummaryQueryKeys.planDetail('space-1', h.plan.id),
+      )?.fetchStatus,
+    ).toBe('idle'),
+  );
+  expect(
+    (screen.getByLabelText(i18n.t('m5s3.plan.plannedDate')) as HTMLInputElement)
+      .value,
+  ).toBe('2026-12-12');
+  expect(
+    (
+      screen.getByLabelText(
+        i18n.t('m5s3.common.description'),
+      ) as HTMLTextAreaElement
+    ).value,
+  ).toBe('Updated note');
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('m5s3.common.saveChanges') }),
+  );
+  await waitFor(() => expect(h.updatePlan).toHaveBeenCalledTimes(2));
+  expect(h.updatePlan.mock.calls[1][0]).toMatchObject({
+    ifMatch: '4',
+    planUpdate: { description: 'Updated note' },
   });
 });

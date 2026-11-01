@@ -24,9 +24,12 @@
 
 export type DashboardModuleKey =
   | 'relationship_presence'
+  | 'shared_experience'
+  | 'daily_quote'
   | 'upcoming'
   | 'pinned_collection'
   | 'keepsake'
+  | 'retrospective'
   | 'relationship_signal'
   | 'monthly_highlights'
   | 'recent_shared'
@@ -48,18 +51,21 @@ export interface DashboardModuleCatalogEntry {
 export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
   [
     { key: 'relationship_presence', labelKey: 'm5s5.today.roles.hero' },
+    { key: 'shared_experience', labelKey: 'coupleExperiences.incoming.title' },
+    { key: 'daily_quote', labelKey: 'dailyQuote.title' },
     { key: 'keepsake', labelKey: 'm5s5.today.keepsake.kicker' },
     { key: 'upcoming', labelKey: 'm5s5.dashboard.upcomingTitle' },
     {
       key: 'pinned_collection',
       labelKey: 'm5s5.dashboard.pinnedCollectionSettingsTitle',
     },
+    { key: 'retrospective', labelKey: 'm5s5.today.living.retrospectiveLabel' },
     { key: 'relationship_signal', labelKey: 'm5s5.today.living.kicker' },
     { key: 'monthly_highlights', labelKey: 'm5s5.today.monthly.title' },
     { key: 'recent_shared', labelKey: 'm5s5.dashboard.recentTitle' },
     {
       key: 'shared_story_summary',
-      labelKey: 'm5s5.dashboard.storySummarySettingsTitle',
+      labelKey: 'relationshipReflections.passport.wirStatisticsTitle',
     },
   ];
 

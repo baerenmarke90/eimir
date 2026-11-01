@@ -101,6 +101,50 @@ describe('useAttachmentDrafts capacity bounding and upload queue (#701)', () => 
     expect(uploadFn.mock.calls.length).toBeLessThanOrEqual(3);
   });
 
+  it('accepts selected File arrays through the same bounded draft pipeline', async () => {
+    const { uploadFn, calls } = createQueueingUploadFn();
+    const initialProps = baseProps({
+      uploadAttachmentFn: uploadFn,
+      maxAttachments: 2,
+    });
+    const { result, rerender } = renderHook(
+      (props: AttachmentDraftOptions) => useAttachmentDrafts(props),
+      { initialProps },
+    );
+
+    // A cloud/native picker can supply Files without a DOM FileList.
+    // Keep the exact queue, capacity, validation, ordering and context rules.
+    const selected = [
+      createMockFile('first.jpg'),
+      createMockFile('second.jpg'),
+      createMockFile('over-limit.jpg'),
+    ] as const;
+    act(() => {
+      result.current.addFiles(selected);
+    });
+
+    expect(result.current.items.map((draft) => draft.file)).toEqual([
+      selected[0],
+      selected[1],
+    ]);
+    expect(result.current.rejectedCount).toBe(1);
+    expect(calls).toHaveLength(2);
+
+    await act(async () => {
+      calls[1]?.resolve({ attachmentId: 'ready-second' });
+      calls[0]?.resolve({ attachmentId: 'ready-first' });
+      await Promise.all(calls.map((call) => call.promise));
+    });
+
+    expect(result.current.readyIds).toEqual(['ready-first', 'ready-second']);
+
+    act(() => {
+      rerender({ ...initialProps, spaceId: 'space-b' });
+    });
+    expect(result.current.items).toEqual([]);
+    expect(result.current.readyIds).toEqual([]);
+  });
+
   it('create accepts up to the full remaining capacity with no rejection', () => {
     const { uploadFn } = createQueueingUploadFn();
     const { result } = renderHook(() =>

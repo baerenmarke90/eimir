@@ -15,7 +15,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, Response
 from fastapi import status as http_status
-from pydantic import ConfigDict, field_validator, model_validator
+from pydantic import ConfigDict, Field, StrictBool, field_validator, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 from eimir.api.authors import resolve_author_summaries, resolve_author_summary
@@ -29,12 +29,37 @@ from eimir.api.shared_achievements import (
     SHARED_ACHIEVEMENT_HEADER,
     SHARED_ACHIEVEMENT_RESPONSE_HEADER,
 )
+from eimir.api.v1.attachments import AttachmentEntry, AttachmentSummary, OrderedAttachmentSummary
 from eimir.api.v1.wishes import ETAG_HEADERS, WishDetail, wish_detail
+from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS, BoundAttachment
+from eimir.attachments.models import MediaType
 from eimir.plans import service
+from eimir.plans.media import PhotoSelection, photos_of_plans
 from eimir.plans.models import Plan, PlanStatus
 from eimir.relationship import configuration as relationship_configuration
 
 router = APIRouter(tags=["plans"])
+
+
+def _photo_selection(entries: list[AttachmentEntry] | None) -> PhotoSelection | None:
+    if entries is None:
+        return None
+    return [
+        (entry.attachment_id, entry.is_sensitive)
+        for entry in sorted(entries, key=lambda entry: entry.position)
+    ]
+
+
+def _validate_gallery_fields(body: PlanCreate | PlanUpdate) -> None:
+    if "attachments" not in body.model_fields_set:
+        return
+    if body.attachments is None:
+        raise ValueError("attachments must not be null")
+    if body.model_fields_set & {"cover_attachment_id", "cover_is_sensitive"}:
+        raise ValueError("attachments cannot be combined with legacy cover fields")
+    positions = sorted(entry.position for entry in body.attachments)
+    if positions != list(range(len(positions))):
+        raise ValueError("photo positions must be contiguous and start at zero")
 
 
 class PlanSchedule(ApiModel):
@@ -82,6 +107,17 @@ class PlanCreate(ApiModel):
     description: str | SkipJsonSchema[None] = None
     place_id: UUID | SkipJsonSchema[None] = None
     schedule: PlanSchedule | SkipJsonSchema[None] = None
+    cover_attachment_id: UUID | SkipJsonSchema[None] = None
+    cover_is_sensitive: StrictBool = False
+    attachments: (
+        Annotated[list[AttachmentEntry], Field(max_length=MAX_GALLERY_ATTACHMENTS)]
+        | SkipJsonSchema[None]
+    ) = None
+
+    @model_validator(mode="after")
+    def _validate_gallery(self) -> Self:
+        _validate_gallery_fields(self)
+        return self
 
     @field_validator("title")
     @classmethod
@@ -107,9 +143,9 @@ class PlanCreate(ApiModel):
 
 
 class PlanUpdate(ApiModel):
-    """Domain correction without changing lifecycle status.
+    """Atomic content, image and optional schedule correction.
 
-    Schedule fields remain owned by ``/schedule`` and ``/unschedule``.
+    Explicit null ``schedule`` removes the date; omission preserves it.
     ``experiencedOn`` is the one exception: it may be corrected on a completed
     Plan without reopening it (M3-D04).
     """
@@ -120,9 +156,18 @@ class PlanUpdate(ApiModel):
     description: str | None = None
     place_id: UUID | None = None
     experienced_on: date | SkipJsonSchema[None] = None
+    anticipation_enabled: StrictBool | SkipJsonSchema[None] = None
+    schedule: PlanSchedule | None = None
+    cover_attachment_id: UUID | None = None
+    cover_is_sensitive: StrictBool | SkipJsonSchema[None] = None
+    attachments: (
+        Annotated[list[AttachmentEntry], Field(max_length=MAX_GALLERY_ATTACHMENTS)]
+        | SkipJsonSchema[None]
+    ) = None
 
     @model_validator(mode="after")
     def _validate_patch(self) -> Self:
+        _validate_gallery_fields(self)
         if not self.model_fields_set:
             raise ValueError("at least one field must be supplied")
         if "title" in self.model_fields_set:
@@ -131,6 +176,10 @@ class PlanUpdate(ApiModel):
             self.title = self.title.strip()
         if "experienced_on" in self.model_fields_set and self.experienced_on is None:
             raise ValueError("experiencedOn must not be null")
+        if "cover_is_sensitive" in self.model_fields_set and self.cover_is_sensitive is None:
+            raise ValueError("coverIsSensitive must not be null")
+        if "anticipation_enabled" in self.model_fields_set and self.anticipation_enabled is None:
+            raise ValueError("anticipationEnabled must not be null")
         return self
 
 
@@ -185,8 +234,11 @@ class PlanDetail(ApiModel):
     place_id: UUID | None
     title: str
     description: str | None
+    cover_attachment: AttachmentSummary | None = None
+    attachments: list[OrderedAttachmentSummary] = Field(default_factory=list)
     status: PlanStatus
     planned_on: date | None = None
+    anticipation_enabled: bool = False
     planned_start: datetime | None
     planned_end: datetime | None
     experienced_on: date | None
@@ -220,10 +272,29 @@ def _plan_detail(
     authorization: Authorization,
     plan: Plan,
     creator: AuthorSummary | None = None,
+    galleries: dict[UUID, list[BoundAttachment]] | None = None,
 ) -> PlanDetail:
     if creator is None:
         creator = resolve_author_summary(session, plan.owner_id, resource="Plan creator")
     is_completed = plan.status == PlanStatus.COMPLETED.value
+    photos = (galleries if galleries is not None else photos_of_plans(session, [plan])).get(
+        plan.id, []
+    )
+    summaries = [
+        OrderedAttachmentSummary(
+            id=item.attachment.id,
+            position=item.position,
+            status=item.attachment.status,
+            media_type=MediaType(item.attachment.media_type),
+            mime_type=item.attachment.mime_type,
+            size=item.attachment.size,
+            width=item.attachment.width,
+            height=item.attachment.height,
+            has_thumbnail=item.attachment.has_thumbnail,
+            is_sensitive=item.attachment.payload.is_sensitive,
+        )
+        for item in photos
+    ]
     return PlanDetail(
         id=plan.id,
         space_id=plan.space_id,
@@ -232,8 +303,13 @@ def _plan_detail(
         place_id=plan.place_id,
         title=plan.payload.title,
         description=plan.payload.description,
+        cover_attachment=AttachmentSummary(**summaries[0].model_dump(exclude={"position"}))
+        if summaries
+        else None,
+        attachments=summaries,
         status=PlanStatus(plan.status),
         planned_on=plan.planned_on,
+        anticipation_enabled=plan.anticipation_enabled,
         planned_start=plan.planned_start,
         planned_end=plan.planned_end,
         experienced_on=plan.experienced_on,
@@ -288,6 +364,9 @@ def create_plan(
         session,
         authorization,
         idempotency_key=idempotency_key,
+        cover_attachment_id=body.cover_attachment_id,
+        cover_is_sensitive=body.cover_is_sensitive,
+        photos=_photo_selection(body.attachments),
         title=body.title,
         description=body.description,
         place_id=body.place_id,
@@ -322,9 +401,16 @@ def list_plans(
         status=status,
     )
     creators = resolve_author_summaries(session, {plan.owner_id for plan in page.items})
+    galleries = photos_of_plans(session, page.items)
     return PlanPage(
         items=[
-            _plan_detail(session, authorization, plan, creator=creators.get(plan.owner_id))
+            _plan_detail(
+                session,
+                authorization,
+                plan,
+                creator=creators.get(plan.owner_id),
+                galleries=galleries,
+            )
             for plan in page.items
         ],
         next_cursor=page.next_cursor,
@@ -373,6 +459,11 @@ def update_plan(
         description=body.description,
         place_id=body.place_id,
         experienced_on=body.experienced_on,
+        anticipation_enabled=body.anticipation_enabled,
+        cover_attachment_id=body.cover_attachment_id,
+        cover_is_sensitive=body.cover_is_sensitive,
+        photos=_photo_selection(body.attachments),
+        schedule_values=_schedule_values(body.schedule) if body.schedule else None,
     )
     response.headers["ETag"] = etag_for(plan.version)
     return _plan_detail(session, authorization, plan)

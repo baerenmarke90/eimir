@@ -177,7 +177,7 @@
   min-height: 44px;
   gap: var(--space-1);
   padding: var(--space-3);
-  border: 1px solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-border);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
   cursor: pointer;
@@ -277,7 +277,7 @@
   display: block;
   width: 44px;
   height: 26px;
-  border: 1px solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-border);
   border-radius: 999px;
   background: var(--color-surface-subtle);
   transition:
@@ -387,16 +387,17 @@
 
 .dashboard-module-list {
   display: grid;
+  container-type: inline-size;
   gap: 0;
   border-top: 1px solid var(--color-border-subtle);
 }
 
 .dashboard-module-option {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(2, var(--touch-target-web));
   min-height: 52px;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding: var(--space-2) 0;
   border: 0;
   border-bottom: 1px solid var(--color-border-subtle);
@@ -411,24 +412,34 @@
 .dashboard-module-option.is-dragging {
   position: relative;
   z-index: 1;
-  background: var(--color-brand-surface);
-  box-shadow: var(--shadow-raised);
+  background: var(--color-surface-subtle);
+  border-color: transparent;
+  outline: none;
+  box-shadow: none;
+  transition: none;
 }
 
 .dashboard-module-option-label {
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
-  flex: 1;
   overflow-wrap: anywhere;
   cursor: pointer;
 }
 
+.dashboard-module-option-label .pro-mark {
+  white-space: nowrap;
+}
+
 .dashboard-module-option input {
-  flex: none;
   width: 20px;
   height: 20px;
+  margin: 0;
 }
 
 .dashboard-module-option .list-entry-drag-handle {
+  grid-column: 3;
+  grid-row: 1;
   color: var(--color-text-secondary);
   background: transparent;
   border: 0;
@@ -452,8 +463,7 @@
 }
 
 .dashboard-module-option:focus-within {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+  background: var(--color-surface-subtle);
 }
 
 .dashboard-module-preference[aria-busy="true"] .dashboard-module-option {
@@ -493,7 +503,7 @@
   min-width: 0;
   min-height: 44px;
   place-items: center;
-  border: 1px solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-border);
   border-radius: var(--radius-medium);
   background: var(--color-surface);
   color: var(--color-text-primary);
@@ -549,7 +559,7 @@
   display: grid;
   gap: 0;
   padding: var(--space-6);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   background: var(--color-surface-subtle);
 }
@@ -651,4 +661,67 @@
   display: grid;
   max-width: 32rem;
   gap: var(--space-2);
+}
+
+.dashboard-module-configure {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: var(--space-2);
+}
+
+.dashboard-module-option:hover {
+  background: var(--color-surface-subtle);
+}
+.dashboard-module-control {
+  display: contents;
+}
+
+.dashboard-module-control > :not(.dashboard-module-switch) {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.dashboard-module-option.is-dragging
+  .list-entry-icon-button:not(:focus-visible) {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.dashboard-module-switch {
+  display: grid;
+  grid-column: 2;
+  grid-row: 1;
+  place-items: center;
+  min-width: var(--touch-target-web);
+  min-height: var(--touch-target-web);
+  cursor: pointer;
+}
+
+.dashboard-module-preference,
+.dashboard-upcoming-preference {
+  min-inline-size: 0;
+}
+
+@container (max-width: 14rem) {
+  .dashboard-module-option-label {
+    grid-column: 1 / -1;
+  }
+
+  .dashboard-module-switch,
+  .dashboard-module-option .list-entry-drag-handle {
+    grid-row: 2;
+  }
+}
+.settings-pro-information {
+  padding-block: var(--space-4);
+  border-block-end: var(--border-surface-width) solid var(--color-border-subtle);
+}
+.settings-pro-information ul {
+  display: grid;
+  gap: var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+.settings-pro-information li p {
+  margin-block: var(--space-1) 0;
 }

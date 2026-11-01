@@ -56,6 +56,51 @@ SELF_VALIDATING_LEAF_WORKFLOW_EXACT = (
     ".github/workflows/web-s8.yml",
 )
 
+# Tooling that a dedicated leaf workflow validates itself. Each path maps to the
+# workflow that owns it: that workflow's ``pull_request.paths`` filter must list
+# the path and, for ``test_*.py`` files, its jobs must run it (enforced by
+# test_change_scope.py). None of these paths is consumed by a core CI gate, so
+# changing only them must not wake Backend, Self-Hosted or Supply Chain.
+# Files with other consumers stay fail-closed on purpose, for example
+# ``scripts/release_manifest.py`` (also used by the release candidate and the
+# project-identity scan) and ``scripts/android_test_release.py`` (no workflow
+# validates it). The entries must precede the blanket ``tools/ci/`` rule below.
+RELEASE_PUBLISH_WORKFLOW = ".github/workflows/release-publish.yml"
+RELEASE_EVIDENCE_WORKFLOW = ".github/workflows/release-evidence.yml"
+ANDROID_LAUNCHER_WORKFLOW = ".github/workflows/android-launcher-icons.yml"
+SELF_VALIDATING_TOOLING_OWNERS = {
+    # Immutable release publisher and private test channel.
+    RELEASE_PUBLISH_WORKFLOW: RELEASE_PUBLISH_WORKFLOW,
+    "scripts/image_archive_config.py": RELEASE_PUBLISH_WORKFLOW,
+    "scripts/test_deployment_channel.py": RELEASE_PUBLISH_WORKFLOW,
+    "scripts/verify_release_asset_set.py": RELEASE_PUBLISH_WORKFLOW,
+    "tools/ci/test_image_archive_config.py": RELEASE_PUBLISH_WORKFLOW,
+    "tools/ci/test_release_publish_workflow.py": RELEASE_PUBLISH_WORKFLOW,
+    "tools/ci/test_test_deployment_channel.py": RELEASE_PUBLISH_WORKFLOW,
+    "tools/ci/test_verify_release_asset_set.py": RELEASE_PUBLISH_WORKFLOW,
+    # Release evidence build (also reused by release-publish.yml via workflow_call).
+    RELEASE_EVIDENCE_WORKFLOW: RELEASE_EVIDENCE_WORKFLOW,
+    "tools/ci/test_release_evidence.py": RELEASE_EVIDENCE_WORKFLOW,
+    # Android launcher identity and adaptive-icon resources.
+    ANDROID_LAUNCHER_WORKFLOW: ANDROID_LAUNCHER_WORKFLOW,
+    "scripts/android_adaptive_icon_resources.py": ANDROID_LAUNCHER_WORKFLOW,
+    "scripts/android_launcher_identity.py": ANDROID_LAUNCHER_WORKFLOW,
+    "scripts/test_android_adaptive_icon_resources.py": ANDROID_LAUNCHER_WORKFLOW,
+    "scripts/test_android_launcher_identity.py": ANDROID_LAUNCHER_WORKFLOW,
+}
+
+# These exact tools are tested by the unconditional Change Detection preflight,
+# before it classifies any diff. They do not build or configure product runtimes.
+# Keep their owner tests explicit; new CI tools and changes to the classifier or
+# its workflow still enable every expensive gate until reviewed.
+PREFLIGHT_TOOLING_TESTS = {
+    "tools/ci/project_identity_scan.py": "tools/ci/test_project_identity_scan.py",
+    "tools/ci/test_project_identity_scan.py": "tools/ci/test_project_identity_scan.py",
+    "tools/ci/engineering_language_audit.py": "tools/ci/test_engineering_language_audit.py",
+    "tools/ci/documentation_language_audit.py": "tools/ci/test_engineering_language_audit.py",
+    "tools/ci/test_engineering_language_audit.py": "tools/ci/test_engineering_language_audit.py",
+}
+
 # Account-deletion recovery authority is intentionally classified by semantic
 # module namespace plus a small exact set of orchestration/retention owners
 # outside that namespace. ``deletion.py`` is the historical root module; every
@@ -132,6 +177,10 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
     for raw_path in paths:
         path = raw_path.strip().replace("\\", "/")
         if not path:
+            continue
+
+        # Exact allowlist only; a mixed PR still classifies its other paths.
+        if path in SELF_VALIDATING_TOOLING_OWNERS or path in PREFLIGHT_TOOLING_TESTS:
             continue
 
         # The classifier and its owning workflow define the safety boundary.
@@ -294,3 +343,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

@@ -2,7 +2,7 @@ export default {
   browse: 'Fotos',
   eyebrow: 'Gemeinsam erinnert',
   title: 'Unsere Fotos',
-  description: 'Eure geteilten Bilder, gesammelt an einem Ort.',
+  description: 'Aus euren Erinnerungen und geteilten Herzmomenten.',
   count_one: '{{count}} Foto · Gemeinsam',
   count_other: '{{count}} Fotos · Gemeinsam',
   open: 'Foto {{index}} vom {{date}} öffnen',

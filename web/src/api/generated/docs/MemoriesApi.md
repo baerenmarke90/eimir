@@ -9,6 +9,7 @@ All URIs are relative to *http://localhost*
 | [**getMemory**](MemoriesApi.md#getmemory) | **GET** /api/v1/spaces/{spaceId}/memories/{memoryId} | Get Memory |
 | [**listMemories**](MemoriesApi.md#listmemories) | **GET** /api/v1/spaces/{spaceId}/memories | List Memories |
 | [**replaceMemoryAttachments**](MemoriesApi.md#replacememoryattachments) | **PUT** /api/v1/spaces/{spaceId}/memories/{memoryId}/attachments | Replace Memory Attachments |
+| [**setMemoryPhotoReaction**](MemoriesApi.md#setmemoryphotoreaction) | **PUT** /api/v1/spaces/{spaceId}/memories/{memoryId}/attachments/{attachmentId}/reaction | Set Memory Photo Reaction |
 | [**updateMemory**](MemoriesApi.md#updatememory) | **PATCH** /api/v1/spaces/{spaceId}/memories/{memoryId} | Update Memory |
 
 
@@ -84,6 +85,7 @@ No authorization required
 | **200** | The request identity (&#x60;Idempotency-Key&#x60;) was already used for an equivalent request. The response returns the original Memory in its current state; no second Memory is created. |  * ETag - Resource version to use for the next If-Match write request. <br>  |
 | **201** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
@@ -239,7 +241,7 @@ No authorization required
 
 ## listMemories
 
-> MemoryPage listMemories(spaceId, cursor, limit, year)
+> MemoryPage listMemories(spaceId, cursor, limit, year, experienceKind)
 
 List Memories
 
@@ -265,6 +267,8 @@ async function example() {
     limit: 56,
     // number (optional)
     year: 56,
+    // ExperienceKind (optional)
+    experienceKind: ...,
   } satisfies ListMemoriesRequest;
 
   try {
@@ -288,6 +292,7 @@ example().catch(console.error);
 | **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **limit** | `number` |  | [Optional] [Defaults to `50`] |
 | **year** | `number` |  | [Optional] [Defaults to `undefined`] |
+| **experienceKind** | `ExperienceKind` |  | [Optional] [Defaults to `undefined`] [Enum: HAPPINESS, TIME_TRAVEL] |
 
 ### Return type
 
@@ -389,6 +394,86 @@ No authorization required
 | **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## setMemoryPhotoReaction
+
+> MemoryDetail setMemoryPhotoReaction(memoryId, attachmentId, spaceId, photoReactionSet)
+
+Set Memory Photo Reaction
+
+Set or remove the caller\&#39;s preset photo reaction; retries are idempotent.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  MemoriesApi,
+} from '';
+import type { SetMemoryPhotoReactionRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new MemoriesApi();
+
+  const body = {
+    // string
+    memoryId: memoryId_example,
+    // string
+    attachmentId: attachmentId_example,
+    // string
+    spaceId: spaceId_example,
+    // PhotoReactionSet
+    photoReactionSet: ...,
+  } satisfies SetMemoryPhotoReactionRequest;
+
+  try {
+    const data = await api.setMemoryPhotoReaction(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **memoryId** | `string` |  | [Defaults to `undefined`] |
+| **attachmentId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **photoReactionSet** | [PhotoReactionSet](PhotoReactionSet.md) |  | |
+
+### Return type
+
+[**MemoryDetail**](MemoryDetail.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |

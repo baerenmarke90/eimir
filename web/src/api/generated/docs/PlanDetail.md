@@ -6,7 +6,10 @@
 
 Name | Type
 ------------ | -------------
+`anticipationEnabled` | boolean
+`attachments` | [Array&lt;OrderedAttachmentSummary&gt;](OrderedAttachmentSummary.md)
 `capabilities` | [ResourceCapabilities](ResourceCapabilities.md)
+`coverAttachment` | [AttachmentSummary](AttachmentSummary.md)
 `createdAt` | Date
 `createdBy` | string
 `creator` | [AuthorSummary](AuthorSummary.md)
@@ -31,7 +34,10 @@ import type { PlanDetail } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "anticipationEnabled": null,
+  "attachments": null,
   "capabilities": null,
+  "coverAttachment": null,
   "createdAt": null,
   "createdBy": null,
   "creator": null,

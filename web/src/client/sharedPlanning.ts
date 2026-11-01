@@ -2,22 +2,25 @@ import { ChapterRelationsApi } from '../api/generated/apis/ChapterRelationsApi';
 import { ChaptersApi } from '../api/generated/apis/ChaptersApi';
 import { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import { HeartMomentsApi } from '../api/generated/apis/HeartMomentsApi';
-import { i18n } from '../i18n';
 import { MemoriesApi } from '../api/generated/apis/MemoriesApi';
 import { MilestonesApi } from '../api/generated/apis/MilestonesApi';
 import { PlaceRelationsApi } from '../api/generated/apis/PlaceRelationsApi';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import { PlansApi } from '../api/generated/apis/PlansApi';
+import { SearchApi } from '../api/generated/apis/SearchApi';
 import { StoryApi } from '../api/generated/apis/StoryApi';
 import { WishesApi } from '../api/generated/apis/WishesApi';
+import { WishSelectionsApi } from '../api/generated/apis/WishSelectionsApi';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { StoryItem } from '../api/generated/models/StoryItem';
+import { i18n } from '../i18n';
 import { Configuration } from './apiConfiguration';
 
 export interface SharedPlanningApis {
   wishes: WishesApi;
+  wishSelections?: WishSelectionsApi;
   plans: PlansApi;
   places: PlacesApi;
   placeRelations: PlaceRelationsApi;
@@ -25,6 +28,7 @@ export interface SharedPlanningApis {
   chapterRelations: ChapterRelationsApi;
   collections: CollectionsApi;
   story: StoryApi;
+  search?: SearchApi;
   memories: MemoriesApi;
   heartMoments: HeartMomentsApi;
   milestones: MilestonesApi;
@@ -41,6 +45,8 @@ export interface PlanningRelationTarget {
   kind: PlanningRelationKind;
   label: string;
   effectiveDate: Date;
+  excerpt?: string;
+  attachment?: { id: string; isSensitive?: boolean };
 }
 
 export function createSharedPlanningApis(
@@ -54,6 +60,7 @@ export function createSharedPlanningApis(
 
   return {
     wishes: new WishesApi(configuration),
+    wishSelections: new WishSelectionsApi(configuration),
     plans: new PlansApi(configuration),
     places: new PlacesApi(configuration),
     placeRelations: new PlaceRelationsApi(configuration),
@@ -61,6 +68,7 @@ export function createSharedPlanningApis(
     chapterRelations: new ChapterRelationsApi(configuration),
     collections: new CollectionsApi(configuration),
     story: new StoryApi(configuration),
+    search: new SearchApi(configuration),
     memories: new MemoriesApi(configuration),
     heartMoments: new HeartMomentsApi(configuration),
     milestones: new MilestonesApi(configuration),
@@ -192,6 +200,10 @@ export function storyRelationTarget(item: StoryItem): PlanningRelationTarget {
         kind: 'MEMORY',
         label: item.memory.title,
         effectiveDate: item.effectiveDate,
+        attachment: item.memory.attachments?.find(
+          (attachment) =>
+            attachment.mediaType === 'IMAGE' && attachment.status === 'READY',
+        ),
       };
     case 'HEART_MOMENT':
       return {
@@ -199,6 +211,11 @@ export function storyRelationTarget(item: StoryItem): PlanningRelationTarget {
         kind: 'HEART_MOMENT',
         label: item.heartMoment.text || i18n.t('heartMomentProduct.untitled'),
         effectiveDate: item.effectiveDate,
+        attachment:
+          item.heartMoment.attachment?.mediaType === 'IMAGE' &&
+          item.heartMoment.attachment.status === 'READY'
+            ? item.heartMoment.attachment
+            : undefined,
       };
     case 'MILESTONE':
       return {

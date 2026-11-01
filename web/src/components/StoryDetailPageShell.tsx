@@ -6,6 +6,7 @@ export interface StoryDetailPageShellProps {
   eyebrow?: string;
   title: ReactNode;
   titleAction?: ReactNode;
+  description?: ReactNode;
   offline?: boolean;
   beforeHeader?: ReactNode;
   pageClassName?: string;
@@ -26,6 +27,7 @@ export function StoryDetailPageShell({
   eyebrow,
   title,
   titleAction,
+  description,
   offline = false,
   beforeHeader,
   pageClassName = 'product-detail-page',
@@ -44,7 +46,12 @@ export function StoryDetailPageShell({
           {t('offlineCache.banner')}
         </div>
       ) : null}
-      <PageHeader eyebrow={eyebrow} title={title} titleAction={titleAction} />
+      <PageHeader
+        eyebrow={eyebrow}
+        title={title}
+        titleAction={titleAction}
+        description={description}
+      />
 
       <div {...containerDataAttributes} className={containerClassName}>
         <article

@@ -1,4 +1,3 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,6 +10,7 @@ import {
   test,
 } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 /**
  * #969: Timeline cards lead with content, not taxonomy. Kind badges, the
@@ -90,6 +90,7 @@ function attachment(id: string, position: number) {
     mediaType: 'IMAGE',
     mimeType: 'image/jpeg',
     hasThumbnail: true,
+    isSensitive: false,
     width: 800,
     height: 500,
     size: 1,
@@ -518,11 +519,11 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
       await expect(
         coffee.getByRole('img', { name: de.story.shared }),
       ).toHaveCount(1);
-      // #1064 keeps author identity on the avatar without visible prose.
+      // #1568 removes author avatars from overview cards; source readers retain identity.
       await expect(lake.locator('.story-card-author')).toHaveCount(0);
       await expect(
         lake.getByRole('img', { name: PARTNER.displayName }),
-      ).toHaveCount(1);
+      ).toHaveCount(0);
       await expect(lake).not.toContainText(
         de.story.byAuthor.replace('{{author}}', 'Anna-Katharina-Josephine'),
       );
@@ -589,7 +590,9 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
   test('month heading pins at the viewport edge after the app header scrolls away', async ({
     page,
   }, testInfo) => {
-    await openTimeline(page, { width: 390, height: 844 });
+    // Compact cards leave less document height than the former full-photo
+    // layout. A short real viewport provides enough natural scroll range.
+    await openTimeline(page, { width: 390, height: 600 });
     const topbar = page.locator('.product-topbar');
     const august = page.locator('.story-year-month-header').nth(1);
 
@@ -597,14 +600,12 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
       'relative',
     );
 
-    await page
-      .locator('.story-timeline-item', {
-        hasText: 'Thinking of our spring picnic',
-      })
-      .evaluate((el) => {
-        window.scrollBy(0, el.getBoundingClientRect().top - 120);
-      });
-    await page.waitForTimeout(150);
+    await august.evaluate((el) => {
+      window.scrollBy(0, el.getBoundingClientRect().top + 24);
+    });
+    await expect
+      .poll(async () => Math.abs((await august.boundingBox())?.y ?? 999))
+      .toBeLessThanOrEqual(1);
 
     expect(
       await topbar.evaluate((el) => el.getBoundingClientRect().bottom),
@@ -616,7 +617,21 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
     expect(Math.abs(pinned?.y ?? 999)).toBeLessThanOrEqual(1);
     expect(
       await august.evaluate((el) => getComputedStyle(el).backgroundColor),
-    ).not.toMatch(/transparent|rgba\([^)]*,\s*0\)$/);
+    ).toBe(
+      await page
+        .locator('body')
+        .evaluate((el) => getComputedStyle(el).backgroundColor),
+    );
+    expect(
+      await august
+        .locator('h2')
+        .evaluate((el) => getComputedStyle(el).fontFamily),
+    ).toContain('Instrument Sans');
+    expect(
+      await august
+        .locator('h2')
+        .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+    ).toBeLessThanOrEqual(16);
 
     await capture(
       page,

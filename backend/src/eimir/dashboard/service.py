@@ -10,6 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from enum import StrEnum
+from hashlib import sha256
+from typing import cast as cast_type
 from uuid import UUID
 
 from sqlalchemy import Date, and_, cast, extract, func, or_, select
@@ -42,6 +44,7 @@ SECTION_LIMIT = 8
 MAX_RECOGNITION_TEXT = 160
 KEEPSAKE_SCAN_LIMIT = 50
 RETROSPECTIVE_FALLBACK_MIN_AGE_DAYS = 30
+RETROSPECTIVE_SCAN_LIMIT = 50
 
 
 class DashboardItemType(StrEnum):
@@ -81,6 +84,45 @@ class DashboardItem:
     scheduled_at: datetime | None = None
     created_at: datetime | None = None
     preview_attachment_id: UUID | None = None
+    preview_is_sensitive: bool = False
+
+
+@dataclass(frozen=True)
+class DashboardExperience:
+    id: UUID
+    kind: str
+    text: str
+    author_id: UUID
+    happened_on: date | None
+    created_at: datetime
+
+
+def read_incoming_experience(
+    session: Session, authorization: AuthorizationContext
+) -> DashboardExperience | None:
+    partner = _partner(session, authorization)
+    if partner is None:
+        return None
+    memory = session.execute(
+        readable(Memory, authorization)
+        .where(
+            Memory.owner_id == partner.id,
+            Memory.experience_kind.is_not(None),
+            Memory.privacy_class == PrivacyClass.SPACE_SHARED.value,
+        )
+        .order_by(Memory.created_at.desc(), Memory.id.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    if memory is None:
+        return None
+    return DashboardExperience(
+        id=memory.id,
+        kind=memory.experience_kind or "",
+        text=memory.payload.body[:280],
+        author_id=memory.owner_id,
+        happened_on=memory.happened_on,
+        created_at=memory.created_at,
+    )
 
 
 @dataclass(frozen=True)
@@ -94,6 +136,100 @@ class DashboardView:
     upcoming: list[DashboardItem]
     recent_shared: list[DashboardItem]
     thinking_of_you_available_at: datetime | None
+
+
+@dataclass(frozen=True)
+class Anticipation:
+    plan_id: UUID
+    title: str
+    event_on: date
+    days_remaining: int
+    event_at: datetime | None = None
+
+
+@dataclass(frozen=True)
+class RelationshipPassport:
+    partner: PartnerSummary | None
+    relationship_duration: RelationshipDuration | None
+    memories: int
+    heart_moments: int
+    milestones: int
+    completed_plans: int
+    places: int
+
+
+def read_anticipation(
+    session: Session,
+    authorization: AuthorizationContext,
+    *,
+    at: datetime | None = None,
+) -> Anticipation | None:
+    """Select one explicitly highlighted Plan independently of agenda limits."""
+    account = session.get(Account, authorization.account_id)
+    if account is None:
+        raise RuntimeError("Authorized Dashboard account disappeared.")
+    instant = clock.ensure_utc(at if at is not None else clock.now())
+    zone = clock.resolve_zone(account.timezone).key
+    today = clock.today_in(zone, at=instant)
+    event_day = func.coalesce(Plan.planned_on, cast(func.timezone(zone, Plan.planned_start), Date))
+    plan = session.execute(
+        readable(Plan, authorization)
+        .where(
+            Plan.anticipation_enabled.is_(True),
+            Plan.status == PlanStatus.PLANNED.value,
+            event_day >= today,
+        )
+        .order_by(event_day, Plan.planned_start.asc().nulls_first(), Plan.id)
+        .limit(1)
+    ).scalar_one_or_none()
+    if plan is None:
+        return None
+    day = plan.planned_on
+    if day is None:
+        if plan.planned_start is None:
+            raise RuntimeError("Scheduled anticipation Plan has no start.")
+        day = clock.ensure_utc(plan.planned_start).astimezone(clock.resolve_zone(zone)).date()
+    return Anticipation(
+        plan_id=plan.id,
+        title=_bounded(plan.payload.title) or "",
+        event_on=day,
+        days_remaining=(day - today).days,
+        event_at=clock.ensure_utc(plan.planned_start) if plan.planned_start is not None else None,
+    )
+
+
+def read_relationship_passport(
+    session: Session,
+    authorization: AuthorizationContext,
+) -> RelationshipPassport:
+    """Read shared-only lifetime aggregates after the caller's Pro check."""
+    from eimir.story.service import read_shared_story_counts
+
+    account = session.get(Account, authorization.account_id)
+    if account is None:
+        raise RuntimeError("Authorized Dashboard account disappeared.")
+    profile = session.execute(
+        select(SpaceProfile).where(SpaceProfile.space_id == authorization.space_id)
+    ).scalar_one_or_none()
+    story = read_shared_story_counts(session, authorization)
+    completed = readable(Plan, authorization).where(
+        Plan.status == PlanStatus.COMPLETED.value,
+        Plan.privacy_class == PrivacyClass.SPACE_SHARED.value,
+    )
+    places = readable(Place, authorization).where(
+        Place.privacy_class == PrivacyClass.SPACE_SHARED.value
+    )
+    return RelationshipPassport(
+        partner=_partner(session, authorization),
+        relationship_duration=_relationship_duration(profile, clock.today_in(account.timezone)),
+        memories=story.memories,
+        heart_moments=story.heart_moments,
+        milestones=story.milestones,
+        completed_plans=session.execute(
+            select(func.count()).select_from(completed.subquery())
+        ).scalar_one(),
+        places=session.execute(select(func.count()).select_from(places.subquery())).scalar_one(),
+    )
 
 
 def read_dashboard(
@@ -197,9 +333,9 @@ def _retrospective(
 ) -> DashboardItem | None:
     """Select one authorized historical moment for the existing Today slot.
 
-    An exact calendar-day anniversary always wins. On a Space-stable weekday,
-    the oldest shared Memory can fill an otherwise empty day, provided the
-    event is at least thirty days in the past. The projection is read directly
+    An exact calendar-day anniversary always wins. Otherwise a daily stable
+    rotation selects from a bounded pool of shared historical content at least
+    more than thirty days old. The projection is read directly
     from current authorized rows: deletion/permission changes cannot leave
     persisted copies of relationship content behind.
     """
@@ -295,32 +431,56 @@ def _retrospective(
             ),
         )[1]
     else:
-        # A quiet fallback, not an always-on filler card: exactly one weekday
-        # per Space, independent of the viewer's Account or client platform.
-        if today.weekday() != authorization.space_id.int % 7:
+        cutoff = today - timedelta(days=RETROSPECTIVE_FALLBACK_MIN_AGE_DAYS)
+        for model, day_column, kind in (
+            (Memory, memory_day, DashboardItemType.MEMORY),
+            (Milestone, Milestone.happened_on, DashboardItemType.MILESTONE),
+            (HeartMoment, HeartMoment.happened_on, DashboardItemType.HEART_MOMENT),
+        ):
+            statement = readable(model, authorization).where(day_column < cutoff)
+            if model is HeartMoment:
+                statement = statement.where(
+                    HeartMoment.privacy_class == PrivacyClass.SPACE_SHARED.value
+                )
+            rows = session.execute(
+                statement.order_by(day_column.desc(), model.id).limit(RETROSPECTIVE_SCAN_LIMIT)
+            ).scalars()
+            for candidate in rows:
+                row = cast_type(Memory | Milestone | HeartMoment, candidate)
+                candidates.append(
+                    (
+                        row.happened_on or row.created_at.date(),
+                        DashboardItem(
+                            type=kind,
+                            id=row.id,
+                            title_or_text=_bounded(
+                                row.payload.text
+                                if isinstance(row, HeartMoment)
+                                else row.payload.title
+                            ),
+                            occurred_on=row.happened_on,
+                            created_at=row.created_at,
+                        ),
+                    )
+                )
+        if not candidates:
             return None
-
-        oldest = session.execute(
-            readable(Memory, authorization)
-            .where(memory_day < today - timedelta(days=RETROSPECTIVE_FALLBACK_MIN_AGE_DAYS))
-            .order_by(memory_day, Memory.id)
-            .limit(1)
-        ).scalar_one_or_none()
-        if oldest is None:
-            return None
-        chosen = DashboardItem(
-            type=DashboardItemType.MEMORY,
-            id=oldest.id,
-            title_or_text=_bounded(oldest.payload.title),
-            occurred_on=oldest.happened_on,
-            created_at=oldest.created_at,
+        candidates.sort(
+            key=lambda candidate: sha256(
+                f"{authorization.space_id}:{candidate[1].type.value}:{candidate[1].id}".encode()
+            ).digest()
         )
+        chosen = candidates[today.toordinal() % len(candidates)][1]
 
     if chosen.type == DashboardItemType.MEMORY:
         galleries = attachments_of_memories(session, [chosen.id])
         for bound in galleries.get(chosen.id, []):
             if bound.attachment.status == AttachmentStatus.READY:
-                chosen = replace(chosen, preview_attachment_id=bound.attachment.id)
+                chosen = replace(
+                    chosen,
+                    preview_attachment_id=bound.attachment.id,
+                    preview_is_sensitive=bound.attachment.payload.is_sensitive,
+                )
                 break
     return chosen
 
@@ -343,9 +503,11 @@ def _keepsake(
     galleries = attachments_of_memories(session, [memory.id for memory in memories])
     for memory in memories:
         preview_id = None
+        preview_sensitive = False
         for bound in galleries.get(memory.id, []):
             if bound.attachment.status == AttachmentStatus.READY:
                 preview_id = bound.attachment.id
+                preview_sensitive = bound.attachment.payload.is_sensitive
                 break
         if preview_id is not None:
             return DashboardItem(
@@ -355,6 +517,7 @@ def _keepsake(
                 occurred_on=memory.happened_on,
                 created_at=memory.created_at,
                 preview_attachment_id=preview_id,
+                preview_is_sensitive=preview_sensitive,
             )
     return None
 
@@ -522,9 +685,11 @@ def _recent_shared(
 
     for memory in memories:
         preview_id = None
+        preview_sensitive = False
         for bound in memory_galleries.get(memory.id, []):
             if bound.attachment.status == AttachmentStatus.READY:
                 preview_id = bound.attachment.id
+                preview_sensitive = bound.attachment.payload.is_sensitive
                 break
         candidates.append(
             DashboardItem(
@@ -534,6 +699,7 @@ def _recent_shared(
                 occurred_on=memory.happened_on,
                 created_at=memory.created_at,
                 preview_attachment_id=preview_id,
+                preview_is_sensitive=preview_sensitive,
             )
         )
 

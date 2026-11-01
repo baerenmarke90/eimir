@@ -24,6 +24,7 @@ export interface MemoryCreateAttempt {
   readonly snapshot: MemoryCreate;
   readonly attachmentIds: readonly string[];
   readonly startedAt: number;
+  readonly attachmentSensitivity?: readonly boolean[];
 }
 
 export function startMemoryCreateAttempt(

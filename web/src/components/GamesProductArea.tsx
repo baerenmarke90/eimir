@@ -11,6 +11,7 @@ import {
 } from '../client/routes';
 import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
 import { useTranslation } from '../i18n';
+import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
@@ -18,13 +19,7 @@ import { WhoOfUsGamePanel } from './WhoOfUsGamePanel';
 
 export const GAMES_COUPLE_CAPABILITY = 'games.couple' as const;
 
-const GAME_ENTRIES = [
-  'moments',
-  'wishes',
-  'perspective',
-  'happiness',
-  'timeTravel',
-] as const;
+const GAME_ENTRIES = ['moments', 'wishes', 'perspective'] as const;
 
 type GameEntry = (typeof GAME_ENTRIES)[number];
 
@@ -102,7 +97,6 @@ export function GamesProductArea({
   return (
     <div className="page games-product-page">
       <PageHeader
-        eyebrow={t('games.eyebrow')}
         title={t('games.title')}
         description={t('games.intro')}
         className="games-heading"
@@ -124,7 +118,17 @@ export function GamesProductArea({
             const content = (
               <>
                 <div className="games-entry-index" aria-hidden="true">
-                  {String(index + 1).padStart(2, '0')}
+                  <EimirIcon
+                    name={
+                      (
+                        [
+                          'foto',
+                          'wuensche',
+                          'gemeinsam',
+                        ] satisfies EimirIconName[]
+                      )[index]
+                    }
+                  />
                 </div>
                 <div className="games-entry-copy">
                   <p className="games-entry-role">
@@ -161,7 +165,9 @@ export function GamesProductArea({
                   type="button"
                   className="games-entry games-entry-link games-entry-button"
                   key={entry}
-                  onClick={() => setActiveLocalGame('perspective')}
+                  onClick={() => {
+                    if (entry === 'perspective') setActiveLocalGame(entry);
+                  }}
                 >
                   {content}
                 </button>

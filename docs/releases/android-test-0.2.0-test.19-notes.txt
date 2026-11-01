@@ -1,0 +1,7 @@
+Fixes missing places when a new photo is selected from the Android gallery. On Android 10 or later, allow the optional photo-location metadata permission when asked, then select the original photo through the system picker. If the original contains GPS and “Automatically add places” is on, saving a shared Memory or HeartMoment can add its place.
+
+Update through App Updates as Build 19, then reselect the original gallery photo. An earlier uploaded copy that already lost its GPS cannot recover it automatically. Declining the Android permission still lets you add ordinary photos; photos without GPS remain ordinary photos.
+
+Includes the accepted mobile session and photo/view stability corrections.
+
+This remains Free/Core. The app does not request live location or access to your whole photo library. Stored images and thumbnails still discard EXIF; private/shared boundaries and existing place corrections remain. The update keeps the original package, signing certificate, persistent Cloud origin and saved data. Device/provider acceptance continues in the running installation.

@@ -1,9 +1,12 @@
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import { PUBLIC_START_ROUTE } from '../../src/client/publicStart';
 import dailyQuote from '../../src/i18n/locales/dailyQuote';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
+import localizedFixture from '../fixtures/locales/de';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -14,6 +17,8 @@ interface DailyQuoteMockOptions {
   quoteAvailable?: boolean;
   preferenceEnabled?: boolean;
   quoteFailures?: number;
+  design?: 'warm' | 'modern' | 'classic';
+  quoteText?: string;
 }
 
 interface PreferencePatch {
@@ -40,7 +45,6 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
   };
 
   await page.route('**/api/v1/**', async (route) => {
-    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const url = new URL(request.url());
@@ -236,6 +240,15 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
       return;
     }
 
+    if (method === 'GET' && pathname === `${space}/appearance/wir-design`) {
+      await json({ designId: options.design ?? 'warm', version: 0 }, 200, {
+        ETag: '"appearance:0"',
+      });
+      return;
+    }
+
+    if (await fulfillDefaultAppIcon(route)) return;
+
     if (method === 'GET' && pathname === `${space}/daily-quote`) {
       requests.quote += 1;
       if (!capabilities.includes('daily.quote')) {
@@ -266,7 +279,7 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
                 id: 'quote-browser-001',
                 text:
                   currentAccountId === ACCOUNT_ID
-                    ? 'A calm thought for today.'
+                    ? (options.quoteText ?? 'A calm thought for today.')
                     : 'A different thought for Ben.',
                 authorDisplay: 'Example Author',
                 sourceDisplay: 'Example Source',
@@ -384,21 +397,72 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
 
 async function signIn(page: Page, email = 'anna@example.org') {
   await page.goto('/today');
+  await submitSignIn(page, email);
+}
+
+async function submitSignIn(page: Page, email: string) {
   await page.getByLabel(de.login.email).fill(email);
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page).toHaveURL(/\/today$/);
 }
 
+async function openQuoteSettings(page: Page) {
+  if (new URL(page.url()).pathname !== '/more/settings/today') {
+    await page
+      .getByRole('link', { name: navigation.more, exact: true })
+      .click();
+    await page
+      .getByRole('link', { name: navigation.settings, exact: true })
+      .click();
+    await page
+      .locator('.settings-index a[href="/more/settings/today"]')
+      .click();
+  }
+  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+}
+
 async function expectQuoteSurfaceAccessible(
   page: Page,
   { wholeDocument = true }: { wholeDocument?: boolean } = {},
 ): Promise<void> {
-  await expect(
-    page
-      .locator('.daily-quote-card')
-      .getByRole('heading', { level: 2, name: dailyQuote.title }),
-  ).toBeVisible();
+  const card = page.locator('.daily-quote-card');
+  if (await card.count()) {
+    const geometry = await card.evaluate((node) => {
+      const heading = node.querySelector('h2');
+      const content = node.querySelector('.daily-quote-content');
+      if (!heading || !content)
+        throw new Error('The quote needs an accessible heading and content.');
+      const block = node.querySelector('blockquote');
+      const paragraph = block?.querySelector('p');
+      const root = parseFloat(
+        getComputedStyle(document.documentElement).fontSize,
+      );
+      return {
+        headingBeforeContent: Boolean(
+          heading.compareDocumentPosition(content) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+        border: block ? getComputedStyle(block).borderLeftWidth : '0px',
+        outerBorder: getComputedStyle(node).borderInlineStartWidth,
+        outerBackground: getComputedStyle(node).backgroundColor,
+        quoteScale: paragraph
+          ? parseFloat(getComputedStyle(paragraph).fontSize) / root
+          : 0,
+      };
+    });
+    expect(geometry.headingBeforeContent).toBe(true);
+    expect(geometry.border).toBe('0px');
+    expect(geometry.outerBorder).toBe('0px');
+    expect(geometry.outerBackground).toBe('rgba(0, 0, 0, 0)');
+    expect(geometry.quoteScale).toBeLessThanOrEqual(1.25);
+    await expect(
+      page
+        .locator('.daily-quote-card')
+        .getByRole('heading', { level: 2, name: dailyQuote.title }),
+    ).toHaveClass('sr-only');
+    await expect(page.locator('.daily-quote-symbol')).toHaveCount(0);
+  }
 
   const result = await page.evaluate(() => {
     const root = document.documentElement;
@@ -455,6 +519,11 @@ test('Pro Daily Quote follows the approved Today composition across Compact widt
   await expect(page.getByText('A calm thought for today.')).toBeVisible();
   await expect(page.getByText('Example Author')).toBeVisible();
   expect(requests.quote).toBeGreaterThan(0);
+  expect(requests.catalog).toBe(0);
+  expect(requests.preferences).toBe(0);
+  await expect(
+    page.getByRole('button', { name: dailyQuote.settingsAria }),
+  ).toHaveCount(0);
 
   const quoteBox = await page.locator('.daily-quote-card').boundingBox();
   const upcomingBox = await page
@@ -484,6 +553,47 @@ test('Pro Daily Quote follows the approved Today composition across Compact widt
   }
 });
 
+for (const design of ['warm', 'modern', 'classic'] as const)
+  for (const theme of ['light', 'dark'])
+    test(`long quote keeps one surface and a quotation symbol: ${design} ${theme}`, async ({
+      page,
+    }, info) => {
+      const quoteText = localizedFixture.dailyQuote;
+      await installMocks(page, { design, quoteText });
+      await page.addInitScript(
+        (value) => localStorage.setItem('eimir.theme', value),
+        theme,
+      );
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await signIn(page);
+      await expect(page.locator('.today-page')).toHaveAttribute(
+        'data-wir-design',
+        design,
+      );
+      await expect(page.locator('.daily-quote-block')).toContainText(quoteText);
+      for (const width of [360, 390, 430]) {
+        await page.setViewportSize({ width, height: 844 });
+        await expectQuoteSurfaceAccessible(page);
+      }
+      await page.locator('.daily-quote-card').screenshot({
+        path: info.outputPath(`quote-${design}-${theme}.png`),
+      });
+      await page.setViewportSize({ width: 320, height: 760 });
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+      await expectQuoteSurfaceAccessible(page);
+      const contained = await page
+        .locator('.daily-quote-content')
+        .evaluate((header) => {
+          const box = header.getBoundingClientRect();
+          return Array.from(header.children).every((child) => {
+            const rect = child.getBoundingClientRect();
+            return rect.left >= box.left - 1 && rect.right <= box.right + 1;
+          });
+        });
+      expect(contained).toBe(true);
+    });
+
 test('personal Daily Quote preferences stay caller-only and round-trip If-Match', async ({
   page,
 }, testInfo) => {
@@ -491,13 +601,11 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
 
-  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+  await openQuoteSettings(page);
   await expect(
     page.getByRole('heading', { name: dailyQuote.sheetTitle }),
   ).toBeVisible();
-  await expect(
-    page.getByText(dailyQuote.privacy.replace('{{name, firstName}}', 'Ben')),
-  ).toBeVisible();
+  await expect(page.getByText(dailyQuote.privacyFallback)).toBeVisible();
 
   const preferencesSheet = page.locator('.daily-quote-preferences-sheet');
   const mindfulness = preferencesSheet.getByRole('checkbox', {
@@ -513,6 +621,9 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
   await page.getByRole('button', { name: dailyQuote.done }).click();
 
   await expect.poll(() => requests.patches.length).toBe(1);
+  await expect(
+    page.getByRole('button', { name: dailyQuote.settingsAria }),
+  ).toBeFocused();
   expect(requests.patches[0]?.ifMatch).toBe('"quote-pref:2"');
   expect(requests.patches[0]?.body).toEqual(
     expect.objectContaining({
@@ -530,19 +641,29 @@ test('personal visibility hides the Wir card and Settings -> Wir restores it', a
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
 
-  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+  await openQuoteSettings(page);
   const sheet = page.locator('.daily-quote-preferences-sheet');
-  const sheetToggle = sheet.getByRole('switch', {
-    name: dailyQuote.enabledLabel,
-  });
-  await expect(sheetToggle).toHaveAttribute('aria-checked', 'true');
-  await sheetToggle.click();
-  await page.getByRole('button', { name: dailyQuote.done }).click();
+  await expect(
+    sheet.getByRole('switch', {
+      name: dailyQuote.enabledLabel,
+    }),
+  ).toHaveCount(0);
+  await page.getByRole('button', { name: dailyQuote.cancel }).click();
 
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: dailyQuote.settingsAria }),
+  ).toBeFocused();
+  const visibility = page.locator('#settings-dashboard').getByRole('checkbox', {
+    name: dailyQuote.title,
+    exact: true,
+  });
+  await expect(visibility).toBeChecked();
+  await visibility.click();
+  await expect(visibility).not.toBeChecked();
+  await page.getByRole('link', { name: navigation.today, exact: true }).click();
   await expect(page.locator('.daily-quote-card')).toHaveCount(0);
-  expect(requests.patches.at(-1)?.body).toEqual(
-    expect.objectContaining({ enabled: false }),
-  );
+  expect(requests.patches.at(-1)?.body).toEqual({ enabled: false });
 
   await page.getByRole('link', { name: navigation.more, exact: true }).click();
   await expect(page).toHaveURL(/\/more$/);
@@ -553,12 +674,10 @@ test('personal visibility hides the Wir card and Settings -> Wir restores it', a
   await page.locator('.settings-index a[href="/more/settings/today"]').click();
   await expect(page).toHaveURL(/\/more\/settings\/today$/);
 
-  const settingsToggle = page
-    .locator('#settings-daily-quote')
-    .getByRole('switch', { name: dailyQuote.enabledLabel });
-  await expect(settingsToggle).toHaveAttribute('aria-checked', 'false');
+  const settingsToggle = page.getByRole('checkbox', { name: dailyQuote.title });
+  await expect(settingsToggle).not.toBeChecked();
   await settingsToggle.click();
-  await expect(settingsToggle).toHaveAttribute('aria-checked', 'true');
+  await expect(settingsToggle).toBeChecked();
   expect(requests.patches.at(-1)?.body).toEqual({ enabled: true });
 
   await page.getByRole('link', { name: navigation.today, exact: true }).click();
@@ -633,7 +752,7 @@ test('losing the quote capability shows discovery and restores personal preferen
   await signIn(page);
   await expect(page.getByText('A calm thought for today.')).toBeVisible();
 
-  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+  await openQuoteSettings(page);
   const mindfulness = page.getByRole('checkbox', { name: /Mindfulness/u });
   await page
     .locator('.daily-quote-preferences-sheet')
@@ -642,13 +761,15 @@ test('losing the quote capability shows discovery and restores personal preferen
   await expect(mindfulness).toBeChecked();
   await page.getByRole('button', { name: dailyQuote.done }).click();
   await expect.poll(() => requests.patches.length).toBe(1);
-  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+  await openQuoteSettings(page);
   await expect(
     page.getByRole('checkbox', { name: /Mindfulness/u }),
   ).toBeChecked();
   const personalReads = requests.preferences;
 
   requests.capabilities.splice(0);
+  await page.getByRole('button', { name: dailyQuote.cancel }).click();
+  await page.getByRole('link', { name: navigation.today, exact: true }).click();
   await page.reload();
   await expect(page.getByText(dailyQuote.discovery)).toBeVisible();
   await expect(
@@ -661,7 +782,7 @@ test('losing the quote capability shows discovery and restores personal preferen
   requests.capabilities.push('daily.quote');
   await page.reload();
   await expect(page.getByText('A calm thought for today.')).toBeVisible();
-  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+  await openQuoteSettings(page);
   await expect(
     page.getByRole('checkbox', { name: /Mindfulness/u }),
   ).toBeChecked();
@@ -674,7 +795,7 @@ test('signing into the partner account cannot reuse the previous account quote o
   const requests = await installMocks(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
-  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+  await openQuoteSettings(page);
   await page
     .locator('.daily-quote-preferences-sheet')
     .getByText('Mindfulness', { exact: true })
@@ -685,14 +806,17 @@ test('signing into the partner account cannot reuse the previous account quote o
   await page.getByRole('button', { name: dailyQuote.done }).click();
   await expect.poll(() => requests.patches.length).toBe(1);
 
-  await page.getByRole('button', { name: navigation.profileMenu }).click();
-  await page.getByRole('button', { name: de.header.logout }).click();
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === PUBLIC_START_ROUTE),
+    page.getByRole('button', { name: de.header.logout }).click(),
+  ]);
   await expect(page.getByLabel(de.login.email)).toBeVisible();
-  await signIn(page, 'ben@example.org');
+  await submitSignIn(page, 'ben@example.org');
 
   await expect(page.getByText('A different thought for Ben.')).toBeVisible();
   await expect(page.getByText('A calm thought for today.')).toHaveCount(0);
-  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+  await openQuoteSettings(page);
   await expect(
     page.getByRole('checkbox', { name: /Mindfulness/u }),
   ).not.toBeChecked();
@@ -731,4 +855,365 @@ test('Daily Quote reflows at 320px large text and adapts to Expanded', async ({
     path: testInfo.outputPath('today-daily-quote-1280-light.png'),
     fullPage: true,
   });
+});
+
+test('Today clarity: live countdown, honest dates and docked navigation across themes and sizes', async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  await page.clock.install({ time: new Date('2026-10-29T08:00:00Z') });
+  let memoryTitle = 'Erinnerung vom 27.10.2026';
+  await installMocks(page);
+  await page.route('**/attachments/attachment-clarity/read-access', (route) =>
+    route.fulfill({
+      json: {
+        method: 'STREAM',
+        url: `/api/v1/spaces/${SPACE_ID}/attachments/attachment-clarity/content`,
+        expiresAt: null,
+      },
+    }),
+  );
+  await page.route('**/attachments/attachment-clarity/content*', (route) =>
+    route.fulfill({
+      contentType: 'image/jpeg',
+      path: fileURLToPath(
+        new URL(
+          '../../../backend/demo_assets/images/dog-outdoors.jpg',
+          import.meta.url,
+        ),
+      ),
+    }),
+  );
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/dashboard`, (route) =>
+    route.fulfill({
+      json: {
+        space: {
+          spaceId: SPACE_ID,
+          partner: { id: PARTNER_ID, displayName: 'Ben Winter' },
+        },
+        relationshipDuration: { daysTogether: 168, startedOn: '2026-05-14' },
+        retrospective: null,
+        recentShared: [],
+        keepsake: {
+          id: 'memory-clarity',
+          type: 'MEMORY',
+          titleOrText: memoryTitle,
+          previewAttachmentId: 'attachment-clarity',
+          previewIsSensitive: true,
+          occurredOn: '2026-10-27',
+          scheduledAt: null,
+          createdAt: null,
+        },
+        upcoming: [
+          {
+            id: 'anniversary-clarity',
+            type: 'ANNIVERSARY',
+            titleOrText: null,
+            occurredOn: '2027-05-14',
+            scheduledAt: null,
+            createdAt: null,
+          },
+        ],
+        anticipation: {
+          planId: 'plan-clarity',
+          title: 'Ghost Night',
+          eventOn: '2026-11-21',
+          eventAt: '2026-11-21T19:00:00Z',
+          daysRemaining: 23,
+        },
+        viewerLocalDate: '2026-10-29',
+        thinkingOfYouAvailableAt: null,
+      },
+    }),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  const quote = page.locator('.daily-quote-card');
+  await expect(quote.getByRole('heading')).toHaveText(dailyQuote.title);
+  await expect(quote.getByRole('heading')).toHaveClass('sr-only');
+  await expect(quote.locator('.daily-quote-symbol')).toHaveCount(0);
+  await expect(
+    page.locator('.today-section-moment .today-section-kicker'),
+  ).toHaveCount(0);
+  await expect(
+    quote.locator('.pro-mark, .today-section-kicker, .daily-quote-categories'),
+  ).toHaveCount(0);
+  const moment = page.locator('.today-moment');
+  await expect(quote.getByText('A calm thought for today.')).toBeVisible();
+  await expect(moment.locator('img')).toHaveCount(1);
+  await expect(moment).toContainText('27. Oktober 2026');
+  await expect(moment).not.toContainText('Erinnerung vom');
+  await expect(moment.locator('.today-moment-date')).toHaveCount(0);
+  await expect(moment.locator('.today-moment-title')).toHaveText(
+    '27. Oktober 2026',
+  );
+  await expect(page.locator('.today-agenda-row')).toContainText(
+    'Euer Jahrestag',
+  );
+  await expect(page.locator('.today-agenda-row')).toContainText('14. Mai 2027');
+  const timer = page.getByRole('timer');
+  await expect(timer).toHaveAttribute('aria-live', 'off');
+  const seconds = timer.locator('.anticipation-digit').last();
+  const before = await seconds.textContent();
+  await page.clock.runFor(1100);
+  await expect(seconds).not.toHaveText(before ?? '');
+
+  for (const width of [320, 360, 390, 430, 1280]) {
+    for (const theme of ['light', 'dark'] as const) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+      const dock = page.locator('.mobile-bottom-shell');
+      if (width < 1024) {
+        const box = await dock.boundingBox();
+        expect(box?.x).toBe(0);
+        expect(box?.width).toBe(width);
+        expect((box?.y ?? 0) + (box?.height ?? 0)).toBe(844);
+        expect(
+          await dock.evaluate((el) => getComputedStyle(el).borderRadius),
+        ).toBe('0px');
+      } else await expect(dock).toBeHidden();
+      await expectQuoteSurfaceAccessible(page);
+      await page.screenshot({
+        path: testInfo.outputPath(`today-clarity-${width}-${theme}.png`),
+        fullPage: true,
+      });
+      if (width === 390 && theme === 'light') {
+        await page.locator('.today-section-upcoming').scrollIntoViewIfNeeded();
+        await page.screenshot({
+          path: testInfo.outputPath('today-clarity-docked-390-viewport.png'),
+        });
+        await page.evaluate(() => window.scrollTo(0, 0));
+      }
+    }
+  }
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+    document.documentElement.style.setProperty(
+      '--safe-area-inset-bottom',
+      '34px',
+    );
+  });
+  await expectQuoteSurfaceAccessible(page);
+  const geometry = await page
+    .locator('.mobile-bottom-shell')
+    .evaluate((el) => ({
+      height: el.getBoundingClientRect().height,
+      bottom: el.getBoundingClientRect().bottom,
+      padding: parseFloat(getComputedStyle(el).paddingBottom),
+      measured: parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue(
+          '--shell-bottom-nav-measured-height',
+        ),
+      ),
+    }));
+  expect(geometry.bottom).toBe(640);
+  expect(geometry.padding).toBeGreaterThanOrEqual(34);
+  expect(geometry.measured).toBe(geometry.height);
+  await page.screenshot({
+    path: testInfo.outputPath('today-clarity-320-large-text-safe-area.png'),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  memoryTitle = 'An evening by the lake';
+  await page.reload();
+  await expect(moment.locator('.today-moment-title')).toHaveText(memoryTitle);
+  await expect(moment.locator('.today-moment-date')).toHaveText('27.10.2026');
+  await expect(quote.getByText('A calm thought for today.')).toBeVisible();
+  await expect(moment.locator('img')).toHaveCount(1);
+  await page.screenshot({
+    path: testInfo.outputPath('today-clarity-authored-title-390-light.png'),
+    fullPage: true,
+  });
+});
+
+test('borderless surfaces retain selection, saved preferences, keyboard focus and forced-color boundaries', async ({
+  page,
+}, testInfo) => {
+  await installMocks(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  await openQuoteSettings(page);
+  const sheet = page.getByRole('dialog', { name: dailyQuote.sheetTitle });
+  await expect(sheet).toBeVisible();
+  const mindfulness = sheet.getByRole('checkbox', { name: /Mindfulness/u });
+  await sheet.getByText('Mindfulness', { exact: true }).click();
+  await expect(mindfulness).toBeChecked();
+  for (const colorScheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    const frames = await page
+      .locator(
+        'button, .today-agenda-row, .short-task-sheet, .daily-quote-category, .daily-quote-source-check, .preference-switch-track',
+      )
+      .evaluateAll((elements) =>
+        elements
+          .filter(
+            (el) =>
+              el.getBoundingClientRect().width > 0 &&
+              el.getBoundingClientRect().height > 0,
+          )
+          .flatMap((el) => {
+            const style = getComputedStyle(el);
+            return [
+              'borderTopWidth',
+              'borderRightWidth',
+              'borderBottomWidth',
+              'borderLeftWidth',
+            ]
+              .filter(
+                (side) =>
+                  parseFloat(
+                    style[side as keyof CSSStyleDeclaration] as string,
+                  ) > 0,
+              )
+              .map((side) => `${el.className}: ${side}`);
+          }),
+      );
+    expect(frames).toEqual([]);
+    await expectQuoteSurfaceAccessible(page);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `borderless-preferences-390-${colorScheme}.png`,
+      ),
+      fullPage: true,
+    });
+  }
+  const save = sheet.getByRole('button', { name: dailyQuote.done });
+  await page.keyboard.press('Tab');
+  await save.focus();
+  expect(
+    await save.evaluate((el) => parseFloat(getComputedStyle(el).outlineWidth)),
+  ).toBeGreaterThanOrEqual(2);
+  await page.emulateMedia({ forcedColors: 'active' });
+  expect(
+    await sheet
+      .locator('.daily-quote-category')
+      .first()
+      .evaluate((el) => parseFloat(getComputedStyle(el).borderTopWidth)),
+  ).toBeGreaterThanOrEqual(1);
+  await expect(mindfulness).toBeChecked();
+  await page.screenshot({
+    path: testInfo.outputPath('borderless-preferences-forced-colors-focus.png'),
+    fullPage: true,
+  });
+  await page.emulateMedia({ forcedColors: 'none' });
+  await save.click();
+  await expect(sheet).not.toBeVisible();
+  await openQuoteSettings(page);
+  await expect(
+    sheet.getByRole('checkbox', { name: /Mindfulness/u }),
+  ).toBeChecked();
+});
+
+test('monthly highlights include visible photo captions and dates plus distinct text and milestone moments', async ({
+  page,
+}, info) => {
+  await page.clock.install({ time: new Date('2026-10-29T08:00:00Z') });
+  await installMocks(page, { design: 'modern' });
+  await page.route('**/attachments/month-photo-*/read-access*', (route) =>
+    route.fulfill({
+      json: {
+        method: 'STREAM',
+        url: `/api/v1/spaces/${SPACE_ID}/attachments/month-photo-1/content`,
+        expiresAt: null,
+      },
+    }),
+  );
+  await page.route('**/attachments/month-photo-*/content*', (route) =>
+    route.fulfill({
+      contentType: 'image/jpeg',
+      path: fileURLToPath(
+        new URL(
+          '../../../backend/demo_assets/images/dog-outdoors.jpg',
+          import.meta.url,
+        ),
+      ),
+    }),
+  );
+  const item = (
+    id: string,
+    type: string,
+    titleOrText: string,
+    day: number,
+    previewAttachmentId: string | null = null,
+  ) => ({
+    id,
+    type,
+    titleOrText,
+    occurredOn: `2026-10-${String(day).padStart(2, '0')}`,
+    previewAttachmentId,
+    previewIsSensitive: false,
+  });
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/dashboard`, (route) =>
+    route.fulfill({
+      json: {
+        space: {
+          spaceId: SPACE_ID,
+          partner: { id: PARTNER_ID, displayName: 'Ben Winter' },
+        },
+        relationshipDuration: { daysTogether: 250, startedOn: '2026-01-01' },
+        keepsake: item(
+          'hero',
+          'MEMORY',
+          'Our afternoon',
+          1,
+          'month-photo-hero',
+        ),
+        retrospective: null,
+        upcoming: [],
+        thinkingOfYouAvailableAt: null,
+        recentShared: [
+          item('photo-1', 'MEMORY', 'Lakeside walk', 2, 'month-photo-1'),
+          item('photo-2', 'MEMORY', 'Sunday together', 3, 'month-photo-2'),
+          item('photo-3', 'MEMORY', 'Coffee break', 4, 'month-photo-3'),
+          item('text-1', 'HEART_MOMENT', 'A lovely quiet evening', 5),
+          item('milestone-1', 'MILESTONE', 'Our first home', 6),
+          item('milestone-2', 'MILESTONE', 'A year of adventures', 7),
+        ],
+      },
+    }),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await signIn(page);
+  const month = page.locator('.today-section-monthly');
+  await expect(month.locator('.today-monthly-caption strong')).toHaveText([
+    'Lakeside walk',
+    'Sunday together',
+    'Coffee break',
+  ]);
+  await expect(month.locator('.today-monthly-caption time')).toHaveCount(3);
+  await expect(month).toContainText('02.10.2026');
+  await expect(month).toContainText('A lovely quiet evening');
+  await expect(month).toContainText('A year of adventures');
+  await expect(
+    page.getByText('A lovely quiet evening', { exact: true }),
+  ).toHaveCount(1);
+  await expect(
+    page.getByText('A year of adventures', { exact: true }),
+  ).toHaveCount(1);
+  await expect(page.locator('.daily-quote-block')).toContainText(
+    'A calm thought for today.',
+  );
+  await expect
+    .poll(() =>
+      month
+        .locator('img')
+        .first()
+        .evaluate((img: HTMLImageElement) => img.naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  await month.locator('.today-section-link').focus();
+  for (const theme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: theme });
+    await month.scrollIntoViewIfNeeded();
+    await month.screenshot({
+      path: info.outputPath(`monthly-highlights-390-${theme}.png`),
+    });
+  }
+  await expect(month.locator('.today-section-link')).toHaveAttribute(
+    'href',
+    '/story?tab=timeline',
+  );
 });

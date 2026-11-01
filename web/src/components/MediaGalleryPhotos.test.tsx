@@ -24,6 +24,7 @@ it('custom previews load no originals until open, keep only neighbours, and revo
       items={Array.from({ length: 6 }, (_, i) => ({
         id: `${i}`,
         mediaType: 'IMAGE' as const,
+        isSensitive: false,
       }))}
       loadMedia={load}
       renderPreviews={(open) => (
@@ -59,7 +60,7 @@ it('revokes a late original response after dismissal without publishing it', asy
   );
   render(
     <MediaGallery
-      items={[{ id: 'one', mediaType: 'IMAGE' }]}
+      items={[{ id: 'one', mediaType: 'IMAGE', isSensitive: false }]}
       loadMedia={load}
       renderPreviews={(open) => (
         <button type="button" onClick={() => open(0)}>

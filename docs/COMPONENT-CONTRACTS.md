@@ -428,3 +428,8 @@ A shared component is ready when:
 - [Design Tokens](../design/tokens.json)
 - [API/UI Contracts](./API-UI-CONTRACTS.md)
 - [Design System Delivery](./DESIGN-SYSTEM-DELIVERY.md)
+
+
+## Couple-facing section heading and surface (#1508)
+
+Section anatomy is heading/action row followed by the content surface, under Product Reference v1's 2026-10-29 PO addendum. Keep the section heading outside the surface and use consistent spacing with adjacent modules. Personal content titles inside cards are a separate semantic role and remain with their content. Preserve semantic section/heading associations, reachable contextual actions, dynamic states, theme contrast, large-text wrapping and reduced motion. Decorative quote rules and extra heading/body gaps are not part of this contract.

@@ -20,17 +20,20 @@ import {
 import { useTranslation } from '../i18n';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProMark } from './ProMark';
+import { DailyQuoteCard } from './DailyQuoteCard';
 
 export function DailyQuoteSettingsPanel({
   quoteApi,
   entitlementsApi,
   accountId,
   spaceId,
+  variant = 'section',
 }: {
   quoteApi: DailyQuoteApi;
   entitlementsApi: EntitlementsApi;
   accountId: string;
   spaceId: string;
+  variant?: 'section' | 'toggle' | 'sources';
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -106,6 +109,53 @@ export function DailyQuoteSettingsPanel({
       ? t('dailyQuote.settingsSaved')
       : null;
 
+  if (variant === 'toggle') {
+    const failure =
+      entitlementQuery.error ?? preferencesQuery.error ?? mutation.error;
+    return (
+      <div className="dashboard-module-control">
+        <label className="dashboard-module-switch">
+          <input
+            type="checkbox"
+            aria-label={t('dailyQuote.title')}
+            checked={hasCapability && enabled}
+            disabled={
+              !hasCapability ||
+              !preferencesQuery.data ||
+              Boolean(failure) ||
+              mutation.isPending
+            }
+            onChange={(event) => {
+              mutation.reset();
+              mutation.mutate(event.target.checked);
+            }}
+          />
+        </label>
+        {failure ? (
+          <div role="status">
+            <p>{t('dailyQuote.preferencesUnavailable')}</p>
+            <button
+              type="button"
+              className="tertiary"
+              onClick={() => {
+                mutation.reset();
+                void entitlementQuery.refetch();
+                void preferencesQuery.refetch();
+              }}
+            >
+              {t('dailyQuote.retry')}
+            </button>
+          </div>
+        ) : null}
+        {status ? (
+          <span className="sr-only" role="status">
+            {status}
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <section
       id="settings-daily-quote"
@@ -116,9 +166,11 @@ export function DailyQuoteSettingsPanel({
         <h2 id="settings-daily-quote-heading">
           {t('dailyQuote.settingsTitle')}
         </h2>
-        <p className="settings-section-intro">
-          {t('dailyQuote.settingsIntro')}
-        </p>
+        {variant !== 'sources' ? (
+          <p className="settings-section-intro">
+            {t('dailyQuote.settingsIntro')}
+          </p>
+        ) : null}
       </div>
 
       {entitlementQuery.isPending ? (
@@ -164,7 +216,7 @@ export function DailyQuoteSettingsPanel({
             {t('dailyQuote.retry')}
           </button>
         </div>
-      ) : preferencesQuery.data ? (
+      ) : preferencesQuery.data && variant !== 'sources' ? (
         <PreferenceSwitch
           label={t('dailyQuote.enabledLabel')}
           description={t('dailyQuote.enabledSettingsDescription')}
@@ -177,6 +229,15 @@ export function DailyQuoteSettingsPanel({
         />
       ) : null}
 
+      {hasCapability ? (
+        <DailyQuoteCard
+          settingsOnly
+          quoteApi={quoteApi}
+          entitlementsApi={entitlementsApi}
+          accountId={accountId}
+          spaceId={spaceId}
+        />
+      ) : null}
       {status ? (
         <p
           className="daily-quote-settings-status"

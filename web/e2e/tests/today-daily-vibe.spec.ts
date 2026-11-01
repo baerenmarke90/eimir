@@ -71,6 +71,16 @@ async function installMocks(
         body: JSON.stringify(body),
       });
 
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await json({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await json({
         maintenanceMode: false,
@@ -450,10 +460,14 @@ for (const theme of ['light', 'dark'] as const) {
     await page
       .getByRole('link', { name: navigation.more, exact: true })
       .click();
+    await expect(page).toHaveURL(/\/more$/);
+    await expect(cleanup).toHaveCount(0);
     await page
       .getByRole('link', { name: navigation.today, exact: true })
       .click();
+    await expect(page).toHaveURL(/\/today$/);
     await expect(cleanup).toBeVisible();
+    expect(state.patchCount()).toBe(0);
     await cleanup
       .getByRole('button', { name: dailyVibe.disabledRemove, exact: true })
       .click();
@@ -467,9 +481,12 @@ for (const theme of ['light', 'dark'] as const) {
     await page
       .getByRole('link', { name: navigation.more, exact: true })
       .click();
+    await expect(page).toHaveURL(/\/more$/);
+    await expect(energy).toHaveCount(0);
     await page
       .getByRole('link', { name: navigation.today, exact: true })
       .click();
+    await expect(page).toHaveURL(/\/today$/);
     await expect(cleanup).toHaveCount(0);
     await expect(energy).toHaveAttribute(
       'aria-label',
@@ -672,9 +689,19 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   await ownTrigger.click();
   await expect(sheet).toBeVisible();
 
-  for (const label of Object.values(dailyVibe.values)) {
-    await expect(sheet.getByRole('button', { name: label })).toBeVisible();
+  for (const [value, label] of Object.entries(dailyVibe.values)) {
+    const option = sheet.getByRole('button', { name: label, exact: true });
+    await expect(option).toBeVisible();
+    await expect(option.locator('svg')).toHaveAttribute(
+      'data-vibe-icon',
+      value,
+    );
+    await expect(option.locator('svg')).toHaveAttribute('aria-hidden', 'true');
   }
+  await sheet.screenshot({
+    path: testInfo.outputPath('today-vibe-six-labeled-symbols-390-light.png'),
+    animations: 'disabled',
+  });
 
   const intro = sheet.locator('.daily-vibe-sheet-intro');
   const introBox = await intro.boundingBox();
@@ -1059,6 +1086,10 @@ test('Daily Vibe adapts the same interaction for Expanded Web', async ({
   });
   await signIn(page);
 
+  await expect(page.locator('.daily-vibe-share')).toHaveClass(/button-link/);
+  await page.locator('.daily-vibe-checkin').screenshot({
+    path: testInfo.outputPath('vibe-primary-button-1280-light.png'),
+  });
   await page.getByRole('button', { name: dailyVibe.chooseAria }).click();
   const sheet = page.getByRole('dialog', { name: dailyVibe.sheetTitle });
   await expect(sheet).toBeVisible();

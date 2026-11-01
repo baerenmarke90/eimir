@@ -1,6 +1,7 @@
 import { useTranslation } from '../i18n';
 import { ThemeControl } from './ThemeControl';
 import { AppIconSettingsPanel } from './AppIconSettingsPanel';
+import { WirDesignSettings } from './WirDesignSettings';
 
 /** Appearance belongs to the centralized personal settings hierarchy. */
 export function ProfileAppearancePanel({
@@ -19,6 +20,7 @@ export function ProfileAppearancePanel({
         <h2 id="profile-appearance-title">{t('appIcon.colorMode')}</h2>
         <ThemeControl variant="inline" />
       </section>
+      <WirDesignSettings />
       <AppIconSettingsPanel />
     </div>
   );

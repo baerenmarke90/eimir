@@ -1,0 +1,9 @@
+eimir. 0.2.0-test.33
+
+Build 33 übernimmt den aktuellen Hauptstand mit den Korrekturen an der Erinnerungskarte und der Wir-Überschrift.
+
+Die Erinnerungskarte öffnet sich direkt, ohne zusätzlichen Ladebutton. Die Erklärungstexte oberhalb der Karte entfallen; der Einstieg unter Momente heißt einfach „Karte“. Eure Erinnerungsorte und die zugehörigen Erinnerungen sind mit farbigen Akzenten, klaren Datumsanzeigen und dezenten Übergängen gestaltet.
+
+„Wir“ verwendet jetzt denselben gemeinsamen Überschriftenstil wie die anderen Hauptseiten. Größe, Gewichtung und Abstände sind angeglichen.
+
+Über Einstellungen → App-Updates auf der bestehenden Installation aktualisieren. Nicht deinstallieren und keine App-Daten löschen. Build 33 verwendet dasselbe Paket und denselben Testsignierer und ist als Update über Build 32 vorgesehen.

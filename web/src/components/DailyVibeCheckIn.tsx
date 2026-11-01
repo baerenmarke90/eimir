@@ -272,7 +272,6 @@ export function DailyVibeCheckIn({
         data-testid="daily-vibe-checkin"
       >
         <div className="daily-vibe-heading">
-          <span className="today-section-kicker">{t('dailyVibe.kicker')}</span>
           <h2 id={titleId} className="today-section-title">
             {t('dailyVibe.question')}
           </h2>
@@ -294,7 +293,6 @@ export function DailyVibeCheckIn({
         data-testid="daily-vibe-checkin"
       >
         <div className="daily-vibe-heading">
-          <span className="today-section-kicker">{t('dailyVibe.kicker')}</span>
           <h2 id={titleId} className="today-section-title">
             {t('dailyVibe.question')}
           </h2>
@@ -447,7 +445,6 @@ export function DailyVibeCheckIn({
       data-testid="daily-vibe-checkin"
     >
       <div className="daily-vibe-heading">
-        <span className="today-section-kicker">{t('dailyVibe.kicker')}</span>
         <h2 id={titleId} className="today-section-title">
           {t('dailyVibe.question')}
         </h2>
@@ -530,7 +527,7 @@ export function DailyVibeCheckIn({
         <button
           ref={triggerRef}
           type="button"
-          className="tertiary daily-vibe-share"
+          className="button-link daily-vibe-share"
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-label={triggerLabel}
@@ -576,7 +573,10 @@ export function DailyVibeCheckIn({
                 <span className="daily-vibe-option-glyph" aria-hidden="true">
                   <DailyVibeIcon value={option.value} />
                 </span>
-                <span>{t(option.labelKey)}</span>
+                <span>
+                  {t(option.labelKey)}
+                  {selected ? <span aria-hidden="true"> ✓</span> : null}
+                </span>
               </button>
             );
           })}

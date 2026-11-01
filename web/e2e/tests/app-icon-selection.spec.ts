@@ -4,6 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import copy from '../../src/i18n/locales/appIcon';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '00000000-0000-4000-8000-000000000001';
 const PARTNER_ID = '00000000-0000-4000-8000-000000000002';
@@ -38,6 +39,11 @@ async function installMocks(
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
+    if (
+      pathname.endsWith('/appearance/wir-design') &&
+      (await fulfillDefaultAppIcon(route))
+    )
+      return;
     const respond = async (body: unknown) =>
       route.fulfill({
         contentType: 'application/json',

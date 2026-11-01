@@ -15,30 +15,6 @@
   padding-top: 0;
 }
 
-.today-date-heading {
-  display: grid;
-  gap: 0.1rem;
-  margin: 0 0 var(--space-4);
-  padding: var(--space-1) 0 var(--space-2);
-}
-
-.today-date-title {
-  margin: 0;
-  color: var(--color-text);
-  font-family: var(--font-display);
-  font-size: clamp(2.15rem, 10vw, 3.25rem);
-  font-weight: 650;
-  line-height: 0.98;
-  letter-spacing: -0.035em;
-}
-
-.today-date-value {
-  color: var(--color-text-secondary);
-  font-size: 0.96rem;
-  font-weight: 500;
-  line-height: 1.35;
-}
-
 .today-hero.couple-presence-card {
   position: relative;
   display: flex;
@@ -47,10 +23,10 @@
   margin-bottom: var(--space-section);
   border: none;
   border-radius: 0;
-  padding: var(--space-2) 0 0;
+  padding: var(--space-4) 0 var(--space-4);
   background: transparent;
   box-shadow: none;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 /*
@@ -75,9 +51,9 @@
      wider pushes the document's scroll width past the viewport and breaks
      WCAG 2.2 SC 1.4.10 reflow at 320 CSS px. */
   inset: calc(-1 * var(--space-8)) calc(-1 * var(--space-4)) auto;
-  height: 16rem;
+  height: 19rem;
   background: radial-gradient(
-    120% 80% at 30% 0%,
+    105% 95% at 50% 0%,
     var(--color-brand-glow),
     transparent 70%
   );
@@ -87,33 +63,58 @@
 
 @media (min-width: 768px) {
   .today-hero.couple-presence-card {
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    padding: var(--space-5) 0 var(--space-6);
+    padding: var(--space-6) 0;
   }
 }
 
+/* Reuse the shared avatar primitive: only the Wir hero uses larger overlapping
+   portraits, quiet surface rings and a soft shadow. */
 .today-hero .partner-avatar-pair {
-  box-shadow: 0 4px 18px var(--color-shadow-card);
   border-radius: var(--radius-pill);
 }
 
-/* Energy owns the lower avatar edge. Keep the existing online-presence pip
-   readable by moving it to the upper edge only while avatar Energy is present. */
-.today-hero .couple-presence-avatar-anchor.has-adornment .partner-presence-pip {
-  top: 2px;
-  right: 2px;
+.today-hero .partner-avatar-pair-hero .partner-avatar {
+  width: min(clamp(6.75rem, 32vw, 8.25rem), 37vw);
+  height: min(clamp(6.75rem, 32vw, 8.25rem), 37vw);
+  font-size: clamp(1.9rem, 7vw, 2.5rem);
+  box-shadow:
+    0 0 0 3px var(--color-surface),
+    0 12px 28px var(--color-shadow-card);
+}
+
+.today-hero .partner-avatar-pair-hero .partner-avatar-secondary,
+.today-hero .partner-avatar-pair-hero .partner-avatar-waiting {
+  margin-left: -1.65rem;
+}
+
+@media (min-width: 768px) {
+  .today-hero .partner-avatar-pair-hero .partner-avatar {
+    width: 9rem;
+    height: 9rem;
+    font-size: 2.65rem;
+  }
+}
+
+/* Energy owns the lower avatar edge. Keep both presence marker variants away
+   from the battery when Energy is available. */
+.today-hero .couple-presence-avatar-anchor.has-adornment .partner-presence-pip,
+.today-hero
+  .couple-presence-avatar-anchor.has-adornment
+  .partner-presence-avatar-state {
+  top: 3px;
+  right: 3px;
   bottom: auto;
 }
 
 .today-hero .couple-presence-title {
   color: var(--color-text);
   font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3.8vw, 2.5rem);
-  font-weight: 750;
-  line-height: 1.15;
-  letter-spacing: -0.025em;
+  font-size: clamp(1.95rem, 5vw, 3rem);
+  font-weight: 700;
+  line-height: 1.13;
+  letter-spacing: -0.03em;
 }
 
 .today-hero-duration-link {
@@ -128,16 +129,14 @@
 }
 
 /*
- * On a phone the connection status and the relationship duration never fit on
- * one line, and letting them wrap inside a horizontal flex row left the "·"
- * separator stranded at the end of the first line with the duration pushed
- * off to the right. Two quiet left-aligned lines read as one calm identity
- * block instead. The duration keeps its 44 px target height.
+ * On narrow phones center status and duration on separate lines rather
+ * than letting a separator strand itself at the end of a wrapping row.
+ * The linked duration keeps its existing 44px touch target.
  */
 @container product-content (max-width: 30rem) {
   .today-hero .couple-presence-meta {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 0;
   }
 
@@ -200,7 +199,7 @@
   align-items: center;
   gap: var(--space-2);
   min-height: 44px;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   padding: var(--space-2) var(--space-4);
   background: var(--color-surface);
@@ -379,22 +378,17 @@
   }
 }
 
-/*
- * R4 materiality: the agenda tile is the page's one genuinely *raised*
- * surface - a small warm card you could pick up. `--shadow-raised` is a close
- * contact shadow rather than the wide ambient `--shadow-card`, which is what
- * keeps a single default tile feeling substantial instead of floating.
- */
+/* Keep rounded agenda cards flat inside the Compact horizontal scroller. */
 .today-agenda-row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   overflow: hidden;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   background: var(--color-surface-raised);
-  box-shadow: var(--shadow-raised);
+  box-shadow: none;
   color: inherit;
   text-decoration: none;
   box-sizing: border-box;
@@ -408,15 +402,10 @@
 }
 
 .today-agenda-row-link {
-  transition:
-    transform var(--duration-feedback) var(--easing-standard),
-    box-shadow var(--duration-feedback) var(--easing-standard),
-    border-color var(--duration-feedback) var(--easing-standard);
+  transition: border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .today-agenda-row-link:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
   border-color: var(--color-border);
 }
 
@@ -450,9 +439,7 @@
   font-size: 1rem;
   font-weight: 650;
   color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .today-agenda-date {
@@ -503,17 +490,15 @@
 }
 
 /*
- * Secondary by construction: the trace keeps the approved bordered
- * mini-tile shape - it must not regress into an unstyled text list - but it
- * sits *flat* on the canvas while `Demnächst` above it is raised. Elevation,
- * not size, is what now separates the page's primary and secondary registers.
+ * The secondary trace keeps a compact tinted surface without a surrounding
+ * frame. Fill, padding and typography distinguish it from the flat agenda.
  */
 .today-recent-tile {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-medium);
   background: var(--color-surface-subtle);
   color: inherit;
@@ -599,27 +584,6 @@
 .today-recent-tile-date {
   font-size: 0.78rem;
   color: var(--color-text-secondary);
-}
-
-.today-recent-footer {
-  margin-top: var(--space-4);
-  display: flex;
-  justify-content: flex-start;
-}
-
-.today-recent-activity-link {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-brand-text);
-  font-size: 0.92rem;
-  font-weight: 600;
-  text-decoration: none;
-  padding: var(--space-2) 0;
-}
-
-.today-recent-activity-link:hover {
-  text-decoration: underline;
 }
 
 .today-section-subline {
@@ -767,7 +731,7 @@
   display: grid;
   gap: var(--space-3);
   padding: clamp(var(--space-5), 7vw, var(--space-10));
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   background: var(--color-surface-subtle);
 }
@@ -849,7 +813,7 @@
   align-items: flex-start;
   gap: var(--space-2);
   padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5);
-  border: 1px solid var(--color-brand-glow);
+  border: var(--border-surface-width) solid var(--color-brand-glow);
   border-left: 3px solid var(--color-brand);
   border-radius: var(--radius-large);
   background: linear-gradient(
@@ -863,7 +827,7 @@
 
 .today-living-has-media {
   padding: 0;
-  border-left-width: 1px;
+  border-left-width: var(--border-surface-width);
 }
 
 .today-living-media {
@@ -968,19 +932,9 @@
   gap: var(--space-3);
   padding: var(--space-4);
   overflow: visible;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   background: var(--color-surface-raised);
   box-shadow: var(--shadow-raised);
-}
-
-.today-retrospective-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  column-gap: var(--space-3);
-  width: 100%;
-  min-width: 0;
 }
 
 .today-retrospective-dismiss {
@@ -1008,8 +962,7 @@
   text-underline-offset: 0.2em;
 }
 
-.today-retrospective-dismiss:focus-visible,
-.today-retrospective-action:focus-visible {
+.today-retrospective-dismiss:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 3px;
 }
@@ -1027,7 +980,7 @@
   position: relative;
   min-width: 0;
   overflow: visible;
-  border: var(--space-2) solid var(--color-surface);
+  border: var(--border-surface-width) solid var(--color-surface);
   border-radius: var(--radius-small);
   background: var(--color-surface);
 }
@@ -1084,16 +1037,8 @@
 }
 
 .today-retrospective-action {
-  display: inline-flex;
-  align-items: center;
   align-self: flex-start;
-  min-height: 44px;
   max-width: 100%;
-  color: var(--color-brand-text);
-  font-size: 0.9rem;
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
   overflow-wrap: anywhere;
 }
 
@@ -1153,17 +1098,14 @@
 
 .today-monthly-tile {
   display: block;
-  border-radius: var(--radius-medium);
-  overflow: hidden;
-  box-shadow: var(--shadow-raised);
-  transition:
-    transform var(--duration-feedback) var(--easing-standard),
-    box-shadow var(--duration-feedback) var(--easing-standard);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: transform var(--duration-feedback) var(--easing-standard);
 }
 
 .today-monthly-tile:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
+  text-decoration: none;
 }
 
 .today-monthly-tile:focus-visible {
@@ -1173,6 +1115,8 @@
 
 .today-monthly-tile-media {
   display: block;
+  border-radius: var(--radius-medium);
+  overflow: hidden;
 }
 
 .today-monthly-tile-media .story-media-preview,
@@ -1386,7 +1330,7 @@
   flex: 0 0 auto;
   place-items: center;
   margin-inline-start: auto;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   padding: 0;
   background: var(--color-surface-subtle);
@@ -1434,7 +1378,7 @@
 .today-pinned-list-discard {
   display: grid;
   gap: var(--space-2);
-  border: 1px solid var(--color-error);
+  border: var(--border-surface-width) solid var(--color-error);
   border-radius: var(--radius-medium);
   padding: var(--space-4);
   background: var(--color-error-surface);
@@ -1457,4 +1401,28 @@
   .today-pinned-list-add-button:active {
     transform: none;
   }
+}
+
+.today-monthly-caption {
+  display: grid;
+  gap: var(--space-1);
+  padding-block: var(--space-2);
+  background: transparent;
+  color: var(--color-text);
+  font: var(--font-supporting-copy);
+}
+.today-monthly-caption strong {
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.today-monthly-caption time {
+  color: var(--color-text-secondary);
+}
+.today-monthly-notes {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
 }

@@ -1,3 +1,4 @@
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -6,11 +7,11 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
-import { captureR3Evidence } from './r3-evidence';
+import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const WISH_EVIDENCE_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '../../../docs/product/design/evidence/508/wish-completion',
+  '../../../docs/product/design/evidence/1574-wir-rediscovery',
 );
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -29,6 +30,7 @@ async function installMocks(
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -365,15 +367,93 @@ async function captureEvidence(
   testInfo: TestInfo,
   name: string,
 ): Promise<void> {
-  await captureR3Evidence(
-    page,
-    testInfo,
-    `r3-wish-completion-${name}.png`,
-    false,
-  );
+  await captureScreenshot(page, testInfo, `r3-wish-completion-${name}.png`, {
+    fullPage: false,
+  });
 }
 
 for (const scenario of visualScenarios) {
+  test(`Wish continuation uses standard borderless filled controls: ${scenario.name}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize(scenario.viewport);
+    await page.addInitScript(
+      (theme) => localStorage.setItem('eimir.theme', theme),
+      scenario.theme,
+    );
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await installMocks(page);
+    await signIn(page);
+    await page.goto(`/plan/wishes/${WISH_ID}`);
+    const disclosure = page.locator('.wish-operations > summary');
+    await expect(disclosure).toHaveClass('button-link');
+    const actionStyle = await disclosure.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return {
+        background: style.backgroundColor,
+        color: style.color,
+        minHeight: parseFloat(style.minHeight),
+      };
+    });
+    expect(actionStyle.background).not.toBe('rgba(0, 0, 0, 0)');
+    expect(actionStyle.minHeight).toBeGreaterThanOrEqual(44);
+    await disclosure.click();
+    for (const selector of [
+      '#wish-plan-title',
+      '#wish-plan-description',
+      '#wish-plan-place',
+      '#wish-plan-schedule-date',
+      '#wish-plan-schedule-time',
+    ]) {
+      const control = page.locator(selector);
+      await expect(control).toBeVisible();
+      const border = await control.evaluate(
+        (node) => getComputedStyle(node).borderTopWidth,
+      );
+      expect(parseFloat(border)).toBe(0);
+      expect(
+        await control.evaluate(
+          (node) => getComputedStyle(node).backgroundColor,
+        ),
+      ).not.toBe('rgba(0, 0, 0, 0)');
+    }
+    await page.locator('#wish-plan-title').fill('Our shared next step');
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#wish-plan-description')).toBeFocused();
+    await expect(page.locator('#wish-plan-description')).toHaveCSS(
+      'outline-style',
+      'solid',
+    );
+    if (scenario.name === '320-reflow')
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    await assertNoHorizontalOverflow(page);
+    await captureScreenshot(
+      page,
+      info,
+      `wish-borderless-controls-${scenario.name}.png`,
+      { fullPage: true },
+    );
+    await assertNoWcagViolations(page);
+    if (scenario.name === '390-light') {
+      await page.emulateMedia({ forcedColors: 'active' });
+      await expect(page.locator('#wish-plan-description')).toHaveCSS(
+        'border-top-width',
+        '1px',
+      );
+      await page.emulateMedia({ forcedColors: 'none' });
+      await expect(page.locator('#wish-plan-description')).toHaveCSS(
+        'border-top-width',
+        '0px',
+      );
+    }
+    await page
+      .getByRole('button', { name: m5s3.wish.complete, exact: true })
+      .click();
+    await expect(
+      page.getByRole('heading', { name: m5s3.wish.completionTitle }),
+    ).toBeVisible();
+  });
+
   test(`fulfilled Wish continuation: ${scenario.name}`, async ({
     page,
   }, testInfo) => {
@@ -654,11 +734,10 @@ test('keyboard completion keeps action focus while pending then focuses confirme
   ).toBeFocused();
 });
 
-test('offline completion fails visibly and reconnect requires an explicit new attempt', async ({
+test('offline completion sends no request and reconnect requires an explicit new attempt', async ({
   page,
 }) => {
-  const options = { offline: true };
-  const mocks = await installMocks(page, options);
+  const mocks = await installMocks(page);
   await openWish(page, visualScenarios[0]);
   const title = page.getByLabel(m5s3.wish.planTitle);
   await title.fill('Future trip');
@@ -666,19 +745,60 @@ test('offline completion fails visibly and reconnect requires an explicit new at
   await page
     .getByRole('button', { name: m5s3.wish.complete, exact: true })
     .click();
-  await expect(page.getByText(de.states.offline.title)).toBeVisible();
+  const error = page.locator('.wish-operations').getByRole('status');
+  await expect(error.getByText(de.states.offline.title)).toBeVisible();
   await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
   await expect(title).toBeEnabled();
   await expect(title).toHaveValue('Future trip');
-  expect(mocks.requestCount()).toBe(1);
+  // The shared dispatch guard rejects known-offline intent before HTTP.
+  expect(mocks.requestCount()).toBe(0);
 
-  options.offline = false;
   await page.context().setOffline(false);
-  await expect(page.getByText(de.states.offline.title)).toBeVisible();
-  expect(mocks.requestCount()).toBe(1);
+  await expect(error.getByText(de.states.offline.title)).toBeVisible();
+  expect(mocks.requestCount()).toBe(0);
   await page
     .getByRole('button', { name: m5s3.wish.complete, exact: true })
     .click();
+  await expect(
+    page.getByRole('button', { name: m5s3.wish.createMemory }),
+  ).toBeVisible();
+  expect(mocks.requestCount()).toBe(1);
+});
+
+test('a disconnected completion request preserves input and retries only deliberately', async ({
+  page,
+}) => {
+  const held = heldResponse();
+  const options = { hold: held.hold, offline: true };
+  const mocks = await installMocks(page, options);
+  await openWish(page, visualScenarios[0]);
+  const title = page.getByLabel(m5s3.wish.planTitle);
+  await title.fill('Future trip');
+  const complete = page.getByRole('button', {
+    name: m5s3.wish.complete,
+    exact: true,
+  });
+  await complete.click();
+  await expect.poll(mocks.requestCount).toBe(1);
+  await expect(page.getByText(m5s3.wish.completePending)).toBeVisible();
+  // Connectivity was available at dispatch; this request fails in transport.
+  held.release();
+  const error = page.locator('.wish-operations').getByRole('status');
+  await expect(error.getByText(de.states.offline.title)).toBeVisible();
+  await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
+  await expect(title).toBeEnabled();
+  await expect(title).toHaveValue('Future trip');
+  await expect(
+    page.getByRole('button', { name: m5s3.wish.createMemory }),
+  ).toHaveCount(0);
+  expect(mocks.requestCount()).toBe(1);
+
+  await page.context().setOffline(true);
+  options.offline = false;
+  await page.context().setOffline(false);
+  await expect(error.getByText(de.states.offline.title)).toBeVisible();
+  expect(mocks.requestCount()).toBe(1);
+  await complete.click();
   await expect(
     page.getByRole('button', { name: m5s3.wish.createMemory }),
   ).toBeVisible();

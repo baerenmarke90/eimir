@@ -20,6 +20,13 @@ import {
     DashboardSpaceSummaryToJSON,
     DashboardSpaceSummaryToJSONTyped,
 } from './DashboardSpaceSummary';
+import type { DashboardAnticipation } from './DashboardAnticipation';
+import {
+    DashboardAnticipationFromJSON,
+    DashboardAnticipationFromJSONTyped,
+    DashboardAnticipationToJSON,
+    DashboardAnticipationToJSONTyped,
+} from './DashboardAnticipation';
 import type { DashboardSharedStorySummary } from './DashboardSharedStorySummary';
 import {
     DashboardSharedStorySummaryFromJSON,
@@ -41,6 +48,13 @@ import {
     DashboardRelationshipDurationToJSON,
     DashboardRelationshipDurationToJSONTyped,
 } from './DashboardRelationshipDuration';
+import type { DashboardExperience } from './DashboardExperience';
+import {
+    DashboardExperienceFromJSON,
+    DashboardExperienceFromJSONTyped,
+    DashboardExperienceToJSON,
+    DashboardExperienceToJSONTyped,
+} from './DashboardExperience';
 
 /**
  * 
@@ -48,6 +62,18 @@ import {
  * @interface DashboardView
  */
 export interface DashboardView {
+    /**
+     * 
+     * @type {DashboardAnticipation}
+     * @memberof DashboardView
+     */
+    anticipation?: DashboardAnticipation | null;
+    /**
+     * 
+     * @type {DashboardExperience}
+     * @memberof DashboardView
+     */
+    incomingExperience?: DashboardExperience | null;
     /**
      * 
      * @type {DashboardItem}
@@ -129,6 +155,8 @@ export function DashboardViewFromJSONTyped(json: any, ignoreDiscriminator: boole
     }
     return {
         
+        'anticipation': json['anticipation'] === undefined ? undefined : json['anticipation'] === null ? null : DashboardAnticipationFromJSON(json['anticipation']),
+        'incomingExperience': json['incomingExperience'] === undefined ? undefined : json['incomingExperience'] === null ? null : DashboardExperienceFromJSON(json['incomingExperience']),
         'keepsake': DashboardItemFromJSON(json['keepsake']),
         'recentShared': ((json['recentShared'] as Array<any>).map(DashboardItemFromJSON)),
         'relationshipDuration': DashboardRelationshipDurationFromJSON(json['relationshipDuration']),
@@ -152,6 +180,8 @@ export function DashboardViewToJSONTyped(value?: DashboardView | null, ignoreDis
 
     return {
         
+        'anticipation': DashboardAnticipationToJSON(value['anticipation']),
+        'incomingExperience': DashboardExperienceToJSON(value['incomingExperience']),
         'keepsake': DashboardItemToJSON(value['keepsake']),
         'recentShared': ((value['recentShared'] as Array<any>).map(DashboardItemToJSON)),
         'relationshipDuration': DashboardRelationshipDurationToJSON(value['relationshipDuration']),

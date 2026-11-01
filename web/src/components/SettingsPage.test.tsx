@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
+import profiles from '../i18n/locales/profiles';
 import accountSettings from '../i18n/locales/accountSettings';
 import dailyQuote from '../i18n/locales/dailyQuote';
 import profileIdentity from '../i18n/locales/profileIdentity';
@@ -82,6 +83,17 @@ function renderSettingsPageFixture(route = '/more/settings'): string {
 }
 
 describe('SettingsPage', () => {
+  it('describes current Pro capabilities under App and Account', () => {
+    const html = renderSettingsPageFixture('/more/settings/account');
+    expect(html).toContain(profiles.premium.title);
+    for (const feature of Object.values(profiles.premium.features)) {
+      expect(html).toContain(feature.title);
+      expect(html).toContain(feature.body);
+    }
+    expect(html).toContain(profiles.premium.detailsTitle);
+    expect(html).toContain(profiles.premium.detailsBody);
+    expect(html).toContain('settings-account');
+  });
   it('renders a calm category index instead of every settings form at once', () => {
     const html = renderSettingsPageFixture();
 
@@ -93,7 +105,7 @@ describe('SettingsPage', () => {
     expect(html).toContain('href="/more/settings/appearance"');
     expect(html).toContain('href="/more/settings/data"');
     expect(html).toContain('href="/more/settings/account"');
-    expect(html).toContain('href="/more"');
+    expect(html).not.toContain('settings-back-link');
 
     expect(html).not.toContain('name="relationshipStartedOn"');
     expect(html).not.toContain('anniversary-reminder-form');
@@ -103,12 +115,12 @@ describe('SettingsPage', () => {
     expect(html).not.toContain('account-danger-zone');
   });
 
-  it('renders one focused category task at a time with Back to Settings', () => {
+  it('renders one focused category task at a time without a redundant page-local return link', () => {
     const relationship = renderSettingsPageFixture(
       '/more/settings/relationship',
     );
     expect(relationship).toContain('name="relationshipStartedOn"');
-    expect(relationship).toContain('href="/more/settings"');
+    expect(relationship).not.toContain('settings-back-link');
     expect(relationship).not.toContain('anniversary-reminder-form');
     expect(relationship).not.toContain('name="dashboardUpcomingItemLimit"');
 

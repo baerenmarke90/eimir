@@ -29,7 +29,7 @@ path converts a calendar date into a fabricated midnight/noon timestamp.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -46,8 +46,9 @@ from eimir.authorization import (
     require_writable,
     require_writable_locked,
 )
+from eimir.core import clock
 from eimir.core import cursor as cursor_codec
-from eimir.core.clock import today_in
+from eimir.core.clock import now, today_in
 from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
 from eimir.create_receipts import service as create_receipts
 from eimir.create_receipts.models import CreateReceiptResourceType
@@ -55,7 +56,9 @@ from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.identity.models import Account
 from eimir.outbox import service as outbox_service
 from eimir.places.models import Place
+from eimir.plans.media import PhotoSelection, replace_cover, replace_photos
 from eimir.plans.models import Plan, PlanPayload, PlanStatus, shared_privacy
+from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders import runtime as reminder_runtime
 from eimir.wishes import service as wish_service
 from eimir.wishes.models import Wish, WishStatus
@@ -134,8 +137,17 @@ def _ensure_expected_version(plan: Plan, expected_version: int) -> None:
         )
 
 
-def _record(session: Session, plan: Plan, actor_id: UUID, event_type: EventType) -> None:
+def _record(
+    session: Session,
+    plan: Plan,
+    actor_id: UUID,
+    event_type: EventType,
+    *,
+    due_at: datetime | None = None,
+) -> None:
     """Record an event without plan title or description (M3-D13)."""
+    if event_type in {EventType.PLAN_CREATED, EventType.PLAN_SCHEDULED}:
+        due_at = _schedule_deadline(session, plan, actor_id)
     outbox_service.record(
         session,
         DomainEvent(
@@ -145,8 +157,77 @@ def _record(session: Session, plan: Plan, actor_id: UUID, event_type: EventType)
             subject_type=_PLAN_SUBJECT_TYPE,
             subject_id=plan.id,
             resource_version=plan.version,
-            payload=PublicEventPayload(),
+            payload=PublicEventPayload(
+                recipient_id=session.scalar(
+                    select(Membership.account_id)
+                    .where(
+                        Membership.space_id == plan.space_id,
+                        Membership.account_id != actor_id,
+                        Membership.status == MembershipStatus.ACTIVE.value,
+                    )
+                    .limit(1)
+                )
+                if event_type
+                in {
+                    EventType.PLAN_CREATED,
+                    EventType.PLAN_SCHEDULED,
+                    EventType.PLAN_ATTENDANCE_CHANGED,
+                    EventType.PLAN_CANCELLED,
+                }
+                else None,
+                due_at=due_at,
+            ),
         ),
+    )
+
+
+def _schedule_deadline(session: Session, plan: Plan, actor_id: UUID) -> datetime | None:
+    if plan.planned_start is not None:
+        return clock.ensure_utc(plan.planned_start)
+    if plan.planned_on is not None:
+        actor = session.get(Account, actor_id)
+        # Date-only Plans remain relevant for their whole local calendar day.
+        return clock.resolve_local(
+            plan.planned_on + timedelta(days=1),
+            time.min,
+            clock.resolve_zone(actor.timezone if actor else "UTC"),
+        )
+    return None
+
+
+def _attendance_changed(
+    session: Session,
+    plan: Plan,
+    actor_id: UUID,
+    previous: tuple[date | None, datetime | None, datetime | None, UUID | None],
+    deadline: datetime | None,
+    *,
+    cancelled: bool = False,
+) -> None:
+    if plan.status == PlanStatus.COMPLETED.value:
+        return
+    current = (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id)
+    if not cancelled and current == previous:
+        return
+    if not cancelled and previous[0] is None and previous[1] is None:
+        if plan.planned_on is not None or plan.planned_start is not None:
+            _record(session, plan, actor_id, EventType.PLAN_SCHEDULED)
+        return
+    cancelled = cancelled or (plan.planned_on is None and plan.planned_start is None)
+    instant = now()
+    deadlines = [
+        value
+        for value in (deadline, _schedule_deadline(session, plan, actor_id))
+        if value is not None and instant < value <= instant + timedelta(hours=48)
+    ]
+    if not deadlines:
+        return
+    _record(
+        session,
+        plan,
+        actor_id,
+        EventType.PLAN_CANCELLED if cancelled else EventType.PLAN_ATTENDANCE_CHANGED,
+        due_at=max(deadlines),
     )
 
 
@@ -248,6 +329,9 @@ def create_plan(
     planned_on: date | None = None,
     planned_start: datetime | None = None,
     planned_end: datetime | None = None,
+    cover_attachment_id: UUID | None = None,
+    cover_is_sensitive: bool | None = None,
+    photos: PhotoSelection | None = None,
 ) -> Plan:
     """Create a direct unscheduled, date-only, or timed Plan atomically."""
     status = _initial_schedule_status(planned_on, planned_start, planned_end)
@@ -265,6 +349,10 @@ def create_plan(
     )
     session.add(plan)
     _flush(session)
+    if photos is not None:
+        replace_photos(session, context, plan, photos)
+    else:
+        replace_cover(session, context, plan, cover_attachment_id, is_sensitive=cover_is_sensitive)
     _record(session, plan, context.account_id, EventType.PLAN_CREATED)
     _flush(session)
     if status == PlanStatus.PLANNED:
@@ -283,6 +371,9 @@ def create_plan_once(
     planned_on: date | None = None,
     planned_start: datetime | None = None,
     planned_end: datetime | None = None,
+    cover_attachment_id: UUID | None = None,
+    cover_is_sensitive: bool | None = None,
+    photos: PhotoSelection | None = None,
 ) -> PlanCreateResult:
     """Create a direct Plan, or return the one an earlier request with this identity created.
 
@@ -301,6 +392,9 @@ def create_plan_once(
             planned_on=planned_on,
             planned_start=planned_start,
             planned_end=planned_end,
+            cover_attachment_id=cover_attachment_id,
+            cover_is_sensitive=cover_is_sensitive,
+            photos=photos,
         )
         return PlanCreateResult(plan, created=True)
 
@@ -310,6 +404,19 @@ def create_plan_once(
         {
             "title": normalized_title,
             "description": description,
+            **(
+                {"attachments": [(str(photo_id), sensitive) for photo_id, sensitive in photos]}
+                if photos is not None
+                else {}
+            ),
+            **(
+                {
+                    "cover_attachment_id": str(cover_attachment_id),
+                    "cover_is_sensitive": bool(cover_is_sensitive),
+                }
+                if cover_attachment_id
+                else {}
+            ),
             "place_id": str(place_id) if place_id is not None else None,
             "planned_on": planned_on.isoformat() if planned_on else None,
             "planned_start": planned_start.isoformat() if planned_start else None,
@@ -347,6 +454,9 @@ def create_plan_once(
         planned_on=planned_on,
         planned_start=planned_start,
         planned_end=planned_end,
+        cover_attachment_id=cover_attachment_id,
+        cover_is_sensitive=cover_is_sensitive,
+        photos=photos,
     )
     create_receipts.attach(session, receipt_id, plan.id)
     return PlanCreateResult(plan, created=True)
@@ -405,17 +515,54 @@ def update_plan(
     description: str | None,
     place_id: UUID | str | None,
     experienced_on: date | None,
+    anticipation_enabled: bool | None = None,
+    cover_attachment_id: UUID | None = None,
+    cover_is_sensitive: bool | None = None,
+    photos: PhotoSelection | None = None,
+    schedule_values: tuple[date | None, datetime | None, datetime | None] | None = None,
 ) -> Plan:
-    """Correct plan content without changing lifecycle status (M3-D04)."""
+    """Correct content, cover and schedule atomically; completion stays explicit."""
     next_place_id = (
         _resolve_place(session, context, place_id) if "place_id" in changed_fields else None
     )
 
     plan = _lock_plan(session, context, plan_id)
     _ensure_expected_version(plan, expected_version)
+    previous = (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id)
+    previous_deadline = _schedule_deadline(session, plan, context.account_id)
 
+    if "attachments" in changed_fields:
+        assert photos is not None
+        replace_photos(session, context, plan, photos)
+        plan.updated_at = now()
+    elif "cover_attachment_id" in changed_fields or "cover_is_sensitive" in changed_fields:
+        replace_cover(
+            session,
+            context,
+            plan,
+            cover_attachment_id
+            if "cover_attachment_id" in changed_fields
+            else plan.cover_attachment_id,
+            is_sensitive=cover_is_sensitive,
+        )
+        plan.updated_at = now()
+    if "schedule" in changed_fields:
+        if plan.status == PlanStatus.COMPLETED.value:
+            raise ConflictError(
+                "A completed plan cannot be scheduled.", PLAN_STATUS_TRANSITION_INVALID
+            )
+        planned_on, planned_start, planned_end = schedule_values or (None, None, None)
+        plan.status = _initial_schedule_status(planned_on, planned_start, planned_end).value
+        plan.planned_on, plan.planned_start, plan.planned_end = (
+            planned_on,
+            planned_start,
+            planned_end,
+        )
     if "place_id" in changed_fields:
         plan.place_id = next_place_id
+    if "anticipation_enabled" in changed_fields:
+        assert anticipation_enabled is not None
+        plan.anticipation_enabled = anticipation_enabled
 
     next_title = plan.payload.title
     next_description = plan.payload.description
@@ -437,7 +584,10 @@ def update_plan(
 
     _flush(session)
     _record(session, plan, context.account_id, EventType.PLAN_UPDATED)
+    _attendance_changed(session, plan, context.account_id, previous, previous_deadline)
     _flush(session)
+    if "schedule" in changed_fields:
+        reminder_runtime.reconcile_space(session, context.space_id)
     return plan
 
 
@@ -454,6 +604,8 @@ def schedule_plan(
     """Apply ``IDEA -> PLANNED`` or replace a ``PLANNED`` schedule."""
     plan = _lock_plan(session, context, plan_id)
     _ensure_expected_version(plan, expected_version)
+    previous = (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id)
+    previous_deadline = _schedule_deadline(session, plan, context.account_id)
 
     if plan.status == PlanStatus.COMPLETED.value:
         raise ConflictError(
@@ -469,6 +621,7 @@ def schedule_plan(
 
     _flush(session)
     _record(session, plan, context.account_id, EventType.PLAN_UPDATED)
+    _attendance_changed(session, plan, context.account_id, previous, previous_deadline)
     _flush(session)
     reminder_runtime.reconcile_space(session, context.space_id)
     return plan
@@ -484,6 +637,8 @@ def unschedule_plan(
     """Apply ``PLANNED -> IDEA`` and discard either schedule representation."""
     plan = _lock_plan(session, context, plan_id)
     _ensure_expected_version(plan, expected_version)
+    previous = (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id)
+    previous_deadline = _schedule_deadline(session, plan, context.account_id)
 
     if plan.status != PlanStatus.PLANNED.value:
         raise ConflictError(
@@ -498,6 +653,7 @@ def unschedule_plan(
 
     _flush(session)
     _record(session, plan, context.account_id, EventType.PLAN_UPDATED)
+    _attendance_changed(session, plan, context.account_id, previous, previous_deadline)
     _flush(session)
     reminder_runtime.reconcile_space(session, context.space_id)
     return plan
@@ -562,6 +718,15 @@ def return_to_wish(
 
     removed_plan_id = plan.id
     actor_id = context.account_id
+    replace_photos(session, context, plan, [])
+    _attendance_changed(
+        session,
+        plan,
+        actor_id,
+        (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id),
+        _schedule_deadline(session, plan, actor_id),
+        cancelled=True,
+    )
     session.delete(plan)
     _flush(session)
     _record(session, plan, actor_id, EventType.PLAN_DELETED)
@@ -590,6 +755,15 @@ def delete_plan(
         )
 
     actor_id = context.account_id
+    replace_photos(session, context, plan, [])
+    _attendance_changed(
+        session,
+        plan,
+        actor_id,
+        (plan.planned_on, plan.planned_start, plan.planned_end, plan.place_id),
+        _schedule_deadline(session, plan, actor_id),
+        cancelled=True,
+    )
     session.delete(plan)
     _flush(session)
     _record(session, plan, actor_id, EventType.PLAN_DELETED)

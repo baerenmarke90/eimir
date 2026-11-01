@@ -120,12 +120,14 @@ def get_activity(
     response: Response,
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=service.MAX_LIMIT)] = service.DEFAULT_LIMIT,
+    scope: Annotated[service.ActivityScope, Query()] = service.ActivityScope.SHARED,
 ) -> ActivityPage:
     page = service.read_activity(
         session,
         authorization,
         cursor=cursor,
         limit=limit,
+        scope=scope,
     )
     actor_ids = {item.actor_id for item in page.items if item.actor_id is not None}
     actors = _resolve_actors(session, actor_ids)
@@ -215,6 +217,12 @@ def mark_notification_read(
         authorization,
         notification_id,
     )
+    return _present_opened_notification(notification, session, authorization, response)
+
+
+def _present_opened_notification(
+    notification: Notification, session: DbSession, authorization: Authorization, response: Response
+) -> NotificationItem:
     actors = (
         _resolve_actors(session, {notification.actor_id})
         if notification.actor_id is not None
@@ -230,6 +238,30 @@ def mark_notification_read(
             )
     response.headers["Cache-Control"] = "private, no-store"
     return _notification_item(notification, actors, target_titles)
+
+
+@router.post(
+    "/spaces/{spaceId}/notifications/{notificationId}/open",
+    response_model=NotificationItem,
+    operation_id="openNotification",
+    responses=problem_responses(401, 404, 422),
+    tags=["notifications"],
+)
+def open_notification(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    notification_id: Annotated[str, Path(alias="notificationId")],
+) -> NotificationItem:
+    """Resolve an explicit external tap even when the recipient hides Center entries.
+
+    This never enables ambient in-app presentation. Recipient, source visibility,
+    expiry and mutual-reveal checks remain identical to the normal read action.
+    """
+    notification = service.mark_notification_read(
+        session, authorization, notification_id, include_external=True
+    )
+    return _present_opened_notification(notification, session, authorization, response)
 
 
 @router.post(
@@ -334,6 +366,8 @@ def _resolve_target_titles(
 
     titles: dict[tuple[EngagementTarget, UUID], str] = {}
     for target_type, ids in by_type.items():
+        if target_type in {EngagementTarget.TRANSFER_EXPORT, EngagementTarget.TRANSFER_IMPORT}:
+            continue  # Account-private jobs have no relationship-content title.
         model = service._TARGET_MODELS.get(target_type)
         if model is None:
             continue

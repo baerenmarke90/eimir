@@ -14,12 +14,12 @@ import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { Configuration } from '../client/apiConfiguration';
 import { useApiRuntime } from '../client/apiRuntimeContext';
-import { usePartnerNickname } from '../client/partnerNickname';
 import {
-  commentPresenceQueryKey,
   type CommentParentKind,
+  commentPresenceQueryKey,
   listCommentsPage,
 } from '../client/commentQueries';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   heartMomentDetailPath,
   memoryDetailPath,
@@ -28,7 +28,7 @@ import {
 import { resolvedLocale, useTranslation } from '../i18n';
 import { HeartEmotionBadge } from './HeartEmotionVisual';
 import { MemoryPreview } from './MemoryPreview';
-import { AuthorAvatar } from './PersonIdentity';
+import { PreviewCardLink } from './PreviewCardLink';
 import {
   formatTimelineDate,
   storyItemKey,
@@ -213,7 +213,6 @@ export function StoryList({
   items,
   loadMemoryImage,
   loadHeartMomentImage,
-  profilesApi,
   spaceId,
   onOpenItem,
   progressiveReveal = false,
@@ -276,7 +275,7 @@ export function StoryList({
         {items.map((item, index) => {
           const itemKey = storyItemKey(item);
           const presentation = storyItemPresentation(item, t, nicknameFor);
-          const author = storyItemAuthor(item);
+          const _author = storyItemAuthor(item);
           const firstMemoryAttachment =
             item.kind === 'MEMORY' ? item.memory.attachments[0] : undefined;
           const heartAttachment =
@@ -306,6 +305,8 @@ export function StoryList({
             .join(' ');
 
           const metaId = `${listId}-meta-${index}`;
+          const CardLink =
+            imageAttachment?.isSensitive === true ? PreviewCardLink : Link;
           const accessibleName = `${presentation.kindLabel}: ${presentation.title}${
             item.kind === 'HEART_MOMENT' && presentation.preview
               ? ` ${t('heartMomentProduct.emotionLabel')}: ${presentation.preview}`
@@ -321,8 +322,8 @@ export function StoryList({
               }
             >
               <StoryTimelineMarker kind={item.kind} />
-              <Link
-                className="story-card-link"
+              <CardLink
+                className={`story-card-link${presentation.titleIsDate && imageAttachment ? ' story-card-photo-led' : ''}`}
                 to={productPath}
                 data-task-item-key={itemKey}
                 onClick={(event) => onOpenItem?.(event, item, productPath)}
@@ -341,6 +342,9 @@ export function StoryList({
                     <MemoryPreview
                       memoryId={imageEntityId}
                       attachmentId={imageAttachment.id}
+                      isSensitive={imageAttachment.isSensitive}
+                      allowReveal
+                      resourceScopeKey={`story-preview:${spaceId ?? ''}:${imageEntityId}`}
                       loadImage={imageLoader}
                       loadingMode={
                         progressiveReveal ? 'near-viewport' : 'immediate'
@@ -348,7 +352,9 @@ export function StoryList({
                     />
                   ) : null}
 
-                  <h4>{presentation.title}</h4>
+                  {!presentation.titleIsDate ? (
+                    <h4>{presentation.title}</h4>
+                  ) : null}
                   {item.kind === 'HEART_MOMENT' ? (
                     <HeartEmotionBadge emotion={item.heartMoment.emotion} />
                   ) : presentation.preview ? (
@@ -362,13 +368,6 @@ export function StoryList({
                       {formatTimelineDate(item.effectiveDate, locale)}
                     </time>
                     <span className="story-card-footer-author">
-                      <span className="momente-author-meta">
-                        <AuthorAvatar
-                          author={author}
-                          profilesApi={profilesApi}
-                          spaceId={spaceId}
-                        />
-                      </span>
                       {presentation.visibility ? (
                         <span
                           className={`story-card-meta-item story-card-visibility story-card-visibility-${presentation.visibility.toLowerCase()}`}
@@ -416,7 +415,7 @@ export function StoryList({
                     </span>
                   </div>
                 </article>
-              </Link>
+              </CardLink>
             </li>
           );
         })}

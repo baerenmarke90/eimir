@@ -43,9 +43,12 @@ class DashboardModuleKey(StrEnum):
     """Stable internal product keys for registered Dashboard modules."""
 
     RELATIONSHIP_PRESENCE = "relationship_presence"
+    SHARED_EXPERIENCE = "shared_experience"
+    DAILY_QUOTE = "daily_quote"
     UPCOMING = "upcoming"
     PINNED_COLLECTION = "pinned_collection"
     KEEPSAKE = "keepsake"
+    RETROSPECTIVE = "retrospective"
     RELATIONSHIP_SIGNAL = "relationship_signal"
     MONTHLY_HIGHLIGHTS = "monthly_highlights"
     RECENT_SHARED = "recent_shared"
@@ -87,7 +90,7 @@ class DashboardModuleState:
 
 # Default Settings/Today order, matching the current Today composition
 # (`web/src/components/TodayPage.tsx`): relationship_presence (the Couple
-# Presence hero), keepsake, upcoming, pinned_collection, relationship_signal,
+# Presence hero), keepsake, upcoming, pinned_collection, retrospective, relationship_signal,
 # monthly_highlights, recent_shared. #848 established `UPCOMING` with an
 # item-limit facet; #817 added visibility to every module.
 #
@@ -96,6 +99,8 @@ class DashboardModuleState:
 # same per-Account+Space visibility behavior as every other Dashboard module.
 CATALOG: tuple[DashboardModuleDefinition, ...] = (
     DashboardModuleDefinition(key=DashboardModuleKey.RELATIONSHIP_PRESENCE, default_visible=True),
+    DashboardModuleDefinition(key=DashboardModuleKey.SHARED_EXPERIENCE, default_visible=True),
+    DashboardModuleDefinition(key=DashboardModuleKey.DAILY_QUOTE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.KEEPSAKE, default_visible=True),
     DashboardModuleDefinition(
         key=DashboardModuleKey.UPCOMING,
@@ -107,6 +112,7 @@ CATALOG: tuple[DashboardModuleDefinition, ...] = (
         default_visible=True,
         selects_collection=True,
     ),
+    DashboardModuleDefinition(key=DashboardModuleKey.RETROSPECTIVE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.RELATIONSHIP_SIGNAL, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.MONTHLY_HIGHLIGHTS, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.RECENT_SHARED, default_visible=True),
@@ -183,6 +189,31 @@ def set_module_order(
 ) -> list[DashboardModuleState]:
     """Atomically replace only the order facet of the personal preference rows."""
     expected = {definition.key.value for definition in CATALOG}
+    # Accept known older complete catalogs without resetting personal order.
+    optional = {
+        DashboardModuleKey.DAILY_QUOTE.value,
+        DashboardModuleKey.SHARED_EXPERIENCE.value,
+        DashboardModuleKey.RETROSPECTIVE.value,
+    }
+    missing = expected - set(module_keys)
+    if (
+        len(module_keys) == len(set(module_keys))
+        and set(module_keys) <= expected
+        and missing <= optional
+    ):
+        module_keys = list(module_keys)
+        catalog_keys = [definition.key.value for definition in CATALOG]
+        for index, key in enumerate(catalog_keys):
+            if key in missing:
+                predecessor = next(
+                    (
+                        candidate
+                        for candidate in reversed(catalog_keys[:index])
+                        if candidate in module_keys
+                    ),
+                    None,
+                )
+                module_keys.insert(module_keys.index(predecessor) + 1 if predecessor else 0, key)
     if len(module_keys) != len(expected) or set(module_keys) != expected:
         raise ValidationError(
             "moduleKeys must contain every registered Dashboard module exactly once.",

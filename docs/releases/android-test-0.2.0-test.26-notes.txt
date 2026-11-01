@@ -1,0 +1,13 @@
+eimir. 0.2.0-test.26
+
+Diese Testversion übernimmt den neuesten integrierten Main vom 29. Oktober mit den Änderungen aus #1510, den vollständigen Planbildern aus #1506 und der größeren mobilen Navigation aus #1511.
+
+Momente zeigt oben eine ruhige Auswahl zum Wiederentdecken und darunter das vollständige chronologische Tagebuch. Filter, Fotos und Archiv sind über die Tagebuch-Optionen erreichbar. Die Privatsphäre-Steuerung bleibt auch in kleinen Fotovorschauen bedienbar; große Schrift erhält mehr Platz für Titel und Metadaten.
+
+Abgeschlossene Pläne können nach bestätigtem Datum als Erinnerung weitergeführt werden. Bestehende Entwürfe und eigene Eingaben haben Vorrang. Orte lassen sich auch ohne GPS ergänzen; nach einem Linkfehler wird nur die Verknüpfung wiederholt.
+
+Wir zeigt einen tatsächlich sichtbaren nächsten Termin. Die persönlich einschaltbare Beziehungsstatistik bleibt standardmäßig aus und verwendet die bestehende Pro-Freigabe. Quellzähler, Verlauf und Export bleiben Free. Das Tageszitat und die Abschnittsüberschriften sind kompakter und ruhiger gestaltet.
+
+Alle elf Android-Startsymbole verwenden eine sichere adaptive Geometrie. Das kurze Startsymbol unterstützt Tag und Nacht; beim Wiederherstellen erscheint ein schlanker Status.
+
+Über Einstellungen → App-Updates auf der bestehenden Installation aktualisieren. Die App nicht deinstallieren und keine App-Daten löschen. Signatur, Paket und bestehender Testkanal bleiben erhalten. Die Bereitstellung der Web/API-Version wird getrennt über den bestehenden privaten Kanal ausgewählt; Arcane aktualisiert Philipp selbst.

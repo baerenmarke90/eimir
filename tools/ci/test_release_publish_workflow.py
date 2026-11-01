@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
@@ -75,6 +76,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn("vars.EIMIR_TEST_CHANNEL_ENABLED == 'true'", gate)
         publisher = self.workflow.split("\n  test-publish:\n", 1)[1]
         self.assertIn("needs: test-evidence", publisher)
+        self.assertIn("queue: max", publisher)
         self.assertNotIn("if: always()\n    runs-on:", publisher)
         self.assertIn("scripts/test_deployment_channel.py publish", publisher)
         self.assertNotIn("gh release", publisher)
@@ -95,9 +97,85 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
                 writers.append(path.name)
         self.assertEqual(writers, ["release-publish.yml"])
 
+    def test_android_test_publication_preserves_the_protected_boundary(self) -> None:
+        jobs = dict(re.findall(
+            r"(?ms)^  ([a-z][a-z0-9-]*):\n(.*?)(?=^  [a-z][a-z0-9-]*:\n|\Z)",
+            self.workflow.split("\njobs:\n", 1)[1],
+        ))
+        preflight = jobs["android-test-preflight"]
+        publisher = jobs["android-test-publish"]
+        for block in (preflight, publisher):
+            self.assertIn("github.repository == 'baerenmarke90/eimir'", block)
+            self.assertIn("github.event_name == 'push'", block)
+            self.assertIn("github.ref == 'refs/heads/release/android-test.14-20261026'", block)
+            self.assertIn("ref: ${{ env.SOURCE }}", block)
+            self.assertIn('eimir-verification-sdk/build-tools/36.0.0', block)
+            self.assertNotIn("packages: write", block)
+        self.assertIn("needs: contract", preflight)
+        self.assertIn("contents: read", preflight)
+        self.assertNotIn("secrets.", preflight)
+        self.assertIn("scripts/android_test_release_plan.py admit", preflight)
+        self.assertIn('--github-output "$GITHUB_OUTPUT" --github-env "$GITHUB_ENV"', preflight)
+        self.assertIn("if: steps.plan.outputs.ready == 'true'", preflight)
+        self.assertIn("needs: android-test-preflight", publisher)
+        self.assertIn("needs.android-test-preflight.outputs.ready == 'true'", publisher)
+        self.assertIn("SOURCE: ${{ needs.android-test-preflight.outputs.source }}", publisher)
+        self.assertIn("VERSION_CODE: ${{ needs.android-test-preflight.outputs.version_code }}", publisher)
+        self.assertIn("environment: android-test-release", publisher)
+        self.assertIn("contents: write", publisher)
+        self.assertIn("--previous-apk", publisher)
+        self.assertIn('rm -f "$RUNNER_TEMP/eimir-test-release.jks"', publisher)
+
+    def test_android_test_marker_and_download_checks_precede_publication(self) -> None:
+        publisher = self.workflow.split("\n  android-test-publish:\n", 1)[1].split(
+            "\n  test-channel-contract:\n", 1
+        )[0]
+        apk_upload = 'gh release upload "$TAG" "$RUNNER_TEMP/release/$APK"'
+        apk_compare = 'cmp "$RUNNER_TEMP/release/$asset" "$RUNNER_TEMP/draft-check/$asset"'
+        marker_upload = 'gh release upload "$TAG" "$RUNNER_TEMP/release/eimir-test-update.json"'
+        marker_compare = 'cmp "$RUNNER_TEMP/release/eimir-test-update.json"'
+        publish = 'gh release edit "$TAG" --draft=false'
+        self.assertLess(publisher.index(apk_upload), publisher.index(apk_compare))
+        self.assertLess(publisher.index(apk_compare), publisher.index(marker_upload))
+        self.assertLess(publisher.index(marker_upload), publisher.index(marker_compare))
+        self.assertLess(publisher.index(marker_compare), publisher.index(publish))
+        self.assertLess(publisher.index(publish), publisher.index("Verify the anonymous updater catalog"))
+        self.assertIn('--expected-root "$RUNNER_TEMP/release"', publisher)
+
+    def test_private_channel_checks_completions_without_a_waiting_runner(self) -> None:
+        triggers = self.workflow.split("\non:\n", 1)[1].split("\npermissions:\n", 1)[0]
+        push = triggers.split("  push:\n", 1)[1].split("\n  workflow_run:", 1)[0]
+        self.assertEqual(push.strip(), "branches: ['release/android-test.14-20261026']")
+        completion = triggers.split("  workflow_run:\n", 1)[1].split("\n  pull_request:", 1)[0]
+        self.assertIn("types: [completed]", completion)
+        self.assertIn("branches: [main]", completion)
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import test_deployment_channel as channel
+
+        expected_names = {
+            (ROOT / path).read_text().splitlines()[0].removeprefix("name: ")
+            for path in channel.REQUIRED_WORKFLOWS
+        }
+        self.assertEqual(set(re.findall(r"^      - (.+)$", completion, re.MULTILINE)), expected_names)
+        gate = self.workflow.split("\n  test-checked-main:\n", 1)[1].split("\n  test-evidence:\n", 1)[0]
+        self.assertIn("timeout-minutes: 5", gate)
+        self.assertIn("scripts/test_deployment_channel.py check", gate)
+        self.assertNotIn("scripts/test_deployment_channel.py wait", gate)
+        self.assertIn("github.event.workflow_run.event == 'push'", gate)
+        self.assertIn("github.event.workflow_run.head_repository.full_name == github.repository", gate)
+        self.assertIn("persist-credentials: false", gate)
+        self.assertNotIn("contents: write", gate)
+        self.assertNotIn("packages: write", gate)
+        evidence = self.workflow.split("\n  test-evidence:\n", 1)[1].split("\n  test-publish:\n", 1)[0]
+        self.assertIn("needs: [test-checked-main, test-channel-contract]", evidence)
+        self.assertIn("needs.test-checked-main.outputs.ready == 'true'", evidence)
+
     def test_protected_publication_is_globally_serialized(self) -> None:
         self.assertIn(
-            "group: publish-release-${{ github.event_name == 'workflow_dispatch' && 'protected' || github.ref }}",
+            "group: publish-release-${{ github.event_name == 'workflow_dispatch' && 'protected' || "
+            "github.event.workflow_run.head_sha && format('{0}-{1}-{2}', "
+            "github.event.workflow_run.head_repository.full_name, github.event.workflow_run.event, "
+            "github.event.workflow_run.head_sha) || github.ref }}",
             self.workflow,
         )
         self.assertIn("cancel-in-progress: false", self.workflow)
@@ -348,14 +426,19 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn("push_single_digest()", publish_step)
         self.assertIn("ensure_alias_matches()", publish_step)
         self.assertIn('output=$(docker pull "$ref" 2>&1)', publish_step)
-        self.assertIn('output=$(docker push "$ref" 2>&1)', publish_step)
+        self.assertIn(
+            'output=$(docker push --platform "$runtime_platform" "$ref" 2>&1)',
+            publish_step,
+        )
+        self.assertIn('runtime_platform="linux/amd64"', publish_step)
+        self.assertNotIn('docker push "$ref"', publish_step)
         self.assertIn('digest=$(extract_registry_digest "$output")', publish_step)
         self.assertIn('digest_ref="${repository}@${digest}"', publish_step)
         self.assertGreaterEqual(
             publish_step.count('require_single_manifest "$digest_ref"'), 2
         )
         self.assertIn(
-            'transport_digest_ref=$(push_single_digest "$transport_ref" "$repository")',
+            'transport_digest_ref=$(push_single_digest "$transport_ref" "$repository" "$evidence_config")',
             publish_step,
         )
         self.assertIn(
@@ -607,6 +690,248 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertNotIn("capacitor-android", self.workflow)
         self.assertNotIn("working-directory: android", self.workflow)
         self.assertNotIn("android/app/build.gradle.kts", self.workflow)
+
+
+FAKE_DOCKER = r"""#!/bin/bash
+# Records every call; models a registry plus the legacy and containerd stores.
+state="$FAKE_DOCKER_STATE"
+echo "$*" >> "$state/calls.log"
+manifest_file() { printf '%s/manifest/%s' "$state" "$(printf '%s' "$1" | tr '/:@' '___')"; }
+case "$1" in
+  login) cat >/dev/null ;;
+  load|tag) ;;
+  push)
+    shift
+    platform=""
+    if [ "$1" = "--platform" ]; then platform="$2"; shift 2; fi
+    ref="$1"
+    digest="$FAKE_PUSH_DIGEST_DEFAULT"
+    if [ -n "$platform" ] && [ -z "${FAKE_IGNORE_PLATFORM:-}" ]; then
+      digest="$FAKE_PUSH_DIGEST_PLATFORM"
+    fi
+    case "${ref##*:}" in publish-*) ;; *)
+      if [ -n "${FAKE_ALIAS_DIGEST:-}" ]; then digest="$FAKE_ALIAS_DIGEST"; fi ;;
+    esac
+    echo "latest: digest: $digest size: 1234" ;;
+  pull)
+    ref="$2"
+    case "$ref" in
+      *@*) echo "Digest: ${ref##*@}" ;;
+      *) echo "Digest: $FAKE_ALIAS_PULL_DIGEST" ;;
+    esac ;;
+  manifest)
+    file=$(manifest_file "$3")
+    if [ -f "$file" ]; then cat "$file"; else echo "manifest unknown" >&2; exit 1; fi ;;
+  image)
+    case "$2" in
+      inspect)
+        case "$*" in
+          *image.revision*) echo "$FAKE_LABEL_REVISION" ;;
+          *image.version*) echo "$FAKE_LABEL_VERSION" ;;
+          *) exit 1 ;;
+        esac ;;
+      save) cp "$state/pullback.tar" "$4" ;;
+      *) exit 1 ;;
+    esac ;;
+  *) echo "unexpected docker call: $*" >&2; exit 1 ;;
+esac
+"""
+
+
+class RuntimeImagePublicationBehaviorTest(unittest.TestCase):
+    """Run the real publish_archive shell functions against a fake Docker.
+
+    Covers #1449: the immutable publisher must push only the runtime platform and
+    compare store-independent config digests, not Docker image IDs.
+    """
+
+    REVISION = "0123456789abcdef0123456789abcdef01234567"
+    VERSION = "0.0.0"
+    SINGLE = "sha256:" + "a" * 64
+    INDEX = "sha256:" + "b" * 64
+    OTHER = "sha256:" + "c" * 64
+    REPOSITORY = "ghcr.io/owner/eimir-backend"
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+        step = workflow.split("- name: Publish exact build-once runtime images to GHCR", 1)[
+            1
+        ].split("- name: Verify anonymous GHCR consumption", 1)[0]
+        script = textwrap.dedent(step.split("        run: |\n", 1)[1])
+        script = script[: script.index("\npublish_archive \\\n")]
+        # bash 3.2 (macOS) has no ${var,,}; the owner is already lower case here.
+        cls.script = script.replace("${GITHUB_REPOSITORY_OWNER,,}", "${GITHUB_REPOSITORY_OWNER}")
+        sys.path.insert(0, str(ROOT / "tools/ci"))
+
+    def setUp(self) -> None:
+        import test_image_archive_config as fixtures
+
+        self.fixtures = fixtures
+        self._directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self._directory.cleanup)
+        self.directory = Path(self._directory.name)
+        (self.directory / "bin").mkdir()
+        (self.directory / "state/manifest").mkdir(parents=True)
+        fake = self.directory / "bin/docker"
+        fake.write_text(FAKE_DOCKER, encoding="utf-8")
+        fake.chmod(0o755)
+        self.tag = f"eimir-backend:evidence-{self.REVISION}"
+        self.environment = {
+            "PATH": f"{self.directory / 'bin'}:{os.environ['PATH']}",
+            "FAKE_DOCKER_STATE": str(self.directory / "state"),
+            "FAKE_PUSH_DIGEST_DEFAULT": self.SINGLE,
+            "FAKE_PUSH_DIGEST_PLATFORM": self.SINGLE,
+            "FAKE_ALIAS_PULL_DIGEST": self.SINGLE,
+            "FAKE_LABEL_REVISION": self.REVISION,
+            "FAKE_LABEL_VERSION": self.VERSION,
+            "GH_TOKEN": "token",
+            "GITHUB_ACTOR": "actor",
+            "GITHUB_REPOSITORY_OWNER": "owner",
+            "GITHUB_RUN_ID": "7",
+            "GITHUB_RUN_ATTEMPT": "1",
+            "RUNNER_TEMP": str(self.directory),
+            "RELEASE_VERSION": self.VERSION,
+            "SOURCE_REVISION": self.REVISION,
+        }
+        self.config = self.fixtures.CONFIG_HEX
+        self.register(self.SINGLE, config="sha256:" + self.config)
+
+    def register(self, digest: str, *, config: str | None = None, index: bool = False) -> None:
+        if index:
+            body = {
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.oci.image.index.v1+json",
+                "manifests": [{}, {}],
+            }
+        else:
+            body = {
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                "config": {"digest": config},
+                "layers": [],
+            }
+        key = f"{self.REPOSITORY}@{digest}".replace("/", "_").replace(":", "_").replace("@", "_")
+        (self.directory / "state/manifest" / key).write_text(json.dumps(body), encoding="utf-8")
+
+    def register_alias(self, tag: str) -> None:
+        key = f"{self.REPOSITORY}:{tag}".replace("/", "_").replace(":", "_")
+        (self.directory / "state/manifest" / key).write_text("{}", encoding="utf-8")
+
+    def publish(
+        self, evidence: dict[str, bytes], pullback: dict[str, bytes] | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        archive = self.directory / "backend-runtime.image.tar"
+        self.fixtures.write_archive(archive, evidence)
+        self.fixtures.write_archive(
+            self.directory / "state/pullback.tar", pullback if pullback is not None else evidence
+        )
+        script = (
+            self.script
+            + f'\npublish_archive "{archive}" "{self.tag}" "$backend_repo" '
+            + f'"{self.directory}/result"\n'
+        )
+        return subprocess.run(
+            ["bash", "-euo", "pipefail", "-c", script],
+            cwd=ROOT,
+            env=self.environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    def calls(self) -> list[str]:
+        return (self.directory / "state/calls.log").read_text(encoding="utf-8").splitlines()
+
+    def test_both_image_stores_publish_the_exact_runtime_platform_only(self) -> None:
+        legacy = self.fixtures.legacy_members()
+        containerd = self.fixtures.containerd_members()
+        cases = {
+            "legacy": (legacy, legacy),
+            "containerd": (containerd, containerd),
+            "containerd build, legacy pull-back": (containerd, legacy),
+        }
+        for name, (evidence, pullback) in cases.items():
+            with self.subTest(store=name):
+                (self.directory / "state/calls.log").unlink(missing_ok=True)
+                result = self.publish(evidence, pullback)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                pushes = [call for call in self.calls() if call.startswith("push ")]
+                self.assertEqual(len(pushes), 3, pushes)
+                for call in pushes:
+                    self.assertTrue(call.startswith("push --platform linux/amd64 "), call)
+                self.assertEqual(
+                    (self.directory / "result").read_text(encoding="utf-8").strip(),
+                    f"{self.REPOSITORY}:v{self.VERSION}@{self.SINGLE}",
+                )
+
+    def test_containerd_provenance_index_is_never_published_as_the_release(self) -> None:
+        # What the old unqualified push did under containerd: it reported the index.
+        self.environment["FAKE_PUSH_DIGEST_DEFAULT"] = self.INDEX
+        self.register(self.INDEX, index=True)
+        self.environment["FAKE_IGNORE_PLATFORM"] = "1"
+        result = self.publish(self.fixtures.containerd_members())
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("not a supported single-image manifest", result.stderr)
+        self.assertFalse((self.directory / "result").exists())
+
+    def test_registry_config_must_equal_the_evidence_archive_config(self) -> None:
+        self.register(self.SINGLE, config=self.OTHER)
+        result = self.publish(self.fixtures.legacy_members())
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("not a supported single-image manifest", result.stderr)
+        self.assertIn("config differs from the evidence archive", result.stderr)
+        self.assertFalse((self.directory / "result").exists())
+
+    def test_pull_back_with_different_config_is_refused_before_aliases(self) -> None:
+        other = self.fixtures.legacy_members(config=b'{"architecture":"arm64"}')
+        result = self.publish(self.fixtures.legacy_members(), other)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("does not resolve to the release image bytes", result.stderr)
+        self.assertEqual(len([c for c in self.calls() if c.startswith("push ")]), 1)
+
+    def test_wrong_labels_or_archive_tag_fail_before_any_push(self) -> None:
+        for name, key, value in (
+            ("revision", "FAKE_LABEL_REVISION", "f" * 40),
+            ("version", "FAKE_LABEL_VERSION", "9.9.9"),
+        ):
+            with self.subTest(label=name):
+                (self.directory / "state/calls.log").unlink(missing_ok=True)
+                self.environment[key] = value
+                result = self.publish(self.fixtures.legacy_members())
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(any(c.startswith("push ") for c in self.calls()))
+                self.environment[key] = self.REVISION if name == "revision" else self.VERSION
+        with self.subTest(label="archive tag"):
+            (self.directory / "state/calls.log").unlink(missing_ok=True)
+            result = self.publish(self.fixtures.legacy_members(tag="eimir-backend:other"))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("tag", result.stderr)
+            self.assertFalse(any(c.startswith(("load ", "push ")) for c in self.calls()))
+
+    def test_existing_alias_pointing_elsewhere_is_a_conflict(self) -> None:
+        self.register_alias(f"sha-{self.REVISION}")
+        self.environment["FAKE_ALIAS_PULL_DIGEST"] = self.OTHER
+        self.register(self.OTHER, config="sha256:" + self.config)
+        result = self.publish(self.fixtures.legacy_members())
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("already points to a different digest", result.stderr)
+        self.assertFalse((self.directory / "result").exists())
+
+    def test_new_alias_must_publish_the_transport_digest(self) -> None:
+        self.environment["FAKE_ALIAS_DIGEST"] = self.OTHER
+        self.register(self.OTHER, config="sha256:" + self.config)
+        result = self.publish(self.fixtures.legacy_members())
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("published with a different digest", result.stderr)
+        self.assertFalse((self.directory / "result").exists())
+
+    def test_existing_matching_alias_is_reused_without_a_second_push(self) -> None:
+        self.register_alias(f"sha-{self.REVISION}")
+        self.register_alias(f"v{self.VERSION}")
+        result = self.publish(self.fixtures.legacy_members())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(len([c for c in self.calls() if c.startswith("push ")]), 1)
 
 
 if __name__ == "__main__":

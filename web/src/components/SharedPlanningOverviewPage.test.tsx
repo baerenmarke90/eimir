@@ -194,6 +194,7 @@ describe('SharedPlanningOverviewPage', () => {
 
     expect(planningHtml).toContain(i18n.t('m5s3.overview.wishesEmpty'));
     expect(planningHtml).toContain(i18n.t('m5s3.overview.plansEmpty'));
+    expect(planningHtml).not.toContain(i18n.t('m5s3.wish.createIntro'));
 
     const collectionsClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },

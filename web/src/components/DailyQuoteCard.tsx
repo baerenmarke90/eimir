@@ -4,6 +4,7 @@ import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { DailyQuotePreferencePatch } from '../api/generated/models/DailyQuotePreferencePatch';
 import {
+  type DailyQuotePreferenceSnapshot,
   dailyQuoteCatalogQueryKey,
   dailyQuoteEntitlementQueryKey,
   dailyQuotePreferencesQueryKey,
@@ -15,17 +16,13 @@ import {
   loadDailyQuoteCatalog,
   loadDailyQuotePreferences,
   saveDailyQuotePreferences,
-  type DailyQuotePreferenceSnapshot,
 } from '../client/dailyQuote';
 import { clientProblemKind } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
-import { PreferenceSwitch } from './PreferenceSwitch';
-import { ProMark } from './ProMark';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './DailyQuoteCard.css';
 
 interface DailyQuoteDraft {
-  enabled: boolean;
   categoryIds: string[];
   sourceIds: string[];
 }
@@ -96,23 +93,7 @@ function PreferencesContent({
           : t('dailyQuote.privacyFallback')}
       </p>
 
-      <PreferenceSwitch
-        label={t('dailyQuote.enabledLabel')}
-        description={t('dailyQuote.enabledDescription')}
-        checked={draft.enabled}
-        disabled={pending}
-        onCheckedChange={(enabled) =>
-          onDraftChange({
-            ...draft,
-            enabled,
-          })
-        }
-      />
-
-      <fieldset
-        className="daily-quote-choice-group"
-        disabled={pending || !draft.enabled}
-      >
+      <fieldset className="daily-quote-choice-group" disabled={pending}>
         <legend>{t('dailyQuote.categories')}</legend>
         <div className="daily-quote-category-grid">
           {catalog.categories.map((category) => {
@@ -148,7 +129,7 @@ function PreferencesContent({
 
       <fieldset
         className="daily-quote-choice-group daily-quote-source-group"
-        disabled={pending || !draft.enabled}
+        disabled={pending}
       >
         <legend>{t('dailyQuote.sources')}</legend>
         <div className="daily-quote-source-list">
@@ -223,6 +204,7 @@ export function DailyQuoteCard({
   spaceId,
   partnerName,
   partnerNameIsResolved = false,
+  settingsOnly = false,
 }: {
   quoteApi: DailyQuoteApi;
   entitlementsApi: EntitlementsApi;
@@ -230,6 +212,7 @@ export function DailyQuoteCard({
   spaceId: string;
   partnerName?: string;
   partnerNameIsResolved?: boolean;
+  settingsOnly?: boolean;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -268,7 +251,7 @@ export function DailyQuoteCard({
   const quoteQuery = useQuery({
     queryKey: quoteKey,
     queryFn: ({ signal }) => loadDailyQuote(quoteApi, spaceId, signal),
-    enabled: hasCapability,
+    enabled: hasCapability && !settingsOnly,
     retry: false,
     gcTime: 0,
   });
@@ -276,7 +259,7 @@ export function DailyQuoteCard({
   const catalogQuery = useQuery({
     queryKey: catalogKey,
     queryFn: ({ signal }) => loadDailyQuoteCatalog(quoteApi, spaceId, signal),
-    enabled: hasCapability,
+    enabled: settingsOpen && hasCapability,
     retry: false,
   });
 
@@ -292,7 +275,6 @@ export function DailyQuoteCard({
   useEffect(() => {
     if (!settingsOpen || !preferencesQuery.data) return;
     setDraft({
-      enabled: preferencesQuery.data.preference.enabled,
       categoryIds: [...preferencesQuery.data.preference.selectedCategoryIds],
       sourceIds: [...preferencesQuery.data.preference.selectedSourceIds],
     });
@@ -328,7 +310,6 @@ export function DailyQuoteCard({
       nextDraft: DailyQuoteDraft;
     }) => {
       const patch: DailyQuotePreferencePatch = {
-        enabled: nextDraft.enabled,
         selectedCategoryIds: nextDraft.categoryIds,
         selectedSourceIds: nextDraft.sourceIds,
       };
@@ -349,17 +330,6 @@ export function DailyQuoteCard({
     },
   });
 
-  const categoryNames = useMemo(
-    () =>
-      new Map(
-        (catalogQuery.data?.categories ?? []).map((category) => [
-          category.id,
-          category.name,
-        ]),
-      ),
-    [catalogQuery.data],
-  );
-
   const openSettings = () => {
     saveMutation.reset();
     setDraft(null);
@@ -379,7 +349,6 @@ export function DailyQuoteCard({
     const result = await preferencesQuery.refetch();
     if (result.data) {
       setDraft({
-        enabled: result.data.preference.enabled,
         categoryIds: [...result.data.preference.selectedCategoryIds],
         sourceIds: [...result.data.preference.selectedSourceIds],
       });
@@ -389,12 +358,11 @@ export function DailyQuoteCard({
   const retryEntitlement = () => void entitlementQuery.refetch();
   const retryQuote = () => void quoteQuery.refetch();
 
-  if (hasCapability && quoteQuery.data?.enabled === false) {
+  if (!settingsOnly && hasCapability && quoteQuery.data?.enabled === false) {
     return null;
   }
 
   let body: React.ReactNode;
-  let settingsAvailable = false;
 
   if (entitlementQuery.isPending) {
     body = (
@@ -471,7 +439,6 @@ export function DailyQuoteCard({
       </QuoteStateMessage>
     );
   } else if (!quoteQuery.data?.quote) {
-    settingsAvailable = true;
     body = (
       <QuoteStateMessage
         className="is-empty"
@@ -481,11 +448,7 @@ export function DailyQuoteCard({
       </QuoteStateMessage>
     );
   } else {
-    settingsAvailable = true;
     const quote = quoteQuery.data.quote;
-    const visibleCategories = quote.categoryIds
-      .map((id) => categoryNames.get(id))
-      .filter((name): name is string => Boolean(name));
     const attribution = quote.sourceDisplay
       ? t('dailyQuote.quoteAttribution', {
           author: quote.authorDisplay,
@@ -496,22 +459,10 @@ export function DailyQuoteCard({
         });
 
     body = (
-      <>
-        <blockquote className="daily-quote-block">
-          <p>„{quote.text}“</p>
-          {quote.attributionRequired ? <footer>{attribution}</footer> : null}
-        </blockquote>
-        {visibleCategories.length > 0 ? (
-          <ul
-            className="daily-quote-categories"
-            aria-label={t('dailyQuote.categories')}
-          >
-            {visibleCategories.map((name) => (
-              <li key={name}>{name}</li>
-            ))}
-          </ul>
-        ) : null}
-      </>
+      <blockquote className="daily-quote-block">
+        <p>„{quote.text}“</p>
+        {quote.attributionRequired ? <footer>{attribution}</footer> : null}
+      </blockquote>
     );
   }
 
@@ -523,37 +474,30 @@ export function DailyQuoteCard({
 
   return (
     <>
-      <section
-        className="daily-quote-card"
-        data-color-world="warm"
-        aria-labelledby="daily-quote-title"
-      >
-        <header className="daily-quote-header">
-          <div className="daily-quote-heading-group">
-            <span className="today-section-kicker">
-              {t('dailyQuote.kicker')}
-            </span>
-            <div className="daily-quote-heading">
-              <h2 id="daily-quote-title" className="today-section-title">
-                {t('dailyQuote.title')}
-              </h2>
-              <ProMark label={t('dailyQuote.pro')} />
-            </div>
-          </div>
-          {settingsAvailable ? (
-            <button
-              ref={settingsButtonRef}
-              type="button"
-              className="daily-quote-settings"
-              aria-label={t('dailyQuote.settingsAria')}
-              onClick={openSettings}
-            >
-              <span aria-hidden="true">•••</span>
-            </button>
-          ) : null}
-        </header>
-        {body}
-      </section>
+      {settingsOnly ? (
+        hasCapability ? (
+          <button
+            ref={settingsButtonRef}
+            type="button"
+            className="button-link"
+            aria-label={t('dailyQuote.settingsAria')}
+            onClick={openSettings}
+          >
+            {t('dailyQuote.selectionAction')}
+          </button>
+        ) : null
+      ) : (
+        <section
+          className="daily-quote-card"
+          data-color-world="warm"
+          aria-labelledby="daily-quote-title"
+        >
+          <h2 id="daily-quote-title" className="sr-only">
+            {t('dailyQuote.title')}
+          </h2>
+          <div className="daily-quote-content">{body}</div>
+        </section>
+      )}
 
       <ShortTaskSheet
         open={settingsOpen}

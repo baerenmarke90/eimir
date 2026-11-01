@@ -16,6 +16,11 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 6
     },
+    "journal-surface-polish.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "Three memory modes and retained scope, resolved live map appearance, navigation transparency fallback, scoped Own activity pagination/return, photo/text comment task ownership and Pro destination compatibility."
+    },
     "comments-delete-ownership.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 6,
@@ -58,7 +63,8 @@
     },
     "floating-bottom-nav-scroll.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 7
+      "baselineTests": 18,
+      "reason": "Persistent navigation clearance, bounded account/Space-scoped primary context, browser history/native tab replacement and native touch swipe ownership."
     },
     "floating-bottom-nav.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -83,11 +89,16 @@
     },
     "memory-carousel-stability.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 6
+      "baselineTests": 11
     },
     "memory-create-defaults.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 7
+      "baselineTests": 28
+    },
+    "memory-diary-storage.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "Real IndexedDB/File upgrade, scoped payload reads, metadata-only expiry/logout and rejected late-open connection ownership."
     },
     "memory-delete-ownership.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -143,7 +154,7 @@
     },
     "planning-wish-completion-continuation.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 6
+      "baselineTests": 10
     },
     "private-area-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -178,7 +189,7 @@
     },
     "r1-memory-capture-evidence.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 11
+      "baselineTests": 19
     },
     "r2-momente-timeline-evidence.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -233,8 +244,9 @@
       "baselineTests": 5
     },
     "story-discover-tapestry.spec.ts": {
-      "disposition": "FULL_REGRESSION",
-      "baselineTests": 5
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 16,
+      "reason": "Canonical source/return and natural content layout, explicit bounded renewal with stable confirmed results, daily freshness, offline/rate/access denial and untitled Diary photo reading."
     },
     "story-featured-metadata.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -279,15 +291,16 @@
     },
     "today-keepsake-precedence.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 5
+      "baselineTests": 10
     },
     "today-living-home.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 25
+      "baselineTests": 28,
+      "reason": "PO #1546 clarification retains monthly highlights and retrospectives; only the ready monthly invitation archive action is removed. Preserve the complete carousel, source, dismissal, reflow, keyboard and accessibility coverage."
     },
     "today-pro-insights.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 4
+      "baselineTests": 11
     },
     "today-recent-trace.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -327,6 +340,61 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 2,
       "reason": "Real App restoration must retain credentials across temporary outages, refresh on reconnect and clear definitive rejection without requiring repeated login."
+    },
+    "photo-places.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 10,
+      "reason": "Default-on account consent, saved shared-photo context, explicit map navigation, deliberate unlink and Compact/Expanded Light/Dark accessibility."
+    },
+    "relationship-reflections.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 12,
+      "reason": "Special Plan confirmed highlight, Today duplicate suppression and return; Pro passport capability and canonical shared content access across Compact Light/Dark and Expanded."
+    },
+    "wir-design-selection.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 11,
+      "reason": "Wir design selection and retention, quote/statistics order persistence with direct pointer tracking, and concise notification/private/profile settings across Compact/Expanded themes and large text."
+    },
+    "moment-relation-picker.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "Places and Chapters share one content-recognition picker; selection, type-filter continuity, real save/detail/return, privacy-safe search, large text, focus and cancellation must remain coherent."
+    },
+    "mobile-header-more.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5,
+      "reason": "Headerless Compact navigation, More utility discovery, authoritative unread status, safe areas, sign-out and capability gating."
+    },
+    "plan-cover-layout.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6,
+      "reason": "Complete portrait/landscape/square Plan images, original-versus-thumbnail reads, sensitive concealment and staged edit/cancel/return across actual overview/detail routes, Compact/Expanded and large text."
+    },
+    "product-consistency.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 11,
+      "reason": "The PO-approved combined Moments composition must preserve manual Place linking, modal return, icon/rail alignment, theme, Compact/Expanded and large-text reflow. Saved Wir content and module choices appear during background refresh only after current membership authorization."
+    },
+    "shared-wish-selection.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8,
+      "reason": "Explicit private favorites, authorized shared/zero-match/solo results, canonical Plan conversion and return, offline no-replay and Compact/Expanded theme/reflow acceptance for #1535."
+    },
+    "automatic-recaps.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 10,
+      "reason": "Automatic month/year discovery, focused source-return reader, selection conflict safety, private draft/share/save/withdraw and retained Free reads across Compact/Expanded themes."
+    },
+    "places-and-lists-design.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7,
+      "reason": "Places and Lists create/result/return, dirty modal boundaries, read-first entry editing, failed-save recovery, checking, sorting, removal and theme/reflow acceptance."
+    },
+    "memory-map-and-couple-games.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8,
+      "reason": "Protects saved-memory map privacy/Pro admission/source return, immediate tiles after authorized entry, tile-error list fallback/reflow, finite playable games and calendar date semantics."
     }
   }
 }

@@ -13,16 +13,55 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AttachmentEntry } from './AttachmentEntry';
+import {
+    AttachmentEntryFromJSON,
+    AttachmentEntryFromJSONTyped,
+    AttachmentEntryToJSON,
+    AttachmentEntryToJSONTyped,
+} from './AttachmentEntry';
+import type { PlanSchedule } from './PlanSchedule';
+import {
+    PlanScheduleFromJSON,
+    PlanScheduleFromJSONTyped,
+    PlanScheduleToJSON,
+    PlanScheduleToJSONTyped,
+} from './PlanSchedule';
+
 /**
- * Domain correction without changing lifecycle status.
+ * Atomic content, image and optional schedule correction.
  * 
- * Schedule fields remain owned by ``/schedule`` and ``/unschedule``.
+ * Explicit null ``schedule`` removes the date; omission preserves it.
  * ``experiencedOn`` is the one exception: it may be corrected on a completed
  * Plan without reopening it (M3-D04).
  * @export
  * @interface PlanUpdate
  */
 export interface PlanUpdate {
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PlanUpdate
+     */
+    anticipationEnabled?: boolean;
+    /**
+     * 
+     * @type {Array<AttachmentEntry>}
+     * @memberof PlanUpdate
+     */
+    attachments?: Array<AttachmentEntry>;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlanUpdate
+     */
+    coverAttachmentId?: string | null;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PlanUpdate
+     */
+    coverIsSensitive?: boolean;
     /**
      * 
      * @type {string}
@@ -41,6 +80,12 @@ export interface PlanUpdate {
      * @memberof PlanUpdate
      */
     placeId?: string | null;
+    /**
+     * 
+     * @type {PlanSchedule}
+     * @memberof PlanUpdate
+     */
+    schedule?: PlanSchedule | null;
     /**
      * 
      * @type {string}
@@ -66,9 +111,14 @@ export function PlanUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
+        'anticipationEnabled': json['anticipationEnabled'] == null ? undefined : json['anticipationEnabled'],
+        'attachments': json['attachments'] == null ? undefined : ((json['attachments'] as Array<any>).map(AttachmentEntryFromJSON)),
+        'coverAttachmentId': json['coverAttachmentId'] === undefined ? undefined : json['coverAttachmentId'] === null ? null : json['coverAttachmentId'],
+        'coverIsSensitive': json['coverIsSensitive'] == null ? undefined : json['coverIsSensitive'],
         'description': json['description'] === undefined ? undefined : json['description'] === null ? null : json['description'],
         'experiencedOn': json['experiencedOn'] == null ? undefined : (new Date(json['experiencedOn'])),
         'placeId': json['placeId'] === undefined ? undefined : json['placeId'] === null ? null : json['placeId'],
+        'schedule': json['schedule'] === undefined ? undefined : json['schedule'] === null ? null : PlanScheduleFromJSON(json['schedule']),
         'title': json['title'] == null ? undefined : json['title'],
     };
 }
@@ -84,9 +134,14 @@ export function PlanUpdateToJSONTyped(value?: PlanUpdate | null, ignoreDiscrimin
 
     return {
         
+        'anticipationEnabled': value['anticipationEnabled'],
+        'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(AttachmentEntryToJSON)),
+        'coverAttachmentId': value['coverAttachmentId'],
+        'coverIsSensitive': value['coverIsSensitive'],
         'description': value['description'],
         'experiencedOn': value['experiencedOn'] == null ? value['experiencedOn'] : value['experiencedOn'].toISOString().substring(0,10),
         'placeId': value['placeId'],
+        'schedule': PlanScheduleToJSON(value['schedule']),
         'title': value['title'],
     };
 }

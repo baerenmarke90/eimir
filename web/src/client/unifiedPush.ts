@@ -12,6 +12,8 @@ import {
   notificationUnreadCountQueryKey,
 } from './notificationQueries';
 import { MORE_NOTIFICATIONS_ROUTE } from './routes';
+import { dashboardQueryKey } from './dashboardQueries';
+import { notificationPath } from './m4Product';
 import { postSnackbar } from './snackbar';
 import {
   isDocumentLeaveBlocked,
@@ -23,6 +25,7 @@ type EndpointEvent = {
   endpoint: string;
   p256dh: string;
   auth: string;
+  notificationReferenceVersion?: number;
 };
 
 type NativePushPlugin = {
@@ -44,7 +47,7 @@ type NativePushPlugin = {
   ): Promise<{ remove(): Promise<void> }>;
   addListener(
     event: 'wake' | 'notificationOpen',
-    callback: (event: { accountId: string }) => void,
+    callback: (event: { accountId: string; notificationId?: string }) => void,
   ): Promise<{ remove(): Promise<void> }>;
   addListener(
     event: 'unavailable',
@@ -167,6 +170,8 @@ export function useUnifiedPush({
   }, [navigate]);
   const blocked = useDocumentLeaveBlocked();
   const [pendingInbox, setPendingInbox] = useState<string | null>(null);
+  const pendingNotification = useRef<string | undefined>(undefined);
+  const openedHints = useRef(new Set<string>());
   const [state, setState] = useState<DevicePushState>(
     native ? 'loading' : 'unavailable',
   );
@@ -175,31 +180,107 @@ export function useUnifiedPush({
   const configuration = useRef<UnifiedPushConfiguration | null>(null);
   const errorRef = useRef<string | null>(null);
   const key = endpointIdKey(apiBaseUrl, accountId);
+  const navigationScope = `${key}:${spaceId}`;
+  const navigationOwner = useRef({ scope: navigationScope });
+  if (navigationOwner.current.scope !== navigationScope) {
+    navigationOwner.current = { scope: navigationScope };
+    openedHints.current.clear();
+  }
+  const activeKey = useRef(key);
+  activeKey.current = key;
+  useEffect(() => {
+    activeKey.current = key;
+    return () => {
+      activeKey.current = '';
+    };
+  }, [key]);
   const currentSpaceId = useRef(spaceId);
   const registrationAllowed = useRef(true);
   currentSpaceId.current = spaceId;
   errorRef.current = error;
 
-  const openInbox = useCallback(() => {
-    if (isDocumentLeaveBlocked()) {
-      setPendingInbox(key);
-      postSnackbar('snackbar.notificationWaiting');
-      return;
-    }
-    setPendingInbox(null);
-    navigateRef.current(MORE_NOTIFICATIONS_ROUTE);
-  }, [key]);
+  const openInbox = useCallback(
+    (notificationId?: string) => {
+      if (isDocumentLeaveBlocked()) {
+        pendingNotification.current = notificationId;
+        setPendingInbox(`${key}:${currentSpaceId.current}`);
+        postSnackbar('snackbar.notificationWaiting');
+        return;
+      }
+      setPendingInbox(null);
+      if (
+        !notificationId ||
+        !/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(notificationId)
+      ) {
+        navigateRef.current(MORE_NOTIFICATIONS_ROUTE);
+        return;
+      }
+      const hintKey = `${key}:${notificationId}`;
+      if (openedHints.current.has(hintKey)) return;
+      openedHints.current.add(hintKey);
+      if (openedHints.current.size > 64)
+        openedHints.current.delete(
+          openedHints.current.values().next().value as string,
+        );
+      const requestedSpace = currentSpaceId.current;
+      const requestedOwner = navigationOwner.current;
+      void notificationsApi
+        .openNotification({ spaceId: requestedSpace, notificationId })
+        .then((item) => {
+          if (
+            activeKey.current !== key ||
+            navigationOwner.current !== requestedOwner ||
+            requestedSpace !== currentSpaceId.current
+          ) {
+            openedHints.current.delete(hintKey);
+            return;
+          }
+          void queryClient.invalidateQueries({
+            queryKey: notificationUnreadCountQueryKey(requestedSpace),
+          });
+          void queryClient.invalidateQueries({
+            queryKey: notificationsListQueryKey(requestedSpace),
+          });
+          if (isDocumentLeaveBlocked()) {
+            openedHints.current.delete(hintKey);
+            pendingNotification.current = notificationId;
+            setPendingInbox(`${key}:${currentSpaceId.current}`);
+            postSnackbar('snackbar.notificationWaiting');
+            return;
+          }
+          navigateRef.current(
+            notificationPath(item) ?? MORE_NOTIFICATIONS_ROUTE,
+          );
+        })
+        .catch(() => {
+          if (
+            activeKey.current === key &&
+            requestedSpace === currentSpaceId.current &&
+            navigationOwner.current === requestedOwner
+          ) {
+            if (isDocumentLeaveBlocked()) {
+              pendingNotification.current = undefined;
+              setPendingInbox(`${key}:${currentSpaceId.current}`);
+            } else navigateRef.current(MORE_NOTIFICATIONS_ROUTE);
+          }
+        });
+    },
+    [key, notificationsApi, queryClient],
+  );
 
   useEffect(() => {
     if (!pendingInbox) return;
-    if (pendingInbox !== key) {
+    if (pendingInbox !== `${key}:${spaceId}`) {
+      pendingNotification.current = undefined;
       setPendingInbox(null);
       return;
     }
     if (blocked) return;
     setPendingInbox(null);
-    navigateRef.current(MORE_NOTIFICATIONS_ROUTE);
-  }, [blocked, key, pendingInbox]);
+    const notificationId = pendingNotification.current;
+    pendingNotification.current = undefined;
+    openInbox(notificationId);
+  }, [blocked, key, spaceId, pendingInbox, openInbox]);
 
   const syncRegistered = useCallback(async () => {
     try {
@@ -238,6 +319,10 @@ export function useUnifiedPush({
                   endpointValue: JSON.stringify({
                     endpoint: event.endpoint,
                     keys: { p256dh: event.p256dh, auth: event.auth },
+                    ...(event.notificationReferenceVersion === 1 &&
+                    configuration.current?.notificationReferenceVersion === 1
+                      ? { notificationReferenceVersion: 1 }
+                      : {}),
                   }),
                 },
               },
@@ -313,6 +398,9 @@ export function useUnifiedPush({
         void queryClient.invalidateQueries({
           queryKey: notificationsListQueryKey(activeSpaceId),
         });
+        void queryClient.invalidateQueries({
+          queryKey: dashboardQueryKey(activeSpaceId),
+        });
       }),
       nativePush.addListener(
         'unavailable',
@@ -325,7 +413,7 @@ export function useUnifiedPush({
       ),
       nativePush.addListener('notificationOpen', (event) => {
         if (!live || event.accountId !== accountId) return;
-        openInbox();
+        openInbox(event.notificationId);
       }),
       App.addListener('resume', () => {
         // Returning from the system notification settings: re-check the

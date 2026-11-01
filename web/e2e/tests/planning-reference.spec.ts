@@ -4,7 +4,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import { captureR3Evidence } from './r3-evidence';
+import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -258,10 +258,10 @@ async function installMocks(
     }
 
     if (
-      method === 'POST' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}/schedule`
+      method === 'PATCH' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}`
     ) {
-      const body = request.postDataJSON() as Record<string, unknown>;
+      const body = request.postDataJSON().schedule as Record<string, unknown>;
       options.onSchedule?.(body);
       await fulfillJson({
         capabilities: { canComment: true, canDelete: true, canEdit: true },
@@ -317,7 +317,10 @@ async function capture(
   testInfo: TestInfo,
   name: string,
 ): Promise<void> {
-  await captureR3Evidence(page, testInfo, `r3-plan-detail-range-${name}.png`);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await captureScreenshot(page, testInfo, `r3-plan-detail-range-${name}.png`, {
+    fullPage: true,
+  });
 }
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
@@ -413,7 +416,7 @@ test('end time is progressive, blocks an invalid range, and submits the same-day
   });
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN_ID}`);
-  await page.getByText(m5s3.plan.actionsHeading).click();
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
 
   const disclosure = page.getByRole('button', { name: m5s3.plan.addEndTime });
   await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
@@ -424,11 +427,11 @@ test('end time is progressive, blocks an invalid range, and submits the same-day
   await expect(endTime).toBeVisible();
   await endTime.fill('13:30');
   await expect(page.getByText(m5s3.plan.endMustFollowStart)).toBeVisible();
-  await page.getByRole('button', { name: m5s3.plan.reschedule }).click();
+  await page.getByRole('button', { name: m5s3.common.saveChanges }).click();
   expect(scheduleBody).toBeNull();
 
   await endTime.fill('16:30');
-  await page.getByRole('button', { name: m5s3.plan.reschedule }).click();
+  await page.getByRole('button', { name: m5s3.common.saveChanges }).click();
   await expect.poll(() => scheduleBody).not.toBeNull();
   expect(scheduleBody).toMatchObject({
     plannedStart: '2099-09-14T14:00:00.000Z',
@@ -495,7 +498,7 @@ test('cross-day Plan range reflows at 320px and keeps the same hierarchy when ex
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, '320-cross-day-light');
 
-  await page.getByText(m5s3.plan.actionsHeading).click();
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
   await expect(page.getByLabel(m5s3.plan.endsAnotherDay)).toBeChecked();
 
   await page.setViewportSize({ width: 1280, height: 900 });

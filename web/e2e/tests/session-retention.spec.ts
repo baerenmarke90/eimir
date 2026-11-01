@@ -1,3 +1,4 @@
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { expect, test } from '@playwright/test';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import de from '../../src/i18n/locales/de';
@@ -9,7 +10,12 @@ const account = {
 const spaceId = '22222222-2222-4222-8222-222222222222';
 const sessionKey = 'eimir-session-v1';
 
-for (const mode of ['proactive', 'resume', 'outage'] as const) {
+for (const mode of [
+  'proactive',
+  'resume',
+  'outage',
+  'membership-outage',
+] as const) {
   for (const width of [390, 1280]) {
     test(`keeps and saves a memory draft across ${mode} rotation at ${width}px`, async ({
       page,
@@ -22,6 +28,8 @@ for (const mode of ['proactive', 'resume', 'outage'] as const) {
       let accessToken = 'initial-access';
       let recovered = mode !== 'outage';
       let refreshes = 0;
+      let membershipOutage = false;
+      let membershipFailures = 0;
       let saves = 0;
       let memory: Record<string, unknown> | null = null;
       const memoryId = '33333333-3333-4333-8333-333333333333';
@@ -71,10 +79,15 @@ for (const mode of ['proactive', 'resume', 'outage'] as const) {
           );
         }
         if (await fulfillDefaultAppIcon(route)) return;
+        if (await fulfillUnconfiguredPhotoSources(route)) return;
         if (path === '/api/v1/auth/me') return json(account);
         if (path === '/api/v1/auth/capabilities')
           return json({ serverAdmin: false });
-        if (path === '/api/v1/auth/memberships')
+        if (path === '/api/v1/auth/memberships') {
+          if (membershipOutage) {
+            membershipFailures += 1;
+            return json({ title: 'Temporarily unavailable' }, 503);
+          }
           return json([
             {
               accountId: account.id,
@@ -83,6 +96,7 @@ for (const mode of ['proactive', 'resume', 'outage'] as const) {
               role: 'MEMBER',
             },
           ]);
+        }
         if (path.includes('/profile-identity/'))
           return json({
             accountId: account.id,
@@ -119,7 +133,7 @@ for (const mode of ['proactive', 'resume', 'outage'] as const) {
       });
       await page.goto('/');
       await page.evaluate(
-        ({ account, spaceId, sessionKey }) => {
+        ({ account, spaceId, sessionKey, mode }) => {
           sessionStorage.setItem(
             sessionKey,
             JSON.stringify({
@@ -128,7 +142,10 @@ for (const mode of ['proactive', 'resume', 'outage'] as const) {
               tokens: {
                 accessToken: 'initial-access',
                 refreshToken: 'initial-refresh',
-                accessExpiresAt: new Date(Date.now() + 120_000).toISOString(),
+                accessExpiresAt: new Date(
+                  Date.now() +
+                    (mode === 'membership-outage' ? 3_600_000 : 120_000),
+                ).toISOString(),
                 refreshExpiresAt: new Date(
                   Date.now() + 86_400_000,
                 ).toISOString(),
@@ -136,13 +153,29 @@ for (const mode of ['proactive', 'resume', 'outage'] as const) {
             }),
           );
         },
-        { account, spaceId, sessionKey },
+        { account, spaceId, sessionKey, mode },
       );
       await page.goto('/story/memories/new');
       await page
         .getByLabel(de.memory.bodyLabel, { exact: true })
         .fill('Preserve this unfinished memory.');
-      if (mode !== 'resume') {
+      if (mode === 'membership-outage') {
+        const editor = page.getByLabel(de.memory.bodyLabel, { exact: true });
+        const originalEditor = await editor.elementHandle();
+        membershipOutage = true;
+        await page.clock.runFor(61_000);
+        await page.evaluate(() => {
+          document.dispatchEvent(
+            new Event('visibilitychange', { bubbles: true }),
+          );
+        });
+        await expect.poll(() => membershipFailures).toBe(1);
+        await expect(editor).toHaveValue('Preserve this unfinished memory.');
+        expect(
+          await editor.evaluate((node, old) => node === old, originalEditor),
+        ).toBe(true);
+        membershipOutage = false;
+      } else if (mode !== 'resume') {
         await page.clock.runFor(61_000);
         if (mode === 'outage') {
           await expect(
@@ -159,7 +192,8 @@ for (const mode of ['proactive', 'resume', 'outage'] as const) {
           window.dispatchEvent(new Event('online'));
         });
       }
-      await expect.poll(() => refreshes).toBe(1);
+      const expectedRefreshes = mode === 'membership-outage' ? 0 : 1;
+      await expect.poll(() => refreshes).toBe(expectedRefreshes);
       await expect(
         page.getByLabel(de.memory.bodyLabel, { exact: true }),
       ).toHaveValue('Preserve this unfinished memory.');
@@ -179,7 +213,7 @@ for (const mode of ['proactive', 'resume', 'outage'] as const) {
         }),
       ).toBeVisible();
       expect(saves).toBe(1);
-      expect(refreshes).toBe(1);
+      expect(refreshes).toBe(expectedRefreshes);
       expect(staleRequests).toEqual([]);
     });
   }
@@ -193,6 +227,7 @@ for (const rejected of [false, true]) {
     let refreshes = 0;
     await page.route('**/api/v1/**', async (route) => {
       if (await fulfillDefaultAppIcon(route)) return;
+      if (await fulfillUnconfiguredPhotoSources(route)) return;
       const path = new URL(route.request().url()).pathname;
       const json = (body: unknown, status = 200) =>
         route.fulfill({ status, json: body });

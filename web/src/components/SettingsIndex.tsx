@@ -8,6 +8,20 @@ import { useTranslation } from '../i18n';
 import { AppUpdatesSummary } from './AppUpdatesSummary';
 import './SettingsIndex.css';
 
+import { EimirIcon, type EimirIconName } from './EimirIcon';
+import type { SettingsCategoryId } from '../client/routes';
+
+const CATEGORY_ICONS: Record<SettingsCategoryId, EimirIconName> = {
+  relationship: 'wir',
+  notifications: 'benachrichtigungen',
+  today: 'vibe',
+  appearance: 'einstellungen',
+  memories: 'momente',
+  data: 'listen',
+  account: 'profil',
+  updates: 'einstellungen',
+};
+
 export function SettingsIndex({
   updatesAdapter,
 }: {
@@ -29,6 +43,9 @@ export function SettingsIndex({
         ).map((category) => (
           <li key={category.id}>
             <Link className="settings-category-link" to={category.path}>
+              <span className="more-destination-icon" aria-hidden="true">
+                <EimirIcon name={CATEGORY_ICONS[category.id]} />
+              </span>
               <span className="settings-category-copy">
                 <strong>{t(category.titleKey)}</strong>
                 {category.id === 'updates' ? (
@@ -36,9 +53,6 @@ export function SettingsIndex({
                 ) : (
                   <span>{t(category.descriptionKey)}</span>
                 )}
-              </span>
-              <span className="settings-category-chevron" aria-hidden="true">
-                ›
               </span>
             </Link>
           </li>

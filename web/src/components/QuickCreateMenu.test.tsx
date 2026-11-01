@@ -51,7 +51,7 @@ function LocationTracker({
 }
 
 describe('QuickCreateMenu - Mobile Action Sheet', () => {
-  it('opens mobile action sheet, displays all 7 actions with sublines and title, and manages scroll lock', async () => {
+  it('opens mobile action sheet, displays all 8 actions with sublines and title, and manages scroll lock', async () => {
     document.body.style.overflow = 'auto';
 
     render(
@@ -81,7 +81,7 @@ describe('QuickCreateMenu - Mobile Action Sheet', () => {
     // Trigger is hidden while sheet is open
     expect(trigger.style.visibility).toBe('hidden');
 
-    // All 7 action titles and sublines are present
+    // All 8 action titles and sublines are present
     expect(screen.getByText(navigation.quickCreateMemory)).toBeDefined();
     expect(screen.getByText(navigation.quickCreateMemorySubline)).toBeDefined();
 
@@ -114,10 +114,13 @@ describe('QuickCreateMenu - Mobile Action Sheet', () => {
       screen.getByText(navigation.quickCreateGiftIdeaSubline),
     ).toBeDefined();
 
-    // Removed actions (chapter, place, collection) must NOT be present in Quick Create
+    // Removed actions (chapter, place) must NOT be present in Quick Create
     expect(screen.queryByText(navigation.quickCreateChapter)).toBeNull();
     expect(screen.queryByText(navigation.quickCreatePlace)).toBeNull();
-    expect(screen.queryByText(navigation.quickCreateCollection)).toBeNull();
+    expect(screen.getByText(navigation.quickCreateCollection)).toBeDefined();
+    expect(
+      screen.getByText(navigation.quickCreateCollectionSubline),
+    ).toBeDefined();
 
     // Close button dismisses and restores body scroll
     const closeBtn = screen.getByRole('button', { name: navigation.closeMenu });
@@ -217,7 +220,7 @@ describe('QuickCreateMenu - Mobile Action Sheet', () => {
 });
 
 describe('QuickCreateMenu - Desktop Popover', () => {
-  it('renders desktop menu popover when opened with title and 7 actions', () => {
+  it('renders desktop menu popover when opened with title and 8 actions', () => {
     render(
       <MemoryRouter initialEntries={['/today']}>
         <QuickCreateMenu variant="desktop" />
@@ -235,16 +238,17 @@ describe('QuickCreateMenu - Desktop Popover', () => {
     expect(screen.getByText(navigation.quickCreateTitle)).toBeDefined();
 
     const items = screen.getAllByRole('menuitem');
-    expect(items).toHaveLength(7);
+    expect(items).toHaveLength(8);
 
-    // Order: memory, heart moment, milestone, wish, plan, note, gift idea
+    // Order: memory, heart moment, milestone, wish, collection, plan, note, gift idea
     expect(items[0].getAttribute('href')).toBe('/story/memories/new');
     expect(items[1].getAttribute('href')).toBe('/story/heart-moments/new');
     expect(items[2].getAttribute('href')).toBe('/story/milestones/new');
     expect(items[3].getAttribute('href')).toBe('/plan/wishes/new');
-    expect(items[4].getAttribute('href')).toBe('/plan/plans/new');
-    expect(items[5].getAttribute('href')).toBe('/more/private/notes/new');
-    expect(items[6].getAttribute('href')).toBe('/more/private/gift-ideas/new');
+    expect(items[4].getAttribute('href')).toBe('/more/collections/new');
+    expect(items[5].getAttribute('href')).toBe('/plan/plans/new');
+    expect(items[6].getAttribute('href')).toBe('/more/private/notes/new');
+    expect(items[7].getAttribute('href')).toBe('/more/private/gift-ideas/new');
 
     // Verify sublines exist
     expect(screen.getByText(navigation.quickCreateMemorySubline)).toBeDefined();
@@ -317,7 +321,7 @@ describe('QuickCreateMenu - Desktop Popover', () => {
 
     // End key moves to last item (gift idea)
     fireEvent.keyDown(menu, { key: 'End' });
-    expect(document.activeElement).toBe(items[6]);
+    expect(document.activeElement).toBe(items[7]);
 
     // Home key moves to first item (memory)
     fireEvent.keyDown(menu, { key: 'Home' });

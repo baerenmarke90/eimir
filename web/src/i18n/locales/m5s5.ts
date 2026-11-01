@@ -10,16 +10,16 @@ const m5s5 = {
     intro: 'Das Wichtigste aus eurem gemeinsamen Raum auf einen Blick.',
     partner: 'Gemeinsam mit {{name}}',
     durationTitle: 'Eure Zeit',
-    durationDays: '{{count}} Tage zusammen',
-    durationDaysOne: '1 Tag zusammen',
-    durationYearsMonths:
-      '{{years}} {{yearsLabel}}, {{months}} {{monthsLabel}} zusammen',
-    durationYearsOnly: '{{years}} {{yearsLabel}} zusammen',
-    durationMonthsOnly: '{{months}} {{monthsLabel}} zusammen',
-    yearOne: 'Jahr',
-    yearMany: 'Jahre',
-    monthOne: 'Monat',
-    monthMany: 'Monate',
+    durationAutomaticDays: '{{days}} zusammen',
+    durationYearsDays: '{{years}} {{yearsLabel}}, {{days}} zusammen',
+    durationYearsMonthsDays:
+      '{{years}} {{yearsLabel}}, {{months}} {{monthsLabel}}, {{days}} zusammen',
+    durationDayCount_one: '{{count}} Tag',
+    durationDayCount_other: '{{count}} Tage',
+    durationYearUnit_one: 'Jahr',
+    durationYearUnit_other: 'Jahre',
+    durationMonthUnit_one: 'Monat',
+    durationMonthUnit_other: 'Monate',
     durationSince: 'Seit {{date}}',
     durationEmpty:
       'Sobald ihr euer gemeinsames Startdatum hinterlegt habt, seht ihr eure Zeit hier.',
@@ -34,10 +34,10 @@ const m5s5 = {
     pinnedCollectionSettingsTitle: 'Angeheftete Liste',
     recentKicker: 'Aktivitäten',
     recentTitle: 'Zuletzt bei euch',
-    allActivityAction: 'Alle Aktivitäten ansehen →',
+    allActivityAction: 'Alle Aktivitäten ansehen',
     recentEmpty: 'Noch keine gemeinsamen Einträge vorhanden.',
     storySummaryKicker: 'Was schon zu euch gehört',
-    storySummaryTitle: 'Eure gemeinsame Geschichte wächst',
+    storySummaryTitle: 'Eure Geschichte',
     storySummaryIntro:
       'Hier könnt ihr einzelne Spuren wiederfinden und weiterblättern.',
     storySummarySettingsTitle: 'Geschichte in Zahlen',
@@ -51,9 +51,9 @@ const m5s5 = {
     storySummaryMilestonesCount_one: '{{count}} Meilenstein',
     storySummaryMilestonesCount_other: '{{count}} Meilensteine',
     itemFallback: 'Gemeinsamer Eintrag',
+    anniversaryTitle: 'Euer Jahrestag',
   },
   today: {
-    headerTitle: 'Heute',
     roles: {
       hero: 'Paar-Präsenz',
       relationshipSignal: 'Bei euch passiert',
@@ -62,7 +62,7 @@ const m5s5 = {
     },
     keepsake: {
       kicker: 'Euer Moment',
-      title: 'Zuletzt gemeinsam festgehalten',
+      title: 'Euer Moment',
       compactTitle: 'Euer nächster gemeinsamer Moment',
       compactBody:
         'Sobald ihr ein Foto zu einer Erinnerung legt, steht es hier groß.',
@@ -73,6 +73,9 @@ const m5s5 = {
     upcoming: {
       allAction: 'Alle anzeigen',
       allAriaLabel: 'Alle gemeinsamen Termine ansehen',
+    },
+    recent: {
+      allAction: 'Alle anzeigen',
     },
     pinnedCollection: {
       kicker: 'Gemeinsame Liste',
@@ -130,7 +133,7 @@ const m5s5 = {
   },
   search: {
     eyebrow: 'Suche',
-    title: 'In euren Dingen suchen',
+    title: 'Suche',
     intro: 'Durchsuche gemeinsame Inhalte und deine eigenen privaten Einträge.',
     label: 'Suchbegriff',
     placeholder: 'Zum Beispiel Urlaub, Konzert oder Geschenk',
@@ -139,8 +142,7 @@ const m5s5 = {
     submit: 'Suchen',
     searching: 'Suche läuft …',
     startTitle: 'Wonach suchst du?',
-    startBody:
-      'Gib einen Suchbegriff ein. Ohne Suchbegriff werden keine Daten abgefragt.',
+    startBody: 'Zum Beispiel ein Ort, ein Erlebnis oder eine Geschenkidee.',
     emptyTitle: 'Nichts gefunden',
     emptyBody: 'Versuche einen anderen Begriff oder einen anderen Inhaltstyp.',
     resultFallback: 'Eintrag ohne Titel',
@@ -149,8 +151,13 @@ const m5s5 = {
     loadingMore: 'Weitere Ergebnisse werden geladen …',
   },
   activity: {
+    scopeLabel: 'Aktivitäten filtern',
+    shared: 'Gemeinsam',
+    own: 'Meine Aktivitäten',
+    ownEmptyTitle: 'Hier beginnen deine Aktivitäten',
+    ownEmptyBody: 'Deine eigenen Beiträge und Änderungen erscheinen hier.',
     eyebrow: 'Aktivität',
-    title: 'Was bei euch passiert ist',
+    title: 'Aktivitäten',
     intro: 'Gemeinsame Änderungen und neue Inhalte in zeitlicher Reihenfolge.',
     emptyTitle: 'Noch keine Aktivität',
     emptyBody: 'Sobald etwas Gemeinsames passiert, erscheint es hier.',
@@ -160,7 +167,7 @@ const m5s5 = {
   },
   notifications: {
     eyebrow: 'Benachrichtigungen',
-    title: 'Für dich',
+    title: 'Benachrichtigungen',
     intro: 'Benachrichtigungen aus eurem gemeinsamen Raum.',
     previewTitle: 'Benachrichtigungen',
     emptyPreview: 'Keine neuen Benachrichtigungen',
@@ -202,7 +209,7 @@ const m5s5 = {
   },
   kind: {
     MEMORY: 'Erinnerung',
-    HEART_MOMENT: 'Herzensmoment',
+    HEART_MOMENT: 'Herzmoment',
     MILESTONE: 'Meilenstein',
     WISH: 'Wunsch',
     PLAN: 'Plan',

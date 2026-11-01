@@ -123,16 +123,7 @@ export function StoryYearsIndexPage({
 
   return (
     <div className="page page-reading story-years-page">
-      <PageHeader
-        before={
-          <Link className="back-link" to={appRoutePath('story')}>
-            {t('storyYears.backToMoments')}
-          </Link>
-        }
-        eyebrow={t('storyYears.eyebrow')}
-        title={t('storyYears.title')}
-        description={t('storyYears.intro')}
-      />
+      <PageHeader title={t('storyYears.title')} />
 
       {offline ? (
         <div className="inline-message" role="status">
@@ -176,9 +167,6 @@ export function StoryYearsIndexPage({
                         ? t('storyYears.currentYearHint')
                         : t('storyYears.pastYearHint')}
                     </span>
-                  </span>
-                  <span className="story-year-arrow" aria-hidden="true">
-                    →
                   </span>
                 </Link>
               </li>
@@ -313,12 +301,6 @@ export function StoryYearDetailPage({
   return (
     <div className="page page-reading story-year-page">
       <PageHeader
-        before={
-          <Link className="back-link" to={STORY_YEARS_ROUTE}>
-            {t('storyYears.backToYears')}
-          </Link>
-        }
-        eyebrow={t('storyYears.eyebrow')}
         title={title}
         description={description}
         className="story-year-header"

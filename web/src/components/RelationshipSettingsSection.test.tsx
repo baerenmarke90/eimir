@@ -23,7 +23,7 @@ function createMockSpacesApi(
     version: 1,
     relationshipStartedOn: new Date('2022-06-14T00:00:00.000Z'),
     showRelationshipDuration: true,
-    durationDisplayMode: 'YEARS_MONTHS',
+    durationDisplayMode: 'DAYS',
     relationshipYears: 3,
     relationshipMonths: 2,
     relationshipDays: null,
@@ -117,6 +117,7 @@ describe('RelationshipSettingsSection', () => {
           ifMatch: '1',
           spaceProfileUpdate: expect.objectContaining({
             showRelationshipDuration: false,
+            durationDisplayMode: 'DAYS',
           }),
         }),
       );
@@ -145,6 +146,11 @@ describe('RelationshipSettingsSection', () => {
       expect(screen.getByLabelText(/Zusammen seit/i)).toBeDefined();
     });
 
+    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(document.getElementById('relationship-duration-mode')).toBeNull();
+    expect(
+      screen.getByRole('checkbox', { name: /Gemeinsame Zeit anzeigen/i }),
+    ).toBeDefined();
     expect(screen.getByText(/Vorschau/i)).toBeDefined();
     expect(screen.getByText(/Aktuell/i)).toBeDefined();
     expect(screen.getByText(/Nächster Jahrestag/i)).toBeDefined();

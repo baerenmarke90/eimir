@@ -10,6 +10,7 @@ All URIs are relative to *http://localhost*
 | [**getUnifiedPushConfiguration**](NotificationsApi.md#getunifiedpushconfiguration) | **GET** /api/v1/push-endpoints/unifiedpush-configuration | Get Unified Push Configuration |
 | [**markAllNotificationsRead**](NotificationsApi.md#markallnotificationsread) | **POST** /api/v1/spaces/{spaceId}/notifications/read-all | Mark All Notifications Read |
 | [**markNotificationRead**](NotificationsApi.md#marknotificationread) | **POST** /api/v1/spaces/{spaceId}/notifications/{notificationId}/read | Mark Notification Read |
+| [**openNotification**](NotificationsApi.md#opennotification) | **POST** /api/v1/spaces/{spaceId}/notifications/{notificationId}/open | Open Notification |
 | [**registerOwnPushEndpoint**](NotificationsApi.md#registerownpushendpoint) | **POST** /api/v1/push-endpoints | Register Own Push Endpoint |
 | [**revokeOwnPushEndpoint**](NotificationsApi.md#revokeownpushendpoint) | **DELETE** /api/v1/push-endpoints/{endpointId} | Revoke Own Push Endpoint |
 | [**sendPartnerQuickAction**](NotificationsApi.md#sendpartnerquickaction) | **POST** /api/v1/spaces/{spaceId}/partner-quick-actions | Send Partner Quick Action |
@@ -423,6 +424,79 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## openNotification
+
+> NotificationItem openNotification(notificationId, spaceId)
+
+Open Notification
+
+Resolve an explicit external tap even when the recipient hides Center entries.  This never enables ambient in-app presentation. Recipient, source visibility, expiry and mutual-reveal checks remain identical to the normal read action.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  NotificationsApi,
+} from '';
+import type { OpenNotificationRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new NotificationsApi();
+
+  const body = {
+    // string
+    notificationId: notificationId_example,
+    // string
+    spaceId: spaceId_example,
+  } satisfies OpenNotificationRequest;
+
+  try {
+    const data = await api.openNotification(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **notificationId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**NotificationItem**](NotificationItem.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## registerOwnPushEndpoint
 
 > PushEndpointRegistrationResult registerOwnPushEndpoint(pushEndpointRegistration)
@@ -757,7 +831,7 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **kind** | `NotificationKind` |  | [Defaults to `undefined`] [Enum: COMMENT_CREATED, THINKING_OF_YOU, PARTNER_KISS, PARTNER_CHECK_IN, REMINDER_DUE] |
+| **kind** | `NotificationKind` |  | [Defaults to `undefined`] [Enum: TRANSFER_READY, TRANSFER_COMPLETED, TRANSFER_FAILED, PLAN_CREATED, PLAN_CHANGED, PLAN_CANCELLED, WISH_SELECTION_SHARED, WISH_SELECTION_READY, PHOTO_REACTION, PARTNER_JOINED, COUPLE_EXPERIENCE_SHARED, COMMENT_CREATED, THINKING_OF_YOU, PARTNER_KISS, PARTNER_CHECK_IN, REMINDER_DUE] |
 | **channel** | `NotificationChannel` |  | [Defaults to `undefined`] [Enum: IN_APP, PUSH, EMAIL] |
 | **notificationPreferenceUpdate** | [NotificationPreferenceUpdate](NotificationPreferenceUpdate.md) |  | |
 

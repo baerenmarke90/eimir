@@ -3,6 +3,51 @@ const de = {
     longNotes: 'Eine ausführliche Beschreibung der Änderungen. ',
     notes: 'Verbesserungen für eure Testversion.',
   },
+  wishSelection: {
+    occasion: 'Unser Wochenende',
+    wishes: [
+      'Zusammen Pasta machen',
+      'Ein Spaziergang am See',
+      'Einen Tag in die Therme',
+    ],
+    nextPlan: 'Frühstück am Sonntag',
+    undatedPlan: 'Ein Abend nur für uns',
+  },
+  recaps: {
+    excerpt:
+      'Wir sind einfach sitzen geblieben. Ohne Plan, ohne Eile. Genau das hat diesen Tag so schön gemacht.',
+    yearHeadline: 'Ein Jahr voller kleiner Anfänge.',
+    monthHeadline: 'Einfach mal die Zeit vergessen.',
+    introduction:
+      'Ein Nachmittag am See und die kleinen Worte zwischendurch. Ein neuer Blick auf das, was ihr gemeinsam festgehalten habt.',
+    photoTitle: 'Dieser Nachmittag am See',
+    wordsTitle: 'Deine Nachricht am Morgen',
+    previousHeadline: 'Ein Tag nur für uns.',
+    reflection: 'Das möchte ich für uns behalten.',
+  },
+  placesAndLists: {
+    placeDescription: 'Unser Platz im Grünen.',
+    longListEntry:
+      'Unser gemeinsamer Fernsehabend mit Snacks und einer richtig langen Serienfolge',
+  },
+  diaryCategoryNotes: [
+    'Ein lieber Gedanke.',
+    'Du hast zugehört.',
+    'Du bist wunderbar.',
+    'Danke fürs Dasein.',
+    'Dankbar für uns.',
+    'Ein glücklicher Tag.',
+  ],
+  dailyQuote:
+    'Es ist doch das Einzige, was das Leben lebenswert macht, dass man einander liebhat.',
+  photoPlaces: {
+    title: 'Unser Nachmittag am See',
+    body: 'Wir haben uns Zeit genommen und sind bis zum Abend geblieben.',
+    initialName: 'Foto-Ort',
+    resolvedName: 'Ufercafé',
+    resolvedAddress: 'Am Ufer 12, 10100 Berlin',
+    correctedName: 'Unser See',
+  },
   pageTitle: 'Momente für uns',
   photoTitle: 'Ein Wochenende am Wasser',
   photoContext: '1. September · Lea',

@@ -128,6 +128,11 @@ export interface MarkNotificationReadRequest {
     spaceId: string;
 }
 
+export interface OpenNotificationRequest {
+    notificationId: string;
+    spaceId: string;
+}
+
 export interface RegisterOwnPushEndpointRequest {
     pushEndpointRegistration: PushEndpointRegistration;
 }
@@ -432,6 +437,61 @@ export class NotificationsApi extends runtime.BaseAPI {
      */
     async markNotificationRead(requestParameters: MarkNotificationReadRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NotificationItem> {
         const response = await this.markNotificationReadRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for openNotification without sending the request
+     */
+    async openNotificationRequestOpts(requestParameters: OpenNotificationRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['notificationId'] == null) {
+            throw new runtime.RequiredError(
+                'notificationId',
+                'Required parameter "notificationId" was null or undefined when calling openNotification().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling openNotification().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/notifications/{notificationId}/open`;
+        urlPath = urlPath.replace('{notificationId}', encodeURIComponent(String(requestParameters['notificationId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Resolve an explicit external tap even when the recipient hides Center entries.  This never enables ambient in-app presentation. Recipient, source visibility, expiry and mutual-reveal checks remain identical to the normal read action.
+     * Open Notification
+     */
+    async openNotificationRaw(requestParameters: OpenNotificationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<NotificationItem>> {
+        const requestOptions = await this.openNotificationRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => NotificationItemFromJSON(jsonValue));
+    }
+
+    /**
+     * Resolve an explicit external tap even when the recipient hides Center entries.  This never enables ambient in-app presentation. Recipient, source visibility, expiry and mutual-reveal checks remain identical to the normal read action.
+     * Open Notification
+     */
+    async openNotification(requestParameters: OpenNotificationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NotificationItem> {
+        const response = await this.openNotificationRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

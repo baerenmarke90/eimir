@@ -1,6 +1,14 @@
+import {
+  captureDurableMediaEpoch,
+  clearDurableMediaStore,
+  readDurableMedia,
+  writeDurableMedia,
+  evictDurableMedia,
+} from './durableMediaStore';
 /** Session-memory byte ownership; views continue to own their Object URLs. */
 export interface MediaCacheScope {
   readonly id: number;
+  readonly durableIdentity?: string;
   isCurrent(spaceId: string): boolean;
 }
 
@@ -10,6 +18,7 @@ interface CacheLease {
   readonly generation: number;
   readonly resourceKey: string;
   readonly revocation: number;
+  readonly durableEpoch?: string;
 }
 
 interface CachedBlob {
@@ -35,6 +44,7 @@ export function mediaCacheScopeForOwner(
   owner: object,
   basePath: string,
   isCurrent: (spaceId: string) => boolean,
+  accountId?: string,
 ): MediaCacheScope {
   let scopes = scopesByOwner.get(owner);
   if (!scopes) {
@@ -43,7 +53,13 @@ export function mediaCacheScopeForOwner(
   }
   let scope = scopes.get(basePath);
   if (!scope) {
-    scope = { id: nextScopeId++, isCurrent };
+    scope = {
+      id: nextScopeId++,
+      isCurrent,
+      durableIdentity: accountId
+        ? JSON.stringify([basePath, accountId])
+        : undefined,
+    };
     scopes.set(basePath, scope);
   }
   return scope;
@@ -85,12 +101,17 @@ export function captureMediaCacheLease(
     generation,
     resourceKey,
     revocation: revocations.get(resourceKey) ?? 0,
+    durableEpoch: scope.durableIdentity
+      ? captureDurableMediaEpoch()
+      : undefined,
   };
 }
 
 export function assertMediaCacheLease(lease: CacheLease): void {
   if (
     lease.generation !== generation ||
+    (lease.durableEpoch !== undefined &&
+      lease.durableEpoch !== captureDurableMediaEpoch()) ||
     lease.revocation !== (revocations.get(lease.resourceKey) ?? 0) ||
     !lease.scope.isCurrent(lease.spaceId)
   ) {
@@ -123,6 +144,7 @@ function prune(): void {
 /** Clear synchronously before any asynchronous persistent-cache cleanup. */
 export function clearAuthorizedMediaCache(): void {
   generation += 1;
+  clearDurableMediaStore();
   cached.clear();
   cachedBytes = 0;
   revocations.clear();
@@ -139,6 +161,8 @@ export function evictAuthorizedMedia(
   identityPrefix: readonly string[],
 ): void {
   const resourceKey = keyPrefix(lease, identityPrefix);
+  const diskPrefix = durableKey(lease, identityPrefix);
+  if (diskPrefix) evictDurableMedia(diskPrefix.slice(0, -1));
   revocations.set(resourceKey, (revocations.get(resourceKey) ?? 0) + 1);
   const prefix = keyPrefix(lease, identityPrefix).slice(0, -1);
   const matches = (key: string) =>
@@ -151,6 +175,20 @@ export function evictAuthorizedMedia(
     entry.controller.abort();
     pending.delete(key);
   }
+}
+
+function durableKey(
+  lease: CacheLease,
+  identity: readonly string[],
+): string | undefined {
+  return lease.scope.durableIdentity && lease.durableEpoch
+    ? JSON.stringify([
+        lease.durableEpoch,
+        lease.scope.durableIdentity,
+        lease.spaceId,
+        ...identity,
+      ])
+    : undefined;
 }
 
 /**
@@ -185,9 +223,26 @@ export async function loadCachedMediaBlob(
       promise: Promise.resolve()
         .then(async () => {
           controller.signal.throwIfAborted();
-          const blob = await load(controller.signal);
+          const diskKey = durableKey(lease, identity);
+          const diskBlob =
+            diskKey && lease.durableEpoch
+              ? await readDurableMedia(diskKey, lease.durableEpoch)
+              : undefined;
           controller.signal.throwIfAborted();
           assertMediaCacheLease(lease);
+          const blob = diskBlob ?? (await load(controller.signal));
+          controller.signal.throwIfAborted();
+          assertMediaCacheLease(lease);
+          if (!diskBlob && diskKey && lease.durableEpoch) {
+            void writeDurableMedia(diskKey, lease.durableEpoch, blob, () => {
+              try {
+                assertMediaCacheLease(lease);
+                return !controller.signal.aborted;
+              } catch {
+                return false;
+              }
+            });
+          }
           if (blob.size <= MEDIA_CACHE_MAX_BYTES) {
             cached.set(key, { blob, receivedAt: performance.now() });
             cachedBytes += blob.size;

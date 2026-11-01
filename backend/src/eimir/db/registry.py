@@ -32,12 +32,15 @@ MODEL_MODULES = (
     "eimir.milestones.models",
     "eimir.outbox.models",
     "eimir.people.models",
+    "eimir.photo_sources.models",
     "eimir.places.models",
     "eimir.plans.models",
     "eimir.private_collections.models",
     "eimir.private_notes.models",
     "eimir.profiles.models",
     "eimir.quotes.models",
+    "eimir.recaps.models",
+    "eimir.recaps.invalidation",
     "eimir.relations.models",
     "eimir.relationship.models",
     "eimir.reminders.models",
@@ -45,6 +48,7 @@ MODEL_MODULES = (
     "eimir.story.view_models",
     "eimir.transfer.models",
     "eimir.wishes.models",
+    "eimir.wish_selections.models",
 )
 
 

@@ -111,6 +111,7 @@ def test_unified_push_public_key_requires_auth_and_configuration(client, session
     assert response.json() == {
         "providerKey": "unifiedpush",
         "vapidPublicKey": provider.vapid_public_key,
+        "notificationReferenceVersion": 1,
     }
     assert private_key.decode() not in response.text
 

@@ -12,7 +12,7 @@ from datetime import UTC, date, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, delete, or_
+from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -22,17 +22,37 @@ from eimir.authorization import (
     AuthorizationContext,
     readable,
     require_readable,
+    require_readable_locked,
     require_writable,
     require_writable_locked,
 )
+from eimir.core import clock
 from eimir.core import cursor as cursor_codec
 from eimir.core.clock import now
-from eimir.core.errors import ConflictError, ErrorCode, ValidationError
+from eimir.core.errors import (
+    ConflictError,
+    ErrorCode,
+    NotFoundError,
+    PremiumEntitlementRequiredError,
+    ValidationError,
+)
+from eimir.core.ids import parse_id
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
+from eimir.domain.experiences import MAX_EXPERIENCE_TEXT, ExperienceKind
+from eimir.entitlements import service as entitlement_service
+from eimir.entitlements.models import Capability
+from eimir.identity.models import Account
 from eimir.memories import create_receipts
-from eimir.memories.models import Memory, MemoryPayload, shared_privacy
+from eimir.memories.models import (
+    Memory,
+    MemoryPayload,
+    MemoryPhotoReaction,
+    PhotoReaction,
+    shared_privacy,
+)
 from eimir.memories.tags import MemoryTags
 from eimir.outbox import service as outbox_service
+from eimir.relationship.models import Membership, MembershipStatus
 
 _MEMORY_SUBJECT_TYPE = "memory"
 
@@ -77,7 +97,14 @@ def _ensure_expected_version(memory: Memory, expected_version: int) -> None:
         )
 
 
-def _record(session: Session, memory: Memory, actor_id: UUID, event_type: EventType) -> None:
+def _record(
+    session: Session,
+    memory: Memory,
+    actor_id: UUID,
+    event_type: EventType,
+    *,
+    recipient_id: UUID | None = None,
+) -> None:
     outbox_service.record(
         session,
         DomainEvent(
@@ -87,9 +114,51 @@ def _record(session: Session, memory: Memory, actor_id: UUID, event_type: EventT
             subject_type=_MEMORY_SUBJECT_TYPE,
             subject_id=memory.id,
             resource_version=memory.version,
-            payload=PublicEventPayload(),
+            payload=PublicEventPayload(
+                experience_kind=ExperienceKind(memory.experience_kind)
+                if memory.experience_kind is not None
+                else None,
+                recipient_id=recipient_id,
+            ),
         ),
     )
+
+
+def _experience_recipient(
+    session: Session, context: AuthorizationContext, *, body: str, happened_on: date | None
+) -> UUID:
+    if not body.strip() or len(body) > MAX_EXPERIENCE_TEXT:
+        raise ValidationError(
+            "An experience needs a non-blank text of at most 2000 characters.",
+            "EXPERIENCE_TEXT_INVALID",
+        )
+    account = session.get(Account, context.account_id)
+    if account is None or (
+        happened_on is not None and happened_on > clock.today_in(account.timezone)
+    ):
+        raise ValidationError(
+            "An experience date must not be in the future.", "EXPERIENCE_DATE_INVALID"
+        )
+    if not entitlement_service.has_capability(
+        session, context.space_id, Capability.GAMES_COUPLE.value, lock_grants=True
+    ):
+        raise PremiumEntitlementRequiredError(Capability.GAMES_COUPLE.value)
+    recipient = session.execute(
+        select(Membership.account_id)
+        .join(Account, Account.id == Membership.account_id)
+        .where(
+            Membership.space_id == context.space_id,
+            Membership.status == MembershipStatus.ACTIVE.value,
+            Membership.account_id != context.account_id,
+            Account.disabled_at.is_(None),
+        )
+        .order_by(Membership.account_id)
+        .limit(1)
+        .with_for_update(read=True, of=Membership)
+    ).scalar_one_or_none()
+    if recipient is None:
+        raise NotFoundError("Partner not available.", "PARTNER_NOT_AVAILABLE")
+    return recipient
 
 
 def create_memory(
@@ -100,17 +169,26 @@ def create_memory(
     body: str,
     happened_on: date | None,
     tags: MemoryTags | None = None,
+    experience_kind: ExperienceKind | None = None,
 ) -> Memory:
+    recipient_id = (
+        _experience_recipient(session, context, body=body, happened_on=happened_on)
+        if experience_kind is not None
+        else None
+    )
     memory = Memory(
         space_id=context.space_id,
         owner_id=context.account_id,
         privacy_class=shared_privacy(),
         happened_on=happened_on,
+        experience_kind=experience_kind.value if experience_kind is not None else None,
         payload=MemoryPayload(title=_normalize_title(title), body=body, tags=tags or []),
     )
     session.add(memory)
     _flush(session)
-    _record(session, memory, context.account_id, EventType.MEMORY_CREATED)
+    _record(
+        session, memory, context.account_id, EventType.MEMORY_CREATED, recipient_id=recipient_id
+    )
     _flush(session)
     return memory
 
@@ -124,6 +202,7 @@ def create_memory_once(
     body: str,
     happened_on: date | None,
     tags: MemoryTags | None = None,
+    experience_kind: ExperienceKind | None = None,
 ) -> MemoryCreateResult:
     """Create a Memory, or return the one an earlier request with this identity created.
 
@@ -132,13 +211,23 @@ def create_memory_once(
     """
     if idempotency_key is None:
         memory = create_memory(
-            session, context, title=title, body=body, happened_on=happened_on, tags=tags
+            session,
+            context,
+            title=title,
+            body=body,
+            happened_on=happened_on,
+            tags=tags,
+            experience_kind=experience_kind,
         )
         return MemoryCreateResult(memory, created=True)
 
     normalized_title = _normalize_title(title)
     request_fingerprint = create_receipts.fingerprint(
-        title=normalized_title, body=body, happened_on=happened_on, tags=tags or []
+        title=normalized_title,
+        body=body,
+        happened_on=happened_on,
+        tags=tags or [],
+        experience_kind=experience_kind,
     )
     receipt_id = create_receipts.claim(session, context, idempotency_key, request_fingerprint)
     if receipt_id is None:
@@ -146,7 +235,13 @@ def create_memory_once(
         return MemoryCreateResult(memory, created=False)
 
     memory = create_memory(
-        session, context, title=normalized_title, body=body, happened_on=happened_on, tags=tags
+        session,
+        context,
+        title=normalized_title,
+        body=body,
+        happened_on=happened_on,
+        tags=tags,
+        experience_kind=experience_kind,
     )
     create_receipts.attach(session, receipt_id, memory.id)
     return MemoryCreateResult(memory, created=True)
@@ -158,6 +253,62 @@ def get_memory(
     memory_id: UUID | str,
 ) -> Memory:
     return require_readable(session, Memory, context, memory_id)
+
+
+def set_photo_reaction(
+    session: Session,
+    context: AuthorizationContext,
+    memory_id: UUID | str,
+    attachment_id: UUID | str,
+    reaction: PhotoReaction | None,
+) -> Memory:
+    """Idempotently set only the caller's reaction under the parent row lock.
+
+    Partners may react without acquiring authorship/edit rights. The parent
+    version still advances, so a stale editor cannot overwrite a reaction.
+    """
+    from eimir.attachments import binding
+    from eimir.attachments.models import MediaType
+
+    memory = require_readable_locked(session, Memory, context, memory_id)
+    photo_id = attachment_id if isinstance(attachment_id, UUID) else parse_id(attachment_id)
+    photos = binding.attachments_of_memory(session, memory.id)
+    if photo_id is None or not any(
+        item.attachment.id == photo_id and item.attachment.media_type == MediaType.IMAGE
+        for item in photos
+    ):
+        raise NotFoundError("Photo not found.", "RESOURCE_NOT_FOUND")
+
+    previous = memory.payload.photo_reactions
+    remaining = [
+        item
+        for item in previous
+        if (item.attachment_id, item.account_id) != (photo_id, context.account_id)
+    ]
+    if reaction is not None:
+        remaining.append(
+            MemoryPhotoReaction(
+                attachment_id=photo_id, account_id=context.account_id, reaction=reaction
+            )
+        )
+    # Stable ordering makes a replay a genuine no-op, including version/event count.
+    remaining.sort(key=lambda item: (str(item.attachment_id), str(item.account_id)))
+    if (
+        sorted(previous, key=lambda item: (str(item.attachment_id), str(item.account_id)))
+        == remaining
+    ):
+        return memory
+    memory.payload = memory.payload.model_copy(update={"photo_reactions": remaining})
+    _flush(session)
+    _record(
+        session,
+        memory,
+        context.account_id,
+        EventType.PHOTO_REACTION_CHANGED,
+        recipient_id=memory.owner_id,
+    )
+    _flush(session)
+    return memory
 
 
 def update_memory(
@@ -191,7 +342,9 @@ def update_memory(
         memory.happened_on = happened_on
 
     if changed_fields.intersection({"title", "body", "tags"}):
-        memory.payload = MemoryPayload(title=next_title, body=next_body, tags=next_tags)
+        memory.payload = memory.payload.model_copy(
+            update={"title": next_title, "body": next_body, "tags": next_tags}
+        )
 
     _flush(session)
     _record(session, memory, context.account_id, EventType.MEMORY_UPDATED)
@@ -224,9 +377,18 @@ def delete_memory(
     _flush(session)
 
 
-def _cursor_binding(context: AuthorizationContext, year: int | None) -> dict[str, Any]:
+def _cursor_binding(
+    context: AuthorizationContext, year: int | None, experience_kind: ExperienceKind | None = None
+) -> dict[str, Any]:
     """Bind a memory cursor to its space and year filter."""
-    return {"collection": "memories", "spaceId": str(context.space_id), "year": year}
+    binding: dict[str, Any] = {
+        "collection": "memories",
+        "spaceId": str(context.space_id),
+        "year": year,
+    }
+    if experience_kind is not None:
+        binding.update(experienceKind=experience_kind.value, accountId=str(context.account_id))
+    return binding
 
 
 def _encode_cursor(
@@ -235,9 +397,10 @@ def _encode_cursor(
     year: int | None,
     created_at: datetime,
     memory_id: UUID,
+    experience_kind: ExperienceKind | None = None,
 ) -> str:
     return cursor_codec.encode(
-        binding=_cursor_binding(context, year),
+        binding=_cursor_binding(context, year, experience_kind),
         position={
             "createdAt": created_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
             "id": str(memory_id),
@@ -250,8 +413,9 @@ def _decode_cursor(
     *,
     context: AuthorizationContext,
     year: int | None,
+    experience_kind: ExperienceKind | None = None,
 ) -> tuple[datetime, UUID]:
-    position = cursor_codec.decode(token, binding=_cursor_binding(context, year))
+    position = cursor_codec.decode(token, binding=_cursor_binding(context, year, experience_kind))
     created_raw = position.get("createdAt")
     memory_raw = position.get("id")
     if not isinstance(created_raw, str) or not isinstance(memory_raw, str):
@@ -292,10 +456,15 @@ def list_memories(
     cursor: str | None,
     limit: int,
     year: int | None,
+    experience_kind: ExperienceKind | None = None,
 ) -> MemoryPageResult:
     statement = _apply_year_filter(readable(Memory, context), year)
+    if experience_kind is not None:
+        statement = statement.where(Memory.experience_kind == experience_kind.value)
     if cursor is not None:
-        created_at, memory_id = _decode_cursor(cursor, context=context, year=year)
+        created_at, memory_id = _decode_cursor(
+            cursor, context=context, year=year, experience_kind=experience_kind
+        )
         statement = statement.where(
             or_(
                 Memory.created_at < created_at,
@@ -315,6 +484,7 @@ def list_memories(
             year=year,
             created_at=last.created_at,
             memory_id=last.id,
+            experience_kind=experience_kind,
         )
     return MemoryPageResult(items=items, next_cursor=next_cursor, has_more=has_more)
 
@@ -326,6 +496,7 @@ def replace_attachments(
     *,
     expected_version: int,
     entries: list[tuple[UUID, int]],
+    sensitivity: dict[UUID, bool | None] | None = None,
 ) -> Memory:
     """Replace the complete attachment gallery of a memory.
 
@@ -336,7 +507,7 @@ def replace_attachments(
     """
     from eimir.attachments import binding
 
-    memory = require_writable(session, Memory, context, memory_id)
+    memory = require_writable_locked(session, Memory, context, memory_id)
     _ensure_expected_version(memory, expected_version)
 
     positions = [position for _, position in entries]
@@ -352,6 +523,7 @@ def replace_attachments(
             "ATTACHMENT_POSITION_INVALID",
         )
 
+    previous = {bound.attachment.id for bound in binding.attachments_of_memory(session, memory.id)}
     locked = binding.lock_for_binding(session, identifiers)
     attachments = []
     for attachment_id in identifiers:
@@ -359,12 +531,14 @@ def replace_attachments(
             locked.get(attachment_id),
             space_id=context.space_id,
             account_id=context.account_id,
+            already_bound=attachment_id in previous,
         )
         binding.ensure_unlinked(session, attachment_id, allow=("MEMORY", memory.id))
         attachments.append(attachment)
     binding.ensure_within_limits(attachments)
+    for attachment in attachments:
+        binding.set_sensitive(attachment, (sensitivity or {}).get(attachment.id))
 
-    previous = {bound.attachment.id for bound in binding.attachments_of_memory(session, memory.id)}
     session.execute(
         delete(binding.MemoryAttachment).where(binding.MemoryAttachment.memory_id == memory.id)
     )
@@ -387,6 +561,18 @@ def replace_attachments(
             # The last reference was removed. It becomes domain-unreferenced
             # immediately and provider cleanup remains asynchronous (M2-D11).
             attachment_service.mark_for_deletion(session, detached)
+
+    memory.payload = memory.payload.model_copy(
+        update={
+            "photo_reactions": [
+                item for item in memory.payload.photo_reactions if item.attachment_id in identifiers
+            ]
+        }
+    )
+
+    from eimir.attachments import photo_locations
+
+    photo_locations.bind(session, context, memory, attachments)
 
     memory.updated_at = now()
     _flush(session)

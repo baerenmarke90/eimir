@@ -45,6 +45,14 @@ const UPCOMING_ITEMS = [
  * enough to reproduce the reported activity-log/left-column/dead-space
  * problem on a real desktop viewport.
  */
+// Current-month text now appears once in monthly highlights. Keep the Memory
+// outside this month so the existing trace layout and focus checks retain it.
+const now = new Date();
+const previousMonthDate = new Date(
+  Date.UTC(now.getFullYear(), now.getMonth() - 1, 2),
+)
+  .toISOString()
+  .slice(0, 10);
 const RECENT_SHARED_ITEMS = [
   {
     id: 'r1',
@@ -56,7 +64,7 @@ const RECENT_SHARED_ITEMS = [
     id: 'r2',
     type: 'MEMORY',
     titleOrText: 'Ein Wochenende am Wasser',
-    occurredOn: daysAgo(2),
+    occurredOn: previousMonthDate,
   },
   {
     id: 'r3',
@@ -204,7 +212,7 @@ async function signIn(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/today$/);
 }
 
-test('Today "Zuletzt bei euch" renders as small bordered mini-tiles, not activity-log cards or a bare text trace, and uses desktop width instead of a narrow left column', async ({
+test('Today "Zuletzt bei euch" renders as compact borderless mini-tiles and uses desktop width', async ({
   page,
 }) => {
   await installMocks(page);
@@ -235,17 +243,20 @@ test('Today "Zuletzt bei euch" renders as small bordered mini-tiles, not activit
   await expect(page.locator('.today-living-milestone')).toHaveCount(1);
   await expect(page.getByText('Ein Jahr in unserer Wohnung')).toHaveCount(1);
 
-  // Each entry is a real, deliberately bordered mini-surface - not a bare,
-  // unstyled line of text (the over-corrected third follow-up) and not a
-  // huge full-width SaaS card. A visible border/background plus a bounded,
-  // compact width is what makes this read as a designed unit.
+  // Tinted backgrounds and rounded corners retain each compact unit while
+  // respecting the Product Owner's borderless surface decision.
   for (const tile of await tiles.all()) {
     const style = await tile.evaluate((el) => {
       const cs = getComputedStyle(el);
-      return { borderWidth: cs.borderTopWidth, borderStyle: cs.borderTopStyle };
+      return {
+        borderWidth: cs.borderTopWidth,
+        background: cs.backgroundColor,
+        radius: cs.borderTopLeftRadius,
+      };
     });
-    expect(style.borderStyle).toBe('solid');
-    expect(Number.parseFloat(style.borderWidth)).toBeGreaterThan(0);
+    expect(style.borderWidth).toBe('0px');
+    expect(style.background).not.toBe('rgba(0, 0, 0, 0)');
+    expect(Number.parseFloat(style.radius)).toBeGreaterThan(0);
   }
 
   // Compact and bounded, not full-width rows: none should come close to the
@@ -264,7 +275,7 @@ test('Today "Zuletzt bei euch" renders as small bordered mini-tiles, not activit
   // Matches the Shared Planning Horizon ("Demnächst") tile width directly
   // above (#791 fifth follow-up): an earlier round capped these tiles
   // narrower than that reference section, which read as a mismatched,
-  // "worse" rhythm even though both use the same bordered-tile pattern.
+  // "worse" rhythm even though both use the same compact-tile pattern.
   const agendaWidth = await page
     .locator('.today-agenda-row')
     .first()
@@ -363,8 +374,9 @@ test('Today "Zuletzt bei euch" mini-tiles are keyboard-focusable in order with a
 
 test('Today "Zuletzt bei euch" stays regression-free on mobile and in dark mode', async ({
   page,
-}) => {
+}, info) => {
   await installMocks(page);
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/today');
   await signIn(page);
@@ -385,6 +397,14 @@ test('Today "Zuletzt bei euch" stays regression-free on mobile and in dark mode'
   }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 
+  const section = page.locator('.today-section-recent');
+  const heading = await section.locator('h2').boundingBox();
+  const action = await section.locator('.today-section-action a').boundingBox();
+  expect(action?.x).toBeGreaterThan((heading?.x ?? 0) + (heading?.width ?? 0));
+  expect(Math.abs((action?.y ?? 0) - (heading?.y ?? 0))).toBeLessThan(20);
+  await section.screenshot({
+    path: info.outputPath('wir-activity-heading-390-dark.png'),
+  });
   const result = await new AxeBuilder({ page }).analyze();
   expect(result.violations).toEqual([]);
 });

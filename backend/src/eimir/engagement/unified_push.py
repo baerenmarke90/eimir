@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import contextlib
 import hashlib
 import http.client
 import ipaddress
@@ -14,6 +15,7 @@ import ssl
 from dataclasses import dataclass
 from typing import cast
 from urllib.parse import SplitResult, urlsplit
+from uuid import UUID
 
 import requests
 from cryptography.hazmat.primitives import serialization
@@ -65,6 +67,7 @@ class Subscription:
     endpoint: str
     p256dh: str
     auth: str
+    notification_reference_version: int = 0
 
     def as_webpush(self) -> dict[str, object]:
         return {
@@ -172,7 +175,13 @@ class UnifiedPushProvider:
             raw = json.loads(value)
         except (TypeError, ValueError):
             return None
-        if not isinstance(raw, dict) or set(raw) != {"endpoint", "keys"}:
+        if not isinstance(raw, dict) or set(raw) not in (
+            {"endpoint", "keys"},
+            {"endpoint", "keys", "notificationReferenceVersion"},
+        ):
+            return None
+        version = raw.get("notificationReferenceVersion", 0)
+        if type(version) is not int or version not in {0, 1}:
             return None
         endpoint = raw["endpoint"]
         keys = raw["keys"]
@@ -198,7 +207,7 @@ class UnifiedPushProvider:
             ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), public)
         except ValueError:
             return None
-        return Subscription(endpoint, keys["p256dh"], keys["auth"])
+        return Subscription(endpoint, keys["p256dh"], keys["auth"], version)
 
     def accepts_endpoint(self, endpoint: str) -> bool:
         return self._parse(endpoint) is not None
@@ -217,10 +226,15 @@ class UnifiedPushProvider:
         notification_reference: dict[str, str],
         generic_presentation_key: str,
     ) -> push.PushSendResult:
-        del notification_reference
+        wake: dict[str, str] = {"type": "wake"}
+        # The encrypted hint contains only a canonical reference, never content,
+        # sender identity, event category or an arbitrary deep-link destination.
         registration = self._parse(endpoint)
         if registration is None:
             raise push.PushProviderError("PUSH_SUBSCRIPTION_INVALID", retryable=False)
+        if registration.notification_reference_version == 1:
+            with contextlib.suppress(KeyError, ValueError, TypeError, AttributeError):
+                wake["notificationId"] = str(UUID(notification_reference["id"]))
         if generic_presentation_key != push.GENERIC_PRESENTATION_KEY:
             raise push.PushProviderError("PUSH_PRESENTATION_BLOCKED", retryable=False)
         topic = base64.urlsafe_b64encode(hashlib.sha256(idempotency_key.encode()).digest())[
@@ -229,7 +243,7 @@ class UnifiedPushProvider:
         try:
             webpush(
                 subscription_info=registration.as_webpush(),
-                data=json.dumps({"type": "wake"}, separators=(",", ":")),
+                data=json.dumps(wake, separators=(",", ":")),
                 vapid_private_key=self._private_key,
                 vapid_claims={"sub": self._subject},
                 content_encoding="aes128gcm",

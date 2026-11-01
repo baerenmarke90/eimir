@@ -1,0 +1,5 @@
+Improves immediate feedback and recovery for shared everyday actions, keeps private profile-note explanations visible while editing, and corrects all eleven Android home-screen icon variants so Android supplies the outer shape without a second inset badge.
+
+Includes the merged fixes since test.13 for notifications, check-ins, planning, shared photo/history browsing and dependency security. Known-offline Wish completion sends no request; reconnect does not silently repeat a failed action.
+
+Update through App Updates. This release must keep package de.sidebyside.app and the existing test signing certificate. Do not uninstall or clear app data. The icon correction, external mail/invitation links and session/data continuity still require acceptance on the actual installed Android device.

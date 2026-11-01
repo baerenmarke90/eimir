@@ -4,6 +4,7 @@ import { act, renderHook, screen, waitFor } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
+import type { UnifiedPushConfiguration } from '../api/generated/models/UnifiedPushConfiguration';
 import { ResponseError } from '../api/generated/runtime';
 import { notificationUnreadCountQueryKey } from './notificationQueries';
 import {
@@ -89,14 +90,62 @@ function wrapper({ children }: PropsWithChildren) {
 
 function createApi() {
   return {
-    getUnifiedPushConfiguration: vi.fn(async () => ({
-      providerKey: 'unifiedpush',
-      vapidPublicKey: 'A'.repeat(87),
+    openNotification: vi.fn(async () => ({
+      kind: 'COUPLE_EXPERIENCE_SHARED',
+      targetType: 'MEMORY',
+      targetId: 'saved-note',
     })),
+    getUnifiedPushConfiguration: vi.fn(
+      async (): Promise<UnifiedPushConfiguration> => ({
+        providerKey: 'unifiedpush',
+        vapidPublicKey: 'A'.repeat(87),
+        notificationReferenceVersion: 1,
+      }),
+    ),
     registerOwnPushEndpoint: vi.fn(async () => ({ id: 'endpoint-id' })),
     revokeOwnPushEndpoint: vi.fn(async () => undefined),
   };
 }
+
+it('resolves a notification tap through authenticated recipient state and opens its source once', async () => {
+  const { api } = setup();
+  await waitFor(() =>
+    expect(native.listeners.has('notificationOpen')).toBe(true),
+  );
+  const notificationId = 'ed0ca1ae-ad80-4876-8a39-1d909b18f8e8';
+  act(() => {
+    native.listeners.get('notificationOpen')?.({ accountId, notificationId });
+    native.listeners.get('notificationOpen')?.({ accountId, notificationId });
+  });
+  await waitFor(() =>
+    expect(screen.getByTestId('route').textContent).toBe(
+      '/story/memories/saved-note',
+    ),
+  );
+  expect(api.openNotification).toHaveBeenCalledExactlyOnceWith({
+    spaceId: 'space-a',
+    notificationId,
+  });
+});
+
+it('falls back to the safe inbox when a tapped source is no longer authorized', async () => {
+  const { api } = setup('space-a', (api) =>
+    api.openNotification.mockRejectedValue(new Error('Unavailable')),
+  );
+  await waitFor(() =>
+    expect(native.listeners.has('notificationOpen')).toBe(true),
+  );
+  act(() =>
+    native.listeners.get('notificationOpen')?.({
+      accountId,
+      notificationId: 'ed0ca1ae-ad80-4876-8a39-1d909b18f8e8',
+    }),
+  );
+  await waitFor(() =>
+    expect(screen.getByTestId('route').textContent).toBe('/more/notifications'),
+  );
+  expect(api.openNotification).toHaveBeenCalledOnce();
+});
 
 function setup(
   spaceId = 'space-a',
@@ -125,6 +174,42 @@ function setup(
   );
   return { api, queryClient, ...hook };
 }
+
+it('does not navigate from a pending tap after leaving and returning to the same Space', async () => {
+  let finish!: (value: {
+    kind: string;
+    targetType: string;
+    targetId: string;
+  }) => void;
+  const { api, rerender } = setup('space-a', (api) => {
+    api.openNotification.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+  });
+  await waitFor(() =>
+    expect(native.listeners.has('notificationOpen')).toBe(true),
+  );
+  act(() =>
+    native.listeners.get('notificationOpen')?.({
+      accountId,
+      notificationId: 'ed0ca1ae-ad80-4876-8a39-1d909b18f8e8',
+    }),
+  );
+  await waitFor(() => expect(api.openNotification).toHaveBeenCalledOnce());
+  rerender({ spaceId: 'space-b' });
+  rerender({ spaceId: 'space-a' });
+  await act(async () =>
+    finish({
+      kind: 'COUPLE_EXPERIENCE_SHARED',
+      targetType: 'MEMORY',
+      targetId: 'saved-note',
+    }),
+  );
+  expect(screen.getByTestId('route').textContent).toBe('/today');
+});
 
 beforeEach(() => {
   stored.clear();
@@ -162,9 +247,34 @@ function emitEndpoint() {
       endpoint: 'https://push.example.test/id',
       p256dh: 'public-key',
       auth: 'auth-secret',
+      notificationReferenceVersion: 1,
     }),
   );
 }
+
+it('keeps the legacy subscription format when an older backend has no reference capability', async () => {
+  const { api, result } = setup('space-a', (api) =>
+    api.getUnifiedPushConfiguration.mockResolvedValue({
+      providerKey: 'unifiedpush',
+      vapidPublicKey: 'A'.repeat(87),
+    }),
+  );
+  await waitFor(() => expect(result.current.state).toBe('off'));
+  await act(async () => result.current.enable());
+  emitEndpoint();
+  await waitFor(() =>
+    expect(api.registerOwnPushEndpoint).toHaveBeenCalledOnce(),
+  );
+  expect(api.registerOwnPushEndpoint).toHaveBeenCalledWith({
+    pushEndpointRegistration: {
+      providerKey: 'unifiedpush',
+      endpointValue: JSON.stringify({
+        endpoint: 'https://push.example.test/id',
+        keys: { p256dh: 'public-key', auth: 'auth-secret' },
+      }),
+    },
+  });
+});
 
 it('registers a device endpoint, refreshes the current Space, routes a tap, and revokes on disable', async () => {
   const { api, queryClient, result, rerender } = setup();
@@ -182,6 +292,7 @@ it('registers a device endpoint, refreshes the current Space, routes a tap, and 
       endpoint: 'https://push.example.test/id',
       p256dh: 'public-key',
       auth: 'auth-secret',
+      notificationReferenceVersion: 1,
     }),
   );
   await waitFor(() => expect(result.current.state).toBe('on'));
@@ -191,6 +302,7 @@ it('registers a device endpoint, refreshes the current Space, routes a tap, and 
       endpointValue: JSON.stringify({
         endpoint: 'https://push.example.test/id',
         keys: { p256dh: 'public-key', auth: 'auth-secret' },
+        notificationReferenceVersion: 1,
       }),
     },
   });

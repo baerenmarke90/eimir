@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="app_icon_original_background">#FCF9F8</color>
+    <color name="app_icon_pearl_background">#F0F0F3</color>
+    <color name="app_icon_dark_background">#333E57</color>
+    <color name="app_icon_monochrome_background">#545869</color>
+    <color name="app_icon_sunset_background">#F0E6EA</color>
+    <color name="app_icon_sage_background">#E4F2ED</color>
+    <color name="app_icon_daylight_background">#F1F9FE</color>
+    <color name="app_icon_lavender_background">#F7F1FC</color>
+    <color name="app_icon_sand_background">#FCF2E0</color>
+    <color name="app_icon_midnight_background">#DADAE4</color>
+    <color name="app_icon_minimal_background">#FAF7F7</color>
+</resources>

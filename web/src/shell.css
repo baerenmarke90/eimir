@@ -1,10 +1,16 @@
 :root {
-  --shell-floating-nav-height: 3.75rem;
-  --shell-floating-nav-offset: var(--space-3);
-  --shell-floating-nav-footprint: calc(
+  --shell-floating-nav-height: 4.375rem;
+  --shell-floating-nav-offset: 0px;
+  --shell-bottom-nav-min-height: calc(
     var(--shell-floating-nav-height) +
     var(--shell-floating-nav-offset) +
-    env(safe-area-inset-bottom, 0px)
+    var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
+  );
+  --shell-bottom-nav-measured-height: 0px;
+  /* Reflow the minimum immediately while a resized observer is pending. */
+  --shell-floating-nav-footprint: max(
+    var(--shell-bottom-nav-min-height),
+    var(--shell-bottom-nav-measured-height)
   );
   --shell-content-bottom-clearance: calc(
     var(--shell-floating-nav-footprint) +
@@ -39,6 +45,10 @@
 
   min-height: 100vh;
   background: transparent;
+}
+
+.shell-detail-context {
+  margin-bottom: var(--space-3);
 }
 
 #root:has(> .demo-instance-banner) .product-shell {
@@ -91,7 +101,7 @@
   height: 44px;
   min-height: 44px;
   place-items: center;
-  border: 1px solid transparent;
+  border: var(--border-surface-width) solid transparent;
   border-radius: var(--radius-pill);
   padding: 0;
   background: transparent;
@@ -162,7 +172,7 @@
   display: grid;
   width: min(18rem, calc(100vw - 2rem));
   gap: var(--space-1);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   padding: var(--space-2);
   background: var(--color-surface-raised);
@@ -226,7 +236,7 @@
   flex-direction: column;
   width: min(22rem, calc(100vw - 2rem));
   max-height: min(28rem, calc(100vh - 6rem));
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   background: var(--color-surface-raised);
   box-shadow: var(--shadow-soft);
@@ -495,7 +505,7 @@
   width: 100%;
   min-width: 13rem;
   gap: var(--space-1);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   padding: var(--space-2);
   background: var(--color-surface-raised);
@@ -573,10 +583,19 @@
 }
 
 .product-main {
+  --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
+
   width: calc(100% - 2 * var(--page-gutter));
   margin: 0 auto;
   padding: clamp(var(--space-6), 4vw, var(--space-10)) 0
     var(--shell-content-bottom-clearance);
+}
+
+/* Native focus/scroll alignment must clear the fixed bar as well as the
+   document's final content. Padding alone does not protect an end-aligned
+   focused control from the overlaid navigation. */
+.product-main :focus {
+  scroll-margin-block-end: var(--shell-focus-bottom-clearance);
 }
 
 .shell-nav {
@@ -608,9 +627,11 @@
     transform var(--duration-feedback) var(--easing-standard);
 }
 
-.shell-nav-link:hover {
-  background: var(--color-surface-subtle);
-  color: var(--color-text);
+@media (hover: hover) and (pointer: fine) {
+  .shell-nav-link:hover {
+    background: var(--color-surface-subtle);
+    color: var(--color-text);
+  }
 }
 
 .shell-nav-link:focus-visible {
@@ -618,7 +639,21 @@
   outline-offset: 2px;
 }
 
+/* Persistent destinations respond at contact, including touch without hover. */
+.shell-nav-link:active,
+.mobile-bottom-nav .shell-nav-link:active {
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+
+.shell-nav-link {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
 .shell-nav-icon {
+  position: relative;
   display: grid;
   width: 1.5rem;
   height: 1.5rem;
@@ -707,27 +742,47 @@
 .mobile-bottom-shell {
   position: fixed;
   z-index: 50;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(
-    var(--shell-floating-nav-offset) +
-    env(safe-area-inset-bottom, 0px)
+  inset-inline: 0;
+  bottom: 0;
+  width: 100%;
+  min-height: calc(
+    var(--shell-floating-nav-height) +
+    var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
   );
-  width: calc(100% - var(--space-6));
-  max-width: 28rem;
-  min-height: var(--shell-floating-nav-height);
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: center;
   justify-items: center;
   padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-pill);
+  padding-inline-start: max(var(--space-2), env(safe-area-inset-left, 0px));
+  padding-inline-end: max(var(--space-2), env(safe-area-inset-right, 0px));
+  padding-bottom: calc(
+    var(--space-1) +
+    var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))
+  );
+  border-radius: 0;
   background: var(--color-surface-overlay);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--color-border-subtle);
-  box-shadow: var(--shadow-card);
+  border: 0;
   box-sizing: border-box;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .mobile-bottom-shell {
+    background: color-mix(
+      in srgb,
+      var(--color-surface-overlay) var(--navigation-surface-opacity),
+      transparent
+    );
+    -webkit-backdrop-filter: blur(var(--navigation-backdrop-blur));
+    backdrop-filter: blur(var(--navigation-backdrop-blur));
+  }
+}
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .mobile-bottom-shell {
+    background: var(--color-surface-overlay);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
 .mobile-bottom-shell .mobile-bottom-nav {
@@ -767,16 +822,16 @@
 .mobile-bottom-nav .shell-nav-link {
   min-width: 0;
   width: 100%;
-  min-height: 48px;
+  min-height: 56px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: var(--space-1);
   padding: var(--space-1) 2px;
   border-radius: var(--radius-large);
-  color: var(--color-text-secondary);
-  font-size: 0.72rem;
+  color: var(--color-text);
+  font-size: 0.8rem;
   font-weight: 550;
   line-height: 1.15;
   text-align: center;
@@ -787,15 +842,15 @@
 }
 
 .mobile-bottom-nav .shell-nav-link > span:last-child {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
   max-width: 100%;
 }
 
 .mobile-bottom-nav .shell-nav-link .shell-nav-icon {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -803,8 +858,8 @@
 }
 
 .mobile-bottom-nav .shell-nav-link .shell-nav-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
 .mobile-bottom-nav .shell-nav-link-active {
@@ -816,7 +871,12 @@
   color: var(--color-brand);
 }
 
-.mobile-bottom-nav .shell-nav-link:hover,
+@media (hover: hover) and (pointer: fine) {
+  .mobile-bottom-nav .shell-nav-link:hover {
+    color: var(--color-text);
+  }
+}
+
 .mobile-bottom-nav .shell-nav-link:focus-visible {
   color: var(--color-text);
 }
@@ -884,7 +944,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
   gap: var(--space-4);
-  border: 2px dashed var(--color-brand-glow);
+  border: var(--border-surface-width) dashed var(--color-brand-glow);
   border-radius: var(--radius-card);
   padding: clamp(var(--space-5), 4vw, var(--space-8));
   background: var(--color-surface-overlay);
@@ -945,6 +1005,14 @@
 }
 
 @media (max-width: 839px) {
+  .product-topbar {
+    display: none;
+  }
+
+  .product-shell {
+    padding-top: var(--shell-header-safe-top);
+  }
+
   .product-topbar .brand-name,
   .product-topbar .shared-context,
   .product-topbar .theme-control label,
@@ -1008,6 +1076,8 @@
   }
 
   .product-main {
+    --shell-focus-bottom-clearance: 0px;
+
     width: min(var(--content-max), calc(100% - 4rem));
     padding-bottom: var(--space-16);
   }
@@ -1022,13 +1092,8 @@
 }
 
 @media (max-width: 360px) {
-  .mobile-bottom-shell {
-    width: calc(100% - var(--space-3));
-    padding: var(--space-1) var(--space-1);
-  }
-
   .mobile-bottom-nav .shell-nav-link {
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     padding: var(--space-1) 1px;
   }
 }
@@ -1091,7 +1156,7 @@
   height: 36px;
   margin-bottom: var(--space-2);
   place-items: center;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: 50%;
   background: var(--color-surface-raised);
   color: var(--color-text-secondary);

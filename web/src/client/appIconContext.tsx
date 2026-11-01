@@ -107,7 +107,13 @@ function useAppIconState({
       }
     },
     onSuccess: (snapshot, { ownsQuery }) => {
-      if (active.current && ownsQuery()) client.setQueryData(key, snapshot);
+      if (active.current && ownsQuery()) {
+        client.setQueryData(key, snapshot);
+        void client.invalidateQueries({
+          queryKey: ['wir-design', instance, accountId, spaceId],
+          exact: true,
+        });
+      }
     },
     onError: (error, { ownsQuery }) => {
       if (

@@ -1,15 +1,19 @@
+import { assertOnlineWrite } from '../client/connectivity';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
   useCallback,
   useEffect,
   useRef,
+  useMemo,
   useState,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { WishDetail } from '../api/generated/models/WishDetail';
+import type { AttachmentEntry } from '../api/generated/models/AttachmentEntry';
+import { usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
 import {
   authorSummaryQueryKeys,
   invalidatePlaceConsumers,
@@ -34,6 +38,9 @@ import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
+import { PlanPhotosEditor } from './PlanPhotosEditor';
+import { PlaceMapPicker } from './PlaceMapPicker';
+import { createReferenceApis } from '../client/referenceFlow';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
@@ -46,6 +53,7 @@ interface PlanningCreateValues {
   readonly description?: string;
   readonly placeId?: string;
   readonly schedule?: PlanSchedule;
+  readonly attachments?: AttachmentEntry[];
 }
 
 interface PlanningCreateSnapshot {
@@ -66,10 +74,16 @@ export function PlanningCreatePage({
   apis,
   spaceId,
   kind,
+  apiBaseUrl,
+  accessToken,
+  accountId,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
   kind: PlanningCreateKind;
+  apiBaseUrl?: string;
+  accessToken?: string;
+  accountId?: string;
 }) {
   const { t } = useTranslation();
   const location = useLocation();
@@ -80,6 +94,18 @@ export function PlanningCreatePage({
     ?.taskOriginKey;
   const headingRef = useRef<HTMLDivElement>(null);
   const discardRef = useRef<ShortTaskSheetHandle>(null);
+  const referenceApis = useMemo(
+    () => createReferenceApis(apiBaseUrl ?? '', accessToken ?? ''),
+    [apiBaseUrl, accessToken],
+  );
+  const photos = usePlanPhotoDrafts({
+    apis: referenceApis,
+    apiBaseUrl: apiBaseUrl ?? '',
+    accessToken: accessToken ?? '',
+    spaceId,
+    accountId: accountId ?? '',
+  });
+  const clearPhotos = photos.clear;
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [placeId, setPlaceId] = useState('');
@@ -101,11 +127,13 @@ export function PlanningCreatePage({
     retry: false,
   });
 
-  const dirty = Boolean(title || description || placeId || enrichmentDirty);
-  const onClose = useCallback(
-    () => requestReturn(originKey, '/plan'),
-    [originKey, requestReturn],
+  const dirty = Boolean(
+    title || description || placeId || enrichmentDirty || photos.items.length,
   );
+  const onClose = useCallback(() => {
+    clearPhotos();
+    requestReturn(originKey, '/plan');
+  }, [originKey, requestReturn, clearPhotos]);
   const {
     showDiscardConfirm: showDiscard,
     keepEditing,
@@ -122,8 +150,18 @@ export function PlanningCreatePage({
   }, []);
 
   const createMutation = useMutation({
+    networkMode: 'always',
     mutationFn: async (values: PlanningCreateValues) => {
-      const requestValues = kind === 'wish' ? { title: values.title } : values;
+      assertOnlineWrite();
+      let requestValues: PlanningCreateValues =
+        kind === 'wish' ? { title: values.title } : values;
+      if (kind === 'plan' && photos.items.length) {
+        requestValues = {
+          ...values,
+          attachments: photos.entries,
+        };
+      }
+      assertOnlineWrite();
       const snapshot: PlanningCreateSnapshot = {
         kind,
         spaceId,
@@ -147,7 +185,7 @@ export function PlanningCreatePage({
               })
             : apis.plans.createPlan({
                 spaceId,
-                planCreate: values,
+                planCreate: requestValues,
                 idempotencyKey,
               }),
       });
@@ -183,8 +221,17 @@ export function PlanningCreatePage({
   });
 
   const createPlaceMutation = useMutation({
-    mutationFn: (values: { name: string; address?: string }) =>
-      apiCall(() => apis.places.createPlace({ spaceId, placeCreate: values })),
+    networkMode: 'always',
+    mutationFn: (values: {
+      name: string;
+      address?: string;
+      latitude?: number;
+      longitude?: number;
+    }) =>
+      apiCall(() => {
+        assertOnlineWrite();
+        return apis.places.createPlace({ spaceId, placeCreate: values });
+      }),
     onSuccess: async (created) => {
       await invalidatePlaceConsumers(queryClient, spaceId);
       queryClient.setQueryData(
@@ -210,7 +257,15 @@ export function PlanningCreatePage({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (pending || !title.trim()) return;
+    if (
+      pending ||
+      createPlaceMutation.isPending ||
+      !title.trim() ||
+      photos.hasPending ||
+      photos.hasFailed ||
+      photos.entries.length !== photos.items.length
+    )
+      return;
     if (!navigator.onLine) {
       setOfflineAttempt(true);
       return;
@@ -249,15 +304,10 @@ export function PlanningCreatePage({
             {t('taskBoundary.close')}
           </button>
         }
-        eyebrow={t(
-          isPlan ? 'm5s3.plan.createEyebrow' : 'm5s3.wish.createEyebrow',
-        )}
         title={t(
           isPlan ? 'm5s3.plan.createHeading' : 'm5s3.wish.createHeading',
         )}
-        description={t(
-          isPlan ? 'm5s3.plan.createIntro' : 'm5s3.wish.createIntro',
-        )}
+        description={isPlan ? t('m5s3.plan.createIntro') : undefined}
       />
       <div ref={headingRef} tabIndex={-1} className="planning-task-focus" />
 
@@ -301,6 +351,15 @@ export function PlanningCreatePage({
           </div>
 
           {isPlan ? (
+            <PlanPhotosEditor
+              controller={photos}
+              spaceId={spaceId}
+              disabled={pending}
+              canUpload={Boolean(apiBaseUrl && accessToken)}
+              onChange={() => setEnrichmentDirty(true)}
+            />
+          ) : null}
+          {isPlan ? (
             <details className="planning-optional-details">
               <summary>{t('m5s3.plan.addDetails')}</summary>
               <div className="planning-optional-fields eimir-motion-disclosure">
@@ -330,6 +389,19 @@ export function PlanningCreatePage({
                     </option>
                   ))}
                 </select>
+                <PlaceMapPicker
+                  api={apis.places}
+                  spaceId={spaceId}
+                  disabled={pending || createPlaceMutation.isPending}
+                  onSelect={(selection) =>
+                    createPlaceMutation.mutate({
+                      name: selection.name,
+                      address: selection.address ?? undefined,
+                      latitude: selection.latitude,
+                      longitude: selection.longitude,
+                    })
+                  }
+                />
                 <button
                   type="button"
                   className="button-link secondary-link planning-add-place"
@@ -432,7 +504,12 @@ export function PlanningCreatePage({
           <button type="button" className="secondary" onClick={requestClose}>
             {t('common.cancel')}
           </button>
-          <button type="submit" disabled={pending || !title.trim()}>
+          <button
+            type="submit"
+            disabled={
+              pending || !title.trim() || photos.hasPending || photos.hasFailed
+            }
+          >
             {pending ? t('m5s3.common.saving') : t('m5s3.common.save')}
           </button>
         </div>

@@ -12,14 +12,18 @@ without an entry makes the suite fail before it reaches production.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.orm import Session
 
+from eimir.core import clock
 from eimir.dashboard.preferences import CATALOG as DASHBOARD_CATALOG
 from eimir.engagement.models import Notification, NotificationKind
+from eimir.entitlements import service as entitlements
+from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus, EntitlementTier
 from eimir.main import create_app
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
@@ -46,6 +50,7 @@ class Endpoint:
     placeholders: tuple[str, ...] = field(default=())
     fixture_aliases: dict[str, str] = field(default_factory=dict)
     query: dict[str, str] = field(default_factory=dict)
+    verification_template: str | None = None
 
     def __str__(self) -> str:
         return f"{self.method} {self.template}"
@@ -136,12 +141,93 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("POST", "/api/v1/spaces/{spaceId}/presence"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/membership/leave"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/entitlements"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/memory-map"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/relationship-passport"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/recaps"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps/prepare"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/recaps", body={"kind": "YEAR", "year": 2025}),
+    Endpoint(
+        "GET", "/api/v1/spaces/{spaceId}/recaps/{recapId}", resource_absence="RESOURCE_NOT_FOUND"
+    ),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/recaps/{recapId}/selection",
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/recaps/{recapId}/selection",
+        body={"sourceKeys": []},
+        if_match=True,
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/recaps/{recapId}/save",
+        if_match=True,
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/recaps/{recapId}/reflection",
+        body={"text": "Matrix recap reflection", "shared": True, "version": 1},
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/recaps/{recapId}/reflection",
+        if_match=True,
+        resource_absence="RESOURCE_NOT_FOUND",
+        verification_template="/api/v1/spaces/{spaceId}/recaps/{recapId}",
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/app-icon"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/wir-design"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/appearance/wir-design",
+        body={"designId": "warm"},
+        if_match=True,
+    ),
     Endpoint(
         "PATCH",
         "/api/v1/spaces/{spaceId}/appearance/app-icon",
         body={"iconId": "original"},
         if_match=True,
+    ),
+    # Own enabled/Pro selection IDs and credentials are exercised in test_photo_sources.
+    # This matrix additionally proves every route rejects anonymous/foreign Spaces.
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/photo-sources"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/photo-sources/immich",
+        body={"origin": "https://my-photos.example", "apiKey": "synthetic-key", "consent": True},
+        if_match=True,
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/photo-sources/immich",
+        if_match=True,
+        verification_template="/api/v1/spaces/{spaceId}/photo-sources",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/photo-selections",
+        body={"source": "immich", "maxItems": 2, "consent": True},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/poll",
+        fixture_aliases={"selectionId": "memoryId"},
+    ),
+    Endpoint(
+        "DELETE",
+        "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}",
+        fixture_aliases={"selectionId": "memoryId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}",
+        fixture_aliases={"selectionId": "memoryId", "itemId": "attachmentId"},
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/configuration"),
     Endpoint(
@@ -158,6 +244,21 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         if_match=True,
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-check-in/insights"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
+        query={"week_start": "2026-10-26"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
+        body={"weekStart": "2026-10-26", "evidenceToken": "a" * 64},
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback/{recommendationKey}",
+        body={"rating": "HELPFUL"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/catalog"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/preferences"),
@@ -169,6 +270,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/moments/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/experiences/{kind}/questions",
+        fixture_aliases={"kind": "experienceKind"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/profile"),
     Endpoint("PUT", "/api/v1/spaces/{spaceId}/profile", body=PROFILE, if_match=True),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/partner-nickname"),
@@ -294,6 +400,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         if_match=True,
         resource_absence="RESOURCE_NOT_FOUND",
     ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/attachments/{attachmentId}/reaction",
+        body={"reaction": "LOVE"},
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/heart-moments"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/heart-moments", body=HEART_MOMENT),
     Endpoint(
@@ -324,6 +436,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/timeline"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/photos"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/discover"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/discover/renew"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/story-views", body=STORY_VIEW),
     Endpoint(
         "GET",
@@ -351,6 +464,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="NOTIFICATION_NOT_FOUND",
     ),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/notifications/read-all"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/notifications/{notificationId}/open",
+        resource_absence="NOTIFICATION_NOT_FOUND",
+    ),
     Endpoint(
         "POST",
         "/api/v1/spaces/{spaceId}/thinking-of-you",
@@ -463,6 +581,20 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         if_match=True,
         resource_absence="COMMENT_TARGET_NOT_AVAILABLE",
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/wish-selection"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/wish-selection",
+        body={"wishIds": [str(uuid4()), str(uuid4())]},
+        if_match=True,
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/wish-selection/own",
+        body={"favoriteWishIds": [], "published": False},
+        if_match=True,
+    ),
+    Endpoint("DELETE", "/api/v1/spaces/{spaceId}/wish-selection", if_match=True),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/wishes"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/wishes", body=WISH),
     Endpoint(
@@ -497,7 +629,18 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="WISH_NOT_FOUND",
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/places"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/moments/{kind}/{targetId}/places",
+        resource_absence="RELATION_TARGET_NOT_FOUND",
+        placeholders=("targetId",),
+    ),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/places", body=PLACE),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/places/lookup",
+        body={"query": "Matrix location", "locale": "en"},
+    ),
     Endpoint(
         "GET",
         "/api/v1/spaces/{spaceId}/places/{placeId}",
@@ -920,6 +1063,8 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     ("POST", "/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/start"),
     ("POST", "/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/callback"),
     ("POST", "/api/v1/account/deletion"),
+    ("GET", "/api/v1/account/photo-location-preference"),
+    ("PUT", "/api/v1/account/photo-location-preference"),
     ("GET", "/api/v1/notification-preferences"),
     ("PATCH", "/api/v1/notification-preferences/quiet-hours"),
     ("PATCH", "/api/v1/notification-preferences/{kind}/{channel}"),
@@ -1007,7 +1152,7 @@ covered in `test_auth_flows` and `test_invitations`.
 
 
 @pytest.fixture
-def scenario(client, session: Session):  # type: ignore[no-untyped-def]
+def scenario(client, session: Session, request: pytest.FixtureRequest):  # type: ignore[no-untyped-def]
     "A couple with one real resource per domain, plus a foreign one."
     anna = make_account(session, "Anna")
     ben = make_account(session, "Ben")
@@ -1084,6 +1229,45 @@ def scenario(client, session: Session):  # type: ignore[no-untyped-def]
     ).json()
     attachment = client.post(f"{base_path}/attachments", json=ATTACHMENT, headers=headers).json()
 
+    recap_id = str(uuid4())
+    callspec = getattr(request.node, "callspec", None)
+    endpoint = callspec.params.get("endpoint") if callspec else None
+    if endpoint and "/wish-selection" in endpoint.template:
+        second_wish = client.post(
+            f"{base_path}/wishes", json={"title": "Another Matrix Wish"}, headers=headers
+        ).json()
+        selection = client.put(
+            f"{base_path}/wish-selection",
+            json={"wishIds": [wish["id"], second_wish["id"]]},
+            headers={**headers, "If-Match": '"absent"'},
+        )
+        assert selection.status_code == 200
+    if endpoint and "/recaps" in endpoint.template:
+        # Keep unrelated domain fixtures Free. Recap writes need their own grant
+        # so the matrix reaches resource/header checks instead of a Pro gate.
+        entitlements.record_grant(
+            session,
+            space_id=space.id,
+            account_id=anna.id,
+            source_type=EntitlementSourceType.ADMIN_GRANT,
+            status=EntitlementStatus.ACTIVE,
+            tier=EntitlementTier.PREMIUM,
+            effective_from=clock.now() - timedelta(days=1),
+            capabilities=["relationship.passport"],
+        )
+        session.flush()
+        recap = client.post(
+            f"{base_path}/recaps", json={"kind": "YEAR", "year": 2025}, headers=headers
+        )
+        assert recap.status_code == 200
+        recap_id = recap.json()["id"]
+        reflection = client.put(
+            f"{base_path}/recaps/{recap_id}/reflection",
+            json={"text": "Matrix recap reflection", "shared": True, "version": 0},
+            headers=headers,
+        )
+        assert reflection.status_code == 200
+
     return {
         "client": client,
         "space": space,
@@ -1091,6 +1275,7 @@ def scenario(client, session: Session):  # type: ignore[no-untyped-def]
         "foreign_headers": auth(sign_in(session, foreign)),
         "ids": {
             "spaceId": str(space.id),
+            "recapId": recap_id,
             "accountId": str(ben.id),
             "invitationId": invitation["id"],
             "preferenceId": preference["id"],
@@ -1105,6 +1290,7 @@ def scenario(client, session: Session):  # type: ignore[no-untyped-def]
             "planId": plan["id"],
             "reminderId": reminder["id"],
             "ruleKey": "important_date_reminder",
+            "recommendationKey": "quiet_time",
             "moduleKey": "upcoming",
             "placeId": place["id"],
             "chapterId": chapter["id"],
@@ -1119,6 +1305,8 @@ def scenario(client, session: Session):  # type: ignore[no-untyped-def]
             # The target is a typed relation. A memory is enough for all three
             # relation types because this matrix checks occur before target resolution.
             "targetId": memory["id"],
+            "kind": "memories",
+            "experienceKind": "HAPPINESS",
             "attachmentId": attachment["attachment"]["id"],
         },
     }
@@ -1236,6 +1424,7 @@ def _resource_placeholders(endpoint: Endpoint) -> tuple[str, ...]:
     return tuple(
         name
         for name in (
+            "recapId",
             "invitationId",
             "preferenceId",
             "personId",
@@ -1292,8 +1481,19 @@ def test_without_if_match_does_not_write(scenario, endpoint: Endpoint) -> None: 
             )
             assert afterwards.status_code == 200
         else:
-            afterwards = scenario["client"].get(path, headers=scenario["owner_headers"])
+            verification_path = (
+                endpoint.verification_template.format(**scenario["ids"])
+                if endpoint.verification_template
+                else path
+            )
+            afterwards = scenario["client"].get(
+                verification_path, headers=scenario["owner_headers"]
+            )
             assert afterwards.status_code == 200
+            if endpoint.template.endswith("/wish-selection"):
+                assert afterwards.json()["id"] is not None
+            if "/recaps/" in endpoint.template:
+                assert len(afterwards.json()["reflections"]) == 1
 
 
 def test_contract_is_completely_covered() -> None:

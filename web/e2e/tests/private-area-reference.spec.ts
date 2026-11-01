@@ -127,6 +127,16 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
         maintenanceMode: false,
@@ -409,9 +419,7 @@ async function signOutToPublicEntry(page: Page): Promise<void> {
     expect(dialog.type()).toBe('beforeunload');
     await dialog.accept();
   });
-  await page
-    .getByRole('button', { name: navigation.profileMenu, exact: true })
-    .click();
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
   await Promise.all([
     page.waitForURL((url) => url.pathname === '/', { waitUntil: 'load' }),
     page.getByRole('button', { name: de.header.logout, exact: true }).click(),
@@ -427,9 +435,15 @@ async function signInAgain(page: Page): Promise<void> {
 }
 
 async function expectPrivateReferenceStructure(page: Page): Promise<void> {
-  const banner = page.getByRole('note');
-  await expect(banner).toContainText(privateArea.privacyLabel);
-  await expect(banner).toContainText(privateArea.entry.privacy);
+  const context = page.locator('.private-area-context');
+  await expect(context).toHaveAccessibleName(privateArea.privacyLabel);
+  await expect(context.locator('.private-area-intro-text')).toHaveText(
+    privateArea.entry.privacy,
+  );
+  await expect(
+    page.getByText(privateArea.entry.privacy, { exact: true }),
+  ).toHaveCount(1);
+  await expect(page.getByRole('note')).toHaveCount(0);
 
   const cards = page.locator('.private-area-destination-card');
   await expect(cards).toHaveCount(3);
@@ -534,12 +548,11 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(
       page.getByText(privateArea.notes.emptyTitle, { exact: true }),
     ).toBeVisible();
-    await page
-      .getByRole('link', { name: privateArea.backToHub, exact: true })
-      .click();
+    await page.goBack();
     await expectPrivateReferenceStructure(page);
     await page
-      .getByRole('link', { name: privateArea.backToMore, exact: true })
+      .getByRole('link', { name: navigation.more, exact: true })
+      .last()
       .click();
     await expect(page).toHaveURL(/\/more$/);
     expect(unexpectedRequests).toEqual([]);
@@ -1134,7 +1147,7 @@ for (const view of [
           completed: false,
         });
       await context.setOffline(true);
-      await page.clock.fastForward(16_000);
+      await page.clock.fastForward(61_000);
       await context.setOffline(false);
       await expect.poll(() => fixture.detailReads()).toBe(2);
       if (change === 'item') {
@@ -1214,7 +1227,7 @@ for (const outcome of ['success', 'failure'] as const) {
     await expect.poll(() => fixture.writes.length).toBe(1);
     fixture.denyReads();
     await context.setOffline(true);
-    await page.clock.fastForward(16_000);
+    await page.clock.fastForward(61_000);
     await context.setOffline(false);
     await expect(
       page.getByText(de.states.permission.title, { exact: true }),
@@ -1509,7 +1522,7 @@ for (const outcome of ['success', 'failure'] as const) {
     await expect.poll(() => fixture.writes.length).toBe(1);
     fixture.denyReads();
     await context.setOffline(true);
-    await page.clock.fastForward(16_000);
+    await page.clock.fastForward(61_000);
     await context.setOffline(false);
     await expect(
       page.getByText(de.states.permission.title, { exact: true }),
@@ -2337,9 +2350,9 @@ for (const view of [
         exact: true,
       })
       .click();
-    // Reopen after the production 15-second freshness window to obtain a new read.
+    // Reopen after the documented one-minute freshness window to obtain a new read.
     await page.clock.setSystemTime(
-      await page.evaluate(() => Date.now() + 15_001),
+      await page.evaluate(() => Date.now() + 60_001),
     );
     await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
     await expect(

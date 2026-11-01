@@ -36,6 +36,9 @@ PINNED_CONTEXTS = {
     "memories": "MemoryPayload",
     "milestones": "MilestonePayload",
     "partner_nicknames": "PartnerNicknamePayload",
+    "photo_source_connections": "PhotoConnectionPayload",
+    "photo_location_drafts": "PhotoLocationPayload",
+    "photo_source_selections": "PhotoSelectionPayload",
     "places": "PlacePayload",
     "plans": "PlanPayload",
     "push_endpoint_secrets": "PushEndpointSecretPayload",
@@ -44,8 +47,12 @@ PINNED_CONTEXTS = {
     "private_notes": "PrivateNotePayload",
     "profile_preferences": "ProfilePreferencePayload",
     "related_persons": "RelatedPersonPayload",
+    "recap_editions": "RecapPayload",
+    "recap_reflections": "RecapReflectionPayload",
     "reminders": "ReminderPayload",
     "wishes": "WishPayload",
+    "wish_selection_rounds": "WishSelectionRoundPayload",
+    "wish_selections": "WishSelectionPayload",
 }
 
 

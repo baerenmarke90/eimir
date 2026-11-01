@@ -1,3 +1,4 @@
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -7,6 +8,8 @@ import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import notificationSettings from '../../src/i18n/locales/notificationSettings';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
+import privateArea from '../../src/i18n/locales/privateArea';
+import profiles from '../../src/i18n/locales/profiles';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -118,6 +121,7 @@ async function installAuthorizedApiMocks(
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -131,6 +135,16 @@ async function installAuthorizedApiMocks(
 
     if (method === 'GET' && pathname.endsWith('/partner-nickname')) {
       await fulfillJson({ partnerId: null, nickname: null, version: 0 });
+      return;
+    }
+
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
       return;
     }
 
@@ -682,6 +696,248 @@ async function navigateWithinApp(page: Page, path: string): Promise<void> {
   await expect(page).toHaveURL(new RegExp(`${path}$`));
 }
 
+for (const view of [
+  { width: 390, height: 844, scheme: 'light' },
+  { width: 1280, height: 900, scheme: 'dark' },
+] as const) {
+  test(`private profile-note context survives create, failed edit, retry and return at ${view.width} ${view.scheme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize(view);
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const unexpected = await installAuthorizedApiMocks(page);
+    const partnerId = '44444444-4444-4444-8444-444444444444';
+    const preferenceId = '55555555-5555-4555-8555-555555555555';
+    const endpoint = `/api/v1/spaces/${SPACE_ID}/profile-preferences`;
+    let note: Record<string, unknown> | null = null;
+    let rejectEdit = true;
+    const writes: Array<{ method: string; body: unknown; ifMatch?: string }> =
+      [];
+    await page.route(`**/api/v1/spaces/${SPACE_ID}`, (route) =>
+      route.fulfill({
+        json: {
+          id: SPACE_ID,
+          createdAt: TEST_NOW,
+          partners: [
+            { id: ACCOUNT_ID, displayName: 'Anna' },
+            { id: partnerId, displayName: 'Sam' },
+          ],
+        },
+      }),
+    );
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/profiles/${partnerId}`,
+      (route) =>
+        route.fulfill({
+          json: {
+            accountId: partnerId,
+            displayName: 'Sam',
+            profileAttachmentId: null,
+            preferences: [],
+            version: 1,
+          },
+        }),
+    );
+    await page.route(`**${endpoint}**`, async (route) => {
+      const request = route.request();
+      const method = request.method();
+      const path = new URL(request.url()).pathname;
+      if (method === 'GET' && path === endpoint) {
+        await route.fulfill({ json: note ? [note] : [] });
+        return;
+      }
+      if (
+        (method === 'POST' && path === endpoint) ||
+        (method === 'PUT' && path === `${endpoint}/${preferenceId}`)
+      ) {
+        const body = request.postDataJSON();
+        writes.push({ method, body, ifMatch: request.headers()['if-match'] });
+        if (method === 'PUT' && rejectEdit) {
+          rejectEdit = false;
+          await route.fulfill({
+            status: 503,
+            json: {
+              code: 'SERVICE_UNAVAILABLE',
+              title: 'Unavailable',
+              status: 503,
+            },
+          });
+          return;
+        }
+        note = {
+          ...note,
+          ...body,
+          id: preferenceId,
+          ownerId: ACCOUNT_ID,
+          createdAt: TEST_NOW,
+          updatedAt: TEST_NOW,
+          version: method === 'POST' ? 1 : 2,
+        };
+        await route.fulfill({
+          status: method === 'POST' ? 201 : 200,
+          json: note,
+        });
+        return;
+      }
+      await route.fallback();
+    });
+    await page.goto('/more/profile');
+    await signIn(page);
+    const partnerDetails = page.locator('.profile-partner-disclosure');
+    await expect(partnerDetails).not.toHaveAttribute('open');
+    await partnerDetails.locator(':scope > summary').click();
+    await expect(partnerDetails).toHaveAttribute('open');
+    const trigger = page.getByRole('button', {
+      name: profiles.addNoteShort,
+      exact: true,
+    });
+    await trigger.click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toHaveAccessibleDescription(privateArea.entry.privacy);
+    await expect(dialog.getByRole('note')).toHaveText(
+      privateArea.entry.privacy,
+    );
+    // The description must resolve inside the modal, not to the background badge.
+    const descriptionId = await dialog.getAttribute('aria-describedby');
+    expect(await dialog.getByRole('note').getAttribute('id')).toBe(
+      descriptionId,
+    );
+    await expect(dialog.getByLabel(profiles.categoryLabel)).toBeFocused();
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: info.outputPath(
+        `private-area-profile-note-create-${view.width}-${view.scheme}.png`,
+      ),
+    });
+    await dialog.getByLabel(profiles.topicLabel).fill('A birthday idea');
+    await dialog
+      .getByLabel(profiles.valueLabel)
+      .fill('A quiet cabin by the lake');
+    await dialog
+      .getByRole('button', { name: profiles.create, exact: true })
+      .click();
+    await expect(dialog).toHaveCount(0);
+    const saved = page.getByRole('button', { name: /A birthday idea/ });
+    await expect(saved).toContainText('A quiet cabin by the lake');
+    expect(writes[0]).toMatchObject({
+      method: 'POST',
+      body: {
+        accountId: partnerId,
+        visibility: 'PRIVATE_PARTNER_NOTE',
+        topic: 'A birthday idea',
+        value: 'A quiet cabin by the lake',
+      },
+    });
+    await saved.click();
+    await expect(dialog).toHaveAccessibleDescription(privateArea.entry.privacy);
+    await dialog
+      .getByLabel(profiles.valueLabel)
+      .fill('Book the cabin for autumn');
+    await dialog
+      .getByRole('button', { name: profiles.saveChanges, exact: true })
+      .click();
+    await expect(dialog.getByRole('alert')).toBeVisible();
+    await expect(dialog.getByLabel(profiles.valueLabel)).toHaveValue(
+      'Book the cabin for autumn',
+    );
+    await expect(dialog).toHaveAccessibleDescription(privateArea.entry.privacy);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: info.outputPath(
+        `private-area-profile-note-error-${view.width}-${view.scheme}.png`,
+      ),
+    });
+    await dialog
+      .getByRole('button', { name: profiles.saveChanges, exact: true })
+      .click();
+    await expect(dialog).toHaveCount(0);
+    await expect(saved).toContainText('Book the cabin for autumn');
+    expect(
+      writes.slice(1).map(({ method, ifMatch }) => ({ method, ifMatch })),
+    ).toEqual([
+      { method: 'PUT', ifMatch: '1' },
+      { method: 'PUT', ifMatch: '1' },
+    ]);
+    await saved.click();
+    await expect(dialog).toHaveAccessibleDescription(privateArea.entry.privacy);
+    if (view.width === 390) {
+      for (const width of [360, 430, 320]) {
+        await page.setViewportSize({ width, height: 844 });
+        await page.locator('html').evaluate(
+          (element, scale) => {
+            element.style.fontSize = scale;
+          },
+          width === 320 ? '200%' : '100%',
+        );
+        await expectNoHorizontalOverflow(page);
+        const dialogWidth = await dialog.evaluate((element) => ({
+          client: element.clientWidth,
+          scroll: element.scrollWidth,
+        }));
+        expect(dialogWidth.scroll).toBeLessThanOrEqual(dialogWidth.client);
+        await expectNoWcagViolations(page);
+        await page.screenshot({
+          path: info.outputPath(
+            `private-area-profile-note-reflow-${width}.png`,
+          ),
+        });
+        if (width === 320) {
+          const notice = dialog.getByRole('note');
+          const noticeShape = await notice.evaluate((element) => {
+            const style = getComputedStyle(element);
+            return {
+              radius: Number.parseFloat(style.borderTopLeftRadius),
+              height: element.getBoundingClientRect().height,
+            };
+          });
+          expect(noticeShape.radius).toBeLessThan(noticeShape.height / 4);
+          const save = dialog.getByRole('button', {
+            name: profiles.saveChanges,
+            exact: true,
+          });
+          await save.focus();
+          await expect(save).toBeFocused();
+          await expect(save).toBeInViewport();
+          await page.screenshot({
+            path: info.outputPath(
+              'private-area-profile-note-large-text-actions.png',
+            ),
+          });
+        }
+      }
+      await page.locator('html').evaluate((element) => {
+        element.style.fontSize = '';
+      });
+      await page.setViewportSize({ width: view.width, height: view.height });
+    }
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(saved).toBeFocused();
+    await page.screenshot({
+      path: info.outputPath(
+        `private-area-profile-note-saved-${view.width}-${view.scheme}.png`,
+      ),
+    });
+    await page
+      .getByRole('button', { name: profiles.addPreferenceShort, exact: true })
+      .click();
+    // Shared SELF_PROFILE preferences must never inherit the owner-only promise.
+    await expect(dialog).not.toHaveAttribute('aria-describedby');
+    await expect(dialog.getByRole('note')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(page).toHaveURL(/\/more\/profile$/);
+    expect(writes).toHaveLength(3);
+    expect(unexpected).toEqual([]);
+  });
+}
+
 test('compact sign-in is keyboard operable, wraps German copy, and is axe-clean', async ({
   page,
 }) => {
@@ -718,19 +974,23 @@ test('compact authenticated shell keeps global quick create reachable and access
   await signIn(page);
 
   await expect(page).toHaveURL(/\/today$/);
-  // Today owns the page H1; Couple Presence remains the relationship hero.
+  // Wir is the single page H1; the optional relationship hero remains H2.
   await expect(
     page.getByRole('heading', {
-      name: m5s5.today.headerTitle,
+      name: navigation.today,
       level: 1,
+      exact: true,
     }),
   ).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
   await expect(
-    page.getByRole('heading', {
+    page.locator('.today-hero').getByRole('heading', {
       name: m5s5.dashboard.durationTitle,
       level: 2,
+      exact: true,
     }),
   ).toBeVisible();
+  await expect(page.locator('.today-date-heading')).toHaveCount(0);
   await expect(
     page.getByRole('heading', {
       name: m5s5.dashboard.newSpaceEmpty,
@@ -817,19 +1077,23 @@ test('expanded authenticated shell keeps deep links, back, focus, and accessibil
   await signIn(page);
 
   await expect(page).toHaveURL(/\/today$/);
-  // Today owns the page H1; Couple Presence remains the relationship hero.
+  // Wir is the single page H1; the optional relationship hero remains H2.
   await expect(
     page.getByRole('heading', {
-      name: m5s5.today.headerTitle,
+      name: navigation.today,
       level: 1,
+      exact: true,
     }),
   ).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveCount(1);
   await expect(
-    page.getByRole('heading', {
+    page.locator('.today-hero').getByRole('heading', {
       name: m5s5.dashboard.durationTitle,
       level: 2,
+      exact: true,
     }),
   ).toBeVisible();
+  await expect(page.locator('.today-date-heading')).toHaveCount(0);
   await expect(
     page.getByRole('heading', {
       name: m5s5.dashboard.newSpaceEmpty,
@@ -1194,6 +1458,22 @@ test('notification choices survive return and stay legible across themes and wid
   await signIn(page);
   await page.goto('/more/settings/notifications');
 
+  const sharedGroup = page.locator('.notification-settings-group').filter({
+    has: page.getByRole('heading', {
+      name: notificationSettings.sharedActivity,
+      exact: true,
+    }),
+  });
+  await expect(
+    sharedGroup.getByRole('switch', {
+      name: `${notificationSettings.sharedActivity}: ${notificationSettings.email}`,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('switch', { name: 'Fällige Erinnerungen: E-Mail' }),
+  ).toBeHidden();
+  await sharedGroup.locator('summary').click();
+
   const email = page.getByRole('switch', {
     name: 'Fällige Erinnerungen: E-Mail',
   });
@@ -1225,9 +1505,7 @@ test('notification choices survive return and stay legible across themes and wid
   await expect(commentEmail).toHaveAttribute('aria-checked', 'true');
   await expect(
     page.getByRole('status').filter({
-      hasText: notificationSettings.saved
-        .replace('{{event}}', notificationSettings.comment)
-        .replace('{{channel}}', notificationSettings.email),
+      hasText: notificationSettings.groupSaved,
     }),
   ).toBeVisible();
   await page.screenshot({
@@ -1249,9 +1527,7 @@ test('notification choices survive return and stay legible across themes and wid
   await expect(commentPush).toHaveAttribute('aria-checked', 'true');
   await expect(
     page.getByRole('status').filter({
-      hasText: notificationSettings.saved
-        .replace('{{event}}', notificationSettings.comment)
-        .replace('{{channel}}', notificationSettings.push),
+      hasText: notificationSettings.groupSaved,
     }),
   ).toBeVisible();
   await page.screenshot({
@@ -1261,6 +1537,7 @@ test('notification choices survive return and stay legible across themes and wid
     fullPage: true,
   });
 
+  await page.locator('.notification-quiet-hours > summary').click();
   const quietSwitch = page.getByRole('switch', {
     name: notificationSettings.quietHoursEnable,
   });
@@ -1282,7 +1559,9 @@ test('notification choices survive return and stay legible across themes and wid
   await expect(
     page.getByText(notificationSettings.quietHoursSaved),
   ).toBeVisible();
-  await expect(page.getByText('Täglich 22:00–07:00 Uhr.')).toBeVisible();
+  await expect(
+    page.locator('.quiet-hours-settings').getByText('Täglich 22:00–07:00 Uhr.'),
+  ).toBeVisible();
   await page.screenshot({
     path: test.info().outputPath('notification-settings-390-light-saved.png'),
     fullPage: true,
@@ -1302,19 +1581,25 @@ test('notification choices survive return and stay legible across themes and wid
   await expect(email).toHaveAttribute('aria-checked', 'true');
   await expect(
     page.getByRole('status').filter({
-      hasText: notificationSettings.saved
-        .replace('{{event}}', notificationSettings.reminder)
-        .replace('{{channel}}', notificationSettings.email),
+      hasText: notificationSettings.groupSaved,
     }),
   ).toBeVisible();
   await page
-    .getByRole('link', { name: profileIdentity.settingsBackToIndex })
+    .getByRole('link', { name: navigation.more, exact: true })
+    .last()
     .click();
+  await page.locator('a[href="/more/settings"]').click();
+  await expect(page).toHaveURL(/\/more\/settings$/);
   await page
     .getByRole('link', {
       name: profileIdentity.settingsNotifications,
     })
     .click();
+  await expect(
+    page.locator('.notification-quiet-hours > summary'),
+  ).toContainText('Täglich 22:00–07:00 Uhr.');
+  await sharedGroup.locator('summary').click();
+  await page.locator('.notification-quiet-hours > summary').click();
   await expect(
     page.getByRole('switch', { name: 'Fällige Erinnerungen: E-Mail' }),
   ).toHaveAttribute('aria-checked', 'true');
@@ -1363,6 +1648,7 @@ test('notification choices survive return and stay legible across themes and wid
     page.getByRole('switch', { name: 'Kommentare: Push' }),
   ).toHaveAttribute('aria-checked', 'false');
   await page.reload();
+  await sharedGroup.locator('summary').click();
   await expect(
     page.getByRole('switch', { name: 'Kommentare: Push' }),
   ).toHaveAttribute('aria-checked', 'false');
@@ -1371,6 +1657,7 @@ test('notification choices survive return and stay legible across themes and wid
     page.getByRole('switch', { name: 'Kommentare: E-Mail' }),
   ).toHaveAttribute('aria-checked', 'false');
   await page.reload();
+  await sharedGroup.locator('summary').click();
   await expect(
     page.getByRole('switch', { name: 'Kommentare: E-Mail' }),
   ).toHaveAttribute('aria-checked', 'false');
@@ -1427,7 +1714,10 @@ test('planning sanctuary is compact, dark, reduced-motion, keyboard operable, an
 
   await navigateWithinApp(page, '/more/collections');
   await expect(
-    page.getByRole('heading', { name: m5s3.collection.heading, level: 1 }),
+    page.getByRole('heading', {
+      name: m5s3.collection.overviewHeading,
+      level: 1,
+    }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -1476,7 +1766,10 @@ test('planning sanctuary stays accessible in expanded light mode at 200 percent 
 
   await navigateWithinApp(page, '/more/collections');
   await expect(
-    page.getByRole('heading', { name: m5s3.collection.heading, level: 1 }),
+    page.getByRole('heading', {
+      name: m5s3.collection.overviewHeading,
+      level: 1,
+    }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -1599,7 +1892,13 @@ for (const { colorScheme, width, height } of placeCoordinateGuidanceScenarios) {
       'data-theme',
       colorScheme,
     );
-    await page.locator('summary', { hasText: m5s3.place.create }).click();
+    await page
+      .getByRole('button', { name: m5s3.place.create, exact: true })
+      .click();
+    await page
+      .getByRole('dialog')
+      .locator('summary', { hasText: m5s3.place.technicalDetails })
+      .click();
     const createHelp = page.locator('#create-place-coordinate-help');
     await expect(createHelp).toHaveClass(
       /(?:^|\s)planning-coordinate-help(?:\s|$)/,
@@ -1615,6 +1914,10 @@ for (const { colorScheme, width, height } of placeCoordinateGuidanceScenarios) {
 
     await page.goto('/plan/places/place-1');
     await page.getByRole('button', { name: de.common.edit }).click();
+    await page
+      .getByRole('dialog')
+      .locator('summary', { hasText: m5s3.place.technicalDetails })
+      .click();
     const editHelp = page.locator('#place-edit-coordinate-help');
     await expect(editHelp).toHaveClass(
       /(?:^|\s)planning-coordinate-help(?:\s|$)/,
@@ -1715,8 +2018,11 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await expect(create).toBeFocused();
     await expect(menu).toHaveCount(0);
 
-    const search = header.getByRole('link', {
-      name: navigation.search,
+    await header
+      .getByRole('link', { name: navigation.more, exact: true })
+      .click();
+    const search = page.getByRole('link', {
+      name: navigation.searchAll,
       exact: true,
     });
     await search.focus();
@@ -1733,21 +2039,17 @@ for (const colorScheme of ['light', 'dark'] as const) {
       page.getByRole('button', { name: m5s5.search.submit, exact: true }),
     ).toBeEnabled();
     await page.goBack();
-    const notifications = header.getByRole('button', {
+    const notifications = page.getByRole('link', {
       name: navigation.notifications,
       exact: true,
     });
     await notifications.focus();
     await page.keyboard.press('Enter');
-    await expect(header.locator('a[href="/more/notifications"]')).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(notifications).toBeFocused();
-    const profile = header.getByRole('button', {
-      name: navigation.profileMenu,
-    });
+    await expect(page).toHaveURL(/\/more\/notifications$/);
+    await page.goBack();
+    const profile = page.locator('.more-page a[href="/more/profile"]');
     await profile.focus();
     await page.keyboard.press('Enter');
-    await header.locator('a[href="/more/profile"]').click();
     await expect(page).toHaveURL(/\/more\/profile$/);
     await expect(
       page.getByRole('link', { name: navigation.more, exact: true }),

@@ -1,10 +1,10 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   useIsMutating,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { WishDetail } from '../api/generated/models/WishDetail';
@@ -22,8 +22,8 @@ import {
   planScheduleFromInputs,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
-import { useTranslation } from '../i18n';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { useTranslation } from '../i18n';
 import { ListEntryIconButton } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import { PlanScheduleFields } from './PlanScheduleFields';
@@ -456,7 +456,9 @@ export function WishProductPage({
 
         {wish.status === 'OPEN' && wish.capabilities.canEdit ? (
           <details className="planen-operations wish-operations">
-            <summary>{t('m5s3.wish.actionsHeading')}</summary>
+            <summary className="button-link">
+              {t('m5s3.wish.actionsHeading')}
+            </summary>
             <section className="planning-subsection">
               <h2>{t('m5s3.wish.completeHeading')}</h2>
               <p>{t('m5s3.wish.completeIntro')}</p>

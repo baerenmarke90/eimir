@@ -812,6 +812,54 @@ def test_activity_noise_reduction_and_relationship_curation(
     )
     assert plan_item_for_anna["actor"]["id"] == str(couple["ben"].id)
 
+    endpoint = f"/api/v1/spaces/{couple['space'].id}/activity"
+    own = client.get(endpoint, headers=auth(couple["anna_token"]), params={"scope": "own"})
+    assert own.status_code == 200
+    own_items = own.json()["items"]
+    assert len(own_items) == len(activities) - 1
+    assert all(item["actorId"] == str(couple["anna"].id) for item in own_items)
+    assert {item["kind"] for item in own_items} >= {
+        ActivityKind.PLAN_CREATED.value,
+        ActivityKind.PLACE_CREATED.value,
+        ActivityKind.COLLECTION_CREATED.value,
+        ActivityKind.WISH_CREATED.value,
+    }
+    first_own = client.get(
+        endpoint, headers=auth(couple["anna_token"]), params={"scope": "own", "limit": 1}
+    ).json()
+    assert len(first_own["items"]) == 1 and first_own["nextCursor"]
+    second_own = client.get(
+        endpoint,
+        headers=auth(couple["anna_token"]),
+        params={
+            "scope": "own",
+            "limit": 1,
+            "cursor": first_own["nextCursor"],
+        },
+    ).json()
+    assert second_own["items"][0]["id"] != first_own["items"][0]["id"]
+    assert second_own["items"][0]["actorId"] == str(couple["anna"].id)
+    wrong_scope = client.get(
+        endpoint, headers=auth(couple["anna_token"]), params={"cursor": first_own["nextCursor"]}
+    )
+    assert wrong_scope.status_code == 400
+    assert wrong_scope.json()["code"] == "INVALID_CURSOR"
+    wrong_viewer = client.get(
+        endpoint,
+        headers=auth(couple["ben_token"]),
+        params={
+            "scope": "own",
+            "cursor": first_own["nextCursor"],
+        },
+    )
+    assert wrong_viewer.status_code == 400
+    assert (
+        client.get(
+            endpoint, headers=auth(couple["anna_token"]), params={"scope": "other"}
+        ).status_code
+        == 422
+    )
+
     # Ben views the feed:
     # Anna's utility creations ARE visible to Ben.
     # Ben's own PLAN_CREATED is suppressed for Ben.

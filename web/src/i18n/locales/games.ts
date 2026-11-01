@@ -1,8 +1,7 @@
 const games = {
   eyebrow: 'Spielen',
   title: 'Gemeinsam spielen',
-  intro:
-    'Fünf kleine Spiele, die euch miteinander ins Erinnern, Kennen, Entdecken, Tun und Vertiefen bringen.',
+  intro: 'Erinnerungen erraten und Neues übereinander erfahren.',
   status: {
     premium: 'Pro',
     comingSoon: 'Bald verfügbar',
@@ -23,16 +22,6 @@ const games = {
       role: 'Entdecken',
       title: 'Wer von euch?',
       description: 'Vergleicht spielerisch eure Sicht auf euch beide.',
-    },
-    happiness: {
-      role: 'Tun',
-      title: 'Glücksmomente',
-      description: 'Eine kleine gemeinsame Mission für euren Tag.',
-    },
-    timeTravel: {
-      role: 'Vertiefen',
-      title: 'Zeitreise',
-      description: 'Taucht tiefer in eure gemeinsame Geschichte ein.',
     },
   },
   momentsGame: {

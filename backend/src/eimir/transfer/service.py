@@ -15,6 +15,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 from pydantic import BaseModel
 from sqlalchemy import MetaData, Table, and_, or_, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from eimir.appearance import service as appearance_service
@@ -23,10 +24,12 @@ from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.core.clock import now
 from eimir.core.errors import BadRequestError, ConflictError, ErrorCode, NotFoundError
 from eimir.core.ids import new_id, parse_id
+from eimir.daily_checkins.models import RecommendationKey, RecommendationRating
 from eimir.identity.models import Account, AccountEmail
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.queue import enqueue
 from eimir.media import build_storage_key, get_media_store
+from eimir.photo_sources.models import PhotoConnection
 from eimir.relationship.models import Membership, MembershipStatus, SpaceProfile
 from eimir.transfer.archive import (
     MAX_COMPRESSED_BYTES,
@@ -67,7 +70,7 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
     "milestones.json": ("milestones",),
     "comments.json": ("comments",),
     "wishes.json": ("wishes",),
-    "plans.json": ("plans",),
+    "plans.json": ("plans", "plan_attachments"),
     "places.json": (
         "places",
         "place_memories",
@@ -83,19 +86,25 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
     "collections.json": ("collections", "collection_items"),
     "reminders.json": ("reminders", "reminder_offsets", "reminder_preferences"),
     "rules.json": ("rule_preferences",),
+    "recaps.json": ("recap_editions", "recap_sources", "recap_reflections"),
     "private/notes.json": ("private_notes",),
     "private/gift-ideas.json": ("gift_ideas",),
     "private/collections.json": ("private_collections", "private_collection_items"),
+    "private/weekly-insight-feedback.json": ("daily_insight_feedback",),
 }
 PRIVATE_FILES = frozenset(name for name in FILE_TABLES if name.startswith("private/"))
 PRIVATE_ROOTS = frozenset({"private_notes", "gift_ideas", "private_collections"})
-ACCOUNT_SCOPED_CONFIG_TABLES = frozenset({"rule_preferences", "reminder_preferences"})
+ACCOUNT_SCOPED_CONFIG_TABLES = frozenset(
+    {"rule_preferences", "reminder_preferences", "daily_insight_feedback"}
+)
 CHILD_PARENT: dict[str, tuple[str, str]] = {
     "collection_items": ("collection_id", "collections"),
     "private_collection_items": ("collection_id", "private_collections"),
     "reminder_offsets": ("reminder_id", "reminders"),
     "reminder_preferences": ("reminder_id", "reminders"),
     "memory_attachments": ("memory_id", "memories"),
+    "plan_attachments": ("plan_id", "plans"),
+    "recap_sources": ("edition_id", "recap_editions"),
 }
 RELATION_REQUIREMENTS: dict[str, tuple[tuple[str, str], ...]] = {
     "place_memories": (("place_id", "places"), ("memory_id", "memories")),
@@ -133,7 +142,11 @@ INSERT_ORDER = (
     "reminder_offsets",
     "reminder_preferences",
     "rule_preferences",
+    "daily_insight_feedback",
     "comments",
+    "recap_editions",
+    "recap_sources",
+    "recap_reflections",
     "place_memories",
     "place_milestones",
     "place_heart_moments",
@@ -141,6 +154,7 @@ INSERT_ORDER = (
     "chapter_milestones",
     "chapter_heart_moments",
     "memory_attachments",
+    "plan_attachments",
 )
 
 
@@ -200,7 +214,11 @@ def _json_value(value: Any) -> Any:
 
 
 def _json_row(row: Mapping[str, Any]) -> dict[str, Any]:
-    return {_snake_to_camel(key): _json_value(value) for key, value in row.items()}
+    return {
+        _snake_to_camel(key): _json_value(value)
+        for key, value in row.items()
+        if key != "photo_generated"
+    }
 
 
 def _table(session: Session, name: str, metadata: MetaData) -> Table:
@@ -265,6 +283,34 @@ def _load_child_rows(
 
 
 def _prune_relations(rows: dict[str, list[dict[str, Any]]]) -> None:
+    source_tables = {
+        "MEMORY": "memories",
+        "HEART_MOMENT": "heart_moments",
+        "MILESTONE": "milestones",
+        "CHAPTER": "chapters",
+        "PLAN": "plans",
+    }
+    versions = {
+        kind: {row["id"]: row.get("version") for row in rows.get(table, [])}
+        for kind, table in source_tables.items()
+    }
+    stale_editions = set()
+    kept_sources = []
+    for ref in rows.get("recap_sources", []):
+        current = versions.get(ref["kind"], {}).get(ref["source_id"])
+        if current != ref["source_version"]:
+            stale_editions.add(ref["edition_id"])
+        if current is not None:
+            kept_sources.append(ref)
+    rows["recap_sources"] = kept_sources
+    for recap in rows.get("recap_editions", []):
+        if recap["id"] in stale_editions:
+            recap["payload"] = {"headline": None, "introduction": None}
+            recap["generated_by"] = "RULES"
+    edition_ids = _selected_ids(rows, "recap_editions")
+    rows["recap_reflections"] = [
+        row for row in rows.get("recap_reflections", []) if row["edition_id"] in edition_ids
+    ]
     for table_name, requirements in RELATION_REQUIREMENTS.items():
         kept: list[dict[str, Any]] = []
         targets = {target: _selected_ids(rows, target) for _, target in requirements}
@@ -295,6 +341,22 @@ def _portable_rows(
     all_tables = {name for names in FILE_TABLES.values() for name in names}
 
     for table_name in all_tables:
+        if table_name == "daily_insight_feedback":
+            table = _table(session, table_name, metadata)
+            rows[table_name] = (
+                []
+                if scope is TransferScope.SHARED
+                else [
+                    dict(row)
+                    for row in session.execute(
+                        select(table).where(
+                            table.c.space_id == authorization.space_id,
+                            table.c.account_id == authorization.account_id,
+                        )
+                    ).mappings()
+                ]
+            )
+            continue
         if table_name in CHILD_PARENT or table_name in RELATION_REQUIREMENTS:
             continue
         table = _table(session, table_name, metadata)
@@ -423,6 +485,16 @@ def _media_rows(
         for row in rows.get("related_persons", [])
         if isinstance(row.get("avatar_attachment_id"), UUID)
     )
+    attachment_ids.update(
+        row["cover_attachment_id"]
+        for row in rows.get("plans", [])
+        if isinstance(row.get("cover_attachment_id"), UUID)
+    )
+    attachment_ids.update(
+        row["attachment_id"]
+        for row in rows.get("plan_attachments", [])
+        if isinstance(row.get("attachment_id"), UUID)
+    )
     if not attachment_ids:
         return []
     metadata = MetaData()
@@ -445,6 +517,7 @@ def _media_rows(
                 "hasThumbnail": bool(item.get("has_thumbnail")),
                 "capturedAt": _json_value((item.get("payload") or {}).get("captured_at")),
                 "orientation": (item.get("payload") or {}).get("orientation"),
+                "isSensitive": (item.get("payload") or {}).get("is_sensitive", False),
             }
         )
     found = {UUID(item["sourceId"]) for item in result}
@@ -489,11 +562,32 @@ def build_export_archive(
     store = get_media_store()
     with ZipFile(output, mode="w", compression=ZIP_DEFLATED, allowZip64=True) as archive:
         account_document: dict[str, Any] = {"members": accounts}
+        from eimir.wish_selections.service import portable_snapshot
+
+        selection_snapshot = portable_snapshot(
+            session, authorization, personal=scope is TransferScope.PERSONAL
+        )
+        if selection_snapshot is not None:
+            # Export-only decision state. Import never reactivates choices or
+            # treats a downloaded archive as a participant's consent.
+            account_document["wishSelection"] = selection_snapshot
         if scope is TransferScope.PERSONAL:
             preference = appearance_service.read_preference(session, authorization)
             account_document["personalAppearance"] = {
                 "appIconId": preference.icon_id if preference else "original",
+                "wirDesign": preference.wir_design if preference else "warm",
             }
+            connections = session.scalars(
+                select(PhotoConnection).where(
+                    PhotoConnection.account_id == authorization.account_id
+                )
+            ).all()
+            account_document["personalPhotoSources"] = [
+                {"source": row.provider, "origin": row.payload.origin}
+                for row in connections
+                if row.payload.account_id == authorization.account_id
+            ]
+        # Connection credentials and transient selections are never portable.
         # Personal appearance is export-only metadata. Import never activates
         # paid choices or changes an installation based on untrusted bundles.
         add_bytes(archive, "accounts.json", json_bytes(account_document), checksums)
@@ -841,6 +935,7 @@ def _validate_ids_and_privacy(
     globally_seen: set[UUID] = set()
     for table_name, json_rows in tables.items():
         table_ids: set[UUID] = set()
+        feedback_keys: set[str] = set()
         for raw in json_rows:
             row = _row_snake(raw)
             raw_id = row.get("id")
@@ -895,6 +990,21 @@ def _validate_ids_and_privacy(
                         "Transfer privacy scope is invalid.",
                         ErrorCode.TRANSFER_PRIVACY_SCOPE_INVALID,
                     )
+            if table_name == "daily_insight_feedback":
+                key = row.get("recommendation_key")
+                rating = row.get("rating")
+                if (
+                    not isinstance(key, str)
+                    or not isinstance(rating, str)
+                    or key not in {item.value for item in RecommendationKey}
+                    or rating not in {item.value for item in RecommendationRating}
+                    or key in feedback_keys
+                ):
+                    raise TransferArchiveError(
+                        "Transfer recommendation preference is invalid.",
+                        ErrorCode.TRANSFER_RELATION_INVALID,
+                    )
+                feedback_keys.add(str(key))
             for column in ACCOUNT_REFERENCE_COLUMNS:
                 if (
                     row.get(column) is not None
@@ -913,6 +1023,29 @@ def _validate_relations(
     tables: dict[str, list[dict[str, Any]]],
     ids: dict[str, set[UUID]],
 ) -> None:
+    recap_targets = {
+        "MEMORY": "memories",
+        "HEART_MOMENT": "heart_moments",
+        "MILESTONE": "milestones",
+        "CHAPTER": "chapters",
+        "PLAN": "plans",
+    }
+    for raw in tables.get("recap_sources", []):
+        row = _row_snake(raw)
+        if _uuid(row.get("source_id"), ErrorCode.TRANSFER_RELATION_INVALID) not in ids.get(
+            recap_targets.get(str(row.get("kind")), ""), set()
+        ):
+            raise TransferArchiveError(
+                "Transfer relation is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
+    for raw in tables.get("recap_reflections", []):
+        row = _row_snake(raw)
+        if _uuid(row.get("edition_id"), ErrorCode.TRANSFER_RELATION_INVALID) not in ids.get(
+            "recap_editions", set()
+        ):
+            raise TransferArchiveError(
+                "Transfer relation is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
     for child, (column, parent) in CHILD_PARENT.items():
         for raw in tables.get(child, []):
             row = _row_snake(raw)
@@ -947,6 +1080,109 @@ def _validate_relations(
             raise TransferArchiveError(
                 "Transfer relation is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
             )
+
+
+def _validate_plan_photos(
+    tables: dict[str, list[dict[str, Any]]], media: list[dict[str, Any]]
+) -> None:
+    """A portable gallery cannot bypass exclusive binding or ordered positions."""
+    from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS, MAX_GALLERY_TOTAL_SIZE
+
+    bound: set[UUID] = set()
+    for table, column in (
+        ("memory_attachments", "attachment_id"),
+        ("heart_moments", "attachment_id"),
+        ("related_persons", "avatar_attachment_id"),
+    ):
+        for raw in tables.get(table, []):
+            value = _row_snake(raw).get(column)
+            if value is not None:
+                bound.add(_uuid(value, ErrorCode.TRANSFER_RELATION_INVALID))
+    covers: dict[UUID, UUID | None] = {}
+    for raw in tables.get("plans", []):
+        row = _row_snake(raw)
+        plan_id = _uuid(row.get("id"), ErrorCode.TRANSFER_RELATION_INVALID)
+        cover = row.get("cover_attachment_id")
+        covers[plan_id] = (
+            _uuid(cover, ErrorCode.TRANSFER_RELATION_INVALID) if cover is not None else None
+        )
+        if covers[plan_id] is not None:
+            if covers[plan_id] in bound:
+                raise TransferArchiveError(
+                    "Transfer photo is bound twice.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
+            cover_id = covers[plan_id]
+            assert cover_id is not None
+            bound.add(cover_id)
+    positions: dict[UUID, list[int]] = {}
+    photos = {plan_id: [cover] if cover else [] for plan_id, cover in covers.items()}
+    for raw in tables.get("plan_attachments", []):
+        row = _row_snake(raw)
+        plan_id = _uuid(row.get("plan_id"), ErrorCode.TRANSFER_RELATION_INVALID)
+        photo_id = _uuid(row.get("attachment_id"), ErrorCode.TRANSFER_RELATION_INVALID)
+        position = row.get("position")
+        if not covers.get(plan_id) or photo_id in bound or type(position) is not int:
+            raise TransferArchiveError(
+                "Transfer photo binding is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
+        bound.add(photo_id)
+        positions.setdefault(plan_id, []).append(position)
+        photos[plan_id].append(photo_id)
+    for values in positions.values():
+        if (
+            sorted(values) != list(range(1, len(values) + 1))
+            or len(values) >= MAX_GALLERY_ATTACHMENTS
+        ):
+            raise TransferArchiveError(
+                "Transfer photo order is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
+    indexed = {str(item.get("sourceId")): item for item in media}
+    for gallery in photos.values():
+        total = 0
+        for photo_id in gallery:
+            item = indexed.get(str(photo_id), {})
+            size = item.get("size")
+            if item.get("mediaType") != "IMAGE" or type(size) is not int or size <= 0:
+                raise TransferArchiveError(
+                    "Transfer Plan photo is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
+            total += size
+        if total > MAX_GALLERY_TOTAL_SIZE:
+            raise TransferArchiveError(
+                "Transfer Plan gallery is too large.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
+
+
+def _validate_photo_reactions(
+    tables: dict[str, list[dict[str, Any]]], source_member_ids: set[UUID]
+) -> None:
+    """Embedded protected references obey the same graph boundary as relation rows."""
+    from eimir.memories.models import MemoryPayload
+
+    bound: dict[UUID, set[UUID]] = {}
+    for raw in tables.get("memory_attachments", []):
+        row = _row_snake(raw)
+        memory_id = _uuid(row.get("memory_id"), ErrorCode.TRANSFER_RELATION_INVALID)
+        photo_id = _uuid(row.get("attachment_id"), ErrorCode.TRANSFER_RELATION_INVALID)
+        bound.setdefault(memory_id, set()).add(photo_id)
+    for raw in tables.get("memories", []):
+        row = _row_snake(raw)
+        memory_id = _uuid(row.get("id"), ErrorCode.TRANSFER_RELATION_INVALID)
+        try:
+            payload = MemoryPayload.model_validate(row.get("payload"))
+        except ValueError as error:
+            raise TransferArchiveError(
+                "Transfer domain schema is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+            ) from error
+        for reaction in payload.photo_reactions:
+            if reaction.account_id not in source_member_ids:
+                raise TransferArchiveError(
+                    "Transfer member mapping is invalid.", ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID
+                )
+            if reaction.attachment_id not in bound.get(memory_id, set()):
+                raise TransferArchiveError(
+                    "Transfer relation is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
 
 
 def _active_target_mapping(
@@ -1071,8 +1307,19 @@ def _validate_media(
         row = _row_snake(raw)
         if row.get("avatar_attachment_id") is not None:
             referenced.add(_uuid(row["avatar_attachment_id"], ErrorCode.TRANSFER_RELATION_INVALID))
+    for raw in tables.get("plans", []):
+        row = _row_snake(raw)
+        if row.get("cover_attachment_id") is not None:
+            referenced.add(_uuid(row["cover_attachment_id"], ErrorCode.TRANSFER_RELATION_INVALID))
+    for raw in tables.get("plan_attachments", []):
+        row = _row_snake(raw)
+        referenced.add(_uuid(row.get("attachment_id"), ErrorCode.TRANSFER_RELATION_INVALID))
     indexed: set[UUID] = set()
     for item in media:
+        if "isSensitive" in item and type(item["isSensitive"]) is not bool:
+            raise TransferArchiveError(
+                "Transfer media classification is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+            )
         source_id = _uuid(item.get("sourceId"), ErrorCode.TRANSFER_RELATION_INVALID)
         owner_id = _uuid(item.get("ownerSourceId"), ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
         if source_id in indexed or source_id not in referenced or owner_id not in source_member_ids:
@@ -1130,6 +1377,14 @@ def _validate_domain_schema_and_links(
         }
         for raw in json_rows:
             row = _row_snake(raw)
+            if table_name == "memories" and row.get("experience_kind") not in (
+                None,
+                "HAPPINESS",
+                "TIME_TRAVEL",
+            ):
+                raise TransferArchiveError(
+                    "Transfer memory origin is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
             if set(row) - known or required - set(row):
                 raise TransferArchiveError(
                     "Transfer domain schema is invalid.",
@@ -1143,30 +1398,34 @@ def _validate_domain_schema_and_links(
                     "Transfer tenant relation is invalid.",
                     ErrorCode.TRANSFER_RELATION_INVALID,
                 )
-            for foreign_key in table.foreign_keys:
-                column_name = foreign_key.parent.name
-                value = row.get(column_name)
-                if value is None:
+            # PostgreSQL MATCH SIMPLE skips a composite FK when any component
+            # is NULL. The tenant component references target.space_id, not
+            # target.id; every included target row is checked against the same
+            # source Space above, while the resource component checks its ID.
+            for constraint in table.foreign_key_constraints:
+                if any(row.get(element.parent.name) is None for element in constraint.elements):
                     continue
-                target_table = foreign_key.column.table.name
-                value_id = _uuid(value, ErrorCode.TRANSFER_RELATION_INVALID)
-                if target_table == "spaces":
-                    valid = value_id == source_space_id
-                elif target_table == "accounts":
-                    valid = value_id in source_member_ids
-                elif target_table == "attachments":
-                    valid = value_id in media_ids
-                elif target_table in ids:
-                    valid = value_id in ids[target_table]
-                else:
-                    # An allowlisted table must never acquire a new runtime or
-                    # security FK without an explicit portability decision.
-                    valid = False
-                if not valid:
-                    raise TransferArchiveError(
-                        "Transfer relation is invalid.",
-                        ErrorCode.TRANSFER_RELATION_INVALID,
-                    )
+                for foreign_key in constraint.elements:
+                    value = row[foreign_key.parent.name]
+                    target_column = foreign_key.column
+                    target_table = target_column.table.name
+                    value_id = _uuid(value, ErrorCode.TRANSFER_RELATION_INVALID)
+                    if target_column.name == "space_id" or target_table == "spaces":
+                        valid = value_id == source_space_id
+                    elif target_table == "accounts":
+                        valid = value_id in source_member_ids
+                    elif target_table == "attachments":
+                        valid = value_id in media_ids
+                    elif target_table in ids:
+                        valid = value_id in ids[target_table]
+                    else:
+                        # New runtime/security FKs require an explicit portability decision.
+                        valid = False
+                    if not valid:
+                        raise TransferArchiveError(
+                            "Transfer relation is invalid.",
+                            ErrorCode.TRANSFER_RELATION_INVALID,
+                        )
 
     generated_sources = {
         "IMPORTANT_DATE": "important_dates",
@@ -1246,6 +1505,8 @@ def validate_import_bundle(
         )
     ids = _validate_ids_and_privacy(scope, personal_owner, tables, source_members)
     _validate_relations(tables, ids)
+    _validate_photo_reactions(tables, source_members)
+    _validate_plan_photos(tables, media)
     _validate_media(
         scope,
         personal_owner,
@@ -1351,12 +1612,41 @@ def _prepare_row(
     ids: Mapping[UUID, UUID],
 ) -> dict[str, Any]:
     row = _row_snake(raw)
+    if table.name == "recap_editions":
+        # Imported editions are retained artifacts, never new automation authority.
+        row.update(
+            request_token=str(new_id()),
+            status="READY",
+            customized=True,
+            saved_at=row.get("saved_at") or now().isoformat(),
+            payload={"headline": None, "introduction": None},
+            generated_by="RULES",
+        )
+    # Imported links are intentional canonical content, never future automation authority.
+    if "photo_generated" in table.c:
+        row["photo_generated"] = False
     result: dict[str, Any] = {}
     for name, value in row.items():
         if name not in table.c:
             raise TransferArchiveError(
                 "Transfer domain schema is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
             )
+        if table.name == "memories" and name == "payload" and isinstance(value, dict):
+            value = dict(value)
+            value["photo_reactions"] = [
+                {
+                    **reaction,
+                    "account_id": str(
+                        graph.mapping[
+                            _uuid(reaction["account_id"], ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
+                        ]
+                    ),
+                    "attachment_id": str(
+                        ids[_uuid(reaction["attachment_id"], ErrorCode.TRANSFER_RELATION_INVALID)]
+                    ),
+                }
+                for reaction in value.get("photo_reactions", [])
+            ]
         if name == "space_id":
             value = authorization.space_id
         elif name in ACCOUNT_REFERENCE_COLUMNS:
@@ -1492,6 +1782,7 @@ def apply_import_bundle(
                         "original_name": "eimir-transfer",
                         "captured_at": item.get("capturedAt"),
                         "orientation": item.get("orientation"),
+                        "is_sensitive": item.get("isSensitive", False),
                     },
                     "version": 1,
                 }
@@ -1523,7 +1814,17 @@ def apply_import_bundle(
                     authorization=authorization,
                     ids=ids,
                 )
-                session.execute(table.insert().values(**protect_values(table_name, values)))
+                if table_name == "daily_insight_feedback":
+                    # Additive restore never replaces the caller's current choice.
+                    session.execute(
+                        pg_insert(table)
+                        .values(**values)
+                        .on_conflict_do_nothing(
+                            index_elements=["space_id", "account_id", "recommendation_key"]
+                        )
+                    )
+                else:
+                    session.execute(table.insert().values(**protect_values(table_name, values)))
     except Exception:
         for key in reversed(written_keys):
             try:

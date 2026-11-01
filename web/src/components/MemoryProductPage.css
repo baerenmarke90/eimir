@@ -46,6 +46,14 @@
   width: 1.35rem;
   height: 1.35rem;
 }
+.shell-detail-back:has(span) {
+  width: auto;
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  color: var(--color-link-text);
+  font: var(--font-supporting-copy);
+}
 
 .memory-product-page .page-heading {
   margin-bottom: 0;
@@ -60,13 +68,48 @@
 
 .memory-detail-card {
   display: grid;
-  gap: var(--space-6);
+  gap: var(--space-4);
 }
 
-/* StoryProductPages.css owns the general coffee-table surface and loads later;
- * Memory detail deliberately uses the denser content-first variant. */
-.memory-detail-card.coffee-table-layout {
-  padding: clamp(var(--space-5), 5vw, var(--space-8));
+.memory-media-context {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+.memory-media-context:empty {
+  display: none;
+}
+.memory-product-page .page-heading h1 {
+  font: var(--font-memory-detail-heading);
+  letter-spacing: var(--tracking-memory-detail-heading);
+}
+
+body:has(.memory-product-page) {
+  background: var(--memory-detail-background);
+}
+.product-shell:has(.memory-product-page) {
+  --color-background: var(--memory-detail-background);
+}
+.memory-product-page .comments-panel {
+  padding-block-start: var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+}
+.memory-product-page .comment-compose-trigger {
+  padding-inline: var(--space-1);
+  font-weight: 400;
+}
+.memory-product-page .memory-provenance-footer {
+  margin-block-start: 0;
+  padding-block-start: 0;
+  border-top: 0;
+}
+.memory-product-page .memory-provenance-footer p {
+  font: var(--font-supporting-copy);
+}
+.memory-product-page .page-heading p:not(.eyebrow) {
+  margin-block: var(--space-2) 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
 }
 
 .memory-meta-grid {
@@ -99,39 +142,22 @@
   max-width: var(--reading-max);
   margin: 0;
   white-space: pre-wrap;
-  font-size: 1.15rem;
-  line-height: 1.8;
+  font: var(--font-reading-body);
+  line-height: 1.75;
+  overflow-wrap: anywhere;
 }
 
-/*
- * A real element (see splitFirstGrapheme + <span class="drop-cap-letter">
- * in MemoryProductPage.tsx), not ::first-letter/initial-letter. Deliberately
- * NOT a classic floated/multi-line editorial drop cap on any breakpoint: a
- * float reserves its own column and wraps the following text around it,
- * which reads as the initial standing apart from the rest of its own word,
- * especially with a wide glyph like "W" or "M".
- * Same base logic everywhere — a plain inline, moderately enlarged,
- * color-accented letter that is simply part of the paragraph's normal text
- * flow, so it stays attached to the rest of its word and its baseline
- * follows the first line exactly like any other inline text (no special
- * line-height/vertical-alignment handling needed, because it never leaves
- * normal flow). splitFirstGrapheme keeps the actual paragraph text
- * unchanged (no visual/audible duplication, no inserted whitespace) — it
- * only wraps the same first grapheme cluster in its own span instead of
- * leaving it inline in the text node. Desktop only scales the size up a
- * little for the larger reading column; everything else is identical to
- * mobile.
- */
-.drop-cap-letter {
-  font-family: var(--font-display);
-  font-weight: 700;
+/* Restore the original inline editorial initial without floating or altering stored prose. */
+.memory-detail-card .drop-cap-letter {
   color: var(--color-brand);
-  text-transform: uppercase;
+  font-family: var(--font-display);
   font-size: 1.3em;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 @media (min-width: 641px) {
-  .drop-cap-letter {
+  .memory-detail-card .drop-cap-letter {
     font-size: 1.6em;
   }
 }
@@ -181,7 +207,7 @@
 .memory-edit-attachment {
   display: grid;
   gap: var(--space-2);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   padding: var(--space-3);
   background: var(--color-surface-subtle);
@@ -253,7 +279,7 @@
 .memory-delete-confirmation {
   display: grid;
   gap: var(--space-4);
-  border: 1px solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-border);
   border-radius: var(--radius-large);
   padding: var(--space-4);
   background: var(--color-surface-subtle);
@@ -317,4 +343,27 @@
     width: 100%;
     justify-content: space-between;
   }
+}
+
+/* Reading uses a continuous page, with natural paragraphs and no empty photo gap. */
+.memory-diary-prose {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.memory-detail-card.coffee-table-layout {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.memory-product-page .memory-provenance-footer {
+  text-align: start;
+}
+
+.memory-product-page .memory-provenance-footer p {
+  color: var(--color-text-secondary);
 }

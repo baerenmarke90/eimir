@@ -11,6 +11,45 @@ from eimir.attachments import images
 from eimir.attachments.limits import MediaRule, rule_for
 
 MANUFACTURER = "GeheimKamera GmbH"
+
+
+def test_optional_gps_is_consent_gated_and_never_survives_in_image_bytes() -> None:
+    raw = _with_metadata()
+    assert images.process(raw, _rule()).coordinates is None
+    result = images.process(raw, _rule(), extract_location=True)
+    assert result.coordinates == (52.516667, 13.4)
+    assert "52.516667" not in repr(result)
+    assert Image.open(io.BytesIO(result.content)).getexif() == {}
+    assert result.thumbnail is not None
+    assert Image.open(io.BytesIO(result.thumbnail)).getexif() == {}
+
+
+@pytest.mark.parametrize(
+    "gps,expected",
+    [
+        ({1: "N", 2: (0, 0, 0), 3: "E", 4: (0, 0, 0)}, (0.0, 0.0)),
+        ({1: "S", 2: (90, 0, 0), 3: "W", 4: (180, 0, 0)}, (-90.0, -180.0)),
+        ({1: "N", 2: (90, 1, 0), 3: "E", 4: (1, 0, 0)}, None),
+        ({1: "N", 2: (1, 60, 0), 3: "E", 4: (1, 0, 0)}, None),
+        ({1: "X", 2: (1, 0, 0), 3: "E", 4: (1, 0, 0)}, None),
+        ({1: "N", 2: (1, 0, 0)}, None),
+    ],
+)
+def test_gps_pair_validation(gps, expected) -> None:  # type: ignore[no-untyped-def]
+    image = Image.new("RGB", (16, 16))
+    exif = Image.Exif()
+    exif[0x8825] = gps
+    buffer = io.BytesIO()
+    image.save(buffer, "JPEG", exif=exif.tobytes())
+    assert images.process(buffer.getvalue(), _rule(), extract_location=True).coordinates == expected
+
+
+@pytest.mark.parametrize("part", [float("nan"), float("inf"), -1, 60])
+def test_invalid_dms_is_rejected_without_sensitive_diagnostics(part: float) -> None:
+    with pytest.raises(ValueError, match="Invalid GPS coordinate"):
+        images._gps_coordinate((1, part, 0), "N", "N", "S")
+
+
 COMMENT = "privater Kommentar"
 SOFTWARE = "SpionageApp 1.0"
 

@@ -1,9 +1,20 @@
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import recaps from '../../src/i18n/locales/recaps';
+import m5s5 from '../../src/i18n/locales/m5s5';
+const moduleContract: { moduleKeys: string[] } = JSON.parse(
+  readFileSync(
+    new URL(
+      '../../src/client/dashboardModuleCatalog.contract.json',
+      import.meta.url,
+    ),
+    'utf8',
+  ),
+);
 
 // Regression coverage for #840: after Couple Presence, a genuinely
 // current/upcoming relationship signal (the Shared Planning Horizon) must
@@ -64,6 +75,27 @@ async function installDashboardMocks(
         body: JSON.stringify(body),
       });
 
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/recaps`) {
+      await fulfillJson({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/daily-quote`
+    ) {
+      await fulfillJson({
+        checkedOn: '2026-09-09',
+        enabled: false,
+        quote: null,
+      });
+      return;
+    }
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
         maintenanceMode: false,
@@ -75,6 +107,28 @@ async function installDashboardMocks(
           magicLink: true,
           oidc: false,
         },
+      });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/heart-moments/heart-1`
+    ) {
+      await fulfillJson({
+        id: 'heart-1',
+        spaceId: SPACE_ID,
+        version: 1,
+        text: 'One year ago: our first concert',
+        emotion: 'HAPPY',
+        happenedOn: '2025-09-09',
+        visibility: 'SHARED',
+        attachment: null,
+        tags: [],
+        authorId: ACCOUNT_ID,
+        author: { id: ACCOUNT_ID, displayName: 'Lea' },
+        createdAt: '2025-09-09T18:00:00Z',
+        updatedAt: '2025-09-09T18:00:00Z',
+        capabilities: { canEdit: false, canDelete: false, canComment: false },
       });
       return;
     }
@@ -202,11 +256,12 @@ async function capture(
   page: Page,
   testInfo: TestInfo,
   name: string,
+  fullPage = true,
 ): Promise<void> {
   const filename = `today-r4-${name}.png`;
   const screenshot = await page.screenshot({
     path: testInfo.outputPath(filename),
-    fullPage: true,
+    fullPage,
   });
   const exportDirectory = process.env.SCREENSHOT_EXPORT_DIR;
   if (exportDirectory) {
@@ -231,6 +286,7 @@ const genericKeepsake = {
   occurredOn: '2026-09-06T12:00:00Z',
   createdAt: TEST_NOW,
   previewAttachmentId: null,
+  previewIsSensitive: false,
 };
 
 const dateSpecificRetrospective = {
@@ -345,49 +401,212 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
     await capture(page, testInfo, 'keepsake-only-390-light');
   });
 
-  test('a genuine date-specific retrospective fills the single `Gerade bei euch` slot below Demnächst (#850 supersedes #840 ordering)', async ({
+  for (const scenario of [
+    { width: 360, theme: 'light' },
+    { width: 390, theme: 'dark' },
+    { width: 430, theme: 'light' },
+    { width: 1280, theme: 'dark' },
+    { width: 320, theme: 'dark', largeText: true },
+  ] as const) {
+    test(`independent daily rediscovery below upcoming: ${scenario.width}-${scenario.theme}`, async ({
+      page,
+    }, testInfo) => {
+      await page.emulateMedia({
+        colorScheme: scenario.theme,
+        reducedMotion: 'reduce',
+      });
+      await page.setViewportSize({ width: scenario.width, height: 900 });
+      await installDashboardMocks(page, {
+        space: baseSpace,
+        relationshipDuration: null,
+        thinkingOfYouAvailableAt: null,
+        upcoming: [upcomingPlan],
+        keepsake: null,
+        recentShared: [],
+        retrospective: dateSpecificRetrospective,
+      });
+      await signInAndOpenToday(page);
+      if ('largeText' in scenario)
+        await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+      const section = page.locator('.today-section-retrospective');
+      await expect(section).toBeVisible();
+      await expect(
+        section.getByRole('heading', {
+          name: m5s5.today.living.retrospectiveLabel,
+        }),
+      ).toHaveCount(1);
+      await expect(page.locator('.today-section-living')).toHaveCount(0);
+      const action = section.getByRole('link', {
+        name: m5s5.today.living.retrospectiveAction,
+      });
+      await expect(action).toHaveClass(/button-link-primary/);
+      await expect(action).toHaveAttribute(
+        'href',
+        '/story/heart-moments/heart-1',
+      );
+      const colors = await action.evaluate((node) => {
+        const actual = getComputedStyle(node).backgroundColor;
+        const probe = document.createElement('span');
+        probe.style.backgroundColor = getComputedStyle(
+          document.documentElement,
+        ).getPropertyValue('--color-brand-strong');
+        node.append(probe);
+        const expected = getComputedStyle(probe).backgroundColor;
+        probe.remove();
+        return { actual, expected };
+      });
+      expect(colors.actual).toBe(colors.expected);
+      const order = await page
+        .locator('.today-content > .today-section')
+        .evaluateAll((nodes) => nodes.map((node) => node.className));
+      expect(
+        order.findIndex((value) =>
+          value.includes('today-section-retrospective'),
+        ),
+      ).toBeGreaterThan(
+        order.findIndex((value) => value.includes('today-section-upcoming')),
+      );
+      await expectHorizontalReflow(page);
+      await expectNoWcagViolations(page);
+      await section.scrollIntoViewIfNeeded();
+      await section.evaluate((node) =>
+        node.scrollIntoView({ block: 'center' }),
+      );
+      await capture(
+        page,
+        testInfo,
+        `independent-rediscovery-${scenario.width}-${scenario.theme}`,
+        false,
+      );
+      await action.click();
+      await expect(page).toHaveURL(/\/story\/heart-moments\/heart-1$/);
+      await expect(
+        page.getByRole('heading', {
+          name: 'One year ago: our first concert',
+          exact: true,
+        }),
+      ).toBeVisible();
+      await page.goBack();
+      await expect(section).toBeVisible();
+      await section
+        .getByRole('button', {
+          name: m5s5.today.living.retrospectiveDismissToday,
+        })
+        .click();
+      await expect(section).toHaveCount(0);
+      await page.reload();
+      await expect(page.locator('.today-hero')).toBeVisible();
+      await expect(section).toHaveCount(0);
+    });
+  }
+
+  test('retrospective settings persist independent visibility and personal order beside the partner signal', async ({
     page,
-  }, testInfo) => {
-    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
-    await page.setViewportSize({ width: 390, height: 844 });
+  }, info) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
     await installDashboardMocks(page, {
       space: baseSpace,
-      relationshipDuration: {
-        daysTogether: 512,
-        displayMode: 'DAYS',
-        startedOn: '2025-04-01T00:00:00Z',
-      },
+      relationshipDuration: null,
       thinkingOfYouAvailableAt: null,
-      upcoming: [upcomingPlan],
+      upcoming: [],
       keepsake: null,
       recentShared: [],
       retrospective: dateSpecificRetrospective,
     });
+    let preferences = moduleContract.moduleKeys.map((moduleKey) => ({
+      moduleKey,
+      visible: true,
+    }));
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/dashboard/preferences**`,
+      async (route) => {
+        const request = route.request();
+        const pathname = new URL(request.url()).pathname;
+        if (request.method() === 'PATCH') {
+          const key = pathname.split('/').at(-1);
+          const patch = request.postDataJSON();
+          preferences = preferences.map((item) =>
+            item.moduleKey === key ? { ...item, ...patch } : item,
+          );
+          await route.fulfill({
+            json: preferences.find((item) => item.moduleKey === key),
+          });
+          return;
+        }
+        if (request.method() === 'PUT') {
+          const keys = request.postDataJSON().moduleKeys as string[];
+          preferences = keys.map(
+            (key) => preferences.find((item) => item.moduleKey === key)!,
+          );
+        }
+        await route.fulfill({ json: { items: preferences } });
+      },
+    );
+    await page.route(`**/api/v1/spaces/${SPACE_ID}/activity*`, (route) =>
+      route.fulfill({
+        json: {
+          items: [
+            {
+              id: 'comment',
+              kind: 'COMMENT_CREATED',
+              actorId: 'partner-1',
+              targetType: 'MEMORY',
+              targetId: 'another-memory',
+              createdAt: TEST_NOW,
+              occurredAt: TEST_NOW,
+              sourceEventId: 'event-comment',
+            },
+          ],
+          hasMore: false,
+          nextCursor: null,
+        },
+      }),
+    );
     await signInAndOpenToday(page);
-
-    const order = await page.evaluate(() => {
-      const living = document.querySelector('.today-section-living');
-      const planning = document.querySelector('.today-section-upcoming');
-      if (!living || !planning) return null;
-      return planning.compareDocumentPosition(living) &
-        Node.DOCUMENT_POSITION_FOLLOWING
-        ? 'planning-first'
-        : 'living-first';
+    await expect(page.locator('.today-section-retrospective')).toBeVisible();
+    await expect(page.locator('.today-section-living')).toBeVisible();
+    await capture(page, info, 'rediscovery-beside-partner-390-light');
+    await page.goto('/more/settings/today');
+    const retro = page.getByRole('checkbox', {
+      name: m5s5.today.living.retrospectiveLabel,
+      exact: true,
     });
-    expect(order).toBe('planning-first');
-
-    // The retrospective is still shown, exactly once, as the one contextual
-    // module - it is not dropped and not duplicated.
-    await expect(page.locator('.today-living-retrospective')).toHaveCount(1);
-    await expect(page.locator('.today-section-living')).toHaveCount(1);
-    await expect(
-      page.getByText('One year ago: our first concert'),
-    ).toBeVisible();
-    // No Keepsake exists in this scenario, so the photo feature is absent.
-    await expect(page.locator('.today-moment-figure')).toHaveCount(0);
-
-    await expectHorizontalReflow(page);
-    await capture(page, testInfo, 'retrospective-before-planning-390-dark');
+    const signal = page.getByRole('checkbox', {
+      name: m5s5.today.living.kicker,
+      exact: true,
+    });
+    await retro.uncheck();
+    await expect(retro).toBeEnabled();
+    await expect(signal).toBeChecked();
+    await page.goto('/today');
+    await expect(page.locator('.today-hero')).toBeVisible();
+    await expect(page.locator('.today-section-retrospective')).toHaveCount(0);
+    await expect(page.locator('.today-section-living')).toBeVisible();
+    await page.goto('/more/settings/today');
+    await expect(retro).not.toBeChecked();
+    await retro.check();
+    await expect(retro).toBeEnabled();
+    await signal.uncheck();
+    await expect(signal).toBeEnabled();
+    const grip = page.getByRole('button', {
+      name: `${m5s5.today.living.retrospectiveLabel} verschieben`,
+      exact: true,
+    });
+    await grip.focus();
+    await page.keyboard.press('ArrowDown');
+    await expect
+      .poll(() =>
+        preferences.findIndex((item) => item.moduleKey === 'retrospective'),
+      )
+      .toBe(moduleContract.moduleKeys.indexOf('retrospective') + 1);
+    await capture(page, info, 'rediscovery-settings-390-light');
+    await page.goto('/today');
+    await expect(page.locator('.today-hero')).toBeVisible();
+    await expect(page.locator('.today-section-retrospective')).toBeVisible();
+    await expect(page.locator('.today-section-living')).toHaveCount(0);
+    await page.reload();
+    await expect(page.locator('.today-section-retrospective')).toBeVisible();
   });
 
   test('Expanded (1440) preserves the personal-first precedence as adaptation, not redesign', async ({
@@ -445,6 +664,13 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
     await expect(page.locator('.today-section-moment')).toHaveCount(0);
     await expect(page.locator('.today-section-living')).toHaveCount(0);
     await expect(page.locator('.today-section-monthly')).toHaveCount(0);
+    await expect(
+      page.getByRole('link', { name: recaps.profileLink }),
+    ).toHaveAttribute('href', '/more/passport');
+    await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
+    await expect(page.getByRole('link', { name: recaps.watchNow })).toHaveCount(
+      0,
+    );
 
     await expectHorizontalReflow(page);
     await expectNoWcagViolations(page);

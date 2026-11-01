@@ -13,6 +13,21 @@ from eimir.engagement import notification_policy
 from eimir.engagement.models import NotificationChannel, NotificationKind, NotificationPreference
 from eimir.identity import effects as account_effects
 
+# Extend existing recipient choices without adding another settings surface.
+INHERITED_KINDS = {
+    NotificationKind.TRANSFER_READY: NotificationKind.REMINDER_DUE,
+    NotificationKind.TRANSFER_COMPLETED: NotificationKind.REMINDER_DUE,
+    NotificationKind.TRANSFER_FAILED: NotificationKind.REMINDER_DUE,
+    NotificationKind.COUPLE_EXPERIENCE_SHARED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.WISH_SELECTION_SHARED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.WISH_SELECTION_READY: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.PARTNER_JOINED: NotificationKind.THINKING_OF_YOU,
+    NotificationKind.PLAN_CREATED: NotificationKind.REMINDER_DUE,
+    NotificationKind.PLAN_CHANGED: NotificationKind.REMINDER_DUE,
+    NotificationKind.PLAN_CANCELLED: NotificationKind.REMINDER_DUE,
+    NotificationKind.PHOTO_REACTION: NotificationKind.COMMENT_CREATED,
+}
+
 
 def push_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
     """Intersect the current delivery class with the recipient's PUSH choice.
@@ -91,6 +106,14 @@ def _effective_choice(
             NotificationPreference.channel == channel.value,
         )
     ).scalar_one_or_none()
+    parent = INHERITED_KINDS.get(NotificationKind(kind))
+    if choice is None and parent is not None:
+        return _effective_choice(
+            session,
+            account_id=account_id,
+            kind=parent.value,
+            channel=channel,
+        )
     return choice if choice is not None else True
 
 
@@ -105,7 +128,12 @@ def own_push_choices(session: Session, *, account_id: UUID) -> dict[Notification
     overrides: dict[str, bool] = {kind: enabled for kind, enabled in rows}
     return {
         kind: bool(
-            overrides.get(kind.value, not notification_policy.digest_kind_allowed(kind.value))
+            overrides.get(
+                kind.value,
+                overrides.get(INHERITED_KINDS[kind].value, True)
+                if kind in INHERITED_KINDS
+                else not notification_policy.digest_kind_allowed(kind.value),
+            )
         )
         if notification_policy.push_choice_allowed(kind.value)
         else False
@@ -122,7 +150,13 @@ def own_in_app_choices(session: Session, *, account_id: UUID) -> dict[Notificati
         )
     ).tuples()
     overrides: dict[str, bool] = {kind: enabled for kind, enabled in rows}
-    return {kind: overrides.get(kind.value, True) for kind in NotificationKind}
+    return {
+        kind: overrides.get(
+            kind.value,
+            overrides.get(INHERITED_KINDS[kind].value, True) if kind in INHERITED_KINDS else True,
+        )
+        for kind in NotificationKind
+    }
 
 
 def own_email_choices(session: Session, *, account_id: UUID) -> dict[NotificationKind, bool]:

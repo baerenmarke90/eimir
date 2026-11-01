@@ -37,6 +37,7 @@ from eimir.identity.models import (
     WebAuthnChallenge,
     WebAuthnCredential,
 )
+from eimir.photo_sources.models import PhotoConnection, PhotoSelection
 from eimir.profiles.models import PartnerProfile
 from eimir.relationship.models import Invitation, Membership, MembershipStatus
 from eimir.relationship.service import (
@@ -250,6 +251,11 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
     create_receipts.purge_account(session, account_id=account_id)
     shared_create_receipts.purge_account(session, account_id=account_id)
     _delete_account_rows(session, AppIconPreference, account_id, AppIconPreference.account_id)
+    _delete_account_rows(session, PhotoSelection, account_id, PhotoSelection.account_id)
+    _delete_account_rows(session, PhotoConnection, account_id, PhotoConnection.account_id)
+    from eimir.attachments.photo_locations import discard_owner
+
+    discard_owner(session, account_id)
 
     # Recipient-scoped notification state and provider endpoints are not
     # historical shared content. PushDelivery rows cascade from either side.

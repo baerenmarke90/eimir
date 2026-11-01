@@ -8,6 +8,10 @@ permissions:
   contents: read
   pull-requests: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   product-design-review:
     name: Product Design Review
@@ -59,6 +63,8 @@ jobs:
         shell: bash
         env:
           UI_CHANGED: ${{ steps.ui.outputs.changed }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
           set -euo pipefail
           python3 scripts/verify_product_design_review.py
+

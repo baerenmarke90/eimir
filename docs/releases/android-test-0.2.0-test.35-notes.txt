@@ -1,0 +1,9 @@
+Kalenderexport repariert: Geplante Termine öffnen jetzt direkt deine Kalender-App. Dort kannst du sie prüfen und speichern.
+
+Glücksmomente und Zeitreise haben jetzt eigene Seiten unter Momente – mit gemeinsamen Impulsen, Überspringen und einem ruhigen Abschluss.
+
+Wir-Einstellungen aufgeräumt: Zitate und Beziehungsstatistik lassen sich direkt oben aktivieren. Die Statistik trägt ein Pro-Badge, der doppelte Bereich und die Bearbeiten-Links entfallen. Beim Verschieben hebt sich die Zeile dezent hervor.
+
+Der Einstellungsbereich Erinnerungen entfällt. Orte aus ausgewählten gemeinsamen Fotos bleiben eingeschaltet.
+
+Auch das Wischen zwischen den Hauptbereichen bleibt während der Animation sauber im Bildschirm.

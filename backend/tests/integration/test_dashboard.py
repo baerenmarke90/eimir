@@ -153,6 +153,7 @@ def test_dashboard_is_shared_only_and_private_no_store(
     assert str(foreign_memory.id) not in visible_ids
     assert set(body) == {
         "space",
+        "anticipation",
         "relationshipDuration",
         "retrospective",
         "keepsake",
@@ -160,8 +161,10 @@ def test_dashboard_is_shared_only_and_private_no_store(
         "recentShared",
         "sharedStorySummary",
         "thinkingOfYouAvailableAt",
+        "incomingExperience",
         "viewerLocalDate",
     }
+    assert body["anticipation"] is None
     assert body["viewerLocalDate"] == "2026-08-30"
 
 

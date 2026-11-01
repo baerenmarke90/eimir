@@ -1,4 +1,3 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -8,6 +7,9 @@ import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { showMemoryDetails } from '../support/memoryDiary';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
 // Exercise the production App and its actual router, queries, uploads and modal
 // adapter. Only HTTP transport is replaced; no alternative proof UI is mounted.
@@ -91,12 +93,14 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
     width: 1200,
     height: 800,
     hasThumbnail: true,
+    isSensitive: false,
     createdAt: NOW,
     updatedAt: NOW,
     position: 0,
   };
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname;
@@ -243,6 +247,8 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
       path.endsWith(`/attachments/${ATTACHMENT}`)
     )
       return json(attachment);
+    if (method === 'GET' && path === `/api/v1/spaces/${SPACE}/discover`)
+      return json({ items: [], lead: null, selectionDate: NOW.slice(0, 10) });
     if (path.endsWith('/timeline')) {
       state.timelineRequests.push(url.search);
       if (state.saved && scenario.refreshFailure)
@@ -315,15 +321,22 @@ async function openMemory(page: Page) {
   await page
     .getByRole('button', { name: navigation.newContent, exact: true })
     .click();
-  await page
+  const target = page
     .getByRole('link', { name: navigation.quickCreateMemory, exact: true })
     .or(
       page.getByRole('menuitem', {
         name: navigation.quickCreateMemory,
         exact: true,
       }),
-    )
-    .click();
+    );
+  await target.evaluate(async (node) => {
+    const sheet = node.closest('dialog');
+    if (sheet)
+      await Promise.all(
+        sheet.getAnimations().map((animation) => animation.finished),
+      );
+  });
+  await target.click();
   await expect(
     page.getByRole('heading', { name: de.memory.heading, exact: true }),
   ).toBeVisible();
@@ -331,6 +344,7 @@ async function openMemory(page: Page) {
 }
 
 async function fillMemory(page: Page, withPhoto = false) {
+  await showMemoryDetails(page);
   await page
     .getByLabel(de.memory.titleLabelOptional, { exact: true })
     .fill(TITLE);
@@ -435,6 +449,8 @@ test('Quick Create native modality prevents background focus and activation', as
 }, testInfo) => {
   await installProductApi(page);
   await signIn(page);
+  const originUrl = page.url();
+  const backgroundMore = page.locator('.mobile-bottom-nav a[href="/more"]');
   await page
     .getByRole('button', { name: navigation.newContent, exact: true })
     .click();
@@ -466,12 +482,19 @@ test('Quick Create native modality prevents background focus and activation', as
     body: JSON.stringify(checkpoints, null, 2),
     contentType: 'application/json',
   });
-  const brand = await page.locator('.brand').boundingBox();
-  expect(brand).not.toBeNull();
-  if (!brand) throw new Error('The existing background brand link is missing.');
-  await page.mouse.click(brand.x + brand.width / 2, brand.y + brand.height / 2);
+  const backgroundBounds = await backgroundMore.boundingBox();
+  const dialogBounds = await dialog.boundingBox();
+  if (!backgroundBounds || !dialogBounds)
+    throw new Error('The modal or background More destination is missing.');
+  // The dock remains behind the modal backdrop, below the floating sheet.
+  const clickY = backgroundBounds.y + backgroundBounds.height / 2;
+  expect(clickY).toBeGreaterThan(dialogBounds.y + dialogBounds.height);
+  await page.mouse.click(
+    backgroundBounds.x + backgroundBounds.width / 2,
+    clickY,
+  );
   await expect(dialog).toHaveCount(0);
-  await expect(page).toHaveURL(/\/story\?/);
+  await expect(page).toHaveURL(originUrl);
 });
 
 test('content and photo save opens the confirmed canonical Memory and returns to its scope', async ({
@@ -656,7 +679,14 @@ test('an older Memory returns to the same loaded Timeline range and position', a
 }, testInfo) => {
   const api = await installProductApi(page);
   await signIn(page);
-  await page.locator('.story-pagination-sentinel').scrollIntoViewIfNeeded();
+  // The sentinel disappears as soon as automatic paging succeeds. The last
+  // loaded content item remains stable throughout that successful transition.
+  await page
+    .getByRole('heading', {
+      name: firstPage[firstPage.length - 1].title,
+      exact: true,
+    })
+    .scrollIntoViewIfNeeded();
   await expect
     .poll(
       () =>
@@ -1131,6 +1161,7 @@ test('authored draft text never enters task history or browser key-value storage
   await signIn(page);
   await openMemory(page);
   const privateDraft = 'Ephemeral private draft 958 for storage exclusion';
+  await showMemoryDetails(page);
   await page
     .getByLabel(de.memory.titleLabelOptional, { exact: true })
     .fill(privateDraft);
@@ -1269,6 +1300,21 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
     path: testInfo.outputPath('f2-story-browse-large-text-320.png'),
     animations: 'disabled',
   });
+  await page
+    .getByRole('button', {
+      name: storyProducts.storyFilters.toggleButton,
+      exact: true,
+    })
+    .click();
+  const diaryOptions = page.getByRole('dialog', {
+    name: storyProducts.storyFilters.aria,
+  });
+  await expect(diaryOptions).toBeVisible();
+  await expectNoOverflow(page);
+  await diaryOptions
+    .getByRole('button', { name: taskSheets.close, exact: true })
+    .click();
+  await expect(diaryOptions).not.toBeVisible();
   await page.setViewportSize({ width: 320, height: 480 });
   await page
     .getByRole('button', { name: navigation.newContent, exact: true })
@@ -1337,6 +1383,7 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   );
   // Return to the closed date-summary state before the readability
   // screenshot, so it reflects what the page renders by default.
+  await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional, { exact: true }).click();
   await testInfo.attach('large-text-readability', {
     body: JSON.stringify({ labels: readableLabels, dateSpace }, null, 2),

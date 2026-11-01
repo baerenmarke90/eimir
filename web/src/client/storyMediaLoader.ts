@@ -11,7 +11,7 @@ import { clientProblemKind, normalizeClientError } from './problemDetails';
 
 export type StoryMediaParentType = Extract<
   AttachmentReadRequestParentTypeEnum,
-  'MEMORY' | 'HEART_MOMENT'
+  'MEMORY' | 'HEART_MOMENT' | 'PLAN'
 >;
 
 type StoryMediaLoaderOptions = {

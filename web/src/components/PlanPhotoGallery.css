@@ -1,0 +1,8 @@
+.plan-photo-gallery {
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
+}
+.plan-photo-gallery .media-gallery-carousel-viewport {
+  max-height: min(60svh, 28rem);
+}

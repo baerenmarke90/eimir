@@ -26,35 +26,20 @@
 }
 
 .heart-moment-create-topline {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  display: flex;
   align-items: center;
   gap: var(--space-2);
   min-height: 44px;
 }
 
 .heart-moment-create-back {
-  justify-self: start;
   min-width: 0;
-}
-
-.heart-moment-create-identity {
-  justify-self: center;
-  color: var(--color-text);
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1;
-}
-
-.heart-moment-create-topline-spacer {
-  width: 1px;
-  justify-self: end;
+  margin: 0;
 }
 
 .heart-moment-create-title-lockup {
   display: grid;
+  min-width: 0;
   justify-items: center;
   gap: var(--space-3);
   text-align: center;
@@ -65,7 +50,7 @@
   width: 3.35rem;
   height: 3.35rem;
   place-items: center;
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
   background: var(--color-brand-surface);
   color: var(--color-brand-text);
@@ -79,7 +64,7 @@
 }
 
 .heart-moment-create-title-lockup h1 {
-  max-width: 18ch;
+  max-width: min(100%, 18ch);
   margin: 0;
   font-family: var(--font-display);
   font-size: clamp(2rem, 7.2vw, 2.65rem);
@@ -87,15 +72,7 @@
   line-height: 1.08;
   letter-spacing: -0.04em;
   text-wrap: balance;
-}
-
-.heart-moment-create-privacy-summary {
-  max-width: 36rem;
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: 0.94rem;
-  line-height: 1.5;
-  text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 
 /* Flatten only the shared outer create card. The accepted reference is one
@@ -145,7 +122,7 @@
   place-items: center;
   align-content: center;
   gap: var(--space-3);
-  border: 1px dashed var(--color-border);
+  border: var(--border-surface-width) dashed var(--color-border);
   border-radius: var(--radius-card);
   padding: var(--space-6);
   background: linear-gradient(
@@ -211,7 +188,7 @@
   display: grid;
   gap: var(--space-2);
   padding: var(--space-4);
-  border: 1px solid var(--color-border-subtle);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   background: var(--color-surface);
   box-shadow: var(--shadow-raised);
@@ -242,6 +219,10 @@
   min-width: 0;
 }
 
+.heart-moment-create-emotion-picker {
+  grid-column: 1 / -1;
+}
+
 .heart-moment-create-visibility {
   display: grid;
   gap: var(--space-3);
@@ -260,19 +241,19 @@
 
 .heart-moment-create-visibility-options {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
-  gap: var(--space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
 }
 
 .heart-moment-create-visibility-option {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: var(--space-3);
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-1);
   min-width: 0;
-  min-height: 7.25rem;
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
+  min-height: 48px;
+  padding: var(--space-2);
+  border: var(--border-surface-width) solid var(--color-border);
   border-radius: var(--radius-large);
   background: var(--color-surface);
   color: var(--color-text);
@@ -294,7 +275,7 @@
   border-color: var(--color-brand);
   background: var(--color-brand-surface);
   box-shadow:
-    0 0 0 1px var(--color-brand),
+    0 0 0 var(--border-surface-width) var(--color-brand),
     var(--shadow-raised);
 }
 
@@ -304,25 +285,17 @@
 }
 
 .heart-moment-create-visibility-option > input {
-  margin: 0.1rem 0 0;
+  margin: 0;
 }
 
 .heart-moment-create-visibility-option > span {
-  display: grid;
-  gap: var(--space-1);
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .heart-moment-create-visibility .heart-moment-create-visibility-option strong {
   font-size: 0.96rem;
   line-height: 1.3;
-}
-
-.heart-moment-create-visibility .heart-moment-create-visibility-option small {
-  color: var(--color-text-secondary);
-  font-size: 0.79rem;
-  line-height: 1.42;
-  overflow-wrap: anywhere;
 }
 
 .heart-moment-create-actions.form-actions {
@@ -374,28 +347,6 @@
 
   .heart-moment-create-form.immersive-create-form {
     gap: var(--space-4);
-  }
-}
-
-@media (max-width: 350px) {
-  .heart-moment-create-topline {
-    grid-template-columns: 1fr auto;
-  }
-
-  .heart-moment-create-identity {
-    justify-self: end;
-  }
-
-  .heart-moment-create-topline-spacer {
-    display: none;
-  }
-
-  .heart-moment-create-visibility-options {
-    grid-template-columns: 1fr;
-  }
-
-  .heart-moment-create-visibility-option {
-    min-height: 0;
   }
 }
 

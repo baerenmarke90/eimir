@@ -83,7 +83,6 @@ export function ChapterCreatePage({
             {t('m5s3.common.backToChapters')}
           </Link>
         }
-        eyebrow={t('m5s3.chapter.createEyebrow')}
         title={t('m5s3.chapter.createHeading')}
         description={t('m5s3.chapter.createIntro')}
         className="create-heading"

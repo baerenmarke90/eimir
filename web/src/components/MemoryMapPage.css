@@ -1,0 +1,254 @@
+.memory-map-page {
+  max-width: 54rem;
+  margin-inline: auto;
+}
+.memory-map-page > .page-heading {
+  margin-block-end: var(--space-5);
+  padding-block-end: 0;
+}
+.memory-map-page .page-heading-title-container h1 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.memory-map-page .place-map-viewport,
+.memory-map-loading {
+  height: clamp(14rem, 42dvh, 24rem);
+  border-radius: var(--radius-media);
+}
+.memory-map-loading {
+  display: grid;
+  place-items: center;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+}
+.memory-map-marker {
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  color: var(--color-on-accent);
+  border: 3px solid var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+  font: var(--font-action-label);
+}
+.memory-map-marker:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+.memory-map-places,
+.memory-map-selection ul {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+.memory-map-places,
+.memory-map-selection {
+  container-type: inline-size;
+}
+.memory-map-place,
+.memory-map-selection .memory-map-memory {
+  display: grid;
+  grid-template-columns: var(--space-16) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-4);
+  min-height: var(--touch-target-web);
+  padding: var(--space-4);
+  border: var(--border-surface-width) solid var(--color-border);
+  border-radius: var(--radius-content);
+  background: linear-gradient(
+    120deg,
+    var(--color-page-tint-brand),
+    var(--color-surface)
+  );
+  color: var(--color-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: transform var(--duration-feedback) var(--easing-standard);
+}
+.memory-map-places li:nth-child(even) .memory-map-place,
+.memory-map-selection li:nth-child(even) .memory-map-memory {
+  background: linear-gradient(
+    120deg,
+    var(--color-page-tint-shared),
+    var(--color-surface)
+  );
+}
+.memory-map-place {
+  width: 100%;
+  text-align: start;
+  white-space: normal;
+}
+.memory-map-places .memory-map-place:active,
+.memory-map-selection .memory-map-memory:active {
+  transform: translateY(var(--space-1));
+}
+.memory-map-place:focus-visible,
+.memory-map-selection .memory-map-memory:focus-visible {
+  outline: var(--space-1) solid var(--color-focus);
+  outline-offset: var(--space-1);
+}
+.memory-map-place-icon,
+.memory-map-date {
+  display: grid;
+  place-items: center;
+  min-height: var(--space-16);
+  padding: var(--space-2);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+}
+.memory-map-place-icon .eimir-icon {
+  width: var(--space-8);
+  height: var(--space-8);
+}
+.memory-map-place-copy,
+.memory-map-memory-copy {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-2);
+}
+.memory-map-place-copy strong,
+.memory-map-memory-copy strong {
+  font: var(--font-content-heading);
+}
+.memory-map-place-copy > span {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+}
+.memory-map-selection {
+  padding-block: var(--space-4);
+}
+.memory-map-selection-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-block-end: var(--space-4);
+}
+.memory-map-selection h2 {
+  display: flex;
+  flex: 1 1 12rem;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  font: var(--font-content-heading);
+  overflow-wrap: anywhere;
+}
+.memory-map-selection h2 .eimir-icon {
+  flex-shrink: 0;
+  width: var(--space-6);
+  height: var(--space-6);
+  color: var(--color-brand-text);
+}
+.memory-map-date > :first-child {
+  font: var(--font-personal-heading);
+}
+.memory-map-date > :last-child {
+  font: var(--font-supporting-copy);
+  text-transform: uppercase;
+}
+.memory-map-selection time {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+}
+
+.memory-map-marker > span {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+@container (width < 20rem) {
+  .memory-map-place,
+  .memory-map-selection .memory-map-memory {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .memory-map-place-icon,
+  .memory-map-date {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memory-map-place,
+  .memory-map-page .memory-map-place:hover,
+  .memory-map-page .memory-map-place:active,
+  .memory-map-selection .memory-map-memory,
+  .memory-map-page .memory-map-memory:active {
+    transition: none;
+    transform: none;
+  }
+}
+
+.memory-map-page .story-view-tabs {
+  margin-block-end: var(--space-4);
+}
+.memory-map-marker-content {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.memory-map-marker-photo {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+}
+.memory-map-marker-count {
+  position: absolute;
+  inset-inline-end: calc(-1 * var(--space-2));
+  top: calc(-1 * var(--space-2));
+  display: grid;
+  place-items: center;
+  min-width: var(--space-6);
+  min-height: var(--space-6);
+  padding-inline: var(--space-1);
+  border-radius: var(--radius-pill);
+  border: var(--border-surface-width) solid var(--color-surface-raised);
+  background: var(--color-brand-strong);
+  color: var(--color-on-accent);
+}
+.memory-map-thumbnail {
+  width: var(--space-16);
+  height: var(--space-16);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  color: var(--color-brand-text);
+}
+.memory-map-marker-photo .story-media-preview,
+.memory-map-thumbnail .story-media-preview,
+.memory-map-marker-photo .story-media-skeleton,
+.memory-map-thumbnail .story-media-skeleton,
+.memory-map-marker-photo .story-media-placeholder,
+.memory-map-thumbnail .story-media-placeholder,
+.memory-map-marker-photo .sensitive-media-cover,
+.memory-map-thumbnail .sensitive-media-cover {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border-radius: inherit;
+  object-fit: cover;
+  aspect-ratio: 1;
+}
+.memory-map-marker-photo .sensitive-media-label,
+.memory-map-thumbnail .sensitive-media-label {
+  padding: var(--space-1);
+}
+/* Leaflet resets marker images to intrinsic width; crop authored previews locally. */
+.place-map-viewport .memory-map-marker .memory-map-marker-photo img {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: cover;
+}

@@ -2,6 +2,7 @@ import { ActivityApi } from '../api/generated/apis/ActivityApi';
 import { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { SearchApi } from '../api/generated/apis/SearchApi';
+import { RecapsApi } from '../api/generated/apis/RecapsApi';
 import { Configuration } from './apiConfiguration';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
 import type { EngagementTarget } from '../api/generated/models/EngagementTarget';
@@ -29,6 +30,7 @@ export interface M4ProductApis {
   dashboard: DashboardApi;
   notifications: NotificationsApi;
   search: SearchApi;
+  recaps?: RecapsApi;
 }
 
 export function createM4ProductApis(
@@ -45,6 +47,7 @@ export function createM4ProductApis(
     dashboard: new DashboardApi(configuration),
     notifications: new NotificationsApi(configuration),
     search: new SearchApi(configuration),
+    recaps: new RecapsApi(configuration),
   };
 }
 
@@ -138,9 +141,30 @@ export function engagementTargetPath(
       return chapterDetailPath(targetId);
     case 'COLLECTION':
       return collectionDetailPath(targetId);
+    case 'WISH_SELECTION':
+      return '/plan/choose';
+    case 'TRANSFER_EXPORT':
+      return `/more/settings/data?export=${encodeURIComponent(targetId)}`;
+    case 'TRANSFER_IMPORT':
+      return `/more/settings/data?import=${encodeURIComponent(targetId)}`;
     default:
       return null;
   }
+}
+
+export function notificationPath(item: {
+  kind: string;
+  targetType: EngagementTarget | null;
+  targetId: string | null;
+}): string | null {
+  return (
+    engagementTargetPath(item.targetType, item.targetId) ??
+    (item.kind === 'PLAN_CANCELLED'
+      ? '/plan'
+      : item.kind === 'PARTNER_JOINED'
+        ? '/today'
+        : null)
+  );
 }
 
 export function opaqueNextCursor(page: {

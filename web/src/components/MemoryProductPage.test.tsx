@@ -167,13 +167,13 @@ describe('Memory editor return context', () => {
 });
 
 describe('Memory detail edit action (#1014)', () => {
-  function renderDetail() {
+  function renderDetail(memoryTitle = 'A shared evening') {
     const memory: MemoryDetail = {
       id: 'memory-1',
       spaceId: 'space-1',
       authorId: 'account-1',
       author: { id: 'account-1', displayName: 'Alex' },
-      title: 'A shared evening',
+      title: memoryTitle,
       body: 'Quiet words',
       tags: [],
       attachments: [],
@@ -248,6 +248,32 @@ describe('Memory detail edit action (#1014)', () => {
     expect(editLink.textContent?.trim()).toBe('');
     expect(editLink.className).not.toContain('button-link');
     expect(editLink.className).not.toContain('secondary-link');
+  });
+
+  it('keeps the localized date directly below an authored title', async () => {
+    renderDetail('Our afternoon outside');
+    const title = await screen.findByRole('heading', {
+      name: 'Our afternoon outside',
+      level: 1,
+    });
+    const header = title.closest('header');
+    expect(header?.querySelector('time')?.textContent).toBe(
+      '15. September 2025',
+    );
+    expect(header?.querySelector('time')?.getAttribute('datetime')).toBe(
+      '2025-09-15',
+    );
+    expect(header?.querySelector('.eyebrow')).toBeNull();
+  });
+
+  it('shows the date once as the heading for the generated fallback title', async () => {
+    renderDetail('Erinnerung vom 15.09.2025');
+    const title = await screen.findByRole('heading', {
+      name: '15. September 2025',
+      level: 1,
+    });
+    expect(title.closest('header')?.querySelector('time')).toBeNull();
+    expect(screen.queryByText('Erinnerung vom 15.09.2025')).toBeNull();
   });
 });
 

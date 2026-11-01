@@ -1,0 +1,7 @@
+Adds the shared diary under Moments: write with a visible date, add and reorder photos, and optionally add a title or tags. Saved entries open in a calmer reading view with natural paragraphs.
+
+Unsaved text, dates, tags and selected photos can be recovered on the same device for up to seven days without changes. A local draft is shared with your partner only when you save the entry. Interrupted saves can be resumed without creating a second entry.
+
+The existing App Updates feature and previous client improvements remain available.
+
+Install Build 16 through App Updates, then open Moments to try the diary.

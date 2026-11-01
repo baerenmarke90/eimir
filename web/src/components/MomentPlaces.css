@@ -1,0 +1,136 @@
+.moment-places {
+  min-inline-size: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+.moment-places h2 {
+  margin: 0;
+}
+.moment-places ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.moment-places li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-2);
+}
+.moment-places a {
+  overflow-wrap: anywhere;
+}
+
+.moment-place-actions {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.moment-place-pin {
+  width: var(--space-6);
+  height: var(--space-6);
+  margin-block-start: var(--space-2);
+  color: var(--color-text-secondary);
+}
+.moment-place-context {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+.moment-place-context strong {
+  color: var(--color-text);
+}
+.moment-place-address,
+.moment-place-attribution {
+  display: flex;
+  align-items: center;
+  min-height: var(--space-12);
+  width: fit-content;
+  max-width: 100%;
+  text-decoration: underline;
+  text-underline-offset: var(--space-1);
+}
+.moment-place-address {
+  color: var(--color-link-text);
+}
+.moment-place-attribution {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.moment-place-overflow {
+  min-width: var(--space-12);
+  min-height: var(--space-12);
+}
+
+.moment-places-compact .moment-place-pin {
+  color: var(--color-private);
+  margin-block-start: var(--space-1);
+}
+.moment-places-compact .moment-place-context {
+  gap: 0;
+}
+.moment-places-compact .moment-place-context strong {
+  font-weight: 500;
+  margin-block-end: var(--space-1);
+}
+.moment-places-compact .moment-place-address {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  min-height: 44px;
+  align-items: flex-start;
+  padding-block: var(--space-1);
+}
+.moment-places-compact .moment-place-attribution {
+  font: var(--font-supporting-copy);
+  text-decoration: none;
+  min-height: 44px;
+}
+.moment-places-compact .moment-place-address:hover,
+.moment-places-compact .moment-place-attribution:hover {
+  text-decoration: underline;
+}
+.moment-place-add {
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  white-space: normal;
+  justify-self: start;
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+.moment-place-add > span {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.moment-place-add svg,
+.moment-place-choices svg {
+  width: var(--space-6);
+  height: var(--space-6);
+  flex-shrink: 0;
+}
+.moment-place-picker {
+  display: grid;
+  gap: var(--space-3);
+}
+.moment-place-choices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.moment-place-choices button {
+  width: 100%;
+  display: flex;
+  gap: var(--space-3);
+  text-align: start;
+}
+.moment-place-choices button > span {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

@@ -8,8 +8,8 @@ describe('EIMIR-M5-Web-S2-SCOPE media gallery accessibility smoke', () => {
     const html = renderToStaticMarkup(
       <MediaGallery
         items={[
-          { id: 'image-1', mediaType: MediaType.IMAGE },
-          { id: 'video-1', mediaType: MediaType.VIDEO },
+          { id: 'image-1', mediaType: MediaType.IMAGE, isSensitive: false },
+          { id: 'video-1', mediaType: MediaType.VIDEO, isSensitive: false },
         ]}
         loadMedia={async () => 'blob:test'}
       />,
@@ -38,7 +38,9 @@ describe('EIMIR-M5-Web-S2-SCOPE media gallery accessibility smoke', () => {
   it('renders a single image without pagination or navigation chrome', () => {
     const html = renderToStaticMarkup(
       <MediaGallery
-        items={[{ id: 'image-1', mediaType: MediaType.IMAGE }]}
+        items={[
+          { id: 'image-1', mediaType: MediaType.IMAGE, isSensitive: false },
+        ]}
         loadMedia={async () => 'blob:test'}
       />,
     );

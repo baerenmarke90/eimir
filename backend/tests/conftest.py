@@ -117,18 +117,21 @@ def engine() -> Iterator[Engine]:
     from eimir.milestones import models as _milestones  # noqa: F401
     from eimir.outbox import models as _outbox  # noqa: F401
     from eimir.people import models as _people  # noqa: F401
+    from eimir.photo_sources import models as _photo_sources  # noqa: F401
     from eimir.places import models as _places  # noqa: F401
     from eimir.plans import models as _plans  # noqa: F401
     from eimir.private_collections import models as _private_collections  # noqa: F401
     from eimir.private_notes import models as _private_notes  # noqa: F401
     from eimir.profiles import models as _profiles  # noqa: F401
     from eimir.quotes import models as _quotes  # noqa: F401
+    from eimir.recaps import models as _recaps  # noqa: F401
     from eimir.relations import models as _relations  # noqa: F401
     from eimir.relationship import models as _relationship  # noqa: F401
     from eimir.reminders import models as _reminders  # noqa: F401
     from eimir.reminders import runtime_models as _reminder_runtime  # noqa: F401
     from eimir.story import view_models as _story_views  # noqa: F401
     from eimir.transfer import models as _transfer  # noqa: F401
+    from eimir.wish_selections import models as _wish_selections  # noqa: F401
     from eimir.wishes import models as _wishes  # noqa: F401
 
     # Test probe for owner/privacy authorization. It deliberately exists only

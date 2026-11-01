@@ -1,15 +1,20 @@
 
 # PlanUpdate
 
-Domain correction without changing lifecycle status.  Schedule fields remain owned by ``/schedule`` and ``/unschedule``. ``experiencedOn`` is the one exception: it may be corrected on a completed Plan without reopening it (M3-D04).
+Atomic content, image and optional schedule correction.  Explicit null ``schedule`` removes the date; omission preserves it. ``experiencedOn`` is the one exception: it may be corrected on a completed Plan without reopening it (M3-D04).
 
 ## Properties
 
 Name | Type
 ------------ | -------------
+`anticipationEnabled` | boolean
+`attachments` | [Array&lt;AttachmentEntry&gt;](AttachmentEntry.md)
+`coverAttachmentId` | string
+`coverIsSensitive` | boolean
 `description` | string
 `experiencedOn` | Date
 `placeId` | string
+`schedule` | [PlanSchedule](PlanSchedule.md)
 `title` | string
 
 ## Example
@@ -19,9 +24,14 @@ import type { PlanUpdate } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "anticipationEnabled": null,
+  "attachments": null,
+  "coverAttachmentId": null,
+  "coverIsSensitive": null,
   "description": null,
   "experiencedOn": null,
   "placeId": null,
+  "schedule": null,
   "title": null,
 } satisfies PlanUpdate
 

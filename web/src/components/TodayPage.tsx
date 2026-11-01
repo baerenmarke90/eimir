@@ -1,12 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import {
-  Fragment,
-  useEffect,
-  useState,
-  type MouseEvent,
-  type ReactNode,
-} from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Fragment, type ReactNode, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
@@ -16,30 +10,41 @@ import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
+import { DashboardModulePreferenceListToJSON } from '../api/generated/models/DashboardModulePreferenceList';
 import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
-import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
+import { DashboardViewToJSON } from '../api/generated/models/DashboardView';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import { dashboardQueryKey } from '../client/dashboardQueries';
 import type { DashboardModuleKey } from '../client/dashboardModules';
 import {
   dashboardPreferencesQueryKey,
   isDashboardModuleVisible,
-  orderedDashboardModuleKeys,
   limitUpcomingItems,
+  orderedDashboardModuleKeys,
   selectedDashboardCollectionId,
 } from '../client/dashboardPreferences';
-import {
-  formatRecency,
-  formatUpcomingCalendarDate,
-  formatUpcomingRelative,
-} from '../client/formatRecency';
+import { dashboardItemTitle } from '../client/dashboardPresentation';
+import { dashboardQueryKey } from '../client/dashboardQueries';
+import { formatCalendarDate, formatRecency } from '../client/formatRecency';
 import {
   dashboardItemPath,
   engagementTargetPath,
   type M4ProductApis,
 } from '../client/m4Product';
-import { normalizeClientError } from '../client/problemDetails';
+import { decodeDashboardOverview } from '../client/overviewSnapshots';
 import { usePartnerNickname } from '../client/partnerNickname';
+import {
+  PARTNER_PRESENCE_PRODUCT_ENABLED,
+  usePartnerPresence,
+} from '../client/presence';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
+import type { ReferenceApis } from '../client/referenceFlow';
+import {
+  calculateRelationshipDuration,
+  formatRelationshipDuration as formatSharedTime,
+} from '../client/relationshipPreview';
 import {
   ACTIVITY_ROUTE,
   appRoutePath,
@@ -50,10 +55,10 @@ import {
   type LivingModule,
   livingModuleContentId,
   selectLivingModule,
+  selectMonthlyNotes,
   selectMonthlyStrip,
   selectTodayFocalItem,
 } from '../client/todayComposition';
-import { useTaskOrigin } from '../client/taskOrigin';
 import {
   clearForeignRetrospectiveDismissal,
   isRetrospectiveDismissed,
@@ -61,11 +66,10 @@ import {
   retrospectiveDismissalToken,
 } from '../client/todayRetrospectiveDismissal';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
-import {
-  PARTNER_PRESENCE_PRODUCT_ENABLED,
-  usePartnerPresence,
-} from '../client/presence';
+import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
+import { useWirStatistics } from '../client/useWirStatistics';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { AnticipationCard } from './AnticipationCard';
 import {
   CouplePresence,
   type CouplePresenceAvatarAction,
@@ -75,91 +79,32 @@ import { DailyQuoteCard } from './DailyQuoteCard';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
+import {
+  MonthlyRecapInvitation,
+  useMonthlyRecapInvitation,
+} from './MonthlyRecapInvitation';
+import { OverviewCacheNotice } from './OverviewCacheNotice';
+import { PageHeader } from './PageHeader';
+import { PartnerQuickActions } from './PartnerQuickActions';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
+import { SharedExperienceReveal } from './SharedExperienceReveal';
 import { SharedStorySummary } from './SharedStorySummary';
-import { PartnerQuickActions } from './PartnerQuickActions';
+import { TodayDestinationLink } from './TodayDestinationLink';
 import { TodayPinnedCollection } from './TodayPinnedCollection';
 import { UiState } from './UiState';
 import './TodayPage.css';
+import { useWirDesign } from '../client/wirDesign';
+import './WirDesign.css';
 
 export function formatRelationshipDuration(
   duration: DashboardRelationshipDuration,
   t: (key: string, options?: Record<string, unknown>) => string,
 ): string {
-  if (duration.displayMode !== DurationDisplayMode.YEARS_MONTHS) {
-    if (duration.daysTogether === 1) {
-      return t('m5s5.dashboard.durationDaysOne', {
-        defaultValue: '1 Tag zusammen',
-      });
-    }
-    return t('m5s5.dashboard.durationDays', {
-      count: duration.daysTogether,
-    });
-  }
-
-  // DurationDisplayMode.YEARS_MONTHS:
-  // Derived strictly from the server-authoritative daysTogether and startedOn.
+  // Derive the reference day from the server snapshot, including cached views.
   const start = new Date(duration.startedOn);
   const end = new Date(start.getTime() + duration.daysTogether * 86_400_000);
-
-  let years = end.getUTCFullYear() - start.getUTCFullYear();
-  let months = end.getUTCMonth() - start.getUTCMonth();
-  const days = end.getUTCDate() - start.getUTCDate();
-
-  if (days < 0) {
-    months -= 1;
-  }
-  if (months < 0) {
-    years -= 1;
-    months += 12;
-  }
-  years = Math.max(0, years);
-  months = Math.max(0, months);
-
-  const yearsLabel =
-    years === 1
-      ? t('m5s5.dashboard.yearOne', { defaultValue: 'Jahr' })
-      : t('m5s5.dashboard.yearMany', { defaultValue: 'Jahre' });
-  const monthsLabel =
-    months === 1
-      ? t('m5s5.dashboard.monthOne', { defaultValue: 'Monat' })
-      : t('m5s5.dashboard.monthMany', { defaultValue: 'Monate' });
-
-  if (years > 0 && months > 0) {
-    return t('m5s5.dashboard.durationYearsMonths', {
-      years,
-      yearsLabel,
-      months,
-      monthsLabel,
-      defaultValue: `${years} ${yearsLabel}, ${months} ${monthsLabel} zusammen`,
-    });
-  }
-
-  if (years > 0) {
-    return t('m5s5.dashboard.durationYearsOnly', {
-      years,
-      yearsLabel,
-      defaultValue: `${years} ${yearsLabel} zusammen`,
-    });
-  }
-
-  if (months > 0) {
-    return t('m5s5.dashboard.durationMonthsOnly', {
-      months,
-      monthsLabel,
-      defaultValue: `${months} ${monthsLabel} zusammen`,
-    });
-  }
-
-  if (duration.daysTogether === 1) {
-    return t('m5s5.dashboard.durationDaysOne', {
-      defaultValue: '1 Tag zusammen',
-    });
-  }
-  return t('m5s5.dashboard.durationDays', {
-    count: duration.daysTogether,
-  });
+  return formatSharedTime(calculateRelationshipDuration(start, end), t);
 }
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
@@ -177,21 +122,6 @@ function formatDate(value: Date | null): string | null {
   }).format(value);
 }
 
-export function formatTodayHeaderDate(value: Date): string {
-  const locale = resolvedLocale();
-  const weekday = new Intl.DateTimeFormat(locale, {
-    weekday: 'short',
-  })
-    .format(value)
-    .replace(/\.$/, '');
-  const date = new Intl.DateTimeFormat(locale, {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(value);
-  return `${weekday}, ${date}`;
-}
-
 export type TodayCardVariant = 'recent' | 'retrospective' | 'keepsake';
 
 /**
@@ -205,48 +135,6 @@ export type TodayPresentationRole =
   | 'relationship_signal' // 0-1 partner interaction signal (e.g. partner commented on memory)
   | 'shared_content' // Recent shared relationship moments
   | 'editorial_highlight'; // Retrospective discovery (e.g. "Weißt du noch?")
-
-function TodayDestinationLink({
-  to,
-  className,
-  ariaLabel,
-  children,
-}: {
-  to: string;
-  className?: string;
-  ariaLabel?: string;
-  children: ReactNode;
-}) {
-  const navigate = useNavigate();
-  const { captureOrigin } = useTaskOrigin();
-
-  function openFromToday(event: MouseEvent<HTMLAnchorElement>) {
-    if (
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    )
-      return;
-
-    const taskOriginKey = captureOrigin();
-    if (!taskOriginKey) return;
-    event.preventDefault();
-    void navigate(to, { state: { taskOriginKey } });
-  }
-
-  return (
-    <Link
-      to={to}
-      className={className}
-      aria-label={ariaLabel}
-      onClick={openFromToday}
-    >
-      {children}
-    </Link>
-  );
-}
 
 export function TodayModuleSection({
   id,
@@ -293,7 +181,7 @@ export function TodayModuleSection({
 function RecentItemTypeIcon({ type }: { type: DashboardItemType }) {
   const names: Partial<Record<DashboardItemType, EimirIconName>> = {
     HEART_MOMENT: 'momente',
-    ANNIVERSARY: 'jahrestag',
+    ANNIVERSARY: 'momente',
     BIRTHDAY: 'geburtstag',
     MILESTONE: 'meilensteine',
     CHAPTER: 'kapitel',
@@ -317,7 +205,7 @@ function RecentSharedItemCard({ item }: { item: DashboardItem }) {
   const rawDate = item.occurredOn ?? item.scheduledAt ?? item.createdAt;
   const recency = rawDate ? formatRecency(rawDate, t) : null;
   const typeLabel = t(`m5s5.kind.${item.type}`);
-  const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
+  const { title, titleIsDate } = dashboardItemTitle(item, t);
 
   const tileInner = (
     <>
@@ -335,7 +223,7 @@ function RecentSharedItemCard({ item }: { item: DashboardItem }) {
             than a warm shared-life trace (#790/#791 fourth follow-up). */}
         <span className="sr-only">{typeLabel}: </span>
         <span className="today-recent-tile-title">{title}</span>
-        {recency ? (
+        {recency && !titleIsDate ? (
           <time
             className="today-recent-tile-date"
             dateTime={rawDate?.toISOString()}
@@ -365,12 +253,27 @@ function TodayAgendaRow({ item }: { item: DashboardItem }) {
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
   const rawDate = item.occurredOn ?? item.scheduledAt ?? item.createdAt;
-  const date = item.scheduledOn
-    ? formatUpcomingCalendarDate(item.scheduledOn, t)
+  const calendarDate = item.scheduledOn ?? item.occurredOn;
+  const date = calendarDate
+    ? new Intl.DateTimeFormat(resolvedLocale(), {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(calendarDate)
     : rawDate
-      ? formatUpcomingRelative(rawDate, t)
+      ? new Intl.DateTimeFormat(resolvedLocale(), {
+          dateStyle: 'long',
+          timeStyle: item.scheduledAt ? 'short' : undefined,
+        }).format(rawDate)
       : null;
-  const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
+  const title =
+    item.titleOrText?.trim() ||
+    t(
+      item.type === 'ANNIVERSARY'
+        ? 'm5s5.dashboard.anniversaryTitle'
+        : `m5s5.kind.${item.type}`,
+    );
 
   const rowInner = (
     <>
@@ -379,7 +282,16 @@ function TodayAgendaRow({ item }: { item: DashboardItem }) {
       </span>
       <span className="today-agenda-copy">
         <span className="today-agenda-title">{title}</span>
-        {date ? <span className="today-agenda-date">{date}</span> : null}
+        {date ? (
+          <time
+            className="today-agenda-date"
+            dateTime={
+              calendarDate?.toISOString().slice(0, 10) ?? rawDate?.toISOString()
+            }
+          >
+            {date}
+          </time>
+        ) : null}
       </span>
     </>
   );
@@ -422,8 +334,12 @@ function TodayMomentFeature({
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
   const rawDate = item.occurredOn ?? item.createdAt;
-  const date = rawDate ? formatDate(rawDate) : null;
-  const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
+  const { title, titleIsDate } = dashboardItemTitle(item, t);
+  const date = item.occurredOn
+    ? formatCalendarDate(item.occurredOn)
+    : rawDate
+      ? formatDate(rawDate)
+      : null;
   const previewAttachmentId = item.previewAttachmentId;
   const hasImage = Boolean(previewAttachmentId && loadMemoryImage);
 
@@ -434,13 +350,15 @@ function TodayMomentFeature({
           <MemoryPreview
             memoryId={item.id}
             attachmentId={previewAttachmentId}
+            isSensitive={item.previewIsSensitive}
+            allowReveal
             loadImage={loadMemoryImage}
           />
         ) : null}
       </div>
       <figcaption className="today-moment-caption">
         <span className="today-moment-title">{title}</span>
-        {date ? (
+        {date && !titleIsDate ? (
           <time className="today-moment-date" dateTime={rawDate?.toISOString()}>
             {date}
           </time>
@@ -455,7 +373,7 @@ function TodayMomentFeature({
           : t('m5s5.today.keepsake.sharedTextContext')}
       </span>
       <p className="today-moment-text-content">{title}</p>
-      {date ? (
+      {date && !titleIsDate ? (
         <time
           className="today-moment-text-date"
           dateTime={rawDate?.toISOString()}
@@ -471,12 +389,83 @@ function TodayMomentFeature({
       <TodayDestinationLink
         to={path}
         className="today-moment today-moment-link"
+        previewControls={hasImage && item.previewIsSensitive === true}
       >
         {feature}
       </TodayDestinationLink>
     );
   }
   return <div className="today-moment">{feature}</div>;
+}
+
+/** Daily rediscovery has its own visibility, order and section heading. */
+function TodayRetrospectiveCard({
+  item,
+  loadMemoryImage,
+}: {
+  item: DashboardItem;
+  loadMemoryImage?: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
+}) {
+  const { t } = useTranslation();
+  const path = dashboardItemPath(item.type, item.id);
+  const { title, titleIsDate } = dashboardItemTitle(item, t);
+  const rawDate = item.occurredOn ?? item.createdAt;
+  const meta = rawDate ? formatDate(rawDate) : null;
+  const previewAttachmentId = item.previewAttachmentId;
+  const hasMedia = Boolean(previewAttachmentId && loadMemoryImage);
+  const action = t('m5s5.today.living.retrospectiveAction');
+  // OpenAPI date-only values are UTC-midnight carriers, not local instants.
+  // Read their encoded calendar components without shifting historic days.
+  const date = item.occurredOn
+    ? new Intl.DateTimeFormat(resolvedLocale(), {
+        dateStyle: 'long',
+        timeZone: 'UTC',
+      }).format(item.occurredOn)
+    : meta;
+  const dateTime = item.occurredOn
+    ? item.occurredOn.toISOString().slice(0, 10)
+    : rawDate?.toISOString();
+
+  return (
+    <article className="today-living today-living-retrospective eimir-motion-lift">
+      <figure className="today-retrospective-photo">
+        {hasMedia && previewAttachmentId && loadMemoryImage ? (
+          <div className="today-retrospective-media">
+            <MemoryPreview
+              memoryId={item.id}
+              attachmentId={previewAttachmentId}
+              isSensitive={item.previewIsSensitive}
+              loadImage={loadMemoryImage}
+            />
+          </div>
+        ) : null}
+        <figcaption
+          className={`today-retrospective-caption${
+            hasMedia ? '' : ' today-retrospective-text-only'
+          }`}
+        >
+          <span className="today-retrospective-title">{title}</span>
+          {date && !titleIsDate ? (
+            <time className="today-retrospective-date" dateTime={dateTime}>
+              {date}
+            </time>
+          ) : null}
+        </figcaption>
+      </figure>
+      {path ? (
+        <TodayDestinationLink
+          to={path}
+          className="button-link button-link-primary today-retrospective-action"
+        >
+          {action}
+        </TodayDestinationLink>
+      ) : null}
+    </article>
+  );
 }
 
 /**
@@ -492,12 +481,10 @@ function TodayLivingModuleCard({
   partnerName,
   partnerAvatarUrl,
   loadMemoryImage,
-  onDismissRetrospective,
 }: {
   module: LivingModule;
   partnerName: string;
   partnerAvatarUrl?: string | null;
-  onDismissRetrospective?: () => void;
   loadMemoryImage?: (
     memoryId: string,
     attachmentId: string,
@@ -553,7 +540,7 @@ function TodayLivingModuleCard({
               name: partnerName,
             })}
           >
-            {t('m5s5.today.relationshipSignal.viewAction')} →
+            {t('m5s5.today.relationshipSignal.viewAction')}
           </TodayDestinationLink>
         ) : null}
       </div>
@@ -562,75 +549,13 @@ function TodayLivingModuleCard({
 
   const { item, kind } = module;
   const path = dashboardItemPath(item.type, item.id);
-  const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
+  const { title, titleIsDate } = dashboardItemTitle(item, t);
   const label = t(`m5s5.today.living.${kind}Label`);
   const action = t(`m5s5.today.living.${kind}Action`);
   const rawDate = item.occurredOn ?? item.scheduledAt ?? item.createdAt;
   const meta = rawDate ? formatDate(rawDate) : null;
   const previewAttachmentId = item.previewAttachmentId;
   const hasMedia = Boolean(previewAttachmentId && loadMemoryImage);
-
-  if (kind === 'retrospective') {
-    // OpenAPI date-only values are UTC-midnight carriers, not local instants.
-    // Read their encoded calendar components without shifting historic days.
-    const date = item.occurredOn
-      ? new Intl.DateTimeFormat(resolvedLocale(), {
-          dateStyle: 'long',
-          timeZone: 'UTC',
-        }).format(item.occurredOn)
-      : meta;
-    const dateTime = item.occurredOn
-      ? item.occurredOn.toISOString().slice(0, 10)
-      : rawDate?.toISOString();
-
-    return (
-      <article className="today-living today-living-retrospective eimir-motion-lift">
-        <div className="today-retrospective-header">
-          <span className="today-living-label">{label}</span>
-          {onDismissRetrospective ? (
-            <button
-              type="button"
-              className="today-retrospective-dismiss"
-              onClick={onDismissRetrospective}
-            >
-              {t('m5s5.today.living.retrospectiveDismissToday')}
-            </button>
-          ) : null}
-        </div>
-        <figure className="today-retrospective-photo">
-          {hasMedia && previewAttachmentId && loadMemoryImage ? (
-            <div className="today-retrospective-media">
-              <MemoryPreview
-                memoryId={item.id}
-                attachmentId={previewAttachmentId}
-                loadImage={loadMemoryImage}
-              />
-            </div>
-          ) : null}
-          <figcaption
-            className={`today-retrospective-caption${
-              hasMedia ? '' : ' today-retrospective-text-only'
-            }`}
-          >
-            <span className="today-retrospective-title">{title}</span>
-            {date ? (
-              <time className="today-retrospective-date" dateTime={dateTime}>
-                {date}
-              </time>
-            ) : null}
-          </figcaption>
-        </figure>
-        {path ? (
-          <TodayDestinationLink
-            to={path}
-            className="today-retrospective-action"
-          >
-            {action} →
-          </TodayDestinationLink>
-        ) : null}
-      </article>
-    );
-  }
 
   return (
     <div
@@ -643,6 +568,7 @@ function TodayLivingModuleCard({
           <MemoryPreview
             memoryId={item.id}
             attachmentId={previewAttachmentId}
+            isSensitive={item.previewIsSensitive}
             loadImage={loadMemoryImage}
           />
         </div>
@@ -650,11 +576,13 @@ function TodayLivingModuleCard({
       <div className="today-living-body">
         <span className="today-living-label">{label}</span>
         <p className="today-living-title">{title}</p>
-        {meta ? <span className="today-living-meta">{meta}</span> : null}
+        {meta && !titleIsDate ? (
+          <span className="today-living-meta">{meta}</span>
+        ) : null}
       </div>
       {path ? (
         <TodayDestinationLink to={path} className="today-living-action">
-          {action} →
+          {action}
         </TodayDestinationLink>
       ) : null}
     </div>
@@ -664,8 +592,8 @@ function TodayLivingModuleCard({
 /**
  * `Diesen Monat` — a small strip of this month's real shared photos.
  *
- * Photographs only, no titles and no counted total (see `selectMonthlyStrip`).
- * The strip shows that the month happened; `Momente` is where it is read.
+ * Photos carry their real title and calendar date, alongside text highlights.
+ * The bounded projection deliberately makes no counted-total claim.
  */
 function TodayMonthlyStrip({
   items,
@@ -688,13 +616,14 @@ function TodayMonthlyStrip({
     >
       {items.map((item) => {
         const path = dashboardItemPath(item.type, item.id);
-        const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
+        const { title, titleIsDate } = dashboardItemTitle(item, t);
         const tile = (
           <span className="today-monthly-tile-media">
             {item.previewAttachmentId ? (
               <MemoryPreview
                 memoryId={item.id}
                 attachmentId={item.previewAttachmentId}
+                isSensitive={item.previewIsSensitive}
                 loadImage={loadMemoryImage}
               />
             ) : null}
@@ -712,12 +641,26 @@ function TodayMonthlyStrip({
             {path ? (
               <TodayDestinationLink to={path} className="today-monthly-tile">
                 {tile}
-                <span className="sr-only">{title}</span>
+                <span className="today-monthly-caption">
+                  <strong>{title}</strong>
+                  {item.occurredOn && !titleIsDate ? (
+                    <time dateTime={item.occurredOn.toISOString()}>
+                      {formatCalendarDate(item.occurredOn)}
+                    </time>
+                  ) : null}
+                </span>
               </TodayDestinationLink>
             ) : (
               <span className="today-monthly-tile">
                 {tile}
-                <span className="sr-only">{title}</span>
+                <span className="today-monthly-caption">
+                  <strong>{title}</strong>
+                  {item.occurredOn && !titleIsDate ? (
+                    <time dateTime={item.occurredOn.toISOString()}>
+                      {formatCalendarDate(item.occurredOn)}
+                    </time>
+                  ) : null}
+                </span>
               </span>
             )}
           </li>
@@ -728,6 +671,7 @@ function TodayMonthlyStrip({
 }
 export function TodayPage({
   apis,
+  apiBaseUrl,
   spaceId,
   loadMemoryImage,
   profilesApi,
@@ -737,8 +681,10 @@ export function TodayPage({
   entitlementApi,
   collectionsApi,
   account,
+  recapMediaApis,
 }: {
   apis: M4ProductApis;
+  apiBaseUrl?: string;
   spaceId: string;
   spacesApi?: SpacesApi;
   dailyCheckInsApi?: DailyCheckInsApi;
@@ -752,13 +698,63 @@ export function TodayPage({
   ) => Promise<string>;
   profilesApi?: ProfilesApi;
   account?: AccountView | null;
+  recapMediaApis?: ReferenceApis;
 }) {
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
-  const dashboardQuery = useQuery({
+  const wirDesign = useWirDesign();
+  const queryClient = useQueryClient();
+  const wirStatistics = useWirStatistics({
+    api: entitlementApi,
+    instance: apiBaseUrl ?? '',
+    accountId: account?.id ?? '',
+    spaceId,
+  });
+  const dashboardQuery = useWarmOverviewQuery({
     queryKey: dashboardQueryKey(spaceId),
-    queryFn: () => apiCall(() => apis.dashboard.getDashboard({ spaceId })),
-    retry: false,
+    accountId: account?.id,
+    apiBaseUrl,
+    spaceId,
+    kind: 'dashboard-overview',
+    load: async (signal) => {
+      const [dashboard, modulePreferences] = await Promise.all([
+        apiCall(() => apis.dashboard.getDashboard({ spaceId }, { signal })),
+        account?.id
+          ? queryClient
+              .fetchQuery({
+                queryKey: dashboardPreferencesQueryKey(account.id, spaceId),
+                queryFn: ({ signal: preferenceSignal }) =>
+                  apiCall(() =>
+                    apis.dashboard.listDashboardModulePreferences(
+                      { spaceId },
+                      { signal: preferenceSignal },
+                    ),
+                  ),
+                // Persist server-confirmed choices, never another pending
+                // settings mutation's optimistic query value.
+                staleTime: 0,
+                retry: false,
+              })
+              .catch((error: unknown) => {
+                if (
+                  ['unauthorized', 'permission', 'notFound'].includes(
+                    clientProblemKind(error),
+                  )
+                )
+                  throw error;
+                return undefined;
+              })
+          : undefined,
+      ]);
+      return { ...dashboard, modulePreferences };
+    },
+    serialize: (value) => ({
+      ...DashboardViewToJSON(value),
+      modulePreferences: DashboardModulePreferenceListToJSON(
+        value.modulePreferences,
+      ),
+    }),
+    deserialize: (payload) => decodeDashboardOverview(payload, spaceId),
   });
   const spaceConfigurationQuery = useQuery(
     spaceConfigurationQueryOptions(
@@ -768,10 +764,13 @@ export function TodayPage({
     ),
   );
   const supportGesturesEnabled =
+    !dashboardQuery.isCached &&
     spaceConfigurationQuery.data?.configuration.supportGesturesEnabled === true;
   const energyCheckInEnabled =
+    !dashboardQuery.isCached &&
     spaceConfigurationQuery.data?.configuration.energyCheckInEnabled === true;
   const vibeCheckEnabled =
+    !dashboardQuery.isCached &&
     spaceConfigurationQuery.data?.configuration.vibeCheckEnabled === true;
   const sharedAchievementsEnabled =
     spaceConfigurationQuery.data?.configuration.sharedAchievementsEnabled ===
@@ -782,14 +781,18 @@ export function TodayPage({
       apiCall(() => apis.dashboard.listDashboardModulePreferences({ spaceId })),
     enabled: Boolean(account?.id && spaceId),
     retry: false,
+    staleTime: 60_000,
   });
 
+  const dashboardPreferences =
+    dashboardPreferencesQuery.data ?? dashboardQuery.data?.modulePreferences;
+
   const pinnedCollectionId = selectedDashboardCollectionId(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'pinned_collection',
   );
   const pinnedCollectionVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'pinned_collection',
   );
   const pinnedCollectionQuery = useQuery({
@@ -900,13 +903,29 @@ export function TodayPage({
   // 2. Shared Planning Horizon. The item limit is the personal Account+Space
   // Dashboard preference from #848 with the #854 default of 1; Today only
   // consumes it and never defines a limit of its own.
+  const anticipation = dashboardQuery.data?.anticipation;
   const upcoming = limitUpcomingItems(
-    dashboardQuery.data?.upcoming ?? [],
-    dashboardPreferencesQuery.data,
+    (dashboardQuery.data?.upcoming ?? []).filter(
+      (item) =>
+        !(
+          anticipation &&
+          item.type === 'PLAN' &&
+          item.id === anticipation.planId
+        ),
+    ),
+    dashboardPreferences,
   );
 
+  const relationshipSignalVisible = isDashboardModuleVisible(
+    dashboardPreferences,
+    'relationship_signal',
+  );
   const recentShared = dashboardQuery.data?.recentShared ?? [];
   const retrospective = dashboardQuery.data?.retrospective;
+  const retrospectiveVisible = isDashboardModuleVisible(
+    dashboardPreferences,
+    'retrospective',
+  );
   const serverKeepsake = dashboardQuery.data?.keepsake;
 
   // This is local presentation state only. The authorized candidate remains
@@ -940,19 +959,43 @@ export function TodayPage({
   // otherwise a genuine shared story item receives intentional text-first
   // treatment. No eligible photo means a different composition, never an
   // empty image well or generic photo-onboarding copy.
+  const incomingCandidate = dashboardQuery.data?.incomingExperience;
+  const incomingExperience =
+    !dashboardQuery.error &&
+    !dashboardQuery.isCached &&
+    incomingCandidate &&
+    partner &&
+    incomingCandidate.authorId === partner.id
+      ? incomingCandidate
+      : null;
+  const incomingId = incomingExperience?.id;
+  const ordinaryShared = recentShared.filter((item) => item.id !== incomingId);
+  // A newly shared experience keeps priority over rediscovering the same source.
+  // Reserve other rediscovery sources even when their personal module is hidden.
+  const retrospectiveId =
+    !retrospectiveDismissed && retrospective?.id !== incomingId
+      ? retrospective?.id
+      : null;
   const focalItem = selectTodayFocalItem({
-    keepsake: serverKeepsake,
-    recentShared,
+    keepsake:
+      serverKeepsake?.id === incomingId ||
+      serverKeepsake?.id === retrospectiveId
+        ? null
+        : serverKeepsake,
+    recentShared: ordinaryShared.filter((item) => item.id !== retrospectiveId),
   });
 
   // 4. Gerade bei euch: one module, deterministic priority, never a stack.
   const livingModule = selectLivingModule({
     partnerId: partner?.id,
     activityItems: activityQuery.data?.items,
-    retrospective: retrospectiveDismissed ? null : retrospective,
     recentShared,
-    excludeItemIds: focalItem ? [focalItem.item.id] : [],
-    suppressPlanningFallback: upcoming.length > 0,
+    excludeItemIds: [
+      ...(retrospectiveId ? [retrospectiveId] : []),
+      ...(focalItem ? [focalItem.item.id] : []),
+      ...(incomingId ? [incomingId] : []),
+    ],
+    suppressPlanningFallback: Boolean(anticipation) || upcoming.length > 0,
   });
 
   /*
@@ -969,8 +1012,9 @@ export function TodayPage({
    * still gets to choose freely from everything the two blocks above did not
    * take, and only then do its photos become featured content for the trace.
    */
-  const featuredIds = new Set<string>();
+  const featuredIds = new Set<string>(incomingId ? [incomingId] : []);
   if (focalItem) featuredIds.add(focalItem.item.id);
+  if (retrospectiveId) featuredIds.add(retrospectiveId);
   const livingContentId = livingModuleContentId(livingModule);
   if (livingContentId) featuredIds.add(livingContentId);
 
@@ -984,11 +1028,18 @@ export function TodayPage({
       })
     : [];
 
+  const monthlyNotes = selectMonthlyNotes({
+    recentShared,
+    now: new Date(),
+    excludeItemIds: [...featuredIds, ...monthlyStrip.map((item) => item.id)],
+  });
+
   // 6. Zuletzt bei euch: the quiet trace, minus everything featured above it -
   // the photos the strip just claimed included, so a Memory is never both a
   // thumbnail up there and a row down here.
   const traceExcludedIds = new Set(featuredIds);
-  for (const item of monthlyStrip) traceExcludedIds.add(item.id);
+  for (const item of [...monthlyStrip, ...monthlyNotes])
+    traceExcludedIds.add(item.id);
   const recentSharedForTrace = recentShared.filter(
     (item) => !traceExcludedIds.has(item.id),
   );
@@ -1016,39 +1067,71 @@ export function TodayPage({
   const preferencesUnresolved =
     dashboardPreferencesQuery.isPending &&
     dashboardPreferencesQuery.fetchStatus !== 'idle';
-  const contentReady = Boolean(dashboardQuery.data) && !preferencesUnresolved;
+  const preferencesDenied = ['unauthorized', 'permission', 'notFound'].includes(
+    clientProblemKind(dashboardPreferencesQuery.error),
+  );
+  const contentReady =
+    Boolean(dashboardQuery.data) &&
+    !preferencesDenied &&
+    (!preferencesUnresolved || Boolean(dashboardPreferences));
 
   const relationshipPresenceVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'relationship_presence',
   );
   const upcomingVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'upcoming',
   );
   const keepsakeVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'keepsake',
   );
-  const relationshipSignalVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
-    'relationship_signal',
-  );
   const monthlyHighlightsVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'monthly_highlights',
   );
   const recentSharedVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'recent_shared',
   );
-  const sharedStorySummaryVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
-    'shared_story_summary',
+  const monthlyRecapEnabled = Boolean(
+    contentReady &&
+      monthlyHighlightsVisible &&
+      apis.recaps &&
+      recapMediaApis &&
+      account &&
+      !dashboardQuery.isCached,
   );
+  const monthlyRecapEdition = useMonthlyRecapInvitation({
+    api: apis.recaps,
+    today: dashboardQuery.data?.viewerLocalDate ?? new Date(),
+    instance: apiBaseUrl ?? '',
+    accountId: account?.id,
+    spaceId,
+    enabled: monthlyRecapEnabled,
+  });
+  const monthlyRecapEntry =
+    monthlyRecapEnabled && recapMediaApis && account ? (
+      <MonthlyRecapInvitation
+        edition={monthlyRecapEdition}
+        mediaApis={recapMediaApis}
+        account={account}
+        spaceId={spaceId}
+        excludeSourceIds={[
+          ...featuredIds,
+          ...monthlyStrip.map((item) => item.id),
+          ...monthlyNotes.map((item) => item.id),
+        ]}
+      />
+    ) : null;
+  const sharedStorySummaryVisible =
+    wirStatistics.allowed && wirStatistics.enabled && !dashboardQuery.isCached;
 
   const isSparse = Boolean(
     dashboardQuery.data &&
+      !(sharedStorySummaryVisible && dashboardQuery.data.sharedStorySummary) &&
+      !anticipation &&
       upcoming.length === 0 &&
       recentShared.length === 0 &&
       !retrospective &&
@@ -1058,7 +1141,6 @@ export function TodayPage({
   );
 
   const showMomentSection = Boolean(!isSparse && focalItem);
-  const todayDate = formatTodayHeaderDate(new Date());
 
   const renderRelationshipHero = (
     avatarAction?: CouplePresenceAvatarAction,
@@ -1066,6 +1148,11 @@ export function TodayPage({
   ) => (
     <CouplePresence
       className="today-hero"
+      eyebrow={
+        (wirDesign?.current ?? 'warm') === 'warm'
+          ? t('wirDesign.welcome')
+          : undefined
+      }
       headingLevel="h2"
       spaceTitle={
         partner
@@ -1121,13 +1208,46 @@ export function TodayPage({
     />
   );
 
+  const dailyQuote =
+    account?.id && dailyQuoteApi && entitlementApi ? (
+      <DailyQuoteCard
+        key={`quote:${account.id}:${spaceId}`}
+        quoteApi={dailyQuoteApi}
+        entitlementsApi={entitlementApi}
+        accountId={account.id}
+        spaceId={spaceId}
+        partnerName={partner ? partnerName : undefined}
+        partnerNameIsResolved
+      />
+    ) : null;
+  const dailyVibe =
+    vibeCheckEnabled && partner && account?.id && dailyCheckInsApi ? (
+      <DailyVibeCheckIn
+        key={`vibe:${account.id}:${spaceId}`}
+        api={dailyCheckInsApi}
+        accountId={account.id}
+        spaceId={spaceId}
+        partnerName={partnerName}
+        partnerNameIsResolved
+        configuredEnabled
+      />
+    ) : null;
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {
+    shared_experience:
+      incomingExperience &&
+      isDashboardModuleVisible(dashboardPreferences, 'shared_experience') ? (
+        <SharedExperienceReveal
+          entry={incomingExperience}
+          partnerName={partnerName}
+        />
+      ) : null,
+    daily_quote: dailyQuote,
     relationship_presence: (
       <>
         {/* ROLE: Hero / Couple Presence — the permanent emotional entry
               point, shown for every space including a new/sparse one, unless
-              the user hid the `relationship_presence` module. The Today date
-              heading above remains the stable page-level H1 either way. */}
+              the user hid the `relationship_presence` module. The couple's
+              names become the page H1; hidden modules retain a semantic fallback. */}
         {relationshipPresenceVisible ? (
           supportGesturesEnabled && partner && account?.id ? (
             <PartnerQuickActions
@@ -1148,6 +1268,7 @@ export function TodayPage({
             renderRelationshipHero()
           )
         ) : null}
+        {dailyVibe}
       </>
     ),
     keepsake: (
@@ -1159,7 +1280,6 @@ export function TodayPage({
           <TodayModuleSection
             className="today-section-moment"
             title={t('m5s5.today.keepsake.title')}
-            kicker={t('m5s5.today.keepsake.kicker')}
           >
             <TodayMomentFeature
               item={focalItem.item}
@@ -1175,22 +1295,22 @@ export function TodayPage({
         {/* Demnächst — the short shared horizon. One item is the
                   default and must read as complete on its own; two or three
                   stay restrained rather than becoming an agenda table. */}
-        {upcomingVisible && upcoming.length > 0 ? (
+        {upcomingVisible && (anticipation || upcoming.length > 0) ? (
           <TodayModuleSection
             className="today-section-upcoming"
             colorWorld="natural"
             title={t('m5s5.dashboard.upcomingTitle')}
-            kicker={t('m5s5.dashboard.upcomingKicker')}
             headerAction={
               <Link
                 to={appRoutePath('plan')}
                 className="today-section-link"
                 aria-label={t('m5s5.today.upcoming.allAriaLabel')}
               >
-                {t('m5s5.today.upcoming.allAction')} →
+                {t('m5s5.today.upcoming.allAction')}
               </Link>
             }
           >
+            {anticipation ? <AnticipationCard value={anticipation} /> : null}
             <div className="today-agenda-list">
               {upcoming.map((item: DashboardItem) => (
                 <TodayAgendaRow key={item.id} item={item} />
@@ -1202,7 +1322,8 @@ export function TodayPage({
     ),
     pinned_collection: (
       <>
-        {pinnedCollectionVisible &&
+        {!dashboardQuery.isCached &&
+        pinnedCollectionVisible &&
         pinnedCollectionId &&
         pinnedCollectionQuery.data ? (
           <TodayModuleSection
@@ -1217,7 +1338,7 @@ export function TodayPage({
                   title: pinnedCollectionQuery.data.title,
                 })}
               >
-                {t('m5s5.today.pinnedCollection.openAction')} →
+                {t('m5s5.today.pinnedCollection.openAction')}
               </TodayDestinationLink>
             }
           >
@@ -1249,6 +1370,38 @@ export function TodayPage({
         ) : null}
       </>
     ),
+    retrospective: (
+      <>
+        {retrospectiveVisible && retrospective && retrospectiveId ? (
+          <TodayModuleSection
+            className="today-section-retrospective"
+            title={t('m5s5.today.living.retrospectiveLabel')}
+            headerAction={
+              dismissalToken ? (
+                <button
+                  type="button"
+                  className="today-retrospective-dismiss"
+                  onClick={dismissRetrospectiveToday}
+                >
+                  {t('m5s5.today.living.retrospectiveDismissToday')}
+                </button>
+              ) : undefined
+            }
+          >
+            <TodayRetrospectiveCard
+              item={retrospective}
+              loadMemoryImage={loadMemoryImage}
+            />
+          </TodayModuleSection>
+        ) : null}
+
+        {dismissedToken === dismissalToken && dismissalToken ? (
+          <span role="status" className="sr-only">
+            {t('m5s5.today.living.retrospectiveDismissed')}
+          </span>
+        ) : null}
+      </>
+    ),
     relationship_signal: (
       <>
         {/* 4. Gerade bei euch — exactly one contextual module. */}
@@ -1262,17 +1415,8 @@ export function TodayPage({
               partnerName={partnerName}
               partnerAvatarUrl={partnerAvatar.avatarUrl}
               loadMemoryImage={loadMemoryImage}
-              onDismissRetrospective={
-                dismissalToken ? dismissRetrospectiveToday : undefined
-              }
             />
           </TodayModuleSection>
-        ) : null}
-
-        {dismissedToken === dismissalToken && dismissalToken ? (
-          <span role="status" className="sr-only">
-            {t('m5s5.today.living.retrospectiveDismissed')}
-          </span>
         ) : null}
 
         {activityQuery.error && relationshipSignalVisible ? (
@@ -1294,8 +1438,9 @@ export function TodayPage({
         {/* 5. Diesen Monat — this month's shared life, shown rather than
                   counted. */}
         {monthlyHighlightsVisible &&
-        monthlyStrip.length > 0 &&
-        loadMemoryImage ? (
+        (monthlyStrip.length > 0 ||
+          monthlyNotes.length > 0 ||
+          monthlyRecapEdition) ? (
           <TodayModuleSection
             className="today-section-monthly"
             title={t('m5s5.today.monthly.title')}
@@ -1305,15 +1450,27 @@ export function TodayPage({
                 className="today-section-link"
                 aria-label={t('m5s5.today.monthly.allAriaLabel')}
               >
-                {t('m5s5.today.monthly.allAction')} →
+                {t('m5s5.today.monthly.allAction')}
               </Link>
             }
           >
-            <TodayMonthlyStrip
-              items={monthlyStrip}
-              loadMemoryImage={loadMemoryImage}
-            />
+            {monthlyRecapEntry}
+            {loadMemoryImage && monthlyStrip.length > 0 ? (
+              <TodayMonthlyStrip
+                items={monthlyStrip}
+                loadMemoryImage={loadMemoryImage}
+              />
+            ) : null}
+            {monthlyNotes.length > 0 ? (
+              <div className="today-monthly-notes">
+                {monthlyNotes.map((item) => (
+                  <RecentSharedItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            ) : null}
           </TodayModuleSection>
+        ) : monthlyHighlightsVisible ? (
+          monthlyRecapEntry
         ) : null}
       </>
     ),
@@ -1325,17 +1482,20 @@ export function TodayPage({
           <TodayModuleSection
             className="today-section-recent"
             title={t('m5s5.dashboard.recentTitle')}
-            kicker={t('m5s5.dashboard.recentKicker')}
+            headerAction={
+              <Link
+                to={ACTIVITY_ROUTE}
+                className="today-section-link today-recent-activity-link"
+                aria-label={t('m5s5.dashboard.allActivityAction')}
+              >
+                {t('m5s5.today.recent.allAction')}
+              </Link>
+            }
           >
             <div className="today-stream today-stream-recent">
               {recentSharedForTrace.slice(0, 4).map((item: DashboardItem) => (
                 <RecentSharedItemCard key={item.id} item={item} />
               ))}
-            </div>
-            <div className="today-recent-footer">
-              <Link to={ACTIVITY_ROUTE} className="today-recent-activity-link">
-                {t('m5s5.dashboard.allActivityAction')}
-              </Link>
             </div>
           </TodayModuleSection>
         ) : null}
@@ -1347,19 +1507,26 @@ export function TodayPage({
         dashboardQuery.data?.sharedStorySummary ? (
           <SharedStorySummary
             summary={dashboardQuery.data?.sharedStorySummary}
+            showEmpty
           />
         ) : null}
       </>
     ),
   };
-  const orderedModuleKeys = orderedDashboardModuleKeys(
-    dashboardPreferencesQuery.data,
-  );
+  const orderedModuleKeys = orderedDashboardModuleKeys(dashboardPreferences);
 
   return (
-    <div className="page today-page">
+    <div
+      className="page today-page"
+      data-wir-design={wirDesign?.current ?? 'warm'}
+      data-color-world={
+        (wirDesign?.current ?? 'warm') === 'warm' ? 'warm' : undefined
+      }
+    >
       {(dashboardQuery.isLoading ||
-        (Boolean(dashboardQuery.data) && preferencesUnresolved)) && (
+        (Boolean(dashboardQuery.data) &&
+          preferencesUnresolved &&
+          !dashboardPreferences)) && (
         <UiState kind="loading" title={t('states.loading.title')} />
       )}
       {dashboardQuery.error && (
@@ -1368,6 +1535,9 @@ export function TodayPage({
           onRetry={() => dashboardQuery.refetch()}
         />
       )}
+      {dashboardQuery.isCached ? (
+        <OverviewCacheNotice cachedAt={dashboardQuery.cachedAt} />
+      ) : null}
       {/* A failed preferences fetch does not block Today: the configurable
           module stack proceeds with product defaults (visible) rather than
           holding the whole page hostage on a secondary, non-critical
@@ -1382,99 +1552,33 @@ export function TodayPage({
 
       {contentReady && dashboardQuery.data ? (
         <div className="today-content">
-          <header className="today-date-heading">
-            <h1 className="today-date-title">{t('m5s5.today.headerTitle')}</h1>
-            <time className="today-date-value">{todayDate}</time>
-          </header>
+          <PageHeader variant="root" title={t('navigation.today')} />
 
+          {orderedModuleKeys.map((key) => (
+            <Fragment key={key}>{moduleContent[key]}</Fragment>
+          ))}
           {isSparse ? (
-            <>
-              {moduleContent.relationship_presence}
-              {vibeCheckEnabled &&
-              partner &&
-              account?.id &&
-              dailyCheckInsApi ? (
-                <DailyVibeCheckIn
-                  key={`${account.id}:${spaceId}`}
-                  api={dailyCheckInsApi}
-                  accountId={account.id}
-                  spaceId={spaceId}
-                  partnerName={partnerName}
-                  partnerNameIsResolved
-                  configuredEnabled
-                />
-              ) : null}
-
-              {account?.id && dailyQuoteApi && entitlementApi ? (
-                <DailyQuoteCard
-                  key={`${account.id}:${spaceId}`}
-                  quoteApi={dailyQuoteApi}
-                  entitlementsApi={entitlementApi}
-                  accountId={account.id}
-                  spaceId={spaceId}
-                  partnerName={partner ? partnerName : undefined}
-                  partnerNameIsResolved
-                />
-              ) : null}
-
-              <div className="new-space-experience">
-                <h2 className="new-space-title">
-                  {partner
-                    ? t('m5s5.dashboard.newSpacePartner', {
-                        name: partnerName,
-                      })
-                    : t('m5s5.dashboard.newSpaceEmpty')}
-                </h2>
-                <p className="new-space-body">
-                  {t('m5s5.dashboard.newSpaceIntro')}
-                </p>
-                <div className="new-space-actions">
-                  <Link
-                    className="button-link primary new-space-cta"
-                    to="/story/memories/new"
-                  >
-                    {t('m5s5.dashboard.newSpaceAction')}
-                  </Link>
-                </div>
+            <div className="new-space-experience">
+              <h2 className="new-space-title">
+                {partner
+                  ? t('m5s5.dashboard.newSpacePartner', {
+                      name: partnerName,
+                    })
+                  : t('m5s5.dashboard.newSpaceEmpty')}
+              </h2>
+              <p className="new-space-body">
+                {t('m5s5.dashboard.newSpaceIntro')}
+              </p>
+              <div className="new-space-actions">
+                <Link
+                  className="button-link primary new-space-cta"
+                  to="/story/memories/new"
+                >
+                  {t('m5s5.dashboard.newSpaceAction')}
+                </Link>
               </div>
-            </>
-          ) : (
-            orderedModuleKeys.map((key, index) => (
-              <Fragment key={key}>
-                {moduleContent[key]}
-                {index === 0 ? (
-                  <>
-                    {vibeCheckEnabled &&
-                    partner &&
-                    account?.id &&
-                    dailyCheckInsApi ? (
-                      <DailyVibeCheckIn
-                        key={`${account.id}:${spaceId}`}
-                        api={dailyCheckInsApi}
-                        accountId={account.id}
-                        spaceId={spaceId}
-                        partnerName={partnerName}
-                        partnerNameIsResolved
-                        configuredEnabled
-                      />
-                    ) : null}
-
-                    {account?.id && dailyQuoteApi && entitlementApi ? (
-                      <DailyQuoteCard
-                        key={`${account.id}:${spaceId}`}
-                        quoteApi={dailyQuoteApi}
-                        entitlementsApi={entitlementApi}
-                        accountId={account.id}
-                        spaceId={spaceId}
-                        partnerName={partner ? partnerName : undefined}
-                        partnerNameIsResolved
-                      />
-                    ) : null}
-                  </>
-                ) : null}
-              </Fragment>
-            ))
-          )}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

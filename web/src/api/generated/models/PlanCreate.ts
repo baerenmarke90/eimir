@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AttachmentEntry } from './AttachmentEntry';
+import {
+    AttachmentEntryFromJSON,
+    AttachmentEntryFromJSONTyped,
+    AttachmentEntryToJSON,
+    AttachmentEntryToJSONTyped,
+} from './AttachmentEntry';
 import type { PlanSchedule } from './PlanSchedule';
 import {
     PlanScheduleFromJSON,
@@ -31,6 +38,24 @@ import {
  * @interface PlanCreate
  */
 export interface PlanCreate {
+    /**
+     * 
+     * @type {Array<AttachmentEntry>}
+     * @memberof PlanCreate
+     */
+    attachments?: Array<AttachmentEntry>;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlanCreate
+     */
+    coverAttachmentId?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof PlanCreate
+     */
+    coverIsSensitive?: boolean;
     /**
      * 
      * @type {string}
@@ -75,6 +100,9 @@ export function PlanCreateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     }
     return {
         
+        'attachments': json['attachments'] == null ? undefined : ((json['attachments'] as Array<any>).map(AttachmentEntryFromJSON)),
+        'coverAttachmentId': json['coverAttachmentId'] == null ? undefined : json['coverAttachmentId'],
+        'coverIsSensitive': json['coverIsSensitive'] == null ? undefined : json['coverIsSensitive'],
         'description': json['description'] == null ? undefined : json['description'],
         'placeId': json['placeId'] == null ? undefined : json['placeId'],
         'schedule': json['schedule'] == null ? undefined : PlanScheduleFromJSON(json['schedule']),
@@ -93,6 +121,9 @@ export function PlanCreateToJSONTyped(value?: PlanCreate | null, ignoreDiscrimin
 
     return {
         
+        'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(AttachmentEntryToJSON)),
+        'coverAttachmentId': value['coverAttachmentId'],
+        'coverIsSensitive': value['coverIsSensitive'],
         'description': value['description'],
         'placeId': value['placeId'],
         'schedule': PlanScheduleToJSON(value['schedule']),

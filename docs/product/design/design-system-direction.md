@@ -94,11 +94,26 @@ Validate actual rendered pairs in both themes: normal text at least 4.5:1, quali
 
 ## 6. Shape, borders and depth
 
+**PO refinement, 2026-10-29:** ordinary cards, buttons, inputs, sheets, popovers
+and selectable surfaces have no decorative surrounding outline. Use existing
+surface contrast, spacing, filled selection and checkmarks. Consume
+`border.surfaceFrame` through the Web adapter, including decorative inset
+outline shadows. Keyboard focus and forced-colors system boundaries remain
+visible; icon/graphic strokes, native affordances, chart symbols and separators
+between overlapping portraits retain their content meaning. This supersedes
+older advice to give secondary buttons or ordinary surfaces a subtle outline.
+
+The #1574 follow-up confirms that this includes standard text, multiline,
+select and date/time fields. `border.controlFrame` is zero in ordinary themes;
+filled tonal surfaces and persistent labels identify inputs. Keep visible
+keyboard focus, validation, native affordances and system forced-colors
+boundaries. Do not reintroduce a frame through a component override or shadow.
+
 Reuse the existing radius vocabulary by purpose: `none` for flush content; `small` for small details; `medium` for compact controls; `large` for media, inputs and buttons; `card` for an independent content unit; `sheet` for sheet top corners; `hero` only for a justified large focal surface; `pill` for appropriate filters/tabs and identity shapes. No screen needs to demonstrate every radius.
 
 - Separators aid scanning where adjacency is ambiguous; they are not required between every piece of content.
 - Input boundaries and selected/focus indicators remain discernible. A decorative hairline cannot be the sole signal of an interactive target.
-- Normally choose surface contrast or a subtle border. Do not stack border and shadow on every resting object.
+- Choose surface contrast and spacing for ordinary surface boundaries. Do not replace the removed frame with an outline shadow.
 - Use existing overlay elevation for floating navigation, sheets and menus. In Dark, distinguish surfaces instead of adding luminous colored shadows.
 - Avoid nested content surfaces and rounded image frames inside rounded image frames. A sheet's rounding communicates its temporary layer, not a second card around its form.
 - Preserve the existing focus role and necessary offset; rounded/clipped containers must not cut it off.

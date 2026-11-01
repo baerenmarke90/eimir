@@ -135,7 +135,10 @@ async function openJourney(
     await route.fulfill({ json: updated });
   });
   await signIn(page);
-  await page.getByRole('link', { name: new RegExp(scenario.title) }).click();
+  await page
+    .locator('#momente-diary')
+    .getByRole('link', { name: new RegExp(scenario.title) })
+    .click();
   const panel = page.locator('.comments-panel');
   await expect(
     panel.getByText('Still smiling about this.', { exact: true }),
@@ -148,7 +151,6 @@ async function edit(panel: Locator, body: string) {
   const card = panel
     .locator('.comment-card')
     .filter({ has: panel.page().getByText(body, { exact: true }) });
-  await card.locator('.comment-menu-trigger').click();
   await card.getByRole('button', { name: copy.edit, exact: true }).click();
   return panel.getByRole('textbox');
 }
@@ -260,7 +262,9 @@ for (const scenario of cases) {
       await page.goBack();
       await expect(page).toHaveURL(/\/story\?tab=timeline$/);
       await expect(
-        page.getByRole('link', { name: new RegExp(scenario.title) }),
+        page
+          .locator('#momente-diary')
+          .getByRole('link', { name: new RegExp(scenario.title) }),
       ).toBeVisible();
       expect(state.unknown).toEqual([]);
     });

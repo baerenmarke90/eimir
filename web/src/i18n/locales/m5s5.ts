@@ -151,6 +151,11 @@ const m5s5 = {
     loadingMore: 'Weitere Ergebnisse werden geladen …',
   },
   activity: {
+    scopeLabel: 'Aktivitäten filtern',
+    shared: 'Gemeinsam',
+    own: 'Meine Aktivitäten',
+    ownEmptyTitle: 'Hier beginnen deine Aktivitäten',
+    ownEmptyBody: 'Deine eigenen Beiträge und Änderungen erscheinen hier.',
     eyebrow: 'Aktivität',
     title: 'Aktivitäten',
     intro: 'Gemeinsame Änderungen und neue Inhalte in zeitlicher Reihenfolge.',

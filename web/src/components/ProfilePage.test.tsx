@@ -86,18 +86,14 @@ describe('Profile page reorganization', () => {
     expect(html).not.toContain(profileIdentity.changeAvatar);
   });
 
-  it('places the eimir.Pro explanation in the account profile instead of the Games surface', () => {
+  it('leaves Pro information to App and Account settings', () => {
     const html = renderProfilePageFixture();
-
-    expect(html).toContain('profile-premium-section');
-    expect(html).toContain(profiles.premium.title);
-    expect(html).toContain(profiles.premium.gamesTitle);
-    expect(html).toContain(profiles.premium.gamesBody);
-    expect(html).toContain(profiles.premium.action);
-    expect(html).toContain(profiles.premium.detailsTitle);
+    expect(html).not.toContain('profile-premium-section');
+    expect(html).not.toContain(profiles.premium.title);
+    expect(html).not.toContain(profiles.premium.action);
   });
 
-  it('keeps authored personal preferences ahead of eimir.Pro information', () => {
+  it('keeps authored personal preferences in the profile', () => {
     const html = renderProfilePageFixture([
       {
         id: 'pref-order',
@@ -112,9 +108,7 @@ describe('Profile page reorganization', () => {
     ]);
 
     expect(html.indexOf('Pasta')).toBeGreaterThanOrEqual(0);
-    expect(html.indexOf(profiles.premium.title)).toBeGreaterThan(
-      html.indexOf('Pasta'),
-    );
+    expect(html).not.toContain(profiles.premium.title);
   });
 
   it('renders categorized preference chips and [Vorliebe] without a permanent empty form', () => {

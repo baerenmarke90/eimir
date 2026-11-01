@@ -67,7 +67,7 @@ import {
   type HeartMomentTag,
   HeartMomentTagChoices,
 } from './HeartMomentTagChoices';
-import { MediaGallery } from './MediaGallery';
+import { GalleryExpandAction, MediaGallery } from './MediaGallery';
 import { MomentPlaces } from './MomentPlaces';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
@@ -151,6 +151,7 @@ export function HeartMomentProductPage({
     signal?: AbortSignal,
   ) => Promise<string>;
 }) {
+  const [commentHost, setCommentHost] = useState<HTMLSpanElement | null>(null);
   const { t } = useTranslation();
   const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
@@ -1014,6 +1015,14 @@ export function HeartMomentProductPage({
               loadAttachment(heartMoment.id, attachmentId, signal)
             }
             resourceScopeKey={`heart-moment:${currentAccountId}:${spaceId}:${mode}:${heartMoment.id}`}
+            renderPhotoActions={(_item, openFullScreen, revealed) => (
+              <>
+                {revealed ? (
+                  <GalleryExpandAction onOpen={openFullScreen} />
+                ) : null}
+                <span className="media-comment-action" ref={setCommentHost} />
+              </>
+            )}
           />
         </section>
       ) : null}
@@ -1041,6 +1050,7 @@ export function HeartMomentProductPage({
         </p>
       ) : shared ? (
         <CommentsPanel
+          triggerContainer={commentHost}
           commentsApi={apis.comments}
           spaceId={spaceId}
           parentKind="heartMoment"

@@ -38,6 +38,7 @@ import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
+import { ProInformationPanel } from './ProInformationPanel';
 import { SettingsIndex } from './SettingsIndex';
 import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
@@ -234,6 +235,7 @@ export function SettingsPage(props: SettingsPageProps) {
         className="settings-category-content settings-sensitive-zone"
         aria-labelledby="settings-sensitive-heading"
       >
+        <ProInformationPanel />
         <div className="settings-sensitive-head">
           <p className="eyebrow">
             {t('profileIdentity.settingsSensitiveEyebrow')}

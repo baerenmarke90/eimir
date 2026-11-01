@@ -136,6 +136,18 @@ describe('task origin privacy and lifetime', () => {
     expect(taskOriginPath('/today/activity', '?body=private')).toBe(
       '/today/activity',
     );
+    expect(taskOriginPath('/today/activity', '?scope=own&body=private')).toBe(
+      '/today/activity?scope=own',
+    );
+    expect(taskOriginPath('/today/activity', '?scope=foreign')).toBe(
+      '/today/activity',
+    );
+    expect(
+      taskOriginPath(
+        '/story/map',
+        '?place=49:7&type=MEMORY&year=2025&body=private',
+      ),
+    ).toBe('/story/map?type=MEMORY&year=2025&place=49%3A7');
     expect(taskOriginPath('/more/notifications', '?body=private')).toBe(
       '/more/notifications',
     );

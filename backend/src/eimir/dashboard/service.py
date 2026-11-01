@@ -10,6 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from enum import StrEnum
+from hashlib import sha256
+from typing import cast as cast_type
 from uuid import UUID
 
 from sqlalchemy import Date, and_, cast, extract, func, or_, select
@@ -42,6 +44,7 @@ SECTION_LIMIT = 8
 MAX_RECOGNITION_TEXT = 160
 KEEPSAKE_SCAN_LIMIT = 50
 RETROSPECTIVE_FALLBACK_MIN_AGE_DAYS = 30
+RETROSPECTIVE_SCAN_LIMIT = 50
 
 
 class DashboardItemType(StrEnum):
@@ -330,9 +333,9 @@ def _retrospective(
 ) -> DashboardItem | None:
     """Select one authorized historical moment for the existing Today slot.
 
-    An exact calendar-day anniversary always wins. On a Space-stable weekday,
-    the oldest shared Memory can fill an otherwise empty day, provided the
-    event is at least thirty days in the past. The projection is read directly
+    An exact calendar-day anniversary always wins. Otherwise a daily stable
+    rotation selects from a bounded pool of shared historical content at least
+    more than thirty days old. The projection is read directly
     from current authorized rows: deletion/permission changes cannot leave
     persisted copies of relationship content behind.
     """
@@ -428,26 +431,46 @@ def _retrospective(
             ),
         )[1]
     else:
-        # A quiet fallback, not an always-on filler card: exactly one weekday
-        # per Space, independent of the viewer's Account or client platform.
-        if today.weekday() != authorization.space_id.int % 7:
+        cutoff = today - timedelta(days=RETROSPECTIVE_FALLBACK_MIN_AGE_DAYS)
+        for model, day_column, kind in (
+            (Memory, memory_day, DashboardItemType.MEMORY),
+            (Milestone, Milestone.happened_on, DashboardItemType.MILESTONE),
+            (HeartMoment, HeartMoment.happened_on, DashboardItemType.HEART_MOMENT),
+        ):
+            statement = readable(model, authorization).where(day_column < cutoff)
+            if model is HeartMoment:
+                statement = statement.where(
+                    HeartMoment.privacy_class == PrivacyClass.SPACE_SHARED.value
+                )
+            rows = session.execute(
+                statement.order_by(day_column.desc(), model.id).limit(RETROSPECTIVE_SCAN_LIMIT)
+            ).scalars()
+            for candidate in rows:
+                row = cast_type(Memory | Milestone | HeartMoment, candidate)
+                candidates.append(
+                    (
+                        row.happened_on or row.created_at.date(),
+                        DashboardItem(
+                            type=kind,
+                            id=row.id,
+                            title_or_text=_bounded(
+                                row.payload.text
+                                if isinstance(row, HeartMoment)
+                                else row.payload.title
+                            ),
+                            occurred_on=row.happened_on,
+                            created_at=row.created_at,
+                        ),
+                    )
+                )
+        if not candidates:
             return None
-
-        oldest = session.execute(
-            readable(Memory, authorization)
-            .where(memory_day < today - timedelta(days=RETROSPECTIVE_FALLBACK_MIN_AGE_DAYS))
-            .order_by(memory_day, Memory.id)
-            .limit(1)
-        ).scalar_one_or_none()
-        if oldest is None:
-            return None
-        chosen = DashboardItem(
-            type=DashboardItemType.MEMORY,
-            id=oldest.id,
-            title_or_text=_bounded(oldest.payload.title),
-            occurred_on=oldest.happened_on,
-            created_at=oldest.created_at,
+        candidates.sort(
+            key=lambda candidate: sha256(
+                f"{authorization.space_id}:{candidate[1].type.value}:{candidate[1].id}".encode()
+            ).digest()
         )
+        chosen = candidates[today.toordinal() % len(candidates)][1]
 
     if chosen.type == DashboardItemType.MEMORY:
         galleries = attachments_of_memories(session, [chosen.id])

@@ -9,7 +9,7 @@ Continuation: PR #1568, duration source `73937ed8ed7aa7486e3978eed1eaa1c949fa319
 The board guides hierarchy only. Existing privacy, map markers, attribution,
 route contracts, icons and actual available features remain authoritative;
 illustrative photographs, thumbnails and decorative controls are not new
-runtime requirements. No legacy SideBySide source is needed: eimir already owns
+runtime requirements. No legacy implementation is needed: eimir already owns
 an authorized retrospective selection, gallery and comment lifecycles.
 
 Reviewed destination sources: StoryProductPage, StoryList, MemoryMapPage,
@@ -23,6 +23,11 @@ M4ProductPages and engagement/service.py. Current R2/R4/R5, Screen Templates
 - Three compact peer modes share the Momente header: Memories, Diary and Map.
   Keep the canonical `/story/map` route and existing map selection/detail links.
   Tab navigation remains named, keyboard-operable, and preserves Diary filters.
+- Follow-up #1570 makes photo circles with count badges and source thumbnails
+  runtime requirements. Reuse authorized Memory previews and their Object URL
+  ownership. Keep sensitive previews concealed and text-only/failure fallbacks;
+  do not disclose media URLs or content to the tile provider. The existing
+  generated board already shows this composition.
 - Place Diary's existing filter button next to its first visible month heading;
   retain a reachable fallback when empty/loading/error has no month heading.
   Existing browsing links, filters, loaded range and task return remain.
@@ -78,5 +83,5 @@ existing comment resource/task ownership. No native build or release is in scope
 
 ## Evidence
 
-Implementation evidence and exact validation results will be added after the
-bounded changes are complete. The generated board is not runtime evidence.
+[Implementation evidence and exact validation results](../../evidence/journal-map-polish/README.md)
+cover the completed #1570 follow-up. The generated board is not runtime evidence.

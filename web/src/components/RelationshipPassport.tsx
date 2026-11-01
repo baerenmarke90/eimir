@@ -22,7 +22,7 @@ import {
 } from '../client/problemDetails';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
-import { MORE_PLACES_ROUTE, MORE_PROFILE_ROUTE } from '../client/routes';
+import { MORE_PLACES_ROUTE, PRO_INFORMATION_ROUTE } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { PartnerAvatarPair } from './PartnerAvatarPair';
 import { ProMark } from './ProMark';
@@ -111,7 +111,7 @@ function PassportProEntry() {
       <p className="passport-support">
         {t('relationshipReflections.passport.dataRights')}
       </p>
-      <Link to={`${MORE_PROFILE_ROUTE}#profile-premium`}>
+      <Link to={PRO_INFORMATION_ROUTE}>
         {t('relationshipReflections.passport.learnMore')}
       </Link>
     </div>

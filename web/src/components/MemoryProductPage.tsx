@@ -110,6 +110,7 @@ export function MemoryProductPage({
     signal?: AbortSignal,
   ) => Promise<string>;
 }) {
+  const [commentHost, setCommentHost] = useState<HTMLSpanElement | null>(null);
   const { t } = useTranslation();
   const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
@@ -935,6 +936,7 @@ export function MemoryProductPage({
         {readyAttachments.length > 0 ? (
           <section aria-label={t('memory.photoLabel')}>
             <MemoryPhotoGallery
+              commentTriggerRef={setCommentHost}
               key={`memory:${apiBaseUrl}:${currentAccountId}:${spaceId}:${mode}:${memory.id}`}
               memory={memory}
               apis={apis}
@@ -962,6 +964,7 @@ export function MemoryProductPage({
         />
       </div>
       <CommentsPanel
+        triggerContainer={commentHost}
         commentsApi={apis.comments}
         spaceId={spaceId}
         parentKind="memory"

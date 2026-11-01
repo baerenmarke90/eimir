@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
@@ -52,6 +53,12 @@ DEFAULT_LIMIT = 25
 MAX_LIMIT = 50
 ACTIVITY_CURSOR_VERSION = "activity-v1"
 NOTIFICATION_CURSOR_VERSION = "notification-v1"
+
+
+class ActivityScope(StrEnum):
+    SHARED = "shared"
+    OWN = "own"
+
 
 _OWN_NOISE_KINDS = {
     ActivityKind.PLAN_CREATED.value,
@@ -404,11 +411,14 @@ def notification_target_available(
     )
 
 
-def _activity_binding(context: AuthorizationContext) -> dict[str, str]:
+def _activity_binding(
+    context: AuthorizationContext, scope: ActivityScope = ActivityScope.SHARED
+) -> dict[str, str]:
     return {
         "collection": ACTIVITY_CURSOR_VERSION,
         "accountId": str(context.account_id),
         "spaceId": str(context.space_id),
+        "scope": scope.value,
     }
 
 
@@ -455,17 +465,23 @@ def read_activity(
     *,
     cursor: str | None = None,
     limit: int = DEFAULT_LIMIT,
+    scope: ActivityScope = ActivityScope.SHARED,
 ) -> ActivityPage:
-    binding = _activity_binding(context)
+    binding = _activity_binding(context, scope)
     statement = select(Activity).where(
         Activity.space_id == context.space_id,
         _projectable_predicate(Activity.target_type, Activity.target_id, context),
-        or_(
-            Activity.actor_id != context.account_id,
-            Activity.actor_id.is_(None),
-            Activity.kind.not_in(_OWN_NOISE_KINDS),
-        ),
     )
+    if scope == ActivityScope.OWN:
+        statement = statement.where(Activity.actor_id == context.account_id)
+    else:
+        statement = statement.where(
+            or_(
+                Activity.actor_id != context.account_id,
+                Activity.actor_id.is_(None),
+                Activity.kind.not_in(_OWN_NOISE_KINDS),
+            )
+        )
     if cursor is not None:
         occurred_at, item_id = _decode_position(cursor, binding)
         statement = statement.where(

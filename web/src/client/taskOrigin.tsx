@@ -126,14 +126,22 @@ export function taskOriginPath(
       safe.set('page', String(page));
     return safe.size ? `${pathname}?${safe}` : pathname;
   }
+  if (pathname === ACTIVITY_ROUTE) {
+    return new URLSearchParams(search).get('scope') === 'own'
+      ? `${pathname}?scope=own`
+      : pathname;
+  }
   if (pathname === MEMORY_MAP_ROUTE) {
-    const place = new URLSearchParams(search).get('place') ?? '';
+    const input = new URLSearchParams(search);
+    const safe = storyFiltersToSearch(parseStoryFilters(input));
+    const place = input.get('place') ?? '';
     const coordinates = place.split(':').map(Number);
     const valid =
       /^-?\d{1,3}(?:\.\d{1,16})?:-?\d{1,3}(?:\.\d{1,16})?$/.test(place) &&
       Math.abs(coordinates[0]) <= 90 &&
       Math.abs(coordinates[1]) <= 180;
-    return valid ? `${pathname}?${new URLSearchParams({ place })}` : pathname;
+    if (valid) safe.set('place', place);
+    return safe.size ? `${pathname}?${safe}` : pathname;
   }
   if (pathname !== '/story') return pathname;
   const input = new URLSearchParams(search);

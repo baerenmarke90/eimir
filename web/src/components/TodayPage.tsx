@@ -36,6 +36,7 @@ import {
   usePartnerPresence,
 } from '../client/presence';
 import { normalizeClientError } from '../client/problemDetails';
+import type { ReferenceApis } from '../client/referenceFlow';
 import {
   calculateRelationshipDuration,
   formatRelationshipDuration as formatSharedTime,
@@ -71,24 +72,23 @@ import {
 } from './CouplePresence';
 import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
 import { DailyQuoteCard } from './DailyQuoteCard';
-import { SharedExperienceReveal } from './SharedExperienceReveal';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
+import {
+  MonthlyRecapInvitation,
+  useMonthlyRecapInvitation,
+} from './MonthlyRecapInvitation';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { PartnerQuickActions } from './PartnerQuickActions';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
+import { SharedExperienceReveal } from './SharedExperienceReveal';
 import { SharedStorySummary } from './SharedStorySummary';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import { TodayPinnedCollection } from './TodayPinnedCollection';
 import { UiState } from './UiState';
-import type { ReferenceApis } from '../client/referenceFlow';
-import {
-  MonthlyRecapInvitation,
-  useMonthlyRecapInvitation,
-} from './MonthlyRecapInvitation';
 import './TodayPage.css';
 import { useWirDesign } from '../client/wirDesign';
 import './WirDesign.css';
@@ -867,6 +867,10 @@ export function TodayPage({
     dashboardPreferencesQuery.data,
   );
 
+  const relationshipSignalVisible = isDashboardModuleVisible(
+    dashboardPreferencesQuery.data,
+    'relationship_signal',
+  );
   const recentShared = dashboardQuery.data?.recentShared ?? [];
   const retrospective = dashboardQuery.data?.retrospective;
   const serverKeepsake = dashboardQuery.data?.keepsake;
@@ -913,9 +917,17 @@ export function TodayPage({
       : null;
   const incomingId = incomingExperience?.id;
   const ordinaryShared = recentShared.filter((item) => item.id !== incomingId);
+  const retrospectiveId =
+    relationshipSignalVisible && !retrospectiveDismissed
+      ? retrospective?.id
+      : null;
   const focalItem = selectTodayFocalItem({
-    keepsake: serverKeepsake?.id === incomingId ? null : serverKeepsake,
-    recentShared: ordinaryShared,
+    keepsake:
+      serverKeepsake?.id === incomingId ||
+      serverKeepsake?.id === retrospectiveId
+        ? null
+        : serverKeepsake,
+    recentShared: ordinaryShared.filter((item) => item.id !== retrospectiveId),
   });
 
   // 4. Gerade bei euch: one module, deterministic priority, never a stack.
@@ -1012,10 +1024,6 @@ export function TodayPage({
   const keepsakeVisible = isDashboardModuleVisible(
     dashboardPreferencesQuery.data,
     'keepsake',
-  );
-  const relationshipSignalVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
-    'relationship_signal',
   );
   const monthlyHighlightsVisible = isDashboardModuleVisible(
     dashboardPreferencesQuery.data,

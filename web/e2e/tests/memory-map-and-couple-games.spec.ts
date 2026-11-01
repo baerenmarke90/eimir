@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import taskCopy from '../../src/i18n/locales/taskBoundary';
@@ -30,6 +31,17 @@ for (const [width, theme] of [
       reducedMotion: width === 430 ? 'no-preference' : 'reduce',
     });
     await installMocks(page);
+    await page.route('**/attachments/att-canal-1/content', (route) =>
+      route.fulfill({
+        contentType: 'image/jpeg',
+        body: readFileSync(
+          new URL(
+            '../../../backend/demo_assets/images/lake-sunrise.jpg',
+            import.meta.url,
+          ),
+        ),
+      }),
+    );
     let tileReads = 0;
     await page.route('https://tile.openstreetmap.org/**', async (route) => {
       tileReads++;
@@ -41,6 +53,8 @@ for (const [width, theme] of [
           items: [
             {
               memoryId: 'mem-canal',
+              previewAttachmentId: 'att-canal-1',
+              previewIsSensitive: false,
               title: 'Afternoon by the canal',
               happenedOn: '2026-10-30',
               placeId: 'lake',
@@ -63,13 +77,25 @@ for (const [width, theme] of [
       }),
     );
     await signIn(page);
-    await page.getByRole('link', { name: mapCopy.entry }).click();
-    await expect(
-      page.getByRole('heading', { name: mapCopy.title }),
-    ).toBeVisible();
-    const place = page.getByRole('button', { name: 'Lake · 2 Erinnerungen' });
+    await page.getByRole('tab', { name: mapCopy.entry }).click();
+    await expect(page.getByRole('tab', { name: mapCopy.entry })).toBeVisible();
+    const place = page
+      .getByRole('list', { name: mapCopy.places })
+      .getByRole('button', { name: 'Lake · 2 Erinnerungen' });
     await expect(place).toBeVisible();
     await expect(page.locator('.memory-map-marker')).toHaveCount(1);
+    await expect(page.locator('.memory-map-marker-photo img')).toBeVisible();
+    await expect
+      .poll(() =>
+        page
+          .locator('.memory-map-marker-photo img')
+          .evaluate(
+            (node: HTMLImageElement) => node.complete && node.naturalWidth > 0,
+          ),
+      )
+      .toBe(true);
+    await expect(page.locator('.memory-map-marker-count')).toHaveText('2');
+    await expect(place.locator('.memory-map-thumbnail img')).toBeVisible();
     await expect.poll(() => tileReads).toBeGreaterThan(0);
     await expect(page.getByRole('button', { name: 'Karte laden' })).toHaveCount(
       0,
@@ -87,6 +113,7 @@ for (const [width, theme] of [
     await place.click();
     const memory = page.getByRole('link', { name: /Afternoon by the canal/ });
     await expect(memory).toHaveAttribute('href', '/story/memories/mem-canal');
+    await expect(memory.locator('.memory-map-thumbnail img')).toBeVisible();
     await expect(page.locator('.memory-map-selection ul')).toHaveCSS(
       'animation-name',
       width === 430 ? 'eimir-disclosure-reveal' : 'none',
@@ -141,10 +168,11 @@ test('failed map tiles keep memories usable at 320px with large text', async ({
     }),
   );
   await signIn(page);
-  await page.getByRole('link', { name: mapCopy.entry, exact: true }).click();
+  await page.getByRole('tab', { name: mapCopy.entry, exact: true }).click();
   await page.addStyleTag({ content: 'html { font-size: 200%; }' });
   await expect(page.locator('.place-map-canvas [role="status"]')).toBeVisible();
   await page
+    .getByRole('list', { name: mapCopy.places })
     .getByRole('button', { name: /Our favourite quiet place by the water/ })
     .click();
   await expect(
@@ -169,7 +197,7 @@ test('failed map tiles keep memories usable at 320px with large text', async ({
   ).toEqual([]);
   await page.getByRole('button', { name: mapCopy.allPlaces }).click();
   await expect(
-    page.getByRole('button', {
+    page.getByRole('list', { name: mapCopy.places }).getByRole('button', {
       name: /Our favourite quiet place by the water/,
     }),
   ).toBeVisible();
@@ -192,7 +220,7 @@ test('map entitlement denial explains Pro without loading external tiles', async
     }),
   );
   await signIn(page);
-  await page.getByRole('link', { name: mapCopy.entry }).click();
+  await page.getByRole('tab', { name: mapCopy.entry }).click();
   await expect(page.getByText(mapCopy.proTitle)).toBeVisible();
   await expect(page.locator('.place-map-viewport')).toHaveCount(0);
 });

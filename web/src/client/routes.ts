@@ -115,6 +115,7 @@ export const MORE_NOTIFICATIONS_ROUTE = '/more/notifications';
 /** Named profile destination in the More account group. */
 export const MORE_PROFILE_ROUTE = '/more/profile';
 export const MORE_SETTINGS_ROUTE = '/more/settings';
+export const PRO_INFORMATION_ROUTE = `${MORE_SETTINGS_ROUTE}/account#eimir-pro`;
 
 export const SETTINGS_CATEGORY_IDS = [
   'relationship',

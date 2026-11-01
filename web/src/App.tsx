@@ -581,7 +581,12 @@ function AuthenticatedApp({
             />
             <Route
               path={MEMORY_MAP_ROUTE}
-              element={<MemoryMapPage {...planningProductProps} />}
+              element={
+                <MemoryMapPage
+                  {...planningProductProps}
+                  loadMemoryImage={loadMemoryImage}
+                />
+              }
             />
             <Route
               path={MORE_PLACES_ROUTE}

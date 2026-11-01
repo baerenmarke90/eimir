@@ -86,3 +86,6 @@ Review the complete human journey and its states, then update the relevant domai
 The [final audit #946](https://github.com/baerenmarke90/eimir/issues/946) applies v1 plus its intuitive-mobile-interaction addendum, exact-build journey evidence and existing quality gates. It remains a later Product Owner acceptance decision. The documentation adoption PR must not close the full #955 implementation program.
 
 [Relationship surfaces and saved-memory map (#1546)](references/1546/README.md) records the clarified Wir scope, games, calendar handoff, Pro map, implemented weekly AI and the completed Discover/capture/navigation follow-up.
+
+[Journal, map and relationship-surface polish (#1570)](references/journal-map-polish/README.md)
+records the PO follow-up to #1568, generated preflight and exact implementation evidence.

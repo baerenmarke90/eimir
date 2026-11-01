@@ -1,4 +1,11 @@
 import {
+  useInfiniteQuery,
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
   type FormEvent,
   type MouseEvent,
   useEffect,
@@ -6,47 +13,46 @@ import {
   useState,
 } from 'react';
 import {
-  useInfiniteQuery,
-  useIsMutating,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
+import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { ActivityItem } from '../api/generated/models/ActivityItem';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
-import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { SearchKind } from '../api/generated/models/SearchKind';
 import type { SearchResult } from '../api/generated/models/SearchResult';
 import { authorDisplayName } from '../client/authorPresentation';
-import { memoryPreviewTitle } from '../client/memoryProduct';
 import { assertOnlineWrite } from '../client/connectivity';
 import {
   engagementTargetPath,
+  type M4ProductApis,
   opaqueNextCursor,
   searchResultPath,
-  type M4ProductApis,
 } from '../client/m4Product';
+import { memoryPreviewTitle } from '../client/memoryProduct';
 import {
   notificationsListQueryKey,
   notificationUnreadCountQueryKey,
 } from '../client/notificationQueries';
-import { getNotificationItemTitle } from '../client/notificationTitle';
 import {
   beginNotificationRead,
   type NotificationReadAttempt,
 } from '../client/notificationRead';
+import { getNotificationItemTitle } from '../client/notificationTitle';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
-import { usePartnerNickname } from '../client/partnerNickname';
+import { handleTabKeyDown } from '../client/tabKeyboard';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
-import { AuthorAvatar } from './PersonIdentity';
 import { PageHeader } from './PageHeader';
+import { AuthorAvatar } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import './M4ProductPages.css';
@@ -452,16 +458,25 @@ export function ActivityProductPage({
   currentAccountId?: string;
 }) {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const scope = searchParams.get('scope') === 'own' ? 'own' : 'shared';
+  function setScope(next: 'own' | 'shared') {
+    const search = new URLSearchParams(searchParams);
+    if (next === 'own') search.set('scope', next);
+    else search.delete('scope');
+    setSearchParams(search);
+  }
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
   const activityQuery = useInfiniteQuery({
-    queryKey: ['m5-s5', 'activity', spaceId],
+    queryKey: ['m5-s5', 'activity', spaceId, currentAccountId, scope],
     queryFn: ({ pageParam }) =>
       apiCall(() =>
         apis.activity.getActivity({
           spaceId,
           cursor: pageParam,
           limit: PAGE_SIZE,
+          scope,
         }),
       ),
     initialPageParam: null as string | null,
@@ -487,56 +502,96 @@ export function ActivityProductPage({
           </button>
         }
       />
-      {activityQuery.isLoading ? (
-        <UiState kind="loading" title={t('states.loading.title')} />
-      ) : null}
-      {activityQuery.error ? (
-        <ProblemState
-          error={activityQuery.error}
-          onRetry={() => void activityQuery.refetch()}
-        />
-      ) : null}
-      {activityQuery.data && items.length === 0 ? (
-        <UiState
-          kind="empty"
-          title={t('m5s5.activity.emptyTitle')}
-          body={t('m5s5.activity.emptyBody')}
-        />
-      ) : null}
-      {items.length > 0 ? (
-        <section className="m4-results" aria-live="polite">
-          <ul className="m4-list layout-columns layout-columns-dense">
-            {items.map((item) => (
-              <ActivityCard
-                key={item.id}
-                item={item}
-                profilesApi={profilesApi}
-                spaceId={spaceId}
-                currentAccountId={currentAccountId}
-                onOpen={(event, path) => {
-                  if (!isPlainPrimaryClick(event)) return;
-                  const taskOriginKey = captureOrigin();
-                  if (!taskOriginKey) return;
-                  event.preventDefault();
-                  void navigate(path, { state: { taskOriginKey } });
-                }}
-              />
-            ))}
-          </ul>
-          {activityQuery.hasNextPage ? (
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => void activityQuery.fetchNextPage()}
-              disabled={activityQuery.isFetchingNextPage}
-            >
-              {activityQuery.isFetchingNextPage
-                ? t('m5s5.activity.loadingMore')
-                : t('m5s5.activity.loadMore')}
-            </button>
-          ) : null}
-        </section>
-      ) : null}
+      <div
+        className="planen-segmented"
+        role="tablist"
+        aria-label={t('m5s5.activity.scopeLabel')}
+        onKeyDown={(event) =>
+          handleTabKeyDown(event, (tab) =>
+            setScope(tab.id === 'activity-own' ? 'own' : 'shared'),
+          )
+        }
+      >
+        {(['shared', 'own'] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            id={`activity-${value}`}
+            aria-selected={scope === value}
+            tabIndex={scope === value ? 0 : -1}
+            aria-controls={scope === value ? 'activity-results' : undefined}
+            className={`planen-segment${scope === value ? ' is-active' : ''}`}
+            onClick={() => setScope(value)}
+          >
+            {t(`m5s5.activity.${value}`)}
+          </button>
+        ))}
+      </div>
+      <div
+        id="activity-results"
+        role="tabpanel"
+        aria-labelledby={`activity-${scope}`}
+      >
+        {activityQuery.isLoading ? (
+          <UiState kind="loading" title={t('states.loading.title')} />
+        ) : null}
+        {activityQuery.error ? (
+          <ProblemState
+            error={activityQuery.error}
+            onRetry={() => void activityQuery.refetch()}
+          />
+        ) : null}
+        {activityQuery.data && items.length === 0 ? (
+          <UiState
+            kind="empty"
+            title={t(
+              scope === 'own'
+                ? 'm5s5.activity.ownEmptyTitle'
+                : 'm5s5.activity.emptyTitle',
+            )}
+            body={t(
+              scope === 'own'
+                ? 'm5s5.activity.ownEmptyBody'
+                : 'm5s5.activity.emptyBody',
+            )}
+          />
+        ) : null}
+        {items.length > 0 ? (
+          <section className="m4-results" aria-live="polite">
+            <ul className="m4-list layout-columns layout-columns-dense">
+              {items.map((item) => (
+                <ActivityCard
+                  key={item.id}
+                  item={item}
+                  profilesApi={profilesApi}
+                  spaceId={spaceId}
+                  currentAccountId={currentAccountId}
+                  onOpen={(event, path) => {
+                    if (!isPlainPrimaryClick(event)) return;
+                    const taskOriginKey = captureOrigin();
+                    if (!taskOriginKey) return;
+                    event.preventDefault();
+                    void navigate(path, { state: { taskOriginKey } });
+                  }}
+                />
+              ))}
+            </ul>
+            {activityQuery.hasNextPage ? (
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => void activityQuery.fetchNextPage()}
+                disabled={activityQuery.isFetchingNextPage}
+              >
+                {activityQuery.isFetchingNextPage
+                  ? t('m5s5.activity.loadingMore')
+                  : t('m5s5.activity.loadMore')}
+              </button>
+            ) : null}
+          </section>
+        ) : null}
+      </div>
     </div>
   );
 }

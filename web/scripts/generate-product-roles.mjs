@@ -85,6 +85,13 @@ for (const role of [
   declare(`media-overlay-${name}`, value(`mediaOverlay.${role}`).toLowerCase());
 }
 
+declare(
+  'navigation-surface-opacity',
+  `${value('navigationGlass.surfaceOpacity') * 100}%`,
+);
+declare('navigation-backdrop-blur', value('navigationGlass.backdropBlur'));
+declare('map-dark-tile-filter', value('mapAppearance.darkTileFilter'));
+
 declare('sensitive-media-blur', value('mediaPrivacy.concealmentBlur'));
 declare('radius-media', rem('radius.large'));
 declare('radius-content', rem('radius.card'));

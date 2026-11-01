@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import {
   SensitiveMediaControl,
@@ -17,6 +17,7 @@ export function MemoryPreview({
   isSensitive,
   allowReveal = false,
   onSettled,
+  fallback,
 }: {
   memoryId: string;
   isSensitive?: boolean;
@@ -31,6 +32,7 @@ export function MemoryPreview({
   resourceScopeKey?: string;
   /** Resource completion, including reuse/failure; never grants media visibility. */
   onSettled?: () => void;
+  fallback?: ReactNode;
 }) {
   const { t } = useTranslation();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -117,7 +119,9 @@ export function MemoryPreview({
 
   if (failed) {
     return (
-      <div className="story-media-placeholder">{t('media.unavailable')}</div>
+      <div className="story-media-placeholder">
+        {fallback ?? t('media.unavailable')}
+      </div>
     );
   }
 

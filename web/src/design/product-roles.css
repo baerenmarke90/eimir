@@ -33,6 +33,10 @@
   --media-overlay-edge: #ffffff59;
   --media-overlay-foreground: #ffffff;
   --media-overlay-backdrop-blur: 8px;
+  --navigation-surface-opacity: 72%;
+  --navigation-backdrop-blur: 24px;
+  --map-dark-tile-filter:
+    invert(1) hue-rotate(180deg) brightness(0.85) saturate(0.7);
   --sensitive-media-blur: 12px;
   --radius-media: 1rem;
   --radius-content: 1.25rem;

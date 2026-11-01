@@ -218,27 +218,27 @@ describe('StoryList card hierarchy (#969)', () => {
     expect(footer.queryByText(privateLabel)).toBeNull();
   });
 
-  it('uses avatar-only partner attribution while keeping an accessible identity (#1064)', () => {
+  it('omits the partner avatar from the Diary overview', () => {
     const { container } = renderList([milestone], 'viewer-2');
 
     expect(container.querySelector('.story-card-author')).toBeNull();
     expect(container.querySelector('.momente-author-meta .sr-only')).toBeNull();
     expect(
-      screen.getByRole('img', { name: 'Anna-Katharina Lindqvist' }),
-    ).toBeTruthy();
+      screen.queryByRole('img', { name: 'Anna-Katharina Lindqvist' }),
+    ).toBeNull();
     expect(container.textContent).not.toContain(
       i18n.t('story.byAuthor', { author: 'Anna-Katharina' }),
     );
   });
 
-  it('uses the same avatar-only presentation for the current viewer (#1064)', () => {
+  it('omits the current viewer avatar from the Diary overview', () => {
     const { container } = renderList([milestone], 'author-1');
 
     expect(container.querySelector('.story-card-author')).toBeNull();
     expect(container.querySelector('.momente-author-meta .sr-only')).toBeNull();
     expect(
-      screen.getByRole('img', { name: 'Anna-Katharina Lindqvist' }),
-    ).toBeTruthy();
+      screen.queryByRole('img', { name: 'Anna-Katharina Lindqvist' }),
+    ).toBeNull();
     expect(container.textContent).not.toContain(
       i18n.t('story.byAuthor', { author: i18n.t('story.authorSelf') }),
     );

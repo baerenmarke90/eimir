@@ -120,12 +120,14 @@ def get_activity(
     response: Response,
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=service.MAX_LIMIT)] = service.DEFAULT_LIMIT,
+    scope: Annotated[service.ActivityScope, Query()] = service.ActivityScope.SHARED,
 ) -> ActivityPage:
     page = service.read_activity(
         session,
         authorization,
         cursor=cursor,
         limit=limit,
+        scope=scope,
     )
     actor_ids = {item.actor_id for item in page.items if item.actor_id is not None}
     actors = _resolve_actors(session, actor_ids)

@@ -1,3 +1,4 @@
+import { PRO_INFORMATION_ROUTE } from '../client/routes';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AppIconId } from '../api/generated/models/AppIconId';
@@ -222,7 +223,7 @@ function AppIconSettings({
                 type="button"
                 onClick={() => {
                   sheet.current?.closeForNavigation(() =>
-                    navigate('/more/profile#profile-premium'),
+                    navigate(PRO_INFORMATION_ROUTE),
                   );
                 }}
               >

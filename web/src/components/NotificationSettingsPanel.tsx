@@ -10,7 +10,7 @@ import { assertOnlineWrite } from '../client/connectivity';
 import { normalizeClientError } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { settingsCategoryPath } from '../client/routes';
-import type { DevicePushController } from '../client/unifiedPush';
+import type { DevicePushController } from '../client/devicePush';
 import { useTranslation } from '../i18n';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';

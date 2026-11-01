@@ -5,13 +5,13 @@ import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import type { M4ProductApis } from '../client/m4Product';
+import { dailyCheckInTodayQueryKey } from '../client/dailyCheckIn';
 import {
   DASHBOARD_MODULE_KEYS,
   type DashboardModuleKey,
 } from '../client/dashboardModules';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
-import { dailyCheckInTodayQueryKey } from '../client/dailyCheckIn';
+import type { M4ProductApis } from '../client/m4Product';
 import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { i18n } from '../i18n';
 import de from '../i18n/locales/de';

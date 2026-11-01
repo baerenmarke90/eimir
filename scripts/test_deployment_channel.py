@@ -17,6 +17,7 @@ import re
 import subprocess
 import tempfile
 import time
+from functools import lru_cache
 from pathlib import Path
 
 import image_archive_config
@@ -36,6 +37,8 @@ REQUIRED_WORKFLOWS = frozenset(
     }
 )
 CLOUD_SERVICES = ("cloud-migrate", "cloud-api", "cloud-worker", "cloud-web")
+FCM_CREDENTIAL_TARGET = "/run/secrets/eimir-fcm-sender.json"
+_FCM_SOURCE_PLACEHOLDER = "/__eimir_source_only_fcm_mount__"
 
 
 class ChannelError(ValueError):
@@ -328,7 +331,7 @@ def required(name: str) -> str:
     return "${" + name + ":?Set the existing instance value in Arcane}"
 
 
-def canonical_compose() -> dict:
+def canonical_compose(*, fcm: bool = False) -> dict:
     # Never resolve an operator .env or the caller's deployment settings. Required
     # local expressions are introduced after this source-default-only step.
     environment = {
@@ -336,13 +339,21 @@ def canonical_compose() -> dict:
         for key in ("PATH", "HOME", "DOCKER_CONFIG")
         if key in os.environ
     }
+    files = ["--file", str(ROOT / "compose.yaml")]
+    if fcm:
+        files.extend(["--file", str(ROOT / "deploy/push-fcm.compose.yaml")])
+        # Only non-secret source metadata. Docker config never opens this file.
+        environment.update(
+            EIMIR_PUSH_FCM_PROJECT_ID="eimir-render-only",
+            EIMIR_PUSH_FCM_ANDROID_PACKAGE="de.eimir.app",
+            EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE=_FCM_SOURCE_PLACEHOLDER,
+        )
     return json.loads(
         run(
             [
                 "docker",
                 "compose",
-                "--file",
-                str(ROOT / "compose.yaml"),
+                *files,
                 "--env-file",
                 os.devnull,
                 "--profile",
@@ -354,6 +365,36 @@ def canonical_compose() -> dict:
             environment=environment,
         )
     )
+
+
+@lru_cache(maxsize=1)
+def fcm_sender_mount() -> dict:
+    """Compile the same opt-in file mount used by canonical operators."""
+    enabled = canonical_compose(fcm=True)
+    expected = {
+        "type": "bind",
+        "source": _FCM_SOURCE_PLACEHOLDER,
+        "target": FCM_CREDENTIAL_TARGET,
+        "read_only": True,
+        "bind": {"create_host_path": False},
+    }
+    for name in ("cloud-api", "cloud-worker"):
+        mounts = [
+            copy.deepcopy(mount)
+            for mount in enabled["services"][name].get("volumes", [])
+            if mount.get("target") == FCM_CREDENTIAL_TARGET
+        ]
+        for mount in mounts:
+            # Compose 2.38 omits the false bool when serializing bind options.
+            # Its empty long-syntax bind still disables host-path creation;
+            # keep that safety property explicit in the exported source.
+            if mount.get("bind") == {}:
+                mount["bind"] = {"create_host_path": False}
+        if mounts != [expected]:
+            raise ChannelError("Canonical FCM credential mount changed; review the exporter")
+    mount = copy.deepcopy(expected)
+    mount["source"] = required("EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE")
+    return mount
 
 
 def export_compose(canonical: dict, backend: str, web: str) -> dict:
@@ -390,6 +431,11 @@ def export_compose(canonical: dict, backend: str, web: str) -> dict:
         "EIMIR_PHOTO_SOURCES_ENABLED": "${EIMIR_PHOTO_SOURCES_ENABLED:-true}",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_ID": "${EIMIR_GOOGLE_PHOTOS_CLIENT_ID:-}",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}",
+        # The selected private target uses FCM only (PO 2026-11-01).
+        "EIMIR_PUSH_VAPID_PRIVATE_KEY": "",
+        "EIMIR_PUSH_VAPID_SUBJECT": "",
+        "EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS": "[]",
+        "EIMIR_PUSH_FCM_CREDENTIALS_FILE": FCM_CREDENTIAL_TARGET,
     }
     for name in (
         "EIMIR_CURSOR_SIGNING_KEY",
@@ -402,6 +448,8 @@ def export_compose(canonical: dict, backend: str, web: str) -> dict:
         "EIMIR_MAIL_FROM",
         "EIMIR_SMTP_HOST",
         "EIMIR_SMTP_PASSWORD",
+        "EIMIR_PUSH_FCM_PROJECT_ID",
+        "EIMIR_PUSH_FCM_ANDROID_PACKAGE",
     ):
         settings[name] = required(name)
     for name, service in services.items():
@@ -414,6 +462,12 @@ def export_compose(canonical: dict, backend: str, web: str) -> dict:
             )
         if name in ("cloud-api", "cloud-worker"):
             service["environment"].update(settings)
+            if any(
+                mount.get("target") == FCM_CREDENTIAL_TARGET
+                for mount in service.get("volumes", [])
+            ):
+                raise ChannelError("Source-default Compose must not mount an FCM credential")
+            service.setdefault("volumes", []).append(copy.deepcopy(fcm_sender_mount()))
         elif name == "cloud-migrate":
             service["environment"] = {"EIMIR_DATABASE_URL": database}
     services["cloud-api"]["environment"]["FORWARDED_ALLOW_IPS"] = required(

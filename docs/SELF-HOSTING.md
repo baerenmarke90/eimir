@@ -105,6 +105,7 @@ The resulting installation directory contains:
 
 - `compose.yaml`;
 - `deploy/self-hosted-release.env.example`;
+- `deploy/push-fcm.compose.yaml`, the optional credential-mount fragment;
 - `scripts/self_hosted_release.py`;
 - `scripts/check_runtime_environment.py`;
 - `scripts/_identity_environment.py`, the shared helper both scripts import;
@@ -368,6 +369,23 @@ stable VAPID key, contact subject and explicit allowed HTTPS push-server
 origins for both API and worker. See
 [UnifiedPush backend transport](./m4/UNIFIEDPUSH-TRANSPORT.md) for the exact
 settings, egress restrictions and current client-integration boundary.
+
+FCM is also optional and uses the same notification policy/queue. The immutable
+operator bundle includes `deploy/push-fcm.compose.yaml`, a file-mount fragment
+for the existing API/worker only. Set the Firebase project/package and private
+host-file inputs described in [Arcane push configuration](ARCANE.md#optional-push-sender-configuration),
+then include `--with-fcm` in the supported release launcher, for example:
+
+```bash
+python3 scripts/self_hosted_release.py --env-file .env --with-fcm validate
+python3 scripts/self_hosted_release.py --env-file .env --with-fcm deploy
+```
+
+The launcher and runtime guard validate the same Compose composition. The sender
+file stays outside Git/the bundle, readable by runtime UID 10001 through the
+read-only mount; Web/migrate receive no credential. Leave inputs unset and omit
+the switch for default-off operation. Existing encryption, image identity,
+first-install bootstrap and migration-before-runtime gates remain mandatory.
 
 SMTP is optional. With:
 

@@ -4,8 +4,8 @@ This directory contains the canonical (and only) Android Gradle project for **ei
 
 ## Overview
 
-- **Application ID (Release)**: `de.sidebyside.app`
-- **Application ID (Debug)**: `de.sidebyside.app.debug` (`applicationIdSuffix ".debug"`)
+- **Application ID (Release)**: `de.eimir.app`
+- **Application ID (Debug)**: `de.eimir.app.debug` (`applicationIdSuffix ".debug"`)
 - **Package / Namespace**: `de.eimir.app`
 - **Shell Activity**: `de.eimir.app.LauncherActivity` (inherits the existing bridge lifecycle)
 - **Original launcher alias**: `de.eimir.app.MainActivity` (preserved for existing installs)
@@ -64,30 +64,50 @@ EIMIR_RELEASE_KEY_PASSWORD="key-password" \
 
 Supply-chain dependencies are strictly verified against `gradle/verification-metadata.xml`.
 
-## Legacy Native Storage Cleanup
+## Fresh Android identity
 
-The retired Kotlin/Compose client persisted a Room read cache and a remembered
-Space preference inside the same Android application sandbox. Because
-`de.sidebyside.app` is intentionally preserved for store-update continuity,
-Android also preserves that sandbox during an in-place upgrade.
-
-`LegacyNativeDataCleanup` therefore runs on the Capacitor background executor after `MainActivity` starts until it
-has succeeded once. It only deletes the retired database, its journal/WAL sidecars, the old Space
-preference and the former owner-only cache Keystore entry. It never reads or
-migrates cached product content. Only when all three removals succeeded does it
-store a completion marker (`eimir_native_migrations` /
-`legacy_cleanup_v1_done`); later starts then skip it, so the retired names are
-not a permanent destructive hook. A failed removal writes no marker and is
-retried on the next start. This bounded migration code is not a product-data store or a second client.
+The `de.eimir.app` application uses a separate sandbox and requires a fresh
+installation and login. It neither imports credentials from nor deletes data
+belonging to a former Android installation. The obsolete native
+legacy-sandbox cleanup is no longer part of startup. Existing installations
+remain separate and untouched.
 
 ## Deep Linking & OIDC Callback
 
 The Android manifest registers an intent filter for:
 ```
-de.sidebyside.app://recent-authentication/oidc
+de.eimir.app://recent-authentication/oidc
 ```
 This enables secure OIDC login flows through `@capacitor/browser` and `@capacitor/app`.
 
 ## Documentation
 
 For full architectural details, lifecycle handling, troubleshooting, and verification evidence, see [docs/CAPACITOR-ANDROID-FOUNDATION.md](../docs/CAPACITOR-ANDROID-FOUNDATION.md).
+
+## Native Push transports
+
+`EimirPush` owns one Account/API/provider activation. UnifiedPush uses the
+activation UUID as its connector instance. Direct FCM uses the official
+Firebase Messaging SDK in FID mode; its endpoint contains the installation ID
+and an opaque activation UUID. Incoming messages contain no product text or
+navigation target. Both services use the same private generic notification and
+an activation-bound launcher entry.
+
+Native status exposes the compiled Android package and nullable configured
+Firebase project ID. The Web owner matches both against server configuration
+before choosing direct FCM; this metadata check does not obtain an installation ID.
+
+Firebase auto-init is disabled. Explicit FCM retirement first invalidates local
+receipt, then serially unregisters Messaging and requests Firebase installation
+deletion. A failed deletion remains pending and resumes at the next app start,
+after any stale FCM ownership is durably removed, before another activation. This
+requests deletion; Google documents up to 180 days for removal from live and
+backup systems. No synchronous erasure guarantee is made:
+https://firebase.google.com/docs/projects/manage-installations#delete_a_firebase_installation
+
+A local `app/google-services.json`, when supplied, must match the compiled
+application ID and configured Firebase project. It is ignored build input and
+must contain no server credentials. The normal debug suffix requires its own
+matching Firebase registration/config; an unconfigured build retains
+UnifiedPush support. Firebase Messaging is the only adopted Firebase product;
+adding another product requires reassessing installation deletion ownership.

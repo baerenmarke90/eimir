@@ -264,9 +264,3 @@ class UnifiedPushProvider:
         except Exception:
             raise push.PushProviderError("PUSH_ENCODING_ERROR", retryable=False) from None
         return push.PushSendResult()
-
-
-def configure_provider(settings: Settings) -> None:
-    """Register only when all operator-managed capability settings are present."""
-    if settings.push_vapid_private_key is not None:
-        push.providers.register(PROVIDER_KEY, UnifiedPushProvider(settings))

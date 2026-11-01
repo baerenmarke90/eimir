@@ -20,3 +20,6 @@ a47dc1b8f01053fad704468ba466cb81553af368:docs/product/design/references/1498/run
 866eba496d2fe9cb4abd3bd452a35f0027f34fa0:docs/product/design/references/today-clarity/source-sha256.json:generic-api-key:2
 ba642c7cd8d02cad331b9b79321130ce0cad85f0:docs/product/design/references/today-clarity/borderless/source-sha256.json:generic-api-key:4
 14915411c301c231ec5cf7ae1d3fb69f2a654745:docs/product/design/references/today-clarity/integration/source-sha256.json:generic-api-key:5
+
+# Historical #565 OpenAPI source SHA-256, verified against the exact public source commit; not a credential.
+db31e7acfdc85d726a44702687035a7a63065d03:docs/design/eimir/565-fcm/evidence/reconciliation-2026-11-01.json:generic-api-key:8

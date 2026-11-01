@@ -8,10 +8,13 @@ import unittest
 from pathlib import Path
 
 from scripts.check_runtime_environment import (
+    RuntimeEnvironmentError,
     check_dotenv_to_rendered,
     check_production_image_identity,
     check_published_release_image_identity,
     check_rendered_to_running,
+    compose_prefix,
+    parse_args,
     parse_container_environment,
     parse_dotenv,
 )
@@ -94,6 +97,27 @@ def release_identity(
 
 
 class DotenvParsingTest(unittest.TestCase):
+    def test_fcm_guard_uses_only_the_selected_bundle_fragment(self) -> None:
+        canonical = Path(__file__).resolve().parents[1] / "compose.yaml"
+        arguments = parse_args(["--compose-file", str(canonical), "--with-fcm"])
+        command = compose_prefix(arguments)
+        self.assertEqual(command[-2:], ["--file", str(canonical.parent / "deploy/push-fcm.compose.yaml")])
+        self.assertEqual(command.count("--file"), 2)
+        with self.assertRaisesRegex(RuntimeEnvironmentError, "explicit canonical"):
+            compose_prefix(parse_args(["--with-fcm"]))
+
+    def test_fcm_public_settings_cannot_drift_from_operator_configuration(self) -> None:
+        expected = {"EIMIR_PUSH_FCM_PROJECT_ID": "fixture-project"}
+        current = rendered(environment="development")
+        for settings in current.values():
+            settings.update(expected)
+        self.assertEqual(check_dotenv_to_rendered(expected, current), [])
+        current["worker"]["EIMIR_PUSH_FCM_PROJECT_ID"] = "other-project"
+        problems = check_dotenv_to_rendered(expected, current)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("worker", problems[0])
+        self.assertNotIn("other-project", problems[0])
+
     def test_compose_inline_comments_are_removed(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             path = Path(temp_dir) / ".env"

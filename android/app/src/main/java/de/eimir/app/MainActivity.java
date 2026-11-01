@@ -11,7 +11,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         SplashScreen.installSplashScreen(this);
-        registerPlugin(UnifiedPushBridge.class);
+        registerPlugin(NativePushBridge.class);
         registerPlugin(AppIconPlugin.class);
         registerPlugin(NativeSessionStoragePlugin.class);
         registerPlugin(PlanCalendarPlugin.class);
@@ -19,13 +19,6 @@ public class MainActivity extends BridgeActivity {
         if (getBridge() != null) {
             photoFileChooser = new PhotoFileChooser(getBridge());
             getBridge().getWebView().setWebChromeClient(photoFileChooser);
-        }
-        // Android Keystore load/delete and durable preference commits may stall a
-        // fresh install or an upgrade. Keep migration out of Activity creation.
-        // Bridge.execute uses the existing Capacitor background executor.
-        if (getBridge() != null) {
-            getBridge().execute(() ->
-                LegacyNativeDataCleanup.run(getApplicationContext()));
         }
     }
 

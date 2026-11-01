@@ -61,6 +61,7 @@ const ACCEPTED_ORDER = [
   '.today-hero',
   '.today-section-moment',
   '.today-section-upcoming',
+  '.today-section-retrospective',
   '.today-section-living',
   '.today-section-monthly',
   '.today-section-recent',
@@ -167,6 +168,20 @@ const RICH_SPACE = {
       sourceEventId: 'ev-rich-signal',
     },
   ],
+};
+
+const ALL_MODULES_SPACE = {
+  ...RICH_SPACE,
+  retrospective: {
+    id: 'rediscovered-moment',
+    type: 'HEART_MOMENT',
+    titleOrText: 'Our first walk together',
+    occurredOn: '2025-01-01',
+    createdAt: '2025-01-01T12:00:00Z',
+    scheduledAt: null,
+    previewAttachmentId: null,
+    previewIsSensitive: false,
+  },
 };
 
 /** `Diesen Monat` with a single photo: the plain, non-carousel wide band. */
@@ -668,7 +683,7 @@ test.describe('Today R4: the living home of a relationship', () => {
       await media.evaluate((img) => (img as HTMLImageElement).naturalWidth),
     ).toBeGreaterThan(0);
     await expect(
-      paper.getByRole('button', {
+      page.locator('.today-section-retrospective').getByRole('button', {
         name: m5s5.today.living.retrospectiveDismissToday,
       }),
     ).toBeVisible();
@@ -698,7 +713,8 @@ test.describe('Today R4: the living home of a relationship', () => {
     await expectNoWcagViolations(page);
     await capture(page, testInfo, 'nostalgia-1440-expanded-dark');
 
-    await paper
+    await page
+      .locator('.today-section-retrospective')
       .getByRole('button', {
         name: m5s5.today.living.retrospectiveDismissToday,
       })
@@ -796,7 +812,7 @@ test.describe('Today R4: the living home of a relationship', () => {
   }, testInfo) => {
     test.setTimeout(120_000);
     await page.setViewportSize({ width: 390, height: 844 });
-    await installMocks(page, RICH_SPACE);
+    await installMocks(page, ALL_MODULES_SPACE);
     await page.emulateMedia({ colorScheme: 'light' });
     await signInAndOpenToday(page);
 
@@ -808,7 +824,9 @@ test.describe('Today R4: the living home of a relationship', () => {
     await expectSingleColumnVisualOrder(page);
 
     // Exactly one contextual module, never a stack of widgets.
-    await expect(page.locator('.today-living')).toHaveCount(1);
+    await expect(
+      page.locator('.today-section-living .today-living'),
+    ).toHaveCount(1);
 
     // `Euer Moment` leads with a real photograph, not a placeholder.
     const momentImage = page.locator('.today-moment-media img');
@@ -1518,7 +1536,7 @@ test.describe('Today R4: the living home of a relationship', () => {
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await installMocks(page, RICH_SPACE);
+    await installMocks(page, ALL_MODULES_SPACE);
     await signInAndOpenToday(page);
 
     for (const selector of ACCEPTED_ORDER) {

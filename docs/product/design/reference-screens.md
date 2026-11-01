@@ -218,6 +218,14 @@ that slot. Preserve personal visibility/dismissal, privacy and source navigation
 avoid duplicating the selected source in the focal region or monthly highlights.
 Do not add a second widget stack or infer an engagement score.
 
+**PO follow-up #1574:** Daily rediscovery is an independent `retrospective`
+module, with its own “Weißt du noch?” section heading and personal visibility
+and ordering. It no longer occupies “Gerade bei euch”; an eligible partner
+signal can appear alongside it. Keep the source out of the focal, contextual,
+monthly and activity selections, including when the module is hidden. The
+existing daily dismissal and canonical source/return contract remain. Its
+“Erinnerung ansehen” destination uses the shared filled blue action.
+
 ### Mobile interaction contract and continuity
 
 - Use one vertical flow. The focal keepsake precedes the practical near-future context by default; a saved personal order may place supported modules differently. A populated default 390 × 844 reference should make personal context and meaningful focal content recognizable without a large introductory block, with the first upcoming item close behind. This is not a fixed-height demand when optional content, text scale or device chrome differ.

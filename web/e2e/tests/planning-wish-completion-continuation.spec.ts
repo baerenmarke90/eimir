@@ -7,11 +7,11 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
-import { captureR3Evidence } from './r3-evidence';
+import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const WISH_EVIDENCE_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '../../../docs/product/design/evidence/508/wish-completion',
+  '../../../docs/product/design/evidence/1574-wir-rediscovery',
 );
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -367,16 +367,13 @@ async function captureEvidence(
   testInfo: TestInfo,
   name: string,
 ): Promise<void> {
-  await captureR3Evidence(
-    page,
-    testInfo,
-    `r3-wish-completion-${name}.png`,
-    false,
-  );
+  await captureScreenshot(page, testInfo, `r3-wish-completion-${name}.png`, {
+    fullPage: false,
+  });
 }
 
 for (const scenario of visualScenarios) {
-  test(`Wish continuation uses standard controls with visible field boundaries: ${scenario.name}`, async ({
+  test(`Wish continuation uses standard borderless filled controls: ${scenario.name}`, async ({
     page,
   }, info) => {
     await page.setViewportSize(scenario.viewport);
@@ -413,17 +410,42 @@ for (const scenario of visualScenarios) {
       const border = await control.evaluate(
         (node) => getComputedStyle(node).borderTopWidth,
       );
-      expect(parseFloat(border)).toBeGreaterThanOrEqual(1);
+      expect(parseFloat(border)).toBe(0);
+      expect(
+        await control.evaluate(
+          (node) => getComputedStyle(node).backgroundColor,
+        ),
+      ).not.toBe('rgba(0, 0, 0, 0)');
     }
     await page.locator('#wish-plan-title').fill('Our shared next step');
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#wish-plan-description')).toBeFocused();
+    await expect(page.locator('#wish-plan-description')).toHaveCSS(
+      'outline-style',
+      'solid',
+    );
+    if (scenario.name === '320-reflow')
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
     await assertNoHorizontalOverflow(page);
-    await captureR3Evidence(
+    await captureScreenshot(
       page,
       info,
-      `wish-visible-controls-${scenario.name}.png`,
-      true,
+      `wish-borderless-controls-${scenario.name}.png`,
+      { fullPage: true },
     );
     await assertNoWcagViolations(page);
+    if (scenario.name === '390-light') {
+      await page.emulateMedia({ forcedColors: 'active' });
+      await expect(page.locator('#wish-plan-description')).toHaveCSS(
+        'border-top-width',
+        '1px',
+      );
+      await page.emulateMedia({ forcedColors: 'none' });
+      await expect(page.locator('#wish-plan-description')).toHaveCSS(
+        'border-top-width',
+        '0px',
+      );
+    }
     await page
       .getByRole('button', { name: m5s3.wish.complete, exact: true })
       .click();

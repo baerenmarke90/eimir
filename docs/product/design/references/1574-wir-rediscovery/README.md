@@ -23,6 +23,9 @@ remain. No eligible source means no empty frame. Actual source content and
 dates lead, the shared blue action opens the canonical source and retains task
 return, and the existing account/Space/day dismissal only hides rediscovery.
 The source must not repeat in focal, contextual, monthly or activity content.
+A newly shared experience keeps priority if it references the same source.
+`button-link-primary` consumes canonical blue action aliases so the warm Wir
+color world cannot recolor the action or its readable foreground.
 
 Standard text, select, date/time and multiline fields use the shared borderless
 filled treatment. Persistent labels, native affordances, validation and visible
@@ -59,5 +62,6 @@ photos, branding, inset outline shadows, wireframes or generic SaaS layout.
 
 ## Implementation evidence
 
-Pending the exact implementation run; the generated board is not evidence of
-runtime behavior or physical-device installation.
+[Implementation evidence and validation](../../evidence/1574-wir-rediscovery/README.md)
+record the production-UI journeys and captured states. The generated board is
+not evidence of runtime behavior or physical-device installation.

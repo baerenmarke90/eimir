@@ -151,6 +151,22 @@ results preceded the #1575 reconciliation. Current follow-up logs are retained i
 the operator's local `output/565-production-push` handoff; remote CI must run on
 the final combined revision before merge.
 
+The #1575 reconciliation subsequently passed the complete Web suite (2,462
+passes, two existing skips), 1,279 backend/unit/real-PostgreSQL cases including
+Dashboard preferences, and all 31 physical Android fixture cases. The release,
+exporter, identity and configuration group passed 97 checks. Strict Android
+Debug/test builds, lint and JVM tests, API drift, TypeScript, semantic tokens,
+Capacitor foundation, Ruff and formatting passed. The actual Gradle Play Store
+guard rejected an absent Firebase configuration. These local checks remain
+separate from current-head hosted CI and real deployed delivery.
+
+Before merging the auto-synced channel, the operator must confirm that the private
+host file and all FCM/UnifiedPush inputs are ready. This preserves #565's existing
+deployment sequencing requirement and avoids a failing restart. The Product Owner
+explicitly authorized the later merge on top of #1575, but confirmed that the
+server was not prepared yet; the implementation can be reviewed while deployment
+and merge wait for that preparation.
+
 A configured unsigned APK/AAB was built with strict dependency verification.
 All four compiled Firebase strings matched the public configuration; 78 packaged
 Web assets matched the current native Web bundle. This is a packaging check,

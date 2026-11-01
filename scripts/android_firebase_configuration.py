@@ -215,8 +215,13 @@ def main() -> int:
     args = parser.parse_args()
     project_id = os.environ.get("ANDROID_FIREBASE_PROJECT_ID", "").strip()
     try:
-        if os.environ.get("ANDROID_PLAY_STORE_RELEASE", "false").lower() == "true" and not project_id:
-            raise ConfigurationError("Play Store artifacts require an explicit Firebase project")
+        if (
+            os.environ.get("ANDROID_PLAY_STORE_RELEASE", "false").lower() == "true"
+            and not project_id
+        ):
+            raise ConfigurationError(
+                "Play Store artifacts require an explicit Firebase project"
+            )
         if args.command == "prepare":
             configured = prepare_configuration(
                 project_id, os.environ.get("EIMIR_ANDROID_GOOGLE_SERVICES_JSON", "")

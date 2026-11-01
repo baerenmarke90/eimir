@@ -78,23 +78,35 @@ class AndroidFirebaseConfigurationTest(unittest.TestCase):
 
     def test_play_store_preparation_refuses_a_silently_unconfigured_build(self) -> None:
         with (
-            patch.dict(os.environ, {
-                "ANDROID_FIREBASE_PROJECT_ID": "",
-                "ANDROID_PLAY_STORE_RELEASE": "true",
-            }),
+            patch.dict(
+                os.environ,
+                {
+                    "ANDROID_FIREBASE_PROJECT_ID": "",
+                    "ANDROID_PLAY_STORE_RELEASE": "true",
+                },
+            ),
             patch.object(sys, "argv", ["android_firebase_configuration.py", "prepare"]),
             patch.object(firebase, "prepare_configuration") as prepare,
         ):
             self.assertEqual(firebase.main(), 1)
         prepare.assert_not_called()
 
-    def test_play_store_publication_passes_the_guard_to_the_actual_signed_build(self) -> None:
+    def test_play_store_publication_passes_the_guard_to_the_actual_signed_build(
+        self,
+    ) -> None:
         workflow = (ROOT / ".github/workflows/release-publish.yml").read_text()
         self.assertIn("android_play_store_release:", workflow)
-        validation = workflow.split("- name: Validate candidate inputs", 1)[1].split("- name:", 1)[0]
-        self.assertIn('if play_store and (not include_android', validation)
-        build = workflow.split("- name: Build and verify final signed Android artifacts", 1)[1].split("- name:", 1)[0]
-        self.assertIn("ANDROID_PLAY_STORE_RELEASE: ${{ inputs.android_play_store_release }}", build)
+        validation = workflow.split("- name: Validate candidate inputs", 1)[1].split(
+            "- name:", 1
+        )[0]
+        self.assertIn("if play_store and (not include_android", validation)
+        build = workflow.split(
+            "- name: Build and verify final signed Android artifacts", 1
+        )[1].split("- name:", 1)[0]
+        self.assertIn(
+            "ANDROID_PLAY_STORE_RELEASE: ${{ inputs.android_play_store_release }}",
+            build,
+        )
         self.assertIn('-PeimirPlayStoreRelease="$ANDROID_PLAY_STORE_RELEASE"', build)
 
     def test_mismatched_project_or_android_package_is_rejected_before_writing(

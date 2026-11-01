@@ -5,13 +5,13 @@ import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import type { M4ProductApis } from '../client/m4Product';
+import { dailyCheckInTodayQueryKey } from '../client/dailyCheckIn';
 import {
   DASHBOARD_MODULE_KEYS,
   type DashboardModuleKey,
 } from '../client/dashboardModules';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
-import { dailyCheckInTodayQueryKey } from '../client/dailyCheckIn';
+import type { M4ProductApis } from '../client/m4Product';
 import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
@@ -78,6 +78,38 @@ function renderTodayPage(
 }
 
 describe('TodayPage', () => {
+  it('does not repeat an incoming time-travel source in the independent retrospective', () => {
+    const memory = {
+      id: 'shared-time-travel',
+      type: 'MEMORY',
+      titleOrText: 'Our early adventure',
+      occurredOn: new Date('2020-01-01'),
+      createdAt: new Date(),
+    };
+    const html = renderTodayPage({
+      space: {
+        id: 'space-1',
+        partner: { id: 'partner-1', displayName: 'Marie' },
+      },
+      upcoming: [],
+      recentShared: [memory],
+      keepsake: memory,
+      retrospective: memory,
+      incomingExperience: {
+        id: memory.id,
+        kind: 'TIME_TRAVEL',
+        text: memory.titleOrText,
+        authorId: 'partner-1',
+        happenedOn: memory.occurredOn,
+        createdAt: new Date(),
+      },
+    });
+    expect(html).toContain('shared-experience-section');
+    expect(html).not.toContain('today-section-retrospective');
+    expect(html).not.toContain('today-section-moment');
+    expect(html.split(memory.titleOrText).length - 1).toBe(1);
+  });
+
   it('renders couple presence hero, days together, the partner quick-actions trigger, and the composed modules', () => {
     const html = renderTodayPage({
       space: {
@@ -137,7 +169,7 @@ describe('TodayPage', () => {
       'today-hero',
       'today-section-moment',
       'today-section-upcoming',
-      'today-section-living',
+      'today-section-retrospective',
       'today-section-recent',
     ].map((section) => html.indexOf(section));
     expect(order).not.toContain(-1);
@@ -773,7 +805,7 @@ describe('TodayPage', () => {
     expect(signalIndex).toBeGreaterThan(agendaIndex);
   });
 
-  it('places a genuine date-specific retrospective in the single `Gerade bei euch` slot (#850 supersedes #840 ordering)', () => {
+  it('places daily rediscovery in its own section below upcoming', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -819,16 +851,12 @@ describe('TodayPage', () => {
       </QueryClientProvider>,
     );
 
-    // #840 let a date-specific retrospective float ahead of the planning
-    // area. #850's normative order is fixed, and the retrospective is now
-    // the highest-value candidate for the one `Gerade bei euch` slot after a
-    // live partner signal - so it renders there, below `Demnächst`. The
-    // retrospective is still shown, still exactly once, and still never
-    // displaced by a generic Keepsake, which is what #840 was protecting.
+    // Rediscovery has its own module and never occupies the contextual slot.
     const planningIndex = html.indexOf('today-section-upcoming');
-    const livingIndex = html.indexOf('today-section-living');
+    const retrospectiveIndex = html.indexOf('today-section-retrospective');
     expect(planningIndex).toBeGreaterThan(-1);
-    expect(livingIndex).toBeGreaterThan(planningIndex);
+    expect(retrospectiveIndex).toBeGreaterThan(planningIndex);
+    expect(html).not.toContain('today-section-living');
     expect(html).toContain('One year ago today');
     expect(html.split('One year ago today').length - 1).toBe(1);
     expect(html).toContain('today-living-retrospective');
@@ -2298,6 +2326,19 @@ describe('formatRelationshipDuration', () => {
         ['m5-s5', 'dashboard', 'space-1'],
         allModulesEligibleDashboard(),
       );
+      queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+        items: [
+          {
+            id: 'partner-comment',
+            kind: 'COMMENT_CREATED',
+            actorId: 'partner-1',
+            targetType: 'MEMORY',
+            targetId: 'another-shared-memory',
+            createdAt: new Date(),
+          },
+        ],
+        nextCursor: null,
+      });
       // A resolved (possibly empty) preferences response - not pending, see
       // the dedicated "never flashes" test below for the pending case.
       queryClient.setQueryData(
@@ -2371,6 +2412,7 @@ describe('formatRelationshipDuration', () => {
       upcoming: 'today-section-upcoming',
       pinned_collection: 'today-section-pinned-collection',
       keepsake: 'today-section-moment',
+      retrospective: 'today-section-retrospective',
       relationship_signal: 'today-section-living',
       monthly_highlights: 'today-section-monthly',
       recent_shared: 'today-section-recent',
@@ -2437,20 +2479,18 @@ describe('formatRelationshipDuration', () => {
       ).not.toContain('shared-story-summary');
     });
 
-    it('hiding one module does not change what another module selects (no duplicate content leaks in)', () => {
+    it('hides rediscovery independently without leaking its source into other modules', () => {
       const baseline = renderWithVisibility({});
-      const withLivingHidden = renderWithVisibility({
-        relationship_signal: false,
-      });
-
-      // The retrospective content stays claimed by `Gerade bei euch`'s
-      // selection even while that section itself is not rendered - hiding it
-      // must not let the same content reappear in `Diesen Monat` or the trace.
-      expect(baseline).toContain('today-section-monthly');
-      expect(withLivingHidden).not.toContain('today-living-retrospective');
-      expect(withLivingHidden).toContain('today-section-monthly');
-      expect(withLivingHidden).toContain('Monthly Photo');
-      expect(withLivingHidden).not.toContain('Weisst du noch');
+      const hidden = renderWithVisibility({ retrospective: false });
+      expect(baseline).toContain('today-section-retrospective');
+      expect(hidden).not.toContain('today-section-retrospective');
+      expect(hidden).toContain('today-section-living');
+      expect(hidden).toContain('today-section-monthly');
+      expect(hidden).toContain('Monthly Photo');
+      expect(hidden).not.toContain('Weisst du noch');
+      expect(renderWithVisibility({ relationship_signal: false })).toContain(
+        'today-section-retrospective',
+      );
     });
 
     describe('relationship_presence (Couple Presence hero)', () => {

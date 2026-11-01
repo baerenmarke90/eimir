@@ -937,16 +937,6 @@
   box-shadow: var(--shadow-raised);
 }
 
-.today-retrospective-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  column-gap: var(--space-3);
-  width: 100%;
-  min-width: 0;
-}
-
 .today-retrospective-dismiss {
   display: inline-flex;
   align-items: center;
@@ -972,8 +962,7 @@
   text-underline-offset: 0.2em;
 }
 
-.today-retrospective-dismiss:focus-visible,
-.today-retrospective-action:focus-visible {
+.today-retrospective-dismiss:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 3px;
 }
@@ -1048,16 +1037,8 @@
 }
 
 .today-retrospective-action {
-  display: inline-flex;
-  align-items: center;
   align-self: flex-start;
-  min-height: 44px;
   max-width: 100%;
-  color: var(--color-brand-text);
-  font-size: 0.9rem;
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
   overflow-wrap: anywhere;
 }
 

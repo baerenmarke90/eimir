@@ -48,6 +48,7 @@ class DashboardModuleKey(StrEnum):
     UPCOMING = "upcoming"
     PINNED_COLLECTION = "pinned_collection"
     KEEPSAKE = "keepsake"
+    RETROSPECTIVE = "retrospective"
     RELATIONSHIP_SIGNAL = "relationship_signal"
     MONTHLY_HIGHLIGHTS = "monthly_highlights"
     RECENT_SHARED = "recent_shared"
@@ -89,7 +90,7 @@ class DashboardModuleState:
 
 # Default Settings/Today order, matching the current Today composition
 # (`web/src/components/TodayPage.tsx`): relationship_presence (the Couple
-# Presence hero), keepsake, upcoming, pinned_collection, relationship_signal,
+# Presence hero), keepsake, upcoming, pinned_collection, retrospective, relationship_signal,
 # monthly_highlights, recent_shared. #848 established `UPCOMING` with an
 # item-limit facet; #817 added visibility to every module.
 #
@@ -111,6 +112,7 @@ CATALOG: tuple[DashboardModuleDefinition, ...] = (
         default_visible=True,
         selects_collection=True,
     ),
+    DashboardModuleDefinition(key=DashboardModuleKey.RETROSPECTIVE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.RELATIONSHIP_SIGNAL, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.MONTHLY_HIGHLIGHTS, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.RECENT_SHARED, default_visible=True),
@@ -187,8 +189,12 @@ def set_module_order(
 ) -> list[DashboardModuleState]:
     """Atomically replace only the order facet of the personal preference rows."""
     expected = {definition.key.value for definition in CATALOG}
-    # Accept the two known older complete catalogs without resetting personal order.
-    optional = {DashboardModuleKey.DAILY_QUOTE.value, DashboardModuleKey.SHARED_EXPERIENCE.value}
+    # Accept known older complete catalogs without resetting personal order.
+    optional = {
+        DashboardModuleKey.DAILY_QUOTE.value,
+        DashboardModuleKey.SHARED_EXPERIENCE.value,
+        DashboardModuleKey.RETROSPECTIVE.value,
+    }
     missing = expected - set(module_keys)
     if (
         len(module_keys) == len(set(module_keys))

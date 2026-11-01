@@ -133,6 +133,14 @@ const lightLink = value('color.scheme.light.link').toLowerCase();
 const darkLink = value('color.scheme.dark.link').toLowerCase();
 declare('color-link-text', lightLink);
 declare(
+  'color-action-primary',
+  value('color.scheme.light.brandStrong').toLowerCase(),
+);
+declare(
+  'color-on-action-primary',
+  value('color.scheme.light.onAccent').toLowerCase(),
+);
+declare(
   'memory-detail-background',
   value('color.scheme.light.memoryDetailBackground').toLowerCase(),
 );
@@ -147,12 +155,16 @@ ${declarations.join('\n')}
 
 :root[data-theme="dark"] {
   --color-link-text: ${darkLink};
+  --color-action-primary: ${value('color.scheme.dark.brandStrong').toLowerCase()};
+  --color-on-action-primary: ${value('color.scheme.dark.onAccent').toLowerCase()};
   --memory-detail-background: ${value('color.scheme.dark.memoryDetailBackground').toLowerCase()};
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
     --color-link-text: ${darkLink};
+    --color-action-primary: ${value('color.scheme.dark.brandStrong').toLowerCase()};
+    --color-on-action-primary: ${value('color.scheme.dark.onAccent').toLowerCase()};
     --memory-detail-background: ${value('color.scheme.dark.memoryDetailBackground').toLowerCase()};
   }
 }
@@ -189,6 +201,7 @@ ${declarations.join('\n')}
 @media (forced-colors: active) {
   :root {
     --border-surface-width: ${value('border.hairline')};
+    --border-control-width: ${value('border.hairline')};
   }
 }
 `;

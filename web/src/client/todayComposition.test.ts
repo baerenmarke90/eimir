@@ -96,37 +96,33 @@ describe('selectLivingModule', () => {
   const wish = item({ id: 'w1', type: 'WISH' });
   const plan = item({ id: 'p1', type: 'PLAN' });
   const milestone = item({ id: 'ms1', type: 'MILESTONE' });
-  const retrospective = item({ id: 'r1' });
 
   it('returns exactly one module, never a stack, when several candidates qualify', () => {
     const result = selectLivingModule({
       partnerId: PARTNER_ID,
       activityItems: [comment()],
-      retrospective,
       recentShared: [wish, plan, milestone],
     });
 
-    expect(result).toEqual({ kind: 'retrospective', item: retrospective });
+    expect(result).toEqual({ kind: 'partner_signal', activityItem: comment() });
   });
 
-  it('prefers daily rediscovery, then partner signals and planning fallbacks', () => {
+  it('prefers partner signals and keeps stable planning fallbacks separate from rediscovery', () => {
     const chain = [
       {
         input: {
           activityItems: [comment()],
-          retrospective,
           recentShared: [wish],
         },
-        expected: 'retrospective',
+        expected: 'partner_signal',
       },
       {
-        input: { activityItems: [], retrospective, recentShared: [wish] },
-        expected: 'retrospective',
+        input: { activityItems: [], recentShared: [wish] },
+        expected: 'wish',
       },
       {
         input: {
           activityItems: [],
-          retrospective: null,
           recentShared: [milestone, plan, wish],
         },
         expected: 'wish',
@@ -134,7 +130,6 @@ describe('selectLivingModule', () => {
       {
         input: {
           activityItems: [],
-          retrospective: null,
           recentShared: [milestone, plan],
         },
         expected: 'plan',
@@ -142,7 +137,6 @@ describe('selectLivingModule', () => {
       {
         input: {
           activityItems: [],
-          retrospective: null,
           recentShared: [milestone],
         },
         expected: 'milestone',
@@ -160,7 +154,6 @@ describe('selectLivingModule', () => {
     const input = {
       partnerId: PARTNER_ID,
       activityItems: [],
-      retrospective: null,
       recentShared: [milestone, plan, wish],
     };
     const first = selectLivingModule(input);
@@ -174,7 +167,6 @@ describe('selectLivingModule', () => {
       selectLivingModule({
         partnerId: PARTNER_ID,
         activityItems: [],
-        retrospective: null,
         recentShared: [item({ id: 'hm1', type: 'HEART_MOMENT' })],
       }),
     ).toBeNull();
@@ -185,11 +177,10 @@ describe('selectLivingModule', () => {
       selectLivingModule({
         partnerId: PARTNER_ID,
         activityItems: [],
-        retrospective,
-        recentShared: [wish],
-        excludeItemIds: [retrospective.id],
+        recentShared: [wish, plan],
+        excludeItemIds: [wish.id],
       })?.kind,
-    ).toBe('wish');
+    ).toBe('plan');
   });
 
   it('does not treat the viewer’s own comment as a partner signal', () => {
@@ -197,7 +188,6 @@ describe('selectLivingModule', () => {
       selectLivingModule({
         partnerId: PARTNER_ID,
         activityItems: [comment({ actorId: VIEWER_ID })],
-        retrospective: null,
         recentShared: [],
       }),
     ).toBeNull();
@@ -208,7 +198,6 @@ describe('selectLivingModule', () => {
       selectLivingModule({
         partnerId: PARTNER_ID,
         activityItems: [comment({ actorId: null })],
-        retrospective: null,
         recentShared: [],
       }),
     ).toBeNull();
@@ -219,7 +208,6 @@ describe('selectLivingModule', () => {
       selectLivingModule({
         partnerId: null,
         activityItems: [comment()],
-        retrospective: null,
         recentShared: [],
       }),
     ).toBeNull();
@@ -230,7 +218,6 @@ describe('selectLivingModule', () => {
       selectLivingModule({
         partnerId: PARTNER_ID,
         activityItems: [comment({ kind: 'MEMORY_CREATED' })],
-        retrospective: null,
         recentShared: [],
       }),
     ).toBeNull();
@@ -241,12 +228,11 @@ describe('selectLivingModule', () => {
     const result = selectLivingModule({
       partnerId: PARTNER_ID,
       activityItems: [comment({ targetId: featured })],
-      retrospective,
       recentShared: [wish],
       excludeItemIds: [featured],
     });
 
-    expect(result?.kind).toBe('retrospective');
+    expect(result?.kind).toBe('wish');
   });
 
   it('falls all the way through when the only partner comment is about featured content', () => {
@@ -255,7 +241,6 @@ describe('selectLivingModule', () => {
       selectLivingModule({
         partnerId: PARTNER_ID,
         activityItems: [comment({ targetId: featured })],
-        retrospective: null,
         recentShared: [],
         excludeItemIds: [featured],
       }),
@@ -270,7 +255,6 @@ describe('selectLivingModule', () => {
         comment({ id: 'a1', targetId: featured }),
         comment({ id: 'a2', targetId: 'mem-other' }),
       ],
-      retrospective: null,
       recentShared: [wish],
       excludeItemIds: [featured],
     });
@@ -285,7 +269,6 @@ describe('selectLivingModule', () => {
     const result = selectLivingModule({
       partnerId: PARTNER_ID,
       activityItems: [comment({ targetId: 'mem-other' })],
-      retrospective: null,
       recentShared: [wish, plan, milestone],
       excludeItemIds: ['mem-featured'],
     });
@@ -298,7 +281,6 @@ describe('selectLivingModule', () => {
       selectLivingModule({
         partnerId: PARTNER_ID,
         activityItems: [],
-        retrospective: null,
         recentShared: [wish, plan, milestone],
         suppressPlanningFallback: true,
       })?.kind,
@@ -309,7 +291,6 @@ describe('selectLivingModule', () => {
     const result = selectLivingModule({
       partnerId: PARTNER_ID,
       activityItems: [comment({ targetId: null })],
-      retrospective: null,
       recentShared: [],
       excludeItemIds: ['mem-featured'],
     });
@@ -329,12 +310,7 @@ describe('livingModuleContentId', () => {
   });
 
   it('reports the item id for every stable candidate kind', () => {
-    for (const kind of [
-      'retrospective',
-      'wish',
-      'plan',
-      'milestone',
-    ] as const) {
+    for (const kind of ['wish', 'plan', 'milestone'] as const) {
       expect(
         livingModuleContentId({ kind, item: item({ id: `x-${kind}` }) }),
       ).toBe(`x-${kind}`);

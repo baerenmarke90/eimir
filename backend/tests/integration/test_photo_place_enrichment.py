@@ -21,7 +21,7 @@ from eimir.relationship.models import Membership
 from tests.conftest import requires_database
 from tests.integration import test_attachment_binding as binding
 from tests.integration.test_attachment_binding import couple as couple
-from tests.integration.test_photo_locations import attach, places, set_enabled
+from tests.integration.test_photo_locations import attach, places
 from tests.integration.test_photo_locations import gps_photo as gps_photo
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -108,7 +108,7 @@ def test_old_place_repair_is_deduplicated_and_does_not_require_another_upload(
 
 
 @pytest.mark.parametrize(
-    "change", ["manual", "unlink", "disabled", "left", "off", "off-on", "space", "owner"]
+    "change", ["manual", "unlink", "disabled", "left", "preference-revision", "space", "owner"]
 )
 def test_revoked_or_changed_state_prevents_both_egress_and_mutation(
     change,
@@ -139,10 +139,9 @@ def test_revoked_or_changed_state_prevents_both_egress_and_mutation(
             )
         ).scalar_one()
         member.status = "LEFT"
-    elif change in {"off", "off-on"}:
-        assert set_enabled(client, couple, False, 0).status_code == 200
-        if change == "off-on":
-            assert set_enabled(client, couple, True, 1).status_code == 200
+    elif change == "preference-revision":
+        account = session.get(Account, UUID(payload["owner_id"]))
+        account.photo_locations_version += 1
     elif change == "space":
         payload["space_id"] = "00000000-0000-4000-8000-000000000000"
     else:

@@ -1,10 +1,11 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import copy from '../../src/i18n/locales/wirDesign';
+import quoteCopy from '../../src/i18n/locales/dailyQuote';
+import profileCopy from '../../src/i18n/locales/profileIdentity';
 import energyCopy from '../../src/i18n/locales/dailyEnergy';
 import reflections from '../../src/i18n/locales/relationshipReflections';
 import notificationCopy from '../../src/i18n/locales/notificationSettings';
-import photoCopy from '../../src/i18n/locales/photoPlaces';
 import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import fs from 'node:fs';
 import {
@@ -423,13 +424,18 @@ test('quote and statistics order survives pointer release, keyboard movement and
           selectedSourceIds: [],
           version: 1,
         },
+        headers: { ETag: '"quote-pref:1"' },
       });
     return route.fallback();
   });
   await signIn(page);
   await page.goto('/more/settings/today');
+  await expect(page.locator('.dashboard-module-configure')).toHaveCount(0);
+  await expect(page.locator('#wir-statistics-setting')).toHaveCount(0);
   const quote = page.locator('[data-sortable-item-id="daily_quote"]');
-  const grip = quote.getByRole('button');
+  const grip = quote.getByRole('button', {
+    name: profileCopy.dashboardOrderHandle.replace('{{name}}', quoteCopy.title),
+  });
   await grip.scrollIntoViewIfNeeded();
   const initial = await grip.boundingBox();
   const rowBefore = await quote.boundingBox();
@@ -445,6 +451,8 @@ test('quote and statistics order survives pointer release, keyboard movement and
     initial.y + initial.height / 2 + dragDistance,
     { steps: 12 },
   );
+  await expect(quote).toHaveCSS('box-shadow', 'none');
+  await expect(quote).toHaveCSS('outline-style', 'none');
   const held = await quote.boundingBox();
   expect(Math.abs((held?.y ?? 0) - rowBefore.y - dragDistance)).toBeLessThan(4);
   await page.mouse.up();
@@ -459,14 +467,14 @@ test('quote and statistics order survives pointer release, keyboard movement and
   await page.keyboard.press('ArrowUp');
   await expect.poll(() => orders.length).toBe(2);
   await page
-    .getByRole('switch', { name: reflections.passport.wirStatisticsToggle })
+    .getByRole('checkbox', { name: reflections.passport.wirStatisticsTitle })
     .click();
   await page.reload();
   await expect(
-    page.getByRole('switch', {
-      name: reflections.passport.wirStatisticsToggle,
+    page.getByRole('checkbox', {
+      name: reflections.passport.wirStatisticsTitle,
     }),
-  ).toHaveAttribute('aria-checked', 'true');
+  ).toBeChecked();
   expect(
     await page
       .locator('[data-sortable-item-id]')
@@ -583,14 +591,9 @@ for (const [width, theme] of [
     });
     await reflow(page);
     await page.goto('/more/settings/memories');
-    await expect(page.getByText(photoCopy.description)).toBeHidden();
-    await page.getByText(photoCopy.details, { exact: true }).click();
-    await expect(page.getByText(photoCopy.description)).toBeVisible();
-    await captureScreenshot(
-      page,
-      info,
-      `photo-settings-${width}-${theme}.png`,
-      { fullPage: true },
+    await expect(page).toHaveURL(/\/more\/settings$/);
+    await expect(page.locator('a[href="/more/settings/memories"]')).toHaveCount(
+      0,
     );
     await page.goto('/more/private');
     await expect(page.locator('.private-area-privacy-banner')).toHaveCount(0);
@@ -616,3 +619,41 @@ for (const [width, theme] of [
     expect(state.unexpected).toEqual([]);
   });
 }
+
+test('Free Wir controls keep readable labels and fit 320px with large text', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  const state = await fixture(page, { pro: false });
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/entitlements`, (route) =>
+    route.fulfill({
+      json: {
+        spaceId: SPACE_ID,
+        tier: 'FREE',
+        status: 'ACTIVE',
+        effectiveUntil: null,
+        isInGracePeriod: false,
+        capabilities: [],
+      },
+    }),
+  );
+  await signIn(page);
+  await page.goto('/more/settings/today');
+  const row = page.locator('[data-sortable-item-id="shared_story_summary"]');
+  await expect(row.getByRole('checkbox')).toBeDisabled();
+  await expect(row.locator('.pro-mark')).toBeVisible();
+  const label = await row
+    .locator('.dashboard-module-option-label')
+    .boundingBox();
+  expect(label?.width).toBeGreaterThan(100);
+  await captureScreenshot(page, info, 'settings-free-320-light.png', {
+    fullPage: true,
+  });
+  await reflow(page);
+  await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+  await reflow(page);
+  await captureScreenshot(page, info, 'settings-free-320-large.png', {
+    fullPage: true,
+  });
+  expect(state.unexpected).toEqual([]);
+});

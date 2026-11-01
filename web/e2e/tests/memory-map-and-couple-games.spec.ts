@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import experienceCopy from '../../src/i18n/locales/coupleExperiences';
 import calendarCopy from '../../src/i18n/locales/calendarPlan';
 import gameCopy from '../../src/i18n/locales/games';
 import mapCopy from '../../src/i18n/locales/memoryMap';
@@ -195,7 +196,7 @@ test('map entitlement denial explains Pro without loading external tiles', async
   await expect(page.locator('.place-map-viewport')).toHaveCount(0);
 });
 
-test('all five Pro games are playable and authored sessions finish and restart', async ({
+test('three Pro games and independent experiences retain their own journeys', async ({
   page,
 }, info) => {
   await installMocks(page);
@@ -225,7 +226,7 @@ test('all five Pro games are playable and authored sessions finish and restart',
   await signIn(page);
   await page.goto('/games');
   await expect(page.locator('.games-entry-status')).toHaveText(
-    Array(5).fill(gameCopy.status.playNow),
+    Array(3).fill(gameCopy.status.playNow),
   );
   await page.setViewportSize({ width: 390, height: 844 });
   await captureScreenshot(page, info, 'games-390-light.png', {
@@ -238,16 +239,71 @@ test('all five Pro games are playable and authored sessions finish and restart',
   });
   await page.setViewportSize({ width: 390, height: 844 });
   for (const game of ['happiness', 'timeTravel'] as const) {
+    await page.goto('/story');
     await page
-      .getByRole('button', { name: new RegExp(gameCopy.entries[game].title) })
+      .getByRole('link', {
+        name: new RegExp(experienceCopy.entries[game].title),
+      })
       .click();
-    await expect(page.getByText(gameCopy.local[game].first)).toBeVisible();
+    await expect(page).toHaveURL(
+      game === 'happiness' ? /\/story\/happiness$/ : /\/story\/time-travel$/,
+    );
+    await expect(
+      page.getByRole('heading', {
+        name: experienceCopy.entries[game].title,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(experienceCopy.session[game].first),
+    ).toBeVisible();
     for (let index = 0; index < 6; index++)
-      await page.getByRole('button', { name: gameCopy.local.skip }).click();
-    await expect(page.getByText(gameCopy.local.finishTitle)).toBeVisible();
-    await page.getByRole('button', { name: gameCopy.local.restart }).click();
-    await expect(page.getByText(gameCopy.local[game].second)).toBeVisible();
-    await page.getByRole('button', { name: gameCopy.local.back }).click();
+      await page
+        .getByRole('button', { name: experienceCopy.session.skip })
+        .click();
+    await expect(
+      page.getByText(experienceCopy.session.finishTitle),
+    ).toBeVisible();
+    await page
+      .getByRole('button', { name: experienceCopy.session.restart })
+      .click();
+    await expect(
+      page.getByText(experienceCopy.session[game].second),
+    ).toBeVisible();
+    await page.goBack();
+    await expect(page).toHaveURL(/\/story$/);
+    await page.goto(
+      game === 'happiness' ? '/story/happiness' : '/story/time-travel',
+    );
+    await expect(
+      page.getByRole('heading', {
+        name: experienceCopy.entries[game].title,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(experienceCopy.session[game].first),
+    ).toBeVisible();
+    for (const [width, theme] of [
+      [360, 'light'],
+      [390, 'dark'],
+      [430, 'light'],
+      [1280, 'dark'],
+    ] as const) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+      await expect(
+        page.getByRole('button', {
+          name:
+            game === 'happiness'
+              ? experienceCopy.session.done
+              : experienceCopy.session.next,
+        }),
+      ).toBeVisible();
+      await captureScreenshot(page, info, `${game}-${width}-${theme}.png`, {
+        fullPage: true,
+      });
+    }
   }
 });
 

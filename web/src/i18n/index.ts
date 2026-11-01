@@ -4,6 +4,7 @@ import accountSettings from './locales/accountSettings';
 import appIcon from './locales/appIcon';
 import appUpdates from './locales/appUpdates';
 import calendarPlan from './locales/calendarPlan';
+import coupleExperiences from './locales/coupleExperiences';
 import contextTags from './locales/contextTags';
 import dailyEnergy from './locales/dailyEnergy';
 import dailyInsights from './locales/dailyInsights';
@@ -63,6 +64,7 @@ if (!i18n.isInitialized) {
           ...de,
           memoryMap,
           calendarPlan,
+          coupleExperiences,
           sensitiveMedia,
           taskBoundary,
           taskSheets,

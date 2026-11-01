@@ -12,7 +12,6 @@ import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
 import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
 import { DashboardViewToJSON } from '../api/generated/models/DashboardView';
-import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { DashboardModuleKey } from '../client/dashboardModules';
 import {
@@ -37,6 +36,10 @@ import {
   usePartnerPresence,
 } from '../client/presence';
 import { normalizeClientError } from '../client/problemDetails';
+import {
+  calculateRelationshipDuration,
+  formatRelationshipDuration as formatSharedTime,
+} from '../client/relationshipPreview';
 import {
   ACTIVITY_ROUTE,
   appRoutePath,
@@ -94,79 +97,10 @@ export function formatRelationshipDuration(
   duration: DashboardRelationshipDuration,
   t: (key: string, options?: Record<string, unknown>) => string,
 ): string {
-  if (duration.displayMode !== DurationDisplayMode.YEARS_MONTHS) {
-    if (duration.daysTogether === 1) {
-      return t('m5s5.dashboard.durationDaysOne', {
-        defaultValue: '1 Tag zusammen',
-      });
-    }
-    return t('m5s5.dashboard.durationDays', {
-      count: duration.daysTogether,
-    });
-  }
-
-  // DurationDisplayMode.YEARS_MONTHS:
-  // Derived strictly from the server-authoritative daysTogether and startedOn.
+  // Derive the reference day from the server snapshot, including cached views.
   const start = new Date(duration.startedOn);
   const end = new Date(start.getTime() + duration.daysTogether * 86_400_000);
-
-  let years = end.getUTCFullYear() - start.getUTCFullYear();
-  let months = end.getUTCMonth() - start.getUTCMonth();
-  const days = end.getUTCDate() - start.getUTCDate();
-
-  if (days < 0) {
-    months -= 1;
-  }
-  if (months < 0) {
-    years -= 1;
-    months += 12;
-  }
-  years = Math.max(0, years);
-  months = Math.max(0, months);
-
-  const yearsLabel =
-    years === 1
-      ? t('m5s5.dashboard.yearOne', { defaultValue: 'Jahr' })
-      : t('m5s5.dashboard.yearMany', { defaultValue: 'Jahre' });
-  const monthsLabel =
-    months === 1
-      ? t('m5s5.dashboard.monthOne', { defaultValue: 'Monat' })
-      : t('m5s5.dashboard.monthMany', { defaultValue: 'Monate' });
-
-  if (years > 0 && months > 0) {
-    return t('m5s5.dashboard.durationYearsMonths', {
-      years,
-      yearsLabel,
-      months,
-      monthsLabel,
-      defaultValue: `${years} ${yearsLabel}, ${months} ${monthsLabel} zusammen`,
-    });
-  }
-
-  if (years > 0) {
-    return t('m5s5.dashboard.durationYearsOnly', {
-      years,
-      yearsLabel,
-      defaultValue: `${years} ${yearsLabel} zusammen`,
-    });
-  }
-
-  if (months > 0) {
-    return t('m5s5.dashboard.durationMonthsOnly', {
-      months,
-      monthsLabel,
-      defaultValue: `${months} ${monthsLabel} zusammen`,
-    });
-  }
-
-  if (duration.daysTogether === 1) {
-    return t('m5s5.dashboard.durationDaysOne', {
-      defaultValue: '1 Tag zusammen',
-    });
-  }
-  return t('m5s5.dashboard.durationDays', {
-    count: duration.daysTogether,
-  });
+  return formatSharedTime(calculateRelationshipDuration(start, end), t);
 }
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {

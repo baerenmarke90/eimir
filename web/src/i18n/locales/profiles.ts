@@ -26,9 +26,6 @@ const profiles = {
   relationshipDurationLabel: 'Gemeinsame Zeit anzeigen',
   relationshipDurationHelp:
     'Zeigt eure gemeinsame Zeit auf „Wir“ und an passenden Stellen in eimir.',
-  relationshipModeLabel: 'Beziehungsdauer anzeigen als',
-  relationshipModeYearsMonths: 'Jahre und Monate',
-  relationshipModeDays: 'Tage',
   relationshipPreviewTitle: 'Vorschau',
   relationshipCurrentLabel: 'Aktuell',
   nextAnniversaryLabel: 'Nächster Jahrestag',
@@ -39,8 +36,6 @@ const profiles = {
   relationshipNotificationHint:
     'Jahrestag-Erinnerungen in den Benachrichtigungseinstellungen verwalten',
   relationshipCurrent: 'Aktuell: {{duration}}',
-  relationshipYearsMonths: '{{years}} Jahre, {{months}} Monate',
-  relationshipDays: '{{days}} Tage',
   relationshipDurationTitle: 'Eure Zeit',
   relationshipNotAvailable: 'Tragt ein, seit wann ihr zusammen seid.',
   relationshipSave: 'Änderungen speichern',

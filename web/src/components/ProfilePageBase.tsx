@@ -16,7 +16,6 @@ import { PreferenceCategory } from '../api/generated/models/PreferenceCategory';
 import { PreferenceSentiment } from '../api/generated/models/PreferenceSentiment';
 import type { ProfilePreferenceView } from '../api/generated/models/ProfilePreferenceView';
 import { ProfileVisibility } from '../api/generated/models/ProfileVisibility';
-import type { SpaceProfileView } from '../api/generated/models/SpaceProfileView';
 import { Configuration } from '../client/apiConfiguration';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { ProfilesApi } from '../client/mediaApis';
@@ -177,13 +176,9 @@ export function RelationshipSettingsSection({
   );
   const serverShowDuration =
     profileQuery.data?.showRelationshipDuration ?? false;
-  const serverDurationMode =
-    profileQuery.data?.durationDisplayMode ?? DurationDisplayMode.YEARS_MONTHS;
 
   const [startedOn, setStartedOn] = useState(serverStartedOn);
   const [showDuration, setShowDuration] = useState(serverShowDuration);
-  const [durationMode, setDurationMode] =
-    useState<SpaceProfileView['durationDisplayMode']>(serverDurationMode);
 
   useEffect(() => {
     if (profileQuery.data) {
@@ -191,28 +186,18 @@ export function RelationshipSettingsSection({
         relationshipDateInput(profileQuery.data.relationshipStartedOn),
       );
       setShowDuration(profileQuery.data.showRelationshipDuration ?? false);
-      setDurationMode(
-        profileQuery.data.durationDisplayMode ??
-          DurationDisplayMode.YEARS_MONTHS,
-      );
     }
   }, [profileQuery.data]);
 
   const isDirty = useMemo(() => {
     if (!profileQuery.data) return false;
-    return (
-      startedOn !== serverStartedOn ||
-      showDuration !== serverShowDuration ||
-      durationMode !== serverDurationMode
-    );
+    return startedOn !== serverStartedOn || showDuration !== serverShowDuration;
   }, [
     profileQuery.data,
     startedOn,
     showDuration,
-    durationMode,
     serverStartedOn,
     serverShowDuration,
-    serverDurationMode,
   ]);
 
   const calculatedDuration = useMemo(() => {
@@ -224,8 +209,9 @@ export function RelationshipSettingsSection({
   }, [startedOn]);
 
   const currentDurationText = useMemo(() => {
-    return formatRelationshipDuration(calculatedDuration, durationMode, t);
-  }, [calculatedDuration, durationMode, t]);
+    const text = formatRelationshipDuration(calculatedDuration, t);
+    return calculatedDuration ? `❤️ ${text}` : text;
+  }, [calculatedDuration, t]);
 
   const nextAnniversaryText = useMemo(() => {
     return formatAnniversaryDetail(nextAnniversary, t, formatDateOnly);
@@ -235,11 +221,9 @@ export function RelationshipSettingsSection({
     mutationFn: async ({
       relationshipStartedOn,
       showRelationshipDuration,
-      durationDisplayMode,
     }: {
       relationshipStartedOn: Date | null;
       showRelationshipDuration: boolean;
-      durationDisplayMode: SpaceProfileView['durationDisplayMode'];
     }) => {
       if (!profileQuery.data) return null;
       try {
@@ -250,7 +234,8 @@ export function RelationshipSettingsSection({
             relationshipStartedOn,
             showRelationshipDuration,
             durationDisplayMode:
-              durationDisplayMode ?? DurationDisplayMode.YEARS_MONTHS,
+              profileQuery.data.durationDisplayMode ??
+              DurationDisplayMode.YEARS_MONTHS,
           },
         });
       } catch (error) {
@@ -279,7 +264,6 @@ export function RelationshipSettingsSection({
         ? new Date(`${startedOn}T00:00:00.000Z`)
         : null,
       showRelationshipDuration: showDuration,
-      durationDisplayMode: durationMode,
     });
   }
 
@@ -344,30 +328,6 @@ export function RelationshipSettingsSection({
               <small>{t('profiles.relationshipDurationHelp')}</small>
             </span>
           </label>
-
-          <div className="field-group">
-            <label htmlFor="relationship-duration-mode">
-              {t('profiles.relationshipModeLabel')}
-            </label>
-            <select
-              id="relationship-duration-mode"
-              name="durationDisplayMode"
-              value={durationMode}
-              onChange={(e) => {
-                setDurationMode(
-                  e.target.value as SpaceProfileView['durationDisplayMode'],
-                );
-                setSaved(false);
-              }}
-            >
-              <option value={DurationDisplayMode.YEARS_MONTHS}>
-                {t('profiles.relationshipModeYearsMonths')}
-              </option>
-              <option value={DurationDisplayMode.DAYS}>
-                {t('profiles.relationshipModeDays')}
-              </option>
-            </select>
-          </div>
 
           {/* Relationship Preview Card */}
           <div className="relationship-preview-card">

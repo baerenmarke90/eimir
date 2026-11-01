@@ -84,7 +84,11 @@ describe('TodayPage', () => {
         id: 'space-1',
         partner: { id: 'partner-1', displayName: 'Marie' },
       },
-      relationshipDuration: { daysTogether: 420 },
+      relationshipDuration: {
+        daysTogether: 420,
+        displayMode: DurationDisplayMode.DAYS,
+        startedOn: new Date('2025-01-01T00:00:00Z'),
+      },
       upcoming: [
         {
           id: 'plan-1',
@@ -121,7 +125,7 @@ describe('TodayPage', () => {
       /<h2[^>]*class="couple-presence-title"[^>]*>Alex &amp; Marie<\/h2>/,
     );
     expect(html).toContain('Marie');
-    expect(html).toContain('420');
+    expect(html).toContain('1 Jahr, 1 Monat, 24 Tage zusammen');
     expect(html).toContain('partner-avatar-pair-action');
     expect(html).toContain('aria-controls="partner-quick-actions-sheet"');
     expect(html).toContain('Weekend trip to Paris');
@@ -1591,7 +1595,7 @@ describe('TodayPage', () => {
     });
 
     expect(html).toContain('today-hero-duration-link');
-    expect(html).toContain('3 Jahre, 2 Monate zusammen');
+    expect(html).toContain('3 Jahre, 2 Monate, 1 Tag zusammen');
     expect(html).not.toContain('today-hero-settings-link');
   });
 });
@@ -2059,112 +2063,42 @@ it('keeps the partner quick-actions trigger in the hero, unchanged by the recomp
 });
 
 describe('formatRelationshipDuration', () => {
-  it('formats DAYS mode for singular and plural', () => {
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 1,
-          displayMode: DurationDisplayMode.DAYS,
-          startedOn: new Date('2026-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('1 Tag zusammen');
-
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 1178,
-          displayMode: DurationDisplayMode.DAYS,
-          startedOn: new Date('2023-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('1178 Tage zusammen');
-  });
-
-  it('formats YEARS_MONTHS mode with singular and plural units', () => {
-    // Exactly 3 years, 2 months:
-    // start 2023-01-01, + 1156 days -> 2026-03-02
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 1156,
-          displayMode: DurationDisplayMode.YEARS_MONTHS,
-          startedOn: new Date('2023-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('3 Jahre, 2 Monate zusammen');
-
-    // 1 year, 1 month:
-    // start 2025-01-01, + 396 days -> 2026-02-01
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 396,
-          displayMode: DurationDisplayMode.YEARS_MONTHS,
-          startedOn: new Date('2025-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('1 Jahr, 1 Monat zusammen');
-  });
-
-  it('formats YEARS_MONTHS mode when months == 0', () => {
-    // Exactly 3 years, 0 months:
-    // start 2023-01-01, + 1096 days -> 2026-01-01
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 1096,
-          displayMode: DurationDisplayMode.YEARS_MONTHS,
-          startedOn: new Date('2023-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('3 Jahre zusammen');
-  });
-
-  it('formats YEARS_MONTHS mode when years == 0 and months > 0', () => {
-    // 0 years, 2 months:
-    // start 2026-01-01, + 62 days -> 2026-03-04
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 62,
-          displayMode: DurationDisplayMode.YEARS_MONTHS,
-          startedOn: new Date('2026-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('2 Monate zusammen');
-
-    // 0 years, 1 month:
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 32,
-          displayMode: DurationDisplayMode.YEARS_MONTHS,
-          startedOn: new Date('2026-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('1 Monat zusammen');
-  });
-
-  it('falls back to days when years == 0 and months == 0', () => {
-    expect(
-      formatRelationshipDuration(
-        {
-          daysTogether: 15,
-          displayMode: DurationDisplayMode.YEARS_MONTHS,
-          startedOn: new Date('2026-01-01T00:00:00Z'),
-        },
-        i18n.t,
-      ),
-    ).toBe('15 Tage zusammen');
-  });
+  it.each([DurationDisplayMode.DAYS, DurationDisplayMode.YEARS_MONTHS])(
+    'uses automatic shared time for legacy %s preferences and a server snapshot',
+    (displayMode) => {
+      const startedOn = new Date('2025-01-01T00:00:00Z');
+      expect(
+        formatRelationshipDuration(
+          { daysTogether: 1, displayMode, startedOn },
+          i18n.t,
+        ),
+      ).toBe('1 Tag zusammen');
+      expect(
+        formatRelationshipDuration(
+          { daysTogether: 364, displayMode, startedOn },
+          i18n.t,
+        ),
+      ).toBe('364 Tage zusammen');
+      expect(
+        formatRelationshipDuration(
+          { daysTogether: 365, displayMode, startedOn },
+          i18n.t,
+        ),
+      ).toBe('1 Jahr, 0 Tage zusammen');
+      expect(
+        formatRelationshipDuration(
+          { daysTogether: 395, displayMode, startedOn },
+          i18n.t,
+        ),
+      ).toBe('1 Jahr, 30 Tage zusammen');
+      expect(
+        formatRelationshipDuration(
+          { daysTogether: 396, displayMode, startedOn },
+          i18n.t,
+        ),
+      ).toBe('1 Jahr, 1 Monat, 0 Tage zusammen');
+    },
+  );
 
   describe('issue #617: keep third-party dates out of the planning area', () => {
     it('renders the shared plan in the planning area when upcoming contains a couple plan', () => {

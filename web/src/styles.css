@@ -152,6 +152,12 @@ button,
   text-decoration: none;
 }
 
+/* Canonical blue actions retain their meaning inside contextual color worlds. */
+.button-link.button-link-primary {
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
+}
+
 @media (hover: hover) and (pointer: fine) {
   button:hover:not(:disabled),
   .button-link:hover {
@@ -204,6 +210,8 @@ summary:focus-visible,
 /*
  * Text-entry controls share one surface. A native select otherwise renders at
  * its own size and reads as a different control class next to text inputs.
+ * Filled fields and persistent labels identify inputs without a decorative
+ * outline. Keyboard focus and forced-colors boundaries remain visible.
  * Checkboxes and radios are sized separately; they are not full-width fields.
  */
 input:not([type="checkbox"], [type="radio"]),
@@ -214,7 +222,7 @@ textarea {
   border: var(--border-control-width) solid var(--color-text-secondary);
   border-radius: var(--radius-medium);
   padding: 0.8rem 0.9rem;
-  background: var(--color-surface);
+  background: var(--color-surface-subtle);
   color: var(--color-text);
   transition:
     border-color var(--duration-feedback) var(--easing-standard),

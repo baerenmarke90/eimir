@@ -101,6 +101,7 @@ def test_catalog_keys_are_stable_and_unique() -> None:
         "keepsake",
         "upcoming",
         "pinned_collection",
+        "retrospective",
         "relationship_signal",
         "monthly_highlights",
         "recent_shared",
@@ -199,6 +200,7 @@ def test_missing_override_returns_effective_default_for_every_registered_module(
             {"moduleKey": "keepsake", "visible": True},
             {"moduleKey": "upcoming", "visible": True, "itemLimit": 1},
             {"moduleKey": "pinned_collection", "visible": True},
+            {"moduleKey": "retrospective", "visible": True},
             {"moduleKey": "relationship_signal", "visible": True},
             {"moduleKey": "monthly_highlights", "visible": True},
             {"moduleKey": "recent_shared", "visible": True},
@@ -670,3 +672,27 @@ def test_legacy_full_order_adds_quote_without_resetting_existing_positions(clien
     assert actual.index("daily_quote") == actual.index("shared_experience") + 1
     reloaded = _preferences(client, couple["space"].id, couple["token_a"])
     assert [item["moduleKey"] for item in reloaded.json()["items"]] == actual
+
+
+@pytest.mark.parametrize(
+    "missing", [{"retrospective"}, {"daily_quote", "shared_experience", "retrospective"}]
+)
+def test_legacy_order_inserts_rediscovery_and_preserves_independent_visibility(
+    client, couple, missing
+) -> None:  # type: ignore[no-untyped-def]
+    space_id, token = couple["space"].id, couple["token_a"]
+    _patch(client, space_id, token, "relationship_signal", {"visible": False}).raise_for_status()
+    legacy = list(reversed([key for key in ALL_MODULE_KEYS if key not in missing]))
+    result = _reorder(client, space_id, token, legacy)
+    assert result.status_code == 200, result.text
+    actual = [item["moduleKey"] for item in result.json()["items"]]
+    assert [key for key in actual if key not in missing] == legacy
+    assert actual.index("retrospective") == actual.index("pinned_collection") + 1
+    assert _item(result.json(), "relationship_signal")["visible"] is False
+    assert _item(result.json(), "retrospective")["visible"] is True
+    _patch(client, space_id, token, "retrospective", {"visible": False}).raise_for_status()
+    reloaded = _preferences(client, space_id, token).json()
+    assert _item(reloaded, "retrospective")["visible"] is False
+    partner = _preferences(client, space_id, couple["token_b"]).json()
+    assert _item(partner, "retrospective")["visible"] is True
+    assert _item(partner, "relationship_signal")["visible"] is True

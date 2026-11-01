@@ -90,3 +90,6 @@ The [final audit #946](https://github.com/baerenmarke90/eimir/issues/946) applie
 
 [Journal, map and relationship-surface polish (#1570)](references/journal-map-polish/README.md)
 records the PO follow-up to #1568, generated preflight and exact implementation evidence.
+
+[Independent Wir rediscovery and borderless inputs (#1574)](references/1574-wir-rediscovery/README.md)
+records the follow-up to Android test.37, the generated preflight and validation.

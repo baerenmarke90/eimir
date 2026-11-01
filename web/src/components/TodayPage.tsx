@@ -398,6 +398,76 @@ function TodayMomentFeature({
   return <div className="today-moment">{feature}</div>;
 }
 
+/** Daily rediscovery has its own visibility, order and section heading. */
+function TodayRetrospectiveCard({
+  item,
+  loadMemoryImage,
+}: {
+  item: DashboardItem;
+  loadMemoryImage?: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
+}) {
+  const { t } = useTranslation();
+  const path = dashboardItemPath(item.type, item.id);
+  const { title, titleIsDate } = dashboardItemTitle(item, t);
+  const rawDate = item.occurredOn ?? item.createdAt;
+  const meta = rawDate ? formatDate(rawDate) : null;
+  const previewAttachmentId = item.previewAttachmentId;
+  const hasMedia = Boolean(previewAttachmentId && loadMemoryImage);
+  const action = t('m5s5.today.living.retrospectiveAction');
+  // OpenAPI date-only values are UTC-midnight carriers, not local instants.
+  // Read their encoded calendar components without shifting historic days.
+  const date = item.occurredOn
+    ? new Intl.DateTimeFormat(resolvedLocale(), {
+        dateStyle: 'long',
+        timeZone: 'UTC',
+      }).format(item.occurredOn)
+    : meta;
+  const dateTime = item.occurredOn
+    ? item.occurredOn.toISOString().slice(0, 10)
+    : rawDate?.toISOString();
+
+  return (
+    <article className="today-living today-living-retrospective eimir-motion-lift">
+      <figure className="today-retrospective-photo">
+        {hasMedia && previewAttachmentId && loadMemoryImage ? (
+          <div className="today-retrospective-media">
+            <MemoryPreview
+              memoryId={item.id}
+              attachmentId={previewAttachmentId}
+              isSensitive={item.previewIsSensitive}
+              loadImage={loadMemoryImage}
+            />
+          </div>
+        ) : null}
+        <figcaption
+          className={`today-retrospective-caption${
+            hasMedia ? '' : ' today-retrospective-text-only'
+          }`}
+        >
+          <span className="today-retrospective-title">{title}</span>
+          {date && !titleIsDate ? (
+            <time className="today-retrospective-date" dateTime={dateTime}>
+              {date}
+            </time>
+          ) : null}
+        </figcaption>
+      </figure>
+      {path ? (
+        <TodayDestinationLink
+          to={path}
+          className="button-link button-link-primary today-retrospective-action"
+        >
+          {action}
+        </TodayDestinationLink>
+      ) : null}
+    </article>
+  );
+}
+
 /**
  * `Gerade bei euch` — the one contextual relationship module.
  *
@@ -411,12 +481,10 @@ function TodayLivingModuleCard({
   partnerName,
   partnerAvatarUrl,
   loadMemoryImage,
-  onDismissRetrospective,
 }: {
   module: LivingModule;
   partnerName: string;
   partnerAvatarUrl?: string | null;
-  onDismissRetrospective?: () => void;
   loadMemoryImage?: (
     memoryId: string,
     attachmentId: string,
@@ -488,69 +556,6 @@ function TodayLivingModuleCard({
   const meta = rawDate ? formatDate(rawDate) : null;
   const previewAttachmentId = item.previewAttachmentId;
   const hasMedia = Boolean(previewAttachmentId && loadMemoryImage);
-
-  if (kind === 'retrospective') {
-    // OpenAPI date-only values are UTC-midnight carriers, not local instants.
-    // Read their encoded calendar components without shifting historic days.
-    const date = item.occurredOn
-      ? new Intl.DateTimeFormat(resolvedLocale(), {
-          dateStyle: 'long',
-          timeZone: 'UTC',
-        }).format(item.occurredOn)
-      : meta;
-    const dateTime = item.occurredOn
-      ? item.occurredOn.toISOString().slice(0, 10)
-      : rawDate?.toISOString();
-
-    return (
-      <article className="today-living today-living-retrospective eimir-motion-lift">
-        <div className="today-retrospective-header">
-          <span className="today-living-label">{label}</span>
-          {onDismissRetrospective ? (
-            <button
-              type="button"
-              className="today-retrospective-dismiss"
-              onClick={onDismissRetrospective}
-            >
-              {t('m5s5.today.living.retrospectiveDismissToday')}
-            </button>
-          ) : null}
-        </div>
-        <figure className="today-retrospective-photo">
-          {hasMedia && previewAttachmentId && loadMemoryImage ? (
-            <div className="today-retrospective-media">
-              <MemoryPreview
-                memoryId={item.id}
-                attachmentId={previewAttachmentId}
-                isSensitive={item.previewIsSensitive}
-                loadImage={loadMemoryImage}
-              />
-            </div>
-          ) : null}
-          <figcaption
-            className={`today-retrospective-caption${
-              hasMedia ? '' : ' today-retrospective-text-only'
-            }`}
-          >
-            <span className="today-retrospective-title">{title}</span>
-            {date && !titleIsDate ? (
-              <time className="today-retrospective-date" dateTime={dateTime}>
-                {date}
-              </time>
-            ) : null}
-          </figcaption>
-        </figure>
-        {path ? (
-          <TodayDestinationLink
-            to={path}
-            className="today-retrospective-action"
-          >
-            {action}
-          </TodayDestinationLink>
-        ) : null}
-      </article>
-    );
-  }
 
   return (
     <div
@@ -917,6 +922,10 @@ export function TodayPage({
   );
   const recentShared = dashboardQuery.data?.recentShared ?? [];
   const retrospective = dashboardQuery.data?.retrospective;
+  const retrospectiveVisible = isDashboardModuleVisible(
+    dashboardPreferences,
+    'retrospective',
+  );
   const serverKeepsake = dashboardQuery.data?.keepsake;
 
   // This is local presentation state only. The authorized candidate remains
@@ -961,8 +970,10 @@ export function TodayPage({
       : null;
   const incomingId = incomingExperience?.id;
   const ordinaryShared = recentShared.filter((item) => item.id !== incomingId);
+  // A newly shared experience keeps priority over rediscovering the same source.
+  // Reserve other rediscovery sources even when their personal module is hidden.
   const retrospectiveId =
-    relationshipSignalVisible && !retrospectiveDismissed
+    !retrospectiveDismissed && retrospective?.id !== incomingId
       ? retrospective?.id
       : null;
   const focalItem = selectTodayFocalItem({
@@ -978,9 +989,9 @@ export function TodayPage({
   const livingModule = selectLivingModule({
     partnerId: partner?.id,
     activityItems: activityQuery.data?.items,
-    retrospective: retrospectiveDismissed ? null : retrospective,
     recentShared,
     excludeItemIds: [
+      ...(retrospectiveId ? [retrospectiveId] : []),
       ...(focalItem ? [focalItem.item.id] : []),
       ...(incomingId ? [incomingId] : []),
     ],
@@ -1003,6 +1014,7 @@ export function TodayPage({
    */
   const featuredIds = new Set<string>(incomingId ? [incomingId] : []);
   if (focalItem) featuredIds.add(focalItem.item.id);
+  if (retrospectiveId) featuredIds.add(retrospectiveId);
   const livingContentId = livingModuleContentId(livingModule);
   if (livingContentId) featuredIds.add(livingContentId);
 
@@ -1358,6 +1370,38 @@ export function TodayPage({
         ) : null}
       </>
     ),
+    retrospective: (
+      <>
+        {retrospectiveVisible && retrospective && retrospectiveId ? (
+          <TodayModuleSection
+            className="today-section-retrospective"
+            title={t('m5s5.today.living.retrospectiveLabel')}
+            headerAction={
+              dismissalToken ? (
+                <button
+                  type="button"
+                  className="today-retrospective-dismiss"
+                  onClick={dismissRetrospectiveToday}
+                >
+                  {t('m5s5.today.living.retrospectiveDismissToday')}
+                </button>
+              ) : undefined
+            }
+          >
+            <TodayRetrospectiveCard
+              item={retrospective}
+              loadMemoryImage={loadMemoryImage}
+            />
+          </TodayModuleSection>
+        ) : null}
+
+        {dismissedToken === dismissalToken && dismissalToken ? (
+          <span role="status" className="sr-only">
+            {t('m5s5.today.living.retrospectiveDismissed')}
+          </span>
+        ) : null}
+      </>
+    ),
     relationship_signal: (
       <>
         {/* 4. Gerade bei euch — exactly one contextual module. */}
@@ -1371,17 +1415,8 @@ export function TodayPage({
               partnerName={partnerName}
               partnerAvatarUrl={partnerAvatar.avatarUrl}
               loadMemoryImage={loadMemoryImage}
-              onDismissRetrospective={
-                dismissalToken ? dismissRetrospectiveToday : undefined
-              }
             />
           </TodayModuleSection>
-        ) : null}
-
-        {dismissedToken === dismissalToken && dismissalToken ? (
-          <span role="status" className="sr-only">
-            {t('m5s5.today.living.retrospectiveDismissed')}
-          </span>
         ) : null}
 
         {activityQuery.error && relationshipSignalVisible ? (

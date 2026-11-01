@@ -7,6 +7,37 @@ export default {
     'Dein Partner wird benachrichtigt. Der Eintrag bleibt in euren Erinnerungen.',
   history: 'Bereits geteilt',
   more: 'Mehr anzeigen',
+  prompts: {
+    progress: 'Impuls {{current}} von {{total}}',
+    answer: 'Antwort teilen',
+    next: 'Nächster Impuls',
+    happiness: {
+      first:
+        'Sagt euch eine kleine Sache, die ihr heute am anderen geschätzt habt.',
+      second:
+        'Sucht zusammen ein Lied aus und hört es ohne nebenbei aufs Handy zu schauen.',
+      third:
+        'Macht eine kleine Pause zusammen. Ein Glas Wasser, ein Tee oder einfach kurz durchatmen.',
+      fourth:
+        'Zeigt euch einen Gegenstand, mit dem ihr eine schöne gemeinsame Erinnerung verbindet.',
+      fifth: 'Erzählt euch etwas, das euch zuletzt zum Lachen gebracht hat.',
+      sixth:
+        'Überlegt euch eine kleine Sache, auf die ihr euch morgen gemeinsam freuen könnt.',
+    },
+    timeTravel: {
+      first:
+        'Was ist euch von eurem ersten gemeinsamen Ausflug im Gedächtnis geblieben?',
+      second:
+        'Denkt an einen gewöhnlichen Tag zusammen. Welches kleine Detail würdet ihr gern behalten?',
+      third:
+        'An welchem Ort würdet ihr einen gemeinsamen Moment gern noch einmal erleben?',
+      fourth:
+        'Welche gemeinsame Panne könnt ihr heute mit etwas Abstand erzählen?',
+      fifth: 'Welche kleine Gewohnheit ist mit der Zeit zu eurer geworden?',
+      sixth:
+        'Welche Erinnerung würdet ihr dem anderen gern aus eurer eigenen Sicht erzählen?',
+    },
+  },
   create: { happiness: 'Glücksmoment teilen', timeTravel: 'Erinnerung teilen' },
   write: { happiness: 'Dein Glücksmoment', timeTravel: 'Deine Erinnerung' },
   placeholder: {

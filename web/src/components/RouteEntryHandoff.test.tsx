@@ -5,6 +5,8 @@ import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
+import { StoryViewTabs } from './StoryViewTabs';
+import mapCopy from '../i18n/locales/memoryMap';
 
 afterEach(() => {
   cleanup();
@@ -21,6 +23,19 @@ function Scene() {
       <RouteEntryHandoff />
       <main>
         <h1>Current destination</h1>
+        {location.pathname === '/story/map' ? (
+          <StoryViewTabs activeView="map" onSelect={() => {}} />
+        ) : null}
+        <button
+          type="button"
+          onClick={() =>
+            navigate('/story/map', {
+              state: { taskOriginKey: captureOrigin(), focusStoryView: true },
+            })
+          }
+        >
+          Open map with keyboard
+        </button>
         <button
           type="button"
           onClick={() =>
@@ -101,4 +116,18 @@ it('does not let an in-place flag suppress handoff to a different destination', 
   );
   expect(scroll).toHaveBeenCalledWith(0, 0);
   expect(focus).toHaveBeenCalled();
+});
+
+it('preserves the selected Story tab focus when keyboard navigation carries a return origin', async () => {
+  const user = userEvent.setup();
+  setup();
+  const heading = screen.getByRole('heading');
+  const focus = vi.spyOn(heading, 'focus');
+  await user.click(
+    screen.getByRole('button', { name: 'Open map with keyboard' }),
+  );
+  expect(document.activeElement).toBe(
+    screen.getByRole('tab', { name: mapCopy.entry }),
+  );
+  expect(focus).not.toHaveBeenCalled();
 });

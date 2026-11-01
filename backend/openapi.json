@@ -262,6 +262,14 @@
         "title": "ActivityPage",
         "type": "object"
       },
+      "ActivityScope": {
+        "enum": [
+          "shared",
+          "own"
+        ],
+        "title": "ActivityScope",
+        "type": "string"
+      },
       "ActivityTargetPresentation": {
         "properties": {
           "targetId": {
@@ -4052,6 +4060,23 @@
           "placeName": {
             "title": "Placename",
             "type": "string"
+          },
+          "previewAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previewattachmentid"
+          },
+          "previewIsSensitive": {
+            "default": false,
+            "title": "Previewissensitive",
+            "type": "boolean"
           },
           "title": {
             "title": "Title",
@@ -17006,6 +17031,15 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ActivityScope",
+              "default": "shared"
             }
           }
         ],

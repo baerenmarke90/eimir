@@ -130,6 +130,7 @@ export function MemoryPhotoGallery({
   scope,
   offline,
   loadImage,
+  commentTriggerRef,
 }: {
   memory: MemoryDetail;
   apis: ReferenceApis;
@@ -137,6 +138,7 @@ export function MemoryPhotoGallery({
   scope: string;
   offline: boolean;
   loadImage: (attachmentId: string, signal?: AbortSignal) => Promise<string>;
+  commentTriggerRef?: (element: HTMLSpanElement | null) => void;
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -252,19 +254,22 @@ export function MemoryPhotoGallery({
         }
         renderPhotoActions={(item, openFullScreen, revealed) =>
           item.mediaType === 'IMAGE' ? (
-            <PhotoActions
-              key={`${scope}:${item.id}`}
-              request={request.id === item.id ? request.sequence : 0}
-              onRequestHandled={clearRequest}
-              reactions={
-                photos.find((photo) => photo.id === item.id)?.reactions ?? []
-              }
-              disabled={offline}
-              saving={mutation.isPending}
-              onReact={(reaction) => react(item.id, reaction)}
-              openFullScreen={openFullScreen}
-              revealed={revealed}
-            />
+            <>
+              <span className="media-comment-action" ref={commentTriggerRef} />
+              <PhotoActions
+                key={`${scope}:${item.id}`}
+                request={request.id === item.id ? request.sequence : 0}
+                onRequestHandled={clearRequest}
+                reactions={
+                  photos.find((photo) => photo.id === item.id)?.reactions ?? []
+                }
+                disabled={offline}
+                saving={mutation.isPending}
+                onReact={(reaction) => react(item.id, reaction)}
+                openFullScreen={openFullScreen}
+                revealed={revealed}
+              />
+            </>
           ) : null
         }
         renderPhotoReactions={(item) => {

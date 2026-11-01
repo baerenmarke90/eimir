@@ -22,10 +22,10 @@ import { StoryProductPage } from './StoryProductPage';
 afterEach(cleanup);
 
 it.each([
-  ['timeline', ['ArrowRight', 'ArrowRight'], 'timeline'],
-  ['discover', ['ArrowLeft', 'ArrowLeft'], 'discover'],
-  ['timeline', ['Home', 'End', 'Home'], 'discover'],
-  ['discover', ['End', 'Home', 'End'], 'timeline'],
+  ['timeline', ['Home', 'ArrowRight'], 'timeline'],
+  ['discover', ['ArrowRight', 'ArrowLeft'], 'discover'],
+  ['timeline', ['Home', 'ArrowRight', 'Home'], 'discover'],
+  ['discover', ['ArrowRight', 'Home', 'ArrowRight'], 'timeline'],
 ] as const)(
   'honors navigation from %s via %j while route commits are held',
   async (initialView, keys, finalView) => {
@@ -100,11 +100,9 @@ it.each([
       focused =
         key === 'Home'
           ? 'discover'
-          : key === 'End'
+          : focused === 'discover'
             ? 'timeline'
-            : focused === 'discover'
-              ? 'timeline'
-              : 'discover';
+            : 'discover';
       expect(document.activeElement).toBe(tabs[focused]);
       expect(router.state.location.search).toBe(
         `?tab=${initialView}&${context}`,

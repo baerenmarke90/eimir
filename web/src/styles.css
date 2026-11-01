@@ -211,7 +211,7 @@ select,
 textarea {
   width: 100%;
   min-height: 48px;
-  border: var(--border-surface-width) solid var(--color-border);
+  border: var(--border-control-width) solid var(--color-text-secondary);
   border-radius: var(--radius-medium);
   padding: 0.8rem 0.9rem;
   background: var(--color-surface);

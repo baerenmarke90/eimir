@@ -261,7 +261,7 @@ const de = {
       'Die neue Auswahl konnte nicht geladen werden. Eure bisherige Auswahl bleibt hier.',
     discoverHeading: 'Wiederentdecken',
     discoverSubhead: 'Kleine Momente, die für immer geblieben sind.',
-    tabDiscover: 'Entdecken',
+    tabDiscover: 'Erinnerungen',
     tabTimeline: 'Tagebuch',
     viewToggleAria: 'Ansicht wählen',
     browseTitle: 'Durchstöbern',

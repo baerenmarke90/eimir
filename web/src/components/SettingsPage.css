@@ -712,3 +712,16 @@
     grid-row: 2;
   }
 }
+.settings-pro-information {
+  padding-block: var(--space-4);
+  border-block-end: var(--border-surface-width) solid var(--color-border-subtle);
+}
+.settings-pro-information ul {
+  display: grid;
+  gap: var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+.settings-pro-information li p {
+  margin-block: var(--space-1) 0;
+}

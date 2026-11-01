@@ -36,7 +36,7 @@ import {
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   MORE_PASSPORT_ROUTE,
-  MORE_PROFILE_ROUTE,
+  PRO_INFORMATION_ROUTE,
   MEMORY_CREATE_ROUTE,
   recapDetailPath,
 } from '../client/routes';
@@ -347,9 +347,7 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
           <section className="recap-gate">
             <h2>{t('recaps.gateTitle')}</h2>
             <p>{t('recaps.gateBody')}</p>
-            <Link to={`${MORE_PROFILE_ROUTE}#profile-premium`}>
-              {t('recaps.gateLink')}
-            </Link>
+            <Link to={PRO_INFORMATION_ROUTE}>{t('recaps.gateLink')}</Link>
           </section>
         ) : null}
         {editions.length > 0 ? (

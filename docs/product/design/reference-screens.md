@@ -131,6 +131,17 @@ Light and Dark both retain clear dates, scope and readable prose. Dark photos ke
 
 **Acceptance journey:** choose a year/type in Timeline, load/open an older text/photo item and return to the same scope/position; switch to unfiltered Discover and back to restored Timeline; create, observe and find a result; test no-match, paging error, long text and private exclusion.
 
+### Product Owner follow-up #1570
+
+Memories, Diary and Map are three peer modes with one shared selector. The canonical
+map route retains non-sensitive Diary filters through selection and source return.
+Place the Diary filter action beside its first visible month, with an empty/loading
+fallback. Overview cards omit author avatars; canonical details retain authorship.
+Map markers show authorized photo previews and memory-count badges, with equivalent
+photo/source browsing below. Conceal sensitive media and retain text-only/error
+fallbacks and provider attribution. The shared resolved appearance controls map
+pixels and controls; there is no separate map preference.
+
 ## R3 — Planen
 
 ### Human outcome and hierarchy
@@ -198,6 +209,14 @@ Use a restrained focal tint and neutral agenda surfaces in Light/Dark. Dates, ra
 | 7 | Grouped story summary | Quiet closing reflection with truthful counts and correct destinations |
 
 Preserve the accepted Today orchestration and selection/preferences. A feature does not earn a permanent slot because it exists. Irrelevant modules disappear. Current, next and rediscovery have different shapes and weights; no equal widgets, dashboard builder or placeholder grid. The existing Account-and-Space-scoped Settings preference may reorder or hide supported modules without changing the partner's view; hidden modules keep their place and new modules receive a stable default place. This does not turn the Today reading surface into a widget editor. Optional Vibe/Energy and Daily Quote follow their own configuration and entitlement contracts; they do not change the default order of the supported modules.
+
+**PO follow-up #1570:** The existing rediscovery slot is eligible daily when
+shared historic content exists. Prefer exact anniversaries; otherwise rotate a
+bounded authorized pool with one stable Space/day choice. This explicit request
+supersedes the former one-weekday fallback and partner-signal-first priority for
+that slot. Preserve personal visibility/dismissal, privacy and source navigation;
+avoid duplicating the selected source in the focal region or monthly highlights.
+Do not add a second widget stack or infer an engagement score.
 
 ### Mobile interaction contract and continuity
 
@@ -284,3 +303,10 @@ Each reference's composition must remain complete with sparse content and unders
 These references preserve existing product entities, authorization, Free/Core/Premium boundaries, data ownership and Cloud/Self-Hosted behavior. Privacy, accessibility, recovery and essential export remain non-paywallable. Durable drafts, new media types/derivatives, new reminder channels and unsupported native features need separate owning scope and resource/privacy review.
 
 After F1/F2, the accepted sequence is R1 → R2 → R3 → R4 → R5, followed by bounded propagation and retirement in the [roadmap](implementation-roadmap.md). Historical audit trust findings remain gates until resolved; approving these references does not declare runtime compliance or complete final product audit #946.
+
+### Pro information destination (#1570)
+
+Pro information belongs to Settings > App and Account. Profile remains personal.
+Current capability groups and the shared Space entitlement are explained there;
+Pro discovery links and the old Profile anchor resolve to the same destination.
+This is information placement, not a new capability or billing surface.

@@ -766,6 +766,25 @@
   box-sizing: border-box;
 }
 
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .mobile-bottom-shell {
+    background: color-mix(
+      in srgb,
+      var(--color-surface-overlay) var(--navigation-surface-opacity),
+      transparent
+    );
+    -webkit-backdrop-filter: blur(var(--navigation-backdrop-blur));
+    backdrop-filter: blur(var(--navigation-backdrop-blur));
+  }
+}
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .mobile-bottom-shell {
+    background: var(--color-surface-overlay);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 .mobile-bottom-shell .mobile-bottom-nav {
   display: contents;
 }
@@ -811,7 +830,7 @@
   gap: var(--space-1);
   padding: var(--space-1) 2px;
   border-radius: var(--radius-large);
-  color: var(--color-text-secondary);
+  color: var(--color-text);
   font-size: 0.8rem;
   font-weight: 550;
   line-height: 1.15;

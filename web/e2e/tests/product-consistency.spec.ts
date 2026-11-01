@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import planningCopy from '../../src/i18n/locales/m5s3';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import copy from '../../src/i18n/locales/photoPlaces';
@@ -253,7 +254,7 @@ for (const theme of ['light', 'dark'])
     const gate = new Promise<void>((resolve) => {
       release = resolve;
     });
-    await page.route('**/api/v1/auth/me', async (route) => {
+    await page.route(/\/api\/v1\/auth\/(me|memberships)$/, async (route) => {
       await gate;
       await route.fallback();
     });
@@ -278,6 +279,118 @@ for (const theme of ['light', 'dark'])
     await captureScreenshot(page, info, `startup-${theme}-390.png`);
     release();
     await expect(startup).toHaveCount(0);
+  });
+
+for (const [width, theme] of [
+  [360, 'light'],
+  [390, 'dark'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const)
+  test(`Wir restores saved content and module choices before slow background reads: ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await installMocks(page);
+    let delay = false;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route('**/api/v1/auth/me', async (route) => {
+      if (delay) await gate;
+      await route.fallback();
+    });
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/dashboard/preferences`,
+      async (route) => {
+        if (delay) await gate;
+        await route.fulfill({
+          json: {
+            items: DASHBOARD_MODULE_KEYS.map((moduleKey) => ({
+              moduleKey,
+              visible: moduleKey !== 'relationship_presence',
+            })),
+          },
+        });
+      },
+    );
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/dashboard`,
+      async (route) => {
+        const revalidating = delay;
+        if (delay) await gate;
+        await route.fulfill({
+          json: {
+            space: {
+              spaceId: SPACE_ID,
+              partner: { id: 'partner', displayName: 'Alex' },
+            },
+            relationshipDuration: null,
+            retrospective: null,
+            recentShared: [],
+            sharedStorySummary: { memories: 0, heartMoments: 0, milestones: 0 },
+            viewerLocalDate: '2026-09-17',
+            upcoming: [
+              {
+                id: 'startup-plan',
+                type: 'PLAN',
+                titleOrText: revalidating
+                  ? 'Fresh afternoon together'
+                  : 'Saved afternoon together',
+                scheduledOn: '2026-09-19',
+                scheduledAt: null,
+                occurredOn: null,
+                createdAt: '2026-09-17T12:00:00Z',
+              },
+            ],
+          },
+        });
+      },
+    );
+    await signIn(page);
+    await page.goto('/today');
+    await expect(
+      page.getByText('Saved afternoon together', { exact: true }),
+    ).toBeVisible();
+    delay = true;
+    try {
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect(
+        page.getByText('Saved afternoon together', { exact: true }),
+      ).toBeVisible();
+      await expect(page.locator('.overview-cache-notice')).toBeVisible();
+      await expect(page.locator('.today-hero')).toHaveCount(0);
+      await expect(page.locator('.branded-startup')).toHaveCount(0);
+      await expect(page.locator('.today-page .ui-state')).toHaveCount(0);
+      await captureScreenshot(
+        page,
+        info,
+        `wir-background-start-${width}-${theme}.png`,
+        { fullPage: true },
+      );
+    } finally {
+      release();
+    }
+    await expect(
+      page.getByText('Fresh afternoon together', { exact: true }),
+    ).toBeVisible();
+    await expect(page.locator('.overview-cache-notice')).toHaveCount(0);
+    await expect(page.locator('.today-hero')).toHaveCount(0);
+
+    // Even with a saved overview, a current denial cannot authorize a cold start.
+    await page.route('**/api/v1/auth/memberships', (route) =>
+      route.fulfill({
+        status: 403,
+        json: { code: 'ACCESS_DENIED', title: 'Access denied' },
+      }),
+    );
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(
+      page.getByText('Fresh afternoon together', { exact: true }),
+    ).toHaveCount(0);
+    await expect(page.locator('.today-content')).toHaveCount(0);
   });
 
 test('a manually created map Place survives a failed relation and retries only its unfinished assignment', async ({

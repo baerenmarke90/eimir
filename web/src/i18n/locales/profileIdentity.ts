@@ -143,9 +143,9 @@ const profileIdentity = {
   settingsData: 'Daten und Portabilität',
   settingsDataIntro:
     'Exportiere deine Daten oder importiere unterstützte Inhalte mit den bestehenden Prüfungen.',
-  settingsAccount: 'Konto und gemeinsamer Bereich',
+  settingsAccount: 'App und Konto',
   settingsAccountIntro:
-    'Verlassen des gemeinsamen Bereichs und Löschen deines Kontos bleiben getrennte, bewusst bestätigte Aktionen.',
+    'eimir. Pro und dein Konto. Eure gemeinsamen Inhalte bleiben geschützt.',
   settingsBackToMore: 'Zurück zu Mehr',
   settingsBackToIndex: 'Zurück zu Einstellungen',
   settingsSensitiveEyebrow: 'Mit Bedacht',

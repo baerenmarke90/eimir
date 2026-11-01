@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { i18n } from '../i18n';
 import {
   calculateNextAnniversary,
   calculateRelationshipDuration,
@@ -113,37 +114,45 @@ describe('calculateRelationshipDuration', () => {
 });
 
 describe('formatRelationshipDuration', () => {
-  const mockT = (key: string, values?: Record<string, unknown>) => {
-    if (key === 'profiles.relationshipDays') return `${values?.days} Tage`;
-    if (key === 'profiles.relationshipYearsMonths')
-      return `${values?.years} Jahre, ${values?.months} Monate`;
-    if (key === 'profiles.relationshipNotAvailable') return 'not-available';
-    return key;
-  };
-
-  it('formats null duration as not available', () => {
-    expect(formatRelationshipDuration(null, 'YEARS_MONTHS', mockT)).toBe(
-      'not-available',
+  it('formats a missing duration as unavailable', () => {
+    expect(formatRelationshipDuration(null, i18n.t)).toBe(
+      i18n.t('profiles.relationshipNotAvailable'),
     );
   });
 
-  it('formats days mode', () => {
-    expect(
-      formatRelationshipDuration(
-        { days: 450, years: 1, months: 2 },
-        'DAYS',
-        mockT,
-      ),
-    ).toBe('❤️ 450 Tage');
+  it.each([
+    ['2025-01-15', '2025-01-15', '0 Tage zusammen'],
+    ['2025-01-15', '2025-01-16', '1 Tag zusammen'],
+    ['2025-01-15', '2026-01-14', '364 Tage zusammen'],
+    ['2025-01-15', '2026-01-15', '1 Jahr, 0 Tage zusammen'],
+    ['2025-01-15', '2026-01-16', '1 Jahr, 1 Tag zusammen'],
+    ['2025-01-15', '2026-02-14', '1 Jahr, 30 Tage zusammen'],
+    ['2025-01-15', '2026-02-15', '1 Jahr, 1 Monat, 0 Tage zusammen'],
+    ['2025-01-15', '2026-02-16', '1 Jahr, 1 Monat, 1 Tag zusammen'],
+    ['2023-01-15', '2026-03-17', '3 Jahre, 2 Monate, 2 Tage zusammen'],
+    ['2023-01-15', '2026-01-17', '3 Jahre, 2 Tage zusammen'],
+    ['2024-02-29', '2025-02-27', '364 Tage zusammen'],
+    ['2024-02-29', '2025-02-28', '1 Jahr, 0 Tage zusammen'],
+    ['2024-02-29', '2025-03-01', '1 Jahr, 1 Tag zusammen'],
+    ['2024-02-29', '2025-03-29', '1 Jahr, 1 Monat, 0 Tage zusammen'],
+    ['2024-01-31', '2025-02-28', '1 Jahr, 1 Monat, 0 Tage zusammen'],
+    ['2024-01-31', '2025-03-01', '1 Jahr, 1 Monat, 1 Tag zusammen'],
+    ['2024-01-31', '2025-03-31', '1 Jahr, 2 Monate, 0 Tage zusammen'],
+    ['2023-12-31', '2025-01-01', '1 Jahr, 1 Tag zusammen'],
+  ])('formats %s to %s as %s', (start, end, expected) => {
+    const duration = calculateRelationshipDuration(start, new Date(end));
+    expect(formatRelationshipDuration(duration, i18n.t)).toBe(expected);
   });
 
-  it('formats years and months mode', () => {
-    expect(
-      formatRelationshipDuration(
-        { days: 450, years: 1, months: 2 },
-        'YEARS_MONTHS',
-        mockT,
-      ),
-    ).toBe('❤️ 1 Jahre, 2 Monate');
+  it('counts calendar days independently of daylight-saving clock changes', () => {
+    const start = '2025-03-29T00:00:00Z';
+    const end = new Date('2026-03-30T23:00:00Z');
+    const duration = calculateRelationshipDuration(start, end);
+    expect(duration).toEqual({
+      days: 366,
+      years: 1,
+      months: 0,
+      remainingDays: 1,
+    });
   });
 });

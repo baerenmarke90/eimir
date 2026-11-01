@@ -394,7 +394,7 @@ describe('StoryProductPage', () => {
     });
   });
 
-  it('shows only the first name in Discover attribution, never the full display name (#791 second follow-up)', () => {
+  it('omits author avatars and names in the Memories overview', () => {
     const html = renderStoryPage('/story', {
       items: [
         {
@@ -430,16 +430,16 @@ describe('StoryProductPage', () => {
       nextCursor: null,
     });
 
-    // Discover keeps author identity on the avatar without visible prose.
+    // Overview identity stays in the canonical detail.
     expect(html).not.toContain('>von Alex</span>');
     expect(html).not.toContain('>von Lea</span>');
     expect(html).not.toContain('class="sr-only">von Alex</span>');
     expect(html).not.toContain('class="sr-only">von Lea</span>');
-    expect(html).toContain('role="img" aria-label="Alex Winter"');
-    expect(html).toContain('role="img" aria-label="Lea Sommer"');
+    expect(html).not.toContain('role="img" aria-label="Alex Winter"');
+    expect(html).not.toContain('role="img" aria-label="Lea Sommer"');
   });
 
-  it('uses avatar-only attribution for the current account in Discover (#1064)', () => {
+  it('omits the current account avatar in the Memories overview', () => {
     const html = renderStoryPage('/story', {
       items: [
         {
@@ -466,7 +466,7 @@ describe('StoryProductPage', () => {
       de.story.byAuthor.replace('{{author}}', de.story.authorSelf),
     );
     expect(html).not.toContain('class="sr-only">von Alex</span>');
-    expect(html).toContain('role="img" aria-label="Alex Winter"');
+    expect(html).not.toContain('role="img" aria-label="Alex Winter"');
   });
 
   it('renders timeline view when requested via query parameter', () => {
@@ -537,7 +537,7 @@ describe('StoryProductPage', () => {
     expect(html).toContain('Moved in together');
     expect(html).not.toContain('momente-diary-title');
     expect(html).not.toContain('momente-discover-title');
-    expect(html).toContain(storyProducts.storyFilters.toggleButton);
+    expect(html).not.toContain(storyProducts.storyFilters.toggleButton);
     expect(html).toContain('role="tablist"');
   });
 

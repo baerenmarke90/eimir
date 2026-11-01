@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import mapCopy from '../../src/i18n/locales/memoryMap';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -300,6 +301,7 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
     ]);
     const discoverTab = page.getByRole('tab', { name: de.story.tabDiscover });
     const diaryTab = page.getByRole('tab', { name: de.story.tabTimeline });
+    const mapTab = page.getByRole('tab', { name: mapCopy.entry, exact: true });
     await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
     await expect(diary).toBeHidden();
     await expect(discover.getByText('A complete diary day')).toHaveCount(0);
@@ -350,15 +352,18 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
     await expect(discoverTab).toHaveAttribute('tabindex', '0');
     await expect(diaryTab).toHaveAttribute('tabindex', '-1');
     await discoverTab.press('End');
-    await expect(diaryTab).toBeFocused();
-    await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
-    await diaryTab.press('Home');
+    await expect(mapTab).toBeFocused();
+    await expect(mapTab).toHaveAttribute('aria-selected', 'true');
+    await mapTab.press('Home');
     await expect(discoverTab).toBeFocused();
     await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
     await discoverTab.press('ArrowRight');
     await expect(diaryTab).toBeFocused();
     await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
     await diaryTab.press('ArrowRight');
+    await expect(mapTab).toBeFocused();
+    await expect(mapTab).toHaveAttribute('aria-selected', 'true');
+    await mapTab.press('ArrowRight');
     await expect(discoverTab).toBeFocused();
     await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
 
@@ -366,7 +371,7 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
     // the tab that actually has focus, including the reversal to the old view.
     await discoverTab.evaluate((tab) => {
       tab.focus();
-      for (let index = 0; index < 2; index++) {
+      for (let index = 0; index < 3; index++) {
         document.activeElement?.dispatchEvent(
           new KeyboardEvent('keydown', {
             key: 'ArrowRight',
@@ -421,7 +426,8 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
       ['diary', diaryTab],
     ] as const) {
       await tab.click();
-      await tab.press(view === 'discover' ? 'Home' : 'End');
+      await tab.press('Home');
+      if (view === 'diary') await discoverTab.press('ArrowRight');
       await expect(tab).toBeFocused();
       await expect(tab).toHaveAttribute('aria-selected', 'true');
       await captureEvidence(

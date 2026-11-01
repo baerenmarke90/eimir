@@ -50,3 +50,19 @@
 .place-map-viewport .leaflet-control-attribution a {
   color: var(--color-link-text);
 }
+
+/* Only tile pixels change scheme; authored previews, markers and attribution do not. */
+:root[data-theme="dark"] .place-map-viewport .leaflet-tile-pane {
+  filter: var(--map-dark-tile-filter);
+}
+.place-map-viewport.leaflet-container,
+.place-map-viewport .leaflet-control-zoom a {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.place-map-viewport .leaflet-control-zoom a:hover {
+  background: var(--color-surface-subtle);
+}
+.place-map-viewport .leaflet-control-zoom {
+  border-color: var(--color-border);
+}

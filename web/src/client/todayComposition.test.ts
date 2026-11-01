@@ -106,13 +106,10 @@ describe('selectLivingModule', () => {
       recentShared: [wish, plan, milestone],
     });
 
-    expect(result).toEqual({
-      kind: 'partner_signal',
-      activityItem: comment(),
-    });
+    expect(result).toEqual({ kind: 'retrospective', item: retrospective });
   });
 
-  it('prefers the partner signal, then the retrospective, then wish, plan, milestone', () => {
+  it('prefers daily rediscovery, then partner signals and planning fallbacks', () => {
     const chain = [
       {
         input: {
@@ -120,7 +117,7 @@ describe('selectLivingModule', () => {
           retrospective,
           recentShared: [wish],
         },
-        expected: 'partner_signal',
+        expected: 'retrospective',
       },
       {
         input: { activityItems: [], retrospective, recentShared: [wish] },
@@ -273,7 +270,7 @@ describe('selectLivingModule', () => {
         comment({ id: 'a1', targetId: featured }),
         comment({ id: 'a2', targetId: 'mem-other' }),
       ],
-      retrospective,
+      retrospective: null,
       recentShared: [wish],
       excludeItemIds: [featured],
     });
@@ -288,7 +285,7 @@ describe('selectLivingModule', () => {
     const result = selectLivingModule({
       partnerId: PARTNER_ID,
       activityItems: [comment({ targetId: 'mem-other' })],
-      retrospective,
+      retrospective: null,
       recentShared: [wish, plan, milestone],
       excludeItemIds: ['mem-featured'],
     });
@@ -312,7 +309,7 @@ describe('selectLivingModule', () => {
     const result = selectLivingModule({
       partnerId: PARTNER_ID,
       activityItems: [comment({ targetId: null })],
-      retrospective,
+      retrospective: null,
       recentShared: [],
       excludeItemIds: ['mem-featured'],
     });

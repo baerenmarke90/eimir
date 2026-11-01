@@ -1,4 +1,3 @@
-import { ListEntryIconButton } from './ListEntryActions';
 import {
   type QueryClient,
   type QueryKey,
@@ -8,7 +7,8 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import type { FormEvent } from 'react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type {
   CommentsApi,
   DeleteCommentRequest,
@@ -38,6 +38,7 @@ import {
 import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentEditor } from './CommentEditor';
+import { ListEntryIconButton } from './ListEntryActions';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 
@@ -135,6 +136,7 @@ interface CommentsPanelProps {
   currentAccountId: string;
   canComment: boolean;
   offline: boolean;
+  triggerContainer?: HTMLElement | null;
 }
 
 export function CommentsPanel(props: CommentsPanelProps) {
@@ -159,11 +161,21 @@ function CommentsPanelContent({
   currentAccountId,
   canComment,
   offline,
+  triggerContainer,
 }: CommentsPanelProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const wasComposerOpen = useRef(false);
+  useEffect(() => {
+    if (composerOpen) inputRef.current?.focus();
+    else if (wasComposerOpen.current)
+      triggerRef.current?.focus({ preventScroll: true });
+    wasComposerOpen.current = composerOpen;
+  }, [composerOpen]);
   const [commentDraft, setCommentDraft] = useState('');
   const commentDraftRef = useRef('');
   const commentDraftRevisionRef = useRef(0);
@@ -309,6 +321,31 @@ function CommentsPanelContent({
     );
   const headingId = `${parentKind}-comments-heading`;
   const formId = `${parentKind}-${parentId}-comment-form`;
+  const trigger =
+    canComment && !offline && !composerOpen ? (
+      <button
+        ref={triggerRef}
+        type="button"
+        className={`comment-compose-trigger ${triggerContainer ? 'media-overlay' : 'tertiary'}`}
+        aria-controls={formId}
+        aria-expanded="false"
+        aria-label={t('comments.send')}
+        title={t('comments.send')}
+        onClick={() => setComposerOpen(true)}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+        </svg>
+      </button>
+    ) : null;
 
   return (
     <section
@@ -453,28 +490,7 @@ function CommentsPanelContent({
         </button>
       ) : null}
 
-      {canComment && !offline && !composerOpen ? (
-        <button
-          type="button"
-          className="comment-compose-trigger tertiary"
-          aria-controls={formId}
-          aria-expanded="false"
-          onClick={() => setComposerOpen(true)}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
-          </svg>
-          <span>{t('comments.send')}</span>
-        </button>
-      ) : null}
+      {triggerContainer ? createPortal(trigger, triggerContainer) : trigger}
 
       {canComment && !offline && composerOpen ? (
         <form
@@ -489,6 +505,7 @@ function CommentsPanelContent({
             {t('comments.inputLabel')}
           </label>
           <textarea
+            ref={inputRef}
             id={`${parentKind}-${parentId}-comment`}
             name="comment"
             rows={3}

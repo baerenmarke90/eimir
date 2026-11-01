@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import 'leaflet/dist/leaflet.css';
 import { useTranslation } from '../i18n';
 import './PlaceMapPicker.css';
@@ -13,6 +14,7 @@ export interface MapLocation extends MapPoint {
   id: string;
   label: string;
   count: number;
+  preview?: ReactNode;
 }
 
 export default function PlaceMapCanvas({
@@ -37,9 +39,14 @@ export default function PlaceMapCanvas({
   const [tileError, setTileError] = useState(false);
   const tileLayer = useRef<L.TileLayer | null>(null);
   const initialPoint = useRef(value);
+  const [markerHosts, setMarkerHosts] = useState<
+    { id: string; host: HTMLElement; preview: ReactNode }[]
+  >([]);
+  const fittedGeometry = useRef('');
 
   useEffect(() => {
     if (!container.current) return;
+    fittedGeometry.current = '';
     const point = initialPoint.current;
     const map = L.map(container.current, {
       zoomControl: false,
@@ -105,28 +112,44 @@ export default function PlaceMapCanvas({
     const map = mapRef.current;
     if (!map || !locations?.length) return;
     const layer = L.layerGroup().addTo(map);
+    const hosts = [];
     for (const location of locations) {
+      const content = document.createElement('span');
+      content.className = 'memory-map-marker-content';
+      const host = document.createElement('span');
+      host.className = 'memory-map-marker-photo';
+      content.append(host);
+      hosts.push({ id: location.id, host, preview: location.preview });
       const label = document.createElement('span');
+      label.className = 'memory-map-marker-count';
       label.textContent = String(location.count);
-      L.marker([location.latitude, location.longitude], {
+      content.append(label);
+      const marker = L.marker([location.latitude, location.longitude], {
         title: location.label,
         alt: location.label,
         icon: L.divIcon({
-          html: label,
+          html: content,
           className: 'memory-map-marker',
-          iconSize: [44, 44],
-          iconAnchor: [22, 22],
+          iconSize: [56, 56],
+          iconAnchor: [28, 28],
         }),
       })
         .on('click', () => locationSelectRef.current?.(location.id))
         .addTo(layer);
+      marker.getElement()?.setAttribute('aria-label', location.label);
     }
-    map.fitBounds(
-      L.latLngBounds(
-        locations.map((point) => [point.latitude, point.longitude]),
-      ),
-      { padding: [24, 24], maxZoom: 14, animate: false },
+    setMarkerHosts(hosts);
+    const geometry = JSON.stringify(
+      locations.map(({ id, latitude, longitude }) => [id, latitude, longitude]),
     );
+    if (fittedGeometry.current !== geometry)
+      map.fitBounds(
+        L.latLngBounds(
+          locations.map((point) => [point.latitude, point.longitude]),
+        ),
+        { padding: [24, 24], maxZoom: 14, animate: false },
+      );
+    fittedGeometry.current = geometry;
     return () => {
       layer.remove();
     };
@@ -134,6 +157,9 @@ export default function PlaceMapCanvas({
 
   return (
     <div className="place-map-canvas">
+      {markerHosts.map(({ id, host, preview }) =>
+        createPortal(preview, host, id),
+      )}
       <div
         ref={container}
         className="place-map-viewport"

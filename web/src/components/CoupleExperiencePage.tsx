@@ -3,7 +3,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { MemoriesApi } from '../api/generated/apis/MemoriesApi';
@@ -11,6 +11,10 @@ import type { MemoryPage } from '../api/generated/models/MemoryPage';
 import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
 import { ExperienceKind } from '../api/generated/models/ExperienceKind';
 import { Configuration } from '../client/apiConfiguration';
+import {
+  COUPLE_EXPERIENCE_PROMPT_IDS,
+  isCoupleExperiencePromptId,
+} from '../client/coupleExperiencePrompts';
 import { loadGameParticipants } from '../client/gameParticipants';
 import { normalizeClientError } from '../client/problemDetails';
 import {
@@ -29,6 +33,53 @@ import { UiState } from './UiState';
 import './CoupleExperiences.css';
 
 type Experience = 'happiness' | 'timeTravel';
+
+function ExperiencePrompts({
+  kind,
+  route,
+}: {
+  kind: Experience;
+  route: string;
+}) {
+  const { t } = useTranslation();
+  const [index, setIndex] = useState(0);
+  const id = COUPLE_EXPERIENCE_PROMPT_IDS[index];
+  return (
+    <section
+      className="couple-experience-prompts"
+      aria-labelledby="experience-prompt-heading"
+    >
+      <p className="eyebrow">
+        {t('coupleExperiences.prompts.progress', {
+          current: index + 1,
+          total: COUPLE_EXPERIENCE_PROMPT_IDS.length,
+        })}
+      </p>
+      <h2 id="experience-prompt-heading" aria-live="polite" aria-atomic="true">
+        {t(`coupleExperiences.prompts.${kind}.${id}`)}
+      </h2>
+      <div className="form-actions">
+        <TaskOriginLink
+          className="button-link"
+          to={`${route}/new?prompt=${id}`}
+        >
+          {t('coupleExperiences.prompts.answer')}
+        </TaskOriginLink>
+        <button
+          type="button"
+          className="secondary"
+          onClick={() =>
+            setIndex(
+              (value) => (value + 1) % COUPLE_EXPERIENCE_PROMPT_IDS.length,
+            )
+          }
+        >
+          {t('coupleExperiences.prompts.next')}
+        </button>
+      </div>
+    </section>
+  );
+}
 
 export function CoupleExperiencePage({
   kind,
@@ -72,6 +123,10 @@ export function CoupleExperiencePage({
       : ExperienceKind.TIME_TRAVEL;
   const route = kind === 'happiness' ? HAPPINESS_ROUTE : TIME_TRAVEL_ROUTE;
   const creating = location.pathname === `${route}/new`;
+  const requestedPrompt = new URLSearchParams(location.search).get('prompt');
+  const prompt = isCoupleExperiencePromptId(requestedPrompt)
+    ? t(`coupleExperiences.prompts.${kind}.${requestedPrompt}`)
+    : undefined;
   const scope = [apiBaseUrl, accountId, spaceId];
   const entitlement = useQuery({
     queryKey: ['couple-experience-entitlement', ...scope],
@@ -162,6 +217,7 @@ export function CoupleExperiencePage({
         accountId={accountId}
         spaceId={spaceId}
         experienceKind={origin}
+        experiencePrompt={prompt}
         partnerName={partner?.displayName}
         onSaved={async () => {
           await client.invalidateQueries({
@@ -179,13 +235,20 @@ export function CoupleExperiencePage({
         titleAction={<ProMark label={t('coupleExperiences.pro')} />}
       />
       {state ?? (
+        <ExperiencePrompts
+          key={`${apiBaseUrl}:${accountId}:${spaceId}:${kind}`}
+          kind={kind}
+          route={route}
+        />
+      )}
+      {state === null ? (
         <TaskOriginLink
           className="button-link experience-create-action"
           to={`${route}/new`}
         >
           {t(`coupleExperiences.create.${kind}`)}
         </TaskOriginLink>
-      )}
+      ) : null}
       {!creating ? (
         <section
           className="couple-experience-history"
@@ -218,6 +281,13 @@ export function CoupleExperiencePage({
                           <span className="couple-experience-author">
                             {entry.author.displayName}
                           </span>
+                          {COUPLE_EXPERIENCE_PROMPT_IDS.some(
+                            (id) =>
+                              entry.title ===
+                              t(`coupleExperiences.prompts.${kind}.${id}`),
+                          ) ? (
+                            <h3>{entry.title}</h3>
+                          ) : null}
                           <p>{entry.body.slice(0, 280)}</p>
                           <time dateTime={entry.createdAt.toISOString()}>
                             {new Intl.DateTimeFormat(resolvedLocale(), {

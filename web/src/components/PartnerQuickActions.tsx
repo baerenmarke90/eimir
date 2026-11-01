@@ -15,7 +15,7 @@ import {
   partnerQuickActionsEntitlementQueryKey,
 } from '../client/partnerQuickActions';
 import { ClientProblemError } from '../client/problemDetails';
-import { MORE_PROFILE_ROUTE } from '../client/routes';
+import { PRO_INFORMATION_ROUTE } from '../client/routes';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { useMediaQuery } from '../client/useMediaQuery';
 import type { M4ProductApis } from '../client/m4Product';
@@ -191,7 +191,7 @@ export function PartnerQuickActions({
 
   const navigateToPro = () => {
     if (gesture.isInFlight()) return;
-    const destination = `${MORE_PROFILE_ROUTE}#profile-premium`;
+    const destination = PRO_INFORMATION_ROUTE;
     if (!isExpanded && sheetRef.current) {
       sheetRef.current.closeForNavigation(() => navigate(destination));
       return;

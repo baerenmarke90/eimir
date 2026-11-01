@@ -12,6 +12,8 @@ Name | Type
 `memoryId` | string
 `placeId` | string
 `placeName` | string
+`previewAttachmentId` | string
+`previewIsSensitive` | boolean
 `title` | string
 
 ## Example
@@ -27,6 +29,8 @@ const example = {
   "memoryId": null,
   "placeId": null,
   "placeName": null,
+  "previewAttachmentId": null,
+  "previewIsSensitive": null,
   "title": null,
 } satisfies MemoryMapEntry
 

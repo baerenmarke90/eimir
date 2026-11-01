@@ -10,6 +10,7 @@ export * from './AccountView';
 export * from './ActivityItem';
 export * from './ActivityKind';
 export * from './ActivityPage';
+export * from './ActivityScope';
 export * from './ActivityTargetPresentation';
 export * from './AnnualSchedule';
 export * from './AppIconId';

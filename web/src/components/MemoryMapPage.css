@@ -183,3 +183,72 @@
     transform: none;
   }
 }
+
+.memory-map-page .story-view-tabs {
+  margin-block-end: var(--space-4);
+}
+.memory-map-marker-content {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.memory-map-marker-photo {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+}
+.memory-map-marker-count {
+  position: absolute;
+  inset-inline-end: calc(-1 * var(--space-2));
+  top: calc(-1 * var(--space-2));
+  display: grid;
+  place-items: center;
+  min-width: var(--space-6);
+  min-height: var(--space-6);
+  padding-inline: var(--space-1);
+  border-radius: var(--radius-pill);
+  border: var(--border-surface-width) solid var(--color-surface-raised);
+  background: var(--color-brand-strong);
+  color: var(--color-on-accent);
+}
+.memory-map-thumbnail {
+  width: var(--space-16);
+  height: var(--space-16);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  color: var(--color-brand-text);
+}
+.memory-map-marker-photo .story-media-preview,
+.memory-map-thumbnail .story-media-preview,
+.memory-map-marker-photo .story-media-skeleton,
+.memory-map-thumbnail .story-media-skeleton,
+.memory-map-marker-photo .story-media-placeholder,
+.memory-map-thumbnail .story-media-placeholder,
+.memory-map-marker-photo .sensitive-media-cover,
+.memory-map-thumbnail .sensitive-media-cover {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border-radius: inherit;
+  object-fit: cover;
+  aspect-ratio: 1;
+}
+.memory-map-marker-photo .sensitive-media-label,
+.memory-map-thumbnail .sensitive-media-label {
+  padding: var(--space-1);
+}
+/* Leaflet resets marker images to intrinsic width; crop authored previews locally. */
+.place-map-viewport .memory-map-marker .memory-map-marker-photo img {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: cover;
+}

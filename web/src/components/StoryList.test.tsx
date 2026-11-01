@@ -93,7 +93,7 @@ describe('StoryList', () => {
     expect(html).not.toContain('Meilenstein öffnen');
   });
 
-  it('renders date and an accessible author avatar in the shared card footer (#1064)', () => {
+  it('renders the date without an author avatar in the Diary overview', () => {
     const item = StoryItemFromJSON({
       kind: 'MEMORY',
       effectiveDate: '2026-08-26',
@@ -124,13 +124,13 @@ describe('StoryList', () => {
     expect(html).toContain('class="story-card-footer"');
     expect(html).toContain('<time');
     expect(html).toContain('story-card-footer-author');
-    // #1064 removes redundant author prose while retaining avatar semantics.
+    // The PO requests overview identity only in the canonical detail.
     expect(html).not.toContain('story-card-author');
     expect(html).not.toContain('class="sr-only"');
-    expect(html).toContain('role="img" aria-label="Alex"');
+    expect(html).not.toContain('role="img" aria-label="Alex"');
   });
 
-  it('keeps the full author identity accessible without visible Timeline attribution (#1064)', () => {
+  it('leaves author identity to the canonical detail', () => {
     const item = StoryItemFromJSON({
       kind: 'MEMORY',
       effectiveDate: '2026-08-26',
@@ -160,7 +160,7 @@ describe('StoryList', () => {
 
     expect(html).not.toContain('story-card-author');
     expect(html).not.toContain('>Alex Winter</span>');
-    expect(html).toContain('role="img" aria-label="Alex Winter"');
+    expect(html).not.toContain('role="img" aria-label="Alex Winter"');
   });
 
   it('renders large image-led card when attachment exists and text-first card when absent (#860)', () => {

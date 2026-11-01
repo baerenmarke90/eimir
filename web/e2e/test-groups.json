@@ -12,6 +12,11 @@
     "LOWER_LEVEL": "Still runs in the full regression until equivalent lower-level coverage is committed and the browser case can be removed."
   },
   "specs": {
+    "journal-surface-polish.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "Three memory modes and retained scope, resolved live map appearance, navigation transparency fallback, scoped Own activity pagination/return, photo/text comment task ownership and Pro destination compatibility."
+    },
     "comments-delete-ownership.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 6,
@@ -145,7 +150,7 @@
     },
     "planning-wish-completion-continuation.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 6
+      "baselineTests": 10
     },
     "private-area-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -364,8 +369,8 @@
     },
     "product-consistency.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 7,
-      "reason": "The PO-approved combined Moments composition must preserve manual Place linking, modal return, icon/rail alignment, theme, Compact/Expanded and large-text reflow."
+      "baselineTests": 11,
+      "reason": "The PO-approved combined Moments composition must preserve manual Place linking, modal return, icon/rail alignment, theme, Compact/Expanded and large-text reflow. Saved Wir content and module choices appear during background refresh only after current membership authorization."
     },
     "shared-wish-selection.spec.ts": {
       "disposition": "PR_CRITICAL",

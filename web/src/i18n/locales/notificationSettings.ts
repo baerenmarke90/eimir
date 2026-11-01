@@ -18,6 +18,7 @@ const notificationSettings = {
   commentPushDescription: 'Höchstens ein neutraler Push pro Stunde.',
   commentEmailDescription: 'Höchstens eine neutrale E-Mail pro Stunde.',
   reminder: 'Fällige Erinnerungen',
+  experience: 'Geteilte Momente',
   thinking: 'Ich denke an dich',
   kiss: 'Ein Kuss',
   checkIn: 'Check-in',

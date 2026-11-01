@@ -69,8 +69,13 @@ export function orderedDashboardModuleKeys(
 ): DashboardModuleKey[] {
   const keys = preferences?.items.map((item) => item.moduleKey);
   const legacyCatalog =
-    keys?.length === DASHBOARD_MODULE_KEYS.length - 1 &&
-    !keys.includes('daily_quote');
+    keys?.length &&
+    DASHBOARD_MODULE_KEYS.every(
+      (key) =>
+        key === 'daily_quote' ||
+        key === 'shared_experience' ||
+        keys.includes(key),
+    );
   if (
     !keys?.length ||
     (!legacyCatalog && keys.length !== DASHBOARD_MODULE_KEYS.length) ||

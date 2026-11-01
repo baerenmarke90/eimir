@@ -43,6 +43,7 @@ class DashboardModuleKey(StrEnum):
     """Stable internal product keys for registered Dashboard modules."""
 
     RELATIONSHIP_PRESENCE = "relationship_presence"
+    SHARED_EXPERIENCE = "shared_experience"
     DAILY_QUOTE = "daily_quote"
     UPCOMING = "upcoming"
     PINNED_COLLECTION = "pinned_collection"
@@ -97,6 +98,7 @@ class DashboardModuleState:
 # same per-Account+Space visibility behavior as every other Dashboard module.
 CATALOG: tuple[DashboardModuleDefinition, ...] = (
     DashboardModuleDefinition(key=DashboardModuleKey.RELATIONSHIP_PRESENCE, default_visible=True),
+    DashboardModuleDefinition(key=DashboardModuleKey.SHARED_EXPERIENCE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.DAILY_QUOTE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.KEEPSAKE, default_visible=True),
     DashboardModuleDefinition(
@@ -185,15 +187,27 @@ def set_module_order(
 ) -> list[DashboardModuleState]:
     """Atomically replace only the order facet of the personal preference rows."""
     expected = {definition.key.value for definition in CATALOG}
-    # Older installed Web bundles submit the complete pre-quote catalog.
-    # Accept that one known revision without resetting its personal order.
-    legacy = expected - {DashboardModuleKey.DAILY_QUOTE.value}
-    if len(module_keys) == len(legacy) and set(module_keys) == legacy:
+    # Accept the two known older complete catalogs without resetting personal order.
+    optional = {DashboardModuleKey.DAILY_QUOTE.value, DashboardModuleKey.SHARED_EXPERIENCE.value}
+    missing = expected - set(module_keys)
+    if (
+        len(module_keys) == len(set(module_keys))
+        and set(module_keys) <= expected
+        and missing <= optional
+    ):
         module_keys = list(module_keys)
-        module_keys.insert(
-            module_keys.index(DashboardModuleKey.RELATIONSHIP_PRESENCE.value) + 1,
-            DashboardModuleKey.DAILY_QUOTE.value,
-        )
+        catalog_keys = [definition.key.value for definition in CATALOG]
+        for index, key in enumerate(catalog_keys):
+            if key in missing:
+                predecessor = next(
+                    (
+                        candidate
+                        for candidate in reversed(catalog_keys[:index])
+                        if candidate in module_keys
+                    ),
+                    None,
+                )
+                module_keys.insert(module_keys.index(predecessor) + 1 if predecessor else 0, key)
     if len(module_keys) != len(expected) or set(module_keys) != expected:
         raise ValidationError(
             "moduleKeys must contain every registered Dashboard module exactly once.",

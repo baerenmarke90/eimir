@@ -32,6 +32,7 @@ const GROUPS = [
     key: 'closeness',
     kinds: [
       NotificationKind.THINKING_OF_YOU,
+      NotificationKind.COUPLE_EXPERIENCE_SHARED,
       NotificationKind.PARTNER_KISS,
       NotificationKind.PARTNER_CHECK_IN,
     ],
@@ -42,6 +43,7 @@ const KIND_KEYS = {
   [NotificationKind.COMMENT_CREATED]: 'comment',
   [NotificationKind.REMINDER_DUE]: 'reminder',
   [NotificationKind.THINKING_OF_YOU]: 'thinking',
+  [NotificationKind.COUPLE_EXPERIENCE_SHARED]: 'experience',
   [NotificationKind.PARTNER_KISS]: 'kiss',
   [NotificationKind.PARTNER_CHECK_IN]: 'checkIn',
 } as const;

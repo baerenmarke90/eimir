@@ -15,7 +15,7 @@ from uuid import UUID
 
 from eimir.engagement.models import NotificationKind
 
-POLICY_VERSION = 2
+POLICY_VERSION = 3
 GENERIC_PRESENTATION_KEY = "notification.generic"
 DIGEST_WINDOW = timedelta(hours=1)
 
@@ -70,6 +70,9 @@ class NotificationPolicy:
 # exists; there is no one-off push fallback.
 POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
     {
+        NotificationKind.COUPLE_EXPERIENCE_SHARED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
         NotificationKind.COMMENT_CREATED: NotificationPolicy(
             DeliveryClass.DIGESTIBLE, GENERIC_PREVIEW
         ),

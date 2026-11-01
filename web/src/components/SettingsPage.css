@@ -387,17 +387,17 @@
 
 .dashboard-module-list {
   display: grid;
+  container-type: inline-size;
   gap: 0;
   border-top: 1px solid var(--color-border-subtle);
 }
 
 .dashboard-module-option {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(2, var(--touch-target-web));
   min-height: 52px;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding: var(--space-2) 0;
   border: 0;
   border-bottom: 1px solid var(--color-border-subtle);
@@ -420,19 +420,26 @@
 }
 
 .dashboard-module-option-label {
+  grid-column: 1;
+  grid-row: 1;
   min-width: 0;
-  flex: 1 1 8rem;
   overflow-wrap: anywhere;
   cursor: pointer;
 }
 
+.dashboard-module-option-label .pro-mark {
+  white-space: nowrap;
+}
+
 .dashboard-module-option input {
-  flex: none;
   width: 20px;
   height: 20px;
+  margin: 0;
 }
 
 .dashboard-module-option .list-entry-drag-handle {
+  grid-column: 3;
+  grid-row: 1;
   color: var(--color-text-secondary);
   background: transparent;
   border: 0;
@@ -667,9 +674,12 @@
   background: var(--color-surface-subtle);
 }
 .dashboard-module-control {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  display: contents;
+}
+
+.dashboard-module-control > :not(.dashboard-module-switch) {
+  grid-column: 1 / -1;
+  min-width: 0;
 }
 .dashboard-module-option.is-dragging
   .list-entry-icon-button:not(:focus-visible) {
@@ -679,6 +689,8 @@
 
 .dashboard-module-switch {
   display: grid;
+  grid-column: 2;
+  grid-row: 1;
   place-items: center;
   min-width: var(--touch-target-web);
   min-height: var(--touch-target-web);
@@ -689,7 +701,14 @@
 .dashboard-upcoming-preference {
   min-inline-size: 0;
 }
-.dashboard-module-control {
-  min-width: 0;
-  flex-wrap: wrap;
+
+@container (max-width: 14rem) {
+  .dashboard-module-option-label {
+    grid-column: 1 / -1;
+  }
+
+  .dashboard-module-switch,
+  .dashboard-module-option .list-entry-drag-handle {
+    grid-row: 2;
+  }
 }

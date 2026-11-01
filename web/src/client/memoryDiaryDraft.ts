@@ -160,11 +160,17 @@ export class MemoryDiaryDraftStore {
   private owner: string | null = null;
   private tail: Promise<unknown> = Promise.resolve();
 
-  constructor(apiBaseUrl: string, accountId: string, spaceId: string) {
+  constructor(
+    apiBaseUrl: string,
+    accountId: string,
+    spaceId: string,
+    purpose?: string,
+  ) {
     this.key = JSON.stringify([
       apiBaseUrl.replace(/\/+$/, ''),
       accountId,
       spaceId,
+      ...(purpose ? [purpose] : []),
     ]);
   }
 

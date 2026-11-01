@@ -14,6 +14,11 @@
 
 import * as runtime from '../runtime';
 import {
+    type ExperienceKind,
+    ExperienceKindFromJSON,
+    ExperienceKindToJSON,
+} from '../models/ExperienceKind';
+import {
     type MemoryAttachmentSet,
     MemoryAttachmentSetFromJSON,
     MemoryAttachmentSetToJSON,
@@ -71,6 +76,7 @@ export interface ListMemoriesRequest {
     cursor?: string | null;
     limit?: number;
     year?: number | null;
+    experienceKind?: ExperienceKind | null;
 }
 
 export interface ReplaceMemoryAttachmentsRequest {
@@ -299,6 +305,10 @@ export class MemoriesApi extends runtime.BaseAPI {
 
         if (requestParameters['year'] != null) {
             queryParameters['year'] = requestParameters['year'];
+        }
+
+        if (requestParameters['experienceKind'] != null) {
+            queryParameters['experienceKind'] = requestParameters['experienceKind'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

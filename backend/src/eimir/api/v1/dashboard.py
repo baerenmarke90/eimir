@@ -15,6 +15,7 @@ from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.dashboard import preferences, service
 from eimir.dashboard.service import DashboardItemType
+from eimir.domain.experiences import ExperienceKind
 from eimir.entitlements.models import Capability
 from eimir.relationship.models import DurationDisplayMode
 from eimir.story import service as story_service
@@ -74,6 +75,15 @@ class RelationshipPassportView(ApiModel):
     places: int
 
 
+class DashboardExperience(ApiModel):
+    id: UUID
+    kind: ExperienceKind
+    text: str
+    author_id: UUID
+    happened_on: date | None
+    created_at: datetime
+
+
 class DashboardView(ApiModel):
     space: DashboardSpaceSummary
     relationship_duration: DashboardRelationshipDuration | None
@@ -86,6 +96,7 @@ class DashboardView(ApiModel):
     # Additive contract: current servers return a day; older deployments omit it.
     viewer_local_date: date | None = None
     anticipation: DashboardAnticipation | None = None
+    incoming_experience: DashboardExperience | None = None
 
 
 class DashboardModulePreferenceUpdate(ApiModel):
@@ -158,6 +169,7 @@ def get_dashboard(
     view = service.read_dashboard(session, authorization)
     shared_story_counts = story_service.read_shared_story_counts(session, authorization)
     anticipation = service.read_anticipation(session, authorization)
+    incoming = service.read_incoming_experience(session, authorization)
     response.headers["Cache-Control"] = "private, no-store"
     return DashboardView(
         space=DashboardSpaceSummary(
@@ -188,6 +200,16 @@ def get_dashboard(
         ),
         thinking_of_you_available_at=view.thinking_of_you_available_at,
         viewer_local_date=view.viewer_local_date,
+        incoming_experience=DashboardExperience(
+            id=incoming.id,
+            kind=ExperienceKind(incoming.kind),
+            text=incoming.text,
+            author_id=incoming.author_id,
+            happened_on=incoming.happened_on,
+            created_at=incoming.created_at,
+        )
+        if incoming is not None
+        else None,
         anticipation=(
             DashboardAnticipation(
                 plan_id=anticipation.plan_id,

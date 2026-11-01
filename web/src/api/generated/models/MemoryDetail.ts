@@ -27,6 +27,13 @@ import {
     AuthorSummaryToJSON,
     AuthorSummaryToJSONTyped,
 } from './AuthorSummary';
+import type { ExperienceKind } from './ExperienceKind';
+import {
+    ExperienceKindFromJSON,
+    ExperienceKindFromJSONTyped,
+    ExperienceKindToJSON,
+    ExperienceKindToJSONTyped,
+} from './ExperienceKind';
 import type { MemoryAttachmentSummary } from './MemoryAttachmentSummary';
 import {
     MemoryAttachmentSummaryFromJSON,
@@ -79,6 +86,12 @@ export interface MemoryDetail {
     createdAt: Date;
     /**
      * 
+     * @type {ExperienceKind}
+     * @memberof MemoryDetail
+     */
+    experienceKind?: ExperienceKind | null;
+    /**
+     * 
      * @type {Date}
      * @memberof MemoryDetail
      */
@@ -121,6 +134,8 @@ export interface MemoryDetail {
     version: number;
 }
 
+
+
 /**
  * Check if a given object implements the MemoryDetail interface.
  */
@@ -157,6 +172,7 @@ export function MemoryDetailFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'body': json['body'],
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
         'createdAt': (new Date(json['createdAt'])),
+        'experienceKind': json['experienceKind'] === undefined ? undefined : json['experienceKind'] === null ? null : ExperienceKindFromJSON(json['experienceKind']),
         'happenedOn': (json['happenedOn'] == null ? null : new Date(json['happenedOn'])),
         'id': json['id'],
         'spaceId': json['spaceId'],
@@ -184,6 +200,7 @@ export function MemoryDetailToJSONTyped(value?: MemoryDetail | null, ignoreDiscr
         'body': value['body'],
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),
         'createdAt': value['createdAt'].toISOString(),
+        'experienceKind': ExperienceKindToJSON(value['experienceKind']),
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
         'id': value['id'],
         'spaceId': value['spaceId'],

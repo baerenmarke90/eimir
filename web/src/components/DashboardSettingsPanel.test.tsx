@@ -11,7 +11,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
-import { DASHBOARD_MODULE_CATALOG } from '../client/dashboardModules';
+import experienceCopy from '../i18n/locales/coupleExperiences';
+import {
+  DASHBOARD_MODULE_CATALOG,
+  DASHBOARD_MODULE_KEYS,
+} from '../client/dashboardModules';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import profileIdentity from '../i18n/locales/profileIdentity';
 import m5s5 from '../i18n/locales/m5s5';
@@ -66,6 +70,7 @@ function renderPanel(
 }
 
 function moduleLabel(moduleKey: string): string {
+  if (moduleKey === 'shared_experience') return experienceCopy.incoming.title;
   if (moduleKey === 'daily_quote') return dailyQuote.title;
   if (moduleKey === 'shared_story_summary')
     return relationshipReflections.passport.wirStatisticsTitle;
@@ -101,7 +106,9 @@ describe('DashboardSettingsPanel', () => {
     await waitFor(() => expect(reorder).toHaveBeenCalledTimes(1));
     const desired = reorder.mock.calls[0][0].dashboardModuleOrderUpdate
       .moduleKeys as string[];
-    expect(desired.indexOf('keepsake')).toBe(3);
+    expect(desired.indexOf('keepsake')).toBe(
+      DASHBOARD_MODULE_KEYS.indexOf('keepsake') + 1,
+    );
     expect(document.activeElement).toBe(grip);
 
     fireEvent.click(

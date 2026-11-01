@@ -2337,6 +2337,14 @@ describe('formatRelationshipDuration', () => {
           titleOrText: 'Weisst du noch',
           occurredOn: new Date('2020-01-01T00:00:00Z'),
         },
+        incomingExperience: {
+          id: 'experience-incoming',
+          kind: 'HAPPINESS',
+          text: 'A shared appreciation',
+          authorId: 'partner-1',
+          happenedOn: null,
+          createdAt: new Date(),
+        },
         sharedStorySummary: {
           memories: 4,
           heartMoments: 1,
@@ -2424,6 +2432,7 @@ describe('formatRelationshipDuration', () => {
      */
     const MODULE_SECTION_MARKER: Record<DashboardModuleKey, string> = {
       relationship_presence: 'today-hero',
+      shared_experience: 'shared-experience-section',
       daily_quote: 'daily-quote-card',
       upcoming: 'today-section-upcoming',
       pinned_collection: 'today-section-pinned-collection',

@@ -11,6 +11,7 @@ import {
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { PlansApi } from '../api/generated/apis/PlansApi';
 import { Configuration } from '../client/apiConfiguration';
+import type { ExperienceKind } from '../api/generated/models/ExperienceKind';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
@@ -68,14 +69,20 @@ export function MemoryCreatePage({
   spaceId,
   accountId,
   onSaved,
+  experienceKind,
+  partnerName,
 }: {
   accessToken: string;
   apiBaseUrl: string;
   spaceId: string;
   accountId: string;
   onSaved: () => Promise<void>;
+  experienceKind?: ExperienceKind;
+  partnerName?: string;
 }) {
   const { t } = useTranslation();
+  const experienceName =
+    experienceKind === 'HAPPINESS' ? 'happiness' : 'timeTravel';
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -109,7 +116,12 @@ export function MemoryCreatePage({
   const attemptRef = useRef<MemoryCreateAttempt | null>(null);
   const recoveredDraft = useRef(false);
   const recoveryUpload = useRef<AbortController | null>(null);
-  const recoveryScope = JSON.stringify([apiBaseUrl, accountId, spaceId]);
+  const recoveryScope = JSON.stringify([
+    apiBaseUrl,
+    accountId,
+    spaceId,
+    experienceKind,
+  ]);
   const recoveryScopeRef = useRef(recoveryScope);
   useLayoutEffect(() => {
     recoveryScopeRef.current = recoveryScope;
@@ -270,6 +282,7 @@ export function MemoryCreatePage({
     apiBaseUrl,
     accountId,
     spaceId,
+    purpose: experienceKind,
     snapshot: draftSnapshot,
     dirty,
     suspended: pending || uncertain || Boolean(partial),
@@ -599,6 +612,7 @@ export function MemoryCreatePage({
                 date: formatDateInputValue(date, resolvedLocale()),
               }),
           body,
+          experienceKind,
           tags: [...(submittedTags ?? tags)],
           happenedOn: submittedDate,
         },
@@ -714,6 +728,31 @@ export function MemoryCreatePage({
     event.preventDefault();
     void save();
   }
+  const narrativeField = (
+    <div className="field-group immersive-create-narrative">
+      <label htmlFor="body">
+        {t(
+          experienceKind
+            ? `coupleExperiences.write.${experienceName}`
+            : 'memory.bodyLabel',
+        )}
+      </label>
+      <textarea
+        ref={bodyInputRef}
+        id="body"
+        name="body"
+        value={body}
+        onChange={(event) => setBody(event.target.value)}
+        rows={6}
+        maxLength={experienceKind ? 2000 : undefined}
+        placeholder={t(
+          experienceKind
+            ? `coupleExperiences.placeholder.${experienceName}`
+            : 'memory.bodyPlaceholder',
+        )}
+      />
+    </div>
+  );
   return (
     <StoryCreatePageShell
       header={
@@ -729,12 +768,20 @@ export function MemoryCreatePage({
                 {t('taskBoundary.close')}
               </button>
             }
-            title={t('memory.heading')}
+            title={t(
+              experienceKind
+                ? `coupleExperiences.entries.${experienceName}.title`
+                : 'memory.heading',
+            )}
             className="create-heading"
           />
         </div>
       }
-      pageClassName="memory-task-page"
+      pageClassName={
+        experienceKind
+          ? 'memory-task-page couple-experience-compose'
+          : 'memory-task-page'
+      }
       labelledBy="memory-form-heading"
     >
       <>
@@ -788,110 +835,110 @@ export function MemoryCreatePage({
           >
             <legend className="sr-only">{t('memory.formAria')}</legend>
 
-            <div className="field-group immersive-create-title-field">
-              <label htmlFor="title">{t('memory.titleLabelOptional')}</label>
-              <input
-                id="title"
-                name="title"
-                maxLength={200}
-                placeholder={t('memory.titlePlaceholder')}
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                className="immersive-create-title-input"
-              />
-            </div>
-
-            <div className="field-group immersive-create-date-field">
-              <span id="happenedOn-label">{t('memory.dateLabel')}</span>
-              {dateEditorOpen || dateSummaryText === null ? (
+            {experienceKind ? narrativeField : null}
+            {!experienceKind ? (
+              <div className="field-group immersive-create-title-field">
+                <label htmlFor="title">{t('memory.titleLabelOptional')}</label>
                 <input
-                  ref={dateInputRef}
-                  id="happenedOn"
-                  aria-labelledby="happenedOn-label"
-                  aria-invalid={invalidDate || undefined}
-                  aria-describedby={
-                    invalidDate ? 'memory-date-error' : undefined
-                  }
-                  name="happenedOn"
-                  type="date"
-                  value={happenedOn}
-                  onChange={(event) => {
-                    setHappenedOn(event.target.value);
-                    setInvalidDate(false);
-                  }}
-                  onBlur={() => setDateEditorOpen(false)}
+                  id="title"
+                  name="title"
+                  maxLength={200}
+                  placeholder={t('memory.titlePlaceholder')}
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  className="immersive-create-title-input"
                 />
-              ) : (
-                <button
-                  type="button"
-                  className="immersive-create-date-summary"
-                  aria-labelledby="happenedOn-label happenedOn-summary-value happenedOn-summary-change"
-                  onClick={() => setDateEditorOpen(true)}
-                >
-                  <span id="happenedOn-summary-value">{dateSummaryText}</span>
-                  <span
-                    id="happenedOn-summary-change"
-                    className="immersive-create-date-change"
+              </div>
+            ) : null}
+
+            {experienceKind !== 'HAPPINESS' ? (
+              <div className="field-group immersive-create-date-field">
+                <span id="happenedOn-label">{t('memory.dateLabel')}</span>
+                {dateEditorOpen || dateSummaryText === null ? (
+                  <input
+                    ref={dateInputRef}
+                    id="happenedOn"
+                    aria-labelledby="happenedOn-label"
+                    aria-invalid={invalidDate || undefined}
+                    aria-describedby={
+                      invalidDate ? 'memory-date-error' : undefined
+                    }
+                    name="happenedOn"
+                    type="date"
+                    value={happenedOn}
+                    onChange={(event) => {
+                      setHappenedOn(event.target.value);
+                      setInvalidDate(false);
+                    }}
+                    onBlur={() => setDateEditorOpen(false)}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="immersive-create-date-summary"
+                    aria-labelledby="happenedOn-label happenedOn-summary-value happenedOn-summary-change"
+                    onClick={() => setDateEditorOpen(true)}
                   >
-                    {t('memory.dateChangeAction')}
-                  </span>
-                </button>
-              )}
-              {invalidDate ? (
-                <p id="memory-date-error" role="alert">
-                  {t('taskBoundary.invalidDate')}
-                </p>
-              ) : null}
-              <p className="field-help">{t('memory.dateHelp')}</p>
-            </div>
-
-            <div className="field-group immersive-create-narrative">
-              <label htmlFor="body">{t('memory.bodyLabel')}</label>
-              <textarea
-                ref={bodyInputRef}
-                id="body"
-                name="body"
-                value={body}
-                onChange={(event) => setBody(event.target.value)}
-                rows={6}
-                placeholder={t('memory.bodyPlaceholder')}
-              />
-            </div>
-
-            <div className="immersive-create-media">
-              <AttachmentDraftPicker
-                id="memory-create-images"
-                attachments={attachments}
-                multiple
-              />
-              <PhotoSourcePicker
-                apiBaseUrl={apiBaseUrl}
-                accessToken={accessToken}
-                accountId={accountId}
-                spaceId={spaceId}
-                remaining={Math.max(
-                  0,
-                  MAX_MEMORY_ATTACHMENTS - attachments.items.length,
+                    <span id="happenedOn-summary-value">{dateSummaryText}</span>
+                    <span
+                      id="happenedOn-summary-change"
+                      className="immersive-create-date-change"
+                    >
+                      {t('memory.dateChangeAction')}
+                    </span>
+                  </button>
                 )}
-                beginSelection={attachments.beginSelection}
-              />
-            </div>
+                {invalidDate ? (
+                  <p id="memory-date-error" role="alert">
+                    {t('taskBoundary.invalidDate')}
+                  </p>
+                ) : null}
+                {!experienceKind ? (
+                  <p className="field-help">{t('memory.dateHelp')}</p>
+                ) : null}
+              </div>
+            ) : null}
 
-            <details
-              className="memory-diary-details"
-              open={detailsOpen}
-              onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
-            >
-              <summary>{t('memory.diary.optionalDetails')}</summary>
-              <MemoryTagChoices
-                editorRef={tagEditorRef}
-                selected={tags}
-                onChange={setTags}
-                onDraftChange={setTagDraftDirty}
-                draftValue={tagDraftText}
-                onDraftValueChange={setTagDraftText}
-              />
-            </details>
+            {!experienceKind ? narrativeField : null}
+
+            {!experienceKind ? (
+              <div className="immersive-create-media">
+                <AttachmentDraftPicker
+                  id="memory-create-images"
+                  attachments={attachments}
+                  multiple
+                />
+                <PhotoSourcePicker
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={accessToken}
+                  accountId={accountId}
+                  spaceId={spaceId}
+                  remaining={Math.max(
+                    0,
+                    MAX_MEMORY_ATTACHMENTS - attachments.items.length,
+                  )}
+                  beginSelection={attachments.beginSelection}
+                />
+              </div>
+            ) : null}
+
+            {!experienceKind ? (
+              <details
+                className="memory-diary-details"
+                open={detailsOpen}
+                onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
+              >
+                <summary>{t('memory.diary.optionalDetails')}</summary>
+                <MemoryTagChoices
+                  editorRef={tagEditorRef}
+                  selected={tags}
+                  onChange={setTags}
+                  onDraftChange={setTagDraftDirty}
+                  draftValue={tagDraftText}
+                  onDraftValueChange={setTagDraftText}
+                />
+              </details>
+            ) : null}
             <div
               className="sharing-note immersive-sharing-note"
               role="note"
@@ -902,7 +949,13 @@ export function MemoryCreatePage({
               </span>
               <div>
                 <strong>{t('memory.sharedTitle')}</strong>
-                <p>{t('memory.sharedBody')}</p>
+                <p>
+                  {t(
+                    experienceKind
+                      ? 'coupleExperiences.shareHint'
+                      : 'memory.sharedBody',
+                  )}
+                </p>
               </div>
             </div>
           </fieldset>
@@ -952,7 +1005,11 @@ export function MemoryCreatePage({
                 ? t('memory.saving')
                 : partial
                   ? t('taskBoundary.retryPhotos')
-                  : t('memory.save')}
+                  : experienceKind
+                    ? t('coupleExperiences.share', {
+                        name: partnerName ?? t('coupleExperiences.partner'),
+                      })
+                    : t('memory.save')}
             </button>
           </div>
         </form>

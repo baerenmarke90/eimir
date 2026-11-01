@@ -1377,6 +1377,14 @@ def _validate_domain_schema_and_links(
         }
         for raw in json_rows:
             row = _row_snake(raw)
+            if table_name == "memories" and row.get("experience_kind") not in (
+                None,
+                "HAPPINESS",
+                "TIME_TRAVEL",
+            ):
+                raise TransferArchiveError(
+                    "Transfer memory origin is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
+                )
             if set(row) - known or required - set(row):
                 raise TransferArchiveError(
                     "Transfer domain schema is invalid.",

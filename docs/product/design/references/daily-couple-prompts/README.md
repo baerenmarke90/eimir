@@ -166,3 +166,25 @@ reflow checks. Browser Back returns from the saved source to retained history.
   authorization above. The
   requested test release must use the existing release-channel rules; this
   implementation does not bypass review, checks or channel admission.
+
+## Publication checks
+
+The original main revision's full browser run failed on an obsolete R2 Timeline
+assertion expecting an author avatar. PR #1568's approved reference explicitly
+omits overview avatars. The assertion now requires zero matching author images,
+while keeping the title/content/photo metadata and accessibility assertions.
+The exact formerly failing case passes locally (6.0 seconds).
+
+The first native matrix passed all six notification cases on APIs 28 and 37.1.
+API 36 reported all six cases successful, but the new 90-second instrumentation
+process window ended before the runner's final summary. The new fixture now has
+the same 180-second process budget as the existing fixture; its per-case
+five-second event/notification assertions and all pre-existing budgets remain
+unchanged. Fresh matrix results are required before merge. The documentation
+language guard's English compound false positive was fixed by clarifying the
+sentence, with all 26 guard tests passing and no guard exception added.
+
+The Product Owner explicitly authorized merging after successful checks and
+updating `eimir-test`, and will perform the running-instance smoke check personally.
+Publication verification therefore binds the selected Git channel and image pair
+to the exact merged source, without claiming that Arcane has already deployed it.

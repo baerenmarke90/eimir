@@ -139,7 +139,7 @@ jobs:
           grep -Eq '^OK \([1-9][0-9]* tests?\)' instrumentation.log
           # Exercise actual Android notification/PendingIntent and retained bridge
           # handoff separately, preserving the existing fixture's time budget.
-          timeout 90 adb -e shell am instrument -w -r \
+          timeout 180 adb -e shell am instrument -w -r \
             -e class de.eimir.app.NotificationOpenTest \
             de.sidebyside.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee notification-open.log

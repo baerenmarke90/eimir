@@ -519,11 +519,11 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
       await expect(
         coffee.getByRole('img', { name: de.story.shared }),
       ).toHaveCount(1);
-      // #1064 keeps author identity on the avatar without visible prose.
+      // #1568 removes author avatars from overview cards; source readers retain identity.
       await expect(lake.locator('.story-card-author')).toHaveCount(0);
       await expect(
         lake.getByRole('img', { name: PARTNER.displayName }),
-      ).toHaveCount(1);
+      ).toHaveCount(0);
       await expect(lake).not.toContainText(
         de.story.byAuthor.replace('{{author}}', 'Anna-Katharina-Josephine'),
       );

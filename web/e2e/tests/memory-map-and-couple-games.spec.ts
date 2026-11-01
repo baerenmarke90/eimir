@@ -625,7 +625,7 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           await page
             .getByRole('button', { name: taskCopy.verify, exact: true })
             .click();
-        await expect(page).toHaveURL(new RegExp('/story/memories/experience-'));
+        await expect(page).toHaveURL(/\/story\/memories\/experience-/);
         await expect(page.getByText(words, { exact: true })).toBeVisible();
         expect(notes[0].title).toBe(question);
         expect(

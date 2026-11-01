@@ -186,6 +186,9 @@
 .couple-experience-page .page-heading-title-container {
   min-width: 0;
 }
+.couple-experience-page h1 {
+  overflow-wrap: anywhere;
+}
 .couple-experience-page
   .page-heading-has-title-action
   .page-heading-title-container {
@@ -197,9 +200,6 @@
   h1 {
   flex: 1 0 auto;
   max-width: 100%;
-}
-.couple-experience-page h1 {
-  overflow-wrap: anywhere;
 }
 
 .shared-experience-section {

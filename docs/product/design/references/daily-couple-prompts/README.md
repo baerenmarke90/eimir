@@ -132,7 +132,7 @@ reflow checks. Browser Back returns from the saved source to retained history.
 
 ## Local validation and remaining delivery gate
 
-- Full Web suite: 2,431 passed, two intentionally skipped. Two workers avoid
+- Full Web suite: 2,434 passed, two intentionally skipped. Two workers avoid
   contention from the large local suite; failed targeted cases were rerun after
   fixing the TransferPanel route dependency and the visual issues above.
 - Full backend unit baseline: 1,089 passed. Final notification, API, transport,
@@ -140,7 +140,8 @@ reflow checks. Browser Back returns from the saved source to retained history.
   the integration cases. This includes encrypted and plaintext configurations,
   duplicate projection, hidden-Center external opens, and imminent cancellation.
 - Final browser run: all 10 two-account journeys passed without retries, covering
-  both modules at all five widths. The final screenshots come from this run.
+  both modules at all five widths. The final screenshots come from the reconciled run, which also checks legacy
+  link draft recovery and incoming contrast at the paused animation midpoint.
 - Production Web build, TypeScript, formatting, scoped lint, backend Ruff and
   strict mypy pass. No new runtime dependency or provider was introduced.
 - The current OpenAPI contract matches the running ASGI app. The generated

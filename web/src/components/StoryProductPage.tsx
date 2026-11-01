@@ -413,20 +413,20 @@ export function StoryProductPage({
     });
   }, [accountId, spaceId, discoverQuery.data]);
 
-  function setView(view: StoryView, keyboard = false) {
+  function setView(view: StoryView) {
     if (view === 'map') {
       const taskOriginKey = captureOrigin();
       const retainedFilters = storyFiltersToSearch(filters).toString();
       void navigate(
         `${MEMORY_MAP_ROUTE}${retainedFilters ? `?${retainedFilters}` : ''}`,
-        { state: { taskOriginKey, focusStoryView: keyboard } },
+        { state: { taskOriginKey, focusStoryView: true } },
       );
       return;
     }
     const nextSearch = new URLSearchParams(searchParams);
     nextSearch.set('tab', view);
     setSearchParams(nextSearch, {
-      state: { ...location.state, focusStoryView: keyboard },
+      state: { ...location.state, focusStoryView: true },
     });
   }
 

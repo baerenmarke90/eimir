@@ -170,12 +170,12 @@ export function MemoryMapPage({
   const gated =
     query.error instanceof ClientProblemError &&
     query.error.code === 'PREMIUM_ENTITLEMENT_REQUIRED';
-  function setView(view: StoryView, keyboard = false) {
+  function setView(view: StoryView) {
     if (view === 'map') return;
     const search = storyFiltersToSearch(parseStoryFilters(params));
     search.set('tab', view);
     void navigate(`/story?${search}`, {
-      state: { ...location.state, focusStoryView: keyboard },
+      state: { ...location.state, focusStoryView: true },
     });
   }
   return (

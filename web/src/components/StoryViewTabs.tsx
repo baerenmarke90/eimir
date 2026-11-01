@@ -13,7 +13,7 @@ export function StoryViewTabs({
   onSelect,
 }: {
   activeView: StoryView;
-  onSelect: (view: StoryView, keyboard?: boolean) => void;
+  onSelect: (view: StoryView) => void;
 }) {
   const { t } = useTranslation();
   const location = useLocation();
@@ -30,7 +30,7 @@ export function StoryViewTabs({
       onKeyDown={(event) =>
         handleTabKeyDown(event, (tab) => {
           const view = views.find((value) => tab.id === `momente-tab-${value}`);
-          if (view) onSelect(view, true);
+          if (view) onSelect(view);
         })
       }
     >

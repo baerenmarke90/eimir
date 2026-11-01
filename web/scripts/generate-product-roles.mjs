@@ -90,7 +90,15 @@ declare(
   `${value('navigationGlass.surfaceOpacity') * 100}%`,
 );
 declare('navigation-backdrop-blur', value('navigationGlass.backdropBlur'));
-declare('map-dark-tile-filter', value('mapAppearance.darkTileFilter'));
+// CSS function lists wrap between functions, matching the repository formatter.
+const mapFilterLines = ['  --map-dark-tile-filter:'];
+for (const part of value('mapAppearance.darkTileFilter').split(' ')) {
+  const last = mapFilterLines.length - 1;
+  if (`${mapFilterLines[last]} ${part};`.length > 80) {
+    mapFilterLines.push(`    ${part}`);
+  } else mapFilterLines[last] += ` ${part}`;
+}
+declarations.push(`${mapFilterLines.join('\n')};`);
 
 declare('sensitive-media-blur', value('mediaPrivacy.concealmentBlur'));
 declare('radius-media', rem('radius.large'));

@@ -48,7 +48,7 @@ provider are not claimed.
   task-origin allowlisting, held-route keyboard behavior and comment ownership.
 - Browser journeys: four new relationship-surface cases; six map cases across
   Compact/Expanded, Light/Dark and 320 px large text; 17 retained retrospective
-  and comment create/offline cases passed. No test retries, delays or relaxed
+  and comment create/offline cases passed. No local test retries, delays or relaxed
   assertions. The old avatar/two-mode/profile-Pro assertions were updated for
   the explicit Product Owner decision. Ambiguous map test selectors now scope
   the equivalent location list because map markers have proper accessible names.
@@ -66,6 +66,16 @@ provider are not claimed.
   truncated in this environment; an initial serverless single-process launch
   closed later contexts. Final runs use fresh standard multiprocess contexts,
   with ordinary browser security settings and no repository browser-pin changes.
+
+The first uploaded CI run found two formatter mismatches (the generated CSS
+function-list wrap and a mock chain), plus one stale browser assertion expecting
+two peer modes. The ordinary CI test retry reproduced that obsolete assertion.
+The adapter now emits formatter-compatible CSS, the mock is canonicalized and
+the assertion explicitly requires all three modes. Full format/token checks,
+30 focused settings/map/navigation cases, both compact browse/reflow browser
+cases and the Pro destination browser case pass on the correction. Pro
+information is visually separated from sensitive actions and the category uses
+the requested App and Account label. No CI job/workflow is manually retried.
 
 CI status on the actual pushed commit is recorded in PR #1568. The PR stays draft;
 this task does not merge or publish a release.

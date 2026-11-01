@@ -70,18 +70,16 @@ describe('Pro memory map', () => {
   it('keeps photo failures browseable with the shared preview fallback', async () => {
     const load = vi.fn().mockRejectedValue(new Error('Image unavailable'));
     const view = setup(
-      vi
-        .fn()
-        .mockResolvedValue({
-          items: [
-            {
-              ...item,
-              previewAttachmentId: 'photo',
-              previewIsSensitive: false,
-            },
-          ],
-          nextCursor: null,
-        }),
+      vi.fn().mockResolvedValue({
+        items: [
+          {
+            ...item,
+            previewAttachmentId: 'photo',
+            previewIsSensitive: false,
+          },
+        ],
+        nextCursor: null,
+      }),
       load,
     );
     await screen.findByRole('button', { name: 'Lake · 1 Erinnerung' });

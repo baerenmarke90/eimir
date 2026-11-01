@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import memoryMap from '../../src/i18n/locales/memoryMap';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import sharedPhotos from '../../src/i18n/locales/sharedPhotos';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
@@ -668,7 +669,10 @@ test('Momente browse layer keeps four structural destinations compact and second
     browse.getByRole('link', { name: de.story.browseYears }),
   ).toHaveAttribute('href', '/story/years');
 
-  await expect(page.getByRole('tab')).toHaveCount(2);
+  await expect(page.getByRole('tab')).toHaveCount(3);
+  await expect(
+    page.getByRole('tab', { name: memoryMap.entry, exact: true }),
+  ).toHaveAttribute('aria-selected', 'false');
   await expect(
     page.getByRole('tab', { name: de.story.tabTimeline, exact: true }),
   ).toHaveAttribute('aria-selected', 'true');

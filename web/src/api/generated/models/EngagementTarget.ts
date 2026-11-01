@@ -18,6 +18,7 @@
  * @export
  */
 export const EngagementTarget = {
+    REMINDER: 'REMINDER',
     TRANSFER_EXPORT: 'TRANSFER_EXPORT',
     TRANSFER_IMPORT: 'TRANSFER_IMPORT',
     WISH_SELECTION: 'WISH_SELECTION',

@@ -1,6 +1,6 @@
 const notificationSettings = {
   title: 'Welche Nachrichten du bekommst',
-  sharedActivityDescription: 'Kommentare und fällige Erinnerungen.',
+  sharedActivityDescription: 'Kommentare, neue und fällige Erinnerungen.',
   closenessDescription: 'Gedanken aneinander, Küsse und Check-ins.',
   individual: 'Einzeln anpassen',
   dates: 'Wichtige Tage',
@@ -18,6 +18,7 @@ const notificationSettings = {
   commentPushDescription: 'Höchstens ein neutraler Push pro Stunde.',
   commentEmailDescription: 'Höchstens eine neutrale E-Mail pro Stunde.',
   reminder: 'Fällige Erinnerungen',
+  reminderCreated: 'Neue Erinnerungen',
   experience: 'Geteilte Momente',
   thinking: 'Ich denke an dich',
   kiss: 'Ein Kuss',
@@ -34,7 +35,7 @@ const notificationSettings = {
   pushUnavailable: 'Push ist derzeit nicht verfügbar.',
   deviceTitle: 'Auf diesem Gerät',
   deviceIntro:
-    'Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.',
+    'Hinweise können Namen und Titel zeigen. Auf dem Sperrbildschirm gilt deine Android-Auswahl für sensible Inhalte. Konkrete Vorschauen werden für den Versand verschlüsselt. Google oder dein Push-Dienst erhält eine Installationskennung und Verbindungsdaten.',
   deviceLoading: 'Push-Einrichtung wird geprüft …',
   deviceUnavailable: 'Push ist auf dieser Installation nicht verfügbar.',
   deviceOff: 'Push ist auf diesem Gerät aus.',

@@ -153,6 +153,7 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
 | pywebpush | 2.5.0 | PyPI | MPL-2.0 |
 | google-auth[requests] | 2.62.0 | PyPI | Apache 2.0 |
+| joserfc | 1.7.7 | PyPI | BSD-3-Clause |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 13.0.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |
@@ -310,6 +311,7 @@ modules below are resolved from `web/node_modules` by `npx cap sync android`.
 | com.google.firebase:firebase-bom | 35.0.2 | Google Maven | Apache-2.0 |
 | com.google.firebase:firebase-messaging | 26.0.0 (BoM-managed) | Google Maven | Apache-2.0 |
 | com.google.firebase:firebase-installations | 20.0.0 (BoM-managed) | Google Maven | Apache-2.0 |
+| com.nimbusds:nimbus-jose-jwt | 10.10 | Maven Central | Apache-2.0 |
 | androidx.appcompat:appcompat | 1.7.1 | Google Maven | Apache-2.0 |
 | androidx.coordinatorlayout:coordinatorlayout | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.core:core-splashscreen | 1.2.0 | Google Maven | Apache-2.0 |
@@ -472,3 +474,15 @@ The optional model is not assumed immutable from its tag alone. Operators can
 record `ollama list`'s model identifier after download, and should review model
 updates deliberately. See [local recap operations](LOCAL-RECAP-AI.md) for resource,
 privacy, fallback and deployment behavior. No paid remote model provider is used.
+
+`joserfc` and Nimbus JOSE+JWT implement RFC 7516 compact JWE for bounded
+per-activation device previews (`dir` / `A256GCM`). Names and titles are encrypted
+before FCM delivery; no protocol or cryptographic primitive is implemented here.
+The per-activation key is registered over authenticated HTTPS, protected by the
+existing server endpoint encryption and wrapped by AndroidKeyStore on the device.
+No key is shipped in source or APK. See the #565 contextual-push preflight.
+
+Nimbus 10.10 embeds Gson 2.14.0 (Apache-2.0). The unchanged upstream Nimbus
+copyright header, Apache-2.0 license and Gson license are packaged under
+`android/app/src/main/assets/licenses/`. Backend wheel license metadata remains
+in the installed distribution. No additional provider account or terms are introduced.

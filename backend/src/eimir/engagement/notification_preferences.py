@@ -15,6 +15,7 @@ from eimir.identity import effects as account_effects
 
 # Extend existing recipient choices without adding another settings surface.
 INHERITED_KINDS = {
+    NotificationKind.REMINDER_CREATED: NotificationKind.REMINDER_DUE,
     NotificationKind.TRANSFER_READY: NotificationKind.REMINDER_DUE,
     NotificationKind.TRANSFER_COMPLETED: NotificationKind.REMINDER_DUE,
     NotificationKind.TRANSFER_FAILED: NotificationKind.REMINDER_DUE,

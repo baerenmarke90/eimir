@@ -13,12 +13,26 @@
  */
 
 import { mapValues } from '../runtime';
+import type { FcmPreviewRegistration } from './FcmPreviewRegistration';
+import {
+    FcmPreviewRegistrationFromJSON,
+    FcmPreviewRegistrationFromJSONTyped,
+    FcmPreviewRegistrationToJSON,
+    FcmPreviewRegistrationToJSONTyped,
+} from './FcmPreviewRegistration';
+
 /**
  * 
  * @export
  * @interface PushEndpointRegistration
  */
 export interface PushEndpointRegistration {
+    /**
+     * 
+     * @type {FcmPreviewRegistration}
+     * @memberof PushEndpointRegistration
+     */
+    encryptedPreview?: FcmPreviewRegistration | null;
     /**
      * Opaque provider-specific registration value. A Web Push transport can use a compact JSON subscription containing endpoint, keys.p256dh and keys.auth; FCM uses compact JSON containing fid and activationId (canonical UUIDv4). The configured provider validates its own format. Treat this value as a secret.
      * @type {string}
@@ -52,6 +66,7 @@ export function PushEndpointRegistrationFromJSONTyped(json: any, ignoreDiscrimin
     }
     return {
         
+        'encryptedPreview': json['encryptedPreview'] === undefined ? undefined : json['encryptedPreview'] === null ? null : FcmPreviewRegistrationFromJSON(json['encryptedPreview']),
         'endpointValue': json['endpointValue'],
         'providerKey': json['providerKey'],
     };
@@ -68,6 +83,7 @@ export function PushEndpointRegistrationToJSONTyped(value?: PushEndpointRegistra
 
     return {
         
+        'encryptedPreview': FcmPreviewRegistrationToJSON(value['encryptedPreview']),
         'endpointValue': value['endpointValue'],
         'providerKey': value['providerKey'],
     };

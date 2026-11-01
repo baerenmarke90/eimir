@@ -56,6 +56,7 @@ type SelectedConfiguration =
       providerKey: 'fcm';
       firebaseProjectId: string;
       androidPackage: string;
+      encryptedPreviewVersion?: 1;
     };
 
 type RegistrationOptions = SelectedConfiguration & {
@@ -284,6 +285,9 @@ function selectConfiguration(
           providerKey: 'fcm' as const,
           firebaseProjectId: available.fcm.projectId,
           androidPackage: available.fcm.androidPackage,
+          ...(available.fcm.encryptedPreviewVersion === 1
+            ? { encryptedPreviewVersion: 1 as const }
+            : {}),
         }
       : null;
   const unifiedPush = available.unifiedPush
@@ -515,10 +519,24 @@ export function useDevicePush({
               !(await currentEvent(event, generation))
             )
               return;
+            const fcmSubscription =
+              event.providerKey === 'fcm'
+                ? JSON.parse(event.endpointValue)
+                : null;
+            const preview =
+              configuration.current?.providerKey === 'fcm' &&
+              configuration.current.encryptedPreviewVersion === 1 &&
+              fcmSubscription?.previewVersion === 1
+                ? {
+                    version: 1 as const,
+                    key: fcmSubscription.previewKey as string,
+                  }
+                : undefined;
             const registration = await notificationsApi.registerOwnPushEndpoint(
               {
                 pushEndpointRegistration: {
                   providerKey: event.providerKey,
+                  ...(preview ? { encryptedPreview: preview } : {}),
                   endpointValue:
                     event.providerKey === 'unifiedpush'
                       ? (() => {
@@ -534,7 +552,10 @@ export function useDevicePush({
                           else delete subscription.notificationReferenceVersion;
                           return JSON.stringify(subscription);
                         })()
-                      : event.endpointValue,
+                      : JSON.stringify({
+                          fid: fcmSubscription.fid,
+                          activationId: fcmSubscription.activationId,
+                        }),
                 },
               },
             );

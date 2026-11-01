@@ -208,6 +208,7 @@ export const CHAPTER_DETAIL_ROUTE_PATTERN = '/plan/chapters/:chapterId';
 
 export const WISH_DETAIL_ROUTE_PATTERN = '/plan/wishes/:wishId';
 export const PLAN_DETAIL_ROUTE_PATTERN = '/plan/plans/:planId';
+export const REMINDER_DETAIL_ROUTE_PATTERN = '/plan/reminders/:reminderId';
 export const WISH_CREATE_ROUTE = '/plan/wishes/new';
 export const PLAN_CREATE_ROUTE = '/plan/plans/new';
 
@@ -321,6 +322,10 @@ export function wishDetailPath(wishId: string): string {
 
 export function planDetailPath(planId: string): string {
   return `/plan/plans/${encodeURIComponent(planId)}`;
+}
+
+export function reminderDetailPath(reminderId: string): string {
+  return `/plan/reminders/${encodeURIComponent(reminderId)}`;
 }
 
 export function placeDetailPath(placeId: string): string {

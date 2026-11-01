@@ -1,0 +1,320 @@
+{
+  "generatedAtUtc": "2026-11-01T23:31:37.927256+00:00",
+  "baselineMain": "36ccc13a162502a7122820a32b45569c17b72521",
+  "sourceFiles": [
+    {
+      "path": "android/app/build.gradle",
+      "sha256": "1c349d23989c7ad8f038175c272df9069d792fe971eab725bccee8e066c1fdf6"
+    },
+    {
+      "path": "android/app/src/androidTest/assets/push-preview-v1.json",
+      "sha256": "64aea60bd783504102ccce4e969d6217da331dd3df4e6b7a992fc255591f1763"
+    },
+    {
+      "path": "android/app/src/androidTest/java/de/eimir/app/NotificationOpenTest.java",
+      "sha256": "73e0451f178efc5ce47e765a5e34da8b856f4dbdd78d05c846549aacc3b8ffc2"
+    },
+    {
+      "path": "android/app/src/androidTest/java/de/eimir/app/PushPreviewTest.java",
+      "sha256": "23d119ca7ab724ced4fe7691d8286b7ba84d4c861ed1cbd60e63a3b134eda755"
+    },
+    {
+      "path": "android/app/src/main/assets/licenses/Apache-2.0.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "android/app/src/main/assets/licenses/Gson-LICENSE.txt",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "android/app/src/main/assets/licenses/Nimbus-JOSE-JWT-10.10-NOTICE.txt",
+      "sha256": "ab89c0411c6ffff7ce27fb5365e83e5e111a597502be46b134cca7034b73393a"
+    },
+    {
+      "path": "android/app/src/main/java/de/eimir/app/EimirFirebaseMessagingService.java",
+      "sha256": "e73152c94f44efddafc52460b045b88ccb55d811ce48c2a22ea6e00fd4a83bd7"
+    },
+    {
+      "path": "android/app/src/main/java/de/eimir/app/NativePushBridge.java",
+      "sha256": "d3deba8f43531a23d2d27e19cb73e85c2fecd95252cf770841029a0fa2831834"
+    },
+    {
+      "path": "android/app/src/main/java/de/eimir/app/NativePushNotifications.java",
+      "sha256": "994942764817f170e95bc00c1eeb05128bcec9fb6786876c095702a8f445cfd5"
+    },
+    {
+      "path": "android/app/src/main/java/de/eimir/app/PushActivation.java",
+      "sha256": "ac0f130ba431b65b822fd98806e9a93b3b384dc944a8ea7103d629cafb97ec11"
+    },
+    {
+      "path": "android/app/src/main/java/de/eimir/app/PushPreview.java",
+      "sha256": "ef42b21c4a88b51cc999786cc8890e9007a4caa7255c96448c7b6b39c03ea1ad"
+    },
+    {
+      "path": "android/app/src/main/java/de/eimir/app/PushPreviewKeys.java",
+      "sha256": "73702acdffb9855f3fce9cc4733fd473e3cd614f1d123ec25b3f000e1e87ffd0"
+    },
+    {
+      "path": "android/app/src/main/java/de/eimir/app/PushReceipts.java",
+      "sha256": "5251d29aac53987f74734f0cf1ed37c3538f71f6af3f0f90c8863ce4b8c60d23"
+    },
+    {
+      "path": "android/app/src/main/res/values/strings.xml",
+      "sha256": "b77d087c04ae17399079a392df64ce9ed227c24cffdcfb6b1dd546e24e665b02"
+    },
+    {
+      "path": "android/gradle/verification-metadata.xml",
+      "sha256": "8cbb775fe4196565c8e871672a27b34b49e0e35a7ac75fa70a00ea1731eb6397"
+    },
+    {
+      "path": "backend/alembic/versions/0099_contextual_reminder_notifications.py",
+      "sha256": "0ce79ddcfc18df5f71a58dfa9d9dfa7e6d491e518534bc781cdb85be81aa1a54"
+    },
+    {
+      "path": "backend/openapi.json",
+      "sha256": "075fb6507a579a0f50d087887e8ff92aa1273d28c8b96bd6acf700fa0c232c69"
+    },
+    {
+      "path": "backend/pyproject.toml",
+      "sha256": "dcd1dc053578410b91ccd1e8b360732cb8182f1306e83135f6c3be798ec60689"
+    },
+    {
+      "path": "backend/src/eimir/api/v1/engagement.py",
+      "sha256": "c326e2804f21a8f76cf2593b6769bfe067a5e313a99f54ecb9f171390657debb"
+    },
+    {
+      "path": "backend/src/eimir/api/v1/push_endpoints.py",
+      "sha256": "3b08f925ac7da7e3b282cce06d72e617bea4f528c8847c5f92d1149dc0fb9bea"
+    },
+    {
+      "path": "backend/src/eimir/domain/events.py",
+      "sha256": "9a492780389f74926ebd473aa119b0131d73c066d938a8c907425f535ae88531"
+    },
+    {
+      "path": "backend/src/eimir/engagement/fcm_push.py",
+      "sha256": "f144559ce1bb5be0067fdb41e53844647318b9a246dcd0c607135a9a758c614f"
+    },
+    {
+      "path": "backend/src/eimir/engagement/models.py",
+      "sha256": "41a8a1b168aed269b10bd93210933ae12a2755593b9ff370dc505f73851d6454"
+    },
+    {
+      "path": "backend/src/eimir/engagement/notification_policy.py",
+      "sha256": "3e1c5069f99b2c59c0ef135068f649cd38475827c4aa5df023cb4eba3ffdb442"
+    },
+    {
+      "path": "backend/src/eimir/engagement/notification_preferences.py",
+      "sha256": "c3e6984935a66e25a85acda9dd60e7396a42ffb330aa1900488df96cad0439e8"
+    },
+    {
+      "path": "backend/src/eimir/engagement/presentation.py",
+      "sha256": "9dbee44f8d41d6a4b2187821de4b78047f9cbb07d7599dd0ece2606e725a1ed1"
+    },
+    {
+      "path": "backend/src/eimir/engagement/push.py",
+      "sha256": "6537a5a90512476cca63ac26fce949b580c50f1aefd5e9cec357ff56330d303d"
+    },
+    {
+      "path": "backend/src/eimir/engagement/push_preview.py",
+      "sha256": "5de57267dd0f697d0c3c0dd0cb2abc5bfd3eddda0b167b00df1aba9755b72fe9"
+    },
+    {
+      "path": "backend/src/eimir/engagement/quiet_hours_preferences.py",
+      "sha256": "08b189f72a447cfeaf852230c0711d82a17ca4ee3aa11cd546ddd06487cfe422"
+    },
+    {
+      "path": "backend/src/eimir/engagement/service.py",
+      "sha256": "7f2c8d1c3a4f347b2deeb1f0c7cd2a971e71861f3c0dc46d227821419fcbeb23"
+    },
+    {
+      "path": "backend/src/eimir/reminders/delivery.py",
+      "sha256": "d22b5e9fd3b3590ceee9d520c690642a5f563b047f6e0a7ca1caa9ba903d7210"
+    },
+    {
+      "path": "backend/src/eimir/reminders/service.py",
+      "sha256": "d310bf3578cbb0a02b04ade58f8e1e265403d2e5e9538ff283f800a0f49b9339"
+    },
+    {
+      "path": "backend/tests/integration/test_contextual_push.py",
+      "sha256": "81f3e0ecd7e94aa4bd6cef88cd1a351fd75a33c1aa154776cabd087574e8a43f"
+    },
+    {
+      "path": "backend/tests/integration/test_push_endpoints_api.py",
+      "sha256": "1b1cb3fab3f520c0bc8609d0146881e3f75bb44f190f647678f72bf8b3ec38a7"
+    },
+    {
+      "path": "backend/tests/unit/test_fcm_push.py",
+      "sha256": "cc4b56a162c6d1c96efc6b6f5aa6f4738dcb1c5273690338bd64ae2dd804d6c1"
+    },
+    {
+      "path": "backend/tests/unit/test_payload_encryption.py",
+      "sha256": "e213324529c2e5633321cd500a44590bb21908e219a79273babc7174aa9baa1f"
+    },
+    {
+      "path": "backend/uv.lock",
+      "sha256": "fa72ab32afc334422037b2faf4bfca02cf9efd92802671765590b5fb120666bb"
+    },
+    {
+      "path": "web/e2e/test-groups.json",
+      "sha256": "8e33b551037a0510646626f9145bb4513ddda620f26adad132a1a0ce4fe8e893"
+    },
+    {
+      "path": "web/e2e/tests/contextual-reminder-notification.spec.ts",
+      "sha256": "c3ef44669b55e47cb8a402e2f6d4cc8ea536a0e7fe28b843586a98376f9bad03"
+    },
+    {
+      "path": "web/src/App.tsx",
+      "sha256": "8eb7b9b1d19410a2d2c24ebe5c83f898e5894612884575aede42fe5f77ebcc75"
+    },
+    {
+      "path": "web/src/api/generated/docs/FcmConfiguration.md",
+      "sha256": "e2be9b0281e6492952ce32a0ad0b7520330fb925bc9cee943a0586a2cf5cda53"
+    },
+    {
+      "path": "web/src/api/generated/docs/FcmPreviewRegistration.md",
+      "sha256": "b0906c1ff2722ec8e773f3a6d7005d55fcef8d4453c9fa02a7ae1db36f748002"
+    },
+    {
+      "path": "web/src/api/generated/docs/NotificationsApi.md",
+      "sha256": "36f30932bf19e5292bb85e4b0f53d79312218c47d4a3da3d5ab41948b6bf30ce"
+    },
+    {
+      "path": "web/src/api/generated/docs/PushEndpointRegistration.md",
+      "sha256": "11ca330cab602f1de49919a1ae4fbe2d0ae9b47a1fd0ef64454d6807114f61bf"
+    },
+    {
+      "path": "web/src/api/generated/models/EngagementTarget.ts",
+      "sha256": "8adc7e7c5ee1bb4e334ed56407a0cb2fcb11889a906c2fc9e67c46e27812c2af"
+    },
+    {
+      "path": "web/src/api/generated/models/FcmConfiguration.ts",
+      "sha256": "e0f56eb96cbd00474b0d91e03c948aeb4ed6e1f39f598407ae3df1841c08c898"
+    },
+    {
+      "path": "web/src/api/generated/models/FcmPreviewRegistration.ts",
+      "sha256": "c681a333262931043b50f69e62f3bff5f233f6995efc0ad00eaf3a3334cb1260"
+    },
+    {
+      "path": "web/src/api/generated/models/NotificationKind.ts",
+      "sha256": "eef8a5fad598a4058a84dbaf53e06f98af4b0f781b1877ee2c175d53b19d61e5"
+    },
+    {
+      "path": "web/src/api/generated/models/PushEndpointRegistration.ts",
+      "sha256": "02dc97f536e5f5fe89032af8b7c6567219d75cf8b3a12666c2e2cc3dcff890b7"
+    },
+    {
+      "path": "web/src/api/generated/models/index.ts",
+      "sha256": "41e6035df35f74d3c74f0eb14b3a490488b2161f109e4cbdb8deb1169ea6c934"
+    },
+    {
+      "path": "web/src/client/deepLinks.test.ts",
+      "sha256": "1ce529bcd19c203f227d6c1ac4809832dbd413a050395355c57826a52e6a8aa3"
+    },
+    {
+      "path": "web/src/client/deepLinks.ts",
+      "sha256": "756fa2a3bce8e034ee4b6a0e319b705ecf846f7cee7d211e589ba390fe4e2a94"
+    },
+    {
+      "path": "web/src/client/devicePush.test.tsx",
+      "sha256": "a4fcca2707948e766e9fb2e77af7832b62da711dcc950c7b1314bce1f8e17d75"
+    },
+    {
+      "path": "web/src/client/devicePush.ts",
+      "sha256": "d469db1409ab1e0aa6aa91a459be650bc051a226d93c7dd3e26d8859dbd35f60"
+    },
+    {
+      "path": "web/src/client/m4Product.ts",
+      "sha256": "2a34a7d6979405937ddf2d220c706513a55484fb9a825137481beecfe0382388"
+    },
+    {
+      "path": "web/src/client/notificationTitle.ts",
+      "sha256": "24e9aea0dc4bac00647b7f1b421fa5e2b065d0756252dde5e719adaf70341a46"
+    },
+    {
+      "path": "web/src/client/routes.ts",
+      "sha256": "fcd9b9c537716a6d3440a23b79d7cc5e0bce710cdc6fc390749286ca5d09c54e"
+    },
+    {
+      "path": "web/src/components/NotificationSettingsPanel.tsx",
+      "sha256": "e0651bb9fe53d20c2b8f04b8fbe10f1cdb797648698ac067883c25b4673623dd"
+    },
+    {
+      "path": "web/src/components/ReminderReadPage.css",
+      "sha256": "7192bd9c29d4c1abc91c5cfb89125a1940a69bd78ff154776157dcd1df0a00f8"
+    },
+    {
+      "path": "web/src/components/ReminderReadPage.test.tsx",
+      "sha256": "0270033075513b6ed4ff80ea54c75d46028c0d915973382c8566207f4c8c854c"
+    },
+    {
+      "path": "web/src/components/ReminderReadPage.tsx",
+      "sha256": "6cbe655255704d96a6448178a2a4824a0afe26611ac21cc18f5dce7a4027bcf8"
+    },
+    {
+      "path": "web/src/i18n/locales/m5s5.ts",
+      "sha256": "a031f01ce5124be33b1b5341050fee3a4723255816822bb0ce5958c892aa5923"
+    },
+    {
+      "path": "web/src/i18n/locales/notificationSettings.ts",
+      "sha256": "99a1da842b77c5d048f7fb961c42ae60924eee6e5ceb4563e9d556c6e8df54bf"
+    }
+  ],
+  "backend": {
+    "combinedPassed": 1267,
+    "finalRegistrationAndPrivacyGroupPassed": 24,
+    "rollbackAndPipelineGroupPassed": 3,
+    "groupsOverlap": true,
+    "schemaDrift": "No new upgrade operations detected",
+    "mypySourceFiles": 332
+  },
+  "web": {
+    "fullSuitePassed": 2465,
+    "fullSuiteSkipped": 2,
+    "fullSuiteFailure": "One unchanged durable-media LRU test exceeded its existing 5-second timeout during parallel local work.",
+    "targetedRetry": {
+      "file": "src/client/durableMediaStore.test.ts",
+      "passed": 6
+    },
+    "retryPolicy": "Only the failed file was retried; no timeout/assertion was weakened."
+  },
+  "android": {
+    "passed": 37,
+    "device": "Pixel 10 Pro Fold",
+    "os": "Android 16 / API 36",
+    "artifactKind": "separate Debug fixture APK, not a published release",
+    "apkSha256": "c25e221e439282275b7899489fc1b45da30437b7685b50c72b8d51bb9390b1d2",
+    "scope": "Real AndroidKeyStore, Python/Nimbus interoperability, actual OS notifications/public versions and PendingIntent handoff under synthetic ownership. The fixture uses a controlled blank Web document; it does not prove real FCM transport."
+  },
+  "browser": {
+    "passed": 9,
+    "widths": [
+      360,
+      390,
+      430,
+      1280
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "extraState": "360px Dark, 200% browser root text; physical device font unchanged",
+    "reducedMotion": true,
+    "axeViolations": 0,
+    "journey": "Authenticated fixture login -> canonical reminder read -> return to notifications; denied/deleted state."
+  },
+  "dependencies": {
+    "audit": "No known vulnerabilities/adverse statuses in 81 locked packages",
+    "joserfc": "1.7.7 BSD-3-Clause",
+    "nimbus": "10.10 Apache-2.0",
+    "bundledGson": "2.14.0 Apache-2.0",
+    "androidVerification": "strict SHA-256 metadata"
+  },
+  "liveBoundary": {
+    "firstGenericFcmReceipt": "Confirmed by user and scoped own-device observation on baseline main; source 36ccc13a and selected channel 6a0a63656aa8cba62d2e80b78a4a9776352dffd6.",
+    "firstTestTap": "Authenticated same-account inbox observed.",
+    "cleanup": "Test reminder deleted; original REMINDER_DUE/PUSH=false restored; temporary observer removed.",
+    "contextualFcm": "Pending selected deployment plus exact signed published artifact and real receipt/source-action proof.",
+    "playAcceptance": "Separate issue #1577; not attempted.",
+    "legacyMigration": "Separate package; fresh sign-in on old-only devices. No cross-package credential copy; #1395 remains deferred."
+  }
+}

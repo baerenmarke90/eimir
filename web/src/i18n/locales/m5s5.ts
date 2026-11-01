@@ -262,6 +262,7 @@ const m5s5 = {
     COMMENT_CREATED: 'hast einen Kommentar hinterlassen',
   },
   notificationKind: {
+    REMINDER_CREATED: 'Neue Erinnerung',
     COMMENT_CREATED: 'Neuer Kommentar',
     THINKING_OF_YOU: 'Denkt an dich',
     PARTNER_KISS: 'Kuss',
@@ -269,7 +270,19 @@ const m5s5 = {
     REMINDER_DUE: 'Erinnerung fällig',
     generic: 'Neue Benachrichtigung',
   },
+  reminderDetail: {
+    title: 'Erinnerung',
+    back: 'Zurück zu den Benachrichtigungen',
+    loading: 'Erinnerung wird geladen …',
+    annual: 'Jährlich am {{date}}, {{time}} Uhr',
+    dayCount: 'Nach {{days}} gemeinsamen Tagen, {{time}} Uhr',
+    createdBy: 'Von {{name}}',
+    muted: 'Deine Hinweise für diese Erinnerung sind pausiert.',
+  },
   notificationAction: {
+    REMINDER_CREATED: '{{name}} hat eine Erinnerung erstellt',
+    REMINDER_CREATED_WITH_TARGET:
+      '{{name}} hat die Erinnerung „{{target}}“ erstellt',
     COMMENT_CREATED_WITH_TARGET: '{{name}} hat „{{target}}“ kommentiert',
     COMMENT_CREATED: '{{name}} hat einen Kommentar hinterlassen',
     THINKING_OF_YOU: '{{name}} denkt an dich.',

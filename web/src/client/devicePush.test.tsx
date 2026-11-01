@@ -1309,3 +1309,47 @@ it.each([
     expect(registered.keys).toEqual(subscription.keys);
   },
 );
+
+it.each([1, undefined] as const)(
+  'registers preview keys only with the negotiated FCM server capability %s',
+  async (version) => {
+    native.state = {
+      ...statusFixture({ accountId, enabled: true, permissionGranted: true }),
+      providerKey: 'fcm',
+      fcmAvailable: true,
+    };
+    const { api } = setup('space-a', (api) => {
+      api.getDevicePushConfiguration.mockResolvedValue({
+        unifiedPush: null,
+        fcm: {
+          ...fcmConfiguration,
+          ...(version ? { encryptedPreviewVersion: version } : {}),
+        },
+      });
+    });
+    await waitFor(() => expect(native.refresh).toHaveBeenCalled());
+    const key = 'synthetic-transient-key';
+    const event = fcmEndpointEvent();
+    const subscription = JSON.parse(event.endpointValue);
+    await act(async () =>
+      native.listeners.get('endpoint')?.({
+        ...event,
+        endpointValue: JSON.stringify({
+          ...subscription,
+          previewVersion: 1,
+          previewKey: key,
+        }),
+      }),
+    );
+    await waitFor(() =>
+      expect(api.registerOwnPushEndpoint).toHaveBeenCalledOnce(),
+    );
+    const body =
+      api.registerOwnPushEndpoint.mock.calls[0][0].pushEndpointRegistration;
+    expect(JSON.parse(body.endpointValue)).toEqual(subscription);
+    expect(body.encryptedPreview).toEqual(
+      version ? { version: 1, key } : undefined,
+    );
+    expect([...stored.values()].join('')).not.toContain(key);
+  },
+);

@@ -26,7 +26,11 @@ const CHANNELS = [
 const GROUPS = [
   {
     key: 'sharedActivity',
-    kinds: [NotificationKind.COMMENT_CREATED, NotificationKind.REMINDER_DUE],
+    kinds: [
+      NotificationKind.COMMENT_CREATED,
+      NotificationKind.REMINDER_CREATED,
+      NotificationKind.REMINDER_DUE,
+    ],
   },
   {
     key: 'closeness',
@@ -42,6 +46,7 @@ const GROUPS = [
 const KIND_KEYS = {
   [NotificationKind.COMMENT_CREATED]: 'comment',
   [NotificationKind.REMINDER_DUE]: 'reminder',
+  [NotificationKind.REMINDER_CREATED]: 'reminderCreated',
   [NotificationKind.THINKING_OF_YOU]: 'thinking',
   [NotificationKind.COUPLE_EXPERIENCE_SHARED]: 'experience',
   [NotificationKind.PARTNER_KISS]: 'kiss',

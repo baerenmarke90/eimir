@@ -22,7 +22,13 @@ public final class NativePushNotifications {
     private static final String CHANNEL = "eimir_notifications";
     private static final int NOTIFICATION = 1;
 
-    public static void cancel(Context context) { NotificationManagerCompat.from(context).cancel(NOTIFICATION); }
+    public static void cancel(Context context) {
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        if (manager == null) return;
+        for (android.service.notification.StatusBarNotification notice : manager.getActiveNotifications()) {
+            if (CHANNEL.equals(notice.getNotification().getChannelId())) manager.cancel(notice.getTag(), notice.getId());
+        }
+    }
 
     public static Intent notificationIntent(Context context, PushActivation activation) {
         return new Intent(Intent.ACTION_VIEW, Uri.parse(URL), context, LauncherActivity.class)
@@ -35,7 +41,9 @@ public final class NativePushNotifications {
     }
 
     public static Intent notificationIntent(Context context, PushActivation activation, String notificationId) {
-        return notificationIntent(context, activation).putExtra("notificationId", notificationId);
+        Intent intent = notificationIntent(context, activation).putExtra("notificationId", notificationId);
+        if (notificationId != null) intent.addCategory("de.eimir.app.push.notification." + notificationId);
+        return intent;
     }
 
     public static boolean isNotificationIntent(Intent intent) {
@@ -60,8 +68,18 @@ public final class NativePushNotifications {
     }
 
     public static void present(Context context, PushActivation activation, String notificationId) {
+        present(context, activation, notificationId, null);
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
+    public static void presentPreview(Context context, PushActivation activation, PushPreview preview) {
+        present(context, activation, preview.notificationId, preview);
+    }
+
+    private static void present(Context context, PushActivation activation, String notificationId, PushPreview preview) {
         synchronized (PushActivation.class) {
             if (!PushActivation.current(context, activation)) return;
+            if (preview != null && !PushReceipts.claim(context, activation, notificationId)) return;
             NativePushBridge.wake(context, activation);
             if (MainActivity.isForeground()) return;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -77,8 +95,21 @@ public final class NativePushNotifications {
                 .setContentText(context.getString(R.string.push_notification_body)).setContentIntent(tap)
                 .setAutoCancel(true).setCategory(NotificationCompat.CATEGORY_MESSAGE)
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE);
+            if (preview != null) {
+                String body = preview.body(context);
+                notification.setContentText(body).setStyle(new NotificationCompat.BigTextStyle().bigText(body))
+                    .setOnlyAlertOnce(true)
+                    .setPublicVersion(new NotificationCompat.Builder(context, CHANNEL)
+                        .setSmallIcon(R.drawable.ic_launcher_monochrome)
+                        .setContentTitle(context.getString(R.string.app_name))
+                        .setContentText(context.getString(R.string.push_notification_body))
+                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).build());
+                String action = preview.action(context);
+                if (action != null) notification.addAction(0, action, tap);
+            }
             try {
-                NotificationManagerCompat.from(context).notify(NOTIFICATION, notification.build());
+                if (preview == null) NotificationManagerCompat.from(context).notify(NOTIFICATION, notification.build());
+                else NotificationManagerCompat.from(context).notify(notificationId, NOTIFICATION, notification.build());
             } catch (SecurityException revoked) {
                 // Permission may be revoked between the check and presentation.
             }

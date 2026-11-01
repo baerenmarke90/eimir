@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import Any, Protocol
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
@@ -25,6 +25,8 @@ from eimir.engagement.models import (
     PushEndpoint,
     PushEndpointSecret,
     PushEndpointSecretPayload,
+    PushPreviewKeyPayload,
+    PushPreviewSecret,
 )
 from eimir.identity import effects as account_effects
 from eimir.identity.models import Account
@@ -127,6 +129,7 @@ def register_endpoint(
     provider_key: str,
     endpoint_value: str,
     registration_identity: str | None = None,
+    preview_key: str | None = None,
 ) -> PushEndpoint:
     """Create/reactivate one technical endpoint without exposing it publicly."""
     provider = provider_key.strip()
@@ -194,6 +197,20 @@ def register_endpoint(
         )
     elif secret.payload.value != endpoint:
         secret.payload = PushEndpointSecretPayload(value=endpoint)
+    preview = session.scalar(
+        select(PushPreviewSecret).where(PushPreviewSecret.push_endpoint_id == endpoint_id)
+    )
+    if preview_key is None:
+        if preview is not None:
+            session.delete(preview)
+    elif preview is None:
+        session.add(
+            PushPreviewSecret(
+                push_endpoint_id=endpoint_id, payload=PushPreviewKeyPayload(key=preview_key)
+            )
+        )
+    elif preview.payload.key != preview_key:
+        preview.payload = PushPreviewKeyPayload(key=preview_key)
     return endpoint_row
 
 
@@ -213,6 +230,9 @@ def revoke_endpoint(session: Session, *, account_id: UUID, endpoint_id: UUID) ->
         return False
     if endpoint.disabled_at is None:
         endpoint.disabled_at = clock.now()
+    session.execute(
+        delete(PushPreviewSecret).where(PushPreviewSecret.push_endpoint_id == endpoint.id)
+    )
     return True
 
 
@@ -541,6 +561,25 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
         secret = session.execute(
             select(PushEndpointSecret).where(PushEndpointSecret.push_endpoint_id == endpoint.id)
         ).scalar_one_or_none()
+        reference = presentation.reference
+        endpoint_value = secret.payload.value if secret is not None else endpoint.endpoint_value
+        if endpoint.provider_key == "fcm":
+            from eimir.engagement import fcm_push, push_preview
+
+            preview_secret = session.scalar(
+                select(PushPreviewSecret).where(PushPreviewSecret.push_endpoint_id == endpoint.id)
+            )
+            if preview_secret is not None:
+                preview = push_preview.for_notification(session, notification, digest=digest)
+                if preview is None:
+                    _finish_unavailable(delivery, "PUSH_TARGET_UNAVAILABLE")
+                    return
+                reference = {
+                    **reference,
+                    "encryptedPreview": fcm_push.encrypt_preview(
+                        endpoint_value, preview_secret.payload.key, preview
+                    ),
+                }
         result = provider.send(
             idempotency_key=(
                 f"digest:{notification.recipient_account_id}:{notification.space_id}:"
@@ -548,8 +587,8 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
                 if digest_start is not None
                 else f"{notification.id}:{endpoint.id}"
             ),
-            endpoint=secret.payload.value if secret is not None else endpoint.endpoint_value,
-            notification_reference=presentation.reference,
+            endpoint=endpoint_value,
+            notification_reference=reference,
             generic_presentation_key=presentation.key,
         )
     except PushProviderError as exc:

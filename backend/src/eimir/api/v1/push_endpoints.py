@@ -24,10 +24,31 @@ _REGISTER_ACTION = "push_endpoint_register"
 _REGISTER_LIMIT = rate_limit.Limit(attempts=30, window=timedelta(minutes=15))
 
 
+class FcmPreviewRegistration(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+    version: Literal[1]
+    key: str = Field(min_length=43, max_length=43, repr=False)
+
+    @field_validator("version", mode="before")
+    @classmethod
+    def version_is_integer(cls, value: object) -> object:
+        if type(value) is not int:
+            raise ValueError("Invalid preview protocol version.")
+        return value
+
+    @field_validator("key")
+    @classmethod
+    def key_is_canonical(cls, value: str) -> str:
+        if not fcm_push.valid_preview_key(value):
+            raise ValueError("Invalid preview registration.")
+        return value
+
+
 class PushEndpointRegistration(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     provider_key: str = Field(min_length=1, max_length=64)
+    encrypted_preview: FcmPreviewRegistration | None = None
     endpoint_value: str = Field(
         min_length=1,
         max_length=2048,
@@ -59,6 +80,7 @@ class UnifiedPushConfiguration(ApiModel):
 
 
 class FcmConfiguration(ApiModel):
+    encrypted_preview_version: Literal[1] = 1
     provider_key: str
     project_id: str
     android_package: str
@@ -154,6 +176,10 @@ def register_own_push_endpoint(
         )
     if not provider.accepts_endpoint(body.endpoint_value):
         raise ValidationError("Invalid Push endpoint.", ErrorCode.PUSH_ENDPOINT_INVALID)
+    if body.encrypted_preview is not None and body.provider_key != fcm_push.PROVIDER_KEY:
+        raise ValidationError(
+            "Preview protocol is unavailable for this transport.", ErrorCode.PUSH_ENDPOINT_INVALID
+        )
     rate_limit.check(session, _REGISTER_ACTION, str(account.id), _REGISTER_LIMIT)
     endpoint = push.register_endpoint(
         session,
@@ -161,6 +187,7 @@ def register_own_push_endpoint(
         provider_key=body.provider_key,
         endpoint_value=body.endpoint_value,
         registration_identity=provider.registration_identity(body.endpoint_value),
+        preview_key=body.encrypted_preview.key if body.encrypted_preview is not None else None,
     )
     response.headers["Cache-Control"] = "private, no-store"
     return PushEndpointRegistrationResult(id=endpoint.id)

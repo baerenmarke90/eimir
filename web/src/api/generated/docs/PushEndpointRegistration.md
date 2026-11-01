@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`encryptedPreview` | [FcmPreviewRegistration](FcmPreviewRegistration.md)
 `endpointValue` | string
 `providerKey` | string
 
@@ -16,6 +17,7 @@ import type { PushEndpointRegistration } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "encryptedPreview": null,
   "endpointValue": null,
   "providerKey": null,
 } satisfies PushEndpointRegistration

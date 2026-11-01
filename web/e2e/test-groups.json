@@ -391,6 +391,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 8,
       "reason": "Protects saved-memory map privacy/Pro admission/source return, immediate tiles after authorized entry, tile-error list fallback/reflow, finite playable games and calendar date semantics."
+    },
+    "contextual-reminder-notification.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "The native reminder notification must open an authorized read-only source at Compact/Expanded widths, preserve native-sized actions and return navigation, and hide deleted/denied content."
     }
   }
 }

@@ -42,6 +42,7 @@ PINNED_CONTEXTS = {
     "places": "PlacePayload",
     "plans": "PlanPayload",
     "push_endpoint_secrets": "PushEndpointSecretPayload",
+    "push_preview_secrets": "PushPreviewKeyPayload",
     "private_collection_items": "PrivateCollectionItemPayload",
     "private_collections": "PrivateCollectionPayload",
     "private_notes": "PrivateNotePayload",

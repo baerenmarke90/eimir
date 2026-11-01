@@ -270,6 +270,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/moments/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
+    Endpoint(
+        "GET",
+        "/api/v1/spaces/{spaceId}/experiences/{kind}/questions",
+        fixture_aliases={"kind": "experienceKind"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/profile"),
     Endpoint("PUT", "/api/v1/spaces/{spaceId}/profile", body=PROFILE, if_match=True),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/partner-nickname"),
@@ -459,6 +464,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="NOTIFICATION_NOT_FOUND",
     ),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/notifications/read-all"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/notifications/{notificationId}/open",
+        resource_absence="NOTIFICATION_NOT_FOUND",
+    ),
     Endpoint(
         "POST",
         "/api/v1/spaces/{spaceId}/thinking-of-you",
@@ -1296,6 +1306,7 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             # relation types because this matrix checks occur before target resolution.
             "targetId": memory["id"],
             "kind": "memories",
+            "experienceKind": "HAPPINESS",
             "attachmentId": attachment["attachment"]["id"],
         },
     }

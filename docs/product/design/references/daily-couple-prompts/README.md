@@ -184,6 +184,12 @@ unchanged. Fresh matrix results are required before merge. The documentation
 language guard's English compound false positive was fixed by clarifying the
 sentence, with all 26 guard tests passing and no guard exception added.
 
+The complete backend endpoint inventory required explicit matrix registration
+for the new daily-question read and authenticated notification-open operation.
+Both now participate in the existing anonymous/foreign/malformed Space and
+unknown/malformed resource checks. All 29 selected matrix cases and contract
+completeness pass locally against real PostgreSQL; no endpoint is excluded.
+
 The Product Owner explicitly authorized merging after successful checks and
 updating `eimir-test`, and will perform the running-instance smoke check personally.
 Publication verification therefore binds the selected Git channel and image pair

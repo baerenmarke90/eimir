@@ -85,6 +85,7 @@ No authorization required
 | **200** | The request identity (&#x60;Idempotency-Key&#x60;) was already used for an equivalent request. The response returns the original Memory in its current state; no second Memory is created. |  * ETag - Resource version to use for the next If-Match write request. <br>  |
 | **201** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
@@ -240,7 +241,7 @@ No authorization required
 
 ## listMemories
 
-> MemoryPage listMemories(spaceId, cursor, limit, year)
+> MemoryPage listMemories(spaceId, cursor, limit, year, experienceKind)
 
 List Memories
 
@@ -266,6 +267,8 @@ async function example() {
     limit: 56,
     // number (optional)
     year: 56,
+    // ExperienceKind (optional)
+    experienceKind: ...,
   } satisfies ListMemoriesRequest;
 
   try {
@@ -289,6 +292,7 @@ example().catch(console.error);
 | **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **limit** | `number` |  | [Optional] [Defaults to `50`] |
 | **year** | `number` |  | [Optional] [Defaults to `undefined`] |
+| **experienceKind** | `ExperienceKind` |  | [Optional] [Defaults to `undefined`] [Enum: HAPPINESS, TIME_TRAVEL] |
 
 ### Return type
 

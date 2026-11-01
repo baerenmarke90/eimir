@@ -1,27 +1,39 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
+import type { SpaceEntitlementView } from '../api/generated/models/SpaceEntitlementView';
 import copy from '../i18n/locales/coupleExperiences';
 import { CoupleExperiencePage } from './CoupleExperiencePage';
-function setup(game: 'happiness' | 'timeTravel', couple = true) {
-  const onExit = vi.fn();
-  const view = render(
-    <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter>
+
+function setup(
+  kind: 'happiness' | 'timeTravel',
+  { pro = true, couple = true, saved = false } = {},
+) {
+  return render(
+    <QueryClientProvider
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
+    >
+      <MemoryRouter
+        initialEntries={[
+          kind === 'happiness' ? '/story/happiness' : '/story/time-travel',
+        ]}
+      >
         <CoupleExperiencePage
-          kind={game}
-          accountId="account"
-          loadEntitlement={async () =>
-            ({
-              capabilities: ['games.couple'],
-            }) as import('../api/generated/models/SpaceEntitlementView').SpaceEntitlementView
-          }
+          kind={kind}
+          accountId="a"
           apiBaseUrl=""
           accessToken="test"
           spaceId="space"
-          onExit={onExit}
+          loadEntitlement={async () =>
+            ({
+              capabilities: pro ? ['games.couple'] : [],
+            }) as SpaceEntitlementView
+          }
           loadParticipants={async () =>
             couple
               ? [
@@ -30,47 +42,62 @@ function setup(game: 'happiness' | 'timeTravel', couple = true) {
                 ]
               : null
           }
+          loadHistory={async () => ({
+            items: saved
+              ? [
+                  {
+                    id: 'saved',
+                    body: 'A real shared note',
+                    author: { id: 'b', displayName: 'B' },
+                    createdAt: new Date('2026-10-01'),
+                  } as MemoryDetail,
+                ]
+              : [],
+            hasMore: false,
+            nextCursor: null,
+          })}
         />
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  return { ...view, onExit };
 }
-describe('Independent finite couple experiences', () => {
+
+describe('Authored shared couple experiences', () => {
   it.each(['happiness', 'timeTravel'] as const)(
-    'can finish, skip, restart and exit %s without storing answers',
-    async (game) => {
-      const view = setup(game);
-      await screen.findByText(copy.session[game].first);
-      fireEvent.click(screen.getByRole('button', { name: copy.session.skip }));
-      for (let index = 1; index < 6; index += 1)
-        fireEvent.click(
-          screen.getByRole('button', {
-            name: game === 'happiness' ? copy.session.done : copy.session.next,
-          }),
-        );
-      expect(screen.getByText(copy.session.finishTitle)).toBeTruthy();
-      expect(
-        screen.getByText(
-          copy.session.finishBody_other.replace('{{count}}', '5'),
-        ),
-      ).toBeTruthy();
-      fireEvent.click(
-        screen.getByRole('button', { name: copy.session.restart }),
+    'opens the guarded canonical composer for %s',
+    async (kind) => {
+      setup(kind);
+      const action = await screen.findByRole('link', {
+        name: copy.create[kind],
+      });
+      expect(action.getAttribute('href')).toBe(
+        kind === 'happiness'
+          ? '/story/happiness/new'
+          : '/story/time-travel/new',
       );
-      expect(screen.getByText(copy.session[game].second)).toBeTruthy();
-      for (let index = 0; index < 6; index += 1)
-        fireEvent.click(
-          screen.getByRole('button', { name: copy.session.skip }),
-        );
-      fireEvent.click(screen.getByRole('button', { name: copy.session.back }));
-      expect(view.onExit).toHaveBeenCalledOnce();
-      view.unmount();
+      expect(await screen.findByText(copy.empty[kind])).toBeTruthy();
+      expect(screen.queryByText(/nichts aufgezeichnet oder gespeichert/)).toBeNull();
     },
   );
-  it('explains the two-person requirement instead of starting an invalid round', async () => {
-    setup('happiness', false);
-    await screen.findByText(copy.session.coupleRequiredTitle);
-    expect(screen.queryByText(copy.session.happiness.first)).toBeNull();
+  it('keeps authored history readable after losing Pro', async () => {
+    setup('happiness', { pro: false, saved: true });
+    expect(await screen.findByText('A real shared note')).toBeTruthy();
+    expect(await screen.findByText(copy.proTitle)).toBeTruthy();
+    expect(
+      screen.queryByRole('link', { name: copy.create.happiness }),
+    ).toBeNull();
+    expect(
+      screen.getByText('A real shared note').closest('a')?.getAttribute('href'),
+    ).toBe('/story/memories/saved');
+  });
+  it('requires a partner for a new share without hiding retained history', async () => {
+    setup('timeTravel', { couple: false, saved: true });
+    expect(
+      await screen.findByText(copy.session.coupleRequiredTitle),
+    ).toBeTruthy();
+    expect(await screen.findByText('A real shared note')).toBeTruthy();
+    expect(
+      screen.queryByRole('link', { name: copy.create.timeTravel }),
+    ).toBeNull();
   });
 });

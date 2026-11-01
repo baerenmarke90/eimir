@@ -11,6 +11,7 @@ export function useMemoryDiaryDraft({
   apiBaseUrl,
   accountId,
   spaceId,
+  purpose,
   snapshot,
   dirty,
   suspended,
@@ -18,13 +19,14 @@ export function useMemoryDiaryDraft({
   apiBaseUrl: string;
   accountId: string;
   spaceId: string;
+  purpose?: string;
   snapshot: MemoryDiaryDraft;
   dirty: boolean;
   suspended: boolean;
 }) {
   const store = useMemo(
-    () => new MemoryDiaryDraftStore(apiBaseUrl, accountId, spaceId),
-    [apiBaseUrl, accountId, spaceId],
+    () => new MemoryDiaryDraftStore(apiBaseUrl, accountId, spaceId, purpose),
+    [apiBaseUrl, accountId, spaceId, purpose],
   );
   const [recovery, setRecovery] = useState<MemoryDiaryDraft | null>(null);
   const [status, setStatus] = useState<
@@ -32,7 +34,7 @@ export function useMemoryDiaryDraft({
   >('loading');
   const captureOwnership = useTaskActivation(
     true,
-    JSON.stringify([apiBaseUrl, accountId, spaceId]),
+    JSON.stringify([apiBaseUrl, accountId, spaceId, purpose]),
   );
   const closed = useRef(false);
   const revision = useRef(0);

@@ -34,7 +34,26 @@ describe('dashboardPreferences', () => {
     });
     expect(migrated.filter((key) => key !== 'daily_quote')).toEqual(legacy);
     expect(migrated.indexOf('daily_quote')).toBe(
+      migrated.indexOf('shared_experience') + 1,
+    );
+  });
+  it('preserves the old personal order while inserting both additive modules', () => {
+    const legacy = [...DASHBOARD_MODULE_KEYS]
+      .reverse()
+      .filter((key) => key !== 'daily_quote' && key !== 'shared_experience');
+    const migrated = orderedDashboardModuleKeys({
+      items: legacy.map((moduleKey) => ({ moduleKey, visible: true })),
+    });
+    expect(
+      migrated.filter(
+        (key) => key !== 'daily_quote' && key !== 'shared_experience',
+      ),
+    ).toEqual(legacy);
+    expect(migrated.indexOf('shared_experience')).toBe(
       migrated.indexOf('relationship_presence') + 1,
+    );
+    expect(migrated.indexOf('daily_quote')).toBe(
+      migrated.indexOf('shared_experience') + 1,
     );
   });
   it('scopes query cache entries by account and Space', () => {

@@ -251,6 +251,7 @@ function AuthenticatedAppShell({
   const isFocusedTask =
     /^\/more\/passport\/[^/]+$/.test(location.pathname) ||
     location.pathname === MEMORY_CREATE_ROUTE ||
+    /^\/story\/(?:happiness|time-travel)\/new$/.test(location.pathname) ||
     location.pathname === '/plan/plans/new' ||
     location.pathname === '/plan/wishes/new' ||
     location.pathname === '/plan/choose';

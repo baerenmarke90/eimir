@@ -52,6 +52,7 @@ def test_digest_window_uses_fixed_utc_projection_hour() -> None:
 def test_existing_explicit_signals_and_due_reminders_keep_generic_push() -> None:
     notification_id = uuid4()
     for kind in (
+        NotificationKind.COUPLE_EXPERIENCE_SHARED,
         NotificationKind.THINKING_OF_YOU,
         NotificationKind.PARTNER_KISS,
         NotificationKind.PARTNER_CHECK_IN,

@@ -214,7 +214,18 @@ def project_event(session: Session, event: OutboxEvent) -> None:
         if comment_target is None or event.actor_id is None:
             return
         target_type, target_id = comment_target
-        _project_comment_notification(session, event, target_type, target_id)
+        _project_target_notification(
+            session, event, target_type, target_id, NotificationKind.COMMENT_CREATED
+        )
+
+    if event_type is EventType.MEMORY_CREATED and event.payload.experience_kind is not None:
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.MEMORY,
+            event.subject_id,
+            NotificationKind.COUPLE_EXPERIENCE_SHARED,
+        )
 
     push.ensure_deliveries_for_source_event(session, event.id)
     email_delivery.ensure_deliveries_for_source_event(session, event.id)
@@ -297,11 +308,12 @@ def _insert_activity(
     session.execute(statement)
 
 
-def _project_comment_notification(
+def _project_target_notification(
     session: Session,
     event: OutboxEvent,
     target_type: EngagementTarget,
     target_id: UUID,
+    notification_kind: NotificationKind,
 ) -> None:
     recipient_id = event.payload.recipient_id
     if recipient_id is None or recipient_id == event.actor_id:
@@ -327,13 +339,13 @@ def _project_comment_notification(
             space_id=event.space_id,
             recipient_account_id=recipient_id,
             source_event_id=event.id,
-            kind=NotificationKind.COMMENT_CREATED.value,
+            kind=notification_kind.value,
             actor_id=event.actor_id,
             target_type=target_type.value,
             target_id=target_id,
             created_at=event.created_at,
             in_app_visible=notification_preferences.in_app_enabled(
-                session, account_id=recipient_id, kind=NotificationKind.COMMENT_CREATED.value
+                session, account_id=recipient_id, kind=notification_kind.value
             ),
         )
         .on_conflict_do_nothing(index_elements=["recipient_account_id", "source_event_id", "kind"])

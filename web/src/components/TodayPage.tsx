@@ -68,6 +68,7 @@ import {
 } from './CouplePresence';
 import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
 import { DailyQuoteCard } from './DailyQuoteCard';
+import { SharedExperienceReveal } from './SharedExperienceReveal';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
@@ -967,9 +968,20 @@ export function TodayPage({
   // otherwise a genuine shared story item receives intentional text-first
   // treatment. No eligible photo means a different composition, never an
   // empty image well or generic photo-onboarding copy.
+  const incomingCandidate = dashboardQuery.data?.incomingExperience;
+  const incomingExperience =
+    !dashboardQuery.error &&
+    !dashboardQuery.isCached &&
+    incomingCandidate &&
+    partner &&
+    incomingCandidate.authorId === partner.id
+      ? incomingCandidate
+      : null;
+  const incomingId = incomingExperience?.id;
+  const ordinaryShared = recentShared.filter((item) => item.id !== incomingId);
   const focalItem = selectTodayFocalItem({
-    keepsake: serverKeepsake,
-    recentShared,
+    keepsake: serverKeepsake?.id === incomingId ? null : serverKeepsake,
+    recentShared: ordinaryShared,
   });
 
   // 4. Gerade bei euch: one module, deterministic priority, never a stack.
@@ -978,7 +990,10 @@ export function TodayPage({
     activityItems: activityQuery.data?.items,
     retrospective: retrospectiveDismissed ? null : retrospective,
     recentShared,
-    excludeItemIds: focalItem ? [focalItem.item.id] : [],
+    excludeItemIds: [
+      ...(focalItem ? [focalItem.item.id] : []),
+      ...(incomingId ? [incomingId] : []),
+    ],
     suppressPlanningFallback: Boolean(anticipation) || upcoming.length > 0,
   });
 
@@ -996,7 +1011,7 @@ export function TodayPage({
    * still gets to choose freely from everything the two blocks above did not
    * take, and only then do its photos become featured content for the trace.
    */
-  const featuredIds = new Set<string>();
+  const featuredIds = new Set<string>(incomingId ? [incomingId] : []);
   if (focalItem) featuredIds.add(focalItem.item.id);
   const livingContentId = livingModuleContentId(livingModule);
   if (livingContentId) featuredIds.add(livingContentId);
@@ -1214,6 +1229,17 @@ export function TodayPage({
       />
     ) : null;
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {
+    shared_experience:
+      incomingExperience &&
+      isDashboardModuleVisible(
+        dashboardPreferencesQuery.data,
+        'shared_experience',
+      ) ? (
+        <SharedExperienceReveal
+          entry={incomingExperience}
+          partnerName={partnerName}
+        />
+      ) : null,
     daily_quote: dailyQuote,
     relationship_presence: (
       <>

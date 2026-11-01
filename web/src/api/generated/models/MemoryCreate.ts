@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ExperienceKind } from './ExperienceKind';
+import {
+    ExperienceKindFromJSON,
+    ExperienceKindFromJSONTyped,
+    ExperienceKindToJSON,
+    ExperienceKindToJSONTyped,
+} from './ExperienceKind';
+
 /**
  * 
  * @export
@@ -25,6 +33,12 @@ export interface MemoryCreate {
      * @memberof MemoryCreate
      */
     body?: string;
+    /**
+     * 
+     * @type {ExperienceKind}
+     * @memberof MemoryCreate
+     */
+    experienceKind?: ExperienceKind | null;
     /**
      * 
      * @type {Date}
@@ -45,6 +59,8 @@ export interface MemoryCreate {
     title: string;
 }
 
+
+
 /**
  * Check if a given object implements the MemoryCreate interface.
  */
@@ -64,6 +80,7 @@ export function MemoryCreateFromJSONTyped(json: any, ignoreDiscriminator: boolea
     return {
         
         'body': json['body'] == null ? undefined : json['body'],
+        'experienceKind': json['experienceKind'] === undefined ? undefined : json['experienceKind'] === null ? null : ExperienceKindFromJSON(json['experienceKind']),
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
         'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'],
@@ -82,6 +99,7 @@ export function MemoryCreateToJSONTyped(value?: MemoryCreate | null, ignoreDiscr
     return {
         
         'body': value['body'],
+        'experienceKind': ExperienceKindToJSON(value['experienceKind']),
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
         'tags': value['tags'],
         'title': value['title'],

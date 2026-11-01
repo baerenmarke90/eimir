@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+import taskCopy from '../../src/i18n/locales/taskBoundary';
 import experienceCopy from '../../src/i18n/locales/coupleExperiences';
 import calendarCopy from '../../src/i18n/locales/calendarPlan';
 import gameCopy from '../../src/i18n/locales/games';
@@ -196,7 +197,7 @@ test('map entitlement denial explains Pro without loading external tiles', async
   await expect(page.locator('.place-map-viewport')).toHaveCount(0);
 });
 
-test('three Pro games and independent experiences retain their own journeys', async ({
+test('three Pro games retain their existing independent home', async ({
   page,
 }, info) => {
   await installMocks(page);
@@ -238,74 +239,364 @@ test('three Pro games and independent experiences retain their own journeys', as
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const game of ['happiness', 'timeTravel'] as const) {
-    await page.goto('/story');
-    await page
-      .getByRole('link', {
-        name: new RegExp(experienceCopy.entries[game].title),
-      })
-      .click();
-    await expect(page).toHaveURL(
-      game === 'happiness' ? /\/story\/happiness$/ : /\/story\/time-travel$/,
-    );
-    await expect(
-      page.getByRole('heading', {
-        name: experienceCopy.entries[game].title,
-        exact: true,
-      }),
-    ).toBeVisible();
-    await expect(
-      page.getByText(experienceCopy.session[game].first),
-    ).toBeVisible();
-    for (let index = 0; index < 6; index++)
-      await page
-        .getByRole('button', { name: experienceCopy.session.skip })
-        .click();
-    await expect(
-      page.getByText(experienceCopy.session.finishTitle),
-    ).toBeVisible();
-    await page
-      .getByRole('button', { name: experienceCopy.session.restart })
-      .click();
-    await expect(
-      page.getByText(experienceCopy.session[game].second),
-    ).toBeVisible();
-    await page.goBack();
-    await expect(page).toHaveURL(/\/story$/);
-    await page.goto(
-      game === 'happiness' ? '/story/happiness' : '/story/time-travel',
-    );
-    await expect(
-      page.getByRole('heading', {
-        name: experienceCopy.entries[game].title,
-        exact: true,
-      }),
-    ).toBeVisible();
-    await expect(
-      page.getByText(experienceCopy.session[game].first),
-    ).toBeVisible();
-    for (const [width, theme] of [
-      [360, 'light'],
-      [390, 'dark'],
-      [430, 'light'],
-      [1280, 'dark'],
-    ] as const) {
-      await page.setViewportSize({ width, height: 900 });
-      await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
-      await expect(
-        page.getByRole('button', {
-          name:
-            game === 'happiness'
-              ? experienceCopy.session.done
-              : experienceCopy.session.next,
-        }),
-      ).toBeVisible();
-      await captureScreenshot(page, info, `${game}-${width}-${theme}.png`, {
-        fullPage: true,
-      });
-    }
-  }
 });
+
+for (const kind of ['happiness', 'timeTravel'] as const) {
+  for (const [width, theme] of [
+    [320, 'light'],
+    [360, 'light'],
+    [390, 'dark'],
+    [430, 'light'],
+    [1280, 'dark'],
+  ] as const) {
+    test(`authored ${kind} at ${width} ${theme} shares once and reveals the saved source to the partner`, async ({
+      page,
+      browser,
+    }, info) => {
+      type Note = {
+        id: string;
+        title: string;
+        body: string;
+        experienceKind: string;
+        happenedOn: string | null;
+        createdAt: string;
+        updatedAt: string;
+        spaceId: string;
+        authorId: string;
+        author: { id: string; displayName: string };
+        version: number;
+        tags: string[];
+        attachments: never[];
+        capabilities: {
+          canEdit: boolean;
+          canDelete: boolean;
+          canComment: boolean;
+        };
+      };
+      const notes: Note[] = [];
+      const identities = new Map<string, Note>();
+      let loseFirstResponse = kind === 'happiness';
+      async function installExperienceRoutes(target: Page, asPartner = false) {
+        const actor = asPartner ? PARTNER_ID : ACCOUNT_ID;
+        await target.route('**/api/v1/**', async (route) => {
+          const request = route.request();
+          const url = new URL(request.url());
+          const path = url.pathname;
+          if (path === `/api/v1/spaces/${SPACE_ID}/entitlements`)
+            return route.fulfill({
+              json: {
+                spaceId: SPACE_ID,
+                tier: 'PREMIUM',
+                status: 'ACTIVE',
+                isInGracePeriod: false,
+                capabilities: ['games.couple'],
+              },
+            });
+          if (path === `/api/v1/spaces/${SPACE_ID}`)
+            return route.fulfill({
+              json: {
+                id: SPACE_ID,
+                partners: [
+                  { id: ACCOUNT_ID, displayName: 'Lea Sommer' },
+                  { id: PARTNER_ID, displayName: 'Alex' },
+                ],
+              },
+            });
+          if (path === `/api/v1/spaces/${SPACE_ID}/memories`) {
+            if (request.method() === 'POST') {
+              const snapshot = request.postDataJSON();
+              const identity = request.headers()['idempotency-key'];
+              expect(identity).toBeTruthy();
+              const previous = identities.get(identity);
+              const note =
+                previous ??
+                ({
+                  ...snapshot,
+                  id: `experience-${snapshot.experienceKind.toLowerCase()}`,
+                  spaceId: SPACE_ID,
+                  authorId: actor,
+                  author: {
+                    id: actor,
+                    displayName: asPartner ? 'Alex' : 'Lea Sommer',
+                  },
+                  createdAt: '2026-11-01T09:00:00Z',
+                  updatedAt: '2026-11-01T09:00:00Z',
+                  version: 1,
+                  tags: [],
+                  attachments: [],
+                  capabilities: {
+                    canEdit: true,
+                    canDelete: true,
+                    canComment: true,
+                  },
+                } as Note);
+              if (!previous) {
+                notes.push(note);
+                identities.set(identity, note);
+              }
+              if (loseFirstResponse) {
+                loseFirstResponse = false;
+                return route.abort('failed');
+              }
+              return route.fulfill({
+                status: previous ? 200 : 201,
+                json: note,
+                headers: { ETag: '"1"' },
+              });
+            }
+            return route.fulfill({
+              json: {
+                items: notes.filter(
+                  (note) =>
+                    note.experienceKind ===
+                    url.searchParams.get('experienceKind'),
+                ),
+                hasMore: false,
+                nextCursor: null,
+              },
+            });
+          }
+          if (path.includes('/profiles/'))
+            return route.fulfill({
+              json: {
+                accountId: path.split('/').at(-1),
+                id: 'profile-test',
+                displayName: path.endsWith(ACCOUNT_ID) ? 'Lea Sommer' : 'Alex',
+                birthday: null,
+                preferences: [],
+                profileAttachmentId: null,
+                createdAt: '2026-01-01T00:00:00Z',
+                updatedAt: '2026-01-01T00:00:00Z',
+                version: 1,
+              },
+            });
+          if (path.endsWith('/configuration'))
+            return route.fulfill({
+              json: {
+                spaceId: SPACE_ID,
+                version: 1,
+                canManageSpaceConfiguration: true,
+                dailyQuestionsEnabled: false,
+                energyCheckInEnabled: false,
+                vibeCheckEnabled: false,
+                sharedAchievementsEnabled: false,
+                loveNotesEnabled: false,
+                supportGesturesEnabled: false,
+                energyVisibilityMode: 'SHARED',
+                vibeVisibilityMode: 'SHARED',
+                dailyContextTimezone: 'Europe/Berlin',
+              },
+            });
+          if (path.endsWith('/dashboard/preferences'))
+            return route.fulfill({ json: { items: [] } });
+          if (path.endsWith('/activity'))
+            return route.fulfill({
+              json: { items: [], hasMore: false, nextCursor: null },
+            });
+          const note = notes.find(
+            (note) => path === `/api/v1/spaces/${SPACE_ID}/memories/${note.id}`,
+          );
+          if (note)
+            return route.fulfill({
+              json: {
+                ...note,
+                capabilities: {
+                  canEdit: actor === note.authorId,
+                  canDelete: actor === note.authorId,
+                  canComment: true,
+                },
+              },
+              headers: { ETag: '"1"' },
+            });
+          if (
+            path.includes('/memories/experience-') &&
+            path.endsWith('/comments')
+          )
+            return route.fulfill({
+              json: { items: [], hasMore: false, nextCursor: null },
+            });
+          if (path === `/api/v1/spaces/${SPACE_ID}/dashboard`) {
+            const incoming = notes
+              .filter((note) => note.authorId !== actor)
+              .at(-1);
+            return route.fulfill({
+              json: {
+                space: {
+                  spaceId: SPACE_ID,
+                  partner: {
+                    id: asPartner ? ACCOUNT_ID : PARTNER_ID,
+                    displayName: asPartner ? 'Lea Sommer' : 'Alex',
+                  },
+                },
+                relationshipDuration: {
+                  startedOn: '2023-07-04',
+                  daysTogether: 1216,
+                  displayMode: 'DAYS',
+                },
+                retrospective: null,
+                keepsake: incoming
+                  ? {
+                      type: 'MEMORY',
+                      id: incoming.id,
+                      titleOrText: incoming.title,
+                      occurredOn: incoming.happenedOn,
+                    }
+                  : null,
+                upcoming: [],
+                recentShared: notes.map((note) => ({
+                  type: 'MEMORY',
+                  id: note.id,
+                  titleOrText: note.body,
+                  createdAt: note.createdAt,
+                  occurredOn: note.happenedOn,
+                })),
+                sharedStorySummary: {
+                  memories: notes.length,
+                  heartMoments: 0,
+                  milestones: 0,
+                },
+                thinkingOfYouAvailableAt: null,
+                viewerLocalDate: '2026-11-01',
+                incomingExperience: incoming
+                  ? {
+                      id: incoming.id,
+                      kind: incoming.experienceKind,
+                      text: incoming.body,
+                      authorId: incoming.authorId,
+                      happenedOn: incoming.happenedOn,
+                      createdAt: incoming.createdAt,
+                    }
+                  : null,
+              },
+            });
+          }
+          return route.fallback();
+        });
+      }
+      await installMocks(page);
+      await installExperienceRoutes(page);
+      await signIn(page);
+      const partnerContext = await browser.newContext();
+      const partnerPage = await partnerContext.newPage();
+      await installMocks(partnerPage, { asPartner: true });
+      await installExperienceRoutes(partnerPage, true);
+      try {
+        const base =
+          kind === 'happiness' ? '/story/happiness' : '/story/time-travel';
+        await page.goto('/story', { waitUntil: 'domcontentloaded' });
+        await page
+          .getByRole('link', {
+            name: new RegExp(experienceCopy.entries[kind].title),
+          })
+          .click();
+        await expect(page).toHaveURL(new RegExp(base + '$'));
+        await page
+          .getByRole('link', { name: experienceCopy.create[kind] })
+          .click();
+        await expect(page).toHaveURL(new RegExp(base + '/new$'));
+        await expect(page.locator('[data-focused-task="true"]')).toBeVisible();
+        const words =
+          kind === 'happiness'
+            ? 'Dein Lachen beim Frühstück hat meinen Tag schöner gemacht.'
+            : 'Weißt du noch, wie wir im Regen am See gelacht haben?';
+        await page
+          .getByRole('textbox', { name: experienceCopy.write[kind] })
+          .fill(words);
+        await page.setViewportSize({ width, height: 900 });
+        await page.emulateMedia({
+          colorScheme: theme,
+          reducedMotion: 'reduce',
+        });
+        await page.addStyleTag({
+          content: `html { font-size: ${width === 320 ? '200%' : '100%'}; }`,
+        });
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+        ).toBe(true);
+        await captureScreenshot(
+          page,
+          info,
+          `${kind}-compose-${width}-${theme}.png`,
+          { fullPage: true },
+        );
+        const composerAxe = await new AxeBuilder({ page })
+          .include('.memory-task-page')
+          .analyze();
+        expect(composerAxe.violations).toEqual([]);
+        await page
+          .getByRole('button', {
+            name: experienceCopy.share.replace('{{name}}', 'Alex'),
+          })
+          .click();
+        if (kind === 'happiness')
+          await page
+            .getByRole('button', { name: taskCopy.verify, exact: true })
+            .click();
+        await expect(page).toHaveURL(new RegExp('/story/memories/experience-'));
+        await expect(page.getByText(words, { exact: true })).toBeVisible();
+        expect(
+          notes.filter(
+            (note) =>
+              note.experienceKind ===
+              (kind === 'happiness' ? 'HAPPINESS' : 'TIME_TRAVEL'),
+          ),
+        ).toHaveLength(1);
+        await page.goto(base, { waitUntil: 'domcontentloaded' });
+        await expect(
+          page
+            .locator('.couple-experience-history-entry')
+            .filter({ hasText: words }),
+        ).toBeVisible();
+        await signIn(partnerPage);
+        await partnerPage.goto('/today', { waitUntil: 'domcontentloaded' });
+        const reveal = partnerPage.locator('.shared-experience-reveal');
+        await expect(reveal.getByText(words, { exact: true })).toBeVisible();
+        await partnerPage.setViewportSize({ width, height: 900 });
+        await partnerPage.emulateMedia({
+          colorScheme: theme,
+          reducedMotion: width === 430 ? 'no-preference' : 'reduce',
+        });
+        await partnerPage.addStyleTag({
+          content: `html { font-size: ${width === 320 ? '200%' : '100%'}; }`,
+        });
+        await expect(reveal).toHaveCSS(
+          'animation-name',
+          width === 430 ? 'experience-note-enter' : 'none',
+        );
+        expect(
+          await partnerPage.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+        ).toBe(true);
+        await captureScreenshot(
+          partnerPage,
+          info,
+          `${kind}-incoming-${width}-${theme}.png`,
+          { fullPage: true },
+        );
+        const receiverAxe = await new AxeBuilder({ page: partnerPage })
+          .include('.today-page')
+          .analyze();
+        expect(receiverAxe.violations).toEqual([]);
+        await reveal
+          .getByRole('link', { name: experienceCopy.incoming.open })
+          .click();
+        await expect(
+          partnerPage.getByText(words, { exact: true }),
+        ).toBeVisible();
+        await partnerPage.goBack();
+        await expect(partnerPage).toHaveURL(/\/today$/);
+        await expect(
+          partnerPage.locator('.shared-experience-words'),
+        ).toHaveText(words);
+      } finally {
+        await partnerContext.close();
+      }
+    });
+  }
+}
 
 test('dated plan hands off an RFC calendar file without changing the plan', async ({
   page,

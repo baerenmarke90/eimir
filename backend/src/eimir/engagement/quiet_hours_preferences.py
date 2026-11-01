@@ -18,6 +18,7 @@ from eimir.identity.models import Account
 DEFERABLE_KINDS = frozenset(
     {
         NotificationKind.THINKING_OF_YOU,
+        NotificationKind.COUPLE_EXPERIENCE_SHARED,
         NotificationKind.PARTNER_KISS,
         NotificationKind.PARTNER_CHECK_IN,
         NotificationKind.COMMENT_CREATED,

@@ -2039,6 +2039,54 @@
         "title": "DashboardAnticipation",
         "type": "object"
       },
+      "DashboardExperience": {
+        "properties": {
+          "authorId": {
+            "format": "uuid",
+            "title": "Authorid",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "happenedOn": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Happenedon"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ExperienceKind"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "text",
+          "authorId",
+          "happenedOn",
+          "createdAt"
+        ],
+        "title": "DashboardExperience",
+        "type": "object"
+      },
       "DashboardItem": {
         "properties": {
           "createdAt": {
@@ -2353,6 +2401,16 @@
               }
             ]
           },
+          "incomingExperience": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DashboardExperience"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "keepsake": {
             "anyOf": [
               {
@@ -2590,6 +2648,14 @@
           "PREMIUM"
         ],
         "title": "EntitlementTier",
+        "type": "string"
+      },
+      "ExperienceKind": {
+        "enum": [
+          "HAPPINESS",
+          "TIME_TRAVEL"
+        ],
+        "title": "ExperienceKind",
         "type": "string"
       },
       "ExportStatus": {
@@ -3812,6 +3878,16 @@
             "title": "Body",
             "type": "string"
           },
+          "experienceKind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExperienceKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "happenedOn": {
             "anyOf": [
               {
@@ -3873,6 +3949,16 @@
             "format": "date-time",
             "title": "Createdat",
             "type": "string"
+          },
+          "experienceKind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExperienceKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "happenedOn": {
             "anyOf": [
@@ -4528,6 +4614,7 @@
       },
       "NotificationKind": {
         "enum": [
+          "COUPLE_EXPERIENCE_SHARED",
           "COMMENT_CREATED",
           "THINKING_OF_YOU",
           "PARTNER_KISS",
@@ -23319,6 +23406,22 @@
               ],
               "title": "Year"
             }
+          },
+          {
+            "in": "query",
+            "name": "experienceKind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ExperienceKind"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Experiencekind"
+            }
           }
         ],
         "responses": {
@@ -23466,6 +23569,16 @@
               }
             },
             "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
           },
           "404": {
             "content": {

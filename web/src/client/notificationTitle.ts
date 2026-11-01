@@ -35,6 +35,11 @@ export function getNotificationItemTitle(
     return t('m5s5.notificationKind.COMMENT_CREATED');
   }
 
+  if (item.kind === 'COUPLE_EXPERIENCE_SHARED')
+    return t('coupleExperiences.notification', {
+      name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+    });
+
   if (item.kind === 'THINKING_OF_YOU') {
     return actorName
       ? t('m5s5.notificationAction.THINKING_OF_YOU', { name: actorName })

@@ -32,3 +32,20 @@ actual APK identity/source and upgrade compatibility, stage/verify all four
 assets, publish atomically and verify anonymous catalog/bytes. Existing releases
 are immutable. Physical-device upgrade/data continuity and the running instance
 remain Product Owner acceptance; automated checks do not claim those observations.
+
+## Native permission-fixture correction
+
+Source `e1f665bb` passed API 28 and 37.1. API 36 timed out at the existing
+PhotoFileChooserTest permission transition. Its retained diagnostics in
+[run 41331267197](https://github.com/baerenmarke90/eimir/actions/runs/41331267197)
+show the permission content appearing before the dialog's touch input channel;
+InputDispatcher rejected the test tap with `NO_INPUT_CHANNEL`. This reproduces
+the previously intermittent test.37 fixture failure and warrants a test fix.
+
+Activate the exact visible, enabled, attached “Allow all” Android consent button
+through `AccessibilityNodeInfo.ACTION_CLICK`. This is an actual system UI action,
+not a runtime permission grant or picker bypass. Keep the same 15-second
+picker-window wait, physical Chromium input/photo/confirmation actions,
+foreign-ownership proof, original-byte/EXIF assertions and full upload/worker
+pipeline. No runtime app or release gate changes. The corrected source requires
+fresh exact-source checks before plan selection; the failed source is not released.

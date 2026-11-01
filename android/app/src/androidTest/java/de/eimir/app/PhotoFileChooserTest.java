@@ -292,8 +292,14 @@ public class PhotoFileChooserTest {
             AccessibilityNodeInfo allow = findDocument("Allow all");
             assertNotNull("Android exposes the optional metadata permission decision", allow);
             instrumentation.getUiAutomation().executeAndWaitForEvent(() -> {
-                try { tapNativeControl(allow); }
-                catch (Exception failure) { throw new AssertionError(failure); }
+                // Permission content can precede the dialog's touch input channel.
+                // Activate the real consent button through Android accessibility;
+                // the system still makes the permission decision and opens its picker.
+                assertTrue("The permission decision is still attached", allow.refresh());
+                assertTrue("The permission decision is visible", allow.isVisibleToUser());
+                assertTrue("The permission decision is enabled", allow.isEnabled());
+                assertTrue("Android activates the actual metadata consent button",
+                    allow.performAction(AccessibilityNodeInfo.ACTION_CLICK));
             }, event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getPackageName() != null
                 && isSystemPhotoPicker(event.getPackageName()), 15000);

@@ -98,3 +98,11 @@ allow control rows to wrap naturally and let their fieldsets shrink. The exact
 320px Free view now passes normal/200% text reflow without clipping, and the
 pointer/keyboard ordering journey passes again. Evidence: [Free 320px](evidence/settings-free-320-light.webp)
 and [Free 320px with 200% text](evidence/settings-free-320-large.webp).
+
+The exact-source CI additionally exposed the independent Momente entry's intrinsic
+grid track overflowing at 320px with 200% text. Give that track an explicit zero
+minimum, allow the link content to wrap and preserve readable text rather than
+clipping it. The existing Discover → Diary → edit → add Place → return regression
+now passes at 390/430/1280 and 320px/200%, without changed assertions or tolerances.
+Final entry evidence: [320px/200%](evidence/momente-entry-320-large.webp) and
+[390px Light](evidence/momente-entry-390-light.webp).

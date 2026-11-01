@@ -8,6 +8,7 @@
 }
 .couple-experience-links a {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4);
@@ -29,9 +30,11 @@
 }
 .couple-experience-links a > span:not(.pro-mark) {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-1);
   min-width: 0;
-  flex: 1;
+  flex: 1 1 8rem;
+  overflow-wrap: anywhere;
 }
 .couple-experience-links a strong {
   font-weight: 650;

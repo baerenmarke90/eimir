@@ -7,7 +7,7 @@ now owns cross-domain admission. It extends the historical foundation below:
 scheduled new Plans, reactions and accepted invitations are Center-only;
 imminent Plan changes/cancellation, deliberate shared Wish rounds/revealed results
 and owner-only background transfer outcomes use neutral immediate delivery.
-Three daily inspirations per experience module, quotes, presence, check-ins,
+Daily question sets, quotes, presence and Vibe submissions,
 rediscovery, ordinary edits and local games stay silent. Existing comments,
 recipient consent and quiet hours remain effective; no daily summary is added.
 

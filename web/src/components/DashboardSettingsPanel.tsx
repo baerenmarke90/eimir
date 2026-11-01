@@ -5,7 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
 import type { DashboardModulePreferenceView } from '../api/generated/models/DashboardModulePreferenceView';
@@ -32,11 +32,13 @@ import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { useTranslation } from '../i18n';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { ProblemState } from './ProblemState';
+import { ProMark } from './ProMark';
 
 export interface DashboardSettingsPanelProps {
   dashboardApi: DashboardApi;
   accountId: string;
   spaceId: string;
+  moduleControls?: Partial<Record<DashboardModuleKey, ReactNode>>;
 }
 
 type PreferenceQueryWrite = {
@@ -157,6 +159,7 @@ function settlePreferenceFacetWrite(
 }
 
 export function DashboardSettingsPanel({
+  moduleControls,
   dashboardApi,
   accountId,
   spaceId,
@@ -635,9 +638,10 @@ export function DashboardSettingsPanel({
               pendingVisibility[rowScope] !== undefined ||
               pendingVisibilityMutations.includes(entry.key) ||
               (entry.key === UPCOMING_MODULE_KEY && isLimitPending);
+            const customControl = moduleControls?.[entry.key];
             const hasDedicatedSetting =
-              entry.key === 'shared_story_summary' ||
-              entry.key === 'daily_quote';
+              customControl !== undefined ||
+              entry.key === 'shared_story_summary';
             return (
               <div
                 key={entry.key}
@@ -646,7 +650,7 @@ export function DashboardSettingsPanel({
               >
                 {hasDedicatedSetting ? (
                   <span className="dashboard-module-option-label">
-                    {t(entry.labelKey)}
+                    {t(entry.labelKey)} <ProMark label={t('dailyQuote.pro')} />
                   </span>
                 ) : (
                   <label
@@ -657,19 +661,7 @@ export function DashboardSettingsPanel({
                   </label>
                 )}
                 {hasDedicatedSetting ? (
-                  <a
-                    className="dashboard-module-configure"
-                    aria-label={t('profileIdentity.dashboardModuleConfigure', {
-                      name: t(entry.labelKey),
-                    })}
-                    href={
-                      entry.key === 'daily_quote'
-                        ? '#settings-daily-quote'
-                        : '#wir-statistics-setting'
-                    }
-                  >
-                    {t('common.edit')}
-                  </a>
+                  (customControl ?? null)
                 ) : (
                   <input
                     id={`dashboard-visible-${entry.key}`}

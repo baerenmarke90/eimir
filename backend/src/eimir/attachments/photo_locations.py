@@ -1,4 +1,4 @@
-"""Selected-photo location consent and atomic shared-place association.
+"""Selected-photo location processing and atomic shared-place association.
 
 The attachment row is locked before the account-scoped advisory lock. Preference
 writes lock Account with NO KEY UPDATE first (compatible with content FK checks),
@@ -52,11 +52,13 @@ def set_preference(
     lock_subject(session, "photo-locations", str(account_id))
     if account.photo_locations_version != expected_version:
         raise ConflictError("Photo location preference changed.", "VERSION_CONFLICT")
+    if not enabled:
+        raise ConflictError(
+            "Photo-derived Places remain enabled.", "PHOTO_LOCATIONS_ALWAYS_ENABLED"
+        )
     if account.photo_locations_enabled != enabled:
         account.photo_locations_enabled = enabled
         account.photo_locations_version += 1
-        if not enabled:
-            discard_owner(session, account_id)
         session.flush()
     return enabled, account.photo_locations_version
 

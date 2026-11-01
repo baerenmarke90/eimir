@@ -4,8 +4,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import planningCopy from '../../src/i18n/locales/m5s3';
-import copy from '../../src/i18n/locales/relationshipReflections';
 import recapCopy from '../../src/i18n/locales/recaps';
+import copy from '../../src/i18n/locales/relationshipReflections';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
   ACCOUNT_ID,
@@ -698,14 +698,15 @@ for (const pro of [true, false])
     await signIn(page);
     await expect(page.locator('.shared-story-summary')).toHaveCount(0);
     await page.goto('/more/settings/today');
-    const control = page.getByRole('switch', {
-      name: copy.passport.wirStatisticsToggle,
+    const control = page.getByRole('checkbox', {
+      name: copy.passport.wirStatisticsTitle,
     });
-    await expect(control).toHaveAttribute('aria-checked', 'false');
+    await expect(control).toHaveCount(1);
+    await expect(control).not.toBeChecked();
     if (pro) {
       await expect(control).toBeEnabled();
       await control.click();
-      await expect(control).toHaveAttribute('aria-checked', 'true');
+      await expect(control).toBeChecked();
       await page.goto('/today');
       await expect(page.locator('.shared-story-summary')).toBeVisible();
       const storyHeading = page.locator('#shared-story-summary-heading');

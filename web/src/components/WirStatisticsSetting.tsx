@@ -1,9 +1,7 @@
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { useWirStatistics } from '../client/useWirStatistics';
 import { useTranslation } from '../i18n';
-import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
-import { ProMark } from './ProMark';
 
 export function WirStatisticsSetting(props: {
   api: EntitlementsApi;
@@ -14,29 +12,22 @@ export function WirStatisticsSetting(props: {
   const { t } = useTranslation();
   const preference = useWirStatistics(props);
   return (
-    <section aria-labelledby="wir-statistics-setting">
-      <h2 id="wir-statistics-setting">
-        {t('relationshipReflections.passport.wirStatisticsTitle')}{' '}
-        <ProMark label={t('relationshipReflections.passport.pro')} />
-      </h2>
-      <PreferenceSwitch
-        label={t('relationshipReflections.passport.wirStatisticsToggle')}
-        description={t('relationshipReflections.passport.wirStatisticsHelp')}
-        checked={preference.enabled && preference.allowed}
-        disabled={!preference.allowed}
-        onCheckedChange={preference.setEnabled}
-      />
+    <div className="dashboard-module-control">
+      <label className="dashboard-module-switch">
+        <input
+          type="checkbox"
+          aria-label={t('relationshipReflections.passport.wirStatisticsTitle')}
+          checked={preference.enabled && preference.allowed}
+          disabled={!preference.allowed}
+          onChange={(event) => preference.setEnabled(event.target.checked)}
+        />
+      </label>
       {preference.grant.error ? (
         <ProblemState
           error={preference.grant.error}
           onRetry={() => void preference.grant.refetch()}
         />
       ) : null}
-      {!preference.grant.isPending &&
-      !preference.allowed &&
-      !preference.grant.error ? (
-        <p>{t('relationshipReflections.passport.wirStatisticsPro')}</p>
-      ) : null}
-    </section>
+    </div>
   );
 }

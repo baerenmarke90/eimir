@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next';
 import accountSettings from './locales/accountSettings';
 import appIcon from './locales/appIcon';
 import calendarPlan from './locales/calendarPlan';
+import coupleExperiences from './locales/coupleExperiences';
 import contextTags from './locales/contextTags';
 import dailyEnergy from './locales/dailyEnergy';
 import dailyInsights from './locales/dailyInsights';
@@ -62,6 +63,7 @@ if (!i18n.isInitialized) {
           ...de,
           memoryMap,
           calendarPlan,
+          coupleExperiences,
           sensitiveMedia,
           taskBoundary,
           taskSheets,

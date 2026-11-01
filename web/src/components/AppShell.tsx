@@ -237,7 +237,9 @@ function AuthenticatedAppShell({
       location.pathname,
     );
   const isStoryDetail = Boolean(
-    storyDetailMatch && storyDetailMatch[1] !== 'new',
+    (storyDetailMatch && storyDetailMatch[1] !== 'new') ||
+      location.pathname === '/story/happiness' ||
+      location.pathname === '/story/time-travel',
   );
   const taskOriginKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;

@@ -27,11 +27,13 @@ export function DailyQuoteSettingsPanel({
   entitlementsApi,
   accountId,
   spaceId,
+  variant = 'section',
 }: {
   quoteApi: DailyQuoteApi;
   entitlementsApi: EntitlementsApi;
   accountId: string;
   spaceId: string;
+  variant?: 'section' | 'toggle' | 'sources';
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -107,6 +109,53 @@ export function DailyQuoteSettingsPanel({
       ? t('dailyQuote.settingsSaved')
       : null;
 
+  if (variant === 'toggle') {
+    const failure =
+      entitlementQuery.error ?? preferencesQuery.error ?? mutation.error;
+    return (
+      <div className="dashboard-module-control">
+        <label className="dashboard-module-switch">
+          <input
+            type="checkbox"
+            aria-label={t('dailyQuote.title')}
+            checked={hasCapability && enabled}
+            disabled={
+              !hasCapability ||
+              !preferencesQuery.data ||
+              Boolean(failure) ||
+              mutation.isPending
+            }
+            onChange={(event) => {
+              mutation.reset();
+              mutation.mutate(event.target.checked);
+            }}
+          />
+        </label>
+        {failure ? (
+          <div role="status">
+            <p>{t('dailyQuote.preferencesUnavailable')}</p>
+            <button
+              type="button"
+              className="tertiary"
+              onClick={() => {
+                mutation.reset();
+                void entitlementQuery.refetch();
+                void preferencesQuery.refetch();
+              }}
+            >
+              {t('dailyQuote.retry')}
+            </button>
+          </div>
+        ) : null}
+        {status ? (
+          <span className="sr-only" role="status">
+            {status}
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <section
       id="settings-daily-quote"
@@ -165,7 +214,7 @@ export function DailyQuoteSettingsPanel({
             {t('dailyQuote.retry')}
           </button>
         </div>
-      ) : preferencesQuery.data ? (
+      ) : preferencesQuery.data && variant !== 'sources' ? (
         <PreferenceSwitch
           label={t('dailyQuote.enabledLabel')}
           description={t('dailyQuote.enabledSettingsDescription')}

@@ -13,7 +13,6 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { AccountApi } from '../api/generated/apis/AccountApi';
 import { PlaceRelationsApi } from '../api/generated/apis/PlaceRelationsApi';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
@@ -34,7 +33,6 @@ import {
 import { ClientProblemError } from '../client/problemDetails';
 import photoPlaceCopy from '../i18n/locales/photoPlaces';
 import { MomentPlaces } from './MomentPlaces';
-import { PhotoLocationSettings } from './PhotoLocationSettings';
 
 afterEach(() => {
   cleanup();
@@ -52,96 +50,6 @@ function wrapper(children: React.ReactNode) {
     </QueryClientProvider>,
   );
 }
-
-it('waits for the real preference and confirms only after the server accepts it', async () => {
-  let finish!: (value: { enabled: boolean; version: number }) => void;
-  vi.spyOn(
-    AccountApi.prototype,
-    'getPhotoLocationPreference',
-  ).mockResolvedValue({ enabled: true, version: 0 });
-  const save = vi
-    .spyOn(AccountApi.prototype, 'setPhotoLocationPreference')
-    .mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          finish = resolve;
-        }),
-    );
-  wrapper(
-    <PhotoLocationSettings
-      apiBaseUrl="http://example.test"
-      accessToken="token"
-      accountId="a"
-    />,
-  );
-  expect(screen.queryByRole('switch')).toBeNull();
-  const control = await screen.findByRole('switch');
-  expect(control.getAttribute('aria-checked')).toBe('true');
-  fireEvent.click(control);
-  await waitFor(() =>
-    expect(save).toHaveBeenCalledWith({
-      ifMatch: '"0"',
-      photoLocationPreferenceUpdate: { enabled: false },
-    }),
-  );
-  expect(control.getAttribute('aria-checked')).toBe('true');
-  expect((control as HTMLButtonElement).disabled).toBe(true);
-  finish({ enabled: false, version: 1 });
-  await waitFor(() =>
-    expect(control.getAttribute('aria-checked')).toBe('false'),
-  );
-  expect(await screen.findByText(photoPlaceCopy.saved)).toBeTruthy();
-});
-
-it('does not queue an offline preference change or change its confirmed value', async () => {
-  vi.spyOn(
-    AccountApi.prototype,
-    'getPhotoLocationPreference',
-  ).mockResolvedValue({ enabled: true, version: 0 });
-  const save = vi.spyOn(AccountApi.prototype, 'setPhotoLocationPreference');
-  wrapper(
-    <PhotoLocationSettings
-      apiBaseUrl="http://example.test"
-      accessToken="token"
-      accountId="a"
-    />,
-  );
-  const control = await screen.findByRole('switch');
-  onlineManager.setOnline(false);
-  fireEvent.click(control);
-  await waitFor(() =>
-    expect((control as HTMLButtonElement).disabled).toBe(false),
-  );
-  expect(save).not.toHaveBeenCalled();
-  expect(control.getAttribute('aria-checked')).toBe('true');
-  onlineManager.setOnline(true);
-  await new Promise((resolve) => setTimeout(resolve, 10));
-  expect(save).not.toHaveBeenCalled();
-});
-
-it('refreshes a concurrent preference without claiming the failed write succeeded', async () => {
-  vi.spyOn(AccountApi.prototype, 'getPhotoLocationPreference')
-    .mockResolvedValueOnce({ enabled: true, version: 0 })
-    .mockResolvedValue({ enabled: false, version: 2 });
-  vi.spyOn(
-    AccountApi.prototype,
-    'setPhotoLocationPreference',
-  ).mockRejectedValue(new ClientProblemError('conflict', 409));
-  wrapper(
-    <PhotoLocationSettings
-      apiBaseUrl="http://example.test"
-      accessToken="token"
-      accountId="a"
-    />,
-  );
-  fireEvent.click(await screen.findByRole('switch'));
-  await waitFor(() =>
-    expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe(
-      'false',
-    ),
-  );
-  expect(screen.queryByText(photoPlaceCopy.saved)).toBeNull();
-});
 
 it('opens a map only as an explicit link and requires deliberate unlink confirmation', async () => {
   window.matchMedia = (query: string) => ({

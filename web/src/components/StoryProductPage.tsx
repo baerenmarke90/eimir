@@ -1,3 +1,4 @@
+import { CoupleExperienceLinks } from './CoupleExperienceLinks';
 import {
   useInfiniteQuery,
   useQuery,
@@ -1012,6 +1013,8 @@ export function StoryProductPage({
               </article>
             ) : null}
 
+            <CoupleExperienceLinks onOpen={openDiscoverItem} />
+
             {/* 2. Keepsake / Editorial Tapestry — an asymmetric mixed archive,
               not a fixed-width carousel of equal cards. Column height is the
               item's real content height, so a photo memory naturally takes
@@ -1164,6 +1167,11 @@ export function StoryProductPage({
               </div>
             </section>
           </section>
+        ) : null}
+        {activeView === 'discover' &&
+        !featuredItem &&
+        discoverItems.length === 0 ? (
+          <CoupleExperienceLinks onOpen={openDiscoverItem} />
         ) : null}
       </div>
       <div

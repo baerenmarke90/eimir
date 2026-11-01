@@ -669,12 +669,10 @@ test('personal visibility hides the Wir card and Settings -> Wir restores it', a
   await page.locator('.settings-index a[href="/more/settings/today"]').click();
   await expect(page).toHaveURL(/\/more\/settings\/today$/);
 
-  const settingsToggle = page
-    .locator('#settings-daily-quote')
-    .getByRole('switch', { name: dailyQuote.enabledLabel });
-  await expect(settingsToggle).toHaveAttribute('aria-checked', 'false');
+  const settingsToggle = page.getByRole('checkbox', { name: dailyQuote.title });
+  await expect(settingsToggle).not.toBeChecked();
   await settingsToggle.click();
-  await expect(settingsToggle).toHaveAttribute('aria-checked', 'true');
+  await expect(settingsToggle).toBeChecked();
   expect(requests.patches.at(-1)?.body).toEqual({ enabled: true });
 
   await page.getByRole('link', { name: navigation.today, exact: true }).click();

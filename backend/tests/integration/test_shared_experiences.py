@@ -350,6 +350,7 @@ def test_transfer_round_trip_preserves_origin_without_resending(session: Session
         source,
         title="Recollection",
         body="Our first walk",
+        happened_on=None,
         experience_kind=ExperienceKind.TIME_TRAVEL,
     )
     session.flush()

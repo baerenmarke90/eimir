@@ -4,6 +4,10 @@
 
 Reconcile the existing FCM implementation from #1392 with the canonical
 notification workflow from #1573 and the subsequent #1575 product baseline.
+The Product Owner selected **FCM-only operation** on 2026-11-01, superseding the
+earlier dual-transport target in #565. No new UnifiedPush identity, distributor or
+operator configuration is part of this rollout. Existing optional repository
+support remains compatible; the selected channel requires only FCM configuration.
 Keep #565 open until the operator has configured the real server and the selected
 signed Android build has passed real provider/device delivery acceptance.
 The Product Owner reserved server deployment for themselves on 2026-11-01.
@@ -160,8 +164,15 @@ Capacitor foundation, Ruff and formatting passed. The actual Gradle Play Store
 guard rejected an absent Firebase configuration. These local checks remain
 separate from current-head hosted CI and real deployed delivery.
 
+The subsequent FCM-only deployment decision passed 120 release/exporter/
+configuration checks, including real Compose resolution without distributor
+settings and refusal of missing FCM inputs. The selected channel explicitly
+leaves the alternate transport disabled. Sanitized source/build identities and
+the physical-fixture/real-delivery distinction are retained in
+`docs/design/eimir/565-fcm/evidence/reconciliation-2026-11-01.json`.
+
 Before merging the auto-synced channel, the operator must confirm that the private
-host file and all FCM/UnifiedPush inputs are ready. This preserves #565's existing
+host file and the FCM inputs are ready. This preserves #565's existing
 deployment sequencing requirement and avoids a failing restart. The Product Owner
 explicitly authorized the later merge on top of #1575, but confirmed that the
 server was not prepared yet; the implementation can be reviewed while deployment
@@ -173,7 +184,7 @@ Web assets matched the current native Web bundle. This is a packaging check,
 not the stable production signing or Play-distributed installation gate.
 
 Release acceptance still requires the exact stable-signed/published build and the
-operator-configured server: real FCM and UnifiedPush receipt from an existing
+operator-configured server: real FCM receipt from an existing
 notification-producing action, foreground/background/cold-start tap, permission
 denial and recovery, reinstall/rotation, logout/Account replacement, offline and
 provider recovery, and the recipient's preference/Quiet Hours boundaries. Record

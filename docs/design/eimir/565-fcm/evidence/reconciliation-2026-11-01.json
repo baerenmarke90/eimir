@@ -1,0 +1,67 @@
+{
+  "date": "2026-11-01",
+  "scope": "FCM-only target, Product Owner decision supersedes prior dual-transport rollout",
+  "android_web_source_revision": "cf1284f0db4eddb7738319982bf6b709744664c5",
+  "source_sha256": {
+    "scripts/test_deployment_channel.py": "c194f23781ae31376e600c99fcf506711ce9a42745d21c16ca3b875d8b616768",
+    "tools/ci/test_test_deployment_channel.py": "22e71b9dc44d669fc4b5368f9126b1fd0832de67aeccfda65b26cf77a1726b5b",
+    "backend/openapi.json": "32e7d4081bded3070f039c89290ca8dfb0a823d791e70edc4063dc8cd8648f54",
+    "backend/src/eimir/engagement/fcm_push.py": "8d6b857c376520ba811b32d68d872f24d24bd920b6a800f96ab3067d54b14ac4",
+    "web/src/client/devicePush.ts": "5636686477a428414c3bf7b7d18a354db083907e13e628b71c1fbfb735f07d07",
+    "web/src/client/devicePush.test.tsx": "f9cf01f06af5248b05f08553b12850992966955b46d1b5516733265619c112b2",
+    "android/app/src/main/java/de/eimir/app/NativePushBridge.java": "7be606f06950afdf804d80d252b6fa44f21d55c916c3c724df8df308697d07bf",
+    "android/app/src/main/java/de/eimir/app/EimirFirebaseMessagingService.java": "e80d90621df86e9190a3f22ff6508e1ab65074f83c78f5de3c76584eeccd4d0c",
+    "android/app/src/main/java/de/eimir/app/FcmRegistrationQueue.java": "c89153cc6849048845ff5aa5eeabd34e068fd2bfd0c6889a51cec64e6d5f764f"
+  },
+  "firebase_project_id": "eimir-production",
+  "application_id": "de.eimir.app",
+  "compiled_firebase_resources_match": {
+    "google_app_id": true,
+    "gcm_defaultSenderId": true,
+    "project_id": true,
+    "google_api_key": true
+  },
+  "unsigned_artifacts": [
+    {
+      "name": "app-release-unsigned.apk",
+      "sha256": "c2354d955ec346558ae8d519592ab1879a4901e0426f563a86065e530a46f22c",
+      "packaged_web_assets_match": 78,
+      "private_key_marker_absent": true,
+      "signed": false,
+      "published": false
+    },
+    {
+      "name": "app-release.aab",
+      "sha256": "5e48070b5705ecca33d3d15e42dd1bd4e8ecc75d41b786d026de97580e17da21",
+      "packaged_web_assets_match": 78,
+      "private_key_marker_absent": true,
+      "signed": false,
+      "published": false
+    }
+  ],
+  "local_validation": {
+    "web_passed": 2462,
+    "web_existing_skips": 2,
+    "backend_unit_and_real_postgresql_passed": 1279,
+    "physical_android_push_fixture_passed": 31,
+    "fcm_only_release_export_configuration_passed": 120
+  },
+  "physical_device": {
+    "model": "Pixel 10 Pro Fold",
+    "android_api": 36,
+    "cases": "controlled push registration, shared ownership, storage failure, actual native notification/tap/PendingIntent fixtures",
+    "external_delivery": false
+  },
+  "google_sender": {
+    "oauth_authenticated": true,
+    "validate_only_result": "UNREGISTERED for deliberately synthetic installation",
+    "message_sent": false
+  },
+  "acceptance": {
+    "server_prepared": false,
+    "real_device_delivery_accepted": false,
+    "stable_signed_published_build_accepted": false,
+    "play_store_certified": false
+  },
+  "limits": "Local results do not replace final-head hosted CI, operator host preparation or observed real delivery."
+}

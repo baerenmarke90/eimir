@@ -146,24 +146,20 @@ This is the product callback; the older standalone probe callback is separate.
 Google stays hidden until configured and still requires the operator's appropriate
 testing audience/verification. Personal Immich requires no shared operator key.
 See [the source contract](product/integrations/1444-photo-source-delivery.md).
-## Configure the selected live push transports
+## Configure the selected live FCM transport
 
-The `eimir-test` channel explicitly requires both UnifiedPush and FCM configuration
-for #565. Generic canonical Cloud/Self-Hosted remains default-off; this selected
+The Product Owner selected FCM-only operation on 2026-11-01, superseding the
+earlier dual-transport rollout plan. The `eimir-test` channel explicitly requires
+FCM configuration. Generic canonical Cloud/Self-Hosted remains default-off; this selected
 instance must not appear push-ready merely because an APK contains Firebase.
 Append these operator inputs to its existing local environment:
 
 ```text
-EIMIR_PUSH_VAPID_PRIVATE_KEY
-EIMIR_PUSH_VAPID_SUBJECT
-EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS
 EIMIR_PUSH_FCM_PROJECT_ID=eimir-production
 EIMIR_PUSH_FCM_ANDROID_PACKAGE=de.eimir.app
 EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE=/ABSOLUTE/PRIVATE/HOST/PATH/sender.json
 ```
 
-Use the actual private VAPID key/contact and an explicit JSON list of real HTTPS
-distributor origins. A blank key or empty origins is not a live UP configuration.
 The operator-owned Firebase project is `eimir-production`, configured under the
 business account on 2026-11-01. Its public project number/sender ID is
 `742745449123`; the approved new
@@ -258,7 +254,7 @@ branch races cannot advance a partial pair. Registry outage may prevent pulls;
 the server never rebuilds source.
 
 Push acceptance additionally requires the selected signed `de.eimir.app` APK and
-real FCM/UP end-to-end evidence through an existing notification-producing action.
+real FCM end-to-end evidence through an existing notification-producing action.
 Distinguish configured transport, accepted provider request, received wake and
 displayed/tapped notification. Record exact source/image/APK/signing identity,
 transport/distributor, Android version and scenario; never include raw FIDs,

@@ -818,10 +818,15 @@ class CanonicalWiringTest(unittest.TestCase):
                 self.assertNotIn("EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE", service["environment"])
                 for key in (
                     "EIMIR_PUSH_FCM_PROJECT_ID", "EIMIR_PUSH_FCM_ANDROID_PACKAGE",
-                    "EIMIR_PUSH_VAPID_PRIVATE_KEY", "EIMIR_PUSH_VAPID_SUBJECT",
-                    "EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS",
                 ):
                     self.assertEqual(service["environment"][key], channel.required(key))
+                # The selected target is FCM-only (PO 2026-11-01).
+                self.assertEqual(service["environment"]["EIMIR_PUSH_VAPID_PRIVATE_KEY"],
+                                 "")
+                self.assertEqual(service["environment"]["EIMIR_PUSH_VAPID_SUBJECT"],
+                                 "")
+                self.assertEqual(service["environment"]["EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS"],
+                                 "[]")
             else:
                 self.assertEqual(mounts, [])
                 self.assertFalse(any(key.startswith("EIMIR_PUSH_") for key in service["environment"]))
@@ -971,8 +976,6 @@ class CanonicalWiringTest(unittest.TestCase):
             for missing in (
                 "EIMIR_ACCOUNT_DELETION_INSTANCE_ID", "EIMIR_PUSH_FCM_PROJECT_ID",
                 "EIMIR_PUSH_FCM_ANDROID_PACKAGE", "EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE",
-                "EIMIR_PUSH_VAPID_PRIVATE_KEY", "EIMIR_PUSH_VAPID_SUBJECT",
-                "EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS",
             ):
                 result = subprocess.run(
                     command,

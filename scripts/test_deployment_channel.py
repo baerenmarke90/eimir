@@ -431,6 +431,10 @@ def export_compose(canonical: dict, backend: str, web: str) -> dict:
         "EIMIR_PHOTO_SOURCES_ENABLED": "${EIMIR_PHOTO_SOURCES_ENABLED:-true}",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_ID": "${EIMIR_GOOGLE_PHOTOS_CLIENT_ID:-}",
         "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET": "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}",
+        # The selected private target uses FCM only (PO 2026-11-01).
+        "EIMIR_PUSH_VAPID_PRIVATE_KEY": "",
+        "EIMIR_PUSH_VAPID_SUBJECT": "",
+        "EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS": "[]",
         "EIMIR_PUSH_FCM_CREDENTIALS_FILE": FCM_CREDENTIAL_TARGET,
     }
     for name in (
@@ -444,9 +448,6 @@ def export_compose(canonical: dict, backend: str, web: str) -> dict:
         "EIMIR_MAIL_FROM",
         "EIMIR_SMTP_HOST",
         "EIMIR_SMTP_PASSWORD",
-        "EIMIR_PUSH_VAPID_PRIVATE_KEY",
-        "EIMIR_PUSH_VAPID_SUBJECT",
-        "EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS",
         "EIMIR_PUSH_FCM_PROJECT_ID",
         "EIMIR_PUSH_FCM_ANDROID_PACKAGE",
     ):

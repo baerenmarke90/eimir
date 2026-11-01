@@ -60,6 +60,7 @@ export function RouteEntryHandoff(): null {
       taskReturnKey?: unknown;
       taskOriginKey?: unknown;
       inPlaceRouteUpdate?: boolean;
+      focusStoryView?: boolean;
     } | null;
     const samePath = previousPath.current === location.pathname;
     previousPath.current = location.pathname;
@@ -92,6 +93,15 @@ export function RouteEntryHandoff(): null {
     // change between two hash-less routes must still re-run the handoff.
     const frame = resolveOrigin(state?.taskOriginKey)
       ? window.requestAnimationFrame(() => {
+          // Keyboard selection owns focus across the Story/Map route boundary.
+          // Keep its selected peer tab ahead of generic source-reader focus.
+          if (
+            state?.focusStoryView === true &&
+            document.querySelector(
+              '.story-view-tabs [role="tab"][aria-selected="true"]',
+            )
+          )
+            return;
           const heading = document.querySelector<HTMLElement>('main h1');
           if (heading) {
             heading.tabIndex = -1;

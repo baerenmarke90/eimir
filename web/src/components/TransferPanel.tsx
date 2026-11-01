@@ -39,20 +39,33 @@ export function TransferPanel({
   apiBaseUrl,
   accessToken,
   spaceId,
+  requestedExportId,
+  requestedImportId,
 }: {
   apiBaseUrl: string;
   accessToken: string;
   spaceId: string;
+  requestedExportId?: string | null;
+  requestedImportId?: string | null;
 }) {
   const { t } = useTranslation();
+  const requestedTransfer = (value?: string | null) => {
+    return value && /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(value)
+      ? value
+      : null;
+  };
   const api = useMemo(
     () => createTransferApi(apiBaseUrl, accessToken),
     [apiBaseUrl, accessToken],
   );
   const [scope, setScope] = useState<TransferScopeValue>(TransferScope.SHARED);
-  const [exportId, setExportId] = useState<string | null>(null);
+  const [exportId, setExportId] = useState<string | null>(() =>
+    requestedTransfer(requestedExportId),
+  );
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [importId, setImportId] = useState<string | null>(null);
+  const [importId, setImportId] = useState<string | null>(() =>
+    requestedTransfer(requestedImportId),
+  );
   const [applyConfirmed, setApplyConfirmed] = useState(false);
 
   const createExport = useMutation({

@@ -20,7 +20,14 @@ const item = {
   latitude: 49,
   longitude: 7,
 };
-function setup(listMemoryMap: ReturnType<typeof vi.fn>) {
+function setup(
+  listMemoryMap: ReturnType<typeof vi.fn>,
+  loadMemoryImage?: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>,
+) {
   return render(
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter>
@@ -28,6 +35,7 @@ function setup(listMemoryMap: ReturnType<typeof vi.fn>) {
           apis={{ places: { listMemoryMap } } as unknown as SharedPlanningApis}
           spaceId="s1"
           accountId="a1"
+          loadMemoryImage={loadMemoryImage}
         />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -58,6 +66,37 @@ describe('Pro memory map', () => {
     expect(
       screen.getAllByText('30.10.2026', { selector: 'time' }),
     ).toHaveLength(2);
+  });
+  it('keeps photo failures browseable with the shared preview fallback', async () => {
+    const load = vi.fn().mockRejectedValue(new Error('Image unavailable'));
+    const view = setup(
+      vi.fn().mockResolvedValue({
+        items: [
+          {
+            ...item,
+            previewAttachmentId: 'photo',
+            previewIsSensitive: false,
+          },
+        ],
+        nextCursor: null,
+      }),
+      load,
+    );
+    await screen.findByRole('button', { name: 'Lake · 1 Erinnerung' });
+    await vi.waitFor(() =>
+      expect(
+        view.container.querySelector(
+          '.memory-map-thumbnail .eimir-icon-erinnerungen',
+        ),
+      ).toBeTruthy(),
+    );
+    expect(load).toHaveBeenCalledTimes(1);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Lake · 1 Erinnerung' }),
+    );
+    expect(
+      screen.getByRole('link', { name: /By the lake/ }).getAttribute('href'),
+    ).toBe('/story/memories/m1');
   });
   it('requires the server capability without retaining a stale map', async () => {
     setup(

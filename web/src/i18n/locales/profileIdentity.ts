@@ -120,7 +120,8 @@ const profileIdentity = {
   anniversaryReminderToggle: 'An unseren Jahrestag erinnern',
   anniversaryReminderToggleHelp:
     'Sendet dir rechtzeitig persönliche Benachrichtigungen vor eurem Jahrestag.',
-  anniversaryReminderDaysHeading: 'Erinnerungszeitpunkte vor dem Jahrestag',
+  anniversaryReminderDaysHeading: 'Erinnerungszeitpunkte',
+  anniversaryReminderDay0: 'Am Jahrestag',
   anniversaryReminderDay30: '30 Tage vorher',
   anniversaryReminderDay7: '7 Tage vorher',
   anniversaryReminderDay1: '1 Tag vorher',
@@ -132,8 +133,8 @@ const profileIdentity = {
   partnerBirthdayReminderToggle: 'An den Geburtstag meines Partners erinnern',
   partnerBirthdayReminderToggleHelp:
     'Diese persönliche Einstellung betrifft nur deine Erinnerungen. Der Geburtstag selbst bleibt für euch sichtbar.',
-  partnerBirthdayReminderDaysHeading:
-    'Erinnerungszeitpunkte vor dem Geburtstag',
+  partnerBirthdayReminderDaysHeading: 'Erinnerungszeitpunkte',
+  partnerBirthdayReminderDay0: 'Am Geburtstag',
   partnerBirthdayReminderDay14: '14 Tage vorher',
   partnerBirthdayReminderDay7: '7 Tage vorher',
   partnerBirthdayReminderDay1: '1 Tag vorher',
@@ -143,9 +144,9 @@ const profileIdentity = {
   settingsData: 'Daten und Portabilität',
   settingsDataIntro:
     'Exportiere deine Daten oder importiere unterstützte Inhalte mit den bestehenden Prüfungen.',
-  settingsAccount: 'Konto und gemeinsamer Bereich',
+  settingsAccount: 'App und Konto',
   settingsAccountIntro:
-    'Verlassen des gemeinsamen Bereichs und Löschen deines Kontos bleiben getrennte, bewusst bestätigte Aktionen.',
+    'eimir. Pro und dein Konto. Eure gemeinsamen Inhalte bleiben geschützt.',
   settingsBackToMore: 'Zurück zu Mehr',
   settingsBackToIndex: 'Zurück zu Einstellungen',
   settingsSensitiveEyebrow: 'Mit Bedacht',

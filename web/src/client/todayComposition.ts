@@ -78,10 +78,8 @@ export function selectTodayFocalItem({
  * Exactly one module is shown, never a stack. The chain is ordered by how
  * *current* and how *mutual* each candidate is:
  *
- * 1. a genuine partner interaction (the partner commented on shared content) —
- *    the only candidate that represents the partner acting today;
- * 2. the server-curated retrospective (`Weißt du noch?`) — date-specific, so it
- *    is only ever offered on the day it actually applies;
+ * 1. the server-curated daily retrospective (`Weißt du noch?`);
+ * 2. a genuine partner interaction (the partner commented on shared content);
  * 3. a shared wish, then a shared plan, then a shared milestone — stable shared
  *    content that keeps the slot meaningful on a quiet day.
  *
@@ -112,6 +110,12 @@ export function selectLivingModule({
 }): LivingModule | null {
   const excluded = new Set(excludeItemIds ?? []);
 
+  // The PO's daily rediscovery slot takes precedence; all candidates still
+  // share one composition and the same no-duplicate boundary.
+  if (retrospective && !excluded.has(retrospective.id)) {
+    return { kind: 'retrospective', item: retrospective };
+  }
+
   // Only a genuine partner comment counts. An item the viewer wrote, or one
   // with no attributable actor, is not a signal *from* the partner.
   //
@@ -131,10 +135,6 @@ export function selectLivingModule({
       : undefined;
   if (partnerSignal) {
     return { kind: 'partner_signal', activityItem: partnerSignal };
-  }
-
-  if (retrospective && !excluded.has(retrospective.id)) {
-    return { kind: 'retrospective', item: retrospective };
   }
 
   const firstOfType = (type: DashboardItem['type']) =>

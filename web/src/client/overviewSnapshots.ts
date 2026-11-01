@@ -1,5 +1,34 @@
+import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
 import { DashboardViewFromJSON } from '../api/generated/models/DashboardView';
 import { PlanDetailFromJSON } from '../api/generated/models/PlanDetail';
+import { DASHBOARD_MODULE_KEYS } from './dashboardModules';
+
+function decodeDashboardPreferences(
+  payload: unknown,
+): DashboardModulePreferenceList | undefined {
+  if (payload === undefined) return undefined;
+  const value = payload as DashboardModulePreferenceList;
+  if (
+    !value ||
+    !Array.isArray(value.items) ||
+    value.items.length > DASHBOARD_MODULE_KEYS.length ||
+    new Set(value.items.map((item) => item?.moduleKey)).size !==
+      value.items.length ||
+    !value.items.every(
+      (item) =>
+        item &&
+        DASHBOARD_MODULE_KEYS.includes(
+          item.moduleKey as (typeof DASHBOARD_MODULE_KEYS)[number],
+        ) &&
+        typeof item.visible === 'boolean' &&
+        (item.itemLimit == null || [1, 2, 3].includes(item.itemLimit)) &&
+        (item.selectedCollectionId == null ||
+          typeof item.selectedCollectionId === 'string'),
+    )
+  )
+    throw new Error('Invalid Dashboard preference snapshot');
+  return value;
+}
 
 export function decodeDashboardOverview(payload: unknown, spaceId: string) {
   const value = DashboardViewFromJSON(payload);
@@ -17,7 +46,12 @@ export function decodeDashboardOverview(payload: unknown, spaceId: string) {
   ) {
     throw new Error('Invalid shared Dashboard snapshot');
   }
-  return value;
+  return {
+    ...value,
+    modulePreferences: decodeDashboardPreferences(
+      (payload as { modulePreferences?: unknown }).modulePreferences,
+    ),
+  };
 }
 
 export function decodePlansOverview(payload: unknown, spaceId: string) {

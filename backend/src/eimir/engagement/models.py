@@ -42,6 +42,16 @@ class ActivityKind(StrEnum):
 
 
 class NotificationKind(StrEnum):
+    TRANSFER_READY = "TRANSFER_READY"
+    TRANSFER_COMPLETED = "TRANSFER_COMPLETED"
+    TRANSFER_FAILED = "TRANSFER_FAILED"
+    PLAN_CREATED = "PLAN_CREATED"
+    PLAN_CHANGED = "PLAN_CHANGED"
+    PLAN_CANCELLED = "PLAN_CANCELLED"
+    WISH_SELECTION_SHARED = "WISH_SELECTION_SHARED"
+    WISH_SELECTION_READY = "WISH_SELECTION_READY"
+    PHOTO_REACTION = "PHOTO_REACTION"
+    PARTNER_JOINED = "PARTNER_JOINED"
     COUPLE_EXPERIENCE_SHARED = "COUPLE_EXPERIENCE_SHARED"
     COMMENT_CREATED = "COMMENT_CREATED"
     THINKING_OF_YOU = "THINKING_OF_YOU"
@@ -62,6 +72,9 @@ class SupportGestureKind(StrEnum):
 
 
 class EngagementTarget(StrEnum):
+    TRANSFER_EXPORT = "TRANSFER_EXPORT"
+    TRANSFER_IMPORT = "TRANSFER_IMPORT"
+    WISH_SELECTION = "WISH_SELECTION"
     MEMORY = "MEMORY"
     HEART_MOMENT = "HEART_MOMENT"
     MILESTONE = "MILESTONE"
@@ -169,6 +182,7 @@ class Notification(IdMixin, Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     in_app_visible: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=text("true")
     )
@@ -191,6 +205,18 @@ class Notification(IdMixin, Base):
             "source_event_id",
             "kind",
             name="uq_notifications_recipient_source_kind",
+        ),
+        Index(
+            "uq_notifications_coalesced_target",
+            "recipient_account_id",
+            "space_id",
+            "kind",
+            "target_type",
+            "target_id",
+            unique=True,
+            postgresql_where=text(
+                "kind IN ('PHOTO_REACTION', 'WISH_SELECTION_SHARED', 'WISH_SELECTION_READY')"
+            ),
         ),
         Index(
             "ix_notifications_recipient_space_created_id",

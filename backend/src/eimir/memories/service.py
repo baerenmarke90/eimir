@@ -300,7 +300,13 @@ def set_photo_reaction(
         return memory
     memory.payload = memory.payload.model_copy(update={"photo_reactions": remaining})
     _flush(session)
-    _record(session, memory, context.account_id, EventType.MEMORY_UPDATED)
+    _record(
+        session,
+        memory,
+        context.account_id,
+        EventType.PHOTO_REACTION_CHANGED,
+        recipient_id=memory.owner_id,
+    )
     _flush(session)
     return memory
 

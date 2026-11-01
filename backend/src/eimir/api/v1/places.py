@@ -21,6 +21,8 @@ from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
+from eimir.attachments.binding import attachments_of_memories
+from eimir.attachments.models import AttachmentStatus, MediaType
 from eimir.auth import rate_limit
 from eimir.config import get_settings
 from eimir.core.errors import ServiceUnavailableError
@@ -44,6 +46,8 @@ class MemoryMapEntry(ApiModel):
     place_name: str
     latitude: float
     longitude: float
+    preview_attachment_id: UUID | None = None
+    preview_is_sensitive: bool = False
 
 
 class MemoryMapPage(ApiModel):
@@ -70,8 +74,25 @@ def get_memory_map(
     )
     response.headers["Cache-Control"] = "no-store"
     result = list_memory_map(session, authorization, cursor=cursor, limit=limit)
-    return MemoryMapPage(
-        items=[
+    galleries = attachments_of_memories(session, [memory.id for memory, _ in result.items])
+    previews = {
+        memory_id: next(
+            (
+                bound.attachment
+                for bound in gallery
+                if bound.attachment.status == AttachmentStatus.READY
+                and bound.attachment.media_type == MediaType.IMAGE
+            ),
+            None,
+        )
+        for memory_id, gallery in galleries.items()
+    }
+    entries = []
+    for memory, place in result.items:
+        if place.latitude is None or place.longitude is None:
+            continue
+        preview = previews.get(memory.id)
+        entries.append(
             MemoryMapEntry(
                 memory_id=memory.id,
                 title=memory.payload.title,
@@ -80,12 +101,11 @@ def get_memory_map(
                 place_name=place.payload.name,
                 latitude=float(place.latitude),
                 longitude=float(place.longitude),
+                preview_attachment_id=preview.id if preview is not None else None,
+                preview_is_sensitive=preview.payload.is_sensitive if preview is not None else False,
             )
-            for memory, place in result.items
-            if place.latitude is not None and place.longitude is not None
-        ],
-        next_cursor=result.next_cursor,
-    )
+        )
+    return MemoryMapPage(items=entries, next_cursor=result.next_cursor)
 
 
 ETAG_HEADERS = {

@@ -137,6 +137,13 @@ jobs:
             de.sidebyside.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
           grep -Eq '^OK \([1-9][0-9]* tests?\)' instrumentation.log
+          # Exercise actual Android notification/PendingIntent and retained bridge
+          # handoff separately, preserving the existing fixture's time budget.
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.NotificationOpenTest \
+            de.sidebyside.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee notification-open.log
+          grep -Eq '^OK \(6 tests\)' notification-open.log
           if [ '${{ matrix.api }}' != '28' ]; then
             adb -e exec-out run-as de.sidebyside.app.debug cat files/native-photo-picker.png > native-photo-picker.png
             test -s native-photo-picker.png
@@ -182,6 +189,7 @@ jobs:
             android/host-memory.log
             android/guest-memory-before-tests.log
             android/instrumentation.log
+            android/notification-open.log
             android/fixture-logcat.log
             android/native-crash.log
             android/native-system.log

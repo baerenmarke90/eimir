@@ -105,6 +105,18 @@ class ProjectIdentityScanTest(unittest.TestCase):
             with self.subTest(sample=sample):
                 self.assertIsNotNone(LEGACY_PATTERN.search(sample))
 
+    def test_daily_questions_prompt_exception_is_path_and_phrase_scoped(self) -> None:
+        path = Path("docs/product/design/references/daily-couple-prompts/prompt.txt")
+        line = "Two complete smartphone screens side by side, 390px conceptual width each."
+        self.assertEqual(classify(path, line, "side by side")[0], Classification.FALSE_POSITIVE)
+        for candidate, text, match in (
+            (path, "Use SideBySide branding.", "SideBySide"),
+            (path, "Use side by side branding.", "side by side"),
+            (Path("backend/src/example.py"), line, "side by side"),
+        ):
+            with self.subTest(path=candidate, match=match):
+                self.assertEqual(classify(candidate, text, match)[0], Classification.MUST_RENAME)
+
     def test_exact_recap_prompt_retains_layout_provenance_only(self) -> None:
         path = Path(
             "docs/product/design/references/automatic-relationship-recaps/prompt.txt"

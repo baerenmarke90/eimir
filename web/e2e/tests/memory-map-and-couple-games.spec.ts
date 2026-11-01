@@ -1,7 +1,9 @@
+import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import taskCopy from '../../src/i18n/locales/taskBoundary';
 import experienceCopy from '../../src/i18n/locales/coupleExperiences';
+import de from '../../src/i18n/locales/de';
 import calendarCopy from '../../src/i18n/locales/calendarPlan';
 import gameCopy from '../../src/i18n/locales/games';
 import mapCopy from '../../src/i18n/locales/memoryMap';
@@ -30,6 +32,17 @@ for (const [width, theme] of [
       reducedMotion: width === 430 ? 'no-preference' : 'reduce',
     });
     await installMocks(page);
+    await page.route('**/attachments/att-canal-1/content', (route) =>
+      route.fulfill({
+        contentType: 'image/jpeg',
+        body: readFileSync(
+          new URL(
+            '../../../backend/demo_assets/images/lake-sunrise.jpg',
+            import.meta.url,
+          ),
+        ),
+      }),
+    );
     let tileReads = 0;
     await page.route('https://tile.openstreetmap.org/**', async (route) => {
       tileReads++;
@@ -41,6 +54,8 @@ for (const [width, theme] of [
           items: [
             {
               memoryId: 'mem-canal',
+              previewAttachmentId: 'att-canal-1',
+              previewIsSensitive: false,
               title: 'Afternoon by the canal',
               happenedOn: '2026-10-30',
               placeId: 'lake',
@@ -63,13 +78,25 @@ for (const [width, theme] of [
       }),
     );
     await signIn(page);
-    await page.getByRole('link', { name: mapCopy.entry }).click();
-    await expect(
-      page.getByRole('heading', { name: mapCopy.title }),
-    ).toBeVisible();
-    const place = page.getByRole('button', { name: 'Lake · 2 Erinnerungen' });
+    await page.getByRole('tab', { name: mapCopy.entry }).click();
+    await expect(page.getByRole('tab', { name: mapCopy.entry })).toBeVisible();
+    const place = page
+      .getByRole('list', { name: mapCopy.places })
+      .getByRole('button', { name: 'Lake · 2 Erinnerungen' });
     await expect(place).toBeVisible();
     await expect(page.locator('.memory-map-marker')).toHaveCount(1);
+    await expect(page.locator('.memory-map-marker-photo img')).toBeVisible();
+    await expect
+      .poll(() =>
+        page
+          .locator('.memory-map-marker-photo img')
+          .evaluate(
+            (node: HTMLImageElement) => node.complete && node.naturalWidth > 0,
+          ),
+      )
+      .toBe(true);
+    await expect(page.locator('.memory-map-marker-count')).toHaveText('2');
+    await expect(place.locator('.memory-map-thumbnail img')).toBeVisible();
     await expect.poll(() => tileReads).toBeGreaterThan(0);
     await expect(page.getByRole('button', { name: 'Karte laden' })).toHaveCount(
       0,
@@ -87,6 +114,7 @@ for (const [width, theme] of [
     await place.click();
     const memory = page.getByRole('link', { name: /Afternoon by the canal/ });
     await expect(memory).toHaveAttribute('href', '/story/memories/mem-canal');
+    await expect(memory.locator('.memory-map-thumbnail img')).toBeVisible();
     await expect(page.locator('.memory-map-selection ul')).toHaveCSS(
       'animation-name',
       width === 430 ? 'eimir-disclosure-reveal' : 'none',
@@ -141,10 +169,11 @@ test('failed map tiles keep memories usable at 320px with large text', async ({
     }),
   );
   await signIn(page);
-  await page.getByRole('link', { name: mapCopy.entry, exact: true }).click();
+  await page.getByRole('tab', { name: mapCopy.entry, exact: true }).click();
   await page.addStyleTag({ content: 'html { font-size: 200%; }' });
   await expect(page.locator('.place-map-canvas [role="status"]')).toBeVisible();
   await page
+    .getByRole('list', { name: mapCopy.places })
     .getByRole('button', { name: /Our favourite quiet place by the water/ })
     .click();
   await expect(
@@ -169,7 +198,7 @@ test('failed map tiles keep memories usable at 320px with large text', async ({
   ).toEqual([]);
   await page.getByRole('button', { name: mapCopy.allPlaces }).click();
   await expect(
-    page.getByRole('button', {
+    page.getByRole('list', { name: mapCopy.places }).getByRole('button', {
       name: /Our favourite quiet place by the water/,
     }),
   ).toBeVisible();
@@ -192,7 +221,7 @@ test('map entitlement denial explains Pro without loading external tiles', async
     }),
   );
   await signIn(page);
-  await page.getByRole('link', { name: mapCopy.entry }).click();
+  await page.getByRole('tab', { name: mapCopy.entry }).click();
   await expect(page.getByText(mapCopy.proTitle)).toBeVisible();
   await expect(page.locator('.place-map-viewport')).toHaveCount(0);
 });
@@ -282,6 +311,19 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           const request = route.request();
           const url = new URL(request.url());
           const path = url.pathname;
+          if (path.endsWith('/questions') && path.includes('/experiences/'))
+            return route.fulfill({
+              json: {
+                kind: kind === 'happiness' ? 'HAPPINESS' : 'TIME_TRAVEL',
+                localDate: '2026-11-01',
+                refreshAfterSeconds: 3600,
+                questionIds: Object.keys(experienceCopy.questions[kind]).slice(
+                  0,
+                  3,
+                ),
+              },
+            });
+
           if (path === `/api/v1/spaces/${SPACE_ID}/entitlements`)
             return route.fulfill({
               json: {
@@ -490,10 +532,41 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           })
           .click();
         await expect(page).toHaveURL(new RegExp(base + '$'));
-        await page
-          .getByRole('link', { name: experienceCopy.create[kind] })
-          .click();
-        await expect(page).toHaveURL(new RegExp(base + '/new$'));
+        await page.setViewportSize({ width, height: 900 });
+        await page.emulateMedia({
+          colorScheme: theme,
+          reducedMotion: 'reduce',
+        });
+        await page.addStyleTag({
+          content: `html { font-size: ${width === 320 ? '200%' : '100%'}; }`,
+        });
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+        ).toBe(true);
+        await captureScreenshot(
+          page,
+          info,
+          `${kind}-questions-${width}-${theme}.png`,
+          { fullPage: true },
+        );
+        expect(
+          (
+            await new AxeBuilder({ page })
+              .include('.couple-experience-page')
+              .analyze()
+          ).violations,
+        ).toEqual([]);
+        const question = Object.values(experienceCopy.questions[kind])[0];
+        await expect(
+          page.locator('.couple-experience-questions a'),
+        ).toHaveCount(3);
+        await page.getByRole('link', { name: question, exact: true }).click();
+        await expect(page).toHaveURL(new RegExp(base + '/new\\?question='));
+        await expect(page.locator('.experience-selected-question')).toHaveText(
+          question,
+        );
         await expect(page.locator('[data-focused-task="true"]')).toBeVisible();
         const words =
           kind === 'happiness'
@@ -502,6 +575,24 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         await page
           .getByRole('textbox', { name: experienceCopy.write[kind] })
           .fill(words);
+        if (kind === 'happiness' && width === 360) {
+          await expect(
+            page.getByText(de.memory.diary.draft.saved, { exact: true }),
+          ).toBeVisible();
+          page.once('dialog', (dialog) => dialog.accept());
+          await page.goto(`${base}/new?prompt=second`, {
+            waitUntil: 'domcontentloaded',
+          });
+          await page
+            .getByRole('button', { name: de.memory.diary.resume, exact: true })
+            .click();
+          await expect(
+            page.getByRole('textbox', { name: experienceCopy.write[kind] }),
+          ).toHaveValue(words);
+          await expect(
+            page.locator('.experience-selected-question'),
+          ).toHaveText(question);
+        }
         await page.setViewportSize({ width, height: 900 });
         await page.emulateMedia({
           colorScheme: theme,
@@ -534,8 +625,9 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           await page
             .getByRole('button', { name: taskCopy.verify, exact: true })
             .click();
-        await expect(page).toHaveURL(new RegExp('/story/memories/experience-'));
+        await expect(page).toHaveURL(/\/story\/memories\/experience-/);
         await expect(page.getByText(words, { exact: true })).toBeVisible();
+        expect(notes[0].title).toBe(question);
         expect(
           notes.filter(
             (note) =>
@@ -543,11 +635,19 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
               (kind === 'happiness' ? 'HAPPINESS' : 'TIME_TRAVEL'),
           ),
         ).toHaveLength(1);
-        await page.goto(base, { waitUntil: 'domcontentloaded' });
+        if (kind === 'happiness' && width === 360)
+          await page.goto(base, { waitUntil: 'domcontentloaded' });
+        else await page.goBack();
+        await expect(page).toHaveURL(new RegExp(base + '$'));
         await expect(
           page
             .locator('.couple-experience-history-entry')
             .filter({ hasText: words }),
+        ).toBeVisible();
+        await expect(
+          page
+            .locator('.couple-experience-history-entry')
+            .getByRole('heading', { name: question }),
         ).toBeVisible();
         await signIn(partnerPage);
         await partnerPage.goto('/today', { waitUntil: 'domcontentloaded' });
@@ -565,6 +665,24 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           'animation-name',
           width === 430 ? 'experience-note-enter' : 'none',
         );
+        if (width === 430) {
+          // Assert contrast while the entrance is in progress, not after it.
+          await reveal.evaluate((element) => {
+            const entrance = element
+              .getAnimations()
+              .find(
+                (animation) =>
+                  animation instanceof CSSAnimation &&
+                  animation.animationName === 'experience-note-enter',
+              );
+            if (!entrance?.effect)
+              throw new Error('Experience entrance animation is unavailable.');
+            entrance.pause();
+            entrance.currentTime =
+              Number(entrance.effect.getTiming().duration) / 2;
+          });
+          await expect(reveal).toHaveCSS('opacity', '1');
+        }
         expect(
           await partnerPage.evaluate(
             () => document.documentElement.scrollWidth <= innerWidth,

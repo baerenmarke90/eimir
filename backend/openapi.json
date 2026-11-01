@@ -262,6 +262,14 @@
         "title": "ActivityPage",
         "type": "object"
       },
+      "ActivityScope": {
+        "enum": [
+          "shared",
+          "own"
+        ],
+        "title": "ActivityScope",
+        "type": "string"
+      },
       "ActivityTargetPresentation": {
         "properties": {
           "targetId": {
@@ -1432,6 +1440,37 @@
         ],
         "title": "ContentVisibility",
         "type": "string"
+      },
+      "CoupleExperienceQuestions": {
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ExperienceKind"
+          },
+          "localDate": {
+            "format": "date",
+            "title": "Localdate",
+            "type": "string"
+          },
+          "questionIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Questionids",
+            "type": "array"
+          },
+          "refreshAfterSeconds": {
+            "title": "Refreshafterseconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "localDate",
+          "questionIds",
+          "refreshAfterSeconds"
+        ],
+        "title": "CoupleExperienceQuestions",
+        "type": "object"
       },
       "DailyCheckInEnergyView": {
         "properties": {
@@ -2604,6 +2643,9 @@
       },
       "EngagementTarget": {
         "enum": [
+          "TRANSFER_EXPORT",
+          "TRANSFER_IMPORT",
+          "WISH_SELECTION",
           "MEMORY",
           "HEART_MOMENT",
           "MILESTONE",
@@ -4053,6 +4095,23 @@
             "title": "Placename",
             "type": "string"
           },
+          "previewAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previewattachmentid"
+          },
+          "previewIsSensitive": {
+            "default": false,
+            "title": "Previewissensitive",
+            "type": "boolean"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -4614,6 +4673,16 @@
       },
       "NotificationKind": {
         "enum": [
+          "TRANSFER_READY",
+          "TRANSFER_COMPLETED",
+          "TRANSFER_FAILED",
+          "PLAN_CREATED",
+          "PLAN_CHANGED",
+          "PLAN_CANCELLED",
+          "WISH_SELECTION_SHARED",
+          "WISH_SELECTION_READY",
+          "PHOTO_REACTION",
+          "PARTNER_JOINED",
           "COUPLE_EXPERIENCE_SHARED",
           "COMMENT_CREATED",
           "THINKING_OF_YOU",
@@ -11493,6 +11562,12 @@
       },
       "UnifiedPushConfiguration": {
         "properties": {
+          "notificationReferenceVersion": {
+            "const": 1,
+            "default": 1,
+            "title": "Notificationreferenceversion",
+            "type": "integer"
+          },
           "providerKey": {
             "title": "Providerkey",
             "type": "string"
@@ -17007,6 +17082,15 @@
               "title": "Limit",
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ActivityScope",
+              "default": "shared"
+            }
           }
         ],
         "responses": {
@@ -21676,6 +21760,77 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/experiences/{kind}/questions": {
+      "get": {
+        "description": "Three stable inspirations per shared calendar day, without an answer limit.",
+        "operationId": "getCoupleExperienceQuestions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ExperienceKind"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoupleExperienceQuestions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Couple Experience Questions",
+        "tags": [
+          "games"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/games/moments/candidates": {
       "get": {
         "description": "Return Premium-authorized shared photo Memories for the first #863 grammar.\n\nNormal authentication and Space membership are resolved before this route\nreceives `authorization`. Commercial entitlement is then enforced on the\nserver. The actual content query remains constrained by the existing\n`readable()` authorization predicate and existing attachment bindings.",
@@ -25582,6 +25737,78 @@
           }
         },
         "summary": "Get Notification Unread Count",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/notifications/{notificationId}/open": {
+      "post": {
+        "description": "Resolve an explicit external tap even when the recipient hides Center entries.\n\nThis never enables ambient in-app presentation. Recipient, source visibility,\nexpiry and mutual-reveal checks remain identical to the normal read action.",
+        "operationId": "openNotification",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "notificationId",
+            "required": true,
+            "schema": {
+              "title": "Notificationid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationItem"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Open Notification",
         "tags": [
           "notifications"
         ]

@@ -12,6 +12,7 @@ export interface RelationshipDuration {
   days: number;
   years: number;
   months: number;
+  remainingDays: number;
 }
 
 export function parseDateInput(
@@ -43,6 +44,7 @@ export function calculateRelationshipDuration(
   if (!start) return null;
 
   const ref = referenceDate ?? new Date();
+  if (Number.isNaN(ref.getTime())) return null;
 
   const startYear = start.getUTCFullYear();
   const startMonth = start.getUTCMonth();
@@ -62,37 +64,61 @@ export function calculateRelationshipDuration(
   const msPerDay = 1000 * 60 * 60 * 24;
   const days = Math.round((refMidnight - startMidnight) / msPerDay);
 
-  let years = refYear - startYear;
-  let months = refMonth - startMonth;
-  if (refDay < startDay) {
-    months -= 1;
-  }
-  if (months < 0) {
-    years -= 1;
-    months += 12;
-  }
+  // Clamp anniversaries to the last day of shorter months, preserving the
+  // original start day rather than accumulating drift through repeated adds.
+  const monthAnchor = (elapsedMonths: number) => {
+    const lastDay = new Date(
+      Date.UTC(startYear, startMonth + elapsedMonths + 1, 0),
+    ).getUTCDate();
+    return Date.UTC(
+      startYear,
+      startMonth + elapsedMonths,
+      Math.min(startDay, lastDay),
+    );
+  };
+  let elapsedMonths = (refYear - startYear) * 12 + refMonth - startMonth;
+  if (monthAnchor(elapsedMonths) > refMidnight) elapsedMonths -= 1;
 
-  return { days, years, months };
+  return {
+    days,
+    years: Math.floor(elapsedMonths / 12),
+    months: elapsedMonths % 12,
+    remainingDays: Math.round(
+      (refMidnight - monthAnchor(elapsedMonths)) / msPerDay,
+    ),
+  };
 }
 
 /**
- * Formats relationship duration with emoji and localized text.
+ * Formats shared time automatically, independently of legacy display modes.
  */
 export function formatRelationshipDuration(
   duration: RelationshipDuration | null,
-  mode: 'DAYS' | 'YEARS_MONTHS' | undefined,
   t: (key: string, values?: Record<string, unknown>) => string,
 ): string {
   if (!duration) {
     return t('profiles.relationshipNotAvailable');
   }
-  if (mode === 'DAYS') {
-    return `❤️ ${t('profiles.relationshipDays', { days: duration.days })}`;
+  const dayCount =
+    duration.years === 0 ? duration.days : duration.remainingDays;
+  const dayText = t('m5s5.dashboard.durationDayCount', { count: dayCount });
+  if (duration.years === 0) {
+    return t('m5s5.dashboard.durationAutomaticDays', { days: dayText });
   }
-  return `❤️ ${t('profiles.relationshipYearsMonths', {
+  const values = {
     years: duration.years,
-    months: duration.months,
-  })}`;
+    yearsLabel: t('m5s5.dashboard.durationYearUnit', { count: duration.years }),
+    days: dayText,
+  };
+  return duration.months > 0
+    ? t('m5s5.dashboard.durationYearsMonthsDays', {
+        ...values,
+        months: duration.months,
+        monthsLabel: t('m5s5.dashboard.durationMonthUnit', {
+          count: duration.months,
+        }),
+      })
+    : t('m5s5.dashboard.durationYearsDays', values);
 }
 
 /**

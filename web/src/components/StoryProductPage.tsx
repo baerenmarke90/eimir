@@ -1,4 +1,3 @@
-import { CoupleExperienceLinks } from './CoupleExperienceLinks';
 import {
   useInfiniteQuery,
   useQuery,
@@ -19,14 +18,6 @@ import {
   useNavigate,
   useSearchParams,
 } from 'react-router-dom';
-import { captureAuthorizedQuery } from '../client/queryIdentity';
-import { assertOnlineWrite } from '../client/connectivity';
-import { useDiscoverLayout } from '../client/useDiscoverLayout';
-import { handleTabKeyDown } from '../client/tabKeyboard';
-import {
-  type ClientProblemError,
-  clientProblemKind,
-} from '../client/problemDetails';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
@@ -47,19 +38,25 @@ import {
   StoryPageToJSON,
 } from '../api/generated/models/StoryPage';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { assertOnlineWrite } from '../client/connectivity';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import { usePartnerNickname } from '../client/partnerNickname';
-import { normalizeClientError } from '../client/problemDetails';
+import {
+  type ClientProblemError,
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
 import {
   loadProductWithReadCache,
   type ProductReadResult,
   saveProductReadCacheEntry,
 } from '../client/productReadCache';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   heartMomentDetailPath,
-  memoryDetailPath,
   MEMORY_MAP_ROUTE,
+  memoryDetailPath,
   milestoneDetailPath,
 } from '../client/routes';
 import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
@@ -73,16 +70,18 @@ import {
   storyRequest,
 } from '../client/storyProduct';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
+import { useDiscoverLayout } from '../client/useDiscoverLayout';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { CoupleExperienceLinks } from './CoupleExperienceLinks';
 import { EimirIcon } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
 import { PageHeader } from './PageHeader';
-import { AuthorAvatar } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryBrowseLayer } from './StoryBrowseLayer';
 import { StoryRetrospective } from './StoryRetrospective';
+import { type StoryView, StoryViewTabs } from './StoryViewTabs';
 import './StoryUnifiedPage.css';
 import './PlanningReference.css';
 import { StoryList } from './StoryList';
@@ -414,10 +413,21 @@ export function StoryProductPage({
     });
   }, [accountId, spaceId, discoverQuery.data]);
 
-  function setView(view: 'discover' | 'timeline') {
+  function setView(view: StoryView) {
+    if (view === 'map') {
+      const taskOriginKey = captureOrigin();
+      const retainedFilters = storyFiltersToSearch(filters).toString();
+      void navigate(
+        `${MEMORY_MAP_ROUTE}${retainedFilters ? `?${retainedFilters}` : ''}`,
+        { state: { taskOriginKey, focusStoryView: true } },
+      );
+      return;
+    }
     const nextSearch = new URLSearchParams(searchParams);
     nextSearch.set('tab', view);
-    setSearchParams(nextSearch);
+    setSearchParams(nextSearch, {
+      state: { ...location.state, focusStoryView: true },
+    });
   }
 
   function updateFilter<K extends keyof StoryFilters>(
@@ -705,7 +715,7 @@ export function StoryProductPage({
   const featuredPresentation = featuredItem
     ? storyItemPresentation(featuredItem, t, nicknameFor)
     : null;
-  const featuredAuthor = featuredItem ? storyItemAuthor(featuredItem) : null;
+  const _featuredAuthor = featuredItem ? storyItemAuthor(featuredItem) : null;
   const featuredPath = featuredItem
     ? featuredItem.kind === 'MEMORY'
       ? memoryDetailPath(featuredItem.memory.id)
@@ -778,6 +788,42 @@ export function StoryProductPage({
     }
   }
 
+  const filterTrigger = (
+    <button
+      type="button"
+      className={`story-filter-toggle story-filter-icon-button story-task-filter-trigger ${hasActiveFilters ? 'is-active' : ''}`}
+      ref={filterTriggerRef}
+      aria-haspopup="dialog"
+      aria-expanded={mobileFiltersOpen}
+      aria-controls="story-filter-panel"
+      aria-label={t('storyFilters.toggleButton')}
+      title={t('storyFilters.toggleButton')}
+      onClick={() => {
+        setDraftFilters(filters);
+        setMobileFiltersOpen(true);
+      }}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        width="20"
+        height="20"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M3 4h18l-7 8v7l-4 2v-9L3 4Z" />
+      </svg>
+      {hasActiveFilters ? (
+        <span className="story-filter-active-badge" aria-hidden="true">
+          {activeFilterCount}
+        </span>
+      ) : null}
+    </button>
+  );
+
   const emptyState = (
     <div className="new-space-experience">
       <div className="new-space-mark" aria-hidden="true">
@@ -820,51 +866,8 @@ export function StoryProductPage({
 
       <PullToRefreshIndicator state={pullRefresh} />
 
-      <PageHeader
-        variant="root"
-        title={t('story.timelineTitle')}
-        titleAction={
-          <Link
-            to={MEMORY_MAP_ROUTE}
-            className="button-link secondary"
-            onClick={(event) => openDiscoverItem(event, MEMORY_MAP_ROUTE)}
-          >
-            <EimirIcon name="orte" />
-            {t('memoryMap.entry')}
-          </Link>
-        }
-      />
-
-      <div
-        className="planen-segmented"
-        role="tablist"
-        aria-label={t('story.viewToggleAria')}
-        onKeyDown={(event) =>
-          handleTabKeyDown(event, (tab) =>
-            setView(
-              tab.id === 'momente-tab-discover' ? 'discover' : 'timeline',
-            ),
-          )
-        }
-      >
-        {(['discover', 'timeline'] as const).map((view) => (
-          <button
-            key={view}
-            type="button"
-            role="tab"
-            id={`momente-tab-${view}`}
-            aria-selected={activeView === view}
-            aria-controls={`momente-panel-${view}`}
-            tabIndex={activeView === view ? 0 : -1}
-            className={`planen-segment ${activeView === view ? 'is-active' : ''}`}
-            onClick={() => {
-              if (view !== activeView) setView(view);
-            }}
-          >
-            {t(view === 'discover' ? 'story.tabDiscover' : 'story.tabTimeline')}
-          </button>
-        ))}
-      </div>
+      <PageHeader variant="root" title={t('story.timelineTitle')} />
+      <StoryViewTabs activeView={activeView} onSelect={setView} />
 
       <div
         id="momente-panel-discover"
@@ -997,15 +1000,6 @@ export function StoryProductPage({
                         >
                           {formatStoryDate(featuredItem.effectiveDate, locale)}
                         </time>
-                      ) : null}
-                      {featuredAuthor ? (
-                        <span className="momente-author-meta">
-                          <AuthorAvatar
-                            author={featuredAuthor}
-                            profilesApi={profilesApi}
-                            spaceId={spaceId}
-                          />
-                        </span>
                       ) : null}
                     </div>
                   </div>
@@ -1147,15 +1141,6 @@ export function StoryProductPage({
                                 {!presentation.titleIsDate ? (
                                   <time dateTime={dateTime}>{dateLabel}</time>
                                 ) : null}
-                                {entry.author ? (
-                                  <span className="momente-author-meta">
-                                    <AuthorAvatar
-                                      author={entry.author}
-                                      profilesApi={profilesApi}
-                                      spaceId={spaceId}
-                                    />
-                                  </span>
-                                ) : null}
                               </div>
                             </div>
                           </Link>
@@ -1201,41 +1186,140 @@ export function StoryProductPage({
           aria-labelledby="momente-tab-timeline"
           className="momente-diary-section"
         >
-          <header className="momente-section-header">
-            <button
-              type="button"
-              className={`story-filter-toggle story-filter-icon-button story-task-filter-trigger ${hasActiveFilters ? 'is-active' : ''}`}
-              ref={filterTriggerRef}
-              aria-haspopup="dialog"
-              aria-expanded={mobileFiltersOpen}
-              aria-controls="story-filter-panel"
-              aria-label={t('storyFilters.toggleButton')}
-              title={t('storyFilters.toggleButton')}
-              onClick={() => {
-                setDraftFilters(filters);
-                setMobileFiltersOpen(true);
-              }}
+          {timelineMonthGroups.length === 0 ? (
+            <header className="momente-section-header">{filterTrigger}</header>
+          ) : null}
+          <ShortTaskSheet
+            ref={filterSheetRef}
+            id="story-filter-panel"
+            open={mobileFiltersOpen}
+            title={t('storyFilters.aria')}
+            onClose={() => setMobileFiltersOpen(false)}
+            restoreFocusRef={filterTriggerRef}
+            className="story-task-filter-sheet"
+          >
+            <section
+              className="story-filter-bar"
+              aria-label={t('storyFilters.aria')}
             >
-              <svg
-                viewBox="0 0 24 24"
-                width="20"
-                height="20"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
+              <div className="story-filter-group">
+                <label htmlFor="story-filter-type">
+                  {t('storyFilters.type')}
+                </label>
+                <select
+                  id="story-filter-type"
+                  name="type"
+                  value={draftFilters.kind ?? ''}
+                  onChange={(e) =>
+                    setDraftFilters((draft) => ({
+                      ...draft,
+                      kind: isStoryKind(e.target.value) ? e.target.value : null,
+                    }))
+                  }
+                >
+                  <option value="">{t('storyFilters.allTypes')}</option>
+                  <option value={StoryKind.MEMORY}>
+                    {t('story.kind.memory')}
+                  </option>
+                  <option value={StoryKind.HEART_MOMENT}>
+                    {t('story.kind.heartMoment')}
+                  </option>
+                  <option value={StoryKind.MILESTONE}>
+                    {t('story.kind.milestone')}
+                  </option>
+                </select>
+              </div>
+              <div className="story-filter-group">
+                <label htmlFor="story-filter-year">
+                  {t('storyFilters.year')}
+                </label>
+                <select
+                  id="story-filter-year"
+                  name="year"
+                  value={draftFilters.year ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setDraftFilters((draft) => ({
+                      ...draft,
+                      year: val ? Number(val) : null,
+                    }));
+                  }}
+                >
+                  <option value="">{t('storyFilters.anyYear')}</option>
+                  {dropdownYears.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="story-filter-group">
+                <label htmlFor="story-filter-order">
+                  {t('storyFilters.order')}
+                </label>
+                <select
+                  id="story-filter-order"
+                  name="order"
+                  value={draftFilters.order}
+                  onChange={(e) =>
+                    setDraftFilters((draft) => ({
+                      ...draft,
+                      order:
+                        e.target.value === StoryOrder.ASC
+                          ? StoryOrder.ASC
+                          : StoryOrder.DESC,
+                    }))
+                  }
+                >
+                  <option value={StoryOrder.DESC}>
+                    {t('storyFilters.newest')}
+                  </option>
+                  <option value={StoryOrder.ASC}>
+                    {t('storyFilters.oldest')}
+                  </option>
+                </select>
+              </div>
+              {(draftFilters.kind ||
+                draftFilters.year ||
+                draftFilters.order !== StoryOrder.DESC) && (
+                <button
+                  type="button"
+                  className="story-filter-reset-header-action"
+                  onClick={() => setDraftFilters(DEFAULT_STORY_FILTERS)}
+                >
+                  {t('storyFilters.reset')}
+                </button>
+              )}
+            </section>
+
+            <div className="short-task-sheet-actions">
+              <button
+                type="button"
+                onClick={() => {
+                  filterSheetRef.current?.closeForNavigation(() => {
+                    const next = storyFiltersToSearch(draftFilters);
+                    next.set('tab', 'timeline');
+                    setSearchParams(next);
+                  });
+                }}
               >
-                <path d="M3 4h18l-7 8v7l-4 2v-9L3 4Z" />
-              </svg>
-              {hasActiveFilters ? (
-                <span className="story-filter-active-badge" aria-hidden="true">
-                  {activeFilterCount}
-                </span>
-              ) : null}
-            </button>
-          </header>
+                {t('storyFilters.apply')}
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() =>
+                  filterSheetRef.current?.closeForNavigation(() =>
+                    filterTriggerRef.current?.focus({
+                      preventScroll: true,
+                    }),
+                  )
+                }
+              >
+                {t('taskSheets.filterCancel')}
+              </button>
+            </div>
+          </ShortTaskSheet>
           <StoryBrowseLayer
             onOpen={(event, path) => {
               if (
@@ -1258,139 +1342,6 @@ export function StoryProductPage({
             hasActiveFilters) ? (
             <div className="layout-single-column">
               <div className="story-filter-container">
-                <ShortTaskSheet
-                  ref={filterSheetRef}
-                  id="story-filter-panel"
-                  open={mobileFiltersOpen}
-                  title={t('storyFilters.aria')}
-                  onClose={() => setMobileFiltersOpen(false)}
-                  restoreFocusRef={filterTriggerRef}
-                  className="story-task-filter-sheet"
-                >
-                  <section
-                    className="story-filter-bar"
-                    aria-label={t('storyFilters.aria')}
-                  >
-                    <div className="story-filter-group">
-                      <label htmlFor="story-filter-type">
-                        {t('storyFilters.type')}
-                      </label>
-                      <select
-                        id="story-filter-type"
-                        name="type"
-                        value={draftFilters.kind ?? ''}
-                        onChange={(e) =>
-                          setDraftFilters((draft) => ({
-                            ...draft,
-                            kind: isStoryKind(e.target.value)
-                              ? e.target.value
-                              : null,
-                          }))
-                        }
-                      >
-                        <option value="">{t('storyFilters.allTypes')}</option>
-                        <option value={StoryKind.MEMORY}>
-                          {t('story.kind.memory')}
-                        </option>
-                        <option value={StoryKind.HEART_MOMENT}>
-                          {t('story.kind.heartMoment')}
-                        </option>
-                        <option value={StoryKind.MILESTONE}>
-                          {t('story.kind.milestone')}
-                        </option>
-                      </select>
-                    </div>
-                    <div className="story-filter-group">
-                      <label htmlFor="story-filter-year">
-                        {t('storyFilters.year')}
-                      </label>
-                      <select
-                        id="story-filter-year"
-                        name="year"
-                        value={draftFilters.year ?? ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setDraftFilters((draft) => ({
-                            ...draft,
-                            year: val ? Number(val) : null,
-                          }));
-                        }}
-                      >
-                        <option value="">{t('storyFilters.anyYear')}</option>
-                        {dropdownYears.map((year) => (
-                          <option key={year} value={year}>
-                            {year}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="story-filter-group">
-                      <label htmlFor="story-filter-order">
-                        {t('storyFilters.order')}
-                      </label>
-                      <select
-                        id="story-filter-order"
-                        name="order"
-                        value={draftFilters.order}
-                        onChange={(e) =>
-                          setDraftFilters((draft) => ({
-                            ...draft,
-                            order:
-                              e.target.value === StoryOrder.ASC
-                                ? StoryOrder.ASC
-                                : StoryOrder.DESC,
-                          }))
-                        }
-                      >
-                        <option value={StoryOrder.DESC}>
-                          {t('storyFilters.newest')}
-                        </option>
-                        <option value={StoryOrder.ASC}>
-                          {t('storyFilters.oldest')}
-                        </option>
-                      </select>
-                    </div>
-                    {(draftFilters.kind ||
-                      draftFilters.year ||
-                      draftFilters.order !== StoryOrder.DESC) && (
-                      <button
-                        type="button"
-                        className="story-filter-reset-header-action"
-                        onClick={() => setDraftFilters(DEFAULT_STORY_FILTERS)}
-                      >
-                        {t('storyFilters.reset')}
-                      </button>
-                    )}
-                  </section>
-
-                  <div className="short-task-sheet-actions">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        filterSheetRef.current?.closeForNavigation(() => {
-                          const next = storyFiltersToSearch(draftFilters);
-                          next.set('tab', 'timeline');
-                          setSearchParams(next);
-                        });
-                      }}
-                    >
-                      {t('storyFilters.apply')}
-                    </button>
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() =>
-                        filterSheetRef.current?.closeForNavigation(() =>
-                          filterTriggerRef.current?.focus({
-                            preventScroll: true,
-                          }),
-                        )
-                      }
-                    >
-                      {t('taskSheets.filterCancel')}
-                    </button>
-                  </div>
-                </ShortTaskSheet>
                 {hasActiveFilters && (
                   <div
                     className="story-active-chips story-task-active-scope"
@@ -1468,7 +1419,7 @@ export function StoryProductPage({
                         ref={timelineMonthsRef}
                         className="story-year-months story-timeline-months"
                       >
-                        {timelineMonthGroups.map((group) => (
+                        {timelineMonthGroups.map((group, groupIndex) => (
                           <section
                             key={group.key}
                             className="story-year-month"
@@ -1481,6 +1432,7 @@ export function StoryProductPage({
                               <h2 id={`story-timeline-month-${group.key}`}>
                                 {group.label}
                               </h2>
+                              {groupIndex === 0 ? filterTrigger : null}
                             </header>
                             <StoryList
                               items={group.items}

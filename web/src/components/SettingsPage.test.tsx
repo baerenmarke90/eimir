@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
+import profiles from '../i18n/locales/profiles';
 import accountSettings from '../i18n/locales/accountSettings';
 import dailyQuote from '../i18n/locales/dailyQuote';
 import profileIdentity from '../i18n/locales/profileIdentity';
@@ -82,6 +83,17 @@ function renderSettingsPageFixture(route = '/more/settings'): string {
 }
 
 describe('SettingsPage', () => {
+  it('describes current Pro capabilities under App and Account', () => {
+    const html = renderSettingsPageFixture('/more/settings/account');
+    expect(html).toContain(profiles.premium.title);
+    for (const feature of Object.values(profiles.premium.features)) {
+      expect(html).toContain(feature.title);
+      expect(html).toContain(feature.body);
+    }
+    expect(html).toContain(profiles.premium.detailsTitle);
+    expect(html).toContain(profiles.premium.detailsBody);
+    expect(html).toContain('settings-account');
+  });
   it('renders a calm category index instead of every settings form at once', () => {
     const html = renderSettingsPageFixture();
 

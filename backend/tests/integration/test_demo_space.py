@@ -265,13 +265,19 @@ def test_canonical_demo_retrospective_has_annual_photo_and_text_only_first_memor
         assert view.retrospective.id == anniversary.id
         assert view.retrospective.preview_attachment_id == anniversary_media[0].attachment.id
 
-    # The fallback is a Space-stable weekday, not a per-device or per-person
-    # random choice. None of the seeded anniversaries occurs on this later day.
-    fallback_day = next(
-        REFERENCE_DATE + timedelta(days=offset)
-        for offset in range(1, 8)
-        if (REFERENCE_DATE + timedelta(days=offset)).weekday() == result.space_id.int % 7
-    )
+    # Daily rotation no longer guarantees the earliest Memory. Isolate this
+    # text-only fallback case by making all other shared sources too recent;
+    # the daily multi-candidate rotation has its own acceptance coverage.
+    fallback_day = REFERENCE_DATE + timedelta(days=1)
+    for model in (Memory, Milestone, HeartMoment):
+        for source in session.scalars(
+            select(model).where(
+                model.space_id == result.space_id,
+                model.privacy_class == "SPACE_SHARED",
+                model.id != first_memory.id,
+            )
+        ):
+            source.happened_on = fallback_day
 
     # An owner-private Heart Moment with the matching anniversary must not
     # displace the eligible shared, text-only fallback for either partner.

@@ -15,15 +15,18 @@ function renderActivityPage(
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  queryClient.setQueryData(['m5-s5', 'activity', SPACE_ID], {
-    pages: [
-      {
-        items,
-        nextCursor: null,
-      },
-    ],
-    pageParams: [null],
-  });
+  queryClient.setQueryData(
+    ['m5-s5', 'activity', SPACE_ID, currentAccountId, 'shared'],
+    {
+      pages: [
+        {
+          items,
+          nextCursor: null,
+        },
+      ],
+      pageParams: [null],
+    },
+  );
 
   return renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>

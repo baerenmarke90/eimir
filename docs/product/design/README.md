@@ -11,6 +11,7 @@ Start with [Product Reference v1](product-reference-v1.md). It is the **normativ
 | Which visual/input language applies? | [Design-system direction](design-system-direction.md): surfaces, images, type, color, shape, rhythm, motion, forms and content composition. |
 | Which Motion contract should Web implementations use? | [Web Motion Guideline](motion-guideline.md): semantic roles, canonical tokens, Enter/Exit lifecycle, reduced motion and engineering reference matrix. |
 | When should foreground notifications interrupt the current task? | [#1211 critical product review](1211-foreground-notification-arrival.md): existing badge/Center, candidate event mapping and prerequisites for any future banner. |
+| Which modules notify and when? | [Module notification workflow](../notification-workflow.md): PO-approved 2026-11-01 event admission, deliberate messages, source reminders, quiet modules and safe target opening; no extra settings surface or foreground banner. |
 | Where do global utilities and account functions live? | [Mobile shell and More consolidation](mobile-header-more.md): PO decision #1507, headerless Compact/Medium, unchanged Expanded navigation and authoritative unread state. |
 | Which incoming events deserve motion? | [#1212 critical product review](1212-event-driven-arrival-motion.md): no global arrival animation for polling/reconciliation; scoped existing roles for verified future changes. |
 | How do shared flows support different contribution levels? | [#502 participation audit](502-participation-audit.md): current single-member outcomes, protected reveal and game exceptions, low-effort gaps and the UX Patterns participation contract. |
@@ -86,3 +87,6 @@ Review the complete human journey and its states, then update the relevant domai
 The [final audit #946](https://github.com/baerenmarke90/eimir/issues/946) applies v1 plus its intuitive-mobile-interaction addendum, exact-build journey evidence and existing quality gates. It remains a later Product Owner acceptance decision. The documentation adoption PR must not close the full #955 implementation program.
 
 [Relationship surfaces and saved-memory map (#1546)](references/1546/README.md) records the clarified Wir scope, games, calendar handoff, Pro map, implemented weekly AI and the completed Discover/capture/navigation follow-up.
+
+[Journal, map and relationship-surface polish (#1570)](references/journal-map-polish/README.md)
+records the PO follow-up to #1568, generated preflight and exact implementation evidence.

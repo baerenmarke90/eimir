@@ -71,6 +71,7 @@ export function MemoryCreatePage({
   onSaved,
   experienceKind,
   partnerName,
+  experienceQuestion,
 }: {
   accessToken: string;
   apiBaseUrl: string;
@@ -79,6 +80,7 @@ export function MemoryCreatePage({
   onSaved: () => Promise<void>;
   experienceKind?: ExperienceKind;
   partnerName?: string;
+  experienceQuestion?: string;
 }) {
   const { t } = useTranslation();
   const experienceName =
@@ -91,7 +93,10 @@ export function MemoryCreatePage({
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const [initialDate] = useState(localDateInputValue);
-  const [title, setTitle] = useState(() => searchParams.get('title') ?? '');
+  const [initialTitle] = useState(
+    () => experienceQuestion ?? searchParams.get('title') ?? '',
+  );
+  const [title, setTitle] = useState(initialTitle);
   const [body, setBody] = useState('');
   const [tags, setTags] = useState<MemoryTag[]>([]);
   const [tagDraftDirty, setTagDraftDirty] = useState(false);
@@ -246,7 +251,7 @@ export function MemoryCreatePage({
       ),
   );
   const dirty = Boolean(
-    title ||
+    (experienceQuestion ? title !== initialTitle : title) ||
       body ||
       tags.length ||
       tagDraftDirty ||
@@ -254,7 +259,9 @@ export function MemoryCreatePage({
       happenedOn !== initialDate,
   );
   const hasUserContent = Boolean(
-    title.trim() || body.trim() || attachments.items.length,
+    experienceKind
+      ? body.trim()
+      : title.trim() || body.trim() || attachments.items.length,
   );
   const draftSnapshot = useMemo<MemoryDiaryDraft>(
     () => ({
@@ -750,6 +757,9 @@ export function MemoryCreatePage({
             ? `coupleExperiences.placeholder.${experienceName}`
             : 'memory.bodyPlaceholder',
         )}
+        aria-describedby={
+          experienceKind && title ? 'experience-selected-question' : undefined
+        }
       />
     </div>
   );
@@ -835,6 +845,15 @@ export function MemoryCreatePage({
           >
             <legend className="sr-only">{t('memory.formAria')}</legend>
 
+            {experienceKind && title ? (
+              <section
+                className="experience-selected-question"
+                id="experience-selected-question"
+                aria-label={t('coupleExperiences.selectedQuestion')}
+              >
+                <p>{title}</p>
+              </section>
+            ) : null}
             {experienceKind ? narrativeField : null}
             {!experienceKind ? (
               <div className="field-group immersive-create-title-field">

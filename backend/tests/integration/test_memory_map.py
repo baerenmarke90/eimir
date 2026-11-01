@@ -6,6 +6,8 @@ from decimal import Decimal
 import pytest
 from sqlalchemy.orm import Session
 
+from eimir.attachments.binding import MemoryAttachment
+from eimir.attachments.models import Attachment, AttachmentPayload, AttachmentStatus, MediaType
 from eimir.authorization import PrivacyClass
 from eimir.core.clock import now
 from eimir.entitlements import service as entitlements
@@ -79,6 +81,32 @@ def test_memory_map_is_bounded_tenant_scoped_and_non_destructive_on_downgrade(
         memories.append(memory)
         places.append(place)
     session.flush()
+    previews = []
+    for index, memory in enumerate(memories):
+        attachment = Attachment(
+            space_id=memory.space_id,
+            owner_id=memory.owner_id,
+            privacy_class=PrivacyClass.OWNER_ONLY.value,
+            status=(AttachmentStatus.PENDING if index == 0 else AttachmentStatus.READY).value,
+            media_type=MediaType.IMAGE.value,
+            declared_mime_type="image/jpeg",
+            declared_size=100,
+            ready_at=now() if index != 0 else None,
+            payload=AttachmentPayload(original_name="map.jpg", is_sensitive=True),
+        )
+        session.add(attachment)
+        session.flush()
+        session.add(MemoryAttachment(memory_id=memory.id, attachment_id=attachment.id, position=0))
+        previews.append(attachment)
+    session.flush()
+    visible = client.get(endpoint, headers=auth(token)).json()["items"]
+    assert {item["memoryId"] for item in visible} == {str(memory.id) for memory in memories[:2]}
+    first_memory = next(item for item in visible if item["memoryId"] == str(memories[0].id))
+    second_memory = next(item for item in visible if item["memoryId"] == str(memories[1].id))
+    assert first_memory["previewAttachmentId"] is None
+    assert second_memory["previewAttachmentId"] == str(previews[1].id)
+    assert second_memory["previewIsSensitive"] is True
+    assert all(item["previewAttachmentId"] != str(previews[3].id) for item in visible)
     first = client.get(endpoint, headers=auth(token), params={"limit": 1})
     assert first.status_code == 200
     assert first.headers["Cache-Control"] == "no-store"

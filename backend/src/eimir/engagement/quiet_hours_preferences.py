@@ -17,6 +17,13 @@ from eimir.identity.models import Account
 # digest follows the same recipient window after its aggregation period.
 DEFERABLE_KINDS = frozenset(
     {
+        NotificationKind.TRANSFER_READY,
+        NotificationKind.TRANSFER_COMPLETED,
+        NotificationKind.TRANSFER_FAILED,
+        NotificationKind.PLAN_CHANGED,
+        NotificationKind.PLAN_CANCELLED,
+        NotificationKind.WISH_SELECTION_SHARED,
+        NotificationKind.WISH_SELECTION_READY,
         NotificationKind.THINKING_OF_YOU,
         NotificationKind.COUPLE_EXPERIENCE_SHARED,
         NotificationKind.PARTNER_KISS,

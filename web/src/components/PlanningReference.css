@@ -379,13 +379,23 @@
   padding-top: var(--space-3);
 }
 
-.planen-operations > summary {
+.planen-operations > summary:not(.button-link) {
   display: flex;
   min-height: 44px;
   align-items: center;
   color: var(--color-text-secondary);
   font-weight: 700;
   cursor: pointer;
+}
+
+.wish-operations > summary.button-link {
+  width: fit-content;
+  max-width: 100%;
+  list-style: none;
+}
+
+.wish-operations > summary.button-link::-webkit-details-marker {
+  display: none;
 }
 
 .planen-operations > .planning-subsection {

@@ -60,6 +60,18 @@ export interface MemoryMapEntry {
      * @type {string}
      * @memberof MemoryMapEntry
      */
+    previewAttachmentId?: string | null;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof MemoryMapEntry
+     */
+    previewIsSensitive?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof MemoryMapEntry
+     */
     title: string;
 }
 
@@ -93,6 +105,8 @@ export function MemoryMapEntryFromJSONTyped(json: any, ignoreDiscriminator: bool
         'memoryId': json['memoryId'],
         'placeId': json['placeId'],
         'placeName': json['placeName'],
+        'previewAttachmentId': json['previewAttachmentId'] === undefined ? undefined : json['previewAttachmentId'] === null ? null : json['previewAttachmentId'],
+        'previewIsSensitive': json['previewIsSensitive'] == null ? undefined : json['previewIsSensitive'],
         'title': json['title'],
     };
 }
@@ -114,6 +128,8 @@ export function MemoryMapEntryToJSONTyped(value?: MemoryMapEntry | null, ignoreD
         'memoryId': value['memoryId'],
         'placeId': value['placeId'],
         'placeName': value['placeName'],
+        'previewAttachmentId': value['previewAttachmentId'],
+        'previewIsSensitive': value['previewIsSensitive'],
         'title': value['title'],
     };
 }

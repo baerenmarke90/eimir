@@ -427,3 +427,29 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.story-timeline-months .story-year-month-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.story-page-unified
+  .momente-diary-section
+  .story-timeline-months
+  .story-year-month-header
+  h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.story-view-tabs {
+  min-width: 0;
+}
+.story-view-tabs .planen-segment {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.story-timeline-months .story-year-month-header::after {
+  display: none;
+}

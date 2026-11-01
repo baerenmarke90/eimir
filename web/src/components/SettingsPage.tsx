@@ -43,6 +43,7 @@ import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
+import { ProInformationPanel } from './ProInformationPanel';
 import { SettingsIndex } from './SettingsIndex';
 import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
@@ -237,43 +238,49 @@ export function SettingsPage(props: SettingsPageProps) {
         className="settings-category-content settings-data-block"
       >
         <TransferPanel
+          key={`${props.account.id}:${props.spaceId}:${location.search}`}
           apiBaseUrl={props.apiBaseUrl}
           accessToken={props.accessToken}
           spaceId={props.spaceId}
+          requestedExportId={new URLSearchParams(location.search).get('export')}
+          requestedImportId={new URLSearchParams(location.search).get('import')}
         />
       </div>
     );
   } else if (categoryId === 'account') {
     categoryContent = (
-      <section
-        id="settings-account"
-        className="settings-category-content settings-sensitive-zone"
-        aria-labelledby="settings-sensitive-heading"
-      >
-        <div className="settings-sensitive-head">
-          <p className="eyebrow">
-            {t('profileIdentity.settingsSensitiveEyebrow')}
-          </p>
-          <h2 id="settings-sensitive-heading">
-            {t('profileIdentity.settingsSensitiveTitle')}
-          </h2>
-          <p>{t('profileIdentity.settingsSensitiveIntro')}</p>
-        </div>
-        <div className="settings-sensitive-grid">
-          <SpaceOffboardingPanel
-            spacesApi={spacesApi}
-            spaceId={props.spaceId}
-            demoMode={demoMode}
-            onOpenDataExport={openDataCategory}
-          />
-          <AccountSettingsPanel
-            apiBaseUrl={props.apiBaseUrl}
-            accessToken={props.accessToken}
-            demoMode={demoMode}
-            onOpenDataExport={openDataCategory}
-          />
-        </div>
-      </section>
+      <div className="settings-category-content">
+        <ProInformationPanel />
+        <section
+          id="settings-account"
+          className="settings-sensitive-zone"
+          aria-labelledby="settings-sensitive-heading"
+        >
+          <div className="settings-sensitive-head">
+            <p className="eyebrow">
+              {t('profileIdentity.settingsSensitiveEyebrow')}
+            </p>
+            <h2 id="settings-sensitive-heading">
+              {t('profileIdentity.settingsSensitiveTitle')}
+            </h2>
+            <p>{t('profileIdentity.settingsSensitiveIntro')}</p>
+          </div>
+          <div className="settings-sensitive-grid">
+            <SpaceOffboardingPanel
+              spacesApi={spacesApi}
+              spaceId={props.spaceId}
+              demoMode={demoMode}
+              onOpenDataExport={openDataCategory}
+            />
+            <AccountSettingsPanel
+              apiBaseUrl={props.apiBaseUrl}
+              accessToken={props.accessToken}
+              demoMode={demoMode}
+              onOpenDataExport={openDataCategory}
+            />
+          </div>
+        </section>
+      </div>
     );
   }
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Response, status
@@ -51,6 +51,7 @@ class PushEndpointRegistrationResult(ApiModel):
 
 
 class UnifiedPushConfiguration(ApiModel):
+    notification_reference_version: Literal[1] = 1
     provider_key: str
     vapid_public_key: str
 

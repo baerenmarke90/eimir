@@ -411,6 +411,9 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     # A queued delivery must still be allowed by the current policy when the
     # worker reaches the provider boundary. Historical records cannot bypass
     # a stricter catalog after an upgrade.
+    if notification.read_at is not None:
+        _finish_unavailable(delivery, "NOTIFICATION_ALREADY_READ")
+        return
     digest = (
         notification_policy.digest_presentation_for(notification.kind, notification.id) is not None
     )

@@ -24,6 +24,7 @@ import {
   type UpcomingItemLimit,
   withDashboardModuleOrder,
 } from '../client/dashboardPreferences';
+import { invalidateDashboard } from '../client/dashboardQueries';
 import {
   clientProblemKind,
   normalizeClientError,
@@ -258,6 +259,8 @@ export function DashboardSettingsPanel({
         itemLimit: write.itemLimit,
       }),
     onSuccess: (updated, write, context) => {
+      if (write.isCurrentQuery())
+        void invalidateDashboard(queryClient, write.spaceId);
       const committed = settlePreferenceFacetWrite(
         queryClient,
         write,
@@ -363,6 +366,8 @@ export function DashboardSettingsPanel({
         visible: write.visible,
       }),
     onSuccess: (updated, write, context) => {
+      if (write.isCurrentQuery())
+        void invalidateDashboard(queryClient, write.spaceId);
       // A later authoritative read or another write can replace this row.
       // Only the submitted optimistic row may consume its own response.
       const committed = settlePreferenceFacetWrite(
@@ -461,6 +466,8 @@ export function DashboardSettingsPanel({
       return { optimisticKeys: write.keys };
     },
     onSuccess: (savedOrder, write, context) => {
+      if (write.isCurrentQuery())
+        void invalidateDashboard(queryClient, write.spaceId);
       if (
         !context ||
         write.sequence !== latestOrderRequest.current ||

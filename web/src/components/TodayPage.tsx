@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Fragment, type ReactNode, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
@@ -10,9 +10,9 @@ import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
+import { DashboardModulePreferenceListToJSON } from '../api/generated/models/DashboardModulePreferenceList';
 import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
 import { DashboardViewToJSON } from '../api/generated/models/DashboardView';
-import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { DashboardModuleKey } from '../client/dashboardModules';
 import {
@@ -36,7 +36,15 @@ import {
   PARTNER_PRESENCE_PRODUCT_ENABLED,
   usePartnerPresence,
 } from '../client/presence';
-import { normalizeClientError } from '../client/problemDetails';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
+import type { ReferenceApis } from '../client/referenceFlow';
+import {
+  calculateRelationshipDuration,
+  formatRelationshipDuration as formatSharedTime,
+} from '../client/relationshipPreview';
 import {
   ACTIVITY_ROUTE,
   appRoutePath,
@@ -68,24 +76,23 @@ import {
 } from './CouplePresence';
 import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
 import { DailyQuoteCard } from './DailyQuoteCard';
-import { SharedExperienceReveal } from './SharedExperienceReveal';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
+import {
+  MonthlyRecapInvitation,
+  useMonthlyRecapInvitation,
+} from './MonthlyRecapInvitation';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { PartnerQuickActions } from './PartnerQuickActions';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
+import { SharedExperienceReveal } from './SharedExperienceReveal';
 import { SharedStorySummary } from './SharedStorySummary';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import { TodayPinnedCollection } from './TodayPinnedCollection';
 import { UiState } from './UiState';
-import type { ReferenceApis } from '../client/referenceFlow';
-import {
-  MonthlyRecapInvitation,
-  useMonthlyRecapInvitation,
-} from './MonthlyRecapInvitation';
 import './TodayPage.css';
 import { useWirDesign } from '../client/wirDesign';
 import './WirDesign.css';
@@ -94,79 +101,10 @@ export function formatRelationshipDuration(
   duration: DashboardRelationshipDuration,
   t: (key: string, options?: Record<string, unknown>) => string,
 ): string {
-  if (duration.displayMode !== DurationDisplayMode.YEARS_MONTHS) {
-    if (duration.daysTogether === 1) {
-      return t('m5s5.dashboard.durationDaysOne', {
-        defaultValue: '1 Tag zusammen',
-      });
-    }
-    return t('m5s5.dashboard.durationDays', {
-      count: duration.daysTogether,
-    });
-  }
-
-  // DurationDisplayMode.YEARS_MONTHS:
-  // Derived strictly from the server-authoritative daysTogether and startedOn.
+  // Derive the reference day from the server snapshot, including cached views.
   const start = new Date(duration.startedOn);
   const end = new Date(start.getTime() + duration.daysTogether * 86_400_000);
-
-  let years = end.getUTCFullYear() - start.getUTCFullYear();
-  let months = end.getUTCMonth() - start.getUTCMonth();
-  const days = end.getUTCDate() - start.getUTCDate();
-
-  if (days < 0) {
-    months -= 1;
-  }
-  if (months < 0) {
-    years -= 1;
-    months += 12;
-  }
-  years = Math.max(0, years);
-  months = Math.max(0, months);
-
-  const yearsLabel =
-    years === 1
-      ? t('m5s5.dashboard.yearOne', { defaultValue: 'Jahr' })
-      : t('m5s5.dashboard.yearMany', { defaultValue: 'Jahre' });
-  const monthsLabel =
-    months === 1
-      ? t('m5s5.dashboard.monthOne', { defaultValue: 'Monat' })
-      : t('m5s5.dashboard.monthMany', { defaultValue: 'Monate' });
-
-  if (years > 0 && months > 0) {
-    return t('m5s5.dashboard.durationYearsMonths', {
-      years,
-      yearsLabel,
-      months,
-      monthsLabel,
-      defaultValue: `${years} ${yearsLabel}, ${months} ${monthsLabel} zusammen`,
-    });
-  }
-
-  if (years > 0) {
-    return t('m5s5.dashboard.durationYearsOnly', {
-      years,
-      yearsLabel,
-      defaultValue: `${years} ${yearsLabel} zusammen`,
-    });
-  }
-
-  if (months > 0) {
-    return t('m5s5.dashboard.durationMonthsOnly', {
-      months,
-      monthsLabel,
-      defaultValue: `${months} ${monthsLabel} zusammen`,
-    });
-  }
-
-  if (duration.daysTogether === 1) {
-    return t('m5s5.dashboard.durationDaysOne', {
-      defaultValue: '1 Tag zusammen',
-    });
-  }
-  return t('m5s5.dashboard.durationDays', {
-    count: duration.daysTogether,
-  });
+  return formatSharedTime(calculateRelationshipDuration(start, end), t);
 }
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
@@ -760,6 +698,7 @@ export function TodayPage({
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
   const wirDesign = useWirDesign();
+  const queryClient = useQueryClient();
   const wirStatistics = useWirStatistics({
     api: entitlementApi,
     instance: apiBaseUrl ?? '',
@@ -772,9 +711,44 @@ export function TodayPage({
     apiBaseUrl,
     spaceId,
     kind: 'dashboard-overview',
-    load: (signal) =>
-      apiCall(() => apis.dashboard.getDashboard({ spaceId }, { signal })),
-    serialize: DashboardViewToJSON,
+    load: async (signal) => {
+      const [dashboard, modulePreferences] = await Promise.all([
+        apiCall(() => apis.dashboard.getDashboard({ spaceId }, { signal })),
+        account?.id
+          ? queryClient
+              .fetchQuery({
+                queryKey: dashboardPreferencesQueryKey(account.id, spaceId),
+                queryFn: ({ signal: preferenceSignal }) =>
+                  apiCall(() =>
+                    apis.dashboard.listDashboardModulePreferences(
+                      { spaceId },
+                      { signal: preferenceSignal },
+                    ),
+                  ),
+                // Persist server-confirmed choices, never another pending
+                // settings mutation's optimistic query value.
+                staleTime: 0,
+                retry: false,
+              })
+              .catch((error: unknown) => {
+                if (
+                  ['unauthorized', 'permission', 'notFound'].includes(
+                    clientProblemKind(error),
+                  )
+                )
+                  throw error;
+                return undefined;
+              })
+          : undefined,
+      ]);
+      return { ...dashboard, modulePreferences };
+    },
+    serialize: (value) => ({
+      ...DashboardViewToJSON(value),
+      modulePreferences: DashboardModulePreferenceListToJSON(
+        value.modulePreferences,
+      ),
+    }),
     deserialize: (payload) => decodeDashboardOverview(payload, spaceId),
   });
   const spaceConfigurationQuery = useQuery(
@@ -802,14 +776,18 @@ export function TodayPage({
       apiCall(() => apis.dashboard.listDashboardModulePreferences({ spaceId })),
     enabled: Boolean(account?.id && spaceId),
     retry: false,
+    staleTime: 60_000,
   });
 
+  const dashboardPreferences =
+    dashboardPreferencesQuery.data ?? dashboardQuery.data?.modulePreferences;
+
   const pinnedCollectionId = selectedDashboardCollectionId(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'pinned_collection',
   );
   const pinnedCollectionVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'pinned_collection',
   );
   const pinnedCollectionQuery = useQuery({
@@ -930,9 +908,13 @@ export function TodayPage({
           item.id === anticipation.planId
         ),
     ),
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
   );
 
+  const relationshipSignalVisible = isDashboardModuleVisible(
+    dashboardPreferences,
+    'relationship_signal',
+  );
   const recentShared = dashboardQuery.data?.recentShared ?? [];
   const retrospective = dashboardQuery.data?.retrospective;
   const serverKeepsake = dashboardQuery.data?.keepsake;
@@ -979,9 +961,17 @@ export function TodayPage({
       : null;
   const incomingId = incomingExperience?.id;
   const ordinaryShared = recentShared.filter((item) => item.id !== incomingId);
+  const retrospectiveId =
+    relationshipSignalVisible && !retrospectiveDismissed
+      ? retrospective?.id
+      : null;
   const focalItem = selectTodayFocalItem({
-    keepsake: serverKeepsake?.id === incomingId ? null : serverKeepsake,
-    recentShared: ordinaryShared,
+    keepsake:
+      serverKeepsake?.id === incomingId ||
+      serverKeepsake?.id === retrospectiveId
+        ? null
+        : serverKeepsake,
+    recentShared: ordinaryShared.filter((item) => item.id !== retrospectiveId),
   });
 
   // 4. Gerade bei euch: one module, deterministic priority, never a stack.
@@ -1065,30 +1055,32 @@ export function TodayPage({
   const preferencesUnresolved =
     dashboardPreferencesQuery.isPending &&
     dashboardPreferencesQuery.fetchStatus !== 'idle';
-  const contentReady = Boolean(dashboardQuery.data) && !preferencesUnresolved;
+  const preferencesDenied = ['unauthorized', 'permission', 'notFound'].includes(
+    clientProblemKind(dashboardPreferencesQuery.error),
+  );
+  const contentReady =
+    Boolean(dashboardQuery.data) &&
+    !preferencesDenied &&
+    (!preferencesUnresolved || Boolean(dashboardPreferences));
 
   const relationshipPresenceVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'relationship_presence',
   );
   const upcomingVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'upcoming',
   );
   const keepsakeVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'keepsake',
   );
-  const relationshipSignalVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
-    'relationship_signal',
-  );
   const monthlyHighlightsVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'monthly_highlights',
   );
   const recentSharedVisible = isDashboardModuleVisible(
-    dashboardPreferencesQuery.data,
+    dashboardPreferences,
     'recent_shared',
   );
   const monthlyRecapEnabled = Boolean(
@@ -1231,10 +1223,7 @@ export function TodayPage({
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {
     shared_experience:
       incomingExperience &&
-      isDashboardModuleVisible(
-        dashboardPreferencesQuery.data,
-        'shared_experience',
-      ) ? (
+      isDashboardModuleVisible(dashboardPreferences, 'shared_experience') ? (
         <SharedExperienceReveal
           entry={incomingExperience}
           partnerName={partnerName}
@@ -1489,9 +1478,7 @@ export function TodayPage({
       </>
     ),
   };
-  const orderedModuleKeys = orderedDashboardModuleKeys(
-    dashboardPreferencesQuery.data,
-  );
+  const orderedModuleKeys = orderedDashboardModuleKeys(dashboardPreferences);
 
   return (
     <div
@@ -1502,7 +1489,9 @@ export function TodayPage({
       }
     >
       {(dashboardQuery.isLoading ||
-        (Boolean(dashboardQuery.data) && preferencesUnresolved)) && (
+        (Boolean(dashboardQuery.data) &&
+          preferencesUnresolved &&
+          !dashboardPreferences)) && (
         <UiState kind="loading" title={t('states.loading.title')} />
       )}
       {dashboardQuery.error && (

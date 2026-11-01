@@ -25,7 +25,9 @@ from eimir.administration import service as administration
 from eimir.auth.tokens import generate_token, hash_token
 from eimir.core.clock import now
 from eimir.core.errors import ConflictError, NotFoundError, ValidationError
+from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.identity.models import Account
+from eimir.outbox import service as outbox_service
 from eimir.relationship import service
 from eimir.relationship.models import (
     MAX_ACTIVE_PARTNERS,
@@ -161,6 +163,17 @@ def _accept_open(session: Session, invitation: Invitation, account: Account) -> 
 
     invitation.accepted_at = now()
     invitation.accepted_by = account.id
+    outbox_service.record(
+        session,
+        DomainEvent(
+            type=EventType.PARTNER_JOINED,
+            space_id=invitation.space_id,
+            actor_id=account.id,
+            subject_type="membership",
+            subject_id=membership.id,
+            payload=PublicEventPayload(recipient_id=invitation.created_by),
+        ),
+    )
     session.flush()
     return membership
 

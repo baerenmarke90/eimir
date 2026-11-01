@@ -299,3 +299,31 @@
 .story-card-meta-item.comment-label {
   gap: 0;
 }
+
+/* The same named comment action can live beside text or on the photo. */
+.comments-panel .comment-compose-trigger,
+.media-comment-action .comment-compose-trigger {
+  display: grid;
+  place-items: center;
+  width: var(--touch-target-web);
+  height: var(--touch-target-web);
+  min-width: var(--touch-target-web);
+  min-height: var(--touch-target-web);
+  padding: var(--space-2);
+  border-radius: var(--radius-pill);
+}
+.media-comment-action {
+  position: absolute;
+  z-index: 4;
+  bottom: var(--space-3);
+  right: var(--space-3);
+}
+.memory-photo-gallery .media-comment-action {
+  right: calc(var(--space-3) + var(--touch-target-web) + var(--space-2));
+}
+.media-comment-action .comment-compose-trigger {
+  border: 0;
+}
+.media-comment-action .comment-compose-trigger:hover {
+  background: var(--media-overlay-surface-hover);
+}

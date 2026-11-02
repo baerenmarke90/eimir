@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
@@ -116,12 +117,26 @@ const earlyPlan = planDetail({
   plannedStart: EARLY_DATE,
   sourceWishId: WISH_ID,
 });
-const latePlan = planDetail({
-  id: LATE_PLAN_ID,
-  title: LATE_TITLE,
-  status: 'PLANNED',
-  plannedStart: LATE_DATE,
-});
+const latePlan = {
+  ...planDetail({
+    id: LATE_PLAN_ID,
+    title: LATE_TITLE,
+    status: 'PLANNED',
+    plannedStart: LATE_DATE,
+  }),
+  description: 'Doors open early. We can have dinner before the concert.',
+  coverAttachment: {
+    id: 'later-plan-cover',
+    status: 'READY',
+    mediaType: 'IMAGE',
+    mimeType: 'image/jpeg',
+    size: 10000,
+    width: 1200,
+    height: 800,
+    hasThumbnail: true,
+    isSensitive: false,
+  },
+};
 const ideaPlan = planDetail({
   id: IDEA_PLAN_ID,
   title: IDEA_TITLE,
@@ -172,6 +187,31 @@ async function installPlanningMocks(
         contentType: 'application/json',
         body: JSON.stringify(body),
       });
+
+    if (pathname.endsWith('/attachments/later-plan-cover/read-access')) {
+      expect(request.postDataJSON()).toMatchObject({
+        parentType: 'PLAN',
+        parentId: LATE_PLAN_ID,
+        variant: 'thumbnail',
+      });
+      await fulfillJson({
+        method: 'STREAM',
+        url: `/api/v1/spaces/${SPACE_ID}/attachments/later-plan-cover/content`,
+      });
+      return;
+    }
+    if (pathname.endsWith('/attachments/later-plan-cover/content')) {
+      await route.fulfill({
+        contentType: 'image/jpeg',
+        body: readFileSync(
+          new URL(
+            '../../../backend/demo_assets/images/concert-lights.jpg',
+            import.meta.url,
+          ),
+        ),
+      });
+      return;
+    }
 
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
@@ -532,13 +572,28 @@ test('Plans leads with the nearest intention, then later and undated Plans, whil
   await expect(plansPanel.locator('.planen-agenda-link')).toContainText(
     LATE_TITLE,
   );
+  const later = plansPanel.locator('.planen-agenda-link');
+  await expect(later.locator('img')).toBeVisible();
+  await expect(later.locator('.planen-agenda-description')).toHaveText(
+    latePlan.description,
+  );
+  await expect(later.locator('.planen-agenda-schedule')).toContainText('Uhr');
+  const agendaBox = await plansPanel.locator('.planen-agenda').boundingBox();
+  const selectionBox = await plansPanel
+    .locator('.wish-selection-entry')
+    .boundingBox();
+  expect(agendaBox?.y).toBeLessThan(selectionBox?.y ?? 0);
   await expect(plansPanel.locator('.planen-undated-link')).toContainText(
     IDEA_TITLE,
   );
   await expect(plansPanel.locator('.planen-history')).toContainText(
     COMPLETED_TITLE,
   );
-  await captureR3Evidence(page, testInfo, 'planning-overview-dense-390-light.png');
+  await captureR3Evidence(
+    page,
+    testInfo,
+    'planning-overview-dense-390-light.png',
+  );
 
   await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
   await expect(
@@ -650,7 +705,11 @@ for (const scenario of [
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
     expect(overflow).toBeLessThanOrEqual(1);
-    await captureR3Evidence(page, testInfo, `planning-overview-${scenario.name}.png`);
+    await captureR3Evidence(
+      page,
+      testInfo,
+      `planning-overview-${scenario.name}.png`,
+    );
   });
 }
 

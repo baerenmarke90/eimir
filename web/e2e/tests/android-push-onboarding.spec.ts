@@ -203,6 +203,14 @@ for (const width of [360, 390, 430, 1280]) {
         await expect(
           dialog.getByRole('button', { name: copy.onboardingLater }),
         ).toBeVisible();
+        const reading = dialog.getByRole('region', {
+          name: copy.onboardingTitle,
+        });
+        await reading.focus();
+        await page.keyboard.press('End');
+        await expect
+          .poll(() => reading.evaluate((element) => element.scrollTop))
+          .toBeGreaterThan(0);
         expect(
           await page.evaluate(
             () => document.documentElement.scrollWidth <= innerWidth + 1,

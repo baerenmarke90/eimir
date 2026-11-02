@@ -566,7 +566,11 @@ def replace_attachments(
         attachments.append(attachment)
     binding.ensure_within_limits(attachments)
     for attachment in attachments:
-        binding.set_sensitive(attachment, (sensitivity or {}).get(attachment.id))
+        binding.set_sensitive(
+            attachment,
+            (sensitivity or {}).get(attachment.id),
+            allow_change=context.account_id in (memory.owner_id, attachment.owner_id),
+        )
 
     session.execute(
         delete(binding.MemoryAttachment).where(binding.MemoryAttachment.memory_id == memory.id)

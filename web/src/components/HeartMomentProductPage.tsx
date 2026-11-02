@@ -845,7 +845,11 @@ export function HeartMomentProductPage({
           attachments.items.find(
             (item) => item.attachmentId === replacementAttachmentId,
           )?.isSensitive ?? false;
-      else if (heartMoment.attachment && !removeExistingPhoto)
+      else if (
+        heartMoment.attachment &&
+        !removeExistingPhoto &&
+        heartMoment.capabilities.canDelete
+      )
         update.attachmentIsSensitive =
           data.get('attachmentIsSensitive') === 'on';
       const ownsTask = captureEditOwnership();
@@ -895,19 +899,21 @@ export function HeartMomentProductPage({
                   }
                   resourceScopeKey={`heart-moment:${currentAccountId}:${spaceId}:${mode}:${heartMoment.id}`}
                 />
-                <SensitiveMediaCheckbox
-                  name="attachmentIsSensitive"
-                  showHelp
-                  checked={
-                    sensitivityDraft?.key === sensitivityKey
-                      ? sensitivityDraft.value
-                      : (heartMoment.attachment.isSensitive ?? true)
-                  }
-                  onChange={(value) =>
-                    setSensitivityDraft({ key: sensitivityKey, value })
-                  }
-                  disabled={updateMutation.isPending}
-                />
+                {heartMoment.capabilities.canDelete ? (
+                  <SensitiveMediaCheckbox
+                    name="attachmentIsSensitive"
+                    showHelp
+                    checked={
+                      sensitivityDraft?.key === sensitivityKey
+                        ? sensitivityDraft.value
+                        : (heartMoment.attachment.isSensitive ?? true)
+                    }
+                    onChange={(value) =>
+                      setSensitivityDraft({ key: sensitivityKey, value })
+                    }
+                    disabled={updateMutation.isPending}
+                  />
+                ) : null}
                 {heartMoment.capabilities.canDelete ? (
                   <button
                     type="button"

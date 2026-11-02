@@ -20,7 +20,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.attachments.service import binding_window_expired
-from eimir.core.errors import ConflictError, ErrorCode
+from eimir.core.errors import ConflictError, ErrorCode, ForbiddenError
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin
 
@@ -298,11 +298,18 @@ def attachments_of_memory(session: Session, memory_id: UUID) -> list[BoundAttach
     return [BoundAttachment(attachment=row[1], position=row[0].position) for row in rows]
 
 
-def set_sensitive(attachment: Attachment, value: bool | None) -> None:
+def set_sensitive(attachment: Attachment, value: bool | None, *, allow_change: bool = True) -> None:
     """Update protected metadata only under the authorized parent's write/lock contract.
 
-    Omission preserves existing classification for older clients. This helper
+    Collaborative content editing does not imply protected metadata authority;
+    those callers supply the parent/photo ownership decision through allow_change.
+    Omission and unchanged values preserve classification for older clients. This helper
     never changes visibility or source bytes and emits no classification event.
     """
     if value is not None and value != attachment.payload.is_sensitive:
+        if not allow_change:
+            raise ForbiddenError(
+                "Only the author may change another author's photo classification.",
+                "NOT_RESOURCE_OWNER",
+            )
         attachment.payload = attachment.payload.model_copy(update={"is_sensitive": value})

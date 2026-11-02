@@ -640,6 +640,8 @@ export function MemoryProductPage({
                   t('m5s3.planImage.photoNumber', { number: index + 1 }),
                 draft: item.draft,
                 canRemove: !item.photo || memory.capabilities.canDelete,
+                canEditSensitivity:
+                  !item.photo || memory.capabilities.canDelete,
                 isSensitive: item.photo
                   ? (sensitiveValues[item.photo.id] ??
                     item.photo.isSensitive ??
@@ -668,7 +670,7 @@ export function MemoryProductPage({
               }
               onSensitive={(key, value) => {
                 const item = photoItems.find((item) => item.key === key);
-                if (item?.photo)
+                if (item?.photo && memory.capabilities.canDelete)
                   setSensitiveDraft((current) => ({
                     key: sensitiveDraftKey,
                     values: {

@@ -439,6 +439,8 @@ Section anatomy is heading/action row followed by the content surface, under Pro
 `PhotoDraftGallery` owns presentation and local selection only. Callers own
 uploads, authorized previews, sensitivity, order and persistence. Reuse it for
 Memory drafts/editing, single-photo HeartMoment selection and Plan galleries.
+The caller may mark an item `canEditSensitivity: false` to retain its protected
+classification without exposing a mutation control; removal authority is separate.
 Show six thumbnails initially with an explicit all-photos disclosure. Each
 thumbnail has an accessible position/name/status and selected state. Pending
 and failed files remain recognizable; an aggregate failure action reveals a

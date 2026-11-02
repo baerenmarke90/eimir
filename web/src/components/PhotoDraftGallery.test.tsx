@@ -7,7 +7,7 @@ import {
   screen,
   within,
 } from '@testing-library/react';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import type { AttachmentDraft } from '../client/attachmentDraftState';
 import { i18n } from '../i18n';
 import {
@@ -16,6 +16,37 @@ import {
 } from './PhotoDraftGallery';
 
 afterEach(cleanup);
+
+it('keeps protected photo classification read-only while an own draft remains editable', () => {
+  const onSensitive = vi.fn();
+  render(
+    <PhotoDraftGallery
+      items={[
+        {
+          key: 'protected',
+          name: 'shared.jpg',
+          preview: <span>Shared</span>,
+          isSensitive: true,
+          canEditSensitivity: false,
+        },
+        {
+          key: 'own',
+          name: 'new.jpg',
+          preview: <span>New</span>,
+          isSensitive: false,
+        },
+      ]}
+      onSensitive={onSensitive}
+      onRemove={() => {}}
+    />,
+  );
+  expect(screen.queryByRole('checkbox')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: /new.jpg/ }));
+  fireEvent.click(screen.getByRole('checkbox'));
+  expect(onSensitive).toHaveBeenCalledExactlyOnceWith('own', true);
+  fireEvent.click(screen.getByRole('button', { name: /shared.jpg/ }));
+  expect(screen.queryByRole('checkbox')).toBeNull();
+});
 
 function Harness() {
   const [items, setItems] = useState<PhotoDraftGalleryItem[]>(() =>

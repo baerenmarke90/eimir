@@ -9,6 +9,7 @@ from eimir.api.v1.heart_moments import HeartMomentCreate
 from eimir.api.v1.memories import MemoryAttachmentEntry
 from eimir.attachments.binding import set_sensitive
 from eimir.attachments.models import Attachment, AttachmentPayload
+from eimir.core.errors import ForbiddenError
 
 
 @pytest.mark.parametrize("preserve_metadata", [False, True])
@@ -34,6 +35,20 @@ def test_legacy_payload_defaults_to_unmarked_and_mark_preserves_other_metadata(
     set_sensitive(attachment, False)
     assert attachment.payload.is_sensitive is False
     assert attachment.payload.preserve_metadata is preserve_metadata
+
+
+@pytest.mark.parametrize("is_sensitive", [False, True])
+def test_collaborative_content_edit_preserves_another_authors_classification(
+    is_sensitive: bool,
+) -> None:
+    attachment = Attachment(
+        payload=AttachmentPayload(original_name="protected.jpg", is_sensitive=is_sensitive)
+    )
+    for unchanged in (None, is_sensitive):
+        set_sensitive(attachment, unchanged, allow_change=False)
+    with pytest.raises(ForbiddenError):
+        set_sensitive(attachment, not is_sensitive, allow_change=False)
+    assert attachment.payload.is_sensitive is is_sensitive
 
 
 @pytest.mark.parametrize("flag", ["false", 0, 1, [], {}])

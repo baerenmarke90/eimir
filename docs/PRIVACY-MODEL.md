@@ -51,6 +51,9 @@ Memory while retaining the original author's photos. They cannot borrow another
 person's unbound upload or delete that person's saved photo by replacing the
 attachment set. A shared HeartMoment retains its single-photo cardinality; a
 partner may fill an empty slot but cannot remove/replace the author's photo.
+Photo sensitivity remains protected metadata: the Story author or the photo's
+owner may change it; another content editor may only retain its current value.
+Editors hide unavailable classification controls while new uploads remain editable.
 Visibility transitions stay author-only and separate from content updates.
 Existing collaborative Plan/Wish/Place semantics and private domains are unchanged.
 No schema, data ownership, entitlement or retention migration is required.

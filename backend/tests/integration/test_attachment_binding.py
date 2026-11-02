@@ -674,6 +674,13 @@ class TestSensitiveMedia:
             client.get(path, headers=auth(couple["token_b"])).json()["attachment"]["isSensitive"]
             is True
         )
+        denied = client.patch(
+            path,
+            json={"attachmentIsSensitive": False},
+            headers=if_match(couple["token_b"], shared.json()["version"]),
+        )
+        assert denied.status_code == 403
+        assert denied.json()["code"] == "NOT_RESOURCE_OWNER"
         edited = client.patch(
             path,
             json={"text": "Updated thought", "attachmentIsSensitive": False},
@@ -682,6 +689,16 @@ class TestSensitiveMedia:
         assert edited.status_code == 200
         assert edited.json()["version"] == shared.json()["version"] + 1
         assert edited.json()["attachment"]["isSensitive"] is False
+        denied = client.patch(
+            path,
+            json={"attachmentIsSensitive": True},
+            headers=if_match(couple["token_b"], edited.json()["version"]),
+        )
+        assert denied.status_code == 403
+        assert (
+            client.get(path, headers=auth(couple["token_b"])).json()["attachment"]["isSensitive"]
+            is False
+        )
         stale = client.patch(
             path,
             json={"attachmentIsSensitive": True},
@@ -788,10 +805,12 @@ class TestSensitiveMedia:
         original = binding.set_sensitive
         calls = 0
 
-        def fail_second(attachment: Attachment, value: bool | None) -> None:
+        def fail_second(
+            attachment: Attachment, value: bool | None, *, allow_change: bool = True
+        ) -> None:
             nonlocal calls
             calls += 1
-            original(attachment, value)
+            original(attachment, value, allow_change=allow_change)
             if calls == 2:
                 raise ConflictError(
                     "Simulated classification conflict.", ErrorCode.RESOURCE_VERSION_CONFLICT

@@ -240,7 +240,7 @@
   }
 }
 
-.mobile-quick-create .quick-create-trigger:active {
+.mobile-quick-create .quick-create-trigger:is(:active, [data-control-pressed]) {
   transform: translateY(-4px);
   scale: var(--control-pressed-scale-emphasis);
   filter: brightness(var(--control-pressed-brightness));
@@ -422,7 +422,8 @@
 
   .mobile-quick-create .quick-create-trigger,
   .mobile-quick-create .quick-create-trigger:hover,
-  .mobile-quick-create .quick-create-trigger:active {
+  .mobile-quick-create
+    .quick-create-trigger:is(:active, [data-control-pressed]) {
     transform: translateY(-4px);
     scale: none;
   }

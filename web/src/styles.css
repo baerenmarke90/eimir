@@ -179,11 +179,12 @@ button,
   }
 }
 
-button:active:not(:disabled),
-.button-link:active,
-:where(summary, [role="button"], .file-picker):active:not(
-  [aria-disabled="true"]
-) {
+button:is(:active, [data-control-pressed]):not(:disabled),
+.button-link:is(:active, [data-control-pressed]),
+:where(summary, [role="button"], .file-picker):is(
+  :active,
+  [data-control-pressed]
+):not([aria-disabled="true"]) {
   scale: var(--control-pressed-scale);
   filter: brightness(var(--control-pressed-brightness));
 }
@@ -1059,9 +1060,12 @@ code {
     transition: none;
   }
 
-  button:active:not(:disabled),
-  .button-link:active,
-  :where(summary, [role="button"], .file-picker):active {
+  button:is(:active, [data-control-pressed]):not(:disabled),
+  .button-link:is(:active, [data-control-pressed]),
+  :where(summary, [role="button"], .file-picker):is(
+    :active,
+    [data-control-pressed]
+  ) {
     scale: none;
   }
 

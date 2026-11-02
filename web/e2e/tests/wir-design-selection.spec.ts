@@ -418,6 +418,7 @@ for (const [width, theme, reduced] of [
       await signIn(page);
       await page.goto('/today');
       await expect(page.locator('.today-content')).toBeVisible();
+      const overlay = page.getByRole(width < 840 ? 'dialog' : 'menu');
       const control = page.locator(
         '.product-shell .quick-create-trigger:visible',
       );
@@ -434,11 +435,24 @@ for (const [width, theme, reduced] of [
       const bounds = await control.boundingBox();
       if (!bounds) throw new Error('Create control is not laid out');
       const session = await context.newCDPSession(page);
+      const contact = {
+        x: bounds.x + bounds.width / 2,
+        y: bounds.y + bounds.height / 2,
+      };
       await session.send('Input.dispatchTouchEvent', {
         type: 'touchStart',
-        touchPoints: [
-          { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 },
-        ],
+        touchPoints: [contact],
+      });
+      await expect(control).toHaveAttribute('data-control-pressed', '');
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchCancel',
+        touchPoints: [],
+      });
+      await expect(control).not.toHaveAttribute('data-control-pressed');
+      await expect(overlay).toHaveCount(0);
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [contact],
       });
       try {
         await expect
@@ -455,9 +469,10 @@ for (const [width, theme, reduced] of [
           touchPoints: [],
         });
       }
-      await expect(page.getByRole('dialog')).toBeVisible();
+      await expect(page.locator('[data-control-pressed]')).toHaveCount(0);
+      await expect(overlay).toBeVisible();
       await page.keyboard.press('Escape');
-      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expect(overlay).toHaveCount(0);
       await page.keyboard.press('Tab');
       await control.focus();
       expect(

@@ -375,6 +375,12 @@ public class PhotoFileChooserTest {
         }
         launchForMediaSelection();
         WebView view = activity.getBridge().getWebView();
+        // The shipped client has a secure app origin. about:blank has an opaque
+        // origin, which cannot establish the same native media-loading contract.
+        instrumentation.runOnMainSync(() -> view.loadDataWithBaseURL("https://localhost/",
+            "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'></head><body></body></html>",
+            "text/html", "UTF-8", null));
+        awaitJavascript(view, "location.origin==='https://localhost'");
         assertEquals("true", javascriptValue(view, "(function(){"
             + "document.body.innerHTML=`<input id='photo' type='file' accept='video/mp4,video/quicktime' "
             + "style='position:fixed;top:20%;left:20%;width:60%;height:60px'>"
@@ -384,7 +390,9 @@ public class PhotoFileChooserTest {
             + "input.onchange=async()=>{try{const file=input.files[0];window.videoMime=file.type;"
             + "const bytes=new Uint8Array(await file.arrayBuffer());let binary='';"
             + "for(const value of bytes)binary+=String.fromCharCode(value);window.selectedPhotoBytes=btoa(binary);"
-            + "video.src=URL.createObjectURL(file);video.onloadedmetadata=()=>window.videoReady=true;video.load();"
+            + "video.onloadedmetadata=()=>window.videoReady=true;"
+            + "video.onerror=()=>window.videoError=video.error?.message||String(video.error?.code);"
+            + "video.src=URL.createObjectURL(file);video.load();"
             + "video.onseeked=()=>window.videoSeeked=true;"
             + "video.requestVideoFrameCallback(()=>window.videoDecoded=true);"
             + "}catch(error){window.photoReadError=error.name;}};"
@@ -403,13 +411,15 @@ public class PhotoFileChooserTest {
         byte[] bytes = selectedFileBytes(view);
         assertTrue("Chromium receives video bytes", bytes.length > 0);
         java.nio.file.Files.write(new File(context.getFilesDir(), "native-selected-video.mp4").toPath(), bytes);
-        awaitJavascript(view, "window.videoReady===true");
         assertEquals("true", javascriptValue(view,
-            "document.getElementById('video').paused && document.getElementById('video').controls"
-            + " && document.getElementById('video').videoWidth===96"
-            + " && document.getElementById('video').videoHeight===64"));
+            "document.getElementById('video').paused && document.getElementById('video').controls"));
+        // Match production preload=none: only a deliberate Play requests metadata/frames.
         tapScreenBounds(webControlScreenBounds(view, "play-video"));
-        awaitJavascript(view, "window.videoDecoded===true");
+        awaitJavascript(view, "window.videoReady===true");
+        awaitJavascript(view, "window.videoDecoded===true && document.getElementById('video').currentTime>0 && !window.videoError");
+        assertEquals("true", javascriptValue(view,
+            "document.getElementById('video').videoWidth===96"
+            + " && document.getElementById('video').videoHeight===64"));
         assertEquals("true", javascriptValue(view,
             "(()=>{const v=document.getElementById('video');v.pause();v.currentTime=0.25;return true})()"));
         awaitJavascript(view, "window.videoSeeked===true");
@@ -427,7 +437,10 @@ public class PhotoFileChooserTest {
             instrumentation.waitForIdleSync();
         } while (SystemClock.uptimeMillis() < deadline);
         captureNativeDiagnostics("native-video-failure");
-        throw new AssertionError("The native video condition did not complete: " + condition);
+        throw new AssertionError("The native video condition did not complete: " + condition
+            + "; state=" + javascriptValue(view, "JSON.stringify((()=>{const v=document.getElementById('video');"
+                + "return {ready:v?.readyState,network:v?.networkState,error:window.videoError,"
+                + "mediaError:v?.error?.message,mime:window.videoMime,paused:v?.paused,time:v?.currentTime}})())"));
     }
 
     private void captureNativeDiagnostics(String label) throws Exception {

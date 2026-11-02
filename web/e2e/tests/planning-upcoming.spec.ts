@@ -709,6 +709,16 @@ for (const scenario of [
     await expect(page.locator('.planen-next-link')).toContainText(EARLY_TITLE);
     await expect(page.locator('.planen-agenda-link')).toContainText(LATE_TITLE);
     await expect(page.locator('.planen-agenda-schedule')).toContainText('Uhr');
+    if ('largeText' in scenario && scenario.largeText) {
+      const preview = page.locator('.planen-agenda-link');
+      const copy = await preview.locator('.planen-agenda-copy').boundingBox();
+      const cover = await preview.locator('.plan-cover').boundingBox();
+      expect(copy).not.toBeNull();
+      expect(cover).not.toBeNull();
+      expect(cover?.y).toBeGreaterThanOrEqual(
+        (copy?.y ?? 0) + (copy?.height ?? 0),
+      );
+    }
     await expect(page.locator('.planen-undated-link')).toContainText(
       IDEA_TITLE,
     );

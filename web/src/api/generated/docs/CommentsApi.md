@@ -7,10 +7,12 @@ All URIs are relative to *http://localhost*
 | [**createHeartMomentComment**](CommentsApi.md#createheartmomentcomment) | **POST** /api/v1/spaces/{spaceId}/heart-moments/{heartMomentId}/comments | Create Heart Moment Comment |
 | [**createMemoryComment**](CommentsApi.md#creatememorycomment) | **POST** /api/v1/spaces/{spaceId}/memories/{memoryId}/comments | Create Memory Comment |
 | [**createMilestoneComment**](CommentsApi.md#createmilestonecomment) | **POST** /api/v1/spaces/{spaceId}/milestones/{milestoneId}/comments | Create Milestone Comment |
+| [**createPlanComment**](CommentsApi.md#createplancomment) | **POST** /api/v1/spaces/{spaceId}/plans/{planId}/comments | Create Plan Comment |
 | [**deleteComment**](CommentsApi.md#deletecomment) | **DELETE** /api/v1/spaces/{spaceId}/comments/{commentId} | Delete Comment |
 | [**listHeartMomentComments**](CommentsApi.md#listheartmomentcomments) | **GET** /api/v1/spaces/{spaceId}/heart-moments/{heartMomentId}/comments | List Heart Moment Comments |
 | [**listMemoryComments**](CommentsApi.md#listmemorycomments) | **GET** /api/v1/spaces/{spaceId}/memories/{memoryId}/comments | List Memory Comments |
 | [**listMilestoneComments**](CommentsApi.md#listmilestonecomments) | **GET** /api/v1/spaces/{spaceId}/milestones/{milestoneId}/comments | List Milestone Comments |
+| [**listPlanComments**](CommentsApi.md#listplancomments) | **GET** /api/v1/spaces/{spaceId}/plans/{planId}/comments | List Plan Comments |
 | [**updateComment**](CommentsApi.md#updatecomment) | **PATCH** /api/v1/spaces/{spaceId}/comments/{commentId} | Update Comment |
 
 
@@ -221,6 +223,85 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **milestoneId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **commentCreate** | [CommentCreate](CommentCreate.md) |  | |
+| **idempotencyKey** | `string` | Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time. | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**CommentDetail**](CommentDetail.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | The request identity (&#x60;Idempotency-Key&#x60;) was already used for an equivalent request. The response returns the original Comment in its current state; no second Comment is created and the partner is not notified again. |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **201** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## createPlanComment
+
+> CommentDetail createPlanComment(planId, spaceId, commentCreate, idempotencyKey)
+
+Create Plan Comment
+
+### Example
+
+```ts
+import {
+  Configuration,
+  CommentsApi,
+} from '';
+import type { CreatePlanCommentRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new CommentsApi();
+
+  const body = {
+    // string
+    planId: planId_example,
+    // string
+    spaceId: spaceId_example,
+    // CommentCreate
+    commentCreate: ...,
+    // string | Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time. (optional)
+    idempotencyKey: idempotencyKey_example,
+  } satisfies CreatePlanCommentRequest;
+
+  try {
+    const data = await api.createPlanComment(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **planId** | `string` |  | [Defaults to `undefined`] |
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
 | **commentCreate** | [CommentCreate](CommentCreate.md) |  | |
 | **idempotencyKey** | `string` | Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time. | [Optional] [Defaults to `undefined`] |
@@ -532,6 +613,84 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **milestoneId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **limit** | `number` |  | [Optional] [Defaults to `50`] |
+
+### Return type
+
+[**CommentPage**](CommentPage.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **400** | The request is syntactically valid but cannot be processed in this form. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## listPlanComments
+
+> CommentPage listPlanComments(planId, spaceId, cursor, limit)
+
+List Plan Comments
+
+### Example
+
+```ts
+import {
+  Configuration,
+  CommentsApi,
+} from '';
+import type { ListPlanCommentsRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new CommentsApi();
+
+  const body = {
+    // string
+    planId: planId_example,
+    // string
+    spaceId: spaceId_example,
+    // string (optional)
+    cursor: cursor_example,
+    // number (optional)
+    limit: 56,
+  } satisfies ListPlanCommentsRequest;
+
+  try {
+    const data = await api.listPlanComments(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **planId** | `string` |  | [Defaults to `undefined`] |
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
 | **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **limit** | `number` |  | [Optional] [Defaults to `50`] |

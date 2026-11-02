@@ -355,11 +355,33 @@ describe('HeartMomentProductPage Back restores origin (#966)', () => {
 });
 
 describe('Heart Moment detail edit action and shared state (#1014)', () => {
+  it('keeps long authored text once inside the content area, apart from the compact heading', async () => {
+    const text =
+      'A long thought about our quiet evening together.\nThe whole description stays readable beside its emotion and media.';
+    renderDetail(undefined, { ...heartMoment, text });
+    const heading = await screen.findByRole('heading', {
+      name: storyProducts.heartMomentProduct.detailEyebrow,
+      level: 1,
+    });
+    const body = screen.getByText(text, { normalizer: (value) => value });
+    expect(heading.textContent).not.toContain(text);
+    expect(body.tagName).toBe('P');
+    expect(body.closest('article')?.className).toContain('product-detail-card');
+    expect(body.className).toContain('heart-moment-detail-text');
+    expect(body.textContent).toBe(text);
+    expect(
+      screen.getAllByText(text, { normalizer: (value) => value }),
+    ).toHaveLength(1);
+    expect(
+      document.querySelector('header time')?.getAttribute('datetime'),
+    ).toBe('2026-08-25');
+  });
+
   it('shows authored context without inventing prose for a textless result', async () => {
     renderDetail(undefined, { ...heartMoment, text: '', tags: ['everyday'] });
     expect(
       await screen.findByRole('heading', {
-        name: storyProducts.heartMomentProduct.untitled,
+        name: storyProducts.heartMomentProduct.detailEyebrow,
       }),
     ).toBeTruthy();
     expect(

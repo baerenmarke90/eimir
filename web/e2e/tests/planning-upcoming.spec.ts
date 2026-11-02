@@ -1,3 +1,4 @@
+import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
@@ -157,6 +158,7 @@ async function installPlanningMocks(
   let converted = false;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
     const method = request.method();
     const url = new URL(request.url());

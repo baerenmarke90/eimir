@@ -109,6 +109,13 @@ function setup() {
   const scheduled = deferred<PlanDetail>();
   const updatePlan = vi.fn(() => scheduled.promise);
   const apis = {
+    comments: {
+      listPlanComments: vi.fn(async () => ({
+        items: [],
+        nextCursor: null,
+        hasMore: false,
+      })),
+    },
     plans: { getPlan, completePlanRaw, updatePlan },
     places: {
       listPlaces: vi.fn(async () => ({

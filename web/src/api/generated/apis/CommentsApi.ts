@@ -60,6 +60,13 @@ export interface CreateMilestoneCommentRequest {
     idempotencyKey?: string | null;
 }
 
+export interface CreatePlanCommentRequest {
+    planId: string;
+    spaceId: string;
+    commentCreate: CommentCreate;
+    idempotencyKey?: string | null;
+}
+
 export interface DeleteCommentRequest {
     commentId: string;
     spaceId: string;
@@ -82,6 +89,13 @@ export interface ListMemoryCommentsRequest {
 
 export interface ListMilestoneCommentsRequest {
     milestoneId: string;
+    spaceId: string;
+    cursor?: string | null;
+    limit?: number;
+}
+
+export interface ListPlanCommentsRequest {
+    planId: string;
     spaceId: string;
     cursor?: string | null;
     limit?: number;
@@ -297,6 +311,73 @@ export class CommentsApi extends runtime.BaseAPI {
      */
     async createMilestoneComment(requestParameters: CreateMilestoneCommentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CommentDetail> {
         const response = await this.createMilestoneCommentRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for createPlanComment without sending the request
+     */
+    async createPlanCommentRequestOpts(requestParameters: CreatePlanCommentRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['planId'] == null) {
+            throw new runtime.RequiredError(
+                'planId',
+                'Required parameter "planId" was null or undefined when calling createPlanComment().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling createPlanComment().'
+            );
+        }
+
+        if (requestParameters['commentCreate'] == null) {
+            throw new runtime.RequiredError(
+                'commentCreate',
+                'Required parameter "commentCreate" was null or undefined when calling createPlanComment().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/plans/{planId}/comments`;
+        urlPath = urlPath.replace('{planId}', encodeURIComponent(String(requestParameters['planId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: CommentCreateToJSON(requestParameters['commentCreate']),
+        };
+    }
+
+    /**
+     * Create Plan Comment
+     */
+    async createPlanCommentRaw(requestParameters: CreatePlanCommentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CommentDetail>> {
+        const requestOptions = await this.createPlanCommentRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CommentDetailFromJSON(jsonValue));
+    }
+
+    /**
+     * Create Plan Comment
+     */
+    async createPlanComment(requestParameters: CreatePlanCommentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CommentDetail> {
+        const response = await this.createPlanCommentRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -543,6 +624,67 @@ export class CommentsApi extends runtime.BaseAPI {
      */
     async listMilestoneComments(requestParameters: ListMilestoneCommentsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CommentPage> {
         const response = await this.listMilestoneCommentsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listPlanComments without sending the request
+     */
+    async listPlanCommentsRequestOpts(requestParameters: ListPlanCommentsRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['planId'] == null) {
+            throw new runtime.RequiredError(
+                'planId',
+                'Required parameter "planId" was null or undefined when calling listPlanComments().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling listPlanComments().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/plans/{planId}/comments`;
+        urlPath = urlPath.replace('{planId}', encodeURIComponent(String(requestParameters['planId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * List Plan Comments
+     */
+    async listPlanCommentsRaw(requestParameters: ListPlanCommentsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CommentPage>> {
+        const requestOptions = await this.listPlanCommentsRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CommentPageFromJSON(jsonValue));
+    }
+
+    /**
+     * List Plan Comments
+     */
+    async listPlanComments(requestParameters: ListPlanCommentsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CommentPage> {
+        const response = await this.listPlanCommentsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

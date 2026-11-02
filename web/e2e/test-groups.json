@@ -12,6 +12,11 @@
     "LOWER_LEVEL": "Still runs in the full regression until equivalent lower-level coverage is committed and the browser case can be removed."
   },
   "specs": {
+    "heart-moment-reading.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6,
+      "reason": "Authored HeartMoment prose must stay in its readable content area across shared/private, photo/text, edit-save-return and large-text/mobile layouts."
+    },
     "journal-surface-polish.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 4,
@@ -398,6 +403,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 9,
       "reason": "The native reminder notification must open an authorized read-only source at Compact/Expanded widths, preserve native-sized actions and return navigation, and hide deleted/denied content."
+    },
+    "plan-comments-links.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8,
+      "reason": "Plan comments must retain author, tenant, retry and canonical return contracts, with explicit bounded link previews and narrow/large-text accessibility."
     }
   }
 }

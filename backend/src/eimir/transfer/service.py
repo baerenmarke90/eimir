@@ -323,6 +323,7 @@ def _prune_relations(rows: dict[str, list[dict[str, Any]]]) -> None:
         "MEMORY": _selected_ids(rows, "memories"),
         "HEART_MOMENT": _selected_ids(rows, "heart_moments"),
         "MILESTONE": _selected_ids(rows, "milestones"),
+        "PLAN": _selected_ids(rows, "plans"),
     }
     rows["comments"] = [
         row
@@ -1069,6 +1070,7 @@ def _validate_relations(
         "MEMORY": ids.get("memories", set()),
         "HEART_MOMENT": ids.get("heart_moments", set()),
         "MILESTONE": ids.get("milestones", set()),
+        "PLAN": ids.get("plans", set()),
     }
     for raw in tables.get("comments", []):
         row = _row_snake(raw)

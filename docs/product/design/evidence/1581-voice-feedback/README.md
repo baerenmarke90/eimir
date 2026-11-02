@@ -83,3 +83,11 @@ Rollback acceptance uses the existing `production_client` fixture and fresh
 database sessions. The ordinary `client` fixture deliberately replaces the
 request unit of work, so it cannot establish committed rollback behavior. The
 shared couple factory supplies both fixtures; all negative assertions remain.
+
+The additional new-Place capture journey passes (**1/1**), together with all six
+existing map/picker component tests. Draft capture names the actual independent
+shared-Place write explicitly and explains retention before confirmation. No
+Place is created merely by searching/selecting a result. The confirmed Place ID
+then participates in the exact Memory save. [Actual confirmation capture](1581-new-place-confirmation-390-light.webp).
+
+New-Place confirmation runtime source: `f7f41c201153c392740e1348b9a027cf1ea0613f`.

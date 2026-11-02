@@ -31,7 +31,7 @@ other invalid packages and malformed metadata still fail closed.
 No new provider, signing identity, infrastructure, entitlement, quota or backend
 migration is added. Cloud/Self-Hosted product behavior remains main's behavior.
 Native push/renderer recovery, updater registration and both browser inventories
-remain integrated. No Firebase configuration or Play publication is introduced.
+remain integrated. The existing protected Firebase client input for eimir-production is prepared and verified in the signed APK; no server key or Play publication is introduced.
 
 ## Acceptance and publication
 
@@ -46,3 +46,19 @@ subsequent canonical-package update continuity remain device acceptance.
 The matching Web/API test deployment uses main's existing private-channel
 publisher and `deploy/eimir-test`; verify its selected source independently.
 Published Android artifacts remain immutable, draft-first and marker-last.
+
+## Preserve the installed FCM test target
+
+The private installation is FCM-only. Reuse the existing Firebase build helper
+and named protected client input to prepare eimir-production configuration and
+verify all four compiled resources in the signed APK before packaging. Remove
+the temporary public client JSON along with signing material. No server
+credential, new provider or new Firebase project is introduced.
+
+The unprivileged preflight downloads the immutable canonical FCM.2 predecessor,
+checks its SHA256SUMS and actual APK signature with build-tools 36.0.0, and
+records only its public certificate fingerprint. A selected canonical release
+must match that installed-package signer; an incompatible cloud signer blocks
+publication instead of requesting uninstall/data clearing. Existing legacy
+release plans remain verifiable. Retain only the four already-public verified
+release assets for three days to supply the user-requested APK download.

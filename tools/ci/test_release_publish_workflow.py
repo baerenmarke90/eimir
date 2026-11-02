@@ -126,6 +126,34 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn("--previous-apk", publisher)
         self.assertIn('rm -f "$RUNNER_TEMP/eimir-test-release.jks"', publisher)
 
+    def test_android_test_keeps_fcm_and_existing_canonical_signer(self) -> None:
+        channel = self.workflow.split("\n  android-test-preflight:\n", 1)[1].split(
+            "\n  test-channel-contract:\n", 1
+        )[0]
+        preflight, publisher = channel.split("\n  android-test-publish:\n", 1)
+        self.assertIn("gh release download android-fcm-v0.2.0-fcm.2", preflight)
+        self.assertIn("apksigner\" verify --verbose --print-certs", preflight)
+        self.assertIn("actual == os.environ['CERTIFICATE']", preflight)
+        self.assertIn("int(os.environ['VERSION_CODE']) >= 39 and not compatible", preflight)
+        self.assertNotIn("secrets.", preflight)
+        self.assertIn("ANDROID_FIREBASE_PROJECT_ID: eimir-production", publisher)
+        prepare = publisher.index("scripts/android_firebase_configuration.py prepare")
+        build = publisher.index("Build the signed canonical-package planned APK")
+        verify = publisher.index("scripts/android_firebase_configuration.py verify-apk")
+        package = publisher.index("scripts/android_test_release.py package")
+        self.assertLess(prepare, build)
+        self.assertLess(build, verify)
+        self.assertLess(verify, package)
+        self.assertIn("secrets.EIMIR_ANDROID_GOOGLE_SERVICES_JSON", publisher)
+        self.assertIn('rm -f "$RUNNER_TEMP/eimir-test-release.jks" android/app/google-services.json', publisher)
+        retained = publisher.split("Retain verified public APK bytes", 1)[1].split(
+            "Delete temporary signing material", 1
+        )[0]
+        self.assertIn("android-test-published-${{ env.VERSION_CODE }}", retained)
+        self.assertIn("${{ runner.temp }}/release/${{ env.APK }}", retained)
+        self.assertNotIn("keystore", retained)
+        self.assertNotIn("google-services", retained)
+
     def test_android_test_marker_and_download_checks_precede_publication(self) -> None:
         publisher = self.workflow.split("\n  android-test-publish:\n", 1)[1].split(
             "\n  test-channel-contract:\n", 1

@@ -1431,6 +1431,34 @@ jobs:
           python3 scripts/android_test_release_plan.py admit \
             --plan .github/android-test-release.json \
             --github-output "$GITHUB_OUTPUT" --github-env "$GITHUB_ENV"
+      - name: Verify the existing canonical FCM test signer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download android-fcm-v0.2.0-fcm.2 --repo "$GH_REPO" \
+            --pattern eimir-android-0.2.0-fcm.2.apk --pattern SHA256SUMS \
+            --dir "$RUNNER_TEMP/canonical-predecessor"
+          (cd "$RUNNER_TEMP/canonical-predecessor" && sha256sum --check --strict SHA256SUMS)
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'build-tools;36.0.0'
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs \
+            "$RUNNER_TEMP/canonical-predecessor/eimir-android-0.2.0-fcm.2.apk" \
+            > "$RUNNER_TEMP/canonical-predecessor/signer.txt"
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'canonical-predecessor'
+          certificates = re.findall(
+              r'^Signer #[0-9]+ certificate SHA-256 digest: ([0-9a-fA-F]{64})$',
+              (root / 'signer.txt').read_text(), re.MULTILINE)
+          if len(certificates) != 1:
+              raise SystemExit('The canonical FCM predecessor must have one verified signer')
+          actual = certificates[0].lower()
+          print('Verified published canonical FCM signer SHA-256: ' + actual)
+          compatible = actual == os.environ['CERTIFICATE']
+          print('Protected test signer matches existing canonical FCM installation: ' + str(compatible))
+          if int(os.environ['VERSION_CODE']) >= 39 and not compatible:
+              raise SystemExit('Canonical FCM signer differs; configure its existing signing identity before publication. Do not uninstall or clear app data.')
+          PY
       - name: Checkout the immutable planned APK source
         if: steps.plan.outputs.ready == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1567,6 +1595,7 @@ jobs:
     env:
       CERTIFICATE: b5009739477874fbc76b483c66ddb1502132255dd15de37f7570ee6a13b5f472
       GH_REPO: baerenmarke90/eimir
+      ANDROID_FIREBASE_PROJECT_ID: eimir-production
       SOURCE: ${{ needs.android-test-preflight.outputs.source }}
       VERSION_NAME: ${{ needs.android-test-preflight.outputs.version_name }}
       VERSION_CODE: ${{ needs.android-test-preflight.outputs.version_code }}
@@ -1642,6 +1671,10 @@ jobs:
               raise SystemExit('Protected keystore certificate is not the original eimir test signer')
           print('Original eimir test signing certificate confirmed.')
           PY
+      - name: Prepare the existing FCM-only Android client configuration
+        env:
+          EIMIR_ANDROID_GOOGLE_SERVICES_JSON: ${{ secrets.EIMIR_ANDROID_GOOGLE_SERVICES_JSON }}
+        run: python3 scripts/android_firebase_configuration.py prepare
       - name: Build the signed canonical-package planned APK
         env:
           EIMIR_RELEASE_KEYSTORE: ${{ runner.temp }}/eimir-test-release.jks
@@ -1651,6 +1684,11 @@ jobs:
         run: |
           python3 scripts/android_test_release.py build \
             --version-name "$VERSION_NAME" --version-code "$VERSION_CODE" --output-dir "$RUNNER_TEMP/build"
+      - name: Verify compiled Firebase resources in the signed APK
+        run: |
+          python3 scripts/android_firebase_configuration.py verify-apk \
+            "$RUNNER_TEMP/build/$APK" \
+            --analyzer "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
       - name: Verify actual signatures, identity and predecessor package contract
         run: |
           mkdir -p "$RUNNER_TEMP/eimir-verification-sdk/build-tools"
@@ -1744,9 +1782,20 @@ jobs:
           python3 "$RUNNER_TEMP/android-test-release-plan.py" verify \
             --plan "$RUNNER_TEMP/android-test-release.json" --expected-root "$RUNNER_TEMP/release"
           echo "Published and verified: https://github.com/$GH_REPO/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain verified public APK bytes for the requested download
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-test-published-${{ env.VERSION_CODE }}
+          path: |
+            ${{ runner.temp }}/release/${{ env.APK }}
+            ${{ runner.temp }}/release/SHA256SUMS
+            ${{ runner.temp }}/release/native-acceptance.md
+            ${{ runner.temp }}/release/eimir-test-update.json
+          if-no-files-found: error
+          retention-days: 3
       - name: Delete temporary signing material
         if: always()
-        run: rm -f "$RUNNER_TEMP/eimir-test-release.jks"
+        run: rm -f "$RUNNER_TEMP/eimir-test-release.jks" android/app/google-services.json
       - name: Retain only the generated APK when verification fails
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

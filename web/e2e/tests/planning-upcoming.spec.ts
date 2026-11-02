@@ -538,7 +538,11 @@ test('Plans leads with the nearest intention, then later and undated Plans, whil
   await expect(plansPanel.locator('.planen-history')).toContainText(
     COMPLETED_TITLE,
   );
-  await captureR3Evidence(page, testInfo, 'planning-overview-dense-390-light.png');
+  await captureR3Evidence(
+    page,
+    testInfo,
+    'planning-overview-dense-390-light.png',
+  );
 
   await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
   await expect(
@@ -650,7 +654,11 @@ for (const scenario of [
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
     expect(overflow).toBeLessThanOrEqual(1);
-    await captureR3Evidence(page, testInfo, `planning-overview-${scenario.name}.png`);
+    await captureR3Evidence(
+      page,
+      testInfo,
+      `planning-overview-${scenario.name}.png`,
+    );
   });
 }
 

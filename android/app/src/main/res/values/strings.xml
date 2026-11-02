@@ -1,10 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">eimir.</string>
-    <string name="runtime_recovery_title">eimir. wurde unterbrochen</string>
-    <string name="runtime_recovery_message">Die App-Ansicht konnte nicht weiter ausgeführt werden. Du kannst eimir. erneut öffnen. Bereits gespeicherte Inhalte bleiben erhalten. Nicht gespeicherte Eingaben können verloren sein.</string>
-    <string name="runtime_recovery_retry">Erneut öffnen</string>
-    <string name="runtime_recovery_close">Schließen</string>
+    <string name="runtime_recovery_title">eimir. was interrupted</string>
+    <string name="runtime_recovery_message">The app view could not continue. You can reopen eimir. Saved content is still available. Unsaved input may have been lost.</string>
+    <string name="runtime_recovery_retry">Reopen</string>
+    <string name="runtime_recovery_close">Close</string>
     <string name="title_activity_main">eimir.</string>
     <string name="package_name">de.eimir.app</string>
     <string name="custom_url_scheme">de.eimir.app</string>

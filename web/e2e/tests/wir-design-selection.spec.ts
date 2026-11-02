@@ -274,6 +274,84 @@ async function alignedVisibilityControls(page: Page) {
     expect(target.overlapsLabel).toBe(false);
   }
 }
+for (const [width, theme] of [
+  [390, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`restores the chosen design before its slow startup revalidation at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    const f = await fixture(page, { initial: 'modern' });
+    await signIn(page);
+    await page.goto('/today');
+    await expect(page.locator('.today-page')).toHaveAttribute(
+      'data-wir-design',
+      'modern',
+    );
+    await expect(page.locator('.today-content')).toBeVisible();
+    await page.waitForFunction(() =>
+      Array.from({ length: localStorage.length }, (_, i) =>
+        localStorage.key(i),
+      ).some((key) => key?.startsWith('eimir-wir-design-v1:')),
+    );
+    let release!: () => void;
+    let arrived!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const requested = new Promise<void>((resolve) => {
+      arrived = resolve;
+    });
+    await page.route('**/appearance/wir-design', async (route) => {
+      arrived();
+      await pending;
+      await route.fallback();
+    });
+    await page.addInitScript(() => {
+      const designs: string[] = [];
+      Object.assign(window, { startupDesigns: designs });
+      new MutationObserver(() => {
+        const root = document.querySelector<HTMLElement>('.today-page');
+        if (root?.querySelector('.today-content'))
+          designs.push(root.dataset.wirDesign ?? 'missing');
+      }).observe(document, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+      });
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await requested;
+    try {
+      await expect(page.locator('.today-content')).toBeVisible();
+      await expect(page.locator('.today-page')).toHaveAttribute(
+        'data-wir-design',
+        'modern',
+      );
+      expect(
+        await page.evaluate(
+          () =>
+            (window as Window & { startupDesigns: string[] }).startupDesigns,
+        ),
+      ).not.toContain('warm');
+      await captureScreenshot(
+        page,
+        info,
+        `today-startup-preserved-${width}-${theme}.png`,
+      );
+    } finally {
+      release();
+    }
+    await expect(page.locator('.today-page')).toHaveAttribute(
+      'data-wir-design',
+      'modern',
+    );
+    expect(f.unexpected).toEqual([]);
+  });
+}
+
 for (const [width, theme, large] of [
   [320, 'light', false],
   [360, 'light', false],

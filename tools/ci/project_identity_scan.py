@@ -92,6 +92,49 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
             "the scanner's definitions and regression fixtures must name the rejected patterns",
         )
 
+    if match.casefold() == "sidebyside" and re.fullmatch(
+        r"docs/releases/android-test-0\.2\.0-test\.(?:1[4-9]|2[0-9]|3[0-8])(?:-notes\.txt|\.md)",
+        path.as_posix(),
+    ):
+        return (
+            Classification.HISTORICAL_IMMUTABLE,
+            "the published Android test.14-test.38 release evidence retains its actual package",
+        )
+
+    legacy_test_package = re.findall(
+        r"(?<![\w.])de\.sidebyside\.app(?![\w.])", line
+    )
+    if (
+        match.casefold() == "sidebyside"
+        and legacy_test_package
+        and len(LEGACY_PATTERN.findall(line)) == len(legacy_test_package)
+    ):
+        test_channel_path = path in {
+            Path("docs/ANDROID-TEST-UPDATES.md"),
+            Path("docs/releases/android-test-0.2.0-test.39.md"),
+            Path("scripts/test_android_test_release.py"),
+            Path("scripts/test_android_test_release_plan.py"),
+            Path("android/app/src/testSideload/java/de/eimir/app/updates/UpdateCatalogTest.java"),
+            Path("android/app/src/testSideload/java/de/eimir/app/updates/UpdatePolicyTest.java"),
+        }
+        test_package_constant = line.strip() == {
+            Path("scripts/android_test_release.py"): 'PACKAGE_NAME = "de.sidebyside.app"',
+            Path("scripts/android_test_release_plan.py"): 'PACKAGE = "de.sidebyside.app"',
+        }.get(path)
+        sideload_variant = (
+            path == Path("android/app/build.gradle")
+            and line.strip() == 'variant.applicationId.set("de.sidebyside.app")'
+        )
+        signer_evidence = (
+            path == Path(".github/workflows/release-publish.yml")
+            and "apksigner verification of both predecessor and planned APK, same package de.sidebyside.app," in line
+        )
+        if test_channel_path or test_package_constant or sideload_variant or signer_evidence:
+            return (
+                Classification.TEMP_COMPAT,
+                "the existing sideload test channel preserves its installed package for in-place upgrades",
+            )
+
     if path in HISTORICAL_FILES or any(
         _under(path, prefix) for prefix in HISTORICAL_PREFIXES
     ):

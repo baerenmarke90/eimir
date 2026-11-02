@@ -28,3 +28,16 @@ acceptance remain pending. Signing and automated checks do not establish them.
 The matching Web/API test deployment uses main's existing private-channel
 publisher and `deploy/eimir-test`; verify its selected source independently.
 Published Android artifacts remain immutable, draft-first and marker-last.
+
+## Sideload identity classification
+
+The combined source exposed the new project-identity scanner's lack of awareness
+of the existing test-channel package. Keep ordinary Android application IDs and
+all unclassified branding rejected. Recognize only the exact existing sideload
+variant setter, test publisher package constants, bounded updater fixtures and
+runbook package literals as temporary upgrade compatibility. Published test.14
+through test.38 evidence remains immutable history; future releases are not
+blanket-exempt. Negative cases retain rejection of ordinary manifests/default
+applicationId, foreign paths, alternate package names and mixed branding.
+The 17 scanner tests and classification of all 47 originally rejected
+occurrences across 34 actual source files pass before fresh hosted validation.

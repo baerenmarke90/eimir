@@ -893,7 +893,7 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **kind** | `NotificationKind` |  | [Defaults to `undefined`] [Enum: TRANSFER_READY, TRANSFER_COMPLETED, TRANSFER_FAILED, PLAN_CREATED, PLAN_CHANGED, PLAN_CANCELLED, WISH_SELECTION_SHARED, WISH_SELECTION_READY, PHOTO_REACTION, PARTNER_JOINED, COUPLE_EXPERIENCE_SHARED, COMMENT_CREATED, THINKING_OF_YOU, PARTNER_KISS, PARTNER_CHECK_IN, REMINDER_DUE] |
+| **kind** | `NotificationKind` |  | [Defaults to `undefined`] [Enum: REMINDER_CREATED, TRANSFER_READY, TRANSFER_COMPLETED, TRANSFER_FAILED, PLAN_CREATED, PLAN_CHANGED, PLAN_CANCELLED, WISH_SELECTION_SHARED, WISH_SELECTION_READY, PHOTO_REACTION, PARTNER_JOINED, COUPLE_EXPERIENCE_SHARED, COMMENT_CREATED, THINKING_OF_YOU, PARTNER_KISS, PARTNER_CHECK_IN, REMINDER_DUE] |
 | **channel** | `NotificationChannel` |  | [Defaults to `undefined`] [Enum: IN_APP, PUSH, EMAIL] |
 | **notificationPreferenceUpdate** | [NotificationPreferenceUpdate](NotificationPreferenceUpdate.md) |  | |
 

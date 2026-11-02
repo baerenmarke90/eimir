@@ -90,6 +90,7 @@ export * from './EntitlementTier';
 export * from './ExperienceKind';
 export * from './ExportStatus';
 export * from './FcmConfiguration';
+export * from './FcmPreviewRegistration';
 export * from './GameMemoryCandidate';
 export * from './GameMemoryCandidateSet';
 export * from './GameWishCandidate';

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import re
 import stat
@@ -19,6 +20,8 @@ from google.auth import exceptions as auth_exceptions
 from google.auth.credentials import TokenState
 from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2 import service_account
+from joserfc import jwe
+from joserfc.jwk import OctKey
 
 from eimir.config import Settings
 from eimir.core import clock
@@ -55,7 +58,7 @@ class Registration:
 
 
 def _parse(value: str) -> Registration | None:
-    if len(value) > 2048 or any(ord(character) < 33 or ord(character) > 126 for character in value):
+    if len(value) > 2048 or any(ord(c) < 33 or ord(c) > 126 for c in value):
         return None
     try:
         raw = json.loads(value, object_pairs_hook=_unique_object)
@@ -72,6 +75,49 @@ def _parse(value: str) -> Registration | None:
         return Registration(fid, activation)
     except (TypeError, ValueError):
         return None
+
+
+def valid_preview_key(value: str) -> bool:
+    if re.fullmatch(r"[A-Za-z0-9_-]{43}", value) is None:
+        return False
+    decoded = base64.urlsafe_b64decode(value + "=")
+    return len(decoded) == 32 and base64.urlsafe_b64encode(decoded).decode().rstrip("=") == value
+
+
+def encrypt_preview(endpoint: str, key: str, plaintext: str) -> str:
+    registration = _parse(endpoint)
+    if registration is None or not valid_preview_key(key):
+        raise push.PushProviderError("PUSH_PREVIEW_INVALID", retryable=False)
+    encoded = jwe.encrypt_compact(
+        {
+            "alg": "dir",
+            "enc": "A256GCM",
+            "typ": "eimir-push-preview+jwe",
+            "kid": registration.activation_id,
+        },
+        plaintext.encode(),
+        OctKey.import_key({"kty": "oct", "k": key}),
+        algorithms=["dir", "A256GCM"],
+    )
+    if len(encoded) > 3000:
+        raise push.PushProviderError("PUSH_PREVIEW_OVERSIZED", retryable=False)
+    return encoded
+
+
+def _wake(registration: Registration, reference: dict[str, str]) -> dict[str, str]:
+    data = {"type": "wake", "activationId": registration.activation_id}
+    encrypted = reference.get("encryptedPreview")
+    if encrypted is not None:
+        if (
+            len(encrypted) > 3000
+            or re.fullmatch(
+                r"[A-Za-z0-9_-]+\.\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{22}", encrypted
+            )
+            is None
+        ):
+            raise push.PushProviderError("PUSH_PREVIEW_INVALID", retryable=False)
+        data["preview"] = encrypted
+    return data
 
 
 def _load_credentials(settings: Settings) -> service_account.Credentials:
@@ -248,7 +294,7 @@ class FcmPushProvider:
         notification_reference: dict[str, str],
         generic_presentation_key: str,
     ) -> push.PushSendResult:
-        del idempotency_key, notification_reference
+        del idempotency_key
         registration = _parse(endpoint)
         if registration is None:
             raise push.PushProviderError("PUSH_SUBSCRIPTION_INVALID", retryable=False)
@@ -265,11 +311,15 @@ class FcmPushProvider:
             payload = {
                 "message": {
                     "fid": registration.fid,
-                    "data": {"type": "wake", "activationId": registration.activation_id},
+                    "data": _wake(registration, notification_reference),
                     "android": {
                         "ttl": "300s",
                         "restricted_package_name": self.android_package,
-                        "collapse_key": "eimir-wake",
+                        **(
+                            {"collapse_key": "eimir-wake"}
+                            if "encryptedPreview" not in notification_reference
+                            else {}
+                        ),
                         "priority": "high",
                     },
                 }

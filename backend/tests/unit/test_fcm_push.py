@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
@@ -16,6 +17,8 @@ import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from google.auth.credentials import TokenState
+from joserfc import jwe
+from joserfc.jwk import OctKey
 
 from eimir.config import Settings
 from eimir.engagement import fcm_push, push
@@ -563,3 +566,85 @@ def test_truncated_message_error_stream_preserves_headers_without_trusting_parti
             assert failure.value.retry_not_before == NOW + timedelta(seconds=120)
     finally:
         provider.close()
+
+
+def test_encrypted_preview_hides_all_product_fields_and_preserves_registration_identity(provider):
+    key = base64.urlsafe_b64encode(bytes(range(32))).decode().rstrip("=")
+    registration = endpoint()
+    assert provider.accepts_endpoint(registration)
+    assert provider.registration_identity(registration) == provider.registration_identity(
+        endpoint()
+    )
+    plaintext = json.dumps(
+        {
+            "name": "Synthetic partner",
+            "title": "Synthetic reminder",
+            "kind": "REMINDER_CREATED",
+            "notificationId": "private-notice",
+        }
+    )
+    captured = []
+
+    def handler(request):
+        captured.append(json.loads(request.content))
+        return httpx.Response(200, json={"name": "projects/eimir-test/messages/fixture"})
+
+    provider._client.close()
+    provider._client = httpx.Client(transport=httpx.MockTransport(handler))
+    send(
+        provider,
+        endpoint=registration,
+        notification_reference={
+            "encryptedPreview": fcm_push.encrypt_preview(registration, key, plaintext)
+        },
+    )
+    raw = json.dumps(captured)
+    assert not any(
+        value in raw
+        for value in (
+            "Synthetic partner",
+            "Synthetic reminder",
+            "REMINDER_CREATED",
+            "private-notice",
+            key,
+        )
+    )
+    data = captured[0]["message"]["data"]
+    assert set(data) == {"type", "activationId", "preview"}
+    assert "collapse_key" not in captured[0]["message"]["android"]
+    decrypted = jwe.decrypt_compact(
+        data["preview"], OctKey.import_key({"kty": "oct", "k": key}), algorithms=["dir", "A256GCM"]
+    )
+    assert decrypted.plaintext.decode() == plaintext
+    assert decrypted.protected == {
+        "alg": "dir",
+        "enc": "A256GCM",
+        "typ": "eimir-push-preview+jwe",
+        "kid": ACTIVATION,
+    }
+
+
+@pytest.mark.parametrize(
+    "version,key",
+    [
+        (True, "a" * 43),
+        (1.0, "a" * 43),
+        (2, "a" * 43),
+        (1, "a" * 42),
+        (1, "!" * 43),
+        (1, "a" * 42 + "b"),
+        (1, None),
+    ],
+)
+def test_invalid_preview_registration_is_rejected(provider, version, key):
+    from pydantic import ValidationError
+
+    from eimir.api.v1.push_endpoints import FcmPreviewRegistration
+
+    with pytest.raises(ValidationError):
+        FcmPreviewRegistration.model_validate({"version": version, "key": key})
+    value = json.dumps(
+        {"fid": FID, "activationId": ACTIVATION, "previewVersion": version, "previewKey": key},
+        separators=(",", ":"),
+    )
+    assert not provider.accepts_endpoint(value)

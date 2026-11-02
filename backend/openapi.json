@@ -2673,6 +2673,7 @@
       },
       "EngagementTarget": {
         "enum": [
+          "REMINDER",
           "TRANSFER_EXPORT",
           "TRANSFER_IMPORT",
           "WISH_SELECTION",
@@ -2747,6 +2748,12 @@
             "title": "Androidpackage",
             "type": "string"
           },
+          "encryptedPreviewVersion": {
+            "const": 1,
+            "default": 1,
+            "title": "Encryptedpreviewversion",
+            "type": "integer"
+          },
           "projectId": {
             "title": "Projectid",
             "type": "string"
@@ -2762,6 +2769,28 @@
           "androidPackage"
         ],
         "title": "FcmConfiguration",
+        "type": "object"
+      },
+      "FcmPreviewRegistration": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "maxLength": 43,
+            "minLength": 43,
+            "title": "Key",
+            "type": "string"
+          },
+          "version": {
+            "const": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "key"
+        ],
+        "title": "FcmPreviewRegistration",
         "type": "object"
       },
       "GameMemoryCandidate": {
@@ -4726,6 +4755,7 @@
       },
       "NotificationKind": {
         "enum": [
+          "REMINDER_CREATED",
           "TRANSFER_READY",
           "TRANSFER_COMPLETED",
           "TRANSFER_FAILED",
@@ -7134,6 +7164,16 @@
       "PushEndpointRegistration": {
         "additionalProperties": false,
         "properties": {
+          "encryptedPreview": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FcmPreviewRegistration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "endpointValue": {
             "description": "Opaque provider-specific registration value. A Web Push transport can use a compact JSON subscription containing endpoint, keys.p256dh and keys.auth; FCM uses compact JSON containing fid and activationId (canonical UUIDv4). The configured provider validates its own format. Treat this value as a secret.",
             "maxLength": 2048,

@@ -336,9 +336,15 @@ public final class NativePushBridge extends Plugin {
                 String value = new JSONObject().put("fid", fid).put("activationId", active.activationId).toString();
                 PushActivation updated = active.withEndpoint(value);
                 PushActivation.save(context, updated);
+                // Keep the shared key out of plaintext activation preferences.
+                // Only this transient authenticated-registration event carries it.
+                if (active.apiBaseUrl.startsWith("https://")) {
+                    value = new JSONObject(value).put("previewVersion", 1)
+                        .put("previewKey", PushPreviewKeys.registrationKey(context, active)).toString();
+                }
                 emit("endpoint", updated, value, true);
                 return true;
-            } catch (JSONException | RuntimeException invalid) {
+            } catch (Exception invalid) {
                 failActivation(context, active);
                 emit("unavailable", active, "PUSH_DEVICE_STORAGE_UNAVAILABLE", true);
                 return false;

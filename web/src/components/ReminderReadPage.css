@@ -1,0 +1,27 @@
+.reminder-read-page {
+  max-width: var(--reading-max);
+}
+
+.reminder-read-page > .back-link {
+  align-self: flex-start;
+  justify-self: start;
+  max-width: 100%;
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.reminder-read-content {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.reminder-read-content p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.reminder-read-attribution {
+  color: var(--color-text-secondary);
+}

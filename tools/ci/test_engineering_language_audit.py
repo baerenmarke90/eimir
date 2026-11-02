@@ -77,6 +77,36 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             )
             self.assertEqual(check_file(path), [])
 
+    def test_contextual_push_copy_does_not_exempt_surrounding_engineering_prose(
+        self,
+    ) -> None:
+        for suffix, product_copy in (
+            (
+                ".xml",
+                '<string name="push_kiss">%1$s hat dir einen Kuss geschickt.</string>',
+            ),
+            (
+                ".java",
+                'assertEquals("Alex hat die Erinnerung „Einkaufen“ erstellt.", body);',
+            ),
+            (
+                ".tsx",
+                "screen.getByRole('button', { name: 'Zurück zu den Benachrichtigungen' });",
+            ),
+        ):
+            with (
+                self.subTest(suffix=suffix),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                path = Path(directory) / f"example{suffix}"
+                path.write_text(product_copy + "\n", encoding="utf-8")
+                self.assertEqual(check_file(path), [])
+                path.write_text(
+                    product_copy + "\n// Die Entscheidung wird im Client getroffen.\n",
+                    encoding="utf-8",
+                )
+                self.assertEqual(len(check_file(path)), 1)
+
     def test_common_english_article_is_not_a_german_marker(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "example.md"

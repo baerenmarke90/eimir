@@ -45,6 +45,7 @@ from eimir.places.models import Place
 from eimir.plans.models import Plan
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders import delivery as reminder_delivery
+from eimir.reminders.models import Reminder, ReminderSource
 from eimir.transfer.models import TransferExport, TransferImport
 from eimir.wish_selections import service as wish_selections
 from eimir.wish_selections.models import WishSelectionRound
@@ -71,6 +72,7 @@ _OWN_NOISE_KINDS = {
 }
 
 _TARGET_MODELS: dict[EngagementTarget, Any] = {
+    EngagementTarget.REMINDER: Reminder,
     EngagementTarget.TRANSFER_EXPORT: TransferExport,
     EngagementTarget.TRANSFER_IMPORT: TransferImport,
     EngagementTarget.WISH_SELECTION: WishSelectionRound,
@@ -212,6 +214,14 @@ def project_event(session: Session, event: OutboxEvent) -> None:
 
     if event_type is EventType.REMINDER_DUE:
         reminder_delivery.project_notification(session, event)
+    if event_type is EventType.REMINDER_CREATED:
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.REMINDER,
+            event.subject_id,
+            NotificationKind.REMINDER_CREATED,
+        )
         push.ensure_deliveries_for_source_event(session, event.id)
         email_delivery.ensure_deliveries_for_source_event(session, event.id)
         return
@@ -504,6 +514,8 @@ def _target_is_projectable(
         model.id == target_id,
         model.privacy_class == PrivacyClass.SPACE_SHARED.value,
     )
+    if target_type is EngagementTarget.REMINDER:
+        statement = statement.where(Reminder.source == ReminderSource.MANUAL.value)
     return session.execute(statement.with_only_columns(model.id)).scalar_one_or_none() is not None
 
 
@@ -554,9 +566,11 @@ def _projectable_predicate(
                     )
                 )
             continue
+        statement = readable(model, context)
+        if target_type is EngagementTarget.REMINDER:
+            statement = statement.where(Reminder.source == ReminderSource.MANUAL.value)
         exists = (
-            readable(model, context)
-            .where(
+            statement.where(
                 model.id == target_id_column,
                 model.privacy_class == PrivacyClass.SPACE_SHARED.value,
             )

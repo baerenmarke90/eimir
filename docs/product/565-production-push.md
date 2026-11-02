@@ -11,6 +11,15 @@ support remains compatible; the selected channel requires only FCM configuration
 Keep #565 open until the operator has configured the real server and the selected
 signed Android build has passed real provider/device delivery acceptance.
 The Product Owner reserved server deployment for themselves on 2026-11-01.
+They subsequently confirmed server preparation and the selected deployment.
+PR #1392 merged at `36ccc13a162502a7122820a32b45569c17b72521`; the first signed
+private build received a real due-reminder FCM notification with no app process
+running, and its PendingIntent opened the same Account's authenticated inbox.
+The test reminder was deleted and the temporarily enabled preference restored.
+The Product Owner then requested named, contextual previews and source actions.
+The [contextual-push decision and preflight](design/references/565-contextual-push/README.md)
+supersedes generic-only device presentation; encrypted provider data and a neutral
+public lock-screen version remain. Actual Play-distributed acceptance is #1577.
 Code merge, provider authentication, fixture tests and an unsigned build do not
 constitute that delivery acceptance or Play Store publication.
 
@@ -89,9 +98,11 @@ pending resolution, including switching away and back to the same Space.
 
 ## Cross-cutting quality
 
-- Security/privacy: provider data is a content-free wake. FCM sends exactly
-  `type` and `activationId`; it carries no Account, Space, source or notification
-  ID. UnifiedPush can carry an opaque notification reference only when both
+- Security/privacy: legacy FCM data is exactly `type` and `activationId`.
+  Negotiated preview v1 adds only JWE ciphertext; names, event kind, title and
+  notification reference are encrypted for the current device activation.
+  Separate endpoint-owned protected key rows preserve the legacy registration
+  shape and generic-worker rollback. UnifiedPush can carry an opaque notification reference only when both
   server and connector advertise version 1; older peers retain the generic wake.
   All source resolution remains authenticated. Sender access is mounted read-only
   into API/worker only; Web, migrations and images never receive the private key.
@@ -171,12 +182,11 @@ leaves the alternate transport disabled. Sanitized source/build identities and
 the physical-fixture/real-delivery distinction are retained in
 `docs/design/eimir/565-fcm/evidence/reconciliation-2026-11-01.json`.
 
-Before merging the auto-synced channel, the operator must confirm that the private
-host file and the FCM inputs are ready. This preserves #565's existing
-deployment sequencing requirement and avoids a failing restart. The Product Owner
-explicitly authorized the later merge on top of #1575, but confirmed that the
-server was not prepared yet; the implementation can be reviewed while deployment
-and merge wait for that preparation.
+The operator confirmed the private host file and FCM inputs before the authorized
+merge. Selected channel commit `6a0a63656aa8cba62d2e80b78a4a9776352dffd6`
+deployed source `36ccc13a162502a7122820a32b45569c17b72521`, verified through both
+public Web and API revisions. Contextual-preview follow-up code still needs its
+own current-head CI, selected deployment and exact signed-artifact/live proof.
 
 A configured unsigned APK/AAB was built with strict dependency verification.
 All four compiled Firebase strings matched the public configuration; 78 packaged

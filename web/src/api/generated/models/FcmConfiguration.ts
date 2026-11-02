@@ -27,6 +27,12 @@ export interface FcmConfiguration {
     androidPackage: string;
     /**
      * 
+     * @type {FcmConfigurationEncryptedPreviewVersionEnum}
+     * @memberof FcmConfiguration
+     */
+    encryptedPreviewVersion?: FcmConfigurationEncryptedPreviewVersionEnum;
+    /**
+     * 
      * @type {string}
      * @memberof FcmConfiguration
      */
@@ -38,6 +44,16 @@ export interface FcmConfiguration {
      */
     providerKey: string;
 }
+
+
+/**
+ * @export
+ */
+export const FcmConfigurationEncryptedPreviewVersionEnum = {
+    NUMBER_1: 1
+} as const;
+export type FcmConfigurationEncryptedPreviewVersionEnum = typeof FcmConfigurationEncryptedPreviewVersionEnum[keyof typeof FcmConfigurationEncryptedPreviewVersionEnum];
+
 
 /**
  * Check if a given object implements the FcmConfiguration interface.
@@ -60,6 +76,7 @@ export function FcmConfigurationFromJSONTyped(json: any, ignoreDiscriminator: bo
     return {
         
         'androidPackage': json['androidPackage'],
+        'encryptedPreviewVersion': json['encryptedPreviewVersion'] == null ? undefined : json['encryptedPreviewVersion'],
         'projectId': json['projectId'],
         'providerKey': json['providerKey'],
     };
@@ -77,6 +94,7 @@ export function FcmConfigurationToJSONTyped(value?: FcmConfiguration | null, ign
     return {
         
         'androidPackage': value['androidPackage'],
+        'encryptedPreviewVersion': value['encryptedPreviewVersion'],
         'projectId': value['projectId'],
         'providerKey': value['providerKey'],
     };

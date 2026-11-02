@@ -60,6 +60,8 @@ public final class PushActivation {
         if (!context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove("activation").commit()) {
             throw new IllegalStateException("PUSH_STORAGE_UNAVAILABLE");
         }
+        PushPreviewKeys.clear(context);
+        PushReceipts.clear(context);
     }
 
     public static synchronized boolean current(Context context, PushActivation expected) {

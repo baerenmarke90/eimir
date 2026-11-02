@@ -7,9 +7,10 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
 from eimir.engagement import notification_preferences
-from eimir.engagement.models import Notification, NotificationKind
+from eimir.engagement.models import EngagementTarget, Notification, NotificationKind
 from eimir.outbox.models import OutboxEvent
 from eimir.relationship.models import Membership, MembershipStatus
+from eimir.reminders.models import Reminder, ReminderSource
 
 
 def project_notification(session: Session, event: OutboxEvent) -> None:
@@ -29,6 +30,16 @@ def project_notification(session: Session, event: OutboxEvent) -> None:
     if active_recipient is None:
         return
 
+    # Only an ordinary shared manual reminder can expose its definition. Rules
+    # derived from private sources retain the existing content-free due notice.
+    reminder = session.scalar(
+        select(Reminder).where(
+            Reminder.id == event.subject_id,
+            Reminder.space_id == event.space_id,
+            Reminder.source == ReminderSource.MANUAL.value,
+        )
+    )
+
     statement = (
         postgresql.insert(Notification)
         .values(
@@ -37,8 +48,8 @@ def project_notification(session: Session, event: OutboxEvent) -> None:
             source_event_id=event.id,
             kind=NotificationKind.REMINDER_DUE.value,
             actor_id=None,
-            target_type=None,
-            target_id=None,
+            target_type=EngagementTarget.REMINDER.value if reminder is not None else None,
+            target_id=reminder.id if reminder is not None else None,
             created_at=event.created_at,
             in_app_visible=notification_preferences.in_app_enabled(
                 session, account_id=recipient_id, kind=NotificationKind.REMINDER_DUE.value

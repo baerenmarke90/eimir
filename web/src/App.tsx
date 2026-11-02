@@ -13,6 +13,7 @@ import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/Atta
 import type { SpaceView } from './api/generated/models/SpaceView';
 import type { TokenView } from './api/generated/models/TokenView';
 import { AppearanceApi } from './api/generated/apis/AppearanceApi';
+import { ReminderReadPage } from './components/ReminderReadPage';
 import { DailyCheckInsApi } from './api/generated/apis/DailyCheckInsApi';
 import { DailyQuoteApi } from './api/generated/apis/DailyQuoteApi';
 import { EntitlementsApi } from './api/generated/apis/EntitlementsApi';
@@ -98,6 +99,7 @@ import {
   MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
   PLAN_CREATE_ROUTE,
+  REMINDER_DETAIL_ROUTE_PATTERN,
   PLAN_DETAIL_ROUTE_PATTERN,
   PLACE_DETAIL_ROUTE_PATTERN,
   SEARCH_ROUTE,
@@ -562,6 +564,17 @@ function AuthenticatedApp({
             <Route
               path={PLAN_DETAIL_ROUTE_PATTERN}
               element={<PlanProductPage {...planningProductProps} />}
+            />
+            <Route
+              path={REMINDER_DETAIL_ROUTE_PATTERN}
+              element={
+                <ReminderReadPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  accountId={account.id}
+                  spaceId={spaceId}
+                />
+              }
             />
             <Route
               path={STORY_CHAPTERS_ROUTE}

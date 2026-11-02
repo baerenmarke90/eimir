@@ -143,7 +143,13 @@ jobs:
             -e class de.eimir.app.NotificationOpenTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee notification-open.log
-          grep -Eq '^OK \(6 tests\)' notification-open.log
+          grep -Eq '^OK \(8 tests\)' notification-open.log
+          # Verify sender-produced ciphertext and key lifecycle on every API.
+          timeout 60 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.PushPreviewTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee push-preview.log
+          grep -Eq '^OK \(4 tests\)' push-preview.log
           if [ '${{ matrix.api }}' != '28' ]; then
             adb -e exec-out run-as de.eimir.app.debug cat files/native-photo-picker.png > native-photo-picker.png
             test -s native-photo-picker.png
@@ -190,6 +196,7 @@ jobs:
             android/guest-memory-before-tests.log
             android/instrumentation.log
             android/notification-open.log
+            android/push-preview.log
             android/fixture-logcat.log
             android/native-crash.log
             android/native-system.log

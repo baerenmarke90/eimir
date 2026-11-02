@@ -14,9 +14,11 @@ from pydantic import SecretStr
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
+from eimir.auth import sessions
 from eimir.config import Settings
 from eimir.engagement import fcm_push, push, unified_push
-from eimir.engagement.models import PushEndpoint, PushEndpointSecret
+from eimir.engagement.models import PushEndpoint, PushEndpointSecret, PushPreviewSecret
+from eimir.identity.models import DeviceSession
 from tests.conftest import auth, make_account, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -57,7 +59,12 @@ def test_device_configuration_is_authenticated_private_and_truthful(
     assert configured.headers["Cache-Control"] == "private, no-store"
     assert configured.json() == {
         "unifiedPush": None,
-        "fcm": {"providerKey": "fcm", "projectId": "eimir-test", "androidPackage": "de.eimir.app"},
+        "fcm": {
+            "providerKey": "fcm",
+            "projectId": "eimir-test",
+            "androidPackage": "de.eimir.app",
+            "encryptedPreviewVersion": 1,
+        },
     }
     assert "test-fixture" not in configured.text
     # The old endpoint does not suddenly report a UnifiedPush provider.
@@ -390,3 +397,53 @@ def test_registration_caps_active_endpoints_per_account(client, session: Session
     assert capped.status_code == 409
     assert capped.json()["code"] == "PUSH_ENDPOINT_LIMIT_REACHED"
     assert len(session.execute(select(PushEndpoint)).scalars().all()) == push.MAX_ACTIVE_ENDPOINTS
+
+
+def test_preview_registration_is_owned_private_optional_and_legacy_compatible(
+    client, session: Session, fcm_provider, encryption
+):
+    encryption.apply("required")
+    push.providers.register("fcm", fcm_provider)
+    account = make_account(session, "Preview owner")
+    foreign = make_account(session, "Another account")
+    headers = auth(sign_in(session, account))
+    foreign_headers = auth(sign_in(session, foreign))
+    key = base64.urlsafe_b64encode(bytes(range(32))).decode().rstrip("=")
+    endpoint = json.dumps(
+        {"fid": "c" + "a" * 21, "activationId": str(uuid4())}, separators=(",", ":")
+    )
+    body = {
+        "providerKey": "fcm",
+        "endpointValue": endpoint,
+        "encryptedPreview": {"version": 1, "key": key},
+    }
+    response = client.post(BASE, headers=headers, json=body)
+    assert response.status_code == 200
+    assert key not in response.text
+    endpoint_id = response.json()["id"]
+    preview = session.scalar(select(PushPreviewSecret))
+    assert str(preview.push_endpoint_id) == endpoint_id and preview.payload.key == key
+    assert preview.crypto_version == 2
+    original_family = preview.device_session_id
+    sessions.revoke(session.get(DeviceSession, original_family))
+    session.flush()
+    headers = auth(sign_in(session, account))
+    rebound = client.post(BASE, headers=headers, json=body)
+    assert rebound.status_code == 200 and rebound.json()["id"] == endpoint_id
+    assert session.scalar(select(PushPreviewSecret)).device_session_id != original_family
+    # A rollback worker still reads the exact pre-preview registration shape.
+    assert session.scalar(select(PushEndpointSecret)).payload.value == endpoint
+    assert client.delete(f"{BASE}/{endpoint_id}", headers=foreign_headers).status_code == 404
+    assert session.scalar(select(PushPreviewSecret)) is not None
+    legacy = client.post(
+        BASE, headers=headers, json={"providerKey": "fcm", "endpointValue": endpoint}
+    )
+    assert legacy.status_code == 200 and legacy.json()["id"] == endpoint_id
+    assert session.scalar(select(PushPreviewSecret)) is None
+    assert client.post(BASE, headers=headers, json=body).status_code == 200
+    invalid = client.post(
+        BASE, headers=headers, json={**body, "encryptedPreview": {"version": 2, "key": key}}
+    )
+    assert invalid.status_code == 422 and key not in invalid.text
+    assert client.delete(f"{BASE}/{endpoint_id}", headers=headers).status_code == 204
+    assert session.scalar(select(PushPreviewSecret)) is None

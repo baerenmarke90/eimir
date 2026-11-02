@@ -9,13 +9,13 @@ from datetime import datetime, timedelta
 from typing import Any, Protocol
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext
 from eimir.core import clock
-from eimir.core.errors import ConflictError, ErrorCode
+from eimir.core.errors import ConflictError, ErrorCode, UnauthenticatedError
 from eimir.engagement import notification_policy, notification_preferences, quiet_hours_preferences
 from eimir.engagement.models import (
     Notification,
@@ -25,9 +25,11 @@ from eimir.engagement.models import (
     PushEndpoint,
     PushEndpointSecret,
     PushEndpointSecretPayload,
+    PushPreviewKeyPayload,
+    PushPreviewSecret,
 )
 from eimir.identity import effects as account_effects
-from eimir.identity.models import Account
+from eimir.identity.models import Account, DeviceSession
 from eimir.jobs import queue
 from eimir.jobs.errors import DeferredJobError, RetryableJobError
 from eimir.jobs.worker import registry
@@ -120,6 +122,26 @@ def register_handlers() -> None:
         registry.register(JOB_KIND, handle_delivery)
 
 
+def _lock_live_preview_family(
+    session: Session, *, account_id: UUID, family_id: UUID | None
+) -> bool:
+    """Serialize preview handoff with logout, then check the current family clock."""
+    family = session.execute(
+        select(
+            DeviceSession.revoked_at, DeviceSession.expires_at, DeviceSession.absolute_expires_at
+        )
+        .where(DeviceSession.id == family_id, DeviceSession.account_id == account_id)
+        .with_for_update()
+    ).one_or_none()
+    at = clock.now()
+    return (
+        family is not None
+        and family.revoked_at is None
+        and family.expires_at > at
+        and family.absolute_expires_at > at
+    )
+
+
 def register_endpoint(
     session: Session,
     *,
@@ -127,6 +149,8 @@ def register_endpoint(
     provider_key: str,
     endpoint_value: str,
     registration_identity: str | None = None,
+    preview_key: str | None = None,
+    preview_session_id: UUID | None = None,
 ) -> PushEndpoint:
     """Create/reactivate one technical endpoint without exposing it publicly."""
     provider = provider_key.strip()
@@ -134,14 +158,22 @@ def register_endpoint(
     if not provider or not endpoint:
         raise ValueError("push endpoint and provider must not be blank")
 
-    account = session.execute(
-        select(Account).where(Account.id == account_id).with_for_update()
-    ).scalar_one_or_none()
+    with session.no_autoflush:
+        account = session.execute(
+            select(Account).where(Account.id == account_id).with_for_update()
+        ).scalar_one_or_none()
     if account is None or account.disabled_at is not None:
         raise ConflictError(
             "Account is unavailable for push endpoint registration.",
             ErrorCode.PUSH_ENDPOINT_ACCOUNT_UNAVAILABLE,
         )
+
+    # Account -> session is also the delivery lock order. A concurrent
+    # sign-out either precedes this check or waits for the current handoff.
+    if preview_key is not None and not _lock_live_preview_family(
+        session, account_id=account_id, family_id=preview_session_id
+    ):
+        raise UnauthenticatedError("Authentication required.", ErrorCode.AUTHENTICATION_REQUIRED)
 
     fingerprint = hashlib.sha256((registration_identity or endpoint).encode("utf-8")).hexdigest()
     stored_reference = f"sha256:{fingerprint}"
@@ -194,6 +226,26 @@ def register_endpoint(
         )
     elif secret.payload.value != endpoint:
         secret.payload = PushEndpointSecretPayload(value=endpoint)
+    preview = session.scalar(
+        select(PushPreviewSecret).where(PushPreviewSecret.push_endpoint_id == endpoint_id)
+    )
+    if preview_key is None:
+        if preview is not None:
+            session.delete(preview)
+    else:
+        assert preview_session_id is not None
+        if preview is None:
+            session.add(
+                PushPreviewSecret(
+                    push_endpoint_id=endpoint_id,
+                    device_session_id=preview_session_id,
+                    payload=PushPreviewKeyPayload(key=preview_key),
+                )
+            )
+        else:
+            preview.device_session_id = preview_session_id
+            if preview.payload.key != preview_key:
+                preview.payload = PushPreviewKeyPayload(key=preview_key)
     return endpoint_row
 
 
@@ -213,6 +265,9 @@ def revoke_endpoint(session: Session, *, account_id: UUID, endpoint_id: UUID) ->
         return False
     if endpoint.disabled_at is None:
         endpoint.disabled_at = clock.now()
+    session.execute(
+        delete(PushPreviewSecret).where(PushPreviewSecret.push_endpoint_id == endpoint.id)
+    )
     return True
 
 
@@ -541,6 +596,27 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
         secret = session.execute(
             select(PushEndpointSecret).where(PushEndpointSecret.push_endpoint_id == endpoint.id)
         ).scalar_one_or_none()
+        reference = presentation.reference
+        endpoint_value = secret.payload.value if secret is not None else endpoint.endpoint_value
+        if endpoint.provider_key == "fcm":
+            from eimir.engagement import fcm_push, push_preview
+
+            preview_secret = session.scalar(
+                select(PushPreviewSecret).where(PushPreviewSecret.push_endpoint_id == endpoint.id)
+            )
+            if preview_secret is not None and _lock_live_preview_family(
+                session, account_id=endpoint.account_id, family_id=preview_secret.device_session_id
+            ):
+                preview = push_preview.for_notification(session, notification, digest=digest)
+                if preview is None:
+                    _finish_unavailable(delivery, "PUSH_TARGET_UNAVAILABLE")
+                    return
+                reference = {
+                    **reference,
+                    "encryptedPreview": fcm_push.encrypt_preview(
+                        endpoint_value, preview_secret.payload.key, preview
+                    ),
+                }
         result = provider.send(
             idempotency_key=(
                 f"digest:{notification.recipient_account_id}:{notification.space_id}:"
@@ -548,8 +624,8 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
                 if digest_start is not None
                 else f"{notification.id}:{endpoint.id}"
             ),
-            endpoint=secret.payload.value if secret is not None else endpoint.endpoint_value,
-            notification_reference=presentation.reference,
+            endpoint=endpoint_value,
+            notification_reference=reference,
             generic_presentation_key=presentation.key,
         )
     except PushProviderError as exc:

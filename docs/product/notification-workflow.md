@@ -1,7 +1,7 @@
 # Module notification workflow
 
 **Product Owner decision:** 2026-11-01, approved implementation on PR #1568.
-**Runtime policy:** v4 in `engagement/notification_policy.py`.
+**Runtime policy:** v5 in `engagement/notification_policy.py`.
 
 This is the product's event-to-attention contract, not a settings specification.
 It supersedes the older deferral of wider Activity admission in the #515 delivery
@@ -22,7 +22,18 @@ foundation. It does not introduce the previously rejected daily summary.
    readiness. Comments retain the existing separately opted-in hourly digest;
    no individual comment Push or daily engagement Push is introduced. New kinds
    inherit the relevant existing recipient group rather than another settings UI.
-5. The lock-screen text stays neutral. The encrypted UnifiedPush wake may carry
+5. The public lock-screen version stays neutral; Android's sensitive-content
+   preference remains user-controlled. The Product Owner's 2026-11-01 follow-up
+   authorizes named event/title previews on the device. Negotiated FCM preview v1
+   carries standard JWE ciphertext bound to the current activation. Names, kinds,
+   titles and the canonical notification ID stay inside that envelope; the key
+   is registered over authenticated HTTPS and stored through the protected-payload
+   boundary. The key is bound to the registering device-session family. Delivery
+   locks and rechecks that family for revocation, inactivity and absolute expiry;
+   a short-lived access-token expiry alone does not interrupt background previews.
+   Token rotation preserves the binding; a fresh authenticated registration can
+   rebind the same endpoint after sign-in. Invalid families retain only the legacy
+   generic wake. Legacy registrations keep their generic wake. The UnifiedPush wake may carry
    only a canonical Notification ID, never actor, category, title, body, photo,
    private choice, filename or an arbitrary route. Legacy wakes open the Center.
 6. A tap resolves current authenticated recipient state and opens its canonical
@@ -52,6 +63,7 @@ foundation. It does not introduce the previously rejected daily summary.
 | Milestones / chapters | Shared creation; important date approaches | Existing Activity; the date's existing reminder occurrence owns timed attention. |
 | Shared photos / saved map | Upload, gallery or place relation changes | Refresh/progress in context; no per-photo, GPS, map or import-history Push. |
 | Comments | Partner comments on accessible content | Existing Center and separately opted-in bounded digests; open thread updates without an extra foreground surface. |
+| Manual shared reminders | A partner deliberately creates a shared reminder | One recipient-owned creation notice, with current creator/title and an authorized reminder read action; inherits existing reminder choices and respects Quiet Hours. Generated/private-source rules and imports remain silent. |
 | Photo reactions | Partner adds/changes a preset reaction | One coalesced Center item per recipient/Memory, no external delivery. Removing the last incoming reaction removes its derived notice. |
 | Plans | A new binding scheduled Plan, including scheduling an existing idea | Center only, expiry at the relevant appointment boundary; an undated idea is Activity only. |
 | Plan time/place changes | An actual schedule/place change affects an appointment within 48 hours | Neutral immediate partner notice, expiring with the relevant source appointment. Pure prose, cover and unchanged schedule writes stay silent. |

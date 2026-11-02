@@ -87,7 +87,15 @@ def rule_for(mime_type: str) -> MediaRule | None:
 
 def supported_mime_types() -> frozenset[str]:
     """MIME types the current server release actually accepts."""
-    return frozenset(mime for mime, rule in RULES.items() if rule.supported)
+    return frozenset(mime for mime, rule in RULES.items() if is_supported(rule))
+
+
+def is_supported(rule: MediaRule) -> bool:
+    if rule.supported:
+        return True
+    from eimir.config import get_settings
+
+    return rule.media_type is MediaType.VIDEO and get_settings().video_upload_enabled
 
 
 def contracted_mime_types() -> frozenset[str]:

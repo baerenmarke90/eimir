@@ -1,13 +1,13 @@
 import type { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import { ReadDescriptorMethodEnum } from '../api/generated/models/ReadDescriptor';
-import type { ReferenceApis } from './referenceFlow';
 import {
-  captureMediaCacheLease,
   assertMediaCacheLease,
+  captureMediaCacheLease,
   evictAuthorizedMedia,
   loadCachedMediaBlob,
 } from './authorizedMediaCache';
 import { clientProblemKind, normalizeClientError } from './problemDetails';
+import type { ReferenceApis } from './referenceFlow';
 
 export type StoryMediaParentType = Extract<
   AttachmentReadRequestParentTypeEnum,
@@ -30,7 +30,7 @@ type StoryMediaLoaderOptions = {
 export async function loadAuthorizedStoryImage(
   apis: ReferenceApis,
   spaceId: string,
-  parentType: StoryMediaParentType,
+  parentType: StoryMediaParentType | 'NONE',
   parentId: string,
   attachmentId: string,
   options: StoryMediaLoaderOptions = {},
@@ -46,7 +46,7 @@ export async function loadAuthorizedStoryImage(
     attachmentId,
     attachmentReadRequest: {
       parentType,
-      parentId,
+      parentId: parentType === 'NONE' ? undefined : parentId,
       ...(options.variant ? { variant: options.variant } : {}),
     },
   };
@@ -56,6 +56,18 @@ export async function loadAuthorizedStoryImage(
           signal: options.signal,
         })
       : await apis.attachments.createAttachmentReadAccess(descriptorRequest);
+
+    // Every existing image consumer remains bounded when its source becomes a
+    // video. Playback has a distinct grant path; image caches own posters only.
+    if (descriptor.mediaType === 'VIDEO' && options.variant !== 'thumbnail')
+      return loadAuthorizedStoryImage(
+        apis,
+        spaceId,
+        parentType,
+        parentId,
+        attachmentId,
+        { ...options, variant: 'thumbnail' },
+      );
 
     const blob = await loadCachedMediaBlob(
       lease,

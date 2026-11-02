@@ -39,6 +39,12 @@ export interface AccountCapabilitiesView {
      * @memberof AccountCapabilitiesView
      */
     serverAdmin: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof AccountCapabilitiesView
+     */
+    videoProcessingEnabled?: boolean;
 }
 
 /**
@@ -61,6 +67,7 @@ export function AccountCapabilitiesViewFromJSONTyped(json: any, ignoreDiscrimina
         
         'auth': json['auth'] == null ? undefined : AuthCapabilitiesFromJSON(json['auth']),
         'serverAdmin': json['serverAdmin'],
+        'videoProcessingEnabled': json['videoProcessingEnabled'] == null ? undefined : json['videoProcessingEnabled'],
     };
 }
 
@@ -77,6 +84,7 @@ export function AccountCapabilitiesViewToJSONTyped(value?: AccountCapabilitiesVi
         
         'auth': AuthCapabilitiesToJSON(value['auth']),
         'serverAdmin': value['serverAdmin'],
+        'videoProcessingEnabled': value['videoProcessingEnabled'],
     };
 }
 

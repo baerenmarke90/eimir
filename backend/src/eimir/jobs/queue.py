@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -54,7 +54,13 @@ def enqueue(
 
 
 def claim(
-    session: Session, worker: str, limit: int = 10, lease: timedelta = DEFAULT_LEASE
+    session: Session,
+    worker: str,
+    limit: int = 10,
+    lease: timedelta = DEFAULT_LEASE,
+    *,
+    kinds: Collection[str] | None = None,
+    excluded_kinds: Collection[str] = (),
 ) -> Sequence[Job]:
     """Claim due jobs.
 
@@ -79,6 +85,10 @@ def claim(
         .limit(limit)
         .with_for_update(skip_locked=True)
     )
+    if kinds is not None:
+        stmt = stmt.where(Job.kind.in_(kinds))
+    if excluded_kinds:
+        stmt = stmt.where(Job.kind.not_in(excluded_kinds))
     jobs = session.execute(stmt).scalars().all()
 
     for job in jobs:

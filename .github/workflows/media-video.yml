@@ -1,0 +1,100 @@
+name: Media Video
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "tools/media/**"
+      - "compose.yaml"
+      - ".github/workflows/media-video.yml"
+  push:
+    branches: [main]
+    paths: ["backend/**", "tools/media/**", ".github/workflows/media-video.yml"]
+  schedule:
+    - cron: "37 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  advisories:
+    name: Codec advisory review
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: python3 tools/media/check-advisories.py
+
+  processing:
+    name: Restricted codec and video lifecycle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_USER: eimir
+          POSTGRES_PASSWORD: eimir
+          POSTGRES_DB: eimir_test
+        options: >-
+          --health-cmd "pg_isready -U eimir -d eimir_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      EIMIR_ENVIRONMENT: test
+      EIMIR_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
+      EIMIR_TEST_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
+      EIMIR_TEST_FFMPEG: /tmp/eimir-codecs/bin/ffmpeg
+      EIMIR_TEST_FFPROBE: /tmp/eimir-codecs/bin/ffprobe
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14.8"
+      - name: Build the pinned restricted codec
+        run: |
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            https://github.com/FFmpeg/FFmpeg/archive/946fcce07b6dcd0331c8cc609192aeff5e1924f8.tar.gz \
+            --output /tmp/ffmpeg.tar.gz
+          echo "0aa2b1de2a5698b20a23e93d539a9a8e82ca0117496c5bdf05d198805f42bb3b  /tmp/ffmpeg.tar.gz" | sha256sum --check
+          mkdir /tmp/ffmpeg-source
+          tar -xzf /tmp/ffmpeg.tar.gz --strip-components=1 -C /tmp/ffmpeg-source
+          bash tools/media/build-ffmpeg.sh /tmp/ffmpeg-source /tmp/eimir-codecs
+      - name: Locked dependencies and migrations
+        working-directory: backend
+        run: |
+          python -m pip install "uv==0.12.15"
+          uv sync --locked
+          uv run --frozen alembic upgrade head
+      - name: Real codec, ranges, streaming and database lifecycle
+        working-directory: backend
+        run: |
+          uv run --frozen pytest -q --junitxml=/tmp/video-results.xml \
+            tests/unit/test_video_processing.py tests/unit/test_media_content.py \
+            tests/unit/test_media_streaming.py tests/integration/test_video_playback.py \
+            tests/integration/test_video_lifecycle.py
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          cases = ET.parse("/tmp/video-results.xml").findall(".//testcase")
+          if not cases or any(case.find("skipped") is not None for case in cases):
+              raise SystemExit("Video acceptance must execute without skips.")
+          PY
+
+  image:
+    name: Optional media image
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build the same-revision backend and optional derivative
+        run: |
+          docker build -t eimir-backend:video-ci --build-arg EIMIR_BUILD_REVISION="$GITHUB_SHA" backend
+          docker build -f backend/Dockerfile.media --build-arg EIMIR_BACKEND_IMAGE=eimir-backend:video-ci -t eimir-media:video-ci .
+          docker run --rm --entrypoint /opt/eimir-media/bin/ffmpeg eimir-media:video-ci -version
+          docker run --rm --entrypoint /opt/eimir-media/bin/ffprobe eimir-media:video-ci -version
+          docker compose --env-file .env.example --profile self-hosted --profile video config --quiet

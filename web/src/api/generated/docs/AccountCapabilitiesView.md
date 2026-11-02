@@ -9,6 +9,7 @@ Name | Type
 ------------ | -------------
 `auth` | [AuthCapabilities](AuthCapabilities.md)
 `serverAdmin` | boolean
+`videoProcessingEnabled` | boolean
 
 ## Example
 
@@ -19,6 +20,7 @@ import type { AccountCapabilitiesView } from ''
 const example = {
   "auth": null,
   "serverAdmin": null,
+  "videoProcessingEnabled": null,
 } satisfies AccountCapabilitiesView
 
 console.log(example)

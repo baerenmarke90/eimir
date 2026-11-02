@@ -14,6 +14,8 @@ export async function recoverSelectedPhoto(
   signal: AbortSignal,
 ): Promise<File> {
   if (!selectedPhotoUnavailable(file)) return file;
+  if (file.type.startsWith('video/'))
+    throw new Error('Selected video needs reselection');
   if (!attachmentId) throw new Error('Selected photo needs reselection');
   const metadata = await apis.attachments.getAttachment(
     { spaceId, attachmentId },
@@ -21,6 +23,8 @@ export async function recoverSelectedPhoto(
   );
   if (metadata.status !== 'READY')
     throw new Error('Selected photo is not ready');
+  if (metadata.mediaType === 'VIDEO')
+    throw new Error('Selected video must not enter photo recovery');
   // The stream endpoint resolves the actual parent itself, including a Memory
   // already created by an uncertain Save. Never assert an invented parent.
   const response = await apis.attachments.getAttachmentContentRaw(

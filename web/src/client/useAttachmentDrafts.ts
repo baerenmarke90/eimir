@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { i18n } from '../i18n';
 import {
   type AttachmentDraft,
   type AttachmentDraftAction,
@@ -18,10 +19,12 @@ import {
   uploadMemoryDraftAttachment,
 } from './memoryAttachmentDraft';
 import { createOwnedObjectUrl, type OwnedObjectUrl } from './objectUrlResource';
-import type { ReferenceApis } from './referenceFlow';
 import { recoverSelectedPhoto } from './recoverSelectedPhoto';
-import { selectedPhotoUnavailable } from './selectedMediaRetention';
-import { i18n } from '../i18n';
+import type { ReferenceApis } from './referenceFlow';
+import {
+  retainPhotoInMemory,
+  selectedPhotoUnavailable,
+} from './selectedMediaRetention';
 
 /**
  * How many automatic draft uploads run at once (#701). A small, fixed queue
@@ -285,14 +288,21 @@ export function useAttachmentDrafts({
           preserveMetadata: true,
         },
       )
-        .then(({ attachmentId }) => {
+        .then(({ attachmentId, hasThumbnail, durationSeconds }) => {
           uploads.current.delete(id);
           if (!isCurrentAttempt()) return;
           dispatch({
             type: 'draft_action',
             contextKey: uploadContextKey,
             generation: uploadGeneration,
-            action: { type: 'ready', id, attempt, attachmentId },
+            action: {
+              type: 'ready',
+              id,
+              attempt,
+              attachmentId,
+              hasThumbnail,
+              durationSeconds,
+            },
           });
         })
         .catch((error: unknown) => {
@@ -363,8 +373,11 @@ export function useAttachmentDrafts({
       setRejectedCount(selected.length - accepted.length);
 
       for (const { file, attachmentId, isSensitive } of accepted) {
+        if (file.type.startsWith('video/')) retainPhotoInMemory(file);
         const id = globalThis.crypto.randomUUID();
-        const unavailable = selectedPhotoUnavailable(file);
+        const unavailable =
+          selectedPhotoUnavailable(file) &&
+          !(file.type.startsWith('video/') && attachmentId);
         const previewResource = unavailable
           ? undefined
           : createOwnedObjectUrl(file);

@@ -1,10 +1,10 @@
-import { AttachmentsApi } from './mediaApis';
 import { AuthApi } from '../api/generated/apis/AuthApi';
 import { CommentsApi } from '../api/generated/apis/CommentsApi';
 import { HeartMomentsApi } from '../api/generated/apis/HeartMomentsApi';
 import { MemoriesApi } from '../api/generated/apis/MemoriesApi';
 import { MilestonesApi } from '../api/generated/apis/MilestonesApi';
 import { StoryApi } from '../api/generated/apis/StoryApi';
+import type { AttachmentDetail } from '../api/generated/models/AttachmentDetail';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import { MediaType } from '../api/generated/models/MediaType';
 import type { MemoryCreate } from '../api/generated/models/MemoryCreate';
@@ -13,9 +13,10 @@ import type { SessionView } from '../api/generated/models/SessionView';
 import type { StoryPage } from '../api/generated/models/StoryPage';
 import type { UploadDescriptor } from '../api/generated/models/UploadDescriptor';
 import { UploadDescriptorMethodEnum } from '../api/generated/models/UploadDescriptor';
-import { Configuration, createSessionFetch } from './apiConfiguration';
 import { ResponseError } from '../api/generated/runtime';
 import { i18n } from '../i18n';
+import { Configuration, createSessionFetch } from './apiConfiguration';
+import { AttachmentsApi } from './mediaApis';
 import { loadAuthorizedStoryImage } from './storyMediaLoader';
 
 export interface FlowResult {
@@ -223,7 +224,7 @@ export async function waitUntilAttachmentReady(
   spaceId: string,
   attachmentId: string,
   signal?: AbortSignal,
-): Promise<void> {
+): Promise<AttachmentDetail> {
   let interval = 500;
   while (true) {
     if (signal?.aborted)
@@ -237,7 +238,7 @@ export async function waitUntilAttachmentReady(
       });
     if (signal?.aborted)
       throw new DOMException('Upload aborted.', 'AbortError');
-    if (attachment.status === 'READY') return;
+    if (attachment.status === 'READY') return attachment;
     if (
       attachment.status === 'FAILED' ||
       attachment.status === 'DELETE_FAILED' ||
@@ -245,17 +246,25 @@ export async function waitUntilAttachmentReady(
     ) {
       throw new ReferenceFlowError(
         i18n.t(
-          attachment.failureCode === 'IMAGE_TOO_LARGE' ||
-            attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
-            ? 'flow.imageTooLarge'
-            : attachment.failureCode === 'IMAGE_UNREADABLE'
-              ? 'flow.imageUnreadable'
-              : attachment.failureCode === 'IMAGE_TYPE_MISMATCH' ||
-                  attachment.failureCode === 'IMAGE_TYPE_NOT_ALLOWED'
-                ? 'flow.imageTypeMismatch'
-                : attachment.failureCode === 'IMAGE_NOT_SANITIZABLE'
-                  ? 'flow.imageNotSanitizable'
-                  : 'flow.processingStatus',
+          attachment.failureCode?.startsWith('VIDEO_')
+            ? attachment.failureCode === 'VIDEO_CODEC_UNSUPPORTED'
+              ? 'video.unsupported'
+              : attachment.failureCode === 'VIDEO_DURATION_EXCEEDED'
+                ? 'video.tooLong'
+                : attachment.failureCode === 'VIDEO_DIMENSIONS_EXCEEDED'
+                  ? 'video.dimensions'
+                  : 'video.failed'
+            : attachment.failureCode === 'IMAGE_TOO_LARGE' ||
+                attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
+              ? 'flow.imageTooLarge'
+              : attachment.failureCode === 'IMAGE_UNREADABLE'
+                ? 'flow.imageUnreadable'
+                : attachment.failureCode === 'IMAGE_TYPE_MISMATCH' ||
+                    attachment.failureCode === 'IMAGE_TYPE_NOT_ALLOWED'
+                  ? 'flow.imageTypeMismatch'
+                  : attachment.failureCode === 'IMAGE_NOT_SANITIZABLE'
+                    ? 'flow.imageNotSanitizable'
+                    : 'flow.processingStatus',
         ),
         attachment.failureCode ?? undefined,
       );

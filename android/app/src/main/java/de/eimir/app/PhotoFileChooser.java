@@ -79,7 +79,7 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
                         if (disposed) return;
                         // The modern picker owns its metadata consent. Its grant must
                         // never be upgraded with ACCESS_MEDIA_LOCATION.
-                        originals[i] = selection.pickerMetadata ? selected[i]
+                        originals[i] = selection.pickerMetadata || isVideoSelection(selection.params) ? selected[i]
                             : originalUri(bridge.getContext(), selected[i]);
                     }
                     bridge.getActivity().runOnUiThread(() -> complete(selection, originals));
@@ -94,12 +94,14 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
             callback.onReceiveValue(null);
             return true;
         }
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || !isPhotoSelection(params)) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+                || (!isPhotoSelection(params) && !isVideoSelection(params))) {
             return super.onShowFileChooser(view, callback, params);
         }
-        Selection selection = new Selection(view, callback, params, supportsPickerMetadata());
+        boolean video = isVideoSelection(params);
+        Selection selection = new Selection(view, callback, params, !video && supportsPickerMetadata());
         pending = selection;
-        if (selection.pickerMetadata || hasLocationPermission(bridge.getContext())) {
+        if (video || selection.pickerMetadata || hasLocationPermission(bridge.getContext())) {
             openMediaPicker(selection);
         } else if (!askedLocationPermission) {
             askedLocationPermission = true;
@@ -151,12 +153,31 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
         return true;
     }
 
+    static boolean isVideoSelection(FileChooserParams params) {
+        if (params.isCaptureEnabled()
+                || (params.getMode() != FileChooserParams.MODE_OPEN
+                    && params.getMode() != FileChooserParams.MODE_OPEN_MULTIPLE)) return false;
+        String[] types = params.getAcceptTypes();
+        if (types.length == 0) return false;
+        for (String type : types) {
+            if (type == null || !type.toLowerCase(Locale.ROOT).startsWith("video/")) return false;
+        }
+        return true;
+    }
+
     static boolean supportsPickerMetadata() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
             && android.os.ext.SdkExtensions.getExtensionVersion(Build.VERSION_CODES.TIRAMISU) >= 23;
     }
 
     static Intent mediaIntent(Context context, FileChooserParams params, boolean pickerMetadata) {
+        if (isVideoSelection(params)) {
+            PickVisualMediaRequest request = new PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.VideoOnly.INSTANCE).build();
+            return params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE
+                ? new ActivityResultContracts.PickMultipleVisualMedia().createIntent(context, request)
+                : new ActivityResultContracts.PickVisualMedia().createIntent(context, request);
+        }
         if (pickerMetadata) {
             PickVisualMediaRequest request = new PickVisualMediaRequest.Builder()
                 .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE).build();

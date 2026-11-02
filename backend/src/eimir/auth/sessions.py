@@ -119,14 +119,32 @@ def resolve(session: Session, access_token: str) -> tuple[DeviceSession, Account
         select(DeviceSession).where(DeviceSession.access_token_hash == hash_token(access_token))
     ).scalar_one_or_none()
 
+    if device_session is None or (
+        device_session.access_expires_at is None or device_session.access_expires_at <= now()
+    ):
+        raise UnauthenticatedError("Authentication required.", ErrorCode.AUTHENTICATION_REQUIRED)
+
+    return _active_family(session, device_session)
+
+
+def resolve_family(session: Session, session_id: UUID) -> tuple[DeviceSession, Account]:
+    """Recheck a family referenced by an independently scoped, short-lived grant.
+
+    This does not mint or accept a general API credential. Playback grants use
+    it so token rotation cannot break an active read, while revocation, family
+    expiry and account disabling retain exactly the bearer session boundary.
+    """
+    return _active_family(session, session.get(DeviceSession, session_id))
+
+
+def _active_family(
+    session: Session, device_session: DeviceSession | None
+) -> tuple[DeviceSession, Account]:
     current_time = now()
     if (
         device_session is None
         or device_session.revoked_at is not None
-        or device_session.access_expires_at is None
-        or device_session.access_expires_at <= current_time
-        # Otherwise an access token issued shortly before the family deadline
-        # could outlive it, defeating the hard upper bound.
+        or device_session.expires_at <= current_time
         or device_session.absolute_expires_at <= current_time
     ):
         raise UnauthenticatedError("Authentication required.", ErrorCode.AUTHENTICATION_REQUIRED)

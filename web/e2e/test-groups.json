@@ -153,7 +153,7 @@
     },
     "planning-upcoming.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 8
+      "baselineTests": 9
     },
     "planning-wish-completion-continuation.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -356,7 +356,7 @@
     },
     "wir-design-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 13,
+      "baselineTests": 15,
       "reason": "Wir design selection and retention, quote/statistics order persistence with direct pointer tracking, and concise notification/private/profile settings across Compact/Expanded themes and large text."
     },
     "moment-relation-picker.spec.ts": {

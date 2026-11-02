@@ -1,4 +1,3 @@
-import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
@@ -21,8 +20,8 @@ import {
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { splitFirstGrapheme } from '../client/graphemeSplit';
 import {
-  type MemoryEditValues,
   isGeneratedMemoryTitle,
+  type MemoryEditValues,
   memoryDateInputValue,
   memoryIfMatch,
   memoryUpdatePayload,
@@ -34,12 +33,14 @@ import {
   normalizeClientError,
 } from '../client/problemDetails';
 import { loadProductWithReadCache } from '../client/productReadCache';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
   memoryDetailPath,
   memoryEditPath,
 } from '../client/routes';
+import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import { postSnackbar } from '../client/snackbar';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
@@ -47,18 +48,16 @@ import {
   formatAttachmentDraftContextKey,
   useAttachmentDrafts,
 } from '../client/useAttachmentDrafts';
-import { useStoryDeletion } from '../client/useStoryDeletion';
-import { useTaskActivation } from '../client/useTaskActivation';
-import { captureAuthorizedQuery } from '../client/queryIdentity';
-import { resolvedLocale, useTranslation } from '../i18n';
-import { SensitiveMediaCover } from './SensitiveMedia';
-import { PhotoDraftGallery } from './PhotoDraftGallery';
 import {
   movePhotoKey,
   orderedPhotoKeys,
 } from '../client/useOrderedPhotoDrafts';
+import { useStoryDeletion } from '../client/useStoryDeletion';
+import { useTaskActivation } from '../client/useTaskActivation';
+import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
+import { DraftMediaPreview } from './DraftMediaPreview';
 import { MemoryPhotoGallery } from './MemoryPhotoGallery';
 import { MemoryPreview } from './MemoryPreview';
 import {
@@ -68,13 +67,14 @@ import {
 } from './MemoryTagChoices';
 import { MomentPlaces } from './MomentPlaces';
 import { PageHeader } from './PageHeader';
+import { PhotoDraftGallery } from './PhotoDraftGallery';
 import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { ProblemState } from './ProblemState';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
 import { StoryEditorPageShell } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
-import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { UiState } from './UiState';
 
 export type MemoryProductMode = 'detail' | 'edit';
@@ -624,6 +624,7 @@ export function MemoryProductPage({
 
             <AttachmentDraftPicker
               id="memory-edit-images"
+              videoContext={{ apis, accountId: currentAccountId, spaceId }}
               disabled={updateMutation.isPending}
               attachments={attachments}
               showItems={false}
@@ -637,6 +638,7 @@ export function MemoryProductPage({
                   item.draft?.file.name ??
                   t('m5s3.planImage.photoNumber', { number: index + 1 }),
                 draft: item.draft,
+                mediaType: item.photo?.mediaType,
                 isSensitive: item.photo
                   ? (sensitiveValues[item.photo.id] ??
                     item.photo.isSensitive ??
@@ -651,11 +653,12 @@ export function MemoryProductPage({
                     }
                     loadImage={loadMemoryImage}
                   />
-                ) : item.draft?.isSensitive ? (
-                  <SensitiveMediaCover />
-                ) : (
-                  <img src={item.draft?.previewUrl} alt="" />
-                ),
+                ) : item.draft ? (
+                  <DraftMediaPreview
+                    draft={item.draft}
+                    context={{ apis, accountId: currentAccountId, spaceId }}
+                  />
+                ) : null,
               }))}
               onMove={(key, offset) =>
                 setPhotoOrder({

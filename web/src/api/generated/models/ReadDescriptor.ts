@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { MediaType } from './MediaType';
+import {
+    MediaTypeFromJSON,
+    MediaTypeFromJSONTyped,
+    MediaTypeToJSON,
+    MediaTypeToJSONTyped,
+} from './MediaType';
+
 /**
  * 
  * @export
@@ -25,6 +33,12 @@ export interface ReadDescriptor {
      * @memberof ReadDescriptor
      */
     expiresAt?: Date | null;
+    /**
+     * 
+     * @type {MediaType}
+     * @memberof ReadDescriptor
+     */
+    mediaType?: MediaType | null;
     /**
      * 
      * @type {ReadDescriptorMethodEnum}
@@ -70,6 +84,7 @@ export function ReadDescriptorFromJSONTyped(json: any, ignoreDiscriminator: bool
     return {
         
         'expiresAt': json['expiresAt'] === undefined ? undefined : json['expiresAt'] === null ? null : (new Date(json['expiresAt'])),
+        'mediaType': json['mediaType'] === undefined ? undefined : json['mediaType'] === null ? null : MediaTypeFromJSON(json['mediaType']),
         'method': json['method'],
         'url': json['url'],
     };
@@ -87,6 +102,7 @@ export function ReadDescriptorToJSONTyped(value?: ReadDescriptor | null, ignoreD
     return {
         
         'expiresAt': value['expiresAt'] == null ? value['expiresAt'] : value['expiresAt'].toISOString(),
+        'mediaType': MediaTypeToJSON(value['mediaType']),
         'method': value['method'],
         'url': value['url'],
     };

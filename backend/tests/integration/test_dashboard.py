@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from eimir.attachments.binding import MemoryAttachment
 from eimir.attachments.models import Attachment, AttachmentPayload, AttachmentStatus, MediaType
 from eimir.authorization import PrivacyClass
+from eimir.chapters.models import Chapter, ChapterPayload
 from eimir.core.ids import new_id
 from eimir.dashboard import service as dashboard_service
 from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
@@ -1002,3 +1003,77 @@ def test_recent_content_dates_survive_late_historical_backfills(
     assert len(body["recentShared"]) == dashboard_service.SECTION_LIMIT
     if kind == "memory":
         assert body["keepsake"]["id"] == str(current.id)
+
+
+def test_recent_timed_plan_uses_the_viewer_calendar_day(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    """A UTC-next-day time is still yesterday for this viewer."""
+    _freeze(monkeypatch, FIXED_NOW + timedelta(days=1))
+    couple["anna"].timezone = "Pacific/Honolulu"
+    current = Memory(
+        **_resource(couple, couple["anna"].id),
+        happened_on=date(2026, 8, 31),
+        payload=MemoryPayload(title="Today's memory", body="Current content"),
+    )
+    plan = Plan(
+        **_resource(couple, couple["anna"].id),
+        status=PlanStatus.PLANNED.value,
+        planned_start=datetime(2026, 8, 31, 2, tzinfo=UTC),
+        payload=PlanPayload(title="Yesterday's local Plan"),
+    )
+    session.add_all([current, plan])
+    session.flush()
+    response = _dashboard(client, couple)
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()["recentShared"]] == [
+        str(current.id),
+        str(plan.id),
+    ]
+
+
+@pytest.mark.parametrize("kind", ["memory", "chapter", "timed_plan", "undated_plan", "dated_plan"])
+def test_recent_same_day_selection_matches_the_final_order_before_limiting(
+    client, session: Session, couple, monkeypatch, kind: str
+) -> None:  # type: ignore[no-untyped-def]
+    """A bounded query must not discard newer same-day timestamp fallbacks."""
+    _freeze(monkeypatch)
+    entries = []
+    for index in range(dashboard_service.SECTION_LIMIT + 2):
+        instant = FIXED_NOW.replace(hour=0) + timedelta(hours=index)
+        common = dict(**_resource(couple, couple["anna"].id), created_at=instant)
+        label = f"Same-day entry {index}"
+        if kind == "memory":
+            entry = Memory(**common, payload=MemoryPayload(title=label, body=label))
+        elif kind == "chapter":
+            entry = Chapter(**common, payload=ChapterPayload(title=label))
+        else:
+            entry = Plan(
+                **common,
+                status=PlanStatus.PLANNED.value
+                if kind != "undated_plan"
+                else PlanStatus.IDEA.value,
+                planned_on=FIXED_NOW.date() if kind == "dated_plan" else None,
+                planned_start=instant if kind == "timed_plan" else None,
+                payload=PlanPayload(title=label),
+            )
+        session.add(entry)
+        session.flush()
+        entries.append(entry)
+
+    if kind == "memory":
+        _bind_ready_photo(session, entries[0], "older.jpg")
+        _bind_ready_photo(session, entries[-1], "newer.jpg")
+
+    response = _dashboard(client, couple)
+    assert response.status_code == 200
+    expected = (
+        sorted(entries, key=lambda entry: str(entry.id))
+        if kind == "dated_plan"
+        else list(reversed(entries))
+    )
+    assert [item["id"] for item in response.json()["recentShared"]] == [
+        str(entry.id) for entry in expected[: dashboard_service.SECTION_LIMIT]
+    ]
+    if kind == "memory":
+        assert response.json()["keepsake"]["id"] == str(entries[-1].id)

@@ -1,0 +1,22 @@
+# Optional derivative of the exact backend image under test/release.
+# Build context is the repository root, unlike backend/Dockerfile.
+ARG EIMIR_BACKEND_IMAGE
+FROM python:3.14.8-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 AS codecs
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential ca-certificates curl patch \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /build
+RUN curl --fail --location --proto '=https' --tlsv1.2 \
+    https://github.com/FFmpeg/FFmpeg/archive/946fcce07b6dcd0331c8cc609192aeff5e1924f8.tar.gz \
+    --output ffmpeg.tar.gz \
+    && echo "0aa2b1de2a5698b20a23e93d539a9a8e82ca0117496c5bdf05d198805f42bb3b  ffmpeg.tar.gz" | sha256sum --check \
+    && mkdir source && tar -xzf ffmpeg.tar.gz --strip-components=1 -C source
+COPY tools/media /build/tools
+RUN bash /build/tools/build-ffmpeg.sh /build/source /opt/eimir-media
+# Keep corresponding source and our local hardening patch available to recipients.
+RUN cp ffmpeg.tar.gz /opt/eimir-media/share/ffmpeg/upstream-source.tar.gz \
+    && cp /build/tools/reject-encrypted-mov.patch /opt/eimir-media/share/ffmpeg/
+
+FROM ${EIMIR_BACKEND_IMAGE}
+COPY --from=codecs /opt/eimir-media /opt/eimir-media
+USER 10001:10001
+CMD ["python", "-m", "eimir.jobs.video_worker"]

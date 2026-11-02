@@ -133,6 +133,21 @@ public class PhotoFileChooserTest {
     }
 
     @Test
+    public void videoInputsStaySeparateFromOriginalPhotoConsent() {
+        assertTrue(PhotoFileChooser.isVideoSelection(parameters(FileChooserParams.MODE_OPEN_MULTIPLE,
+            false, "video/mp4", "video/quicktime")));
+        assertFalse(PhotoFileChooser.isVideoSelection(parameters(FileChooserParams.MODE_OPEN,
+            false, "image/jpeg", "video/mp4")));
+        assertFalse(PhotoFileChooser.isVideoSelection(parameters(FileChooserParams.MODE_OPEN,
+            true, "video/mp4")));
+        Intent intent = PhotoFileChooser.mediaIntent(context,
+            parameters(FileChooserParams.MODE_OPEN, false, "video/mp4", "video/quicktime"), true);
+        assertFalse(intent.getBooleanExtra(PhotoFileChooser.REQUEST_LOCATION_METADATA, false));
+        assertFalse(intent.getBooleanExtra(PhotoFileChooser.FALLBACK_REQUEST_LOCATION_METADATA, false));
+        assertFalse(intent.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false));
+    }
+
+    @Test
     public void returnedFilesKeepSelectionOrderAndRejectUntrustedSchemes() {
         Uri first = Uri.parse("content://fixture.photos/one");
         Uri second = Uri.parse("content://fixture.photos/two");

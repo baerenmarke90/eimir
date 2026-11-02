@@ -7,7 +7,8 @@ inside its own transaction. If one fails, the others are unaffected.
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Collection
+from datetime import timedelta
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -39,7 +40,14 @@ class JobRegistry:
 registry = JobRegistry()
 
 
-def run_once(worker_name: str, limit: int = 10) -> int:
+def run_once(
+    worker_name: str,
+    limit: int = 10,
+    *,
+    kinds: Collection[str] | None = None,
+    excluded_kinds: Collection[str] = (),
+    lease: timedelta = queue.DEFAULT_LEASE,
+) -> int:
     """Run one round and return the number of processed jobs.
 
     Claiming happens in its own short transaction. Holding the claim lock
@@ -47,7 +55,16 @@ def run_once(worker_name: str, limit: int = 10) -> int:
     queue for everybody.
     """
     with unit_of_work() as session:
-        jobs = list(queue.claim(session, worker_name, limit=limit))
+        jobs = list(
+            queue.claim(
+                session,
+                worker_name,
+                limit=limit,
+                kinds=kinds,
+                excluded_kinds=excluded_kinds,
+                lease=lease,
+            )
+        )
         job_ids = [(job.id, job.kind, dict(job.payload)) for job in jobs]
 
     for job_id, kind, payload in job_ids:

@@ -11,6 +11,7 @@ export interface PhotoDraftGalleryItem {
   preview: ReactNode;
   isSensitive: boolean;
   draft?: AttachmentDraft;
+  mediaType?: 'IMAGE' | 'VIDEO';
 }
 
 /** One bounded media selection with one inspector, independent of persistence. */
@@ -41,6 +42,9 @@ export function PhotoDraftGallery({
   const failed = items.filter((item) => item.draft?.status === 'failed');
   const visibleItems = expanded ? items : items.slice(0, 6);
   const draft = selected.draft;
+  const isVideo = (item: PhotoDraftGalleryItem) =>
+    item.mediaType === 'VIDEO' || item.draft?.file.type.startsWith('video/');
+  const mixed = items.some(isVideo);
   const unavailable = draft && selectedPhotoUnavailable(draft.file);
   const pending =
     draft?.status === 'uploading' || draft?.status === 'validating';
@@ -60,7 +64,13 @@ export function PhotoDraftGallery({
   }
   function status(item: PhotoDraftGalleryItem) {
     if (item.draft && selectedPhotoUnavailable(item.draft.file))
-      return t('memory.diary.photoMissing');
+      return t(
+        isVideo(item) && item.draft.status !== 'ready'
+          ? 'video.missing'
+          : item.draft.status === 'ready'
+            ? 'memory.photoReady'
+            : 'memory.diary.photoMissing',
+      );
     return t(
       item.draft?.status === 'failed'
         ? 'memory.photoFailed'
@@ -73,7 +83,10 @@ export function PhotoDraftGallery({
   }
   return (
     <div className="photo-draft-gallery">
-      <ol className="photo-draft-grid" aria-label={t('memory.photoDraftsAria')}>
+      <ol
+        className="photo-draft-grid"
+        aria-label={t(mixed ? 'video.selected' : 'memory.photoDraftsAria')}
+      >
         {visibleItems.map((item, position) => (
           <li key={item.key}>
             <button
@@ -81,12 +94,15 @@ export function PhotoDraftGallery({
               className="photo-draft-tile"
               disabled={disabled}
               aria-pressed={item.key === selected.key}
-              aria-label={t('memory.photoSelectItem', {
-                name: item.name,
-                position: position + 1,
-                count: items.length,
-                status: status(item),
-              })}
+              aria-label={t(
+                isVideo(item) ? 'video.selectItem' : 'memory.photoSelectItem',
+                {
+                  name: item.name,
+                  position: position + 1,
+                  count: items.length,
+                  status: status(item),
+                },
+              )}
               onClick={() => setSelectedKey(item.key)}
             >
               <span className="photo-draft-tile-preview">{item.preview}</span>
@@ -125,9 +141,18 @@ export function PhotoDraftGallery({
             setExpanded(!expanded);
           }}
         >
-          {t(expanded ? 'memory.photoShowLess' : 'memory.photoShowAll', {
-            count: items.length,
-          })}
+          {t(
+            mixed
+              ? expanded
+                ? 'video.showLess'
+                : 'video.showAll'
+              : expanded
+                ? 'memory.photoShowLess'
+                : 'memory.photoShowAll',
+            {
+              count: items.length,
+            },
+          )}
         </button>
       ) : null}
       {failed.length ? (
@@ -150,7 +175,7 @@ export function PhotoDraftGallery({
         <legend className="sr-only">{t('memory.photoSelected')}</legend>
         <div className="photo-draft-inspector-heading">
           <strong>
-            {t('memory.photoPosition', {
+            {t(isVideo(selected) ? 'video.position' : 'memory.photoPosition', {
               position: index + 1,
               count: items.length,
             })}
@@ -180,7 +205,15 @@ export function PhotoDraftGallery({
         {draft?.status === 'failed' ? (
           <div className="photo-draft-error">
             <p>{draft.error}</p>
-            {!unavailable ? <p>{t('memory.photoFailedNotSaved')}</p> : null}
+            {!unavailable ? (
+              <p>
+                {t(
+                  isVideo(selected)
+                    ? 'video.failedNotSaved'
+                    : 'memory.photoFailedNotSaved',
+                )}
+              </p>
+            ) : null}
           </div>
         ) : null}
         <div className="photo-draft-controls">
@@ -210,7 +243,9 @@ export function PhotoDraftGallery({
               </button>
             </>
           ) : null}
-          {draft?.status === 'failed' && onRetry ? (
+          {draft?.status === 'failed' &&
+          onRetry &&
+          !(isVideo(selected) && unavailable) ? (
             <button
               type="button"
               className="secondary"

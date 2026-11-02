@@ -1,4 +1,5 @@
 const photoPlaces = {
+  removeSelection: 'Ortsauswahl entfernen',
   category: 'Erinnerungen',
   categoryIntro: 'Wie Orte aus deinen Fotos erhalten bleiben.',
   setting: 'Orte aus Fotos',

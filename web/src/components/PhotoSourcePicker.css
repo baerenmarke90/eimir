@@ -86,3 +86,11 @@
     transform: none;
   }
 }
+
+.photo-source-setup-help summary {
+  min-block-size: var(--space-12);
+  align-content: center;
+}
+.photo-source-setup-help li + li {
+  margin-block-start: var(--space-2);
+}

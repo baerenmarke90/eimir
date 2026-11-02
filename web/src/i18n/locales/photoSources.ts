@@ -30,6 +30,18 @@ const photoSources = {
     'Für diese Fotoquelle brauchst du eine Internetverbindung. Dein Entwurf bleibt erhalten.',
   link: 'Eigenen Immich-Dienst verknüpfen',
   linkTitle: 'Dein Immich',
+  setupHelp: 'So verbindest du Immich',
+  setupOpen:
+    'Öffne Immich im Browser und melde dich mit deinem eigenen Konto an.',
+  setupKey:
+    'Öffne Kontoeinstellungen → API-Schlüssel und erstelle einen Schlüssel für eimir.',
+  setupPermissions:
+    'Wähle die unten genannten Leserechte und kopiere den Schlüssel hierher. Du kannst ihn in Immich jederzeit widerrufen.',
+  setupFallback:
+    'Keine Zugangsdaten zur Hand? Schließe diese Auswahl und wähle Fotos direkt auf deinem Gerät.',
+  keyIsNotPassword:
+    'Hier gehört dein Immich-Zugriffsschlüssel hinein, nicht dein Passwort.',
+
   address: 'Adresse deines Immich-Dienstes',
   addressHint: 'Die erreichbare HTTPS-Adresse, unter der du Immich öffnest.',
   key: 'Immich-Zugriffsschlüssel',

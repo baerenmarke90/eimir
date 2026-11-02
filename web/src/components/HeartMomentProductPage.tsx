@@ -69,6 +69,10 @@ import {
 } from './HeartMomentTagChoices';
 import { GalleryExpandAction, MediaGallery } from './MediaGallery';
 import { MomentPlaces } from './MomentPlaces';
+import {
+  MomentPlaceField,
+  type MomentPlaceSelection,
+} from './MomentPlaceField';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -96,6 +100,7 @@ interface HeartMomentCreateValues {
   readonly attachmentId?: string;
   readonly attachmentIsSensitive?: boolean;
   readonly tags: string[];
+  readonly placeId?: string;
 }
 
 interface HeartMomentCreateSnapshot {
@@ -177,6 +182,8 @@ export function HeartMomentProductPage({
     heartMomentId,
   ] as const;
   const [createContentError, setCreateContentError] = useState(false);
+  const [createPlace, setCreatePlace] = useState<MomentPlaceSelection>();
+  const [placePending, setPlacePending] = useState(false);
   const [editContentError, setEditContentError] = useState(false);
   const [createVisibility, setCreateVisibility] =
     useState<ContentVisibilityValue>(ContentVisibility.SHARED);
@@ -514,7 +521,8 @@ export function HeartMomentProductPage({
   if (mode === 'create') {
     function submitCreate(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
-      if (attachments.hasPending) return;
+      if (attachments.hasPending || placePending || createMutation.isPending)
+        return;
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
       if (!happenedOn) return;
@@ -529,6 +537,9 @@ export function HeartMomentProductPage({
         values: {
           text,
           tags,
+          ...(createVisibility === ContentVisibility.SHARED && createPlace
+            ? { placeId: createPlace.id }
+            : {}),
           emotion: String(data.get('emotion')) as HeartEmotionValue,
           happenedOn: new Date(`${happenedOn}T00:00:00Z`),
           visibility: String(data.get('visibility')) as ContentVisibilityValue,
@@ -605,6 +616,19 @@ export function HeartMomentProductPage({
               />
             </div>
 
+            {createVisibility === ContentVisibility.SHARED ? (
+              <MomentPlaceField
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={currentAccountId}
+                spaceId={spaceId}
+                value={createPlace}
+                onChange={setCreatePlace}
+                disabled={createMutation.isPending}
+                onPendingChange={setPlacePending}
+              />
+            ) : null}
+
             <HeartMomentTagChoices />
 
             <div className="heart-moment-create-field-grid">
@@ -673,7 +697,11 @@ export function HeartMomentProductPage({
             <div className="form-actions heart-moment-create-actions">
               <button
                 type="submit"
-                disabled={createMutation.isPending || attachments.hasPending}
+                disabled={
+                  createMutation.isPending ||
+                  placePending ||
+                  attachments.hasPending
+                }
               >
                 {createMutation.isPending
                   ? t('heartMomentProduct.saving')

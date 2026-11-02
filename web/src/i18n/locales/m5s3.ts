@@ -37,6 +37,8 @@ const m5s3 = {
     keepEditing: 'Weiter bearbeiten',
   },
   overview: {
+    wishScope: 'Wünsche anzeigen',
+    fulfilledWishesEmpty: 'Noch keine erfüllten Wünsche.',
     title: 'Planen',
     segmentedLabel: 'Pläne oder Wünsche anzeigen',
     segmentPlans: 'Pläne',

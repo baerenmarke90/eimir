@@ -42,6 +42,7 @@ class HeartMomentCreate(ApiModel):
     attachment_id: UUID | None = None
     attachment_is_sensitive: bool | None = Field(default=None, strict=True)
     tags: HeartMomentTags = Field(default_factory=list)
+    place_id: UUID | None = None
 
     _unique_tags = field_validator("tags")(unique_tags)
 
@@ -218,6 +219,7 @@ def create_heart_moment(
         attachment_id=body.attachment_id,
         attachment_is_sensitive=body.attachment_is_sensitive,
         tags=body.tags,
+        place_id=body.place_id,
     )
     if not result.created:
         response.status_code = status.HTTP_200_OK

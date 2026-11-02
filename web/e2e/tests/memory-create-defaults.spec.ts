@@ -1,3 +1,4 @@
+import { captureScreenshot } from '../support/storyTimelineFixture';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -135,6 +136,17 @@ for (const [width, colorScheme] of [
       .getByRole('button', { name: photoSources.link, exact: true })
       .click();
     const link = page.getByRole('dialog', { name: photoSources.linkTitle });
+    await expect(
+      link.getByText(photoSources.setupOpen, { exact: true }),
+    ).not.toBeVisible();
+    await link.getByText(photoSources.setupHelp, { exact: true }).click();
+    await expect(
+      link.getByText(photoSources.setupOpen, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      link.getByText(photoSources.setupFallback, { exact: true }),
+    ).toBeVisible();
+    await link.getByText(photoSources.setupHelp, { exact: true }).click();
     await link
       .getByLabel(photoSources.address, { exact: true })
       .fill('https://my-photos.example');
@@ -1857,3 +1869,96 @@ test('a failed local checkpoint cannot start a volatile-photo Save or invent an 
   await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
   expect(photos.creates).toBe(1);
 });
+
+for (const [width, colorScheme] of [
+  [320, 'dark'],
+  [360, 'dark'],
+  [390, 'light'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`manual Place survives Memory draft recovery and exact save (${width})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    await signInAndOpenMemoryCreate(page, emptyPhotoBatch(), sourceScenario());
+    const destination = {
+      id: '66666666-6666-4666-8666-666666666666',
+      spaceId: SPACE_ID,
+      name: 'Kölner Dom',
+      address: 'Domkloster 4, Köln',
+      latitude: 50.9413,
+      longitude: 6.9583,
+      createdBy: ACCOUNT_ID,
+      creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+      version: 1,
+      capabilities: { canEdit: true, canDelete: true },
+    };
+    await page.route(
+      new RegExp(`/spaces/${SPACE_ID}/places(?:\\?.*)?$`),
+      (route) =>
+        route.fulfill({
+          json: { items: [destination], nextCursor: null, hasMore: false },
+        }),
+    );
+    const placeCopy = (await import('../../src/i18n/locales/photoPlaces'))
+      .default;
+    await page
+      .getByRole('button', { name: placeCopy.add, exact: true })
+      .click();
+    const picker = page.getByRole('dialog', { name: placeCopy.add });
+    await picker.getByRole('button', { name: /Kölner Dom/ }).click();
+    await expect(picker).toHaveCount(0);
+    const selected = page.getByRole('button', {
+      name: destination.name,
+      exact: true,
+    });
+    await expect(selected).toBeVisible();
+    await page
+      .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
+      .fill('Unser Besuch ohne Foto.');
+    await expect(
+      page.getByText(de.memory.diary.draft.saved, { exact: true }),
+    ).toBeVisible();
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.reload();
+    await page
+      .getByRole('button', { name: de.memory.diary.resume, exact: true })
+      .click();
+    await expect(selected).toBeVisible();
+    await expect(
+      page.getByRole('textbox', { name: de.memory.bodyLabel, exact: true }),
+    ).toHaveValue('Unser Besuch ohne Foto.');
+    await captureScreenshot(
+      page,
+      testInfo,
+      `1581-memory-place-${width}-${colorScheme}.png`,
+      { fullPage: true },
+    );
+    const audit = await new AxeBuilder({ page })
+      .include('.memory-task-page')
+      .analyze();
+    expect(audit.violations).toEqual([]);
+    const create = page.waitForRequest(
+      (request) =>
+        request.method() === 'POST' &&
+        new URL(request.url()).pathname.endsWith('/memories'),
+    );
+    await page
+      .getByRole('button', { name: de.memory.save, exact: true })
+      .click();
+    expect((await create).postDataJSON()).toMatchObject({
+      placeId: destination.id,
+      body: 'Unser Besuch ohne Foto.',
+    });
+    await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  });
+}

@@ -3294,6 +3294,18 @@
             "title": "Happenedon",
             "type": "string"
           },
+          "placeId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placeid"
+          },
           "tags": {
             "items": {
               "maxLength": 40,
@@ -4023,6 +4035,18 @@
               }
             ],
             "title": "Happenedon"
+          },
+          "placeId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placeid"
           },
           "tags": {
             "items": {

@@ -20,8 +20,9 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from eimir.create_receipts.models import CreateReceipt
 from eimir.heart_moments.models import HeartMoment
-from eimir.memories.models import Memory
+from eimir.memories.models import Memory, MemoryCreateReceipt
 from eimir.milestones.models import Milestone
 from eimir.relations.models import PlaceHeartMoment, PlaceMemory, PlaceMilestone
 from eimir.relationship import service as relationship_service
@@ -592,3 +593,88 @@ class TestNoOriginalCascade:
             ).status_code
             == 200
         )
+
+
+@pytest.mark.parametrize("kind", ["memories", "heart-moments"])
+def test_manual_place_is_atomic_with_create_and_exact_replay(client, session, couple, kind):  # type: ignore[no-untyped-def]
+    destination = place(client, couple)
+    base = f"/api/v1/spaces/{couple['space'].id}"
+    payload = (
+        {"title": "At the cathedral", "body": "A photo-free memory"}
+        if kind == "memories"
+        else {
+            "text": "A kind moment",
+            "emotion": "HAPPY",
+            "visibility": "SHARED",
+            "happenedOn": "2026-11-01",
+        }
+    )
+    payload["placeId"] = destination["id"]
+    headers = {**auth(couple["token_a"]), "Idempotency-Key": str(uuid4())}
+    created = client.post(f"{base}/{kind}", json=payload, headers=headers)
+    assert created.status_code == 201, created.text
+    target_id = created.json()["id"]
+    linked = client.get(f"{base}/places/{destination['id']}/{kind}", headers=headers)
+    assert linked.json()["items"] == [target_id]
+    replay = client.post(f"{base}/{kind}", json=payload, headers=headers)
+    assert replay.status_code == 200, replay.text
+    assert replay.json()["id"] == target_id
+    changed = client.post(
+        f"{base}/{kind}", json={**payload, "placeId": str(uuid4())}, headers=headers
+    )
+    assert changed.status_code == 409
+    # A replay confirms the original result, not an obsolete relation snapshot.
+    removed = client.delete(
+        f"{base}/places/{destination['id']}/{kind}/{target_id}", headers=headers
+    )
+    assert removed.status_code == 204
+    assert client.post(f"{base}/{kind}", json=payload, headers=headers).status_code == 200
+    assert (
+        client.get(f"{base}/places/{destination['id']}/{kind}", headers=headers).json()["items"]
+        == []
+    )
+
+
+@pytest.mark.parametrize("kind", ["memories", "heart-moments"])
+def test_foreign_manual_place_rolls_back_content_and_receipt(client, session, couple, kind):  # type: ignore[no-untyped-def]
+    foreign = place(client, couple, token_key="token_outsider", space=couple["outsider_space"])
+    model = Memory if kind == "memories" else HeartMoment
+    before = session.scalar(select(func.count()).select_from(model))
+    receipts = MemoryCreateReceipt if kind == "memories" else CreateReceipt
+    before_receipts = session.scalar(select(func.count()).select_from(receipts))
+    payload = (
+        {"title": "Must not be partially saved"}
+        if kind == "memories"
+        else {
+            "text": "Must not be partially saved",
+            "emotion": "HAPPY",
+            "visibility": "SHARED",
+            "happenedOn": "2026-11-01",
+        }
+    )
+    response = client.post(
+        f"/api/v1/spaces/{couple['space'].id}/{kind}",
+        json={**payload, "placeId": foreign["id"]},
+        headers={**auth(couple["token_a"]), "Idempotency-Key": str(uuid4())},
+    )
+    assert response.status_code == 404, response.text
+    assert session.scalar(select(func.count()).select_from(model)) == before
+    assert session.scalar(select(func.count()).select_from(receipts)) == before_receipts
+
+
+def test_private_heart_moment_cannot_publish_a_manual_place(client, session, couple):  # type: ignore[no-untyped-def]
+    destination = place(client, couple)
+    before = session.scalar(select(func.count()).select_from(HeartMoment))
+    response = client.post(
+        f"/api/v1/spaces/{couple['space'].id}/heart-moments",
+        json={
+            "text": "Private thought",
+            "emotion": "HAPPY",
+            "visibility": "PRIVATE",
+            "happenedOn": "2026-11-01",
+            "placeId": destination["id"],
+        },
+        headers=auth(couple["token_a"]),
+    )
+    assert response.status_code == 404, response.text
+    assert session.scalar(select(func.count()).select_from(HeartMoment)) == before

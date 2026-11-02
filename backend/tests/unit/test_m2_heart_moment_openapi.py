@@ -54,6 +54,7 @@ def test_write_dtos_only_expose_approved_fields() -> None:
         "attachmentId",
         "attachmentIsSensitive",
         "tags",
+        "placeId",
     }
     assert set(create["required"]) == {"text", "emotion", "visibility", "happenedOn"}
     assert create["additionalProperties"] is False

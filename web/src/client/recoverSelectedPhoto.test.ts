@@ -126,3 +126,23 @@ describe('memory-only selected-photo recovery', () => {
     expect(f.getAttachment).not.toHaveBeenCalled();
   });
 });
+
+it('never downloads an original video through selected-photo recovery', async () => {
+  const f = fixture();
+  const file = missingSelectedPhoto({
+    name: 'video.mp4',
+    type: 'video/mp4',
+    size: 200000000,
+    lastModified: 42,
+  });
+  await expect(
+    recoverSelectedPhoto(
+      f.apis,
+      'space',
+      file,
+      'video',
+      new AbortController().signal,
+    ),
+  ).rejects.toThrow('reselection');
+  expect(f.getAttachmentContentRaw).not.toHaveBeenCalled();
+});

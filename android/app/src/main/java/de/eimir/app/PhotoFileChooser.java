@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 
-/** Preserve explicitly authorized photo bytes before the existing Web upload. */
+/** Preserve original-photo consent and provide separate video-only selection. */
 final class PhotoFileChooser extends BridgeWebChromeClient {
     // The Web intake owns its smaller photo limit and its rejected-file feedback.
     private static final int MAX_RESULT_URIS = 1000;

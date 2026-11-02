@@ -411,7 +411,7 @@
     },
     "video-attachments.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 6,
+      "baselineTests": 7,
       "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled."
     }
   }

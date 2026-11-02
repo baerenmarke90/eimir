@@ -202,6 +202,9 @@ export function PhotoDraftGallery({
             aria-label={t('upload.progress', { progress: draft.progress })}
           />
         ) : null}
+        {isVideo(selected) && pending ? (
+          <p className="field-help">{t('video.volatile')}</p>
+        ) : null}
         {draft?.status === 'failed' ? (
           <div className="photo-draft-error">
             <p>{draft.error}</p>

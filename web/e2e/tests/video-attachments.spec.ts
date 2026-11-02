@@ -4,6 +4,7 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyCopy from '../../src/i18n/locales/storyProducts';
 import videoCopy from '../../src/i18n/locales/video';
+import taskSheets from '../../src/i18n/locales/taskSheets';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -113,7 +114,7 @@ async function setup(
         {
           attachment: { ...a, status: 'PENDING' },
           method: 'STREAM',
-          url: `/api/v1/spaces/${SPACE_ID}/attachments/${a.id}/content`,
+          uploadUrl: `/api/v1/spaces/${SPACE_ID}/attachments/${a.id}/content`,
           headers: {},
           expiresAt: new Date(Date.now() + 600000).toISOString(),
         },
@@ -199,6 +200,11 @@ async function setup(
       return json(state.saved);
     }
     if (
+      p === `/api/v1/spaces/${SPACE_ID}/memories/${MEMORY}/comments` &&
+      method === 'GET'
+    )
+      return json({ items: [], nextCursor: null, hasMore: false });
+    if (
       p === `/api/v1/spaces/${SPACE_ID}/memories/${MEMORY}` &&
       method === 'GET' &&
       state.saved
@@ -210,6 +216,7 @@ async function setup(
 }
 
 for (const [width, colorScheme] of [
+  [320, 'light'],
   [360, 'light'],
   [390, 'dark'],
   [430, 'light'],
@@ -223,6 +230,8 @@ for (const [width, colorScheme] of [
     const { state, unknown } = await setup(page);
     await signIn(page);
     await page.goto('/story/memories/new');
+    if (width === 320)
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(momentBody);
@@ -302,7 +311,7 @@ test('Pro explanation preserves the current Memory draft', async ({ page }) => {
   const sheet = page.getByRole('dialog', { name: videoCopy.proTitle });
   await expect(sheet).toContainText(videoCopy.proBody);
   await sheet
-    .getByRole('button', { name: de.common.close, exact: true })
+    .getByRole('button', { name: taskSheets.close, exact: true })
     .click();
   await expect(body).toHaveValue(momentBody);
   expect(unknown).toEqual([]);

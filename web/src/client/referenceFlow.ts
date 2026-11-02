@@ -246,25 +246,28 @@ export async function waitUntilAttachmentReady(
     ) {
       throw new ReferenceFlowError(
         i18n.t(
-          attachment.failureCode?.startsWith('VIDEO_')
-            ? attachment.failureCode === 'VIDEO_CODEC_UNSUPPORTED'
-              ? 'video.unsupported'
-              : attachment.failureCode === 'VIDEO_DURATION_EXCEEDED'
-                ? 'video.tooLong'
-                : attachment.failureCode === 'VIDEO_DIMENSIONS_EXCEEDED'
-                  ? 'video.dimensions'
-                  : 'video.failed'
-            : attachment.failureCode === 'IMAGE_TOO_LARGE' ||
-                attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
-              ? 'flow.imageTooLarge'
-              : attachment.failureCode === 'IMAGE_UNREADABLE'
-                ? 'flow.imageUnreadable'
-                : attachment.failureCode === 'IMAGE_TYPE_MISMATCH' ||
-                    attachment.failureCode === 'IMAGE_TYPE_NOT_ALLOWED'
-                  ? 'flow.imageTypeMismatch'
-                  : attachment.failureCode === 'IMAGE_NOT_SANITIZABLE'
-                    ? 'flow.imageNotSanitizable'
-                    : 'flow.processingStatus',
+          attachment.mediaType === 'VIDEO' &&
+            attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
+            ? 'video.tooLarge'
+            : attachment.failureCode?.startsWith('VIDEO_')
+              ? attachment.failureCode === 'VIDEO_CODEC_UNSUPPORTED'
+                ? 'video.unsupported'
+                : attachment.failureCode === 'VIDEO_DURATION_EXCEEDED'
+                  ? 'video.tooLong'
+                  : attachment.failureCode === 'VIDEO_DIMENSIONS_EXCEEDED'
+                    ? 'video.dimensions'
+                    : 'video.failed'
+              : attachment.failureCode === 'IMAGE_TOO_LARGE' ||
+                  attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
+                ? 'flow.imageTooLarge'
+                : attachment.failureCode === 'IMAGE_UNREADABLE'
+                  ? 'flow.imageUnreadable'
+                  : attachment.failureCode === 'IMAGE_TYPE_MISMATCH' ||
+                      attachment.failureCode === 'IMAGE_TYPE_NOT_ALLOWED'
+                    ? 'flow.imageTypeMismatch'
+                    : attachment.failureCode === 'IMAGE_NOT_SANITIZABLE'
+                      ? 'flow.imageNotSanitizable'
+                      : 'flow.processingStatus',
         ),
         attachment.failureCode ?? undefined,
       );

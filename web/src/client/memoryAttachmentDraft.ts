@@ -38,13 +38,24 @@ export async function uploadMemoryDraftAttachment(
   } = {},
 ): Promise<ReadyDraftAttachment> {
   if (selectedPhotoUnavailable(file))
-    throw new ReferenceFlowError(i18n.t('memory.diary.photoUnavailable'));
+    throw new ReferenceFlowError(
+      i18n.t(
+        file.type.startsWith('video/')
+          ? 'video.missing'
+          : 'memory.diary.photoUnavailable',
+      ),
+    );
   const video = file.type === 'video/mp4' || file.type === 'video/quicktime';
+  if (!video && file.type.startsWith('video/'))
+    throw new ReferenceFlowError(i18n.t('video.unsupported'));
   if (!video && !file.type.startsWith('image/'))
     throw new ReferenceFlowError(i18n.t('flow.imageOnly'));
   if (video && file.size > 250 * 1024 * 1024)
     throw new ReferenceFlowError(i18n.t('video.tooLarge'));
-  if (file.size === 0) throw new ReferenceFlowError(i18n.t('flow.imageEmpty'));
+  if (file.size === 0)
+    throw new ReferenceFlowError(
+      i18n.t(video ? 'video.empty' : 'flow.imageEmpty'),
+    );
 
   let createdAttachment: { id: string; version: number } | null = null;
   try {

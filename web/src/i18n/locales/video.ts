@@ -11,6 +11,7 @@ export default {
   unsupported:
     'Dieses Videoformat wird noch nicht unterstützt. Bitte wähle ein MP4- oder MOV-Video mit H.264.',
   tooLarge: 'Das Video ist zu groß. Möglich sind bis zu 250 MiB.',
+  empty: 'Dieses Video ist leer. Bitte wähle ein anderes aus.',
   tooLong: 'Das Video ist zu lang. Möglich sind bis zu 3 Minuten.',
   dimensions: 'Das Video hat eine zu hohe Auflösung. Möglich ist bis zu 4K.',
   failed:
@@ -28,5 +29,5 @@ export default {
   failedNotSaved:
     'Dieses Video wird erst nach erfolgreichem Upload gespeichert.',
   volatile:
-    'Das ausgewählte Video bleibt während dieser Sitzung verfügbar. Nach einem Neustart musst du es erneut auswählen.',
+    'Warte, bis das Video bereit zum Speichern ist. Wenn du die App vorher neu startest, musst du es erneut auswählen.',
 };

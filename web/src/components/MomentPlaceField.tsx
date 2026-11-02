@@ -77,6 +77,7 @@ export function MomentPlaceField({
           <PlaceChoicePicker
             key={JSON.stringify([apiBaseUrl, accountId, spaceId])}
             api={api}
+            confirmSharedCreate
             spaceId={spaceId}
             queryKey={['moment-place-choice', apiBaseUrl, accountId, spaceId]}
             offline={!navigator.onLine}

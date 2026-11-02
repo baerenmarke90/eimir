@@ -1973,3 +1973,83 @@ for (const [width, colorScheme] of [
     ).toBe(true);
   });
 }
+
+test('new capture Place is deliberately shared before the entry is saved', async ({
+  page,
+}, testInfo) => {
+  const copy = (await import('../../src/i18n/locales/photoPlaces')).default;
+  const planning = (await import('../../src/i18n/locales/m5s3')).default;
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await signInAndOpenMemoryCreate(page);
+  const destination = {
+    id: '66666666-6666-4666-8666-666666666666',
+    spaceId: SPACE_ID,
+    name: 'Riverside',
+    address: 'River Road 1',
+    latitude: 49.4,
+    longitude: 6.5,
+    createdBy: ACCOUNT_ID,
+    creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+    createdAt: TEST_NOW,
+    updatedAt: TEST_NOW,
+    version: 1,
+    capabilities: { canEdit: true, canDelete: true },
+  };
+  const creations: unknown[] = [];
+  await page.route(
+    new RegExp(`/spaces/${SPACE_ID}/places(?:\\?.*)?$`),
+    async (route) => {
+      if (route.request().method() === 'POST') {
+        creations.push(route.request().postDataJSON());
+        await route.fulfill({ status: 201, json: destination });
+      } else
+        await route.fulfill({
+          json: { items: [], nextCursor: null, hasMore: false },
+        });
+    },
+  );
+  await page.route(`**/spaces/${SPACE_ID}/places/lookup`, (route) =>
+    route.fulfill({ json: { items: [destination] } }),
+  );
+  await page.getByRole('button', { name: copy.add, exact: true }).click();
+  await page
+    .getByRole('dialog', { name: copy.add })
+    .getByRole('button', { name: planning.map.open, exact: true })
+    .click();
+  const map = page.getByRole('dialog', { name: planning.map.title });
+  await map
+    .getByLabel(planning.map.searchLabel, { exact: true })
+    .fill('Riverside');
+  await map
+    .getByRole('button', { name: planning.map.search, exact: true })
+    .click();
+  await map.getByRole('button', { name: /Riverside/ }).click();
+  await expect(
+    map.getByText(copy.sharedCreateHint, { exact: true }),
+  ).toBeVisible();
+  expect(creations).toEqual([]);
+  await captureScreenshot(
+    page,
+    testInfo,
+    '1581-new-place-confirmation-390-light.png',
+    { fullPage: true },
+  );
+  await map
+    .getByRole('button', { name: copy.saveSharedPlace, exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: destination.name, exact: true }),
+  ).toBeVisible();
+  expect(creations).toHaveLength(1);
+  await page
+    .getByLabel(de.memory.bodyLabel, { exact: true })
+    .fill('Beside the river.');
+  const create = page.waitForRequest(
+    (r) =>
+      r.method() === 'POST' && new URL(r.url()).pathname.endsWith('/memories'),
+  );
+  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  expect((await create).postDataJSON().placeId).toBe(destination.id);
+  await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
+});

@@ -39,6 +39,8 @@ Create/Edit, Detail View, existing ShortTaskSheet and task-origin contracts.
   Content and its typed relation save in one backend transaction. Retries use
   existing request identities; manual choices precede automatic photo locations.
 - Private HeartMoments never publish a place or acquire a shared relation.
+  Creating a new independent shared Place is explicitly labeled and its
+  retention is disclosed before confirmation; searching alone creates nothing.
 - Immich remains personal and optional. Disclosed instructions explain the
   reachable HTTPS address and a revocable read-only key, never a password or a
   partner's credentials. Device-photo selection stays directly available.

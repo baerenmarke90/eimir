@@ -1155,6 +1155,11 @@ Wish
 
 A non-completed Plan may be returned to the Wish state where applicable.
 
+PO extension #1586 (2026-11-02): an existing non-completed direct Plan may
+explicitly adopt one open Wish. Both versions are checked; the same unique
+source relation, atomic Wish lifecycle, completion and return rules apply.
+No duplicate Plan is created and neither resource's authored content is replaced.
+
 Functions:
 - Search
 - filtering

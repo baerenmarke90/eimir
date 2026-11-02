@@ -430,7 +430,8 @@
     "height",
     "durationSeconds",
     "version",
-    "createdAt"
+    "createdAt",
+    "failureCode"
   ],
   "attachmentForbiddenClientFields": [
     "storageKey",

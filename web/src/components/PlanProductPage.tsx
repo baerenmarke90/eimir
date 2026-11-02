@@ -40,6 +40,7 @@ import {
 import { useTranslation } from '../i18n';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { PageHeader } from './PageHeader';
+import { PlanWishLink } from './PlanWishLink';
 import { PlanCalendarAction } from './PlanCalendarAction';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { PlanStoryContinuation } from './PlanStoryContinuation';
@@ -107,6 +108,7 @@ export function PlanProductPage({
     accessToken: accessToken ?? '',
     spaceId,
     accountId: accountId ?? '',
+    resourceKey: planId,
   });
   const [anticipation, setAnticipation] = useState(false);
   const [selectedPlaceId, setSelectedPlaceId] = useState('');
@@ -697,6 +699,17 @@ export function PlanProductPage({
           <section className="planen-completed-result">
             <p>{t('m5s3.plan.completedBody')}</p>
           </section>
+        ) : null}
+
+        {!isEditing ? (
+          <PlanWishLink
+            key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
+            apis={apis}
+            spaceId={spaceId}
+            plan={plan}
+            disabled={writesPending}
+            onLinked={commitPlan}
+          />
         ) : null}
 
         {isEditing && plan.sourceWishId ? (

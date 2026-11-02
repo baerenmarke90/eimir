@@ -197,6 +197,7 @@ export * from './PlanReturnToWishResponse';
 export * from './PlanSchedule';
 export * from './PlanStatus';
 export * from './PlanUpdate';
+export * from './PlanWishLink';
 export * from './PreferenceCategory';
 export * from './PreferenceSentiment';
 export * from './PrivateCollectionCreate';

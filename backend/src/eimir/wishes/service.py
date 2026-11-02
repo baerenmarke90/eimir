@@ -10,7 +10,8 @@ first typed it (M3-D01). That policy lives on the model as ``shared_write``;
 exception.
 
 Second, status. ``Wish.status`` is not a client-settable field:
-``OPEN -> PLANNED`` happens only through wish-to-plan conversion,
+``OPEN -> PLANNED`` happens through wish-to-plan conversion or explicit
+adoption by an existing direct Plan,
 ``PLANNED -> OPEN`` through ``return-to-wish``,
 ``PLANNED -> COMPLETED`` through completion of the originating plan, and
 ``OPEN -> COMPLETED`` only through the explicit direct-completion command.

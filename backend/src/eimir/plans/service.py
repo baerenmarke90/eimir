@@ -492,7 +492,15 @@ def _lock_plan_and_source_wish(
     probe = require_writable(session, Plan, context, plan_id)
     source_wish_id = probe.source_wish_id
     if source_wish_id is None:
-        return _lock_plan(session, context, plan_id), None
+        plan = _lock_plan(session, context, plan_id)
+        if plan.source_wish_id is not None:
+            # A late Wish link changed the lock set. Do not acquire a Wish
+            # lock after the Plan or complete/delete only half the lifecycle.
+            raise ConflictError(
+                "The resource was changed since it was loaded.",
+                ErrorCode.RESOURCE_VERSION_CONFLICT,
+            )
+        return plan, None
 
     wish = wish_service.lock(session, context, source_wish_id)
     plan = _lock_plan(session, context, plan_id)
@@ -769,6 +777,48 @@ def delete_plan(
     _record(session, plan, actor_id, EventType.PLAN_DELETED)
     _flush(session)
     reminder_runtime.reconcile_space(session, context.space_id)
+
+
+def link_wish_to_plan(
+    session: Session,
+    context: AuthorizationContext,
+    plan_id: UUID | str,
+    *,
+    wish_id: UUID | str,
+    expected_version: int,
+    expected_wish_version: int,
+) -> WishToPlanResult:
+    """Let an existing direct Plan adopt one open Wish atomically.
+
+    Wish -> Plan is the same lock order used by conversion/completion. An
+    exact replay is harmless; it cannot relink a Wish or overwrite Plan prose.
+    """
+    wish = wish_service.lock(session, context, wish_id)
+    plan = _lock_plan(session, context, plan_id)
+    if plan.source_wish_id == wish.id:
+        if wish.status not in (WishStatus.PLANNED.value, WishStatus.COMPLETED.value):
+            raise ConflictError(
+                "The Wish lifecycle is inconsistent.", wish_service.WISH_PLAN_STATE_CONFLICT
+            )
+        return WishToPlanResult(wish=wish, plan=plan, created=False)
+    _ensure_expected_version(plan, expected_version)
+    _ensure_wish_version(wish, expected_wish_version)
+    if plan.source_wish_id is not None:
+        raise ConflictError("This Plan already has a source Wish.", PLAN_HAS_SOURCE_WISH)
+    if plan.status == PlanStatus.COMPLETED.value:
+        raise ConflictError("A completed Plan cannot adopt a Wish.", PLAN_STATUS_TRANSITION_INVALID)
+    if wish.status != WishStatus.OPEN.value:
+        raise ConflictError("This Wish is no longer open.", wish_service.WISH_HAS_ACTIVE_PLAN)
+    existing = session.execute(
+        select(Plan.id).where(Plan.source_wish_id == wish.id)
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise ConflictError("This Wish already has a Plan.", wish_service.WISH_HAS_ACTIVE_PLAN)
+    plan.source_wish_id = wish.id
+    _flush(session)
+    _record(session, plan, context.account_id, EventType.PLAN_UPDATED)
+    wish_service.plan_created(session, wish, context.account_id)
+    return WishToPlanResult(wish=wish, plan=plan, created=False)
 
 
 def convert_wish_to_plan(

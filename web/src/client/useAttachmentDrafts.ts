@@ -38,6 +38,8 @@ export interface AttachmentDraftOptions {
   accessToken: string;
   spaceId: string;
   accountId: string;
+  /** Optional editor identity within the same account/Space (for route changes). */
+  resourceKey?: string;
   fetchApi?: typeof fetch;
   uploadAttachmentFn?: typeof uploadMemoryDraftAttachment;
   /**
@@ -138,11 +140,15 @@ export function useAttachmentDrafts({
   accessToken,
   spaceId,
   accountId,
+  resourceKey,
   fetchApi = fetch,
   uploadAttachmentFn = uploadMemoryDraftAttachment,
   maxAttachments = Number.POSITIVE_INFINITY,
 }: AttachmentDraftOptions) {
-  const contextKey = formatAttachmentDraftContextKey(accountId, spaceId);
+  const accountSpace = formatAttachmentDraftContextKey(accountId, spaceId);
+  const contextKey = resourceKey
+    ? JSON.stringify([accountSpace, resourceKey])
+    : accountSpace;
   const committedContextKey = useRef(contextKey);
   const currentGeneration = useRef(1);
   const nextAttempt = useRef(0);

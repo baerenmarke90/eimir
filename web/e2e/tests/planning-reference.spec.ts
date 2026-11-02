@@ -541,3 +541,156 @@ for (const colorScheme of ['light', 'dark'] as const) {
     expect(result.violations).toEqual([]);
   });
 }
+
+for (const [width, colorScheme] of [
+  [360, 'dark'],
+  [390, 'light'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`an existing Plan adopts an open Wish without duplication (${width})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    await installMocks(page);
+    let reads = 0;
+    const writes: unknown[] = [];
+    let plan = {
+      id: PLAN_ID,
+      spaceId: SPACE_ID,
+      title: PLAN_TITLE,
+      description: 'Keep the existing arrangement.',
+      status: 'PLANNED',
+      version: 3,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+      createdBy: ACCOUNT_ID,
+      creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+      capabilities: { canEdit: true, canDelete: true, canComment: false },
+      sourceWishId: null as string | null,
+      placeId: null,
+      plannedStart: PLAN_START,
+      plannedEnd: null,
+      plannedOn: null,
+      experiencedOn: null,
+    };
+    let wish = {
+      id: WISH_ID,
+      spaceId: SPACE_ID,
+      title: WISH_TITLE,
+      description: null,
+      status: 'OPEN',
+      version: 1,
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+      createdBy: ACCOUNT_ID,
+      creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+      capabilities: { canEdit: true, canDelete: true, canComment: false },
+    };
+    await page.route('**/api/v1/**', async (route) => {
+      const request = route.request();
+      const url = new URL(request.url());
+      const base = `/api/v1/spaces/${SPACE_ID}`;
+      const json = (value: unknown) =>
+        route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify(value),
+        });
+      if (
+        url.pathname === `${base}/plans/${PLAN_ID}` &&
+        request.method() === 'GET'
+      )
+        return json(plan);
+      if (url.pathname === `${base}/wishes` && request.method() === 'GET') {
+        reads++;
+        expect(url.searchParams.get('status')).toBe('OPEN');
+        return json({
+          items: wish.status === 'OPEN' ? [wish] : [],
+          hasMore: false,
+          nextCursor: null,
+        });
+      }
+      if (
+        url.pathname === `${base}/plans/${PLAN_ID}/wish` &&
+        request.method() === 'POST'
+      ) {
+        writes.push(request.postDataJSON());
+        expect(request.headers()['if-match']).toBe('3');
+        expect(request.postDataJSON()).toEqual({
+          wishId: WISH_ID,
+          wishVersion: 1,
+        });
+        plan = {
+          ...plan,
+          sourceWishId: WISH_ID,
+          version: 4,
+          capabilities: { ...plan.capabilities, canDelete: false },
+        };
+        wish = { ...wish, status: 'PLANNED', version: 2 };
+        return json({ plan, wish });
+      }
+      if (
+        url.pathname === `${base}/wishes/${WISH_ID}` &&
+        request.method() === 'GET'
+      )
+        return json(wish);
+      return route.fallback();
+    });
+    await signIn(page);
+    await page.goto(`/plan/plans/${PLAN_ID}`);
+    await expect(
+      page.getByRole('heading', { name: PLAN_TITLE, exact: true }),
+    ).toBeVisible();
+    expect(reads).toBe(0);
+    const trigger = page.getByRole('button', {
+      name: m5s3.plan.linkWish,
+      exact: true,
+    });
+    await trigger.click();
+    const sheet = page.getByRole('dialog', { name: m5s3.plan.linkWish });
+    await sheet.getByRole('radio', { name: WISH_TITLE }).check();
+    expect(writes).toHaveLength(0);
+    await page.screenshot({
+      path: testInfo.outputPath(`wish-link-${width}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await expectNoHorizontalOverflow(page);
+    await page.keyboard.press('Escape');
+    await expect(sheet).not.toBeVisible();
+    await expect(trigger).toBeFocused();
+    expect(writes).toHaveLength(0);
+    await trigger.click();
+    await sheet.getByRole('radio', { name: WISH_TITLE }).check();
+    await sheet
+      .getByRole('button', { name: m5s3.plan.confirmWishLink })
+      .click();
+    const source = page.getByRole('link', { name: m5s3.plan.openWish });
+    await expect(source).toBeVisible();
+    await expect(sheet).not.toBeVisible();
+    await expect(source).toBeFocused();
+    expect(writes).toHaveLength(1);
+    await expect(
+      page.getByText(plan.description, { exact: true }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(source).toBeVisible();
+    await source.click();
+    await expect(
+      page.getByRole('heading', { name: WISH_TITLE, exact: true }),
+    ).toBeVisible();
+    await page.goBack();
+    await expect(
+      page.getByRole('heading', { name: PLAN_TITLE, exact: true }),
+    ).toBeVisible();
+    expect(writes).toHaveLength(1);
+  });
+}

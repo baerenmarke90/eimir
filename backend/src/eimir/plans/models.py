@@ -86,7 +86,8 @@ class Plan(
 ):
     """A shared plan that both partners may read and write.
 
-    A plan is created either from a wish (M3-D02) or directly (M3-D30). The
+    A plan is created either from a wish (M3-D02) or directly (M3-D30). A direct
+    Plan can explicitly adopt one open Wish later (#1586). The
     distinction is represented by exactly one field, ``source_wish_id``, and
     determines completion effects, ``return-to-wish``, and deletion rules.
     """

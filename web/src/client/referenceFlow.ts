@@ -244,7 +244,20 @@ export async function waitUntilAttachmentReady(
       attachment.status === 'DELETING'
     ) {
       throw new ReferenceFlowError(
-        i18n.t('flow.processingStatus', { status: attachment.status }),
+        i18n.t(
+          attachment.failureCode === 'IMAGE_TOO_LARGE' ||
+            attachment.failureCode === 'ATTACHMENT_TOO_LARGE'
+            ? 'flow.imageTooLarge'
+            : attachment.failureCode === 'IMAGE_UNREADABLE'
+              ? 'flow.imageUnreadable'
+              : attachment.failureCode === 'IMAGE_TYPE_MISMATCH' ||
+                  attachment.failureCode === 'IMAGE_TYPE_NOT_ALLOWED'
+                ? 'flow.imageTypeMismatch'
+                : attachment.failureCode === 'IMAGE_NOT_SANITIZABLE'
+                  ? 'flow.imageNotSanitizable'
+                  : 'flow.processingStatus',
+        ),
+        attachment.failureCode ?? undefined,
       );
     }
     await new Promise<void>((resolve, reject) => {

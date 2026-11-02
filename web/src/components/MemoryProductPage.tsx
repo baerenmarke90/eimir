@@ -51,7 +51,12 @@ import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { SensitiveMediaCheckbox } from './SensitiveMedia';
+import { SensitiveMediaCover } from './SensitiveMedia';
+import { PhotoDraftGallery } from './PhotoDraftGallery';
+import {
+  movePhotoKey,
+  orderedPhotoKeys,
+} from '../client/useOrderedPhotoDrafts';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
 import { MemoryPhotoGallery } from './MemoryPhotoGallery';
@@ -243,7 +248,44 @@ export function MemoryProductPage({
     spaceId,
     accountId: currentAccountId,
     maxAttachments: MAX_MEMORY_ATTACHMENTS - keptBoundAttachmentCount,
+    resourceKey: JSON.stringify([apiBaseUrl, memoryId, mode]),
   });
+
+  const photoOrderScope = JSON.stringify([
+    apiBaseUrl,
+    contextKey,
+    memoryId,
+    mode,
+  ]);
+  const [photoOrder, setPhotoOrder] = useState<{
+    scope: string;
+    keys: string[];
+  }>({ scope: photoOrderScope, keys: [] });
+  const availablePhotoItems = [
+    ...(memoryQuery.data?.value.attachments ?? [])
+      .filter(
+        (photo) =>
+          photo.status === 'READY' && !removedAttachmentIds.has(photo.id),
+      )
+      .sort((a, b) => a.position - b.position)
+      .map((photo) => ({ key: `saved:${photo.id}`, photo, draft: undefined })),
+    ...attachments.items.map((draft) => ({
+      key: `draft:${draft.id}`,
+      photo: undefined,
+      draft,
+    })),
+  ];
+  const photoKeys = orderedPhotoKeys(
+    availablePhotoItems.map((item) => item.key),
+    photoOrder.scope === photoOrderScope ? photoOrder.keys : [],
+  );
+  const photoItems = photoKeys.flatMap((key) => {
+    const item = availablePhotoItems.find((item) => item.key === key);
+    return item ? [item] : [];
+  });
+  const photoOrderChanged = photoKeys.some(
+    (key, index) => key !== availablePhotoItems[index]?.key,
+  );
 
   const captureSaveOwnership = useTaskActivation(
     mode === 'edit',
@@ -274,13 +316,17 @@ export function MemoryProductPage({
         const attachmentsChanged =
           attachments.readyIds.length > 0 ||
           removedAttachmentIds.size > 0 ||
-          Object.keys(sensitiveValues).length > 0;
+          Object.keys(sensitiveValues).length > 0 ||
+          photoOrderChanged;
         if (attachmentsChanged) {
-          const existing = [...updated.attachments]
-            .sort((left, right) => left.position - right.position)
-            .map((attachment) => attachment.id)
-            .filter((attachmentId) => !removedAttachmentIds.has(attachmentId));
-          const attachmentIds = [...existing, ...attachments.readyIds];
+          const attachmentIds = photoItems.flatMap((item) => {
+            const id =
+              item.photo?.id ??
+              (item.draft?.status === 'ready'
+                ? item.draft.attachmentId
+                : undefined);
+            return id ? [id] : [];
+          });
           updated = await apis.memories.replaceMemoryAttachments({
             spaceId,
             memoryId: updated.id,
@@ -351,6 +397,7 @@ export function MemoryProductPage({
       if (!request.isCurrent()) return;
       setSensitiveDraft({ key: sensitiveDraftKey, values: {} });
       attachments.clear();
+      setPhotoOrder({ scope: photoOrderScope, keys: [] });
       setRemovedAttachmentIds(new Set());
       queryClient.setQueryData(memoryKey, { value: memory, source: 'network' });
       await Promise.all([
@@ -495,6 +542,7 @@ export function MemoryProductPage({
       event.preventDefault();
       if (
         attachments.hasPending ||
+        attachments.items.some((item) => item.status === 'failed') ||
         queryClient.isMutating({ mutationKey: deleteKey }) ||
         queryClient.isMutating({ mutationKey: updateKey })
       )
@@ -574,90 +622,96 @@ export function MemoryProductPage({
               disabled={updateMutation.isPending}
             />
 
-            {readyAttachments.length > 0 ? (
-              <fieldset className="memory-existing-attachments">
-                <legend>{t('memoryProduct.existingPhotosHeading')}</legend>
-                <p className="field-help">
-                  {t('memoryProduct.existingPhotosHelp')}{' '}
-                  {t('sensitiveMedia.help')}
-                </p>
-                <ul className="memory-edit-attachment-list">
-                  {readyAttachments.map((attachment) => {
-                    const removed = removedAttachmentIds.has(attachment.id);
-                    return (
-                      <li
-                        key={attachment.id}
-                        className={`memory-edit-attachment${
-                          removed ? ' memory-edit-attachment-removed' : ''
-                        }`}
-                      >
-                        <MemoryPreview
-                          memoryId={memory.id}
-                          attachmentId={attachment.id}
-                          isSensitive={
-                            sensitiveValues[attachment.id] ??
-                            attachment.isSensitive
-                          }
-                          loadImage={loadMemoryImage}
-                        />
-                        <div className="memory-edit-attachment-actions">
-                          <SensitiveMediaCheckbox
-                            checked={
-                              sensitiveValues[attachment.id] ??
-                              attachment.isSensitive ??
-                              true
-                            }
-                            disabled={removed || updateMutation.isPending}
-                            onChange={(value) =>
-                              setSensitiveDraft((current) => ({
-                                key: sensitiveDraftKey,
-                                values: {
-                                  ...(current.key === sensitiveDraftKey
-                                    ? current.values
-                                    : {}),
-                                  [attachment.id]: value,
-                                },
-                              }))
-                            }
-                          />
-                          {removed ? (
-                            <span role="status">
-                              {t('memoryProduct.photoMarkedForRemoval')}
-                            </span>
-                          ) : null}
-                          <button
-                            type="button"
-                            className="tertiary"
-                            onClick={() =>
-                              toggleAttachmentRemoval(attachment.id)
-                            }
-                          >
-                            {removed
-                              ? t('memoryProduct.keepPhoto')
-                              : t('memoryProduct.markPhotoForRemoval')}
-                          </button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </fieldset>
-            ) : null}
-
-            <div className="memory-new-attachments-heading">
-              <strong>{t('memoryProduct.newPhotosHeading')}</strong>
-              {readyAttachments.length > 0 ? (
-                <p className="field-help">
-                  {t('memoryProduct.editPhotosPreserved')}
-                </p>
-              ) : null}
-            </div>
             <AttachmentDraftPicker
               id="memory-edit-images"
               disabled={updateMutation.isPending}
               attachments={attachments}
+              showItems={false}
               multiple
             />
+            <PhotoDraftGallery
+              disabled={updateMutation.isPending}
+              items={photoItems.map((item, index) => ({
+                key: item.key,
+                name:
+                  item.draft?.file.name ??
+                  t('m5s3.planImage.photoNumber', { number: index + 1 }),
+                draft: item.draft,
+                isSensitive: item.photo
+                  ? (sensitiveValues[item.photo.id] ??
+                    item.photo.isSensitive ??
+                    true)
+                  : item.draft?.isSensitive === true,
+                preview: item.photo ? (
+                  <MemoryPreview
+                    memoryId={memory.id}
+                    attachmentId={item.photo.id}
+                    isSensitive={
+                      sensitiveValues[item.photo.id] ?? item.photo.isSensitive
+                    }
+                    loadImage={loadMemoryImage}
+                  />
+                ) : item.draft?.isSensitive ? (
+                  <SensitiveMediaCover />
+                ) : (
+                  <img src={item.draft?.previewUrl} alt="" />
+                ),
+              }))}
+              onMove={(key, offset) =>
+                setPhotoOrder({
+                  scope: photoOrderScope,
+                  keys: movePhotoKey(photoKeys, key, offset),
+                })
+              }
+              onSensitive={(key, value) => {
+                const item = photoItems.find((item) => item.key === key);
+                if (item?.photo)
+                  setSensitiveDraft((current) => ({
+                    key: sensitiveDraftKey,
+                    values: {
+                      ...(current.key === sensitiveDraftKey
+                        ? current.values
+                        : {}),
+                      [item.photo.id]: value,
+                    },
+                  }));
+                else if (item?.draft)
+                  attachments.setSensitive(item.draft.id, value);
+              }}
+              removeLabel={(key) =>
+                photoItems.find((item) => item.key === key)?.photo
+                  ? t('memoryProduct.markPhotoForRemoval')
+                  : t('memory.photoRemove')
+              }
+              onRemove={(key) => {
+                const item = photoItems.find((item) => item.key === key);
+                if (item?.photo) toggleAttachmentRemoval(item.photo.id);
+                else if (item?.draft) attachments.remove(item.draft.id);
+              }}
+              onRetry={(key) => {
+                const draft = photoItems.find(
+                  (item) => item.key === key,
+                )?.draft;
+                if (draft) attachments.retry(draft);
+              }}
+            />
+            {readyAttachments
+              .filter((photo) => removedAttachmentIds.has(photo.id))
+              .map((photo) => (
+                <div key={photo.id} className="photo-draft-controls">
+                  <span role="status">
+                    {t('memoryProduct.photoMarkedForRemoval')}
+                  </span>
+                  <button
+                    type="button"
+                    className="tertiary"
+                    disabled={updateMutation.isPending}
+                    onClick={() => toggleAttachmentRemoval(photo.id)}
+                  >
+                    {t('memoryProduct.keepPhoto')}
+                  </button>
+                </div>
+              ))}
             <PhotoSourcePicker
               apiBaseUrl={apiBaseUrl}
               accessToken={accessToken}
@@ -686,6 +740,7 @@ export function MemoryProductPage({
                 disabled={
                   updateMutation.isPending ||
                   attachments.hasPending ||
+                  attachments.items.some((item) => item.status === 'failed') ||
                   deleteMutation.isBlocked
                 }
               >
@@ -723,6 +778,7 @@ export function MemoryProductPage({
                 changed ||
                 attachments.items.length > 0 ||
                 removedAttachmentIds.size > 0 ||
+                photoOrderChanged ||
                 Object.keys(sensitiveValues).length > 0 ||
                 JSON.stringify(selectedTags) !==
                   JSON.stringify(memory.tags ?? [])

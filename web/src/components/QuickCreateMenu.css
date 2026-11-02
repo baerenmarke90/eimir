@@ -13,14 +13,18 @@
   box-shadow: var(--shadow-soft);
   font-weight: 800;
   transition:
+    scale var(--duration-feedback) var(--easing-standard),
+    filter var(--duration-feedback) var(--easing-standard),
     transform var(--duration-feedback) var(--easing-standard),
     border-color var(--duration-feedback) var(--easing-standard),
     box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
-.quick-create-polished .quick-create-trigger:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-card);
+@media (hover: hover) and (pointer: fine) {
+  .quick-create-polished .quick-create-trigger:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-card);
+  }
 }
 
 .quick-create-polished .quick-create-trigger[aria-expanded="true"] {
@@ -107,6 +111,8 @@
   box-shadow: 0 2px 6px var(--color-shadow-soft);
   text-decoration: none;
   transition:
+    scale var(--duration-feedback) var(--easing-standard),
+    filter var(--duration-feedback) var(--easing-standard),
     transform var(--duration-feedback) var(--easing-standard),
     border-color var(--duration-feedback) var(--easing-standard),
     background var(--duration-feedback) var(--easing-standard);
@@ -221,15 +227,23 @@
   justify-content: center;
   transform: translateY(-4px);
   transition:
+    scale var(--duration-feedback) var(--easing-standard),
+    filter var(--duration-feedback) var(--easing-standard),
     transform var(--duration-feedback) var(--easing-standard),
     box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
-.mobile-quick-create .quick-create-trigger:hover,
-.mobile-quick-create .quick-create-trigger:active,
-.mobile-quick-create .quick-create-trigger:focus-visible {
-  transform: translateY(-5px) scale(1.04);
-  box-shadow: 0 6px 18px var(--color-shadow-brand);
+@media (hover: hover) and (pointer: fine) {
+  .mobile-quick-create .quick-create-trigger:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 18px var(--color-shadow-brand);
+  }
+}
+
+.mobile-quick-create .quick-create-trigger:active {
+  transform: translateY(-4px);
+  scale: var(--control-pressed-scale-emphasis);
+  filter: brightness(var(--control-pressed-brightness));
 }
 
 .mobile-quick-create .quick-create-trigger .shell-nav-icon {
@@ -392,6 +406,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .quick-create-polished .quick-create-trigger,
+  .mobile-quick-create .quick-create-trigger,
   .quick-create-polished .quick-create-tile {
     transition: none;
   }
@@ -403,5 +418,12 @@
 
   .quick-create-mobile-sheet {
     animation: none;
+  }
+
+  .mobile-quick-create .quick-create-trigger,
+  .mobile-quick-create .quick-create-trigger:hover,
+  .mobile-quick-create .quick-create-trigger:active {
+    transform: translateY(-4px);
+    scale: none;
   }
 }

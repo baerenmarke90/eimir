@@ -113,6 +113,15 @@ declare('page-gutter-narrow', value('layout.mobileGutterNarrow'));
 declare('page-gutter-comfortable', value('layout.mobileGutter'));
 declare('page-gutter', 'var(--page-gutter-narrow)');
 declare('duration-feedback', value('motion.duration.fast'));
+declare('control-pressed-scale', value('motion.feedback.pressedScale'));
+declare(
+  'control-pressed-scale-emphasis',
+  value('motion.feedback.emphasizedPressedScale'),
+);
+declare(
+  'control-pressed-brightness',
+  value('motion.feedback.pressedBrightness'),
+);
 declare('duration-transition', value('motion.duration.standard'));
 declare('duration-context', value('motion.duration.emphasized'));
 for (const role of ['standard', 'enter', 'exit', 'playback']) {

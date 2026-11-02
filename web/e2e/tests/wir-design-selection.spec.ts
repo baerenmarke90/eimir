@@ -352,6 +352,83 @@ for (const [width, theme] of [
   });
 }
 
+for (const [width, theme, reduced] of [
+  [360, 'light', false],
+  [390, 'dark', false],
+  [430, 'light', true],
+  [1280, 'dark', false],
+] as const) {
+  test(`shape-following press and keyboard focus at ${width} ${theme}${reduced ? ' reduced' : ''}`, async ({
+    browser,
+  }, info) => {
+    const context = await browser.newContext({
+      viewport: { width, height: 900 },
+      isMobile: width < 840,
+      hasTouch: true,
+      colorScheme: theme,
+      reducedMotion: reduced ? 'reduce' : 'no-preference',
+    });
+    const page = await context.newPage();
+    try {
+      const f = await fixture(page);
+      await signIn(page);
+      await page.goto('/today');
+      await expect(page.locator('.today-content')).toBeVisible();
+      const control = page.locator(
+        '.product-shell .quick-create-trigger:visible',
+      );
+      const state = await control.evaluate((node) => {
+        const css = getComputedStyle(node);
+        return {
+          highlight: css.webkitTapHighlightColor,
+          radius: css.borderRadius,
+          transform: css.transform,
+        };
+      });
+      expect(state.highlight).toBe('rgba(0, 0, 0, 0)');
+      if (width < 840) expect(state.radius).toBe('50%');
+      const bounds = await control.boundingBox();
+      if (!bounds) throw new Error('Create control is not laid out');
+      const session = await context.newCDPSession(page);
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [
+          { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 },
+        ],
+      });
+      try {
+        await expect
+          .poll(() => control.evaluate((node) => getComputedStyle(node).scale))
+          .toBe(reduced ? 'none' : width < 840 ? '0.96' : '0.98');
+        await captureScreenshot(
+          page,
+          info,
+          `shell-control-press-${width}-${theme}${reduced ? '-reduced' : ''}.png`,
+        );
+      } finally {
+        await session.send('Input.dispatchTouchEvent', {
+          type: 'touchEnd',
+          touchPoints: [],
+        });
+      }
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await page.keyboard.press('Tab');
+      await control.focus();
+      expect(
+        await control.evaluate((node) => node.matches(':focus-visible')),
+      ).toBe(true);
+      expect(
+        await control.evaluate((node) => getComputedStyle(node).outlineStyle),
+      ).not.toBe('none');
+      expect(f.unexpected).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
 for (const [width, theme, large] of [
   [320, 'light', false],
   [360, 'light', false],

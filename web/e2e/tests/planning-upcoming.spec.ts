@@ -1,3 +1,4 @@
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
@@ -158,6 +159,7 @@ async function installPlanningMocks(
   let converted = false;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
     const method = request.method();
@@ -536,7 +538,7 @@ test('Plans leads with the nearest intention, then later and undated Plans, whil
   await expect(plansPanel.locator('.planen-history')).toContainText(
     COMPLETED_TITLE,
   );
-  await captureR3Evidence(page, testInfo, 'r3-overview-dense-390-light.png');
+  await captureR3Evidence(page, testInfo, 'planning-overview-dense-390-light.png');
 
   await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
   await expect(
@@ -648,7 +650,7 @@ for (const scenario of [
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
     expect(overflow).toBeLessThanOrEqual(1);
-    await captureR3Evidence(page, testInfo, `r3-overview-${scenario.name}.png`);
+    await captureR3Evidence(page, testInfo, `planning-overview-${scenario.name}.png`);
   });
 }
 

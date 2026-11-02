@@ -520,6 +520,11 @@ export function PlanProductPage({
               planId={plan.id}
               disabled={writesPending}
               canUpload={Boolean(apiBaseUrl && accessToken)}
+              photoSourceContext={
+                apiBaseUrl && accessToken && accountId
+                  ? { apiBaseUrl, accessToken, accountId }
+                  : undefined
+              }
               onChange={() => {
                 setPhotosChanged(true);
                 setEditDirty(true);

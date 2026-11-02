@@ -356,6 +356,11 @@ export function PlanningCreatePage({
               spaceId={spaceId}
               disabled={pending}
               canUpload={Boolean(apiBaseUrl && accessToken)}
+              photoSourceContext={
+                apiBaseUrl && accessToken && accountId
+                  ? { apiBaseUrl, accessToken, accountId }
+                  : undefined
+              }
               onChange={() => setEnrichmentDirty(true)}
             />
           ) : null}
@@ -478,26 +483,6 @@ export function PlanningCreatePage({
               </div>
             </details>
           ) : null}
-
-          <div
-            className="planen-shared-note planning-create-sharing"
-            role="note"
-            aria-label={t('m5s3.plan.sharedTitle')}
-          >
-            <span className="planen-shared-note-icon" aria-hidden="true">
-              <DestinationIcon icon="people" />
-            </span>
-            <div>
-              <strong>{t('m5s3.plan.sharedTitle')}</strong>
-              <p>
-                {t(
-                  kind === 'wish'
-                    ? 'm5s3.wish.sharedBody'
-                    : 'm5s3.plan.sharedBody',
-                )}
-              </p>
-            </div>
-          </div>
         </fieldset>
 
         <div className="form-actions planning-task-actions">

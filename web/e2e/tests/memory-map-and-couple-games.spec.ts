@@ -111,7 +111,40 @@ for (const [width, theme] of [
     );
     await place.hover();
     if (width !== 430) await expect(place).toHaveCSS('transform', 'none');
-    await place.click();
+    const expand = page.getByRole('button', {
+      name: mapCopy.fullscreen,
+      exact: true,
+    });
+    await expand.click();
+    const fullscreen = page.getByRole('dialog', { name: mapCopy.title });
+    await expect(fullscreen).toBeVisible();
+    const viewport = await fullscreen
+      .locator('.place-map-viewport')
+      .boundingBox();
+    expect(viewport?.height).toBeGreaterThan(500);
+    await captureScreenshot(
+      page,
+      info,
+      `planning-map-fullscreen-${width}-${theme}.png`,
+    );
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .include('.memory-map-fullscreen')
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect(fullscreen).toBeHidden();
+    await expect(expand).toBeFocused();
+    await expand.click();
+    await expect(fullscreen).toBeVisible();
+    await page.goBack();
+    await expect(fullscreen).toBeHidden();
+    await expect(page).toHaveURL(/\/story\/map/);
+    await expand.click();
+    await fullscreen.locator('.memory-map-marker').click();
+    await expect(fullscreen).toBeHidden();
     const memory = page.getByRole('link', { name: /Afternoon by the canal/ });
     await expect(memory).toHaveAttribute('href', '/story/memories/mem-canal');
     await expect(memory.locator('.memory-map-thumbnail img')).toBeVisible();
@@ -138,6 +171,21 @@ for (const [width, theme] of [
     await expect(
       page.getByRole('link', { name: /Afternoon by the canal/ }),
     ).toBeVisible();
+    await page.goto('/more/settings/account');
+    await expect(page.locator('.settings-pro-information h2')).toHaveText(
+      'eimir. Pro',
+    );
+    await expect(page.locator('.settings-pro-information li')).toHaveCount(4);
+    await captureScreenshot(page, info, `planning-pro-${width}-${theme}.png`, {
+      fullPage: true,
+    });
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .include('.settings-pro-information')
+          .analyze()
+      ).violations,
+    ).toEqual([]);
   });
 }
 

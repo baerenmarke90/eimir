@@ -7,6 +7,8 @@ import { expect, type Page, test } from '@playwright/test';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import m5s3 from '../../src/i18n/locales/m5s3';
 import photoSources from '../../src/i18n/locales/photoSources';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
@@ -34,6 +36,7 @@ interface PhotoSourceScenario {
   canImport: boolean;
   links: { origin: string; apiKey: string; consent: boolean }[];
   starts: number;
+  maxItems?: number;
   originals: number;
   cancelled: number;
   disconnected: number;
@@ -181,7 +184,9 @@ for (const [width, colorScheme] of [
         consent: true,
       },
     ]);
-    await sheet.getByLabel(photoSources.accept, { exact: true }).check();
+    await expect(
+      sheet.getByLabel(photoSources.accept, { exact: true }),
+    ).toHaveCount(0);
     await sheet.getByRole('button', { name: photoSources.continue }).click();
     await sheet.getByLabel('Foto 1', { exact: true }).check();
     await sheet.getByLabel('Foto 2', { exact: true }).check();
@@ -251,7 +256,9 @@ test('Google browser authorization returns selected copies to the unsaved diary'
   await page.getByRole('button', { name: photoSources.more }).click();
   const sheet = page.getByRole('dialog', { name: photoSources.title });
   await sheet.getByLabel(photoSources.google, { exact: true }).check();
-  await sheet.getByLabel(photoSources.accept, { exact: true }).check();
+  await expect(
+    sheet.getByLabel(photoSources.accept, { exact: true }),
+  ).toHaveCount(0);
   await sheet.getByRole('button', { name: photoSources.continue }).click();
   await expect(sheet).toBeHidden({ timeout: 15_000 });
   expect(externalUrls).toEqual(['https://accounts.google.com/authorize']);
@@ -305,7 +312,9 @@ test('closing a pending source transfer keeps authored words and rejects late ph
     .fill(AUTHORED_BODY);
   await page.getByRole('button', { name: photoSources.more }).click();
   const sheet = page.getByRole('dialog', { name: photoSources.title });
-  await sheet.getByLabel(photoSources.accept, { exact: true }).check();
+  await expect(
+    sheet.getByLabel(photoSources.accept, { exact: true }),
+  ).toHaveCount(0);
   await sheet.getByRole('button', { name: photoSources.continue }).click();
   await sheet.getByLabel('Foto 1', { exact: true }).check();
   await sheet.getByRole('button', { name: photoSources.import }).click();
@@ -357,7 +366,9 @@ test('offline source import at narrow large text preserves the diary draft', asy
     .fill(AUTHORED_BODY);
   await page.getByRole('button', { name: photoSources.more }).click();
   const sheet = page.getByRole('dialog', { name: photoSources.title });
-  await sheet.getByLabel(photoSources.accept, { exact: true }).check();
+  await expect(
+    sheet.getByLabel(photoSources.accept, { exact: true }),
+  ).toHaveCount(0);
   await sheet.getByRole('button', { name: photoSources.continue }).click();
   await sheet.getByLabel('Foto 1', { exact: true }).check();
   await expectNoHorizontalOverflow(page);
@@ -469,6 +480,7 @@ async function installApiMocks(
     }
     if (source && pathname === `/api/v1/spaces/${SPACE_ID}/photo-selections`) {
       source.starts++;
+      source.maxItems = request.postDataJSON().maxItems;
       expect(request.postDataJSON().consent).toBe(true);
       if (source.googleAvailable)
         expect(request.postDataJSON().mediaRecoveryPolicy).toBe(
@@ -2282,5 +2294,174 @@ for (const [width, colorScheme] of [
     );
     expect(photos.creates).toBe(1);
     expect(photos.uploaded).toHaveLength(4);
+  });
+}
+
+for (const kind of ['plan', 'heart'] as const) {
+  test(`connected photo source saves to the canonical ${kind} without duplicate consent`, async ({
+    page,
+  }, info) => {
+    const photos = emptyPhotoBatch();
+    const source = sourceScenario(true);
+    await page.setViewportSize({
+      width: kind === 'heart' ? 360 : 430,
+      height: 900,
+    });
+    await page.emulateMedia({
+      colorScheme: kind === 'heart' ? 'dark' : 'light',
+      reducedMotion: 'reduce',
+    });
+    await signInAndOpenMemoryCreate(page, photos, source);
+    await page.route(/\/places(?:\?.*)?$/, (route) =>
+      route.fulfill({ json: { items: [], nextCursor: null } }),
+    );
+    let saved: Record<string, unknown> | null = null;
+    let submitted: Record<string, unknown> | null = null;
+    const domain = kind === 'heart' ? 'heart-moments' : 'plans';
+    await page.route(
+      new RegExp(`/api/v1/spaces/${SPACE_ID}/${domain}(?:/[^/?]+)?(?:\\?.*)?$`),
+      async (route) => {
+        if (route.request().method() === 'POST') {
+          submitted = route.request().postDataJSON();
+          const input = submitted as Record<string, unknown>;
+          const bindings =
+            kind === 'heart'
+              ? [{ attachmentId: input.attachmentId, position: 0 }]
+              : (input.attachments as {
+                  attachmentId: string;
+                  position: number;
+                }[]);
+          const gallery = bindings.map((binding) => ({
+            ...binding,
+            id: binding.attachmentId,
+            status: 'READY',
+            mediaType: 'IMAGE',
+            mimeType: 'image/jpeg',
+            width: 1200,
+            height: 800,
+            hasThumbnail: false,
+            isSensitive: false,
+            size: 100,
+            version: 1,
+            createdAt: TEST_NOW,
+          }));
+          saved = {
+            ...input,
+            id: MEMORY_ID,
+            spaceId: SPACE_ID,
+            version: 1,
+            createdAt: TEST_NOW,
+            updatedAt: TEST_NOW,
+            creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+            createdBy: ACCOUNT_ID,
+            author: { accountId: ACCOUNT_ID, displayName: 'Anna' },
+            authorId: ACCOUNT_ID,
+            capabilities: {
+              canEdit: true,
+              canDelete: true,
+              canComment: kind === 'plan',
+            },
+            ...(kind === 'heart'
+              ? { attachment: gallery[0] }
+              : {
+                  status: 'IDEA',
+                  plannedOn: null,
+                  plannedStart: null,
+                  plannedEnd: null,
+                  experiencedOn: null,
+                  sourceWishId: null,
+                  placeId: null,
+                  description: null,
+                  attachments: gallery,
+                  coverAttachment: gallery[0],
+                }),
+          };
+          await route.fulfill({ status: 201, json: saved });
+        } else if (
+          new URL(route.request().url()).pathname.endsWith(`/${domain}`)
+        ) {
+          const status = new URL(route.request().url()).searchParams.get(
+            'status',
+          );
+          await route.fulfill({
+            json: {
+              items: saved && (!status || status === 'IDEA') ? [saved] : [],
+              nextCursor: null,
+            },
+          });
+        } else await route.fulfill({ json: saved });
+      },
+    );
+    await page.goto(
+      kind === 'heart' ? '/story/heart-moments/new' : '/plan/plans/new',
+    );
+    const text =
+      kind === 'heart'
+        ? storyProducts.heartMomentProduct.textLabel
+        : m5s3.plan.intentionLabel;
+    await page.getByLabel(text, { exact: true }).fill(AUTHORED_BODY);
+    if (kind === 'heart')
+      await page
+        .getByLabel(storyProducts.heartMomentProduct.visibilityPrivate, {
+          exact: true,
+        })
+        .check();
+    else await expect(page.locator('.planning-create-sharing')).toHaveCount(0);
+    await page.getByRole('button', { name: photoSources.more }).click();
+    const sheet = page.getByRole('dialog', { name: photoSources.title });
+    await expect(
+      sheet.getByLabel(photoSources.accept, { exact: true }),
+    ).toHaveCount(0);
+    await sheet.getByRole('button', { name: photoSources.continue }).click();
+    await sheet.getByLabel('Foto 1', { exact: true }).check();
+    if (kind === 'heart')
+      await expect(sheet.getByLabel('Foto 2', { exact: true })).toBeDisabled();
+    else await sheet.getByLabel('Foto 2', { exact: true }).check();
+    await sheet.getByRole('button', { name: photoSources.import }).click();
+    await expect(sheet).toBeHidden();
+    const count = kind === 'heart' ? 1 : 2;
+    await expect(page.locator('.photo-draft-tile')).toHaveCount(count);
+    await expect(
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+    ).toHaveCount(count);
+    expect(source.maxItems).toBe(kind === 'heart' ? 1 : 20);
+    await expect(page.getByLabel(text, { exact: true })).toHaveValue(
+      AUTHORED_BODY,
+    );
+    await captureScreenshot(page, info, `planning-source-${kind}.png`, {
+      fullPage: true,
+    });
+    await page
+      .getByRole('button', {
+        name:
+          kind === 'heart'
+            ? storyProducts.heartMomentProduct.save
+            : m5s3.common.save,
+        exact: true,
+      })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`/${domain}/${MEMORY_ID}$`));
+    if (kind === 'heart')
+      expect(submitted).toMatchObject({
+        visibility: 'PRIVATE',
+        attachmentId: photos.finalized[0],
+      });
+    else
+      expect(submitted).toMatchObject({
+        attachments: photos.finalized.map((attachmentId, position) => ({
+          attachmentId,
+          position,
+          isSensitive: false,
+        })),
+      });
+    expect(source.originals).toBe(count);
+    await expect(page.getByText(AUTHORED_BODY, { exact: true })).toBeVisible();
+    await captureScreenshot(page, info, `planning-source-${kind}-result.png`, {
+      fullPage: true,
+    });
+    await page.locator('.shell-detail-back').click();
+    await expect(page).toHaveURL(
+      kind === 'heart' ? /\/story(?:\?|$)/ : /\/plan(?:#|$)/,
+    );
   });
 }

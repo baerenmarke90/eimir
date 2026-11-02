@@ -94,7 +94,7 @@
     },
     "memory-create-defaults.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 28,
+      "baselineTests": 30,
       "reason": "Also protects bounded dense photo selection, exact persisted order and saved/new interleaving."
     },
     "memory-diary-storage.spec.ts": {

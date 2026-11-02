@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { DashboardAnticipation } from '../api/generated/models/DashboardAnticipation';
 import { planDetailPath } from '../client/routes';
 import { formatCalendarDate } from '../client/formatRecency';
+import { planScheduleLabel } from '../client/planningPresentation';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import './RelationshipReflections.css';
@@ -57,9 +58,19 @@ export function AnticipationCard({ value }: { value: DashboardAnticipation }) {
           <strong>{value.title}</strong>
           <time
             className="anticipation-date"
-            dateTime={value.eventOn.toISOString().slice(0, 10)}
+            dateTime={
+              timed
+                ? value.eventAt?.toISOString()
+                : value.eventOn.toISOString().slice(0, 10)
+            }
           >
-            {formatCalendarDate(value.eventOn)}
+            {timed
+              ? planScheduleLabel({
+                  plannedOn: null,
+                  plannedStart: value.eventAt ?? null,
+                  plannedEnd: null,
+                })
+              : formatCalendarDate(value.eventOn)}
           </time>
         </span>
       </span>

@@ -712,16 +712,63 @@
     grid-row: 2;
   }
 }
-.settings-pro-information {
-  padding-block: var(--space-4);
-  border-block-end: var(--border-surface-width) solid var(--color-border-subtle);
+/* Pro uses the same heading-outside-surface anatomy as other settings sections. */
+.settings-pro-information > h2 {
+  margin: 0 0 var(--space-3);
+  font: var(--font-section-heading);
+}
+.settings-pro-surface {
+  min-width: 0;
+  padding: var(--space-5);
+  border-radius: var(--radius-content);
+  background: linear-gradient(
+    135deg,
+    var(--color-page-tint-brand),
+    var(--color-page-tint-shared)
+  );
+}
+.settings-pro-lead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.settings-pro-lead > .eimir-icon {
+  flex-shrink: 0;
+  width: var(--space-10);
+  height: var(--space-10);
+  color: var(--color-brand-text);
+}
+.settings-pro-lead h3 {
+  margin: 0;
+  font: var(--font-section-heading);
+}
+.settings-pro-lead p {
+  margin-block: var(--space-2) 0;
+  color: var(--color-text-secondary);
 }
 .settings-pro-information ul {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-5);
+  margin-block: var(--space-6);
   padding: 0;
   list-style: none;
 }
-.settings-pro-information li p {
+.settings-pro-information li {
+  display: grid;
+  grid-template-columns: var(--space-6) minmax(0, 1fr);
+  gap: var(--space-3);
+  overflow-wrap: anywhere;
+}
+.settings-pro-information li > .eimir-icon {
+  color: var(--color-brand-text);
+}
+.settings-pro-information li p,
+.settings-pro-assurance {
   margin-block: var(--space-1) 0;
+  color: var(--color-text-secondary);
+}
+@media (min-width: 840px) {
+  .settings-pro-information ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }

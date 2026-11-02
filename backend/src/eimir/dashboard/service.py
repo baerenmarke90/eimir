@@ -493,7 +493,10 @@ def _keepsake(
     memories = list(
         session.execute(
             readable(Memory, authorization)
-            .order_by(Memory.created_at.desc(), Memory.id)
+            .order_by(
+                func.coalesce(Memory.happened_on, cast(Memory.created_at, Date)).desc(),
+                Memory.id,
+            )
             .limit(KEEPSAKE_SCAN_LIMIT)
         ).scalars()
     )
@@ -668,6 +671,20 @@ def _upcoming_sort_key(
     return day, timing_rank, wall_clock, item.type.value, str(item.id)
 
 
+def _recent_item_sort_key(item: DashboardItem) -> tuple[int, float, str, str]:
+    """Content dates own recency; creation is a fallback for undated utilities."""
+    instant = item.scheduled_at or item.created_at
+    day = item.occurred_on
+    if day is None:
+        day = clock.ensure_utc(instant).date() if instant is not None else date.min
+    return (
+        -day.toordinal(),
+        -instant.timestamp() if item.occurred_on is None and instant is not None else 0,
+        item.type.value,
+        str(item.id),
+    )
+
+
 def _recent_shared(
     session: Session,
     authorization: AuthorizationContext,
@@ -677,7 +694,10 @@ def _recent_shared(
     memories = list(
         session.execute(
             readable(Memory, authorization)
-            .order_by(Memory.created_at.desc(), Memory.id)
+            .order_by(
+                func.coalesce(Memory.happened_on, cast(Memory.created_at, Date)).desc(),
+                Memory.id,
+            )
             .limit(SECTION_LIMIT)
         ).scalars()
     )
@@ -705,7 +725,10 @@ def _recent_shared(
 
     for milestone in session.execute(
         readable(Milestone, authorization)
-        .order_by(Milestone.created_at.desc(), Milestone.id)
+        .order_by(
+            func.coalesce(Milestone.happened_on, cast(Milestone.created_at, Date)).desc(),
+            Milestone.id,
+        )
         .limit(SECTION_LIMIT)
     ).scalars():
         candidates.append(
@@ -721,7 +744,10 @@ def _recent_shared(
     for heart_moment in session.execute(
         readable(HeartMoment, authorization)
         .where(HeartMoment.privacy_class == PrivacyClass.SPACE_SHARED.value)
-        .order_by(HeartMoment.created_at.desc(), HeartMoment.id)
+        .order_by(
+            func.coalesce(HeartMoment.happened_on, cast(HeartMoment.created_at, Date)).desc(),
+            HeartMoment.id,
+        )
         .limit(SECTION_LIMIT)
     ).scalars():
         candidates.append(
@@ -747,13 +773,22 @@ def _recent_shared(
         )
 
     for plan in session.execute(
-        readable(Plan, authorization).order_by(Plan.created_at.desc(), Plan.id).limit(SECTION_LIMIT)
+        readable(Plan, authorization)
+        .order_by(
+            func.coalesce(
+                Plan.planned_on, cast(Plan.planned_start, Date), cast(Plan.created_at, Date)
+            ).desc(),
+            Plan.id,
+        )
+        .limit(SECTION_LIMIT)
     ).scalars():
         candidates.append(
             DashboardItem(
                 type=DashboardItemType.PLAN,
                 id=plan.id,
                 title_or_text=_bounded(plan.payload.title),
+                occurred_on=plan.planned_on,
+                scheduled_at=plan.planned_start,
                 created_at=plan.created_at,
             )
         )
@@ -774,7 +809,10 @@ def _recent_shared(
 
     for chapter in session.execute(
         readable(Chapter, authorization)
-        .order_by(Chapter.created_at.desc(), Chapter.id)
+        .order_by(
+            func.coalesce(Chapter.start_on, cast(Chapter.created_at, Date)).desc(),
+            Chapter.id,
+        )
         .limit(SECTION_LIMIT)
     ).scalars():
         candidates.append(
@@ -801,13 +839,7 @@ def _recent_shared(
             )
         )
 
-    candidates.sort(
-        key=lambda item: (
-            -(item.created_at.timestamp() if item.created_at is not None else 0),
-            item.type.value,
-            str(item.id),
-        )
-    )
+    candidates.sort(key=_recent_item_sort_key)
     return candidates[:SECTION_LIMIT]
 
 

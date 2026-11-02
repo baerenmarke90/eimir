@@ -1,3 +1,4 @@
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 import { readFile, writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
@@ -84,6 +85,7 @@ async function installApiMocks(page: Page): Promise<string[]> {
   };
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     if (await fulfillEmptyMomentPlaces(route)) return;
     const request = route.request();
     const method = request.method();

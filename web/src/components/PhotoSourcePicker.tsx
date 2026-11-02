@@ -100,6 +100,7 @@ export function PhotoSourcePicker({
   spaceId,
   remaining,
   beginSelection,
+  disabled = false,
 }: {
   apiBaseUrl: string;
   accessToken: string;
@@ -107,6 +108,7 @@ export function PhotoSourcePicker({
   spaceId: string;
   remaining: number;
   beginSelection: () => AttachmentDraftSelection;
+  disabled?: boolean;
 }) {
   const { t } = useTranslation();
   const api = useMemo(
@@ -337,7 +339,7 @@ export function PhotoSourcePicker({
 
   async function start() {
     const owner = lifetime.current;
-    if (!consent || busy || remaining <= 0) return;
+    if (disabled || busy || remaining <= 0) return;
     if (!navigator.onLine) {
       setMessage(t('photoSources.offline'));
       return;
@@ -448,6 +450,7 @@ export function PhotoSourcePicker({
         ref={trigger}
         type="button"
         className="secondary photo-source-trigger"
+        disabled={disabled || remaining <= 0}
         onClick={() => {
           setMessage('');
           setConsent(false);
@@ -492,7 +495,7 @@ export function PhotoSourcePicker({
               <button
                 type="button"
                 disabled={
-                  !consent ||
+                  disabled ||
                   busy ||
                   remaining <= 0 ||
                   (source === 'immich' && !availability.immichConnected)
@@ -670,24 +673,13 @@ export function PhotoSourcePicker({
               </div>
             ) : null}
             {canImport ? (
-              <>
-                <p>
-                  {t(
-                    source === 'google'
-                      ? 'photoSources.googleConsent'
-                      : 'photoSources.consent',
-                  )}
-                </p>
-                <label className="photo-source-consent">
-                  <input
-                    type="checkbox"
-                    checked={consent}
-                    disabled={busy}
-                    onChange={(event) => setConsent(event.target.checked)}
-                  />
-                  {t('photoSources.accept')}
-                </label>
-              </>
+              <p>
+                {t(
+                  source === 'google'
+                    ? 'photoSources.googleConsent'
+                    : 'photoSources.consent',
+                )}
+              </p>
             ) : null}
           </>
         )}

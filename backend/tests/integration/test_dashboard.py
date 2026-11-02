@@ -961,3 +961,44 @@ def test_thinking_of_you_available_at_reflects_server_authoritative_cooldown(
     after_cooldown = _dashboard(client, couple)
     assert after_cooldown.status_code == 200
     assert after_cooldown.json()["thinkingOfYouAvailableAt"] is None
+
+
+@pytest.mark.parametrize("kind", ["memory", "heart", "milestone"])
+def test_recent_content_dates_survive_late_historical_backfills(
+    client, session: Session, couple, monkeypatch, kind: str
+) -> None:  # type: ignore[no-untyped-def]
+    """Apply content recency before each bounded query and the combined limit."""
+    _freeze(monkeypatch)
+
+    def entry(label: str, happened: date, created: datetime):  # type: ignore[no-untyped-def]
+        common = dict(
+            **_resource(couple, couple["anna"].id),
+            happened_on=happened,
+            created_at=created,
+        )
+        if kind == "memory":
+            return Memory(**common, payload=MemoryPayload(title=label, body=label))
+        if kind == "heart":
+            return HeartMoment(
+                **common, payload=HeartMomentPayload(text=label, emotion=HeartEmotion.LOVED)
+            )
+        return Milestone(**common, payload=MilestonePayload(title=label))
+
+    current = entry("Current experience", FIXED_NOW.date(), FIXED_NOW - timedelta(days=30))
+    backfills = [
+        entry(f"Historical backfill {index}", date(2024, 1, 1), FIXED_NOW)
+        for index in range(dashboard_service.SECTION_LIMIT + 2)
+    ]
+    session.add_all([current, *backfills])
+    session.flush()
+    if kind == "memory":
+        _bind_ready_photo(session, current, "current.jpg")
+        _bind_ready_photo(session, backfills[0], "historical.jpg")
+    response = _dashboard(client, couple)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["recentShared"][0]["id"] == str(current.id)
+    assert body["recentShared"][0]["occurredOn"] == FIXED_NOW.date().isoformat()
+    assert len(body["recentShared"]) == dashboard_service.SECTION_LIMIT
+    if kind == "memory":
+        assert body["keepsake"]["id"] == str(current.id)

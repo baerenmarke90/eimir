@@ -28,7 +28,7 @@ describe('planning presentation', () => {
     };
 
     expect(planScheduleLabel(plan, 'de-DE')).toBe(
-      'Sa., 5. Sept. · 10:00–11:30',
+      'Sa., 5. Sept. · 10:00–11:30 Uhr',
     );
     expect(planPillLabel(i18n.t, plan)).toContain('10:00–11:30');
   });
@@ -43,6 +43,6 @@ describe('planning presentation', () => {
       'de-DE',
     );
 
-    expect(label).toBe('Sa., 5. Sept. · 22:00 – So., 6. Sept. · 01:15');
+    expect(label).toBe('Sa., 5. Sept. · 22:00 Uhr – So., 6. Sept. · 01:15 Uhr');
   });
 });

@@ -1,5 +1,6 @@
 const m5s3 = {
   common: {
+    timeWithUnit: '{{time}} Uhr',
     shortBackToMore: '← Mehr',
     shortBackToPlaces: '← Orte',
     shortBackToCollections: '← Listen',

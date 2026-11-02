@@ -1,3 +1,4 @@
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { type ReactNode, useContext, useEffect } from 'react';
 import { usePreviewLoadGate } from '../client/usePreviewLoadGate';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
@@ -12,6 +13,7 @@ import { useTranslation } from '../i18n';
 export function MemoryPreview({
   memoryId,
   attachmentId,
+  hasThumbnail = false,
   loadImage,
   loadingMode = 'immediate',
   resourceScopeKey,
@@ -24,11 +26,13 @@ export function MemoryPreview({
   isSensitive?: boolean;
   allowReveal?: boolean;
   attachmentId: string;
+  hasThumbnail?: boolean;
   loadImage: (
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+    variant?: 'original' | 'thumbnail',
+  ) => Promise<ObjectUrlSource>;
   loadingMode?: 'immediate' | 'near-viewport';
   resourceScopeKey?: string;
   /** Resource completion, including reuse/failure; never grants media visibility. */
@@ -49,9 +53,12 @@ export function MemoryPreview({
   const revealed = isSensitive === true && reveals.isRevealed(attachmentId);
 
   const mediaResource = useObjectUrlResource(
-    scope,
+    hasThumbnail ? `${scope}:thumbnail` : scope,
     shouldLoad && typeof isSensitive === 'boolean' ? attachmentId : null,
-    (_resourceId, signal) => loadImage(memoryId, attachmentId, signal),
+    (_resourceId, signal) =>
+      hasThumbnail
+        ? loadImage(memoryId, attachmentId, signal, 'thumbnail')
+        : loadImage(memoryId, attachmentId, signal),
   );
   const url = mediaResource.url;
   const failed = mediaResource.error !== null;

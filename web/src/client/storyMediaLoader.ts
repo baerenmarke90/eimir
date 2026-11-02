@@ -8,6 +8,8 @@ import {
   loadCachedMediaBlob,
 } from './authorizedMediaCache';
 import { clientProblemKind, normalizeClientError } from './problemDetails';
+import { acquireMediaObjectUrl } from './sharedMediaObjectUrls';
+import type { OwnedObjectUrl } from './objectUrlResource';
 
 export type StoryMediaParentType = Extract<
   AttachmentReadRequestParentTypeEnum,
@@ -27,14 +29,14 @@ type StoryMediaLoaderOptions = {
  * STREAM descriptors reuse the configured generated API client so its bearer
  * token and base path remain authoritative.
  */
-export async function loadAuthorizedStoryImage(
+async function loadAuthorizedStoryBlob(
   apis: ReferenceApis,
   spaceId: string,
   parentType: StoryMediaParentType,
   parentId: string,
   attachmentId: string,
   options: StoryMediaLoaderOptions = {},
-): Promise<string> {
+): Promise<Blob> {
   const parentIdentity = ['attachment', parentType, parentId];
   const lease = captureMediaCacheLease(
     apis.attachments,
@@ -88,7 +90,7 @@ export async function loadAuthorizedStoryImage(
     );
 
     assertMediaCacheLease(lease);
-    return (options.createObjectUrl ?? URL.createObjectURL)(blob);
+    return blob;
   } catch (error) {
     const problem = await normalizeClientError(error);
     if (
@@ -100,4 +102,60 @@ export async function loadAuthorizedStoryImage(
     }
     throw error;
   }
+}
+
+/** Compatibility adapter for callers that still own a single string URL. */
+export async function loadAuthorizedStoryImage(
+  apis: ReferenceApis,
+  spaceId: string,
+  parentType: StoryMediaParentType,
+  parentId: string,
+  attachmentId: string,
+  options: StoryMediaLoaderOptions = {},
+): Promise<string> {
+  const blob = await loadAuthorizedStoryBlob(
+    apis,
+    spaceId,
+    parentType,
+    parentId,
+    attachmentId,
+    options,
+  );
+  return (options.createObjectUrl ?? URL.createObjectURL)(blob);
+}
+
+/** Reuse a decoded URL after authorization; views release handles, never shared URLs. */
+export async function loadAuthorizedStoryImageResource(
+  apis: ReferenceApis,
+  spaceId: string,
+  parentType: StoryMediaParentType,
+  parentId: string,
+  attachmentId: string,
+  options: StoryMediaLoaderOptions = {},
+): Promise<OwnedObjectUrl> {
+  const lease = captureMediaCacheLease(apis.attachments, spaceId, [
+    'attachment',
+    parentType,
+    parentId,
+  ]);
+  const blob = await loadAuthorizedStoryBlob(
+    apis,
+    spaceId,
+    parentType,
+    parentId,
+    attachmentId,
+    options,
+  );
+  options.signal?.throwIfAborted();
+  assertMediaCacheLease(lease);
+  const key = JSON.stringify([
+    lease.scope.id,
+    spaceId,
+    'attachment',
+    parentType,
+    parentId,
+    attachmentId,
+    options.variant ?? 'original',
+  ]);
+  return acquireMediaObjectUrl(key, blob, options.variant === 'thumbnail');
 }

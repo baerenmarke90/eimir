@@ -51,11 +51,8 @@ import {
   refreshSessionTokens,
   storeSession,
 } from './client/sessionPersistence';
-import {
-  createReferenceApis,
-  loadAuthorizedImage,
-  loadAuthorizedMedia,
-} from './client/referenceFlow';
+import { createReferenceApis } from './client/referenceFlow';
+import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
 import { loadInstanceAccessStatus } from './client/instanceStatus';
 import {
   stopNativePushForSignedOutAccount,
@@ -380,34 +377,39 @@ function AuthenticatedApp({
   }, [location.pathname]);
 
   const loadMemoryImage = useCallback(
-    (memoryId: string, attachmentId: string, signal?: AbortSignal) =>
-      loadAuthorizedImage(
+    (
+      memoryId: string,
+      attachmentId: string,
+      signal?: AbortSignal,
+      variant?: 'original' | 'thumbnail',
+    ) =>
+      loadAuthorizedStoryImageResource(
         apis,
-        apiBaseUrl,
-        tokens.accessToken,
         spaceId,
+        'MEMORY',
         memoryId,
         attachmentId,
-        fetch,
-        signal,
+        { signal, variant },
       ),
-    [apiBaseUrl, apis, spaceId, tokens.accessToken],
+    [apis, spaceId],
   );
 
   const loadHeartMomentAttachment = useCallback(
-    (heartMomentId: string, attachmentId: string, signal?: AbortSignal) =>
-      loadAuthorizedMedia(
+    (
+      heartMomentId: string,
+      attachmentId: string,
+      signal?: AbortSignal,
+      variant?: 'original' | 'thumbnail',
+    ) =>
+      loadAuthorizedStoryImageResource(
         apis,
-        apiBaseUrl,
-        tokens.accessToken,
         spaceId,
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
-        fetch,
-        signal,
+        { signal, variant },
       ),
-    [apiBaseUrl, apis, spaceId, tokens.accessToken],
+    [apis, spaceId],
   );
 
   async function refreshStory() {

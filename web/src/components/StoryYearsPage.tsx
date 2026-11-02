@@ -1,3 +1,4 @@
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -20,7 +21,7 @@ import {
   STORY_YEARS_ROUTE,
   storyYearPath,
 } from '../client/routes';
-import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
   aggregateStoryPages,
   storyCacheResourceId,
@@ -47,7 +48,7 @@ interface StoryYearsProps {
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
 }
 
@@ -267,14 +268,19 @@ export function StoryYearDetailPage({
   ]);
 
   const loadHeartMomentImage = useCallback(
-    (heartMomentId: string, attachmentId: string, signal?: AbortSignal) =>
-      loadAuthorizedStoryImage(
+    (
+      heartMomentId: string,
+      attachmentId: string,
+      signal?: AbortSignal,
+      variant?: 'original' | 'thumbnail',
+    ) =>
+      loadAuthorizedStoryImageResource(
         apis,
         spaceId,
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
-        { signal },
+        { signal, variant },
       ),
     [apis, spaceId],
   );

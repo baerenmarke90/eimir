@@ -1,3 +1,4 @@
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
@@ -137,7 +138,10 @@ export function MemoryPhotoGallery({
   accountId: string;
   scope: string;
   offline: boolean;
-  loadImage: (attachmentId: string, signal?: AbortSignal) => Promise<string>;
+  loadImage: (
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<ObjectUrlSource>;
   commentTriggerRef?: (element: HTMLSpanElement | null) => void;
 }) {
   const { t } = useTranslation();

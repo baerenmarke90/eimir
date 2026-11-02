@@ -1,3 +1,4 @@
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import {
   useIsMutating,
@@ -155,7 +156,7 @@ export function HeartMomentProductPage({
     heartMomentId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
 }) {
   const [commentHost, setCommentHost] = useState<HTMLSpanElement | null>(null);
   const { t } = useTranslation();

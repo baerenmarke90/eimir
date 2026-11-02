@@ -5,6 +5,7 @@ import {
   writeDurableMedia,
   evictDurableMedia,
 } from './durableMediaStore';
+import { evictMediaObjectUrls } from './sharedMediaObjectUrls';
 /** Session-memory byte ownership; views continue to own their Object URLs. */
 export interface MediaCacheScope {
   readonly id: number;
@@ -144,6 +145,7 @@ function prune(): void {
 /** Clear synchronously before any asynchronous persistent-cache cleanup. */
 export function clearAuthorizedMediaCache(): void {
   generation += 1;
+  evictMediaObjectUrls();
   clearDurableMediaStore();
   cached.clear();
   cachedBytes = 0;
@@ -165,6 +167,7 @@ export function evictAuthorizedMedia(
   if (diskPrefix) evictDurableMedia(diskPrefix.slice(0, -1));
   revocations.set(resourceKey, (revocations.get(resourceKey) ?? 0) + 1);
   const prefix = keyPrefix(lease, identityPrefix).slice(0, -1);
+  evictMediaObjectUrls(prefix);
   const matches = (key: string) =>
     key === `${prefix}]` || key.startsWith(`${prefix},`);
   for (const key of cached.keys()) {

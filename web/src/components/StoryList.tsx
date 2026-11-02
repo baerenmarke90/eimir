@@ -1,3 +1,4 @@
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useQuery } from '@tanstack/react-query';
 import {
   type MouseEvent,
@@ -222,12 +223,12 @@ export function StoryList({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
   loadHeartMomentImage: (
     heartMomentId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
   spaceId?: string;
   currentAccountId?: string;
@@ -342,6 +343,7 @@ export function StoryList({
                     <MemoryPreview
                       memoryId={imageEntityId}
                       attachmentId={imageAttachment.id}
+                      hasThumbnail={imageAttachment.hasThumbnail}
                       isSensitive={imageAttachment.isSensitive}
                       allowReveal
                       resourceScopeKey={`story-preview:${spaceId ?? ''}:${imageEntityId}`}

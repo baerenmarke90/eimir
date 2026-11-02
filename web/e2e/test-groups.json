@@ -12,6 +12,11 @@
     "LOWER_LEVEL": "Still runs in the full regression until equivalent lower-level coverage is committed and the browser case can be removed."
   },
   "specs": {
+    "media-url-continuity.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2,
+      "reason": "Compact/Expanded Story detail return must reuse the thumbnail URL and binary bytes while obtaining fresh parent authorization."
+    },
     "heart-moment-reading.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 6,

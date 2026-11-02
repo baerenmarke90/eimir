@@ -1,3 +1,4 @@
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import {
   useCallback,
   useEffect,
@@ -62,7 +63,10 @@ export function MediaGallery({
   renderPhotoReactions,
 }: {
   items: GalleryMediaItem[];
-  loadMedia: (attachmentId: string, signal?: AbortSignal) => Promise<string>;
+  loadMedia: (
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<ObjectUrlSource>;
   resourceScopeKey?: string;
   /** Custom thumbnail surface; originals are then loaded only for the active photo and neighbours. */
   renderPreviews?: (open: (index: number) => void) => ReactNode;

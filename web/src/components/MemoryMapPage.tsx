@@ -1,3 +1,4 @@
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import {
   lazy,
@@ -56,7 +57,7 @@ export function MemoryMapPage({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
   const { captureOrigin } = useTaskOrigin();

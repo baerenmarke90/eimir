@@ -116,7 +116,8 @@ export function MemoryMapPage({
     },
     getNextPageParam: (page) => page.nextCursor ?? undefined,
     retry: false,
-    gcTime: 0,
+    staleTime: 60_000,
+    gcTime: 30 * 60_000,
   });
   const locations = useMemo(() => {
     const grouped = new Map<
@@ -151,6 +152,7 @@ export function MemoryMapPage({
           memoryId={entry.memoryId}
           attachmentId={entry.previewAttachmentId}
           isSensitive={entry.previewIsSensitive}
+          hasThumbnail={entry.previewHasThumbnail}
           loadImage={loadMemoryImage}
           resourceScopeKey={`memory-map:${apiBaseUrl}:${accountId}:${spaceId}`}
           loadingMode="near-viewport"
@@ -257,10 +259,17 @@ export function MemoryMapPage({
                       </div>
                     }
                   >
-                    <MapCanvas
-                      locations={points}
-                      onLocationSelect={selectPlace}
-                    />
+                    {expanded ? (
+                      <div
+                        className="memory-map-placeholder"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <MapCanvas
+                        locations={points}
+                        onLocationSelect={selectPlace}
+                      />
+                    )}
                   </Suspense>
                 </AppErrorBoundary>
                 <ShortTaskSheet

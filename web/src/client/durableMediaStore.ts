@@ -4,6 +4,7 @@ export const DURABLE_MEDIA_MAX_ENTRIES = 512;
 export const DURABLE_MEDIA_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const DATABASE = 'eimir-authorized-media-v1';
 const STORE = 'media';
+const METADATA = 'metadata';
 const EPOCH_KEY = 'eimir-media-epoch-v1';
 interface Row {
   key: string;
@@ -12,6 +13,7 @@ interface Row {
   savedAt: number;
   usedAt: number;
 }
+type Metadata = Omit<Row, 'blob'> & { bytes: number };
 let tail: Promise<unknown> = Promise.resolve();
 function epoch(): string | undefined {
   try {
@@ -30,12 +32,27 @@ export function captureDurableMediaEpoch(): string | undefined {
 }
 async function database(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DATABASE, 1);
-    request.onupgradeneeded = () =>
-      request.result.createObjectStore(STORE, { keyPath: 'key' });
-    request.onsuccess = () => resolve(request.result);
+    const request = indexedDB.open(DATABASE, 2);
+    let abandoned = false;
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      // Disposable v1 entries have no independent size index. Discard them
+      // without materializing every old Blob during the one-time upgrade.
+      if (db.objectStoreNames.contains(STORE)) db.deleteObjectStore(STORE);
+      db.createObjectStore(STORE, { keyPath: 'key' });
+      db.createObjectStore(METADATA, { keyPath: 'key' });
+    };
+    request.onsuccess = () => {
+      const db = request.result;
+      db.onversionchange = () => db.close();
+      if (abandoned) db.close();
+      else resolve(db);
+    };
     request.onerror = () => reject(request.error);
-    request.onblocked = () => reject(new Error('Media store blocked'));
+    request.onblocked = () => {
+      abandoned = true;
+      reject(new Error('Media store blocked'));
+    };
   });
 }
 async function transaction<T>(
@@ -45,7 +62,7 @@ async function transaction<T>(
   const db = await database();
   try {
     return await new Promise<T>((resolve, reject) => {
-      const tx = db.transaction(STORE, mode);
+      const tx = db.transaction([STORE, METADATA], mode);
       let value: T;
       tx.oncomplete = () => resolve(value);
       tx.onerror = tx.onabort = () => reject(tx.error);
@@ -76,6 +93,7 @@ export function clearDurableMediaStore(): void {
   void enqueue(() =>
     transaction<void>('readwrite', (store) => {
       store.clear();
+      store.transaction.objectStore(METADATA).clear();
     }),
   );
 }
@@ -100,11 +118,12 @@ export async function readDurableMedia(
     void enqueue(async () => {
       if (epoch() !== capturedEpoch) return;
       await transaction<void>('readwrite', (store) => {
-        const request = store.get(key);
+        const metadata = store.transaction.objectStore(METADATA);
+        const request = metadata.get(key);
         request.onsuccess = () => {
-          const current = request.result as Row | undefined;
+          const current = request.result as Metadata | undefined;
           if (current?.savedAt === row.savedAt)
-            store.put({ ...current, usedAt: Date.now() });
+            metadata.put({ ...current, usedAt: Date.now() });
         };
       });
     });
@@ -121,37 +140,43 @@ export function writeDurableMedia(
 ): Promise<void> {
   return enqueue(async () => {
     if (
+      !blob.type.startsWith('image/') ||
       blob.size > DURABLE_MEDIA_MAX_BYTES ||
       epoch() !== capturedEpoch ||
       !isCurrent()
     )
       return;
     await transaction<void>('readwrite', (store) => {
-      const request = store.getAll();
+      const metadata = store.transaction.objectStore(METADATA);
+      const remove = (rowKey: string) => {
+        store.delete(rowKey);
+        metadata.delete(rowKey);
+      };
+      // Eviction scans small metadata only, never the cached media payloads.
+      const request = metadata.getAll();
       request.onsuccess = () => {
         if (epoch() !== capturedEpoch || !isCurrent()) return;
         const now = Date.now();
-        const rows = (request.result as Row[])
+        const rows = (request.result as Metadata[])
           .filter((row) => {
             const keep =
               row.key !== key &&
               row.epoch === capturedEpoch &&
               row.savedAt <= now &&
               now - row.savedAt < DURABLE_MEDIA_MAX_AGE_MS;
-            if (!keep) store.delete(row.key);
+            if (!keep) remove(row.key);
             return keep;
           })
           .sort((a, b) => a.usedAt - b.usedAt);
-        let bytes =
-          rows.reduce((sum, row) => sum + row.blob.size, 0) + blob.size;
+        let bytes = rows.reduce((sum, row) => sum + row.bytes, 0) + blob.size;
         while (
           rows.length >= DURABLE_MEDIA_MAX_ENTRIES ||
           bytes > DURABLE_MEDIA_MAX_BYTES
         ) {
           const oldest = rows.shift();
           if (!oldest) break;
-          bytes -= oldest.blob.size;
-          store.delete(oldest.key);
+          bytes -= oldest.bytes;
+          remove(oldest.key);
         }
         store.put({
           key,
@@ -160,6 +185,13 @@ export function writeDurableMedia(
           savedAt: now,
           usedAt: now,
         } satisfies Row);
+        metadata.put({
+          key,
+          epoch: capturedEpoch,
+          bytes: blob.size,
+          savedAt: now,
+          usedAt: now,
+        } satisfies Metadata);
       };
     });
   });
@@ -167,11 +199,14 @@ export function writeDurableMedia(
 export function evictDurableMedia(prefix: string): void {
   void enqueue(() =>
     transaction<void>('readwrite', (store) => {
-      const request = store.openCursor();
+      const request = store.transaction.objectStore(METADATA).openCursor();
       request.onsuccess = () => {
         const cursor = request.result;
         if (!cursor) return;
-        if (String(cursor.key).startsWith(prefix)) cursor.delete();
+        if (String(cursor.key).startsWith(prefix)) {
+          store.delete(cursor.key);
+          cursor.delete();
+        }
         cursor.continue();
       };
     }),

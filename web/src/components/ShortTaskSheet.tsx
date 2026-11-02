@@ -706,12 +706,16 @@ export function ShortTaskSheet({
           </svg>
         </button>
       </header>
-      <div className="short-task-sheet-body">
+      <section
+        className="short-task-sheet-body"
+        aria-labelledby={titleId}
+        tabIndex={footer ? 0 : undefined}
+      >
         <h2 id={titleId} className="short-task-sheet-title">
           {title}
         </h2>
         {children}
-      </div>
+      </section>
       {footer ? <div className="short-task-sheet-footer">{footer}</div> : null}
     </dialog>,
     document.body,

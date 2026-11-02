@@ -1,6 +1,6 @@
 import type { DevicePushController } from './devicePush';
 
-const ERROR_STATUS_KEYS: Readonly<Record<string, string>> = {
+const DEVICE_ERROR_STATUS_KEYS: Readonly<Record<string, string>> = {
   NO_PUSH_DISTRIBUTOR: 'notificationSettings.deviceNoDistributor',
   NOTIFICATION_PERMISSION_DENIED: 'notificationSettings.devicePermissionDenied',
   PUSH_DEVICE_CLEANUP_PENDING: 'notificationSettings.deviceCleanupPending',
@@ -9,7 +9,7 @@ const ERROR_STATUS_KEYS: Readonly<Record<string, string>> = {
     'notificationSettings.deviceStatusUnavailable',
 };
 
-const STATE_STATUS_KEYS: Readonly<
+const DEVICE_STATE_STATUS_KEYS: Readonly<
   Record<DevicePushController['state'], string>
 > = {
   loading: 'notificationSettings.deviceLoading',
@@ -23,8 +23,8 @@ const STATE_STATUS_KEYS: Readonly<
 
 export function devicePushStatusKey(devicePush: DevicePushController): string {
   return (
-    (devicePush.error && ERROR_STATUS_KEYS[devicePush.error]) ||
-    STATE_STATUS_KEYS[devicePush.state]
+    (devicePush.error && DEVICE_ERROR_STATUS_KEYS[devicePush.error]) ||
+    DEVICE_STATE_STATUS_KEYS[devicePush.state]
   );
 }
 
@@ -32,8 +32,9 @@ export function devicePushStatusKey(devicePush: DevicePushController): string {
 export function devicePushAction(
   devicePush: DevicePushController,
 ): 'enable' | 'openSettings' | null {
-  if (devicePush.error === 'NOTIFICATION_PERMISSION_DENIED')
+  if (devicePush.error === 'NOTIFICATION_PERMISSION_DENIED') {
     return 'openSettings';
+  }
   if (devicePush.error === 'PUSH_ENDPOINT_UNSUPPORTED') return null;
   return devicePush.state === 'off' || devicePush.state === 'error'
     ? 'enable'

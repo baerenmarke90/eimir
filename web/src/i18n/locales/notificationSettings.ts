@@ -1,14 +1,5 @@
 const notificationSettings = {
   title: 'Welche Nachrichten du bekommst',
-  introductionTitle: 'Für eure kleinen Momente',
-  introductionBody:
-    'Möchtest du auf diesem Gerät Push-Benachrichtigungen erhalten?',
-  introductionLater:
-    'Du entscheidest später in den Einstellungen, was dich erreicht.',
-  introductionPrivacy: 'Datenschutz',
-  introductionAllow: 'Benachrichtigungen erlauben',
-  introductionSkip: 'Jetzt nicht',
-  introductionClose: 'Schließen',
   sharedActivityDescription: 'Kommentare, neue und fällige Erinnerungen.',
   closenessDescription: 'Gedanken aneinander, Küsse und Check-ins.',
   individual: 'Einzeln anpassen',
@@ -43,6 +34,13 @@ const notificationSettings = {
   endpointMissing: 'Auf diesem Gerät ist noch kein Push-Empfang eingerichtet.',
   pushUnavailable: 'Push ist derzeit nicht verfügbar.',
   deviceTitle: 'Auf diesem Gerät',
+  onboardingTitle: 'Benachrichtigungen aktivieren?',
+  onboardingIntro:
+    'Erfahre, wenn dein Partner etwas mit dir teilt oder eine Erinnerung fällig ist. Deine Auswahl kannst du jederzeit in den Einstellungen ändern.',
+  onboardingActivate: 'Aktivieren',
+  onboardingLater: 'Später',
+  onboardingOffline:
+    'Du bist gerade offline. Benachrichtigungen wurden noch nicht aktiviert.',
   deviceIntro:
     'Hinweise können Namen und Titel zeigen. Auf dem Sperrbildschirm gilt deine Android-Auswahl für sensible Inhalte. Konkrete Vorschauen werden für den Versand verschlüsselt. Google oder dein Push-Dienst erhält eine Installationskennung und Verbindungsdaten.',
   deviceLoading: 'Push-Einrichtung wird geprüft …',

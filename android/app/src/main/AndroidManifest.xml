@@ -18,19 +18,6 @@
             android:windowSoftInputMode="adjustResize"
             android:exported="true">
 
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" />
-                <data android:host="demo.eimir.ur-cloud.de" />
-                <data android:path="/auth/signup" />
-                <data android:path="/auth/magic-link" />
-                <data android:path="/auth/invitation" />
-                <data android:path="/auth/verify-email" />
-                <data android:path="/auth/recovery" />
-            </intent-filter>
-
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -46,6 +33,18 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="de.eimir.app" android:host="notifications" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="demo.eimir.ur-cloud.de" />
+                <data android:path="/auth/signup" />
+                <data android:path="/auth/magic-link" />
+                <data android:path="/auth/invitation" />
+                <data android:path="/auth/verify-email" />
+                <data android:path="/auth/recovery" />
             </intent-filter>
 
         </activity>

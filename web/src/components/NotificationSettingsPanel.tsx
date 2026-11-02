@@ -7,14 +7,14 @@ import type { NotificationChannelCapability } from '../api/generated/models/Noti
 import { NotificationKind } from '../api/generated/models/NotificationKind';
 import type { NotificationPreferencesView } from '../api/generated/models/NotificationPreferencesView';
 import { assertOnlineWrite } from '../client/connectivity';
-import { normalizeClientError } from '../client/problemDetails';
-import { captureAuthorizedQuery } from '../client/queryIdentity';
-import { settingsCategoryPath } from '../client/routes';
 import type { DevicePushController } from '../client/devicePush';
 import {
   devicePushAction,
   devicePushStatusKey,
 } from '../client/devicePushPresentation';
+import { normalizeClientError } from '../client/problemDetails';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { settingsCategoryPath } from '../client/routes';
 import { useTranslation } from '../i18n';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';

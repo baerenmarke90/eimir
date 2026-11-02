@@ -86,15 +86,6 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
 
     normalized = line.casefold()
 
-    if (
-        path == Path("web/public/.well-known/assetlinks.json")
-        and '"package_name": "de.sidebyside.app"' in line
-    ):
-        return (
-            Classification.TEMP_COMPAT,
-            "ADR 0013 retains the published predecessor's App Links association",
-        )
-
     if path in GUARD_FILES:
         return (
             Classification.FALSE_POSITIVE,

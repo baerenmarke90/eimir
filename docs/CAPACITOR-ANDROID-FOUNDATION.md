@@ -77,7 +77,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
   - In-app navigation uses existing React router / window history.
 - **Delivered mailbox and invitation links:**
   - The shared Web identity-entry intake reads `appUrlOpen` and `App.getLaunchUrl()` for HTTPS auth URLs from the configured API origin, as well as browser routes and PWA launch targets. Proofs remain in memory and use the existing identity flow before an older signed-in shell can take precedence.
-  - This intake only handles URLs already delivered to the wrapper. The main manifest registers the OIDC filter below and five exact HTTPS identity paths on `demo.eimir.ur-cloud.de`. The Web image serves the corresponding public Digital Asset Links document only for that host. It retains the published predecessor association under ADR 0013. This does not establish verified App Links for arbitrary Self-Hosted domains. OS domain verification and APK distribution are separate boundaries. A Web/backend deployment cannot update a previously bundled APK.
+  - The regular main manifest permanently registers verified HTTPS App Links for `demo.eimir.ur-cloud.de` and the five canonical identity paths: `/auth/signup`, `/auth/magic-link`, `/auth/invitation`, `/auth/verify-email`, and `/auth/recovery`. Android verifies the website's `/.well-known/assetlinks.json` against the installed package and signer. The existing test-channel overlay may repeat the same filter; no arbitrary Self-Hosted domains are claimed. Intake still accepts only the configured API origin, not every URL delivered by Android. OS domain verification and APK distribution are separate boundaries. A Web/backend deployment cannot update a previously bundled APK.
 - **OIDC Authentication Flow:**
   - When running in native mode (`isCapacitorNative()`), OIDC login launches via `@capacitor/browser`:
     ```ts
@@ -405,39 +405,3 @@ existing Android API 28/36/37.1 workflow. The bridge registration is checked
 alongside other wrapper capabilities. Installed third-party calendar behavior,
 physical-device Back/TalkBack and save/cancel acceptance remain separate from
 these contract checks and browser/component coverage.
-
-## Sign-in links and optional Push introduction (#1600)
-
-The main manifest claims only `/auth/signup`, `/auth/magic-link`,
-`/auth/invitation`, `/auth/verify-email` and `/auth/recovery` on the exact HTTPS
-host `demo.eimir.ur-cloud.de`. Cold and warm delivery still use the existing
-memory-only, exact-API-origin `useIdentityEntry`; the proof is never redeemed by
-native code. This does not open arbitrary third-party links or broaden auth trust.
-
-`web/public/.well-known/assetlinks.json` pairs canonical `de.eimir.app` with its
-existing fcm.1/fcm.2/test.39 public certificate and retains the published
-predecessor association. Nginx returns JSON for the exact test host, never SPA
-HTML; other hosts return 404. A hoster's explicit reverse-proxy override takes
-precedence and must merge the canonical statement into its existing document,
-retaining unrelated statements rather than replacing the operator's document.
-Deploying source is not proof of the external endpoint. Verify HTTPS 200 without
-redirects, `application/json`, package and actual installed certificate, then
-check Android with `adb shell pm verify-app-links --re-verify de.eimir.app` and
-`adb shell pm get-app-links de.eimir.app`. A prior user-selected handler and an
-installed predecessor may require the person's explicit default-app choice.
-No signing key or Firebase secret belongs in this public document.
-
-After authenticated relationship entry, an available unregistered Android device
-offers a bounded optional Push choice. Allow invokes the same device controller
-as Settings: native permission, provider activation and authenticated endpoint
-registration. Success appears only after the server confirms registration.
-Skip/close and already-active devices are acknowledged per Account/API/device;
-Space changes, token rotation and ordinary restart do not nag. A dirty task
-defers the choice. Failure or denied Android permission keeps explicit retry or
-Settings recovery. Event preferences and Quiet Hours remain unchanged. Browser,
-signed-out and provider-unavailable states never register a device. The existing
-Settings entry remains available for changing the choice later.
-
-[Design preflight and evidence](product/design/references/1600-auth-push/README.md).
-OS domain verification, real permission UI and actual FCM receipt require the
-signed APK and selected host; fixture acceptance does not establish them.

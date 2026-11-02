@@ -1197,7 +1197,7 @@ for (const visibility of ['SHARED', 'PRIVATE'] as const) {
       id: '66666666-6666-4666-8666-666666666666',
       spaceId: SPACE_ID,
       name: 'Unser Café',
-      address: 'Am Markt 1',
+      address: 'Market Square 1',
       createdBy: ACCOUNT_ID,
       creator: { id: ACCOUNT_ID, displayName: 'Anna' },
       createdAt: TEST_NOW,
@@ -1219,7 +1219,7 @@ for (const visibility of ['SHARED', 'PRIVATE'] as const) {
       .click();
     await page
       .getByLabel(storyProducts.heartMomentProduct.textLabel, { exact: true })
-      .fill('Ein schöner Augenblick.');
+      .fill('A lovely moment.');
     if (visibility === 'PRIVATE') {
       await page
         .getByRole('radio', {

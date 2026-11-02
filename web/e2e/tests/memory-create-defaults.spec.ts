@@ -1930,7 +1930,7 @@ for (const [width, colorScheme] of [
     await expect(selected).toBeVisible();
     await page
       .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
-      .fill('Unser Besuch ohne Foto.');
+      .fill('Our visit without a photo.');
     await expect(
       page.getByText(de.memory.diary.draft.saved, { exact: true }),
     ).toBeVisible();
@@ -1942,7 +1942,7 @@ for (const [width, colorScheme] of [
     await expect(selected).toBeVisible();
     await expect(
       page.getByRole('textbox', { name: de.memory.bodyLabel, exact: true }),
-    ).toHaveValue('Unser Besuch ohne Foto.');
+    ).toHaveValue('Our visit without a photo.');
     await captureScreenshot(
       page,
       testInfo,
@@ -1963,7 +1963,7 @@ for (const [width, colorScheme] of [
       .click();
     expect((await create).postDataJSON()).toMatchObject({
       placeId: destination.id,
-      body: 'Unser Besuch ohne Foto.',
+      body: 'Our visit without a photo.',
     });
     await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
     expect(

@@ -62,7 +62,7 @@ inside the form. The optional place action follows the current composition.
   the exact approved OpenAPI Generator **7.24.0**, semantic tokens, PWA checks,
   TypeScript and production build passed. No generated client was edited by hand.
 - New PostgreSQL/HTTP cases cover atomic manual-place creation/replay,
-  changed-key rejection, foreign-place rollback including receipts, and private
+  changed-payload/same-key rejection, foreign-place rollback including receipts, and private
   target rejection. This managed environment cannot switch to a non-root user
   to start PostgreSQL; those cases require the hosted CI PostgreSQL service.
 
@@ -72,3 +72,9 @@ The repository's Playwright dependency/configuration is unchanged. No physical
 Android test, deployed persistence test or real Immich-server acceptance is
 claimed. Hosted checks must pass before merge; this task does not merge or
 publish a release.
+
+Initial hosted Change Detection rejected five German synthetic fixture values in
+two browser specs. The fixture address/prose were translated into English;
+assertions, product localization and test gates were retained. Local scoped
+engineering-language audit and all 27 audit tests pass. Fresh checks run on the
+fix commit; no workflow was restarted as a retry.

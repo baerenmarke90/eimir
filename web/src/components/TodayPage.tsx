@@ -360,6 +360,7 @@ function TodayMomentFeature({
             memoryId={item.id}
             attachmentId={previewAttachmentId}
             isSensitive={item.previewIsSensitive}
+            hasThumbnail={item.previewHasThumbnail}
             allowReveal
             loadImage={loadMemoryImage}
           />
@@ -448,6 +449,7 @@ function TodayRetrospectiveCard({
               memoryId={item.id}
               attachmentId={previewAttachmentId}
               isSensitive={item.previewIsSensitive}
+              hasThumbnail={item.previewHasThumbnail}
               loadImage={loadMemoryImage}
             />
           </div>
@@ -578,6 +580,7 @@ function TodayLivingModuleCard({
             memoryId={item.id}
             attachmentId={previewAttachmentId}
             isSensitive={item.previewIsSensitive}
+            hasThumbnail={item.previewHasThumbnail}
             loadImage={loadMemoryImage}
           />
         </div>
@@ -633,6 +636,7 @@ function TodayMonthlyStrip({
                 memoryId={item.id}
                 attachmentId={item.previewAttachmentId}
                 isSensitive={item.previewIsSensitive}
+                hasThumbnail={item.previewHasThumbnail}
                 loadImage={loadMemoryImage}
               />
             ) : null}

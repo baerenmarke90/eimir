@@ -66,6 +66,7 @@ describe('Pro memory map', () => {
       await screen.findByRole('button', { name: copy.fullscreen }),
     );
     const dialog = await screen.findByRole('dialog', { name: copy.title });
+    expect(screen.getAllByTestId('external-map')).toHaveLength(1);
     fireEvent.click(within(dialog).getByRole('button', { name: 'Map marker' }));
     expect(
       (await screen.findByRole('link', { name: /By the lake/ })).getAttribute(
@@ -108,6 +109,7 @@ describe('Pro memory map', () => {
             ...item,
             previewAttachmentId: 'photo',
             previewIsSensitive: false,
+            previewHasThumbnail: true,
           },
         ],
         nextCursor: null,
@@ -123,6 +125,12 @@ describe('Pro memory map', () => {
       ).toBeTruthy(),
     );
     expect(load).toHaveBeenCalledTimes(1);
+    expect(load).toHaveBeenCalledWith(
+      'm1',
+      'photo',
+      expect.any(AbortSignal),
+      'thumbnail',
+    );
     fireEvent.click(
       screen.getByRole('button', { name: 'Lake · 1 Erinnerung' }),
     );

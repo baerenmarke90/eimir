@@ -11,8 +11,12 @@ interface Entry {
   bytes: number;
   retained: boolean;
   idleAt: number | null;
+  original: boolean;
 }
 const entries = new Map<string, Entry>();
+// Compressed file size does not bound decoded image/GPU memory. Keep only the
+// two most recently viewed originals idle; their bytes remain in the media cache.
+export const MEDIA_OBJECT_URL_MAX_IDLE_ORIGINALS = 2;
 let expiry: ReturnType<typeof setTimeout> | undefined;
 
 function remove(key: string, entry: Entry): void {
@@ -35,6 +39,19 @@ function prune(): void {
     }
   }
   idle.sort((a, b) => a.idleAt - b.idleAt);
+  let originals = idle.filter(({ entry }) => entry.original).length;
+  for (let index = 0; originals > MEDIA_OBJECT_URL_MAX_IDLE_ORIGINALS; ) {
+    const candidate = idle[index];
+    if (!candidate) break;
+    if (!candidate.entry.original) {
+      index++;
+      continue;
+    }
+    idle.splice(index, 1);
+    bytes -= candidate.entry.bytes;
+    originals--;
+    remove(candidate.key, candidate.entry);
+  }
   while (
     idle.length > MEDIA_CACHE_MAX_ENTRIES ||
     bytes > MEDIA_CACHE_MAX_BYTES
@@ -52,7 +69,11 @@ function prune(): void {
 }
 
 /** Called only after a fresh parent-bound authorization. Handles own one reference. */
-export function acquireMediaObjectUrl(key: string, blob: Blob): OwnedObjectUrl {
+export function acquireMediaObjectUrl(
+  key: string,
+  blob: Blob,
+  presentation: 'preview' | 'original' = 'preview',
+): OwnedObjectUrl {
   prune();
   let entry = entries.get(key);
   if (!entry) {
@@ -62,6 +83,7 @@ export function acquireMediaObjectUrl(key: string, blob: Blob): OwnedObjectUrl {
       bytes: blob.size,
       retained: true,
       idleAt: null,
+      original: presentation === 'original',
     };
     entries.set(key, entry);
   }

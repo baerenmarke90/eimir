@@ -14,6 +14,7 @@ import type { ReferenceApis } from './referenceFlow';
 import {
   acquireMediaObjectUrl,
   evictMediaObjectUrls,
+  MEDIA_OBJECT_URL_MAX_IDLE_ORIGINALS,
 } from './sharedMediaObjectUrls';
 import { loadAuthorizedStoryImageResource } from './storyMediaLoader';
 
@@ -78,6 +79,13 @@ it('reuses one authorized poster when a video is encountered through an image co
     'video',
   );
   fallback.dispose();
+  for (let index = 0; index <= MEDIA_OBJECT_URL_MAX_IDLE_ORIGINALS; index++)
+    acquireMediaObjectUrl(
+      `photo-original-${index}`,
+      new Blob(['photo']),
+      'original',
+    ).dispose();
+  expect(revoke).not.toHaveBeenCalledWith(fallback.url);
   const explicit = await loadAuthorizedStoryImageResource(
     apis,
     'space',
@@ -87,7 +95,7 @@ it('reuses one authorized poster when a video is encountered through an image co
     { variant: 'thumbnail' },
   );
   expect(explicit.url).toBe(fallback.url);
-  expect(create).toHaveBeenCalledTimes(1);
+  expect(create).toHaveBeenCalledTimes(MEDIA_OBJECT_URL_MAX_IDLE_ORIGINALS + 2);
   expect(content).toHaveBeenCalledTimes(1);
   expect(content).toHaveBeenCalledWith(
     { spaceId: 'space', attachmentId: 'video', variant: 'thumbnail' },
@@ -240,6 +248,54 @@ it('shares an original across preview and gallery release order', () => {
   const returned = acquireMediaObjectUrl('same-original', blob);
   expect(returned.url).toBe(preview.url);
   returned.dispose();
+});
+
+it('bounds idle decoded originals while retaining their downloaded bytes', async () => {
+  const content = vi.fn(async () => ({
+    raw: new Response(new Blob(['photo'])),
+  }));
+  const apis = {
+    attachments: {
+      createAttachmentReadAccess: vi
+        .fn()
+        .mockResolvedValue({ method: 'STREAM', url: '/content' }),
+      getAttachmentContentRaw: content,
+    },
+  } as unknown as ReferenceApis;
+  const active = await loadAuthorizedStoryImageResource(
+    apis,
+    'space',
+    'MEMORY',
+    'parent',
+    'active',
+  );
+  let oldest = '';
+  for (let index = 0; index <= MEDIA_OBJECT_URL_MAX_IDLE_ORIGINALS; index++) {
+    const resource = await loadAuthorizedStoryImageResource(
+      apis,
+      'space',
+      'MEMORY',
+      'parent',
+      String(index),
+    );
+    if (index === 0) oldest = resource.url;
+    resource.dispose();
+  }
+  expect(revoke).toHaveBeenCalledWith(oldest);
+  expect(revoke).not.toHaveBeenCalledWith(active.url);
+  const returned = await loadAuthorizedStoryImageResource(
+    apis,
+    'space',
+    'MEMORY',
+    'parent',
+    '0',
+  );
+  expect(returned.url).not.toBe(oldest);
+  expect(content).toHaveBeenCalledTimes(
+    MEDIA_OBJECT_URL_MAX_IDLE_ORIGINALS + 2,
+  );
+  returned.dispose();
+  active.dispose();
 });
 
 it.each(['MEMORY', 'HEART_MOMENT', 'PLAN'] as const)(

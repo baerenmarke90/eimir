@@ -2233,6 +2233,11 @@
             ],
             "title": "Previewattachmentid"
           },
+          "previewHasThumbnail": {
+            "default": false,
+            "title": "Previewhasthumbnail",
+            "type": "boolean"
+          },
           "previewIsSensitive": {
             "default": false,
             "title": "Previewissensitive",
@@ -4338,6 +4343,11 @@
               }
             ],
             "title": "Previewattachmentid"
+          },
+          "previewHasThumbnail": {
+            "default": false,
+            "title": "Previewhasthumbnail",
+            "type": "boolean"
           },
           "previewIsSensitive": {
             "default": false,

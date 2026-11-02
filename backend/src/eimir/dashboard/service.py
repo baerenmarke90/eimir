@@ -85,6 +85,7 @@ class DashboardItem:
     created_at: datetime | None = None
     preview_attachment_id: UUID | None = None
     preview_is_sensitive: bool = False
+    preview_has_thumbnail: bool = False
 
 
 @dataclass(frozen=True)
@@ -480,6 +481,7 @@ def _retrospective(
                     chosen,
                     preview_attachment_id=bound.attachment.id,
                     preview_is_sensitive=bound.attachment.payload.is_sensitive,
+                    preview_has_thumbnail=bound.attachment.has_thumbnail,
                 )
                 break
     return chosen
@@ -509,10 +511,12 @@ def _keepsake(
     for memory in memories:
         preview_id = None
         preview_sensitive = False
+        preview_has_thumbnail = False
         for bound in galleries.get(memory.id, []):
             if bound.attachment.status == AttachmentStatus.READY:
                 preview_id = bound.attachment.id
                 preview_sensitive = bound.attachment.payload.is_sensitive
+                preview_has_thumbnail = bound.attachment.has_thumbnail
                 break
         if preview_id is not None:
             return DashboardItem(
@@ -523,6 +527,7 @@ def _keepsake(
                 created_at=memory.created_at,
                 preview_attachment_id=preview_id,
                 preview_is_sensitive=preview_sensitive,
+                preview_has_thumbnail=preview_has_thumbnail,
             )
     return None
 
@@ -726,10 +731,12 @@ def _recent_shared(
     for memory in memories:
         preview_id = None
         preview_sensitive = False
+        preview_has_thumbnail = False
         for bound in memory_galleries.get(memory.id, []):
             if bound.attachment.status == AttachmentStatus.READY:
                 preview_id = bound.attachment.id
                 preview_sensitive = bound.attachment.payload.is_sensitive
+                preview_has_thumbnail = bound.attachment.has_thumbnail
                 break
         candidates.append(
             DashboardItem(
@@ -740,6 +747,7 @@ def _recent_shared(
                 created_at=memory.created_at,
                 preview_attachment_id=preview_id,
                 preview_is_sensitive=preview_sensitive,
+                preview_has_thumbnail=preview_has_thumbnail,
             )
         )
 

@@ -45,11 +45,7 @@ import {
   normalizeClientError,
 } from './client/problemDetails';
 import { clearProductReadCacheInBackground } from './client/productReadCache';
-import {
-  createReferenceApis,
-  loadAuthorizedImage,
-  loadAuthorizedMedia,
-} from './client/referenceFlow';
+import { createReferenceApis } from './client/referenceFlow';
 import {
   ACTIVITY_ROUTE,
   appRoutePath,
@@ -116,6 +112,7 @@ import {
   loadAuthorizedSpaces,
   resolveActiveSpaceId,
 } from './client/spaceContext';
+import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
 import { useIdentityEntry } from './client/useIdentityEntry';
 import { useSessionRefresh } from './client/useSessionRefresh';
 import { VideoProcessingContext } from './client/video';
@@ -132,6 +129,7 @@ import { CollectionsOverviewPage } from './components/CollectionsOverviewPage';
 import { CoupleExperiencePage } from './components/CoupleExperiencePage';
 import { DailyInsightsPage } from './components/DailyInsightsPage';
 import { DemoEntry } from './components/DemoEntry';
+import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
@@ -381,34 +379,39 @@ function AuthenticatedApp({
   }, [location.pathname]);
 
   const loadMemoryImage = useCallback(
-    (memoryId: string, attachmentId: string, signal?: AbortSignal) =>
-      loadAuthorizedImage(
+    (
+      memoryId: string,
+      attachmentId: string,
+      signal?: AbortSignal,
+      variant?: 'original' | 'thumbnail',
+    ) =>
+      loadAuthorizedStoryImageResource(
         apis,
-        apiBaseUrl,
-        tokens.accessToken,
         spaceId,
+        'MEMORY',
         memoryId,
         attachmentId,
-        fetch,
-        signal,
+        { signal, variant },
       ),
-    [apiBaseUrl, apis, spaceId, tokens.accessToken],
+    [apis, spaceId],
   );
 
   const loadHeartMomentAttachment = useCallback(
-    (heartMomentId: string, attachmentId: string, signal?: AbortSignal) =>
-      loadAuthorizedMedia(
+    (
+      heartMomentId: string,
+      attachmentId: string,
+      signal?: AbortSignal,
+      variant?: 'original' | 'thumbnail',
+    ) =>
+      loadAuthorizedStoryImageResource(
         apis,
-        apiBaseUrl,
-        tokens.accessToken,
         spaceId,
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
-        fetch,
-        signal,
+        { signal, variant },
       ),
-    [apiBaseUrl, apis, spaceId, tokens.accessToken],
+    [apis, spaceId],
   );
 
   async function refreshStory() {
@@ -959,6 +962,12 @@ function AuthenticatedApp({
         spaceId={spaceId}
       >
         {relationshipContent}
+        <DevicePushOnboarding
+          key={`${apiBaseUrl}:${account.id}`}
+          devicePush={devicePush}
+          accountId={account.id}
+          apiBaseUrl={apiBaseUrl}
+        />
       </WirDesignProvider>
     </AppIconProvider>
   );

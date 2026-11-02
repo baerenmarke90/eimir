@@ -2,11 +2,11 @@
   "reviewedAt": "2026-11-02",
   "source": "https://security-tracker.debian.org/tracker/data/json",
   "upstreamCommit": "946fcce07b6dcd0331c8cc609192aeff5e1924f8",
-  "securityAcceptance": "Pending explicit review of CVE-2025-52290 before production activation. Other findings assessed against the restricted patched build; no blanket waiver.",
+  "securityAcceptance": "Source/build-surface review completed for the bounded restricted worker on 2026-11-02. The private test rollout requires all Media Video checks. General production activation remains an explicit operator rollout, default off.",
   "findings": {
     "CVE-2025-52290": {
       "evidenceSha256": "6255457e75295640aa218888bde1b121facc321e59c28522a75866dc880639da",
-      "review": "Undetermined upstream. Pinned H.264 helper has null-context/SPS guards, the reported MPEG-TS demuxer is not compiled, and input is forced MOV. Explicit security review remains required before production activation; no zero-CVE claim."
+      "review": "Upstream range remains undetermined. The published reporter describes an AAC allocation misinterpreted by the H.264 helper after a failed codec switch. The pinned helper only guarded null private data/SPS; guard-h264-context.patch now checks the actual allocated decoder and requested codec before reading private state. The build executes test-h264-context.c with an AAC decoder, H.264 codec ID and inaccessible private pointer, plus null and uninitialized H.264 cases. MPEG-TS is also absent and input is forced MOV. This is a reviewed local defense for the shipped surface, not a claim that upstream marks the CVE resolved."
     },
     "CVE-2026-107675": {
       "evidenceSha256": "9cb38b6578043c80b7a3560eed44cd768cfc9ff09f09a8ffc99903ff6bf0ad3c",

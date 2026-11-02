@@ -11,6 +11,7 @@ import {
   MediaType,
   type MediaType as MediaTypeValue,
 } from '../api/generated/models/MediaType';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useObjectUrlResources } from '../client/useObjectUrlResources';
 import { useTranslation } from '../i18n';
@@ -67,8 +68,14 @@ export function MediaGallery({
   renderPhotoReactions,
 }: {
   items: GalleryMediaItem[];
-  loadMedia: (attachmentId: string, signal?: AbortSignal) => Promise<string>;
-  loadPoster?: (attachmentId: string, signal?: AbortSignal) => Promise<string>;
+  loadMedia: (
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<ObjectUrlSource>;
+  loadPoster?: (
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<ObjectUrlSource>;
   loadPlayback?: VideoSourceLoader;
   resourceScopeKey?: string;
   /** Custom thumbnail surface; originals are then loaded only for the active photo and neighbours. */

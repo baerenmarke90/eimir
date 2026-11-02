@@ -199,6 +199,10 @@ public class PhotoFileChooserTest {
             instrumentation.getUiAutomation().grantRuntimePermission(context.getPackageName(),
                 Manifest.permission.ACCESS_MEDIA_LOCATION);
         }
+        launchForMediaSelection();
+    }
+
+    private void launchForMediaSelection() throws Exception {
         scenario = ActivityScenario.launch(new Intent(context, LauncherActivity.class)
             .putExtra(RecordingLauncherActivity.RECORD_DISPATCH, true)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -353,6 +357,73 @@ public class PhotoFileChooserTest {
             || packageName.toString().endsWith(".photopicker"));
     }
 
+    @Test
+    public void videoSelectionReachesChromiumAndDecodesWithoutPhotoMetadataConsent() throws Exception {
+        assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q);
+        String external = InstrumentationRegistry.getArguments().getString("externalVideoUri");
+        assertNotNull("CI provides a shell-owned video", external);
+        try (InputStream ignored = context.getContentResolver().openInputStream(Uri.parse(external))) {
+            fail("The app cannot read a library video before selection");
+        } catch (SecurityException expected) {
+            // The picker, rather than library-wide permission, owns access.
+        }
+        launchForMediaSelection();
+        WebView view = activity.getBridge().getWebView();
+        assertEquals("true", javascriptValue(view, "(function(){"
+            + "document.body.innerHTML=`<input id='photo' type='file' accept='video/mp4,video/quicktime' "
+            + "style='position:fixed;top:20%;left:20%;width:60%;height:60px'>"
+            + "<video id='video' controls playsinline preload='none' style='position:fixed;top:40%;left:10%;width:80%'></video>"
+            + "<button id='play-video' style='position:fixed;bottom:10%;left:20%;width:60%;height:60px'>Play</button>`;"
+            + "const input=document.getElementById('photo'),video=document.getElementById('video');"
+            + "input.onchange=async()=>{try{const file=input.files[0];window.videoMime=file.type;"
+            + "const bytes=new Uint8Array(await file.arrayBuffer());let binary='';"
+            + "for(const value of bytes)binary+=String.fromCharCode(value);window.selectedPhotoBytes=btoa(binary);"
+            + "video.src=URL.createObjectURL(file);video.onloadedmetadata=()=>window.videoReady=true;video.load();"
+            + "video.onseeked=()=>window.videoSeeked=true;"
+            + "video.requestVideoFrameCallback(()=>window.videoDecoded=true);"
+            + "}catch(error){window.photoReadError=error.name;}};"
+            + "document.getElementById('play-video').onclick=()=>video.play().catch(e=>window.videoError=e.name);"
+            + "return input.type==='file';})()"));
+        Rect input = photoInputScreenBounds(view);
+        instrumentation.getUiAutomation().executeAndWaitForEvent(() -> {
+                try { tapScreenBounds(input); }
+                catch (Exception failure) { throw new AssertionError(failure); }
+            }, event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                && isSystemPhotoPicker(event.getPackageName()), 15000);
+        captureNativeDiagnostics("native-video-picker");
+        AccessibilityNodeInfo selected = findDocument("Video taken");
+        assertNotNull("The real system video picker exposes the foreign-owned movie", selected);
+        tapNativeControl(selected);
+        byte[] bytes = selectedFileBytes(view);
+        assertTrue("Chromium receives video bytes", bytes.length > 0);
+        java.nio.file.Files.write(new File(context.getFilesDir(), "native-selected-video.mp4").toPath(), bytes);
+        awaitJavascript(view, "window.videoReady===true");
+        assertEquals("true", javascriptValue(view,
+            "document.getElementById('video').paused && document.getElementById('video').controls"
+            + " && document.getElementById('video').videoWidth===96"
+            + " && document.getElementById('video').videoHeight===64"));
+        tapScreenBounds(webControlScreenBounds(view, "play-video"));
+        awaitJavascript(view, "window.videoDecoded===true");
+        assertEquals("true", javascriptValue(view,
+            "(()=>{const v=document.getElementById('video');v.pause();v.currentTime=0.25;return true})()"));
+        awaitJavascript(view, "window.videoSeeked===true");
+        assertEquals("true", javascriptValue(view,
+            "Math.abs(document.getElementById('video').currentTime-0.25)<0.1"));
+        captureNativeDiagnostics("native-video-playback");
+        javascriptValue(view, "(()=>{const v=document.getElementById('video');"
+            + "URL.revokeObjectURL(v.src);v.removeAttribute('src');v.load();return true})()");
+    }
+
+    private void awaitJavascript(WebView view, String condition) throws Exception {
+        long deadline = SystemClock.uptimeMillis() + 10000;
+        do {
+            if ("true".equals(javascriptValue(view, condition))) return;
+            instrumentation.waitForIdleSync();
+        } while (SystemClock.uptimeMillis() < deadline);
+        captureNativeDiagnostics("native-video-failure");
+        throw new AssertionError("The native video condition did not complete: " + condition);
+    }
+
     private void captureNativeDiagnostics(String label) throws Exception {
         Bitmap screenshot = instrumentation.getUiAutomation().takeScreenshot();
         assertNotNull(screenshot);
@@ -422,6 +493,10 @@ public class PhotoFileChooserTest {
     }
 
     private Rect photoInputScreenBounds(WebView view) throws Exception {
+        return webControlScreenBounds(view, "photo");
+    }
+
+    private Rect webControlScreenBounds(WebView view, String id) throws Exception {
         // A live WebView can render correctly without exposing virtual accessibility
         // children. Read geometry only; activation still uses a genuine native tap.
         CountDownLatch visualState = new CountDownLatch(1);
@@ -432,7 +507,7 @@ public class PhotoFileChooserTest {
         assertTrue("Chromium commits the file input's visual state",
             visualState.await(10, TimeUnit.SECONDS));
         String geometryJson = new org.json.JSONArray("[" + javascriptValue(view,
-            "JSON.stringify((()=>{const r=document.getElementById('photo').getBoundingClientRect();"
+            "JSON.stringify((()=>{const r=document.getElementById('" + id + "').getBoundingClientRect();"
                 + "return [r.left,r.top,r.right,r.bottom,innerWidth,innerHeight]})())") + "]").getString(0);
         org.json.JSONArray geometry = new org.json.JSONArray(geometryJson);
         AtomicReference<Rect> result = new AtomicReference<>();

@@ -31,6 +31,7 @@ import {
 } from '../client/createRequestIdentity';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { localDateInputValue } from '../client/dateInput';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   ClientProblemError,
@@ -49,7 +50,7 @@ import {
   heartMomentEditPath,
 } from '../client/routes';
 import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
-import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
 import {
@@ -62,6 +63,7 @@ import { loadVideoSource } from '../client/video';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
+import { ExpandableDescription } from './ExpandableDescription';
 import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
 import {
   HEART_MOMENT_TAGS,
@@ -157,7 +159,7 @@ export function HeartMomentProductPage({
     heartMomentId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
 }) {
   const [commentHost, setCommentHost] = useState<HTMLSpanElement | null>(null);
   const { t } = useTranslation();
@@ -846,7 +848,11 @@ export function HeartMomentProductPage({
           attachments.items.find(
             (item) => item.attachmentId === replacementAttachmentId,
           )?.isSensitive ?? false;
-      else if (heartMoment.attachment && !removeExistingPhoto)
+      else if (
+        heartMoment.attachment &&
+        !removeExistingPhoto &&
+        heartMoment.capabilities.canDelete
+      )
         update.attachmentIsSensitive =
           data.get('attachmentIsSensitive') === 'on';
       const ownsTask = captureEditOwnership();
@@ -897,7 +903,7 @@ export function HeartMomentProductPage({
                     loadAttachment(heartMoment.id, attachmentId, signal)
                   }
                   loadPoster={(id, signal) =>
-                    loadAuthorizedStoryImage(
+                    loadAuthorizedStoryImageResource(
                       apis,
                       spaceId,
                       'HEART_MOMENT',
@@ -918,32 +924,40 @@ export function HeartMomentProductPage({
                   }
                   resourceScopeKey={`heart-moment:${currentAccountId}:${spaceId}:${mode}:${heartMoment.id}`}
                 />
-                <SensitiveMediaCheckbox
-                  name="attachmentIsSensitive"
-                  showHelp
-                  checked={
-                    sensitivityDraft?.key === sensitivityKey
-                      ? sensitivityDraft.value
-                      : (heartMoment.attachment.isSensitive ?? true)
-                  }
-                  onChange={(value) =>
-                    setSensitivityDraft({ key: sensitivityKey, value })
-                  }
-                  disabled={updateMutation.isPending}
-                />
-                <button
-                  type="button"
-                  className="tertiary"
-                  onClick={() => setRemoveExistingPhoto(true)}
-                >
-                  {t('memory.photoRemove')}
-                </button>
+                {heartMoment.capabilities.canDelete ? (
+                  <SensitiveMediaCheckbox
+                    name="attachmentIsSensitive"
+                    showHelp
+                    checked={
+                      sensitivityDraft?.key === sensitivityKey
+                        ? sensitivityDraft.value
+                        : (heartMoment.attachment.isSensitive ?? true)
+                    }
+                    onChange={(value) =>
+                      setSensitivityDraft({ key: sensitivityKey, value })
+                    }
+                    disabled={updateMutation.isPending}
+                  />
+                ) : null}
+                {heartMoment.capabilities.canDelete ? (
+                  <button
+                    type="button"
+                    className="tertiary"
+                    onClick={() => setRemoveExistingPhoto(true)}
+                  >
+                    {t('memory.photoRemove')}
+                  </button>
+                ) : null}
               </div>
             ) : null}
             <AttachmentDraftPicker
               id="heart-moment-edit-photo"
               videoContext={{ apis, accountId: currentAccountId, spaceId }}
-              disabled={updateMutation.isPending}
+              disabled={
+                updateMutation.isPending ||
+                (Boolean(heartMoment.attachment) &&
+                  !heartMoment.capabilities.canDelete)
+              }
               attachments={attachments}
               multiple={false}
             />
@@ -1059,7 +1073,16 @@ export function HeartMomentProductPage({
       containerDataAttributes={{ 'data-heart-emotion': heartMoment.emotion }}
     >
       {heartMoment.text ? (
-        <p className="heart-moment-detail-text">{heartMoment.text}</p>
+        <ExpandableDescription
+          text={heartMoment.text}
+          scope={JSON.stringify([
+            apiBaseUrl,
+            currentAccountId,
+            spaceId,
+            heartMoment.id,
+          ])}
+          className="heart-moment-detail-text"
+        />
       ) : null}
 
       <div className="heart-moment-detail-emotion">
@@ -1097,7 +1120,7 @@ export function HeartMomentProductPage({
               loadAttachment(heartMoment.id, attachmentId, signal)
             }
             loadPoster={(id, signal) =>
-              loadAuthorizedStoryImage(
+              loadAuthorizedStoryImageResource(
                 apis,
                 spaceId,
                 'HEART_MOMENT',
@@ -1184,7 +1207,7 @@ export function HeartMomentProductPage({
             shared ? t('heartMomentProduct.sharedCompact') : undefined
           }
         />
-        {heartMoment.capabilities.canEdit && !offline ? (
+        {heartMoment.authorId === currentAccountId && !offline ? (
           <button
             type="button"
             className="list-entry-icon-button tertiary heart-moment-visibility-action"

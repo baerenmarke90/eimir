@@ -23,6 +23,7 @@ import {
 import { postSnackbar } from '../client/snackbar';
 import { useTaskActivation } from '../client/useTaskActivation';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './PlanWishLink.css';
@@ -158,7 +159,8 @@ export function PlanWishLink({
           className="plan-wish-source"
           to={wishDetailPath(plan.sourceWishId)}
         >
-          {t('m5s3.plan.openWish')}
+          <EimirIcon name="wuensche" />
+          <span>{t('m5s3.plan.openWish')}</span>
         </Link>
       ) : (
         <button

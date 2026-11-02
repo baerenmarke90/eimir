@@ -34,6 +34,7 @@ REQUIRED_WORKFLOWS = frozenset(
         ".github/workflows/codeql.yml",
         ".github/workflows/self-hosted-deployment-guard.yml",
         ".github/workflows/self-hosted-recovery.yml",
+        ".github/workflows/media-video.yml",
     }
 )
 CLOUD_SERVICES = ("cloud-migrate", "cloud-api", "cloud-worker", "cloud-web")
@@ -170,7 +171,9 @@ def channel_already_selected(source: str) -> bool:
     """Avoid rebuilding an already selected pair after repeated completions."""
     try:
         parent = revision(
-            gh_api(f"repos/{REPOSITORY}/git/ref/heads/{CHANNEL_BRANCH}")["object"]["sha"]
+            gh_api(f"repos/{REPOSITORY}/git/ref/heads/{CHANNEL_BRANCH}")["object"][
+                "sha"
+            ]
         )
     except GitHubError as error:
         if error.missing:
@@ -231,9 +234,12 @@ def evidence_records(root: Path, source: str) -> dict[str, dict]:
     if index.get("android") != {"included": False, "signing": "not-applicable"}:
         raise ChannelError("The server test channel must exclude Android artifacts")
     records = index.get("artifacts", [])
-    if sorted(item["id"] for item in records) != ["backend-runtime", "web-runtime"]:
+    if sorted(item["id"] for item in records) not in (
+        ["backend-runtime", "web-runtime"],
+        ["backend-runtime", "media-runtime", "web-runtime"],
+    ):
         raise ChannelError(
-            "Exactly one backend and one Web evidence artifact are required"
+            "One backend, one Web and at most one restricted media artifact are required"
         )
     result = {}
     for item in records:
@@ -241,6 +247,8 @@ def evidence_records(root: Path, source: str) -> dict[str, dict]:
         roles = (
             ["api", "worker", "migrate"]
             if artifact_id == "backend-runtime"
+            else ["video-worker"]
+            if artifact_id == "media-runtime"
             else ["web"]
         )
         expected_paths = {
@@ -271,7 +279,7 @@ def publish_image(
     root: Path, record: dict, source: str, version: str, attempt: str
 ) -> str:
     artifact_id = record["id"]
-    role = "backend" if artifact_id == "backend-runtime" else "web"
+    role = artifact_id.removesuffix("-runtime")
     local = f"eimir-{role}:evidence-{source}"
     repository = f"ghcr.io/{REPOSITORY}-{role}"
     target = f"{repository}:test-{source}-{attempt}"
@@ -331,7 +339,7 @@ def required(name: str) -> str:
     return "${" + name + ":?Set the existing instance value in Arcane}"
 
 
-def canonical_compose(*, fcm: bool = False) -> dict:
+def canonical_compose(*, fcm: bool = False, video: bool = False) -> dict:
     # Never resolve an operator .env or the caller's deployment settings. Required
     # local expressions are introduced after this source-default-only step.
     environment = {
@@ -358,6 +366,7 @@ def canonical_compose(*, fcm: bool = False) -> dict:
                 os.devnull,
                 "--profile",
                 "cloud",
+                *(["--profile", "cloud-video"] if video else []),
                 "config",
                 "--format",
                 "json",
@@ -391,15 +400,22 @@ def fcm_sender_mount() -> dict:
             if mount.get("bind") == {}:
                 mount["bind"] = {"create_host_path": False}
         if mounts != [expected]:
-            raise ChannelError("Canonical FCM credential mount changed; review the exporter")
+            raise ChannelError(
+                "Canonical FCM credential mount changed; review the exporter"
+            )
     mount = copy.deepcopy(expected)
     mount["source"] = required("EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE")
     return mount
 
 
-def export_compose(canonical: dict, backend: str, web: str) -> dict:
+def export_compose(
+    canonical: dict, backend: str, web: str, media: str | None = None
+) -> dict:
     services = copy.deepcopy(canonical["services"])
-    if set(services) != set(CLOUD_SERVICES):
+    expected_services = set(CLOUD_SERVICES) | (
+        {"cloud-video-worker"} if media else set()
+    )
+    if set(services) != expected_services:
         raise ChannelError(
             "Canonical Cloud process set changed; review the instance exporter"
         )
@@ -418,6 +434,7 @@ def export_compose(canonical: dict, backend: str, web: str) -> dict:
         "EIMIR_DEMO_MODE_RESET_TIMER": "false",
         "EIMIR_ENCRYPTION_AT_REST": "required",
         "EIMIR_MEDIA_STORE": "local",
+        "EIMIR_VIDEO_UPLOAD_ENABLED": "true" if media else "false",
         "EIMIR_MAIL_TRANSPORT": "smtp",
         "EIMIR_SMTP_PORT": "587",
         "EIMIR_SMTP_STARTTLS": "true",
@@ -454,7 +471,13 @@ def export_compose(canonical: dict, backend: str, web: str) -> dict:
         settings[name] = required(name)
     for name, service in services.items():
         service.pop("profiles", None)
-        service["image"] = web if name == "cloud-web" else backend
+        service["image"] = (
+            web
+            if name == "cloud-web"
+            else media
+            if name == "cloud-video-worker"
+            else backend
+        )
         service["pull_policy"] = "always"
         if "build" in service or service.get("ports"):
             raise ChannelError(
@@ -466,10 +489,33 @@ def export_compose(canonical: dict, backend: str, web: str) -> dict:
                 mount.get("target") == FCM_CREDENTIAL_TARGET
                 for mount in service.get("volumes", [])
             ):
-                raise ChannelError("Source-default Compose must not mount an FCM credential")
+                raise ChannelError(
+                    "Source-default Compose must not mount an FCM credential"
+                )
             service.setdefault("volumes", []).append(copy.deepcopy(fcm_sender_mount()))
         elif name == "cloud-migrate":
             service["environment"] = {"EIMIR_DATABASE_URL": database}
+        elif name == "cloud-video-worker":
+            # This role needs DB/media keys, never mail, FCM or photo-provider credentials.
+            needed = {
+                "EIMIR_DATABASE_URL",
+                "EIMIR_ENVIRONMENT",
+                "EIMIR_DEPLOYMENT",
+                "EIMIR_PUBLIC_BASE_URL",
+                "EIMIR_ALLOWED_HOSTS",
+                "EIMIR_CURSOR_SIGNING_KEY",
+                "EIMIR_ENCRYPTION_AT_REST",
+                "EIMIR_ENCRYPTION_KEYS",
+                "EIMIR_ENCRYPTION_ACTIVE_KEY_ID",
+                "EIMIR_MEDIA_STORE",
+                "EIMIR_MEDIA_ROOT",
+                "EIMIR_VIDEO_UPLOAD_ENABLED",
+            }
+            service["environment"] = {
+                key: value
+                for key, value in (service["environment"] | settings).items()
+                if key in needed
+            } | {"EIMIR_MAIL_TRANSPORT": "none"}
     services["cloud-api"]["environment"]["FORWARDED_ALLOW_IPS"] = required(
         "TRUSTED_PROXY_IPS"
     )
@@ -494,7 +540,20 @@ def export_compose(canonical: dict, backend: str, web: str) -> dict:
         },
     }
     # Reuse the authoritative Cloud image-role/digest validator.
-    release_manifest.cloud_images_from_compose(result)
+    release_manifest.cloud_images_from_compose(
+        result
+        | {
+            "services": {
+                name: service
+                for name, service in services.items()
+                if name in CLOUD_SERVICES
+            }
+        }
+    )
+    if media:
+        release_manifest.require_digest_image_reference(
+            media, label="cloud-video-worker"
+        )
     return result
 
 
@@ -575,6 +634,10 @@ def publish(source: str, artifact_root: Path, output: Path) -> None:
     if not all(re.fullmatch(r"[1-9][0-9]*", value) for value in (run_id, attempt)):
         raise ChannelError("Invalid workflow run identity")
     records = evidence_records(artifact_root, source)
+    if "media-runtime" not in records:
+        raise ChannelError(
+            "Private video delivery requires exact-source restricted-worker evidence"
+        )
     images = {
         role: publish_image(
             artifact_root,
@@ -583,10 +646,12 @@ def publish(source: str, artifact_root: Path, output: Path) -> None:
             f"0.0.0-test.{run_id}",
             f"{run_id}-{attempt}",
         )
-        for role in ("backend", "web")
+        for role in ("backend", "web", "media")
     }
-    canonical = canonical_compose()
-    compose = export_compose(canonical, images["backend"], images["web"])
+    canonical = canonical_compose(video=True)
+    compose = export_compose(
+        canonical, images["backend"], images["web"], images["media"]
+    )
     identity = {
         "schemaVersion": 1,
         "kind": CHANNEL_KIND,
@@ -602,7 +667,7 @@ def publish(source: str, artifact_root: Path, output: Path) -> None:
         "README.md": (
             "# Generated private test deployment\n\n"
             "Prerelease operator channel, not a supported product release.\n"
-            f"Source: `{source}`. Both images are pinned by OCI digest.\n\n"
+            f"Source: `{source}`. All three images are pinned by OCI digest.\n\n"
             "Use Arcane Git Sync with the existing eimir-test project. Keep its local .env, "
             "database, media, deletion journal and keys. Never run bootstrap again.\n\n"
             "Setup and recovery: https://github.com/baerenmarke90/eimir/blob/main/"
@@ -649,7 +714,9 @@ def main() -> int:
                 ready = check_for_publication(source, event_name, event)
             else:
                 if not 1 <= args.timeout <= 3600:
-                    raise ChannelError("Check timeout must be between 1 and 3600 seconds")
+                    raise ChannelError(
+                        "Check timeout must be between 1 and 3600 seconds"
+                    )
                 ready = wait_for_checks(source, args.timeout)
             with args.github_output.open("a") as stream:
                 stream.write(f"ready={str(ready).lower()}\n")
@@ -669,4 +736,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

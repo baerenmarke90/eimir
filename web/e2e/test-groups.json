@@ -12,6 +12,11 @@
     "LOWER_LEVEL": "Still runs in the full regression until equivalent lower-level coverage is committed and the browser case can be removed."
   },
   "specs": {
+    "media-url-continuity.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "Compact/Expanded Story detail return must reuse the thumbnail URL and binary bytes while obtaining fresh parent authorization."
+    },
     "heart-moment-reading.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 6,
@@ -356,7 +361,7 @@
     },
     "wir-design-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 15,
+      "baselineTests": 19,
       "reason": "Wir design selection and retention, quote/statistics order persistence with direct pointer tracking, and concise notification/private/profile settings across Compact/Expanded themes and large text."
     },
     "moment-relation-picker.spec.ts": {
@@ -413,6 +418,16 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 7,
       "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled."
+    },
+    "android-push-onboarding.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 11,
+      "reason": "Native post-sign-in consent, optional dismissal across reload, permission denial, account-bound endpoint confirmation, narrow/large-text theme and accessibility evidence; ordinary Web remains unchanged."
+    },
+    "content-reading.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5,
+      "reason": "Readable long descriptions, explicit external preview, quiet Plan context and partner edit rights must remain accessible and preserve content/author/route across responsive states."
     }
   }
 }

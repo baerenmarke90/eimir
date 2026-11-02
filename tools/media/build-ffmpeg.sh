@@ -6,6 +6,7 @@ install_dir="$(realpath -m "$2")"
 patch_dir="$(cd "$(dirname "$0")" && pwd)"
 cd "$source_dir"
 patch -p1 --forward < "$patch_dir/reject-encrypted-mov.patch"
+patch -p1 --forward < "$patch_dir/guard-h264-context.patch"
 ./configure \
   --prefix="$install_dir" \
   --disable-everything --disable-autodetect --disable-network \
@@ -17,6 +18,9 @@ patch -p1 --forward < "$patch_dir/reject-encrypted-mov.patch"
   --enable-bsf=filter_units,h264_metadata,h264_mp4toannexb,aac_adtstoasc \
   --enable-filter=scale,format,null,anull,aresample,aformat,transpose,hflip,vflip
 make -j2
+cc -I . "$patch_dir/test-h264-context.c" libavcodec/libavcodec.a libavutil/libavutil.a \
+  -lm -pthread -o "$source_dir/test-h264-context"
+"$source_dir/test-h264-context"
 make install-progs
 mkdir -p "$install_dir/share/ffmpeg"
 cp COPYING.LGPLv2.1 LICENSE.md ffbuild/config.mak "$install_dir/share/ffmpeg/"

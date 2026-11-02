@@ -3,7 +3,7 @@ export interface OwnedObjectUrl {
   dispose(): void;
 }
 
-export type ObjectUrlSource = Blob | string;
+export type ObjectUrlSource = Blob | string | OwnedObjectUrl;
 
 interface ObjectUrlResourceOptions {
   createObjectUrl?: (blob: Blob) => string;
@@ -71,6 +71,7 @@ export function createOwnedObjectUrl(
  * explicit single-owner resource contract.
  */
 export function ownObjectUrlSource(source: ObjectUrlSource): OwnedObjectUrl {
+  if (typeof source === 'object' && 'dispose' in source) return source;
   return typeof source === 'string'
     ? adoptObjectUrl(source)
     : createOwnedObjectUrl(source);

@@ -107,5 +107,19 @@ It runs on PRs and weekly; feed/network failure is a failed check. Investigate
 changes against the actual enabled surface and patch, update sources where
 possible, and record the review in the owning issue/PR. Do not regenerate a
 baseline automatically or treat process limits as a fix for memory disclosure
-or arbitrary code execution. CVE-2025-52290 remains an undetermined upstream
-finding requiring explicit security review before enabling production.
+or arbitrary code execution. CVE-2025-52290 remains undetermined upstream. The
+source/build-surface review for the bounded delivery was completed on 2026-11-02.
+The [reporter's disclosure](https://www.openwall.com/lists/oss-security/2026/10/20/6)
+identifies an AAC/H.264 context mismatch during stream probing. The pinned
+`avpriv_h264_has_num_reorder_frames` guarded null private data and SPS only.
+`guard-h264-context.patch` now checks both the allocated decoder's actual codec
+and the requested codec ID before touching H.264 private state. Every restricted
+build compiles and executes `test-h264-context.c`: mismatched AAC allocation with
+an inaccessible private pointer, null context and uninitialized H.264 state.
+MPEG-TS is also excluded and input is forced MOV. This is a local reviewed defense
+for the shipped build, not a claim that upstream has closed the advisory.
+
+The authorized private test channel now builds, attests and digest-pins the
+same-revision derivative through the existing sole publisher. It admits no source
+until the full Media Video workflow passes. See [private test delivery](../PRIVATE-TEST-CHANNEL.md).
+Ordinary production remains default off and retains its explicit operator rollout.

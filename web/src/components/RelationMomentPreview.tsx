@@ -2,7 +2,7 @@ import { memoryPreviewTitle } from '../client/memoryProduct';
 import { useCallback } from 'react';
 import type { ReferenceApis } from '../client/referenceFlow';
 import type { PlanningRelationTarget } from '../client/sharedPlanning';
-import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
@@ -26,7 +26,7 @@ export function RelationMomentPreview({
     (parentId: string, attachmentId: string, signal?: AbortSignal) => {
       if (!mediaApis || target.kind === 'MILESTONE')
         return Promise.reject(new Error('Media is unavailable.'));
-      return loadAuthorizedStoryImage(
+      return loadAuthorizedStoryImageResource(
         mediaApis,
         spaceId,
         target.kind,

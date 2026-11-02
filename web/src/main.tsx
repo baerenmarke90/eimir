@@ -13,6 +13,7 @@ import { i18n } from './i18n';
 import { registerProductionServiceWorker } from './pwa';
 import { useCapacitorShell } from './capacitorShell';
 import { initializeTheme } from './theme';
+import { useControlPressFeedback } from './client/useControlPressFeedback';
 import './styles.css';
 import './story-media.css';
 import './theme.css';
@@ -77,6 +78,7 @@ const demoUrl = String(identityBuildVariable('DEMO_URL'))
 
 function RootApp() {
   useCapacitorShell();
+  useControlPressFeedback();
   return (
     <NativeSessionGate
       restoration={nativeRestoration}

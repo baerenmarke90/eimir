@@ -32,6 +32,32 @@ that its recipient can see is not a surprise.
 
 This is enforced server-side in the query, not in presentation logic.
 
+## Shared Story editing (#1603)
+
+The Product Owner explicitly authorized collaborative content editing on
+2026-11-02. This supersedes author-only **Update** for shared Memories,
+HeartMoments and Milestones in the original section 14/M2 baseline; it does not
+supersede private visibility, authorship, Delete or privacy-transition authority.
+
+The same-Space authorization rule distinguishes `EDIT` from destructive `WRITE`.
+Only the three explicitly opted-in Story domains allow partner content edits.
+Owner-only rows still require their owner for every access. Detail and Timeline
+project the same capabilities: `canEdit` may be true for a partner while
+`canDelete` is false. Existing author identity remains immutable, optimistic
+concurrency rejects stale edits, and lost membership revokes access normally.
+
+A partner may attach their own ready, unbound same-Space upload to a shared
+Memory while retaining the original author's photos. They cannot borrow another
+person's unbound upload or delete that person's saved photo by replacing the
+attachment set. A shared HeartMoment retains its single-photo cardinality; a
+partner may fill an empty slot but cannot remove/replace the author's photo.
+Photo sensitivity remains protected metadata: the Story author or the photo's
+owner may change it; another content editor may only retain its current value.
+Editors hide unavailable classification controls while new uploads remain editable.
+Visibility transitions stay author-only and separate from content updates.
+Existing collaborative Plan/Wish/Place semantics and private domains are unchanged.
+No schema, data ownership, entitlement or retention migration is required.
+
 ## Two kinds of profile information
 
 They are strictly separated because confusing them causes direct harm:

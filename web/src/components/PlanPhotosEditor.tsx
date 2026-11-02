@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { OrderedAttachmentSummary } from '../api/generated/models/OrderedAttachmentSummary';
 import { mediaCacheScopeForClient } from '../client/authorizedMediaCache';
-import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import type { PlanPhotoDraftController } from '../client/usePlanPhotoDrafts';
 import { useTranslation } from '../i18n';
@@ -29,10 +29,17 @@ function SavedPhoto({
     `${mediaCacheScopeForClient(controller.apis.attachments).id}:${spaceId}:PLAN:${planId}:thumbnail:${attempt}`,
     photo.id,
     (id, signal) =>
-      loadAuthorizedStoryImage(controller.apis, spaceId, 'PLAN', planId, id, {
-        signal,
-        variant: photo.hasThumbnail ? 'thumbnail' : 'original',
-      }),
+      loadAuthorizedStoryImageResource(
+        controller.apis,
+        spaceId,
+        'PLAN',
+        planId,
+        id,
+        {
+          signal,
+          variant: photo.hasThumbnail ? 'thumbnail' : 'original',
+        },
+      ),
   );
   if (resource.url) return <img src={resource.url} alt="" />;
   return (

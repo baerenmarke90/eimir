@@ -163,7 +163,7 @@ class TestCrudAndOwnership:
             "Unser Urlaub",
         ]
 
-    def test_partner_reads_shared_but_does_not_write(
+    def test_partner_edits_shared_content_without_destructive_authority(
         self,
         client,
         couple,
@@ -176,17 +176,20 @@ class TestCrudAndOwnership:
         )
         assert read.status_code == 200
         assert read.json()["capabilities"] == {
-            "canEdit": False,
+            "canEdit": True,
             "canDelete": False,
             "canComment": True,
         }
 
+        changed = client.patch(
+            f"{path(couple['space'].id)}/{heart_moment['id']}",
+            json={"text": "Von Ben geaendert."},
+            headers=if_match(couple["token_b"], 1),
+        )
+        assert changed.status_code == 200
+        assert changed.json()["authorId"] == str(couple["anna"].id)
+
         for response in (
-            client.patch(
-                f"{path(couple['space'].id)}/{heart_moment['id']}",
-                json={"text": "Von Ben geaendert."},
-                headers=if_match(couple["token_b"], 1),
-            ),
             client.delete(
                 f"{path(couple['space'].id)}/{heart_moment['id']}",
                 headers=if_match(couple["token_b"], 1),

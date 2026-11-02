@@ -13,7 +13,6 @@ on:
       - ".github/workflows/media-video.yml"
   push:
     branches: [main]
-    paths: ["backend/**", "tools/media/**", ".github/workflows/media-video.yml"]
   schedule:
     - cron: "37 5 * * 1"
   workflow_dispatch:

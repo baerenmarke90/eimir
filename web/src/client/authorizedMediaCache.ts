@@ -5,7 +5,18 @@ import {
   writeDurableMedia,
   evictDurableMedia,
 } from './durableMediaStore';
-/** Session-memory byte ownership; views continue to own their Object URLs. */
+import { evictMediaObjectUrls } from './sharedMediaObjectUrls';
+import {
+  MEDIA_CACHE_MAX_BYTES,
+  MEDIA_CACHE_MAX_ENTRIES,
+  MEDIA_CACHE_MAX_AGE_MS,
+} from './mediaCacheLimits';
+export {
+  MEDIA_CACHE_MAX_BYTES,
+  MEDIA_CACHE_MAX_ENTRIES,
+  MEDIA_CACHE_MAX_AGE_MS,
+} from './mediaCacheLimits';
+/** Session-memory ownership, shared only within an authorized account/API scope. */
 export interface MediaCacheScope {
   readonly id: number;
   readonly durableIdentity?: string;
@@ -18,6 +29,7 @@ interface CacheLease {
   readonly generation: number;
   readonly resourceKey: string;
   readonly revocation: number;
+  readonly spaceRevocation: number;
   readonly durableEpoch?: string;
 }
 
@@ -31,10 +43,6 @@ interface PendingBlob {
   promise: Promise<Blob>;
   consumers: number;
 }
-
-export const MEDIA_CACHE_MAX_BYTES = 48 * 1024 * 1024;
-export const MEDIA_CACHE_MAX_ENTRIES = 192;
-export const MEDIA_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 
 const scopesByOwner = new WeakMap<object, Map<string, MediaCacheScope>>();
 const clientScopes = new WeakMap<object, MediaCacheScope>();
@@ -101,6 +109,7 @@ export function captureMediaCacheLease(
     generation,
     resourceKey,
     revocation: revocations.get(resourceKey) ?? 0,
+    spaceRevocation: revocations.get(JSON.stringify([scope.id, spaceId])) ?? 0,
     durableEpoch: scope.durableIdentity
       ? captureDurableMediaEpoch()
       : undefined,
@@ -113,6 +122,8 @@ export function assertMediaCacheLease(lease: CacheLease): void {
     (lease.durableEpoch !== undefined &&
       lease.durableEpoch !== captureDurableMediaEpoch()) ||
     lease.revocation !== (revocations.get(lease.resourceKey) ?? 0) ||
+    lease.spaceRevocation !==
+      (revocations.get(JSON.stringify([lease.scope.id, lease.spaceId])) ?? 0) ||
     !lease.scope.isCurrent(lease.spaceId)
   ) {
     throw new DOMException('Media context expired', 'AbortError');
@@ -144,6 +155,7 @@ function prune(): void {
 /** Clear synchronously before any asynchronous persistent-cache cleanup. */
 export function clearAuthorizedMediaCache(): void {
   generation += 1;
+  evictMediaObjectUrls();
   clearDurableMediaStore();
   cached.clear();
   cachedBytes = 0;
@@ -165,6 +177,7 @@ export function evictAuthorizedMedia(
   if (diskPrefix) evictDurableMedia(diskPrefix.slice(0, -1));
   revocations.set(resourceKey, (revocations.get(resourceKey) ?? 0) + 1);
   const prefix = keyPrefix(lease, identityPrefix).slice(0, -1);
+  evictMediaObjectUrls(prefix);
   const matches = (key: string) =>
     key === `${prefix}]` || key.startsWith(`${prefix},`);
   for (const key of cached.keys()) {

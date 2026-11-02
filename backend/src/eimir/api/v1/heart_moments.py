@@ -14,7 +14,12 @@ from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession, PhotoBindingAuthorization
 from eimir.api.errors import problem_responses
 from eimir.api.idempotency import IdempotencyKey
-from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
+from eimir.api.schema import (
+    ApiModel,
+    AuthorSummary,
+    ResourceCapabilities,
+    story_resource_capabilities,
+)
 from eimir.api.v1.attachments import AttachmentSummary
 from eimir.attachments.models import Attachment, MediaType
 from eimir.authorization import ContentVisibility, visibility_of
@@ -136,7 +141,6 @@ def _heart_moment_detail(
         author = resolve_author_summary(
             session, heart_moment.owner_id, resource="Heart moment author"
         )
-    is_author = heart_moment.owner_id == authorization.account_id
     visibility = visibility_of(heart_moment.privacy_class)
     attachment = (
         session.get(Attachment, heart_moment.attachment_id)
@@ -156,12 +160,9 @@ def _heart_moment_detail(
         created_at=heart_moment.created_at,
         updated_at=heart_moment.updated_at,
         author=author,
-        capabilities=ResourceCapabilities(
-            can_edit=is_author,
-            can_delete=is_author,
-            # A private heart moment is not a shared discussion surface.
-            # Comments there would only be the owner talking to themselves,
-            # and making it shared later would expose those comments.
+        capabilities=story_resource_capabilities(
+            heart_moment,
+            authorization.account_id,
             can_comment=visibility is ContentVisibility.SHARED,
         ),
         attachment=(

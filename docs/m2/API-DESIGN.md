@@ -159,7 +159,7 @@ interface MemoryAttachmentSet {
 }
 ```
 
-`authorId`, `spaceId`, `version`, and Capabilities are not writable. Partners read shared Memories; Update/Delete remain author-only.
+`authorId`, `spaceId`, `version`, and Capabilities are not writable. Partners may read and update shared Memories under the explicit PO #1603 amendment (2026-11-02). Delete remains author-only. Private visibility and immutable authorship are unchanged.
 
 ### HeartMoment
 

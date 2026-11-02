@@ -82,9 +82,10 @@ class Memory(
     PrivateResourceMixin,
     Base,
 ):
-    """A memory readable by both active partners and editable by its author."""
+    """A memory readable and content-editable by both active partners."""
 
     __tablename__ = "memories"
+    shared_edit: ClassVar[bool] = True
 
     privacy_absence: ClassVar[ResourceAbsence] = ResourceAbsence(
         "Memory not found.", "RESOURCE_NOT_FOUND"

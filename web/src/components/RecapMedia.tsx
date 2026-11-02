@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import type { RecapSourceView } from '../api/generated/models/RecapSourceView';
 import type { ReferenceApis } from '../client/referenceFlow';
-import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { MemoryPreview } from './MemoryPreview';
 
 export type RecapMediaProps = {
@@ -28,7 +28,7 @@ export function RecapMedia({
     (parentId: string, attachmentId: string, signal?: AbortSignal) => {
       if (!parentType)
         return Promise.reject(new Error('No authorized media parent.'));
-      return loadAuthorizedStoryImage(
+      return loadAuthorizedStoryImageResource(
         mediaApis,
         spaceId,
         parentType,

@@ -15,6 +15,44 @@ import { MemoryPreview } from './MemoryPreview';
 import { PreviewCardLink } from './PreviewCardLink';
 import de from '../i18n/locales/de';
 
+it('requests an available thumbnail for preview and keeps the original fallback distinct', async () => {
+  const load = vi.fn(async () => 'blob:preview');
+  const view = render(
+    <MemoryPreview
+      memoryId="memory"
+      attachmentId="photo"
+      isSensitive={false}
+      hasThumbnail
+      loadImage={load}
+    />,
+  );
+  await waitFor(() =>
+    expect(load).toHaveBeenCalledWith(
+      'memory',
+      'photo',
+      expect.any(AbortSignal),
+      'thumbnail',
+    ),
+  );
+  view.rerender(
+    <MemoryPreview
+      memoryId="memory"
+      attachmentId="photo"
+      isSensitive={false}
+      hasThumbnail={false}
+      loadImage={load}
+    />,
+  );
+  await waitFor(() =>
+    expect(load).toHaveBeenLastCalledWith(
+      'memory',
+      'photo',
+      expect.any(AbortSignal),
+      'original',
+    ),
+  );
+});
+
 class MockIntersectionObserver {
   static instances: MockIntersectionObserver[] = [];
   readonly root = null;
@@ -100,6 +138,7 @@ describe('MemoryPreview viewport loading', () => {
       'memory-1',
       'attachment-1',
       expect.any(AbortSignal),
+      'original',
     );
     const image = await screen.findByRole('img');
     expect(image.getAttribute('src')).toBe('blob:near-viewport');

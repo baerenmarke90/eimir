@@ -6,6 +6,7 @@ import de from '../../src/i18n/locales/de';
 import planningCopy from '../../src/i18n/locales/m5s3';
 import recapCopy from '../../src/i18n/locales/recaps';
 import copy from '../../src/i18n/locales/relationshipReflections';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
   ACCOUNT_ID,
@@ -516,6 +517,13 @@ test('Plan overview bounds prose, preserves full detail, and restores a cold sna
     fullPage: true,
   });
   await focal.click();
+  const more = page.locator('.description-disclosure');
+  await expect(more).toHaveAccessibleName(
+    storyProducts.descriptionDisclosure.more,
+  );
+  await expect(more).toHaveAttribute('aria-expanded', 'false');
+  await more.click();
+  await expect(more).toHaveAttribute('aria-expanded', 'true');
   await expect(page.getByText(description, { exact: true })).toBeVisible();
   const beforeReturn = planReads;
   await page.getByRole('button', { name: taskBoundary.back }).click();
@@ -669,7 +677,7 @@ for (const [width, theme] of [
     await expect(
       page.locator('.plan-photo-gallery .media-gallery-carousel-content'),
     ).toBeVisible();
-    await expect(page.locator('.planen-detail-meta')).toContainText(
+    await expect(page.locator('.planen-detail-context')).toContainText(
       'Sankt Peter-Ording',
     );
     expect(state.patches()).toBe(1);

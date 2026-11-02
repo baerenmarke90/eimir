@@ -1,6 +1,6 @@
 import type { AttachmentDraft } from '../client/attachmentDraftState';
 import { selectedPhotoUnavailable } from '../client/selectedMediaRetention';
-import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
@@ -35,7 +35,7 @@ export function DraftMediaPreview({
         return Promise.reject(
           new Error('Video capture context is unavailable.'),
         );
-      return loadAuthorizedStoryImage(
+      return loadAuthorizedStoryImageResource(
         context.apis,
         context.spaceId,
         'NONE',

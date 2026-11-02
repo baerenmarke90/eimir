@@ -6,11 +6,12 @@ import type { PhotoReaction } from '../api/generated/models/PhotoReaction';
 import type { PhotoReactionSummary } from '../api/generated/models/PhotoReactionSummary';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { normalizeClientError } from '../client/problemDetails';
 import { saveProductReadCacheEntry } from '../client/productReadCache';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import type { ReferenceApis } from '../client/referenceFlow';
-import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTaskActivation } from '../client/useTaskActivation';
@@ -139,7 +140,10 @@ export function MemoryPhotoGallery({
   accountId: string;
   scope: string;
   offline: boolean;
-  loadImage: (attachmentId: string, signal?: AbortSignal) => Promise<string>;
+  loadImage: (
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<ObjectUrlSource>;
   commentTriggerRef?: (element: HTMLSpanElement | null) => void;
 }) {
   const { t } = useTranslation();
@@ -247,7 +251,7 @@ export function MemoryPhotoGallery({
         )}
         loadMedia={loadImage}
         loadPoster={(id, signal) =>
-          loadAuthorizedStoryImage(
+          loadAuthorizedStoryImageResource(
             apis,
             memory.spaceId,
             'MEMORY',

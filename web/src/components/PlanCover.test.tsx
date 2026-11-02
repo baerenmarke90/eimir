@@ -2,11 +2,14 @@
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
-import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { PlanCover } from './PlanCover';
 
 vi.mock('../client/storyMediaLoader', () => ({
-  loadAuthorizedStoryImage: vi.fn(async () => 'blob:plan-preview'),
+  loadAuthorizedStoryImageResource: vi.fn(async () => ({
+    url: 'blob:plan-preview',
+    dispose: vi.fn(),
+  })),
 }));
 
 let admit: IntersectionObserverCallback;
@@ -63,7 +66,7 @@ describe('Plan cover admission', () => {
     const preview = container.querySelector('[data-media-deferred="true"]');
     expect(preview).not.toBeNull();
     expect(observe).toHaveBeenCalledWith(preview);
-    expect(loadAuthorizedStoryImage).not.toHaveBeenCalled();
+    expect(loadAuthorizedStoryImageResource).not.toHaveBeenCalled();
     expect(screen.queryByRole('status')).toBeNull();
     act(() =>
       admit(
@@ -72,7 +75,7 @@ describe('Plan cover admission', () => {
       ),
     );
     await screen.findByRole('img', { name: plan.title });
-    expect(loadAuthorizedStoryImage).toHaveBeenCalledWith(
+    expect(loadAuthorizedStoryImageResource).toHaveBeenCalledWith(
       expect.anything(),
       'space-1',
       'PLAN',
@@ -93,11 +96,11 @@ describe('Plan cover admission', () => {
       />,
     );
     await waitFor(() =>
-      expect(loadAuthorizedStoryImage).toHaveBeenCalledTimes(1),
+      expect(loadAuthorizedStoryImageResource).toHaveBeenCalledTimes(1),
     );
     expect(observe).not.toHaveBeenCalled();
-    expect(vi.mocked(loadAuthorizedStoryImage).mock.calls[0][5]?.variant).toBe(
-      'original',
-    );
+    expect(
+      vi.mocked(loadAuthorizedStoryImageResource).mock.calls[0][5]?.variant,
+    ).toBe('original');
   });
 });

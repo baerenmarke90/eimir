@@ -331,19 +331,42 @@ export function SharedPlanningOverviewPage({
     };
   }
 
-  function renderAgendaPlan(plan: PlanDetail) {
+  function renderPlanPreview(plan: PlanDetail, focal = false) {
     return (
-      <li key={plan.id} className="planen-agenda-item">
-        <Link
-          className="planen-agenda-link"
-          {...planningLinkProps(planDetailPath(plan.id), 'plans', plan.id)}
-        >
-          <span className="planen-agenda-schedule">
+      <Link
+        className={`${focal ? 'planen-next-link' : 'planen-agenda-link'}${plan.coverAttachment ? ' planen-preview-has-cover' : ''}`}
+        {...planningLinkProps(planDetailPath(plan.id), 'plans', plan.id)}
+      >
+        <span className={focal ? 'planen-next-copy' : 'planen-agenda-copy'}>
+          <strong className={focal ? undefined : 'planen-agenda-title'}>
+            {plan.title}
+          </strong>
+          <span
+            className={
+              focal ? 'planen-next-schedule' : 'planen-agenda-schedule'
+            }
+          >
             {planScheduleLabel(plan)}
           </span>
-          <span className="planen-agenda-title">{plan.title}</span>
-        </Link>
-      </li>
+          {plan.description ? (
+            <span
+              className={
+                focal ? 'planen-next-description' : 'planen-agenda-description'
+              }
+            >
+              {textExcerpt(plan.description)}
+            </span>
+          ) : null}
+        </span>
+        <PlanCover
+          plan={plan}
+          spaceId={spaceId}
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          interactive={false}
+          presentation="preview"
+        />
+      </Link>
     );
   }
 
@@ -396,38 +419,9 @@ export function SharedPlanningOverviewPage({
             aria-labelledby="planen-next-heading"
           >
             <h2 id="planen-next-heading">{t('m5s3.overview.nextHeading')}</h2>
-            <Link
-              className="planen-next-link"
-              {...planningLinkProps(
-                planDetailPath(planGroups.focal.id),
-                'plans',
-                planGroups.focal.id,
-              )}
-            >
-              <PlanCover
-                plan={planGroups.focal}
-                spaceId={spaceId}
-                apiBaseUrl={apiBaseUrl}
-                accessToken={accessToken}
-                interactive={false}
-                presentation="preview"
-              />
-              <span className="planen-next-copy">
-                <span className="planen-next-schedule">
-                  {planScheduleLabel(planGroups.focal)}
-                </span>
-                <strong>{planGroups.focal.title}</strong>
-                {planGroups.focal.description ? (
-                  <span className="planen-next-description">
-                    {textExcerpt(planGroups.focal.description)}
-                  </span>
-                ) : null}
-              </span>
-            </Link>
+            {renderPlanPreview(planGroups.focal, true)}
           </section>
         ) : null}
-
-        <WishSelectionEntry segment="plans" />
 
         {planGroups.later.length ? (
           <section
@@ -435,9 +429,17 @@ export function SharedPlanningOverviewPage({
             aria-labelledby="planen-later-heading"
           >
             <h2 id="planen-later-heading">{t('m5s3.overview.laterHeading')}</h2>
-            <ul>{planGroups.later.map(renderAgendaPlan)}</ul>
+            <ul>
+              {planGroups.later.map((plan) => (
+                <li key={plan.id} className="planen-agenda-item">
+                  {renderPlanPreview(plan)}
+                </li>
+              ))}
+            </ul>
           </section>
         ) : null}
+
+        <WishSelectionEntry segment="plans" />
 
         {planGroups.undated.length ? (
           <section

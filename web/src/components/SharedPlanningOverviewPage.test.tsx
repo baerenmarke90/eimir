@@ -324,6 +324,10 @@ describe('SharedPlanningOverviewPage', () => {
     expect(soonIndex).toBeGreaterThan(-1);
     expect(soonIndex).toBeLessThan(laterIndex);
     expect(laterIndex).toBeLessThan(ideaIndex);
+    expect(laterIndex).toBeLessThan(
+      plansPanelHtml.indexOf('wish-selection-entry'),
+    );
+    expect(plansPanelHtml).toContain('planen-agenda-copy');
     expect(ideaIndex).toBeLessThan(html.indexOf('Already experienced'));
 
     // Creator attribution is real domain data, not a hardcoded name.

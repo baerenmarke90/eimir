@@ -78,16 +78,16 @@ function renderCreate(
 }
 
 describe('PlanningCreatePage', () => {
-  it('keeps shared visibility domain-correct for Plans and Wishes', () => {
+  it('omits redundant fixed-audience banners from Plan and Wish creation', () => {
     const { unmount } = renderCreate('wish');
 
-    expect(screen.getByText(m5s3.wish.sharedBody)).toBeTruthy();
+    expect(screen.queryByText(m5s3.wish.sharedBody)).toBeNull();
     expect(screen.queryByText(m5s3.plan.sharedBody)).toBeNull();
 
     unmount();
     renderCreate('plan');
 
-    expect(screen.getByText(m5s3.plan.sharedBody)).toBeTruthy();
+    expect(screen.queryByText(m5s3.plan.sharedBody)).toBeNull();
     expect(screen.queryByText(m5s3.wish.sharedBody)).toBeNull();
   });
 

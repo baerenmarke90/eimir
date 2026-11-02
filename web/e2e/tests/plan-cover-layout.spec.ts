@@ -253,6 +253,8 @@ for (const scenario of [
       });
     const preview = page.locator('.planen-next-link');
     await expect(preview).toContainText(TITLE);
+    // Large text can put this viewport-admitted cover below the fold.
+    await preview.locator('.plan-cover').scrollIntoViewIfNeeded();
     if (!scenario.sensitive)
       await expectCompleteImage(
         preview.locator('img'),

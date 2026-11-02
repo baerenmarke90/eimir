@@ -923,9 +923,6 @@ export function MemoryCreatePage({
                     {t('taskBoundary.invalidDate')}
                   </p>
                 ) : null}
-                {!experienceKind ? (
-                  <p className="field-help">{t('memory.dateHelp')}</p>
-                ) : null}
               </div>
             ) : null}
 

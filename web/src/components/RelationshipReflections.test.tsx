@@ -112,6 +112,15 @@ describe('Special Plan anticipation', () => {
       Array.from(document.querySelectorAll('.anticipation-digit')).map(
         (node) => node.textContent,
       );
+    expect(document.querySelector('.anticipation-date')?.textContent).toContain(
+      new Intl.DateTimeFormat('de-DE', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date('2026-11-21T19:00:00Z')) + ' Uhr',
+    );
+    expect(
+      document.querySelector('.anticipation-date')?.getAttribute('datetime'),
+    ).toBe('2026-11-21T19:00:00.000Z');
     expect(digits()).toEqual(['00', '00', '01', '01']);
     expect(screen.getByRole('timer').getAttribute('aria-live')).toBe('off');
     act(() => vi.advanceTimersByTime(2000));

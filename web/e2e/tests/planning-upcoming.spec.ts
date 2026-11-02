@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
@@ -115,12 +117,26 @@ const earlyPlan = planDetail({
   plannedStart: EARLY_DATE,
   sourceWishId: WISH_ID,
 });
-const latePlan = planDetail({
-  id: LATE_PLAN_ID,
-  title: LATE_TITLE,
-  status: 'PLANNED',
-  plannedStart: LATE_DATE,
-});
+const latePlan = {
+  ...planDetail({
+    id: LATE_PLAN_ID,
+    title: LATE_TITLE,
+    status: 'PLANNED',
+    plannedStart: LATE_DATE,
+  }),
+  description: 'Doors open early. We can have dinner before the concert.',
+  coverAttachment: {
+    id: 'later-plan-cover',
+    status: 'READY',
+    mediaType: 'IMAGE',
+    mimeType: 'image/jpeg',
+    size: 10000,
+    width: 1200,
+    height: 800,
+    hasThumbnail: true,
+    isSensitive: false,
+  },
+};
 const ideaPlan = planDetail({
   id: IDEA_PLAN_ID,
   title: IDEA_TITLE,
@@ -158,6 +174,7 @@ async function installPlanningMocks(
   let converted = false;
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
     const method = request.method();
@@ -170,6 +187,31 @@ async function installPlanningMocks(
         contentType: 'application/json',
         body: JSON.stringify(body),
       });
+
+    if (pathname.endsWith('/attachments/later-plan-cover/read-access')) {
+      expect(request.postDataJSON()).toMatchObject({
+        parentType: 'PLAN',
+        parentId: LATE_PLAN_ID,
+        variant: 'thumbnail',
+      });
+      await fulfillJson({
+        method: 'STREAM',
+        url: `/api/v1/spaces/${SPACE_ID}/attachments/later-plan-cover/content`,
+      });
+      return;
+    }
+    if (pathname.endsWith('/attachments/later-plan-cover/content')) {
+      await route.fulfill({
+        contentType: 'image/jpeg',
+        body: readFileSync(
+          new URL(
+            '../../../backend/demo_assets/images/concert-lights.jpg',
+            import.meta.url,
+          ),
+        ),
+      });
+      return;
+    }
 
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
@@ -530,13 +572,28 @@ test('Plans leads with the nearest intention, then later and undated Plans, whil
   await expect(plansPanel.locator('.planen-agenda-link')).toContainText(
     LATE_TITLE,
   );
+  const later = plansPanel.locator('.planen-agenda-link');
+  await expect(later.locator('img')).toBeVisible();
+  await expect(later.locator('.planen-agenda-description')).toHaveText(
+    latePlan.description,
+  );
+  await expect(later.locator('.planen-agenda-schedule')).toContainText('Uhr');
+  const agendaBox = await plansPanel.locator('.planen-agenda').boundingBox();
+  const selectionBox = await plansPanel
+    .locator('.wish-selection-entry')
+    .boundingBox();
+  expect(agendaBox?.y).toBeLessThan(selectionBox?.y ?? 0);
   await expect(plansPanel.locator('.planen-undated-link')).toContainText(
     IDEA_TITLE,
   );
   await expect(plansPanel.locator('.planen-history')).toContainText(
     COMPLETED_TITLE,
   );
-  await captureR3Evidence(page, testInfo, 'r3-overview-dense-390-light.png');
+  await captureR3Evidence(
+    page,
+    testInfo,
+    'planning-overview-dense-390-light.png',
+  );
 
   await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
   await expect(
@@ -620,6 +677,13 @@ for (const scenario of [
     reducedMotion: 'reduce' as const,
   },
   {
+    name: '320-dark-large-text',
+    viewport: { width: 320, height: 800 },
+    colorScheme: 'dark' as const,
+    reducedMotion: 'reduce' as const,
+    largeText: true,
+  },
+  {
     name: '1280-expanded',
     viewport: { width: 1280, height: 900 },
     colorScheme: 'light' as const,
@@ -640,7 +704,21 @@ for (const scenario of [
     await signIn(page);
     await page.goto('/plan');
 
+    if ('largeText' in scenario && scenario.largeText)
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
     await expect(page.locator('.planen-next-link')).toContainText(EARLY_TITLE);
+    await expect(page.locator('.planen-agenda-link')).toContainText(LATE_TITLE);
+    await expect(page.locator('.planen-agenda-schedule')).toContainText('Uhr');
+    if ('largeText' in scenario && scenario.largeText) {
+      const preview = page.locator('.planen-agenda-link');
+      const copy = await preview.locator('.planen-agenda-copy').boundingBox();
+      const cover = await preview.locator('.plan-cover').boundingBox();
+      expect(copy).not.toBeNull();
+      expect(cover).not.toBeNull();
+      expect(cover?.y).toBeGreaterThanOrEqual(
+        (copy?.y ?? 0) + (copy?.height ?? 0),
+      );
+    }
     await expect(page.locator('.planen-undated-link')).toContainText(
       IDEA_TITLE,
     );
@@ -648,7 +726,11 @@ for (const scenario of [
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
     expect(overflow).toBeLessThanOrEqual(1);
-    await captureR3Evidence(page, testInfo, `r3-overview-${scenario.name}.png`);
+    await captureR3Evidence(
+      page,
+      testInfo,
+      `planning-overview-${scenario.name}.png`,
+    );
   });
 }
 

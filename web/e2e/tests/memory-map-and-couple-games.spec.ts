@@ -17,6 +17,22 @@ import {
   TINY_PNG,
 } from '../support/storyTimelineFixture';
 
+async function expectSecondaryProIcons(page: Page) {
+  const pro = page.locator('.settings-pro-information');
+  const lead = await pro
+    .locator('.settings-pro-lead > .eimir-icon')
+    .boundingBox();
+  expect(lead).not.toBeNull();
+  const features = await pro.locator('li > .eimir-icon').all();
+  expect(features).toHaveLength(4);
+  for (const icon of features) {
+    const box = await icon.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box?.width).toBeLessThanOrEqual(lead?.width ?? 0);
+    expect(box?.height).toBeLessThanOrEqual(lead?.height ?? 0);
+  }
+}
+
 for (const [width, theme] of [
   [360, 'light'],
   [390, 'dark'],
@@ -111,7 +127,40 @@ for (const [width, theme] of [
     );
     await place.hover();
     if (width !== 430) await expect(place).toHaveCSS('transform', 'none');
-    await place.click();
+    const expand = page.getByRole('button', {
+      name: mapCopy.fullscreen,
+      exact: true,
+    });
+    await expand.click();
+    const fullscreen = page.getByRole('dialog', { name: mapCopy.title });
+    await expect(fullscreen).toBeVisible();
+    const viewport = await fullscreen
+      .locator('.place-map-viewport')
+      .boundingBox();
+    expect(viewport?.height).toBeGreaterThan(500);
+    await captureScreenshot(
+      page,
+      info,
+      `planning-map-fullscreen-${width}-${theme}.png`,
+    );
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .include('.memory-map-fullscreen')
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await page.keyboard.press('Escape');
+    await expect(fullscreen).toBeHidden();
+    await expect(expand).toBeFocused();
+    await expand.click();
+    await expect(fullscreen).toBeVisible();
+    await page.goBack();
+    await expect(fullscreen).toBeHidden();
+    await expect(page).toHaveURL(/\/story\/map/);
+    await expand.click();
+    await fullscreen.locator('.memory-map-marker').click();
+    await expect(fullscreen).toBeHidden();
     const memory = page.getByRole('link', { name: /Afternoon by the canal/ });
     await expect(memory).toHaveAttribute('href', '/story/memories/mem-canal');
     await expect(memory.locator('.memory-map-thumbnail img')).toBeVisible();
@@ -138,6 +187,22 @@ for (const [width, theme] of [
     await expect(
       page.getByRole('link', { name: /Afternoon by the canal/ }),
     ).toBeVisible();
+    await page.goto('/more/settings/account');
+    await expect(page.locator('.settings-pro-information h2')).toHaveText(
+      'eimir. Pro',
+    );
+    await expect(page.locator('.settings-pro-information li')).toHaveCount(4);
+    await expectSecondaryProIcons(page);
+    await captureScreenshot(page, info, `planning-pro-${width}-${theme}.png`, {
+      fullPage: true,
+    });
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .include('.settings-pro-information')
+          .analyze()
+      ).violations,
+    ).toEqual([]);
   });
 }
 
@@ -202,6 +267,50 @@ test('failed map tiles keep memories usable at 320px with large text', async ({
       name: /Our favourite quiet place by the water/,
     }),
   ).toBeVisible();
+  await page
+    .getByRole('button', { name: mapCopy.fullscreen, exact: true })
+    .click();
+  const fullscreen = page.getByRole('dialog', { name: mapCopy.title });
+  await expect(fullscreen).toBeVisible();
+  expect(
+    await fullscreen.evaluate((node) => node.scrollWidth <= node.clientWidth),
+  ).toBe(true);
+  await captureScreenshot(
+    page,
+    info,
+    'planning-map-fullscreen-320-dark-large.png',
+  );
+  await page.keyboard.press('Escape');
+  await expect(fullscreen).toBeHidden();
+  await page.goto('/more/settings/account');
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+  const pro = page.locator('.settings-pro-information');
+  await expect(pro.locator('li')).toHaveCount(4);
+  await expectSecondaryProIcons(page);
+  const firstFeature = pro.locator('li').first();
+  const icon = await firstFeature.locator(':scope > .eimir-icon').boundingBox();
+  const copy = await firstFeature.locator(':scope > div').boundingBox();
+  expect(icon).not.toBeNull();
+  expect(copy).not.toBeNull();
+  expect(copy?.y).toBeGreaterThanOrEqual((icon?.y ?? 0) + (icon?.height ?? 0));
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  expect(
+    await pro.evaluate((node) => node.scrollWidth <= node.clientWidth),
+  ).toBe(true);
+  await captureScreenshot(page, info, 'planning-pro-320-dark-large.png', {
+    fullPage: true,
+  });
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .include('.settings-pro-information')
+        .analyze()
+    ).violations,
+  ).toEqual([]);
 });
 
 test('map entitlement denial explains Pro without loading external tiles', async ({

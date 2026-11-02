@@ -8,6 +8,8 @@ import { useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { SensitiveMediaCover } from './SensitiveMedia';
 import { PhotoDraftGallery } from './PhotoDraftGallery';
+import { PhotoSourcePicker } from './PhotoSourcePicker';
+import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
 import './PlanPhotosEditor.css';
 
 function SavedPhoto({
@@ -52,6 +54,7 @@ export function PlanPhotosEditor({
   disabled,
   canUpload,
   onChange,
+  photoSourceContext,
 }: {
   controller: PlanPhotoDraftController;
   spaceId: string;
@@ -59,6 +62,11 @@ export function PlanPhotosEditor({
   disabled: boolean;
   canUpload: boolean;
   onChange: () => void;
+  photoSourceContext?: {
+    apiBaseUrl: string;
+    accessToken: string;
+    accountId: string;
+  };
 }) {
   const { t } = useTranslation();
   return (
@@ -75,6 +83,28 @@ export function PlanPhotosEditor({
           },
         }}
       />
+      {photoSourceContext ? (
+        <PhotoSourcePicker
+          {...photoSourceContext}
+          spaceId={spaceId}
+          remaining={Math.max(
+            0,
+            MAX_MEMORY_ATTACHMENTS - controller.items.length,
+          )}
+          disabled={disabled || !canUpload}
+          beginSelection={() => {
+            const ticket = controller.uploads.beginSelection();
+            return {
+              ...ticket,
+              commit: (files) => {
+                const accepted = ticket.commit(files);
+                if (accepted) onChange();
+                return accepted;
+              },
+            };
+          }}
+        />
+      ) : null}
       <PhotoDraftGallery
         disabled={disabled}
         items={controller.items.map((item, index) => ({

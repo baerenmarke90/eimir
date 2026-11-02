@@ -1,5 +1,13 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Link,
   useLocation,
@@ -28,6 +36,7 @@ import type { MapLocation } from './PlaceMapCanvas';
 import { ProblemState } from './ProblemState';
 import { type StoryView, StoryViewTabs } from './StoryViewTabs';
 import { UiState } from './UiState';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './MemoryMapPage.css';
 
 const MapCanvas = lazy(() => import('./PlaceMapCanvas'));
@@ -54,6 +63,23 @@ export function MemoryMapPage({
   const location = useLocation();
   const navigate = useNavigate();
   const [revealedPlaceId, setRevealedPlaceId] = useState<string | null>(null);
+  const fullscreenScope = JSON.stringify([apiBaseUrl, accountId, spaceId]);
+  const [fullscreen, setFullscreen] = useState({
+    scope: fullscreenScope,
+    open: false,
+  });
+  const expanded = fullscreen.scope === fullscreenScope && fullscreen.open;
+  const setExpanded = (open: boolean) =>
+    setFullscreen({ scope: fullscreenScope, open });
+  const fullscreenTrigger = useRef<HTMLButtonElement>(null);
+  const fullscreenSheet = useRef<ShortTaskSheetHandle>(null);
+  useLayoutEffect(() => {
+    setFullscreen((current) =>
+      current.scope === fullscreenScope
+        ? current
+        : { scope: fullscreenScope, open: false },
+    );
+  }, [fullscreenScope]);
   const [params, setParams] = useSearchParams();
   const selectedId = params.get('place');
   const selectPlace = useCallback(
@@ -209,23 +235,77 @@ export function MemoryMapPage({
         ) : (
           <>
             {locations.length ? (
-              <AppErrorBoundary
-                resetKey={`${spaceId}:${accountId}`}
-                fallback={<p role="alert">{t('m5s3.map.tileError')}</p>}
-              >
-                <Suspense
-                  fallback={
-                    <div className="memory-map-loading" role="status">
-                      {t('states.loading.title')}
-                    </div>
+              <div className="memory-map-surface">
+                <button
+                  ref={fullscreenTrigger}
+                  type="button"
+                  className="secondary memory-map-expand"
+                  onClick={() => setExpanded(true)}
+                >
+                  <EimirIcon name="expand" />
+                  {t('memoryMap.fullscreen')}
+                </button>
+                <AppErrorBoundary
+                  resetKey={`${spaceId}:${accountId}`}
+                  fallback={<p role="alert">{t('m5s3.map.tileError')}</p>}
+                >
+                  <Suspense
+                    fallback={
+                      <div className="memory-map-loading" role="status">
+                        {t('states.loading.title')}
+                      </div>
+                    }
+                  >
+                    <MapCanvas
+                      locations={points}
+                      onLocationSelect={selectPlace}
+                    />
+                  </Suspense>
+                </AppErrorBoundary>
+                <ShortTaskSheet
+                  ref={fullscreenSheet}
+                  open={expanded}
+                  title={t('memoryMap.title')}
+                  closeLabel={t('memoryMap.closeFullscreen')}
+                  onClose={() => setExpanded(false)}
+                  restoreFocusRef={fullscreenTrigger}
+                  className="memory-map-fullscreen"
+                  footer={
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => setExpanded(false)}
+                    >
+                      {t('memoryMap.closeFullscreen')}
+                    </button>
                   }
                 >
-                  <MapCanvas
-                    locations={points}
-                    onLocationSelect={selectPlace}
-                  />
-                </Suspense>
-              </AppErrorBoundary>
+                  <AppErrorBoundary
+                    resetKey={`${spaceId}:${accountId}:fullscreen`}
+                    fallback={<p role="alert">{t('m5s3.map.tileError')}</p>}
+                  >
+                    <Suspense
+                      fallback={
+                        <UiState
+                          kind="loading"
+                          title={t('states.loading.title')}
+                        />
+                      }
+                    >
+                      {expanded ? (
+                        <MapCanvas
+                          locations={points}
+                          onLocationSelect={(id) => {
+                            fullscreenSheet.current?.closeForNavigation(() =>
+                              selectPlace(id),
+                            );
+                          }}
+                        />
+                      ) : null}
+                    </Suspense>
+                  </AppErrorBoundary>
+                </ShortTaskSheet>
+              </div>
             ) : null}
             {query.hasNextPage ? (
               <button

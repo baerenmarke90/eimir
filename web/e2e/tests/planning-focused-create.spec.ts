@@ -318,7 +318,7 @@ for (const scenario of [
   });
 }
 
-test('focused Wish creation keeps Wish-specific shared visibility copy', async ({
+test('focused Wish creation omits the redundant fixed-audience banner', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -326,7 +326,7 @@ test('focused Wish creation keeps Wish-specific shared visibility copy', async (
   await signIn(page);
   await page.goto('/plan/wishes/new');
 
-  await expect(page.getByText(m5s3.wish.sharedBody)).toBeVisible();
+  await expect(page.getByText(m5s3.wish.sharedBody)).toHaveCount(0);
   await expect(page.getByText(m5s3.plan.sharedBody)).toHaveCount(0);
   await captureR3Evidence(page, testInfo, 'r3-create-wish-390-light.png');
 });

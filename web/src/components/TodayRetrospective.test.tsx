@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import type { M4ProductApis } from '../client/m4Product';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
@@ -47,6 +47,7 @@ function dashboard(photo = false, viewerLocalDate = new Date('2026-10-23')) {
       ...memory,
       previewAttachmentId: photo ? 'attachment-1' : null,
       previewIsSensitive: false,
+      previewHasThumbnail: photo,
     },
     thinkingOfYouAvailableAt: null,
   };
@@ -105,7 +106,8 @@ function renderToday({
     },
   } as unknown as M4ProductApis;
 
-  return render(
+  const loadImage = vi.fn(async () => 'blob:http://localhost/authorized');
+  const rendered = render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={['/today']}>
         <TaskOriginProvider accountId={accountId} spaceId={spaceId}>
@@ -117,9 +119,7 @@ function renderToday({
                   apis={apis}
                   spaceId={spaceId}
                   account={{ id: accountId, displayName: 'Alex' }}
-                  loadMemoryImage={() =>
-                    Promise.resolve('blob:http://localhost/authorized')
-                  }
+                  loadMemoryImage={loadImage}
                 />
               }
             />
@@ -129,6 +129,7 @@ function renderToday({
       </MemoryRouter>
     </QueryClientProvider>,
   );
+  return { ...rendered, loadImage };
 }
 
 beforeEach(() => window.localStorage.clear());
@@ -171,7 +172,7 @@ describe('Today #452 retrospective presentation and dismissal', () => {
   });
 
   it('uses the authorized MemoryPreview for media without a second image API', async () => {
-    renderToday({ photo: true });
+    const { loadImage } = renderToday({ photo: true });
     expect(await screen.findByText('Our early trip together')).not.toBeNull();
     expect(document.querySelector('.today-retrospective-media')).not.toBeNull();
     await waitFor(() => {
@@ -181,6 +182,12 @@ describe('Today #452 retrospective presentation and dismissal', () => {
         ),
       ).not.toBeNull();
     });
+    expect(loadImage).toHaveBeenCalledWith(
+      'history-2025',
+      'attachment-1',
+      expect.any(AbortSignal),
+      'thumbnail',
+    );
   });
 
   it('dismisses only rediscovery, preserves the contextual module, and survives remount', async () => {

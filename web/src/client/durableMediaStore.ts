@@ -33,6 +33,7 @@ export function captureDurableMediaEpoch(): string | undefined {
 async function database(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DATABASE, 2);
+    let abandoned = false;
     request.onupgradeneeded = () => {
       const db = request.result;
       // Disposable v1 entries have no independent size index. Discard them
@@ -41,9 +42,17 @@ async function database(): Promise<IDBDatabase> {
       db.createObjectStore(STORE, { keyPath: 'key' });
       db.createObjectStore(METADATA, { keyPath: 'key' });
     };
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      const db = request.result;
+      db.onversionchange = () => db.close();
+      if (abandoned) db.close();
+      else resolve(db);
+    };
     request.onerror = () => reject(request.error);
-    request.onblocked = () => reject(new Error('Media store blocked'));
+    request.onblocked = () => {
+      abandoned = true;
+      reject(new Error('Media store blocked'));
+    };
   });
 }
 async function transaction<T>(

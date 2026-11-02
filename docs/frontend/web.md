@@ -61,6 +61,11 @@ query for one minute, with thirty-minute garbage collection and existing
 mutation/authorization invalidation. No durable map or Pro entitlement snapshot
 is introduced. See #1605 and parallel video work #1598.
 
+The same thumbnail-availability projection also drives Wir's Keepsake,
+retrospective, contextual media and monthly strip through MemoryPreview. These
+previews avoid decoding the full originals during startup; a source without a
+thumbnail retains the existing authorized-original fallback.
+
 ## Concurrency and mutations
 
 All updates, deletes, visibility changes, comment deletes, and attachment binding operations continue to use the version returned by the API through `If-Match`. Client-side optimistic presentation is rolled back when the mutation fails; the server remains authoritative.

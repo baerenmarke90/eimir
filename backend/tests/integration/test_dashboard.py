@@ -87,6 +87,7 @@ def _bind_ready_photo(session: Session, memory: Memory, name: str) -> Attachment
         media_type=MediaType.IMAGE.value,
         declared_mime_type="image/jpeg",
         declared_size=100,
+        has_thumbnail=True,
         ready_at=FIXED_NOW,
         payload=AttachmentPayload(original_name=name),
     )
@@ -272,6 +273,7 @@ def test_keepsake_survives_recent_shared_crowded_by_non_memory_items(
     assert body["keepsake"]["id"] == str(photo_memory.id)
     assert body["keepsake"]["type"] == "MEMORY"
     assert body["keepsake"]["previewAttachmentId"] == str(attachment.id)
+    assert body["keepsake"]["previewHasThumbnail"] is True
 
 
 def test_keepsake_is_space_isolated(client, session: Session, couple, monkeypatch) -> None:  # type: ignore[no-untyped-def]

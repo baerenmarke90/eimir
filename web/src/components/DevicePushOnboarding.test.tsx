@@ -102,6 +102,11 @@ it('asks before permission/registration and prevents duplicate activation', asyn
     />,
   );
   expect(screen.getByRole('dialog')).not.toBeNull();
+  expect(
+    screen
+      .getByRole('button', { name: copy.onboardingActivate })
+      .getAttribute('disabled'),
+  ).not.toBeNull();
   expect(postSnackbar).not.toHaveBeenCalled();
   await act(async () => finish());
   view.rerender(

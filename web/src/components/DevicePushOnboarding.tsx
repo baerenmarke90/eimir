@@ -114,7 +114,7 @@ export function DevicePushOnboarding({
     devicePush.state === 'connecting' ||
     devicePush.state === 'disconnecting' ||
     devicePush.state === 'loading';
-  const action = devicePushAction(devicePush);
+  const action = busy ? 'enable' : devicePushAction(devicePush);
 
   return (
     <ShortTaskSheet

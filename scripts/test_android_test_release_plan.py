@@ -8,7 +8,7 @@ import unittest
 import urllib.error
 import zipfile
 
-from android_test_release_plan import API, DOWNLOAD, PACKAGE, admit, validate_plan, verify_once, verify_public
+from android_test_release_plan import API, DOWNLOAD, FIREBASE_PROJECT, PACKAGE, admit, validate_plan, verify_once, verify_public
 
 
 def plan_data():
@@ -33,6 +33,8 @@ class PublicFixture:
             "demoResetTimer": False, "testUpdates": True,
         }
         identity.update(identity_change or {})
+        if self.plan.code >= 39 and "firebaseProjectId" not in (identity_change or {}):
+            identity["firebaseProjectId"] = FIREBASE_PROJECT
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, "w") as archive:
             archive.writestr("assets/public/eimir-test-build.json", json.dumps(identity))

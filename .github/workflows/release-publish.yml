@@ -1412,7 +1412,7 @@ jobs:
       apk: ${{ steps.plan.outputs.apk }}
       fresh_package: ${{ steps.plan.outputs.fresh_package }}
     env:
-      CERTIFICATE: b5009739477874fbc76b483c66ddb1502132255dd15de37f7570ee6a13b5f472
+      CERTIFICATE: 1d403a18b4d3694f8e5fd9853906a60c012644d23e5a3a1ef40819b119cb1da9
       GH_REPO: baerenmarke90/eimir
     permissions:
       contents: read
@@ -1531,15 +1531,11 @@ jobs:
           PYTHONPATH=scripts python3 - <<'PY'
           import os, re
           from pathlib import Path
-          from android_test_release import run, sdk_tool
+          from android_test_release import LEGACY_CERTIFICATE, verify_signer
           apk = Path(os.environ['RUNNER_TEMP']) / 'signer-preflight' / os.environ['PREVIOUS_APK']
-          tool = sdk_tool('apksigner')
-          print(f'Verifier: {tool}')
-          output = run(tool, 'verify', '--verbose', '--print-certs', str(apk))
-          print(output)
-          certificates = re.findall(r'^Signer #[0-9]+ certificate SHA-256 digest: ([0-9a-fA-F]{64})$', output, re.MULTILINE)
-          print(f'Legacy parser certificates: {certificates}')
-          assert certificates == [os.environ['CERTIFICATE']], 'Published predecessor signer must match before signing'
+          fresh = os.environ['FRESH_PACKAGE'] == 'true'
+          verify_signer(apk, LEGACY_CERTIFICATE if fresh else os.environ['CERTIFICATE'])
+          print('Published predecessor signer verified before protected signing.')
           PY
       - name: Validate the actual sideload build before requesting signing
         if: steps.plan.outputs.ready == 'true'
@@ -1580,7 +1576,7 @@ jobs:
           Required source checks, Android source tests, unsigned sideload assembly,
           sideload lint and unit tests passed. This validation APK is not publishable.
           The android-test-release Environment is configured for unattended test delivery.
-          The next job verifies the original signer, builds/signs $VERSION_NAME,
+          The next job verifies the existing canonical signer, builds/signs $VERSION_NAME,
           verifies the explicit predecessor/package contract, stages and checks all draft assets,
           publishes the complete prerelease, and verifies anonymous public bytes.
           Physical-device installation/login and App Links acceptance remain unverified.
@@ -1593,7 +1589,7 @@ jobs:
       github.ref == 'refs/heads/release/android-test.14-20261026' &&
       needs.android-test-preflight.outputs.ready == 'true'
     env:
-      CERTIFICATE: b5009739477874fbc76b483c66ddb1502132255dd15de37f7570ee6a13b5f472
+      CERTIFICATE: 1d403a18b4d3694f8e5fd9853906a60c012644d23e5a3a1ef40819b119cb1da9
       GH_REPO: baerenmarke90/eimir
       ANDROID_FIREBASE_PROJECT_ID: eimir-production
       SOURCE: ${{ needs.android-test-preflight.outputs.source }}
@@ -1650,6 +1646,12 @@ jobs:
             --pattern "$PREVIOUS_APK" --pattern SHA256SUMS \
             --dir "$RUNNER_TEMP/previous"
           (cd "$RUNNER_TEMP/previous" && sha256sum --check SHA256SUMS)
+          if [ "$FRESH_PACKAGE" = true ]; then
+            gh release download android-fcm-v0.2.0-fcm.2 \
+              --pattern eimir-android-0.2.0-fcm.2.apk --pattern SHA256SUMS \
+              --dir "$RUNNER_TEMP/canonical-previous"
+            (cd "$RUNNER_TEMP/canonical-previous" && sha256sum --check SHA256SUMS)
+          fi
       - name: Decode the protected keystore and confirm its public certificate
         env:
           KEYSTORE_BASE64: ${{ secrets.EIMIR_RELEASE_KEYSTORE_BASE64 }}
@@ -1668,8 +1670,8 @@ jobs:
               '-storepass:env', 'EIMIR_RELEASE_KEYSTORE_PASSWORD',
           ], stderr=subprocess.PIPE)
           if hashlib.sha256(certificate).hexdigest() != os.environ['CERTIFICATE']:
-              raise SystemExit('Protected keystore certificate is not the original eimir test signer')
-          print('Original eimir test signing certificate confirmed.')
+              raise SystemExit('Protected keystore does not match the existing de.eimir.app signer; canonical key provisioning is required')
+          print('Existing independent eimir signing certificate confirmed.')
           PY
       - name: Prepare the existing FCM-only Android client configuration
         env:
@@ -1704,7 +1706,7 @@ jobs:
           PY
           package_args=()
           if [ "$FRESH_PACKAGE" = true ]; then
-            package_args+=(--fresh-package)
+            package_args+=(--fresh-package --canonical-previous-apk "$RUNNER_TEMP/canonical-previous/eimir-android-0.2.0-fcm.2.apk")
           fi
           python3 scripts/android_test_release.py package "${package_args[@]}" \
             --apk "$RUNNER_TEMP/build/$APK" \
@@ -1722,9 +1724,9 @@ jobs:
           assert marker['packageName'] == 'de.eimir.app'
           fresh = os.environ['FRESH_PACKAGE'] == 'true'
           installation = (
-              'Approved test.38 to test.39 fresh installation using de.eimir.app; '
-              'the former app and sandbox remain intact. Sign in to the existing Account. '
-              'No in-place upgrade or local-data transfer is claimed. '
+              'Approved test.38 to test.39 package boundary; verified same-key fcm.2 predecessor. '
+              'Existing de.eimir.app installs update in place. Former-package installs remain separate; '
+              'sign in to the existing Account if installing alongside. No cross-package local-data transfer. '
               if fresh else 'Same-package de.eimir.app upgrade with increasing versionCode. '
           )
           (root / 'native-acceptance.md').write_text(
@@ -1735,11 +1737,11 @@ jobs:
               f"Certificate SHA-256: `{os.environ['CERTIFICATE']}`.\n\n"
               f"APK SHA-256: `{marker['asset']['sha256']}`; bytes: {marker['asset']['size']}.\n\n"
               'Passed: fixed-source required CI, Android source tests, unsigned sideload build, '
-              'sideload lint/unit tests, protected original-certificate check, signed assembly, '
+              'sideload lint/unit tests, protected canonical-certificate check, signed assembly, '
               'verification with explicitly pinned Android build-tools 36.0.0, '
               'apksigner verification of both predecessor and planned APK, canonical package de.eimir.app, '
               'strictly increasing versionCode, minSdk 26, non-debuggable APK, embedded clean-source '
-              'identity, persistent API origin, Demo/reset disabled and native updater present.\n\n'
+              'identity, persistent API origin, Demo/reset disabled, native updater and verified compiled eimir-production FCM client.\n\n'
               + installation + '\n\n'
               'Source-specific CI and retained diagnostics belong to the source checks and owning PR.\n\n'
               'Pending: physical-device installation/login, session/Space/data continuity, all-eleven '

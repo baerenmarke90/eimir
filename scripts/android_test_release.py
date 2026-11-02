@@ -17,7 +17,8 @@ import subprocess
 import zipfile
 from pathlib import Path
 
-from android_test_release_plan import LEGACY_PACKAGE, PACKAGE
+from android_firebase_configuration import validate_configuration
+from android_test_release_plan import CERTIFICATE, FIREBASE_PROJECT, LEGACY_CERTIFICATE, LEGACY_PACKAGE, PACKAGE
 
 ROOT = Path(__file__).resolve().parents[1]
 TEST_ORIGIN = "https://demo.eimir.ur-cloud.de"
@@ -56,6 +57,7 @@ def validate_identity(value: dict) -> None:
         or value.get("demoMode") is not False
         or value.get("demoResetTimer") is not False
         or value.get("testUpdates") is not True
+        or value.get("firebaseProjectId") != FIREBASE_PROJECT
         or value.get("dirty") is not False
         or value.get("validationOnly") is not False
         or not re.fullmatch(r"[0-9a-f]{40}", str(value.get("sourceRevision", "")))
@@ -121,6 +123,19 @@ def sdk_tool(name: str) -> str:
     raise ValueError(f"Android SDK tool is missing: {name}")
 
 
+def verify_signer(apk: Path, expected: str) -> None:
+    """Verify actual APK signing bytes against one pinned public certificate."""
+    if not re.fullmatch("[0-9a-f]{64}", expected):
+        raise ValueError("Invalid expected signing identity")
+    verification = run(sdk_tool("apksigner"), "verify", "--verbose", "--print-certs", str(apk))
+    certificates = re.findall(
+        r"^Signer #[0-9]+ certificate SHA-256 digest: ([0-9a-fA-F]{64})$",
+        verification, re.MULTILINE,
+    )
+    if [value.lower() for value in certificates] != [expected]:
+        raise ValueError("Verified APK signer differs from the pinned eimir signing identity")
+
+
 def build(args: argparse.Namespace) -> None:
     if (
         not VERSION.fullmatch(args.version_name)
@@ -131,6 +146,11 @@ def build(args: argparse.Namespace) -> None:
     if dirty and not args.unsigned:
         raise ValueError("Signed test builds require a clean, committed checkout")
     env = test_environment(dict(os.environ))
+    firebase_project = env.get("ANDROID_FIREBASE_PROJECT_ID", "").strip()
+    if not args.unsigned and firebase_project != FIREBASE_PROJECT:
+        raise ValueError("Canonical signed test builds require the existing eimir Firebase project")
+    if not args.unsigned:
+        validate_configuration(firebase_project, (ROOT / "android/app/google-services.json").read_text())
     if not args.unsigned and not env.get("EIMIR_RELEASE_KEYSTORE"):
         raise ValueError(
             "Supply the durable eimir. signing environment; never use an ephemeral/debug key"
@@ -150,6 +170,7 @@ def build(args: argparse.Namespace) -> None:
         "demoMode": False,
         "demoResetTimer": False,
         "testUpdates": True,
+        "firebaseProjectId": firebase_project,
     }
     (ROOT / "web/dist" / BUILD_IDENTITY).write_text(
         json.dumps(identity, indent=2) + "\n"
@@ -194,19 +215,10 @@ def package(args: argparse.Namespace) -> None:
     apk = args.apk.resolve()
     if not 0 < apk.stat().st_size <= MAX_APK_BYTES:
         raise ValueError("APK size is out of bounds")
-    verification = run(
-        sdk_tool("apksigner"), "verify", "--verbose", "--print-certs", str(apk)
-    )
-    certificates = re.findall(
-        r"^Signer #[0-9]+ certificate SHA-256 digest: ([0-9a-fA-F]{64})$",
-        verification,
-        re.MULTILINE,
-    )
     expected = args.certificate_sha256.lower()
-    if not re.fullmatch("[0-9a-f]{64}", expected) or certificates != [expected]:
-        raise ValueError(
-            "Verified APK signer differs from the expected eimir. signing identity"
-        )
+    if expected != CERTIFICATE:
+        raise ValueError("Canonical packages require the existing independent eimir signing identity")
+    verify_signer(apk, expected)
     with zipfile.ZipFile(apk) as archive:
         if archive.getinfo("assets/public/" + BUILD_IDENTITY).file_size > 8192:
             raise ValueError("APK build identity is too large")
@@ -225,22 +237,19 @@ def package(args: argparse.Namespace) -> None:
             run(sdk_tool("aapt"), "dump", "badging", str(args.previous_apk))
         )
         validate_upgrade(badging, previous, args.fresh_package)
-        previous_verification = run(
-            sdk_tool("apksigner"),
-            "verify",
-            "--verbose",
-            "--print-certs",
-            str(args.previous_apk),
-        )
-        previous_certificates = re.findall(
-            r"^Signer #[0-9]+ certificate SHA-256 digest: ([0-9a-fA-F]{64})$",
-            previous_verification,
-            re.MULTILINE,
-        )
-        if previous_certificates != [expected]:
-            raise ValueError("The previous APK does not share this signing identity")
+        verify_signer(args.previous_apk, LEGACY_CERTIFICATE if args.fresh_package else expected)
     elif args.fresh_package:
         raise ValueError("A fresh-package transition requires the verified predecessor APK")
+    if args.fresh_package:
+        if not args.canonical_previous_apk:
+            raise ValueError("The canonical fcm.2 predecessor is required at the channel boundary")
+        canonical = parse_badging(run(sdk_tool("aapt"), "dump", "badging", str(args.canonical_previous_apk)))
+        if canonical["versionName"] != "0.2.0-fcm.2" or canonical["versionCode"] != 2:
+            raise ValueError("The canonical predecessor must be the published fcm.2 build")
+        validate_upgrade(badging, canonical)
+        verify_signer(args.canonical_previous_apk, expected)
+    elif args.canonical_previous_apk:
+        raise ValueError("The additional canonical predecessor is only valid at the channel boundary")
     if (
         badging["packageName"] != PACKAGE_NAME
         or badging["minSdk"] != 26
@@ -315,6 +324,8 @@ def main() -> None:
         "--fresh-package", action="store_true",
         help="Only the explicitly approved test.38 to test.39 separate-install boundary",
     )
+    packager.add_argument("--canonical-previous-apk", type=Path,
+                          help="The existing same-key de.eimir.app fcm.2 APK at the channel boundary")
     continuity = packager.add_mutually_exclusive_group(required=True)
     continuity.add_argument(
         "--initial-release",

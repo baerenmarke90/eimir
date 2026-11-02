@@ -21,6 +21,9 @@ DOWNLOAD = f"https://github.com/{REPOSITORY}/releases/download"
 VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+-test\.([1-9][0-9]*)\Z")
 PACKAGE = "de.eimir.app"
 LEGACY_PACKAGE = "de.sidebyside.app"
+CERTIFICATE = "1d403a18b4d3694f8e5fd9853906a60c012644d23e5a3a1ef40819b119cb1da9"
+LEGACY_CERTIFICATE = "b5009739477874fbc76b483c66ddb1502132255dd15de37f7570ee6a13b5f472"
+FIREBASE_PROJECT = "eimir-production"
 ORIGIN = "https://demo.eimir.ur-cloud.de"
 MAX_APK_BYTES = 256 * 1024 * 1024
 FIELDS = {"schemaVersion", "sourceRevision", "versionName", "versionCode", "previousVersionName", "notesFile"}
@@ -177,6 +180,8 @@ def verify_once(plan: Plan, reader=fetch, expected_root: Path | None = None) -> 
         "validationOnly": False, "apiOrigin": ORIGIN, "demoMode": False,
         "demoResetTimer": False, "testUpdates": True,
     }
+    if package_for_version(plan.version) == PACKAGE:
+        expected["firebaseProjectId"] = FIREBASE_PROJECT
     if type(identity.get("versionCode")) is not int or any(
         identity.get(key) != value or (isinstance(value, bool) and identity.get(key) is not value)
         for key, value in expected.items()

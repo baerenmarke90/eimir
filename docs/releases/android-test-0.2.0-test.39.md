@@ -12,26 +12,33 @@ select that frozen source with a separate plan-only commit.
 ## Package and data contract
 
 All build variants inherit main's canonical `de.eimir.app` identity. Test.39 is
-an explicit fresh installation, consistent with #565 and
+a same-key update for the existing canonical fcm.2 app, consistent with #565 and
 `docs/PROJECT-IDENTITY-MIGRATION.md`. Install its APK directly and sign in to the
-existing Account on the same persistent server. The old `de.sidebyside.app`
+existing Account on the same persistent server when installing alongside the legacy app. The old `de.sidebyside.app`
 installation and sandbox remain intact. No cross-package cleanup, credentials
 copy, uninstall, local-data transfer or in-place upgrade is introduced or claimed.
 Server-side Account/Space/content identities do not change.
 
-Reuse the existing protected Android test publisher, original certificate,
+Reuse the existing protected Android test publisher, independent canonical certificate already used by fcm.1/fcm.2,
 persistent API origin, regular mode, native updater and strict exact-source gates.
 The publisher retains predecessor hash/signature checks and accepts the package
 boundary only for the exact test.38/code 38 → test.39/code 39 pair with explicit
-`--fresh-package`. Subsequent releases require same-package updates again.
+`--fresh-package`. Also verify the published canonical fcm.2/code 2 predecessor
+with the canonical certificate, proving an in-place upgrade from that app.
+Subsequent releases require same-package updates again.
 Immutable legacy plans remain anonymously verifiable. The canonical native
 catalog validates and skips historical test.1–test.38 legacy-package markers;
 other invalid packages and malformed metadata still fail closed.
 
+Canonical certificate: `1d403a18b4d3694f8e5fd9853906a60c012644d23e5a3a1ef40819b119cb1da9`.
+The existing protected signing bindings must match it; a legacy key is rejected.
+Retain FCM with the existing eimir-production client input, validate it through
+`android_firebase_configuration.py`, and verify all four compiled APK resources.
 No new provider, signing identity, infrastructure, entitlement, quota or backend
 migration is added. Cloud/Self-Hosted product behavior remains main's behavior.
 Native push/renderer recovery, updater registration and both browser inventories
-remain integrated. The existing protected Firebase client input for eimir-production is prepared and verified in the signed APK; no server key or Play publication is introduced.
+remain integrated. The existing Firebase client is preserved; no Play publication
+is introduced.
 
 ## Acceptance and publication
 

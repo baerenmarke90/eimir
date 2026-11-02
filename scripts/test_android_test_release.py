@@ -1,15 +1,21 @@
 """Regressions for test-channel admission and actual APK identity parsing."""
 
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
 from android_test_release import (
     LEGACY_PACKAGE,
     PACKAGE_NAME,
+    CERTIFICATE,
+    LEGACY_CERTIFICATE,
+    FIREBASE_PROJECT,
     TEST_ORIGIN,
     parse_badging,
     test_environment,
     validate_identity,
     validate_upgrade,
+    verify_signer,
 )
 
 
@@ -37,6 +43,7 @@ class AndroidTestReleaseTests(unittest.TestCase):
             "demoMode": False,
             "demoResetTimer": False,
             "testUpdates": True,
+            "firebaseProjectId": FIREBASE_PROJECT,
             "dirty": False,
             "validationOnly": False,
             "sourceRevision": "a" * 40,
@@ -50,6 +57,8 @@ class AndroidTestReleaseTests(unittest.TestCase):
             ("demoResetTimer", True),
             ("dirty", True),
             ("testUpdates", False),
+            ("firebaseProjectId", "other-project"),
+            ("firebaseProjectId", ""),
             ("validationOnly", True),
             ("versionCode", True),
             ("versionCode", 0),
@@ -103,6 +112,19 @@ class AndroidTestReleaseTests(unittest.TestCase):
         ]:
             with self.subTest(previous=change), self.assertRaises(ValueError):
                 validate_upgrade(current, {**previous, **change}, fresh_package=True)
+
+    def test_canonical_and_legacy_signers_are_not_interchangeable(self):
+        with patch("android_test_release.sdk_tool", return_value="apksigner"), \
+             patch("android_test_release.run") as signer:
+            for certificate in (CERTIFICATE, LEGACY_CERTIFICATE):
+                signer.return_value = f"Signer #1 certificate SHA-256 digest: {certificate}\n"
+                verify_signer(Path("fixture.apk"), certificate)
+                other = LEGACY_CERTIFICATE if certificate == CERTIFICATE else CERTIFICATE
+                with self.assertRaises(ValueError):
+                    verify_signer(Path("fixture.apk"), other)
+            signer.return_value = "No signer certificate\n"
+            with self.assertRaises(ValueError):
+                verify_signer(Path("fixture.apk"), CERTIFICATE)
 
 
 if __name__ == "__main__":

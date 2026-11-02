@@ -64,7 +64,7 @@ on that branch after the intended APK source has passed its required checks:
 The notes file must already exist in the selected source. Use a strictly higher
 versionCode and the corresponding `test.N` suffix. Never put credentials, keys,
 arbitrary URLs or alternative signing identities in this plan. The canonical package,
-origin and original certificate stay fixed after the explicit test.39 fresh-install
+origin and canonical certificate stay fixed after the explicit test.39 package
 boundary below. Plan validation rejects unknown fields,
 moving refs, unsafe notes paths, inconsistent versions and noninteger codes.
 
@@ -75,10 +75,12 @@ approval setting was changed. Do not broaden this allowlist implicitly.
 
 For a new plan, the workflow checks the exact APK source, verifies the predecessor,
 builds the unsigned validation variant, runs sideload lint and actual policy/catalog
-JVM tests, confirms the original keystore certificate, signs the release APK and
+JVM tests, confirms the canonical eimir keystore certificate, signs the release APK and
 verifies the actual package/signature/version/source identity. The one-time
 test.38 → test.39 boundary checks the exact old/new packages and versions as
-well as both signatures; it is a separate installation, not an in-place update. APK inspection uses
+well as both signatures. The existing canonical fcm.2 APK is additionally verified
+as a same-package/same-key predecessor. Only the legacy app remains a separate
+installation; existing de.eimir.app installations update in place. APK inspection uses
 an SDK view containing **only build-tools 36.0.0**: a runner may also have 37 installed,
 whose human-readable signer output is incompatible with the existing helper parser.
 
@@ -107,14 +109,19 @@ No release workflow dispatch is needed. Normal required PR CI remains intact.
 Provide the durable signing environment through the existing protected mechanism:
 `EIMIR_RELEASE_KEYSTORE`, `EIMIR_RELEASE_KEYSTORE_PASSWORD`,
 `EIMIR_RELEASE_KEY_ALIAS` and `EIMIR_RELEASE_KEY_PASSWORD`. Never commit keys,
-passwords, recovery files or signed APKs. The initial test key and its recovery
-material are retained privately outside this repository. It is a test-channel
-identity, not a decision about Play App Signing.
+passwords, recovery files or signed APKs. Use the existing independent canonical key already used by fcm.1/fcm.2, not the
+legacy test key (#1395). The protected Environment and branch allowlist remain
+unchanged. If its existing bindings do not expose the canonical key, publication
+fails at the fingerprint gate; do not substitute another key or change protection
+settings. The existing public Android client input is supplied through
+`EIMIR_ANDROID_GOOGLE_SERVICES_JSON` with `ANDROID_FIREBASE_PROJECT_ID=eimir-production`.
+The build validates the input and verifies all four compiled Firebase resources;
+missing/mismatched configuration cannot publish a silently unconfigured APK.
 
-Public SHA-256 certificate fingerprint for this initial test channel:
+Public SHA-256 certificate fingerprint for canonical de.eimir.app releases:
 
 ```text
-b5009739477874fbc76b483c66ddb1502132255dd15de37f7570ee6a13b5f472
+1d403a18b4d3694f8e5fd9853906a60c012644d23e5a3a1ef40819b119cb1da9
 ```
 
 Package identity is **`de.eimir.app` from test.39 onward**, following the Product
@@ -126,22 +133,30 @@ former app and its local sandbox separate. Do not uninstall or clear it, copy
 credentials across packages, or claim an in-place upgrade/local-data migration.
 Server-side Account, Space and saved content retain their existing identities.
 
-The original test signer is retained. The publisher explicitly admits only the
-exact test.38/code 38 → test.39/code 39 package boundary, checks both APK signatures,
+The existing canonical eimir signer is retained. The legacy test.38 signer is
+checked independently against its immutable historical pin. The publisher explicitly
+admits only the exact test.38/code 38 → test.39/code 39 package boundary, verifies
+fcm.2/code 2 as a same-package/same-key canonical predecessor,
 and records fresh-install semantics in acceptance evidence. All later updates
 must preserve `de.eimir.app` and increase versionCode as usual. The new native
 catalog fully validates and skips only historical legacy-package test.1–test.38
 markers; malformed or foreign-package metadata still fails closed. The old app
 cannot install a differently named package through its existing updater.
 
-Do not reuse an RWN signing key or silently replace the eimir. test key.
+Do not reuse an RWN or legacy test signing key for the canonical eimir package.
 Installing over a differently signed prior APK is rejected by Android; do not
 solve that by deleting user data.
 
 ```bash
+export ANDROID_FIREBASE_PROJECT_ID=eimir-production
+# EIMIR_ANDROID_GOOGLE_SERVICES_JSON contains the existing public Android client JSON.
+python scripts/android_firebase_configuration.py prepare
 python scripts/android_test_release.py build \
   --version-name 0.2.0-test.39 --version-code 39 \
   --output-dir /protected/artifacts/test-39
+python scripts/android_firebase_configuration.py verify-apk \
+  /protected/artifacts/test-39/eimir-android-test-v0.2.0-test.39.apk \
+  --analyzer "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
 
 python scripts/android_test_release.py package \
   --apk /protected/artifacts/test-39/eimir-android-test-v0.2.0-test.39.apk \
@@ -149,6 +164,7 @@ python scripts/android_test_release.py package \
   --notes-file /protected/artifacts/notes.txt \
   --previous-apk /protected/artifacts/previous/eimir-android-test-v0.2.0-test.38.apk \
   --fresh-package \
+  --canonical-previous-apk /protected/artifacts/previous/eimir-android-0.2.0-fcm.2.apk \
   --output-dir /protected/artifacts/release-39
 ```
 
@@ -164,7 +180,7 @@ For subsequent versions within the canonical package, increase `versionCode` and
 `--initial-release` with `--previous-apk /protected/artifacts/previous.apk`.
 Packaging then requires the same certificate and package and a strictly greater
 version code. Only test.39 additionally uses `--fresh-package` with the verified
-test.38 predecessor; that flag rejects every other package/version boundary. Keep the original signing material available for the entire test.
+test.38 and canonical fcm.2 predecessors; that flag rejects every other package/version boundary. Keep the original signing material available for the entire test.
 
 Treat a build number as consumed once any signed APK with that number has been
 shared or installed, including private or unpublished candidates. A corrected APK

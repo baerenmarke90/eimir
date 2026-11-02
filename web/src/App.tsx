@@ -131,6 +131,7 @@ import { DemoEntry } from './components/DemoEntry';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
+import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
 import {
   ActivityProductPage,
@@ -960,6 +961,12 @@ function AuthenticatedApp({
         spaceId={spaceId}
       >
         {relationshipContent}
+        <DevicePushOnboarding
+          key={`${apiBaseUrl}:${account.id}`}
+          devicePush={devicePush}
+          accountId={account.id}
+          apiBaseUrl={apiBaseUrl}
+        />
       </WirDesignProvider>
     </AppIconProvider>
   );

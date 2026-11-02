@@ -520,7 +520,11 @@ export function SharedPlanningOverviewPage({
               aria-pressed={wishStatus === status}
               onClick={() => changeWishStatus(status)}
             >
-              {t(`m5s3.wish.status.${status}`)}
+              {t(
+                status === 'COMPLETED'
+                  ? 'm5s3.overview.fulfilledWishes'
+                  : 'm5s3.wish.status.OPEN',
+              )}
             </button>
           ))}
         </fieldset>

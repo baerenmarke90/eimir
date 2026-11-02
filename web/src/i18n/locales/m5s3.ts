@@ -38,6 +38,7 @@ const m5s3 = {
   },
   overview: {
     wishScope: 'Wünsche anzeigen',
+    fulfilledWishes: 'Erfüllt',
     fulfilledWishesEmpty: 'Noch keine erfüllten Wünsche.',
     title: 'Planen',
     segmentedLabel: 'Pläne oder Wünsche anzeigen',

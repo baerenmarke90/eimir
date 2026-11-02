@@ -146,6 +146,13 @@ for (const [width, colorScheme] of [
     await expect(
       link.getByText(photoSources.setupFallback, { exact: true }),
     ).toBeVisible();
+    if (width === 390)
+      await captureScreenshot(
+        page,
+        testInfo,
+        '1581-immich-help-390-light.png',
+        { fullPage: true },
+      );
     await link.getByText(photoSources.setupHelp, { exact: true }).click();
     await link
       .getByLabel(photoSources.address, { exact: true })
@@ -1883,6 +1890,10 @@ for (const [width, colorScheme] of [
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
     await signInAndOpenMemoryCreate(page, emptyPhotoBatch(), sourceScenario());
+    if (width === 320)
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '32px';
+      });
     const destination = {
       id: '66666666-6666-4666-8666-666666666666',
       spaceId: SPACE_ID,

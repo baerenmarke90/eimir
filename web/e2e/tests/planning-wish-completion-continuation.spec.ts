@@ -863,13 +863,13 @@ for (const [width, colorScheme] of [
       .click();
     const scope = page.getByRole('group', { name: m5s3.overview.wishScope });
     await scope
-      .getByRole('button', { name: m5s3.wish.status.COMPLETED, exact: true })
+      .getByRole('button', { name: m5s3.overview.fulfilledWishes, exact: true })
       .click();
     const wish = page.getByRole('link', { name: new RegExp(WISH_TITLE) });
     await expect(wish).toBeVisible();
     await expect(
       scope.getByRole('button', {
-        name: m5s3.wish.status.COMPLETED,
+        name: m5s3.overview.fulfilledWishes,
         exact: true,
       }),
     ).toHaveAttribute('aria-pressed', 'true');
@@ -886,7 +886,7 @@ for (const [width, colorScheme] of [
       .click();
     await expect(
       scope.getByRole('button', {
-        name: m5s3.wish.status.COMPLETED,
+        name: m5s3.overview.fulfilledWishes,
         exact: true,
       }),
     ).toHaveAttribute('aria-pressed', 'true');
@@ -895,7 +895,7 @@ for (const [width, colorScheme] of [
     await expect(wish).toBeVisible();
     await expect(
       scope.getByRole('button', {
-        name: m5s3.wish.status.COMPLETED,
+        name: m5s3.overview.fulfilledWishes,
         exact: true,
       }),
     ).toHaveAttribute('aria-pressed', 'true');

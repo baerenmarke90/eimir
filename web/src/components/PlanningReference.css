@@ -517,11 +517,6 @@
   flex-wrap: wrap;
 }
 
-.planen-preview-has-cover > .planen-next-copy,
-.planen-preview-has-cover > .planen-agenda-copy {
-  flex: 1 1 12rem;
-}
-
 .planen-preview-has-cover .plan-cover--preview {
   flex: 0 1 min(28%, 8rem);
   width: 100%;
@@ -549,6 +544,11 @@
   display: grid;
   min-width: 0;
   gap: var(--space-2);
+}
+
+.planen-preview-has-cover > .planen-next-copy,
+.planen-preview-has-cover > .planen-agenda-copy {
+  flex: 1 1 12rem;
 }
 
 .planen-next-copy > strong {

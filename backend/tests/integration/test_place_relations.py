@@ -44,6 +44,18 @@ RELATION_TYPES = [
 
 @pytest.fixture
 def couple(session: Session):  # type: ignore[no-untyped-def]
+    return _make_couple(session)
+
+
+@pytest.fixture
+def committed_couple(production_client):  # type: ignore[no-untyped-def]
+    client, maker = production_client
+    with maker.begin() as session:
+        world = _make_couple(session)
+    return client, maker, world
+
+
+def _make_couple(session: Session):  # type: ignore[no-untyped-def]
     anna = make_account(session, "Anna")
     ben = make_account(session, "Ben")
     outsider = make_account(session, "Fremd")
@@ -636,12 +648,14 @@ def test_manual_place_is_atomic_with_create_and_exact_replay(client, session, co
 
 
 @pytest.mark.parametrize("kind", ["memories", "heart-moments"])
-def test_foreign_manual_place_rolls_back_content_and_receipt(client, session, couple, kind):  # type: ignore[no-untyped-def]
+def test_foreign_manual_place_rolls_back_content_and_receipt(committed_couple, kind):  # type: ignore[no-untyped-def]
+    client, maker, couple = committed_couple
     foreign = place(client, couple, token_key="token_outsider", space=couple["outsider_space"])
     model = Memory if kind == "memories" else HeartMoment
-    before = session.scalar(select(func.count()).select_from(model))
     receipts = MemoryCreateReceipt if kind == "memories" else CreateReceipt
-    before_receipts = session.scalar(select(func.count()).select_from(receipts))
+    with maker() as reader:
+        before = reader.scalar(select(func.count()).select_from(model))
+        before_receipts = reader.scalar(select(func.count()).select_from(receipts))
     payload = (
         {"title": "Must not be partially saved"}
         if kind == "memories"
@@ -658,13 +672,16 @@ def test_foreign_manual_place_rolls_back_content_and_receipt(client, session, co
         headers={**auth(couple["token_a"]), "Idempotency-Key": str(uuid4())},
     )
     assert response.status_code == 404, response.text
-    assert session.scalar(select(func.count()).select_from(model)) == before
-    assert session.scalar(select(func.count()).select_from(receipts)) == before_receipts
+    with maker() as reader:
+        assert reader.scalar(select(func.count()).select_from(model)) == before
+        assert reader.scalar(select(func.count()).select_from(receipts)) == before_receipts
 
 
-def test_private_heart_moment_cannot_publish_a_manual_place(client, session, couple):  # type: ignore[no-untyped-def]
+def test_private_heart_moment_cannot_publish_a_manual_place(committed_couple):  # type: ignore[no-untyped-def]
+    client, maker, couple = committed_couple
     destination = place(client, couple)
-    before = session.scalar(select(func.count()).select_from(HeartMoment))
+    with maker() as reader:
+        before = reader.scalar(select(func.count()).select_from(HeartMoment))
     response = client.post(
         f"/api/v1/spaces/{couple['space'].id}/heart-moments",
         json={
@@ -677,4 +694,5 @@ def test_private_heart_moment_cannot_publish_a_manual_place(client, session, cou
         headers=auth(couple["token_a"]),
     )
     assert response.status_code == 404, response.text
-    assert session.scalar(select(func.count()).select_from(HeartMoment)) == before
+    with maker() as reader:
+        assert reader.scalar(select(func.count()).select_from(HeartMoment)) == before

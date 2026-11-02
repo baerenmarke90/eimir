@@ -78,3 +78,8 @@ two browser specs. The fixture address/prose were translated into English;
 assertions, product localization and test gates were retained. Local scoped
 engineering-language audit and all 27 audit tests pass. Fresh checks run on the
 fix commit; no workflow was restarted as a retry.
+
+Rollback acceptance uses the existing `production_client` fixture and fresh
+database sessions. The ordinary `client` fixture deliberately replaces the
+request unit of work, so it cannot establish committed rollback behavior. The
+shared couple factory supplies both fixtures; all negative assertions remain.

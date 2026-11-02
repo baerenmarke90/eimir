@@ -412,8 +412,35 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     expect(status.className).not.toContain('button-link');
   });
 
+  it('allows partner editing without transferring deletion or privacy authority', async () => {
+    renderDetail(undefined, {
+      ...heartMoment,
+      capabilities: { canEdit: true, canDelete: false, canComment: true },
+    });
+    await screen.findByText('I love you more each day');
+    expect(
+      screen
+        .getByRole('link', { name: storyProducts.heartMomentProduct.edit })
+        .getAttribute('href'),
+    ).toBe('/story/heart-moments/heart-1/edit');
+    expect(
+      screen.queryByRole('button', {
+        name: storyProducts.heartMomentProduct.makePrivate,
+      }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', {
+        name: storyProducts.heartMomentProduct.delete,
+      }),
+    ).toBeNull();
+  });
+
   it('keeps the visibility toggle as plain text beside the status, no heading or warning card', async () => {
-    renderDetail();
+    renderDetail(undefined, {
+      ...heartMoment,
+      authorId: 'account-1',
+      author: { id: 'account-1', displayName: 'Alex' },
+    });
     await screen.findByText('I love you more each day');
     expect(
       screen.getByRole('button', {

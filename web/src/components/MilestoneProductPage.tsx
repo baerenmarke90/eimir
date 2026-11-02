@@ -1,3 +1,4 @@
+import { ExpandableDescription } from './ExpandableDescription';
 import { type FormEvent, useRef } from 'react';
 import {
   useIsMutating,
@@ -545,9 +546,11 @@ export function MilestoneProductPage({
       offline={offline}
       containerClassName="milestone-detail-container"
     >
-      <p className="memory-detail-body">
-        {milestone.body || t('milestoneProduct.noBody')}
-      </p>
+      <ExpandableDescription
+        text={milestone.body || t('milestoneProduct.noBody')}
+        scope={milestone.id}
+        className="memory-detail-body"
+      />
 
       <CommentsPanel
         commentsApi={apis.comments}

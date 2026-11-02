@@ -12,7 +12,7 @@ import {
   memoryDetailPath,
   STORY_PHOTOS_ROUTE,
 } from '../client/routes';
-import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { MediaGallery } from './MediaGallery';
@@ -157,7 +157,7 @@ export function SharedPhotosPage({
       signal?: AbortSignal,
     ) => {
       try {
-        return await loadAuthorizedStoryImage(
+        return await loadAuthorizedStoryImageResource(
           apis,
           spaceId,
           photo.parentType,

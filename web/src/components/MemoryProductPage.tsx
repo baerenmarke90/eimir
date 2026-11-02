@@ -1,3 +1,4 @@
+import { ExpandableDescription } from './ExpandableDescription';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -638,6 +639,7 @@ export function MemoryProductPage({
                   item.draft?.file.name ??
                   t('m5s3.planImage.photoNumber', { number: index + 1 }),
                 draft: item.draft,
+                canRemove: !item.photo || memory.capabilities.canDelete,
                 isSensitive: item.photo
                   ? (sensitiveValues[item.photo.id] ??
                     item.photo.isSensitive ??
@@ -952,27 +954,39 @@ export function MemoryProductPage({
       articleClassName="memory-detail-card"
     >
       {memory.body.trim() ? (
-        <div className="memory-diary-prose">
-          {memory.body.split(/\r?\n[\t ]*\r?\n/).map((paragraph, index) => {
-            const initial = index === 0 ? splitFirstGrapheme(paragraph) : null;
-            return (
-              <p
-                className="memory-detail-body"
-                // biome-ignore lint/suspicious/noArrayIndexKey: Read-only paragraphs have no state or reorder interaction.
-                key={index}
-              >
-                {initial ? (
-                  <>
-                    <span className="drop-cap-letter">{initial.first}</span>
-                    {initial.rest}
-                  </>
-                ) : (
-                  paragraph
-                )}
-              </p>
-            );
-          })}
-        </div>
+        <ExpandableDescription
+          text={memory.body}
+          scope={JSON.stringify([
+            apiBaseUrl,
+            currentAccountId,
+            spaceId,
+            memory.id,
+          ])}
+          renderText={(visibleText) => (
+            <div className="memory-diary-prose">
+              {visibleText.split(/\r?\n[\t ]*\r?\n/).map((paragraph, index) => {
+                const initial =
+                  index === 0 ? splitFirstGrapheme(paragraph) : null;
+                return (
+                  <p
+                    className="memory-detail-body"
+                    // biome-ignore lint/suspicious/noArrayIndexKey: Read-only paragraphs have no state or reorder interaction.
+                    key={index}
+                  >
+                    {initial ? (
+                      <>
+                        <span className="drop-cap-letter">{initial.first}</span>
+                        {initial.rest}
+                      </>
+                    ) : (
+                      paragraph
+                    )}
+                  </p>
+                );
+              })}
+            </div>
+          )}
+        />
       ) : null}
 
       {(memory.tags ?? []).length > 0 ? (

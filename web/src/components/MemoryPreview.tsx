@@ -58,7 +58,7 @@ export function MemoryPreview({
     (_resourceId, signal) =>
       hasThumbnail
         ? loadImage(memoryId, attachmentId, signal, 'thumbnail')
-        : loadImage(memoryId, attachmentId, signal),
+        : loadImage(memoryId, attachmentId, signal, 'original'),
   );
   const url = mediaResource.url;
   const failed = mediaResource.error !== null;

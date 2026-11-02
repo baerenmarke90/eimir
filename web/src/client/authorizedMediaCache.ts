@@ -6,7 +6,17 @@ import {
   evictDurableMedia,
 } from './durableMediaStore';
 import { evictMediaObjectUrls } from './sharedMediaObjectUrls';
-/** Session-memory byte ownership; views continue to own their Object URLs. */
+import {
+  MEDIA_CACHE_MAX_BYTES,
+  MEDIA_CACHE_MAX_ENTRIES,
+  MEDIA_CACHE_MAX_AGE_MS,
+} from './mediaCacheLimits';
+export {
+  MEDIA_CACHE_MAX_BYTES,
+  MEDIA_CACHE_MAX_ENTRIES,
+  MEDIA_CACHE_MAX_AGE_MS,
+} from './mediaCacheLimits';
+/** Session-memory ownership, shared only within an authorized account/API scope. */
 export interface MediaCacheScope {
   readonly id: number;
   readonly durableIdentity?: string;
@@ -32,10 +42,6 @@ interface PendingBlob {
   promise: Promise<Blob>;
   consumers: number;
 }
-
-export const MEDIA_CACHE_MAX_BYTES = 48 * 1024 * 1024;
-export const MEDIA_CACHE_MAX_ENTRIES = 192;
-export const MEDIA_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 
 const scopesByOwner = new WeakMap<object, Map<string, MediaCacheScope>>();
 const clientScopes = new WeakMap<object, MediaCacheScope>();

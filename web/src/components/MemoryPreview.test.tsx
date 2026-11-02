@@ -48,6 +48,7 @@ it('requests an available thumbnail for preview and keeps the original fallback 
       'memory',
       'photo',
       expect.any(AbortSignal),
+      'original',
     ),
   );
 });
@@ -137,6 +138,7 @@ describe('MemoryPreview viewport loading', () => {
       'memory-1',
       'attachment-1',
       expect.any(AbortSignal),
+      'original',
     );
     const image = await screen.findByRole('img');
     expect(image.getAttribute('src')).toBe('blob:near-viewport');

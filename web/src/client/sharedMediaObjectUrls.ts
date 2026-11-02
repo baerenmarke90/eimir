@@ -1,4 +1,9 @@
 import { createOwnedObjectUrl, type OwnedObjectUrl } from './objectUrlResource';
+import {
+  MEDIA_CACHE_MAX_BYTES,
+  MEDIA_CACHE_MAX_ENTRIES,
+  MEDIA_CACHE_MAX_AGE_MS,
+} from './mediaCacheLimits';
 
 interface Entry {
   resource: OwnedObjectUrl;
@@ -8,9 +13,6 @@ interface Entry {
   idleAt: number | null;
 }
 const entries = new Map<string, Entry>();
-const MAX_IDLE_BYTES = 8 * 1024 * 1024;
-const MAX_IDLE_ENTRIES = 24;
-const IDLE_AGE = 60_000;
 let expiry: ReturnType<typeof setTimeout> | undefined;
 
 function remove(key: string, entry: Entry): void {
@@ -26,14 +28,17 @@ function prune(): void {
   const idle: Array<{ key: string; entry: Entry; idleAt: number }> = [];
   for (const [key, entry] of entries) {
     if (entry.idleAt === null) continue;
-    if (Date.now() - entry.idleAt >= IDLE_AGE) remove(key, entry);
+    if (Date.now() - entry.idleAt >= MEDIA_CACHE_MAX_AGE_MS) remove(key, entry);
     else {
       idle.push({ key, entry, idleAt: entry.idleAt });
       bytes += entry.bytes;
     }
   }
   idle.sort((a, b) => a.idleAt - b.idleAt);
-  while (idle.length > MAX_IDLE_ENTRIES || bytes > MAX_IDLE_BYTES) {
+  while (
+    idle.length > MEDIA_CACHE_MAX_ENTRIES ||
+    bytes > MEDIA_CACHE_MAX_BYTES
+  ) {
     const next = idle.shift();
     if (!next) break;
     bytes -= next.entry.bytes;
@@ -42,16 +47,12 @@ function prune(): void {
   if (idle.length)
     expiry = setTimeout(
       prune,
-      Math.max(0, IDLE_AGE - (Date.now() - idle[0].idleAt)),
+      Math.max(0, MEDIA_CACHE_MAX_AGE_MS - (Date.now() - idle[0].idleAt)),
     );
 }
 
 /** Called only after a fresh parent-bound authorization. Handles own one reference. */
-export function acquireMediaObjectUrl(
-  key: string,
-  blob: Blob,
-  retainThumbnail: boolean,
-): OwnedObjectUrl {
+export function acquireMediaObjectUrl(key: string, blob: Blob): OwnedObjectUrl {
   prune();
   let entry = entries.get(key);
   if (!entry) {
@@ -75,7 +76,7 @@ export function acquireMediaObjectUrl(
       released = true;
       owned.consumers--;
       if (owned.consumers) return;
-      if (retainThumbnail && owned.retained) owned.idleAt = Date.now();
+      if (owned.retained) owned.idleAt = Date.now();
       else remove(key, owned);
       prune();
     },

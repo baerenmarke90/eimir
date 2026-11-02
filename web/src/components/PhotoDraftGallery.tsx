@@ -11,6 +11,7 @@ export interface PhotoDraftGalleryItem {
   preview: ReactNode;
   isSensitive: boolean;
   draft?: AttachmentDraft;
+  canRemove?: boolean;
 }
 
 /** One bounded media selection with one inspector, independent of persistence. */
@@ -220,20 +221,22 @@ export function PhotoDraftGallery({
               {t(unavailable ? 'memory.diary.photoRetry' : 'common.retry')}
             </button>
           ) : null}
-          <button
-            type="button"
-            className="tertiary"
-            disabled={disabled}
-            onClick={() => {
-              setSelectedKey(
-                items[index + 1]?.key ?? items[index - 1]?.key ?? null,
-              );
-              onRemove(selected.key);
-            }}
-          >
-            {removeLabel?.(selected.key) ??
-              t(pending ? 'upload.cancel' : 'memory.photoRemove')}
-          </button>
+          {selected.canRemove !== false ? (
+            <button
+              type="button"
+              className="tertiary"
+              disabled={disabled}
+              onClick={() => {
+                setSelectedKey(
+                  items[index + 1]?.key ?? items[index - 1]?.key ?? null,
+                );
+                onRemove(selected.key);
+              }}
+            >
+              {removeLabel?.(selected.key) ??
+                t(pending ? 'upload.cancel' : 'memory.photoRemove')}
+            </button>
+          ) : null}
         </div>
       </fieldset>
       <span className="sr-only" role="status" aria-live="polite">

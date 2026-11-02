@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
-import { createOwnedObjectUrl, type OwnedObjectUrl } from './objectUrlResource';
+import type { OwnedObjectUrl } from './objectUrlResource';
+import { acquireMediaObjectUrl } from './sharedMediaObjectUrls';
 import {
   captureMediaCacheLease,
   assertMediaCacheLease,
@@ -112,7 +113,16 @@ function acquireSharedAvatar(
         if (controller.signal.aborted) {
           throw new DOMException('Avatar load aborted', 'AbortError');
         }
-        const resource = createOwnedObjectUrl(blob);
+        const resource = acquireMediaObjectUrl(
+          JSON.stringify([
+            lease.scope.id,
+            spaceId,
+            'profile-avatar',
+            accountId,
+            profileAttachmentId,
+          ]),
+          blob,
+        );
         currentEntry.resource = resource;
         return resource.url;
       })

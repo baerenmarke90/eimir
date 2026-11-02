@@ -14,7 +14,7 @@
   "specs": {
     "media-url-continuity.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 2,
+      "baselineTests": 4,
       "reason": "Compact/Expanded Story detail return must reuse the thumbnail URL and binary bytes while obtaining fresh parent authorization."
     },
     "heart-moment-reading.spec.ts": {
@@ -413,6 +413,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 8,
       "reason": "Plan comments must retain author, tenant, retry and canonical return contracts, with explicit bounded link previews and narrow/large-text accessibility."
+    },
+    "content-reading.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5,
+      "reason": "Readable long descriptions, explicit external preview, quiet Plan context and partner edit rights must remain accessible and preserve content/author/route across responsive states."
     }
   }
 }

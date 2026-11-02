@@ -1,5 +1,6 @@
 .plan-calendar-action .button-link {
   display: inline-flex;
+  max-width: 100%;
   align-items: center;
   gap: var(--space-2);
   min-height: var(--touch-target-web);
@@ -8,4 +9,9 @@
   width: 1.25rem;
   height: 1.25rem;
   flex-shrink: 0;
+}
+
+.plan-calendar-action .button-link > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }

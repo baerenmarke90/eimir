@@ -1,3 +1,4 @@
+import { fulfillEmptyPlanComments } from '../support/planComments';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -27,6 +28,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;

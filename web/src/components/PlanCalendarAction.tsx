@@ -122,7 +122,7 @@ function BrowserPlanCalendarAction({
           }}
         >
           <EimirIcon name="kalender" />
-          {t('calendarPlan.add')}
+          <span>{t('calendarPlan.add')}</span>
         </a>
       ) : null}
       {shareError && resource.url ? (

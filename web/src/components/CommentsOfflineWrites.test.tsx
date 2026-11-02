@@ -32,6 +32,7 @@ afterEach(() => {
 
 type Operation = 'create' | 'update' | 'delete';
 const methods = {
+  plan: ['createPlanComment', 'listPlanComments', 'planId'],
   memory: ['createMemoryComment', 'listMemoryComments', 'memoryId'],
   heartMoment: [
     'createHeartMomentComment',
@@ -127,7 +128,7 @@ async function prepare(operation: Operation) {
   };
 }
 
-describe.each(['memory', 'heartMoment', 'milestone'] as const)(
+describe.each(['memory', 'heartMoment', 'milestone', 'plan'] as const)(
   '%s comment offline admission',
   (kind) => {
     for (const operation of ['create', 'update', 'delete'] as const) {

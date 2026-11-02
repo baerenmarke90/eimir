@@ -1,6 +1,13 @@
 import { ListEntryIconButton } from './ListEntryActions';
-import { type FormEvent, useMemo, useRef, useState } from 'react';
 import {
+  type FormEvent,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import {
+  onlineManager,
   useIsMutating,
   useMutation,
   useQuery,
@@ -11,7 +18,7 @@ import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanUpdate } from '../api/generated/models/PlanUpdate';
 import { createReferenceApis } from '../client/referenceFlow';
 import { planPhotos, usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
-import { assertOnlineWrite } from '../client/connectivity';
+import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
@@ -57,6 +64,10 @@ import { ProblemState } from './ProblemState';
 import { usePlanCompletion } from './usePlanCompletion';
 import { UiState } from './UiState';
 import { ShortTaskSheet } from './ShortTaskSheet';
+import { CommentsPanel } from './CommentsPanel';
+import { AuthoredText } from './AuthoredText';
+import { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
+import { Configuration } from '../client/apiConfiguration';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
 
@@ -108,6 +119,23 @@ export function PlanProductPage({
     spaceId,
     accountId: accountId ?? '',
   });
+  const online = useSyncExternalStore(
+    onlineManager.subscribe,
+    isClientOnline,
+    () => true,
+  );
+  const linkPreviewsApi = useMemo(
+    () =>
+      new LinkPreviewsApi(
+        new Configuration({
+          basePath: apiBaseUrl ?? '',
+          headers: accessToken
+            ? { Authorization: `Bearer ${accessToken}` }
+            : undefined,
+        }),
+      ),
+    [apiBaseUrl, accessToken],
+  );
   const [anticipation, setAnticipation] = useState(false);
   const [selectedPlaceId, setSelectedPlaceId] = useState('');
   const editTitle = useRef<HTMLInputElement>(null);
@@ -674,9 +702,30 @@ export function PlanProductPage({
 
         {!isEditing && plan.description ? (
           <div className="planen-section planen-section-content">
-            <p>{plan.description}</p>
+            <AuthoredText
+              text={plan.description}
+              previewApi={linkPreviewsApi}
+              spaceId={spaceId}
+              scope={JSON.stringify([apiBaseUrl, accountId, plan.id])}
+              offline={!online}
+            />
           </div>
         ) : null}
+
+        <div hidden={isEditing} className="plan-discussion">
+          <CommentsPanel
+            key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
+            commentsApi={apis.comments ?? mediaApis.comments}
+            linkPreviewsApi={linkPreviewsApi}
+            spaceId={spaceId}
+            parentKind="plan"
+            parentId={plan.id}
+            currentAccountId={accountId ?? ''}
+            canComment={plan.capabilities.canComment}
+            offline={!online}
+            labelledComposer
+          />
+        </div>
 
         {plan.status === 'COMPLETED' &&
         (completion.isConfirmed || plan.capabilities.canEdit) ? (

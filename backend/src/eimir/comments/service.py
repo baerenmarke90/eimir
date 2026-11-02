@@ -35,6 +35,7 @@ from eimir.heart_moments.models import HeartMoment
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.outbox import service as outbox_service
+from eimir.plans.models import Plan
 
 _COMMENT_SUBJECT_TYPE = "comment"
 _RECEIPT_RESOURCE_TYPE = CreateReceiptResourceType.COMMENT.value
@@ -184,6 +185,34 @@ def _heart_moment_parent(
     return CommentParent(CommentTarget.HEART_MOMENT, heart_moment.id, heart_moment.owner_id)
 
 
+def _plan_parent(
+    session: Session,
+    context: AuthorizationContext,
+    target_id: UUID,
+    *,
+    lock_for_comment_create: bool,
+) -> CommentParent:
+    if lock_for_comment_create:
+        statement = (
+            select(Plan)
+            .where(
+                Plan.id == target_id,
+                Plan.space_id == context.space_id,
+                Plan.privacy_class == PrivacyClass.SPACE_SHARED.value,
+            )
+            .with_for_update(read=True)
+        )
+        plan = session.execute(statement).scalar_one_or_none()
+        if plan is None:
+            raise _target_not_available()
+    else:
+        try:
+            plan = require_readable(session, Plan, context, target_id)
+        except NotFoundError as error:
+            raise _target_not_available() from error
+    return CommentParent(CommentTarget.PLAN, plan.id, plan.owner_id)
+
+
 def resolve_parent(
     session: Session,
     context: AuthorizationContext,
@@ -206,6 +235,10 @@ def resolve_parent(
             context,
             identifier,
             lock_for_comment_create=lock_for_comment_create,
+        )
+    if target_type is CommentTarget.PLAN:
+        return _plan_parent(
+            session, context, identifier, lock_for_comment_create=lock_for_comment_create
         )
     return _milestone_parent(
         session,
@@ -232,7 +265,7 @@ def _record_created(
             resource_version=comment.version,
             payload=PublicEventPayload(
                 target_type=cast(
-                    Literal["MEMORY", "HEART_MOMENT", "MILESTONE"], comment.target_type
+                    Literal["MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN"], comment.target_type
                 ),
                 target_id=comment.target_id,
                 recipient_id=recipient_id,

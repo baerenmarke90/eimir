@@ -396,6 +396,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 9,
       "reason": "The native reminder notification must open an authorized read-only source at Compact/Expanded widths, preserve native-sized actions and return navigation, and hide deleted/denied content."
+    },
+    "plan-comments-links.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8,
+      "reason": "Plan comments must retain author, tenant, retry and canonical return contracts, with explicit bounded link previews and narrow/large-text accessibility."
     }
   }
 }

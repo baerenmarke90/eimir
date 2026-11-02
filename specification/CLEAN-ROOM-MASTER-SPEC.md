@@ -1007,6 +1007,7 @@ At minimum:
 - shared Memory
 - Milestone
 - shared HeartMoment
+- shared Plan (including completed Plans)
 
 No Comments on private content.
 

@@ -3786,6 +3786,57 @@
         "title": "IssuedInvitationView",
         "type": "object"
       },
+      "LinkPreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "maxLength": 2048,
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "LinkPreviewRequest",
+        "type": "object"
+      },
+      "LinkPreviewResult": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "available"
+        ],
+        "title": "LinkPreviewResult",
+        "type": "object"
+      },
       "MagicLinkConsumeRequest": {
         "properties": {
           "deviceName": {
@@ -23575,6 +23626,89 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/link-preview": {
+      "post": {
+        "description": "Resolve only after an explicit preview action; never persist target content.",
+        "operationId": "resolveLinkPreview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkPreviewResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Resolve Link Preview",
+        "tags": [
+          "link-previews"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/membership/leave": {
       "post": {
         "description": "End only the caller's own Membership, never the partner's.\n\nThis route intentionally does not depend on ``Tenant``. Once the first\nrequest commits, the normal tenant dependency correctly stops authorizing\nthis Space; resolving the caller's historical Membership directly is what\nlets a retry return the same safe ended state instead of creating another\nlifecycle.",
@@ -28585,6 +28719,248 @@
         "summary": "Update Plan",
         "tags": [
           "plans"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/plans/{planId}/comments": {
+      "get": {
+        "operationId": "listPlanComments",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "title": "Planid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request is syntactically valid but cannot be processed in this form."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "List Plan Comments",
+        "tags": [
+          "comments"
+        ]
+      },
+      "post": {
+        "operationId": "createPlanComment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "title": "Planid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentDetail"
+                }
+              }
+            },
+            "description": "The request identity (`Idempotency-Key`) was already used for an equivalent request. The response returns the original Comment in its current state; no second Comment is created and the partner is not notified again.",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentDetail"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Create Plan Comment",
+        "tags": [
+          "comments"
         ]
       }
     },

@@ -38,6 +38,8 @@ import {
 import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentEditor } from './CommentEditor';
+import { AuthoredText } from './AuthoredText';
+import type { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
 import { ListEntryIconButton } from './ListEntryActions';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
@@ -97,6 +99,13 @@ function createComment(
 ) {
   const { spaceId, parentId, commentCreate } = snapshot;
   switch (snapshot.parentKind) {
+    case 'plan':
+      return commentsApi.createPlanComment({
+        spaceId,
+        planId: parentId,
+        commentCreate,
+        idempotencyKey,
+      });
     case 'memory':
       return commentsApi.createMemoryComment({
         spaceId,
@@ -137,6 +146,8 @@ interface CommentsPanelProps {
   canComment: boolean;
   offline: boolean;
   triggerContainer?: HTMLElement | null;
+  labelledComposer?: boolean;
+  linkPreviewsApi?: LinkPreviewsApi;
 }
 
 export function CommentsPanel(props: CommentsPanelProps) {
@@ -162,6 +173,8 @@ function CommentsPanelContent({
   canComment,
   offline,
   triggerContainer,
+  labelledComposer = false,
+  linkPreviewsApi,
 }: CommentsPanelProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -326,11 +339,11 @@ function CommentsPanelContent({
       <button
         ref={triggerRef}
         type="button"
-        className={`comment-compose-trigger ${triggerContainer ? 'media-overlay' : 'tertiary'}`}
+        className={`comment-compose-trigger ${triggerContainer ? 'media-overlay' : 'tertiary'}${labelledComposer ? ' comment-compose-trigger-labelled' : ''}`}
         aria-controls={formId}
         aria-expanded="false"
-        aria-label={t('comments.send')}
-        title={t('comments.send')}
+        aria-label={t(labelledComposer ? 'comments.write' : 'comments.send')}
+        title={t(labelledComposer ? 'comments.write' : 'comments.send')}
         onClick={() => setComposerOpen(true)}
       >
         <svg
@@ -344,6 +357,7 @@ function CommentsPanelContent({
         >
           <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
         </svg>
+        {labelledComposer ? <span>{t('comments.write')}</span> : null}
       </button>
     ) : null;
 
@@ -356,7 +370,9 @@ function CommentsPanelContent({
         <h2
           id={headingId}
           className={
-            comments.length === 0 ? 'sr-only' : 'comments-compact-heading'
+            comments.length === 0 && !labelledComposer
+              ? 'sr-only'
+              : 'comments-compact-heading'
           }
         >
           {t('comments.heading')}
@@ -374,7 +390,11 @@ function CommentsPanelContent({
           error={commentsQuery.error}
           onRetry={() => void commentsQuery.refetch()}
         />
-      ) : comments.length === 0 ? null : (
+      ) : comments.length === 0 ? (
+        labelledComposer ? (
+          <p className="muted">{t('comments.planEmpty')}</p>
+        ) : null
+      ) : (
         <ol className="comment-list">
           {comments.map((comment) => {
             const edited =
@@ -420,7 +440,18 @@ function CommentsPanelContent({
                   />
                 ) : (
                   <>
-                    <p>{comment.body}</p>
+                    <AuthoredText
+                      text={comment.body}
+                      previewApi={linkPreviewsApi}
+                      spaceId={spaceId}
+                      scope={JSON.stringify([
+                        currentAccountId,
+                        parentKind,
+                        parentId,
+                        comment.id,
+                      ])}
+                      offline={offline}
+                    />
                     {own && !offline ? (
                       <details className="comment-menu">
                         <summary

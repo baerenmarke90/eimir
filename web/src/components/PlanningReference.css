@@ -740,3 +740,21 @@
   min-inline-size: 0;
   inline-size: 100%;
 }
+
+/* Shared discussion keeps the Plan's one-column reading width at large text. */
+.planen-detail,
+.plan-discussion .comments-panel {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.plan-discussion .comment-head > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.planen-detail-summary > * {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}

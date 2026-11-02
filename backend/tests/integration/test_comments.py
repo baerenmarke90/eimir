@@ -73,6 +73,17 @@ def heart(client, couple, visibility: str = "SHARED"):  # type: ignore[no-untype
     ).json()
 
 
+def plan(client, couple):  # type: ignore[no-untyped-def]
+    response = client.post(
+        f"{base_path(couple['space'].id)}/plans",
+        json={"title": "Picnic in the park"},
+        headers=auth(couple["token_a"]),
+    )
+    assert response.status_code == 201
+    assert response.json()["capabilities"]["canComment"] is True
+    return response.json()
+
+
 def comment_path(space_id: object, parent: str, parent_id: str) -> str:
     return f"{base_path(space_id)}/{parent}/{parent_id}/comments"
 
@@ -83,7 +94,7 @@ def if_match(token: str, version: int) -> dict[str, str]:
 
 @pytest.mark.parametrize(
     ("factory", "segment"),
-    [(memory, "memories"), (milestone, "milestones"), (heart, "heart-moments")],
+    [(memory, "memories"), (milestone, "milestones"), (heart, "heart-moments"), (plan, "plans")],
 )
 def test_both_partners_comment_on_shared_targets(
     client,
@@ -197,7 +208,7 @@ def test_cursor_is_bound_to_parent_and_space(client, couple) -> None:  # type: i
 
 @pytest.mark.parametrize(
     ("factory", "segment"),
-    [(memory, "memories"), (milestone, "milestones"), (heart, "heart-moments")],
+    [(memory, "memories"), (milestone, "milestones"), (heart, "heart-moments"), (plan, "plans")],
 )
 def test_parent_delete_removes_comments_atomically(
     client,

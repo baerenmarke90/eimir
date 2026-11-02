@@ -73,3 +73,20 @@ def test_personal_feedback_import_rejects_unknown_or_duplicate_catalog_values(ke
     with pytest.raises(TransferArchiveError) as caught:
         service._validate_ids_and_privacy(TransferScope.PERSONAL, owner, tables, {owner})
     assert caught.value.code == ErrorCode.TRANSFER_RELATION_INVALID
+
+
+def test_plan_comments_survive_selected_parent_export_and_import_validation():
+    plan_id, comment_id = uuid4(), uuid4()
+    rows = {
+        "plans": [{"id": plan_id}],
+        "comments": [{"id": comment_id, "target_type": "PLAN", "target_id": plan_id}],
+    }
+    service._prune_relations(rows)
+    assert len(rows["comments"]) == 1
+    service._validate_relations({"comments": rows["comments"]}, {"plans": {plan_id}})
+    with pytest.raises(TransferArchiveError) as caught:
+        service._validate_relations({"comments": rows["comments"]}, {"plans": set()})
+    assert caught.value.code == ErrorCode.TRANSFER_RELATION_INVALID
+    rows["plans"] = []
+    service._prune_relations(rows)
+    assert rows["comments"] == []

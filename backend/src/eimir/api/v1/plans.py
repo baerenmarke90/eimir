@@ -320,7 +320,7 @@ def _plan_detail(
         capabilities=ResourceCapabilities(
             can_edit=True,
             can_delete=plan.source_wish_id is None or is_completed,
-            can_comment=False,
+            can_comment=True,
         ),
     )
 

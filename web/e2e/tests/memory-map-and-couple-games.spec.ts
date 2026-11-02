@@ -250,6 +250,43 @@ test('failed map tiles keep memories usable at 320px with large text', async ({
       name: /Our favourite quiet place by the water/,
     }),
   ).toBeVisible();
+  await page
+    .getByRole('button', { name: mapCopy.fullscreen, exact: true })
+    .click();
+  const fullscreen = page.getByRole('dialog', { name: mapCopy.title });
+  await expect(fullscreen).toBeVisible();
+  expect(
+    await fullscreen.evaluate((node) => node.scrollWidth <= node.clientWidth),
+  ).toBe(true);
+  await captureScreenshot(
+    page,
+    info,
+    'planning-map-fullscreen-320-dark-large.png',
+  );
+  await page.keyboard.press('Escape');
+  await expect(fullscreen).toBeHidden();
+  await page.goto('/more/settings/account');
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+  const pro = page.locator('.settings-pro-information');
+  await expect(pro.locator('li')).toHaveCount(4);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  expect(
+    await pro.evaluate((node) => node.scrollWidth <= node.clientWidth),
+  ).toBe(true);
+  await captureScreenshot(page, info, 'planning-pro-320-dark-large.png', {
+    fullPage: true,
+  });
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .include('.settings-pro-information')
+        .analyze()
+    ).violations,
+  ).toEqual([]);
 });
 
 test('map entitlement denial explains Pro without loading external tiles', async ({

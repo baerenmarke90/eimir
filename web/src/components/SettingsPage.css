@@ -729,8 +729,14 @@
 }
 .settings-pro-lead {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-4);
+}
+.settings-pro-lead > div {
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .settings-pro-lead > .eimir-icon {
   flex-shrink: 0;

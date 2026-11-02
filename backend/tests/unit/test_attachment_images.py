@@ -172,3 +172,53 @@ def test_the_thumbnail_carries_no_metadata_either() -> None:
     assert result.thumbnail is not None
     assert MANUFACTURER.encode() not in result.thumbnail
     assert Image.open(io.BytesIO(result.thumbnail)).getexif() == {}
+
+
+def _camera_mpo() -> bytes:
+    primary = Image.new("RGB", (32, 24), (200, 20, 10))
+    exif = Image.Exif()
+    exif[0x0112] = 6
+    exif[0x010F] = MANUFACTURER
+    target = io.BytesIO()
+    primary.save(
+        target,
+        "MPO",
+        save_all=True,
+        append_images=[Image.new("RGB", (16, 12), (10, 20, 200))],
+        exif=exif,
+    )
+    assert Image.open(io.BytesIO(target.getvalue())).format == "MPO"
+    return target.getvalue()
+
+
+@pytest.mark.parametrize("preserve_metadata", [False, True])
+def test_camera_mpo_jpeg_sanitizes_only_primary_pixels(preserve_metadata: bool) -> None:
+    result = images.process(_camera_mpo(), _rule(), preserve_metadata=preserve_metadata)
+    assert result.mime_type == "image/jpeg"
+    assert (result.width, result.height) == (32, 24)
+    saved = Image.open(io.BytesIO(result.content))
+    assert saved.format == "JPEG"
+    assert saved.size == (32, 24)
+    assert saved.getpixel((0, 0))[0] > 150
+    assert b"MPF\x00" not in result.content
+    assert (saved.getexif().get(0x010F) == MANUFACTURER) is preserve_metadata
+    assert result.thumbnail is not None
+    thumbnail = Image.open(io.BytesIO(result.thumbnail))
+    assert thumbnail.size == ((24, 32) if preserve_metadata else (32, 24))
+    assert thumbnail.getexif() == {}
+
+
+def test_mpo_primary_keeps_type_and_dimension_guards(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", _rule().max_pixels)
+    with pytest.raises(images.ImageRejectedError, match="IMAGE_TYPE_MISMATCH"):
+        images.process(_camera_mpo(), _rule("image/png"))
+    from dataclasses import replace
+
+    with pytest.raises(images.ImageRejectedError, match="IMAGE_TOO_LARGE"):
+        images.process(_camera_mpo(), replace(_rule(), max_pixels=100))
+
+
+def test_truncated_mpo_primary_is_rejected() -> None:
+    raw = _camera_mpo()
+    with pytest.raises(images.ImageRejectedError, match="IMAGE_UNREADABLE"):
+        images.process(raw[: len(raw) // 3], _rule())

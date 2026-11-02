@@ -94,7 +94,8 @@
     },
     "memory-create-defaults.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 28
+      "baselineTests": 28,
+      "reason": "Also protects bounded dense photo selection, exact persisted order and saved/new interleaving."
     },
     "memory-diary-storage.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -147,7 +148,8 @@
     },
     "planning-reference.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 9
+      "baselineTests": 9,
+      "reason": "Also protects explicit adoption of an open Wish by an existing Plan, focus return, source reload and no duplicate Plan."
     },
     "planning-upcoming.spec.ts": {
       "disposition": "PR_CRITICAL",

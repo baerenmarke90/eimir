@@ -15,6 +15,7 @@ LIFECYCLE = (
     f"{DETAIL}/unschedule",
     f"{DETAIL}/complete",
     f"{DETAIL}/return-to-wish",
+    f"{DETAIL}/wish",
 )
 
 
@@ -50,6 +51,7 @@ def test_plan_routes_have_frozen_operation_ids() -> None:
     assert paths[f"{DETAIL}/complete"]["post"]["operationId"] == "completePlan"
     assert paths[f"{DETAIL}/return-to-wish"]["post"]["operationId"] == "returnPlanToWish"
     assert paths[CONVERT]["post"]["operationId"] == "convertWishToPlan"
+    assert paths[f"{DETAIL}/wish"]["post"]["operationId"] == "linkWishToPlan"
     assert paths[WISH_COMPLETE]["post"]["operationId"] == "completeWish"
 
 

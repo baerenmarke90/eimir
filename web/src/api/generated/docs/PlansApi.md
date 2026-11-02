@@ -9,6 +9,7 @@ All URIs are relative to *http://localhost*
 | [**createPlan**](PlansApi.md#createplan) | **POST** /api/v1/spaces/{spaceId}/plans | Create Plan |
 | [**deletePlan**](PlansApi.md#deleteplan) | **DELETE** /api/v1/spaces/{spaceId}/plans/{planId} | Delete Plan |
 | [**getPlan**](PlansApi.md#getplan) | **GET** /api/v1/spaces/{spaceId}/plans/{planId} | Get Plan |
+| [**linkWishToPlan**](PlansApi.md#linkwishtoplan) | **POST** /api/v1/spaces/{spaceId}/plans/{planId}/wish | Link Wish To Plan |
 | [**listPlans**](PlansApi.md#listplans) | **GET** /api/v1/spaces/{spaceId}/plans | List Plans |
 | [**returnPlanToWish**](PlansApi.md#returnplantowish) | **POST** /api/v1/spaces/{spaceId}/plans/{planId}/return-to-wish | Return Plan To Wish |
 | [**schedulePlan**](PlansApi.md#scheduleplan) | **POST** /api/v1/spaces/{spaceId}/plans/{planId}/schedule | Schedule Plan |
@@ -391,6 +392,84 @@ No authorization required
 | **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## linkWishToPlan
+
+> WishToPlanResponse linkWishToPlan(planId, spaceId, ifMatch, planWishLink)
+
+Link Wish To Plan
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PlansApi,
+} from '';
+import type { LinkWishToPlanRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PlansApi();
+
+  const body = {
+    // string
+    planId: planId_example,
+    // string
+    spaceId: spaceId_example,
+    // string | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.
+    ifMatch: ifMatch_example,
+    // PlanWishLink
+    planWishLink: ...,
+  } satisfies LinkWishToPlanRequest;
+
+  try {
+    const data = await api.linkWishToPlan(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **planId** | `string` |  | [Defaults to `undefined`] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **ifMatch** | `string` | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header. | [Defaults to `undefined`] |
+| **planWishLink** | [PlanWishLink](PlanWishLink.md) |  | |
+
+### Return type
+
+[**WishToPlanResponse**](WishToPlanResponse.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

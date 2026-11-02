@@ -7,6 +7,7 @@ import {
 } from './memoryAttachmentDraft';
 import { waitUntilAttachmentReady, type ReferenceApis } from './referenceFlow';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
+import { i18n } from '../i18n';
 
 function uploadingAttachment() {
   return {
@@ -218,46 +219,60 @@ describe('uploadMemoryDraftAttachment', () => {
     },
   );
 
-  it('fails when server-side validation rejects the uploaded image', async () => {
-    const phases: string[] = [];
-    const attachment = uploadingAttachment();
-    const apis = {
-      auth: {},
-      memories: {},
-      attachments: {
-        createAttachmentUpload: vi.fn(async () => ({
-          attachment,
-          method: UploadDescriptorMethodEnum.STREAM,
-          requiredHeaders: { 'Content-Type': 'image/jpeg' },
-          uploadUrl: '/api/v1/spaces/space-1/attachments/attachment-1/content',
-        })),
-        finalizeAttachmentUpload: vi.fn(async () => ({
-          ...attachment,
-          status: 'PROCESSING',
-        })),
-        getAttachment: vi.fn(async () => ({ ...attachment, status: 'FAILED' })),
-      },
-      story: {},
-    } as unknown as ReferenceApis;
-    const fetchApi = vi.fn(
-      async () => new Response(null, { status: 204 }),
-    ) as unknown as typeof fetch;
+  it.each([
+    ['IMAGE_UNREADABLE', 'flow.imageUnreadable'],
+    ['IMAGE_TOO_LARGE', 'flow.imageTooLarge'],
+    ['IMAGE_TYPE_MISMATCH', 'flow.imageTypeMismatch'],
+    ['IMAGE_NOT_SANITIZABLE', 'flow.imageNotSanitizable'],
+    ['UNKNOWN_FUTURE_CODE', 'flow.processingStatus'],
+  ])(
+    'localizes validation failure %s without exposing a raw status',
+    async (failureCode, key) => {
+      const phases: string[] = [];
+      const attachment = uploadingAttachment();
+      const apis = {
+        auth: {},
+        memories: {},
+        attachments: {
+          createAttachmentUpload: vi.fn(async () => ({
+            attachment,
+            method: UploadDescriptorMethodEnum.STREAM,
+            requiredHeaders: { 'Content-Type': 'image/jpeg' },
+            uploadUrl:
+              '/api/v1/spaces/space-1/attachments/attachment-1/content',
+          })),
+          finalizeAttachmentUpload: vi.fn(async () => ({
+            ...attachment,
+            status: 'PROCESSING',
+          })),
+          getAttachment: vi.fn(async () => ({
+            ...attachment,
+            status: 'FAILED',
+            failureCode,
+          })),
+        },
+        story: {},
+      } as unknown as ReferenceApis;
+      const fetchApi = vi.fn(
+        async () => new Response(null, { status: 204 }),
+      ) as unknown as typeof fetch;
 
-    await expect(
-      uploadMemoryDraftAttachment(
-        apis,
-        'https://api.example.invalid',
-        'token',
-        'space-1',
-        new File(['image'], 'invalid.jpg', { type: 'image/jpeg' }),
-        (phase) => phases.push(phase),
-        fetchApi,
-      ),
-    ).rejects.toThrow();
+      await expect(
+        uploadMemoryDraftAttachment(
+          apis,
+          'https://api.example.invalid',
+          'token',
+          'space-1',
+          new File(['image'], 'invalid.jpg', { type: 'image/jpeg' }),
+          (phase) => phases.push(phase),
+          fetchApi,
+        ),
+      ).rejects.toThrow(i18n.t(key));
 
-    expect(phases).toEqual(['uploading', 'validating']);
-    expect(apis.attachments.getAttachment).toHaveBeenCalledTimes(1);
-  });
+      expect(phases).toEqual(['uploading', 'validating']);
+      expect(apis.attachments.getAttachment).toHaveBeenCalledTimes(1);
+    },
+  );
 });
 
 describe('createMemoryWithReadyAttachments', () => {

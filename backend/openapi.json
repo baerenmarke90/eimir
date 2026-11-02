@@ -393,6 +393,18 @@
             ],
             "title": "Durationseconds"
           },
+          "failureCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Stable validation code for a failed upload; never decoder diagnostics.",
+            "title": "Failurecode"
+          },
           "hasThumbnail": {
             "title": "Hasthumbnail",
             "type": "boolean"
@@ -6628,6 +6640,28 @@
           }
         },
         "title": "PlanUpdate",
+        "type": "object"
+      },
+      "PlanWishLink": {
+        "additionalProperties": false,
+        "description": "Link one existing open Wish without replacing either resource's content.",
+        "properties": {
+          "wishId": {
+            "format": "uuid",
+            "title": "Wishid",
+            "type": "string"
+          },
+          "wishVersion": {
+            "minimum": 1.0,
+            "title": "Wishversion",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "wishId",
+          "wishVersion"
+        ],
+        "title": "PlanWishLink",
         "type": "object"
       },
       "PreferenceCategory": {
@@ -29413,6 +29447,116 @@
           }
         },
         "summary": "Unschedule Plan",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/plans/{planId}/wish": {
+      "post": {
+        "operationId": "linkWishToPlan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "title": "Planid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanWishLink"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishToPlanResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Link Wish To Plan",
         "tags": [
           "plans"
         ]

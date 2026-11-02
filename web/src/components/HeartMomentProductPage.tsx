@@ -521,7 +521,12 @@ export function HeartMomentProductPage({
   if (mode === 'create') {
     function submitCreate(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
-      if (attachments.hasPending || placePending || createMutation.isPending)
+      if (
+        attachments.hasPending ||
+        attachments.items.some((item) => item.status === 'failed') ||
+        placePending ||
+        createMutation.isPending
+      )
         return;
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
@@ -700,7 +705,8 @@ export function HeartMomentProductPage({
                 disabled={
                   createMutation.isPending ||
                   placePending ||
-                  attachments.hasPending
+                  attachments.hasPending ||
+                  attachments.items.some((item) => item.status === 'failed')
                 }
               >
                 {createMutation.isPending
@@ -790,6 +796,7 @@ export function HeartMomentProductPage({
       event.preventDefault();
       if (
         attachments.hasPending ||
+        attachments.items.some((item) => item.status === 'failed') ||
         queryClient.isMutating({ mutationKey: deleteKey }) ||
         queryClient.isMutating({ mutationKey: updateKey }) ||
         queryClient.isMutating({
@@ -917,6 +924,7 @@ export function HeartMomentProductPage({
                 disabled={
                   updateMutation.isPending ||
                   attachments.hasPending ||
+                  attachments.items.some((item) => item.status === 'failed') ||
                   deleteMutation.isBlocked
                 }
               >

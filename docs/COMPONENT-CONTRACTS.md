@@ -433,3 +433,20 @@ A shared component is ready when:
 ## Couple-facing section heading and surface (#1508)
 
 Section anatomy is heading/action row followed by the content surface, under Product Reference v1's 2026-10-29 PO addendum. Keep the section heading outside the surface and use consistent spacing with adjacent modules. Personal content titles inside cards are a separate semantic role and remain with their content. Preserve semantic section/heading associations, reachable contextual actions, dynamic states, theme contrast, large-text wrapping and reduced motion. Decorative quote rules and extra heading/body gaps are not part of this contract.
+
+## Selected photo gallery and inspector (#1586)
+
+`PhotoDraftGallery` owns presentation and local selection only. Callers own
+uploads, authorized previews, sensitivity, order and persistence. Reuse it for
+Memory drafts/editing, single-photo HeartMoment selection and Plan galleries.
+Show six thumbnails initially with an explicit all-photos disclosure. Each
+thumbnail has an accessible position/name/status and selected state. Pending
+and failed files remain recognizable; an aggregate failure action reveals a
+failed file even beyond the collapsed subset. Only the selected identity shows
+filename, sensitivity, progress/error/retry, removal and earlier/later actions.
+Moving retains selection and announces position without restarting media work.
+Keep removal reversible within the Memory edit draft through its existing
+keep-photo action. Disabled operations cannot mutate; complete saves cannot
+silently omit failed selected media. Preserve 44px targets, wrapping at 200%
+text, Light/Dark contrast and reduced-motion feedback. This component does not
+add a multi-photo HeartMoment domain or change existing authorship/privacy.

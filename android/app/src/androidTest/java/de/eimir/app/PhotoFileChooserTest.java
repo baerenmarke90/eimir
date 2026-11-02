@@ -314,11 +314,7 @@ public class PhotoFileChooserTest {
                 // Permission content can precede the dialog's touch input channel.
                 // Activate the real consent button through Android accessibility;
                 // the system still makes the permission decision and opens its picker.
-                assertTrue("The permission decision is still attached", allow.refresh());
-                assertTrue("The permission decision is visible", allow.isVisibleToUser());
-                assertTrue("The permission decision is enabled", allow.isEnabled());
-                assertTrue("Android activates the actual metadata consent button",
-                    allow.performAction(AccessibilityNodeInfo.ACTION_CLICK));
+                activateNativeControl(allow);
             }, event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getPackageName() != null
                 && isSystemPhotoPicker(event.getPackageName()), 15000);
@@ -383,7 +379,8 @@ public class PhotoFileChooserTest {
             + "<video id='video' controls playsinline preload='none' style='position:fixed;top:40%;left:10%;width:80%'></video>"
             + "<button id='play-video' style='position:fixed;bottom:10%;left:20%;width:60%;height:60px'>Play</button>`;"
             + "const input=document.getElementById('photo'),video=document.getElementById('video');"
-            + "input.onchange=async()=>{try{const file=input.files[0];window.videoMime=file.type;"
+            + "input.onchange=async()=>{window.photoFileEvents=(window.photoFileEvents||0)+1;"
+            + "window.photoSelectedCount=input.files.length;try{const file=input.files[0];window.videoMime=file.type;"
             + "const bytes=new Uint8Array(await file.arrayBuffer());let binary='';"
             + "for(const value of bytes)binary+=String.fromCharCode(value);window.selectedPhotoBytes=btoa(binary);"
             + "video.onloadedmetadata=()=>window.videoReady=true;"
@@ -406,7 +403,9 @@ public class PhotoFileChooserTest {
         captureNativeDiagnostics("native-video-picker");
         AccessibilityNodeInfo selected = findDocument("Video taken");
         assertNotNull("The real system video picker exposes the foreign-owned movie", selected);
-        tapNativeControl(selected);
+        // The API 37 picker can expose its cell before the sheet accepts touch.
+        // Invoke the identified system cell's real accessibility selection action.
+        activateNativeControl(selected);
         byte[] bytes = selectedFileBytes(view);
         assertTrue("Chromium receives video bytes", bytes.length > 0);
         java.nio.file.Files.write(new File(context.getFilesDir(), "native-selected-video.mp4").toPath(), bytes);
@@ -476,7 +475,7 @@ public class PhotoFileChooserTest {
             instrumentation.waitForIdleSync();
         } while (SystemClock.uptimeMillis() < deadline);
         captureNativeDiagnostics("native-photo-result");
-        throw new AssertionError("The selected image never reached the Web File intake: "
+        throw new AssertionError("The selected media never reached the Web File intake: "
             + javascriptValue(view, "JSON.stringify({handler:typeof document.getElementById('photo').onchange,"
                 + "events:window.photoFileEvents,count:window.photoSelectedCount,error:window.photoReadError})"));
     }
@@ -556,6 +555,16 @@ public class PhotoFileChooserTest {
         Rect bounds = new Rect();
         document.getBoundsInScreen(bounds);
         tapScreenBounds(bounds);
+    }
+
+    private void activateNativeControl(AccessibilityNodeInfo control) {
+        assertTrue("The identified system control is still attached", control.refresh());
+        assertTrue("The identified system control is visible", control.isVisibleToUser());
+        assertTrue("The identified system control is enabled", control.isEnabled());
+        assertTrue("The system control exposes a real selection action",
+            control.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_CLICK));
+        assertTrue("Android activates the identified system control",
+            control.performAction(AccessibilityNodeInfo.ACTION_CLICK));
     }
 
     private void tapScreenBounds(Rect bounds) throws Exception {

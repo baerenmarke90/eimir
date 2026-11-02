@@ -413,6 +413,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 8,
       "reason": "Plan comments must retain author, tenant, retry and canonical return contracts, with explicit bounded link previews and narrow/large-text accessibility."
+    },
+    "android-push-onboarding.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 11,
+      "reason": "Native post-sign-in consent, optional dismissal across reload, permission denial, account-bound endpoint confirmation, narrow/large-text theme and accessibility evidence; ordinary Web remains unchanged."
     }
   }
 }

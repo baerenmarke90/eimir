@@ -58,7 +58,7 @@ for (const [width, theme, large, reduced] of [
     await captureScreenshot(
       page,
       info,
-      `push-introduction-${width}-${theme}.png`,
+      `notification-settings-push-introduction-${width}-${theme}.png`,
     );
     expect(
       await sheet.evaluate((node) => node.scrollWidth <= node.clientWidth),

@@ -312,10 +312,20 @@ for (const [width, colorScheme] of [
     });
     expect(pixel[2]).toBeGreaterThan(200);
     expect(pixel[0]).toBeLessThan(30);
+    expect(
+      await player.evaluate((v) => {
+        const rect = v.getBoundingClientRect();
+        const front = document.elementFromPoint(
+          rect.x + rect.width / 2,
+          rect.y + rect.height / 2,
+        );
+        return front === v || (front !== null && v.contains(front));
+      }),
+    ).toBe(true);
     expect(state.ranges).toBeGreaterThan(0);
     await page.screenshot({
       path: info.outputPath(`video-playback-${width}-${colorScheme}.png`),
-      fullPage: true,
+      fullPage: false,
       type: 'png',
     });
     await dialog.locator('.media-lightbox-close').click();

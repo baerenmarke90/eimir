@@ -861,7 +861,9 @@ export function MediaGallery({
               <div
                 className={`media-lightbox${renderCaption ? ' media-lightbox-captioned' : ''}`}
               >
-                <div className="media-lightbox-stage">
+                <div
+                  className={`media-lightbox-stage${activeItem.mediaType === MediaType.VIDEO ? ' is-video' : ''}`}
+                >
                   {items.length > 1 ? (
                     <div
                       ref={lightboxTrack}

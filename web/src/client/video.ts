@@ -2,7 +2,9 @@ import { createContext } from 'react';
 import {
   assertMediaCacheLease,
   captureMediaCacheLease,
+  evictAuthorizedMedia,
 } from './authorizedMediaCache';
+import { clientProblemKind, normalizeClientError } from './problemDetails';
 import type { ReferenceApis } from './referenceFlow';
 
 /** Operator availability is independent of Space entitlement. */
@@ -26,14 +28,25 @@ export async function loadVideoSource(
     parentType,
     parentId,
   ]);
-  const result = await apis.attachments.createVideoPlaybackAccess(
-    {
-      spaceId,
-      attachmentId,
-      videoPlaybackRequest: { parentType, parentId },
-    },
-    { signal },
-  );
+  const result = await apis.attachments
+    .createVideoPlaybackAccess(
+      {
+        spaceId,
+        attachmentId,
+        videoPlaybackRequest: { parentType, parentId },
+      },
+      { signal },
+    )
+    .catch(async (error: unknown) => {
+      const problem = await normalizeClientError(error);
+      if (
+        ['unauthorized', 'permission', 'notFound'].includes(
+          clientProblemKind(problem),
+        )
+      )
+        evictAuthorizedMedia(lease, ['attachment', parentType, parentId]);
+      throw error;
+    });
   assertMediaCacheLease(lease);
   const base = new URL(
     apis.attachments.contentBaseUrl || '/',

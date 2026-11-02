@@ -75,3 +75,23 @@ it('rejects an expired grant and a grant that arrives after logout invalidated t
   });
   await expect(work).rejects.toThrow();
 });
+
+it('invalidates a parent poster lease after playback access is denied', async () => {
+  const { captureMediaCacheLease, assertMediaCacheLease } = await import(
+    './authorizedMediaCache'
+  );
+  const { ClientProblemError } = await import('./problemDetails');
+  const { apis, createVideoPlaybackAccess } = setup();
+  const lease = captureMediaCacheLease(apis.attachments, 'space', [
+    'attachment',
+    'MEMORY',
+    'memory',
+  ]);
+  createVideoPlaybackAccess.mockRejectedValue(
+    new ClientProblemError('notFound', 404),
+  );
+  await expect(
+    loadVideoSource(apis, 'space', 'MEMORY', 'memory', 'video'),
+  ).rejects.toThrow();
+  expect(() => assertMediaCacheLease(lease)).toThrow();
+});

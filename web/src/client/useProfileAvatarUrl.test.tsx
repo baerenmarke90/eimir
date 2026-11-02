@@ -95,6 +95,43 @@ describe('useProfileAvatarUrl performance sharing (#1028)', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 
+  it('never reuses a revoked active avatar entry after a cache wipe', async () => {
+    let serial = 0;
+    createObjectUrl.mockImplementation(() => `blob:avatar-${++serial}`);
+    const download = vi.fn(async () => ({
+      raw: { blob: async () => new Blob(['avatar']) },
+    }));
+    const api = {
+      getProfileAvatarContentRaw: download,
+    } as unknown as ProfilesApi;
+    const first = renderHook(() =>
+      useProfileAvatarUrl(api, 'space', 'account', 'avatar'),
+    );
+    await waitFor(() =>
+      expect(first.result.current.avatarUrl).toBe('blob:avatar-1'),
+    );
+    clearAuthorizedMediaCache();
+    const next = renderHook(() =>
+      useProfileAvatarUrl(api, 'space', 'account', 'avatar'),
+    );
+    await waitFor(() =>
+      expect(next.result.current.avatarUrl).toBe('blob:avatar-2'),
+    );
+    expect(download).toHaveBeenCalledTimes(2);
+    first.unmount();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const simultaneous = renderHook(() =>
+      useProfileAvatarUrl(api, 'space', 'account', 'avatar'),
+    );
+    await waitFor(() =>
+      expect(simultaneous.result.current.avatarUrl).toBe('blob:avatar-2'),
+    );
+    expect(download).toHaveBeenCalledTimes(2);
+    next.unmount();
+    simultaneous.unmount();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+
   it('deduplicates concurrent consumers of the same avatar and shares one object URL', async () => {
     const blob = vi.fn(async () => new Blob(['avatar']));
     const getProfileAvatarContentRaw = vi.fn(async () => ({

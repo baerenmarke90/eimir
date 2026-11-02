@@ -11,6 +11,7 @@ import {
 } from './authorizedMediaCache';
 
 interface SharedAvatarEntry {
+  isCurrent(): boolean;
   consumers: number;
   resource: OwnedObjectUrl | null;
   pending: Promise<string> | null;
@@ -56,7 +57,7 @@ function releaseSharedAvatar(
     if (entry.consumers > 0) return;
     entry.controller?.abort();
     entry.resource?.dispose();
-    cache.delete(key);
+    if (cache.get(key) === entry) cache.delete(key);
   }, 0);
 }
 
@@ -73,8 +74,21 @@ function acquireSharedAvatar(
   const cache = cacheFor(profilesApi);
   const key = avatarCacheKey(spaceId, accountId, profileAttachmentId);
   let entry = cache.get(key);
+  if (entry && !entry.isCurrent()) {
+    cache.delete(key);
+    entry = undefined;
+  }
   if (!entry) {
+    const lease = captureMediaCacheLease(profilesApi, spaceId);
     entry = {
+      isCurrent() {
+        try {
+          assertMediaCacheLease(lease);
+          return true;
+        } catch {
+          return false;
+        }
+      },
       consumers: 0,
       resource: null,
       pending: null,

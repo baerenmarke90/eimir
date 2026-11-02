@@ -1527,9 +1527,16 @@ export function TodayPage({
   return (
     <div
       className="page today-page"
-      data-wir-design={wirDesign?.current ?? 'warm'}
+      data-wir-design={
+        wirDesign?.presentationReady === false
+          ? undefined
+          : (wirDesign?.current ?? 'warm')
+      }
       data-color-world={
-        (wirDesign?.current ?? 'warm') === 'warm' ? 'warm' : undefined
+        wirDesign?.presentationReady !== false &&
+        (wirDesign?.current ?? 'warm') === 'warm'
+          ? 'warm'
+          : undefined
       }
     >
       {(dashboardQuery.isLoading ||

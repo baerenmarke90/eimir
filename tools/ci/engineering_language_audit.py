@@ -292,6 +292,11 @@ ALLOWED_LEGACY_INPUT = "Aktueller `main`"
 # domain-content fixtures. Keeping the exception value-based rather than
 # excluding whole test files still audits their engineering prose.
 ALLOWED_LOCALIZED_TEXTS = (
+    # Exact #1590 native recovery copy; resource localization, never diagnostics.
+    "eimir. wurde unterbrochen",
+    "Die App-Ansicht konnte nicht weiter ausgeführt werden. Du kannst eimir. erneut öffnen. Bereits gespeicherte Inhalte bleiben erhalten. Nicht gespeicherte Eingaben können verloren sein.",
+    "Erneut öffnen",
+    "Schließen",
     # Exact #565 native localized copy and German content/assertion fixtures.
     "Alex hat die Erinnerung „Einkaufen“ erstellt.",
     "Alex hat dir einen Kuss geschickt.",

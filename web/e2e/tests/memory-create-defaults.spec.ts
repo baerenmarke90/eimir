@@ -2448,8 +2448,8 @@ for (const kind of ['plan', 'heart'] as const) {
       });
     else
       expect(submitted).toMatchObject({
-        attachments: photos.finalized.map((attachmentId, position) => ({
-          attachmentId,
+        attachments: ['photo-1.jpg', 'photo-2.jpg'].map((name, position) => ({
+          attachmentId: photos.idsByName[name],
           position,
           isSensitive: false,
         })),

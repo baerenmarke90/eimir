@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <color name="eimir_startup_background">#151624</color>
+    <color name="eimir_startup_background">#171B2F</color>
 </resources>

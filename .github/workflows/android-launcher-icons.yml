@@ -137,6 +137,12 @@ jobs:
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
           grep -Eq '^OK \([1-9][0-9]* tests?\)' instrumentation.log
+          # Keep deliberate renderer termination isolated from other WebViews.
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.RuntimeRecoveryTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee runtime-recovery.log
+          grep -Eq '^OK \([1-9][0-9]* tests?\)' runtime-recovery.log
           # Exercise actual Android notification/PendingIntent and retained bridge
           # handoff separately, preserving the existing fixture's time budget.
           timeout 180 adb -e shell am instrument -w -r \
@@ -195,6 +201,7 @@ jobs:
             android/host-memory.log
             android/guest-memory-before-tests.log
             android/instrumentation.log
+            android/runtime-recovery.log
             android/notification-open.log
             android/push-preview.log
             android/fixture-logcat.log

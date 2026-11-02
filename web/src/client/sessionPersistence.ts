@@ -4,6 +4,7 @@ import { normalizeClientError } from './problemDetails';
 import { clearAuthorizedMediaCache } from './authorizedMediaCache';
 import { clearRetrospectiveDismissal } from './todayRetrospectiveDismissal';
 import { clearMemoryDiaryDrafts } from './memoryDiaryDraft';
+import { clearWirDesignPreferences } from './wirDesignPreferenceStore';
 import { createReferenceApis } from './referenceFlow';
 import {
   isNativeSessionStorageAvailable,
@@ -264,6 +265,7 @@ export function loadStoredSession(): StoredSession | null {
 
 export function clearStoredSession(): Promise<void> {
   clearAuthorizedMediaCache();
+  clearWirDesignPreferences();
   clearMemoryDiaryDrafts();
   clearRetrospectiveDismissal();
   sessionOwner = null;

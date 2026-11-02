@@ -391,7 +391,7 @@ function AuthenticatedApp({
         attachmentId,
         { signal, variant },
       ),
-    [apiBaseUrl, apis, spaceId, tokens.accessToken],
+    [apis, spaceId],
   );
 
   const loadHeartMomentAttachment = useCallback(
@@ -409,7 +409,7 @@ function AuthenticatedApp({
         attachmentId,
         { signal, variant },
       ),
-    [apiBaseUrl, apis, spaceId, tokens.accessToken],
+    [apis, spaceId],
   );
 
   async function refreshStory() {

@@ -6,7 +6,17 @@ import {
   evictDurableMedia,
 } from './durableMediaStore';
 import { evictMediaObjectUrls } from './sharedMediaObjectUrls';
-/** Session-memory byte ownership; views continue to own their Object URLs. */
+import {
+  MEDIA_CACHE_MAX_BYTES,
+  MEDIA_CACHE_MAX_ENTRIES,
+  MEDIA_CACHE_MAX_AGE_MS,
+} from './mediaCacheLimits';
+export {
+  MEDIA_CACHE_MAX_BYTES,
+  MEDIA_CACHE_MAX_ENTRIES,
+  MEDIA_CACHE_MAX_AGE_MS,
+} from './mediaCacheLimits';
+/** Session-memory ownership, shared only within an authorized account/API scope. */
 export interface MediaCacheScope {
   readonly id: number;
   readonly durableIdentity?: string;
@@ -19,6 +29,7 @@ interface CacheLease {
   readonly generation: number;
   readonly resourceKey: string;
   readonly revocation: number;
+  readonly spaceRevocation: number;
   readonly durableEpoch?: string;
 }
 
@@ -32,10 +43,6 @@ interface PendingBlob {
   promise: Promise<Blob>;
   consumers: number;
 }
-
-export const MEDIA_CACHE_MAX_BYTES = 48 * 1024 * 1024;
-export const MEDIA_CACHE_MAX_ENTRIES = 192;
-export const MEDIA_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 
 const scopesByOwner = new WeakMap<object, Map<string, MediaCacheScope>>();
 const clientScopes = new WeakMap<object, MediaCacheScope>();
@@ -102,6 +109,7 @@ export function captureMediaCacheLease(
     generation,
     resourceKey,
     revocation: revocations.get(resourceKey) ?? 0,
+    spaceRevocation: revocations.get(JSON.stringify([scope.id, spaceId])) ?? 0,
     durableEpoch: scope.durableIdentity
       ? captureDurableMediaEpoch()
       : undefined,
@@ -114,6 +122,8 @@ export function assertMediaCacheLease(lease: CacheLease): void {
     (lease.durableEpoch !== undefined &&
       lease.durableEpoch !== captureDurableMediaEpoch()) ||
     lease.revocation !== (revocations.get(lease.resourceKey) ?? 0) ||
+    lease.spaceRevocation !==
+      (revocations.get(JSON.stringify([lease.scope.id, lease.spaceId])) ?? 0) ||
     !lease.scope.isCurrent(lease.spaceId)
   ) {
     throw new DOMException('Media context expired', 'AbortError');

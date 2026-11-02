@@ -674,6 +674,13 @@ class TestSensitiveMedia:
             client.get(path, headers=auth(couple["token_b"])).json()["attachment"]["isSensitive"]
             is True
         )
+        denied = client.patch(
+            path,
+            json={"attachmentIsSensitive": False},
+            headers=if_match(couple["token_b"], shared.json()["version"]),
+        )
+        assert denied.status_code == 403
+        assert denied.json()["code"] == "NOT_RESOURCE_OWNER"
         edited = client.patch(
             path,
             json={"text": "Updated thought", "attachmentIsSensitive": False},
@@ -682,6 +689,16 @@ class TestSensitiveMedia:
         assert edited.status_code == 200
         assert edited.json()["version"] == shared.json()["version"] + 1
         assert edited.json()["attachment"]["isSensitive"] is False
+        denied = client.patch(
+            path,
+            json={"attachmentIsSensitive": True},
+            headers=if_match(couple["token_b"], edited.json()["version"]),
+        )
+        assert denied.status_code == 403
+        assert (
+            client.get(path, headers=auth(couple["token_b"])).json()["attachment"]["isSensitive"]
+            is False
+        )
         stale = client.patch(
             path,
             json={"attachmentIsSensitive": True},
@@ -788,10 +805,12 @@ class TestSensitiveMedia:
         original = binding.set_sensitive
         calls = 0
 
-        def fail_second(attachment: Attachment, value: bool | None) -> None:
+        def fail_second(
+            attachment: Attachment, value: bool | None, *, allow_change: bool = True
+        ) -> None:
             nonlocal calls
             calls += 1
-            original(attachment, value)
+            original(attachment, value, allow_change=allow_change)
             if calls == 2:
                 raise ConflictError(
                     "Simulated classification conflict.", ErrorCode.RESOURCE_VERSION_CONFLICT
@@ -822,3 +841,68 @@ class TestSensitiveMedia:
                 ]
                 is False
             )
+
+
+class TestPartnerEnrichment:
+    def test_partner_can_add_own_photo_but_cannot_remove_or_borrow_the_authors_photo(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        root = base_path(couple["space"].id)
+        original = ready_attachment(client, couple, session)
+        own = ready_attachment(client, couple, session, token_key="token_b")
+        foreign_unbound = ready_attachment(client, couple, session)
+        created = memory(client, couple)
+        url = f"{root}/memories/{created['id']}/attachments"
+        first = client.put(
+            url,
+            json={"attachments": [{"attachmentId": original, "position": 0}]},
+            headers=if_match(couple["token_a"], created["version"]),
+        )
+        assert first.status_code == 200
+        version = first.json()["version"]
+        borrowed = client.put(
+            url,
+            json={
+                "attachments": [
+                    {"attachmentId": original, "position": 0},
+                    {"attachmentId": foreign_unbound, "position": 1},
+                ]
+            },
+            headers=if_match(couple["token_b"], version),
+        )
+        assert borrowed.status_code == 404
+        enriched = client.put(
+            url,
+            json={
+                "attachments": [
+                    {"attachmentId": original, "position": 0},
+                    {"attachmentId": own, "position": 1},
+                ]
+            },
+            headers=if_match(couple["token_b"], version),
+        )
+        assert enriched.status_code == 200
+        assert [item["id"] for item in enriched.json()["attachments"]] == [original, own]
+        assert enriched.json()["authorId"] == str(couple["anna"].id)
+        removed = client.put(
+            url,
+            json={"attachments": [{"attachmentId": own, "position": 0}]},
+            headers=if_match(couple["token_b"], enriched.json()["version"]),
+        )
+        assert removed.status_code == 403
+        final = client.get(f"{root}/memories/{created['id']}", headers=auth(couple["token_b"]))
+        assert [item["id"] for item in final.json()["attachments"]] == [original, own]
+
+    def test_partner_cannot_remove_an_authors_shared_heart_moment_photo(
+        self, client, couple, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        photo = ready_attachment(client, couple, session)
+        created = heart_moment(client, couple, attachment_id=photo).json()
+        url = f"{base_path(couple['space'].id)}/heart-moments/{created['id']}"
+        response = client.patch(
+            url,
+            json={"attachmentId": None},
+            headers=if_match(couple["token_b"], created["version"]),
+        )
+        assert response.status_code == 403
+        assert client.get(url, headers=auth(couple["token_b"])).json()["attachment"]["id"] == photo

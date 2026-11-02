@@ -29,6 +29,7 @@ from eimir.authorization import (
     PrivacyClass,
     privacy_for,
     readable,
+    require_editable_locked,
     require_readable,
     require_writable_locked,
     visibility_of,
@@ -144,7 +145,7 @@ def create_heart_moment(
     )
     if attachment_id is not None:
         _bind(session, context, heart_moment, attachment_id)
-        _set_attachment_sensitive(session, heart_moment, attachment_is_sensitive)
+        _set_attachment_sensitive(session, context, heart_moment, attachment_is_sensitive)
     session.add(heart_moment)
     _flush(session)
     if place_id is not None:
@@ -290,7 +291,7 @@ def update_heart_moment(
     destructive. It remains a separate operation and cannot happen as a side
     effect of a text update.
     """
-    heart_moment = require_writable_locked(session, HeartMoment, context, heart_moment_id)
+    heart_moment = require_editable_locked(session, HeartMoment, context, heart_moment_id)
     _ensure_expected_version(heart_moment, expected_version)
 
     next_text = heart_moment.payload.text
@@ -322,7 +323,7 @@ def update_heart_moment(
         _rebind(session, context, heart_moment, attachment_id)
 
     if "attachment_is_sensitive" in changed_fields:
-        _set_attachment_sensitive(session, heart_moment, attachment_is_sensitive)
+        _set_attachment_sensitive(session, context, heart_moment, attachment_is_sensitive)
         heart_moment.updated_at = now()
 
     _flush(session)
@@ -606,6 +607,15 @@ def _rebind(
     if previous_id == attachment_id:
         return
 
+    if previous_id is not None and heart_moment.owner_id != context.account_id:
+        previous = session.get(Attachment, previous_id)
+        if previous is not None and previous.owner_id != context.account_id:
+            from eimir.core.errors import ForbiddenError
+
+            raise ForbiddenError(
+                "Only the author may replace another author's photo.", "NOT_RESOURCE_OWNER"
+            )
+
     if attachment_id is None:
         heart_moment.attachment_id = None
     else:
@@ -623,7 +633,10 @@ def _rebind(
 
 
 def _set_attachment_sensitive(
-    session: Session, heart_moment: HeartMoment, value: bool | None
+    session: Session,
+    context: AuthorizationContext,
+    heart_moment: HeartMoment,
+    value: bool | None,
 ) -> None:
     from eimir.attachments import binding
 
@@ -635,4 +648,8 @@ def _set_attachment_sensitive(
     with session.no_autoflush:
         locked = binding.lock_for_binding(session, [heart_moment.attachment_id])
     attachment = locked[heart_moment.attachment_id]
-    binding.set_sensitive(attachment, value)
+    binding.set_sensitive(
+        attachment,
+        value,
+        allow_change=context.account_id in (heart_moment.owner_id, attachment.owner_id),
+    )

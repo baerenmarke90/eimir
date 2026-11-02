@@ -19,10 +19,8 @@ import {
   type PreparedOurMoment,
   selectOurMomentsRound,
 } from '../client/ourMomentsSession';
-import {
-  createReferenceApis,
-  loadAuthorizedImage,
-} from '../client/referenceFlow';
+import { createReferenceApis } from '../client/referenceFlow';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -356,17 +354,14 @@ async function loadDefaultSetup({
   const resources: OwnedObjectUrl[] = [];
   const results = await Promise.allSettled(
     selected.map(async (candidate) => {
-      const imageUrl = await loadAuthorizedImage(
+      const resource = await loadAuthorizedStoryImageResource(
         referenceApis,
-        apiBaseUrl,
-        accessToken,
         spaceId,
+        'MEMORY',
         candidate.memoryId,
         candidate.imageAttachmentId,
-        fetch,
-        signal,
+        { signal },
       );
-      const resource = adoptObjectUrl(imageUrl);
       resources.push(resource);
       return {
         memoryId: candidate.memoryId,

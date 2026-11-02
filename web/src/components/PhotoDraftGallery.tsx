@@ -11,6 +11,8 @@ export interface PhotoDraftGalleryItem {
   preview: ReactNode;
   isSensitive: boolean;
   draft?: AttachmentDraft;
+  canRemove?: boolean;
+  canEditSensitivity?: boolean;
 }
 
 /** One bounded media selection with one inspector, independent of persistence. */
@@ -157,7 +159,7 @@ export function PhotoDraftGallery({
           </strong>
           <span className="photo-draft-filename">{selected.name}</span>
         </div>
-        {onSensitive ? (
+        {onSensitive && selected.canEditSensitivity !== false ? (
           <SensitiveMediaCheckbox
             checked={selected.isSensitive}
             disabled={disabled}
@@ -220,20 +222,22 @@ export function PhotoDraftGallery({
               {t(unavailable ? 'memory.diary.photoRetry' : 'common.retry')}
             </button>
           ) : null}
-          <button
-            type="button"
-            className="tertiary"
-            disabled={disabled}
-            onClick={() => {
-              setSelectedKey(
-                items[index + 1]?.key ?? items[index - 1]?.key ?? null,
-              );
-              onRemove(selected.key);
-            }}
-          >
-            {removeLabel?.(selected.key) ??
-              t(pending ? 'upload.cancel' : 'memory.photoRemove')}
-          </button>
+          {selected.canRemove !== false ? (
+            <button
+              type="button"
+              className="tertiary"
+              disabled={disabled}
+              onClick={() => {
+                setSelectedKey(
+                  items[index + 1]?.key ?? items[index - 1]?.key ?? null,
+                );
+                onRemove(selected.key);
+              }}
+            >
+              {removeLabel?.(selected.key) ??
+                t(pending ? 'upload.cancel' : 'memory.photoRemove')}
+            </button>
+          ) : null}
         </div>
       </fieldset>
       <span className="sr-only" role="status" aria-live="polite">

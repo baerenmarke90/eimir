@@ -178,6 +178,9 @@ for (const scenario of scenarios) {
       'href',
       DESCRIPTION_URL,
     );
+    await description
+      .getByText(storyProducts.authoredLinks.previews_one, { exact: true })
+      .click();
     await description.getByRole('button', { name: /Linkvorschau/ }).click();
     await expect(
       description.getByRole('link', { name: /A quiet afternoon/ }),
@@ -200,6 +203,9 @@ for (const scenario of scenarios) {
     ).toBeVisible();
     expect(state.calls.creates).toHaveLength(1);
     expect(state.calls.previews).toEqual([DESCRIPTION_URL]);
+    await panel
+      .getByText(storyProducts.authoredLinks.previews_one, { exact: true })
+      .click();
     await panel.getByRole('button', { name: /Linkvorschau/ }).click();
     await expect(panel.getByRole('status')).toContainText(
       storyProducts.authoredLinks.unavailable,

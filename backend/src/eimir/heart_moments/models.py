@@ -80,6 +80,7 @@ class HeartMoment(
     """
 
     __tablename__ = "heart_moments"
+    shared_edit: ClassVar[bool] = True
 
     privacy_absence: ClassVar[ResourceAbsence] = ResourceAbsence(
         "Heart moment not found.", "RESOURCE_NOT_FOUND"

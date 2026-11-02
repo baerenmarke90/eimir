@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
+import type { HeartMomentDetail } from '../api/generated/models/HeartMomentDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
@@ -51,6 +52,7 @@ const heartMoment = {
   createdAt: new Date('2026-08-25T00:00:00Z'),
   updatedAt: new Date('2026-08-25T00:00:00Z'),
   version: 1,
+  tags: [],
   attachment: null,
   author: { id: 'author-1', displayName: 'Alex' },
   authorId: 'author-1',
@@ -59,7 +61,9 @@ const heartMoment = {
 
 function renderDetail(
   taskOriginKey?: unknown,
-  data: typeof heartMoment & { tags?: Array<'everyday'> } = heartMoment,
+  data: HeartMomentDetail = heartMoment,
+  mode: 'detail' | 'edit' = 'detail',
+  apis = {} as ReferenceApis,
 ) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -89,7 +93,7 @@ function renderDetail(
       <MemoryRouter
         initialEntries={[
           {
-            pathname: '/story/heart-moments/heart-1',
+            pathname: `/story/heart-moments/heart-1${mode === 'edit' ? '/edit' : ''}`,
             state: taskOriginKey ? { taskOriginKey } : null,
           },
         ]}
@@ -105,11 +109,11 @@ function renderDetail(
             <Routes>
               <Route path="/story" element={<div>story landing</div>} />
               <Route
-                path="/story/heart-moments/:heartMomentId"
+                path={`/story/heart-moments/:heartMomentId${mode === 'edit' ? '/edit' : ''}`}
                 element={
                   <HeartMomentProductPage
-                    mode="detail"
-                    apis={{} as ReferenceApis}
+                    mode={mode}
+                    apis={apis}
                     apiBaseUrl="https://example.test"
                     accessToken="token"
                     spaceId="space-1"
@@ -118,6 +122,12 @@ function renderDetail(
                   />
                 }
               />
+              {mode === 'edit' ? (
+                <Route
+                  path="/story/heart-moments/:heartMomentId"
+                  element={<p>Saved partner words</p>}
+                />
+              ) : null}
             </Routes>
           </AppShell>
         </TaskOriginProvider>
@@ -412,8 +422,77 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     expect(status.className).not.toContain('button-link');
   });
 
+  it('allows partner editing without transferring deletion or privacy authority', async () => {
+    renderDetail(undefined, {
+      ...heartMoment,
+      capabilities: { canEdit: true, canDelete: false, canComment: true },
+    });
+    await screen.findByText('I love you more each day');
+    expect(
+      screen
+        .getByRole('link', { name: storyProducts.heartMomentProduct.edit })
+        .getAttribute('href'),
+    ).toBe('/story/heart-moments/heart-1/edit');
+    expect(
+      screen.queryByRole('button', {
+        name: storyProducts.heartMomentProduct.makePrivate,
+      }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', {
+        name: storyProducts.heartMomentProduct.delete,
+      }),
+    ).toBeNull();
+  });
+
+  it('saves partner words without submitting a hidden photo classification field', async () => {
+    const shared: HeartMomentDetail = {
+      ...heartMoment,
+      capabilities: { canEdit: true, canDelete: false, canComment: true },
+      attachment: {
+        id: 'protected-photo',
+        mediaType: 'IMAGE',
+        status: 'READY',
+        hasThumbnail: false,
+        isSensitive: true,
+        width: null,
+        height: null,
+        size: 10,
+        mimeType: 'image/jpeg',
+      },
+    };
+    const updateHeartMoment = vi
+      .fn()
+      .mockResolvedValue({ ...shared, version: 2 });
+    renderDetail(undefined, shared, 'edit', {
+      heartMoments: { updateHeartMoment },
+    } as unknown as ReferenceApis);
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByLabelText(storyProducts.heartMomentProduct.textLabel),
+      ' A shared thought.',
+    );
+    await user.click(
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.save,
+      }),
+    );
+    await screen.findByText('Saved partner words');
+    expect(updateHeartMoment).toHaveBeenCalledOnce();
+    expect(
+      updateHeartMoment.mock.calls[0][0].heartMomentUpdate,
+    ).not.toHaveProperty('attachmentIsSensitive');
+    expect(updateHeartMoment.mock.calls[0][0].heartMomentUpdate.text).toContain(
+      'A shared thought.',
+    );
+  });
+
   it('keeps the visibility toggle as plain text beside the status, no heading or warning card', async () => {
-    renderDetail();
+    renderDetail(undefined, {
+      ...heartMoment,
+      authorId: 'account-1',
+      author: { id: 'account-1', displayName: 'Alex' },
+    });
     await screen.findByText('I love you more each day');
     expect(
       screen.getByRole('button', {

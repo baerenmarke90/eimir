@@ -423,12 +423,13 @@ class TestProjection:
         assert item["memory"]["author"]["displayName"] == "Anna"
         assert item["memory"]["attachments"] == []
 
-    def test_capabilities_follow_author_rule(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+    def test_capabilities_separate_shared_edit_from_author_delete(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         memory(client, couple, token=couple["token_a"])
         for_author = timeline(client, couple, token=couple["token_a"]).json()["items"][0]
         for_partner = timeline(client, couple, token=couple["token_b"]).json()["items"][0]
         assert for_author["memory"]["capabilities"]["canEdit"] is True
-        assert for_partner["memory"]["capabilities"]["canEdit"] is False
+        assert for_partner["memory"]["capabilities"]["canEdit"] is True
+        assert for_partner["memory"]["capabilities"]["canDelete"] is False
 
     def test_memory_body_is_not_in_list(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         """The card needs a heading, not the complete text."""

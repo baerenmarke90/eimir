@@ -25,6 +25,18 @@
   flex: 0 0 auto;
 }
 .plan-wish-source {
-  display: inline-block;
-  padding-block: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--space-12);
+  padding-block: var(--space-2);
+  color: var(--color-link-text);
+  background: transparent;
+  border-radius: 0;
+  text-decoration: none;
+}
+.plan-wish-source .eimir-icon {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  flex-shrink: 0;
 }

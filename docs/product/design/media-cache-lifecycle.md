@@ -7,8 +7,8 @@ Owning issue: #1384. Baseline: `ac74b40a346f52d745bc4563658061a500edc327`.
 Returning to a photo or opening its detail reuses already downloaded bytes.
 Today, Story, Years, Photos and details share the attachment loader. Profile
 and related-person avatars use the same bounded byte owner. Visible views
-continue to own and dispose their Object URLs; removing a view no longer
-destroys the reusable bytes. Concurrent consumers share a download, while
+own disposable handles to shared display URLs; removing a view releases its
+handle while bounded URL and byte reuse continue (see #1603 below). Concurrent consumers share a download, while
 cancelling one consumer does not cancel another consumer's download.
 
 Original and thumbnail are separate variants. An attachment without a thumbnail
@@ -109,3 +109,36 @@ while retaining the existing one-minute freshness and explicit mutation/live
 invalidation contracts. Returning to a screen keeps its current data visible
 while necessary background updates run. This does not promise zero requests or
 complete domain persistence after process death.
+
+
+## Appwide display continuity — #1603 (2026-11-02)
+
+The byte cache alone did not prevent visible image reloads. Gallery originals,
+profile/person avatars and several relation/Photos loaders created a new Object
+URL when a view reopened. The preview URL pool also expired after one minute or
+24 idle previews, so an ordinary detail visit could invalidate its origin's image.
+
+All authorized display loaders now return reference-counted handles from the
+same bounded pool. Thumbnail and original keys remain distinct; an original
+fallback shares its identity with a gallery original. Profile keys retain the
+Account and authoritative attachment identity; related-person keys retain their
+client scope. Upload drafts and temporary external source-picker previews keep
+single-consumer ownership.
+
+Idle URL ownership uses the same **48 MiB / 192 entries / 30-minute** bounds as
+the existing RAM byte cache. URL age measures inactivity, while byte age remains
+measured from receipt. LRU/expiry removes idle entries; live handles remain valid
+until released. Reentry checks authorization before acquiring a retained URL.
+Denied parent read-access, authoritative membership loss and login/Space/product-cache
+wipes revoke both active and idle URLs synchronously. Space revocation also
+fences outstanding parent-specific authorization leases; transient membership
+refresh errors preserve current images and an expired Account response cannot
+revoke the next Account's scope. No Object URL is persisted to disk. The disk tier and
+its authorization, epoch and eviction contracts remain unchanged.
+
+Regressions cover Story, Heart Moment and Plan originals/thumbnails, profile and
+related-person avatars, a ninety-second detail visit and a real Memory gallery
+journey through Wir/Moments tabs. Reuse avoids repeat binary transfer and URL
+creation without suppressing fresh parent authorization. Idle images can load
+again after eviction/expiry or privacy revocation; this is deliberate bounded
+ownership rather than an unlimited retention promise.

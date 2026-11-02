@@ -160,12 +160,11 @@ class TestCrud:
 
 
 class TestAuthorRule:
-    def test_partner_reads_but_does_not_write(
+    def test_partner_edits_shared_content_without_destructive_authority(
         self,
         client,
         couple,
     ) -> None:  # type: ignore[no-untyped-def]
-        """M2-D25: shared readability does not grant write permission."""
         milestone = create_milestone(client, couple).json()
 
         read = client.get(
@@ -174,17 +173,20 @@ class TestAuthorRule:
         )
         assert read.status_code == 200
         assert read.json()["capabilities"] == {
-            "canEdit": False,
+            "canEdit": True,
             "canDelete": False,
             "canComment": True,
         }
 
+        changed = client.patch(
+            f"{path(couple['space'].id)}/{milestone['id']}",
+            json={"title": "Von Ben geaendert."},
+            headers=if_match(couple["token_b"], 1),
+        )
+        assert changed.status_code == 200
+        assert changed.json()["authorId"] == str(couple["anna"].id)
+
         for response in (
-            client.patch(
-                f"{path(couple['space'].id)}/{milestone['id']}",
-                json={"title": "Von Ben geaendert."},
-                headers=if_match(couple["token_b"], 1),
-            ),
             client.delete(
                 f"{path(couple['space'].id)}/{milestone['id']}",
                 headers=if_match(couple["token_b"], 1),

@@ -53,6 +53,10 @@ describe('authored text and external previews', () => {
       />,
     );
     expect(resolve).not.toHaveBeenCalled();
+    if (!document.querySelector('details')?.open)
+      await userEvent.click(
+        screen.getByText(storyProducts.authoredLinks.previews_one),
+      );
     await userEvent.click(screen.getByRole('button'));
     await screen.findByText('A park');
     expect(resolve).toHaveBeenCalledExactlyOnceWith({
@@ -80,6 +84,10 @@ describe('authored text and external previews', () => {
         spaceId="space-a"
       />,
     );
+    if (!document.querySelector('details')?.open)
+      await userEvent.click(
+        screen.getByText(storyProducts.authoredLinks.previews_one),
+      );
     await userEvent.click(screen.getByRole('button'));
     await waitFor(() =>
       expect(screen.getByRole('status').textContent).toContain(
@@ -89,6 +97,10 @@ describe('authored text and external previews', () => {
     expect(screen.getByRole('link').getAttribute('href')).toBe(
       'https://example.org/',
     );
+    if (!document.querySelector('details')?.open)
+      await userEvent.click(
+        screen.getByText(storyProducts.authoredLinks.previews_one),
+      );
     await userEvent.click(screen.getByRole('button'));
     await waitFor(() => expect(resolve).toHaveBeenCalledTimes(2));
   });
@@ -104,6 +116,7 @@ describe('authored text and external previews', () => {
         spaceId="space-a"
       />,
     );
+    fireEvent.click(screen.getByText(storyProducts.authoredLinks.previews_one));
     fireEvent.click(screen.getByRole('button'));
     fireEvent.click(screen.getByRole('button'));
     expect(resolve).toHaveBeenCalledTimes(1);
@@ -118,6 +131,8 @@ describe('authored text and external previews', () => {
       />,
     );
     expect(screen.getAllByRole('link')).toHaveLength(6);
+    expect(document.querySelector('details')?.open).toBe(false);
+    fireEvent.click(screen.getByText('Linkvorschauen (3)'));
     expect(screen.getAllByRole('button')).toHaveLength(3);
   });
 
@@ -136,6 +151,10 @@ describe('authored text and external previews', () => {
       scope: 'account-a',
     };
     const view = render(<AuthoredText {...props} />);
+    if (!document.querySelector('details')?.open)
+      await userEvent.click(
+        screen.getByText(storyProducts.authoredLinks.previews_one),
+      );
     await userEvent.click(screen.getByRole('button'));
     view.rerender(
       <AuthoredText {...props} spaceId="space-b" scope="account-b" />,
@@ -147,6 +166,7 @@ describe('authored text and external previews', () => {
     view.rerender(<AuthoredText {...props} offline />);
     expect(screen.queryByRole('button')).toBeNull();
     view.rerender(<AuthoredText {...props} />);
+    fireEvent.click(screen.getByText(storyProducts.authoredLinks.previews_one));
     expect((screen.getByRole('button') as HTMLButtonElement).disabled).toBe(
       false,
     );

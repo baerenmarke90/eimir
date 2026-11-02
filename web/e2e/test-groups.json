@@ -14,7 +14,7 @@
   "specs": {
     "media-url-continuity.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 2,
+      "baselineTests": 4,
       "reason": "Compact/Expanded Story detail return must reuse the thumbnail URL and binary bytes while obtaining fresh parent authorization."
     },
     "heart-moment-reading.spec.ts": {
@@ -418,6 +418,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 11,
       "reason": "Native post-sign-in consent, optional dismissal across reload, permission denial, account-bound endpoint confirmation, narrow/large-text theme and accessibility evidence; ordinary Web remains unchanged."
+    },
+    "content-reading.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5,
+      "reason": "Readable long descriptions, explicit external preview, quiet Plan context and partner edit rights must remain accessible and preserve content/author/route across responsive states."
     }
   }
 }

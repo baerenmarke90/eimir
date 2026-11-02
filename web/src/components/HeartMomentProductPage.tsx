@@ -1,3 +1,4 @@
+import { ExpandableDescription } from './ExpandableDescription';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import {
@@ -844,7 +845,11 @@ export function HeartMomentProductPage({
           attachments.items.find(
             (item) => item.attachmentId === replacementAttachmentId,
           )?.isSensitive ?? false;
-      else if (heartMoment.attachment && !removeExistingPhoto)
+      else if (
+        heartMoment.attachment &&
+        !removeExistingPhoto &&
+        heartMoment.capabilities.canDelete
+      )
         update.attachmentIsSensitive =
           data.get('attachmentIsSensitive') === 'on';
       const ownsTask = captureEditOwnership();
@@ -894,31 +899,39 @@ export function HeartMomentProductPage({
                   }
                   resourceScopeKey={`heart-moment:${currentAccountId}:${spaceId}:${mode}:${heartMoment.id}`}
                 />
-                <SensitiveMediaCheckbox
-                  name="attachmentIsSensitive"
-                  showHelp
-                  checked={
-                    sensitivityDraft?.key === sensitivityKey
-                      ? sensitivityDraft.value
-                      : (heartMoment.attachment.isSensitive ?? true)
-                  }
-                  onChange={(value) =>
-                    setSensitivityDraft({ key: sensitivityKey, value })
-                  }
-                  disabled={updateMutation.isPending}
-                />
-                <button
-                  type="button"
-                  className="tertiary"
-                  onClick={() => setRemoveExistingPhoto(true)}
-                >
-                  {t('memory.photoRemove')}
-                </button>
+                {heartMoment.capabilities.canDelete ? (
+                  <SensitiveMediaCheckbox
+                    name="attachmentIsSensitive"
+                    showHelp
+                    checked={
+                      sensitivityDraft?.key === sensitivityKey
+                        ? sensitivityDraft.value
+                        : (heartMoment.attachment.isSensitive ?? true)
+                    }
+                    onChange={(value) =>
+                      setSensitivityDraft({ key: sensitivityKey, value })
+                    }
+                    disabled={updateMutation.isPending}
+                  />
+                ) : null}
+                {heartMoment.capabilities.canDelete ? (
+                  <button
+                    type="button"
+                    className="tertiary"
+                    onClick={() => setRemoveExistingPhoto(true)}
+                  >
+                    {t('memory.photoRemove')}
+                  </button>
+                ) : null}
               </div>
             ) : null}
             <AttachmentDraftPicker
               id="heart-moment-edit-photo"
-              disabled={updateMutation.isPending}
+              disabled={
+                updateMutation.isPending ||
+                (Boolean(heartMoment.attachment) &&
+                  !heartMoment.capabilities.canDelete)
+              }
               attachments={attachments}
               multiple={false}
             />
@@ -1034,7 +1047,16 @@ export function HeartMomentProductPage({
       containerDataAttributes={{ 'data-heart-emotion': heartMoment.emotion }}
     >
       {heartMoment.text ? (
-        <p className="heart-moment-detail-text">{heartMoment.text}</p>
+        <ExpandableDescription
+          text={heartMoment.text}
+          scope={JSON.stringify([
+            apiBaseUrl,
+            currentAccountId,
+            spaceId,
+            heartMoment.id,
+          ])}
+          className="heart-moment-detail-text"
+        />
       ) : null}
 
       <div className="heart-moment-detail-emotion">
@@ -1137,7 +1159,7 @@ export function HeartMomentProductPage({
             shared ? t('heartMomentProduct.sharedCompact') : undefined
           }
         />
-        {heartMoment.capabilities.canEdit && !offline ? (
+        {heartMoment.authorId === currentAccountId && !offline ? (
           <button
             type="button"
             className="list-entry-icon-button tertiary heart-moment-visibility-action"

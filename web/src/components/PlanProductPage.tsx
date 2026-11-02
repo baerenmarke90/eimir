@@ -66,7 +66,8 @@ import { usePlanCompletion } from './usePlanCompletion';
 import { UiState } from './UiState';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import { CommentsPanel } from './CommentsPanel';
-import { AuthoredText } from './AuthoredText';
+import { EimirIcon } from './EimirIcon';
+import { ExpandableDescription } from './ExpandableDescription';
 import { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
 import { Configuration } from '../client/apiConfiguration';
 import './SharedPlanningPages.css';
@@ -476,11 +477,6 @@ export function PlanProductPage({
         {plan.status === 'COMPLETED' ? (
           <p className="planen-detail-status">{planStatusWord(t, plan)}</p>
         ) : null}
-        {placeName && plan.placeId ? (
-          <p className="planen-detail-meta">
-            <Link to={placeDetailPath(plan.placeId)}>{placeName}</Link>
-          </p>
-        ) : null}
         {completion.pendingDay && !completionOpen ? (
           <p className="planen-detail-pending" role="status">
             {t('m5s3.plan.completePending', {
@@ -709,12 +705,34 @@ export function PlanProductPage({
 
         {!isEditing && plan.description ? (
           <div className="planen-section planen-section-content">
-            <AuthoredText
+            <ExpandableDescription
               text={plan.description}
               previewApi={linkPreviewsApi}
               spaceId={spaceId}
               scope={JSON.stringify([apiBaseUrl, accountId, plan.id])}
               offline={!online}
+            />
+          </div>
+        ) : null}
+
+        {!isEditing ? (
+          <div className="planen-detail-context">
+            {placeName && plan.placeId ? (
+              <Link
+                className="planen-place-context"
+                to={placeDetailPath(plan.placeId)}
+              >
+                <EimirIcon name="orte" />
+                <span>{placeName}</span>
+              </Link>
+            ) : null}
+            <PlanWishLink
+              key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
+              apis={apis}
+              spaceId={spaceId}
+              plan={plan}
+              disabled={writesPending}
+              onLinked={commitPlan}
             />
           </div>
         ) : null}
@@ -753,17 +771,6 @@ export function PlanProductPage({
           <section className="planen-completed-result">
             <p>{t('m5s3.plan.completedBody')}</p>
           </section>
-        ) : null}
-
-        {!isEditing ? (
-          <PlanWishLink
-            key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
-            apis={apis}
-            spaceId={spaceId}
-            plan={plan}
-            disabled={writesPending}
-            onLinked={commitPlan}
-          />
         ) : null}
 
         {isEditing && plan.sourceWishId ? (

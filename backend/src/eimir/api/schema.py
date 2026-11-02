@@ -7,7 +7,11 @@ domain model does not carry a presentation decision.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from uuid import UUID
+
+if TYPE_CHECKING:
+    from eimir.authorization import PrivateResourceMixin
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.json_schema import SkipJsonSchema
@@ -42,3 +46,18 @@ class ResourceCapabilities(ApiModel):
     can_edit: bool
     can_delete: bool
     can_comment: bool
+
+
+def story_resource_capabilities(
+    resource: PrivateResourceMixin, account_id: UUID, *, can_comment: bool = True
+) -> ResourceCapabilities:
+    """Project authorized Story rights; endpoint guards remain authoritative."""
+    from eimir.authorization import PrivacyClass
+
+    author = resource.owner_id == account_id
+    return ResourceCapabilities(
+        can_edit=author
+        or (resource.shared_edit and resource.privacy_class == PrivacyClass.SPACE_SHARED.value),
+        can_delete=author,
+        can_comment=can_comment,
+    )

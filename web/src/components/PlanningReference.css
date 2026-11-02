@@ -783,3 +783,28 @@
   gap: var(--space-2);
   margin-block-end: var(--space-4);
 }
+
+.planen-detail-context {
+  display: flex;
+  align-items: start;
+  flex-wrap: wrap;
+  column-gap: var(--space-5);
+  row-gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.planen-place-context {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--space-12);
+  color: var(--color-link-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.planen-place-context .eimir-icon {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  flex-shrink: 0;
+}

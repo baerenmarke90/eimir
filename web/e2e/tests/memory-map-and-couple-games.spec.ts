@@ -269,6 +269,12 @@ test('failed map tiles keep memories usable at 320px with large text', async ({
   await page.addStyleTag({ content: 'html { font-size: 200%; }' });
   const pro = page.locator('.settings-pro-information');
   await expect(pro.locator('li')).toHaveCount(4);
+  const firstFeature = pro.locator('li').first();
+  const icon = await firstFeature.locator(':scope > .eimir-icon').boundingBox();
+  const copy = await firstFeature.locator(':scope > div').boundingBox();
+  expect(icon).not.toBeNull();
+  expect(copy).not.toBeNull();
+  expect(copy?.y).toBeGreaterThanOrEqual((icon?.y ?? 0) + (icon?.height ?? 0));
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

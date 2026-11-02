@@ -198,6 +198,7 @@ def _attachment_summary(attachment: Attachment) -> AttachmentSummary:
         width=attachment.width,
         height=attachment.height,
         has_thumbnail=attachment.has_thumbnail,
+        duration_seconds=attachment.duration_seconds,
         is_sensitive=attachment.payload.is_sensitive,
     )
 

@@ -18,6 +18,7 @@ from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.auth.policy import AuthCapabilities, AuthPolicy, resolve_auth_capabilities
 from eimir.authorization.server_admin import is_server_admin
+from eimir.config import get_settings
 from eimir.relationship.models import Membership, MembershipStatus
 
 router = APIRouter(tags=["auth"])
@@ -35,6 +36,7 @@ class AccountCapabilitiesView(ApiModel):
     """Current account capabilities used only for client presentation."""
 
     server_admin: bool
+    video_processing_enabled: bool = False
     auth: AuthCapabilities = Field(default_factory=resolve_auth_capabilities)
 
 
@@ -51,6 +53,7 @@ def get_account_capabilities(
     """Return presentation capabilities without replacing endpoint authorization."""
     return AccountCapabilitiesView(
         server_admin=is_server_admin(session, account),
+        video_processing_enabled=get_settings().video_upload_enabled,
         auth=auth_policy,
     )
 

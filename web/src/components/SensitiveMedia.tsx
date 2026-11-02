@@ -1,6 +1,6 @@
-import { useLayoutEffect, useState, type ReactNode } from 'react';
-import { flushSync } from 'react-dom';
 import { focusManager } from '@tanstack/react-query';
+import { type ReactNode, useLayoutEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useTranslation } from '../i18n';
 import './SensitiveMedia.css';
 import './MediaOverlay.css';
@@ -75,11 +75,13 @@ export function SensitiveMediaControl({
   onToggle,
   className = '',
   overlay = false,
+  video = false,
 }: {
   revealed: boolean;
   onToggle: () => void;
   className?: string;
   overlay?: boolean;
+  video?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -87,7 +89,15 @@ export function SensitiveMediaControl({
       type="button"
       className={`sensitive-media-control ${overlay ? 'media-overlay' : 'secondary'}${revealed ? ' is-revealed' : ''} ${className}`}
       aria-pressed={revealed}
-      aria-label={t(revealed ? 'sensitiveMedia.hide' : 'sensitiveMedia.show')}
+      aria-label={t(
+        video
+          ? revealed
+            ? 'video.hide'
+            : 'video.show'
+          : revealed
+            ? 'sensitiveMedia.hide'
+            : 'sensitiveMedia.show',
+      )}
       onClick={onToggle}
     >
       <EimirIcon name="privatsphaere" />

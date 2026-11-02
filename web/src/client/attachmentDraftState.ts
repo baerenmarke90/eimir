@@ -12,6 +12,8 @@ export interface AttachmentDraft {
   attempt: number;
   progress: number;
   attachmentId?: string;
+  hasThumbnail?: boolean;
+  durationSeconds?: number | null;
   isSensitive?: boolean;
   error?: string;
 }
@@ -26,7 +28,14 @@ export type AttachmentDraftAction =
       attempt: number;
       status: 'uploading' | 'validating';
     }
-  | { type: 'ready'; id: string; attempt: number; attachmentId: string }
+  | {
+      type: 'ready';
+      id: string;
+      attempt: number;
+      attachmentId: string;
+      hasThumbnail?: boolean;
+      durationSeconds?: number | null;
+    }
   | {
       type: 'failed';
       id: string;
@@ -103,6 +112,8 @@ export function attachmentDraftReducer(
           status: 'ready',
           progress: 100,
           attachmentId: action.attachmentId,
+          hasThumbnail: action.hasThumbnail,
+          durationSeconds: action.durationSeconds,
           error: undefined,
         }),
       );

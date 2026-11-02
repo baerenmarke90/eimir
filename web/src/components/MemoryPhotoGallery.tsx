@@ -1,4 +1,3 @@
-import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
@@ -7,13 +6,16 @@ import type { PhotoReaction } from '../api/generated/models/PhotoReaction';
 import type { PhotoReactionSummary } from '../api/generated/models/PhotoReactionSummary';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { normalizeClientError } from '../client/problemDetails';
 import { saveProductReadCacheEntry } from '../client/productReadCache';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import type { ReferenceApis } from '../client/referenceFlow';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTaskActivation } from '../client/useTaskActivation';
+import { loadVideoSource } from '../client/video';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { GalleryExpandAction, MediaGallery } from './MediaGallery';
@@ -238,12 +240,29 @@ export function MemoryPhotoGallery({
   return (
     <div className="memory-photo-gallery photo-gallery">
       <MediaGallery
-        items={photos.map(({ id, mediaType, isSensitive }) => ({
-          id,
-          mediaType,
-          isSensitive,
-        }))}
+        items={photos.map(
+          ({ id, mediaType, isSensitive, hasThumbnail, durationSeconds }) => ({
+            id,
+            mediaType,
+            isSensitive,
+            hasThumbnail,
+            durationSeconds,
+          }),
+        )}
         loadMedia={loadImage}
+        loadPoster={(id, signal) =>
+          loadAuthorizedStoryImageResource(
+            apis,
+            memory.spaceId,
+            'MEMORY',
+            memory.id,
+            id,
+            { signal, variant: 'thumbnail' },
+          )
+        }
+        loadPlayback={(id, signal) =>
+          loadVideoSource(apis, memory.spaceId, 'MEMORY', memory.id, id, signal)
+        }
         resourceScopeKey={scope}
         directSensitiveToggle
         dismissWithHistory
@@ -274,6 +293,15 @@ export function MemoryPhotoGallery({
                 revealed={revealed}
               />
             </>
+          ) : revealed ? (
+            <button
+              type="button"
+              className="media-gallery-expand media-overlay"
+              aria-label={t('video.play')}
+              onClick={openFullScreen}
+            >
+              <span aria-hidden="true">▶</span>
+            </button>
           ) : null
         }
         renderPhotoReactions={(item) => {

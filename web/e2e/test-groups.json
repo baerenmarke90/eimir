@@ -418,6 +418,11 @@
       "baselineTests": 8,
       "reason": "Plan comments must retain author, tenant, retry and canonical return contracts, with explicit bounded link previews and narrow/large-text accessibility."
     },
+    "video-attachments.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7,
+      "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled."
+    },
     "android-push-onboarding.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 11,

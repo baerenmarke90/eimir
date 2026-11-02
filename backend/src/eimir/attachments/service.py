@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
 from eimir.attachments import images
-from eimir.attachments.limits import MediaRule, rule_for
+from eimir.attachments.limits import MediaRule, is_supported, rule_for
 from eimir.attachments.models import (
     Attachment,
     AttachmentPayload,
@@ -44,22 +44,28 @@ from eimir.core.errors import (
     ErrorCode,
     NotFoundError,
     PayloadTooLargeError,
+    PremiumEntitlementRequiredError,
     UnsupportedMediaTypeError,
     ValidationError,
 )
 from eimir.core.ids import parse_id
+from eimir.entitlements import service as entitlements
+from eimir.entitlements.models import Capability
 from eimir.jobs import queue
 from eimir.media import (
+    ByteSource,
     build_account_storage_key,
     build_storage_key,
     get_media_store,
     supports_signed_upload,
 )
+from eimir.media.streams import BoundedSource, ByteLimitExceededError
 from eimir.security.errors import PlaintextRejectedError
 
 log = logging.getLogger(__name__)
 
 ATTACHMENT_VALIDATION = "attachment_validation"
+ATTACHMENT_VIDEO_VALIDATION = "attachment_video_validation"
 
 BINDING_WINDOW = timedelta(minutes=60)
 """M2-D20: maximum time a READY attachment may remain unbound."""
@@ -154,7 +160,7 @@ def _require_rule(mime_type: str, media_type: MediaType) -> MediaRule:
             "This media type is not accepted.",
             ErrorCode.ATTACHMENT_TYPE_NOT_ALLOWED,
         )
-    if not rule.supported:
+    if not is_supported(rule):
         # M2-D23: the contract permits the type while this release does not
         # implement it. Reject fail-closed using the same code as an unknown
         # type because the distinction is not useful to the client.
@@ -182,6 +188,10 @@ def create_upload(
     that is already known to be impossible.
     """
     rule = _require_rule(expected_mime_type, media_type)
+    if media_type is MediaType.VIDEO and not entitlements.has_capability(
+        session, context.space_id, Capability.MEDIA_VIDEO_UPLOAD, lock_grants=True
+    ):
+        raise PremiumEntitlementRequiredError(Capability.MEDIA_VIDEO_UPLOAD.value)
 
     name = original_name.strip()
     if not name or len(name) > MAX_ORIGINAL_NAME:
@@ -248,16 +258,22 @@ def complete_upload(
     session: Session,
     attachment: Attachment,
     rule: MediaRule,
-    data: bytes,
+    data: bytes | ByteSource,
 ) -> Attachment:
     """Store accepted upload bytes.
 
     The size limit is already applied while reading; it is checked again here
     so another caller cannot bypass the request-layer boundary.
     """
-    if len(data) > rule.max_size:
+    if isinstance(data, bytes) and len(data) > rule.max_size:
         raise too_large()
-    get_media_store().put(storage_key_for(attachment), io.BytesIO(data), rule.mime_type)
+    source = io.BytesIO(data) if isinstance(data, bytes) else data
+    try:
+        get_media_store().put(
+            storage_key_for(attachment), BoundedSource(source, rule.max_size), rule.mime_type
+        )
+    except ByteLimitExceededError:
+        raise too_large() from None
     attachment.status = AttachmentStatus.UPLOADING.value
     attachment.uploaded_at = now()
     _flush(session)
@@ -305,7 +321,12 @@ def finalize_upload(
         )
 
     locked.status = AttachmentStatus.VALIDATING.value
-    queue.enqueue(session, ATTACHMENT_VALIDATION, {"attachmentId": str(locked.id)})
+    kind = (
+        ATTACHMENT_VIDEO_VALIDATION
+        if locked.media_type == MediaType.VIDEO
+        else ATTACHMENT_VALIDATION
+    )
+    queue.enqueue(session, kind, {"attachmentId": str(locked.id)})
     _flush(session)
     return locked
 
@@ -532,7 +553,7 @@ def validate(session: Session, attachment_id: UUID) -> None:
         return
 
     rule = rule_for(attachment.declared_mime_type)
-    if rule is None or not rule.supported:
+    if rule is None or not is_supported(rule):
         _fail(attachment, ErrorCode.ATTACHMENT_TYPE_NOT_ALLOWED)
         return
 
@@ -544,7 +565,7 @@ def validate(session: Session, attachment_id: UUID) -> None:
 
     try:
         with store.open(storage_key) as source:
-            raw = source.read()
+            raw = source.read(rule.max_size + 1)
     except PlaintextRejectedError:
         # A client that received a presigned upload URL before encryption became
         # mandatory can still complete it, leaving plaintext at the provider.

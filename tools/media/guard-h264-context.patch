@@ -1,0 +1,14 @@
+--- a/libavcodec/h264dec.c
++++ b/libavcodec/h264dec.c
+@@ -62,6 +62,12 @@
+ int avpriv_h264_has_num_reorder_frames(AVCodecContext *avctx)
+ {
++    /* A failed codec switch must not reinterpret another decoder's private
++     * allocation as H264Context (CVE-2025-52290). */
++    if (!avctx || !avctx->codec ||
++        avctx->codec->id != AV_CODEC_ID_H264 ||
++        avctx->codec_id != AV_CODEC_ID_H264)
++        return 0;
+     H264Context *h = avctx->priv_data;
+     return h && h->ps.sps ? h->ps.sps->num_reorder_frames : 0;
+ }

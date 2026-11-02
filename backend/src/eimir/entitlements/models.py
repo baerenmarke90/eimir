@@ -55,6 +55,7 @@ class Capability(StrEnum):
     """Standard normalized domain capability identifiers."""
 
     STORAGE_CLOUD_QUOTA_50GB = "storage.cloud_quota_50gb"
+    MEDIA_VIDEO_UPLOAD = "media.video_upload"
     CHAPTER_RICH_PRESENTATION = "chapter.rich_presentation"
     OCCASION_AUTOMATION = "occasion.automation"
     RECAP_PDF_YEARBOOK = "recap.pdf_yearbook"

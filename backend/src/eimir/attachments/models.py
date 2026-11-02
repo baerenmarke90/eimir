@@ -203,6 +203,38 @@ class Attachment(
     )
 
 
+class PlaybackGrant(IdMixin, Base):
+    """Short-lived, non-exported read authority bound to a live device family."""
+
+    __tablename__ = "attachment_playback_grants"
+
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    session_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("device_sessions.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    space_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("spaces.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    attachment_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("attachments.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    parent_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    parent_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        Index("ix_playback_grants_session_expiry", "session_id", "expires_at"),
+        Index("ix_playback_grants_expiry", "expires_at"),
+        CheckConstraint("parent_type IN ('MEMORY', 'HEART_MOMENT')", name="playback_parent_known"),
+    )
+
+
 class PhotoLocationPayload(ProtectedPayload):
     """Owner-only transient coordinates; never an attachment API projection."""
 

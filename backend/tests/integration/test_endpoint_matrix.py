@@ -1041,7 +1041,15 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="TRANSFER_NOT_FOUND",
         placeholders=("importId",),
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/attachment-upload-policy"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/attachments", body=ATTACHMENT),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/attachments/{attachmentId}/playback-access",
+        body={"parentType": "MEMORY", "parentId": ""},
+        body_fixture_aliases={"parentId": "memoryId"},
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
     Endpoint(
         "GET",
         "/api/v1/spaces/{spaceId}/attachments/{attachmentId}",
@@ -1147,6 +1155,11 @@ SERVER_ADMIN_ONLY: tuple[tuple[str, str], ...] = (
     ("POST", "/api/v1/server-admin/accounts/{accountId}/deletion"),
 )
 """Instance-scoped operations that require authenticated ServerAdmin authority."""
+
+PLAYBACK_ENDPOINTS: tuple[tuple[str, str], ...] = (
+    ("GET", "/api/v1/spaces/{spaceId}/attachments/{attachmentId}/playback"),
+)
+"""Video reads use a scoped grant, never general bearer/public authorization."""
 
 PUBLIC_ENDPOINTS: tuple[tuple[str, str], ...] = (
     ("GET", "/api/v1/health"),
@@ -1550,6 +1563,7 @@ def test_contract_is_completely_covered() -> None:
         {(endpoint.method, endpoint.template) for endpoint in SPACE_ENDPOINTS}
         | set(AUTHENTICATED_ONLY)
         | set(SERVER_ADMIN_ONLY)
+        | set(PLAYBACK_ENDPOINTS)
         | set(PUBLIC_ENDPOINTS)
     )
     assert contract == covered
@@ -1581,3 +1595,14 @@ def test_public_endpoints_require_no_token(scenario) -> None:  # type: ignore[no
         "/api/v1/instance/status",
     ):
         assert scenario["client"].get(path).status_code == 200
+
+
+@pytest.mark.parametrize(("method", "template"), PLAYBACK_ENDPOINTS, ids=str)
+def test_playback_requires_its_scoped_grant(scenario, method: str, template: str) -> None:  # type: ignore[no-untyped-def]
+    path = template.format(**scenario["ids"])
+    client = scenario["client"]
+    assert client.request(method, path).status_code == 422
+    assert client.request(method, path, headers=scenario["owner_headers"]).status_code == 422
+    invalid = client.request(method, path, params={"token": "x" * 48})
+    assert invalid.status_code == 404
+    assert invalid.json()["code"] == "RESOURCE_NOT_FOUND"

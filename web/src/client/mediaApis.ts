@@ -25,6 +25,10 @@ function register(client: object, configuration: GeneratedConfiguration): void {
 
 /** Generated contracts/transport with a stable login-scoped media identity. */
 export class AttachmentsApi extends GeneratedAttachmentsApi {
+  get contentBaseUrl(): string {
+    return this.configuration.basePath;
+  }
+
   constructor(configuration: GeneratedConfiguration = DefaultConfig) {
     super(configuration);
     register(this, configuration);

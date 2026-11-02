@@ -175,6 +175,7 @@ def _heart_moment_detail(
                 width=attachment.width,
                 height=attachment.height,
                 has_thumbnail=attachment.has_thumbnail,
+                duration_seconds=attachment.duration_seconds,
                 is_sensitive=attachment.payload.is_sensitive,
             )
             if attachment is not None

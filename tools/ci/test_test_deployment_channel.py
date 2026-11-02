@@ -344,6 +344,26 @@ class EvidenceAndImageTest(unittest.TestCase):
         with self.assertRaises(channel.ChannelError):
             channel.evidence_records(self.root, SOURCE)
 
+    def test_media_evidence_is_separately_bound_and_tampering_or_wrong_roles_fail_closed(self):
+        record = {
+            "id": "media-runtime", "path": "media-runtime.image.tar",
+            "sbom": "sbom/media-runtime.spdx.json", "roles": ["video-worker"],
+        }
+        for field, digest in (("path", "sha256"), ("sbom", "sbomSha256")):
+            (self.root / record[field]).write_bytes(b"restricted-worker-evidence")
+            record[digest] = channel.sha256(self.root / record[field])
+        self.index["artifacts"].append(record)
+        self.write_index()
+        self.assertEqual(set(channel.evidence_records(self.root, SOURCE)), {"backend-runtime", "web-runtime", "media-runtime"})
+        (self.root / record["path"]).write_bytes(b"different-worker")
+        with self.assertRaises(channel.ChannelError):
+            channel.evidence_records(self.root, SOURCE)
+        (self.root / record["path"]).write_bytes(b"restricted-worker-evidence")
+        record["roles"] = ["worker"]
+        self.write_index()
+        with self.assertRaises(channel.ChannelError):
+            channel.evidence_records(self.root, SOURCE)
+
     def test_corrupt_archive_or_sbom_fails_before_registry_use(self):
         for field in ("path", "sbom"):
             record = self.index["artifacts"][0]
@@ -525,7 +545,32 @@ class EvidenceAndImageTest(unittest.TestCase):
                 )
             run.assert_not_called()
 
+    def test_missing_media_evidence_refuses_private_publication_before_registry_use(
+        self,
+    ):
+        with (
+            patch.dict(os.environ, {"GITHUB_RUN_ID": "1", "GITHUB_RUN_ATTEMPT": "1"}),
+            patch.object(channel, "latest_main", return_value=SOURCE),
+            patch.object(channel, "candidate_ready", return_value=True),
+            patch.object(channel, "publish_image") as publish,
+            self.assertRaisesRegex(channel.ChannelError, "restricted-worker evidence"),
+        ):
+            channel.publish(SOURCE, self.root, self.root / "out")
+        publish.assert_not_called()
+
+
     def test_partial_publication_never_advances_the_branch(self):
+        record = {
+            "id": "media-runtime",
+            "path": "media-runtime.image.tar",
+            "sbom": "sbom/media-runtime.spdx.json",
+            "roles": ["video-worker"],
+        }
+        for field, digest in (("path", "sha256"), ("sbom", "sbomSha256")):
+            (self.root / record[field]).write_bytes(b"restricted-worker-evidence")
+            record[digest] = channel.sha256(self.root / record[field])
+        self.index["artifacts"].append(record)
+        self.write_index()
         with (
             patch.dict(os.environ, {"GITHUB_RUN_ID": "1", "GITHUB_RUN_ATTEMPT": "1"}),
             patch.object(channel, "latest_main", return_value=SOURCE),
@@ -776,6 +821,53 @@ class CanonicalWiringTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.canonical = channel.canonical_compose()
+
+    def test_private_video_worker_is_exact_source_bounded_and_receives_only_its_credentials(
+        self,
+    ):
+        media = "ghcr.io/baerenmarke90/eimir-media@sha256:" + "5" * 64
+        exported = channel.export_compose(
+            channel.canonical_compose(video=True), BACKEND, WEB, media
+        )
+        worker = exported["services"]["cloud-video-worker"]
+        self.assertEqual(worker["image"], media)
+        self.assertTrue(worker["read_only"])
+        self.assertEqual(worker["pids_limit"], 64)
+        self.assertEqual(worker["cap_drop"], ["ALL"])
+        self.assertEqual(worker["security_opt"], ["no-new-privileges:true"])
+        self.assertFalse(worker.get("ports"))
+        self.assertEqual(worker["networks"], {"app": None})
+        self.assertEqual(
+            worker["depends_on"]["cloud-migrate"]["condition"],
+            "service_completed_successfully",
+        )
+        self.assertEqual(
+            worker["environment"]["EIMIR_DATABASE_URL"],
+            exported["services"]["cloud-api"]["environment"]["EIMIR_DATABASE_URL"],
+        )
+        for name in ("cloud-api", "cloud-worker", "cloud-video-worker"):
+            self.assertEqual(
+                exported["services"][name]["environment"]["EIMIR_VIDEO_UPLOAD_ENABLED"],
+                "true",
+            )
+        for key in worker["environment"]:
+            self.assertFalse(
+                any(value in key for value in ("SMTP", "FCM", "GOOGLE_PHOTOS")), key
+            )
+        self.assertFalse(
+            any(
+                mount.get("target") == channel.FCM_CREDENTIAL_TARGET
+                for mount in worker["volumes"]
+            )
+        )
+        self.assertTrue(exported["volumes"]["cloud_media_data"]["external"])
+        with self.assertRaises(channel.ChannelError):
+            channel.export_compose(self.canonical, BACKEND, WEB, media)
+        with self.assertRaises(channel.release_manifest.ManifestError):
+            channel.export_compose(
+                channel.canonical_compose(video=True), BACKEND, WEB, "media:mutable"
+            )
+
 
     def test_operator_process_values_cannot_be_resolved_into_the_git_export(self):
         with patch.dict(

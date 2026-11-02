@@ -51,6 +51,7 @@ x-shared-runtime-environment: &shared-runtime-environment
   EIMIR_RECAP_AI_MODEL: "${EIMIR_RECAP_AI_MODEL:-qwen3:1.7b-q4_K_M}"
   EIMIR_RECAP_AI_TIMEOUT_SECONDS: "${EIMIR_RECAP_AI_TIMEOUT_SECONDS:-90}"
   EIMIR_PHOTO_SOURCES_ENABLED: "${EIMIR_PHOTO_SOURCES_ENABLED:-true}"
+  EIMIR_VIDEO_UPLOAD_ENABLED: "${EIMIR_VIDEO_UPLOAD_ENABLED:-false}"
   EIMIR_GOOGLE_PHOTOS_CLIENT_ID: "${EIMIR_GOOGLE_PHOTOS_CLIENT_ID:-}"
   EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET: "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}"
   EIMIR_OIDC_CONNECTIONS: '${EIMIR_OIDC_CONNECTIONS:-${SBS_OIDC_CONNECTIONS:-[]}}'
@@ -164,7 +165,46 @@ x-api-healthcheck: &api-healthcheck
     retries: 3
     start_period: 10s
 
+x-video-worker: &video-worker
+  image: "${EIMIR_MEDIA_WORKER_IMAGE:-invalid.invalid/eimir-media:configuration-required}"
+  restart: unless-stopped
+  command: ["python", "-m", "eimir.jobs.video_worker"]
+  init: true
+  user: "10001:10001"
+  read_only: true
+  cpus: 1
+  mem_limit: 1g
+  pids_limit: 64
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  stop_grace_period: 15m
+  tmpfs:
+    - /tmp:size=1g,mode=0700,uid=10001,gid=10001
+
 services:
+  video-worker:
+    profiles: ["video"]
+    <<: *video-worker
+    environment:
+      <<: *self-hosted-runtime-environment
+    volumes:
+      - media_data:/var/lib/eimir/media
+    networks: [app]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  cloud-video-worker:
+    profiles: ["cloud-video"]
+    <<: *video-worker
+    environment:
+      <<: *cloud-runtime-environment
+    volumes:
+      - cloud_media_data:/var/lib/eimir/media
+    networks: [app]
+    depends_on:
+      cloud-migrate:
+        condition: service_completed_successfully
   # Optional local wording for automatic recaps. No GPU, proxy or published port.
   recap-ai:
     profiles: ["recap-ai"]

@@ -1,21 +1,21 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
+  captureMediaCacheLease,
+  clearAuthorizedMediaCache,
+  evictAuthorizedMedia,
+} from './authorizedMediaCache';
+import {
+  MEDIA_CACHE_MAX_AGE_MS,
+  MEDIA_CACHE_MAX_BYTES,
+  MEDIA_CACHE_MAX_ENTRIES,
+} from './mediaCacheLimits';
+import { ClientProblemError } from './problemDetails';
+import type { ReferenceApis } from './referenceFlow';
+import {
   acquireMediaObjectUrl,
   evictMediaObjectUrls,
 } from './sharedMediaObjectUrls';
-import {
-  MEDIA_CACHE_MAX_AGE_MS,
-  MEDIA_CACHE_MAX_ENTRIES,
-  MEDIA_CACHE_MAX_BYTES,
-} from './mediaCacheLimits';
-import {
-  clearAuthorizedMediaCache,
-  captureMediaCacheLease,
-  evictAuthorizedMedia,
-} from './authorizedMediaCache';
 import { loadAuthorizedStoryImageResource } from './storyMediaLoader';
-import type { ReferenceApis } from './referenceFlow';
-import { ClientProblemError } from './problemDetails';
 
 let create: ReturnType<typeof vi.fn<(blob: Blob | MediaSource) => string>>;
 let revoke: ReturnType<typeof vi.fn<(url: string) => void>>;
@@ -53,6 +53,47 @@ it('retains thumbnail and original identity across view release/reentry', () => 
   expect(returned.url).toBe(full.url);
   expect(revoke).not.toHaveBeenCalled();
   returned.dispose();
+});
+
+it('reuses one authorized poster when a video is encountered through an image consumer', async () => {
+  const authorize = vi.fn().mockResolvedValue({
+    method: 'STREAM',
+    mediaType: 'VIDEO',
+    url: '/content',
+  });
+  const content = vi.fn(async () => ({
+    raw: new Response(new Blob(['poster'], { type: 'image/jpeg' })),
+  }));
+  const apis = {
+    attachments: {
+      createAttachmentReadAccess: authorize,
+      getAttachmentContentRaw: content,
+    },
+  } as unknown as ReferenceApis;
+  const fallback = await loadAuthorizedStoryImageResource(
+    apis,
+    'space',
+    'MEMORY',
+    'memory',
+    'video',
+  );
+  fallback.dispose();
+  const explicit = await loadAuthorizedStoryImageResource(
+    apis,
+    'space',
+    'MEMORY',
+    'memory',
+    'video',
+    { variant: 'thumbnail' },
+  );
+  expect(explicit.url).toBe(fallback.url);
+  expect(create).toHaveBeenCalledTimes(1);
+  expect(content).toHaveBeenCalledTimes(1);
+  expect(content).toHaveBeenCalledWith(
+    { spaceId: 'space', attachmentId: 'video', variant: 'thumbnail' },
+    { signal: expect.any(AbortSignal) },
+  );
+  explicit.dispose();
 });
 
 it('expires and bounds idle images without revoking an active view', () => {

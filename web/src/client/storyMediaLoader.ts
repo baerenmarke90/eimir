@@ -1,15 +1,15 @@
 import type { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import { ReadDescriptorMethodEnum } from '../api/generated/models/ReadDescriptor';
-import type { ReferenceApis } from './referenceFlow';
 import {
-  captureMediaCacheLease,
   assertMediaCacheLease,
+  captureMediaCacheLease,
   evictAuthorizedMedia,
   loadCachedMediaBlob,
 } from './authorizedMediaCache';
-import { clientProblemKind, normalizeClientError } from './problemDetails';
-import { acquireMediaObjectUrl } from './sharedMediaObjectUrls';
 import type { OwnedObjectUrl } from './objectUrlResource';
+import { clientProblemKind, normalizeClientError } from './problemDetails';
+import type { ReferenceApis } from './referenceFlow';
+import { acquireMediaObjectUrl } from './sharedMediaObjectUrls';
 
 export type StoryMediaParentType = Extract<
   AttachmentReadRequestParentTypeEnum,
@@ -32,11 +32,11 @@ type StoryMediaLoaderOptions = {
 async function loadAuthorizedStoryBlob(
   apis: ReferenceApis,
   spaceId: string,
-  parentType: StoryMediaParentType,
+  parentType: StoryMediaParentType | 'NONE',
   parentId: string,
   attachmentId: string,
   options: StoryMediaLoaderOptions = {},
-): Promise<Blob> {
+): Promise<{ blob: Blob; variant: 'original' | 'thumbnail' }> {
   const parentIdentity = ['attachment', parentType, parentId];
   const lease = captureMediaCacheLease(
     apis.attachments,
@@ -48,7 +48,7 @@ async function loadAuthorizedStoryBlob(
     attachmentId,
     attachmentReadRequest: {
       parentType,
-      parentId,
+      parentId: parentType === 'NONE' ? undefined : parentId,
       ...(options.variant ? { variant: options.variant } : {}),
     },
   };
@@ -58,6 +58,18 @@ async function loadAuthorizedStoryBlob(
           signal: options.signal,
         })
       : await apis.attachments.createAttachmentReadAccess(descriptorRequest);
+
+    // Every existing image consumer remains bounded when its source becomes a
+    // video. Playback has a distinct grant path; image caches own posters only.
+    if (descriptor.mediaType === 'VIDEO' && options.variant !== 'thumbnail')
+      return loadAuthorizedStoryBlob(
+        apis,
+        spaceId,
+        parentType,
+        parentId,
+        attachmentId,
+        { ...options, variant: 'thumbnail' },
+      );
 
     const blob = await loadCachedMediaBlob(
       lease,
@@ -90,7 +102,7 @@ async function loadAuthorizedStoryBlob(
     );
 
     assertMediaCacheLease(lease);
-    return blob;
+    return { blob, variant: options.variant ?? 'original' };
   } catch (error) {
     const problem = await normalizeClientError(error);
     if (
@@ -108,12 +120,12 @@ async function loadAuthorizedStoryBlob(
 export async function loadAuthorizedStoryImage(
   apis: ReferenceApis,
   spaceId: string,
-  parentType: StoryMediaParentType,
+  parentType: StoryMediaParentType | 'NONE',
   parentId: string,
   attachmentId: string,
   options: StoryMediaLoaderOptions = {},
 ): Promise<string> {
-  const blob = await loadAuthorizedStoryBlob(
+  const { blob } = await loadAuthorizedStoryBlob(
     apis,
     spaceId,
     parentType,
@@ -128,7 +140,7 @@ export async function loadAuthorizedStoryImage(
 export async function loadAuthorizedStoryImageResource(
   apis: ReferenceApis,
   spaceId: string,
-  parentType: StoryMediaParentType,
+  parentType: StoryMediaParentType | 'NONE',
   parentId: string,
   attachmentId: string,
   options: StoryMediaLoaderOptions = {},
@@ -138,7 +150,7 @@ export async function loadAuthorizedStoryImageResource(
     parentType,
     parentId,
   ]);
-  const blob = await loadAuthorizedStoryBlob(
+  const { blob, variant } = await loadAuthorizedStoryBlob(
     apis,
     spaceId,
     parentType,
@@ -155,7 +167,7 @@ export async function loadAuthorizedStoryImageResource(
     parentType,
     parentId,
     attachmentId,
-    options.variant ?? 'original',
+    variant,
   ]);
   return acquireMediaObjectUrl(key, blob);
 }

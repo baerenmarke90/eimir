@@ -1,20 +1,22 @@
 import { MediaType } from '../api/generated/models/MediaType';
 import type { MemoryCreate } from '../api/generated/models/MemoryCreate';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
-import { ClientProblemError } from './problemDetails';
 import { i18n } from '../i18n';
-import { selectedPhotoUnavailable } from './selectedMediaRetention';
+import { ClientProblemError } from './problemDetails';
 import {
+  type ReferenceApis,
   ReferenceFlowError,
   uploadAttachmentBytesWithProgress,
   waitUntilAttachmentReady,
-  type ReferenceApis,
 } from './referenceFlow';
+import { selectedPhotoUnavailable } from './selectedMediaRetention';
 
 export type DraftUploadPhase = 'uploading' | 'validating';
 
 export interface ReadyDraftAttachment {
   attachmentId: string;
+  hasThumbnail?: boolean;
+  durationSeconds?: number | null;
 }
 
 function throwIfAborted(signal?: AbortSignal): void {
@@ -36,10 +38,24 @@ export async function uploadMemoryDraftAttachment(
   } = {},
 ): Promise<ReadyDraftAttachment> {
   if (selectedPhotoUnavailable(file))
-    throw new ReferenceFlowError(i18n.t('memory.diary.photoUnavailable'));
-  if (!file.type.startsWith('image/'))
+    throw new ReferenceFlowError(
+      i18n.t(
+        file.type.startsWith('video/')
+          ? 'video.missing'
+          : 'memory.diary.photoUnavailable',
+      ),
+    );
+  const video = file.type === 'video/mp4' || file.type === 'video/quicktime';
+  if (!video && file.type.startsWith('video/'))
+    throw new ReferenceFlowError(i18n.t('video.unsupported'));
+  if (!video && !file.type.startsWith('image/'))
     throw new ReferenceFlowError(i18n.t('flow.imageOnly'));
-  if (file.size === 0) throw new ReferenceFlowError(i18n.t('flow.imageEmpty'));
+  if (video && file.size > 250 * 1024 * 1024)
+    throw new ReferenceFlowError(i18n.t('video.tooLarge'));
+  if (file.size === 0)
+    throw new ReferenceFlowError(
+      i18n.t(video ? 'video.empty' : 'flow.imageEmpty'),
+    );
 
   let createdAttachment: { id: string; version: number } | null = null;
   try {
@@ -50,9 +66,9 @@ export async function uploadMemoryDraftAttachment(
       attachmentUploadCreate: {
         expectedMimeType: file.type,
         expectedSize: file.size,
-        mediaType: MediaType.IMAGE,
+        mediaType: video ? MediaType.VIDEO : MediaType.IMAGE,
         originalName: file.name,
-        preserveMetadata: options.preserveMetadata ?? false,
+        preserveMetadata: video ? false : (options.preserveMetadata ?? false),
       },
     });
     createdAttachment = {
@@ -75,14 +91,20 @@ export async function uploadMemoryDraftAttachment(
       attachmentId: upload.attachment.id,
       body: {},
     });
-    await waitUntilAttachmentReady(
+    const ready = await waitUntilAttachmentReady(
       apis,
       spaceId,
       upload.attachment.id,
       options.signal,
     );
 
-    return { attachmentId: upload.attachment.id };
+    return video
+      ? {
+          attachmentId: upload.attachment.id,
+          hasThumbnail: ready.hasThumbnail,
+          durationSeconds: ready.durationSeconds,
+        }
+      : { attachmentId: upload.attachment.id };
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       if (createdAttachment) {

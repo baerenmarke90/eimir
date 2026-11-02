@@ -33,6 +33,12 @@ import {
 export interface AttachmentSummary {
     /**
      * 
+     * @type {number}
+     * @memberof AttachmentSummary
+     */
+    durationSeconds?: number | null;
+    /**
+     * 
      * @type {boolean}
      * @memberof AttachmentSummary
      */
@@ -114,6 +120,7 @@ export function AttachmentSummaryFromJSONTyped(json: any, ignoreDiscriminator: b
     }
     return {
         
+        'durationSeconds': json['durationSeconds'] === undefined ? undefined : json['durationSeconds'] === null ? null : json['durationSeconds'],
         'hasThumbnail': json['hasThumbnail'],
         'height': json['height'],
         'id': json['id'],
@@ -137,6 +144,7 @@ export function AttachmentSummaryToJSONTyped(value?: AttachmentSummary | null, i
 
     return {
         
+        'durationSeconds': value['durationSeconds'],
         'hasThumbnail': value['hasThumbnail'],
         'height': value['height'],
         'id': value['id'],

@@ -3,6 +3,10 @@ const de = {
     longNotes: 'Eine ausführliche Beschreibung der Änderungen. ',
     notes: 'Verbesserungen für eure Testversion.',
   },
+  videoAttachment: {
+    body: 'Der kleine Sprung ins Wasser, über den wir noch immer lachen. ❤️',
+    title: 'Unser Sprung ins Glück',
+  },
   wishSelection: {
     occasion: 'Unser Wochenende',
     wishes: [

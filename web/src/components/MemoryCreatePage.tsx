@@ -10,9 +10,9 @@ import {
 } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { PlansApi } from '../api/generated/apis/PlansApi';
-import { Configuration } from '../client/apiConfiguration';
 import type { ExperienceKind } from '../api/generated/models/ExperienceKind';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
+import { Configuration } from '../client/apiConfiguration';
 import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import {
@@ -39,16 +39,16 @@ import {
   ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
+import { recoverSelectedPhoto } from '../client/recoverSelectedPhoto';
 import { createReferenceApis } from '../client/referenceFlow';
 import { memoryDetailPath } from '../client/routes';
-import { useTaskOrigin } from '../client/taskOrigin';
-import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
-import { useMemoryDiaryDraft } from '../client/useMemoryDiaryDraft';
-import { recoverSelectedPhoto } from '../client/recoverSelectedPhoto';
 import {
   memoryOnlyPhotoDescriptor,
   selectedPhotoUnavailable,
 } from '../client/selectedMediaRetention';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
+import { useMemoryDiaryDraft } from '../client/useMemoryDiaryDraft';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
@@ -932,6 +932,7 @@ export function MemoryCreatePage({
               <div className="immersive-create-media">
                 <AttachmentDraftPicker
                   id="memory-create-images"
+                  videoContext={{ apis, accountId, spaceId }}
                   attachments={attachments}
                   multiple
                 />

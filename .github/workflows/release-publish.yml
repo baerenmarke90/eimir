@@ -10,6 +10,7 @@ on:
       - CodeQL SAST
       - Self-Hosted Deployment Guard
       - Self-Hosted Recovery
+      - Media Video
     types: [completed]
     branches: [main]
   pull_request:
@@ -1867,6 +1868,7 @@ jobs:
       attestations: write
     uses: ./.github/workflows/release-evidence.yml
     with:
+      include_video_media: true
       include_android: false
       android_version_code: 0
       android_api_base_url: ''

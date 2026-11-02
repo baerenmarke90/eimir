@@ -2139,6 +2139,11 @@ for (const [width, colorScheme] of [
     await page.getByRole('button', { name: de.memory.photoShowLess }).click();
     await expect(tiles).toHaveCount(6);
     await expectNoHorizontalOverflow(page);
+    // Start full-page composition evidence at the task heading; fixed shell
+    // helpers outside the viewport must not project into an offscreen clip.
+    await page
+      .getByRole('heading', { name: de.memory.heading, exact: true })
+      .scrollIntoViewIfNeeded();
     await page.screenshot({
       path: testInfo.outputPath(`compact-photos-${width}.png`),
       fullPage: true,
@@ -2199,28 +2204,24 @@ for (const [width, colorScheme] of [
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(AUTHORED_BODY);
-    await page
-      .locator('#memory-create-images')
-      .setInputFiles(
-        ['one.jpg', 'two.jpg', 'three.jpg'].map((name) => ({
-          name,
-          mimeType: 'image/jpeg',
-          buffer: photos.photoBytes!,
-        })),
-      );
+    await page.locator('#memory-create-images').setInputFiles(
+      ['one.jpg', 'two.jpg', 'three.jpg'].map((name) => ({
+        name,
+        mimeType: 'image/jpeg',
+        buffer: photos.photoBytes!,
+      })),
+    );
     await expect.poll(() => photos.ready.size).toBe(3);
     await page.getByRole('button', { name: de.memory.save }).click();
     await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
     await page
       .getByRole('link', { name: memoryProduct.edit, exact: true })
       .click();
-    await page
-      .locator('#memory-edit-images')
-      .setInputFiles({
-        name: 'later.jpg',
-        mimeType: 'image/jpeg',
-        buffer: photos.photoBytes!,
-      });
+    await page.locator('#memory-edit-images').setInputFiles({
+      name: 'later.jpg',
+      mimeType: 'image/jpeg',
+      buffer: photos.photoBytes!,
+    });
     await expect.poll(() => photos.ready.size).toBe(4);
     await page.getByRole('button', { name: /later.jpg/ }).click();
     const earlier = page.getByRole('button', {
@@ -2232,6 +2233,13 @@ for (const [width, colorScheme] of [
       'aria-pressed',
       'true',
     );
+    await page
+      .getByRole('heading', {
+        name: memoryProduct.editHeading,
+        level: 1,
+        exact: true,
+      })
+      .scrollIntoViewIfNeeded();
     await page.screenshot({
       path: testInfo.outputPath(`mixed-photo-edit-${width}.png`),
       fullPage: true,

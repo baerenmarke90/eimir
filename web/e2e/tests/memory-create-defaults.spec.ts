@@ -2459,11 +2459,11 @@ for (const kind of ['plan', 'heart'] as const) {
     await captureScreenshot(page, info, `planning-source-${kind}-result.png`, {
       fullPage: true,
     });
-    await page
-      .locator(
-        kind === 'heart' ? '.shell-detail-back' : '.planen-detail .back-link',
-      )
-      .click();
+    if (kind === 'plan')
+      await page
+        .getByRole('button', { name: m5s3.common.back, exact: true })
+        .click();
+    else await page.locator('.shell-detail-back').click();
     await expect(page).toHaveURL(
       kind === 'heart' ? /\/story(?:\?|$)/ : /\/plan(?:#|$)/,
     );

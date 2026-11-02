@@ -2,7 +2,7 @@
 
 Related: #1590, #1592, #1593 and #1594; stacked on #1591, with #1588 already merged into main.
 
-These are screenshots of the running application with synthetic fixtures and an existing repository demo photo. They are not generated product concepts. Capture source: [bfcc328ccdf690123d5f41aa288b0a77064dd9f1](https://github.com/baerenmarke90/eimir/commit/bfcc328ccdf690123d5f41aa288b0a77064dd9f1). Integration source: [a93f2b9065cabcdb3624c98bd767dbf62289f61d](https://github.com/baerenmarke90/eimir/commit/a93f2b9065cabcdb3624c98bd767dbf62289f61d); subsequent changes add the same media assertions to the maintained browser inventory and correct the native test's dialog-root selection. The Web runtime is identical to the capture source.
+These are screenshots of the running application with synthetic fixtures and an existing repository demo photo. They are not generated product concepts. Capture and integration source: [93fd3aadf6f5fb1e8c8e1bdac33f67187c4345eb](https://github.com/baerenmarke90/eimir/commit/93fd3aadf6f5fb1e8c8e1bdac33f67187c4345eb), including current #1591 `feb3ae0d`. Captured again after resolving the new feature's preview-gating and strict-fixture changes into the entire stack. Source tests, product code and captures refer to the same Web runtime.
 
 Runtime: Chromium headless shell 153.0.8010.0, the production React components served by Vite, trusted CDP touch input, no retries. All captures were inspected at their actual Compact/Expanded sizes. This proves browser behavior and composition; it does not establish physical-device startup speed, frame rate or a diagnosis of every reported Android crash.
 
@@ -26,7 +26,7 @@ Maintained journeys:
 - `web/e2e/tests/today-freshness.spec.ts`: pull refresh, plan rescheduling, save and return, with a strict photo-source availability fixture.
 - `web/e2e/tests/memory-create-defaults.spec.ts`: connected source import, save and canonical Plan/HeartMoment return; image order is checked against selected filenames rather than parallel upload completion order.
 
-The capture audit passed **13 browser journeys without retries**. The promoted media cases passed again in their repository location. The focused motion/create/gesture/token suite passed **65 tests**; TypeScript, formatting/lint, token/PWA checks, inventory and production build passed. Inventory: 82 specs, 762 baseline tests, 574 PR-critical baseline tests. Hosted checks validate each updated PR revision separately.
+The capture audit passed **13 browser journeys without retries**. The promoted media cases passed again in their repository location. The complete integrated Web suite passed **2,515 tests, with two existing skips**; TypeScript, formatting/lint, engineering-language audit, token/PWA checks, inventory and production build passed. Inventory: 82 specs, 763 baseline tests, 575 PR-critical baseline tests. Hosted checks validate each updated PR revision separately.
 
 Using the repository's installed browser runtime, run from `web/e2e`:
 

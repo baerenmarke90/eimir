@@ -677,6 +677,13 @@ for (const scenario of [
     reducedMotion: 'reduce' as const,
   },
   {
+    name: '320-dark-large-text',
+    viewport: { width: 320, height: 800 },
+    colorScheme: 'dark' as const,
+    reducedMotion: 'reduce' as const,
+    largeText: true,
+  },
+  {
     name: '1280-expanded',
     viewport: { width: 1280, height: 900 },
     colorScheme: 'light' as const,
@@ -697,7 +704,11 @@ for (const scenario of [
     await signIn(page);
     await page.goto('/plan');
 
+    if ('largeText' in scenario && scenario.largeText)
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
     await expect(page.locator('.planen-next-link')).toContainText(EARLY_TITLE);
+    await expect(page.locator('.planen-agenda-link')).toContainText(LATE_TITLE);
+    await expect(page.locator('.planen-agenda-schedule')).toContainText('Uhr');
     await expect(page.locator('.planen-undated-link')).toContainText(
       IDEA_TITLE,
     );

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import {
   acquireMediaObjectUrl,
   evictMediaObjectUrls,
+  MEDIA_OBJECT_URL_MAX_IDLE_ORIGINALS,
 } from './sharedMediaObjectUrls';
 import {
   MEDIA_CACHE_MAX_AGE_MS,
@@ -199,6 +200,54 @@ it('shares an original across preview and gallery release order', () => {
   const returned = acquireMediaObjectUrl('same-original', blob);
   expect(returned.url).toBe(preview.url);
   returned.dispose();
+});
+
+it('bounds idle decoded originals while retaining their downloaded bytes', async () => {
+  const content = vi.fn(async () => ({
+    raw: new Response(new Blob(['photo'])),
+  }));
+  const apis = {
+    attachments: {
+      createAttachmentReadAccess: vi
+        .fn()
+        .mockResolvedValue({ method: 'STREAM', url: '/content' }),
+      getAttachmentContentRaw: content,
+    },
+  } as unknown as ReferenceApis;
+  const active = await loadAuthorizedStoryImageResource(
+    apis,
+    'space',
+    'MEMORY',
+    'parent',
+    'active',
+  );
+  let oldest = '';
+  for (let index = 0; index <= MEDIA_OBJECT_URL_MAX_IDLE_ORIGINALS; index++) {
+    const resource = await loadAuthorizedStoryImageResource(
+      apis,
+      'space',
+      'MEMORY',
+      'parent',
+      String(index),
+    );
+    if (index === 0) oldest = resource.url;
+    resource.dispose();
+  }
+  expect(revoke).toHaveBeenCalledWith(oldest);
+  expect(revoke).not.toHaveBeenCalledWith(active.url);
+  const returned = await loadAuthorizedStoryImageResource(
+    apis,
+    'space',
+    'MEMORY',
+    'parent',
+    '0',
+  );
+  expect(returned.url).not.toBe(oldest);
+  expect(content).toHaveBeenCalledTimes(
+    MEDIA_OBJECT_URL_MAX_IDLE_ORIGINALS + 2,
+  );
+  returned.dispose();
+  active.dispose();
 });
 
 it.each(['MEMORY', 'HEART_MOMENT', 'PLAN'] as const)(

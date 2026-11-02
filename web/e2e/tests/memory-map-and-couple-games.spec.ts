@@ -48,8 +48,14 @@ for (const [width, theme] of [
       reducedMotion: width === 430 ? 'no-preference' : 'reduce',
     });
     await installMocks(page);
-    await page.route('**/attachments/att-canal-1/content', (route) =>
-      route.fulfill({
+    let thumbnailReads = 0;
+    await page.route('**/attachments/att-canal-1/content*', (route) => {
+      if (
+        new URL(route.request().url()).searchParams.get('variant') ===
+        'thumbnail'
+      )
+        thumbnailReads++;
+      return route.fulfill({
         contentType: 'image/jpeg',
         body: readFileSync(
           new URL(
@@ -57,8 +63,8 @@ for (const [width, theme] of [
             import.meta.url,
           ),
         ),
-      }),
-    );
+      });
+    });
     let tileReads = 0;
     await page.route('https://tile.openstreetmap.org/**', async (route) => {
       tileReads++;
@@ -72,6 +78,7 @@ for (const [width, theme] of [
               memoryId: 'mem-canal',
               previewAttachmentId: 'att-canal-1',
               previewIsSensitive: false,
+              previewHasThumbnail: true,
               title: 'Afternoon by the canal',
               happenedOn: '2026-10-30',
               placeId: 'lake',
@@ -134,10 +141,37 @@ for (const [width, theme] of [
     await expand.click();
     const fullscreen = page.getByRole('dialog', { name: mapCopy.title });
     await expect(fullscreen).toBeVisible();
+    await expect(page.locator('.leaflet-container')).toHaveCount(1);
+    // Real Leaflet tiles must use an overview zoom, including single-place maps.
+    await expect
+      .poll(async () => {
+        const sources = await fullscreen
+          .locator('img.leaflet-tile')
+          .evaluateAll((images) =>
+            images.map((image) =>
+              Number(
+                new URL((image as HTMLImageElement).src).pathname.split('/')[1],
+              ),
+            ),
+          );
+        return sources.length > 0 && sources.every((zoom) => zoom <= 12);
+      })
+      .toBe(true);
     const viewport = await fullscreen
       .locator('.place-map-viewport')
       .boundingBox();
     expect(viewport?.height).toBeGreaterThan(500);
+    const marker = await fullscreen.locator('.memory-map-marker').boundingBox();
+    if (!viewport || !marker)
+      throw new Error('Fullscreen map and marker must be measurable');
+    expect(marker.x).toBeGreaterThanOrEqual(viewport.x);
+    expect(marker.y).toBeGreaterThanOrEqual(viewport.y);
+    expect(marker.x + marker.width).toBeLessThanOrEqual(
+      viewport.x + viewport.width,
+    );
+    expect(marker.y + marker.height).toBeLessThanOrEqual(
+      viewport.y + viewport.height,
+    );
     await captureScreenshot(
       page,
       info,
@@ -164,6 +198,7 @@ for (const [width, theme] of [
     const memory = page.getByRole('link', { name: /Afternoon by the canal/ });
     await expect(memory).toHaveAttribute('href', '/story/memories/mem-canal');
     await expect(memory.locator('.memory-map-thumbnail img')).toBeVisible();
+    expect(thumbnailReads).toBe(1);
     await expect(page.locator('.memory-map-selection ul')).toHaveCSS(
       'animation-name',
       width === 430 ? 'eimir-disclosure-reveal' : 'none',

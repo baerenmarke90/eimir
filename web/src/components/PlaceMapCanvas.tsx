@@ -43,10 +43,14 @@ export default function PlaceMapCanvas({
     { id: string; host: HTMLElement; preview: ReactNode }[]
   >([]);
   const fittedGeometry = useRef('');
+  const bounds = useRef<L.LatLngBounds | null>(null);
+  const autoFrame = useRef(true);
+  const updateFrame = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!container.current) return;
     fittedGeometry.current = '';
+    autoFrame.current = true;
     const point = initialPoint.current;
     const map = L.map(container.current, {
       zoomControl: false,
@@ -82,18 +86,42 @@ export default function PlaceMapCanvas({
         longitude: event.latlng.lng,
       }),
     );
-    const resize = new ResizeObserver(() =>
-      map.invalidateSize({ animate: false }),
-    );
+    let framing = false;
+    const frame = () => {
+      // Dialog children can mount before showModal/layout. Fit only after a
+      // real size exists, and refit layout changes until the user moves the map.
+      if (!container.current?.clientWidth || !container.current.clientHeight)
+        return;
+      framing = true;
+      try {
+        map.invalidateSize({ animate: false, pan: false });
+        if (bounds.current && autoFrame.current)
+          map.fitBounds(bounds.current, {
+            padding: [40, 40],
+            maxZoom: 12,
+            animate: false,
+          });
+      } finally {
+        framing = false;
+      }
+    };
+    updateFrame.current = frame;
+    map.on('movestart zoomstart', () => {
+      if (!framing) autoFrame.current = false;
+    });
+    const resize = new ResizeObserver(frame);
     resize.observe(container.current);
     return () => {
       resize.disconnect();
       map.remove();
       mapRef.current = null;
       markerRef.current = null;
+      updateFrame.current = null;
+      bounds.current = null;
     };
   }, [t]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Locale changes recreate the map and must restore its selected point.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !value) return;
@@ -106,8 +134,9 @@ export default function PlaceMapCanvas({
         weight: 3,
         className: 'place-map-selected-marker',
       }).addTo(map);
-  }, [value]);
+  }, [value, t]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Locale changes recreate the map and must restore its location layer.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !locations?.length) return;
@@ -142,18 +171,18 @@ export default function PlaceMapCanvas({
     const geometry = JSON.stringify(
       locations.map(({ id, latitude, longitude }) => [id, latitude, longitude]),
     );
-    if (fittedGeometry.current !== geometry)
-      map.fitBounds(
-        L.latLngBounds(
-          locations.map((point) => [point.latitude, point.longitude]),
-        ),
-        { padding: [24, 24], maxZoom: 14, animate: false },
+    if (fittedGeometry.current !== geometry) {
+      bounds.current = L.latLngBounds(
+        locations.map((point) => [point.latitude, point.longitude]),
       );
+      autoFrame.current = true;
+      updateFrame.current?.();
+    }
     fittedGeometry.current = geometry;
     return () => {
       layer.remove();
     };
-  }, [locations]);
+  }, [locations, t]);
 
   return (
     <div className="place-map-canvas">

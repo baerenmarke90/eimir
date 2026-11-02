@@ -66,6 +66,12 @@ export interface MemoryMapEntry {
      * @type {boolean}
      * @memberof MemoryMapEntry
      */
+    previewHasThumbnail?: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof MemoryMapEntry
+     */
     previewIsSensitive?: boolean;
     /**
      * 
@@ -106,6 +112,7 @@ export function MemoryMapEntryFromJSONTyped(json: any, ignoreDiscriminator: bool
         'placeId': json['placeId'],
         'placeName': json['placeName'],
         'previewAttachmentId': json['previewAttachmentId'] === undefined ? undefined : json['previewAttachmentId'] === null ? null : json['previewAttachmentId'],
+        'previewHasThumbnail': json['previewHasThumbnail'] == null ? undefined : json['previewHasThumbnail'],
         'previewIsSensitive': json['previewIsSensitive'] == null ? undefined : json['previewIsSensitive'],
         'title': json['title'],
     };
@@ -129,6 +136,7 @@ export function MemoryMapEntryToJSONTyped(value?: MemoryMapEntry | null, ignoreD
         'placeId': value['placeId'],
         'placeName': value['placeName'],
         'previewAttachmentId': value['previewAttachmentId'],
+        'previewHasThumbnail': value['previewHasThumbnail'],
         'previewIsSensitive': value['previewIsSensitive'],
         'title': value['title'],
     };

@@ -11,6 +11,7 @@
   overflow-wrap: anywhere;
 }
 .memory-map-page .place-map-viewport,
+.memory-map-placeholder,
 .memory-map-loading {
   height: clamp(14rem, 42dvh, 24rem);
   border-radius: var(--radius-media);
@@ -52,7 +53,8 @@
   min-height: 0;
 }
 .memory-map-fullscreen .place-map-viewport {
-  flex: 1;
+  flex: 1 1 0;
+  height: auto;
   min-height: 0;
 }
 .memory-map-loading {

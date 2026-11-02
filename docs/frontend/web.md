@@ -38,6 +38,29 @@ Cache fallback is deliberately limited to transport/offline failures and tempora
 
 Cached detail views are read-only. Cached Story snapshots do not expose network pagination while offline. The client does not queue or synchronize offline writes. Comments are not loaded from the product cache. The cache is cleared on logout.
 
+Authorized image bytes use the existing Account/API/Space and parent-bound media
+cache: 48 MiB in memory and a disposable IndexedDB store capped at 128 MiB,
+512 entries and seven days. Every display reentry still authorizes its parent;
+an authoritative denial revokes all affected variants immediately. Credentials,
+signed URLs, playback grants, video originals and non-image payloads do not enter
+the durable image store. Logout and Account/Space changes invalidate it.
+
+The size/LRU index is stored separately from Blob payloads in one IndexedDB
+transaction, so eviction and access-time updates never scan or rewrite all
+cached images. Upgrading the disposable v1 store discards its old cache once;
+server content is unaffected. Ordinary storage failure remains best effort.
+Only two idle original-image Object URLs are retained, independently of their
+compressed byte size; downloaded bytes remain cached after a decoded URL is
+released. Thumbnail URLs retain the existing bounded preview lifecycle.
+
+The saved-memory map uses server-declared thumbnail availability, mounts one
+Leaflet map at a time, and fits its authorized locations after measurable layout
+and subsequent resizes until the user pans/zooms. Its initial overview is capped
+at zoom 12; deliberate zoom remains available. Short returns reuse its scoped
+query for one minute, with thirty-minute garbage collection and existing
+mutation/authorization invalidation. No durable map or Pro entitlement snapshot
+is introduced. See #1605 and parallel video work #1598.
+
 ## Concurrency and mutations
 
 All updates, deletes, visibility changes, comment deletes, and attachment binding operations continue to use the version returned by the API through `If-Match`. Client-side optimistic presentation is rolled back when the mutation fails; the server remains authoritative.

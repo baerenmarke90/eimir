@@ -48,6 +48,7 @@ class MemoryMapEntry(ApiModel):
     longitude: float
     preview_attachment_id: UUID | None = None
     preview_is_sensitive: bool = False
+    preview_has_thumbnail: bool = False
 
 
 class MemoryMapPage(ApiModel):
@@ -103,6 +104,7 @@ def get_memory_map(
                 longitude=float(place.longitude),
                 preview_attachment_id=preview.id if preview is not None else None,
                 preview_is_sensitive=preview.payload.is_sensitive if preview is not None else False,
+                preview_has_thumbnail=preview.has_thumbnail if preview is not None else False,
             )
         )
     return MemoryMapPage(items=entries, next_cursor=result.next_cursor)

@@ -91,6 +91,7 @@ def test_memory_map_is_bounded_tenant_scoped_and_non_destructive_on_downgrade(
             media_type=MediaType.IMAGE.value,
             declared_mime_type="image/jpeg",
             declared_size=100,
+            has_thumbnail=index == 1,
             ready_at=now() if index != 0 else None,
             payload=AttachmentPayload(original_name="map.jpg", is_sensitive=True),
         )
@@ -106,6 +107,8 @@ def test_memory_map_is_bounded_tenant_scoped_and_non_destructive_on_downgrade(
     assert first_memory["previewAttachmentId"] is None
     assert second_memory["previewAttachmentId"] == str(previews[1].id)
     assert second_memory["previewIsSensitive"] is True
+    assert second_memory["previewHasThumbnail"] is True
+    assert first_memory["previewHasThumbnail"] is False
     assert all(item["previewAttachmentId"] != str(previews[3].id) for item in visible)
     first = client.get(endpoint, headers=auth(token), params={"limit": 1})
     assert first.status_code == 200

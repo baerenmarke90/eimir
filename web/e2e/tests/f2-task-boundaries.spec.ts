@@ -1116,7 +1116,7 @@ test('failed uploads retain authored content and can retry before the first crea
     page.getByLabel(de.memory.bodyLabel, { exact: true }),
   ).toHaveValue(BODY);
   await page
-    .locator('.attachment-draft-item')
+    .getByRole('group', { name: de.memory.photoSelected, exact: true })
     .getByRole('button', { name: de.common.retry, exact: true })
     .click();
   await expect(

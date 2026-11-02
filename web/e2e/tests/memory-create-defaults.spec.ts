@@ -199,9 +199,9 @@ for (const [width, colorScheme] of [
     });
     await sheet.getByRole('button', { name: photoSources.import }).click();
     await expect(sheet).toBeHidden();
-    await expect(page.locator('.attachment-draft-item')).toHaveCount(2);
+    await expect(page.locator('.photo-draft-tile')).toHaveCount(2);
     await expect(
-      page.getByText(de.memory.photoReady, { exact: true }),
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(2);
     expect(source.originals).toBe(2);
     expect(photos.uploaded).toHaveLength(2);
@@ -256,7 +256,7 @@ test('Google browser authorization returns selected copies to the unsaved diary'
   await expect(sheet).toBeHidden({ timeout: 15_000 });
   expect(externalUrls).toEqual(['https://accounts.google.com/authorize']);
   await expect(
-    page.getByText(de.memory.photoReady, { exact: true }),
+    page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
   ).toHaveCount(2);
   expect(source.originals).toBe(2);
   expect(photos.creates).toBe(0);
@@ -319,7 +319,7 @@ test('closing a pending source transfer keeps authored words and rejects late ph
   await expect(
     page.getByRole('textbox', { name: de.memory.bodyLabel, exact: true }),
   ).toHaveValue(AUTHORED_BODY);
-  await expect(page.locator('.attachment-draft-item')).toHaveCount(0);
+  await expect(page.locator('.photo-draft-tile')).toHaveCount(0);
   expect(photos.uploaded).toHaveLength(0);
   expect(photos.creates).toBe(0);
 });
@@ -886,7 +886,11 @@ for (const [width, colorScheme] of [
       page.getByRole('button', { name: new RegExp(de.memory.photoValidating) }),
     ).toHaveCount(2);
     await expect(
-      page.getByRole('button', { name: new RegExp(de.memory.photoFailed) }),
+      page.getByRole('button', {
+        name: new RegExp(
+          `${de.memory.photoFailed}|${de.memory.diary.photoMissing}`,
+        ),
+      }),
     ).toHaveCount(0);
     for (const id of photos.finalized) photos.ready.add(id);
     await page.clock.fastForward(5_000);
@@ -1655,12 +1659,24 @@ for (const [width, colorScheme] of [
     await page
       .getByRole('button', { name: de.memory.diary.resume, exact: true })
       .click();
-    await expect(page.locator('.attachment-draft-item')).toHaveCount(2);
+    await expect(page.locator('.photo-draft-tile')).toHaveCount(2);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(1);
     await expect(
-      page.getByRole('button', { name: new RegExp(de.memory.photoFailed) }),
+      page.getByRole('button', {
+        name: new RegExp(
+          `${de.memory.photoFailed}|${de.memory.diary.photoMissing}`,
+        ),
+      }),
+    ).toHaveCount(1);
+    await page
+      .getByRole('button', { name: new RegExp(de.memory.diary.photoMissing) })
+      .click();
+    await expect(
+      page
+        .getByRole('group', { name: de.memory.photoSelected, exact: true })
+        .getByRole('status'),
     ).toHaveText(de.memory.diary.photoMissing);
     await expect(
       page.getByLabel(de.memory.bodyLabel, { exact: true }),
@@ -1755,7 +1771,11 @@ test('an uncertain create is reconciled before a missing volatile photo can chan
     .getByRole('button', { name: de.memory.diary.resume, exact: true })
     .click();
   await expect(
-    page.getByRole('button', { name: new RegExp(de.memory.photoFailed) }),
+    page.getByRole('button', {
+      name: new RegExp(
+        `${de.memory.photoFailed}|${de.memory.diary.photoMissing}`,
+      ),
+    }),
   ).toHaveCount(1);
   await page
     .getByRole('button', { name: taskBoundary.verify, exact: true })
@@ -1790,9 +1810,9 @@ test('known-created recovery can bind original photos after transient read failu
   await expect(
     page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
   ).toHaveCount(2);
+  await page.locator('.photo-draft-tile').first().click();
   await page
-    .locator('.attachment-draft-item')
-    .first()
+    .getByRole('group', { name: de.memory.photoSelected, exact: true })
     .getByRole('checkbox')
     .check();
   let bindings = 0;
@@ -1822,7 +1842,11 @@ test('known-created recovery can bind original photos after transient read failu
     .getByRole('button', { name: de.memory.diary.resume, exact: true })
     .click();
   await expect(
-    page.getByRole('button', { name: new RegExp(de.memory.photoFailed) }),
+    page.getByRole('button', {
+      name: new RegExp(
+        `${de.memory.photoFailed}|${de.memory.diary.photoMissing}`,
+      ),
+    }),
   ).toHaveCount(1);
   const retry = page.getByRole('button', {
     name: taskBoundary.retryPhotos,
@@ -1850,7 +1874,9 @@ test('known-created recovery can bind original photos after transient read failu
   ).toBeDisabled();
   await expect(page.locator('#memory-create-images')).toBeDisabled();
   await expect(
-    page.locator('.attachment-draft-item').first().getByRole('checkbox'),
+    page
+      .getByRole('group', { name: de.memory.photoSelected, exact: true })
+      .getByRole('checkbox'),
   ).toBeChecked();
   await retry.click();
   await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));

@@ -324,7 +324,8 @@ for (const scenario of [
       .getByRole('button', { name: de.common.edit, exact: true })
       .click();
     await page
-      .locator('.plan-photo-draft input[type=checkbox]')
+      .getByRole('group', { name: de.memory.photoSelected, exact: true })
+      .getByRole('checkbox')
       .setChecked(!scenario.sensitive);
     await page
       .getByRole('button', { name: de.common.cancel, exact: true })
@@ -517,17 +518,24 @@ for (const view of [
         imageFile('landscape'),
         imageFile('square'),
       ]);
-    const drafts = page.locator('.plan-photo-draft');
+    const drafts = page.locator('.photo-draft-tile');
+    const inspector = page.getByRole('group', {
+      name: de.memory.photoSelected,
+      exact: true,
+    });
     await expect(drafts).toHaveCount(3);
     const save = page.locator('form button[type=submit]');
     await expect(save).toBeDisabled();
     expect(state.counts().creates).toBe(0);
-    await drafts
-      .filter({ hasText: 'portrait.png' })
+    await page
+      .getByRole('list', { name: de.memory.photoDraftsAria })
+      .getByRole('button', { name: /portrait.png/ })
+      .click();
+    await inspector
       .getByRole('button', { name: de.common.retry, exact: true })
       .click();
     await expect(
-      page.getByText(de.memory.photoReady, { exact: true }),
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(3);
     await expect(save).toBeEnabled();
     await captureScreenshot(
@@ -632,20 +640,17 @@ for (const view of [
       .click();
     const original = state.payloads[0].map((photo) => photo.attachmentId);
     async function changeDraft() {
-      await drafts
-        .first()
+      await drafts.first().click();
+      await inspector
         .getByRole('button', {
           name: new RegExp(de.memory.photoMoveLater.replace('{{name}}', '.+')),
         })
         .click();
-      await drafts.first().locator('input[type=checkbox]').check();
-      await drafts
-        .last()
-        .getByRole('button', {
-          name: new RegExp(
-            copy.planImage.removePhoto.replace('{{name}}', '.+'),
-          ),
-        })
+      await drafts.first().click();
+      await inspector.getByRole('checkbox').check();
+      await drafts.last().click();
+      await inspector
+        .getByRole('button', { name: de.memory.photoRemove, exact: true })
         .click();
     }
     await changeDraft();

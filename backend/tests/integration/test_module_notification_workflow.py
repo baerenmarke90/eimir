@@ -41,7 +41,10 @@ def rows(session, kind):  # type: ignore[no-untyped-def]
 def test_shared_questions_use_space_day_for_both_partners_and_emit_nothing(
     client, session, actors, monkeypatch
 ):  # type: ignore[no-untyped-def]
-    grant(session, actors["space"].id, actors["a"].id)
+    instant = datetime(2026, 11, 1, 23, 30, tzinfo=UTC)
+    monkeypatch.setattr(clock, "now", lambda: instant)
+    # Keep commercial admission in the same timeline as the domain-day probe.
+    grant(session, actors["space"].id, actors["a"].id, at=instant)
     config = session.scalar(
         select(SpaceConfiguration).where(SpaceConfiguration.space_id == actors["space"].id)
     )
@@ -52,7 +55,6 @@ def test_shared_questions_use_space_day_for_both_partners_and_emit_nothing(
     actors["b"].timezone = "America/Los_Angeles"
     session.flush()
     before = session.scalar(select(func.count()).select_from(OutboxEvent))
-    monkeypatch.setattr(clock, "now", lambda: datetime(2026, 11, 1, 23, 30, tzinfo=UTC))
     url = path(actors, "experiences/HAPPINESS/questions")
     a = client.get(url, headers=auth(actors["token_a"]))
     b = client.get(url, headers=auth(actors["token_b"]))

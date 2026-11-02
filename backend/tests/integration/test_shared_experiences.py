@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
+from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 from zipfile import ZipFile
 
@@ -37,7 +37,9 @@ from tests.integration.test_thinking_push import FakePushProvider
 pytestmark = [pytest.mark.integration, requires_database]
 
 
-def grant(session: Session, space_id, account_id):  # type: ignore[no-untyped-def]
+def grant(  # type: ignore[no-untyped-def]
+    session: Session, space_id, account_id, *, at: datetime | None = None
+):
     row = entitlements.record_grant(
         session,
         space_id=space_id,
@@ -45,7 +47,7 @@ def grant(session: Session, space_id, account_id):  # type: ignore[no-untyped-de
         source_type=EntitlementSourceType.TEST_FIXTURE,
         status=EntitlementStatus.ACTIVE,
         tier=EntitlementTier.PREMIUM,
-        effective_from=now() - timedelta(days=1),
+        effective_from=(at if at is not None else now()) - timedelta(days=1),
         capabilities=[Capability.GAMES_COUPLE.value],
     )
     session.flush()

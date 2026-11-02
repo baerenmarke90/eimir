@@ -102,7 +102,7 @@ for (const [width, theme, large] of [
     await captureScreenshot(
       page,
       info,
-      `content-reading-${width}-${theme}.png`,
+      `planning-content-reading-${width}-${theme}.png`,
       { fullPage: true },
     );
     await more.click();
@@ -160,7 +160,7 @@ test('partner edits shared words while author identity and destructive controls 
     `**/api/v1/spaces/${SPACE_ID}/memories/mem-canal`,
     async (route) => {
       if (route.request().method() === 'PATCH') {
-        expect(route.request().headers()['if-match']).toBe('"1"');
+        expect(route.request().headers()['if-match']).toBe('1');
         expect(route.request().postDataJSON()).not.toHaveProperty('authorId');
         Object.assign(memory, route.request().postDataJSON(), { version: 2 });
         writes++;

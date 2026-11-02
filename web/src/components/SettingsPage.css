@@ -771,6 +771,8 @@
 }
 .settings-pro-information li > .eimir-icon {
   flex-shrink: 0;
+  width: var(--space-6);
+  height: var(--space-6);
   color: var(--color-brand-text);
 }
 .settings-pro-information li p,

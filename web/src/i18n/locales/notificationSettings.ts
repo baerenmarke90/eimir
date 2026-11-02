@@ -1,5 +1,14 @@
 const notificationSettings = {
   title: 'Welche Nachrichten du bekommst',
+  introductionTitle: 'Für eure kleinen Momente',
+  introductionBody:
+    'Möchtest du auf diesem Gerät Push-Benachrichtigungen erhalten?',
+  introductionLater:
+    'Du entscheidest später in den Einstellungen, was dich erreicht.',
+  introductionPrivacy: 'Datenschutz',
+  introductionAllow: 'Benachrichtigungen erlauben',
+  introductionSkip: 'Jetzt nicht',
+  introductionClose: 'Schließen',
   sharedActivityDescription: 'Kommentare, neue und fällige Erinnerungen.',
   closenessDescription: 'Gedanken aneinander, Küsse und Check-ins.',
   individual: 'Einzeln anpassen',

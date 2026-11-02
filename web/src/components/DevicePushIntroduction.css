@@ -1,0 +1,19 @@
+.device-push-introduction .short-task-sheet-body > p {
+  margin: 0 0 var(--space-4);
+}
+
+.device-push-introduction-hint {
+  color: var(--color-text-secondary);
+}
+
+.device-push-introduction summary {
+  min-height: var(--space-12);
+  align-content: center;
+  cursor: pointer;
+}
+
+.device-push-introduction-actions {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}

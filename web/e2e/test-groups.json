@@ -413,6 +413,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 8,
       "reason": "Plan comments must retain author, tenant, retry and canonical return contracts, with explicit bounded link previews and narrow/large-text accessibility."
+    },
+    "push-introduction.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5,
+      "reason": "Native consent after authenticated entry must preserve explicit permission, server-confirmed registration, route and one-time deferral across Compact/Expanded and reflow."
     }
   }
 }

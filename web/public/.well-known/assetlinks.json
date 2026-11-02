@@ -1,0 +1,22 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "de.eimir.app",
+      "sha256_cert_fingerprints": [
+        "1D:40:3A:18:B4:D3:69:4F:8E:5F:D9:85:39:06:A6:0C:01:26:44:D2:3E:5A:3A:1E:F4:08:19:B1:19:CB:1D:A9"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "de.sidebyside.app",
+      "sha256_cert_fingerprints": [
+        "B5:00:97:39:47:78:74:FB:C7:6B:48:3C:66:DD:B1:50:21:32:25:5D:D1:5D:E3:7F:75:70:EE:6A:13:B5:F4:72"
+      ]
+    }
+  }
+]

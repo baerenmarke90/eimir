@@ -429,10 +429,7 @@ async function openVisibilityJourney(page: Page, failSecond = true) {
     /\/story\/heart-moments\/44444444-4444-4444-8444-444444444444$/,
   );
   await expect(
-    page.getByRole('heading', {
-      name: 'A quiet afternoon together',
-      exact: true,
-    }),
+    page.getByText('A quiet afternoon together', { exact: true }),
   ).toBeVisible();
   let releaseFirst = () => {};
   const firstGate = new Promise<void>((resolve) => {
@@ -529,17 +526,11 @@ for (const viewport of [
       .click();
     await expect(page).toHaveURL(/\/more$/);
     await expect(
-      page.getByRole('heading', {
-        name: 'A quiet afternoon together',
-        exact: true,
-      }),
+      page.getByText('A quiet afternoon together', { exact: true }),
     ).toHaveCount(0);
     await page.goBack();
     await expect(
-      page.getByRole('heading', {
-        name: 'A quiet afternoon together',
-        exact: true,
-      }),
+      page.getByText('A quiet afternoon together', { exact: true }),
     ).toBeVisible();
     const prefix = `heart-visibility-${viewport.width}-${viewport.theme}${viewport.large ? '-large' : ''}`;
     await writeFile(
@@ -608,10 +599,7 @@ for (const viewport of [
       .click();
     await expect(page).toHaveURL(/\/more$/);
     await expect(
-      page.getByRole('heading', {
-        name: 'A quiet afternoon together',
-        exact: true,
-      }),
+      page.getByText('A quiet afternoon together', { exact: true }),
     ).toHaveCount(0);
     await page.goBack();
     await expect(makePrivate).toBeEnabled();
@@ -668,10 +656,7 @@ for (const theme of ['light', 'dark'] as const) {
       .click();
     await expect(page).toHaveURL(/\/more$/);
     await expect(
-      page.getByRole('heading', {
-        name: 'A quiet afternoon together',
-        exact: true,
-      }),
+      page.getByText('A quiet afternoon together', { exact: true }),
     ).toHaveCount(0);
     await page.goBack();
     await expect(action).toBeEnabled();
@@ -1003,7 +988,7 @@ test('custom tag-only Heart Moment survives create, reload, edit and removal (#1
   );
   await expect(
     page.getByRole('heading', {
-      name: storyProducts.heartMomentProduct.untitled,
+      name: storyProducts.heartMomentProduct.detailEyebrow,
     }),
   ).toBeVisible();
   await expect(page.getByText('Ostsee', { exact: true })).toBeVisible();
@@ -1078,7 +1063,7 @@ test('photo-only Heart Moment saves without text and opens its photo (#509)', as
   );
   await expect(
     page.getByRole('heading', {
-      name: storyProducts.heartMomentProduct.untitled,
+      name: storyProducts.heartMomentProduct.detailEyebrow,
     }),
   ).toBeVisible();
   const savedPhoto = page.locator('.media-gallery-thumb-content');
@@ -1170,7 +1155,7 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
     );
     await expect(
       page.getByRole('heading', {
-        name: storyProducts.heartMomentProduct.untitled,
+        name: storyProducts.heartMomentProduct.detailEyebrow,
       }),
     ).toBeVisible();
     await expect(page.locator('.comments-panel .ui-state')).toHaveCount(0);

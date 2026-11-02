@@ -1002,3 +1002,30 @@ def test_recent_content_dates_survive_late_historical_backfills(
     assert len(body["recentShared"]) == dashboard_service.SECTION_LIMIT
     if kind == "memory":
         assert body["keepsake"]["id"] == str(current.id)
+
+
+def test_recent_timed_plan_uses_the_viewer_calendar_day(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    """A UTC-next-day time is still yesterday for this viewer."""
+    _freeze(monkeypatch, FIXED_NOW + timedelta(days=1))
+    couple["anna"].timezone = "Pacific/Honolulu"
+    current = Memory(
+        **_resource(couple, couple["anna"].id),
+        happened_on=date(2026, 8, 31),
+        payload=MemoryPayload(title="Today's memory", body="Current content"),
+    )
+    plan = Plan(
+        **_resource(couple, couple["anna"].id),
+        status=PlanStatus.PLANNED.value,
+        planned_start=datetime(2026, 8, 31, 2, tzinfo=UTC),
+        payload=PlanPayload(title="Yesterday's local Plan"),
+    )
+    session.add_all([current, plan])
+    session.flush()
+    response = _dashboard(client, couple)
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()["recentShared"]] == [
+        str(current.id),
+        str(plan.id),
+    ]

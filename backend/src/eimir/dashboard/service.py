@@ -255,7 +255,7 @@ def read_dashboard(
         partner=_partner(session, authorization),
         relationship_duration=_relationship_duration(profile, today),
         retrospective=_retrospective(session, authorization, today, account.timezone),
-        keepsake=_keepsake(session, authorization),
+        keepsake=_keepsake(session, authorization, account.timezone),
         upcoming=_upcoming(
             session,
             authorization,
@@ -264,7 +264,7 @@ def read_dashboard(
             instant,
             account.timezone,
         ),
-        recent_shared=_recent_shared(session, authorization),
+        recent_shared=_recent_shared(session, authorization, account.timezone),
         thinking_of_you_available_at=thinking.available_at(session, authorization),
     )
 
@@ -488,13 +488,18 @@ def _retrospective(
 def _keepsake(
     session: Session,
     authorization: AuthorizationContext,
+    timezone_name: str,
 ) -> DashboardItem | None:
     """Find the Today Keepsake: the most recent readable Memory with a READY photo."""
+    timezone_name = clock.resolve_zone(timezone_name).key
     memories = list(
         session.execute(
             readable(Memory, authorization)
             .order_by(
-                func.coalesce(Memory.happened_on, cast(Memory.created_at, Date)).desc(),
+                func.coalesce(
+                    Memory.happened_on,
+                    cast(func.timezone(timezone_name, Memory.created_at), Date),
+                ).desc(),
                 Memory.id,
             )
             .limit(KEEPSAKE_SCAN_LIMIT)
@@ -671,12 +676,16 @@ def _upcoming_sort_key(
     return day, timing_rank, wall_clock, item.type.value, str(item.id)
 
 
-def _recent_item_sort_key(item: DashboardItem) -> tuple[int, float, str, str]:
+def _recent_item_sort_key(item: DashboardItem, timezone_name: str) -> tuple[int, float, str, str]:
     """Content dates own recency; creation is a fallback for undated utilities."""
     instant = item.scheduled_at or item.created_at
     day = item.occurred_on
     if day is None:
-        day = clock.ensure_utc(instant).date() if instant is not None else date.min
+        day = (
+            clock.ensure_utc(instant).astimezone(clock.resolve_zone(timezone_name)).date()
+            if instant is not None
+            else date.min
+        )
     return (
         -day.toordinal(),
         -instant.timestamp() if item.occurred_on is None and instant is not None else 0,
@@ -688,14 +697,19 @@ def _recent_item_sort_key(item: DashboardItem) -> tuple[int, float, str, str]:
 def _recent_shared(
     session: Session,
     authorization: AuthorizationContext,
+    timezone_name: str,
 ) -> list[DashboardItem]:
+    timezone_name = clock.resolve_zone(timezone_name).key
     candidates: list[DashboardItem] = []
 
     memories = list(
         session.execute(
             readable(Memory, authorization)
             .order_by(
-                func.coalesce(Memory.happened_on, cast(Memory.created_at, Date)).desc(),
+                func.coalesce(
+                    Memory.happened_on,
+                    cast(func.timezone(timezone_name, Memory.created_at), Date),
+                ).desc(),
                 Memory.id,
             )
             .limit(SECTION_LIMIT)
@@ -726,7 +740,10 @@ def _recent_shared(
     for milestone in session.execute(
         readable(Milestone, authorization)
         .order_by(
-            func.coalesce(Milestone.happened_on, cast(Milestone.created_at, Date)).desc(),
+            func.coalesce(
+                Milestone.happened_on,
+                cast(func.timezone(timezone_name, Milestone.created_at), Date),
+            ).desc(),
             Milestone.id,
         )
         .limit(SECTION_LIMIT)
@@ -745,7 +762,10 @@ def _recent_shared(
         readable(HeartMoment, authorization)
         .where(HeartMoment.privacy_class == PrivacyClass.SPACE_SHARED.value)
         .order_by(
-            func.coalesce(HeartMoment.happened_on, cast(HeartMoment.created_at, Date)).desc(),
+            func.coalesce(
+                HeartMoment.happened_on,
+                cast(func.timezone(timezone_name, HeartMoment.created_at), Date),
+            ).desc(),
             HeartMoment.id,
         )
         .limit(SECTION_LIMIT)
@@ -776,7 +796,9 @@ def _recent_shared(
         readable(Plan, authorization)
         .order_by(
             func.coalesce(
-                Plan.planned_on, cast(Plan.planned_start, Date), cast(Plan.created_at, Date)
+                Plan.planned_on,
+                cast(func.timezone(timezone_name, Plan.planned_start), Date),
+                cast(func.timezone(timezone_name, Plan.created_at), Date),
             ).desc(),
             Plan.id,
         )
@@ -810,7 +832,10 @@ def _recent_shared(
     for chapter in session.execute(
         readable(Chapter, authorization)
         .order_by(
-            func.coalesce(Chapter.start_on, cast(Chapter.created_at, Date)).desc(),
+            func.coalesce(
+                Chapter.start_on,
+                cast(func.timezone(timezone_name, Chapter.created_at), Date),
+            ).desc(),
             Chapter.id,
         )
         .limit(SECTION_LIMIT)
@@ -839,7 +864,7 @@ def _recent_shared(
             )
         )
 
-    candidates.sort(key=_recent_item_sort_key)
+    candidates.sort(key=lambda item: _recent_item_sort_key(item, timezone_name))
     return candidates[:SECTION_LIMIT]
 
 

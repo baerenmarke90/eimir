@@ -4,6 +4,7 @@ import de from '../../src/i18n/locales/de';
 import copy from '../../src/i18n/locales/notificationSettings';
 import {
   ACCOUNT_ID,
+  SPACE_ID,
   captureScreenshot,
   installMocks,
 } from '../support/storyTimelineFixture';
@@ -137,6 +138,13 @@ async function nativePush(page: Page, deny = false) {
 
 async function mocks(page: Page) {
   await installMocks(page);
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/dashboard/preferences`,
+    (route) => route.fulfill({ json: { items: [] } }),
+  );
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/activity?*`, (route) =>
+    route.fulfill({ json: { items: [], hasMore: false, nextCursor: null } }),
+  );
   await page.route('**/api/v1/push-endpoints/configuration', (route) =>
     route.fulfill({
       json: {
@@ -162,6 +170,8 @@ async function signIn(page: Page) {
   await page.getByLabel(de.login.email).fill('lea@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(page.locator('.today-content')).toBeVisible();
+  await expect(page.locator('main [role="alert"]')).toHaveCount(0);
 }
 
 for (const width of [360, 390, 430, 1280]) {

@@ -386,7 +386,10 @@ public class PhotoFileChooserTest {
             + "for(const value of bytes)binary+=String.fromCharCode(value);window.selectedPhotoBytes=btoa(binary);"
             + "video.onloadedmetadata=()=>window.videoReady=true;"
             + "video.onerror=()=>window.videoError=video.error?.message||String(video.error?.code);"
-            + "video.src=URL.createObjectURL(file);video.load();"
+            // Selected Files are upload inputs. Playback uses server bytes, not a
+            // second provider-backed File URL; isolate native decoding with the
+            // bytes Chromium actually read through the selected Android grant.
+            + "video.src=URL.createObjectURL(new Blob([bytes],{type:file.type}));video.load();"
             + "video.onseeked=()=>window.videoSeeked=true;"
             + "video.requestVideoFrameCallback(()=>window.videoDecoded=true);"
             + "}catch(error){window.photoReadError=error.name;}};"

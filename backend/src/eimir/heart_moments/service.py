@@ -145,7 +145,7 @@ def create_heart_moment(
     )
     if attachment_id is not None:
         _bind(session, context, heart_moment, attachment_id)
-        _set_attachment_sensitive(session, heart_moment, attachment_is_sensitive)
+        _set_attachment_sensitive(session, context, heart_moment, attachment_is_sensitive)
     session.add(heart_moment)
     _flush(session)
     if place_id is not None:
@@ -323,7 +323,7 @@ def update_heart_moment(
         _rebind(session, context, heart_moment, attachment_id)
 
     if "attachment_is_sensitive" in changed_fields:
-        _set_attachment_sensitive(session, heart_moment, attachment_is_sensitive)
+        _set_attachment_sensitive(session, context, heart_moment, attachment_is_sensitive)
         heart_moment.updated_at = now()
 
     _flush(session)
@@ -633,7 +633,10 @@ def _rebind(
 
 
 def _set_attachment_sensitive(
-    session: Session, heart_moment: HeartMoment, value: bool | None
+    session: Session,
+    context: AuthorizationContext,
+    heart_moment: HeartMoment,
+    value: bool | None,
 ) -> None:
     from eimir.attachments import binding
 
@@ -645,4 +648,8 @@ def _set_attachment_sensitive(
     with session.no_autoflush:
         locked = binding.lock_for_binding(session, [heart_moment.attachment_id])
     attachment = locked[heart_moment.attachment_id]
-    binding.set_sensitive(attachment, value)
+    binding.set_sensitive(
+        attachment,
+        value,
+        allow_change=context.account_id in (heart_moment.owner_id, attachment.owner_id),
+    )

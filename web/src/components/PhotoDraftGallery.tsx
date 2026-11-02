@@ -12,6 +12,7 @@ export interface PhotoDraftGalleryItem {
   isSensitive: boolean;
   draft?: AttachmentDraft;
   canRemove?: boolean;
+  canEditSensitivity?: boolean;
 }
 
 /** One bounded media selection with one inspector, independent of persistence. */
@@ -158,7 +159,7 @@ export function PhotoDraftGallery({
           </strong>
           <span className="photo-draft-filename">{selected.name}</span>
         </div>
-        {onSensitive ? (
+        {onSensitive && selected.canEditSensitivity !== false ? (
           <SensitiveMediaCheckbox
             checked={selected.isSensitive}
             disabled={disabled}

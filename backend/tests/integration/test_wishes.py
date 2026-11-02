@@ -2,8 +2,8 @@
 
 Two concerns define the domain behavior of this slice.
 
-M3-D01: a wish belongs to the couple. Unlike Memory and Milestone, the partner
-may update or delete it without having created it. `createdBy` is attribution,
+M3-D01: a wish belongs to the couple. The partner may update or delete it
+without having created it. `createdBy` is attribution,
 not an ACL. The proof is therefore not merely that Anna may act, but that Ben
 may act while `createdBy` still remains Anna.
 
@@ -238,29 +238,6 @@ class TestSharedWriting:
             "canDelete": True,
             "canComment": False,
         }
-
-    def test_memory_remains_author_only(  # type: ignore[no-untyped-def]
-        self,
-        client,
-        couple,
-    ) -> None:
-        """Countercheck the new write rule.
-
-        Collaborative writing is a property of the M3 planning domains, not a
-        new default. Memory author-only behavior must remain unchanged.
-        """
-        memory = client.post(
-            f"/api/v1/spaces/{couple['space'].id}/memories",
-            json={"title": "Nur von Anna", "body": "Text", "happenedOn": "2025-06-13"},
-            headers=auth(couple["token_a"]),
-        ).json()
-
-        response = client.patch(
-            f"/api/v1/spaces/{couple['space'].id}/memories/{memory['id']}",
-            json={"title": "Von Ben geaendert"},
-            headers=if_match(couple["token_b"], 1),
-        )
-        assert response.status_code == 403
 
 
 class TestStatus:

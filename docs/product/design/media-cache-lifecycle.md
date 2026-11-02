@@ -129,8 +129,11 @@ Idle URL ownership uses the same **48 MiB / 192 entries / 30-minute** bounds as
 the existing RAM byte cache. URL age measures inactivity, while byte age remains
 measured from receipt. LRU/expiry removes idle entries; live handles remain valid
 until released. Reentry checks authorization before acquiring a retained URL.
-Denied parent reads and login/Space/product-cache wipes revoke both active and
-idle URLs synchronously. No Object URL is persisted to disk. The disk tier and
+Denied parent read-access, authoritative membership loss and login/Space/product-cache
+wipes revoke both active and idle URLs synchronously. Space revocation also
+fences outstanding parent-specific authorization leases; transient membership
+refresh errors preserve current images and an expired Account response cannot
+revoke the next Account's scope. No Object URL is persisted to disk. The disk tier and
 its authorization, epoch and eviction contracts remain unchanged.
 
 Regressions cover Story, Heart Moment and Plan originals/thumbnails, profile and

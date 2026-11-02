@@ -29,6 +29,7 @@ interface CacheLease {
   readonly generation: number;
   readonly resourceKey: string;
   readonly revocation: number;
+  readonly spaceRevocation: number;
   readonly durableEpoch?: string;
 }
 
@@ -108,6 +109,7 @@ export function captureMediaCacheLease(
     generation,
     resourceKey,
     revocation: revocations.get(resourceKey) ?? 0,
+    spaceRevocation: revocations.get(JSON.stringify([scope.id, spaceId])) ?? 0,
     durableEpoch: scope.durableIdentity
       ? captureDurableMediaEpoch()
       : undefined,
@@ -120,6 +122,8 @@ export function assertMediaCacheLease(lease: CacheLease): void {
     (lease.durableEpoch !== undefined &&
       lease.durableEpoch !== captureDurableMediaEpoch()) ||
     lease.revocation !== (revocations.get(lease.resourceKey) ?? 0) ||
+    lease.spaceRevocation !==
+      (revocations.get(JSON.stringify([lease.scope.id, lease.spaceId])) ?? 0) ||
     !lease.scope.isCurrent(lease.spaceId)
   ) {
     throw new DOMException('Media context expired', 'AbortError');

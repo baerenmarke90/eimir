@@ -4,18 +4,39 @@ import type { SpaceView } from '../api/generated/models/SpaceView';
 import { Configuration } from './apiConfiguration';
 import { clientProblemKind, normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
+import { loadStoredSession } from './sessionPersistence';
+import {
+  captureMediaCacheLease,
+  evictAuthorizedMedia,
+} from './authorizedMediaCache';
 
 export async function loadAuthorizedMemberships(
   apiBaseUrl: string,
   accessToken: string,
 ): Promise<AccountMembershipView[]> {
+  const apis = createReferenceApis(apiBaseUrl, accessToken);
+  const spaceId = loadStoredSession()?.spaceId;
+  const lease = spaceId
+    ? captureMediaCacheLease(apis.attachments, spaceId)
+    : null;
+  const revokeCurrentMedia = () => {
+    if (lease?.scope.isCurrent(lease.spaceId)) evictAuthorizedMedia(lease, []);
+  };
   try {
-    return await createReferenceApis(
-      apiBaseUrl,
-      accessToken,
-    ).auth.listAccountMembershipsApiV1AuthMembershipsGet();
+    const memberships =
+      await apis.auth.listAccountMembershipsApiV1AuthMembershipsGet();
+    if (spaceId && !memberships.some((item) => item.spaceId === spaceId))
+      revokeCurrentMedia();
+    return memberships;
   } catch (error) {
-    throw await normalizeClientError(error);
+    const problem = await normalizeClientError(error);
+    if (
+      ['unauthorized', 'permission', 'notFound'].includes(
+        clientProblemKind(problem),
+      )
+    )
+      revokeCurrentMedia();
+    throw problem;
   }
 }
 

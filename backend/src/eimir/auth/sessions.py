@@ -134,11 +134,11 @@ def resolve_family(session: Session, session_id: UUID) -> tuple[DeviceSession, A
     it so token rotation cannot break an active read, while revocation, family
     expiry and account disabling retain exactly the bearer session boundary.
     """
-    return _active_family(session, session.get(DeviceSession, session_id))
+    return _active_family(session, session.get(DeviceSession, session_id), touch=False)
 
 
 def _active_family(
-    session: Session, device_session: DeviceSession | None
+    session: Session, device_session: DeviceSession | None, *, touch: bool = True
 ) -> tuple[DeviceSession, Account]:
     current_time = now()
     if (
@@ -153,7 +153,8 @@ def _active_family(
     if account is None or not account.is_active:
         raise UnauthenticatedError("Authentication required.", ErrorCode.AUTHENTICATION_REQUIRED)
 
-    device_session.last_used_at = current_time
+    if touch:
+        device_session.last_used_at = current_time
     return device_session, account
 
 

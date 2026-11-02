@@ -15,20 +15,25 @@ export interface VideoCaptureContext {
 }
 
 /** Separate native video intake preserves the existing original-photo consent. */
-export function VideoUploadAction({
-  id,
-  context,
-  multiple,
-  disabled,
-  onFiles,
-}: {
+export function VideoUploadAction(props: {
   id: string;
   context: VideoCaptureContext;
   multiple: boolean;
   disabled: boolean;
   onFiles: (files: FileList) => void;
 }) {
-  const enabled = useContext(VideoProcessingContext);
+  return useContext(VideoProcessingContext) ? (
+    <EnabledVideoUploadAction {...props} />
+  ) : null;
+}
+
+function EnabledVideoUploadAction({
+  id,
+  context,
+  multiple,
+  disabled,
+  onFiles,
+}: Parameters<typeof VideoUploadAction>[0]) {
   const { t } = useTranslation();
   const [proOpen, setProOpen] = useState(false);
   const sheet = useRef<ShortTaskSheetHandle>(null);
@@ -45,11 +50,10 @@ export function VideoUploadAction({
         { spaceId: context.spaceId },
         { signal },
       ),
-    enabled,
     staleTime: 60_000,
     retry: false,
   });
-  if (!enabled || !policy.data?.videoProcessingEnabled) return null;
+  if (!policy.data?.videoProcessingEnabled) return null;
   return (
     <div className="video-upload-action">
       {policy.data.videoUploadAllowed ? (

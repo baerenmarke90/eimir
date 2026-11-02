@@ -106,9 +106,15 @@ test('three peer modes retain Diary scope and the map follows Light, Dark and li
     .click();
   await expect(page).toHaveURL(/\/story\?type=MEMORY&year=2026&tab=timeline$/);
 
-  await page
-    .getByRole('tab', { name: de.story.tabTimeline, exact: true })
-    .focus();
+  const diary = page.getByRole('tab', {
+    name: de.story.tabTimeline,
+    exact: true,
+  });
+  // The URL changes before React replaces the previous Map route. A key sent
+  // to that old tablist would still use Map's already-selected End target.
+  await expect(diary).toHaveAttribute('aria-selected', 'true');
+  await diary.focus();
+  await expect(diary).toBeFocused();
   await page.keyboard.press('End');
   await expect(page).toHaveURL(/\/story\/map\?type=MEMORY&year=2026$/);
   await expect(

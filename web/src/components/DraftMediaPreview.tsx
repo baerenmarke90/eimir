@@ -21,7 +21,7 @@ export function DraftMediaPreview({
       'video-draft',
       context?.accountId,
       context?.spaceId,
-      context?.apis.attachments.contentBaseUrl,
+      video ? context?.apis.attachments.contentBaseUrl : undefined,
     ]),
     video &&
       context &&

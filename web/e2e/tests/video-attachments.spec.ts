@@ -1,0 +1,325 @@
+import { readFileSync } from 'node:fs';
+import AxeBuilder from '@axe-core/playwright';
+import { expect, type Page, test } from '@playwright/test';
+import de from '../../src/i18n/locales/de';
+import storyCopy from '../../src/i18n/locales/storyProducts';
+import videoCopy from '../../src/i18n/locales/video';
+import {
+  ACCOUNT_ID,
+  CAPABILITIES,
+  installMocks,
+  ME,
+  SPACE_ID,
+  signIn,
+} from '../support/storyTimelineFixture';
+
+const MEMORY = '44444444-4444-4444-8444-444444444444';
+const PHOTO = '55555555-5555-4555-8555-555555555555';
+const VIDEO = '66666666-6666-4666-8666-666666666666';
+const image = readFileSync(
+  new URL(
+    '../../../backend/demo_assets/images/lake-sunrise.jpg',
+    import.meta.url,
+  ),
+);
+const movie = readFileSync(
+  new URL(
+    '../../../backend/tests/fixtures/media/video-with-metadata.mp4',
+    import.meta.url,
+  ),
+);
+const momentBody =
+  'Der kleine Sprung ins Wasser, über den wir noch immer lachen. ❤️';
+
+function attachment(id: string, mediaType: 'IMAGE' | 'VIDEO') {
+  return {
+    id,
+    mediaType,
+    status: 'READY',
+    version: 1,
+    mimeType: mediaType === 'VIDEO' ? 'video/mp4' : 'image/jpeg',
+    size: mediaType === 'VIDEO' ? movie.length : image.length,
+    width: 96,
+    height: 64,
+    hasThumbnail: true,
+    durationSeconds: mediaType === 'VIDEO' ? 1 : null,
+    isSensitive: false,
+    createdAt: '2026-11-01T10:00:00Z',
+    updatedAt: '2026-11-01T10:00:00Z',
+  };
+}
+function memory(
+  attachments: ReturnType<typeof attachment>[],
+  body = momentBody,
+) {
+  return {
+    id: MEMORY,
+    spaceId: SPACE_ID,
+    authorId: ACCOUNT_ID,
+    author: ME,
+    title: 'Unser Sprung ins Glück',
+    body,
+    happenedOn: '2026-11-01',
+    tags: [],
+    attachments: attachments.map((a, position) => ({ ...a, position })),
+    capabilities: CAPABILITIES,
+    version: 2,
+    createdAt: '2026-11-01T10:00:00Z',
+    updatedAt: '2026-11-01T10:00:00Z',
+  };
+}
+async function setup(
+  page: Page,
+  options: { allowed?: boolean; enabled?: boolean; retained?: boolean } = {},
+) {
+  const unknown = await installMocks(page, { strict: true });
+  const state = {
+    bound: [] as string[],
+    grants: 0,
+    ranges: 0,
+    originalVideoReads: 0,
+    uploads: 0,
+    saved: options.retained
+      ? memory([attachment(VIDEO, 'VIDEO')])
+      : (null as ReturnType<typeof memory> | null),
+  };
+  await page.route('**/api/v1/**', async (route) => {
+    const request = route.request(),
+      url = new URL(request.url()),
+      p = url.pathname,
+      method = request.method();
+    const json = (value: unknown, status = 200) =>
+      route.fulfill({ json: value, status });
+    if (p.endsWith('/auth/capabilities'))
+      return json({
+        serverAdmin: false,
+        videoProcessingEnabled: options.enabled !== false,
+      });
+    if (p.endsWith('/attachment-upload-policy'))
+      return json({
+        supportedMimeTypes: ['image/jpeg', 'video/mp4', 'video/quicktime'],
+        videoProcessingEnabled: options.enabled !== false,
+        videoUploadAllowed: options.allowed !== false,
+        videoMaxBytes: 262144000,
+        videoMaxDurationSeconds: 180,
+      });
+    if (p.endsWith('/attachments') && method === 'POST') {
+      const body = request.postDataJSON(),
+        a = attachment(
+          body.mediaType === 'VIDEO' ? VIDEO : PHOTO,
+          body.mediaType,
+        );
+      return json(
+        {
+          attachment: { ...a, status: 'PENDING' },
+          method: 'STREAM',
+          url: `/api/v1/spaces/${SPACE_ID}/attachments/${a.id}/content`,
+          headers: {},
+          expiresAt: new Date(Date.now() + 600000).toISOString(),
+        },
+        201,
+      );
+    }
+    if (p.includes('/attachments/')) {
+      const id = p.split('/attachments/')[1].split('/')[0],
+        a = attachment(id, id === VIDEO ? 'VIDEO' : 'IMAGE');
+      if (p.endsWith('/content') && method === 'PUT') {
+        state.uploads++;
+        return route.fulfill({ status: 204 });
+      }
+      if (p.endsWith('/finalize')) return json({ status: 'PROCESSING' }, 202);
+      if (p.endsWith('/read-access'))
+        return json({
+          method: 'STREAM',
+          mediaType: a.mediaType,
+          url: p.replace('/read-access', '/content'),
+          expiresAt: new Date(Date.now() + 60000).toISOString(),
+        });
+      if (p.endsWith('/playback-access')) {
+        state.grants++;
+        return json({
+          url:
+            p.replace('/playback-access', '/playback') +
+            '?token=synthetic-scoped-grant',
+          expiresAt: new Date(Date.now() + 60000).toISOString(),
+        });
+      }
+      if (p.endsWith('/playback')) {
+        state.ranges++;
+        const range = request.headers().range;
+        const match = range?.match(/^bytes=(\d+)-(\d*)$/);
+        const start = match ? Number(match[1]) : 0,
+          end =
+            match && match[2]
+              ? Math.min(Number(match[2]), movie.length - 1)
+              : movie.length - 1;
+        return route.fulfill({
+          status: range ? 206 : 200,
+          body: movie.subarray(start, end + 1),
+          contentType: 'video/mp4',
+          headers: {
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'private, no-store',
+            ...(range
+              ? { 'Content-Range': `bytes ${start}-${end}/${movie.length}` }
+              : {}),
+          },
+        });
+      }
+      if (p.endsWith('/content') && method === 'GET') {
+        if (id === VIDEO && url.searchParams.get('variant') !== 'thumbnail')
+          state.originalVideoReads++;
+        expect(
+          id !== VIDEO || url.searchParams.get('variant') === 'thumbnail',
+        ).toBe(true);
+        return route.fulfill({ body: image, contentType: 'image/jpeg' });
+      }
+      if (method === 'GET') return json(a);
+    }
+    if (p === `/api/v1/spaces/${SPACE_ID}/memories` && method === 'POST') {
+      const body = request.postDataJSON();
+      state.saved = memory([], body.body);
+      state.saved.title = body.title ?? '';
+      return json(state.saved, 201);
+    }
+    if (
+      p === `/api/v1/spaces/${SPACE_ID}/memories/${MEMORY}/attachments` &&
+      method === 'PUT'
+    ) {
+      const body = request.postDataJSON();
+      state.bound = body.attachments.map(
+        (a: { attachmentId: string }) => a.attachmentId,
+      );
+      state.saved = memory(
+        state.bound.map((id) =>
+          attachment(id, id === VIDEO ? 'VIDEO' : 'IMAGE'),
+        ),
+        state.saved?.body,
+      );
+      return json(state.saved);
+    }
+    if (
+      p === `/api/v1/spaces/${SPACE_ID}/memories/${MEMORY}` &&
+      method === 'GET' &&
+      state.saved
+    )
+      return json(state.saved);
+    return route.fallback();
+  });
+  return { state, unknown };
+}
+
+for (const [width, colorScheme] of [
+  [360, 'light'],
+  [390, 'dark'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`mixed video capture, save, deliberate playback, seek and return ${width} ${colorScheme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    const { state, unknown } = await setup(page);
+    await signIn(page);
+    await page.goto('/story/memories/new');
+    await page
+      .getByLabel(de.memory.bodyLabel, { exact: true })
+      .fill(momentBody);
+    await page.locator('input[type=file][accept^="image/"]').setInputFiles({
+      name: 'lake.jpg',
+      mimeType: 'image/jpeg',
+      buffer: image,
+    });
+    await page.locator('input[type=file][accept^="video/"]').setInputFiles({
+      name: 'jump.mp4',
+      mimeType: 'video/mp4',
+      buffer: movie,
+    });
+    await expect(page.locator('.photo-draft-tile')).toHaveCount(2);
+    await expect(
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+    ).toHaveCount(2);
+    await expect(page.locator('video')).toHaveCount(0);
+    await page.screenshot({
+      path: info.outputPath(`video-capture-${width}-${colorScheme}.png`),
+      fullPage: true,
+      type: 'png',
+    });
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+    await page
+      .getByRole('button', { name: de.memory.save, exact: true })
+      .click();
+    await expect(page).toHaveURL(new RegExp('/memories/' + MEMORY + '$'));
+    expect(state.bound).toEqual([PHOTO, VIDEO]);
+    await page
+      .getByRole('button', { name: storyCopy.gallery.next, exact: true })
+      .click();
+    await page
+      .getByRole('button', { name: videoCopy.play, exact: true })
+      .click();
+    const dialog = page.getByRole('dialog'),
+      player = dialog.locator('video');
+    await expect(player).toHaveCount(1);
+    expect(await player.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true);
+    await player.evaluate((v: HTMLVideoElement) => v.play());
+    await expect
+      .poll(() => player.evaluate((v: HTMLVideoElement) => v.readyState))
+      .toBeGreaterThanOrEqual(2);
+    await player.evaluate((v: HTMLVideoElement) => {
+      v.pause();
+      v.currentTime = 0.5;
+    });
+    await expect
+      .poll(() => player.evaluate((v: HTMLVideoElement) => v.currentTime))
+      .toBeGreaterThanOrEqual(0.4);
+    expect(state.ranges).toBeGreaterThan(0);
+    await page.screenshot({
+      path: info.outputPath(`video-playback-${width}-${colorScheme}.png`),
+      fullPage: true,
+      type: 'png',
+    });
+    await dialog.locator('.media-lightbox-close').click();
+    await expect(page.locator('video')).toHaveCount(0);
+    expect(state.originalVideoReads).toBe(0);
+    expect(state.grants).toBe(1);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
+    ).toBe(true);
+    expect(unknown).toEqual([]);
+  });
+}
+
+test('Pro explanation preserves the current Memory draft', async ({ page }) => {
+  const { unknown } = await setup(page, { allowed: false });
+  await signIn(page);
+  await page.goto('/story/memories/new');
+  const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
+  await body.fill(momentBody);
+  await page.getByRole('button', { name: new RegExp(videoCopy.add) }).click();
+  const sheet = page.getByRole('dialog', { name: videoCopy.proTitle });
+  await expect(sheet).toContainText(videoCopy.proBody);
+  await sheet
+    .getByRole('button', { name: de.common.close, exact: true })
+    .click();
+  await expect(body).toHaveValue(momentBody);
+  expect(unknown).toEqual([]);
+});
+
+test('retained video still plays when operator intake is disabled and Space is Free', async ({
+  page,
+}) => {
+  const { state, unknown } = await setup(page, {
+    enabled: false,
+    allowed: false,
+    retained: true,
+  });
+  await signIn(page);
+  await page.goto('/story/memories/' + MEMORY);
+  await page.getByRole('button', { name: videoCopy.play, exact: true }).click();
+  await expect(page.getByRole('dialog').locator('video')).toHaveCount(1);
+  expect(state.grants).toBe(1);
+  expect(unknown).toEqual([]);
+});

@@ -1,6 +1,6 @@
-import { useLayoutEffect, useState, type ReactNode } from 'react';
-import { flushSync } from 'react-dom';
 import { focusManager } from '@tanstack/react-query';
+import { type ReactNode, useLayoutEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useTranslation } from '../i18n';
 import './SensitiveMedia.css';
 import './MediaOverlay.css';

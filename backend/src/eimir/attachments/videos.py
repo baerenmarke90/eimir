@@ -57,11 +57,25 @@ def _limits(file_limit: int) -> None:
     resource.setrlimit(resource.RLIMIT_FSIZE, (file_limit, file_limit))
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
-    resource.setrlimit(resource.RLIMIT_NPROC, (32, 32))
+    # RLIMIT_NPROC counts every process/thread owned by the host UID, including
+    # unrelated jobs. The dedicated role's cgroup pids_limit is the per-role
+    # process boundary; codec/filter thread counts are explicit below.
 
 
 def _run(command: list[str], *, probe: bool = False, deadline: float | None = None) -> bytes:
     """Never capture unbounded decoder output or inherit application credentials."""
+    if not probe:
+        command = [
+            command[0],
+            "-filter_threads",
+            "1",
+            "-filter_complex_threads",
+            "1",
+            *command[1:-1],
+            "-threads",
+            "1",
+            command[-1],
+        ]
     with TemporaryFile(mode="w+b") as output:
         try:
             child = subprocess.Popen(

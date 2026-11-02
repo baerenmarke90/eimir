@@ -6,6 +6,10 @@ on:
       - "backend/**"
       - "tools/media/**"
       - "compose.yaml"
+      - "web/e2e/tests/video-attachments.spec.ts"
+      - "web/src/components/Video*.tsx"
+      - "web/src/components/MediaGallery*"
+      - "web/src/client/video*"
       - ".github/workflows/media-video.yml"
   push:
     branches: [main]
@@ -98,3 +102,31 @@ jobs:
           docker run --rm --entrypoint /opt/eimir-media/bin/ffmpeg eimir-media:video-ci -version
           docker run --rm --entrypoint /opt/eimir-media/bin/ffprobe eimir-media:video-ci -version
           docker compose --env-file .env.example --profile self-hosted --profile video config --quiet
+
+  browser:
+    name: Video browser acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Locked Web and browser dependencies
+        run: |
+          npm --prefix web ci --ignore-scripts --no-audit --no-fund
+          npm --prefix web/e2e ci --ignore-scripts --no-audit --no-fund
+      - name: Install the pinned browser
+        working-directory: web/e2e
+        run: ./node_modules/.bin/playwright install --with-deps chromium
+      - name: Video journeys without automatic retries
+        working-directory: web/e2e
+        run: |
+          npm run test:inventory
+          ./node_modules/.bin/playwright test tests/video-attachments.spec.ts --workers=1 --retries=0
+      - name: Visual evidence and failure diagnostics
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: video-browser-${{ github.sha }}-attempt-${{ github.run_attempt }}
+          path: web/e2e/test-results/
+          if-no-files-found: error
+          retention-days: 7

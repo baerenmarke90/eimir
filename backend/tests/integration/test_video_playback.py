@@ -11,7 +11,7 @@ from eimir.attachments.models import Attachment, AttachmentPayload, PlaybackGran
 from eimir.auth import sessions
 from eimir.core.clock import now
 from eimir.media import get_media_store
-from eimir.memories.models import Memory, MemoryPayload
+from eimir.memories.models import Memory, MemoryPayload, shared_privacy
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -27,7 +27,10 @@ def video(session):  # type: ignore[no-untyped-def]
     space = make_space(session, account)
     token = sign_in(session, account)
     memory = Memory(
-        space_id=space.id, author_id=account.id, payload=MemoryPayload(title="A video", body="")
+        space_id=space.id,
+        owner_id=account.id,
+        privacy_class=shared_privacy(),
+        payload=MemoryPayload(title="A video", body=""),
     )
     attachment = Attachment(
         space_id=space.id,
@@ -76,7 +79,7 @@ def test_grant_streams_ranges_without_a_general_bearer_and_is_hashed(client, ses
     row = session.scalars(select(PlaybackGrant)).one()
     plain = parse_qs(urlsplit(url).query)["token"][0]
     assert row.token_hash != plain
-    assert client.get("/api/v1/account", headers=auth(plain)).status_code == 401
+    assert client.get("/api/v1/auth/me", headers=auth(plain)).status_code == 401
 
 
 def test_grant_cannot_change_attachment_or_space(client, video):  # type: ignore[no-untyped-def]
@@ -102,4 +105,56 @@ def test_expired_grant_and_deleted_parent_are_not_readable(client, session, vide
     grant.expires_at = now() + timedelta(minutes=1)
     session.delete(video[3])
     session.flush()
+    assert client.get(url).status_code == 404
+
+
+def test_range_reads_do_not_hold_a_device_update_or_extend_session_activity(client, session, video):  # type: ignore[no-untyped-def]
+    from eimir.identity.models import DeviceSession
+
+    url = issue(client, video)
+    grant = session.scalars(select(PlaybackGrant)).one()
+    device = session.get(DeviceSession, grant.session_id)
+    observed = device.last_used_at
+    assert client.get(url, headers={"Range": "bytes=0-1"}).status_code == 206
+    assert device.last_used_at == observed
+
+
+def test_partner_grant_stops_when_a_shared_heart_moment_becomes_private(client, session, video):  # type: ignore[no-untyped-def]
+    from sqlalchemy import delete
+
+    from eimir.relationship import service as relationships
+
+    _account, space, token, _, attachment = video
+    partner = make_account(session, "Video partner")
+    relationships.add_member(session, space.id, partner)
+    partner_token = sign_in(session, partner)
+    session.execute(delete(MemoryAttachment).where(MemoryAttachment.attachment_id == attachment.id))
+    session.flush()
+    created = client.post(
+        f"/api/v1/spaces/{space.id}/heart-moments",
+        json={
+            "text": "Our moving moment",
+            "emotion": "LOVED",
+            "visibility": "SHARED",
+            "happenedOn": "2026-11-01",
+            "attachmentId": str(attachment.id),
+        },
+        headers=auth(token),
+    )
+    assert created.status_code == 201, created.text
+    heart = created.json()
+    issued = client.post(
+        f"/api/v1/spaces/{space.id}/attachments/{attachment.id}/playback-access",
+        json={"parentType": "HEART_MOMENT", "parentId": heart["id"]},
+        headers=auth(partner_token),
+    )
+    assert issued.status_code == 200, issued.text
+    url = issued.json()["url"]
+    assert client.get(url).status_code == 200
+    changed = client.patch(
+        f"/api/v1/spaces/{space.id}/heart-moments/{heart['id']}/visibility",
+        json={"visibility": "PRIVATE"},
+        headers={**auth(token), "If-Match": str(heart["version"])},
+    )
+    assert changed.status_code == 200, changed.text
     assert client.get(url).status_code == 404

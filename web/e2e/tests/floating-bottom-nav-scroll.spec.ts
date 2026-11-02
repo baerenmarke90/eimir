@@ -1065,6 +1065,11 @@ async function swipePrimary(page: Page, direction: 'next' | 'previous') {
   if (!selector)
     throw new Error('A primary swipe requires a primary destination.');
   await expect(page.locator(`main > ${selector}`)).toBeVisible();
+  if (selector === '.today-page') {
+    // Use the settled reading surface. During cold startup the loading node
+    // can disappear between hit-testing and the native touch sequence.
+    await expect(page.locator('main .today-hero')).toBeVisible();
+  }
   await expect(page.locator('main')).not.toHaveAttribute(
     'data-primary-tab-entry',
     /.+/,

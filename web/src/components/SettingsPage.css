@@ -760,12 +760,17 @@
   list-style: none;
 }
 .settings-pro-information li {
-  display: grid;
-  grid-template-columns: var(--space-6) minmax(0, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-3);
   overflow-wrap: anywhere;
 }
+.settings-pro-information li > div {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
 .settings-pro-information li > .eimir-icon {
+  flex-shrink: 0;
   color: var(--color-brand-text);
 }
 .settings-pro-information li p,

@@ -2448,8 +2448,8 @@ for (const kind of ['plan', 'heart'] as const) {
       });
     else
       expect(submitted).toMatchObject({
-        attachments: photos.finalized.map((attachmentId, position) => ({
-          attachmentId,
+        attachments: ['photo-1.jpg', 'photo-2.jpg'].map((name, position) => ({
+          attachmentId: photos.idsByName[name],
           position,
           isSensitive: false,
         })),
@@ -2459,7 +2459,11 @@ for (const kind of ['plan', 'heart'] as const) {
     await captureScreenshot(page, info, `planning-source-${kind}-result.png`, {
       fullPage: true,
     });
-    await page.locator('.shell-detail-back').click();
+    await page
+      .locator(
+        kind === 'heart' ? '.shell-detail-back' : '.planen-detail .back-link',
+      )
+      .click();
     await expect(page).toHaveURL(
       kind === 'heart' ? /\/story(?:\?|$)/ : /\/plan(?:#|$)/,
     );

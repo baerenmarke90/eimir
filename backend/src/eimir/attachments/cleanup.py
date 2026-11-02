@@ -108,7 +108,7 @@ def _expire_stale_uploads(session: Session) -> int:
                 and_(
                     Attachment.status == AttachmentStatus.VALIDATING.value,
                     Attachment.media_type == MediaType.VIDEO.value,
-                    Attachment.created_at < cutoff,
+                    func.coalesce(Attachment.uploaded_at, Attachment.created_at) < cutoff,
                 ),
             )
         )

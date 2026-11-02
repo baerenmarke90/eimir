@@ -110,7 +110,13 @@ export function AttachmentDraftPicker({
       ) : null}
       {attachments.hasPending ? (
         <p className="field-help" role="status" aria-live="polite">
-          {t('memory.photoPendingSave')}
+          {t(
+            attachments.items.some((item) =>
+              item.file.type.startsWith('video/'),
+            )
+              ? 'video.pendingSave'
+              : 'memory.photoPendingSave',
+          )}
         </p>
       ) : null}
       {attachments.rejectedCount ? (

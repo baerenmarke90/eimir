@@ -1,3 +1,4 @@
+import { swipeCarousel } from '../support/mediaCarouselGesture';
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -5,6 +6,7 @@ import de from '../../src/i18n/locales/de';
 import storyCopy from '../../src/i18n/locales/storyProducts';
 import videoCopy from '../../src/i18n/locales/video';
 import taskSheets from '../../src/i18n/locales/taskSheets';
+import fixtureCopy from '../fixtures/locales/de';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -29,8 +31,7 @@ const movie = readFileSync(
     import.meta.url,
   ),
 );
-const momentBody =
-  'Der kleine Sprung ins Wasser, über den wir noch immer lachen. ❤️';
+const momentBody = fixtureCopy.videoAttachment.body;
 
 function attachment(id: string, mediaType: 'IMAGE' | 'VIDEO') {
   return {
@@ -58,7 +59,7 @@ function memory(
     spaceId: SPACE_ID,
     authorId: ACCOUNT_ID,
     author: ME,
-    title: 'Unser Sprung ins Glück',
+    title: fixtureCopy.videoAttachment.title,
     body,
     happenedOn: '2026-11-01',
     tags: [],
@@ -262,14 +263,26 @@ for (const [width, colorScheme] of [
     await expect(page).toHaveURL(new RegExp('/memories/' + MEMORY + '$'));
     expect(state.bound).toEqual([PHOTO, VIDEO]);
     await page
-      .getByRole('button', { name: storyCopy.gallery.next, exact: true })
-      .click();
+      .locator('.media-gallery-carousel-track')
+      .scrollIntoViewIfNeeded();
+    if (width < 600) await swipeCarousel(page, 'next');
+    else
+      await page
+        .getByRole('button', { name: storyCopy.gallery.next, exact: true })
+        .click();
+    await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
+      storyCopy.gallery.counter
+        .replace('{{index}}', '2')
+        .replace('{{count}}', '2'),
+    );
     await page
       .getByRole('button', { name: videoCopy.play, exact: true })
       .click();
     const dialog = page.getByRole('dialog'),
       player = dialog.locator('video');
     await expect(player).toHaveCount(1);
+    await expect(player).toBeVisible();
+    await expect(player).toBeInViewport({ ratio: 0.8 });
     expect(await player.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true);
     await player.evaluate((v: HTMLVideoElement) => v.play());
     await expect
@@ -282,6 +295,23 @@ for (const [width, colorScheme] of [
     await expect
       .poll(() => player.evaluate((v: HTMLVideoElement) => v.currentTime))
       .toBeGreaterThanOrEqual(0.4);
+    await expect
+      .poll(() => player.evaluate((v: HTMLVideoElement) => v.seeking))
+      .toBe(false);
+    const pixel = await player.evaluate(async (v: HTMLVideoElement) => {
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      );
+      const canvas = document.createElement('canvas');
+      canvas.width = 1;
+      canvas.height = 1;
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Video pixel probe is unavailable.');
+      context.drawImage(v, 0, 0, 1, 1);
+      return Array.from(context.getImageData(0, 0, 1, 1).data);
+    });
+    expect(pixel[2]).toBeGreaterThan(200);
+    expect(pixel[0]).toBeLessThan(30);
     expect(state.ranges).toBeGreaterThan(0);
     await page.screenshot({
       path: info.outputPath(`video-playback-${width}-${colorScheme}.png`),
@@ -290,6 +320,8 @@ for (const [width, colorScheme] of [
     });
     await dialog.locator('.media-lightbox-close').click();
     await expect(page.locator('video')).toHaveCount(0);
+    await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY}$`));
+    await expect(page.getByText(momentBody, { exact: true })).toBeVisible();
     expect(state.originalVideoReads).toBe(0);
     expect(state.grants).toBe(1);
     expect(

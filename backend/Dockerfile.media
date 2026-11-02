@@ -14,7 +14,7 @@ COPY tools/media /build/tools
 RUN bash /build/tools/build-ffmpeg.sh /build/source /opt/eimir-media
 # Keep corresponding source and our local hardening patch available to recipients.
 RUN cp ffmpeg.tar.gz /opt/eimir-media/share/ffmpeg/upstream-source.tar.gz \
-    && cp /build/tools/reject-encrypted-mov.patch /opt/eimir-media/share/ffmpeg/
+    && cp /build/tools/reject-encrypted-mov.patch /build/tools/build-ffmpeg.sh /opt/eimir-media/share/ffmpeg/
 
 FROM ${EIMIR_BACKEND_IMAGE}
 COPY --from=codecs /opt/eimir-media /opt/eimir-media

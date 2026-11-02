@@ -1,4 +1,8 @@
 const de = {
+  videoAttachment: {
+    body: 'Der kleine Sprung ins Wasser, über den wir noch immer lachen. ❤️',
+    title: 'Unser Sprung ins Glück',
+  },
   wishSelection: {
     occasion: 'Unser Wochenende',
     wishes: [

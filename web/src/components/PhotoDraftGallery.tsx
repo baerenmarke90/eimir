@@ -157,7 +157,11 @@ export function PhotoDraftGallery({
       ) : null}
       {failed.length ? (
         <div className="photo-draft-failures" role="alert">
-          <span>{t('memory.photoFailures', { count: failed.length })}</span>
+          <span>
+            {t(mixed ? 'video.failures' : 'memory.photoFailures', {
+              count: failed.length,
+            })}
+          </span>
           <button
             type="button"
             className="tertiary"
@@ -172,7 +176,9 @@ export function PhotoDraftGallery({
         </div>
       ) : null}
       <fieldset className="photo-draft-inspector">
-        <legend className="sr-only">{t('memory.photoSelected')}</legend>
+        <legend className="sr-only">
+          {t(isVideo(selected) ? 'video.selectedItem' : 'memory.photoSelected')}
+        </legend>
         <div className="photo-draft-inspector-heading">
           <strong>
             {t(isVideo(selected) ? 'video.position' : 'memory.photoPosition', {

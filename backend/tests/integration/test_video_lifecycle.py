@@ -141,6 +141,17 @@ def test_stranded_video_validation_joins_existing_upload_retention(client, sessi
     identifier = finalize(client, owner)
     attachment = session.get(Attachment, identifier)
     attachment.created_at = now() - timedelta(hours=25)
+    attachment.uploaded_at = now() - timedelta(hours=25)
     session.flush()
     cleanup.run_media_cleanup(session, {})
     assert session.get(Attachment, identifier) is None
+
+
+def test_recently_uploaded_video_is_not_expired_using_the_old_create_clock(client, session, owner):  # type: ignore[no-untyped-def]
+    grant(session, owner)
+    identifier = finalize(client, owner)
+    attachment = session.get(Attachment, identifier)
+    attachment.created_at = now() - timedelta(hours=25)
+    session.flush()
+    cleanup.run_media_cleanup(session, {})
+    assert session.get(Attachment, identifier).status == AttachmentStatus.VALIDATING.value

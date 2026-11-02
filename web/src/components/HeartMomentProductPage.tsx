@@ -989,14 +989,17 @@ export function HeartMomentProductPage({
   const shared = heartMoment.visibility === ContentVisibility.SHARED;
   const changingVisibility = visibilityWrites > 0;
 
-  const heartMomentEyebrow = heartMoment.happenedOn
-    ? `${t('heartMomentProduct.detailEyebrow').toUpperCase()} · ${formatDateOnly(heartMoment.happenedOn)}`
-    : t('heartMomentProduct.detailEyebrow').toUpperCase();
-
   return (
     <StoryDetailPageShell
-      eyebrow={heartMomentEyebrow}
-      title={heartMoment.text || t('heartMomentProduct.untitled')}
+      title={t('heartMomentProduct.detailEyebrow')}
+      description={
+        heartMoment.happenedOn ? (
+          <time dateTime={heartMoment.happenedOn.toISOString().slice(0, 10)}>
+            {formatDateOnly(heartMoment.happenedOn)}
+          </time>
+        ) : undefined
+      }
+      pageClassName="product-detail-page heart-moment-product-page"
       titleAction={
         heartMoment.capabilities.canEdit && !offline ? (
           <StoryDetailEditLink
@@ -1010,6 +1013,10 @@ export function HeartMomentProductPage({
       containerClassName="heart-moment-detail-container"
       containerDataAttributes={{ 'data-heart-emotion': heartMoment.emotion }}
     >
+      {heartMoment.text ? (
+        <p className="heart-moment-detail-text">{heartMoment.text}</p>
+      ) : null}
+
       <div className="heart-moment-detail-emotion">
         <HeartEmotionBadge emotion={heartMoment.emotion} variant="detail" />
       </div>

@@ -6,6 +6,7 @@ import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import recaps from '../../src/i18n/locales/recaps';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 const moduleContract: { moduleKeys: string[] } = JSON.parse(
   readFileSync(
     new URL(
@@ -482,10 +483,14 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
       await expect(page).toHaveURL(/\/story\/heart-moments\/heart-1$/);
       await expect(
         page.getByRole('heading', {
-          name: 'One year ago: our first concert',
+          name: storyProducts.heartMomentProduct.detailEyebrow,
+          level: 1,
           exact: true,
         }),
       ).toBeVisible();
+      await expect(page.locator('.heart-moment-detail-text')).toHaveText(
+        'One year ago: our first concert',
+      );
       await page.goBack();
       await expect(section).toBeVisible();
       await section

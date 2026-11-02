@@ -227,6 +227,11 @@ def process(
         raise ImageRejectedError("IMAGE_UNREADABLE") from error
 
     detected_format = (image.format or "").upper()
+    # MPO is a JPEG container, not a different pixel encoding. Camera JPEGs
+    # may carry auxiliary pictures; only the decoded primary frame enters our
+    # existing sanitizer. Never copy the MP index or raw auxiliary streams.
+    if detected_format == "MPO":
+        detected_format = "JPEG"
     detected_mime = _MIME_BY_PILLOW_FORMAT.get(detected_format)
     if detected_mime is None:
         raise ImageRejectedError("IMAGE_TYPE_NOT_ALLOWED")

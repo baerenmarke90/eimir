@@ -7,9 +7,9 @@ const photoSources = {
   proRequired:
     'Verknüpfe eure Fotodienste und übernimm ausgewählte Fotos mit eimir. Pro.',
   consent:
-    'Nur ausgewählte Fotos werden in deinen Entwurf kopiert. Auf diesem Gerät können sie bis zu 7 Tage gesichert werden. Beim Speichern des Eintrags sind sie für euch beide sichtbar.',
+    'Nur ausgewählte Fotos werden in deinen Entwurf kopiert. Auf diesem Gerät können sie bis zu 7 Tage gesichert werden. Die Sichtbarkeit richtet sich nach deinem Eintrag.',
   googleConsent:
-    'Nur ausgewählte Fotos werden in deinen geöffneten Entwurf und in den geschützten Server-Zwischenspeicher kopiert. Auf diesem Gerät werden keine dauerhaften Google-Fotokopien angelegt. Nach einem Neustart müssen nicht mehr verfügbare Fotos erneut ausgewählt werden. Erst beim Speichern des Eintrags sind sie für euch beide sichtbar.',
+    'Nur ausgewählte Fotos werden in deinen geöffneten Entwurf und in den geschützten Server-Zwischenspeicher kopiert. Auf diesem Gerät werden keine dauerhaften Google-Fotokopien angelegt. Nach einem Neustart müssen nicht mehr verfügbare Fotos erneut ausgewählt werden. Die Sichtbarkeit richtet sich nach deinem Eintrag.',
   accept: 'Ausgewählte Fotos in meinen Entwurf übernehmen',
   continue: 'Weiter zur Auswahl',
   waiting:
@@ -30,6 +30,18 @@ const photoSources = {
     'Für diese Fotoquelle brauchst du eine Internetverbindung. Dein Entwurf bleibt erhalten.',
   link: 'Eigenen Immich-Dienst verknüpfen',
   linkTitle: 'Dein Immich',
+  setupHelp: 'So verbindest du Immich',
+  setupOpen:
+    'Öffne Immich im Browser und melde dich mit deinem eigenen Konto an.',
+  setupKey:
+    'Öffne Kontoeinstellungen → API-Schlüssel und erstelle einen Schlüssel für eimir.',
+  setupPermissions:
+    'Wähle die unten genannten Leserechte und kopiere den Schlüssel hierher. Du kannst ihn in Immich jederzeit widerrufen.',
+  setupFallback:
+    'Keine Zugangsdaten zur Hand? Schließe diese Auswahl und wähle Fotos direkt auf deinem Gerät.',
+  keyIsNotPassword:
+    'Hier gehört dein Immich-Zugriffsschlüssel hinein, nicht dein Passwort.',
+
   address: 'Adresse deines Immich-Dienstes',
   addressHint: 'Die erreichbare HTTPS-Adresse, unter der du Immich öffnest.',
   key: 'Immich-Zugriffsschlüssel',
@@ -38,7 +50,7 @@ const photoSources = {
   permissions:
     'Benötigt: asset.read, asset.view, asset.download und user.read.',
   privateLink:
-    'Die Verbindung gehört nur zu deinem Konto. Erst gespeicherte Fotos teilst du mit deinem Partner.',
+    'Die Verbindung gehört nur zu deinem Konto. Die Sichtbarkeit gespeicherter Fotos richtet sich nach deinem Eintrag.',
   linkConsent: 'Meinen Immich-Dienst mit meinem Konto verknüpfen',
   connect: 'Verknüpfen',
   connecting: 'Verbindung wird geprüft …',

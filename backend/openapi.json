@@ -393,6 +393,18 @@
             ],
             "title": "Durationseconds"
           },
+          "failureCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Stable validation code for a failed upload; never decoder diagnostics.",
+            "title": "Failurecode"
+          },
           "hasThumbnail": {
             "title": "Hasthumbnail",
             "type": "boolean"
@@ -2556,6 +2568,36 @@
         "title": "DeliveryClass",
         "type": "string"
       },
+      "DevicePushConfiguration": {
+        "properties": {
+          "fcm": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FcmConfiguration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unifiedPush": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UnifiedPushConfiguration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "unifiedPush",
+          "fcm"
+        ],
+        "title": "DevicePushConfiguration",
+        "type": "object"
+      },
       "DiscoverLeadContext": {
         "properties": {
           "type": {
@@ -2643,6 +2685,7 @@
       },
       "EngagementTarget": {
         "enum": [
+          "REMINDER",
           "TRANSFER_EXPORT",
           "TRANSFER_IMPORT",
           "WISH_SELECTION",
@@ -2710,6 +2753,57 @@
         ],
         "title": "ExportStatus",
         "type": "string"
+      },
+      "FcmConfiguration": {
+        "properties": {
+          "androidPackage": {
+            "title": "Androidpackage",
+            "type": "string"
+          },
+          "encryptedPreviewVersion": {
+            "const": 1,
+            "default": 1,
+            "title": "Encryptedpreviewversion",
+            "type": "integer"
+          },
+          "projectId": {
+            "title": "Projectid",
+            "type": "string"
+          },
+          "providerKey": {
+            "title": "Providerkey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerKey",
+          "projectId",
+          "androidPackage"
+        ],
+        "title": "FcmConfiguration",
+        "type": "object"
+      },
+      "FcmPreviewRegistration": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "maxLength": 43,
+            "minLength": 43,
+            "title": "Key",
+            "type": "string"
+          },
+          "version": {
+            "const": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "key"
+        ],
+        "title": "FcmPreviewRegistration",
+        "type": "object"
       },
       "GameMemoryCandidate": {
         "description": "Minimal authorized Memory context required by `Unsere Momente`.",
@@ -3212,6 +3306,18 @@
             "title": "Happenedon",
             "type": "string"
           },
+          "placeId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placeid"
+          },
           "tags": {
             "items": {
               "maxLength": 40,
@@ -3704,6 +3810,57 @@
         "title": "IssuedInvitationView",
         "type": "object"
       },
+      "LinkPreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "maxLength": 2048,
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "LinkPreviewRequest",
+        "type": "object"
+      },
+      "LinkPreviewResult": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "available"
+        ],
+        "title": "LinkPreviewResult",
+        "type": "object"
+      },
       "MagicLinkConsumeRequest": {
         "properties": {
           "deviceName": {
@@ -3941,6 +4098,18 @@
               }
             ],
             "title": "Happenedon"
+          },
+          "placeId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placeid"
           },
           "tags": {
             "items": {
@@ -4673,6 +4842,7 @@
       },
       "NotificationKind": {
         "enum": [
+          "REMINDER_CREATED",
           "TRANSFER_READY",
           "TRANSFER_COMPLETED",
           "TRANSFER_FAILED",
@@ -6472,6 +6642,28 @@
         "title": "PlanUpdate",
         "type": "object"
       },
+      "PlanWishLink": {
+        "additionalProperties": false,
+        "description": "Link one existing open Wish without replacing either resource's content.",
+        "properties": {
+          "wishId": {
+            "format": "uuid",
+            "title": "Wishid",
+            "type": "string"
+          },
+          "wishVersion": {
+            "minimum": 1.0,
+            "title": "Wishversion",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "wishId",
+          "wishVersion"
+        ],
+        "title": "PlanWishLink",
+        "type": "object"
+      },
       "PreferenceCategory": {
         "enum": [
           "FOOD",
@@ -7081,8 +7273,18 @@
       "PushEndpointRegistration": {
         "additionalProperties": false,
         "properties": {
+          "encryptedPreview": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FcmPreviewRegistration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "endpointValue": {
-            "description": "Opaque provider-specific registration value. A Web Push transport can use a compact JSON subscription containing endpoint, keys.p256dh and keys.auth; the configured provider validates its own format. Treat this value as a secret.",
+            "description": "Opaque provider-specific registration value. A Web Push transport can use a compact JSON subscription containing endpoint, keys.p256dh and keys.auth; FCM uses compact JSON containing fid and activationId (canonical UUIDv4). The configured provider validates its own format. Treat this value as a secret.",
             "maxLength": 2048,
             "minLength": 1,
             "title": "Endpointvalue",
@@ -14923,6 +15125,48 @@
           }
         },
         "summary": "Register Own Push Endpoint",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/push-endpoints/configuration": {
+      "get": {
+        "description": "Expose only configured public transport metadata to an authenticated device.",
+        "operationId": "getDevicePushConfiguration",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevicePushConfiguration"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Get Device Push Configuration",
         "tags": [
           "notifications"
         ]
@@ -23440,6 +23684,89 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/link-preview": {
+      "post": {
+        "description": "Resolve only after an explicit preview action; never persist target content.",
+        "operationId": "resolveLinkPreview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkPreviewResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Resolve Link Preview",
+        "tags": [
+          "link-previews"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/membership/leave": {
       "post": {
         "description": "End only the caller's own Membership, never the partner's.\n\nThis route intentionally does not depend on ``Tenant``. Once the first\nrequest commits, the normal tenant dependency correctly stops authorizing\nthis Space; resolving the caller's historical Membership directly is what\nlets a retry return the same safe ended state instead of creating another\nlifecycle.",
@@ -28453,6 +28780,248 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/plans/{planId}/comments": {
+      "get": {
+        "operationId": "listPlanComments",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "title": "Planid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request is syntactically valid but cannot be processed in this form."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "List Plan Comments",
+        "tags": [
+          "comments"
+        ]
+      },
+      "post": {
+        "operationId": "createPlanComment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "title": "Planid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentDetail"
+                }
+              }
+            },
+            "description": "The request identity (`Idempotency-Key`) was already used for an equivalent request. The response returns the original Comment in its current state; no second Comment is created and the partner is not notified again.",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentDetail"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Create Plan Comment",
+        "tags": [
+          "comments"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/plans/{planId}/complete": {
       "post": {
         "operationId": "completePlan",
@@ -28878,6 +29447,116 @@
           }
         },
         "summary": "Unschedule Plan",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/plans/{planId}/wish": {
+      "post": {
+        "operationId": "linkWishToPlan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "title": "Planid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanWishLink"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishToPlanResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Link Wish To Plan",
         "tags": [
           "plans"
         ]

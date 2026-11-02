@@ -19,6 +19,7 @@ import {
   type AppUpdatesAdapter,
 } from '../client/appUpdates';
 import { isDemoModeConfigured } from '../client/demoMode';
+import type { DevicePushController } from '../client/devicePush';
 import {
   isSettingsCategoryId,
   MORE_NOTIFICATIONS_ROUTE,
@@ -28,7 +29,6 @@ import {
   settingsCategoryPath,
 } from '../client/routes';
 import { settingsCategoryDefinition } from '../client/settingsNavigation';
-import type { DevicePushController } from '../client/unifiedPush';
 import { useTranslation } from '../i18n';
 import { AccountSettingsPanel } from './AccountSettingsPanel';
 import {

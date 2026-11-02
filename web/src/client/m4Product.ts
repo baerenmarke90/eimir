@@ -16,6 +16,7 @@ import {
   memoryDetailPath,
   milestoneDetailPath,
   planDetailPath,
+  reminderDetailPath,
   placeDetailPath,
   wishDetailPath,
 } from './routes';
@@ -125,6 +126,8 @@ export function engagementTargetPath(
   if (!targetType || !targetId) return null;
 
   switch (targetType) {
+    case 'REMINDER':
+      return reminderDetailPath(targetId);
     case 'MEMORY':
       return memoryDetailPath(targetId);
     case 'HEART_MOMENT':

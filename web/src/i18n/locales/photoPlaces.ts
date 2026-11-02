@@ -1,4 +1,8 @@
 const photoPlaces = {
+  removeSelection: 'Ortsauswahl entfernen',
+  saveSharedPlace: 'Ort für euch beide speichern',
+  sharedCreateHint:
+    'Der Ort bleibt unter Orte für euch beide sichtbar, auch wenn du diesen Eintrag nicht speicherst.',
   category: 'Erinnerungen',
   categoryIntro: 'Wie Orte aus deinen Fotos erhalten bleiben.',
   setting: 'Orte aus Fotos',

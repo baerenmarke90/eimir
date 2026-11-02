@@ -55,6 +55,10 @@ import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { DestinationIcon } from './DestinationIcon';
 import { type MemoryTag, MemoryTagChoices } from './MemoryTagChoices';
+import {
+  MomentPlaceField,
+  type MomentPlaceSelection,
+} from './MomentPlaceField';
 import { PageHeader } from './PageHeader';
 import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { ProblemState } from './ProblemState';
@@ -98,6 +102,8 @@ export function MemoryCreatePage({
   );
   const [title, setTitle] = useState(initialTitle);
   const [body, setBody] = useState('');
+  const [place, setPlace] = useState<MomentPlaceSelection>();
+  const [placePending, setPlacePending] = useState(false);
   const [tags, setTags] = useState<MemoryTag[]>([]);
   const [tagDraftDirty, setTagDraftDirty] = useState(false);
   const [tagDraftText, setTagDraftText] = useState('');
@@ -255,6 +261,7 @@ export function MemoryCreatePage({
       body ||
       tags.length ||
       tagDraftDirty ||
+      place ||
       attachments.items.length ||
       happenedOn !== initialDate,
   );
@@ -270,6 +277,7 @@ export function MemoryCreatePage({
       tags,
       tagDraft: tagDraftText,
       happenedOn,
+      place,
       files: attachments.items.map(
         ({ file, attachmentId, status, isSensitive }) => ({
           file,
@@ -283,7 +291,7 @@ export function MemoryCreatePage({
       attempt: null,
       partial: null,
     }),
-    [title, body, tags, tagDraftText, happenedOn, attachments.items],
+    [title, body, tags, tagDraftText, happenedOn, place, attachments.items],
   );
   const diaryDraft = useMemoryDiaryDraft({
     apiBaseUrl,
@@ -369,6 +377,7 @@ export function MemoryCreatePage({
       if (!owner.current.active || scope !== recoveryScopeRef.current) return;
       setTitle(draft.title);
       setBody(draft.body);
+      setPlace(draft.place);
       setTags(draft.tags);
       setTagDraftText(draft.tagDraft ?? '');
       setTagDraftDirty(Boolean(draft.tagDraft));
@@ -552,6 +561,7 @@ export function MemoryCreatePage({
       diaryDraft.status === 'conflict' ||
       owner.current.pending ||
       uncertain ||
+      placePending ||
       attachments.hasPending ||
       hasBlockingPhotoFailure
     )
@@ -622,6 +632,7 @@ export function MemoryCreatePage({
           experienceKind,
           tags: [...(submittedTags ?? tags)],
           happenedOn: submittedDate,
+          ...(place ? { placeId: place.id } : {}),
         },
         [...attachments.readyIds],
       ),
@@ -912,9 +923,6 @@ export function MemoryCreatePage({
                     {t('taskBoundary.invalidDate')}
                   </p>
                 ) : null}
-                {!experienceKind ? (
-                  <p className="field-help">{t('memory.dateHelp')}</p>
-                ) : null}
               </div>
             ) : null}
 
@@ -940,6 +948,22 @@ export function MemoryCreatePage({
                 />
               </div>
             ) : null}
+
+            <MomentPlaceField
+              apiBaseUrl={apiBaseUrl}
+              accessToken={accessToken}
+              accountId={accountId}
+              spaceId={spaceId}
+              value={place}
+              onChange={setPlace}
+              disabled={
+                pending ||
+                uncertain ||
+                Boolean(partial) ||
+                Boolean(diaryDraft.recovery)
+              }
+              onPendingChange={setPlacePending}
+            />
 
             {!experienceKind ? (
               <details
@@ -1016,6 +1040,7 @@ export function MemoryCreatePage({
                 diaryDraft.status === 'conflict' ||
                 pending ||
                 uncertain ||
+                placePending ||
                 attachments.hasPending ||
                 hasBlockingPhotoFailure
               }

@@ -30,6 +30,7 @@ from eimir.api.v1 import (
     heart_moments,
     instance,
     invitations,
+    link_previews,
     memories,
     milestones,
     notification_preferences,
@@ -88,6 +89,7 @@ normal_router.include_router(memories.router)
 normal_router.include_router(milestones.router)
 normal_router.include_router(heart_moments.router)
 normal_router.include_router(comments.router)
+normal_router.include_router(link_previews.router)
 normal_router.include_router(daily_checkins.router)
 normal_router.include_router(daily_quote.router)
 normal_router.include_router(people.router)

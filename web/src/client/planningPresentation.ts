@@ -5,7 +5,7 @@ import {
   formatCompactCalendarDate,
   formatCompactWeekdayDate,
 } from './formatRecency';
-import { resolvedLocale } from '../i18n';
+import { i18n, resolvedLocale } from '../i18n';
 
 /**
  * Shared Planen product-reference (#859) status/date pill presentation for
@@ -50,19 +50,21 @@ export function planScheduleLabel(
       }).format(value);
     const startDate = formatCompactWeekdayDate(plan.plannedStart, locale);
     const startTime = formatTime(plan.plannedStart);
-    if (!plan.plannedEnd) return `${startDate} · ${startTime}`;
+    const withUnit = (time: string) =>
+      i18n.t('m5s3.common.timeWithUnit', { time, lng: locale });
+    if (!plan.plannedEnd) return `${startDate} · ${withUnit(startTime)}`;
 
     const sameDay =
       plan.plannedStart.getFullYear() === plan.plannedEnd.getFullYear() &&
       plan.plannedStart.getMonth() === plan.plannedEnd.getMonth() &&
       plan.plannedStart.getDate() === plan.plannedEnd.getDate();
     if (sameDay) {
-      return `${startDate} · ${startTime}–${formatTime(plan.plannedEnd)}`;
+      return `${startDate} · ${withUnit(`${startTime}–${formatTime(plan.plannedEnd)}`)}`;
     }
-    return `${startDate} · ${startTime} – ${formatCompactWeekdayDate(
+    return `${startDate} · ${withUnit(startTime)} – ${formatCompactWeekdayDate(
       plan.plannedEnd,
       locale,
-    )} · ${formatTime(plan.plannedEnd)}`;
+    )} · ${withUnit(formatTime(plan.plannedEnd))}`;
   }
   return null;
 }

@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { mediaCacheScopeForClient } from '../client/authorizedMediaCache';
 import { createReferenceApis } from '../client/referenceFlow';
-import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { planPhotos } from '../client/usePlanPhotoDrafts';
 import { GalleryExpandAction, MediaGallery } from './MediaGallery';
 import './PlanPhotoGallery.css';
@@ -27,9 +27,16 @@ export function PlanPhotoGallery({
     (id: string, signal?: AbortSignal) => {
       if (!apiBaseUrl || !accessToken)
         return Promise.reject(new Error('Plan media API unavailable'));
-      return loadAuthorizedStoryImage(apis, spaceId, 'PLAN', plan.id, id, {
-        signal,
-      });
+      return loadAuthorizedStoryImageResource(
+        apis,
+        spaceId,
+        'PLAN',
+        plan.id,
+        id,
+        {
+          signal,
+        },
+      );
     },
     [apis, spaceId, plan.id, apiBaseUrl, accessToken],
   );

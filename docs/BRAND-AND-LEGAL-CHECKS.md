@@ -80,7 +80,7 @@ Repository documentation of a target domain does not prove registration, ownersh
 
 - **Visible app title target:** `eimir.`.
 - **Claim:** "Euer gemeinsamer Ort."
-- **Android application ID:** `de.sidebyside.app` remains a compatibility identifier where required by the existing Capacitor packaging/store continuity contract.
+- **Android application ID:** `de.eimir.app`, selected by the Product Owner for the fresh eimir. installation in #565. The former package is a separate installation; server Account data remains on the existing instance.
 - **Android code namespace:** `de.eimir.app`.
 
 Store-name availability, listing ownership, signing configuration, and publication state remain external checks. Android/store delivery is not automatically part of the first Web/Self-Hosted launch channel.

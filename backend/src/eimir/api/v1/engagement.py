@@ -15,8 +15,7 @@ from eimir.api.authors import resolve_author_summaries
 from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary
-from eimir.authorization import PrivacyClass, readable
-from eimir.engagement import service, thinking
+from eimir.engagement import presentation, service, thinking
 from eimir.engagement.models import (
     Activity,
     ActivityKind,
@@ -357,37 +356,7 @@ def _resolve_target_titles(
     authorization: Authorization,
     targets: set[tuple[EngagementTarget, UUID]],
 ) -> dict[tuple[EngagementTarget, UUID], str]:
-    if not targets:
-        return {}
-
-    by_type: dict[EngagementTarget, set[UUID]] = {}
-    for target_type, target_id in targets:
-        by_type.setdefault(target_type, set()).add(target_id)
-
-    titles: dict[tuple[EngagementTarget, UUID], str] = {}
-    for target_type, ids in by_type.items():
-        if target_type in {EngagementTarget.TRANSFER_EXPORT, EngagementTarget.TRANSFER_IMPORT}:
-            continue  # Account-private jobs have no relationship-content title.
-        model = service._TARGET_MODELS.get(target_type)
-        if model is None:
-            continue
-        statement = readable(model, authorization).where(
-            model.id.in_(ids),
-            model.privacy_class == PrivacyClass.SPACE_SHARED.value,
-        )
-        rows = session.execute(statement).scalars().all()
-        for row in rows:
-            title: str | None = None
-            if hasattr(row, "payload") and row.payload is not None:
-                if target_type is EngagementTarget.HEART_MOMENT:
-                    title = getattr(row.payload, "text", None)
-                elif target_type is EngagementTarget.PLACE:
-                    title = getattr(row.payload, "name", None)
-                else:
-                    title = getattr(row.payload, "title", None)
-            if title:
-                titles[(target_type, row.id)] = title
-    return titles
+    return presentation.target_titles(session, authorization, targets)
 
 
 def _activity_item(

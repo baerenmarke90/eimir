@@ -37,7 +37,7 @@ vi.mock('@capacitor/browser', () => ({
 describe('OIDC callback parsing and Capacitor integration', () => {
   it('parses valid OIDC callback URL matching expected state', () => {
     const validUrl =
-      'de.sidebyside.app://recent-authentication/oidc?code=auth-code-123&state=expected-state-456';
+      'de.eimir.app://recent-authentication/oidc?code=auth-code-123&state=expected-state-456';
     const result = parseOidcCallbackUrl(validUrl, 'expected-state-456');
     expect(result).toEqual({
       code: 'auth-code-123',
@@ -47,7 +47,7 @@ describe('OIDC callback parsing and Capacitor integration', () => {
 
   it('rejects callback with state mismatch', () => {
     const mismatchUrl =
-      'de.sidebyside.app://recent-authentication/oidc?code=auth-code-123&state=wrong-state';
+      'de.eimir.app://recent-authentication/oidc?code=auth-code-123&state=wrong-state';
     const result = parseOidcCallbackUrl(mismatchUrl, 'expected-state-456');
     expect(result).toBeNull();
   });
@@ -58,13 +58,13 @@ describe('OIDC callback parsing and Capacitor integration', () => {
     expect(parseOidcCallbackUrl(wrongScheme, 'expected-state-456')).toBeNull();
 
     const wrongHost =
-      'de.sidebyside.app://other-host/oidc?code=123&state=expected-state-456';
+      'de.eimir.app://other-host/oidc?code=123&state=expected-state-456';
     expect(parseOidcCallbackUrl(wrongHost, 'expected-state-456')).toBeNull();
   });
 
   it('throws error when provider returns error parameter', () => {
     const errorUrl =
-      'de.sidebyside.app://recent-authentication/oidc?error=access_denied&state=expected-state-456';
+      'de.eimir.app://recent-authentication/oidc?error=access_denied&state=expected-state-456';
     expect(() =>
       parseOidcCallbackUrl(errorUrl, 'expected-state-456'),
     ).toThrowError(/The identity provider rejected reauthentication/);
@@ -72,7 +72,7 @@ describe('OIDC callback parsing and Capacitor integration', () => {
 
   it('resolves callback from App.getLaunchUrl cold start', async () => {
     const launchUrl =
-      'de.sidebyside.app://recent-authentication/oidc?code=cold-start-code&state=cold-state';
+      'de.eimir.app://recent-authentication/oidc?code=cold-start-code&state=cold-state';
     vi.mocked(App.getLaunchUrl).mockResolvedValueOnce({ url: launchUrl });
     vi.mocked(App.addListener).mockResolvedValueOnce({ remove: vi.fn() });
 
@@ -99,7 +99,7 @@ describe('OIDC callback parsing and Capacitor integration', () => {
 
     // Simulate intent firing
     listenerCallback?.({
-      url: 'de.sidebyside.app://recent-authentication/oidc?code=active-code&state=active-state',
+      url: 'de.eimir.app://recent-authentication/oidc?code=active-code&state=active-state',
     });
 
     const result = await promise;

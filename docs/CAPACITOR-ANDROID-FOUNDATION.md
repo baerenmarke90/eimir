@@ -22,7 +22,7 @@ web/ (Vite + TypeScript)
 
 ### Key Configuration
 - **Capacitor Configuration**: `web/capacitor.config.ts`
-  - `appId`: `'de.sidebyside.app'` (canonical released app ID)
+  - `appId`: `'de.eimir.app'` (canonical released app ID)
   - `appName`: `'eimir.'`
   - `webDir`: `'dist'`
   - `android.path`: `'../android'`
@@ -37,7 +37,7 @@ web/ (Vite + TypeScript)
   - The Demo reset timer is independent of Demo mode. Set `VITE_EIMIR_DEMO_RESET_TIMER` and `VITE_EIMIR_DEMO_RESET_INTERVAL` to match the backend deployment (`EIMIR_DEMO_MODE_RESET_TIMER`, `EIMIR_DEMO_MODE_RESET_INTERVAL`); the build does not infer an active reset timer from the API hostname. The build fails on non-boolean flags, on a reset timer without Demo mode, and on an interval the backend would reject (`30m`/`6h`/`1d` form, 5m to 7d).
   - Canonical `VITE_EIMIR_*` values take precedence over legacy `VITE_SBS_*` values. The resolved values are passed to Vite explicitly, so they also take precedence over any local `web/.env*` file.
   - The Web-demo launch link (`VITE_EIMIR_DEMO_URL`) is always cleared for the native bundle, because following it would leave the app for the system browser.
-  - Demo selection happens in the Web bundle, so `assembleDebug`, `assembleRelease`, and `bundleRelease` of one synchronized bundle behave identically. All variants share the `de.sidebyside.app` application ID (debug adds `.debug`); a Demo bundle should therefore be distributed as a debug build or through a separate channel rather than through the production release workflow.
+  - Demo selection happens in the Web bundle, so `assembleDebug`, `assembleRelease`, and `bundleRelease` of one synchronized bundle behave identically. All variants share the `de.eimir.app` application ID (debug adds `.debug`); a Demo bundle should therefore be distributed as a debug build or through a separate channel rather than through the production release workflow.
 - **Native HTTP Transport (`CapacitorHttp`)**:
   - `CapacitorHttp.enabled: true` patches `window.fetch` and `window.XMLHttpRequest` in the native WebView container.
   - Requests are routed through the native Android network stack, preserving `Authorization: Bearer ...` headers and bypassing WebView CORS restrictions against the remote API origin.
@@ -85,7 +85,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
     ```
   - Upon backend authentication completion, the identity provider redirects to:
     ```
-    de.sidebyside.app://recent-authentication/oidc?code=...&state=...
+    de.eimir.app://recent-authentication/oidc?code=...&state=...
     ```
   - The Android app receives this via an `intent-filter` registered in `android/app/src/main/AndroidManifest.xml`.
   - The web application captures the incoming deep link using both:
@@ -111,8 +111,9 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 
 ## 5. Application ID & Namespace Configuration
 
-- **Release Application ID**: `de.sidebyside.app` (immutable historical identifier required for existing releases and keystores).
-- **Debug Application ID**: `de.sidebyside.app.debug` (ensures parallel installation alongside release builds via `applicationIdSuffix = ".debug"` in `android/app/build.gradle`).
+- **Release Application ID**: `de.eimir.app` (fresh eimir. installation selected by the Product Owner in #565).
+- **Debug Application ID**: `de.eimir.app.debug` (ensures parallel installation alongside release builds via `applicationIdSuffix = ".debug"` in `android/app/build.gradle`).
+- The former Android package is a separate installation. Log in to the existing server Account; no local credentials are copied and the old app is not uninstalled automatically. Subsequent updates within `de.eimir.app` must preserve its sandbox and signing identity.
 - **Android Package / Namespace**: `de.eimir.app` (modern namespace used for generated R classes and `MainActivity.java` at `android/app/src/main/java/de/eimir/app/MainActivity.java`).
 - **SDK Compatibility**:
   - `minSdkVersion = 26` (Android 8.0 Oreo, preserved from the retired client's requirement; not lowered to 24).
@@ -201,9 +202,9 @@ app/build/outputs/apk/debug/app-debug.apk
 | `VITE_EIMIR_API_BASE_URL is missing or invalid` | Build or runtime did not supply remote API base. | Provide valid URL `VITE_EIMIR_API_BASE_URL="https://..."` during `cap:build:web`. |
 | Java compiler `invalid source release: 21` | System default Gradle Java is older than Java 21 (e.g., Java 17 in `~/.gradle/gradle.properties`). | Point Gradle to Java 21: `-Dorg.gradle.java.home="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"` or update `gradle.properties`. |
 | Blank screen on app start | Web bundle assets missing from assets directory. | Run `npm run cap:build:web && npm run cap:sync` from `web/`. |
-| Deep link doesn't trigger app | AndroidManifest intent-filter missing scheme/host. | Verify `aapt dump xmltree ... AndroidManifest.xml` contains scheme `de.sidebyside.app`, host `recent-authentication`, path `/oidc`. |
+| Deep link doesn't trigger app | AndroidManifest intent-filter missing scheme/host. | Verify `aapt dump xmltree ... AndroidManifest.xml` contains scheme `de.eimir.app`, host `recent-authentication`, path `/oidc`. |
 | API call CORS error in native WebView | `CapacitorHttp` is disabled or not synced. | Verify `plugins.CapacitorHttp.enabled = true` in `capacitor.config.ts` and run `npm run cap:sync`. |
-| Chrome DevTools WebView debugging | Inspecting running Capacitor WebView on device/emulator. | Connect device via USB, open `chrome://inspect/#devices`, select `de.sidebyside.app.debug`. |
+| Chrome DevTools WebView debugging | Inspecting running Capacitor WebView on device/emulator. | Connect device via USB, open `chrome://inspect/#devices`, select `de.eimir.app.debug`. |
 
 ---
 
@@ -219,7 +220,7 @@ app/build/outputs/apk/debug/app-debug.apk
 Dated plans, gate reviews, audits, and evidence records written before `#1009` may describe a native Kotlin/Jetpack Compose client, Kotlin Multiplatform, SwiftUI, Room/Keystore read caches, or "Web/Android parity". They are historical records of what was true or planned at the time and are **not** current guidance; ADR 0011 governs. In particular:
 
   - account-deletion, Space-offboarding, and logout rules that name an Android cache are satisfied by the Web client's session and read-cache clearing inside the WebView. The wrapper keeps no native product-data cache; the encrypted current-session credential slot described below is cleared through that same session facade;
-- the retired native read cache (Room database plus Android Keystore key) held only a non-authoritative copy of server data. Because the stable application ID preserves the old sandbox across an in-place update, `LegacyNativeDataCleanup` deletes that database, its Space preference and its Keystore key on wrapper startup without reading or migrating their contents, and stops running once all three removals have succeeded (completion marker). Server data continuity and store-upgrade continuity rest on the backend, `de.sidebyside.app` and the signing key.
+- the retired native read cache (Room database plus Android Keystore key) held only a non-authoritative copy of server data. Because the stable application ID preserves the old sandbox across an in-place update, `LegacyNativeDataCleanup` deletes that database, its Space preference and its Keystore key on wrapper startup without reading or migrating their contents, and stops running once all three removals have succeeded (completion marker). Server data continuity and store-upgrade continuity rest on the backend, `de.eimir.app` and the signing key.
 
 ### Acceptance rule
 
@@ -273,7 +274,7 @@ not a claim that every OEM/provider has been physically accepted.
 | PWA Service Worker | Disabled in native | Prevents conflicting caching layers inside WebView container. |
 | Brand & Icon Assets | Reused directly | Android launcher icons and splash drawables generated directly from `web/public/pwa-512.png` and semantic tokens. |
 | Recent Auth Flow | Extended for native | Reused cryptographic state verification while adapting transport to `@capacitor/browser` and native deep-linking. |
-| Project Identity Guard | Reused | Verified 0 `MUST_RENAME` findings; `de.sidebyside.app` protected as historical immutable release identifier. |
+| Project Identity Guard | Reused | Verified 0 `MUST_RENAME` findings; `de.eimir.app` protected as historical immutable release identifier. |
 
 ---
 

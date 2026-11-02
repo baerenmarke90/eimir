@@ -14,14 +14,116 @@ from pydantic import SecretStr
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
+from eimir.auth import sessions
 from eimir.config import Settings
-from eimir.engagement import push, unified_push
-from eimir.engagement.models import PushEndpoint, PushEndpointSecret
+from eimir.engagement import fcm_push, push, unified_push
+from eimir.engagement.models import PushEndpoint, PushEndpointSecret, PushPreviewSecret
+from eimir.identity.models import DeviceSession
 from tests.conftest import auth, make_account, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
 
 BASE = "/api/v1/push-endpoints"
+
+
+@pytest.fixture
+def fcm_provider(monkeypatch: pytest.MonkeyPatch):  # type: ignore[no-untyped-def]
+    # Registration/configuration never needs an OAuth request or a real key.
+    monkeypatch.setattr(fcm_push, "_load_credentials", lambda _: object())
+    provider = fcm_push.FcmPushProvider(
+        Settings(
+            push_fcm_project_id="eimir-test",
+            push_fcm_android_package="de.eimir.app",
+            push_fcm_credentials_file="/unused/test-fixture.json",
+        )
+    )
+    yield provider
+    provider.close()
+
+
+def test_device_configuration_is_authenticated_private_and_truthful(
+    client, session: Session, fcm_provider
+) -> None:  # type: ignore[no-untyped-def]
+    account = make_account(session, "Anna")
+    token = sign_in(session, account)
+    url = f"{BASE}/configuration"
+    assert client.get(url).status_code == 401
+    disabled = client.get(url, headers=auth(token))
+    assert disabled.status_code == 503
+    assert disabled.json()["code"] == "PUSH_TRANSPORT_UNAVAILABLE"
+    assert disabled.headers["Cache-Control"] == "private, no-store"
+
+    push.providers.register("fcm", fcm_provider)
+    configured = client.get(url, headers=auth(token))
+    assert configured.status_code == 200
+    assert configured.headers["Cache-Control"] == "private, no-store"
+    assert configured.json() == {
+        "unifiedPush": None,
+        "fcm": {
+            "providerKey": "fcm",
+            "projectId": "eimir-test",
+            "androidPackage": "de.eimir.app",
+            "encryptedPreviewVersion": 1,
+        },
+    }
+    assert "test-fixture" not in configured.text
+    # The old endpoint does not suddenly report a UnifiedPush provider.
+    assert client.get(f"{BASE}/unifiedpush-configuration", headers=auth(token)).status_code == 503
+
+
+def test_fcm_activation_and_target_replacement_preserve_owned_secret_identity(
+    client, session: Session, fcm_provider, encryption
+) -> None:  # type: ignore[no-untyped-def]
+    encryption.apply("required")
+    anna = make_account(session, "Anna")
+    ben = make_account(session, "Ben")
+    token = sign_in(session, anna)
+    other_token = sign_in(session, ben)
+    push.providers.register("fcm", fcm_provider)
+    activation = str(uuid4())
+    fid = "c" + "a" * 21
+
+    def register(target: str, activation_id: str):  # type: ignore[no-untyped-def]
+        value = json.dumps({"fid": target, "activationId": activation_id}, separators=(",", ":"))
+        result = client.post(
+            BASE, json={"providerKey": "fcm", "endpointValue": value}, headers=auth(token)
+        )
+        assert result.status_code == 200
+        assert target not in result.text
+        assert activation_id not in result.text
+        return result.json()["id"], value
+
+    first_id, first_value = register(fid, activation)
+    duplicate_id, _ = register(fid, activation)
+    assert duplicate_id == first_id
+    reversed_value = json.dumps({"activationId": activation, "fid": fid}, separators=(",", ":"))
+    reordered = client.post(
+        BASE, json={"providerKey": "fcm", "endpointValue": reversed_value}, headers=auth(token)
+    )
+    assert reordered.json()["id"] == first_id
+    rotated_id, _ = register("d" + "b" * 21, activation)
+    reactivated_id, _ = register(fid, str(uuid4()))
+    assert len({first_id, rotated_id, reactivated_id}) == 3
+
+    foreign = client.delete(f"{BASE}/{first_id}", headers=auth(other_token))
+    assert foreign.status_code == 404
+    assert client.delete(f"{BASE}/{first_id}", headers=auth(token)).status_code == 204
+    session.flush()
+    session.expire_all()
+    first = session.execute(select(PushEndpoint).where(PushEndpoint.id == first_id)).scalar_one()
+    assert first.disabled_at is not None
+    secret = session.execute(
+        select(PushEndpointSecret).where(PushEndpointSecret.push_endpoint_id == first_id)
+    ).scalar_one()
+    assert json.loads(secret.payload.value) == json.loads(first_value)
+    stored, version = session.execute(
+        text("SELECT payload::text, crypto_version FROM push_endpoint_secrets WHERE id = :id"),
+        {"id": secret.id},
+    ).one()
+    assert fid not in stored and activation not in stored
+    assert version == 2
+    rows = session.execute(select(PushEndpoint)).scalars().all()
+    assert sum(row.disabled_at is None for row in rows) == 2
 
 
 class FakeProvider:
@@ -88,7 +190,9 @@ def test_registration_requires_auth_and_configured_valid_provider(client, sessio
     assert session.execute(select(PushEndpoint)).scalars().all() == []
 
 
-def test_unified_push_public_key_requires_auth_and_configuration(client, session: Session) -> None:  # type: ignore[no-untyped-def]
+def test_unified_push_public_key_requires_auth_and_configuration(
+    client, session: Session, fcm_provider
+) -> None:  # type: ignore[no-untyped-def]
     account = make_account(session, "Anna")
     token = sign_in(session, account)
     url = f"{BASE}/unifiedpush-configuration"
@@ -114,6 +218,12 @@ def test_unified_push_public_key_requires_auth_and_configuration(client, session
         "notificationReferenceVersion": 1,
     }
     assert private_key.decode() not in response.text
+    unified_only = client.get(f"{BASE}/configuration", headers=auth(token))
+    assert unified_only.json() == {"unifiedPush": response.json(), "fcm": None}
+    push.providers.register("fcm", fcm_provider)
+    both = client.get(f"{BASE}/configuration", headers=auth(token))
+    assert both.json()["unifiedPush"] == response.json()
+    assert both.json()["fcm"]["providerKey"] == "fcm"
 
     public = (
         ec.generate_private_key(ec.SECP256R1())
@@ -287,3 +397,53 @@ def test_registration_caps_active_endpoints_per_account(client, session: Session
     assert capped.status_code == 409
     assert capped.json()["code"] == "PUSH_ENDPOINT_LIMIT_REACHED"
     assert len(session.execute(select(PushEndpoint)).scalars().all()) == push.MAX_ACTIVE_ENDPOINTS
+
+
+def test_preview_registration_is_owned_private_optional_and_legacy_compatible(
+    client, session: Session, fcm_provider, encryption
+):
+    encryption.apply("required")
+    push.providers.register("fcm", fcm_provider)
+    account = make_account(session, "Preview owner")
+    foreign = make_account(session, "Another account")
+    headers = auth(sign_in(session, account))
+    foreign_headers = auth(sign_in(session, foreign))
+    key = base64.urlsafe_b64encode(bytes(range(32))).decode().rstrip("=")
+    endpoint = json.dumps(
+        {"fid": "c" + "a" * 21, "activationId": str(uuid4())}, separators=(",", ":")
+    )
+    body = {
+        "providerKey": "fcm",
+        "endpointValue": endpoint,
+        "encryptedPreview": {"version": 1, "key": key},
+    }
+    response = client.post(BASE, headers=headers, json=body)
+    assert response.status_code == 200
+    assert key not in response.text
+    endpoint_id = response.json()["id"]
+    preview = session.scalar(select(PushPreviewSecret))
+    assert str(preview.push_endpoint_id) == endpoint_id and preview.payload.key == key
+    assert preview.crypto_version == 2
+    original_family = preview.device_session_id
+    sessions.revoke(session.get(DeviceSession, original_family))
+    session.flush()
+    headers = auth(sign_in(session, account))
+    rebound = client.post(BASE, headers=headers, json=body)
+    assert rebound.status_code == 200 and rebound.json()["id"] == endpoint_id
+    assert session.scalar(select(PushPreviewSecret)).device_session_id != original_family
+    # A rollback worker still reads the exact pre-preview registration shape.
+    assert session.scalar(select(PushEndpointSecret)).payload.value == endpoint
+    assert client.delete(f"{BASE}/{endpoint_id}", headers=foreign_headers).status_code == 404
+    assert session.scalar(select(PushPreviewSecret)) is not None
+    legacy = client.post(
+        BASE, headers=headers, json={"providerKey": "fcm", "endpointValue": endpoint}
+    )
+    assert legacy.status_code == 200 and legacy.json()["id"] == endpoint_id
+    assert session.scalar(select(PushPreviewSecret)) is None
+    assert client.post(BASE, headers=headers, json=body).status_code == 200
+    invalid = client.post(
+        BASE, headers=headers, json={**body, "encryptedPreview": {"version": 2, "key": key}}
+    )
+    assert invalid.status_code == 422 and key not in invalid.text
+    assert client.delete(f"{BASE}/{endpoint_id}", headers=headers).status_code == 204
+    assert session.scalar(select(PushPreviewSecret)) is None

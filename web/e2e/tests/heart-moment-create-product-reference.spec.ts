@@ -1,3 +1,5 @@
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { captureScreenshot } from '../support/storyTimelineFixture';
 import { readFile, writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -83,6 +85,7 @@ async function installApiMocks(page: Page): Promise<string[]> {
   };
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
     if (await fulfillEmptyMomentPlaces(route)) return;
     const request = route.request();
     const method = request.method();
@@ -429,10 +432,7 @@ async function openVisibilityJourney(page: Page, failSecond = true) {
     /\/story\/heart-moments\/44444444-4444-4444-8444-444444444444$/,
   );
   await expect(
-    page.getByRole('heading', {
-      name: 'A quiet afternoon together',
-      exact: true,
-    }),
+    page.getByText('A quiet afternoon together', { exact: true }),
   ).toBeVisible();
   let releaseFirst = () => {};
   const firstGate = new Promise<void>((resolve) => {
@@ -529,17 +529,11 @@ for (const viewport of [
       .click();
     await expect(page).toHaveURL(/\/more$/);
     await expect(
-      page.getByRole('heading', {
-        name: 'A quiet afternoon together',
-        exact: true,
-      }),
+      page.getByText('A quiet afternoon together', { exact: true }),
     ).toHaveCount(0);
     await page.goBack();
     await expect(
-      page.getByRole('heading', {
-        name: 'A quiet afternoon together',
-        exact: true,
-      }),
+      page.getByText('A quiet afternoon together', { exact: true }),
     ).toBeVisible();
     const prefix = `heart-visibility-${viewport.width}-${viewport.theme}${viewport.large ? '-large' : ''}`;
     await writeFile(
@@ -608,10 +602,7 @@ for (const viewport of [
       .click();
     await expect(page).toHaveURL(/\/more$/);
     await expect(
-      page.getByRole('heading', {
-        name: 'A quiet afternoon together',
-        exact: true,
-      }),
+      page.getByText('A quiet afternoon together', { exact: true }),
     ).toHaveCount(0);
     await page.goBack();
     await expect(makePrivate).toBeEnabled();
@@ -668,10 +659,7 @@ for (const theme of ['light', 'dark'] as const) {
       .click();
     await expect(page).toHaveURL(/\/more$/);
     await expect(
-      page.getByRole('heading', {
-        name: 'A quiet afternoon together',
-        exact: true,
-      }),
+      page.getByText('A quiet afternoon together', { exact: true }),
     ).toHaveCount(0);
     await page.goBack();
     await expect(action).toBeEnabled();
@@ -1003,7 +991,7 @@ test('custom tag-only Heart Moment survives create, reload, edit and removal (#1
   );
   await expect(
     page.getByRole('heading', {
-      name: storyProducts.heartMomentProduct.untitled,
+      name: storyProducts.heartMomentProduct.detailEyebrow,
     }),
   ).toBeVisible();
   await expect(page.getByText('Ostsee', { exact: true })).toBeVisible();
@@ -1078,7 +1066,7 @@ test('photo-only Heart Moment saves without text and opens its photo (#509)', as
   );
   await expect(
     page.getByRole('heading', {
-      name: storyProducts.heartMomentProduct.untitled,
+      name: storyProducts.heartMomentProduct.detailEyebrow,
     }),
   ).toBeVisible();
   const savedPhoto = page.locator('.media-gallery-thumb-content');
@@ -1170,7 +1158,7 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
     );
     await expect(
       page.getByRole('heading', {
-        name: storyProducts.heartMomentProduct.untitled,
+        name: storyProducts.heartMomentProduct.detailEyebrow,
       }),
     ).toBeVisible();
     await expect(page.locator('.comments-panel .ui-state')).toHaveCount(0);
@@ -1183,3 +1171,74 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
     await context.close();
   }
 });
+
+for (const visibility of ['SHARED', 'PRIVATE'] as const) {
+  test(`capture Place follows HeartMoment visibility (${visibility})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+    await openHeartMomentCreate(page);
+    const copy = (await import('../../src/i18n/locales/photoPlaces')).default;
+    const destination = {
+      id: '66666666-6666-4666-8666-666666666666',
+      spaceId: SPACE_ID,
+      name: 'Unser Café',
+      address: 'Market Square 1',
+      createdBy: ACCOUNT_ID,
+      creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+      version: 1,
+      capabilities: { canEdit: true, canDelete: true },
+    };
+    await page.route(
+      new RegExp(`/spaces/${SPACE_ID}/places(?:\\?.*)?$`),
+      (route) =>
+        route.fulfill({
+          json: { items: [destination], nextCursor: null, hasMore: false },
+        }),
+    );
+    await page.getByRole('button', { name: copy.add, exact: true }).click();
+    await page
+      .getByRole('dialog', { name: copy.add })
+      .getByRole('button', { name: /Unser Café/ })
+      .click();
+    await page
+      .getByLabel(storyProducts.heartMomentProduct.textLabel, { exact: true })
+      .fill('A lovely moment.');
+    if (visibility === 'PRIVATE') {
+      await page
+        .getByRole('radio', {
+          name: storyProducts.heartMomentProduct.visibilityPrivate,
+          exact: true,
+        })
+        .check();
+      await expect(
+        page.getByRole('button', { name: destination.name, exact: true }),
+      ).toHaveCount(0);
+    }
+    await captureScreenshot(
+      page,
+      testInfo,
+      `1581-heart-place-${visibility}.png`,
+      { fullPage: true },
+    );
+    const request = page.waitForRequest(
+      (r) =>
+        r.method() === 'POST' &&
+        new URL(r.url()).pathname.endsWith('/heart-moments'),
+    );
+    await page
+      .getByRole('button', {
+        name: storyProducts.heartMomentProduct.save,
+        exact: true,
+      })
+      .click();
+    const payload = (await request).postDataJSON();
+    expect(payload.visibility).toBe(visibility);
+    if (visibility === 'SHARED') expect(payload.placeId).toBe(destination.id);
+    else expect(payload).not.toHaveProperty('placeId');
+    await expect(page).toHaveURL(/\/story\/heart-moments\/[a-f0-9-]+$/);
+  });
+}

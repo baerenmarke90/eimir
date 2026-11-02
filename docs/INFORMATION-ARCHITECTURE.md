@@ -164,6 +164,7 @@ Links. IDs are opaque, stable identifiers.
 | Open wish | `/plan/wishes/:wishId` |
 | Plans | `/plan/plans` |
 | Open plan | `/plan/plans/:planId` |
+| Open an authorized reminder | `/plan/reminders/:reminderId` |
 | Shopping reserved for later domain | `/plan/shopping` |
 | Games hub (Spielen, entry under Mehr) | `/games` |
 | More | `/more` |

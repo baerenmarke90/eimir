@@ -5,6 +5,8 @@ Cloud/Managed, Self-Hosted, Arcane and the development database now share the
 repository-root compose.yaml. These tests prove that the ``cloud`` profile keeps
 its intentionally different topology and immutable-image contract without a
 second deployment manifest.
+The optional FCM fragment may only add its reviewed environment and secret mount
+to the existing API/worker processes; it cannot define independent topology.
 """
 
 from __future__ import annotations
@@ -20,6 +22,30 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 COMPOSE = ROOT / "compose.yaml"
+FCM_FRAGMENT = ROOT / "deploy/push-fcm.compose.yaml"
+FCM_FRAGMENT_CONTRACT = """\
+x-fcm-runtime: &fcm-runtime
+  environment:
+    EIMIR_PUSH_FCM_PROJECT_ID: "${EIMIR_PUSH_FCM_PROJECT_ID:?Set the operator Firebase project ID}"
+    EIMIR_PUSH_FCM_ANDROID_PACKAGE: "${EIMIR_PUSH_FCM_ANDROID_PACKAGE:?Set the Android application package}"
+    EIMIR_PUSH_FCM_CREDENTIALS_FILE: /run/secrets/eimir-fcm-sender.json
+  volumes:
+    - type: bind
+      source: "${EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE:?Set the absolute private sender file on the Docker host}"
+      target: /run/secrets/eimir-fcm-sender.json
+      read_only: true
+      bind:
+        create_host_path: false
+services:
+  api:
+    <<: *fcm-runtime
+  worker:
+    <<: *fcm-runtime
+  cloud-api:
+    <<: *fcm-runtime
+  cloud-worker:
+    <<: *fcm-runtime
+"""
 CLOUD_ENV_EXAMPLE = ROOT / "deploy/cloud-managed.env.example"
 DEV_ENV_EXAMPLE = ROOT / "deploy/persistent-development.env.example"
 LEGACY_COMPOSE_REFERENCES = (
@@ -35,6 +61,22 @@ import release_manifest  # noqa: E402
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def _is_fcm_runtime_fragment(text: str) -> bool:
+    """Fail closed on any statement change without needing a YAML dependency.
+
+    This intentionally freezes the small reviewed fragment's statements rather
+    than accepting arbitrary Compose data at its path. Comments and empty lines
+    do not change the contract; service/process/topology changes always do.
+    """
+    def statements(source: str) -> list[str]:
+        return [
+            line.rstrip() for line in source.splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+
+    return statements(text) == statements(FCM_FRAGMENT_CONTRACT)
 
 
 def _service_block(compose: str, name: str) -> str:
@@ -98,7 +140,8 @@ class CanonicalComposeRepositoryContractTest(unittest.TestCase):
         ``stack.yaml`` or ``infra/orchestration.yml``) would slip past both of
         the checks above. This looks at content instead: a top-level
         ``services:`` mapping is what makes a YAML file a Compose manifest, so
-        no tracked file except the canonical one may define one (#746 review).
+        no tracked file except the canonical one may define one (#746 review),
+        apart from the exact reviewed API/worker credential-mount fragment.
         """
         offenders: list[str] = []
         for path in _tracked_files():
@@ -112,8 +155,54 @@ class CanonicalComposeRepositoryContractTest(unittest.TestCase):
             except (OSError, UnicodeDecodeError):
                 continue
             if re.search(r"(?m)^services:\s*$", text):
+                if path == FCM_FRAGMENT and _is_fcm_runtime_fragment(text):
+                    continue
                 offenders.append(relative.as_posix())
         self.assertEqual(offenders, [])
+
+    def test_fcm_fragment_only_adds_the_reviewed_runtime_environment_and_mount(self) -> None:
+        self.assertTrue(
+            _is_fcm_runtime_fragment(_read(FCM_FRAGMENT)),
+            "FCM opt-in must not introduce another maintained runtime topology",
+        )
+
+    def test_fcm_fragment_contract_rejects_process_topology_and_credential_changes(self) -> None:
+        mutations = (
+            ("  api:", "  other-api:"),
+            ("  worker:\n", "  worker:\n    command: other-worker\n"),
+            ("  cloud-api:\n", "  cloud-api:\n    image: other:latest\n"),
+            ("  cloud-worker:\n", "  cloud-worker:\n    build: .\n"),
+            ("  api:\n", "  api:\n    ports: [8000:8000]\n"),
+            ("  worker:\n", "  worker:\n    networks: [other]\n"),
+            ("  cloud-api:\n", "  cloud-api:\n    depends_on: [other]\n"),
+            ("  api:\n", "  migrate:\n    <<: *fcm-runtime\n  api:\n"),
+            ("read_only: true", "read_only: false"),
+            ("create_host_path: false", "create_host_path: true"),
+            ("type: bind", "type: volume"),
+            ("/run/secrets/eimir-fcm-sender.json", "/run/secrets/other.json"),
+            (
+                "${EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE:?Set the absolute private sender file on the Docker host}",
+                "/private/hardcoded.json",
+            ),
+            ("EIMIR_PUSH_FCM_PROJECT_ID:?", "EIMIR_PUSH_FCM_PROJECT_ID:-"),
+            (
+                "  environment:\n",
+                "  environment:\n    ANOTHER_CREDENTIAL: hardcoded\n",
+            ),
+        )
+        for before, after in mutations:
+            with self.subTest(change=after):
+                self.assertIn(before, FCM_FRAGMENT_CONTRACT)
+                self.assertFalse(_is_fcm_runtime_fragment(
+                    FCM_FRAGMENT_CONTRACT.replace(before, after)
+                ))
+        for addition in (
+            "networks:\n  other:\n",
+            "volumes:\n  other:\n",
+            "  web:\n    <<: *fcm-runtime\n",
+        ):
+            with self.subTest(addition=addition):
+                self.assertFalse(_is_fcm_runtime_fragment(FCM_FRAGMENT_CONTRACT + addition))
 
 
 class CloudComposeTextContractTest(unittest.TestCase):

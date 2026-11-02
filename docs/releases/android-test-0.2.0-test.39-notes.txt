@@ -1,0 +1,7 @@
+eimir. 0.2.0-test.39
+
+Der Start behält dein gewähltes Design. Bilder bleiben beim Wechseln und Zurückkehren besser erhalten; Tippen gibt direktes Feedback passend zur Form des Buttons. Nach einem WebView-Abbruch bietet die App einen bewussten Neustart an.
+
+Die nächsten Pläne sind deutlicher hervorgehoben. Kommentare und anklickbare Links bei Plänen, kompaktere Fotogalerien mit Sortierung und das nachträgliche Verknüpfen eines Wunsches sind enthalten.
+
+Über Einstellungen → App-Updates aktualisieren. Nicht deinstallieren oder App-Daten löschen. Der bestehende Testkanal und Signierer bleiben erhalten. Kaltstart, Fortsetzen und Datenkontinuität auf dem physischen Gerät sind noch zu prüfen (#1590).

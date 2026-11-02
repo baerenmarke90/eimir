@@ -1,3 +1,4 @@
+import { fulfillEmptyPlanComments } from '../support/planComments';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -128,6 +129,7 @@ function generateTimelineItems() {
 async function installApiMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -1063,6 +1065,11 @@ async function swipePrimary(page: Page, direction: 'next' | 'previous') {
   if (!selector)
     throw new Error('A primary swipe requires a primary destination.');
   await expect(page.locator(`main > ${selector}`)).toBeVisible();
+  if (selector === '.today-page') {
+    // Use the settled reading surface. During cold startup the loading node
+    // can disappear between hit-testing and the native touch sequence.
+    await expect(page.locator('main .today-hero')).toBeVisible();
+  }
   await expect(page.locator('main')).not.toHaveAttribute(
     'data-primary-tab-entry',
     /.+/,

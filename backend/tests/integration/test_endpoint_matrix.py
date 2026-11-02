@@ -49,6 +49,7 @@ class Endpoint:
 
     placeholders: tuple[str, ...] = field(default=())
     fixture_aliases: dict[str, str] = field(default_factory=dict)
+    body_fixture_aliases: dict[str, str] = field(default_factory=dict)
     query: dict[str, str] = field(default_factory=dict)
     verification_template: str | None = None
 
@@ -543,6 +544,22 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint(
         "GET",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/comments",
+        resource_absence="COMMENT_TARGET_NOT_AVAILABLE",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/comments",
+        body=COMMENT,
+        resource_absence="COMMENT_TARGET_NOT_AVAILABLE",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/link-preview",
+        body={"url": "https://example.org/park"},
+    ),
+    Endpoint(
+        "GET",
         "/api/v1/spaces/{spaceId}/memories/{memoryId}/comments",
         resource_absence="COMMENT_TARGET_NOT_AVAILABLE",
     ),
@@ -981,6 +998,14 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint(
         "POST",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/wish",
+        body={"wishVersion": 1},
+        body_fixture_aliases={"wishId": "wishId"},
+        if_match=True,
+        resource_absence="PLAN_NOT_FOUND",
+    ),
+    Endpoint(
+        "POST",
         "/api/v1/spaces/{spaceId}/plans/{planId}/return-to-wish",
         body={},
         if_match=True,
@@ -1068,6 +1093,7 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     ("GET", "/api/v1/notification-preferences"),
     ("PATCH", "/api/v1/notification-preferences/quiet-hours"),
     ("PATCH", "/api/v1/notification-preferences/{kind}/{channel}"),
+    ("GET", "/api/v1/push-endpoints/configuration"),
     ("GET", "/api/v1/push-endpoints/unifiedpush-configuration"),
     ("POST", "/api/v1/push-endpoints"),
     ("DELETE", "/api/v1/push-endpoints/{endpointId}"),
@@ -1320,6 +1346,15 @@ def _path(endpoint: Endpoint, ids: dict[str, str], **replacements: str) -> str:
     return endpoint.template.format(**values)
 
 
+def _body(endpoint: Endpoint, ids: dict[str, str]) -> dict[str, Any] | None:
+    if endpoint.body is None:
+        return None
+    return endpoint.body | {
+        field_name: ids[fixture_id]
+        for field_name, fixture_id in endpoint.body_fixture_aliases.items()
+    }
+
+
 def _send(scenario, endpoint: Endpoint, path: str, headers: dict[str, str] | None):  # type: ignore[no-untyped-def]
     headers = dict(headers or {})
     if endpoint.if_match:
@@ -1329,7 +1364,7 @@ def _send(scenario, endpoint: Endpoint, path: str, headers: dict[str, str] | Non
 
     request_kwargs: dict[str, Any] = {}
     if endpoint.body is not None:
-        request_kwargs["json"] = endpoint.body
+        request_kwargs["json"] = _body(endpoint, scenario["ids"])
     if endpoint.query:
         request_kwargs["params"] = endpoint.query
     return scenario["client"].request(endpoint.method, path, headers=headers, **request_kwargs)
@@ -1456,7 +1491,9 @@ WRITING_ENDPOINTS = tuple(endpoint for endpoint in SPACE_ENDPOINTS if endpoint.i
 def test_without_if_match_does_not_write(scenario, endpoint: Endpoint) -> None:  # type: ignore[no-untyped-def]
     "A missing header is the silent path to disabling conflict protection."
     path = _path(endpoint, scenario["ids"])
-    request_kwargs: dict[str, Any] = {"json": endpoint.body} if endpoint.body is not None else {}
+    request_kwargs: dict[str, Any] = (
+        {"json": _body(endpoint, scenario["ids"])} if endpoint.body is not None else {}
+    )
     if endpoint.query:
         request_kwargs["params"] = endpoint.query
     response = scenario["client"].request(

@@ -1,5 +1,6 @@
 const m5s3 = {
   common: {
+    timeWithUnit: '{{time}} Uhr',
     shortBackToMore: '← Mehr',
     shortBackToPlaces: '← Orte',
     shortBackToCollections: '← Listen',
@@ -37,6 +38,9 @@ const m5s3 = {
     keepEditing: 'Weiter bearbeiten',
   },
   overview: {
+    wishScope: 'Wünsche anzeigen',
+    fulfilledWishes: 'Erfüllt',
+    fulfilledWishesEmpty: 'Noch keine erfüllten Wünsche.',
     title: 'Planen',
     segmentedLabel: 'Pläne oder Wünsche anzeigen',
     segmentPlans: 'Pläne',
@@ -101,6 +105,14 @@ const m5s3 = {
     },
   },
   plan: {
+    linkWish: 'Wunsch hinzufügen',
+    linkWishHelp:
+      'Der Plan bleibt bestehen. Wenn ihr ihn abschließt, wird auch der Wunsch erfüllt. Über „Zurück zum Wunsch“ könnt ihr den Plan später auflösen.',
+    chooseWish: 'Offenen Wunsch auswählen',
+    confirmWishLink: 'Mit Plan verbinden',
+    wishLinked: 'Wunsch mit dem Plan verbunden',
+    openWish: 'Verknüpften Wunsch ansehen',
+    noOpenWishes: 'Aktuell gibt es keine offenen Wünsche.',
     heading: 'Pläne',
     intro:
       'Vom ersten Gedanken über einen Zeitpunkt bis zum gemeinsam Erlebten.',

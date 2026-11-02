@@ -10,6 +10,7 @@ Name | Type
 `attachmentIsSensitive` | boolean
 `emotion` | [HeartEmotion](HeartEmotion.md)
 `happenedOn` | Date
+`placeId` | string
 `tags` | Array&lt;string&gt;
 `text` | string
 `visibility` | [ContentVisibility](ContentVisibility.md)
@@ -25,6 +26,7 @@ const example = {
   "attachmentIsSensitive": null,
   "emotion": null,
   "happenedOn": null,
+  "placeId": null,
   "tags": null,
   "text": null,
   "visibility": null,

@@ -14,6 +14,7 @@ export interface MemoryDiaryDraft {
   tags: string[];
   tagDraft?: string;
   happenedOn: string;
+  place?: { id: string; name: string; address: string | null };
   files: { file: File; attachmentId?: string; isSensitive?: boolean }[];
   attempt: MemoryCreateAttempt | null;
   partial: {

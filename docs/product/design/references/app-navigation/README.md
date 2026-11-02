@@ -81,9 +81,10 @@ Capture actual Compact 360/390/430, Dark, Expanded and large text. A browser
 Capacitor fixture proves shared JS behavior only; installed-device Back,
 TalkBack, keyboard/OEM and upgrade continuity remain physical acceptance.
 
-Release packaging must preserve `de.sidebyside.app`, its original certificate,
-the existing updater and `https://demo.eimir.ur-cloud.de`. This feature branch
-does not advance the separately owned Android release plan or claim publication.
+The navigation slice does not change Android package/signing ownership or
+publication. Current Android identity and updater requirements belong to #565
+and the Android release plan; source navigation evidence does not claim a
+published application or live Push acceptance.
 
 ## Implemented result and validation
 

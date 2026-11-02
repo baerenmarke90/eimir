@@ -704,6 +704,71 @@ class OptionalPhotoConfigurationTest(unittest.TestCase):
             "EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET",
             exported["services"]["cloud-migrate"]["environment"],
         )
+class FCMSenderMountContractTest(unittest.TestCase):
+    def setUp(self):
+        channel.fcm_sender_mount.cache_clear()
+        self.addCleanup(channel.fcm_sender_mount.cache_clear)
+        self.mount = {
+            "type": "bind",
+            "source": channel._FCM_SOURCE_PLACEHOLDER,
+            "target": channel.FCM_CREDENTIAL_TARGET,
+            "read_only": True,
+            "bind": {"create_host_path": False},
+        }
+
+    def _config(self, mount):
+        return {"services": {
+            name: {"volumes": [copy.deepcopy(mount)]}
+            for name in ("cloud-api", "cloud-worker")
+        }}
+
+    def test_supported_compose_serializers_export_the_same_explicit_safe_mount(self):
+        expected = dict(self.mount, source=channel.required(
+            "EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE"
+        ))
+        for bind in ({"create_host_path": False}, {}):
+            config = self._config(dict(self.mount, bind=bind))
+            original = copy.deepcopy(config)
+            channel.fcm_sender_mount.cache_clear()
+            with self.subTest(bind=bind), patch.object(
+                channel, "canonical_compose", return_value=config
+            ):
+                self.assertEqual(channel.fcm_sender_mount(), expected)
+                self.assertEqual(config, original)
+
+    def test_changed_mount_security_or_identity_is_rejected_for_either_runtime(self):
+        changes = (
+            {"type": "volume"},
+            {"source": "/different-sender.json"},
+            {"target": "/different-target.json"},
+            {"read_only": False},
+            {"bind": {"create_host_path": True}},
+            {"bind": {"create_host_path": False, "propagation": "shared"}},
+            {"bind": None},
+            {"consistency": "cached"},
+        )
+        for name in ("cloud-api", "cloud-worker"):
+            for change in changes:
+                config = self._config(self.mount)
+                config["services"][name]["volumes"][0].update(change)
+                with self.subTest(name=name, change=change), patch.object(
+                    channel, "canonical_compose", return_value=config
+                ), self.assertRaises(channel.ChannelError):
+                    channel.fcm_sender_mount()
+            for missing in ("read_only", "bind"):
+                config = self._config(self.mount)
+                del config["services"][name]["volumes"][0][missing]
+                with self.subTest(name=name, missing=missing), patch.object(
+                    channel, "canonical_compose", return_value=config
+                ), self.assertRaises(channel.ChannelError):
+                    channel.fcm_sender_mount()
+            for mounts in ([], [self.mount, self.mount]):
+                config = self._config(self.mount)
+                config["services"][name]["volumes"] = mounts
+                with self.subTest(name=name, mounts=len(mounts)), patch.object(
+                    channel, "canonical_compose", return_value=config
+                ), self.assertRaises(channel.ChannelError):
+                    channel.fcm_sender_mount()
 
 
 @unittest.skipUnless(shutil.which("docker"), "Docker Compose CLI is required")
@@ -718,10 +783,103 @@ class CanonicalWiringTest(unittest.TestCase):
             {
                 "EIMIR_ENCRYPTION_KEYS": "private-value-must-not-enter-git",
                 "SBS_SMTP_PASSWORD": "private-value-must-not-enter-git",
+                "EIMIR_PUSH_VAPID_PRIVATE_KEY": "private-value-must-not-enter-git",
+                "EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE": "/private-value-must-not-enter-git",
             },
         ):
             resolved = channel.canonical_compose()
+            enabled = channel.canonical_compose(fcm=True)
         self.assertNotIn("private-value-must-not-enter-git", json.dumps(resolved))
+        self.assertNotIn("private-value-must-not-enter-git", json.dumps(enabled))
+
+    def test_default_cloud_requires_no_fcm_file_and_private_channel_mount_is_shared(self):
+        for service in self.canonical["services"].values():
+            self.assertFalse(any(
+                mount.get("target") == channel.FCM_CREDENTIAL_TARGET
+                for mount in service.get("volumes", [])
+            ))
+        exported = channel.export_compose(self.canonical, BACKEND, WEB)
+        for name, service in exported["services"].items():
+            mounts = [
+                mount for mount in service.get("volumes", [])
+                if mount.get("target") == channel.FCM_CREDENTIAL_TARGET
+            ]
+            if name in ("cloud-api", "cloud-worker"):
+                self.assertEqual(mounts, [channel.fcm_sender_mount()])
+                self.assertEqual(mounts[0]["source"], channel.required(
+                    "EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE"
+                ))
+                self.assertTrue(mounts[0]["read_only"])
+                self.assertFalse(mounts[0]["bind"]["create_host_path"])
+                self.assertEqual(
+                    service["environment"]["EIMIR_PUSH_FCM_CREDENTIALS_FILE"],
+                    channel.FCM_CREDENTIAL_TARGET,
+                )
+                self.assertNotIn("EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE", service["environment"])
+                for key in (
+                    "EIMIR_PUSH_FCM_PROJECT_ID", "EIMIR_PUSH_FCM_ANDROID_PACKAGE",
+                ):
+                    self.assertEqual(service["environment"][key], channel.required(key))
+                # The selected target is FCM-only (PO 2026-11-01).
+                self.assertEqual(service["environment"]["EIMIR_PUSH_VAPID_PRIVATE_KEY"],
+                                 "")
+                self.assertEqual(service["environment"]["EIMIR_PUSH_VAPID_SUBJECT"],
+                                 "")
+                self.assertEqual(service["environment"]["EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS"],
+                                 "[]")
+            else:
+                self.assertEqual(mounts, [])
+                self.assertFalse(any(key.startswith("EIMIR_PUSH_") for key in service["environment"]))
+
+    def test_optional_fragment_preserves_topology_and_requires_operator_values(self):
+        settings = {
+            "EIMIR_PUSH_FCM_PROJECT_ID": "fixture-project",
+            "EIMIR_PUSH_FCM_ANDROID_PACKAGE": "de.example.fixture",
+            "EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE": "/private/fixture-not-opened.json",
+        }
+        base_environment = {key: os.environ[key] for key in ("PATH", "HOME") if key in os.environ}
+        base = [
+            "docker", "compose", "--file", str(ROOT / "compose.yaml"),
+            "--env-file", os.devnull,
+        ]
+        fragment = ["--file", str(ROOT / "deploy/push-fcm.compose.yaml")]
+        for profile, runtimes in (
+            ("self-hosted", {"api", "worker"}),
+            ("cloud", {"cloud-api", "cloud-worker"}),
+        ):
+            suffix = ["--profile", profile, "config", "--format", "json"]
+            disabled = subprocess.run(base + suffix, env=base_environment, text=True, capture_output=True)
+            self.assertEqual(disabled.returncode, 0, disabled.stderr)
+            enabled = subprocess.run(
+                base + fragment + suffix, env={**base_environment, **settings},
+                text=True, capture_output=True,
+            )
+            self.assertEqual(enabled.returncode, 0, enabled.stderr)
+            normal, opt_in = json.loads(disabled.stdout), json.loads(enabled.stdout)
+            self.assertEqual(set(normal["services"]), set(opt_in["services"]))
+            self.assertEqual(normal["networks"], opt_in["networks"])
+            self.assertEqual(normal["volumes"], opt_in["volumes"])
+            for name, service in normal["services"].items():
+                self.assertFalse(any(
+                    mount.get("target") == channel.FCM_CREDENTIAL_TARGET
+                    for mount in service.get("volumes", [])
+                ))
+                mounts = [
+                    mount for mount in opt_in["services"][name].get("volumes", [])
+                    if mount.get("target") == channel.FCM_CREDENTIAL_TARGET
+                ]
+                self.assertEqual(len(mounts), 1 if name in runtimes else 0)
+                if name not in runtimes:
+                    self.assertFalse(any(
+                        key.startswith("EIMIR_PUSH_") for key in service.get("environment", {})
+                    ))
+            for missing in settings:
+                partial = {key: value for key, value in settings.items() if key != missing}
+                refused = subprocess.run(
+                    base + fragment + suffix, env={**base_environment, **partial},
+                    text=True, capture_output=True,
+                )
+                self.assertNotEqual(refused.returncode, 0, missing)
 
     def test_export_keeps_canonical_commands_readiness_and_migration_dependencies(self):
         exported = channel.export_compose(self.canonical, BACKEND, WEB)
@@ -815,18 +973,19 @@ class CanonicalWiringTest(unittest.TestCase):
                 resolved["services"]["cloud-api"]["environment"]["FORWARDED_ALLOW_IPS"],
                 "fixture",
             )
-            del env["EIMIR_ACCOUNT_DELETION_INSTANCE_ID"]
-            result = subprocess.run(
-                command,
-                env={
-                    key: value
-                    for key, value in dict(os.environ, **env).items()
-                    if key != "EIMIR_ACCOUNT_DELETION_INSTANCE_ID"
-                },
-                text=True,
-                capture_output=True,
-            )
-            self.assertNotEqual(result.returncode, 0)
+            for missing in (
+                "EIMIR_ACCOUNT_DELETION_INSTANCE_ID", "EIMIR_PUSH_FCM_PROJECT_ID",
+                "EIMIR_PUSH_FCM_ANDROID_PACKAGE", "EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE",
+            ):
+                result = subprocess.run(
+                    command,
+                    env={
+                        key: value for key, value in dict(os.environ, **env).items()
+                        if key != missing
+                    },
+                    text=True, capture_output=True,
+                )
+                self.assertNotEqual(result.returncode, 0, missing)
 
 
 if __name__ == "__main__":

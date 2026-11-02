@@ -3,17 +3,28 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import replace
 from datetime import UTC, datetime, time, timedelta
 from types import MappingProxyType
 from uuid import UUID, uuid4
 
+import httpx
 import pytest
+from google.auth.credentials import TokenState
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from eimir.authorization import PrivacyClass
-from eimir.engagement import notification_policy, notification_preferences, push, service, thinking
+from eimir.config import Settings
+from eimir.engagement import (
+    fcm_push,
+    notification_policy,
+    notification_preferences,
+    push,
+    service,
+    thinking,
+)
 from eimir.engagement.models import (
     Activity,
     Notification,
@@ -39,8 +50,11 @@ NOW = datetime(2026, 8, 30, 12, 0, tzinfo=UTC)
 
 
 class FakePushProvider:
-    def __init__(self, *, fail_once: bool = False) -> None:
+    def __init__(
+        self, *, fail_once: bool = False, failure: push.PushProviderError | None = None
+    ) -> None:
         self.fail_once = fail_once
+        self.failure = failure
         self.calls: list[dict[str, object]] = []
 
     def accepts_endpoint(self, endpoint: str) -> bool:
@@ -67,7 +81,7 @@ class FakePushProvider:
         )
         if self.fail_once:
             self.fail_once = False
-            raise push.PushProviderError("TEMPORARY_UNAVAILABLE")
+            raise self.failure or push.PushProviderError("TEMPORARY_UNAVAILABLE")
         return push.PushSendResult(provider_message_id="provider-message-1")
 
 
@@ -1411,8 +1425,9 @@ def test_api_revocation_suppresses_queued_push_without_removing_notification(
     assert provider.calls == []
 
 
+@pytest.mark.parametrize("quota", [False, True])
 def test_push_retry_keeps_stable_idempotency_key_and_sanitized_error(
-    client, session: Session, couple, monkeypatch
+    client, session: Session, couple, monkeypatch, quota: bool
 ) -> None:  # type: ignore[no-untyped-def]
     monkeypatch.setattr(thinking.clock, "now", lambda: NOW)
     push.register_endpoint(
@@ -1421,7 +1436,12 @@ def test_push_retry_keeps_stable_idempotency_key_and_sanitized_error(
         provider_key="fake",
         endpoint_value="secret-endpoint-token",
     )
-    provider = FakePushProvider(fail_once=True)
+    error = push.PushProviderError(
+        "FCM_QUOTA_EXCEEDED" if quota else "TEMPORARY_UNAVAILABLE",
+        retry_not_before=NOW + timedelta(minutes=3) if quota else None,
+        retry_base=timedelta(seconds=60) if quota else None,
+    )
+    provider = FakePushProvider(fail_once=True, failure=error)
     push.providers.register("fake", provider)
 
     response = client.post(
@@ -1439,10 +1459,12 @@ def test_push_retry_keeps_stable_idempotency_key_and_sanitized_error(
 
     with pytest.raises(RetryableJobError) as retry:
         push.handle_delivery(session, {"deliveryId": str(delivery.id)})
-    assert retry.value.code == "TEMPORARY_UNAVAILABLE"
+    assert retry.value.code == error.code
+    assert retry.value.retry_not_before == error.retry_not_before
+    assert retry.value.retry_base == error.retry_base
     assert delivery.status == PushDeliveryStatus.RETRYING.value
     assert delivery.attempts == 1
-    assert delivery.last_error_code == "TEMPORARY_UNAVAILABLE"
+    assert delivery.last_error_code == error.code
 
     push.handle_delivery(session, {"deliveryId": str(delivery.id)})
     session.flush()
@@ -1450,6 +1472,87 @@ def test_push_retry_keeps_stable_idempotency_key_and_sanitized_error(
     assert delivery.attempts == 2
     assert len(provider.calls) == 2
     assert provider.calls[0]["idempotencyKey"] == provider.calls[1]["idempotencyKey"]
+
+
+@pytest.mark.parametrize("revoke_old", [False, True])
+def test_fcm_uses_shared_outbox_delivery_and_preserves_queued_activation(
+    client, session: Session, couple, monkeypatch: pytest.MonkeyPatch, revoke_old: bool
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(thinking.clock, "now", lambda: NOW)
+
+    class Credentials:
+        token_state = TokenState.FRESH
+
+        def apply(self, headers):  # type: ignore[no-untyped-def]
+            headers["authorization"] = "Bearer synthetic-access"
+
+    monkeypatch.setattr(fcm_push, "_load_credentials", lambda _: Credentials())
+    sent: list[dict[str, object]] = []
+
+    def capture(request: httpx.Request) -> httpx.Response:
+        sent.append(json.loads(request.content))
+        return httpx.Response(200, json={"name": "projects/eimir-test/messages/shared-queue"})
+
+    provider = fcm_push.FcmPushProvider(
+        Settings(
+            push_fcm_project_id="eimir-test",
+            push_fcm_android_package="de.eimir.app",
+            push_fcm_credentials_file="/unused/test-fixture.json",
+        ),
+        client=httpx.Client(transport=httpx.MockTransport(capture)),
+    )
+    push.providers.register("fcm", provider)
+    activation = str(uuid4())
+    value = json.dumps({"fid": "c" + "a" * 21, "activationId": activation}, separators=(",", ":"))
+    endpoint = push.register_endpoint(
+        session,
+        account_id=couple["ben"].id,
+        provider_key="fcm",
+        endpoint_value=value,
+        registration_identity=provider.registration_identity(value),
+    )
+    try:
+        response = client.post(
+            _url(couple),
+            json={"clientRequestId": str(uuid4())},
+            headers=auth(couple["anna_token"]),
+        )
+        assert response.status_code == 202
+        request = session.execute(select(ThinkingOfYouRequest)).scalar_one()
+        event = session.get(OutboxEvent, request.source_event_id)
+        assert event is not None
+        service.project_event(session, event)
+        session.flush()
+        delivery = session.execute(select(PushDelivery)).scalar_one()
+
+        replacement = json.dumps(
+            {"fid": "c" + "a" * 21, "activationId": str(uuid4())}, separators=(",", ":")
+        )
+        replacement_endpoint = push.register_endpoint(
+            session,
+            account_id=couple["ben"].id,
+            provider_key="fcm",
+            endpoint_value=replacement,
+            registration_identity=provider.registration_identity(replacement),
+        )
+        assert replacement_endpoint.id != endpoint.id
+        if revoke_old:
+            assert push.revoke_endpoint(
+                session, account_id=couple["ben"].id, endpoint_id=endpoint.id
+            )
+        push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+        session.flush()
+        assert delivery.push_endpoint_id == endpoint.id
+        if revoke_old:
+            assert sent == []
+            assert delivery.status == PushDeliveryStatus.UNAVAILABLE.value
+        else:
+            assert delivery.status == PushDeliveryStatus.SUCCEEDED.value
+            assert delivery.provider_message_id == "projects/eimir-test/messages/shared-queue"
+            assert len(sent) == 1
+            assert sent[0]["message"]["data"] == {"type": "wake", "activationId": activation}
+    finally:
+        provider.close()
 
 
 def test_gone_subscription_disables_endpoint_without_retrying(

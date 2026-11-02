@@ -1,4 +1,6 @@
-import { type ReactNode, useContext, useEffect, useRef, useState } from 'react';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
+import { type ReactNode, useContext, useEffect } from 'react';
+import { usePreviewLoadGate } from '../client/usePreviewLoadGate';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import {
   SensitiveMediaControl,
@@ -11,6 +13,7 @@ import { useTranslation } from '../i18n';
 export function MemoryPreview({
   memoryId,
   attachmentId,
+  hasThumbnail = false,
   loadImage,
   loadingMode = 'immediate',
   resourceScopeKey,
@@ -23,11 +26,13 @@ export function MemoryPreview({
   isSensitive?: boolean;
   allowReveal?: boolean;
   attachmentId: string;
+  hasThumbnail?: boolean;
   loadImage: (
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+    variant?: 'original' | 'thumbnail',
+  ) => Promise<ObjectUrlSource>;
   loadingMode?: 'immediate' | 'near-viewport';
   resourceScopeKey?: string;
   /** Resource completion, including reuse/failure; never grants media visibility. */
@@ -35,8 +40,10 @@ export function MemoryPreview({
   fallback?: ReactNode;
 }) {
   const { t } = useTranslation();
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const [shouldLoad, setShouldLoad] = useState(loadingMode === 'immediate');
+  const { ref: sentinelRef, shouldLoad } = usePreviewLoadGate(
+    loadingMode,
+    typeof isSensitive === 'boolean',
+  );
   const locationKey = useContext(PreviewCardLocationContext);
   const scope = resourceScopeKey ?? `story-preview:${memoryId}`;
   const reveals = useSensitiveMediaReveals(
@@ -45,40 +52,13 @@ export function MemoryPreview({
   );
   const revealed = isSensitive === true && reveals.isRevealed(attachmentId);
 
-  useEffect(() => {
-    if (loadingMode === 'immediate' || shouldLoad) {
-      setShouldLoad(true);
-      return;
-    }
-    if (typeof isSensitive !== 'boolean') return;
-
-    const node = sentinelRef.current;
-    if (!node) return;
-    if (typeof IntersectionObserver === 'undefined') {
-      setShouldLoad(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries.some((entry) => entry.isIntersecting)) return;
-        setShouldLoad(true);
-        observer.disconnect();
-      },
-      {
-        root: null,
-        rootMargin: '75% 0px',
-        threshold: 0,
-      },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [loadingMode, shouldLoad, isSensitive]);
-
   const mediaResource = useObjectUrlResource(
-    scope,
+    hasThumbnail ? `${scope}:thumbnail` : scope,
     shouldLoad && typeof isSensitive === 'boolean' ? attachmentId : null,
-    (_resourceId, signal) => loadImage(memoryId, attachmentId, signal),
+    (_resourceId, signal) =>
+      hasThumbnail
+        ? loadImage(memoryId, attachmentId, signal, 'thumbnail')
+        : loadImage(memoryId, attachmentId, signal),
   );
   const url = mediaResource.url;
   const failed = mediaResource.error !== null;

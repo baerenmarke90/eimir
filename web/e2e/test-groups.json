@@ -16,6 +16,16 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 6
     },
+    "media-url-continuity.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2,
+      "reason": "Compact/Expanded Story detail return must reuse the thumbnail URL and binary bytes while obtaining fresh parent authorization."
+    },
+    "heart-moment-reading.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6,
+      "reason": "Authored HeartMoment prose must stay in its readable content area across shared/private, photo/text, edit-save-return and large-text/mobile layouts."
+    },
     "journal-surface-polish.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 4,
@@ -93,7 +103,8 @@
     },
     "memory-create-defaults.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 28
+      "baselineTests": 30,
+      "reason": "Also protects bounded dense photo selection, exact persisted order and saved/new interleaving."
     },
     "memory-diary-storage.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -146,11 +157,12 @@
     },
     "planning-reference.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 9
+      "baselineTests": 9,
+      "reason": "Also protects explicit adoption of an open Wish by an existing Plan, focus return, source reload and no duplicate Plan."
     },
     "planning-upcoming.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 8
+      "baselineTests": 9
     },
     "planning-wish-completion-continuation.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -353,7 +365,7 @@
     },
     "wir-design-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 11,
+      "baselineTests": 19,
       "reason": "Wir design selection and retention, quote/statistics order persistence with direct pointer tracking, and concise notification/private/profile settings across Compact/Expanded themes and large text."
     },
     "moment-relation-picker.spec.ts": {
@@ -395,6 +407,16 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 8,
       "reason": "Protects saved-memory map privacy/Pro admission/source return, immediate tiles after authorized entry, tile-error list fallback/reflow, finite playable games and calendar date semantics."
+    },
+    "contextual-reminder-notification.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "The native reminder notification must open an authorized read-only source at Compact/Expanded widths, preserve native-sized actions and return navigation, and hide deleted/denied content."
+    },
+    "plan-comments-links.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8,
+      "reason": "Plan comments must retain author, tenant, retry and canonical return contracts, with explicit bounded link previews and narrow/large-text accessibility."
     }
   }
 }

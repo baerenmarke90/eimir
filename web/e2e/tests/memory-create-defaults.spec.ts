@@ -1,3 +1,4 @@
+import { captureScreenshot } from '../support/storyTimelineFixture';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -6,6 +7,8 @@ import { expect, type Page, test } from '@playwright/test';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import m5s3 from '../../src/i18n/locales/m5s3';
 import photoSources from '../../src/i18n/locales/photoSources';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
@@ -33,6 +36,7 @@ interface PhotoSourceScenario {
   canImport: boolean;
   links: { origin: string; apiKey: string; consent: boolean }[];
   starts: number;
+  maxItems?: number;
   originals: number;
   cancelled: number;
   disconnected: number;
@@ -135,6 +139,24 @@ for (const [width, colorScheme] of [
       .getByRole('button', { name: photoSources.link, exact: true })
       .click();
     const link = page.getByRole('dialog', { name: photoSources.linkTitle });
+    await expect(
+      link.getByText(photoSources.setupOpen, { exact: true }),
+    ).not.toBeVisible();
+    await link.getByText(photoSources.setupHelp, { exact: true }).click();
+    await expect(
+      link.getByText(photoSources.setupOpen, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      link.getByText(photoSources.setupFallback, { exact: true }),
+    ).toBeVisible();
+    if (width === 390)
+      await captureScreenshot(
+        page,
+        testInfo,
+        '1581-immich-help-390-light.png',
+        { fullPage: true },
+      );
+    await link.getByText(photoSources.setupHelp, { exact: true }).click();
     await link
       .getByLabel(photoSources.address, { exact: true })
       .fill('https://my-photos.example');
@@ -162,7 +184,9 @@ for (const [width, colorScheme] of [
         consent: true,
       },
     ]);
-    await sheet.getByLabel(photoSources.accept, { exact: true }).check();
+    await expect(
+      sheet.getByLabel(photoSources.accept, { exact: true }),
+    ).toHaveCount(0);
     await sheet.getByRole('button', { name: photoSources.continue }).click();
     await sheet.getByLabel('Foto 1', { exact: true }).check();
     await sheet.getByLabel('Foto 2', { exact: true }).check();
@@ -180,9 +204,9 @@ for (const [width, colorScheme] of [
     });
     await sheet.getByRole('button', { name: photoSources.import }).click();
     await expect(sheet).toBeHidden();
-    await expect(page.locator('.attachment-draft-item')).toHaveCount(2);
+    await expect(page.locator('.photo-draft-tile')).toHaveCount(2);
     await expect(
-      page.getByText(de.memory.photoReady, { exact: true }),
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(2);
     expect(source.originals).toBe(2);
     expect(photos.uploaded).toHaveLength(2);
@@ -232,12 +256,14 @@ test('Google browser authorization returns selected copies to the unsaved diary'
   await page.getByRole('button', { name: photoSources.more }).click();
   const sheet = page.getByRole('dialog', { name: photoSources.title });
   await sheet.getByLabel(photoSources.google, { exact: true }).check();
-  await sheet.getByLabel(photoSources.accept, { exact: true }).check();
+  await expect(
+    sheet.getByLabel(photoSources.accept, { exact: true }),
+  ).toHaveCount(0);
   await sheet.getByRole('button', { name: photoSources.continue }).click();
   await expect(sheet).toBeHidden({ timeout: 15_000 });
   expect(externalUrls).toEqual(['https://accounts.google.com/authorize']);
   await expect(
-    page.getByText(de.memory.photoReady, { exact: true }),
+    page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
   ).toHaveCount(2);
   expect(source.originals).toBe(2);
   expect(photos.creates).toBe(0);
@@ -286,7 +312,9 @@ test('closing a pending source transfer keeps authored words and rejects late ph
     .fill(AUTHORED_BODY);
   await page.getByRole('button', { name: photoSources.more }).click();
   const sheet = page.getByRole('dialog', { name: photoSources.title });
-  await sheet.getByLabel(photoSources.accept, { exact: true }).check();
+  await expect(
+    sheet.getByLabel(photoSources.accept, { exact: true }),
+  ).toHaveCount(0);
   await sheet.getByRole('button', { name: photoSources.continue }).click();
   await sheet.getByLabel('Foto 1', { exact: true }).check();
   await sheet.getByRole('button', { name: photoSources.import }).click();
@@ -300,7 +328,7 @@ test('closing a pending source transfer keeps authored words and rejects late ph
   await expect(
     page.getByRole('textbox', { name: de.memory.bodyLabel, exact: true }),
   ).toHaveValue(AUTHORED_BODY);
-  await expect(page.locator('.attachment-draft-item')).toHaveCount(0);
+  await expect(page.locator('.photo-draft-tile')).toHaveCount(0);
   expect(photos.uploaded).toHaveLength(0);
   expect(photos.creates).toBe(0);
 });
@@ -338,7 +366,9 @@ test('offline source import at narrow large text preserves the diary draft', asy
     .fill(AUTHORED_BODY);
   await page.getByRole('button', { name: photoSources.more }).click();
   const sheet = page.getByRole('dialog', { name: photoSources.title });
-  await sheet.getByLabel(photoSources.accept, { exact: true }).check();
+  await expect(
+    sheet.getByLabel(photoSources.accept, { exact: true }),
+  ).toHaveCount(0);
   await sheet.getByRole('button', { name: photoSources.continue }).click();
   await sheet.getByLabel('Foto 1', { exact: true }).check();
   await expectNoHorizontalOverflow(page);
@@ -450,6 +480,7 @@ async function installApiMocks(
     }
     if (source && pathname === `/api/v1/spaces/${SPACE_ID}/photo-selections`) {
       source.starts++;
+      source.maxItems = request.postDataJSON().maxItems;
       expect(request.postDataJSON().consent).toBe(true);
       if (source.googleAvailable)
         expect(request.postDataJSON().mediaRecoveryPolicy).toBe(
@@ -858,14 +889,26 @@ for (const [width, colorScheme] of [
     expect(new Set(photos.uploaded).size).toBe(3);
     photos.ready.add(photos.finalized[0]);
     await page.clock.fastForward(1_000);
-    await expect(page.locator('.attachment-status-ready')).toHaveCount(1);
+    await expect(
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+    ).toHaveCount(1);
     // The remaining photos are still queued on the server, not failed uploads.
     await page.clock.fastForward(35_000);
-    await expect(page.locator('.attachment-status-validating')).toHaveCount(2);
-    await expect(page.locator('.attachment-status-failed')).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: new RegExp(de.memory.photoValidating) }),
+    ).toHaveCount(2);
+    await expect(
+      page.getByRole('button', {
+        name: new RegExp(
+          `${de.memory.photoFailed}|${de.memory.diary.photoMissing}`,
+        ),
+      }),
+    ).toHaveCount(0);
     for (const id of photos.finalized) photos.ready.add(id);
     await page.clock.fastForward(5_000);
-    await expect(page.locator('.attachment-status-ready')).toHaveCount(3);
+    await expect(
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+    ).toHaveCount(3);
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: testInfo.outputPath(`batch-ready-${width}.png`),
@@ -1227,7 +1270,9 @@ for (const [width, colorScheme] of [
     );
     await expect.poll(() => photos.finalized.length).toBe(2);
     for (const id of photos.finalized) photos.ready.add(id);
-    await expect(page.locator('.attachment-status-ready')).toHaveCount(2);
+    await expect(
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+    ).toHaveCount(2);
     await page
       .getByRole('button', {
         name: de.memory.photoMoveLater.replace('{{name}}', 'one.png'),
@@ -1260,7 +1305,9 @@ for (const [width, colorScheme] of [
     await expect(page.getByLabel(contextTags.newLabel)).toHaveValue(
       'An unfinished label',
     );
-    await expect(page.locator('.attachment-status-ready')).toHaveCount(2);
+    await expect(
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+    ).toHaveCount(2);
     // READY file identity is restored; recovery must not upload a second copy.
     expect(photos.uploaded).toHaveLength(2);
     await page.getByLabel(de.memory.bodyLabel, { exact: true }).click();
@@ -1453,7 +1500,9 @@ test('diary recovery retries only attachment binding for an already created entr
   });
   await expect.poll(() => photos.finalized.length).toBe(1);
   photos.ready.add(photos.finalized[0]);
-  await expect(page.locator('.attachment-status-ready')).toHaveCount(1);
+  await expect(
+    page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+  ).toHaveCount(1);
   let bindings = 0;
   await page.route(`**/memories/${MEMORY_ID}/attachments`, async (route) => {
     bindings++;
@@ -1521,7 +1570,9 @@ test('diary restores a file whose unbound server upload has expired', async ({
   await expect.poll(() => photos.finalized.length).toBe(1);
   const expiredId = photos.finalized[0];
   photos.ready.add(expiredId);
-  await expect(page.locator('.attachment-status-ready')).toHaveCount(1);
+  await expect(
+    page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+  ).toHaveCount(1);
   await expect(page.locator('.memory-draft-status')).toHaveText(
     de.memory.diary.draft.saved,
   );
@@ -1565,7 +1616,9 @@ async function stageRecoveryPhotos(page: Page, photos: PhotoBatchScenario) {
   );
   await expect.poll(() => photos.finalized.length).toBe(2);
   for (const id of photos.finalized) photos.ready.add(id);
-  await expect(page.locator('.attachment-status-ready')).toHaveCount(2);
+  await expect(
+    page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+  ).toHaveCount(2);
   await expect(page.locator('.memory-draft-status')).toHaveText(
     de.memory.diary.draft.saved,
   );
@@ -1618,11 +1671,25 @@ for (const [width, colorScheme] of [
     await page
       .getByRole('button', { name: de.memory.diary.resume, exact: true })
       .click();
-    await expect(page.locator('.attachment-draft-item')).toHaveCount(2);
-    await expect(page.locator('.attachment-status-ready')).toHaveCount(1);
-    await expect(page.locator('.attachment-status-failed')).toHaveText(
-      de.memory.diary.photoMissing,
-    );
+    await expect(page.locator('.photo-draft-tile')).toHaveCount(2);
+    await expect(
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+    ).toHaveCount(1);
+    await expect(
+      page.getByRole('button', {
+        name: new RegExp(
+          `${de.memory.photoFailed}|${de.memory.diary.photoMissing}`,
+        ),
+      }),
+    ).toHaveCount(1);
+    await page
+      .getByRole('button', { name: new RegExp(de.memory.diary.photoMissing) })
+      .click();
+    await expect(
+      page
+        .getByRole('group', { name: de.memory.photoSelected, exact: true })
+        .getByRole('status'),
+    ).toHaveText(de.memory.diary.photoMissing);
     await expect(
       page.getByLabel(de.memory.bodyLabel, { exact: true }),
     ).toHaveValue(AUTHORED_BODY);
@@ -1655,7 +1722,9 @@ for (const [width, colorScheme] of [
     await page
       .getByRole('button', { name: de.memory.diary.photoRetry, exact: true })
       .click();
-    await expect(page.locator('.attachment-status-ready')).toHaveCount(2);
+    await expect(
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+    ).toHaveCount(2);
     await page
       .getByRole('button', { name: de.memory.save, exact: true })
       .click();
@@ -1679,7 +1748,9 @@ test('an uncertain create is reconciled before a missing volatile photo can chan
   await page
     .getByRole('button', { name: de.memory.diary.resume, exact: true })
     .click();
-  await expect(page.locator('.attachment-status-ready')).toHaveCount(2);
+  await expect(
+    page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+  ).toHaveCount(2);
   const identities: string[] = [];
   page.on('request', (request) => {
     if (
@@ -1711,7 +1782,13 @@ test('an uncertain create is reconciled before a missing volatile photo can chan
   await page
     .getByRole('button', { name: de.memory.diary.resume, exact: true })
     .click();
-  await expect(page.locator('.attachment-status-failed')).toHaveCount(1);
+  await expect(
+    page.getByRole('button', {
+      name: new RegExp(
+        `${de.memory.photoFailed}|${de.memory.diary.photoMissing}`,
+      ),
+    }),
+  ).toHaveCount(1);
   await page
     .getByRole('button', { name: taskBoundary.verify, exact: true })
     .click();
@@ -1742,10 +1819,12 @@ test('known-created recovery can bind original photos after transient read failu
   await page
     .getByRole('button', { name: de.memory.diary.resume, exact: true })
     .click();
-  await expect(page.locator('.attachment-status-ready')).toHaveCount(2);
+  await expect(
+    page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+  ).toHaveCount(2);
+  await page.locator('.photo-draft-tile').first().click();
   await page
-    .locator('.attachment-draft-item')
-    .first()
+    .getByRole('group', { name: de.memory.photoSelected, exact: true })
     .getByRole('checkbox')
     .check();
   let bindings = 0;
@@ -1774,7 +1853,13 @@ test('known-created recovery can bind original photos after transient read failu
   await page
     .getByRole('button', { name: de.memory.diary.resume, exact: true })
     .click();
-  await expect(page.locator('.attachment-status-failed')).toHaveCount(1);
+  await expect(
+    page.getByRole('button', {
+      name: new RegExp(
+        `${de.memory.photoFailed}|${de.memory.diary.photoMissing}`,
+      ),
+    }),
+  ).toHaveCount(1);
   const retry = page.getByRole('button', {
     name: taskBoundary.retryPhotos,
     exact: true,
@@ -1801,7 +1886,9 @@ test('known-created recovery can bind original photos after transient read failu
   ).toBeDisabled();
   await expect(page.locator('#memory-create-images')).toBeDisabled();
   await expect(
-    page.locator('.attachment-draft-item').first().getByRole('checkbox'),
+    page
+      .getByRole('group', { name: de.memory.photoSelected, exact: true })
+      .getByRole('checkbox'),
   ).toBeChecked();
   await retry.click();
   await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
@@ -1831,7 +1918,9 @@ test('a failed local checkpoint cannot start a volatile-photo Save or invent an 
   await page
     .getByRole('button', { name: de.memory.diary.resume, exact: true })
     .click();
-  await expect(page.locator('.attachment-status-ready')).toHaveCount(2);
+  await expect(
+    page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+  ).toHaveCount(2);
   const restore = await page.evaluateHandle(() => {
     const put = IDBObjectStore.prototype.put;
     IDBObjectStore.prototype.put = () => {
@@ -1857,3 +1946,526 @@ test('a failed local checkpoint cannot start a volatile-photo Save or invent an 
   await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
   expect(photos.creates).toBe(1);
 });
+
+for (const [width, colorScheme] of [
+  [320, 'dark'],
+  [360, 'dark'],
+  [390, 'light'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`manual Place survives Memory draft recovery and exact save (${width})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    await signInAndOpenMemoryCreate(page, emptyPhotoBatch(), sourceScenario());
+    if (width === 320)
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '32px';
+      });
+    const destination = {
+      id: '66666666-6666-4666-8666-666666666666',
+      spaceId: SPACE_ID,
+      name: 'Kölner Dom',
+      address: 'Domkloster 4, Köln',
+      latitude: 50.9413,
+      longitude: 6.9583,
+      createdBy: ACCOUNT_ID,
+      creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+      version: 1,
+      capabilities: { canEdit: true, canDelete: true },
+    };
+    await page.route(
+      new RegExp(`/spaces/${SPACE_ID}/places(?:\\?.*)?$`),
+      (route) =>
+        route.fulfill({
+          json: { items: [destination], nextCursor: null, hasMore: false },
+        }),
+    );
+    const placeCopy = (await import('../../src/i18n/locales/photoPlaces'))
+      .default;
+    await page
+      .getByRole('button', { name: placeCopy.add, exact: true })
+      .click();
+    const picker = page.getByRole('dialog', { name: placeCopy.add });
+    await picker.getByRole('button', { name: /Kölner Dom/ }).click();
+    await expect(picker).toHaveCount(0);
+    const selected = page.getByRole('button', {
+      name: destination.name,
+      exact: true,
+    });
+    await expect(selected).toBeVisible();
+    await page
+      .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
+      .fill('Our visit without a photo.');
+    await expect(
+      page.getByText(de.memory.diary.draft.saved, { exact: true }),
+    ).toBeVisible();
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.reload();
+    await page
+      .getByRole('button', { name: de.memory.diary.resume, exact: true })
+      .click();
+    await expect(selected).toBeVisible();
+    await expect(
+      page.getByRole('textbox', { name: de.memory.bodyLabel, exact: true }),
+    ).toHaveValue('Our visit without a photo.');
+    await captureScreenshot(
+      page,
+      testInfo,
+      `1581-memory-place-${width}-${colorScheme}.png`,
+      { fullPage: true },
+    );
+    const audit = await new AxeBuilder({ page })
+      .include('.memory-task-page')
+      .analyze();
+    expect(audit.violations).toEqual([]);
+    const create = page.waitForRequest(
+      (request) =>
+        request.method() === 'POST' &&
+        new URL(request.url()).pathname.endsWith('/memories'),
+    );
+    await page
+      .getByRole('button', { name: de.memory.save, exact: true })
+      .click();
+    expect((await create).postDataJSON()).toMatchObject({
+      placeId: destination.id,
+      body: 'Our visit without a photo.',
+    });
+    await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  });
+}
+
+test('new capture Place is deliberately shared before the entry is saved', async ({
+  page,
+}, testInfo) => {
+  const copy = (await import('../../src/i18n/locales/photoPlaces')).default;
+  const planning = (await import('../../src/i18n/locales/m5s3')).default;
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await signInAndOpenMemoryCreate(page);
+  const destination = {
+    id: '66666666-6666-4666-8666-666666666666',
+    spaceId: SPACE_ID,
+    name: 'Riverside',
+    address: 'River Road 1',
+    latitude: 49.4,
+    longitude: 6.5,
+    createdBy: ACCOUNT_ID,
+    creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+    createdAt: TEST_NOW,
+    updatedAt: TEST_NOW,
+    version: 1,
+    capabilities: { canEdit: true, canDelete: true },
+  };
+  const creations: unknown[] = [];
+  await page.route(
+    new RegExp(`/spaces/${SPACE_ID}/places(?:\\?.*)?$`),
+    async (route) => {
+      if (route.request().method() === 'POST') {
+        creations.push(route.request().postDataJSON());
+        await route.fulfill({ status: 201, json: destination });
+      } else
+        await route.fulfill({
+          json: { items: [], nextCursor: null, hasMore: false },
+        });
+    },
+  );
+  await page.route(`**/spaces/${SPACE_ID}/places/lookup`, (route) =>
+    route.fulfill({ json: { items: [destination] } }),
+  );
+  await page.getByRole('button', { name: copy.add, exact: true }).click();
+  await page
+    .getByRole('dialog', { name: copy.add })
+    .getByRole('button', { name: planning.map.open, exact: true })
+    .click();
+  const map = page.getByRole('dialog', { name: planning.map.title });
+  await map
+    .getByLabel(planning.map.searchLabel, { exact: true })
+    .fill('Riverside');
+  await map
+    .getByRole('button', { name: planning.map.search, exact: true })
+    .click();
+  await map.getByRole('button', { name: /Riverside/ }).click();
+  await expect(
+    map.getByText(copy.sharedCreateHint, { exact: true }),
+  ).toBeVisible();
+  expect(creations).toEqual([]);
+  await captureScreenshot(
+    page,
+    testInfo,
+    '1581-new-place-confirmation-390-light.png',
+    { fullPage: true },
+  );
+  await map
+    .getByRole('button', { name: copy.saveSharedPlace, exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: destination.name, exact: true }),
+  ).toBeVisible();
+  expect(creations).toHaveLength(1);
+  await page
+    .getByLabel(de.memory.bodyLabel, { exact: true })
+    .fill('Beside the river.');
+  const create = page.waitForRequest(
+    (r) =>
+      r.method() === 'POST' && new URL(r.url()).pathname.endsWith('/memories'),
+  );
+  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  expect((await create).postDataJSON().placeId).toBe(destination.id);
+  await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
+});
+
+for (const [width, colorScheme] of [
+  [360, 'dark'],
+  [390, 'light'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`compact photo ordering retains and saves a dense selection (${width})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    const photos = emptyPhotoBatch();
+    await signInAndOpenMemoryCreate(page, photos, sourceScenario());
+    await page.getByLabel(de.memory.titleLabelOptional).fill(AUTHORED_TITLE);
+    await page
+      .getByLabel(de.memory.bodyLabel, { exact: true })
+      .fill(AUTHORED_BODY);
+    await page.locator('#memory-create-images').setInputFiles(
+      Array.from({ length: 10 }, (_, index) => ({
+        name: `travel-${index}.jpg`,
+        mimeType: 'image/jpeg',
+        buffer: photos.photoBytes!,
+      })),
+    );
+    await expect.poll(() => photos.ready.size).toBe(10);
+    await expect(
+      page.getByRole('button', { name: de.memory.save }),
+    ).toBeEnabled();
+    const tiles = page.locator('.photo-draft-tile');
+    await expect(tiles).toHaveCount(6);
+    const bounds = await page.locator('.photo-draft-grid').boundingBox();
+    expect(bounds!.height).toBeLessThan(800);
+    await page
+      .getByRole('button', {
+        name: de.memory.photoShowAll.replace('{{count}}', '10'),
+      })
+      .click();
+    await expect(tiles).toHaveCount(10);
+    await tiles.nth(2).click();
+    const earlier = () =>
+      page.getByRole('button', {
+        name: de.memory.photoMoveEarlier.replace('{{name}}', 'travel-2.jpg'),
+      });
+    await earlier().click();
+    await earlier().click();
+    await expect(tiles.first()).toHaveAttribute('aria-pressed', 'true');
+    expect(await tiles.first().getAttribute('aria-label')).toContain(
+      'travel-2.jpg',
+    );
+    expect(photos.uploaded).toHaveLength(10);
+    await page.getByRole('button', { name: de.memory.photoShowLess }).click();
+    await expect(tiles).toHaveCount(6);
+    await expectNoHorizontalOverflow(page);
+    // Start full-page composition evidence at the task heading; fixed shell
+    // helpers outside the viewport must not project into an offscreen clip.
+    await page
+      .getByRole('heading', { name: de.memory.heading, exact: true })
+      .scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: testInfo.outputPath(`compact-photos-${width}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    if (width === 390) {
+      await page.setViewportSize({ width: 320, height: 900 });
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+      await expectNoHorizontalOverflow(page);
+      await expect(
+        page.getByRole('button', { name: de.memory.save }),
+      ).toBeEnabled();
+      await page.screenshot({
+        path: testInfo.outputPath('compact-photos-320-large.png'),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await page.addStyleTag({ content: 'html { font-size: 100%; }' });
+      await page.setViewportSize({ width, height: 900 });
+    }
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await page.getByRole('button', { name: de.memory.save }).click();
+    await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+    const firstOrder = [
+      'travel-2.jpg',
+      'travel-0.jpg',
+      'travel-1.jpg',
+      ...Array.from({ length: 7 }, (_, index) => `travel-${index + 3}.jpg`),
+    ];
+    expect(photos.bound).toEqual(
+      firstOrder.map((name) => photos.idsByName[name]),
+    );
+    await page
+      .getByRole('link', { name: de.navigation.story, exact: true })
+      .click();
+    await expect(page.getByText(AUTHORED_TITLE, { exact: true })).toBeVisible();
+  });
+}
+
+for (const [width, colorScheme] of [
+  [390, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`Memory editing interleaves saved and newly selected photos (${width})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    const photos = emptyPhotoBatch();
+    await signInAndOpenMemoryCreate(page, photos, sourceScenario());
+    await page.getByLabel(de.memory.titleLabelOptional).fill(AUTHORED_TITLE);
+    await page
+      .getByLabel(de.memory.bodyLabel, { exact: true })
+      .fill(AUTHORED_BODY);
+    await page.locator('#memory-create-images').setInputFiles(
+      ['one.jpg', 'two.jpg', 'three.jpg'].map((name) => ({
+        name,
+        mimeType: 'image/jpeg',
+        buffer: photos.photoBytes!,
+      })),
+    );
+    await expect.poll(() => photos.ready.size).toBe(3);
+    await page.getByRole('button', { name: de.memory.save }).click();
+    await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+    await page
+      .getByRole('link', { name: memoryProduct.edit, exact: true })
+      .click();
+    await page.locator('#memory-edit-images').setInputFiles({
+      name: 'later.jpg',
+      mimeType: 'image/jpeg',
+      buffer: photos.photoBytes!,
+    });
+    await expect.poll(() => photos.ready.size).toBe(4);
+    await page.getByRole('button', { name: /later.jpg/ }).click();
+    const earlier = page.getByRole('button', {
+      name: de.memory.photoMoveEarlier.replace('{{name}}', 'later.jpg'),
+    });
+    await earlier.click();
+    await earlier.click();
+    await expect(page.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await page
+      .getByRole('heading', {
+        name: memoryProduct.editHeading,
+        level: 1,
+        exact: true,
+      })
+      .scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: testInfo.outputPath(`mixed-photo-edit-${width}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    await page
+      .getByRole('button', { name: memoryProduct.save, exact: true })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+    expect(photos.bound).toEqual(
+      ['one.jpg', 'later.jpg', 'two.jpg', 'three.jpg'].map(
+        (name) => photos.idsByName[name],
+      ),
+    );
+    expect(photos.creates).toBe(1);
+    expect(photos.uploaded).toHaveLength(4);
+  });
+}
+
+for (const kind of ['plan', 'heart'] as const) {
+  test(`connected photo source saves to the canonical ${kind} without duplicate consent`, async ({
+    page,
+  }, info) => {
+    const photos = emptyPhotoBatch();
+    const source = sourceScenario(true);
+    await page.setViewportSize({
+      width: kind === 'heart' ? 360 : 430,
+      height: 900,
+    });
+    await page.emulateMedia({
+      colorScheme: kind === 'heart' ? 'dark' : 'light',
+      reducedMotion: 'reduce',
+    });
+    await signInAndOpenMemoryCreate(page, photos, source);
+    await page.route(/\/places(?:\?.*)?$/, (route) =>
+      route.fulfill({ json: { items: [], nextCursor: null } }),
+    );
+    let saved: Record<string, unknown> | null = null;
+    let submitted: Record<string, unknown> | null = null;
+    const domain = kind === 'heart' ? 'heart-moments' : 'plans';
+    await page.route(
+      new RegExp(`/api/v1/spaces/${SPACE_ID}/${domain}(?:/[^/?]+)?(?:\\?.*)?$`),
+      async (route) => {
+        if (route.request().method() === 'POST') {
+          submitted = route.request().postDataJSON();
+          const input = submitted as Record<string, unknown>;
+          const bindings =
+            kind === 'heart'
+              ? [{ attachmentId: input.attachmentId, position: 0 }]
+              : (input.attachments as {
+                  attachmentId: string;
+                  position: number;
+                }[]);
+          const gallery = bindings.map((binding) => ({
+            ...binding,
+            id: binding.attachmentId,
+            status: 'READY',
+            mediaType: 'IMAGE',
+            mimeType: 'image/jpeg',
+            width: 1200,
+            height: 800,
+            hasThumbnail: false,
+            isSensitive: false,
+            size: 100,
+            version: 1,
+            createdAt: TEST_NOW,
+          }));
+          saved = {
+            ...input,
+            id: MEMORY_ID,
+            spaceId: SPACE_ID,
+            version: 1,
+            createdAt: TEST_NOW,
+            updatedAt: TEST_NOW,
+            creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+            createdBy: ACCOUNT_ID,
+            author: { accountId: ACCOUNT_ID, displayName: 'Anna' },
+            authorId: ACCOUNT_ID,
+            capabilities: {
+              canEdit: true,
+              canDelete: true,
+              canComment: kind === 'plan',
+            },
+            ...(kind === 'heart'
+              ? { attachment: gallery[0] }
+              : {
+                  status: 'IDEA',
+                  plannedOn: null,
+                  plannedStart: null,
+                  plannedEnd: null,
+                  experiencedOn: null,
+                  sourceWishId: null,
+                  placeId: null,
+                  description: null,
+                  attachments: gallery,
+                  coverAttachment: gallery[0],
+                }),
+          };
+          await route.fulfill({ status: 201, json: saved });
+        } else if (
+          new URL(route.request().url()).pathname.endsWith(`/${domain}`)
+        ) {
+          const status = new URL(route.request().url()).searchParams.get(
+            'status',
+          );
+          await route.fulfill({
+            json: {
+              items: saved && (!status || status === 'IDEA') ? [saved] : [],
+              nextCursor: null,
+            },
+          });
+        } else await route.fulfill({ json: saved });
+      },
+    );
+    await page.goto(
+      kind === 'heart' ? '/story/heart-moments/new' : '/plan/plans/new',
+    );
+    const text =
+      kind === 'heart'
+        ? storyProducts.heartMomentProduct.textLabel
+        : m5s3.plan.intentionLabel;
+    await page.getByLabel(text, { exact: true }).fill(AUTHORED_BODY);
+    if (kind === 'heart')
+      await page
+        .getByLabel(storyProducts.heartMomentProduct.visibilityPrivate, {
+          exact: true,
+        })
+        .check();
+    else await expect(page.locator('.planning-create-sharing')).toHaveCount(0);
+    await page.getByRole('button', { name: photoSources.more }).click();
+    const sheet = page.getByRole('dialog', { name: photoSources.title });
+    await expect(
+      sheet.getByLabel(photoSources.accept, { exact: true }),
+    ).toHaveCount(0);
+    await sheet.getByRole('button', { name: photoSources.continue }).click();
+    await sheet.getByLabel('Foto 1', { exact: true }).check();
+    if (kind === 'heart')
+      await expect(sheet.getByLabel('Foto 2', { exact: true })).toBeDisabled();
+    else await sheet.getByLabel('Foto 2', { exact: true }).check();
+    await sheet.getByRole('button', { name: photoSources.import }).click();
+    await expect(sheet).toBeHidden();
+    const count = kind === 'heart' ? 1 : 2;
+    await expect(page.locator('.photo-draft-tile')).toHaveCount(count);
+    await expect(
+      page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+    ).toHaveCount(count);
+    expect(source.maxItems).toBe(kind === 'heart' ? 1 : 20);
+    await expect(page.getByLabel(text, { exact: true })).toHaveValue(
+      AUTHORED_BODY,
+    );
+    await captureScreenshot(page, info, `planning-source-${kind}.png`, {
+      fullPage: true,
+    });
+    await page
+      .getByRole('button', {
+        name:
+          kind === 'heart'
+            ? storyProducts.heartMomentProduct.save
+            : m5s3.common.save,
+        exact: true,
+      })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`/${domain}/${MEMORY_ID}$`));
+    if (kind === 'heart')
+      expect(submitted).toMatchObject({
+        visibility: 'PRIVATE',
+        attachmentId: photos.finalized[0],
+      });
+    else
+      expect(submitted).toMatchObject({
+        attachments: ['photo-1.jpg', 'photo-2.jpg'].map((name, position) => ({
+          attachmentId: photos.idsByName[name],
+          position,
+          isSensitive: false,
+        })),
+      });
+    expect(source.originals).toBe(count);
+    await expect(page.getByText(AUTHORED_BODY, { exact: true })).toBeVisible();
+    await captureScreenshot(page, info, `planning-source-${kind}-result.png`, {
+      fullPage: true,
+    });
+    if (kind === 'plan')
+      await page
+        .getByRole('button', { name: m5s3.common.back, exact: true })
+        .click();
+    else await page.locator('.shell-detail-back').click();
+    await expect(page).toHaveURL(
+      kind === 'heart' ? /\/story(?:\?|$)/ : /\/plan(?:#|$)/,
+    );
+  });
+}

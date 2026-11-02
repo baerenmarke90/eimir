@@ -15,8 +15,10 @@ released Production promotion.
 
 ## One Compose file
 
-eimir. supports exactly one tracked Docker Compose manifest: repository-root
-`compose.yaml`.
+Repository-root `compose.yaml` owns the one supported process topology. The
+optional `deploy/push-fcm.compose.yaml` fragment adds only an explicitly enabled
+sender file mount/settings to the existing API/worker roles; it adds no service,
+network or store and is never required for default-off deployments.
 
 Arcane uses that same manifest and the `self-hosted` profile. The distinction between
 Development and released Production is **image origin and entry point**, not a second
@@ -42,6 +44,96 @@ explicit Demo-only lifecycle service and is not part of normal Self-Hosted start
 it on demand with
 `docker compose --profile self-hosted --profile demo run --rm demo-init`; do not add
 `demo` to the project's default profiles (see [`DEMO-SPACE.md`](DEMO-SPACE.md)).
+
+## Optional push sender configuration
+
+Push infrastructure belongs to the operator. Normal couples do not configure
+Firebase, VAPID keys, credential files or distributor origins. Both transports use
+the existing notification policy, digest, Quiet Hours and account-owned delivery
+pipeline. Missing transport configuration leaves that transport unavailable;
+partial requested configuration refuses API/worker startup.
+
+UnifiedPush requires these values in the existing operator environment for either
+Cloud or Self-Hosted:
+
+```text
+EIMIR_PUSH_VAPID_PRIVATE_KEY
+EIMIR_PUSH_VAPID_SUBJECT
+EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS
+```
+
+The subject is an operator `mailto:` or HTTPS contact. Allowed origins are a JSON
+list of the actual HTTPS distributor origins, not a wildcard or a device-supplied
+origin. Never paste the private VAPID key into Git, issue comments or diagnostics.
+
+FCM is also default-off. To enable it, install the dedicated sender credential as
+an existing **private regular file on the Docker host**, outside the checkout and
+Git Sync directory. Set these operator inputs:
+
+```dotenv
+EIMIR_PUSH_FCM_PROJECT_ID=YOUR_FIREBASE_PROJECT_ID
+EIMIR_PUSH_FCM_ANDROID_PACKAGE=YOUR_ANDROID_APPLICATION_ID
+EIMIR_PUSH_FCM_CREDENTIALS_HOST_FILE=/ABSOLUTE/PRIVATE/HOST/PATH/sender.json
+```
+
+The host-file variable is an operator mount input; it is not passed into the app.
+The opt-in fragment fixes the application setting
+`EIMIR_PUSH_FCM_CREDENTIALS_FILE=/run/secrets/eimir-fcm-sender.json`. The dedicated
+service account must belong to the configured project and have the project-scoped
+FCM sender role. The backend uses official Google OAuth credentials, never an
+API key or a home-made JWT implementation. This path does not assume a configured
+Workload Identity Federation source exists on the Docker host.
+
+For a source-based operator project, combine the canonical file and the small
+fragment explicitly. A configuration-only check (does not read the credential):
+
+```bash
+docker compose --env-file /ABSOLUTE/PATH/operator.env \
+  --file compose.yaml --file deploy/push-fcm.compose.yaml \
+  --profile self-hosted config --quiet
+```
+
+Use the `cloud` profile for the Cloud topology. In Arcane, apply the same fragment
+to the existing project before Deploy/Redeploy; preserve all other environment,
+volume, network, image and release-identity settings. Do not enable a profile that
+creates another project. The fragment affects only `api`/`worker` and
+`cloud-api`/`cloud-worker`; Web, migrations and release/bootstrap roles receive no
+sender credential. Default canonical deployments require no host file. An explicit
+opt-in with a missing host source refuses instead of creating a directory.
+
+Released Production still uses the verified release's canonical Compose and
+identity file and the existing `release-guard`. Do not replace those with a source
+checkout or disable the gate to enable push. The immutable operator bundle ships
+the matching optional fragment; do not mix it with another release. The supported
+shell launcher includes it explicitly for validation and every deployment step:
+
+```bash
+python3 scripts/self_hosted_release.py --env-file .env --with-fcm validate
+python3 scripts/self_hosted_release.py --env-file .env --with-fcm deploy
+```
+
+Use the same switch for `pull` or first-install `bootstrap-deletion-authority`
+when FCM inputs are already configured. Configured FCM without the explicit switch
+is refused before any operation. Validation sees the same file composition as
+pull/migration/start; the published image identity and bootstrap rules are unchanged.
+
+The backend runs as UID **10001**. Make the file readable by that runtime UID or
+an appropriate restricted group while keeping host directory/file access private;
+do not use world-readable permissions. Both API and worker can read the same
+read-only file. Verify effective owner/mode/readability without printing contents.
+`create_host_path: false` and the read-only bind are defined once in the fragment;
+the private-channel exporter compiles that same contract inline.
+
+Never put credential JSON in an environment value, Compose text, an image/build
+context, a Git URL, a command argument, a screenshot or a test artifact. Rotation
+requires installing the replacement, recreating API/worker to discard cached
+credentials, validating delivery, and only then revoking old sender authority.
+Provider authorization failure must remain visible as a sanitized technical error;
+it does not prove a device subscription is dead.
+
+The private `eimir-test` Git Sync channel already inlines this opt-in mount; do
+**not** add a second fragment or enable Sync Files there. Follow its exact setup,
+verification and recovery steps in [Private Test Channel](PRIVATE-TEST-CHANNEL.md).
 
 ## Persistent Development in Arcane
 

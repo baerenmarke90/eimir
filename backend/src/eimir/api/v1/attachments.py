@@ -90,6 +90,10 @@ class AttachmentReadRequest(ApiModel):
 class AttachmentDetail(ApiModel):
     id: UUID
     status: str
+    failure_code: str | None = Field(
+        default=None,
+        description="Stable validation code for a failed upload; never decoder diagnostics.",
+    )
     media_type: MediaType
     mime_type: str | None
     size: int | None
@@ -160,6 +164,7 @@ def _detail(attachment: Attachment) -> AttachmentDetail:
     return AttachmentDetail(
         id=attachment.id,
         status=_PUBLIC_STATUS.get(attachment.status, "PROCESSING"),
+        failure_code=attachment.failure_code if attachment.status == "FAILED" else None,
         media_type=MediaType(attachment.media_type),
         mime_type=attachment.mime_type,
         size=attachment.size,

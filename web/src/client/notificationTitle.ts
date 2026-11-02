@@ -16,6 +16,17 @@ export function getNotificationItemTitle(
       ? authorDisplayName(item.actor)
       : undefined;
   const targetTitle = item.target?.title;
+  if (item.kind === 'REMINDER_CREATED') {
+    return t(
+      targetTitle
+        ? 'm5s5.notificationAction.REMINDER_CREATED_WITH_TARGET'
+        : 'm5s5.notificationAction.REMINDER_CREATED',
+      {
+        name: actorName ?? t('m5s5.today.relationshipSignal.partnerFallback'),
+        target: targetTitle,
+      },
+    );
+  }
   if (
     [
       'PLAN_CREATED',

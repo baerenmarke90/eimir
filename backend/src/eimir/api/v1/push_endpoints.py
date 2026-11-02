@@ -7,15 +7,16 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Response, status
+from fastapi.responses import JSONResponse
 from pydantic import ConfigDict, Field, field_validator
 
-from eimir.api.deps import CurrentAccount, DbSession
-from eimir.api.errors import problem_responses
+from eimir.api.deps import CurrentAccount, CurrentSession, DbSession
+from eimir.api.errors import problem, problem_responses
 from eimir.api.schema import ApiModel
 from eimir.auth import rate_limit
 from eimir.core.errors import ErrorCode, NotFoundError, ServiceUnavailableError, ValidationError
 from eimir.core.ids import parse_id
-from eimir.engagement import push, unified_push
+from eimir.engagement import fcm_push, push, unified_push
 
 router = APIRouter(prefix="/push-endpoints", tags=["notifications"])
 
@@ -23,17 +24,39 @@ _REGISTER_ACTION = "push_endpoint_register"
 _REGISTER_LIMIT = rate_limit.Limit(attempts=30, window=timedelta(minutes=15))
 
 
+class FcmPreviewRegistration(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+    version: Literal[1]
+    key: str = Field(min_length=43, max_length=43, repr=False)
+
+    @field_validator("version", mode="before")
+    @classmethod
+    def version_is_integer(cls, value: object) -> object:
+        if type(value) is not int:
+            raise ValueError("Invalid preview protocol version.")
+        return value
+
+    @field_validator("key")
+    @classmethod
+    def key_is_canonical(cls, value: str) -> str:
+        if not fcm_push.valid_preview_key(value):
+            raise ValueError("Invalid preview registration.")
+        return value
+
+
 class PushEndpointRegistration(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     provider_key: str = Field(min_length=1, max_length=64)
+    encrypted_preview: FcmPreviewRegistration | None = None
     endpoint_value: str = Field(
         min_length=1,
         max_length=2048,
         description=(
             "Opaque provider-specific registration value. A Web Push transport can use "
             "a compact JSON subscription containing endpoint, keys.p256dh and keys.auth; "
-            "the configured provider validates its own format. Treat this value as a secret."
+            "FCM uses compact JSON containing fid and activationId (canonical UUIDv4). "
+            "The configured provider validates its own format. Treat this value as a secret."
         ),
     )
 
@@ -54,6 +77,60 @@ class UnifiedPushConfiguration(ApiModel):
     notification_reference_version: Literal[1] = 1
     provider_key: str
     vapid_public_key: str
+
+
+class FcmConfiguration(ApiModel):
+    encrypted_preview_version: Literal[1] = 1
+    provider_key: str
+    project_id: str
+    android_package: str
+
+
+class DevicePushConfiguration(ApiModel):
+    unified_push: UnifiedPushConfiguration | None
+    fcm: FcmConfiguration | None
+
+
+@router.get(
+    "/configuration",
+    response_model=DevicePushConfiguration,
+    operation_id="getDevicePushConfiguration",
+    responses=problem_responses(401, 503),
+)
+def get_device_push_configuration(
+    account: CurrentAccount, response: Response
+) -> DevicePushConfiguration | JSONResponse:
+    """Expose only configured public transport metadata to an authenticated device."""
+    del account
+    response.headers["Cache-Control"] = "private, no-store"
+    unified = push.providers.get(unified_push.PROVIDER_KEY)
+    fcm = push.providers.get(fcm_push.PROVIDER_KEY)
+    result = DevicePushConfiguration(
+        unified_push=(
+            UnifiedPushConfiguration(
+                provider_key=unified_push.PROVIDER_KEY, vapid_public_key=unified.vapid_public_key
+            )
+            if isinstance(unified, unified_push.UnifiedPushProvider)
+            else None
+        ),
+        fcm=(
+            FcmConfiguration(
+                provider_key=fcm_push.PROVIDER_KEY,
+                project_id=fcm.project_id,
+                android_package=fcm.android_package,
+            )
+            if isinstance(fcm, fcm_push.FcmPushProvider)
+            else None
+        ),
+    )
+    if result.unified_push is None and result.fcm is None:
+        error = ServiceUnavailableError(
+            "Push transport is unavailable.", ErrorCode.PUSH_TRANSPORT_UNAVAILABLE
+        )
+        unavailable = problem(error.status, error.type, error.title, error.detail, error.code)
+        unavailable.headers["Cache-Control"] = "private, no-store"
+        return unavailable
+    return result
 
 
 @router.get(
@@ -87,7 +164,7 @@ def get_unified_push_configuration(
 )
 def register_own_push_endpoint(
     body: PushEndpointRegistration,
-    account: CurrentAccount,
+    device_session: CurrentSession,
     session: DbSession,
     response: Response,
 ) -> PushEndpointRegistrationResult:
@@ -99,14 +176,23 @@ def register_own_push_endpoint(
         )
     if not provider.accepts_endpoint(body.endpoint_value):
         raise ValidationError("Invalid Push endpoint.", ErrorCode.PUSH_ENDPOINT_INVALID)
-    rate_limit.check(session, _REGISTER_ACTION, str(account.id), _REGISTER_LIMIT)
-    endpoint = push.register_endpoint(
-        session,
-        account_id=account.id,
-        provider_key=body.provider_key,
-        endpoint_value=body.endpoint_value,
-        registration_identity=provider.registration_identity(body.endpoint_value),
-    )
+    if body.encrypted_preview is not None and body.provider_key != fcm_push.PROVIDER_KEY:
+        raise ValidationError(
+            "Preview protocol is unavailable for this transport.", ErrorCode.PUSH_ENDPOINT_INVALID
+        )
+    # Authentication marks this family as used. Do not flush that write before
+    # registration takes its Account -> device-session lifecycle locks.
+    with session.no_autoflush:
+        rate_limit.check(session, _REGISTER_ACTION, str(device_session.account_id), _REGISTER_LIMIT)
+        endpoint = push.register_endpoint(
+            session,
+            account_id=device_session.account_id,
+            provider_key=body.provider_key,
+            endpoint_value=body.endpoint_value,
+            registration_identity=provider.registration_identity(body.endpoint_value),
+            preview_key=body.encrypted_preview.key if body.encrypted_preview is not None else None,
+            preview_session_id=device_session.id if body.encrypted_preview is not None else None,
+        )
     response.headers["Cache-Control"] = "private, no-store"
     return PushEndpointRegistrationResult(id=endpoint.id)
 

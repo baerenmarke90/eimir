@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { createReferenceApis } from '../client/referenceFlow';
 import { mediaCacheScopeForClient } from '../client/authorizedMediaCache';
-import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
+import { usePreviewLoadGate } from '../client/usePreviewLoadGate';
 import { useTranslation } from '../i18n';
 import {
   SensitiveMediaControl,
@@ -36,6 +37,10 @@ export function PlanCover({
     [apiBaseUrl, accessToken],
   );
   const cover = plan.coverAttachment;
+  const { ref, shouldLoad } = usePreviewLoadGate(
+    presentation === 'preview' ? 'near-viewport' : 'immediate',
+    Boolean(cover),
+  );
   const variant =
     presentation === 'preview' && cover?.hasThumbnail
       ? 'thumbnail'
@@ -44,13 +49,20 @@ export function PlanCover({
   const scope = apis ? mediaCacheScopeForClient(apis.attachments).id : '';
   const image = useObjectUrlResource(
     `${scope}:${spaceId}:plan:${plan.id}:${variant}:${attempt}`,
-    apis && cover ? cover.id : null,
+    apis && cover && shouldLoad ? cover.id : null,
     async (id, signal) => {
       if (!apis) throw new Error('Plan media API unavailable');
-      return loadAuthorizedStoryImage(apis, spaceId, 'PLAN', plan.id, id, {
-        signal,
-        variant,
-      });
+      return loadAuthorizedStoryImageResource(
+        apis,
+        spaceId,
+        'PLAN',
+        plan.id,
+        id,
+        {
+          signal,
+          variant,
+        },
+      );
     },
   );
   const reveals = useSensitiveMediaReveals(
@@ -69,7 +81,11 @@ export function PlanCover({
       decoding="async"
     />
   ) : (
-    <span className="plan-cover-placeholder" role="status">
+    <span
+      className="plan-cover-placeholder"
+      role={shouldLoad ? 'status' : undefined}
+      aria-hidden={!shouldLoad || undefined}
+    >
       {t(image.error ? 'm5s3.planImage.failed' : 'states.loading.title')}
       {image.error && interactive ? (
         <button
@@ -84,9 +100,11 @@ export function PlanCover({
   );
   return (
     <div
+      ref={ref}
+      data-media-deferred={!shouldLoad || undefined}
       className={`plan-cover plan-cover--${presentation}`}
       style={
-        concealed
+        concealed || presentation === 'preview'
           ? {
               aspectRatio:
                 cover.width && cover.height

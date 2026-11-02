@@ -77,6 +77,36 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             )
             self.assertEqual(check_file(path), [])
 
+    def test_contextual_push_copy_does_not_exempt_surrounding_engineering_prose(
+        self,
+    ) -> None:
+        for suffix, product_copy in (
+            (
+                ".xml",
+                '<string name="push_kiss">%1$s hat dir einen Kuss geschickt.</string>',
+            ),
+            (
+                ".java",
+                'assertEquals("Alex hat die Erinnerung „Einkaufen“ erstellt.", body);',
+            ),
+            (
+                ".tsx",
+                "screen.getByRole('button', { name: 'Zurück zu den Benachrichtigungen' });",
+            ),
+        ):
+            with (
+                self.subTest(suffix=suffix),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                path = Path(directory) / f"example{suffix}"
+                path.write_text(product_copy + "\n", encoding="utf-8")
+                self.assertEqual(check_file(path), [])
+                path.write_text(
+                    product_copy + "\n// Die Entscheidung wird im Client getroffen.\n",
+                    encoding="utf-8",
+                )
+                self.assertEqual(len(check_file(path)), 1)
+
     def test_common_english_article_is_not_a_german_marker(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "example.md"
@@ -201,6 +231,8 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
         from documentation_language_audit import ALLOWED_DOCUMENTATION_TEXTS_BY_PATH
 
         for logical_path in (
+            Path("docs/design/eimir/565-fcm/evidence/review-results.json"),
+            Path("docs/design/eimir/565-fcm/evidence/accessibility-results.json"),
             Path("docs/design/eimir/1307-premium-app-icons/image-prompt.md"),
             Path("docs/product/design/references/508/plan-completion-generation.md"),
             Path("docs/product/design/references/508/wish-completion-generation.md"),

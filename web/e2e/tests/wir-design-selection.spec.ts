@@ -274,6 +274,220 @@ async function alignedVisibilityControls(page: Page) {
     expect(target.overlapsLabel).toBe(false);
   }
 }
+for (const [width, theme] of [
+  [390, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`does not paint a default design while the first selection is unresolved at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    const f = await fixture(page, { initial: 'modern' });
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route('**/appearance/wir-design', async (route) => {
+      await pending;
+      await route.fallback();
+    });
+    try {
+      await signIn(page);
+      await page.locator('.product-shell a[href="/today"]:visible').click();
+      await expect(page.locator('.today-page')).toBeVisible();
+      expect(
+        await page.locator('.today-page').getAttribute('data-wir-design'),
+      ).toBeNull();
+      expect(
+        await page.locator('.today-page').getAttribute('data-color-world'),
+      ).toBeNull();
+      await expect(page.locator('.today-content')).toHaveCount(0);
+      await captureScreenshot(
+        page,
+        info,
+        `today-startup-unresolved-${width}-${theme}.png`,
+      );
+      release();
+      await expect(page.locator('.today-page')).toHaveAttribute(
+        'data-wir-design',
+        'modern',
+      );
+      await expect(page.locator('.today-content')).toBeVisible();
+      expect(f.unexpected).toEqual([]);
+    } finally {
+      release();
+    }
+  });
+
+  test(`restores the chosen design before its slow startup revalidation at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    const f = await fixture(page, { initial: 'modern' });
+    await signIn(page);
+    await page.goto('/today');
+    await expect(page.locator('.today-page')).toHaveAttribute(
+      'data-wir-design',
+      'modern',
+    );
+    await expect(page.locator('.today-content')).toBeVisible();
+    await page.waitForFunction(() =>
+      Array.from({ length: localStorage.length }, (_, i) =>
+        localStorage.key(i),
+      ).some((key) => key?.startsWith('eimir-wir-design-v1:')),
+    );
+    let release!: () => void;
+    let arrived!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const requested = new Promise<void>((resolve) => {
+      arrived = resolve;
+    });
+    await page.route('**/appearance/wir-design', async (route) => {
+      arrived();
+      await pending;
+      await route.fallback();
+    });
+    await page.addInitScript(() => {
+      const designs: string[] = [];
+      Object.assign(window, { startupDesigns: designs });
+      new MutationObserver(() => {
+        const root = document.querySelector<HTMLElement>('.today-page');
+        if (root?.querySelector('.today-content'))
+          designs.push(root.dataset.wirDesign ?? 'missing');
+      }).observe(document, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+      });
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await requested;
+    try {
+      await expect(page.locator('.today-content')).toBeVisible();
+      await expect(page.locator('.today-page')).toHaveAttribute(
+        'data-wir-design',
+        'modern',
+      );
+      expect(
+        await page.evaluate(
+          () =>
+            (window as Window & { startupDesigns: string[] }).startupDesigns,
+        ),
+      ).not.toContain('warm');
+      await captureScreenshot(
+        page,
+        info,
+        `today-startup-preserved-${width}-${theme}.png`,
+      );
+    } finally {
+      release();
+    }
+    await expect(page.locator('.today-page')).toHaveAttribute(
+      'data-wir-design',
+      'modern',
+    );
+    expect(f.unexpected).toEqual([]);
+  });
+}
+
+for (const [width, theme, reduced] of [
+  [360, 'light', false],
+  [390, 'dark', false],
+  [430, 'light', true],
+  [1280, 'dark', false],
+] as const) {
+  test(`shape-following press and keyboard focus at ${width} ${theme}${reduced ? ' reduced' : ''}`, async ({
+    browser,
+    baseURL,
+  }, info) => {
+    const context = await browser.newContext({
+      baseURL,
+      viewport: { width, height: 900 },
+      isMobile: width < 840,
+      hasTouch: true,
+      colorScheme: theme,
+      reducedMotion: reduced ? 'reduce' : 'no-preference',
+    });
+    const page = await context.newPage();
+    try {
+      const f = await fixture(page);
+      await signIn(page);
+      await page.goto('/today');
+      await expect(page.locator('.today-content')).toBeVisible();
+      const overlay = page.getByRole(width < 840 ? 'dialog' : 'menu');
+      const control = page.locator(
+        '.product-shell .quick-create-trigger:visible',
+      );
+      const state = await control.evaluate((node) => {
+        const css = getComputedStyle(node);
+        return {
+          highlight: css.webkitTapHighlightColor,
+          radius: css.borderRadius,
+          transform: css.transform,
+        };
+      });
+      expect(state.highlight).toBe('rgba(0, 0, 0, 0)');
+      if (width < 840) expect(state.radius).toBe('50%');
+      const bounds = await control.boundingBox();
+      if (!bounds) throw new Error('Create control is not laid out');
+      const session = await context.newCDPSession(page);
+      const contact = {
+        x: bounds.x + bounds.width / 2,
+        y: bounds.y + bounds.height / 2,
+      };
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [contact],
+      });
+      await expect(control).toHaveAttribute('data-control-pressed', '');
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchCancel',
+        touchPoints: [],
+      });
+      await expect(control).not.toHaveAttribute('data-control-pressed');
+      await expect(overlay).toHaveCount(0);
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [contact],
+      });
+      try {
+        await expect
+          .poll(() => control.evaluate((node) => getComputedStyle(node).scale))
+          .toBe(reduced ? 'none' : width < 840 ? '0.96' : '0.98');
+        await captureScreenshot(
+          page,
+          info,
+          `shell-control-press-${width}-${theme}${reduced ? '-reduced' : ''}.png`,
+        );
+      } finally {
+        await session.send('Input.dispatchTouchEvent', {
+          type: 'touchEnd',
+          touchPoints: [],
+        });
+      }
+      await expect(page.locator('[data-control-pressed]')).toHaveCount(0);
+      await expect(overlay).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(overlay).toHaveCount(0);
+      await page.keyboard.press('Tab');
+      await control.focus();
+      expect(
+        await control.evaluate((node) => node.matches(':focus-visible')),
+      ).toBe(true);
+      expect(
+        await control.evaluate((node) => getComputedStyle(node).outlineStyle),
+      ).not.toBe('none');
+      expect(f.unexpected).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
 for (const [width, theme, large] of [
   [320, 'light', false],
   [360, 'light', false],

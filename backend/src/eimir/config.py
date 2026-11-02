@@ -12,6 +12,7 @@ import re
 from datetime import timedelta
 from enum import StrEnum
 from functools import lru_cache
+from pathlib import Path
 from typing import Annotated, Self
 from urllib.parse import urlsplit
 
@@ -323,6 +324,12 @@ class Settings(IdentityCompatibleSettings):
     push_vapid_private_key: SecretStr | None = None
     push_vapid_subject: str = ""
     push_webpush_allowed_origins: list[str] = Field(default_factory=list)
+
+    # Both processes share the operator-managed sender configuration. Credentials
+    # stay in a mounted file; Settings validation never reads it or calls Google.
+    push_fcm_project_id: str = ""
+    push_fcm_android_package: str = ""
+    push_fcm_credentials_file: str = ""
 
     # Observability and logging configuration.
     log_format: LogFormat | None = None
@@ -637,6 +644,37 @@ class Settings(IdentityCompatibleSettings):
                 raise ValueError(
                     "EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS must contain HTTPS origins only."
                 )
+        return self
+
+    @model_validator(mode="after")
+    def fcm_configuration_is_complete(self) -> Self:
+        values = (
+            self.push_fcm_project_id,
+            self.push_fcm_android_package,
+            self.push_fcm_credentials_file,
+        )
+        if not any(values):
+            return self
+        if not all(values):
+            raise ValueError(
+                "FCM requires EIMIR_PUSH_FCM_PROJECT_ID, EIMIR_PUSH_FCM_ANDROID_PACKAGE "
+                "and EIMIR_PUSH_FCM_CREDENTIALS_FILE."
+            )
+        if re.fullmatch(r"[a-z][a-z0-9-]{4,28}[a-z0-9]", self.push_fcm_project_id) is None:
+            raise ValueError("EIMIR_PUSH_FCM_PROJECT_ID is invalid.")
+        if (
+            re.fullmatch(
+                r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+",
+                self.push_fcm_android_package,
+            )
+            is None
+        ):
+            raise ValueError("EIMIR_PUSH_FCM_ANDROID_PACKAGE is invalid.")
+        path = self.push_fcm_credentials_file
+        if not Path(path).is_absolute() or any(
+            ord(character) < 33 or ord(character) == 127 for character in path
+        ):
+            raise ValueError("EIMIR_PUSH_FCM_CREDENTIALS_FILE must be an absolute file path.")
         return self
 
 

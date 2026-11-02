@@ -42,6 +42,7 @@ class ActivityKind(StrEnum):
 
 
 class NotificationKind(StrEnum):
+    REMINDER_CREATED = "REMINDER_CREATED"
     TRANSFER_READY = "TRANSFER_READY"
     TRANSFER_COMPLETED = "TRANSFER_COMPLETED"
     TRANSFER_FAILED = "TRANSFER_FAILED"
@@ -72,6 +73,7 @@ class SupportGestureKind(StrEnum):
 
 
 class EngagementTarget(StrEnum):
+    REMINDER = "REMINDER"
     TRANSFER_EXPORT = "TRANSFER_EXPORT"
     TRANSFER_IMPORT = "TRANSFER_IMPORT"
     WISH_SELECTION = "WISH_SELECTION"
@@ -426,6 +428,35 @@ class PushEndpointSecret(IdMixin, Base):
     )
 
     __table_args__ = (CheckConstraint("crypto_version >= 0", name="endpoint_secret_crypto_valid"),)
+
+
+class PushPreviewKeyPayload(ProtectedPayload):
+    key: str
+
+
+class PushPreviewSecret(IdMixin, Base):
+    """Optional encrypted preview capability; legacy registrations remain unchanged."""
+
+    __tablename__ = "push_preview_secrets"
+    push_endpoint_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("push_endpoints.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    device_session_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("device_sessions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    crypto_version: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, default=CRYPTO_VERSION_PLAINTEXT, server_default=text("0")
+    )
+    payload: Mapped[PushPreviewKeyPayload] = mapped_column(
+        ProtectedPayloadJSON(PushPreviewKeyPayload), nullable=False
+    )
+    __table_args__ = (CheckConstraint("crypto_version >= 0", name="preview_secret_crypto_valid"),)
 
 
 class PushDelivery(IdMixin, Base):

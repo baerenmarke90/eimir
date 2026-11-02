@@ -53,6 +53,7 @@ def fingerprint(
     happened_on: date | None,
     tags: MemoryTags | None = None,
     experience_kind: ExperienceKind | None = None,
+    place_id: UUID | None = None,
 ) -> str:
     """Hash the normalized create request without retaining any of its content."""
     content = {
@@ -68,6 +69,9 @@ def fingerprint(
     if experience_kind is not None:
         content["v"] = 3
         content["experienceKind"] = experience_kind.value
+    if place_id is not None:
+        content["v"] = 4
+        content["placeId"] = str(place_id)
     canonical = json.dumps(
         content,
         sort_keys=True,

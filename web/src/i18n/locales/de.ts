@@ -397,6 +397,15 @@ const de = {
     dateChangeAction: 'Ändern',
     photoLabel: 'Fotos',
     photoSelected: 'Foto ausgewählt',
+    photoPosition: 'Foto {{position}} von {{count}}',
+    photoSelectItem: 'Foto {{position}} von {{count}}: {{name}} · {{status}}',
+    photoNeedsHelp: 'Fehler',
+    photoShowAll: 'Alle {{count}} Fotos anzeigen',
+    photoShowLess: 'Weniger Fotos anzeigen',
+    photoChecking: 'Prüfung …',
+    photoFailures_one: 'Ein Foto braucht deine Hilfe.',
+    photoFailures_other: '{{count}} Fotos brauchen deine Hilfe.',
+    photoReviewFailure: 'Ansehen',
     photoSelect: 'Fotos auswählen',
     photoAddMore: 'Weitere Fotos auswählen',
     photoFormats: 'JPG, PNG, WebP, HEIC oder HEIF',
@@ -443,7 +452,16 @@ const de = {
   },
   flow: {
     uploadFailed: 'Bild-Upload fehlgeschlagen',
-    processingStatus: 'Medienverarbeitung beendet mit Status {{status}}.',
+    processingStatus:
+      'Dieses Foto konnte nicht verarbeitet werden. Versuche es erneut oder wähle eine andere Datei.',
+    imageTooLarge:
+      'Dieses Foto ist zu groß. Wähle eine kleinere Version (höchstens 40 Megapixel, 12.000 Pixel je Seite und 25 MiB).',
+    imageUnreadable:
+      'Dieses Foto ist beschädigt oder nicht vollständig lesbar. Wähle die Originaldatei erneut aus.',
+    imageTypeMismatch:
+      'Das Dateiformat passt nicht zum ausgewählten Foto. Exportiere es als JPG oder PNG und wähle es erneut aus.',
+    imageNotSanitizable:
+      'Dieses Foto konnte nicht sicher verarbeitet werden. Exportiere es als JPG oder PNG und wähle es erneut aus.',
     processingTimeout:
       'Medienverarbeitung hat das READY-Fenster nicht rechtzeitig erreicht.',
     imageLoadFailed: 'Bild konnte nicht geladen werden',

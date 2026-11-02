@@ -44,7 +44,16 @@ PLAN_COMPLETION_PRODUCT_COPY = (
     "Wo steht ihr gerade?",
 )
 
+FCM_PROVIDER_NOTICE_PRODUCT_COPY = (
+    "Hinweise zeigen keine privaten Inhalte. Für die Zustellung bekommt Google oder dein gewählter Push-Dienst eine Installationskennung und Verbindungsdaten.",
+    "Auf diesem Gerät aktivieren",
+    "Auf diesem Gerät deaktivieren",
+)
+
 ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
+    # Exact measured de-DE UI strings; all surrounding evidence prose remains audited.
+    Path("docs/design/eimir/565-fcm/evidence/review-results.json"): FCM_PROVIDER_NOTICE_PRODUCT_COPY,
+    Path("docs/design/eimir/565-fcm/evidence/accessibility-results.json"): FCM_PROVIDER_NOTICE_PRODUCT_COPY,
     # Exact existing localized copy in this Daily Check-in reference prompt.
     Path("docs/product/design/references/508/daily-check-in-owner/generation.md"): (
         "Wird gespeichert …",

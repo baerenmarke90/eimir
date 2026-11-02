@@ -10,7 +10,7 @@ import { assertOnlineWrite } from '../client/connectivity';
 import { normalizeClientError } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { settingsCategoryPath } from '../client/routes';
-import type { DevicePushController } from '../client/unifiedPush';
+import type { DevicePushController } from '../client/devicePush';
 import { useTranslation } from '../i18n';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
@@ -26,7 +26,11 @@ const CHANNELS = [
 const GROUPS = [
   {
     key: 'sharedActivity',
-    kinds: [NotificationKind.COMMENT_CREATED, NotificationKind.REMINDER_DUE],
+    kinds: [
+      NotificationKind.COMMENT_CREATED,
+      NotificationKind.REMINDER_CREATED,
+      NotificationKind.REMINDER_DUE,
+    ],
   },
   {
     key: 'closeness',
@@ -42,6 +46,7 @@ const GROUPS = [
 const KIND_KEYS = {
   [NotificationKind.COMMENT_CREATED]: 'comment',
   [NotificationKind.REMINDER_DUE]: 'reminder',
+  [NotificationKind.REMINDER_CREATED]: 'reminderCreated',
   [NotificationKind.THINKING_OF_YOU]: 'thinking',
   [NotificationKind.COUPLE_EXPERIENCE_SHARED]: 'experience',
   [NotificationKind.PARTNER_KISS]: 'kiss',

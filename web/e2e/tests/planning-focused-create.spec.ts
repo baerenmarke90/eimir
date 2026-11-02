@@ -1,3 +1,5 @@
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
@@ -27,6 +29,8 @@ async function installPlanningMocks(
 
   await page.route('**/api/v1/**', async (route) => {
     if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
+    if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -314,7 +318,7 @@ for (const scenario of [
   });
 }
 
-test('focused Wish creation keeps Wish-specific shared visibility copy', async ({
+test('focused Wish creation omits the redundant fixed-audience banner', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -322,7 +326,7 @@ test('focused Wish creation keeps Wish-specific shared visibility copy', async (
   await signIn(page);
   await page.goto('/plan/wishes/new');
 
-  await expect(page.getByText(m5s3.wish.sharedBody)).toBeVisible();
+  await expect(page.getByText(m5s3.wish.sharedBody)).toHaveCount(0);
   await expect(page.getByText(m5s3.plan.sharedBody)).toHaveCount(0);
   await captureR3Evidence(page, testInfo, 'r3-create-wish-390-light.png');
 });

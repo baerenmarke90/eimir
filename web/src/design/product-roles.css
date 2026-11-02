@@ -50,6 +50,9 @@
   --page-gutter-comfortable: 20px;
   --page-gutter: var(--page-gutter-narrow);
   --duration-feedback: 120ms;
+  --control-pressed-scale: 0.98;
+  --control-pressed-scale-emphasis: 0.96;
+  --control-pressed-brightness: 0.96;
   --duration-transition: 180ms;
   --duration-context: 280ms;
   --easing-standard: cubic-bezier(0.2, 0, 0, 1);

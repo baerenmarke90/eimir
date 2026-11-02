@@ -40,6 +40,12 @@ export interface AttachmentDetail {
      */
     durationSeconds: number | null;
     /**
+     * Stable validation code for a failed upload; never decoder diagnostics.
+     * @type {string}
+     * @memberof AttachmentDetail
+     */
+    failureCode?: string | null;
+    /**
      * 
      * @type {boolean}
      * @memberof AttachmentDetail
@@ -133,6 +139,7 @@ export function AttachmentDetailFromJSONTyped(json: any, ignoreDiscriminator: bo
         
         'createdAt': (new Date(json['createdAt'])),
         'durationSeconds': json['durationSeconds'],
+        'failureCode': json['failureCode'] === undefined ? undefined : json['failureCode'] === null ? null : json['failureCode'],
         'hasThumbnail': json['hasThumbnail'],
         'height': json['height'],
         'id': json['id'],
@@ -159,6 +166,7 @@ export function AttachmentDetailToJSONTyped(value?: AttachmentDetail | null, ign
         
         'createdAt': value['createdAt'].toISOString(),
         'durationSeconds': value['durationSeconds'],
+        'failureCode': value['failureCode'],
         'hasThumbnail': value['hasThumbnail'],
         'height': value['height'],
         'id': value['id'],

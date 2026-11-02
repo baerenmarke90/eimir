@@ -26,6 +26,7 @@ class EventType(StrEnum):
     """Event catalog. A shipped name is never renamed."""
 
     MEMORY_CREATED = "MEMORY_CREATED"
+    REMINDER_CREATED = "REMINDER_CREATED"
     PHOTO_REACTION_CHANGED = "PHOTO_REACTION_CHANGED"
     TRANSFER_READY = "TRANSFER_READY"
     TRANSFER_COMPLETED = "TRANSFER_COMPLETED"
@@ -124,7 +125,7 @@ class PublicEventPayload(BaseModel):
     visibility: ContentVisibility | None = None
     experience_kind: ExperienceKind | None = None
 
-    target_type: Literal["MEMORY", "HEART_MOMENT", "MILESTONE"] | None = None
+    target_type: Literal["MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN"] | None = None
     target_id: UUID | None = None
     recipient_id: UUID | None = None
     occurrence_id: UUID | None = None

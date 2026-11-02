@@ -60,6 +60,12 @@ export interface HeartMomentCreate {
     happenedOn: Date;
     /**
      * 
+     * @type {string}
+     * @memberof HeartMomentCreate
+     */
+    placeId?: string | null;
+    /**
+     * 
      * @type {Array<string>}
      * @memberof HeartMomentCreate
      */
@@ -105,6 +111,7 @@ export function HeartMomentCreateFromJSONTyped(json: any, ignoreDiscriminator: b
         'attachmentIsSensitive': json['attachmentIsSensitive'] === undefined ? undefined : json['attachmentIsSensitive'] === null ? null : json['attachmentIsSensitive'],
         'emotion': HeartEmotionFromJSON(json['emotion']),
         'happenedOn': (new Date(json['happenedOn'])),
+        'placeId': json['placeId'] === undefined ? undefined : json['placeId'] === null ? null : json['placeId'],
         'tags': json['tags'] == null ? undefined : json['tags'],
         'text': json['text'],
         'visibility': ContentVisibilityFromJSON(json['visibility']),
@@ -126,6 +133,7 @@ export function HeartMomentCreateToJSONTyped(value?: HeartMomentCreate | null, i
         'attachmentIsSensitive': value['attachmentIsSensitive'],
         'emotion': HeartEmotionToJSON(value['emotion']),
         'happenedOn': value['happenedOn'].toISOString().substring(0,10),
+        'placeId': value['placeId'],
         'tags': value['tags'],
         'text': value['text'],
         'visibility': ContentVisibilityToJSON(value['visibility']),

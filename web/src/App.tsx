@@ -13,6 +13,7 @@ import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/Atta
 import type { SpaceView } from './api/generated/models/SpaceView';
 import type { TokenView } from './api/generated/models/TokenView';
 import { AppearanceApi } from './api/generated/apis/AppearanceApi';
+import { ReminderReadPage } from './components/ReminderReadPage';
 import { DailyCheckInsApi } from './api/generated/apis/DailyCheckInsApi';
 import { DailyQuoteApi } from './api/generated/apis/DailyQuoteApi';
 import { EntitlementsApi } from './api/generated/apis/EntitlementsApi';
@@ -50,16 +51,13 @@ import {
   refreshSessionTokens,
   storeSession,
 } from './client/sessionPersistence';
-import {
-  createReferenceApis,
-  loadAuthorizedImage,
-  loadAuthorizedMedia,
-} from './client/referenceFlow';
+import { createReferenceApis } from './client/referenceFlow';
+import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
 import { loadInstanceAccessStatus } from './client/instanceStatus';
 import {
   stopNativePushForSignedOutAccount,
-  useUnifiedPush,
-} from './client/unifiedPush';
+  useDevicePush,
+} from './client/devicePush';
 import { signOutSession } from './client/signOutSession';
 import { createServerAdminApis } from './client/serverAdmin';
 import {
@@ -98,6 +96,7 @@ import {
   MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
   PLAN_CREATE_ROUTE,
+  REMINDER_DETAIL_ROUTE_PATTERN,
   PLAN_DETAIL_ROUTE_PATTERN,
   PLACE_DETAIL_ROUTE_PATTERN,
   SEARCH_ROUTE,
@@ -283,7 +282,7 @@ function AuthenticatedApp({
     () => createM4ProductApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
   );
-  const devicePush = useUnifiedPush({
+  const devicePush = useDevicePush({
     accountId: account.id,
     apiBaseUrl,
     notificationsApi: m4Apis.notifications,
@@ -378,34 +377,39 @@ function AuthenticatedApp({
   }, [location.pathname]);
 
   const loadMemoryImage = useCallback(
-    (memoryId: string, attachmentId: string, signal?: AbortSignal) =>
-      loadAuthorizedImage(
+    (
+      memoryId: string,
+      attachmentId: string,
+      signal?: AbortSignal,
+      variant?: 'original' | 'thumbnail',
+    ) =>
+      loadAuthorizedStoryImageResource(
         apis,
-        apiBaseUrl,
-        tokens.accessToken,
         spaceId,
+        'MEMORY',
         memoryId,
         attachmentId,
-        fetch,
-        signal,
+        { signal, variant },
       ),
-    [apiBaseUrl, apis, spaceId, tokens.accessToken],
+    [apis, spaceId],
   );
 
   const loadHeartMomentAttachment = useCallback(
-    (heartMomentId: string, attachmentId: string, signal?: AbortSignal) =>
-      loadAuthorizedMedia(
+    (
+      heartMomentId: string,
+      attachmentId: string,
+      signal?: AbortSignal,
+      variant?: 'original' | 'thumbnail',
+    ) =>
+      loadAuthorizedStoryImageResource(
         apis,
-        apiBaseUrl,
-        tokens.accessToken,
         spaceId,
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
-        fetch,
-        signal,
+        { signal, variant },
       ),
-    [apiBaseUrl, apis, spaceId, tokens.accessToken],
+    [apis, spaceId],
   );
 
   async function refreshStory() {
@@ -562,6 +566,17 @@ function AuthenticatedApp({
             <Route
               path={PLAN_DETAIL_ROUTE_PATTERN}
               element={<PlanProductPage {...planningProductProps} />}
+            />
+            <Route
+              path={REMINDER_DETAIL_ROUTE_PATTERN}
+              element={
+                <ReminderReadPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  accountId={account.id}
+                  spaceId={spaceId}
+                />
+              }
             />
             <Route
               path={STORY_CHAPTERS_ROUTE}

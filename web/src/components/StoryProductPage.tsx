@@ -1,3 +1,4 @@
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import {
   useInfiniteQuery,
   useQuery,
@@ -59,7 +60,7 @@ import {
   memoryDetailPath,
   milestoneDetailPath,
 } from '../client/routes';
-import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
   aggregateStoryPages,
   DEFAULT_STORY_FILTERS,
@@ -219,7 +220,7 @@ export function StoryProductPage({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
   dashboardApi?: DashboardApi;
 }) {
@@ -274,14 +275,19 @@ export function StoryProductPage({
     [effectiveFilters],
   );
   const loadHeartMomentImage = useCallback(
-    (heartMomentId: string, attachmentId: string, signal?: AbortSignal) =>
-      loadAuthorizedStoryImage(
+    (
+      heartMomentId: string,
+      attachmentId: string,
+      signal?: AbortSignal,
+      variant?: 'original' | 'thumbnail',
+    ) =>
+      loadAuthorizedStoryImageResource(
         apis,
         spaceId,
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
-        { signal },
+        { signal, variant },
       ),
     [apis, spaceId],
   );
@@ -956,6 +962,7 @@ export function StoryProductPage({
                             : ''
                         }
                         attachmentId={featuredMedia.id}
+                        hasThumbnail={featuredMedia.hasThumbnail}
                         isSensitive={featuredMedia.isSensitive}
                         loadImage={loadMemoryImage}
                         loadingMode="immediate"
@@ -1109,6 +1116,9 @@ export function StoryProductPage({
                                 <MemoryPreview
                                   memoryId={entry.memoryId}
                                   attachmentId={entry.firstAttachment.id}
+                                  hasThumbnail={
+                                    entry.firstAttachment.hasThumbnail
+                                  }
                                   isSensitive={
                                     entry.firstAttachment.isSensitive
                                   }

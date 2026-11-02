@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `createdAt` | Date
 `durationSeconds` | number
+`failureCode` | string
 `hasThumbnail` | boolean
 `height` | number
 `id` | string
@@ -28,6 +29,7 @@ import type { AttachmentDetail } from ''
 const example = {
   "createdAt": null,
   "durationSeconds": null,
+  "failureCode": null,
   "hasThumbnail": null,
   "height": null,
   "id": null,

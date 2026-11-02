@@ -54,6 +54,11 @@ import {
     PlanUpdateToJSON,
 } from '../models/PlanUpdate';
 import {
+    type PlanWishLink,
+    PlanWishLinkFromJSON,
+    PlanWishLinkToJSON,
+} from '../models/PlanWishLink';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
@@ -98,6 +103,13 @@ export interface DeletePlanRequest {
 export interface GetPlanRequest {
     planId: string;
     spaceId: string;
+}
+
+export interface LinkWishToPlanRequest {
+    planId: string;
+    spaceId: string;
+    ifMatch: string;
+    planWishLink: PlanWishLink;
 }
 
 export interface ListPlansRequest {
@@ -458,6 +470,80 @@ export class PlansApi extends runtime.BaseAPI {
      */
     async getPlan(requestParameters: GetPlanRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PlanDetail> {
         const response = await this.getPlanRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for linkWishToPlan without sending the request
+     */
+    async linkWishToPlanRequestOpts(requestParameters: LinkWishToPlanRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['planId'] == null) {
+            throw new runtime.RequiredError(
+                'planId',
+                'Required parameter "planId" was null or undefined when calling linkWishToPlan().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling linkWishToPlan().'
+            );
+        }
+
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling linkWishToPlan().'
+            );
+        }
+
+        if (requestParameters['planWishLink'] == null) {
+            throw new runtime.RequiredError(
+                'planWishLink',
+                'Required parameter "planWishLink" was null or undefined when calling linkWishToPlan().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/plans/{planId}/wish`;
+        urlPath = urlPath.replace('{planId}', encodeURIComponent(String(requestParameters['planId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PlanWishLinkToJSON(requestParameters['planWishLink']),
+        };
+    }
+
+    /**
+     * Link Wish To Plan
+     */
+    async linkWishToPlanRaw(requestParameters: LinkWishToPlanRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WishToPlanResponse>> {
+        const requestOptions = await this.linkWishToPlanRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WishToPlanResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Link Wish To Plan
+     */
+    async linkWishToPlan(requestParameters: LinkWishToPlanRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishToPlanResponse> {
+        const response = await this.linkWishToPlanRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

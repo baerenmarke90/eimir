@@ -1,3 +1,4 @@
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import {
   useIsMutating,
@@ -60,6 +61,7 @@ import { useTaskActivation } from '../client/useTaskActivation';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
+import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { CommentsPanel } from './CommentsPanel';
 import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
 import {
@@ -69,6 +71,10 @@ import {
 } from './HeartMomentTagChoices';
 import { GalleryExpandAction, MediaGallery } from './MediaGallery';
 import { MomentPlaces } from './MomentPlaces';
+import {
+  MomentPlaceField,
+  type MomentPlaceSelection,
+} from './MomentPlaceField';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -96,6 +102,7 @@ interface HeartMomentCreateValues {
   readonly attachmentId?: string;
   readonly attachmentIsSensitive?: boolean;
   readonly tags: string[];
+  readonly placeId?: string;
 }
 
 interface HeartMomentCreateSnapshot {
@@ -149,7 +156,7 @@ export function HeartMomentProductPage({
     heartMomentId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
 }) {
   const [commentHost, setCommentHost] = useState<HTMLSpanElement | null>(null);
   const { t } = useTranslation();
@@ -177,6 +184,8 @@ export function HeartMomentProductPage({
     heartMomentId,
   ] as const;
   const [createContentError, setCreateContentError] = useState(false);
+  const [createPlace, setCreatePlace] = useState<MomentPlaceSelection>();
+  const [placePending, setPlacePending] = useState(false);
   const [editContentError, setEditContentError] = useState(false);
   const [createVisibility, setCreateVisibility] =
     useState<ContentVisibilityValue>(ContentVisibility.SHARED);
@@ -226,6 +235,7 @@ export function HeartMomentProductPage({
     accessToken,
     spaceId,
     accountId: currentAccountId,
+    maxAttachments: 1,
   });
 
   const heartMomentQuery = useQuery({
@@ -514,7 +524,13 @@ export function HeartMomentProductPage({
   if (mode === 'create') {
     function submitCreate(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
-      if (attachments.hasPending) return;
+      if (
+        attachments.hasPending ||
+        attachments.items.some((item) => item.status === 'failed') ||
+        placePending ||
+        createMutation.isPending
+      )
+        return;
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
       if (!happenedOn) return;
@@ -529,6 +545,9 @@ export function HeartMomentProductPage({
         values: {
           text,
           tags,
+          ...(createVisibility === ContentVisibility.SHARED && createPlace
+            ? { placeId: createPlace.id }
+            : {}),
           emotion: String(data.get('emotion')) as HeartEmotionValue,
           happenedOn: new Date(`${happenedOn}T00:00:00Z`),
           visibility: String(data.get('visibility')) as ContentVisibilityValue,
@@ -589,6 +608,15 @@ export function HeartMomentProductPage({
                 attachments={attachments}
                 multiple={false}
               />
+              <PhotoSourcePicker
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={currentAccountId}
+                spaceId={spaceId}
+                remaining={Math.max(0, 1 - attachments.items.length)}
+                beginSelection={attachments.beginSelection}
+                disabled={createMutation.isPending}
+              />
             </div>
 
             <div className="field-group heart-moment-create-field heart-moment-create-note">
@@ -604,6 +632,19 @@ export function HeartMomentProductPage({
                 className="immersive-create-title-multiline"
               />
             </div>
+
+            {createVisibility === ContentVisibility.SHARED ? (
+              <MomentPlaceField
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={currentAccountId}
+                spaceId={spaceId}
+                value={createPlace}
+                onChange={setCreatePlace}
+                disabled={createMutation.isPending}
+                onPendingChange={setPlacePending}
+              />
+            ) : null}
 
             <HeartMomentTagChoices />
 
@@ -673,7 +714,12 @@ export function HeartMomentProductPage({
             <div className="form-actions heart-moment-create-actions">
               <button
                 type="submit"
-                disabled={createMutation.isPending || attachments.hasPending}
+                disabled={
+                  createMutation.isPending ||
+                  placePending ||
+                  attachments.hasPending ||
+                  attachments.items.some((item) => item.status === 'failed')
+                }
               >
                 {createMutation.isPending
                   ? t('heartMomentProduct.saving')
@@ -762,6 +808,7 @@ export function HeartMomentProductPage({
       event.preventDefault();
       if (
         attachments.hasPending ||
+        attachments.items.some((item) => item.status === 'failed') ||
         queryClient.isMutating({ mutationKey: deleteKey }) ||
         queryClient.isMutating({ mutationKey: updateKey }) ||
         queryClient.isMutating({
@@ -889,6 +936,7 @@ export function HeartMomentProductPage({
                 disabled={
                   updateMutation.isPending ||
                   attachments.hasPending ||
+                  attachments.items.some((item) => item.status === 'failed') ||
                   deleteMutation.isBlocked
                 }
               >
@@ -961,14 +1009,17 @@ export function HeartMomentProductPage({
   const shared = heartMoment.visibility === ContentVisibility.SHARED;
   const changingVisibility = visibilityWrites > 0;
 
-  const heartMomentEyebrow = heartMoment.happenedOn
-    ? `${t('heartMomentProduct.detailEyebrow').toUpperCase()} · ${formatDateOnly(heartMoment.happenedOn)}`
-    : t('heartMomentProduct.detailEyebrow').toUpperCase();
-
   return (
     <StoryDetailPageShell
-      eyebrow={heartMomentEyebrow}
-      title={heartMoment.text || t('heartMomentProduct.untitled')}
+      title={t('heartMomentProduct.detailEyebrow')}
+      description={
+        heartMoment.happenedOn ? (
+          <time dateTime={heartMoment.happenedOn.toISOString().slice(0, 10)}>
+            {formatDateOnly(heartMoment.happenedOn)}
+          </time>
+        ) : undefined
+      }
+      pageClassName="product-detail-page heart-moment-product-page"
       titleAction={
         heartMoment.capabilities.canEdit && !offline ? (
           <StoryDetailEditLink
@@ -982,6 +1033,10 @@ export function HeartMomentProductPage({
       containerClassName="heart-moment-detail-container"
       containerDataAttributes={{ 'data-heart-emotion': heartMoment.emotion }}
     >
+      {heartMoment.text ? (
+        <p className="heart-moment-detail-text">{heartMoment.text}</p>
+      ) : null}
+
       <div className="heart-moment-detail-emotion">
         <HeartEmotionBadge emotion={heartMoment.emotion} variant="detail" />
       </div>

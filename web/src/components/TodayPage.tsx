@@ -1,3 +1,4 @@
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Fragment, type ReactNode, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -23,6 +24,7 @@ import {
   selectedDashboardCollectionId,
 } from '../client/dashboardPreferences';
 import { dashboardItemTitle } from '../client/dashboardPresentation';
+import { planScheduleLabel } from '../client/planningPresentation';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import { formatCalendarDate, formatRecency } from '../client/formatRecency';
 import {
@@ -254,19 +256,26 @@ function TodayAgendaRow({ item }: { item: DashboardItem }) {
   const path = dashboardItemPath(item.type, item.id);
   const rawDate = item.occurredOn ?? item.scheduledAt ?? item.createdAt;
   const calendarDate = item.scheduledOn ?? item.occurredOn;
-  const date = calendarDate
-    ? new Intl.DateTimeFormat(resolvedLocale(), {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-        timeZone: 'UTC',
-      }).format(calendarDate)
-    : rawDate
-      ? new Intl.DateTimeFormat(resolvedLocale(), {
-          dateStyle: 'long',
-          timeStyle: item.scheduledAt ? 'short' : undefined,
-        }).format(rawDate)
-      : null;
+  const date =
+    item.type === 'PLAN' && (item.scheduledAt || item.scheduledOn)
+      ? planScheduleLabel({
+          plannedOn: item.scheduledOn ?? null,
+          plannedStart: item.scheduledAt,
+          plannedEnd: null,
+        })
+      : calendarDate
+        ? new Intl.DateTimeFormat(resolvedLocale(), {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            timeZone: 'UTC',
+          }).format(calendarDate)
+        : rawDate
+          ? new Intl.DateTimeFormat(resolvedLocale(), {
+              dateStyle: 'long',
+              timeStyle: item.scheduledAt ? 'short' : undefined,
+            }).format(rawDate)
+          : null;
   const title =
     item.titleOrText?.trim() ||
     t(
@@ -328,7 +337,7 @@ function TodayMomentFeature({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
   isKeepsake: boolean;
 }) {
   const { t } = useTranslation();
@@ -408,7 +417,7 @@ function TodayRetrospectiveCard({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
@@ -489,7 +498,7 @@ function TodayLivingModuleCard({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
 
@@ -604,7 +613,7 @@ function TodayMonthlyStrip({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
   const isCarousel = items.length > 1;
@@ -695,7 +704,7 @@ export function TodayPage({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
   account?: AccountView | null;
   recapMediaApis?: ReferenceApis;
@@ -1072,6 +1081,7 @@ export function TodayPage({
   );
   const contentReady =
     Boolean(dashboardQuery.data) &&
+    wirDesign?.presentationReady !== false &&
     !preferencesDenied &&
     (!preferencesUnresolved || Boolean(dashboardPreferences));
 
@@ -1518,12 +1528,20 @@ export function TodayPage({
   return (
     <div
       className="page today-page"
-      data-wir-design={wirDesign?.current ?? 'warm'}
+      data-wir-design={
+        wirDesign?.presentationReady === false
+          ? undefined
+          : (wirDesign?.current ?? 'warm')
+      }
       data-color-world={
-        (wirDesign?.current ?? 'warm') === 'warm' ? 'warm' : undefined
+        wirDesign?.presentationReady !== false &&
+        (wirDesign?.current ?? 'warm') === 'warm'
+          ? 'warm'
+          : undefined
       }
     >
       {(dashboardQuery.isLoading ||
+        wirDesign?.presentationReady === false ||
         (Boolean(dashboardQuery.data) &&
           preferencesUnresolved &&
           !dashboardPreferences)) && (

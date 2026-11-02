@@ -148,6 +148,42 @@ def _list(
 
 
 @router.post(
+    "/spaces/{spaceId}/plans/{planId}/comments",
+    response_model=CommentDetail,
+    status_code=status.HTTP_201_CREATED,
+    operation_id="createPlanComment",
+    responses=_CREATE_RESPONSES,
+)
+def create_plan_comment(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    body: CommentCreate,
+    plan_id: Annotated[str, Path(alias="planId")],
+    idempotency_key: IdempotencyKey,
+) -> CommentDetail:
+    return _create(
+        session, authorization, response, body, CommentTarget.PLAN, plan_id, idempotency_key
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/plans/{planId}/comments",
+    response_model=CommentPage,
+    operation_id="listPlanComments",
+    responses=problem_responses(400, 401, 404, 422),
+)
+def list_plan_comments(
+    authorization: Authorization,
+    session: DbSession,
+    plan_id: Annotated[str, Path(alias="planId")],
+    cursor: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+) -> CommentPage:
+    return _list(session, authorization, CommentTarget.PLAN, plan_id, cursor, limit)
+
+
+@router.post(
     "/spaces/{spaceId}/memories/{memoryId}/comments",
     response_model=CommentDetail,
     status_code=status.HTTP_201_CREATED,

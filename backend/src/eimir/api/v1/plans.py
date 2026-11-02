@@ -262,6 +262,14 @@ class WishToPlanResponse(ApiModel):
     plan: PlanDetail
 
 
+class PlanWishLink(ApiModel):
+    """Link one existing open Wish without replacing either resource's content."""
+
+    model_config = ConfigDict(extra="forbid")
+    wish_id: UUID
+    wish_version: Annotated[int, Field(strict=True, ge=1)]
+
+
 class PlanReturnToWishResponse(ApiModel):
     wish: WishDetail
     removed_plan_id: UUID
@@ -320,7 +328,7 @@ def _plan_detail(
         capabilities=ResourceCapabilities(
             can_edit=True,
             can_delete=plan.source_wish_id is None or is_completed,
-            can_comment=False,
+            can_comment=True,
         ),
     )
 
@@ -580,6 +588,35 @@ def complete_plan(
     if shared_achievement_enabled:
         response.headers[SHARED_ACHIEVEMENT_HEADER] = PLAN_COMPLETED_ACHIEVEMENT
     return _plan_detail(session, authorization, plan)
+
+
+@router.post(
+    "/spaces/{spaceId}/plans/{planId}/wish",
+    response_model=WishToPlanResponse,
+    operation_id="linkWishToPlan",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 409, 422)},
+)
+def link_wish_to_plan(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    body: PlanWishLink,
+    expected_version: IfMatchVersion,
+    plan_id: Annotated[str, Path(alias="planId")],
+) -> WishToPlanResponse:
+    result = service.link_wish_to_plan(
+        session,
+        authorization,
+        plan_id,
+        wish_id=body.wish_id,
+        expected_version=expected_version,
+        expected_wish_version=body.wish_version,
+    )
+    response.headers["ETag"] = etag_for(result.plan.version)
+    return WishToPlanResponse(
+        wish=wish_detail(session, authorization, result.wish),
+        plan=_plan_detail(session, authorization, result.plan),
+    )
 
 
 @router.post(

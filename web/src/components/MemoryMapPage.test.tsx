@@ -1,16 +1,34 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { ClientProblemError } from '../client/problemDetails';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import copy from '../i18n/locales/memoryMap';
 import { MemoryMapPage } from './MemoryMapPage';
 
 vi.mock('./PlaceMapCanvas', () => ({
-  default: () => <div data-testid="external-map" />,
+  default: ({
+    onLocationSelect,
+  }: {
+    onLocationSelect: (id: string) => void;
+  }) => (
+    <div data-testid="external-map">
+      <button type="button" onClick={() => onLocationSelect('49:7')}>
+        Map marker
+      </button>
+    </div>
+  ),
 }));
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
 const item = {
   memoryId: 'm1',
   title: 'By the lake',
@@ -42,6 +60,20 @@ function setup(
   );
 }
 describe('Pro memory map', () => {
+  it('commits a fullscreen location only after closing its owned history entry', async () => {
+    setup(vi.fn().mockResolvedValue({ items: [item], nextCursor: null }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: copy.fullscreen }),
+    );
+    const dialog = await screen.findByRole('dialog', { name: copy.title });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Map marker' }));
+    expect(
+      (await screen.findByRole('link', { name: /By the lake/ })).getAttribute(
+        'href',
+      ),
+    ).toBe('/story/memories/m1');
+    expect(screen.queryByRole('dialog', { name: copy.title })).toBeNull();
+  });
   it('opens the map immediately, groups co-located sources and opens canonical memories', async () => {
     setup(
       vi.fn().mockResolvedValue({

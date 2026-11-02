@@ -108,7 +108,14 @@ def defer(job: Job, *, until: datetime) -> None:
     job.last_error = None
 
 
-def fail(job: Job, error: str, *, backoff: timedelta | None = None) -> None:
+def fail(
+    job: Job,
+    error: str,
+    *,
+    backoff: timedelta | None = None,
+    retry_not_before: datetime | None = None,
+    retry_base: timedelta | None = None,
+) -> None:
     """Record a failed attempt.
 
     While attempts remain, return the job to the queue with a delay so a
@@ -126,7 +133,11 @@ def fail(job: Job, error: str, *, backoff: timedelta | None = None) -> None:
         return
 
     job.status = JobStatus.PENDING.value
-    job.run_after = now() + (backoff or _backoff_for(job.attempts))
+    delay = backoff or _backoff_for(job.attempts)
+    if retry_base is not None:
+        delay = max(delay, retry_base * 2 ** min(max(job.attempts - 1, 0), 12))
+    due = now() + delay
+    job.run_after = max(due, retry_not_before) if retry_not_before is not None else due
 
 
 def _backoff_for(attempts: int) -> timedelta:

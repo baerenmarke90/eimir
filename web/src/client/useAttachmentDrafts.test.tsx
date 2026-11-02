@@ -57,6 +57,34 @@ describe('useAttachmentDrafts context and generation binding (#700)', () => {
     vi.restoreAllMocks();
   });
 
+  it('isolates pending photos when the editor changes within the same Space', async () => {
+    const pending = deferred<{ attachmentId: string }>();
+    const upload = vi.fn(() => pending.promise);
+    const initialProps: AttachmentDraftOptions = {
+      apis: mockApis,
+      apiBaseUrl: 'https://api.example.com',
+      accessToken: 'token',
+      accountId: 'account-1',
+      spaceId: 'space-1',
+      resourceKey: 'memory-a:edit',
+      uploadAttachmentFn: upload,
+    };
+    const { result, rerender } = renderHook(
+      (props: AttachmentDraftOptions) => useAttachmentDrafts(props),
+      { initialProps },
+    );
+    act(() => result.current.addFiles([createMockFile('only-for-a.jpg')]));
+    expect(result.current.items).toHaveLength(1);
+    act(() => rerender({ ...initialProps, resourceKey: 'memory-b:edit' }));
+    expect(result.current.items).toHaveLength(0);
+    expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:mock-url-1');
+    await act(async () =>
+      pending.resolve({ attachmentId: 'attachment-for-a' }),
+    );
+    expect(result.current.readyIds).toEqual([]);
+    expect(result.current.items).toEqual([]);
+  });
+
   it('Test A: in-flight upload during Space change is aborted, cleared, and ignores late resolution', async () => {
     const uploadDeferred = deferred<{ attachmentId: string }>();
     let capturedSignal: AbortSignal | undefined;

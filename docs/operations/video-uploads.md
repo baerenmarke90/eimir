@@ -23,6 +23,21 @@ video files and playback grants never enter IndexedDB, service-worker caches or
 persistent client storage. Unsaved selected videos use the existing volatile
 selected-media lease and require re-selection after a full restart.
 
+### Android video selection
+
+The separate video entry uses Android's system document picker with
+`ACTION_OPEN_DOCUMENT`, a video MIME filter and selected-file read grants.
+It requests neither library-wide video access nor directory-tree access, and
+does not retain a persistable grant or copy selected videos into native cache.
+The Photo Picker proxy path produced a real WebView `NotReadableError` in
+native acceptance, consistent with the upstream proxy-metadata issue reviewed
+in [GutenbergKit #447](https://github.com/wordpress-mobile/GutenbergKit/issues/447)
+and [Chromium 40123366](https://issues.chromium.org/issues/40123366).
+The [Storage Access Framework](https://developer.android.com/training/data-storage/shared/documents-files)
+provides the existing OS alternative. Android owns the localized, accessible
+file-browser UI; original-photo consent remains separate. Native acceptance
+selects the actual foreign-owned document and reads its Chromium File bytes.
+
 ## Optional worker
 
 The API and general worker images contain no FFmpeg. The general worker excludes

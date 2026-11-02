@@ -33,8 +33,8 @@ are triggered by successful completions of the required main workflows:
    The private test channel additionally includes the restricted `media-runtime`
    derivative, built from that exact backend image, with its own archive, SPDX
    SBOM, provenance and offline verification. Nothing builds on the Docker host.
-4. Loads both archives, verifies source/version/platform labels, publishes to the
-   existing GHCR backend/Web packages and checks the exact registry manifests and
+4. Loads all three archives, verifies source/version/platform labels, publishes to the
+   existing GHCR backend/Web/media packages and checks the exact registry manifests and
    pulled-back image identities. Docker pushes only `linux/amd64`, so containerd
    provenance indexes are not deployment references. The single registry
    manifest's config digest must match the exact config bytes in the verified
@@ -47,7 +47,7 @@ are triggered by successful completions of the required main workflows:
 6. Arcane Git Sync picks up that commit and redeploys the whole project.
 
 `channel.json` binds the source SHA, root Compose hash, evidence run, archive/SBOM
-hashes and both OCI references. Generated `compose.yaml` is JSON (valid YAML and
+hashes and all three OCI references. Generated `compose.yaml` is JSON (valid YAML and
 Compose), exported from the canonical root Cloud profile. Only instance wiring
 changes: existing resources, secret expressions, proxy aliases and image digests.
 The FCM opt-in mount comes from the small canonical operator fragment and is

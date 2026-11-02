@@ -142,9 +142,18 @@ public class PhotoFileChooserTest {
             true, "video/mp4")));
         Intent intent = PhotoFileChooser.mediaIntent(context,
             parameters(FileChooserParams.MODE_OPEN, false, "video/mp4", "video/quicktime"), true);
+        assertEquals(Intent.ACTION_OPEN_DOCUMENT, intent.getAction());
+        assertEquals("video/*", intent.getType());
+        assertTrue(intent.hasCategory(Intent.CATEGORY_OPENABLE));
+        assertEquals(Intent.FLAG_GRANT_READ_URI_PERMISSION, intent.getFlags());
+        assertArrayEquals(new String[] {"video/mp4", "video/quicktime"},
+            intent.getStringArrayExtra(Intent.EXTRA_MIME_TYPES));
         assertFalse(intent.getBooleanExtra(PhotoFileChooser.REQUEST_LOCATION_METADATA, false));
         assertFalse(intent.getBooleanExtra(PhotoFileChooser.FALLBACK_REQUEST_LOCATION_METADATA, false));
         assertFalse(intent.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false));
+        assertTrue(PhotoFileChooser.mediaIntent(context,
+            parameters(FileChooserParams.MODE_OPEN_MULTIPLE, false, "video/mp4"), false)
+                .getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false));
     }
 
     @Test
@@ -187,7 +196,8 @@ public class PhotoFileChooserTest {
         assertTrue(permissions.contains("android.permission.ACCESS_MEDIA_LOCATION"));
         for (String forbidden : new String[] {"android.permission.ACCESS_FINE_LOCATION",
                 "android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_BACKGROUND_LOCATION",
-                "android.permission.READ_MEDIA_IMAGES", "android.permission.READ_EXTERNAL_STORAGE",
+                "android.permission.READ_MEDIA_IMAGES", "android.permission.READ_MEDIA_VIDEO",
+                "android.permission.READ_EXTERNAL_STORAGE",
                 "android.permission.WRITE_EXTERNAL_STORAGE", "android.permission.MANAGE_EXTERNAL_STORAGE"}) {
             assertFalse("The selected-file contract does not need " + forbidden, permissions.contains(forbidden));
         }
@@ -359,6 +369,10 @@ public class PhotoFileChooserTest {
             || packageName.toString().endsWith(".photopicker"));
     }
 
+    private static boolean isSystemVideoPicker(CharSequence packageName) {
+        return packageName != null && packageName.toString().endsWith(".documentsui");
+    }
+
     @Test
     public void videoSelectionReachesChromiumAndDecodesWithoutPhotoMetadataConsent() throws Exception {
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q);
@@ -381,6 +395,7 @@ public class PhotoFileChooserTest {
             + "const input=document.getElementById('photo'),video=document.getElementById('video');"
             + "input.onchange=async()=>{window.photoFileEvents=(window.photoFileEvents||0)+1;"
             + "window.photoSelectedCount=input.files.length;try{const file=input.files[0];window.videoMime=file.type;"
+            + "window.photoDescriptor={size:file.size,type:file.type,lastModified:file.lastModified};"
             + "const bytes=new Uint8Array(await file.arrayBuffer());let binary='';"
             + "for(const value of bytes)binary+=String.fromCharCode(value);window.selectedPhotoBytes=btoa(binary);"
             + "video.onloadedmetadata=()=>window.videoReady=true;"
@@ -399,12 +414,10 @@ public class PhotoFileChooserTest {
                 try { tapScreenBounds(input); }
                 catch (Exception failure) { throw new AssertionError(failure); }
             }, event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
-                && isSystemPhotoPicker(event.getPackageName()), 15000);
+                && isSystemVideoPicker(event.getPackageName()), 15000);
         captureNativeDiagnostics("native-video-picker");
-        AccessibilityNodeInfo selected = findDocument("Video taken");
-        assertNotNull("The real system video picker exposes the foreign-owned movie", selected);
-        // The API 37 picker can expose its cell before the sheet accepts touch.
-        // Invoke the identified system cell's real accessibility selection action.
+        AccessibilityNodeInfo selected = findDocument("eimir-native-video.mp4");
+        assertNotNull("The system document picker exposes the foreign-owned video", selected);
         activateNativeControl(selected);
         byte[] bytes = selectedFileBytes(view);
         assertTrue("Chromium receives video bytes", bytes.length > 0);
@@ -477,7 +490,8 @@ public class PhotoFileChooserTest {
         captureNativeDiagnostics("native-photo-result");
         throw new AssertionError("The selected media never reached the Web File intake: "
             + javascriptValue(view, "JSON.stringify({handler:typeof document.getElementById('photo').onchange,"
-                + "events:window.photoFileEvents,count:window.photoSelectedCount,error:window.photoReadError})"));
+                + "events:window.photoFileEvents,count:window.photoSelectedCount,"
+                + "file:window.photoDescriptor,error:window.photoReadError})"));
     }
 
     private void awaitPhotoInput(WebView view) throws Exception {
@@ -561,10 +575,20 @@ public class PhotoFileChooserTest {
         assertTrue("The identified system control is still attached", control.refresh());
         assertTrue("The identified system control is visible", control.isVisibleToUser());
         assertTrue("The identified system control is enabled", control.isEnabled());
+        // DocumentsUI exposes its filename as a child of the actionable file row.
+        AccessibilityNodeInfo action = control;
+        for (int depth = 0; depth < 5 && action != null
+                && !action.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_CLICK); depth++) {
+            action = action.getParent();
+        }
+        assertNotNull("The identified system control has an action owner", action);
+        assertTrue("The system action owner remains attached", action.refresh());
+        assertTrue("The system action owner is visible and enabled",
+            action.isVisibleToUser() && action.isEnabled());
         assertTrue("The system control exposes a real selection action",
-            control.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_CLICK));
+            action.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_CLICK));
         assertTrue("Android activates the identified system control",
-            control.performAction(AccessibilityNodeInfo.ACTION_CLICK));
+            action.performAction(AccessibilityNodeInfo.ACTION_CLICK));
     }
 
     private void tapScreenBounds(Rect bounds) throws Exception {

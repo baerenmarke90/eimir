@@ -172,11 +172,15 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
 
     static Intent mediaIntent(Context context, FileChooserParams params, boolean pickerMetadata) {
         if (isVideoSelection(params)) {
-            PickVisualMediaRequest request = new PickVisualMediaRequest.Builder()
-                .setMediaType(ActivityResultContracts.PickVisualMedia.VideoOnly.INSTANCE).build();
-            return params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE
-                ? new ActivityResultContracts.PickMultipleVisualMedia().createIntent(context, request)
-                : new ActivityResultContracts.PickVisualMedia().createIntent(context, request);
+            // Photo Picker proxy metadata can change between WebView File reads.
+            // A document grant avoids that Chromium failure without caching video
+            // or requesting access to the whole media library.
+            return new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("video/*")
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .putExtra(Intent.EXTRA_MIME_TYPES, params.getAcceptTypes().clone())
+                .putExtra(Intent.EXTRA_ALLOW_MULTIPLE,
+                    params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         }
         if (pickerMetadata) {
             PickVisualMediaRequest request = new PickVisualMediaRequest.Builder()

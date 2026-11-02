@@ -257,6 +257,14 @@
     {
       "path": "web/src/i18n/locales/notificationSettings.ts",
       "sha256": "99a1da842b77c5d048f7fb961c42ae60924eee6e5ceb4563e9d556c6e8df54bf"
+    },
+    {
+      "path": "tools/ci/engineering_language_audit.py",
+      "sha256": "4809ff92b0246f5f5d2e9f4168548450fd794dcb09ad4dcc4501870e15b63539"
+    },
+    {
+      "path": "tools/ci/test_engineering_language_audit.py",
+      "sha256": "4e0330cac186a94187433ab9233e36edd07edddbde81ce731825136215356687"
     }
   ],
   "backend": {
@@ -319,5 +327,6 @@
     "contextualFcm": "Pending selected deployment plus exact signed published artifact and real receipt/source-action proof.",
     "playAcceptance": "Separate issue #1577; not attempted.",
     "legacyMigration": "Separate package; fresh sign-in on old-only devices. No cross-package credential copy; #1395 remains deferred."
-  }
+  },
+  "ciFirstAttempt": "Language audit rejected newly localized native product strings and German assertion/content fixtures. Extended existing exact-text exceptions, with a negative test retaining surrounding prose checks. Backend integration aggregate failed only because Change Detection prevented shards from starting. New substantive commit requires fresh checks; no blanket rerun."
 }

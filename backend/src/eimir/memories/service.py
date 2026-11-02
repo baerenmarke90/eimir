@@ -170,6 +170,7 @@ def create_memory(
     happened_on: date | None,
     tags: MemoryTags | None = None,
     experience_kind: ExperienceKind | None = None,
+    place_id: UUID | None = None,
 ) -> Memory:
     recipient_id = (
         _experience_recipient(session, context, body=body, happened_on=happened_on)
@@ -186,6 +187,10 @@ def create_memory(
     )
     session.add(memory)
     _flush(session)
+    if place_id is not None:
+        from eimir.relations import service as relations
+
+        relations.link(session, context, place_id, memory.id, relations.PLACE_MEMORIES)
     _record(
         session, memory, context.account_id, EventType.MEMORY_CREATED, recipient_id=recipient_id
     )
@@ -203,6 +208,7 @@ def create_memory_once(
     happened_on: date | None,
     tags: MemoryTags | None = None,
     experience_kind: ExperienceKind | None = None,
+    place_id: UUID | None = None,
 ) -> MemoryCreateResult:
     """Create a Memory, or return the one an earlier request with this identity created.
 
@@ -218,6 +224,7 @@ def create_memory_once(
             happened_on=happened_on,
             tags=tags,
             experience_kind=experience_kind,
+            place_id=place_id,
         )
         return MemoryCreateResult(memory, created=True)
 
@@ -228,6 +235,7 @@ def create_memory_once(
         happened_on=happened_on,
         tags=tags or [],
         experience_kind=experience_kind,
+        place_id=place_id,
     )
     receipt_id = create_receipts.claim(session, context, idempotency_key, request_fingerprint)
     if receipt_id is None:
@@ -242,6 +250,7 @@ def create_memory_once(
         happened_on=happened_on,
         tags=tags,
         experience_kind=experience_kind,
+        place_id=place_id,
     )
     create_receipts.attach(session, receipt_id, memory.id)
     return MemoryCreateResult(memory, created=True)

@@ -1,3 +1,4 @@
+import { captureScreenshot } from '../support/storyTimelineFixture';
 import { readFile, writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -1183,3 +1184,74 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
     await context.close();
   }
 });
+
+for (const visibility of ['SHARED', 'PRIVATE'] as const) {
+  test(`capture Place follows HeartMoment visibility (${visibility})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+    await openHeartMomentCreate(page);
+    const copy = (await import('../../src/i18n/locales/photoPlaces')).default;
+    const destination = {
+      id: '66666666-6666-4666-8666-666666666666',
+      spaceId: SPACE_ID,
+      name: 'Unser Café',
+      address: 'Market Square 1',
+      createdBy: ACCOUNT_ID,
+      creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+      version: 1,
+      capabilities: { canEdit: true, canDelete: true },
+    };
+    await page.route(
+      new RegExp(`/spaces/${SPACE_ID}/places(?:\\?.*)?$`),
+      (route) =>
+        route.fulfill({
+          json: { items: [destination], nextCursor: null, hasMore: false },
+        }),
+    );
+    await page.getByRole('button', { name: copy.add, exact: true }).click();
+    await page
+      .getByRole('dialog', { name: copy.add })
+      .getByRole('button', { name: /Unser Café/ })
+      .click();
+    await page
+      .getByLabel(storyProducts.heartMomentProduct.textLabel, { exact: true })
+      .fill('A lovely moment.');
+    if (visibility === 'PRIVATE') {
+      await page
+        .getByRole('radio', {
+          name: storyProducts.heartMomentProduct.visibilityPrivate,
+          exact: true,
+        })
+        .check();
+      await expect(
+        page.getByRole('button', { name: destination.name, exact: true }),
+      ).toHaveCount(0);
+    }
+    await captureScreenshot(
+      page,
+      testInfo,
+      `1581-heart-place-${visibility}.png`,
+      { fullPage: true },
+    );
+    const request = page.waitForRequest(
+      (r) =>
+        r.method() === 'POST' &&
+        new URL(r.url()).pathname.endsWith('/heart-moments'),
+    );
+    await page
+      .getByRole('button', {
+        name: storyProducts.heartMomentProduct.save,
+        exact: true,
+      })
+      .click();
+    const payload = (await request).postDataJSON();
+    expect(payload.visibility).toBe(visibility);
+    if (visibility === 'SHARED') expect(payload.placeId).toBe(destination.id);
+    else expect(payload).not.toHaveProperty('placeId');
+    await expect(page).toHaveURL(/\/story\/heart-moments\/[a-f0-9-]+$/);
+  });
+}

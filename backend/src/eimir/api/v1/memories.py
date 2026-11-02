@@ -40,6 +40,7 @@ class MemoryCreate(ApiModel):
     body: str = ""
     happened_on: date | None = None
     tags: MemoryTags = Field(default_factory=list)
+    place_id: UUID | None = None
     experience_kind: ExperienceKind | None = None
 
     _unique_tags = field_validator("tags")(unique_tags)
@@ -260,6 +261,7 @@ def create_memory(
         title=body.title,
         body=body.body,
         tags=body.tags,
+        place_id=body.place_id,
         experience_kind=body.experience_kind,
         happened_on=body.happened_on,
     )

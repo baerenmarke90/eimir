@@ -1,3 +1,4 @@
+import { captureScreenshot } from '../support/storyTimelineFixture';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -135,6 +136,24 @@ for (const [width, colorScheme] of [
       .getByRole('button', { name: photoSources.link, exact: true })
       .click();
     const link = page.getByRole('dialog', { name: photoSources.linkTitle });
+    await expect(
+      link.getByText(photoSources.setupOpen, { exact: true }),
+    ).not.toBeVisible();
+    await link.getByText(photoSources.setupHelp, { exact: true }).click();
+    await expect(
+      link.getByText(photoSources.setupOpen, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      link.getByText(photoSources.setupFallback, { exact: true }),
+    ).toBeVisible();
+    if (width === 390)
+      await captureScreenshot(
+        page,
+        testInfo,
+        '1581-immich-help-390-light.png',
+        { fullPage: true },
+      );
+    await link.getByText(photoSources.setupHelp, { exact: true }).click();
     await link
       .getByLabel(photoSources.address, { exact: true })
       .fill('https://my-photos.example');
@@ -1856,4 +1875,181 @@ test('a failed local checkpoint cannot start a volatile-photo Save or invent an 
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
   expect(photos.creates).toBe(1);
+});
+
+for (const [width, colorScheme] of [
+  [320, 'dark'],
+  [360, 'dark'],
+  [390, 'light'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`manual Place survives Memory draft recovery and exact save (${width})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    await signInAndOpenMemoryCreate(page, emptyPhotoBatch(), sourceScenario());
+    if (width === 320)
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '32px';
+      });
+    const destination = {
+      id: '66666666-6666-4666-8666-666666666666',
+      spaceId: SPACE_ID,
+      name: 'Kölner Dom',
+      address: 'Domkloster 4, Köln',
+      latitude: 50.9413,
+      longitude: 6.9583,
+      createdBy: ACCOUNT_ID,
+      creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+      createdAt: TEST_NOW,
+      updatedAt: TEST_NOW,
+      version: 1,
+      capabilities: { canEdit: true, canDelete: true },
+    };
+    await page.route(
+      new RegExp(`/spaces/${SPACE_ID}/places(?:\\?.*)?$`),
+      (route) =>
+        route.fulfill({
+          json: { items: [destination], nextCursor: null, hasMore: false },
+        }),
+    );
+    const placeCopy = (await import('../../src/i18n/locales/photoPlaces'))
+      .default;
+    await page
+      .getByRole('button', { name: placeCopy.add, exact: true })
+      .click();
+    const picker = page.getByRole('dialog', { name: placeCopy.add });
+    await picker.getByRole('button', { name: /Kölner Dom/ }).click();
+    await expect(picker).toHaveCount(0);
+    const selected = page.getByRole('button', {
+      name: destination.name,
+      exact: true,
+    });
+    await expect(selected).toBeVisible();
+    await page
+      .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
+      .fill('Our visit without a photo.');
+    await expect(
+      page.getByText(de.memory.diary.draft.saved, { exact: true }),
+    ).toBeVisible();
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.reload();
+    await page
+      .getByRole('button', { name: de.memory.diary.resume, exact: true })
+      .click();
+    await expect(selected).toBeVisible();
+    await expect(
+      page.getByRole('textbox', { name: de.memory.bodyLabel, exact: true }),
+    ).toHaveValue('Our visit without a photo.');
+    await captureScreenshot(
+      page,
+      testInfo,
+      `1581-memory-place-${width}-${colorScheme}.png`,
+      { fullPage: true },
+    );
+    const audit = await new AxeBuilder({ page })
+      .include('.memory-task-page')
+      .analyze();
+    expect(audit.violations).toEqual([]);
+    const create = page.waitForRequest(
+      (request) =>
+        request.method() === 'POST' &&
+        new URL(request.url()).pathname.endsWith('/memories'),
+    );
+    await page
+      .getByRole('button', { name: de.memory.save, exact: true })
+      .click();
+    expect((await create).postDataJSON()).toMatchObject({
+      placeId: destination.id,
+      body: 'Our visit without a photo.',
+    });
+    await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  });
+}
+
+test('new capture Place is deliberately shared before the entry is saved', async ({
+  page,
+}, testInfo) => {
+  const copy = (await import('../../src/i18n/locales/photoPlaces')).default;
+  const planning = (await import('../../src/i18n/locales/m5s3')).default;
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await signInAndOpenMemoryCreate(page);
+  const destination = {
+    id: '66666666-6666-4666-8666-666666666666',
+    spaceId: SPACE_ID,
+    name: 'Riverside',
+    address: 'River Road 1',
+    latitude: 49.4,
+    longitude: 6.5,
+    createdBy: ACCOUNT_ID,
+    creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+    createdAt: TEST_NOW,
+    updatedAt: TEST_NOW,
+    version: 1,
+    capabilities: { canEdit: true, canDelete: true },
+  };
+  const creations: unknown[] = [];
+  await page.route(
+    new RegExp(`/spaces/${SPACE_ID}/places(?:\\?.*)?$`),
+    async (route) => {
+      if (route.request().method() === 'POST') {
+        creations.push(route.request().postDataJSON());
+        await route.fulfill({ status: 201, json: destination });
+      } else
+        await route.fulfill({
+          json: { items: [], nextCursor: null, hasMore: false },
+        });
+    },
+  );
+  await page.route(`**/spaces/${SPACE_ID}/places/lookup`, (route) =>
+    route.fulfill({ json: { items: [destination] } }),
+  );
+  await page.getByRole('button', { name: copy.add, exact: true }).click();
+  await page
+    .getByRole('dialog', { name: copy.add })
+    .getByRole('button', { name: planning.map.open, exact: true })
+    .click();
+  const map = page.getByRole('dialog', { name: planning.map.title });
+  await map
+    .getByLabel(planning.map.searchLabel, { exact: true })
+    .fill('Riverside');
+  await map
+    .getByRole('button', { name: planning.map.search, exact: true })
+    .click();
+  await map.getByRole('button', { name: /Riverside/ }).click();
+  await expect(
+    map.getByText(copy.sharedCreateHint, { exact: true }),
+  ).toBeVisible();
+  expect(creations).toEqual([]);
+  await captureScreenshot(
+    page,
+    testInfo,
+    '1581-new-place-confirmation-390-light.png',
+    { fullPage: true },
+  );
+  await map
+    .getByRole('button', { name: copy.saveSharedPlace, exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: destination.name, exact: true }),
+  ).toBeVisible();
+  expect(creations).toHaveLength(1);
+  await page
+    .getByLabel(de.memory.bodyLabel, { exact: true })
+    .fill('Beside the river.');
+  const create = page.waitForRequest(
+    (r) =>
+      r.method() === 'POST' && new URL(r.url()).pathname.endsWith('/memories'),
+  );
+  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  expect((await create).postDataJSON().placeId).toBe(destination.id);
+  await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
 });

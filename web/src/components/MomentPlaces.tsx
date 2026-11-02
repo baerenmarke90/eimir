@@ -204,6 +204,7 @@ export function MomentPlaces({
             onPendingChange={setAddingPending}
             offline={offline}
             onLinked={() => {
+              setAddingPending(false);
               setAdding(false);
               void client.invalidateQueries({
                 queryKey: authorSummaryQueryKeys.places(spaceId),

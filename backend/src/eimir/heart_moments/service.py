@@ -130,6 +130,7 @@ def create_heart_moment(
     attachment_id: UUID | None = None,
     attachment_is_sensitive: bool | None = None,
     tags: HeartMomentTags | None = None,
+    place_id: UUID | None = None,
 ) -> HeartMoment:
     normalized_text = _normalize_text(text)
     selected_tags = tags if tags is not None else []
@@ -146,6 +147,10 @@ def create_heart_moment(
         _set_attachment_sensitive(session, heart_moment, attachment_is_sensitive)
     session.add(heart_moment)
     _flush(session)
+    if place_id is not None:
+        from eimir.relations import service as relations
+
+        relations.link(session, context, place_id, heart_moment.id, relations.PLACE_HEART_MOMENTS)
     if attachment_id is not None:
         from eimir.attachments import photo_locations
         from eimir.attachments.models import Attachment
@@ -176,6 +181,7 @@ def create_heart_moment_once(
     attachment_id: UUID | None = None,
     attachment_is_sensitive: bool | None = None,
     tags: HeartMomentTags | None = None,
+    place_id: UUID | None = None,
 ) -> HeartMomentCreateResult:
     """Create a HeartMoment, or return the one an earlier request with this identity created.
 
@@ -195,6 +201,7 @@ def create_heart_moment_once(
             attachment_id=attachment_id,
             attachment_is_sensitive=attachment_is_sensitive,
             tags=tags,
+            place_id=place_id,
         )
         return HeartMomentCreateResult(heart_moment, created=True)
 
@@ -214,6 +221,8 @@ def create_heart_moment_once(
         fingerprint_content["tags"] = selected_tags
     if attachment_is_sensitive is not None:
         fingerprint_content["attachment_is_sensitive"] = attachment_is_sensitive
+    if place_id is not None:
+        fingerprint_content["place_id"] = str(place_id)
     request_fingerprint = create_receipts.fingerprint(_RECEIPT_RESOURCE_TYPE, fingerprint_content)
     receipt_id = create_receipts.claim(
         session,
@@ -247,6 +256,7 @@ def create_heart_moment_once(
         attachment_id=attachment_id,
         attachment_is_sensitive=attachment_is_sensitive,
         tags=selected_tags,
+        place_id=place_id,
     )
     create_receipts.attach(session, receipt_id, heart_moment.id)
     return HeartMomentCreateResult(heart_moment, created=True)

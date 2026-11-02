@@ -509,6 +509,15 @@ export function PhotoSourcePicker({
         {linking ? (
           <>
             <p>{t('photoSources.privateLink')}</p>
+            <details className="photo-source-setup-help">
+              <summary>{t('photoSources.setupHelp')}</summary>
+              <ol>
+                <li>{t('photoSources.setupOpen')}</li>
+                <li>{t('photoSources.setupKey')}</li>
+                <li>{t('photoSources.setupPermissions')}</li>
+              </ol>
+              <p>{t('photoSources.setupFallback')}</p>
+            </details>
             <label className="field-group">
               {t('photoSources.address')}
               <input
@@ -529,13 +538,16 @@ export function PhotoSourcePicker({
               {t('photoSources.key')}
               <input
                 type="password"
+                aria-describedby="immich-key-hint"
                 autoComplete="off"
                 value={key}
                 disabled={busy}
                 onChange={(event) => setKey(event.target.value)}
               />
             </label>
-            <p className="field-help">{t('photoSources.keyHint')}</p>
+            <p id="immich-key-hint" className="field-help">
+              {t('photoSources.keyIsNotPassword')}
+            </p>
             <p className="field-help">{t('photoSources.permissions')}</p>
             <label className="photo-source-consent">
               <input

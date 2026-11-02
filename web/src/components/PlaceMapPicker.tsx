@@ -17,12 +17,16 @@ export function PlaceMapPicker({
   value,
   onSelect,
   disabled = false,
+  confirmationLabel,
+  confirmationHint,
 }: {
   api: PlacesApi;
   spaceId: string;
   value?: PlaceMapSelection;
   onSelect: (selection: PlaceMapSelection) => void;
   disabled?: boolean;
+  confirmationLabel?: string;
+  confirmationHint?: string;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -52,6 +56,8 @@ export function PlaceMapPicker({
             api={api}
             spaceId={spaceId}
             value={value}
+            confirmationLabel={confirmationLabel}
+            confirmationHint={confirmationHint}
             onSelect={(selection) => {
               sheet.current?.closeForNavigation(() => {
                 setOpen(false);
@@ -70,11 +76,15 @@ function PlaceMapTask({
   spaceId,
   value,
   onSelect,
+  confirmationLabel,
+  confirmationHint,
 }: {
   api: PlacesApi;
   spaceId: string;
   value?: PlaceMapSelection;
   onSelect: (selection: PlaceMapSelection) => void;
+  confirmationLabel?: string;
+  confirmationHint?: string;
 }) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -223,6 +233,9 @@ function PlaceMapTask({
               })
             }
           />
+          {confirmationHint ? (
+            <p className="field-help">{confirmationHint}</p>
+          ) : null}
           <button
             type="button"
             onClick={() =>
@@ -234,7 +247,7 @@ function PlaceMapTask({
               })
             }
           >
-            {t('m5s3.map.confirm')}
+            {confirmationLabel ?? t('m5s3.map.confirm')}
           </button>
         </div>
       ) : (

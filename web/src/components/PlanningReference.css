@@ -740,3 +740,13 @@
   min-inline-size: 0;
   inline-size: 100%;
 }
+
+.planen-wish-scope {
+  border: 0;
+  padding: 0;
+  min-inline-size: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
+}

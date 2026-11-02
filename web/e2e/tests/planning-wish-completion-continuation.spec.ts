@@ -7,6 +7,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const WISH_EVIDENCE_DIR = path.resolve(
@@ -804,3 +805,108 @@ test('a disconnected completion request preserves input and retries only deliber
   ).toBeVisible();
   expect(mocks.requestCount()).toBe(2);
 });
+
+for (const [width, colorScheme] of [
+  [360, 'dark'],
+  [390, 'light'],
+  [430, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`fulfilled photo-free Wish remains discoverable and restores scope (${width})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    const state = await installMocks(page);
+    const collection = new RegExp(
+      `/spaces/${SPACE_ID}/(wishes|plans)(?:\\?.*)?$`,
+    );
+    await page.route(collection, async (route) => {
+      const url = new URL(route.request().url());
+      const fulfilled = state.requestCount() > 0;
+      const status = url.searchParams.get('status');
+      const items =
+        url.pathname.endsWith('/wishes') &&
+        ((fulfilled && status === 'COMPLETED') ||
+          (!fulfilled && status === 'OPEN'))
+          ? [
+              {
+                id: WISH_ID,
+                spaceId: SPACE_ID,
+                title: WISH_TITLE,
+                status: fulfilled ? 'COMPLETED' : 'OPEN',
+                createdBy: ACCOUNT_ID,
+                creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+                version: fulfilled ? 2 : 1,
+                createdAt: TEST_NOW,
+                updatedAt: TEST_NOW,
+                capabilities: { canEdit: true, canDelete: true },
+              },
+            ]
+          : [];
+      await route.fulfill({
+        json: { items, nextCursor: null, hasMore: false },
+      });
+    });
+    await signIn(page);
+    await page.goto('/plan#wishes');
+    await page.getByRole('link', { name: new RegExp(WISH_TITLE) }).click();
+    await page.getByText(m5s3.wish.actionsHeading, { exact: true }).click();
+    await page
+      .getByRole('button', { name: m5s3.wish.complete, exact: true })
+      .click();
+    await page
+      .getByRole('button', { name: m5s3.wish.completionDone, exact: true })
+      .click();
+    await page
+      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .click();
+    const scope = page.getByRole('group', { name: m5s3.overview.wishScope });
+    await scope
+      .getByRole('button', { name: m5s3.overview.fulfilledWishes, exact: true })
+      .click();
+    const wish = page.getByRole('link', { name: new RegExp(WISH_TITLE) });
+    await expect(wish).toBeVisible();
+    await expect(
+      scope.getByRole('button', {
+        name: m5s3.overview.fulfilledWishes,
+        exact: true,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await captureScreenshot(
+      page,
+      testInfo,
+      `1581-fulfilled-${width}-${colorScheme}.png`,
+      { fullPage: true },
+    );
+    await wish.click();
+    await expect(page.getByText(m5s3.wish.completedBody)).toBeVisible();
+    await page
+      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .click();
+    await expect(
+      scope.getByRole('button', {
+        name: m5s3.overview.fulfilledWishes,
+        exact: true,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await expect(wish).toBeFocused();
+    await page.reload();
+    await expect(wish).toBeVisible();
+    await expect(
+      scope.getByRole('button', {
+        name: m5s3.overview.fulfilledWishes,
+        exact: true,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    const audit = await new AxeBuilder({ page })
+      .include('.planen-overview')
+      .analyze();
+    expect(audit.violations).toEqual([]);
+  });
+}

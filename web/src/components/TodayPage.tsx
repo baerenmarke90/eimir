@@ -1,3 +1,4 @@
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Fragment, type ReactNode, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -336,7 +337,7 @@ function TodayMomentFeature({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
   isKeepsake: boolean;
 }) {
   const { t } = useTranslation();
@@ -416,7 +417,7 @@ function TodayRetrospectiveCard({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
@@ -497,7 +498,7 @@ function TodayLivingModuleCard({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
 
@@ -612,7 +613,7 @@ function TodayMonthlyStrip({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
   const isCarousel = items.length > 1;
@@ -703,7 +704,7 @@ export function TodayPage({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
   profilesApi?: ProfilesApi;
   account?: AccountView | null;
   recapMediaApis?: ReferenceApis;

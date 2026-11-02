@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { createReferenceApis } from '../client/referenceFlow';
 import { mediaCacheScopeForClient } from '../client/authorizedMediaCache';
-import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import { useTranslation } from '../i18n';
 import {
@@ -47,10 +47,17 @@ export function PlanCover({
     apis && cover ? cover.id : null,
     async (id, signal) => {
       if (!apis) throw new Error('Plan media API unavailable');
-      return loadAuthorizedStoryImage(apis, spaceId, 'PLAN', plan.id, id, {
-        signal,
-        variant,
-      });
+      return loadAuthorizedStoryImageResource(
+        apis,
+        spaceId,
+        'PLAN',
+        plan.id,
+        id,
+        {
+          signal,
+          variant,
+        },
+      );
     },
   );
   const reveals = useSensitiveMediaReveals(

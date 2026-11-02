@@ -1,3 +1,4 @@
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { dashboardItemTitle } from '../client/dashboardPresentation';
 import type { MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
@@ -23,7 +24,7 @@ export function StoryRetrospective({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
   onOpen: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
 }) {
   const { t } = useTranslation();

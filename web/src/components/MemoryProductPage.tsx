@@ -1,3 +1,4 @@
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -113,7 +114,7 @@ export function MemoryProductPage({
     memoryId: string,
     attachmentId: string,
     signal?: AbortSignal,
-  ) => Promise<string>;
+  ) => Promise<ObjectUrlSource>;
 }) {
   const [commentHost, setCommentHost] = useState<HTMLSpanElement | null>(null);
   const { t } = useTranslation();

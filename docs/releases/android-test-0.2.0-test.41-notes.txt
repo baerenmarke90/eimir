@@ -6,6 +6,7 @@ eimir. Android 0.2.0-test.41
 - New uploads require eimir. Pro for the relationship. Previously stored videos remain readable and exportable after expiry.
 - The private test deployment includes the separate bounded video worker. General production video admission remains opt-in.
 - Includes the current main fixes for partner editing, long descriptions, push onboarding and decoded image continuity.
+- Includes the latest fullscreen map framing and bounded decoded-image/cache memory fixes.
 
 Same package de.eimir.app and canonical signing identity as test.40; increasing versionCode 41.
 Automated source, codec, Web and Android checks are recorded on the source revision. Physical-device installation, OS links and data-continuity acceptance remain pending; this test publication does not establish store readiness.

@@ -169,5 +169,9 @@ export async function loadAuthorizedStoryImageResource(
     attachmentId,
     variant,
   ]);
-  return acquireMediaObjectUrl(key, blob);
+  return acquireMediaObjectUrl(
+    key,
+    blob,
+    variant === 'thumbnail' ? 'preview' : 'original',
+  );
 }

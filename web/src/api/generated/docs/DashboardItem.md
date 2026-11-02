@@ -10,6 +10,7 @@ Name | Type
 `id` | string
 `occurredOn` | Date
 `previewAttachmentId` | string
+`previewHasThumbnail` | boolean
 `previewIsSensitive` | boolean
 `scheduledAt` | Date
 `scheduledOn` | Date
@@ -27,6 +28,7 @@ const example = {
   "id": null,
   "occurredOn": null,
   "previewAttachmentId": null,
+  "previewHasThumbnail": null,
   "previewIsSensitive": null,
   "scheduledAt": null,
   "scheduledOn": null,

@@ -49,6 +49,7 @@ class DashboardItem(ApiModel):
     created_at: datetime | None
     preview_attachment_id: UUID | None = None
     preview_is_sensitive: bool = False
+    preview_has_thumbnail: bool = False
 
 
 class DashboardSharedStorySummary(ApiModel):
@@ -352,4 +353,5 @@ def _project_item(item: service.DashboardItem) -> DashboardItem:
         created_at=item.created_at,
         preview_attachment_id=item.preview_attachment_id,
         preview_is_sensitive=item.preview_is_sensitive,
+        preview_has_thumbnail=item.preview_has_thumbnail,
     )

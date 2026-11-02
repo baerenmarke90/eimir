@@ -21,9 +21,9 @@ from eimir.attachments.models import Attachment
 from eimir.authorization import (
     AuthorizationContext,
     readable,
+    require_editable_locked,
     require_readable,
     require_readable_locked,
-    require_writable,
     require_writable_locked,
 )
 from eimir.core import clock
@@ -332,7 +332,7 @@ def update_memory(
     happened_on: date | None,
     tags: MemoryTags | None = None,
 ) -> Memory:
-    memory = require_writable(session, Memory, context, memory_id)
+    memory = require_editable_locked(session, Memory, context, memory_id)
     _ensure_expected_version(memory, expected_version)
 
     next_title = memory.payload.title
@@ -516,7 +516,7 @@ def replace_attachments(
     """
     from eimir.attachments import binding
 
-    memory = require_writable_locked(session, Memory, context, memory_id)
+    memory = require_editable_locked(session, Memory, context, memory_id)
     _ensure_expected_version(memory, expected_version)
 
     positions = [position for _, position in entries]
@@ -532,14 +532,34 @@ def replace_attachments(
             "ATTACHMENT_POSITION_INVALID",
         )
 
-    previous = {bound.attachment.id for bound in binding.attachments_of_memory(session, memory.id)}
+    previous_attachments = {
+        bound.attachment.id: bound.attachment
+        for bound in binding.attachments_of_memory(session, memory.id)
+    }
+    previous = set(previous_attachments)
+    if memory.owner_id != context.account_id:
+        protected = {
+            identifier
+            for identifier, attachment in previous_attachments.items()
+            if attachment.owner_id != context.account_id
+        }
+        if not protected.issubset(identifiers):
+            from eimir.core.errors import ForbiddenError
+
+            raise ForbiddenError(
+                "Only the author may remove another author's photos.", "NOT_RESOURCE_OWNER"
+            )
     locked = binding.lock_for_binding(session, identifiers)
     attachments = []
     for attachment_id in identifiers:
         attachment = binding.ensure_bindable(
             locked.get(attachment_id),
             space_id=context.space_id,
-            account_id=context.account_id,
+            account_id=(
+                previous_attachments[attachment_id].owner_id
+                if attachment_id in previous
+                else context.account_id
+            ),
             already_bound=attachment_id in previous,
         )
         binding.ensure_unlinked(session, attachment_id, allow=("MEMORY", memory.id))

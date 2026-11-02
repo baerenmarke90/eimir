@@ -1,3 +1,4 @@
+import { ExpandableDescription } from './ExpandableDescription';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import {
@@ -907,18 +908,24 @@ export function HeartMomentProductPage({
                   }
                   disabled={updateMutation.isPending}
                 />
-                <button
-                  type="button"
-                  className="tertiary"
-                  onClick={() => setRemoveExistingPhoto(true)}
-                >
-                  {t('memory.photoRemove')}
-                </button>
+                {heartMoment.capabilities.canDelete ? (
+                  <button
+                    type="button"
+                    className="tertiary"
+                    onClick={() => setRemoveExistingPhoto(true)}
+                  >
+                    {t('memory.photoRemove')}
+                  </button>
+                ) : null}
               </div>
             ) : null}
             <AttachmentDraftPicker
               id="heart-moment-edit-photo"
-              disabled={updateMutation.isPending}
+              disabled={
+                updateMutation.isPending ||
+                (Boolean(heartMoment.attachment) &&
+                  !heartMoment.capabilities.canDelete)
+              }
               attachments={attachments}
               multiple={false}
             />
@@ -1034,7 +1041,16 @@ export function HeartMomentProductPage({
       containerDataAttributes={{ 'data-heart-emotion': heartMoment.emotion }}
     >
       {heartMoment.text ? (
-        <p className="heart-moment-detail-text">{heartMoment.text}</p>
+        <ExpandableDescription
+          text={heartMoment.text}
+          scope={JSON.stringify([
+            apiBaseUrl,
+            currentAccountId,
+            spaceId,
+            heartMoment.id,
+          ])}
+          className="heart-moment-detail-text"
+        />
       ) : null}
 
       <div className="heart-moment-detail-emotion">
@@ -1137,7 +1153,7 @@ export function HeartMomentProductPage({
             shared ? t('heartMomentProduct.sharedCompact') : undefined
           }
         />
-        {heartMoment.capabilities.canEdit && !offline ? (
+        {heartMoment.authorId === currentAccountId && !offline ? (
           <button
             type="button"
             className="list-entry-icon-button tertiary heart-moment-visibility-action"

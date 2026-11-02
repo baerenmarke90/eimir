@@ -187,6 +187,32 @@ def require_writable[ResourceT: PrivateResourceMixin](
     Both questions are answered in one query so no mutable state can change
     between separate read and write checks.
     """
+    return _require_access(session, model, context, resource_id, Access.WRITE)
+
+
+def require_editable_locked[ResourceT: PrivateResourceMixin](
+    session: Session,
+    model: type[ResourceT],
+    context: AuthorizationContext,
+    resource_id: UUID | str,
+) -> ResourceT:
+    """Content editing does not grant deletion or privacy-transition authority."""
+    found = _require_access(session, model, context, resource_id, Access.EDIT)
+    try:
+        session.refresh(found, with_for_update=True)
+    except InvalidRequestError as error:
+        raise absence_of(model).error() from error
+    # Privacy may have changed while this transaction waited for the row lock.
+    return _require_access(session, model, context, resource_id, Access.EDIT)
+
+
+def _require_access[ResourceT: PrivateResourceMixin](
+    session: Session,
+    model: type[ResourceT],
+    context: AuthorizationContext,
+    resource_id: UUID | str,
+    access: Access,
+) -> ResourceT:
     absence = absence_of(model)
     identifier = _identifier(resource_id)
     if identifier is None:
@@ -194,7 +220,7 @@ def require_writable[ResourceT: PrivateResourceMixin](
 
     rule_model = _rule_model(model)
     row = session.execute(
-        select(model, access_clause(rule_model, context, Access.WRITE).label("is_writable"))
+        select(model, access_clause(rule_model, context, access).label("is_writable"))
         .where(access_clause(rule_model, context, Access.READ))
         .where(rule_model.id == identifier)
     ).one_or_none()

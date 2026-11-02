@@ -14,7 +14,12 @@ from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession, PhotoBindingAuthorization
 from eimir.api.errors import problem_responses
 from eimir.api.idempotency import IdempotencyKey
-from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
+from eimir.api.schema import (
+    ApiModel,
+    AuthorSummary,
+    ResourceCapabilities,
+    story_resource_capabilities,
+)
 from eimir.api.v1.attachments import AttachmentEntry, OrderedAttachmentSummary
 from eimir.attachments import binding
 from eimir.attachments.models import MediaType
@@ -138,7 +143,6 @@ def _memory_detail(
 ) -> MemoryDetail:
     if author is None:
         author = resolve_author_summary(session, memory.owner_id, resource="Memory author")
-    is_author = memory.owner_id == authorization.account_id
     bound_attachments = binding.attachments_of_memory(session, memory.id)
     return MemoryDetail(
         id=memory.id,
@@ -155,10 +159,8 @@ def _memory_detail(
         created_at=memory.created_at,
         updated_at=memory.updated_at,
         author=author,
-        capabilities=ResourceCapabilities(
-            can_edit=is_author,
-            can_delete=is_author,
-            can_comment=True,
+        capabilities=story_resource_capabilities(
+            memory, authorization.account_id, can_comment=True
         ),
         attachments=[
             MemoryAttachmentSummary(

@@ -23,7 +23,12 @@ from sqlalchemy import select
 from eimir.api.authors import resolve_author_summaries
 from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession, Tenant
 from eimir.api.errors import problem_responses
-from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
+from eimir.api.schema import (
+    ApiModel,
+    AuthorSummary,
+    ResourceCapabilities,
+    story_resource_capabilities,
+)
 from eimir.api.v1.attachments import AttachmentSummary
 from eimir.api.v1.memories import MemoryAttachmentSummary
 from eimir.attachments import binding
@@ -181,13 +186,6 @@ def record_story_view(
 
 def _authors(session: DbSession, owner_ids: set[UUID]) -> dict[UUID, AuthorSummary]:
     return resolve_author_summaries(session, owner_ids)
-
-
-def _capabilities(
-    owner_id: UUID, authorization: Authorization, *, can_comment: bool = True
-) -> ResourceCapabilities:
-    is_author = owner_id == authorization.account_id
-    return ResourceCapabilities(can_edit=is_author, can_delete=is_author, can_comment=can_comment)
 
 
 def _attachment_summary(attachment: Attachment) -> AttachmentSummary:
@@ -418,7 +416,7 @@ def project_story_items(
                         happened_on=memory.happened_on,
                         created_at=memory.created_at,
                         author=_author(authors, memory.owner_id),
-                        capabilities=_capabilities(memory.owner_id, authorization),
+                        capabilities=story_resource_capabilities(memory, authorization.account_id),
                         attachments=[
                             MemoryAttachmentSummary(
                                 **_attachment_summary(bound.attachment).model_dump(),
@@ -446,9 +444,9 @@ def project_story_items(
                         happened_on=heart_moment.happened_on,
                         created_at=heart_moment.created_at,
                         author=_author(authors, heart_moment.owner_id),
-                        capabilities=_capabilities(
-                            heart_moment.owner_id,
-                            authorization,
+                        capabilities=story_resource_capabilities(
+                            heart_moment,
+                            authorization.account_id,
                             # A private heart moment is not a shared discussion
                             # surface, same rule as the HeartMoment detail route.
                             can_comment=visibility is ContentVisibility.SHARED,
@@ -475,7 +473,9 @@ def project_story_items(
                         happened_on=milestone.happened_on,
                         created_at=milestone.created_at,
                         author=_author(authors, milestone.owner_id),
-                        capabilities=_capabilities(milestone.owner_id, authorization),
+                        capabilities=story_resource_capabilities(
+                            milestone, authorization.account_id
+                        ),
                     ),
                 )
             )

@@ -669,7 +669,7 @@ for (const [width, theme] of [
     await expect(
       page.locator('.plan-photo-gallery .media-gallery-carousel-content'),
     ).toBeVisible();
-    await expect(page.locator('.planen-detail-meta')).toContainText(
+    await expect(page.locator('.planen-detail-context')).toContainText(
       'Sankt Peter-Ording',
     );
     expect(state.patches()).toBe(1);

@@ -46,7 +46,14 @@ const storyProducts = {
     previous: 'Vorheriges Medium',
     next: 'Nächstes Medium',
   },
+  descriptionDisclosure: {
+    more: 'Mehr anzeigen',
+    less: 'Weniger anzeigen',
+  },
   authoredLinks: {
+    previews_one: 'Linkvorschau',
+    previews_other: 'Linkvorschauen ({{count}})',
+
     external: ' (öffnet in einem neuen Tab)',
     load: 'Linkvorschau für {{host}} laden',
     loading: 'Linkvorschau wird geladen …',

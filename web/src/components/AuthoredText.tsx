@@ -107,8 +107,10 @@ export function AuthoredText({
   spaceId,
   scope = '',
   offline = false,
+  textClassName,
 }: {
   text: string;
+  textClassName?: string;
   previewApi?: LinkPreviewsApi;
   spaceId?: string;
   scope?: string;
@@ -140,9 +142,15 @@ export function AuthoredText({
     .slice(0, 3);
   return (
     <>
-      <p className="authored-text">{parts}</p>
-      {previewApi && spaceId
-        ? previews.map((url) => (
+      <p className={`authored-text${textClassName ? ` ${textClassName}` : ''}`}>
+        {parts}
+      </p>
+      {previewApi && spaceId && !offline && previews.length ? (
+        <details className="authored-link-previews">
+          <summary>
+            {t('authoredLinks.previews', { count: previews.length })}
+          </summary>
+          {previews.map((url) => (
             <LinkPreview
               key={JSON.stringify([scope, spaceId, text, url, offline])}
               api={previewApi}
@@ -150,8 +158,9 @@ export function AuthoredText({
               url={url}
               offline={offline}
             />
-          ))
-        : null}
+          ))}
+        </details>
+      ) : null}
     </>
   );
 }

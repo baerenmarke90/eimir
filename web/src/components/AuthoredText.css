@@ -1,20 +1,20 @@
 .authored-text {
   min-width: 0;
   overflow-wrap: anywhere;
-}
-
-.authored-text > p {
   margin: 0;
   white-space: pre-wrap;
 }
 
-.authored-text a {
+.authored-text a,
+.authored-link-preview a {
   color: var(--color-link-text);
   text-decoration: underline;
   text-underline-offset: 0.15em;
 }
 
 .authored-link-preview {
+  min-width: 0;
+  overflow-wrap: anywhere;
   display: grid;
   gap: var(--space-1);
   margin-top: var(--space-3);
@@ -40,4 +40,8 @@
   white-space: normal;
   overflow-wrap: anywhere;
   text-align: start;
+}
+
+.comment-card > .authored-link-preview {
+  margin-top: 0;
 }

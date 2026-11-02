@@ -1,6 +1,6 @@
 # Plan comments and authored links — runtime evidence
 
-Issue [#1583](https://github.com/baerenmarke90/eimir/issues/1583). Runtime and executable journey source: `743b939f085d3f6be2fd7c80508b7a43c8d34cb1`. Independent base: main `26369e5d54f91fe63c180b5bc6d47cba6a8b4900`; the earlier voice-feedback PR #1582 is unchanged.
+Issue [#1583](https://github.com/baerenmarke90/eimir/issues/1583). Original branch runtime and executable journey source: `743b939f085d3f6be2fd7c80508b7a43c8d34cb1`. Independent base: main `26369e5d54f91fe63c180b5bc6d47cba6a8b4900`; the earlier voice-feedback PR #1582 is unchanged.
 
 The [generated preflight](../../references/1583-plan-comments-links/README.md) was committed and linked in the issue before UI code. R3 / Detail View retain the intention, schedule/calendar, optional gallery/place, editing, completion and canonical return. Conversation follows the description with a readable heading, contextual inline composer and author-only actions. No extra chat/navigation surface. A started reply survives opening/cancelling Plan edit; offline attempts are never queued.
 
@@ -42,3 +42,15 @@ Links are immediately openable; an explicit preview action discloses the host be
 At most three distinct HTTPS preview choices per text avoid flooding dense conversations. An existing durable account rate limit allows 30 deliberate preview requests per 15 minutes. Preview metadata has no persistent cache and uses private/no-store responses; URLs/content do not enter logs, events or analytics. Account/Space/content/offline transitions discard late feedback.
 
 Business/freemium impact reviewed: shared Planning, comments and safe text links/previews are Free/Core, identical in Cloud/Self-Hosted. The feature matrix explicitly records Plans and previews; no entitlement, provider subscription, storage quota or artificial Self-Hosted restriction. All migration, API/client, security, privacy, provenance and CI gates remain mandatory.
+
+## Final CI and combined-change verification
+
+The original hosted PostgreSQL run passed all new Plan-specific cases; the central completeness test correctly rejected three missing matrix registrations. All three routes are now explicit SPACE_ENDPOINTS entries, retaining the strict contract equality and adding the common anonymous/foreign-Space and unavailable-parent negative cases. The pure completeness check passes locally; the new negative cases still require fresh hosted PostgreSQL execution.
+
+Hosted browser QA also exposed a legacy `.comment-card > p` contract broken by an unnecessary renderer wrapper. The renderer now emits the original paragraph directly, alongside optional inert previews. The existing browser assertions were preserved. All **12 existing offline create/edit/delete journeys pass** with the correction. No manual workflow rerun was used; the runner's configured retry reproduced the same deterministic selector failure before the source fix.
+
+Scoped Plan sizing rules were relocated beside the existing detail rules, with the same selectors and values, to avoid an append-at-end conflict with #1582's Wish scope styling. Local Git merge-tree verification combines #1582 (`c9ba6d62c0cd8a008a8024dd908b68124ec2f3be`), the corrected #1584 patch and #1587 (`4374ddf6585b02f71b2aed5e9c0050bd4507078b`) without conflicts. This is a local verification tree, not a merge or release of any pull request.
+
+Final combined runtime/test tree: `a7a404718fe61d836bd2b28bd5c97c39c46f0ee3`. On that composition, **26/26 actual browser journeys pass** (12 existing offline comments, 6 HeartMoment reading/edit/return and 8 Plan discussion/preview journeys), with **79/79 focused component tests**, TypeScript, actual ASGI OpenAPI drift and the strict endpoint completeness check passing. The seven Plan captures above were refreshed from this final combined runtime; unchanged external/provider/physical-device evidence limits apply.
+
+The optional additional combined full-unit rerun could not be verified locally: automatic approval review rejected its process-output connection because it could not establish that possible external test traffic was non-sensitive. No bypass or manual workflow rerun was used. Previously completed full suites, the final 79 focused tests and 26 browser journeys remain the local evidence; the final revision's normal hosted CI must supply the remaining full-suite/negative-matrix result.

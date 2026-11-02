@@ -206,6 +206,24 @@
   color: var(--color-brand-text);
 }
 
+/* Shared discussion keeps the Plan's one-column reading width at large text. */
+.planen-detail,
+.plan-discussion .comments-panel {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.plan-discussion .comment-head > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.planen-detail-summary > * {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 /* Detail: pills + meta summary row (kept as a `.planning-facts` child so the
  * existing SharedPlanningSanctuary single-column detail-grid rule and the
  * completed-celebration treatment keep applying; only the inner look is
@@ -739,22 +757,4 @@
 .planen-complete-form input {
   min-inline-size: 0;
   inline-size: 100%;
-}
-
-/* Shared discussion keeps the Plan's one-column reading width at large text. */
-.planen-detail,
-.plan-discussion .comments-panel {
-  min-width: 0;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.plan-discussion .comment-head > * {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.planen-detail-summary > * {
-  min-width: 0;
-  max-width: 100%;
-  overflow-wrap: anywhere;
 }

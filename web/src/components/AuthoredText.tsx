@@ -139,8 +139,8 @@ export function AuthoredText({
     .filter((url) => url.startsWith('https://'))
     .slice(0, 3);
   return (
-    <div className="authored-text">
-      <p>{parts}</p>
+    <>
+      <p className="authored-text">{parts}</p>
       {previewApi && spaceId
         ? previews.map((url) => (
             <LinkPreview
@@ -152,6 +152,6 @@ export function AuthoredText({
             />
           ))
         : null}
-    </div>
+    </>
   );
 }

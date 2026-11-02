@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import navigation from '../../src/i18n/locales/navigation';
 import {
   installMocks,
   signIn,
@@ -206,9 +207,15 @@ test('Memory gallery originals survive Wir and Moments tab navigation with fresh
   const source = await galleryImage.getAttribute('src');
   expect(originalDownloads).toBe(1);
   const readsBefore = originalReads;
-  await page.locator('.mobile-bottom-nav a[href="/today"]').click();
+  await page
+    .locator('.mobile-bottom-nav')
+    .getByRole('link', { name: navigation.today, exact: true })
+    .click();
   await expect(page).toHaveURL(/\/today$/);
-  await page.locator('.mobile-bottom-nav a[href="/story"]').click();
+  await page
+    .locator('.mobile-bottom-nav')
+    .getByRole('link', { name: navigation.story, exact: true })
+    .click();
   await card.click();
   await expect(galleryImage).toHaveAttribute('src', source ?? '');
   await expect.poll(() => originalReads).toBeGreaterThan(readsBefore);

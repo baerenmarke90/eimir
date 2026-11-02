@@ -129,10 +129,10 @@ the product's largest attack surfaces. `pillow-heif` brings libheif and thus
 HEIC/HEIF, which are part of the M2-D04 allowlist; it registers as a Pillow
 plugin and is not called separately.
 
-Both are deliberately the only additions in this slice. Video and the ffmpeg
-invocation it requires are a separate later step under M2-D23 because a system
-binary affects the container image and installation instructions and falls
-outside the `uv audit` gate.
+Both remain the only Python additions in that image slice. The separate #88
+video delivery now supplies the optional restricted FFmpeg image documented
+above. Its system binary has a distinct source/advisory/license gate because
+it falls outside `uv audit`; the common API/general-worker image is unchanged.
 
 Media parsers are an explicit attack surface. They therefore receive special
 attention under the existing policy: no known security finding in the lock,

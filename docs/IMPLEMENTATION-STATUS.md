@@ -121,11 +121,11 @@ M2-D22 (owner view) is no longer in that category: the question shapes the Story
 - [x] **#144 — real G2 client E2E evidence:** Web and Android run against the same real eimir. stack of API, Worker, PostgreSQL, and LocalMediaStore.
 - [x] **#147 / PR #170 — final G2 Gate Review:** **G2: PASSED**.
 
-### Future backlog outside M2/G2
+### Separate video slice outside M2/G2
 
-- [ ] **#88 — Video uploads and poster frames:** future development, do not implement now. Prototype #109 was deliberately closed without merge because of a production image of roughly 755 MiB and the additional ffmpeg operational, Supply Chain, and Security burden.
+- [ ] **#88 — Video uploads and poster frames:** bounded implementation authorized on 2026-11-02; draft [#1598](https://github.com/baerenmarke90/eimir/pull/1598), stacked on #1592. Operator-default-off MP4/MOV H.264/AAC intake uses a separate restricted media image; retained reads stay Core. Production activation still requires the recorded security/native acceptance. Prototype #109 remains deliberately closed and is not the implementation base; its large common production image and operational burden are addressed by keeping codecs out of the API/general-worker image. See [the new slice's contract](product/design/references/88-video/README.md) and [operations](operations/video-uploads.md).
 
-Video remains fail-closed until a new product decision: M2-D04 allows MP4 and QuickTime in the target contract, while the current server rejects them with `ATTACHMENT_TYPE_NOT_ALLOWED`. Clients must not present video as available.
+The historical G2 boundary remains image-only. The 2026-11-02 decision authorizes the separate #88 slice: intake stays fail-closed unless the operator explicitly enables its reviewed processor and the Space has the new Pro capability. Clients derive intake availability from that server policy; existing authorized video reads do not depend on it.
 
 Historical M2 project control and binding milestone boundaries are documented in [M2 Project Control](m2/PROJECT-CONTROL.md). The immutable G2 decision is documented in the [final G2 Gate Review](reviews/2026-08-26-g2-final-gate-review.md).
 
@@ -163,7 +163,7 @@ Global full-text Search was not part of G2 or G3. The minimum Story contract inc
 8. ~~thin Web/Android reference flows~~ — delivered
 9. ~~G2 Review~~ — **PASSED**
 
-The S3 adapter (#87) ran in parallel and is delivered. Video (#88) is not part of this chain or M2/G2; it is Future Backlog.
+The S3 adapter (#87) ran in parallel and is delivered. Video (#88) remains outside this completed M2/G2 chain; its separately authorized, default-off implementation is tracked in #1598.
 
 ## G2 — Story Alpha
 

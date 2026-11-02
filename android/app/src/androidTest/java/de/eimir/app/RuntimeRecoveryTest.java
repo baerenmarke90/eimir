@@ -6,6 +6,7 @@ import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
+import static androidx.test.espresso.matcher.RootMatchers.isDialog;
 
 import android.app.Activity;
 import android.app.Instrumentation;
@@ -29,9 +30,9 @@ public class RuntimeRecoveryTest {
             scenario.onActivity(activity -> activity.getBridge().getWebView().loadUrl("chrome://crash"));
             Activity recovered = recovery.waitForActivityWithTimeout(15_000);
             assertNotNull("Renderer loss must reach the native recovery surface", recovered);
-            onView(withText(R.string.runtime_recovery_title)).check(matches(isDisplayed()));
+            onView(withText(R.string.runtime_recovery_title)).inRoot(isDialog()).check(matches(isDisplayed()));
             assertEquals("There must be no automatic restart loop", initialLaunches, launches.getHits());
-            onView(withText(R.string.runtime_recovery_retry)).perform(click());
+            onView(withText(R.string.runtime_recovery_retry)).inRoot(isDialog()).perform(click());
             Activity reopened = launches.waitForActivityWithTimeout(15_000);
             assertNotNull("An explicit retry opens a new bridge", reopened);
             assertNotSame(original, reopened);

@@ -1,6 +1,14 @@
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Link,
   useLocation,
@@ -29,7 +37,7 @@ import type { MapLocation } from './PlaceMapCanvas';
 import { ProblemState } from './ProblemState';
 import { type StoryView, StoryViewTabs } from './StoryViewTabs';
 import { UiState } from './UiState';
-import { ShortTaskSheet } from './ShortTaskSheet';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './MemoryMapPage.css';
 
 const MapCanvas = lazy(() => import('./PlaceMapCanvas'));
@@ -56,8 +64,23 @@ export function MemoryMapPage({
   const location = useLocation();
   const navigate = useNavigate();
   const [revealedPlaceId, setRevealedPlaceId] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
+  const fullscreenScope = JSON.stringify([apiBaseUrl, accountId, spaceId]);
+  const [fullscreen, setFullscreen] = useState({
+    scope: fullscreenScope,
+    open: false,
+  });
+  const expanded = fullscreen.scope === fullscreenScope && fullscreen.open;
+  const setExpanded = (open: boolean) =>
+    setFullscreen({ scope: fullscreenScope, open });
   const fullscreenTrigger = useRef<HTMLButtonElement>(null);
+  const fullscreenSheet = useRef<ShortTaskSheetHandle>(null);
+  useLayoutEffect(() => {
+    setFullscreen((current) =>
+      current.scope === fullscreenScope
+        ? current
+        : { scope: fullscreenScope, open: false },
+    );
+  }, [fullscreenScope]);
   const [params, setParams] = useSearchParams();
   const selectedId = params.get('place');
   const selectPlace = useCallback(
@@ -241,6 +264,7 @@ export function MemoryMapPage({
                   </Suspense>
                 </AppErrorBoundary>
                 <ShortTaskSheet
+                  ref={fullscreenSheet}
                   open={expanded}
                   title={t('memoryMap.title')}
                   closeLabel={t('memoryMap.closeFullscreen')}
@@ -273,8 +297,9 @@ export function MemoryMapPage({
                         <MapCanvas
                           locations={points}
                           onLocationSelect={(id) => {
-                            selectPlace(id);
-                            setExpanded(false);
+                            fullscreenSheet.current?.closeForNavigation(() =>
+                              selectPlace(id),
+                            );
                           }}
                         />
                       ) : null}

@@ -17,6 +17,12 @@ import {
 import { APP_ICON_CAPABILITY, appIconQueryKey } from './appIcon';
 import { captureAuthorizedQuery } from './queryIdentity';
 import {
+  forgetWirDesign,
+  readWirDesign,
+  rememberWirDesign,
+  wirDesignStorageKey,
+} from './wirDesignPreferenceStore';
+import {
   ClientProblemError,
   clientProblemKind,
   normalizeClientError,
@@ -65,6 +71,13 @@ function useWirDesignState({
 }) {
   const client = useQueryClient();
   const key = wirDesignQueryKey(instance, accountId, spaceId);
+  const storageKey = wirDesignStorageKey(instance, accountId, spaceId);
+  const [remembered] = useState(() => ({
+    key: storageKey,
+    design: readWirDesign(storageKey),
+  }));
+  const initialDesign =
+    remembered.key === storageKey ? remembered.design : undefined;
   const capabilityKey = [...key, 'capability'] as const;
   const active = useRef(true);
   const writing = useRef(false);
@@ -79,7 +92,10 @@ function useWirDesignState({
   }, []);
   const preference = useQuery({
     queryKey: key,
-    gcTime: 0,
+    gcTime: 30 * 60_000,
+    placeholderData: initialDesign
+      ? { preference: { designId: initialDesign, version: 0 }, etag: '' }
+      : undefined,
     retry: false,
     queryFn: async ({ signal }) => {
       try {
@@ -149,6 +165,7 @@ function useWirDesignState({
     onSuccess: (result, { ownsQuery }) => {
       if (active.current && ownsQuery()) {
         client.setQueryData(key, result);
+        rememberWirDesign(storageKey, result.preference.designId);
         void client.invalidateQueries({
           queryKey: appIconQueryKey(instance, accountId, spaceId),
           exact: true,
@@ -168,13 +185,32 @@ function useWirDesignState({
   const readDenied = ['unauthorized', 'permission', 'notFound'].includes(
     clientProblemKind(preference.error),
   );
+  useEffect(() => {
+    if (readDenied) forgetWirDesign(storageKey);
+    else if (
+      preference.isSuccess &&
+      !preference.isPlaceholderData &&
+      preference.data
+    ) {
+      rememberWirDesign(storageKey, preference.data.preference.designId);
+    }
+  }, [
+    storageKey,
+    readDenied,
+    preference.isSuccess,
+    preference.isPlaceholderData,
+    preference.data,
+  ]);
   return {
     preference,
     capability,
     mutation,
+    presentationReady: initialDesign !== undefined || preference.isFetched,
     current: readDenied
       ? WirDesignId.warm
-      : (preference.data?.preference.designId ?? WirDesignId.warm),
+      : (preference.data?.preference.designId ??
+        initialDesign ??
+        WirDesignId.warm),
     inspectCapability: () => {
       if (inspect) void capability.refetch();
       else setInspect(true);
@@ -183,6 +219,7 @@ function useWirDesignState({
       if (
         writing.current ||
         !preference.data ||
+        preference.isPlaceholderData ||
         preference.error ||
         preference.isFetching
       )

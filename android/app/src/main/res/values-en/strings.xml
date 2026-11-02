@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="runtime_recovery_title">eimir. was interrupted</string>
+    <string name="runtime_recovery_message">The app view could not continue. You can reopen eimir. Saved content is still available. Unsaved input may have been lost.</string>
+    <string name="runtime_recovery_retry">Reopen</string>
+    <string name="runtime_recovery_close">Close</string>
+</resources>

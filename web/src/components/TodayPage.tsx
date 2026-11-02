@@ -1080,6 +1080,7 @@ export function TodayPage({
   );
   const contentReady =
     Boolean(dashboardQuery.data) &&
+    wirDesign?.presentationReady !== false &&
     !preferencesDenied &&
     (!preferencesUnresolved || Boolean(dashboardPreferences));
 
@@ -1532,6 +1533,7 @@ export function TodayPage({
       }
     >
       {(dashboardQuery.isLoading ||
+        wirDesign?.presentationReady === false ||
         (Boolean(dashboardQuery.data) &&
           preferencesUnresolved &&
           !dashboardPreferences)) && (

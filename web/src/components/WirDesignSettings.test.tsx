@@ -22,8 +22,10 @@ import {
 } from '../client/wirDesign';
 import { i18n } from '../i18n';
 import { WirDesignSettings } from './WirDesignSettings';
+import { clearWirDesignPreferences } from '../client/wirDesignPreferenceStore';
 
 beforeEach(() => {
+  clearWirDesignPreferences();
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute('open', '');
   };

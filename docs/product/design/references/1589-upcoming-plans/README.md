@@ -17,3 +17,15 @@ The upcoming section is continuous: focal title/schedule and authorized optional
 ## Generation prompt
 
 Use case: ui-mockup. Generate one integrated Compact eimir. /plan composition against audited main plus #1588. Keep current headerless mobile shell, page heading Planen, Pläne/Wünsche pills, reachable Plan hinzufügen, existing light blue/navy semantic palette and Instrument Sans, rounded borderless surfaces and floating four-destination navigation plus central create. Group the focal Plan and later dated Plans continuously before Wish selection. Use a slightly stronger focal treatment, readable titles, full dates, bounded supplied-photo previews and text-only Plans without media gaps. Retain Wish selection, undated intentions and disclosed history below. No carousel, dashboard, permanent management controls, invented runtime imagery or new domain features. The image guides hierarchy; actual product primitives, localized strings, privacy and responsive semantics remain authoritative.
+
+## Follow-up composition references
+
+The Product Owner expanded scope on 2026-11-02 before implementation of the additional surfaces. Existing Today composition, Memory/HeartMoment/Plan/Wish editors, PhotoSourcePicker, MemoryMapPage and ProInformationPanel were inspected against the integrated baseline above.
+
+![Capture and explicit photo-source selection](capture-reference.webp)
+
+![Current home content, full-screen map and Pro hierarchy](home-map-pro-reference.webp)
+
+Generated with the built-in image-generation tool. Prompt: preserve existing eimir Compact shell, editor lifecycle, semantic palette, type and real destination functions; show Diary without redundant date helper, HeartMoment and Plan with shared existing photo source entry, explicit source Continue without a duplicate copy-consent checkbox, Plan/Wish without fixed audience banners, a timestamp-aware countdown, date-ordered current content separate from retrospective, native-modal map fullscreen, and prominent Pro feature information in App & Account. Retain private/shared choice for HeartMoments and actual entitlement boundaries; no new providers or checkout.
+
+Generated artwork is illustrative: six-photo HeartMoment labels, Wish photos/target periods, outlined fields, altered home header, stock portraits and fabricated controls are NOT implementation requirements. Keep the actual one-photo HeartMoment, actual Wish domain, existing root header/navigation, borderless controls, actual account sections and source privacy. The reference communicates placement and hierarchy, not new capability or a screenshot claim. The owning issue records the expanded Mobile Interaction Contract and state/acceptance plan.

@@ -311,14 +311,8 @@ public class PhotoFileChooserTest {
             AccessibilityNodeInfo allow = findDocument("Allow all");
             assertNotNull("Android exposes the optional metadata permission decision", allow);
             instrumentation.getUiAutomation().executeAndWaitForEvent(() -> {
-                // Permission content can precede the dialog's touch input channel.
-                // Activate the real consent button through Android accessibility;
-                // the system still makes the permission decision and opens its picker.
-                assertTrue("The permission decision is still attached", allow.refresh());
-                assertTrue("The permission decision is visible", allow.isVisibleToUser());
-                assertTrue("The permission decision is enabled", allow.isEnabled());
-                assertTrue("Android activates the actual metadata consent button",
-                    allow.performAction(AccessibilityNodeInfo.ACTION_CLICK));
+                try { tapNativeControl(allow); }
+                catch (Exception failure) { throw new AssertionError(failure); }
             }, event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && event.getPackageName() != null
                 && isSystemPhotoPicker(event.getPackageName()), 15000);
@@ -392,7 +386,10 @@ public class PhotoFileChooserTest {
             + "for(const value of bytes)binary+=String.fromCharCode(value);window.selectedPhotoBytes=btoa(binary);"
             + "video.onloadedmetadata=()=>window.videoReady=true;"
             + "video.onerror=()=>window.videoError=video.error?.message||String(video.error?.code);"
-            + "video.src=URL.createObjectURL(file);video.load();"
+            // Selected Files are upload inputs. Playback uses server bytes, not a
+            // second provider-backed File URL; isolate native decoding with the
+            // bytes Chromium actually read through the selected Android grant.
+            + "video.src=URL.createObjectURL(new Blob([bytes],{type:file.type}));video.load();"
             + "video.onseeked=()=>window.videoSeeked=true;"
             + "video.requestVideoFrameCallback(()=>window.videoDecoded=true);"
             + "}catch(error){window.photoReadError=error.name;}};"

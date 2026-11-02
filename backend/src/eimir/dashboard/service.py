@@ -14,7 +14,7 @@ from hashlib import sha256
 from typing import cast as cast_type
 from uuid import UUID
 
-from sqlalchemy import Date, and_, cast, extract, func, or_, select
+from sqlalchemy import Date, and_, case, cast, extract, func, or_, select
 from sqlalchemy.orm import InstrumentedAttribute, Session
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -496,10 +496,7 @@ def _keepsake(
         session.execute(
             readable(Memory, authorization)
             .order_by(
-                func.coalesce(
-                    Memory.happened_on,
-                    cast(func.timezone(timezone_name, Memory.created_at), Date),
-                ).desc(),
+                *_recent_content_order(Memory.happened_on, Memory.created_at, timezone_name),
                 Memory.id,
             )
             .limit(KEEPSAKE_SCAN_LIMIT)
@@ -676,6 +673,18 @@ def _upcoming_sort_key(
     return day, timing_rank, wall_clock, item.type.value, str(item.id)
 
 
+def _recent_content_order(
+    day: InstrumentedAttribute[date] | InstrumentedAttribute[date | None],
+    instant: InstrumentedAttribute[datetime] | ColumnElement[datetime],
+    timezone_name: str,
+) -> tuple[ColumnElement[date], ColumnElement[int]]:
+    """Match the combined recency key before each bounded domain query."""
+    return (
+        func.coalesce(day, cast(func.timezone(timezone_name, instant), Date)).desc(),
+        case((day.is_(None), extract("epoch", instant)), else_=0).desc(),
+    )
+
+
 def _recent_item_sort_key(item: DashboardItem, timezone_name: str) -> tuple[int, float, str, str]:
     """Content dates own recency; creation is a fallback for undated utilities."""
     instant = item.scheduled_at or item.created_at
@@ -706,10 +715,7 @@ def _recent_shared(
         session.execute(
             readable(Memory, authorization)
             .order_by(
-                func.coalesce(
-                    Memory.happened_on,
-                    cast(func.timezone(timezone_name, Memory.created_at), Date),
-                ).desc(),
+                *_recent_content_order(Memory.happened_on, Memory.created_at, timezone_name),
                 Memory.id,
             )
             .limit(SECTION_LIMIT)
@@ -740,10 +746,7 @@ def _recent_shared(
     for milestone in session.execute(
         readable(Milestone, authorization)
         .order_by(
-            func.coalesce(
-                Milestone.happened_on,
-                cast(func.timezone(timezone_name, Milestone.created_at), Date),
-            ).desc(),
+            *_recent_content_order(Milestone.happened_on, Milestone.created_at, timezone_name),
             Milestone.id,
         )
         .limit(SECTION_LIMIT)
@@ -762,10 +765,7 @@ def _recent_shared(
         readable(HeartMoment, authorization)
         .where(HeartMoment.privacy_class == PrivacyClass.SPACE_SHARED.value)
         .order_by(
-            func.coalesce(
-                HeartMoment.happened_on,
-                cast(func.timezone(timezone_name, HeartMoment.created_at), Date),
-            ).desc(),
+            *_recent_content_order(HeartMoment.happened_on, HeartMoment.created_at, timezone_name),
             HeartMoment.id,
         )
         .limit(SECTION_LIMIT)
@@ -795,11 +795,11 @@ def _recent_shared(
     for plan in session.execute(
         readable(Plan, authorization)
         .order_by(
-            func.coalesce(
+            *_recent_content_order(
                 Plan.planned_on,
-                cast(func.timezone(timezone_name, Plan.planned_start), Date),
-                cast(func.timezone(timezone_name, Plan.created_at), Date),
-            ).desc(),
+                func.coalesce(Plan.planned_start, Plan.created_at),
+                timezone_name,
+            ),
             Plan.id,
         )
         .limit(SECTION_LIMIT)
@@ -832,10 +832,7 @@ def _recent_shared(
     for chapter in session.execute(
         readable(Chapter, authorization)
         .order_by(
-            func.coalesce(
-                Chapter.start_on,
-                cast(func.timezone(timezone_name, Chapter.created_at), Date),
-            ).desc(),
+            *_recent_content_order(Chapter.start_on, Chapter.created_at, timezone_name),
             Chapter.id,
         )
         .limit(SECTION_LIMIT)

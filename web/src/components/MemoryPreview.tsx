@@ -1,5 +1,6 @@
 import type { ObjectUrlSource } from '../client/objectUrlResource';
-import { type ReactNode, useContext, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useContext, useEffect } from 'react';
+import { usePreviewLoadGate } from '../client/usePreviewLoadGate';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import {
   SensitiveMediaControl,
@@ -39,8 +40,10 @@ export function MemoryPreview({
   fallback?: ReactNode;
 }) {
   const { t } = useTranslation();
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const [shouldLoad, setShouldLoad] = useState(loadingMode === 'immediate');
+  const { ref: sentinelRef, shouldLoad } = usePreviewLoadGate(
+    loadingMode,
+    typeof isSensitive === 'boolean',
+  );
   const locationKey = useContext(PreviewCardLocationContext);
   const scope = resourceScopeKey ?? `story-preview:${memoryId}`;
   const reveals = useSensitiveMediaReveals(
@@ -48,36 +51,6 @@ export function MemoryPreview({
     allowReveal && isSensitive === true,
   );
   const revealed = isSensitive === true && reveals.isRevealed(attachmentId);
-
-  useEffect(() => {
-    if (loadingMode === 'immediate' || shouldLoad) {
-      setShouldLoad(true);
-      return;
-    }
-    if (typeof isSensitive !== 'boolean') return;
-
-    const node = sentinelRef.current;
-    if (!node) return;
-    if (typeof IntersectionObserver === 'undefined') {
-      setShouldLoad(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries.some((entry) => entry.isIntersecting)) return;
-        setShouldLoad(true);
-        observer.disconnect();
-      },
-      {
-        root: null,
-        rootMargin: '75% 0px',
-        threshold: 0,
-      },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [loadingMode, shouldLoad, isSensitive]);
 
   const mediaResource = useObjectUrlResource(
     hasThumbnail ? `${scope}:thumbnail` : scope,

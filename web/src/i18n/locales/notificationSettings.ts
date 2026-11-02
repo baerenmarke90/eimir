@@ -39,6 +39,8 @@ const notificationSettings = {
     'Erfahre, wenn dein Partner etwas mit dir teilt oder eine Erinnerung fällig ist. Deine Auswahl kannst du jederzeit in den Einstellungen ändern.',
   onboardingActivate: 'Aktivieren',
   onboardingLater: 'Später',
+  onboardingOffline:
+    'Du bist gerade offline. Benachrichtigungen wurden noch nicht aktiviert.',
   deviceIntro:
     'Hinweise können Namen und Titel zeigen. Auf dem Sperrbildschirm gilt deine Android-Auswahl für sensible Inhalte. Konkrete Vorschauen werden für den Versand verschlüsselt. Google oder dein Push-Dienst erhält eine Installationskennung und Verbindungsdaten.',
   deviceLoading: 'Push-Einrichtung wird geprüft …',

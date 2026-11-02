@@ -214,3 +214,20 @@ it('does not automatically ask when the decision store cannot be read', () => {
   setup();
   expect(screen.queryByRole('dialog')).toBeNull();
 });
+
+it('explains an offline activation and requires a deliberate online retry', async () => {
+  const view = setup();
+  const button = await screen.findByRole('button', {
+    name: copy.onboardingActivate,
+  });
+  environment.online = false;
+  fireEvent.click(button);
+  expect(screen.getByRole('status').textContent).toBe(copy.onboardingOffline);
+  expect(view.devicePush.enable).not.toHaveBeenCalled();
+  environment.online = true;
+  expect(view.devicePush.enable).not.toHaveBeenCalled();
+  await act(async () => {
+    fireEvent.click(button);
+  });
+  expect(view.devicePush.enable).toHaveBeenCalledTimes(1);
+});

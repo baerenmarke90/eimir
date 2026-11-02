@@ -49,6 +49,7 @@ export function DevicePushOnboarding({
     () => !devicePush.available || wasAnswered(decisionKey),
   );
   const [open, setOpen] = useState(false);
+  const [offline, setOffline] = useState(false);
   const blocked = useDocumentLeaveBlocked();
   const activationPending = useRef(false);
   const activateRef = useRef<HTMLButtonElement>(null);
@@ -92,7 +93,12 @@ export function DevicePushOnboarding({
   }
 
   async function activate() {
-    if (activationPending.current || !isClientOnline()) return;
+    if (activationPending.current) return;
+    if (!isClientOnline()) {
+      setOffline(true);
+      return;
+    }
+    setOffline(false);
     activationPending.current = true;
     answer();
     try {
@@ -145,9 +151,13 @@ export function DevicePushOnboarding({
     >
       <p>{t('notificationSettings.onboardingIntro')}</p>
       <p className="muted">{t('notificationSettings.deviceIntro')}</p>
-      {(busy || devicePush.state === 'error') && (
+      {(offline || devicePush.state !== 'off') && (
         <p role="status" aria-live="polite">
-          {t(devicePushStatusKey(devicePush))}
+          {t(
+            offline
+              ? 'notificationSettings.onboardingOffline'
+              : devicePushStatusKey(devicePush),
+          )}
         </p>
       )}
     </ShortTaskSheet>

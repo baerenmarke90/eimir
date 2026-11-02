@@ -277,9 +277,8 @@
   transform: scale(1);
 }
 
-/* The emotion marker is the first element of the content flow, not a
- * separate hero widget - it reads as part of the same composition as the
- * title above and the story content below. */
+/* The emotion marker shares the content flow with authored prose, tags
+ * and media rather than becoming a separate hero widget. */
 .heart-moment-detail-emotion {
   display: flex;
 }

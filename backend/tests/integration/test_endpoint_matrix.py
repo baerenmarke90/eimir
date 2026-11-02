@@ -544,6 +544,22 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint(
         "GET",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/comments",
+        resource_absence="COMMENT_TARGET_NOT_AVAILABLE",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/plans/{planId}/comments",
+        body=COMMENT,
+        resource_absence="COMMENT_TARGET_NOT_AVAILABLE",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/link-preview",
+        body={"url": "https://example.org/park"},
+    ),
+    Endpoint(
+        "GET",
         "/api/v1/spaces/{spaceId}/memories/{memoryId}/comments",
         resource_absence="COMMENT_TARGET_NOT_AVAILABLE",
     ),

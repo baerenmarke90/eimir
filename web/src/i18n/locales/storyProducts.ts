@@ -46,8 +46,19 @@ const storyProducts = {
     previous: 'Vorheriges Medium',
     next: 'Nächstes Medium',
   },
+  authoredLinks: {
+    external: ' (öffnet in einem neuen Tab)',
+    load: 'Linkvorschau für {{host}} laden',
+    loading: 'Linkvorschau wird geladen …',
+    retry: 'Linkvorschau erneut laden',
+    disclosure: 'Beim Laden wird {{host}} kontaktiert.',
+    unavailable:
+      'Keine Vorschau verfügbar. Du kannst den Link weiterhin öffnen.',
+  },
   comments: {
     kicker: 'Austausch',
+    write: 'Kommentar schreiben',
+    planEmpty: 'Stimmt euch hier zu eurem Plan ab.',
     heading: 'Kommentare',
     loading: 'Kommentare werden geladen …',
     loadingMore: 'Weitere Kommentare werden geladen …',

@@ -52,6 +52,7 @@ const created: CommentDetail = {
   version: 1,
 };
 const methods = {
+  plan: ['createPlanComment', 'listPlanComments', 'planId'],
   memory: ['createMemoryComment', 'listMemoryComments', 'memoryId'],
   heartMoment: [
     'createHeartMomentComment',
@@ -153,7 +154,7 @@ async function submit() {
   return editor;
 }
 
-describe.each(['memory', 'heartMoment', 'milestone'] as const)(
+describe.each(['memory', 'heartMoment', 'milestone', 'plan'] as const)(
   '%s comment create ownership',
   (kind) => {
     it('admits one immediate duplicate form submission', async () => {

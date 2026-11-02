@@ -327,3 +327,11 @@
 .media-comment-action .comment-compose-trigger:hover {
   background: var(--media-overlay-surface-hover);
 }
+
+.comments-panel .comment-compose-trigger.comment-compose-trigger-labelled {
+  display: inline-flex;
+  gap: var(--space-2);
+  width: auto;
+  height: auto;
+  padding: var(--space-2) var(--space-3);
+}

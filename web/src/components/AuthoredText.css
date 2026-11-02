@@ -1,0 +1,47 @@
+.authored-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.authored-text a,
+.authored-link-preview a {
+  color: var(--color-link-text);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.authored-link-preview {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+  padding-block: var(--space-2);
+}
+
+.authored-link-preview > a {
+  display: grid;
+  gap: var(--space-1);
+  min-height: var(--touch-target-web);
+  align-content: center;
+}
+
+.authored-link-domain,
+.authored-link-preview .authored-link-hint {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.authored-link-preview > button {
+  justify-self: start;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+
+.comment-card > .authored-link-preview {
+  margin-top: 0;
+}

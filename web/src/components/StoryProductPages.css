@@ -1200,3 +1200,25 @@
   font-weight: 550;
   letter-spacing: 0.01em;
 }
+
+/* HeartMoment prose follows the same calm reading roles as Memory detail. */
+.heart-moment-product-page .page-heading h1 {
+  font: var(--font-memory-detail-heading);
+  letter-spacing: var(--tracking-memory-detail-heading);
+  overflow-wrap: anywhere;
+}
+
+.heart-moment-product-page .page-heading > div > p {
+  margin-top: var(--space-2);
+  color: var(--color-text-secondary);
+  font: var(--font-reading-body);
+}
+
+.heart-moment-detail-text {
+  max-width: var(--reading-max);
+  min-width: 0;
+  margin: 0;
+  white-space: pre-wrap;
+  font: var(--font-reading-body);
+  overflow-wrap: anywhere;
+}

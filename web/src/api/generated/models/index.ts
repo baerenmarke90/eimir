@@ -114,6 +114,8 @@ export * from './ImportantDateView';
 export * from './InstanceAccessStatus';
 export * from './InvitationView';
 export * from './IssuedInvitationView';
+export * from './LinkPreviewRequest';
+export * from './LinkPreviewResult';
 export * from './MagicLinkConsumeRequest';
 export * from './MediaType';
 export * from './MembershipStatus';

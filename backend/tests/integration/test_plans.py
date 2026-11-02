@@ -136,7 +136,7 @@ class TestDirectCreate:
         assert p["capabilities"] == {
             "canEdit": True,
             "canDelete": True,
-            "canComment": False,
+            "canComment": True,
         }
         assert created.headers["ETag"] == '"1"'
 

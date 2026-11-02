@@ -1,4 +1,5 @@
 import { ChapterRelationsApi } from '../api/generated/apis/ChapterRelationsApi';
+import { CommentsApi } from '../api/generated/apis/CommentsApi';
 import { ChaptersApi } from '../api/generated/apis/ChaptersApi';
 import { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import { HeartMomentsApi } from '../api/generated/apis/HeartMomentsApi';
@@ -19,6 +20,7 @@ import { i18n } from '../i18n';
 import { Configuration } from './apiConfiguration';
 
 export interface SharedPlanningApis {
+  comments?: CommentsApi;
   wishes: WishesApi;
   wishSelections?: WishSelectionsApi;
   plans: PlansApi;
@@ -62,6 +64,7 @@ export function createSharedPlanningApis(
     wishes: new WishesApi(configuration),
     wishSelections: new WishSelectionsApi(configuration),
     plans: new PlansApi(configuration),
+    comments: new CommentsApi(configuration),
     places: new PlacesApi(configuration),
     placeRelations: new PlaceRelationsApi(configuration),
     chapters: new ChaptersApi(configuration),

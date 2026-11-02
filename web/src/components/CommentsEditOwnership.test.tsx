@@ -54,6 +54,7 @@ const original: CommentDetail = {
 const other = { ...original, id: 'other', body: 'Another comment' };
 const saved = { ...original, body: 'Submitted words', version: 8 };
 const listMethods = {
+  plan: 'listPlanComments',
   memory: 'listMemoryComments',
   heartMoment: 'listHeartMomentComments',
   milestone: 'listMilestoneComments',
@@ -141,7 +142,7 @@ async function submitEdit() {
   return editor;
 }
 
-describe.each(['memory', 'heartMoment', 'milestone'] as const)(
+describe.each(['memory', 'heartMoment', 'milestone', 'plan'] as const)(
   '%s comment edit draft ownership',
   (kind) => {
     for (const sameWords of [false, true]) {

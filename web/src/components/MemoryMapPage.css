@@ -55,7 +55,7 @@
 .memory-map-fullscreen .place-map-viewport {
   flex: 1 1 0;
   height: auto;
-  min-height: 0;
+  min-height: min(16rem, 45dvh);
 }
 .memory-map-loading {
   display: grid;

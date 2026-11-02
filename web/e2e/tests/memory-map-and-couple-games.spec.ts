@@ -120,6 +120,10 @@ for (const [width, theme] of [
       .toBe(true);
     await expect(page.locator('.memory-map-marker-count')).toHaveText('2');
     await expect(place.locator('.memory-map-thumbnail img')).toBeVisible();
+    expect(thumbnailReads).toBeGreaterThan(0);
+    // Initial layout/StrictMode admission may cancel a fetch before any body
+    // arrives. Measure return continuity from the first confirmed ready view.
+    const readyThumbnailReads = thumbnailReads;
     await expect.poll(() => tileReads).toBeGreaterThan(0);
     await expect(page.getByRole('button', { name: 'Karte laden' })).toHaveCount(
       0,
@@ -141,6 +145,9 @@ for (const [width, theme] of [
     await expand.click();
     const fullscreen = page.getByRole('dialog', { name: mapCopy.title });
     await expect(fullscreen).toBeVisible();
+    await expect
+      .poll(async () => Math.round((await fullscreen.boundingBox())?.y ?? -1))
+      .toBe(0);
     await expect(page.locator('.leaflet-container')).toHaveCount(1);
     // Real Leaflet tiles must use an overview zoom, including single-place maps.
     await expect
@@ -198,7 +205,7 @@ for (const [width, theme] of [
     const memory = page.getByRole('link', { name: /Afternoon by the canal/ });
     await expect(memory).toHaveAttribute('href', '/story/memories/mem-canal');
     await expect(memory.locator('.memory-map-thumbnail img')).toBeVisible();
-    expect(thumbnailReads).toBe(1);
+    expect(thumbnailReads).toBe(readyThumbnailReads);
     await expect(page.locator('.memory-map-selection ul')).toHaveCSS(
       'animation-name',
       width === 430 ? 'eimir-disclosure-reveal' : 'none',

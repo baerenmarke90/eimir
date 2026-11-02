@@ -136,6 +136,13 @@ class ProjectIdentityScanTest(unittest.TestCase):
             with self.subTest(path=candidate, match=match):
                 self.assertEqual(classify(candidate, text, match)[0], Classification.MUST_RENAME)
 
+    def test_assetlinks_predecessor_exception_is_exactly_scoped(self) -> None:
+        path = Path("web/public/.well-known/assetlinks.json")
+        line = '"package_name": "de.sidebyside.app"'
+        self.assertEqual(classify(path, line, "sidebyside")[0], Classification.TEMP_COMPAT)
+        self.assertEqual(classify(Path("web/public/config.json"), line, "sidebyside")[0], Classification.MUST_RENAME)
+        self.assertEqual(classify(path, '"package_name": "SideBySide"', "SideBySide")[0], Classification.MUST_RENAME)
+
     def test_exact_recap_prompt_retains_layout_provenance_only(self) -> None:
         path = Path(
             "docs/product/design/references/automatic-relationship-recaps/prompt.txt"

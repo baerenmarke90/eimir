@@ -130,6 +130,7 @@ import { DailyInsightsPage } from './components/DailyInsightsPage';
 import { DemoEntry } from './components/DemoEntry';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
+import { DevicePushIntroduction } from './components/DevicePushIntroduction';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
 import {
@@ -462,6 +463,11 @@ function AuthenticatedApp({
         spaceId={spaceId}
         serverAdmin={serverAdmin}
       >
+        <DevicePushIntroduction
+          accountId={account.id}
+          apiBaseUrl={apiBaseUrl}
+          devicePush={devicePush}
+        />
         <AppErrorBoundary
           resetKey={location.pathname}
           fallback={

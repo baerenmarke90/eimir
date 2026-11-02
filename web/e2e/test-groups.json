@@ -418,6 +418,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,
       "reason": "Readable long descriptions, explicit external preview, quiet Plan context and partner edit rights must remain accessible and preserve content/author/route across responsive states."
+    },
+    "push-introduction.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5,
+      "reason": "Native consent after authenticated entry must preserve explicit permission, server-confirmed registration, route and one-time deferral across Compact/Expanded and reflow."
     }
   }
 }

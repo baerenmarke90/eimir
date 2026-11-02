@@ -12,7 +12,10 @@ import {
 async function nativePush(page: Page, deny = false) {
   await page.addInitScript(
     ({ deny }) => {
-      const callbacks = new Map<string, (event: unknown) => void>();
+      const callbacks = new Map<
+        string,
+        { plugin: string; event: string; callback: (event: unknown) => void }
+      >();
       let sequence = 0;
       let state = {
         accountId: null as string | null,
@@ -71,8 +74,9 @@ async function nativePush(page: Page, deny = false) {
           options: { eventName: string },
           callback: (value: unknown) => void,
         ) => {
-          callbacks.set(`${plugin}:${options.eventName}`, callback);
-          return String(++sequence);
+          const id = String(++sequence);
+          callbacks.set(id, { plugin, event: options.eventName, callback });
+          return id;
         },
         nativePromise: async (
           plugin: string,
@@ -89,7 +93,7 @@ async function nativePush(page: Page, deny = false) {
             };
           }
           if (method === 'removeListener') {
-            callbacks.delete(`${plugin}:${options.eventName}`);
+            callbacks.delete(options.callbackId);
             return {};
           }
           if (plugin === 'App') return undefined;
@@ -117,13 +121,19 @@ async function nativePush(page: Page, deny = false) {
               permissionGranted: true,
               enabled: true,
             };
-            callbacks.get('EimirPush:endpoint')?.({
-              ...state,
-              endpointValue: JSON.stringify({
-                fid: 'synthetic-fcm-token',
-                activationId: state.activationId,
-              }),
-            });
+            for (const listener of callbacks.values()) {
+              if (
+                listener.plugin === 'EimirPush' &&
+                listener.event === 'endpoint'
+              )
+                listener.callback({
+                  ...state,
+                  endpointValue: JSON.stringify({
+                    fid: 'synthetic-fcm-token',
+                    activationId: state.activationId,
+                  }),
+                });
+            }
             return {};
           }
           if (method === 'openNotificationSettings')
@@ -254,10 +264,12 @@ test('activation waits for authenticated endpoint registration before confirming
   await nativePush(page);
   await mocks(page);
   let release!: () => void;
+  let registrations = 0;
   const registration = new Promise<void>((resolve) => {
     release = resolve;
   });
   await page.route('**/api/v1/push-endpoints', async (route) => {
+    registrations += 1;
     expect(route.request().headers().authorization).toBe(
       'Bearer timeline-ref-access-token',
     );
@@ -268,6 +280,7 @@ test('activation waits for authenticated endpoint registration before confirming
   await signIn(page);
   const dialog = page.getByRole('dialog', { name: copy.onboardingTitle });
   await dialog.getByRole('button', { name: copy.onboardingActivate }).click();
+  await expect.poll(() => registrations).toBe(1);
   await expect(dialog.getByRole('status')).toHaveText(copy.deviceConnecting);
   await expect(dialog).toBeVisible();
   release();

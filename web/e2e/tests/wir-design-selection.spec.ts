@@ -278,6 +278,48 @@ for (const [width, theme] of [
   [390, 'light'],
   [1280, 'dark'],
 ] as const) {
+  test(`does not paint a default design while the first selection is unresolved at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    const f = await fixture(page, { initial: 'modern' });
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route('**/appearance/wir-design', async (route) => {
+      await pending;
+      await route.fallback();
+    });
+    try {
+      await signIn(page);
+      await page.locator('.product-shell a[href="/today"]:visible').click();
+      await expect(page.locator('.today-page')).toBeVisible();
+      expect(
+        await page.locator('.today-page').getAttribute('data-wir-design'),
+      ).toBeNull();
+      expect(
+        await page.locator('.today-page').getAttribute('data-color-world'),
+      ).toBeNull();
+      await expect(page.locator('.today-content')).toHaveCount(0);
+      await captureScreenshot(
+        page,
+        info,
+        `today-startup-unresolved-${width}-${theme}.png`,
+      );
+      release();
+      await expect(page.locator('.today-page')).toHaveAttribute(
+        'data-wir-design',
+        'modern',
+      );
+      await expect(page.locator('.today-content')).toBeVisible();
+      expect(f.unexpected).toEqual([]);
+    } finally {
+      release();
+    }
+  });
+
   test(`restores the chosen design before its slow startup revalidation at ${width} ${theme}`, async ({
     page,
   }, info) => {

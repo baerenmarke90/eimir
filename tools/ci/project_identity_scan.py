@@ -117,22 +117,15 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
             Path("android/app/src/testSideload/java/de/eimir/app/updates/UpdateCatalogTest.java"),
             Path("android/app/src/testSideload/java/de/eimir/app/updates/UpdatePolicyTest.java"),
         }
-        test_package_constant = line.strip() == {
-            Path("scripts/android_test_release.py"): 'PACKAGE_NAME = "de.sidebyside.app"',
-            Path("scripts/android_test_release_plan.py"): 'PACKAGE = "de.sidebyside.app"',
+        historical_reader = line.strip() == {
+            Path("scripts/android_test_release_plan.py"): 'LEGACY_PACKAGE = "de.sidebyside.app"',
+            Path("android/app/src/sideload/java/de/eimir/app/updates/UpdateCatalog.java"):
+                '&& "de.sidebyside.app".equals(packageName);',
         }.get(path)
-        sideload_variant = (
-            path == Path("android/app/build.gradle")
-            and line.strip() == 'variant.applicationId.set("de.sidebyside.app")'
-        )
-        signer_evidence = (
-            path == Path(".github/workflows/release-publish.yml")
-            and "apksigner verification of both predecessor and planned APK, same package de.sidebyside.app," in line
-        )
-        if test_channel_path or test_package_constant or sideload_variant or signer_evidence:
+        if test_channel_path or historical_reader:
             return (
                 Classification.TEMP_COMPAT,
-                "the existing sideload test channel preserves its installed package for in-place upgrades",
+                "historical test.1-test.38 metadata and the explicit fresh-package boundary remain readable",
             )
 
     if path in HISTORICAL_FILES or any(

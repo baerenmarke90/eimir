@@ -32,6 +32,7 @@ class ProjectIdentityMigrationContractTest(unittest.TestCase):
         gradle = read("android/app/build.gradle")
         self.assertIn('namespace = "de.eimir.app"', gradle)
         self.assertIn('applicationId "de.eimir.app"', gradle)
+        self.assertNotIn('variant.applicationId.set(', gradle)
         self.assertIn('applicationIdSuffix ".debug"', gradle)
         self.assertIn("versionCode eimirVersionCode", gradle)
         self.assertIn("versionName eimirVersionName", gradle)

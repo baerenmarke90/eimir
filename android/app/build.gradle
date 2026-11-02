@@ -107,13 +107,6 @@ android {
     }
 }
 
-// Preserve the existing test-channel sandbox without changing ordinary builds.
-androidComponents {
-    onVariants(selector().withBuildType("sideload")) { variant ->
-        variant.applicationId.set("de.sidebyside.app")
-    }
-}
-
 repositories {
     flatDir{
         dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'

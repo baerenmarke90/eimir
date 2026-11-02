@@ -40,18 +40,16 @@ class ProjectIdentityScanTest(unittest.TestCase):
         )
         self.assertEqual(classification, Classification.HISTORICAL_IMMUTABLE)
 
-    def test_existing_sideload_channel_keeps_its_upgrade_package(self) -> None:
+    def test_historical_test_channel_metadata_remains_readable(self) -> None:
         for path, line in (
-            ("android/app/build.gradle", 'variant.applicationId.set("de.sidebyside.app")'),
-            ("scripts/android_test_release.py", 'PACKAGE_NAME = "de.sidebyside.app"'),
-            ("scripts/android_test_release_plan.py", 'PACKAGE = "de.sidebyside.app"'),
+            ("scripts/android_test_release_plan.py", 'LEGACY_PACKAGE = "de.sidebyside.app"'),
+            ("android/app/src/sideload/java/de/eimir/app/updates/UpdateCatalog.java", '&& "de.sidebyside.app".equals(packageName);'),
             ("scripts/test_android_test_release.py", 'package="de.sidebyside.app"'),
             ("scripts/test_android_test_release_plan.py", '"packageName": "de.sidebyside.app"'),
             ("android/app/src/testSideload/java/de/eimir/app/updates/UpdateCatalogTest.java", '"de.sidebyside.app"'),
             ("android/app/src/testSideload/java/de/eimir/app/updates/UpdatePolicyTest.java", '"de.sidebyside.app"'),
             ("docs/ANDROID-TEST-UPDATES.md", "Test package: `de.sidebyside.app`."),
-            ("docs/releases/android-test-0.2.0-test.39.md", "Sideload retains `de.sidebyside.app`."),
-            (".github/workflows/release-publish.yml", "apksigner verification of both predecessor and planned APK, same package de.sidebyside.app,"),
+            ("docs/releases/android-test-0.2.0-test.39.md", "Historical package: `de.sidebyside.app`."),
         ):
             with self.subTest(path=path):
                 self.assertEqual(
@@ -62,6 +60,9 @@ class ProjectIdentityScanTest(unittest.TestCase):
     def test_sideload_compatibility_does_not_exempt_other_branding_or_packages(self) -> None:
         for path, line in (
             ("android/app/build.gradle", 'applicationId "de.sidebyside.app"'),
+            ("android/app/build.gradle", 'variant.applicationId.set("de.sidebyside.app")'),
+            ("scripts/android_test_release.py", 'PACKAGE_NAME = "de.sidebyside.app"'),
+            ("scripts/android_test_release_plan.py", 'PACKAGE = "de.sidebyside.app"'),
             ("android/app/src/main/AndroidManifest.xml", 'package="de.sidebyside.app"'),
             ("scripts/example.py", 'PACKAGE = "de.sidebyside.app"'),
             ("scripts/android_test_release.py", 'OTHER_PACKAGE = "de.sidebyside.app"'),

@@ -17,9 +17,11 @@ import subprocess
 import zipfile
 from pathlib import Path
 
+from android_test_release_plan import LEGACY_PACKAGE, PACKAGE
+
 ROOT = Path(__file__).resolve().parents[1]
 TEST_ORIGIN = "https://demo.eimir.ur-cloud.de"
-PACKAGE_NAME = "de.sidebyside.app"
+PACKAGE_NAME = PACKAGE
 MARKER = "eimir-test-update.json"
 BUILD_IDENTITY = "eimir-test-build.json"
 VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+-test\.[1-9][0-9]*\Z")
@@ -81,9 +83,21 @@ def parse_badging(value: str) -> dict:
     }
 
 
-def validate_upgrade(current: dict, previous: dict) -> None:
+def validate_upgrade(current: dict, previous: dict, fresh_package: bool = False) -> None:
+    if fresh_package:
+        if not (
+            current["packageName"] == PACKAGE_NAME
+            and current["versionCode"] == 39
+            and current.get("versionName") == "0.2.0-test.39"
+            and previous["packageName"] == LEGACY_PACKAGE
+            and previous["versionCode"] == 38
+            and previous.get("versionName") == "0.2.0-test.38"
+        ):
+            raise ValueError("Only the approved test.38 to test.39 fresh-package boundary is allowed")
+        return
     if (
-        previous["packageName"] != PACKAGE_NAME
+        current["packageName"] != PACKAGE_NAME
+        or previous["packageName"] != PACKAGE_NAME
         or current["versionCode"] <= previous["versionCode"]
     ):
         raise ValueError(
@@ -210,7 +224,7 @@ def package(args: argparse.Namespace) -> None:
         previous = parse_badging(
             run(sdk_tool("aapt"), "dump", "badging", str(args.previous_apk))
         )
-        validate_upgrade(badging, previous)
+        validate_upgrade(badging, previous, args.fresh_package)
         previous_verification = run(
             sdk_tool("apksigner"),
             "verify",
@@ -225,6 +239,8 @@ def package(args: argparse.Namespace) -> None:
         )
         if previous_certificates != [expected]:
             raise ValueError("The previous APK does not share this signing identity")
+    elif args.fresh_package:
+        raise ValueError("A fresh-package transition requires the verified predecessor APK")
     if (
         badging["packageName"] != PACKAGE_NAME
         or badging["minSdk"] != 26
@@ -295,6 +311,10 @@ def main() -> None:
     packager.add_argument("--certificate-sha256", required=True)
     packager.add_argument("--notes-file", type=Path, required=True)
     packager.add_argument("--output-dir", type=Path, required=True)
+    packager.add_argument(
+        "--fresh-package", action="store_true",
+        help="Only the explicitly approved test.38 to test.39 separate-install boundary",
+    )
     continuity = packager.add_mutually_exclusive_group(required=True)
     continuity.add_argument(
         "--initial-release",

@@ -8,7 +8,7 @@ import unittest
 import urllib.error
 import zipfile
 
-from android_test_release_plan import API, DOWNLOAD, admit, validate_plan, verify_once, verify_public
+from android_test_release_plan import API, DOWNLOAD, PACKAGE, admit, validate_plan, verify_once, verify_public
 
 
 def plan_data():
@@ -23,11 +23,11 @@ def plan_data():
 
 
 class PublicFixture:
-    def __init__(self, identity_change=None):
-        self.plan = validate_plan(plan_data())
+    def __init__(self, identity_change=None, data=None):
+        self.plan = validate_plan(data or plan_data())
         identity = {
             "channel": "android-test", "sourceRevision": "a" * 40,
-            "versionName": self.plan.version, "versionCode": 14,
+            "versionName": self.plan.version, "versionCode": self.plan.code,
             "dirty": False, "validationOnly": False,
             "apiOrigin": "https://demo.eimir.ur-cloud.de", "demoMode": False,
             "demoResetTimer": False, "testUpdates": True,
@@ -41,7 +41,7 @@ class PublicFixture:
         self.marker = {
             "schemaVersion": 1, "channel": "android-test", "packageName": "de.sidebyside.app",
             "sourceRevision": "a" * 40, "versionName": self.plan.version,
-            "versionCode": 14, "minSdk": 26,
+            "versionCode": self.plan.code, "minSdk": 26,
             "asset": {"name": self.plan.apk, "size": len(apk), "sha256": digest,
                       "url": f"{DOWNLOAD}/{self.plan.tag}/{self.plan.apk}"},
         }
@@ -86,6 +86,29 @@ class ReleasePlanTests(unittest.TestCase):
         self.assertEqual(plan.values()["PREVIOUS_TAG"], "android-test-v0.2.0-test.13")
         self.assertEqual(plan.values()["VERSION_CODE"], "14")
         self.assertTrue(all("\n" not in value for value in plan.values().values()))
+
+    def test_canonical_plan_only_allows_the_exact_fresh_install_boundary(self):
+        data = {**plan_data(), "versionName": "0.2.0-test.39", "versionCode": 39,
+                "previousVersionName": "0.2.0-test.38",
+                "notesFile": "docs/releases/android-test-0.2.0-test.39-notes.txt"}
+        plan = validate_plan(data)
+        self.assertEqual(plan.values()["FRESH_PACKAGE"], "true")
+        for previous in ("0.2.0-test.37", "0.3.0-test.38"):
+            with self.subTest(previous=previous), self.assertRaises(ValueError):
+                validate_plan({**data, "previousVersionName": previous})
+        future = {**data, "versionName": "0.2.0-test.40", "versionCode": 40,
+                  "notesFile": "docs/releases/android-test-0.2.0-test.40-notes.txt"}
+        with self.assertRaises(ValueError):
+            validate_plan(future)
+        self.assertFalse(validate_plan({**future, "previousVersionName": data["versionName"]}).fresh_package)
+
+        fixture = PublicFixture(data=data)
+        with self.assertRaises(ValueError):
+            verify_once(fixture.plan, fixture.read)
+        fixture.marker["packageName"] = PACKAGE
+        fixture.content["eimir-test-update.json"] = json.dumps(fixture.marker).encode()
+        fixture.sync_assets()
+        self.assertEqual(verify_once(fixture.plan, fixture.read)["tag"], plan.tag)
 
     def test_rejects_extra_fields_types_paths_versions_and_unpinned_sources(self):
         for key, value in [

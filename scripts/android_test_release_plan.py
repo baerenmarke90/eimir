@@ -19,10 +19,19 @@ REPOSITORY = "baerenmarke90/eimir"
 API = f"https://api.github.com/repos/{REPOSITORY}/releases"
 DOWNLOAD = f"https://github.com/{REPOSITORY}/releases/download"
 VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+-test\.([1-9][0-9]*)\Z")
-PACKAGE = "de.sidebyside.app"
+PACKAGE = "de.eimir.app"
+LEGACY_PACKAGE = "de.sidebyside.app"
 ORIGIN = "https://demo.eimir.ur-cloud.de"
 MAX_APK_BYTES = 256 * 1024 * 1024
 FIELDS = {"schemaVersion", "sourceRevision", "versionName", "versionCode", "previousVersionName", "notesFile"}
+
+
+def package_for_version(version: str) -> str:
+    """Keep immutable pre-migration plans verifiable without permitting new legacy APKs."""
+    match = VERSION.fullmatch(version)
+    if not match:
+        raise ValueError("Invalid test-channel version")
+    return LEGACY_PACKAGE if int(match[1]) <= 38 else PACKAGE
 
 
 class PublicationPending(Exception):
@@ -36,6 +45,10 @@ class Plan:
     code: int
     previous: str
     notes: str
+
+    @property
+    def fresh_package(self) -> bool:
+        return package_for_version(self.version) != package_for_version(self.previous)
 
     @property
     def tag(self) -> str:
@@ -56,6 +69,7 @@ class Plan:
             "NOTES_FILE": self.notes,
             "TAG": self.tag,
             "APK": self.apk,
+            "FRESH_PACKAGE": "true" if self.fresh_package else "false",
         }
 
 
@@ -78,6 +92,8 @@ def validate_plan(value: object) -> Plan:
         or type(code) is not int or not 0 < code <= 2_100_000_000
         or int(current_match[1]) != code or int(previous_match[1]) >= code
         or notes != f"docs/releases/android-test-{version}-notes.txt"
+        or (package_for_version(version) != package_for_version(previous)
+            and (version != "0.2.0-test.39" or previous != "0.2.0-test.38"))
     ):
         raise ValueError("Release plan identity, version order or notes path is invalid")
     return Plan(source, version, code, previous, notes)
@@ -139,7 +155,8 @@ def verify_once(plan: Plan, reader=fetch, expected_root: Path | None = None) -> 
     if (
         type(marker.get("schemaVersion")) is not int or marker["schemaVersion"] != 1
         or marker.get("channel") != "android-test"
-        or marker.get("packageName") != PACKAGE or marker.get("sourceRevision") != plan.source
+        or marker.get("packageName") != package_for_version(plan.version)
+        or marker.get("sourceRevision") != plan.source
         or marker.get("versionName") != plan.version or type(marker.get("versionCode")) is not int
         or marker["versionCode"] != plan.code or marker.get("minSdk") != 26
         or marker.get("asset") != {

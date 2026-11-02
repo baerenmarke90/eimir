@@ -63,8 +63,9 @@ on that branch after the intended APK source has passed its required checks:
 
 The notes file must already exist in the selected source. Use a strictly higher
 versionCode and the corresponding `test.N` suffix. Never put credentials, keys,
-arbitrary URLs or alternative signing identities in this plan. The package,
-origin and original certificate stay fixed. Plan validation rejects unknown fields,
+arbitrary URLs or alternative signing identities in this plan. The canonical package,
+origin and original certificate stay fixed after the explicit test.39 fresh-install
+boundary below. Plan validation rejects unknown fields,
 moving refs, unsafe notes paths, inconsistent versions and noninteger codes.
 
 The owner explicitly authorized unattended publication on 2026-10-26. The
@@ -75,7 +76,9 @@ approval setting was changed. Do not broaden this allowlist implicitly.
 For a new plan, the workflow checks the exact APK source, verifies the predecessor,
 builds the unsigned validation variant, runs sideload lint and actual policy/catalog
 JVM tests, confirms the original keystore certificate, signs the release APK and
-verifies the actual package/signature/version/source identity. APK inspection uses
+verifies the actual package/signature/version/source identity. The one-time
+test.38 → test.39 boundary checks the exact old/new packages and versions as
+well as both signatures; it is a separate installation, not an in-place update. APK inspection uses
 an SDK view containing **only build-tools 36.0.0**: a runner may also have 37 installed,
 whose human-readable signer output is incompatible with the existing helper parser.
 
@@ -114,21 +117,39 @@ Public SHA-256 certificate fingerprint for this initial test channel:
 b5009739477874fbc76b483c66ddb1502132255dd15de37f7570ee6a13b5f472
 ```
 
-Package identity remains `de.sidebyside.app`. Do not reuse an RWN signing key or
-silently replace the eimir. test key. Installing over a differently signed prior
-APK will be rejected by Android; do not solve that by deleting user data.
+Package identity is **`de.eimir.app` from test.39 onward**, following the Product
+Owner's explicit 2026-11-02 publication request and the fresh-package decision in
+#565. Test.1–test.38 used `de.sidebyside.app`; their immutable metadata remains
+verifiable. Install test.39 directly from its release APK, open the new eimir.
+app and sign in to the existing Account on the same server. Android keeps the
+former app and its local sandbox separate. Do not uninstall or clear it, copy
+credentials across packages, or claim an in-place upgrade/local-data migration.
+Server-side Account, Space and saved content retain their existing identities.
+
+The original test signer is retained. The publisher explicitly admits only the
+exact test.38/code 38 → test.39/code 39 package boundary, checks both APK signatures,
+and records fresh-install semantics in acceptance evidence. All later updates
+must preserve `de.eimir.app` and increase versionCode as usual. The new native
+catalog fully validates and skips only historical legacy-package test.1–test.38
+markers; malformed or foreign-package metadata still fails closed. The old app
+cannot install a differently named package through its existing updater.
+
+Do not reuse an RWN signing key or silently replace the eimir. test key.
+Installing over a differently signed prior APK is rejected by Android; do not
+solve that by deleting user data.
 
 ```bash
 python scripts/android_test_release.py build \
-  --version-name 0.2.0-test.1 --version-code 1 \
-  --output-dir /protected/artifacts/test-1
+  --version-name 0.2.0-test.39 --version-code 39 \
+  --output-dir /protected/artifacts/test-39
 
 python scripts/android_test_release.py package \
-  --apk /protected/artifacts/test-1/eimir-android-test-v0.2.0-test.1.apk \
+  --apk /protected/artifacts/test-39/eimir-android-test-v0.2.0-test.39.apk \
   --certificate-sha256 "$EIMIR_TEST_CERTIFICATE_SHA256" \
   --notes-file /protected/artifacts/notes.txt \
-  --initial-release \
-  --output-dir /protected/artifacts/release-1
+  --previous-apk /protected/artifacts/previous/eimir-android-test-v0.2.0-test.38.apk \
+  --fresh-package \
+  --output-dir /protected/artifacts/release-39
 ```
 
 `build --unsigned` is only for local validation; its embedded `validationOnly`
@@ -139,10 +160,11 @@ dependency verification. `package` verifies the actual APK signature, package,
 version, SDK, non-debuggable status, native adapter, install permission and build
 identity before producing an update marker. It does not publish anything.
 
-For every subsequent version, increase `versionCode` and replace
+For subsequent versions within the canonical package, increase `versionCode` and replace
 `--initial-release` with `--previous-apk /protected/artifacts/previous.apk`.
 Packaging then requires the same certificate and package and a strictly greater
-version code. Keep the original signing material available for the entire test.
+version code. Only test.39 additionally uses `--fresh-package` with the verified
+test.38 predecessor; that flag rejects every other package/version boundary. Keep the original signing material available for the entire test.
 
 Treat a build number as consumed once any signed APK with that number has been
 shared or installed, including private or unpublished candidates. A corrected APK

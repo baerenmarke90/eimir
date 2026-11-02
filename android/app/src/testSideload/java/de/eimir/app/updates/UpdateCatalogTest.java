@@ -8,7 +8,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 
 public class UpdateCatalogTest {
-    private static final String PACKAGE = "de.sidebyside.app";
+    private static final String PACKAGE = "de.eimir.app";
     private static final String NAME = "0.2.0-test.1";
     private static final String TAG = "android-test-v" + NAME;
 
@@ -90,6 +90,26 @@ public class UpdateCatalogTest {
             reader.responses.put(marker, manifest(NAME, 1).put("versionCode", code).toString());
             assertThrows(IllegalArgumentException.class, () -> UpdateCatalog.discover(reader, PACKAGE, 36));
         }
+    }
+
+    @Test public void canonicalCatalogValidatesAndSkipsOnlyTheHistoricalLegacyChannel() throws Exception {
+        String legacy = "0.2.0-test.38";
+        String current = "0.2.0-test.39";
+        Reader reader = new Reader(new JSONArray().put(release(legacy, true)).put(release(current, true)));
+        String legacyUrl = UpdatePolicy.releaseUrl("android-test-v" + legacy, UpdatePolicy.MARKER);
+        JSONObject old = manifest(legacy, 38).put("packageName", "de.sidebyside.app");
+        reader.responses.put(legacyUrl, old.toString());
+        reader.responses.put(UpdatePolicy.releaseUrl("android-test-v" + current, UpdatePolicy.MARKER),
+            manifest(current, 39).toString());
+        assertEquals(39, UpdateCatalog.discover(reader, PACKAGE, 36).versionCode);
+        Reader historicalOnly = new Reader(new JSONArray().put(release(legacy, true)));
+        historicalOnly.responses.put(legacyUrl, old.toString());
+        assertNull(UpdateCatalog.discover(historicalOnly, PACKAGE, 36));
+        old.getJSONObject("asset").put("sha256", "corrupt");
+        reader.responses.put(legacyUrl, old.toString());
+        assertThrows(IllegalArgumentException.class, () -> UpdateCatalog.discover(reader, PACKAGE, 36));
+        reader.responses.put(legacyUrl, manifest(legacy, 39).put("packageName", "de.sidebyside.app").toString());
+        assertThrows(IllegalArgumentException.class, () -> UpdateCatalog.discover(reader, PACKAGE, 36));
     }
 
     @Test public void rejectsAmbiguousCodesAcrossDifferentReleaseTags() throws Exception {

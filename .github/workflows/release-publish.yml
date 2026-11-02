@@ -1410,6 +1410,7 @@ jobs:
       notes_file: ${{ steps.plan.outputs.notes_file }}
       tag: ${{ steps.plan.outputs.tag }}
       apk: ${{ steps.plan.outputs.apk }}
+      fresh_package: ${{ steps.plan.outputs.fresh_package }}
     env:
       CERTIFICATE: b5009739477874fbc76b483c66ddb1502132255dd15de37f7570ee6a13b5f472
       GH_REPO: baerenmarke90/eimir
@@ -1552,9 +1553,9 @@ jobs:
           sideload lint and unit tests passed. This validation APK is not publishable.
           The android-test-release Environment is configured for unattended test delivery.
           The next job verifies the original signer, builds/signs $VERSION_NAME,
-          verifies predecessor upgrade compatibility, stages and checks all draft assets,
+          verifies the explicit predecessor/package contract, stages and checks all draft assets,
           publishes the complete prerelease, and verifies anonymous public bytes.
-          Physical-device upgrade and App Links acceptance remain unverified.
+          Physical-device installation/login and App Links acceptance remain unverified.
           EOF
 
   android-test-publish:
@@ -1575,6 +1576,7 @@ jobs:
       NOTES_FILE: ${{ needs.android-test-preflight.outputs.notes_file }}
       TAG: ${{ needs.android-test-preflight.outputs.tag }}
       APK: ${{ needs.android-test-preflight.outputs.apk }}
+      FRESH_PACKAGE: ${{ needs.android-test-preflight.outputs.fresh_package }}
     name: Sign, verify and publish planned Android test release
     needs: android-test-preflight
     runs-on: ubuntu-latest
@@ -1640,7 +1642,7 @@ jobs:
               raise SystemExit('Protected keystore certificate is not the original eimir test signer')
           print('Original eimir test signing certificate confirmed.')
           PY
-      - name: Build the signed same-package planned APK
+      - name: Build the signed canonical-package planned APK
         env:
           EIMIR_RELEASE_KEYSTORE: ${{ runner.temp }}/eimir-test-release.jks
           EIMIR_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.EIMIR_RELEASE_KEYSTORE_PASSWORD }}
@@ -1649,7 +1651,7 @@ jobs:
         run: |
           python3 scripts/android_test_release.py build \
             --version-name "$VERSION_NAME" --version-code "$VERSION_CODE" --output-dir "$RUNNER_TEMP/build"
-      - name: Verify actual signatures, identity and upgrade compatibility
+      - name: Verify actual signatures, identity and predecessor package contract
         run: |
           mkdir -p "$RUNNER_TEMP/eimir-verification-sdk/build-tools"
           ln -s "$ANDROID_HOME/build-tools/36.0.0" "$RUNNER_TEMP/eimir-verification-sdk/build-tools/36.0.0"
@@ -1662,7 +1664,11 @@ jobs:
           apk = Path(os.environ['RUNNER_TEMP']) / 'build' / os.environ['APK']
           print(run(sdk_tool('apksigner'), 'verify', '--verbose', '--print-certs', str(apk)))
           PY
-          python3 scripts/android_test_release.py package \
+          package_args=()
+          if [ "$FRESH_PACKAGE" = true ]; then
+            package_args+=(--fresh-package)
+          fi
+          python3 scripts/android_test_release.py package "${package_args[@]}" \
             --apk "$RUNNER_TEMP/build/$APK" \
             --previous-apk "$RUNNER_TEMP/previous/$PREVIOUS_APK" \
             --certificate-sha256 "$CERTIFICATE" \
@@ -1675,6 +1681,14 @@ jobs:
           marker = json.loads((root / 'eimir-test-update.json').read_text())
           assert marker['sourceRevision'] == os.environ['SOURCE']
           assert marker['versionCode'] == int(os.environ['VERSION_CODE']) and marker['versionName'] == os.environ['VERSION_NAME']
+          assert marker['packageName'] == 'de.eimir.app'
+          fresh = os.environ['FRESH_PACKAGE'] == 'true'
+          installation = (
+              'Approved test.38 to test.39 fresh installation using de.eimir.app; '
+              'the former app and sandbox remain intact. Sign in to the existing Account. '
+              'No in-place upgrade or local-data transfer is claimed. '
+              if fresh else 'Same-package de.eimir.app upgrade with increasing versionCode. '
+          )
           (root / 'native-acceptance.md').write_text(
               f"# Android {os.environ['VERSION_NAME']} automated release verification\n\n"
               f"APK source: `{os.environ['SOURCE']}`.\n\n"
@@ -1685,11 +1699,12 @@ jobs:
               'Passed: fixed-source required CI, Android source tests, unsigned sideload build, '
               'sideload lint/unit tests, protected original-certificate check, signed assembly, '
               'verification with explicitly pinned Android build-tools 36.0.0, '
-              'apksigner verification of both predecessor and planned APK, same package de.sidebyside.app, '
+              'apksigner verification of both predecessor and planned APK, canonical package de.eimir.app, '
               'strictly increasing versionCode, minSdk 26, non-debuggable APK, embedded clean-source '
               'identity, persistent API origin, Demo/reset disabled and native updater present.\n\n'
+              + installation + '\n\n'
               'Source-specific CI and retained diagnostics belong to the source checks and owning PR.\n\n'
-              'Pending: physical-device in-place update, session/Space/data continuity, all-eleven '
+              'Pending: physical-device installation/login, session/Space/data continuity, all-eleven '
               'launcher choices on the installed APK, OS App Links, offline/retry and accessibility '
               'acceptance. Automated signing does not establish these results or store readiness.\n'
           )

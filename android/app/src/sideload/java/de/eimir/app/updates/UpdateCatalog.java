@@ -74,7 +74,17 @@ final class UpdateCatalog {
             UpdatePolicy.require(apk != null && integer(marker, "size") > 0 && integer(marker, "size") <= 32_768);
             String markerUrl = UpdatePolicy.releaseUrl(tag, UpdatePolicy.MARKER);
             UpdatePolicy.require(markerUrl.equals(marker.getString("browser_download_url")));
-            Offer offer = new Offer(new JSONObject(transport.readJson(markerUrl, 32_768)), tag, apk, expectedPackage);
+            JSONObject manifest = new JSONObject(transport.readJson(markerUrl, 32_768));
+            String packageName = manifest.getString("packageName");
+            boolean historical = "de.eimir.app".equals(expectedPackage)
+                && "de.sidebyside.app".equals(packageName);
+            Offer offer = new Offer(manifest, tag, apk, historical ? packageName : expectedPackage);
+            if (historical) {
+                // Validate historical metadata fully before excluding the old sandbox.
+                UpdatePolicy.require(offer.versionCode <= 38
+                    && offer.versionName.equals("0.2.0-test." + offer.versionCode));
+                continue;
+            }
             if (offer.minSdk > sdk) continue;
             if (best != null && best.versionCode == offer.versionCode) {
                 UpdatePolicy.require(best.sha256.equals(offer.sha256) && best.url.equals(offer.url));

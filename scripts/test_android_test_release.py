@@ -3,6 +3,8 @@
 import unittest
 
 from android_test_release import (
+    LEGACY_PACKAGE,
+    PACKAGE_NAME,
     TEST_ORIGIN,
     parse_badging,
     test_environment,
@@ -70,17 +72,37 @@ class AndroidTestReleaseTests(unittest.TestCase):
                 parse_badging(bad)
 
     def test_updates_reject_same_or_older_code_and_foreign_package(self):
-        current = {"packageName": "de.sidebyside.app", "versionCode": 5}
+        current = {"packageName": PACKAGE_NAME, "versionCode": 40}
         validate_upgrade(
-            current, {"packageName": "de.sidebyside.app", "versionCode": 4}
+            current, {"packageName": PACKAGE_NAME, "versionCode": 39}
         )
         for previous in [
-            {"packageName": "de.sidebyside.app", "versionCode": 5},
-            {"packageName": "de.sidebyside.app", "versionCode": 6},
-            {"packageName": "another.app", "versionCode": 4},
+            {"packageName": PACKAGE_NAME, "versionCode": 40},
+            {"packageName": PACKAGE_NAME, "versionCode": 41},
+            {"packageName": LEGACY_PACKAGE, "versionCode": 38},
+            {"packageName": "another.app", "versionCode": 39},
         ]:
             with self.subTest(previous=previous), self.assertRaises(ValueError):
                 validate_upgrade(current, previous)
+
+    def test_fresh_package_requires_the_exact_approved_boundary(self):
+        current = {"packageName": PACKAGE_NAME, "versionName": "0.2.0-test.39", "versionCode": 39}
+        previous = {"packageName": LEGACY_PACKAGE, "versionName": "0.2.0-test.38", "versionCode": 38}
+        validate_upgrade(current, previous, fresh_package=True)
+        with self.assertRaises(ValueError):
+            validate_upgrade(current, previous)
+        for change in [
+            {"packageName": "another.app"}, {"packageName": LEGACY_PACKAGE},
+            {"versionCode": 38}, {"versionCode": 40}, {"versionName": "0.2.0-test.40"},
+        ]:
+            with self.subTest(current=change), self.assertRaises(ValueError):
+                validate_upgrade({**current, **change}, previous, fresh_package=True)
+        for change in [
+            {"packageName": PACKAGE_NAME}, {"packageName": "another.app"},
+            {"versionCode": 37}, {"versionName": "0.2.0-test.37"},
+        ]:
+            with self.subTest(previous=change), self.assertRaises(ValueError):
+                validate_upgrade(current, {**previous, **change}, fresh_package=True)
 
 
 if __name__ == "__main__":

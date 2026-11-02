@@ -23,6 +23,9 @@ were prepared for the Product Owner follow-up in #565.
   real key wrapping/ownership/retirement, Python-produced JWE decryption,
   ciphertext alteration/expiry rejection, safe future-kind fallback, native
   redaction, distinct actual PendingIntents and replay suppression after dismiss.
+  The final 12 open/preview cases passed again on the physical device after the
+  CI-discovered asynchronous count/cancellation wait correction; exact counts
+  and all privacy/target assertions remain. The workflow runs all 12 on every API.
 - Nine full-shell browser journeys passed with synthetic authenticated APIs,
   360/390/430/1280 px, Light/Dark, reduced motion and a 360 px 200% text state.
   Every scoped axe run reported zero violations. The initial large-text overflow

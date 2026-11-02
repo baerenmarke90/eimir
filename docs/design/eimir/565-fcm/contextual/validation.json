@@ -12,7 +12,7 @@
     },
     {
       "path": "android/app/src/androidTest/java/de/eimir/app/NotificationOpenTest.java",
-      "sha256": "73e0451f178efc5ce47e765a5e34da8b856f4dbdd78d05c846549aacc3b8ffc2"
+      "sha256": "3b9a4e7715b4f55f453c7277aec37a3b7d4065409ed22364c3e1761dc45cbd1d"
     },
     {
       "path": "android/app/src/androidTest/java/de/eimir/app/PushPreviewTest.java",
@@ -265,6 +265,10 @@
     {
       "path": "tools/ci/test_engineering_language_audit.py",
       "sha256": "4e0330cac186a94187433ab9233e36edd07edddbde81ce731825136215356687"
+    },
+    {
+      "path": ".github/workflows/android-launcher-icons.yml",
+      "sha256": "e352f243fdf359206643b9bf148bafc9164de8e573cb097b13ebcec5496d6831"
     }
   ],
   "backend": {
@@ -294,7 +298,10 @@
     "os": "Android 16 / API 36",
     "artifactKind": "separate Debug fixture APK, not a published release",
     "apkSha256": "c25e221e439282275b7899489fc1b45da30437b7685b50c72b8d51bb9390b1d2",
-    "scope": "Real AndroidKeyStore, Python/Nimbus interoperability, actual OS notifications/public versions and PendingIntent handoff under synthetic ownership. The fixture uses a controlled blank Web document; it does not prove real FCM transport."
+    "scope": "Real AndroidKeyStore, Python/Nimbus interoperability, actual OS notifications/public versions and PendingIntent handoff under synthetic ownership. The fixture uses a controlled blank Web document; it does not prove real FCM transport.",
+    "finalAffectedPassed": 12,
+    "finalAffectedApkSha256": "c25e221e439282275b7899489fc1b45da30437b7685b50c72b8d51bb9390b1d2",
+    "finalAffectedTestApkSha256": "4118e52655a9ae84bf56a0a37c674b2f97885f860c1b860db5571201547393dc"
   },
   "browser": {
     "passed": 9,
@@ -328,5 +335,6 @@
     "playAcceptance": "Separate issue #1577; not attempted.",
     "legacyMigration": "Separate package; fresh sign-in on old-only devices. No cross-package credential copy; #1395 remains deferred."
   },
-  "ciFirstAttempt": "Language audit rejected newly localized native product strings and German assertion/content fixtures. Extended existing exact-text exceptions, with a negative test retaining surrounding prose checks. Backend integration aggregate failed only because Change Detection prevented shards from starting. New substantive commit requires fresh checks; no blanket rerun."
+  "ciFirstAttempt": "Language audit rejected newly localized native product strings and German assertion/content fixtures. Extended existing exact-text exceptions, with a negative test retaining surrounding prose checks. Backend integration aggregate failed only because Change Detection prevented shards from starting. New substantive commit requires fresh checks; no blanket rerun.",
+  "ciAndroidFollowup": "All three API jobs observed the asynchronous two-notification post before both entries appeared; API 37 also observed pending cancellation. Reuse the existing 5-second notification wait for exact counts; retain all assertions. Workflow requires all eight open tests and all four JWE/ownership tests on every API. The final affected 12 cases passed on the physical API-36 device."
 }

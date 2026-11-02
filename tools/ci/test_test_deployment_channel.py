@@ -344,6 +344,26 @@ class EvidenceAndImageTest(unittest.TestCase):
         with self.assertRaises(channel.ChannelError):
             channel.evidence_records(self.root, SOURCE)
 
+    def test_media_evidence_is_separately_bound_and_tampering_or_wrong_roles_fail_closed(self):
+        record = {
+            "id": "media-runtime", "path": "media-runtime.image.tar",
+            "sbom": "sbom/media-runtime.spdx.json", "roles": ["video-worker"],
+        }
+        for field, digest in (("path", "sha256"), ("sbom", "sbomSha256")):
+            (self.root / record[field]).write_bytes(b"restricted-worker-evidence")
+            record[digest] = channel.sha256(self.root / record[field])
+        self.index["artifacts"].append(record)
+        self.write_index()
+        self.assertEqual(set(channel.evidence_records(self.root, SOURCE)), {"backend-runtime", "web-runtime", "media-runtime"})
+        (self.root / record["path"]).write_bytes(b"different-worker")
+        with self.assertRaises(channel.ChannelError):
+            channel.evidence_records(self.root, SOURCE)
+        (self.root / record["path"]).write_bytes(b"restricted-worker-evidence")
+        record["roles"] = ["worker"]
+        self.write_index()
+        with self.assertRaises(channel.ChannelError):
+            channel.evidence_records(self.root, SOURCE)
+
     def test_corrupt_archive_or_sbom_fails_before_registry_use(self):
         for field in ("path", "sbom"):
             record = self.index["artifacts"][0]

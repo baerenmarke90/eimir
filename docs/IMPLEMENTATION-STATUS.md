@@ -123,7 +123,7 @@ M2-D22 (owner view) is no longer in that category: the question shapes the Story
 
 ### Separate video slice outside M2/G2
 
-- [ ] **#88 — Video uploads and poster frames:** bounded implementation authorized on 2026-11-02; draft [#1598](https://github.com/baerenmarke90/eimir/pull/1598), stacked on #1592. Operator-default-off MP4/MOV H.264/AAC intake uses a separate restricted media image; retained reads stay Core. Production activation still requires the recorded security/native acceptance. Prototype #109 remains deliberately closed and is not the implementation base; its large common production image and operational burden are addressed by keeping codecs out of the API/general-worker image. See [the new slice's contract](product/design/references/88-video/README.md) and [operations](operations/video-uploads.md).
+- [x] **#88 — Video uploads and poster frames:** delivered by [#1598](https://github.com/baerenmarke90/eimir/pull/1598), merged on 2026-11-03. Bounded, operator-default-off MP4/MOV H.264/AAC intake uses a separate restricted media image; retained reads stay Core. Exact-source codec/security, browser and automated Android API 28/36/37.1 acceptance passed. The authorized private test rollout includes the separate worker; general production activation remains operator opt-in. Physical-device/store acceptance remains outside the private test publication. Prototype #109 is not the implementation base. See [the slice's contract](product/design/references/88-video/README.md), [completion evidence](product/design/evidence/88-video-completion-20261102/README.md) and [operations](operations/video-uploads.md).
 
 The historical G2 boundary remains image-only. The 2026-11-02 decision authorizes the separate #88 slice: intake stays fail-closed unless the operator explicitly enables its reviewed processor and the Space has the new Pro capability. Clients derive intake availability from that server policy; existing authorized video reads do not depend on it.
 
@@ -163,7 +163,7 @@ Global full-text Search was not part of G2 or G3. The minimum Story contract inc
 8. ~~thin Web/Android reference flows~~ — delivered
 9. ~~G2 Review~~ — **PASSED**
 
-The S3 adapter (#87) ran in parallel and is delivered. Video (#88) remains outside this completed M2/G2 chain; its separately authorized, default-off implementation is tracked in #1598.
+The S3 adapter (#87) ran in parallel and is delivered. Video (#88), delivered separately in #1598, remains outside this historical completed M2/G2 chain.
 
 ## G2 — Story Alpha
 

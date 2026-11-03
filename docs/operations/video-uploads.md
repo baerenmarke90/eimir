@@ -25,18 +25,27 @@ selected-media lease and require re-selection after a full restart.
 
 ### Android video selection
 
-The separate video entry uses Android's system document picker with
-`ACTION_OPEN_DOCUMENT`, a video MIME filter and selected-file read grants.
-It requests neither library-wide video access nor directory-tree access, and
-does not retain a persistable grant or copy selected videos into native cache.
-The Photo Picker proxy path produced a real WebView `NotReadableError` in
-native acceptance, consistent with the upstream proxy-metadata issue reviewed
-in [GutenbergKit #447](https://github.com/wordpress-mobile/GutenbergKit/issues/447)
-and [Chromium 40123366](https://issues.chromium.org/issues/40123366).
-The [Storage Access Framework](https://developer.android.com/training/data-storage/shared/documents-files)
-provides the existing OS alternative. Android owns the localized, accessible
-file-browser UI; original-photo consent remains separate. Native acceptance
-selects the actual foreign-owned document and reads its Chromium File bytes.
+The separate video entry uses the adopted AndroidX video-only system Photo
+Picker contracts, in single or multiple mode. AndroidX falls back to the
+Storage Access Framework only when the system picker is unavailable. Android
+owns the localized, accessible gallery; original-photo consent stays separate.
+No library-wide video access, directory-tree access or persistable grant is
+requested, and selected video bytes are never copied into native cache.
+
+The raw Photo Picker proxy previously produced a real WebView
+`NotReadableError`, consistent with [Chromium 40123366](https://issues.chromium.org/issues/40123366).
+The chooser now owns a bounded process-local read-descriptor lease for each
+supported selected video. A non-exported, read-only provider gives Chromium
+stable name/type/length and independent readers on that same granted open
+file. It cannot open an arbitrary source URI or write a file. The existing
+Activity/renderer disposal closes every lease, fences in-flight adoption and
+invalidates opaque provider URIs. No selected source URI or descriptor is
+persisted or logged; process death naturally removes all leases.
+
+Native acceptance selects the actual foreign-owned gallery item, checks
+repeated Chromium File reads, independent readers, read-only/disposed ownership
+and deliberate decoding/playback. The former forced DocumentsUI workaround
+is superseded by this repair; it is not a second normal picker path.
 
 ## Optional worker
 

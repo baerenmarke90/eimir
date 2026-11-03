@@ -132,6 +132,7 @@ export class MemoryAttachmentBindingError extends Error {
     readonly attachmentIds: readonly string[],
     readonly cause: unknown,
     readonly attachmentSensitivity: readonly boolean[] = [],
+    readonly selectedCoverPosition?: number | null,
   ) {
     super('Memory created; attachment association is not confirmed.');
     this.name = 'MemoryAttachmentBindingError';
@@ -145,6 +146,7 @@ export async function completeMemoryAttachmentBinding(
   attachmentIds: readonly string[],
   reconcile = false,
   attachmentSensitivity: readonly boolean[] = [],
+  selectedCoverPosition?: number | null,
 ): Promise<MemoryDetail> {
   try {
     let memory = created;
@@ -154,6 +156,11 @@ export async function completeMemoryAttachmentBinding(
         .sort((left, right) => left.position - right.position)
         .map((attachment) => attachment.id);
       if (
+        (selectedCoverPosition === undefined ||
+          (memory.selectedCoverAttachmentId ?? null) ===
+            (selectedCoverPosition === null
+              ? null
+              : attachmentIds[selectedCoverPosition])) &&
         bound.length === attachmentIds.length &&
         bound.every((id, index) => id === attachmentIds[index]) &&
         (!attachmentSensitivity.length ||
@@ -176,6 +183,14 @@ export async function completeMemoryAttachmentBinding(
       memoryId: memory.id,
       ifMatch: String(memory.version),
       memoryAttachmentSet: {
+        ...(selectedCoverPosition !== undefined
+          ? {
+              selectedCoverAttachmentId:
+                selectedCoverPosition === null
+                  ? null
+                  : attachmentIds[selectedCoverPosition],
+            }
+          : {}),
         attachments: attachmentIds.map((attachmentId, position) => ({
           attachmentId,
           position,
@@ -191,6 +206,7 @@ export async function completeMemoryAttachmentBinding(
       [...attachmentIds],
       error,
       attachmentSensitivity,
+      selectedCoverPosition,
     );
   }
 }
@@ -204,6 +220,7 @@ export async function createMemoryWithReadyAttachments(
     /** Names this save on the server so a lost response can be reconciled. */
     idempotencyKey?: string;
     attachmentSensitivity?: readonly boolean[];
+    selectedCoverPosition?: number | null;
     /**
      * The request is a replay after an unknown outcome. The Memory that comes
      * back may already carry an association, so binding first re-reads it and
@@ -225,6 +242,7 @@ export async function createMemoryWithReadyAttachments(
         attachmentIds,
         options.reconcile ?? false,
         options.attachmentSensitivity,
+        options.selectedCoverPosition,
       )
     : memory;
   // Projection refresh is a separate read; it cannot undo this confirmation.

@@ -240,6 +240,7 @@ export function MemoryPhotoGallery({
   return (
     <div className="memory-photo-gallery photo-gallery">
       <MediaGallery
+        initialMediaId={memory.selectedCoverAttachmentId ?? undefined}
         items={photos.map(
           ({ id, mediaType, isSensitive, hasThumbnail, durationSeconds }) => ({
             id,

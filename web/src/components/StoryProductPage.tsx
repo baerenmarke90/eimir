@@ -1,4 +1,3 @@
-import type { ObjectUrlSource } from '../client/objectUrlResource';
 import {
   useInfiniteQuery,
   useQuery,
@@ -41,6 +40,8 @@ import {
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
 import { dashboardQueryKey } from '../client/dashboardQueries';
+import { galleryCover } from '../client/galleryCover';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   type ClientProblemError,
@@ -147,7 +148,7 @@ function buildTapestryEntry(
       ? { ...original, title: item.heartMoment.text.trim() }
       : original;
   const firstAttachment =
-    item.kind === 'MEMORY' ? item.memory.attachments[0] : undefined;
+    item.kind === 'MEMORY' ? galleryCover(item.memory) : undefined;
   const path =
     item.kind === 'MEMORY'
       ? memoryDetailPath(item.memory.id)
@@ -723,7 +724,7 @@ export function StoryProductPage({
       : tapestryBands;
   const featuredMedia =
     featuredItem?.kind === 'MEMORY'
-      ? featuredItem.memory.attachments[0]
+      ? galleryCover(featuredItem.memory)
       : undefined;
   const featuredPresentation = featuredItem
     ? storyItemPresentation(featuredItem, t, nicknameFor)

@@ -1,4 +1,3 @@
-import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useQuery } from '@tanstack/react-query';
 import {
   type MouseEvent,
@@ -20,6 +19,8 @@ import {
   commentPresenceQueryKey,
   listCommentsPage,
 } from '../client/commentQueries';
+import { galleryCover } from '../client/galleryCover';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   heartMomentDetailPath,
@@ -278,7 +279,7 @@ export function StoryList({
           const presentation = storyItemPresentation(item, t, nicknameFor);
           const _author = storyItemAuthor(item);
           const firstMemoryAttachment =
-            item.kind === 'MEMORY' ? item.memory.attachments[0] : undefined;
+            item.kind === 'MEMORY' ? galleryCover(item.memory) : undefined;
           const heartAttachment =
             item.kind === 'HEART_MOMENT'
               ? (item.heartMoment.attachment ?? undefined)

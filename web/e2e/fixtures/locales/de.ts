@@ -1,4 +1,7 @@
 const de = {
+  memoryExperiences: {
+    body: 'Unser Wochenende am See.',
+  },
   videoAttachment: {
     body: 'Der kleine Sprung ins Wasser, über den wir noch immer lachen. ❤️',
     title: 'Unser Sprung ins Glück',

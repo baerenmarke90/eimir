@@ -156,7 +156,12 @@ def _leg(
         statement = statement.where(model.privacy_class == PrivacyClass.SPACE_SHARED.value)
     if year is not None:
         statement = statement.where(
-            effective_date >= date(year, 1, 1),
+            (
+                func.coalesce(Memory.happened_until, effective_date)
+                if model is Memory
+                else effective_date
+            )
+            >= date(year, 1, 1),
             effective_date <= date(year, 12, 31),
         )
     return statement
@@ -394,22 +399,20 @@ def read_available_years(
     decides which years an account's own OWNER_ONLY HeartMoments contribute,
     with no separate HeartMoment-only clause to keep in sync with `_leg`.
     """
-    selected = kinds or tuple(StoryKind)
-    legs = []
-    for kind in selected:
-        model = _MODELS[kind]
-        effective_date = effective_date_expression(model)
-        statement = readable(model, context).with_only_columns(
-            cast(func.extract("year", effective_date), Integer).label("year")
-        )
-        legs.append(statement)
+    from eimir.memories.periods import merged_intervals
 
+    legs = []
+    for kind in kinds or tuple(StoryKind):
+        model = _MODELS[kind]
+        starts = effective_date_expression(model)
+        through = func.coalesce(Memory.happened_until, starts) if model is Memory else starts
+        legs.append(
+            readable(model, context).with_only_columns(
+                cast(func.extract("year", starts), Integer).label("first"),
+                cast(func.extract("year", through), Integer).label("last"),
+            )
+        )
     combined = union_all(*legs).subquery("story_years")
-    statement = (
-        select(combined.c.year)
-        .distinct()
-        .where(combined.c.year.is_not(None))
-        .order_by(combined.c.year.desc())
-    )
-    rows = session.execute(statement).scalars().all()
-    return [int(year) for year in rows]
+    rows = session.execute(select(combined.c.first, combined.c.last).distinct()).all()
+    intervals = merged_intervals([(int(row.first), int(row.last)) for row in rows])
+    return [year for first, last in reversed(intervals) for year in range(last, first - 1, -1)]

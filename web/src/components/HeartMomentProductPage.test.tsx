@@ -13,14 +13,12 @@ import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import navigation from '../i18n/locales/navigation';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
 import storyProducts from '../i18n/locales/storyProducts';
+import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 import { HeartMomentProductPage } from './HeartMomentProductPage';
 import { QuickCreateMenu } from './QuickCreateMenu';
 
-const backToStoryName = new RegExp(
-  storyProducts.heartMomentProduct.backToStory.replace(/^←\s*/, ''),
-  'i',
-);
+const backToStoryName = taskBoundary.back;
 
 beforeEach(() => {
   window.matchMedia = (query: string) => ({
@@ -197,7 +195,8 @@ describe('Heart Moment create request identity', () => {
         emotion: HeartEmotion.LOVED,
         happenedOn: expect.any(Date),
         visibility: ContentVisibility.SHARED,
-        attachmentId: undefined,
+        attachments: [],
+        selectedCoverAttachmentId: null,
         tags: [],
       },
     });
@@ -507,7 +506,7 @@ describe('Heart Moment view receipt', () => {
   it('emits a receipt strictly on successful presentation of a SHARED moment', async () => {
     const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
     let resolveQuery: (val: any) => void;
-    let getHeartMomentMock = vi.fn().mockReturnValue(
+    const getHeartMomentMock = vi.fn().mockReturnValue(
       new Promise((resolve) => {
         resolveQuery = resolve;
       }),

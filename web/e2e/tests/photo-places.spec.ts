@@ -3,8 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
-import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoPlaceCopy from '../../src/i18n/locales/photoPlaces';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import storyProducts from '../../src/i18n/locales/storyProducts';
@@ -180,7 +180,7 @@ test('leaving the Memory editor for a Place requires a deliberate decision about
       .getByRole('link', { name: photoPlaceCopy.edit })
       .click();
     await expect(
-      page.getByRole('alertdialog', { name: taskBoundary.discardTitle }),
+      page.getByRole('dialog', { name: taskBoundary.discardTitle }),
     ).toBeVisible();
   };
   await openPlace();
@@ -266,6 +266,7 @@ async function installPhotoPlaces(page: Page, pending = false) {
     capabilities: { canEdit: true, canDelete: true, canComment: false },
   };
   const writes: string[] = [];
+  let memoryVersion = 1;
   await page.route('**/api/v1/**', async (route) => {
     const req = route.request(),
       pathname = new URL(req.url()).pathname,
@@ -297,9 +298,17 @@ async function installPhotoPlaces(page: Page, pending = false) {
       return;
     }
     if (
-      method === 'GET' &&
+      (method === 'GET' || method === 'PATCH') &&
       pathname === `/api/v1/spaces/${SPACE_ID}/memories/mem-canal`
     ) {
+      if (method === 'PATCH') {
+        const change = req.postDataJSON();
+        expect(change.placeIds).toEqual([]);
+        expect(change.expectedPlaceIds).toEqual([PLACE_ID]);
+        writes.push('save');
+        linked = false;
+        memoryVersion++;
+      }
       await route.fulfill({
         json: {
           id: 'mem-canal',
@@ -312,7 +321,8 @@ async function installPhotoPlaces(page: Page, pending = false) {
           happenedOn: '2026-10-26',
           createdAt: '2026-10-27T10:00:00Z',
           updatedAt: '2026-10-27T10:00:00Z',
-          version: 1,
+          version: memoryVersion,
+          placeIds: linked ? [PLACE_ID] : [],
           capabilities: CAPABILITIES,
           attachments: [
             {
@@ -474,7 +484,26 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(
         page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),
       ).toHaveCount(0);
-      expect(state.writes).toEqual(['unlink']);
+      expect(state.writes).toEqual([]);
+      await page
+        .getByRole('button', { name: memoryProduct.save, exact: true })
+        .click();
+      await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+      await expect(
+        page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),
+      ).toHaveCount(0);
+      expect(state.writes).toEqual(['save']);
+      await page
+        .getByRole('link', { name: memoryProduct.edit, exact: true })
+        .click();
+      await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
+      await expect(
+        page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole('button', { name: photoPlaceCopy.add }),
+      ).toBeVisible();
+      expect(state.writes).toEqual(['save']);
       expect(external).toEqual([]);
       expect(state.unexpected).toEqual([]);
     });

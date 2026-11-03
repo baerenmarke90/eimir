@@ -54,10 +54,8 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { type MemoryTag, MemoryTagChoices } from './MemoryTagChoices';
-import {
-  MomentPlaceField,
-  type MomentPlaceSelection,
-} from './MomentPlaceField';
+import type { MomentPlaceSelection } from './MomentPlaceField';
+import { OrderedMomentPlacesField } from './OrderedMomentPlacesField';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
@@ -100,7 +98,9 @@ export function MemoryCreatePage({
   );
   const [title, setTitle] = useState(initialTitle);
   const [body, setBody] = useState('');
-  const [place, setPlace] = useState<MomentPlaceSelection>();
+  const [places, setPlaces] = useState<MomentPlaceSelection[]>([]);
+  const [selectedCoverKey, setSelectedCoverKey] = useState<string | null>(null);
+  const [happenedUntil, setHappenedUntil] = useState('');
   const [placePending, setPlacePending] = useState(false);
   const [tags, setTags] = useState<MemoryTag[]>([]);
   const [tagDraftDirty, setTagDraftDirty] = useState(false);
@@ -259,7 +259,8 @@ export function MemoryCreatePage({
       body ||
       tags.length ||
       tagDraftDirty ||
-      place ||
+      places.length ||
+      happenedUntil ||
       attachments.items.length ||
       happenedOn !== initialDate,
   );
@@ -275,7 +276,11 @@ export function MemoryCreatePage({
       tags,
       tagDraft: tagDraftText,
       happenedOn,
-      place,
+      happenedUntil,
+      places,
+      selectedCoverPosition: selectedCoverKey
+        ? attachments.items.findIndex((item) => item.id === selectedCoverKey)
+        : null,
       files: attachments.items.map(
         ({ file, attachmentId, status, isSensitive }) => ({
           file,
@@ -289,7 +294,17 @@ export function MemoryCreatePage({
       attempt: null,
       partial: null,
     }),
-    [title, body, tags, tagDraftText, happenedOn, place, attachments.items],
+    [
+      title,
+      body,
+      tags,
+      tagDraftText,
+      happenedOn,
+      happenedUntil,
+      places,
+      selectedCoverKey,
+      attachments.items,
+    ],
   );
   const diaryDraft = useMemoryDiaryDraft({
     apiBaseUrl,
@@ -375,7 +390,8 @@ export function MemoryCreatePage({
       if (!owner.current.active || scope !== recoveryScopeRef.current) return;
       setTitle(draft.title);
       setBody(draft.body);
-      setPlace(draft.place);
+      setPlaces(draft.places ?? (draft.place ? [draft.place] : []));
+      setHappenedUntil(draft.happenedUntil ?? '');
       setTags(draft.tags);
       setTagDraftText(draft.tagDraft ?? '');
       setTagDraftDirty(Boolean(draft.tagDraft));
@@ -383,7 +399,12 @@ export function MemoryCreatePage({
       setDetailsOpen(
         Boolean(draft.title || draft.tags.length || draft.tagDraft),
       );
-      attachments.restore(files);
+      const restoredKeys = attachments.restore(files);
+      setSelectedCoverKey(
+        draft.selectedCoverPosition != null
+          ? (restoredKeys[draft.selectedCoverPosition] ?? null)
+          : null,
+      );
       recoveredDraft.current = true;
       attemptRef.current = draft.attempt;
       setUncertain(Boolean(draft.attempt));
@@ -395,6 +416,7 @@ export function MemoryCreatePage({
             draft.partial.attachmentIds,
             new Error('Restored attachment binding'),
             draft.partial.attachmentSensitivity,
+            draft.partial.selectedCoverPosition,
           ),
         );
       diaryDraft.acceptRecovery();
@@ -499,6 +521,7 @@ export function MemoryCreatePage({
             memory: error.memory,
             attachmentIds: error.attachmentIds,
             attachmentSensitivity: error.attachmentSensitivity,
+            selectedCoverPosition: error.selectedCoverPosition,
           },
           attempt: null,
         });
@@ -582,6 +605,7 @@ export function MemoryCreatePage({
                 memory: partial.memory,
                 attachmentIds: recovered.ids,
                 attachmentSensitivity: partial.attachmentSensitivity,
+                selectedCoverPosition: partial.selectedCoverPosition,
               },
             }))
           )
@@ -597,6 +621,7 @@ export function MemoryCreatePage({
             recovered.ids,
             true,
             partial.attachmentSensitivity,
+            partial.selectedCoverPosition,
           );
         },
         { verification: false },
@@ -605,8 +630,11 @@ export function MemoryCreatePage({
     }
     const date = effectiveDateInputValue(happenedOn);
     let submittedDate: Date;
+    let submittedUntil: Date | undefined;
     try {
       submittedDate = dateInputValueToApiDate(date);
+      if (happenedUntil)
+        submittedUntil = dateInputValueToApiDate(happenedUntil);
     } catch {
       // No request has started: retain an editable draft, never an uncertain save.
       setInvalidDate(true);
@@ -618,6 +646,10 @@ export function MemoryCreatePage({
     setDeletedAfterSave(false);
     // One identity per user-initiated save; it is reused only to verify an
     // unknown outcome of this exact snapshot.
+    if (happenedUntil && happenedUntil < date) {
+      setInvalidDate(true);
+      return;
+    }
     const attempt = {
       ...startMemoryCreateAttempt(
         {
@@ -630,10 +662,16 @@ export function MemoryCreatePage({
           experienceKind,
           tags: [...(submittedTags ?? tags)],
           happenedOn: submittedDate,
-          ...(place ? { placeId: place.id } : {}),
+          ...(happenedUntil ? { happenedUntil: submittedUntil } : {}),
+          placeIds: places.map((place) => place.id),
         },
         [...attachments.readyIds],
       ),
+      selectedCoverPosition:
+        selectedCoverKey &&
+        attachments.items.some((item) => item.id === selectedCoverKey)
+          ? attachments.items.findIndex((item) => item.id === selectedCoverKey)
+          : null,
       attachmentSensitivity: attachments.items
         .filter((item) => item.status === 'ready')
         .map((item) => item.isSensitive === true),
@@ -724,6 +762,7 @@ export function MemoryCreatePage({
         idempotencyKey: attempt.idempotencyKey,
         reconcile,
         attachmentSensitivity: attempt.attachmentSensitivity,
+        selectedCoverPosition: attempt.selectedCoverPosition,
       },
     ).then((result) => result.memory);
   }
@@ -924,6 +963,45 @@ export function MemoryCreatePage({
               </div>
             ) : null}
 
+            {!experienceKind ? (
+              <div className="field-group">
+                {happenedUntil ? (
+                  <>
+                    <label htmlFor="memory-create-through">
+                      {t('experiences.through')}
+                    </label>
+                    <input
+                      id="memory-create-through"
+                      type="date"
+                      min={happenedOn}
+                      value={happenedUntil}
+                      onChange={(event) => {
+                        setHappenedUntil(event.target.value);
+                        setInvalidDate(false);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="tertiary"
+                      onClick={() => setHappenedUntil('')}
+                    >
+                      {t('experiences.removePeriod')}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="tertiary"
+                    onClick={() => setHappenedUntil(happenedOn || initialDate)}
+                  >
+                    {t('experiences.addPeriod')}
+                  </button>
+                )}
+                {invalidDate && happenedUntil && happenedUntil < happenedOn ? (
+                  <p role="alert">{t('experiences.invalidPeriod')}</p>
+                ) : null}
+              </div>
+            ) : null}
             {!experienceKind ? narrativeField : null}
 
             {!experienceKind ? (
@@ -932,6 +1010,15 @@ export function MemoryCreatePage({
                   id="memory-create-images"
                   videoContext={{ apis, accountId, spaceId }}
                   attachments={attachments}
+                  selectedCoverKey={
+                    selectedCoverKey &&
+                    attachments.items.some(
+                      (item) => item.id === selectedCoverKey,
+                    )
+                      ? selectedCoverKey
+                      : null
+                  }
+                  onSelectCover={setSelectedCoverKey}
                   sourceContext={{
                     apiBaseUrl,
                     accessToken,
@@ -948,13 +1035,13 @@ export function MemoryCreatePage({
               </div>
             ) : null}
 
-            <MomentPlaceField
+            <OrderedMomentPlacesField
               apiBaseUrl={apiBaseUrl}
               accessToken={accessToken}
               accountId={accountId}
               spaceId={spaceId}
-              value={place}
-              onChange={setPlace}
+              value={places}
+              onChange={setPlaces}
               disabled={
                 pending ||
                 uncertain ||

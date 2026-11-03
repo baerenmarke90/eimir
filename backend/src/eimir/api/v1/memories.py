@@ -24,6 +24,7 @@ from eimir.api.v1.attachments import AttachmentEntry, OrderedAttachmentSummary
 from eimir.attachments import binding
 from eimir.attachments.models import MediaType
 from eimir.domain.experiences import ExperienceKind
+from eimir.memories import places as memory_places
 from eimir.memories import service
 from eimir.memories.models import Memory, PhotoReaction
 from eimir.memories.tags import MemoryTags, unique_tags
@@ -44,11 +45,21 @@ class MemoryCreate(ApiModel):
     title: str
     body: str = ""
     happened_on: date | None = None
+    happened_until: date | None = None
     tags: MemoryTags = Field(default_factory=list)
     place_id: UUID | None = None
+    place_ids: list[UUID] | None = Field(default=None, max_length=20)
     experience_kind: ExperienceKind | None = None
 
     _unique_tags = field_validator("tags")(unique_tags)
+
+    @model_validator(mode="after")
+    def _validate_places(self) -> Self:
+        if "place_ids" in self.model_fields_set:
+            if self.place_ids is None or "place_id" in self.model_fields_set:
+                raise ValueError("placeIds requires a list and cannot be combined with placeId")
+            memory_places.validate(self.place_ids)
+        return self
 
     @field_validator("title")
     @classmethod
@@ -65,12 +76,21 @@ class MemoryUpdate(ApiModel):
     title: str | None = None
     body: str | None = None
     happened_on: date | None = None
+    happened_until: date | None = None
+    place_ids: list[UUID] | None = Field(default=None, max_length=20)
+    expected_place_ids: list[UUID] | None = Field(default=None, max_length=20)
     tags: MemoryTags | None = None
 
     _unique_tags = field_validator("tags")(unique_tags)
 
     @model_validator(mode="after")
     def _validate_patch(self) -> Self:
+        if "place_ids" in self.model_fields_set:
+            if self.place_ids is None:
+                raise ValueError("placeIds must not be null")
+            if self.expected_place_ids is None:
+                raise ValueError("expectedPlaceIds is required when replacing places")
+            memory_places.validate(self.place_ids)
         if not self.model_fields_set:
             raise ValueError("at least one field must be supplied")
         if "title" in self.model_fields_set:
@@ -92,6 +112,7 @@ class MemoryAttachmentSet(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     attachments: list[MemoryAttachmentEntry]
+    selected_cover_attachment_id: UUID | None = None
 
 
 class PhotoReactionSummary(ApiModel):
@@ -120,6 +141,9 @@ class MemoryDetail(ApiModel):
     body: str
     tags: MemoryTags
     happened_on: date | None
+    happened_until: date | None = None
+    selected_cover_attachment_id: UUID | None = None
+    place_ids: list[UUID] = Field(default_factory=list)
     version: int
     created_at: datetime
     updated_at: datetime
@@ -155,6 +179,9 @@ def _memory_detail(
         else None,
         tags=memory.payload.tags,
         happened_on=memory.happened_on,
+        happened_until=memory.happened_until,
+        selected_cover_attachment_id=memory.payload.selected_cover_attachment_id,
+        place_ids=memory_places.identifiers(session, memory),
         version=memory.version,
         created_at=memory.created_at,
         updated_at=memory.updated_at,
@@ -267,6 +294,8 @@ def create_memory(
         place_id=body.place_id,
         experience_kind=body.experience_kind,
         happened_on=body.happened_on,
+        happened_until=body.happened_until,
+        place_ids=body.place_ids,
     )
     if not result.created:
         response.status_code = status.HTTP_200_OK
@@ -351,6 +380,9 @@ def update_memory(
         body=body.body,
         tags=body.tags,
         happened_on=body.happened_on,
+        happened_until=body.happened_until,
+        place_ids=body.place_ids,
+        expected_place_ids=body.expected_place_ids,
     )
     response.headers["ETag"] = etag_for(memory.version)
     return _memory_detail(session, authorization, memory)
@@ -407,6 +439,8 @@ def replace_memory_attachments(
         expected_version=expected_version,
         entries=[(entry.attachment_id, entry.position) for entry in body.attachments],
         sensitivity={entry.attachment_id: entry.is_sensitive for entry in body.attachments},
+        selected_cover_attachment_id=body.selected_cover_attachment_id,
+        cover_selection_supplied="selected_cover_attachment_id" in body.model_fields_set,
     )
     response.headers["ETag"] = etag_for(memory.version)
     return _memory_detail(session, authorization, memory)

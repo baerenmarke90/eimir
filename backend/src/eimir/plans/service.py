@@ -56,7 +56,7 @@ from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.identity.models import Account
 from eimir.outbox import service as outbox_service
 from eimir.places.models import Place
-from eimir.plans.media import PhotoSelection, replace_cover, replace_photos
+from eimir.plans.media import PhotoSelection, replace_cover, replace_photos, select_cover
 from eimir.plans.models import Plan, PlanPayload, PlanStatus, shared_privacy
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.reminders import runtime as reminder_runtime
@@ -332,6 +332,7 @@ def create_plan(
     cover_attachment_id: UUID | None = None,
     cover_is_sensitive: bool | None = None,
     photos: PhotoSelection | None = None,
+    selected_cover_attachment_id: UUID | None = None,
 ) -> Plan:
     """Create a direct unscheduled, date-only, or timed Plan atomically."""
     status = _initial_schedule_status(planned_on, planned_start, planned_end)
@@ -353,6 +354,8 @@ def create_plan(
         replace_photos(session, context, plan, photos)
     else:
         replace_cover(session, context, plan, cover_attachment_id, is_sensitive=cover_is_sensitive)
+    select_cover(session, plan, selected_cover_attachment_id)
+    _flush(session)
     _record(session, plan, context.account_id, EventType.PLAN_CREATED)
     _flush(session)
     if status == PlanStatus.PLANNED:
@@ -374,6 +377,7 @@ def create_plan_once(
     cover_attachment_id: UUID | None = None,
     cover_is_sensitive: bool | None = None,
     photos: PhotoSelection | None = None,
+    selected_cover_attachment_id: UUID | None = None,
 ) -> PlanCreateResult:
     """Create a direct Plan, or return the one an earlier request with this identity created.
 
@@ -395,6 +399,7 @@ def create_plan_once(
             cover_attachment_id=cover_attachment_id,
             cover_is_sensitive=cover_is_sensitive,
             photos=photos,
+            selected_cover_attachment_id=selected_cover_attachment_id,
         )
         return PlanCreateResult(plan, created=True)
 
@@ -403,6 +408,11 @@ def create_plan_once(
         _RECEIPT_RESOURCE_TYPE,
         {
             "title": normalized_title,
+            **(
+                {"selected_cover_attachment_id": str(selected_cover_attachment_id)}
+                if selected_cover_attachment_id
+                else {}
+            ),
             "description": description,
             **(
                 {"attachments": [(str(photo_id), sensitive) for photo_id, sensitive in photos]}
@@ -457,6 +467,7 @@ def create_plan_once(
         cover_attachment_id=cover_attachment_id,
         cover_is_sensitive=cover_is_sensitive,
         photos=photos,
+        selected_cover_attachment_id=selected_cover_attachment_id,
     )
     create_receipts.attach(session, receipt_id, plan.id)
     return PlanCreateResult(plan, created=True)
@@ -527,6 +538,7 @@ def update_plan(
     cover_attachment_id: UUID | None = None,
     cover_is_sensitive: bool | None = None,
     photos: PhotoSelection | None = None,
+    selected_cover_attachment_id: UUID | None = None,
     schedule_values: tuple[date | None, datetime | None, datetime | None] | None = None,
 ) -> Plan:
     """Correct content, cover and schedule atomically; completion stays explicit."""
@@ -554,6 +566,8 @@ def update_plan(
             is_sensitive=cover_is_sensitive,
         )
         plan.updated_at = now()
+    if "selected_cover_attachment_id" in changed_fields:
+        select_cover(session, plan, selected_cover_attachment_id)
     if "schedule" in changed_fields:
         if plan.status == PlanStatus.COMPLETED.value:
             raise ConflictError(
@@ -588,7 +602,9 @@ def update_plan(
         plan.experienced_on = _validate_experienced_on(session, context, experienced_on)
 
     if "title" in changed_fields or "description" in changed_fields:
-        plan.payload = PlanPayload(title=next_title, description=next_description)
+        plan.payload = plan.payload.model_copy(
+            update={"title": next_title, "description": next_description}
+        )
 
     _flush(session)
     _record(session, plan, context.account_id, EventType.PLAN_UPDATED)

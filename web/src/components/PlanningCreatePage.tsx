@@ -1,23 +1,22 @@
-import { assertOnlineWrite } from '../client/connectivity';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
   useCallback,
   useEffect,
-  useRef,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import type { AttachmentEntry } from '../api/generated/models/AttachmentEntry';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { WishDetail } from '../api/generated/models/WishDetail';
-import type { AttachmentEntry } from '../api/generated/models/AttachmentEntry';
-import { usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
 import {
   authorSummaryQueryKeys,
   invalidatePlaceConsumers,
 } from '../client/authorSummaryConsumers';
+import { assertOnlineWrite } from '../client/connectivity';
 import {
   type CreateRequestAttempt,
   submitCreateRequest,
@@ -27,6 +26,7 @@ import {
   type ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
+import { createReferenceApis } from '../client/referenceFlow';
 import { planDetailPath, wishDetailPath } from '../client/routes';
 import {
   loadAllPlaces,
@@ -34,13 +34,12 @@ import {
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
-import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
-import { PlanPhotosEditor } from './PlanPhotosEditor';
 import { PlaceMapPicker } from './PlaceMapPicker';
-import { createReferenceApis } from '../client/referenceFlow';
+import { PlanPhotosEditor } from './PlanPhotosEditor';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
@@ -49,6 +48,7 @@ import './PlanningCreatePage.css';
 type PlanningCreateKind = 'plan' | 'wish';
 
 interface PlanningCreateValues {
+  selectedCoverAttachmentId?: string | null;
   readonly title: string;
   readonly description?: string;
   readonly placeId?: string;
@@ -159,6 +159,7 @@ export function PlanningCreatePage({
         requestValues = {
           ...values,
           attachments: photos.entries,
+          selectedCoverAttachmentId: photos.selectedCoverAttachmentId,
         };
       }
       assertOnlineWrite();

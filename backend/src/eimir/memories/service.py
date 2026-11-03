@@ -43,6 +43,7 @@ from eimir.entitlements import service as entitlement_service
 from eimir.entitlements.models import Capability
 from eimir.identity.models import Account
 from eimir.memories import create_receipts
+from eimir.memories import places as memory_places
 from eimir.memories.models import (
     Memory,
     MemoryPayload,
@@ -171,26 +172,35 @@ def create_memory(
     tags: MemoryTags | None = None,
     experience_kind: ExperienceKind | None = None,
     place_id: UUID | None = None,
+    place_ids: list[UUID] | None = None,
+    happened_until: date | None = None,
 ) -> Memory:
+    from eimir.memories.periods import validate_period
+
+    validate_period(happened_on, happened_until)
     recipient_id = (
         _experience_recipient(session, context, body=body, happened_on=happened_on)
         if experience_kind is not None
         else None
     )
+    selected_places = place_ids if place_ids is not None else ([place_id] if place_id else [])
+    memory_places.validate(selected_places)
     memory = Memory(
         space_id=context.space_id,
         owner_id=context.account_id,
         privacy_class=shared_privacy(),
         happened_on=happened_on,
+        happened_until=happened_until,
         experience_kind=experience_kind.value if experience_kind is not None else None,
-        payload=MemoryPayload(title=_normalize_title(title), body=body, tags=tags or []),
+        payload=MemoryPayload(
+            title=_normalize_title(title), body=body, tags=tags or [], place_order=selected_places
+        ),
     )
     session.add(memory)
     _flush(session)
-    if place_id is not None:
-        from eimir.relations import service as relations
-
-        relations.link(session, context, place_id, memory.id, relations.PLACE_MEMORIES)
+    if selected_places:
+        memory_places.replace(session, context, memory, selected_places)
+    _flush(session)
     _record(
         session, memory, context.account_id, EventType.MEMORY_CREATED, recipient_id=recipient_id
     )
@@ -209,6 +219,8 @@ def create_memory_once(
     tags: MemoryTags | None = None,
     experience_kind: ExperienceKind | None = None,
     place_id: UUID | None = None,
+    place_ids: list[UUID] | None = None,
+    happened_until: date | None = None,
 ) -> MemoryCreateResult:
     """Create a Memory, or return the one an earlier request with this identity created.
 
@@ -225,6 +237,8 @@ def create_memory_once(
             tags=tags,
             experience_kind=experience_kind,
             place_id=place_id,
+            place_ids=place_ids,
+            happened_until=happened_until,
         )
         return MemoryCreateResult(memory, created=True)
 
@@ -236,6 +250,8 @@ def create_memory_once(
         tags=tags or [],
         experience_kind=experience_kind,
         place_id=place_id,
+        place_ids=place_ids,
+        happened_until=happened_until,
     )
     receipt_id = create_receipts.claim(session, context, idempotency_key, request_fingerprint)
     if receipt_id is None:
@@ -251,6 +267,8 @@ def create_memory_once(
         tags=tags,
         experience_kind=experience_kind,
         place_id=place_id,
+        place_ids=place_ids,
+        happened_until=happened_until,
     )
     create_receipts.attach(session, receipt_id, memory.id)
     return MemoryCreateResult(memory, created=True)
@@ -331,9 +349,30 @@ def update_memory(
     body: str | None,
     happened_on: date | None,
     tags: MemoryTags | None = None,
+    happened_until: date | None = None,
+    place_ids: list[UUID] | None = None,
+    expected_place_ids: list[UUID] | None = None,
 ) -> Memory:
+    observed_places = (
+        memory_places.prepare(session, context, memory_id, place_ids or [])
+        if "place_ids" in changed_fields
+        else None
+    )
     memory = require_editable_locked(session, Memory, context, memory_id)
     _ensure_expected_version(memory, expected_version)
+    if "place_ids" in changed_fields:
+        assert place_ids is not None
+        if expected_place_ids is not None and set(expected_place_ids) != observed_places:
+            raise ConflictError(
+                "The linked places changed. Reload before saving.",
+                ErrorCode.RESOURCE_VERSION_CONFLICT,
+            )
+        memory_places.replace(session, context, memory, place_ids, observed=observed_places)
+    from eimir.memories.periods import validate_period
+
+    next_start = happened_on if "happened_on" in changed_fields else memory.happened_on
+    next_end = happened_until if "happened_until" in changed_fields else memory.happened_until
+    validate_period(next_start, next_end)
 
     next_title = memory.payload.title
     next_body = memory.payload.body
@@ -349,6 +388,8 @@ def update_memory(
         next_tags = tags
     if "happened_on" in changed_fields:
         memory.happened_on = happened_on
+    if "happened_until" in changed_fields:
+        memory.happened_until = happened_until
 
     if changed_fields.intersection({"title", "body", "tags"}):
         memory.payload = memory.payload.model_copy(
@@ -448,7 +489,13 @@ def _apply_year_filter(statement: Any, year: int | None) -> Any:
     time_end = datetime(year + 1, 1, 1, tzinfo=UTC)
     return statement.where(
         or_(
-            and_(Memory.happened_on >= day_start, Memory.happened_on < day_end),
+            and_(
+                Memory.happened_on < day_end,
+                or_(
+                    Memory.happened_until >= day_start,
+                    and_(Memory.happened_until.is_(None), Memory.happened_on >= day_start),
+                ),
+            ),
             and_(
                 Memory.happened_on.is_(None),
                 Memory.created_at >= time_start,
@@ -506,6 +553,8 @@ def replace_attachments(
     expected_version: int,
     entries: list[tuple[UUID, int]],
     sensitivity: dict[UUID, bool | None] | None = None,
+    selected_cover_attachment_id: UUID | None = None,
+    cover_selection_supplied: bool = False,
 ) -> Memory:
     """Replace the complete attachment gallery of a memory.
 
@@ -531,6 +580,17 @@ def replace_attachments(
             "An attachment may appear at most once.",
             "ATTACHMENT_POSITION_INVALID",
         )
+    if selected_cover_attachment_id is not None and selected_cover_attachment_id not in identifiers:
+        raise ValidationError(
+            "The selected cover must belong to this gallery.", "GALLERY_COVER_INVALID"
+        )
+    next_cover = (
+        selected_cover_attachment_id
+        if cover_selection_supplied
+        else memory.payload.selected_cover_attachment_id
+    )
+    if next_cover not in identifiers:
+        next_cover = None
 
     previous_attachments = {
         bound.attachment.id: bound.attachment
@@ -597,9 +657,10 @@ def replace_attachments(
 
     memory.payload = memory.payload.model_copy(
         update={
+            "selected_cover_attachment_id": next_cover,
             "photo_reactions": [
                 item for item in memory.payload.photo_reactions if item.attachment_id in identifiers
-            ]
+            ],
         }
     )
 

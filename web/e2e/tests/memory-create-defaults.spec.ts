@@ -1,19 +1,20 @@
-import { captureScreenshot } from '../support/storyTimelineFixture';
-import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
-import memoryProduct from '../../src/i18n/locales/memoryProduct';
-import storyProducts from '../../src/i18n/locales/storyProducts';
+import experiences from '../../src/i18n/locales/experiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoSources from '../../src/i18n/locales/photoSources';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { showMemoryDetails } from '../support/memoryDiary';
+import { fulfillEmptyMomentPlaces } from '../support/photoSources';
+import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -1949,6 +1950,7 @@ test('known-created recovery can bind original photos after transient read failu
   expect(photos.bound).toEqual(originalIds);
   expect(bindingBodies).toEqual(
     Array.from({ length: 3 }, () => ({
+      selectedCoverAttachmentId: null,
       attachments: originalIds.map((attachmentId, position) => ({
         attachmentId,
         position,
@@ -2044,10 +2046,9 @@ for (const [width, colorScheme] of [
     const picker = page.getByRole('dialog', { name: placeCopy.add });
     await picker.getByRole('button', { name: /Kölner Dom/ }).click();
     await expect(picker).toHaveCount(0);
-    const selected = page.getByRole('button', {
-      name: destination.name,
-      exact: true,
-    });
+    const selected = page
+      .getByRole('group', { name: experiences.places, exact: true })
+      .getByText(destination.name, { exact: true });
     await expect(selected).toBeVisible();
     await page
       .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
@@ -2083,7 +2084,7 @@ for (const [width, colorScheme] of [
       .getByRole('button', { name: de.memory.save, exact: true })
       .click();
     expect((await create).postDataJSON()).toMatchObject({
-      placeId: destination.id,
+      placeIds: [destination.id],
       body: 'Our visit without a photo.',
     });
     await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
@@ -2160,7 +2161,9 @@ test('new capture Place is deliberately shared before the entry is saved', async
     .getByRole('button', { name: copy.saveSharedPlace, exact: true })
     .click();
   await expect(
-    page.getByRole('button', { name: destination.name, exact: true }),
+    page
+      .getByRole('group', { name: experiences.places, exact: true })
+      .getByText(destination.name, { exact: true }),
   ).toBeVisible();
   expect(creations).toHaveLength(1);
   await page
@@ -2171,7 +2174,7 @@ test('new capture Place is deliberately shared before the entry is saved', async
       r.method() === 'POST' && new URL(r.url()).pathname.endsWith('/memories'),
   );
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
-  expect((await create).postDataJSON().placeId).toBe(destination.id);
+  expect((await create).postDataJSON().placeIds).toEqual([destination.id]);
   await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
 });
 
@@ -2384,13 +2387,10 @@ for (const kind of ['plan', 'heart'] as const) {
         if (route.request().method() === 'POST') {
           submitted = route.request().postDataJSON();
           const input = submitted as Record<string, unknown>;
-          const bindings =
-            kind === 'heart'
-              ? [{ attachmentId: input.attachmentId, position: 0 }]
-              : (input.attachments as {
-                  attachmentId: string;
-                  position: number;
-                }[]);
+          const bindings = input.attachments as {
+            attachmentId: string;
+            position: number;
+          }[];
           const gallery = bindings.map((binding) => ({
             ...binding,
             id: binding.attachmentId,
@@ -2422,7 +2422,7 @@ for (const kind of ['plan', 'heart'] as const) {
               canComment: kind === 'plan',
             },
             ...(kind === 'heart'
-              ? { attachment: gallery[0] }
+              ? { attachment: gallery[0], attachments: gallery }
               : {
                   status: 'IDEA',
                   plannedOn: null,
@@ -2474,17 +2474,15 @@ for (const kind of ['plan', 'heart'] as const) {
     ).toHaveCount(0);
     await sheet.getByRole('button', { name: photoSources.continue }).click();
     await sheet.getByLabel('Foto 1', { exact: true }).check();
-    if (kind === 'heart')
-      await expect(sheet.getByLabel('Foto 2', { exact: true })).toBeDisabled();
-    else await sheet.getByLabel('Foto 2', { exact: true }).check();
+    await sheet.getByLabel('Foto 2', { exact: true }).check();
     await sheet.getByRole('button', { name: photoSources.import }).click();
     await expect(sheet).toBeHidden();
-    const count = kind === 'heart' ? 1 : 2;
+    const count = 2;
     await expect(page.locator('.photo-draft-tile')).toHaveCount(count);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(count);
-    expect(source.maxItems).toBe(kind === 'heart' ? 1 : 20);
+    expect(source.maxItems).toBe(20);
     await expect(page.getByLabel(text, { exact: true })).toHaveValue(
       AUTHORED_BODY,
     );
@@ -2501,29 +2499,23 @@ for (const kind of ['plan', 'heart'] as const) {
       })
       .click();
     await expect(page).toHaveURL(new RegExp(`/${domain}/${MEMORY_ID}$`));
-    if (kind === 'heart')
-      expect(submitted).toMatchObject({
-        visibility: 'PRIVATE',
-        attachmentId: photos.finalized[0],
-      });
-    else
-      expect(submitted).toMatchObject({
-        attachments: ['photo-1.jpg', 'photo-2.jpg'].map((name, position) => ({
-          attachmentId: photos.idsByName[name],
-          position,
-          isSensitive: false,
-        })),
-      });
+    expect(submitted).toMatchObject({
+      ...(kind === 'heart' ? { visibility: 'PRIVATE' } : {}),
+      selectedCoverAttachmentId: null,
+      attachments: ['photo-1.jpg', 'photo-2.jpg'].map((name, position) => ({
+        attachmentId: photos.idsByName[name],
+        position,
+        isSensitive: false,
+      })),
+    });
     expect(source.originals).toBe(count);
     await expect(page.getByText(AUTHORED_BODY, { exact: true })).toBeVisible();
     await captureScreenshot(page, info, `planning-source-${kind}-result.png`, {
       fullPage: true,
     });
-    if (kind === 'plan')
-      await page
-        .getByRole('button', { name: m5s3.common.back, exact: true })
-        .click();
-    else await page.locator('.shell-detail-back').click();
+    await page
+      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .click();
     await expect(page).toHaveURL(
       kind === 'heart' ? /\/story(?:\?|$)/ : /\/plan(?:#|$)/,
     );

@@ -41,6 +41,13 @@ import {
     AuthorSummaryToJSON,
     AuthorSummaryToJSONTyped,
 } from './AuthorSummary';
+import type { OrderedAttachmentSummary } from './OrderedAttachmentSummary';
+import {
+    OrderedAttachmentSummaryFromJSON,
+    OrderedAttachmentSummaryFromJSONTyped,
+    OrderedAttachmentSummaryToJSON,
+    OrderedAttachmentSummaryToJSONTyped,
+} from './OrderedAttachmentSummary';
 import type { AttachmentSummary } from './AttachmentSummary';
 import {
     AttachmentSummaryFromJSON,
@@ -61,6 +68,12 @@ export interface HeartMomentDetail {
      * @memberof HeartMomentDetail
      */
     attachment: AttachmentSummary | null;
+    /**
+     * 
+     * @type {Array<OrderedAttachmentSummary>}
+     * @memberof HeartMomentDetail
+     */
+    attachments?: Array<OrderedAttachmentSummary>;
     /**
      * 
      * @type {AuthorSummary}
@@ -103,6 +116,12 @@ export interface HeartMomentDetail {
      * @memberof HeartMomentDetail
      */
     id: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof HeartMomentDetail
+     */
+    selectedCoverAttachmentId?: string | null;
     /**
      * 
      * @type {string}
@@ -175,6 +194,7 @@ export function HeartMomentDetailFromJSONTyped(json: any, ignoreDiscriminator: b
     return {
         
         'attachment': AttachmentSummaryFromJSON(json['attachment']),
+        'attachments': json['attachments'] == null ? undefined : ((json['attachments'] as Array<any>).map(OrderedAttachmentSummaryFromJSON)),
         'author': AuthorSummaryFromJSON(json['author']),
         'authorId': json['authorId'],
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
@@ -182,6 +202,7 @@ export function HeartMomentDetailFromJSONTyped(json: any, ignoreDiscriminator: b
         'emotion': HeartEmotionFromJSON(json['emotion']),
         'happenedOn': (new Date(json['happenedOn'])),
         'id': json['id'],
+        'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'spaceId': json['spaceId'],
         'tags': json['tags'],
         'text': json['text'],
@@ -203,6 +224,7 @@ export function HeartMomentDetailToJSONTyped(value?: HeartMomentDetail | null, i
     return {
         
         'attachment': AttachmentSummaryToJSON(value['attachment']),
+        'attachments': value['attachments'] == null ? undefined : ((value['attachments'] as Array<any>).map(OrderedAttachmentSummaryToJSON)),
         'author': AuthorSummaryToJSON(value['author']),
         'authorId': value['authorId'],
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),
@@ -210,6 +232,7 @@ export function HeartMomentDetailToJSONTyped(value?: HeartMomentDetail | null, i
         'emotion': HeartEmotionToJSON(value['emotion']),
         'happenedOn': value['happenedOn'].toISOString().substring(0,10),
         'id': value['id'],
+        'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'spaceId': value['spaceId'],
         'tags': value['tags'],
         'text': value['text'],

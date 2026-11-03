@@ -74,6 +74,7 @@ class PlanPayload(ProtectedPayload):
     """
 
     title: str
+    selected_cover_attachment_id: UUID | None = None
     description: str | None = None
 
 

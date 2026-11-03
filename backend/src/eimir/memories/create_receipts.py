@@ -51,9 +51,11 @@ def fingerprint(
     title: str,
     body: str,
     happened_on: date | None,
+    happened_until: date | None = None,
     tags: MemoryTags | None = None,
     experience_kind: ExperienceKind | None = None,
     place_id: UUID | None = None,
+    place_ids: list[UUID] | None = None,
 ) -> str:
     """Hash the normalized create request without retaining any of its content."""
     content = {
@@ -72,6 +74,11 @@ def fingerprint(
     if place_id is not None:
         content["v"] = 4
         content["placeId"] = str(place_id)
+    if happened_until is not None:
+        content["v"] = 5
+        content["happenedUntil"] = happened_until.isoformat()
+    if place_ids is not None:
+        content["placeIds"] = [str(identifier) for identifier in place_ids]
     canonical = json.dumps(
         content,
         sort_keys=True,

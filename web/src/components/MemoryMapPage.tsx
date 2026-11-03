@@ -1,4 +1,3 @@
-import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import {
   lazy,
@@ -17,6 +16,7 @@ import {
 } from 'react-router-dom';
 import type { MemoryMapEntry } from '../api/generated/models/MemoryMapEntry';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import {
   ClientProblemError,
   normalizeClientError,
@@ -35,9 +35,9 @@ import { MemoryPreview } from './MemoryPreview';
 import { PageHeader } from './PageHeader';
 import type { MapLocation } from './PlaceMapCanvas';
 import { ProblemState } from './ProblemState';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { type StoryView, StoryViewTabs } from './StoryViewTabs';
 import { UiState } from './UiState';
-import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './MemoryMapPage.css';
 
 const MapCanvas = lazy(() => import('./PlaceMapCanvas'));
@@ -405,7 +405,12 @@ export function MemoryMapPage({
                               .toISOString()
                               .slice(0, 10)}
                           >
-                            {dateFormats.full.format(entry.happenedOn)}
+                            {entry.happenedUntil
+                              ? dateFormats.full.formatRange(
+                                  entry.happenedOn,
+                                  entry.happenedUntil,
+                                )
+                              : dateFormats.full.format(entry.happenedOn)}
                           </time>
                         </span>
                       </Link>

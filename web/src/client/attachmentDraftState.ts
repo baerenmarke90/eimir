@@ -47,6 +47,7 @@ export type AttachmentDraftAction =
   | { type: 'sensitive'; id: string; value: boolean }
   | { type: 'remove'; id: string }
   | { type: 'move'; id: string; offset: -1 | 1 }
+  | { type: 'reorder'; ids: readonly string[] }
   | { type: 'clear' };
 
 function updateCurrentAttempt(
@@ -152,6 +153,16 @@ export function attachmentDraftReducer(
       );
     case 'remove':
       return drafts.filter((draft) => draft.id !== action.id);
+    case 'reorder': {
+      const ordered = action.ids.flatMap((id) => {
+        const item = drafts.find((draft) => draft.id === id);
+        return item ? [item] : [];
+      });
+      return [
+        ...ordered,
+        ...drafts.filter((draft) => !action.ids.includes(draft.id)),
+      ];
+    }
     case 'move': {
       const from = drafts.findIndex((draft) => draft.id === action.id);
       const to = from + action.offset;

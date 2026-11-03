@@ -55,27 +55,31 @@ import {
 } from '../client/useOrderedPhotoDrafts';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
+import { DraftExitPrompt } from './DraftExitPrompt';
 import { DraftMediaPreview } from './DraftMediaPreview';
 import { ExpandableDescription } from './ExpandableDescription';
 import { MemoryPhotoGallery } from './MemoryPhotoGallery';
+import { MemoryPlacesDraftField } from './MemoryPlacesDraftField';
 import { MemoryPreview } from './MemoryPreview';
 import {
   MEMORY_TAGS,
   type MemoryTag,
   MemoryTagChoices,
 } from './MemoryTagChoices';
+import type { MomentPlaceSelection } from './MomentPlaceField';
 import { MomentPlaces } from './MomentPlaces';
 import { PageHeader } from './PageHeader';
 import { PhotoDraftGallery } from './PhotoDraftGallery';
 import { ProblemState } from './ProblemState';
-import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
 import { StoryEditorPageShell } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 
 export type MemoryProductMode = 'detail' | 'edit';
@@ -121,7 +125,7 @@ export function MemoryProductPage({
   const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
   const location = useLocation();
-  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const { requestReturn } = useTaskOrigin();
   const taskState = location.state as {
     taskOriginKey?: unknown;
     memorySaved?: boolean;
@@ -129,17 +133,7 @@ export function MemoryProductPage({
   } | null;
   const originKey = taskState?.taskOriginKey;
   const returnControl = (
-    <button
-      type="button"
-      className="back-link tertiary"
-      onClick={() => requestReturn(originKey)}
-    >
-      {t(
-        resolveOrigin(originKey)
-          ? 'taskBoundary.back'
-          : 'memoryProduct.backToStory',
-      )}
-    </button>
+    <TaskBackButton onClick={() => requestReturn(originKey)} />
   );
   const params = useParams();
   const queryClient = useQueryClient();
@@ -216,8 +210,8 @@ export function MemoryProductPage({
     retry: false,
   });
   const editForm = useRef<HTMLFormElement>(null);
-  const [placeExit, setPlaceExit] = useState<(() => void) | null>(null);
-  const placeExitSheet = useRef<ShortTaskSheetHandle>(null);
+  const [formDirty, setFormDirty] = useState(false);
+  const [placePending, setPlacePending] = useState(false);
   const [tagDraft, setTagDraft] = useState<{
     memoryId: string;
     tags: MemoryTag[];
@@ -262,6 +256,21 @@ export function MemoryProductPage({
     scope: string;
     keys: string[];
   }>({ scope: photoOrderScope, keys: [] });
+  const [coverDraft, setCoverDraft] = useState<{
+    scope: string;
+    key: string | null;
+  } | null>(null);
+  const [placesDraft, setPlacesDraft] = useState<{
+    scope: string;
+    value: MomentPlaceSelection[];
+  } | null>(null);
+  const initialCover = memoryQuery.data?.value.selectedCoverAttachmentId;
+  const preferredCover =
+    coverDraft?.scope === photoOrderScope
+      ? coverDraft.key
+      : initialCover
+        ? `saved:${initialCover}`
+        : null;
   const availablePhotoItems = [
     ...(memoryQuery.data?.value.attachments ?? [])
       .filter(
@@ -284,6 +293,14 @@ export function MemoryProductPage({
     const item = availablePhotoItems.find((item) => item.key === key);
     return item ? [item] : [];
   });
+  const selectedCoverKey = photoKeys.includes(preferredCover ?? '')
+    ? preferredCover
+    : null;
+  const coverItem = photoItems.find((item) => item.key === selectedCoverKey);
+  const coverId =
+    coverItem?.photo?.id ?? coverItem?.draft?.attachmentId ?? null;
+  const coverChanged =
+    coverId !== (memoryQuery.data?.value.selectedCoverAttachmentId ?? null);
   const photoOrderChanged = photoKeys.some(
     (key, index) => key !== availablePhotoItems[index]?.key,
   );
@@ -318,7 +335,8 @@ export function MemoryProductPage({
           attachments.readyIds.length > 0 ||
           removedAttachmentIds.size > 0 ||
           Object.keys(sensitiveValues).length > 0 ||
-          photoOrderChanged;
+          photoOrderChanged ||
+          coverChanged;
         if (attachmentsChanged) {
           const attachmentIds = photoItems.flatMap((item) => {
             const id =
@@ -333,6 +351,7 @@ export function MemoryProductPage({
             memoryId: updated.id,
             ifMatch: String(updated.version),
             memoryAttachmentSet: {
+              selectedCoverAttachmentId: coverId,
               attachments: attachmentIds.map((attachmentId, position) => ({
                 attachmentId,
                 position,
@@ -407,10 +426,12 @@ export function MemoryProductPage({
         invalidateDashboard(queryClient, spaceId),
       ]);
       if (!request.isCurrent()) return;
-      navigate(memoryDetailPath(memory.id), {
-        replace: true,
-        state: { taskOriginKey: originKey },
-      });
+      editorLifecycle.closeConfirmed(() =>
+        navigate(memoryDetailPath(memory.id), {
+          replace: true,
+          state: { taskOriginKey: originKey },
+        }),
+      );
     },
   });
 
@@ -435,6 +456,30 @@ export function MemoryProductPage({
       postSnackbar('snackbar.memoryDeleted');
     },
   });
+  const editorLifecycle = useTaskEditorLifecycle({
+    isActive: mode === 'edit',
+    isDirty:
+      formDirty ||
+      photoOrderChanged ||
+      coverChanged ||
+      removedAttachmentIds.size > 0 ||
+      attachments.items.length > 0 ||
+      placesDraft?.scope === photoOrderScope ||
+      tagDraft?.memoryId === memoryId ||
+      Object.keys(sensitiveValues).length > 0,
+    isCloseBlocked:
+      updateMutation.isPending ||
+      deleteMutation.isPending ||
+      attachments.hasPending ||
+      placePending,
+    onClose: () => {
+      if (memoryId)
+        navigate(memoryDetailPath(memoryId), {
+          replace: true,
+          state: { taskOriginKey: originKey },
+        });
+    },
+  });
   const deleting = deleteMutation.isPending;
   const { confirming: confirmDelete, setConfirming: setConfirmDelete } =
     deleteMutation;
@@ -451,6 +496,9 @@ export function MemoryProductPage({
   async function reloadCurrentMemory() {
     updateMutation.reset();
     deleteMutation.reset();
+    setCoverDraft(null);
+    setPlacesDraft(null);
+    setFormDirty(false);
     setConfirmDelete(false);
     setRemovedAttachmentIds(new Set());
     await memoryQuery.refetch();
@@ -511,11 +559,11 @@ export function MemoryProductPage({
           <PageHeader
             before={
               <Link
-                className="back-link"
+                className="back-link tertiary"
                 to={memoryDetailPath(memory.id)}
                 state={{ taskOriginKey: originKey }}
               >
-                {t('memoryProduct.backToMemory')}
+                {t('taskBoundary.back')}
               </Link>
             }
             title={t('memoryProduct.editHeading')}
@@ -543,6 +591,7 @@ export function MemoryProductPage({
       event.preventDefault();
       if (
         attachments.hasPending ||
+        placePending ||
         attachments.items.some((item) => item.status === 'failed') ||
         queryClient.isMutating({ mutationKey: deleteKey }) ||
         queryClient.isMutating({ mutationKey: updateKey })
@@ -559,6 +608,13 @@ export function MemoryProductPage({
           body: String(data.get('body') || ''),
           tags: [...selectedTags],
           happenedOn: String(data.get('happenedOn') || ''),
+          happenedUntil: String(data.get('happenedUntil') || ''),
+          ...(placesDraft?.scope === photoOrderScope
+            ? {
+                placeIds: placesDraft.value.map((place) => place.id),
+                expectedPlaceIds: memory.placeIds ?? [],
+              }
+            : {}),
         },
       });
     }
@@ -567,11 +623,15 @@ export function MemoryProductPage({
       <StoryEditorPageShell
         before={
           <Link
-            className="back-link"
+            className="back-link tertiary"
             to={memoryDetailPath(memory.id)}
+            onClick={(event) => {
+              event.preventDefault();
+              editorLifecycle.requestClose();
+            }}
             state={{ taskOriginKey: originKey }}
           >
-            {t('memoryProduct.backToMemory')}
+            {t('taskBoundary.back')}
           </Link>
         }
         title={t('memoryProduct.editHeading')}
@@ -580,7 +640,13 @@ export function MemoryProductPage({
         sectionHeading={t('memoryProduct.formAria')}
       >
         <>
+          <DraftExitPrompt
+            open={editorLifecycle.showDiscardConfirm}
+            onKeep={editorLifecycle.keepEditing}
+            onDiscard={() => editorLifecycle.closeConfirmed()}
+          />
           <form
+            onChange={() => setFormDirty(true)}
             ref={editForm}
             key={memory.version}
             onSubmit={submit}
@@ -617,6 +683,44 @@ export function MemoryProductPage({
               />
             </div>
 
+            <div className="field-group">
+              <label htmlFor="memory-edit-through">
+                {t('experiences.through')}
+              </label>
+              <input
+                id="memory-edit-through"
+                name="happenedUntil"
+                type="date"
+                defaultValue={memoryDateInputValue(
+                  memory.happenedUntil ?? null,
+                )}
+              />
+            </div>
+            <MemoryPlacesDraftField
+              memoryId={memory.id}
+              order={memory.placeIds ?? []}
+              apiBaseUrl={apiBaseUrl}
+              accessToken={accessToken}
+              accountId={currentAccountId}
+              spaceId={spaceId}
+              value={
+                placesDraft?.scope === photoOrderScope
+                  ? placesDraft.value
+                  : undefined
+              }
+              onChange={(value) =>
+                setPlacesDraft({ scope: photoOrderScope, value })
+              }
+              disabled={updateMutation.isPending}
+              onPendingChange={setPlacePending}
+              onNavigate={(proceed) => {
+                const ownsTask = captureSaveOwnership();
+                const ownsRead = captureAuthorizedQuery(queryClient, memoryKey);
+                editorLifecycle.requestClose(() => {
+                  if (ownsTask() && ownsRead()) proceed();
+                });
+              }}
+            />
             <MemoryTagChoices
               selected={selectedTags}
               onChange={(tags) => setTagDraft({ memoryId: memory.id, tags })}
@@ -645,6 +749,13 @@ export function MemoryProductPage({
               multiple
             />
             <PhotoDraftGallery
+              selectedCoverKey={selectedCoverKey}
+              onSelectCover={(key) =>
+                setCoverDraft({ scope: photoOrderScope, key })
+              }
+              onOrderChange={(keys) =>
+                setPhotoOrder({ scope: photoOrderScope, keys })
+              }
               disabled={updateMutation.isPending}
               items={photoItems.map((item, index) => ({
                 key: item.key,
@@ -738,7 +849,11 @@ export function MemoryProductPage({
                 className="button-link secondary-link"
                 to={memoryDetailPath(memory.id)}
                 state={{ taskOriginKey: originKey }}
-                onClick={() => setConfirmDelete(false)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  setConfirmDelete(false);
+                  editorLifecycle.requestClose();
+                }}
               >
                 {t('common.cancel')}
               </Link>
@@ -746,6 +861,7 @@ export function MemoryProductPage({
                 type="submit"
                 disabled={
                   updateMutation.isPending ||
+                  placePending ||
                   attachments.hasPending ||
                   attachments.items.some((item) => item.status === 'failed') ||
                   deleteMutation.isBlocked
@@ -757,77 +873,6 @@ export function MemoryProductPage({
               </button>
             </div>
           </form>
-          <MomentPlaces
-            key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${memory.id}:edit`}
-            apiBaseUrl={apiBaseUrl}
-            accessToken={accessToken}
-            accountId={currentAccountId}
-            spaceId={spaceId}
-            targetId={memory.id}
-            canManage
-            onNavigate={(proceed) => {
-              if (updateMutation.isPending || attachments.hasPending) return;
-              const ownsTask = captureSaveOwnership();
-              const ownsRead = captureAuthorizedQuery(queryClient, memoryKey);
-              const proceedIfCurrent = () => {
-                if (ownsTask() && ownsRead()) proceed();
-              };
-              const data = editForm.current
-                ? new FormData(editForm.current)
-                : null;
-              const changed =
-                data &&
-                (String(data.get('title') ?? '') !== memory.title ||
-                  String(data.get('body') ?? '') !== (memory.body ?? '') ||
-                  String(data.get('happenedOn') ?? '') !==
-                    memoryDateInputValue(memory.happenedOn));
-              if (
-                changed ||
-                attachments.items.length > 0 ||
-                removedAttachmentIds.size > 0 ||
-                photoOrderChanged ||
-                Object.keys(sensitiveValues).length > 0 ||
-                JSON.stringify(selectedTags) !==
-                  JSON.stringify(memory.tags ?? [])
-              ) {
-                setPlaceExit(() => proceedIfCurrent);
-              } else proceedIfCurrent();
-            }}
-            kind="memories"
-            offline={offline}
-            compact
-          />
-          <ShortTaskSheet
-            ref={placeExitSheet}
-            open={placeExit !== null}
-            role="alertdialog"
-            title={t('taskBoundary.discardTitle')}
-            onClose={() => setPlaceExit(null)}
-          >
-            <p>{t('taskBoundary.discardBody')}</p>
-            <div className="form-actions">
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => setPlaceExit(null)}
-              >
-                {t('taskBoundary.keepEditing')}
-              </button>
-              <button
-                type="button"
-                className="danger"
-                onClick={() => {
-                  const proceed = placeExit;
-                  placeExitSheet.current?.closeForNavigation(() => {
-                    setPlaceExit(null);
-                    proceed?.();
-                  });
-                }}
-              >
-                {t('taskBoundary.discard')}
-              </button>
-            </div>
-          </ShortTaskSheet>
           {updateMutation.error ? (
             <ProblemState
               error={updateMutation.error}
@@ -892,7 +937,13 @@ export function MemoryProductPage({
   }
 
   const dateLabel = memory.happenedOn
-    ? formatDateOnly(memory.happenedOn)
+    ? memory.happenedUntil &&
+      memory.happenedUntil.getTime() !== memory.happenedOn.getTime()
+      ? new Intl.DateTimeFormat(resolvedLocale(), {
+          dateStyle: 'long',
+          timeZone: 'UTC',
+        }).formatRange(memory.happenedOn, memory.happenedUntil)
+      : formatDateOnly(memory.happenedOn)
     : t('memoryProduct.noDate');
   const hasAuthoredTitle = Boolean(
     memory.title.trim() &&

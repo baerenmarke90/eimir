@@ -55,6 +55,7 @@ export interface GalleryMediaItem {
 
 export function MediaGallery({
   items,
+  initialMediaId,
   loadMedia,
   loadPoster,
   loadPlayback,
@@ -68,6 +69,7 @@ export function MediaGallery({
   renderPhotoReactions,
 }: {
   items: GalleryMediaItem[];
+  initialMediaId?: string;
   loadMedia: (
     attachmentId: string,
     signal?: AbortSignal,
@@ -104,7 +106,11 @@ export function MediaGallery({
       items.map((item) => [item.id, item.isSensitive]),
     ]),
   );
-  const [carouselIndex, setCarouselIndex] = useState(0);
+  const startingIndex = Math.max(
+    0,
+    items.findIndex((item) => item.id === initialMediaId),
+  );
+  const [carouselIndex, setCarouselIndex] = useState(startingIndex);
   const photoPress = useRef<{
     timer?: ReturnType<typeof setTimeout>;
     x: number;
@@ -123,7 +129,7 @@ export function MediaGallery({
     () => () => cancelPhotoPress(),
     [resourceScopeKey, itemIdentity, cancelPhotoPress],
   );
-  const carouselIndexRef = useRef(0);
+  const carouselIndexRef = useRef(startingIndex);
   useLayoutEffect(() => {
     carouselIndexRef.current = carouselIndex;
   }, [carouselIndex]);
@@ -228,15 +234,16 @@ export function MediaGallery({
   }, [carouselIndex, items.length]);
 
   useLayoutEffect(() => {
-    if (carouselItemsIdentityRef.current === itemIdentity) return;
-    carouselItemsIdentityRef.current = itemIdentity;
-    setCarouselIndex(0);
+    const identity = JSON.stringify([itemIdentity, initialMediaId]);
+    if (carouselItemsIdentityRef.current === identity) return;
+    carouselItemsIdentityRef.current = identity;
+    setCarouselIndex(startingIndex);
 
     const track = carouselTrack.current;
-    const firstSlide = carouselSlides.current[0];
+    const firstSlide = carouselSlides.current[startingIndex];
     if (!track || !firstSlide || items.length < 2) return;
     track.scrollLeft = firstSlide.offsetLeft;
-  }, [itemIdentity, items.length]);
+  }, [itemIdentity, items.length, initialMediaId, startingIndex]);
 
   useLayoutEffect(() => {
     const track = carouselTrack.current;

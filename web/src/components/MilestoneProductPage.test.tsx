@@ -4,9 +4,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
-import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import navigation from '../i18n/locales/navigation';
 import storyProducts from '../i18n/locales/storyProducts';
@@ -14,10 +14,7 @@ import { AppShell } from './AppShell';
 import { MilestoneProductPage } from './MilestoneProductPage';
 import { QuickCreateMenu } from './QuickCreateMenu';
 
-const backToStoryName = new RegExp(
-  storyProducts.milestoneProduct.backToStory.replace(/^←\s*/, ''),
-  'i',
-);
+const backToStoryName = /^Zurück$/;
 
 beforeEach(() => {
   window.matchMedia = (query: string) => ({
@@ -311,7 +308,7 @@ describe('Milestone view receipt', () => {
   it('emits a receipt strictly on successful presentation', async () => {
     const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
     let resolveQuery: (val: any) => void;
-    let getMilestoneMock = vi.fn().mockReturnValue(
+    const getMilestoneMock = vi.fn().mockReturnValue(
       new Promise((resolve) => {
         resolveQuery = resolve;
       }),

@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Date, Integer, String, cast, delete, func, literal, select, union_all
+from sqlalchemy import Date, String, cast, delete, func, literal, select, union_all
 from sqlalchemy.orm import Session
 
 from eimir.attachments.binding import attachments_of_memories
@@ -122,6 +122,11 @@ def _metadata(context: AuthorizationContext) -> Any:
                 literal(kind.value).label("kind"),
                 model.id.label("id"),
                 day.label("day"),
+                (
+                    func.coalesce(Memory.happened_until, day)
+                    if kind == RecapSourceKind.MEMORY
+                    else day
+                ).label("through"),
                 model.version.label("version"),
             )
         )
@@ -143,7 +148,7 @@ def candidates(
             )
             .label("rank"),
         )
-        .where(source.c.day.between(starts, through))
+        .where(source.c.day <= through, source.c.through >= starts)
         .subquery()
     )
     values = (
@@ -192,14 +197,25 @@ def candidates(
 
 def periods(session: Session, context: AuthorizationContext, today: date) -> list[dict[str, Any]]:
     source = _metadata(context)
-    months = session.execute(
-        select(
-            func.extract("year", source.c.day).cast(Integer).label("year"),
-            func.extract("month", source.c.day).cast(Integer).label("month"),
-        )
-        .where(source.c.day <= today, source.c.day >= date(1900, 1, 1))
-        .distinct()
+    from eimir.memories.periods import merged_intervals
+
+    ranges = session.execute(
+        select(source.c.day, source.c.through).where(source.c.day <= today).distinct()
     ).all()
+    intervals = merged_intervals(
+        [
+            (
+                max(starts, date(1900, 1, 1)).year * 12 + max(starts, date(1900, 1, 1)).month - 1,
+                min(through, today).year * 12 + min(through, today).month - 1,
+            )
+            for starts, through in ranges
+        ]
+    )
+    months = {
+        (month // 12, month % 12 + 1)
+        for first, last in intervals
+        for month in range(first, last + 1)
+    }
     keys = {(RecapKind.MONTH, int(year), int(month)) for year, month in months}
     keys |= {(RecapKind.YEAR, int(year), 0) for year, _ in months}
     keys |= {(RecapKind.MONTH, today.year, today.month), (RecapKind.YEAR, today.year, 0)}
@@ -399,23 +415,23 @@ def source_material(
     )
     attachment = None
     sensitive = False
-    if item.kind in {RecapSourceKind.MEMORY, RecapSourceKind.PLAN}:
-        gallery = (
-            attachments_of_memories(session, [item.id])
-            if item.kind == RecapSourceKind.MEMORY
-            else photos_of_plans(session, [value])
-        )
-        for bound in gallery.get(item.id, []):
-            if bound.attachment.status == AttachmentStatus.READY:
-                attachment = bound.attachment.id
-                sensitive = bound.attachment.payload.is_sensitive
-                break
-    elif item.kind == RecapSourceKind.HEART_MOMENT and value.attachment_id:
-        from eimir.attachments.models import Attachment
+    from eimir.attachments.binding import cover_of
+    from eimir.heart_moments.media import galleries as heart_galleries
 
-        photo = session.get(Attachment, value.attachment_id)
-        if photo and photo.status == AttachmentStatus.READY:
-            attachment, sensitive = photo.id, photo.payload.is_sensitive
+    gallery = (
+        attachments_of_memories(session, [item.id])
+        if item.kind == RecapSourceKind.MEMORY
+        else photos_of_plans(session, [value])
+        if item.kind == RecapSourceKind.PLAN
+        else heart_galleries(session, [value])
+        if item.kind == RecapSourceKind.HEART_MOMENT
+        else {}
+    )
+    photo = cover_of(
+        gallery.get(item.id, []), getattr(payload, "selected_cover_attachment_id", None)
+    )
+    if photo and photo.status == AttachmentStatus.READY:
+        attachment, sensitive = photo.id, photo.payload.is_sensitive
     return {
         "key": item.key,
         "kind": item.kind,
@@ -439,14 +455,13 @@ def materials(
         select(RecapSource).where(RecapSource.edition_id == value.id).order_by(RecapSource.position)
     ).all()
     for ref in refs:
-        model = MODELS[RecapSourceKind(ref.kind)]
-        day = session.scalar(
-            readable(model, context)
-            .where(
-                model.id == ref.source_id, model.privacy_class == PrivacyClass.SPACE_SHARED.value
+        metadata = _metadata(context)
+        interval = session.execute(
+            select(metadata.c.day, metadata.c.through).where(
+                metadata.c.kind == ref.kind, metadata.c.id == ref.source_id
             )
-            .with_only_columns(_date_column(RecapSourceKind(ref.kind), model))
-        )
+        ).first()
+        day = interval.day if interval else None
         current = (
             source_material(
                 session,
@@ -458,7 +473,10 @@ def materials(
                     ref.source_version,
                 ),
             )
-            if day and value.starts_on <= day <= value.through_on
+            if day
+            and interval
+            and interval.day <= value.through_on
+            and interval.through >= value.starts_on
             else None
         )
         if current is None or current["version"] != ref.source_version:
@@ -560,7 +578,7 @@ def summaries(
     ids = {ref.source_id for ref in refs}
     current = (
         {
-            (row.kind, row.id): (row.version, row.day)
+            (row.kind, row.id): (row.version, row.day, row.through)
             for row in session.execute(select(source).where(source.c.id.in_(ids)))
         }
         if ids
@@ -571,13 +589,14 @@ def summaries(
         owned = [ref for ref in refs if ref.edition_id == value.id]
         unchanged = all(
             current.get((ref.kind, ref.source_id), (None, None))[0] == ref.source_version
-            and value.starts_on <= current[(ref.kind, ref.source_id)][1] <= value.through_on
+            and current[(ref.kind, ref.source_id)][1] <= value.through_on
+            and current[(ref.kind, ref.source_id)][2] >= value.starts_on
             for ref in owned
         )
         cover = None
         for ref in owned:
             metadata = current.get((ref.kind, ref.source_id))
-            if metadata and value.starts_on <= metadata[1] <= value.through_on:
+            if metadata and metadata[1] <= value.through_on and metadata[2] >= value.starts_on:
                 cover = source_material(
                     session,
                     context,

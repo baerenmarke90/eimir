@@ -144,6 +144,12 @@ export interface PlanDetail {
      * @type {string}
      * @memberof PlanDetail
      */
+    selectedCoverAttachmentId?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlanDetail
+     */
     sourceWishId: string | null;
     /**
      * 
@@ -226,6 +232,7 @@ export function PlanDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'plannedEnd': (json['plannedEnd'] == null ? null : new Date(json['plannedEnd'])),
         'plannedOn': json['plannedOn'] === undefined ? undefined : json['plannedOn'] === null ? null : (new Date(json['plannedOn'])),
         'plannedStart': (json['plannedStart'] == null ? null : new Date(json['plannedStart'])),
+        'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'sourceWishId': json['sourceWishId'],
         'spaceId': json['spaceId'],
         'status': PlanStatusFromJSON(json['status']),
@@ -260,6 +267,7 @@ export function PlanDetailToJSONTyped(value?: PlanDetail | null, ignoreDiscrimin
         'plannedEnd': value['plannedEnd'] == null ? value['plannedEnd'] : value['plannedEnd'].toISOString(),
         'plannedOn': value['plannedOn'] == null ? value['plannedOn'] : value['plannedOn'].toISOString().substring(0,10),
         'plannedStart': value['plannedStart'] == null ? value['plannedStart'] : value['plannedStart'].toISOString(),
+        'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'sourceWishId': value['sourceWishId'],
         'spaceId': value['spaceId'],
         'status': PlanStatusToJSON(value['status']),

@@ -136,7 +136,9 @@ describe('AppShell', () => {
     const html = renderShell('/story/memories/memory-1');
     expect(html).toContain('shell-detail-context');
     expect(
-      html.match(/class="shell-utility-link shell-detail-back"/g),
+      html.match(
+        /<button[^>]*class="back-link tertiary[^"]*"[^>]*>Zurück<\/button>/g,
+      ),
     ).toHaveLength(1);
     expect(renderShell('/story')).not.toContain('shell-detail-context');
   });

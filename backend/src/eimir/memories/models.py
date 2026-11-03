@@ -61,6 +61,8 @@ class MemoryPayload(ProtectedPayload):
     body: str
     tags: MemoryTags = Field(default_factory=list)
     photo_reactions: list[MemoryPhotoReaction] = Field(default_factory=list, max_length=40)
+    selected_cover_attachment_id: UUID | None = None
+    place_order: list[UUID] = Field(default_factory=list, max_length=20)
 
     _unique_tags = field_validator("tags")(unique_tags)
 
@@ -92,6 +94,7 @@ class Memory(
     )
 
     happened_on: Mapped[date | None] = mapped_column(Date)
+    happened_until: Mapped[date | None] = mapped_column(Date)
     experience_kind: Mapped[str | None] = mapped_column(String(16))
     crypto_version: Mapped[int] = mapped_column(
         SmallInteger,
@@ -105,6 +108,10 @@ class Memory(
     )
 
     __table_args__ = (
+        CheckConstraint(
+            "happened_until IS NULL OR (happened_on IS NOT NULL AND happened_until >= happened_on)",
+            name="memory_period_valid",
+        ),
         CheckConstraint(
             "experience_kind IS NULL OR experience_kind IN ("
             + ", ".join(f"'{kind.value}'" for kind in ExperienceKind)

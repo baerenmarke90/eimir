@@ -4,8 +4,8 @@ import type { StoryItem } from '../api/generated/models/StoryItem';
 import type { StoryKind } from '../api/generated/models/StoryKind';
 import { authorDisplayName } from '../client/authorPresentation';
 import { memoryPreviewTitle } from '../client/memoryProduct';
-import { i18n } from '../i18n';
 import { firstNameFromDisplayName } from '../client/personalName';
+import { i18n } from '../i18n';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
 
 /**
@@ -120,6 +120,7 @@ export function storyItemPresentation(
           item.memory.title,
           item.memory.happenedOn ?? item.effectiveDate,
           t,
+          item.memory.happenedUntil,
         ),
         author: storyAuthorLabel(item.memory.author, undefined, nicknameFor),
         mediaCount: count > 0 ? count : undefined,
@@ -143,9 +144,11 @@ export function storyItemPresentation(
           undefined,
           nicknameFor,
         ),
-        mediaCount: item.heartMoment.attachment ? 1 : undefined,
+        mediaCount:
+          item.heartMoment.attachmentCount ??
+          (item.heartMoment.attachment ? 1 : undefined),
         mediaLabel: item.heartMoment.attachment
-          ? t('story.photos', { count: 1 })
+          ? t('story.photos', { count: item.heartMoment.attachmentCount ?? 1 })
           : undefined,
         visibility,
         visibilityLabel:

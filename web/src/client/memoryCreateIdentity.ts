@@ -25,6 +25,7 @@ export interface MemoryCreateAttempt {
   readonly attachmentIds: readonly string[];
   readonly startedAt: number;
   readonly attachmentSensitivity?: readonly boolean[];
+  readonly selectedCoverPosition?: number | null;
 }
 
 export function startMemoryCreateAttempt(

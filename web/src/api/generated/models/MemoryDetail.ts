@@ -98,10 +98,28 @@ export interface MemoryDetail {
     happenedOn: Date | null;
     /**
      * 
+     * @type {Date}
+     * @memberof MemoryDetail
+     */
+    happenedUntil?: Date | null;
+    /**
+     * 
      * @type {string}
      * @memberof MemoryDetail
      */
     id: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof MemoryDetail
+     */
+    placeIds?: Array<string>;
+    /**
+     * 
+     * @type {string}
+     * @memberof MemoryDetail
+     */
+    selectedCoverAttachmentId?: string | null;
     /**
      * 
      * @type {string}
@@ -174,7 +192,10 @@ export function MemoryDetailFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'createdAt': (new Date(json['createdAt'])),
         'experienceKind': json['experienceKind'] === undefined ? undefined : json['experienceKind'] === null ? null : ExperienceKindFromJSON(json['experienceKind']),
         'happenedOn': (json['happenedOn'] == null ? null : new Date(json['happenedOn'])),
+        'happenedUntil': json['happenedUntil'] === undefined ? undefined : json['happenedUntil'] === null ? null : (new Date(json['happenedUntil'])),
         'id': json['id'],
+        'placeIds': json['placeIds'] == null ? undefined : json['placeIds'],
+        'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'spaceId': json['spaceId'],
         'tags': json['tags'],
         'title': json['title'],
@@ -202,7 +223,10 @@ export function MemoryDetailToJSONTyped(value?: MemoryDetail | null, ignoreDiscr
         'createdAt': value['createdAt'].toISOString(),
         'experienceKind': ExperienceKindToJSON(value['experienceKind']),
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
+        'happenedUntil': value['happenedUntil'] == null ? value['happenedUntil'] : value['happenedUntil'].toISOString().substring(0,10),
         'id': value['id'],
+        'placeIds': value['placeIds'],
+        'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'spaceId': value['spaceId'],
         'tags': value['tags'],
         'title': value['title'],

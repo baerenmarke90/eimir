@@ -37,6 +37,7 @@ export function MomentPlaces({
   compact = false,
   canManage = false,
   onNavigate,
+  orderedIds,
 }: {
   apiBaseUrl: string;
   accessToken: string;
@@ -48,6 +49,7 @@ export function MomentPlaces({
   compact?: boolean;
   canManage?: boolean;
   onNavigate?: (proceed: () => void) => void;
+  orderedIds?: string[];
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
@@ -148,7 +150,11 @@ export function MomentPlaces({
   );
   const items = denied
     ? []
-    : (query.data?.pages.flatMap((page) => page.items) ?? []);
+    : (query.data?.pages.flatMap((page) => page.items) ?? []).sort((a, b) => {
+        const left = orderedIds?.indexOf(a.id) ?? -1;
+        const right = orderedIds?.indexOf(b.id) ?? -1;
+        return (left < 0 ? Infinity : left) - (right < 0 ? Infinity : right);
+      });
   const mapUrl = selected
     ? photoPlaceMapUrl(selected.latitude, selected.longitude)
     : null;

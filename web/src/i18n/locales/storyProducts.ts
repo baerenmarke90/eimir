@@ -92,8 +92,8 @@ const storyProducts = {
   },
   heartMomentProduct: {
     open: 'Herzmoment öffnen',
-    backToStory: '← Zurück zu Momente',
-    backToHeartMoment: '← Zurück zum Herzmoment',
+    backToStory: 'Zurück',
+    backToHeartMoment: 'Zurück',
     createEyebrow: 'Herzmoment festhalten',
     createHeading: 'Neuer Herzmoment',
     createIntro: 'Du entscheidest, ob du ihn teilst oder für dich behältst.',
@@ -151,8 +151,8 @@ const storyProducts = {
   },
   milestoneProduct: {
     open: 'Meilenstein öffnen',
-    backToStory: '← Zurück zu Momente',
-    backToMilestone: '← Zurück zum Meilenstein',
+    backToStory: 'Zurück',
+    backToMilestone: 'Zurück',
     createEyebrow: 'Meilenstein festhalten',
     createHeading: 'Neuer Meilenstein',
     createIntro:

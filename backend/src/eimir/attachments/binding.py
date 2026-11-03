@@ -90,6 +90,31 @@ class PlanAttachment(IdMixin, Base):
     )
 
 
+class HeartMomentAttachment(IdMixin, Base):
+    """Supplemental media; the legacy HeartMoment FK retains position zero."""
+
+    __tablename__ = "heart_moment_attachments"
+    heart_moment_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("heart_moments.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    attachment_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("attachments.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    __table_args__ = (
+        UniqueConstraint("attachment_id", name="uq_heart_moment_attachments_attachment"),
+        UniqueConstraint(
+            "heart_moment_id", "position", name="uq_heart_moment_attachments_position"
+        ),
+        CheckConstraint("position > 0", name="position_is_supplemental"),
+        Index("ix_heart_moment_attachments_parent", "heart_moment_id"),
+    )
+
+
 class AccountProfileAttachment(IdMixin, Base):
     """The single current avatar attachment for one account.
 
@@ -190,6 +215,14 @@ def parent_of(session: Session, attachment_id: UUID) -> tuple[str, UUID] | None:
     heart_moment_id = session.execute(
         select(HeartMoment.id).where(HeartMoment.attachment_id == attachment_id)
     ).scalar_one_or_none()
+    if heart_moment_id is not None:
+        return "HEART_MOMENT", heart_moment_id
+
+    heart_moment_id = session.scalar(
+        select(HeartMomentAttachment.heart_moment_id).where(
+            HeartMomentAttachment.attachment_id == attachment_id
+        )
+    )
     if heart_moment_id is not None:
         return "HEART_MOMENT", heart_moment_id
 
@@ -313,3 +346,13 @@ def set_sensitive(attachment: Attachment, value: bool | None, *, allow_change: b
                 "NOT_RESOURCE_OWNER",
             )
         attachment.payload = attachment.payload.model_copy(update={"is_sensitive": value})
+
+
+def cover_of(entries: list[BoundAttachment], selected: UUID | None) -> Attachment | None:
+    """Choose a presentation cover without changing binding order."""
+    entries = [entry for entry in entries if entry.attachment.status == AttachmentStatus.READY]
+    if selected is not None:
+        for entry in entries:
+            if entry.attachment.id == selected:
+                return entry.attachment
+    return entries[0].attachment if entries else None

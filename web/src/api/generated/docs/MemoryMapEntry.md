@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `happenedOn` | Date
+`happenedUntil` | Date
 `latitude` | number
 `longitude` | number
 `memoryId` | string
@@ -25,6 +26,7 @@ import type { MemoryMapEntry } from ''
 // TODO: Update the object below with actual values
 const example = {
   "happenedOn": null,
+  "happenedUntil": null,
   "latitude": null,
   "longitude": null,
   "memoryId": null,

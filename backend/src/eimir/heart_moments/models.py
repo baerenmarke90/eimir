@@ -61,6 +61,7 @@ class HeartMomentPayload(ProtectedPayload):
     text: str
     emotion: HeartEmotion
     tags: HeartMomentTags = Field(default_factory=list)
+    selected_cover_attachment_id: UUID | None = None
 
     _unique_tags = field_validator("tags")(unique_tags)
 
@@ -86,9 +87,8 @@ class HeartMoment(
         "Heart moment not found.", "RESOURCE_NOT_FOUND"
     )
 
-    # At most one attachment (M2-D03). Model this as a foreign key rather than
-    # a relation table so cardinality lives in the schema instead of a rule
-    # that application code could forget.
+    # Position zero remains here for compatibility; supplemental bindings live
+    # in HeartMomentAttachment. The display cover is independent of this order.
     happened_on: Mapped[date] = mapped_column(Date, nullable=False)
     attachment_id: Mapped[UUID | None] = mapped_column(
         postgresql.UUID(as_uuid=True),

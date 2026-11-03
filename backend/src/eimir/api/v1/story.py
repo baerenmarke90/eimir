@@ -11,7 +11,6 @@ can choose.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 from datetime import date, datetime
 from typing import Annotated, Literal
 from uuid import UUID
@@ -35,6 +34,7 @@ from eimir.attachments import binding
 from eimir.attachments.models import Attachment, MediaType
 from eimir.authorization import ContentVisibility, readable, visibility_of
 from eimir.core import clock
+from eimir.heart_moments import media as heart_media
 from eimir.heart_moments.models import HeartEmotion, HeartMoment
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
@@ -55,6 +55,8 @@ class MemorySummary(ApiModel):
     id: UUID
     title: str
     happened_on: date | None
+    happened_until: date | None = None
+    selected_cover_attachment_id: UUID | None = None
     created_at: datetime
     author: AuthorSummary
     capabilities: ResourceCapabilities
@@ -83,6 +85,8 @@ class SharedHeartMomentSummary(ApiModel):
     author: AuthorSummary
     capabilities: ResourceCapabilities
     attachment: AttachmentSummary | None
+    attachment_count: int = 0
+    selected_cover_attachment_id: UUID | None = None
 
 
 class MilestoneSummary(ApiModel):
@@ -391,7 +395,7 @@ def project_story_items(
     milestones = _load(session, authorization, Milestone, ids_by_kind[StoryKind.MILESTONE])
 
     galleries = binding.attachments_of_memories(session, list(memories))
-    attachments = _heart_attachments(session, heart_moments.values())
+    heart_galleries = heart_media.galleries(session, list(heart_moments.values()))
     authors = _authors(
         session,
         {
@@ -415,6 +419,8 @@ def project_story_items(
                         id=memory.id,
                         title=memory.payload.title,
                         happened_on=memory.happened_on,
+                        happened_until=memory.happened_until,
+                        selected_cover_attachment_id=memory.payload.selected_cover_attachment_id,
                         created_at=memory.created_at,
                         author=_author(authors, memory.owner_id),
                         capabilities=story_resource_capabilities(memory, authorization.account_id),
@@ -432,6 +438,10 @@ def project_story_items(
             heart_moment = heart_moments.get(item.id)
             if heart_moment is None:
                 continue
+            cover = binding.cover_of(
+                heart_galleries.get(heart_moment.id, []),
+                heart_moment.payload.selected_cover_attachment_id,
+            )
             visibility = visibility_of(heart_moment.privacy_class)
             view.append(
                 StoryHeartMomentItem(
@@ -452,11 +462,9 @@ def project_story_items(
                             # surface, same rule as the HeartMoment detail route.
                             can_comment=visibility is ContentVisibility.SHARED,
                         ),
-                        attachment=(
-                            _attachment_summary(attachments[heart_moment.attachment_id])
-                            if heart_moment.attachment_id in attachments
-                            else None
-                        ),
+                        attachment_count=len(heart_galleries.get(heart_moment.id, [])),
+                        selected_cover_attachment_id=heart_moment.payload.selected_cover_attachment_id,
+                        attachment=(_attachment_summary(cover) if cover is not None else None),
                     ),
                 )
             )
@@ -502,20 +510,6 @@ def _load[ResourceT: (Memory, HeartMoment, Milestone)](
     statement = readable(model, authorization).where(model.id.in_(ids))
     rows = session.execute(statement).scalars().all()
     return {row.id: row for row in rows}
-
-
-def _heart_attachments(
-    session: DbSession, heart_moments: Iterable[HeartMoment]
-) -> dict[UUID, Attachment]:
-    ids = {
-        heart_moment.attachment_id
-        for heart_moment in heart_moments
-        if heart_moment.attachment_id is not None
-    }
-    if not ids:
-        return {}
-    rows = session.execute(select(Attachment).where(Attachment.id.in_(ids))).scalars().all()
-    return {attachment.id: attachment for attachment in rows}
 
 
 def _author(authors: dict[UUID, AuthorSummary], owner_id: UUID) -> AuthorSummary:

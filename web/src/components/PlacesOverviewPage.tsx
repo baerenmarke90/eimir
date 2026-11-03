@@ -1,16 +1,16 @@
-import { assertOnlineWrite } from '../client/connectivity';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import {
   authorSummaryQueryKeys,
   invalidatePlaceConsumers,
 } from '../client/authorSummaryConsumers';
+import { assertOnlineWrite } from '../client/connectivity';
 import {
   type DeleteFocusTarget,
   PLANNING_DELETE_FOCUS_STATE_KEY,
@@ -20,15 +20,15 @@ import {
   normalizeClientError,
 } from '../client/problemDetails';
 import { captureQueryIdentity } from '../client/queryIdentity';
-import { appRoutePath, placeDetailPath } from '../client/routes';
+import { placeDetailPath } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
-import { PlaceMapPicker, type PlaceMapSelection } from './PlaceMapPicker';
 import { AddIcon, DestinationIcon } from './DestinationIcon';
+import { PageHeader } from './PageHeader';
+import { PlaceMapPicker, type PlaceMapSelection } from './PlaceMapPicker';
+import { ProblemState } from './ProblemState';
 import { ContentChevron, SharedContentSheet } from './SharedContentSheet';
 import type { ShortTaskSheetHandle } from './ShortTaskSheet';
-import { PageHeader } from './PageHeader';
-import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import './SharedPlanningPages.css';
 import './SharedContentPages.css';
@@ -67,6 +67,10 @@ export function PlacesOverviewPage({
   const queryClient = useQueryClient();
   const createFormRef = useRef<HTMLFormElement>(null);
   const [mapChoice, setMapChoice] = useState<PlaceMapSelection>();
+  const [coordinateDraft, setCoordinateDraft] = useState({
+    latitude: '',
+    longitude: '',
+  });
   const [coordinateError, setCoordinateError] = useState(false);
   const createActionRef = useRef<HTMLButtonElement>(null);
   const placeRefs = useRef(new Map<string, HTMLAnchorElement>());
@@ -129,8 +133,8 @@ export function PlacesOverviewPage({
     if (createInFlightRef.current) return;
     const form = event.currentTarget;
     const data = new FormData(form);
-    const latitudeRaw = String(data.get('latitude')).trim();
-    const longitudeRaw = String(data.get('longitude')).trim();
+    const latitudeRaw = coordinateDraft.latitude.trim();
+    const longitudeRaw = coordinateDraft.longitude.trim();
     if (Boolean(latitudeRaw) !== Boolean(longitudeRaw)) {
       setCoordinateError(true);
       return;
@@ -174,6 +178,7 @@ export function PlacesOverviewPage({
             navigate(placeDetailPath(created.id)),
           );
           setMapChoice(undefined);
+          setCoordinateDraft({ latitude: '', longitude: '' });
           setCoordinateError(false);
         },
       },
@@ -270,6 +275,7 @@ export function PlacesOverviewPage({
             setCreateOpen(false);
             setCreateDirty(false);
             setMapChoice(undefined);
+            setCoordinateDraft({ latitude: '', longitude: '' });
             setCoordinateError(false);
           }}
         >
@@ -307,6 +313,10 @@ export function PlacesOverviewPage({
                   disabled={createPlace.isPending}
                   onSelect={(selection) => {
                     setMapChoice(selection);
+                    setCoordinateDraft({
+                      latitude: String(selection.latitude),
+                      longitude: String(selection.longitude),
+                    });
                     setCreateDirty(true);
                     setCoordinateError(false);
                     const form = createFormRef.current;
@@ -314,8 +324,6 @@ export function PlacesOverviewPage({
                     for (const [name, value] of Object.entries({
                       name: selection.name,
                       address: selection.address ?? '',
-                      latitude: String(selection.latitude),
-                      longitude: String(selection.longitude),
                     })) {
                       const input = form.elements.namedItem(name);
                       if (input instanceof HTMLInputElement)
@@ -346,6 +354,13 @@ export function PlacesOverviewPage({
                       <input
                         id="create-place-latitude"
                         name="latitude"
+                        value={coordinateDraft.latitude}
+                        onChange={(event) =>
+                          setCoordinateDraft((draft) => ({
+                            ...draft,
+                            latitude: event.target.value,
+                          }))
+                        }
                         type="number"
                         step="any"
                         min="-90"
@@ -365,6 +380,13 @@ export function PlacesOverviewPage({
                       <input
                         id="create-place-longitude"
                         name="longitude"
+                        value={coordinateDraft.longitude}
+                        onChange={(event) =>
+                          setCoordinateDraft((draft) => ({
+                            ...draft,
+                            longitude: event.target.value,
+                          }))
+                        }
                         type="number"
                         step="any"
                         min="-180"

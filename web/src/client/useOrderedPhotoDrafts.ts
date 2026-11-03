@@ -4,8 +4,8 @@ import type { OrderedAttachmentSummary } from '../api/generated/models/OrderedAt
 import type { AttachmentDraft } from './attachmentDraftState';
 import { MAX_MEMORY_ATTACHMENTS } from './attachmentLimits';
 import {
-  useAttachmentDrafts,
   type AttachmentDraftOptions,
+  useAttachmentDrafts,
 } from './useAttachmentDrafts';
 
 export interface OrderedPhotoDraftItem {
@@ -50,8 +50,10 @@ export function useOrderedPhotoDrafts(options: AttachmentDraftOptions) {
     scope: string;
     existing: OrderedAttachmentSummary[];
     order: string[];
-  }>({ scope, existing: [], order: [] });
+    coverKey: string | null;
+  }>({ scope, existing: [], order: [], coverKey: null });
   const existing = state.scope === scope ? state.existing : [];
+  const coverKey = state.scope === scope ? state.coverKey : null;
   const uploads = useAttachmentDrafts({
     ...options,
     maxAttachments: MAX_MEMORY_ATTACHMENTS - existing.length,
@@ -62,7 +64,7 @@ export function useOrderedPhotoDrafts(options: AttachmentDraftOptions) {
     if (lastScope.current === scope) return;
     lastScope.current = scope;
     clearUploads();
-    setState({ scope, existing: [], order: [] });
+    setState({ scope, existing: [], order: [], coverKey: null });
   }, [scope, clearUploads]);
   const available: OrderedPhotoDraftItem[] = [
     ...existing.map((photo) => ({
@@ -95,11 +97,12 @@ export function useOrderedPhotoDrafts(options: AttachmentDraftOptions) {
       : [];
   });
   const load = useCallback(
-    (photos: OrderedAttachmentSummary[]) => {
+    (photos: OrderedAttachmentSummary[], selectedCoverId?: string | null) => {
       clearUploads();
       setState({
         scope,
         existing: photos,
+        coverKey: selectedCoverId ? `saved:${selectedCoverId}` : null,
         order: photos.map((photo) => `saved:${photo.id}`),
       });
     },
@@ -110,6 +113,7 @@ export function useOrderedPhotoDrafts(options: AttachmentDraftOptions) {
     if (item.draft) uploads.remove(item.draft.id);
     setState({
       scope,
+      coverKey: coverKey === item.key ? null : coverKey,
       existing: existing.filter((photo) => photo.id !== item.existing?.id),
       order: keys.filter((key) => key !== item.key),
     });
@@ -119,7 +123,7 @@ export function useOrderedPhotoDrafts(options: AttachmentDraftOptions) {
     const target = index + offset;
     if (index < 0 || target < 0 || target >= keys.length) return;
     const order = movePhotoKey(keys, key, offset);
-    setState({ scope, existing, order });
+    setState({ scope, existing, order, coverKey });
   }
   function setSensitive(item: OrderedPhotoDraftItem, value: boolean) {
     if (item.draft) uploads.setSensitive(item.draft.id, value);
@@ -127,6 +131,7 @@ export function useOrderedPhotoDrafts(options: AttachmentDraftOptions) {
       setState({
         scope,
         order: keys,
+        coverKey,
         existing: existing.map((photo) =>
           photo.id === item.existing?.id
             ? { ...photo, isSensitive: value }
@@ -137,6 +142,22 @@ export function useOrderedPhotoDrafts(options: AttachmentDraftOptions) {
   return {
     items,
     entries,
+    selectedCoverKey: items.some((item) => item.key === coverKey)
+      ? coverKey
+      : null,
+    selectedCoverAttachmentId:
+      items.find((item) => item.key === coverKey)?.existing?.id ??
+      items.find((item) => item.key === coverKey)?.draft?.attachmentId ??
+      null,
+    selectCover: (key: string | null) =>
+      setState({ scope, existing, order: keys, coverKey: key }),
+    reorder: (order: string[]) =>
+      setState({
+        scope,
+        existing,
+        order: orderedPhotoKeys(keys, order),
+        coverKey,
+      }),
     uploads,
     load,
     remove,

@@ -7,7 +7,7 @@ const m5s3 = {
     saved: 'gespeichert',
     back: '← Zurück zu Planen',
     backToPlan: '← Zurück zu Planen',
-    backToStory: '← Zurück zu Momente',
+    backToStory: 'Zurück',
     backToMore: '← Zurück zu Mehr',
     backToCollections: '← Zurück zu Gemeinsamen Listen',
     backToPlaces: '← Zurück zu Orten',

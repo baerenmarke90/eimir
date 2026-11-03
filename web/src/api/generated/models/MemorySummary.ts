@@ -77,10 +77,22 @@ export interface MemorySummary {
     happenedOn: Date | null;
     /**
      * 
+     * @type {Date}
+     * @memberof MemorySummary
+     */
+    happenedUntil?: Date | null;
+    /**
+     * 
      * @type {string}
      * @memberof MemorySummary
      */
     id: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof MemorySummary
+     */
+    selectedCoverAttachmentId?: string | null;
     /**
      * 
      * @type {string}
@@ -118,7 +130,9 @@ export function MemorySummaryFromJSONTyped(json: any, ignoreDiscriminator: boole
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
         'createdAt': (new Date(json['createdAt'])),
         'happenedOn': (json['happenedOn'] == null ? null : new Date(json['happenedOn'])),
+        'happenedUntil': json['happenedUntil'] === undefined ? undefined : json['happenedUntil'] === null ? null : (new Date(json['happenedUntil'])),
         'id': json['id'],
+        'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'title': json['title'],
     };
 }
@@ -139,7 +153,9 @@ export function MemorySummaryToJSONTyped(value?: MemorySummary | null, ignoreDis
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),
         'createdAt': value['createdAt'].toISOString(),
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
+        'happenedUntil': value['happenedUntil'] == null ? value['happenedUntil'] : value['happenedUntil'].toISOString().substring(0,10),
         'id': value['id'],
+        'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'title': value['title'],
     };
 }

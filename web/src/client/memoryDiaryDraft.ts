@@ -14,6 +14,9 @@ export interface MemoryDiaryDraft {
   tags: string[];
   tagDraft?: string;
   happenedOn: string;
+  happenedUntil?: string;
+  places?: { id: string; name: string; address: string | null }[];
+  selectedCoverPosition?: number | null;
   place?: { id: string; name: string; address: string | null };
   files: { file: File; attachmentId?: string; isSensitive?: boolean }[];
   attempt: MemoryCreateAttempt | null;
@@ -21,6 +24,7 @@ export interface MemoryDiaryDraft {
     memory: MemoryDetail;
     attachmentIds: readonly string[];
     attachmentSensitivity?: readonly boolean[];
+    selectedCoverPosition?: number | null;
   } | null;
   /** Old records have no trustworthy photo provenance; migrate only on Resume. */
   legacyMedia?: boolean;

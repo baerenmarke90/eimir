@@ -1,10 +1,10 @@
 import type { AttachmentDraft } from '../client/attachmentDraftState';
 import type { AttachmentDraftSelection } from '../client/useAttachmentDrafts';
-import { DeviceMediaPicker } from './DeviceMediaPicker';
-import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { useTranslation } from '../i18n';
+import { DeviceMediaPicker } from './DeviceMediaPicker';
 import { DraftMediaPreview } from './DraftMediaPreview';
 import { PhotoDraftGallery } from './PhotoDraftGallery';
+import { PhotoSourcePicker } from './PhotoSourcePicker';
 import type { VideoCaptureContext } from './VideoUploadAction';
 
 export interface AttachmentDraftPickerController {
@@ -13,6 +13,7 @@ export interface AttachmentDraftPickerController {
   cancel: (id: string) => void;
   remove: (id: string) => void;
   retry: (draft: AttachmentDraft) => void;
+  reorder?: (keys: string[]) => void;
   move?: (id: string, offset: -1 | 1) => void;
   hasPending: boolean;
   setSensitive?: (id: string, value: boolean) => void;
@@ -27,8 +28,12 @@ export function AttachmentDraftPicker({
   showItems = true,
   videoContext,
   sourceContext,
+  selectedCoverKey,
+  onSelectCover,
 }: {
   id: string;
+  selectedCoverKey?: string | null;
+  onSelectCover?: (key: string | null) => void;
   attachments: AttachmentDraftPickerController;
   multiple?: boolean;
   disabled?: boolean;
@@ -100,6 +105,9 @@ export function AttachmentDraftPicker({
             ),
           }))}
           onMove={multiple ? attachments.move : undefined}
+          onOrderChange={multiple ? attachments.reorder : undefined}
+          selectedCoverKey={selectedCoverKey}
+          onSelectCover={onSelectCover}
           onSensitive={attachments.setSensitive}
           onRemove={attachments.remove}
           onRetry={(key) => {

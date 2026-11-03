@@ -94,7 +94,57 @@ verification and real platform acceptance cannot be substituted with mocks or
 an availability flag. Existing #1467 protection remains until its independent
 security and deployment requirements are satisfied.
 
+## Implementation and acceptance
+
+Current Main is `45e8dadd`, containing merged #1615 and #1617. This delivery
+implements concept packages 1–3: period/places, shared media arrangement and
+covers, and HeartMoment galleries. Productive Google Photos remains the
+separately owned package 4 in #1467, including real OAuth deployment, independent
+review and shipping Android/iOS acceptance. The existing fail-closed gate stays.
+This PR does not represent Google or store-release acceptance.
+
+`happenedUntil` is a nullable inclusive calendar date. Year lists, year-filtered
+Memories/Story and recap month/year availability and source eligibility use
+overlap; chronological identity remains the start. Calendar indexes are coalesced
+before expansion, avoiding repeated day/year series for overlapping long trips.
+Typed PlaceMemory membership stays canonical; protected order hints only arrange
+that membership. Edits submit the previously observed membership as well as
+If-Match so older unversioned relation writes cannot be silently overwritten.
+Place locks precede the Memory lock and an intervening membership race is rejected.
+The coordinate draft is explicit state; collapsed technical fields and zero do
+not determine whether a map selection is transmitted.
+
+The Arrange task uses pinned MIT `@dnd-kit/react` / `@dnd-kit/dom` 0.5.3 rather
+than a custom gesture engine. Drag sensors exist only in the task, require a
+250ms hold on a visible handle, and retain stable draft keys through upload state
+changes. Four single-pointer/keyboard buttons, localized announcements, reduced
+motion, Cancel and Finish provide equivalent operation. Controls and Finish stay
+in the reachable footer even in a dense gallery. Finish changes the parent draft;
+parent Save remains required. No third-party service, account or data transfer is
+added. Compact remains normative; Expanded adapts the same task.
+
+All three domains store an optional independent protected cover reference.
+Null follows the current first bound medium; reorder preserves explicit choice,
+and removal resets it. Story/cards, map, recap, Dashboard and detail consumers
+resolve the choice without rewriting gallery positions. Video covers use the
+existing poster path and sensitive media retains its cover/reveal boundary.
+
+Migration 0102 adds a nullable end date plus a database validity check. Migration
+0103 adds supplemental HeartMoment bindings; existing primary FKs retain position
+zero and old clients retain the gallery tail when replacing it. Parent binding,
+READY/size/count checks and owner-only reads remain shared. Downgrade refuses to
+discard nonempty supplemental galleries. Export includes every supplemental
+binding; import validates order/exclusivity/cover/period and remaps protected IDs.
+Existing ciphertext/default payloads need no unsafe rewrite. Free/Core history,
+privacy, retained media/export and identical Self-Hosted behavior remain; video
+upload and optional external import retain their existing capabilities. The
+feature matrix and domain specification record the PO extension.
+
 ## Validation
 
-Pending implementation and exact-head evidence. No CI, device, provider or
-production acceptance is claimed by this preflight commit.
+See [runtime evidence](evidence/README.md). Local strict typecheck, production
+bundle, focused backend/domain tests and complete authoring journeys are run;
+full suites and fresh hosted migration/PostgreSQL/security/browser checks are
+required on the final PR head. No hosted check, native-device or live-provider
+success is inferred from mocked browser API fixtures. No CI rerun/bypass or
+weakened assertion/timeout is part of this change.

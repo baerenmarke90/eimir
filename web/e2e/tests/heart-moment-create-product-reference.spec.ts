@@ -7,6 +7,7 @@ import navigation from '../../src/i18n/locales/navigation';
 import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import {
   fulfillEmptyMomentPlaces,
@@ -719,7 +720,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(actions).toBeVisible();
 
       // The photo is intentionally prominent in #862 but remains optional.
-      const mediaTrigger = page.getByRole('button', {
+      const mediaTrigger = media.getByRole('button', {
         name: photoSources.addMedia,
         exact: true,
       });
@@ -729,8 +730,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
         exact: true,
       });
       await expect(mediaSheet).toBeVisible();
+      await expect(photoInput).toBeAttached();
       await expect(photoInput).not.toHaveAttribute('required', '');
-      await page.keyboard.press('Escape');
+      await mediaSheet
+        .locator('.photo-source-footer')
+        .getByRole('button', { name: taskSheets.close, exact: true })
+        .click();
       await expect(mediaSheet).not.toBeVisible();
       await expect(mediaTrigger).toBeFocused();
 

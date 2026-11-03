@@ -93,6 +93,7 @@ async function expectKeyboardFilePicker(page: Page, id: string): Promise<void> {
   });
   await expect(sourceSheet).toBeVisible();
   const input = page.locator(`#${id}`);
+  await expect(input).toBeEnabled();
   await expectHiddenGeometry(input);
   await expect(input).not.toHaveAccessibleName('');
 

@@ -2,6 +2,7 @@ import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import photoSources from '../../src/i18n/locales/photoSources';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 
@@ -80,7 +81,14 @@ async function tabToElement(page: Page, id: string): Promise<void> {
 }
 
 async function expectKeyboardFilePicker(page: Page, id: string): Promise<void> {
+  const source = page.getByRole('button', {
+    name: photoSources.addMedia,
+    exact: true,
+  });
+  await source.focus();
+  await source.press('Enter');
   const input = page.locator(`#${id}`);
+  await expect(input).toBeEnabled();
   await expectHiddenGeometry(input);
   await expect(input).not.toHaveAccessibleName('');
 

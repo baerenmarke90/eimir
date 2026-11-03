@@ -19,14 +19,18 @@ import android.os.Build;
 import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.view.KeyEvent;
-import android.view.InputDevice;
-import android.view.MotionEvent;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.webkit.WebChromeClient.FileChooserParams;
 import android.webkit.WebView;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.uiautomator.By;
+import androidx.test.uiautomator.BySelector;
+import androidx.test.uiautomator.UiDevice;
+import androidx.test.uiautomator.UiObject2;
+import androidx.test.uiautomator.UiObject2Ext;
+import androidx.test.uiautomator.Until;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -669,12 +673,28 @@ public class PhotoFileChooserTest {
     }
 
     private void tapNativeControl(AccessibilityNodeInfo document) throws Exception {
-        // Consent banners and diagnostic screenshots can move a previously found node.
-        assertTrue("The identified system control is still attached", document.refresh());
-        assertTrue("The identified document is visible", document.isVisibleToUser());
-        Rect bounds = new Rect();
-        document.getBoundsInScreen(bounds);
-        tapScreenBounds(bounds);
+        // Resolve the same system control through the cross-app test framework.
+        // A visible Compose node can precede its stable layout and touch target.
+        BySelector selector = By.pkg(document.getPackageName().toString());
+        CharSequence text = document.getText();
+        CharSequence description = document.getContentDescription();
+        if (text != null) selector.text(text.toString());
+        else {
+            assertNotNull("The identified system control has a label", description);
+            selector.desc(description.toString());
+        }
+        UiDevice device = UiDevice.getInstance(instrumentation);
+        UiObject2 control = device.wait(Until.findObject(selector), 10000);
+        assertNotNull("The identified system control remains available", control);
+        assertFalse("The system control's hierarchy and pixels become stable",
+            UiObject2Ext.waitForStable(control, 3000, 500, 50, true).isTimeout());
+        // Stability screenshots can replace accessibility nodes. Reacquire before
+        // the framework's real touch, without replaying a gesture on failure.
+        control = device.findObject(selector);
+        assertNotNull("The stable system control remains attached", control);
+        assertTrue("The stable system control is enabled", control.isEnabled());
+        assertFalse("The stable system control is visible", control.getVisibleBounds().isEmpty());
+        control.click();
     }
 
     private void activateNativeControl(AccessibilityNodeInfo control) {
@@ -699,26 +719,10 @@ public class PhotoFileChooserTest {
 
     private void tapScreenBounds(Rect bounds) throws Exception {
         assertFalse("The identified document has touch bounds", bounds.isEmpty());
-        // Public UiAutomation input waits for platform window/surface transitions.
-        // Queue one tap without an Espresso down/up idle gap becoming a long press.
-        // Match Android's tap event timestamps; no sleep or gesture retry is needed.
-        long now = SystemClock.uptimeMillis();
-        MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN,
-            bounds.centerX(), bounds.centerY(), 0);
-        MotionEvent up = MotionEvent.obtain(now, now, MotionEvent.ACTION_UP,
-            bounds.centerX(), bounds.centerY(), 0);
-        down.setSource(InputDevice.SOURCE_TOUCHSCREEN);
-        up.setSource(InputDevice.SOURCE_TOUCHSCREEN);
-        try {
-            UiAutomation automation = instrumentation.getUiAutomation();
-            assertTrue("Android accepts the identified control's touch down",
-                automation.injectInputEvent(down, false));
-            assertTrue("Android accepts the identified control's touch up",
-                automation.injectInputEvent(up, true));
-        } finally {
-            down.recycle();
-            up.recycle();
-        }
+        // WebView geometry still identifies the real input; UI Automator owns
+        // native gesture timing instead of a hand-built MotionEvent sequence.
+        assertTrue("Android accepts the identified control's native tap",
+            UiDevice.getInstance(instrumentation).click(bounds.centerX(), bounds.centerY()));
     }
 
     private AccessibilityNodeInfo findDocument(String name) throws Exception {

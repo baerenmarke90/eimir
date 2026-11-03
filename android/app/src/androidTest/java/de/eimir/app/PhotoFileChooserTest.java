@@ -452,7 +452,8 @@ public class PhotoFileChooserTest {
         } catch (SecurityException expected) {
             // The picker, rather than library-wide permission, owns access.
         }
-        launchForMediaSelection();
+        if (acceptedTypes.startsWith("image/")) launchForPhotoSelection(false);
+        else launchForMediaSelection();
         WebView view = activity.getBridge().getWebView();
         // Keep the established JavaScript-enabled document. Synthetic app-origin
         // navigation stalls behind Capacitor routing on the API 37.1 fixture.

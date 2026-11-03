@@ -350,6 +350,9 @@ test('Pro explanation preserves the current Memory draft', async ({ page }) => {
   await page.goto('/story/memories/new');
   const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
   await body.fill(momentBody);
+  await page
+    .getByRole('button', { name: photoSources.addMedia, exact: true })
+    .click();
   await page.getByRole('button', { name: new RegExp(videoCopy.add) }).click();
   const sheet = page.getByRole('dialog', { name: videoCopy.proTitle });
   await expect(sheet).toContainText(videoCopy.proBody);

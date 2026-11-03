@@ -142,6 +142,11 @@ for (const [width, colorScheme] of [
       .fill(AUTHORED_BODY);
     await page.getByRole('button', { name: photoSources.addMedia }).click();
     const sheet = page.locator('.photo-source-sheet[role=dialog]');
+    if (width === 390)
+      await page.screenshot({
+        path: testInfo.outputPath('1614-media-sources-390-light.png'),
+        fullPage: true,
+      });
     await sheet
       .getByRole('button', { name: photoSources.link, exact: true })
       .click();
@@ -1925,7 +1930,9 @@ test('known-created recovery can bind original photos after transient read failu
   await expect(
     page.getByLabel(de.memory.bodyLabel, { exact: true }),
   ).toBeDisabled();
-  await expect(page.locator('#memory-create-images')).toBeDisabled();
+  await expect(
+    page.getByRole('button', { name: photoSources.addMedia, exact: true }),
+  ).toBeDisabled();
   await expect(
     page
       .getByRole('group', { name: de.memory.photoSelected, exact: true })

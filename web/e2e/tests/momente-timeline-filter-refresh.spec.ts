@@ -1,7 +1,7 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '99999999-9999-4999-8999-999999999999';
@@ -248,6 +248,10 @@ test.describe('Momente Timeline compact controls and refresh (#974)', () => {
       exact: true,
     });
     await expect(filter).toBeVisible();
+    // Measure the touch target after its month heading finishes revealing.
+    await expect(
+      page.locator('.story-year-month-header').filter({ has: filter }),
+    ).toHaveCSS('transform', 'none');
     const filterBox = await filter.boundingBox();
     expect(filterBox?.width ?? 0).toBeGreaterThanOrEqual(44);
     expect(filterBox?.height ?? 0).toBeGreaterThanOrEqual(44);
@@ -277,6 +281,9 @@ test.describe('Momente Timeline compact controls and refresh (#974)', () => {
         document.documentElement.clientWidth,
     );
     expect(hasLargeTextOverflow).toBe(false);
+    await expect(
+      page.locator('.story-year-month-header').filter({ has: filter }),
+    ).toHaveCSS('transform', 'none');
     const compactFilterBox = await filter.boundingBox();
     expect(compactFilterBox?.width ?? 0).toBeGreaterThanOrEqual(44);
     expect(compactFilterBox?.height ?? 0).toBeGreaterThanOrEqual(44);

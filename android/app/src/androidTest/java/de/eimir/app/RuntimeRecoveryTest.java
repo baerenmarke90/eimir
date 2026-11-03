@@ -78,6 +78,22 @@ public class RuntimeRecoveryTest {
         fail("The existing app task must remain available");
     }
 
+    private void backgroundTask(LauncherActivity activity) throws Exception {
+        CountDownLatch stopped = new CountDownLatch(1);
+        ActivityLifecycleCallback callback = (owner, stage) -> {
+            if (owner == activity && stage == Stage.STOPPED) stopped.countDown();
+        };
+        instrumentation.runOnMainSync(() ->
+            ActivityLifecycleMonitorRegistry.getInstance().addLifecycleCallback(callback));
+        try {
+            instrumentation.runOnMainSync(() -> assertTrue(activity.moveTaskToBack(true)));
+            assertTrue("The actual task must reach the background", stopped.await(15, TimeUnit.SECONDS));
+        } finally {
+            instrumentation.runOnMainSync(() ->
+                ActivityLifecycleMonitorRegistry.getInstance().removeLifecycleCallback(callback));
+        }
+    }
+
     @Test
     public void healthyBackgroundReturnRetainsTheSameBridgeAndWebView() throws Exception {
         AtomicReference<WebView> original = new AtomicReference<>();
@@ -111,11 +127,9 @@ public class RuntimeRecoveryTest {
         AtomicReference<WebView> originalView = new AtomicReference<>();
         AtomicReference<WebViewRenderProcess> process = new AtomicReference<>();
         AtomicInteger freshCreations = new AtomicInteger();
-        CountDownLatch stopped = new CountDownLatch(1);
         CountDownLatch gone = new CountDownLatch(1);
         CountDownLatch recreated = new CountDownLatch(1);
         ActivityLifecycleCallback callback = (activity, stage) -> {
-            if (activity == original.get() && stage == Stage.STOPPED) stopped.countDown();
             if (stage == Stage.CREATED && activity instanceof LauncherActivity && activity != original.get()) {
                 freshCreations.incrementAndGet();
             }
@@ -151,8 +165,7 @@ public class RuntimeRecoveryTest {
                 ActivityLifecycleMonitorRegistry.getInstance().addLifecycleCallback(callback);
             });
             assertNotNull(process.get());
-            instrumentation.runOnMainSync(() -> assertTrue(activity.moveTaskToBack(true)));
-            assertTrue("The actual task must reach the background", stopped.await(15, TimeUnit.SECONDS));
+            backgroundTask(activity);
             instrumentation.runOnMainSync(() -> assertTrue(process.get().terminate()));
             assertTrue("A real non-crash exit must reach the handler", gone.await(15, TimeUnit.SECONDS));
             assertNull("Recovery must not start an Activity in the background", returned.get());
@@ -202,10 +215,13 @@ public class RuntimeRecoveryTest {
         AtomicReference<WebView> view = new AtomicReference<>();
         AtomicReference<LauncherActivity> owner = new AtomicReference<>();
         CountDownLatch gone = new CountDownLatch(1);
-        try (ActivityScenario<LauncherActivity> scenario = ActivityScenario.launch(LauncherActivity.class)) {
-            ready(scenario);
-            scenario.onActivity(activity -> {
-                owner.set(activity);
+        try {
+            LauncherActivity activity = (LauncherActivity) instrumentation.startActivitySync(
+                new Intent(instrumentation.getTargetContext(), LauncherActivity.class)
+                    .setAction(Intent.ACTION_MAIN).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            owner.set(activity);
+            ready(activity);
+            instrumentation.runOnMainSync(() -> {
                 view.set(activity.getBridge().getWebView());
                 activity.getBridge().addWebViewListener(new WebViewListener() {
                     @Override
@@ -216,7 +232,7 @@ public class RuntimeRecoveryTest {
                     }
                 });
             });
-            scenario.moveToState(Lifecycle.State.CREATED);
+            backgroundTask(activity);
             instrumentation.runOnMainSync(() -> view.get().loadUrl("chrome://crash"));
             assertTrue(gone.await(15, TimeUnit.SECONDS));
             assertEquals("Even a crash must not start a background Activity", 0, recovery.getHits());
@@ -228,6 +244,9 @@ public class RuntimeRecoveryTest {
             onView(withText(R.string.runtime_recovery_title)).inRoot(isDialog()).check(matches(isDisplayed()));
             onView(withText(R.string.runtime_recovery_close)).inRoot(isDialog()).perform(click());
         } finally {
+            instrumentation.runOnMainSync(() -> {
+                if (owner.get() != null && !owner.get().isDestroyed()) owner.get().finish();
+            });
             instrumentation.removeMonitor(recovery);
         }
     }

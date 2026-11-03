@@ -156,7 +156,8 @@ public class PhotoFileChooserTest {
             parameters(FileChooserParams.MODE_OPEN_MULTIPLE, false, "video/mp4"), false);
         assertTrue(multiple.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
             || multiple.getIntExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 1) > 1
-            || modern);
+            || multiple.getIntExtra("androidx.activity.result.contract.extra.SYSTEM_FALLBACK_PICK_IMAGES_MAX", 1) > 1
+            || multiple.getIntExtra("com.google.android.gms.provider.extra.PICK_IMAGES_MAX", 1) > 1);
     }
 
     @Test
@@ -438,7 +439,7 @@ public class PhotoFileChooserTest {
         // Keep the established JavaScript-enabled document. Synthetic app-origin
         // navigation stalls behind Capacitor routing on the API 37.1 fixture.
         assertEquals("true", javascriptValue(view, "(function(){"
-            + "document.body.innerHTML=`<input id='photo' type='file' accept='video/mp4,video/quicktime' "
+            + "document.body.innerHTML=`<input id='photo' type='file' accept='video/mp4,video/quicktime' multiple "
             + "style='position:fixed;top:20%;left:20%;width:60%;height:60px'>"
             + "<video id='video' controls playsinline preload='none' style='position:fixed;top:40%;left:10%;width:80%'></video>"
             + "<button id='play-video' style='position:fixed;bottom:10%;left:20%;width:60%;height:60px'>Play</button>`;"
@@ -468,13 +469,21 @@ public class PhotoFileChooserTest {
                 catch (Exception failure) { throw new AssertionError(failure); }
             }, event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && isSystemVideoPicker(event.getPackageName()), 15000);
-        captureNativeDiagnostics("native-video-picker");
         AccessibilityNodeInfo selected = findDocument("Video taken");
         assertNotNull("The system video gallery exposes the foreign-owned video", selected);
+        captureNativeDiagnostics("native-video-picker");
         tapNativeControl(selected);
+        // Match the actual multiple-video input and complete the platform's
+        // deliberate confirmation, including the extension-23 gallery's Done.
+        String confirmLabel = PhotoFileChooser.supportsPickerMetadata() ? "Done" : "Add";
+        AccessibilityNodeInfo confirm = findDocument(confirmLabel);
+        assertNotNull("The video gallery requires explicit confirmation: " + confirmLabel, confirm);
+        tapNativeControl(confirm);
         byte[] bytes = selectedFileBytes(view);
         assertTrue("Chromium receives video bytes", bytes.length > 0);
         assertEquals("true", javascriptValue(view, "window.videoRepeatedReads===true"));
+        assertEquals("The gallery delivers exactly the seeded foreign-owned video",
+            InstrumentationRegistry.getArguments().getString("externalVideoSha256"), sha256(bytes));
         java.nio.file.Files.write(new File(context.getFilesDir(), "native-selected-video.mp4").toPath(), bytes);
         assertEquals("true", javascriptValue(view,
             "document.getElementById('video').paused && document.getElementById('video').controls"));
@@ -493,6 +502,13 @@ public class PhotoFileChooserTest {
         captureNativeDiagnostics("native-video-playback");
         javascriptValue(view, "(()=>{const v=document.getElementById('video');"
             + "URL.revokeObjectURL(v.src);v.removeAttribute('src');v.load();return true})()");
+    }
+
+    private static String sha256(byte[] bytes) throws Exception {
+        StringBuilder result = new StringBuilder();
+        for (byte value : java.security.MessageDigest.getInstance("SHA-256").digest(bytes))
+            result.append(String.format(java.util.Locale.ROOT, "%02x", value & 255));
+        return result.toString();
     }
 
     private void awaitJavascript(WebView view, String condition) throws Exception {

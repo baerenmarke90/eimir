@@ -148,6 +148,7 @@ jobs:
           timeout 180 adb -e shell am instrument -w -r \
             -e externalPhotoUri "$external_photo_uri" \
             -e externalVideoUri "$external_video_uri" \
+            -e externalVideoSha256 "$(sha256sum ../backend/tests/fixtures/media/video-with-metadata.mp4 | cut -d' ' -f1)" \
             -e class de.eimir.app.IdentityAppLinksTest,de.eimir.app.LauncherIconsTest,de.eimir.app.UnifiedPushAccountReplacementTest,de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.FcmServiceOwnershipTest,de.eimir.app.PushStorageFailureTest,de.eimir.app.PhotoFileChooserTest,de.eimir.app.PlanCalendarTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log

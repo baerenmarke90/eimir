@@ -8,12 +8,14 @@ A heart moment as it appears in the caller\'s own Story.  Despite the name, this
 Name | Type
 ------------ | -------------
 `attachment` | [AttachmentSummary](AttachmentSummary.md)
+`attachmentCount` | number
 `author` | [AuthorSummary](AuthorSummary.md)
 `capabilities` | [ResourceCapabilities](ResourceCapabilities.md)
 `createdAt` | Date
 `emotion` | [HeartEmotion](HeartEmotion.md)
 `happenedOn` | Date
 `id` | string
+`selectedCoverAttachmentId` | string
 `text` | string
 `visibility` | [ContentVisibility](ContentVisibility.md)
 
@@ -25,12 +27,14 @@ import type { SharedHeartMomentSummary } from ''
 // TODO: Update the object below with actual values
 const example = {
   "attachment": null,
+  "attachmentCount": null,
   "author": null,
   "capabilities": null,
   "createdAt": null,
   "emotion": null,
   "happenedOn": null,
   "id": null,
+  "selectedCoverAttachmentId": null,
   "text": null,
   "visibility": null,
 } satisfies SharedHeartMomentSummary

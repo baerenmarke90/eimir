@@ -8,7 +8,11 @@ import { PlaceChoicePicker } from './PlaceChoicePicker';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './MomentPlaces.css';
 
-export type MomentPlaceSelection = Pick<PlaceDetail, 'id' | 'name' | 'address'>;
+export type MomentPlaceSelection = Pick<
+  PlaceDetail,
+  'id' | 'name' | 'address'
+> &
+  Partial<Pick<PlaceDetail, 'latitude' | 'longitude'>>;
 
 /** Selection belongs to the composer's draft; the create transaction links it. */
 export function MomentPlaceField({
@@ -90,6 +94,8 @@ export function MomentPlaceField({
                 id: place.id,
                 name: place.name,
                 address: place.address,
+                latitude: place.latitude,
+                longitude: place.longitude,
               });
               setPending(false);
               onPendingChange(false);

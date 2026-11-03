@@ -79,6 +79,12 @@ export interface PlanCreate {
      * @type {string}
      * @memberof PlanCreate
      */
+    selectedCoverAttachmentId?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof PlanCreate
+     */
     title: string;
 }
 
@@ -106,6 +112,7 @@ export function PlanCreateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'description': json['description'] == null ? undefined : json['description'],
         'placeId': json['placeId'] == null ? undefined : json['placeId'],
         'schedule': json['schedule'] == null ? undefined : PlanScheduleFromJSON(json['schedule']),
+        'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'title': json['title'],
     };
 }
@@ -127,6 +134,7 @@ export function PlanCreateToJSONTyped(value?: PlanCreate | null, ignoreDiscrimin
         'description': value['description'],
         'placeId': value['placeId'],
         'schedule': PlanScheduleToJSON(value['schedule']),
+        'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'title': value['title'],
     };
 }

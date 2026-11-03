@@ -48,6 +48,7 @@ import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { QuickCreateMenu } from './QuickCreateMenu';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { Snackbar } from './Snackbar';
+import { TaskBackButton } from './TaskBackButton';
 import { ThemeControl } from './ThemeControl';
 import { usePrimaryTabSwipe } from './usePrimaryTabSwipe';
 
@@ -230,7 +231,7 @@ function AuthenticatedAppShell({
     routeKey: location.key,
     onNavigate: navigatePrimary,
   });
-  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const { requestReturn } = useTaskOrigin();
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const storyDetailMatch =
     /^\/story\/(?:memories|heart-moments|milestones)\/([^/]+)$/.exec(
@@ -243,11 +244,6 @@ function AuthenticatedAppShell({
   );
   const taskOriginKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
-  const storyDetailBackLabel = t(
-    resolveOrigin(taskOriginKey)
-      ? 'taskBoundary.back'
-      : 'memoryProduct.backToStory',
-  );
   const isFocusedTask =
     /^\/more\/passport\/[^/]+$/.test(location.pathname) ||
     location.pathname === MEMORY_CREATE_ROUTE ||
@@ -312,28 +308,10 @@ function AuthenticatedAppShell({
   const unreadCount = unreadQuery.data?.unreadCount;
 
   const detailBackButton = (
-    <button
-      type="button"
-      className="shell-utility-link shell-detail-back"
+    <TaskBackButton
+      className="shell-detail-back"
       onClick={() => requestReturn(taskOriginKey)}
-      aria-label={storyDetailBackLabel}
-      title={storyDetailBackLabel}
-    >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="m15 18-6-6 6-6" />
-      </svg>
-      {location.pathname.startsWith('/story/memories/') ? (
-        <span>{t('navigation.story')}</span>
-      ) : null}
-    </button>
+    />
   );
 
   return (

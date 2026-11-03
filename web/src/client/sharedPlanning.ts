@@ -1,7 +1,7 @@
 import { ChapterRelationsApi } from '../api/generated/apis/ChapterRelationsApi';
-import { CommentsApi } from '../api/generated/apis/CommentsApi';
 import { ChaptersApi } from '../api/generated/apis/ChaptersApi';
 import { CollectionsApi } from '../api/generated/apis/CollectionsApi';
+import { CommentsApi } from '../api/generated/apis/CommentsApi';
 import { HeartMomentsApi } from '../api/generated/apis/HeartMomentsApi';
 import { MemoriesApi } from '../api/generated/apis/MemoriesApi';
 import { MilestonesApi } from '../api/generated/apis/MilestonesApi';
@@ -18,6 +18,7 @@ import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { i18n } from '../i18n';
 import { Configuration } from './apiConfiguration';
+import { galleryCover } from './galleryCover';
 
 export interface SharedPlanningApis {
   comments?: CommentsApi;
@@ -203,10 +204,7 @@ export function storyRelationTarget(item: StoryItem): PlanningRelationTarget {
         kind: 'MEMORY',
         label: item.memory.title,
         effectiveDate: item.effectiveDate,
-        attachment: item.memory.attachments?.find(
-          (attachment) =>
-            attachment.mediaType === 'IMAGE' && attachment.status === 'READY',
-        ),
+        attachment: galleryCover(item.memory),
       };
     case 'HEART_MOMENT':
       return {

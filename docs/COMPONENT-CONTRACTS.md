@@ -434,6 +434,18 @@ A shared component is ready when:
 
 Section anatomy is heading/action row followed by the content surface, under Product Reference v1's 2026-10-29 PO addendum. Keep the section heading outside the surface and use consistent spacing with adjacent modules. Personal content titles inside cards are a separate semantic role and remain with their content. Preserve semantic section/heading associations, reachable contextual actions, dynamic states, theme contrast, large-text wrapping and reduced motion. Decorative quote rules and extra heading/body gaps are not part of this contract.
 
+## Contextual Place actions
+
+`MomentPlaceActionsMenu` supplies the same named overflow trigger, pinned-map
+link, canonical Place navigation and confirmed removal for saved moment Places
+and an ordered editor draft. The caller owns authorization and removal
+persistence; an editor callback only changes the draft until its parent Save.
+The shared ShortTaskSheet owns modality, Back, focus restoration, reduced motion
+and navigation handoff. Pending removal prevents duplicate submission and exit;
+failure stays inline. Offline saved relations cannot be changed. A caller's
+navigation guard must protect dirty/pending work before invoking the supplied
+continuation. No map/provider request runs before an explicit external link.
+
 ## Selected photo gallery and inspector (#1586)
 
 `PhotoDraftGallery` owns presentation and local selection only. Callers own

@@ -61,7 +61,6 @@ jobs:
         run: >-
           npm run test:pr --
           --shard=${{ matrix.shard }}/4
-          --max-failures=1
           --output=test-results-pr-${{ matrix.shard }}
 
       - name: Upload PR failure diagnostics

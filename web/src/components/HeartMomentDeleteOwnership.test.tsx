@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import {
+  onlineManager,
   QueryClient,
   QueryClientProvider,
-  onlineManager,
 } from '@tanstack/react-query';
 import {
   act,
@@ -24,8 +24,8 @@ import type { HeartMomentDetail } from '../api/generated/models/HeartMomentDetai
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { ClientProblemError } from '../client/problemDetails';
 import type { ReferenceApis } from '../client/referenceFlow';
-import storyProducts from '../i18n/locales/storyProducts';
 import de from '../i18n/locales/de';
+import storyProducts from '../i18n/locales/storyProducts';
 import { HeartMomentProductPage } from './HeartMomentProductPage';
 
 vi.mock('../client/photoPlaces', async (original) => ({
@@ -563,11 +563,19 @@ describe('HeartMoment delete response ownership', () => {
 
   it('prevents a visibility write from the real detail while deletion is pending', async () => {
     const h = setup();
+    await userEvent
+      .setup()
+      .type(
+        screen.getByRole('textbox', { name: copy.textLabel }),
+        ' A later draft.',
+      );
     await h.submit();
     await userEvent
       .setup()
       .click(screen.getByRole('link', { name: copy.backToHeartMoment }));
-    const visibility = screen.getByRole('button', { name: copy.makePrivate });
+    const visibility = await screen.findByRole('button', {
+      name: copy.makePrivate,
+    });
     expect((visibility as HTMLButtonElement).disabled).toBe(true);
     await act(async () => fireEvent.click(visibility));
     expect(h.changeHeartMomentVisibility).not.toHaveBeenCalled();
@@ -584,7 +592,7 @@ describe('HeartMoment delete response ownership', () => {
       .click(screen.getByRole('link', { name: copy.backToHeartMoment }));
     await userEvent
       .setup()
-      .click(screen.getByRole('button', { name: copy.makePrivate }));
+      .click(await screen.findByRole('button', { name: copy.makePrivate }));
     await waitFor(() =>
       expect(h.changeHeartMomentVisibility).toHaveBeenCalledTimes(1),
     );

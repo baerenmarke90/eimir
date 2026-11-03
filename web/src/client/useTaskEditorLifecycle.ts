@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDocumentLeaveGuard } from './useDocumentLeaveGuard';
 import { useEditorHistoryEntry } from './useEditorHistoryEntry';
 import { useTaskActivation } from './useTaskActivation';
@@ -17,11 +17,15 @@ export function useTaskEditorLifecycle({
   onClose: () => void;
 }) {
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const requestedDestination = useRef<(() => void) | undefined>(undefined);
   const requestDiscard = useCallback(() => setShowDiscardConfirm(true), []);
-  const keepEditing = useCallback(() => setShowDiscardConfirm(false), []);
+  const keepEditing = useCallback(() => {
+    requestedDestination.current = undefined;
+    setShowDiscardConfirm(false);
+  }, []);
   const captureOwnership = useTaskActivation(isActive);
 
-  const closeConfirmed = useEditorHistoryEntry({
+  const closeHistory = useEditorHistoryEntry({
     isActive,
     isDirty,
     isCloseBlocked,
@@ -30,14 +34,32 @@ export function useTaskEditorLifecycle({
     onClose,
   });
 
-  const requestClose = useCallback(() => {
-    if (!isActive || isCloseBlocked) return;
-    if (isDirty) {
-      requestDiscard();
-      return;
-    }
-    closeConfirmed();
-  }, [closeConfirmed, isActive, isCloseBlocked, isDirty, requestDiscard]);
+  const closeConfirmed = useCallback(
+    (afterClose?: unknown) => {
+      const destination =
+        typeof afterClose === 'function'
+          ? afterClose
+          : requestedDestination.current;
+      requestedDestination.current = undefined;
+      setShowDiscardConfirm(false);
+      closeHistory(destination);
+    },
+    [closeHistory],
+  );
+
+  const requestClose = useCallback(
+    (afterClose?: unknown) => {
+      if (!isActive || isCloseBlocked) return;
+      requestedDestination.current =
+        typeof afterClose === 'function' ? () => afterClose() : undefined;
+      if (isDirty) {
+        requestDiscard();
+        return;
+      }
+      closeConfirmed();
+    },
+    [closeConfirmed, isActive, isCloseBlocked, isDirty, requestDiscard],
+  );
 
   useEffect(() => {
     if (!isActive) keepEditing();

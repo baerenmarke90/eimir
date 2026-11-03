@@ -12,7 +12,9 @@ Name | Type
 `capabilities` | [ResourceCapabilities](ResourceCapabilities.md)
 `createdAt` | Date
 `happenedOn` | Date
+`happenedUntil` | Date
 `id` | string
+`selectedCoverAttachmentId` | string
 `title` | string
 
 ## Example
@@ -27,7 +29,9 @@ const example = {
   "capabilities": null,
   "createdAt": null,
   "happenedOn": null,
+  "happenedUntil": null,
   "id": null,
+  "selectedCoverAttachmentId": null,
   "title": null,
 } satisfies MemorySummary
 

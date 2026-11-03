@@ -21,8 +21,7 @@ from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
-from eimir.attachments.binding import attachments_of_memories
-from eimir.attachments.models import AttachmentStatus, MediaType
+from eimir.attachments.binding import attachments_of_memories, cover_of
 from eimir.auth import rate_limit
 from eimir.config import get_settings
 from eimir.core.errors import ServiceUnavailableError
@@ -42,6 +41,7 @@ class MemoryMapEntry(ApiModel):
     memory_id: UUID
     title: str
     happened_on: date
+    happened_until: date | None = None
     place_id: UUID
     place_name: str
     latitude: float
@@ -77,16 +77,10 @@ def get_memory_map(
     result = list_memory_map(session, authorization, cursor=cursor, limit=limit)
     galleries = attachments_of_memories(session, [memory.id for memory, _ in result.items])
     previews = {
-        memory_id: next(
-            (
-                bound.attachment
-                for bound in gallery
-                if bound.attachment.status == AttachmentStatus.READY
-                and bound.attachment.media_type == MediaType.IMAGE
-            ),
-            None,
+        memory.id: cover_of(
+            galleries.get(memory.id, []), memory.payload.selected_cover_attachment_id
         )
-        for memory_id, gallery in galleries.items()
+        for memory, _ in result.items
     }
     entries = []
     for memory, place in result.items:
@@ -98,6 +92,7 @@ def get_memory_map(
                 memory_id=memory.id,
                 title=memory.payload.title,
                 happened_on=memory.happened_on or memory.created_at.astimezone(UTC).date(),
+                happened_until=memory.happened_until,
                 place_id=place.id,
                 place_name=place.payload.name,
                 latitude=float(place.latitude),

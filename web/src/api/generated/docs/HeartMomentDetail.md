@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `attachment` | [AttachmentSummary](AttachmentSummary.md)
+`attachments` | [Array&lt;OrderedAttachmentSummary&gt;](OrderedAttachmentSummary.md)
 `author` | [AuthorSummary](AuthorSummary.md)
 `authorId` | string
 `capabilities` | [ResourceCapabilities](ResourceCapabilities.md)
@@ -14,6 +15,7 @@ Name | Type
 `emotion` | [HeartEmotion](HeartEmotion.md)
 `happenedOn` | Date
 `id` | string
+`selectedCoverAttachmentId` | string
 `spaceId` | string
 `tags` | Array&lt;string&gt;
 `text` | string
@@ -29,6 +31,7 @@ import type { HeartMomentDetail } from ''
 // TODO: Update the object below with actual values
 const example = {
   "attachment": null,
+  "attachments": null,
   "author": null,
   "authorId": null,
   "capabilities": null,
@@ -36,6 +39,7 @@ const example = {
   "emotion": null,
   "happenedOn": null,
   "id": null,
+  "selectedCoverAttachmentId": null,
   "spaceId": null,
   "tags": null,
   "text": null,

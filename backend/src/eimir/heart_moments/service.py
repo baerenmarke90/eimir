@@ -22,7 +22,6 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
-from eimir.attachments import service as attachment_service
 from eimir.authorization import (
     AuthorizationContext,
     ContentVisibility,
@@ -40,6 +39,7 @@ from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, Validatio
 from eimir.create_receipts import service as create_receipts
 from eimir.create_receipts.models import CreateReceiptResourceType
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
+from eimir.heart_moments import media
 from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
 from eimir.heart_moments.tags import HeartMomentTags
 from eimir.outbox import service as outbox_service
@@ -132,10 +132,14 @@ def create_heart_moment(
     attachment_is_sensitive: bool | None = None,
     tags: HeartMomentTags | None = None,
     place_id: UUID | None = None,
+    attachments: media.MediaSelection | None = None,
+    selected_cover_attachment_id: UUID | None = None,
 ) -> HeartMoment:
     normalized_text = _normalize_text(text)
     selected_tags = tags if tags is not None else []
-    _require_content(normalized_text, selected_tags, attachment_id)
+    _require_content(
+        normalized_text, selected_tags, attachments[0][0] if attachments else attachment_id
+    )
     heart_moment = HeartMoment(
         space_id=context.space_id,
         owner_id=context.account_id,
@@ -143,11 +147,22 @@ def create_heart_moment(
         happened_on=happened_on,
         payload=HeartMomentPayload(text=normalized_text, emotion=emotion, tags=selected_tags),
     )
-    if attachment_id is not None:
+    if attachments is None and attachment_id is not None:
         _bind(session, context, heart_moment, attachment_id)
         _set_attachment_sensitive(session, context, heart_moment, attachment_is_sensitive)
     session.add(heart_moment)
     _flush(session)
+    if attachments is not None or selected_cover_attachment_id is not None:
+        media.replace(
+            session,
+            context,
+            heart_moment,
+            attachments
+            if attachments is not None
+            else ([(attachment_id, None)] if attachment_id else []),
+            selected_cover=selected_cover_attachment_id,
+            cover_supplied=True,
+        )
     if place_id is not None:
         from eimir.relations import service as relations
 
@@ -159,6 +174,7 @@ def create_heart_moment(
         attachment = session.get(Attachment, attachment_id)
         assert attachment is not None
         photo_locations.bind(session, context, heart_moment, [attachment], heart=True)
+    _flush(session)
     _record(
         session,
         heart_moment,
@@ -183,6 +199,8 @@ def create_heart_moment_once(
     attachment_is_sensitive: bool | None = None,
     tags: HeartMomentTags | None = None,
     place_id: UUID | None = None,
+    attachments: media.MediaSelection | None = None,
+    selected_cover_attachment_id: UUID | None = None,
 ) -> HeartMomentCreateResult:
     """Create a HeartMoment, or return the one an earlier request with this identity created.
 
@@ -203,12 +221,16 @@ def create_heart_moment_once(
             attachment_is_sensitive=attachment_is_sensitive,
             tags=tags,
             place_id=place_id,
+            attachments=attachments,
+            selected_cover_attachment_id=selected_cover_attachment_id,
         )
         return HeartMomentCreateResult(heart_moment, created=True)
 
     normalized_text = _normalize_text(text)
     selected_tags = tags if tags is not None else []
-    _require_content(normalized_text, selected_tags, attachment_id)
+    _require_content(
+        normalized_text, selected_tags, attachments[0][0] if attachments else attachment_id
+    )
     fingerprint_content: dict[str, Any] = {
         "text": normalized_text,
         "emotion": emotion.value,
@@ -224,6 +246,12 @@ def create_heart_moment_once(
         fingerprint_content["attachment_is_sensitive"] = attachment_is_sensitive
     if place_id is not None:
         fingerprint_content["place_id"] = str(place_id)
+    if attachments is not None:
+        fingerprint_content["attachments"] = [
+            (str(identifier), sensitive) for identifier, sensitive in attachments
+        ]
+    if selected_cover_attachment_id is not None:
+        fingerprint_content["selected_cover_attachment_id"] = str(selected_cover_attachment_id)
     request_fingerprint = create_receipts.fingerprint(_RECEIPT_RESOURCE_TYPE, fingerprint_content)
     receipt_id = create_receipts.claim(
         session,
@@ -258,6 +286,8 @@ def create_heart_moment_once(
         attachment_is_sensitive=attachment_is_sensitive,
         tags=selected_tags,
         place_id=place_id,
+        attachments=attachments,
+        selected_cover_attachment_id=selected_cover_attachment_id,
     )
     create_receipts.attach(session, receipt_id, heart_moment.id)
     return HeartMomentCreateResult(heart_moment, created=True)
@@ -284,6 +314,8 @@ def update_heart_moment(
     attachment_id: UUID | None = None,
     attachment_is_sensitive: bool | None = None,
     tags: HeartMomentTags | None = None,
+    attachments: media.MediaSelection | None = None,
+    selected_cover_attachment_id: UUID | None = None,
 ) -> HeartMoment:
     """Change content but explicitly not visibility.
 
@@ -309,18 +341,38 @@ def update_heart_moment(
     next_attachment_id = (
         attachment_id if "attachment_id" in changed_fields else heart_moment.attachment_id
     )
+    if "attachments" in changed_fields:
+        next_attachment_id = attachments[0][0] if attachments else None
     _require_content(next_text, next_tags, next_attachment_id)
     if "happened_on" in changed_fields:
         assert happened_on is not None
         heart_moment.happened_on = happened_on
 
     if {"text", "emotion", "tags"} & changed_fields:
-        heart_moment.payload = HeartMomentPayload(
-            text=next_text, emotion=next_emotion, tags=next_tags
+        heart_moment.payload = heart_moment.payload.model_copy(
+            update={"text": next_text, "emotion": next_emotion, "tags": next_tags}
         )
 
-    if "attachment_id" in changed_fields:
-        _rebind(session, context, heart_moment, attachment_id)
+    if "attachments" in changed_fields or "selected_cover_attachment_id" in changed_fields:
+        selection: media.MediaSelection = (
+            attachments
+            if attachments is not None
+            else [
+                (entry.attachment.id, None)
+                for entry in media.galleries(session, [heart_moment])[heart_moment.id]
+            ]
+        )
+        media.replace(
+            session,
+            context,
+            heart_moment,
+            selection,
+            selected_cover=selected_cover_attachment_id,
+            cover_supplied="selected_cover_attachment_id" in changed_fields,
+        )
+        heart_moment.updated_at = now()
+    elif "attachment_id" in changed_fields:
+        media.replace_primary(session, context, heart_moment, attachment_id)
 
     if "attachment_is_sensitive" in changed_fields:
         _set_attachment_sensitive(session, context, heart_moment, attachment_is_sensitive)
@@ -587,49 +639,6 @@ def _bind(
     )
     binding.ensure_unlinked(session, attachment_id, allow=("HEART_MOMENT", heart_moment.id))
     heart_moment.attachment_id = attachment_id
-
-
-def _rebind(
-    session: Session,
-    context: AuthorizationContext,
-    heart_moment: HeartMoment,
-    attachment_id: UUID | None,
-) -> None:
-    """Replace or detach an attachment.
-
-    A detached attachment loses its final reference and becomes immediately
-    invisible at the domain level under M2-D11; provider cleanup follows
-    asynchronously.
-    """
-    from eimir.attachments.models import Attachment
-
-    previous_id = heart_moment.attachment_id
-    if previous_id == attachment_id:
-        return
-
-    if previous_id is not None and heart_moment.owner_id != context.account_id:
-        previous = session.get(Attachment, previous_id)
-        if previous is not None and previous.owner_id != context.account_id:
-            from eimir.core.errors import ForbiddenError
-
-            raise ForbiddenError(
-                "Only the author may replace another author's photo.", "NOT_RESOURCE_OWNER"
-            )
-
-    if attachment_id is None:
-        heart_moment.attachment_id = None
-    else:
-        _bind(session, context, heart_moment, attachment_id)
-        from eimir.attachments import photo_locations
-
-        attachment = session.get(Attachment, attachment_id)
-        assert attachment is not None
-        photo_locations.bind(session, context, heart_moment, [attachment], heart=True)
-
-    if previous_id is not None:
-        detached = session.get(Attachment, previous_id)
-        if detached is not None:
-            attachment_service.mark_for_deletion(session, detached)
 
 
 def _set_attachment_sensitive(

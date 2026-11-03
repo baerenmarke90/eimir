@@ -372,9 +372,11 @@ export function useAttachmentDrafts({
       const accepted = selected.slice(0, remainingCapacity);
       setRejectedCount(selected.length - accepted.length);
 
+      const restoredIds: string[] = [];
       for (const { file, attachmentId, isSensitive } of accepted) {
         if (file.type.startsWith('video/')) retainPhotoInMemory(file);
         const id = globalThis.crypto.randomUUID();
+        restoredIds.push(id);
         const unavailable =
           selectedPhotoUnavailable(file) &&
           !(file.type.startsWith('video/') && attachmentId);
@@ -411,6 +413,7 @@ export function useAttachmentDrafts({
         });
         if (!attachmentId && !unavailable) enqueue(id, file);
       }
+      return restoredIds;
     },
     [enqueue, maxAttachments],
   );
@@ -607,6 +610,13 @@ export function useAttachmentDrafts({
     retry,
     clear,
     readyIds,
+    reorder: (ids: readonly string[]) =>
+      dispatch({
+        type: 'draft_action',
+        contextKey: committedContextKey.current,
+        generation: currentGeneration.current,
+        action: { type: 'reorder', ids },
+      }),
     setSensitive: (id: string, value: boolean) =>
       dispatch({
         type: 'draft_action',

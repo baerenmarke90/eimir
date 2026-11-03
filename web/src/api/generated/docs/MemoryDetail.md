@@ -14,7 +14,10 @@ Name | Type
 `createdAt` | Date
 `experienceKind` | [ExperienceKind](ExperienceKind.md)
 `happenedOn` | Date
+`happenedUntil` | Date
 `id` | string
+`placeIds` | Array&lt;string&gt;
+`selectedCoverAttachmentId` | string
 `spaceId` | string
 `tags` | Array&lt;string&gt;
 `title` | string
@@ -36,7 +39,10 @@ const example = {
   "createdAt": null,
   "experienceKind": null,
   "happenedOn": null,
+  "happenedUntil": null,
   "id": null,
+  "placeIds": null,
+  "selectedCoverAttachmentId": null,
   "spaceId": null,
   "tags": null,
   "title": null,

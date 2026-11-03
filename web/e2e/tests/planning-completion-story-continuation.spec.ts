@@ -520,7 +520,10 @@ test('Later dismisses the continuation and restores focus to stable Plan navigat
 }) => {
   await prepareScenario(page, visualScenarios[0]);
 
-  const backLink = page.getByRole('button', { name: m5s3.common.back });
+  const backLink = page.getByRole('button', {
+    name: taskBoundary.back,
+    exact: true,
+  });
   await page.getByRole('button', { name: m5s3.planStory.later }).click();
 
   await expect(

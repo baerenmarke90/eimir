@@ -53,6 +53,8 @@ def test_write_dtos_only_expose_approved_fields() -> None:
         "happenedOn",
         "attachmentId",
         "attachmentIsSensitive",
+        "attachments",
+        "selectedCoverAttachmentId",
         "tags",
         "placeId",
     }
@@ -66,6 +68,8 @@ def test_write_dtos_only_expose_approved_fields() -> None:
         "happenedOn",
         "attachmentId",
         "attachmentIsSensitive",
+        "attachments",
+        "selectedCoverAttachmentId",
         "tags",
     }
     assert update["additionalProperties"] is False
@@ -87,12 +91,13 @@ def test_privacy_class_is_never_a_client_field() -> None:
         assert "privacyClass" not in components[name]["properties"]
 
 
-def test_heart_moment_detail_projects_its_single_attachment() -> None:
-    """At most one attachment (M2-D03), therefore one field rather than a list."""
+def test_heart_moment_detail_projects_compatible_primary_and_ordered_gallery() -> None:
+    """#1618 adds the gallery without removing the legacy primary field."""
     components = _schema()["components"]["schemas"]  # type: ignore[index]
     detail = components["HeartMomentDetail"]
     assert "attachment" in detail["properties"]
-    assert "attachments" not in detail["properties"]
+    assert "attachments" in detail["properties"]
+    assert "selectedCoverAttachmentId" in detail["properties"]
     assert {"id", "spaceId", "authorId", "text", "emotion", "visibility", "version"} <= set(
         detail["properties"]
     )

@@ -99,6 +99,13 @@ If a Playwright shard fails, the workflow additionally uploads that shard's comp
 
 ### Targeted retries
 
+PR shards collect all test failures instead of stopping at the first failed
+case. Before pushing corrections, inspect every failed job and run the complete
+affected groups locally where supported. Fix the collected causes together;
+do not start another hosted attempt after each individual test correction.
+Assertions, test timeouts, required coverage and failure propagation remain
+unchanged.
+
 After inspecting a failure, use **Re-run jobs → Re-run failed jobs** for a
 transient failure on the same revision, or `gh run rerun RUN_ID --failed --repo
 baerenmarke90/eimir`. GitHub reruns failed jobs and their dependent jobs,

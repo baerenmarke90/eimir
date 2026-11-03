@@ -1,11 +1,3 @@
-import { ListEntryIconButton } from './ListEntryActions';
-import {
-  type FormEvent,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
 import {
   onlineManager,
   useIsMutating,
@@ -13,63 +5,70 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import {
+  type FormEvent,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanUpdate } from '../api/generated/models/PlanUpdate';
-import { createReferenceApis } from '../client/referenceFlow';
-import { planPhotos, usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
-import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
-import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { Configuration } from '../client/apiConfiguration';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import { invalidateDashboard } from '../client/dashboardQueries';
-import {
-  ClientProblemError,
-  normalizeClientError,
-} from '../client/problemDetails';
 import { formatCalendarDate } from '../client/formatRecency';
-import { appRoutePath } from '../client/routes';
 import {
   planScheduleLabel,
   planStatusWord,
 } from '../client/planningPresentation';
 import {
+  ClientProblemError,
+  normalizeClientError,
+} from '../client/problemDetails';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { createReferenceApis } from '../client/referenceFlow';
+import { appRoutePath, placeDetailPath } from '../client/routes';
+import {
   dateFromInput,
   dateOnlyInput,
-  localDateTimeInput,
-  localCalendarDateInput,
   loadAllPlaces,
+  localCalendarDateInput,
+  localDateTimeInput,
   planningIfMatch,
   planScheduleDateInput,
   planScheduleFromInputs,
   planScheduleTimeInput,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
-import { useTranslation } from '../i18n';
 import { useTaskOrigin } from '../client/taskOrigin';
-import { PageHeader } from './PageHeader';
-import { PlanWishLink } from './PlanWishLink';
-import { PlanCalendarAction } from './PlanCalendarAction';
-import { PlanScheduleFields } from './PlanScheduleFields';
-import { PlanStoryContinuation } from './PlanStoryContinuation';
-import { PreferenceSwitch } from './PreferenceSwitch';
-import { PlanPhotoGallery } from './PlanPhotoGallery';
-import { PlanPhotosEditor } from './PlanPhotosEditor';
-import { PlaceMapPicker, type PlaceMapSelection } from './PlaceMapPicker';
-import {
-  usePlanningEditorLifecycle,
-  PlanningDiscardConfirmation,
-} from './PlanningEditorLifecycle';
-import { placeDetailPath } from '../client/routes';
-import { Link } from 'react-router-dom';
-import { ProblemState } from './ProblemState';
-import { usePlanCompletion } from './usePlanCompletion';
-import { UiState } from './UiState';
-import { ShortTaskSheet } from './ShortTaskSheet';
+import { planPhotos, usePlanPhotoDrafts } from '../client/usePlanPhotoDrafts';
+import { useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
 import { EimirIcon } from './EimirIcon';
 import { ExpandableDescription } from './ExpandableDescription';
-import { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
-import { Configuration } from '../client/apiConfiguration';
+import { ListEntryIconButton } from './ListEntryActions';
+import { PageHeader } from './PageHeader';
+import { PlaceMapPicker, type PlaceMapSelection } from './PlaceMapPicker';
+import { PlanCalendarAction } from './PlanCalendarAction';
+import {
+  PlanningDiscardConfirmation,
+  usePlanningEditorLifecycle,
+} from './PlanningEditorLifecycle';
+import { PlanPhotoGallery } from './PlanPhotoGallery';
+import { PlanPhotosEditor } from './PlanPhotosEditor';
+import { PlanScheduleFields } from './PlanScheduleFields';
+import { PlanStoryContinuation } from './PlanStoryContinuation';
+import { PlanWishLink } from './PlanWishLink';
+import { PreferenceSwitch } from './PreferenceSwitch';
+import { ProblemState } from './ProblemState';
+import { ShortTaskSheet } from './ShortTaskSheet';
+import { TaskBackButton } from './TaskBackButton';
+import { UiState } from './UiState';
+import { usePlanCompletion } from './usePlanCompletion';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
 
@@ -98,7 +97,7 @@ export function PlanProductPage({
   const { planId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const { requestReturn } = useTaskOrigin();
   const taskState = location.state as { taskOriginKey?: unknown } | null;
   const originKey = taskState?.taskOriginKey;
   const queryClient = useQueryClient();
@@ -355,7 +354,12 @@ export function PlanProductPage({
                 ) ?? null,
             }
           : {}),
-        ...(photosChanged ? { attachments: photos.entries } : {}),
+        ...(photosChanged
+          ? {
+              attachments: photos.entries,
+              selectedCoverAttachmentId: photos.selectedCoverAttachmentId,
+            }
+          : {}),
       },
     });
   }
@@ -398,21 +402,13 @@ export function PlanProductPage({
       ) : null}
       <PageHeader
         before={
-          <button
-            type="button"
-            className="back-link tertiary"
+          <TaskBackButton
             onClick={() =>
               isEditing
                 ? editorLifecycle.requestClose()
                 : requestReturn(originKey, `${appRoutePath('plan')}#plans`)
             }
-          >
-            {t(
-              resolveOrigin(originKey)
-                ? 'taskBoundary.back'
-                : 'm5s3.common.back',
-            )}
-          </button>
+          />
         }
         title={plan.title}
         titleEditor={
@@ -443,7 +439,7 @@ export function PlanProductPage({
                   setEditingPlan(plan);
                   setIsEditing(true);
                   setEditDirty(false);
-                  photos.load(planPhotos(plan));
+                  photos.load(planPhotos(plan), plan.selectedCoverAttachmentId);
                   setPhotosChanged(false);
                   setAnticipation(plan.anticipationEnabled ?? false);
                   setSelectedPlaceId(plan.placeId ?? '');

@@ -11,7 +11,7 @@ from uuid import UUID
 from sqlalchemy import ColumnElement, func, literal, select, tuple_, union_all
 from sqlalchemy.orm import Session
 
-from eimir.attachments.binding import MemoryAttachment
+from eimir.attachments.binding import HeartMomentAttachment, MemoryAttachment
 from eimir.attachments.models import Attachment, AttachmentStatus, MediaType
 from eimir.authorization import AuthorizationContext, PrivacyClass, readable
 from eimir.core import cursor as cursor_codec
@@ -108,13 +108,25 @@ def read_shared_photos(
     # Shared-only is stricter than the viewer-authorized timeline, even for
     # the owner. Bindings, not Attachment.owner_account_id, grant photo reads.
     legs = []
-    for model, rank in ((Memory, 1), (HeartMoment, 2)):
+    for model, rank, supplemental in (
+        (Memory, 1, False),
+        (HeartMoment, 2, False),
+        (HeartMoment, 2, True),
+    ):
         statement = readable(model, context).where(model.privacy_class == PrivacyClass.SPACE_SHARED)
         if model is Memory:
             statement = statement.join(MemoryAttachment, MemoryAttachment.memory_id == model.id)
             statement = statement.join(Attachment, Attachment.id == MemoryAttachment.attachment_id)
             # Negate position so one descending tuple preserves parent order.
             position: ColumnElement[int] = -MemoryAttachment.position
+        elif supplemental:
+            statement = statement.join(
+                HeartMomentAttachment, HeartMomentAttachment.heart_moment_id == model.id
+            )
+            statement = statement.join(
+                Attachment, Attachment.id == HeartMomentAttachment.attachment_id
+            )
+            position = -HeartMomentAttachment.position
         else:
             statement = statement.join(Attachment, Attachment.id == HeartMoment.attachment_id)
             position = literal(0)

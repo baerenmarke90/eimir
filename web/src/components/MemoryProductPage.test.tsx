@@ -8,14 +8,14 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom';
-import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
-import photoPlaces from '../i18n/locales/photoPlaces';
+import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import de from '../i18n/locales/de';
 import memoryProduct from '../i18n/locales/memoryProduct';
+import photoPlaces from '../i18n/locales/photoPlaces';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 import { MemoryProductPage } from './MemoryProductPage';
@@ -148,8 +148,7 @@ describe('Memory editor return context', () => {
       fireEvent.click(screen.getByText('Edit selected Memory'));
       fireEvent.click(
         screen.getByRole('link', {
-          name:
-            exit === 'cancel' ? de.common.cancel : memoryProduct.backToMemory,
+          name: exit === 'cancel' ? de.common.cancel : taskBoundary.back,
         }),
       );
       fireEvent.click(

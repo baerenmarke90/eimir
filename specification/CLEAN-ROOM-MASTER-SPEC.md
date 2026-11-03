@@ -717,6 +717,9 @@ Memory:
 - title
 - body
 - happenedOn?
+- happenedUntil? (inclusive calendar date; requires happenedOn)
+- selectedCoverAttachmentId?
+- placeIds[] (ordered typed Place relations)
 - createdAt
 - updatedAt
 - version
@@ -738,6 +741,14 @@ Functions:
 
 Store the Domain event date separately from the creation timestamp.
 
+PO extension #1618 (2026-11-03): a Memory may span an inclusive calendar period.
+Year/month discovery and recap eligibility use interval overlap and count the Memory once per result.
+Chronological order retains its start date. Several ordered existing Place relations describe trip stops, without inferring a route or precise visit times.
+The optional display cover is independent of binding order: null means the current first medium; removal of the chosen medium restores null.
+The shared mobile arrangement subtask applies only to the parent draft until Save.
+HeartMoments use the same bounded 20-media/500 MiB gallery lifecycle while retaining owner-only privacy and backward-compatible primary attachment reads.
+Plans retain image-only galleries. Device photos and these authoring controls remain Core; existing video and external-source capabilities still apply.
+
 Authorship matters.
 
 Base rule:
@@ -758,7 +769,9 @@ HeartMoment:
 - emotion
 - visibility
 - happenedOn
-- attachmentId?
+- attachmentId? (legacy position zero)
+- attachments[] (ordered gallery)
+- selectedCoverAttachmentId?
 - createdAt
 - updatedAt
 - version

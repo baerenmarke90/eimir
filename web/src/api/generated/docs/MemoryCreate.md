@@ -9,7 +9,9 @@ Name | Type
 `body` | string
 `experienceKind` | [ExperienceKind](ExperienceKind.md)
 `happenedOn` | Date
+`happenedUntil` | Date
 `placeId` | string
+`placeIds` | Array&lt;string&gt;
 `tags` | Array&lt;string&gt;
 `title` | string
 
@@ -23,7 +25,9 @@ const example = {
   "body": null,
   "experienceKind": null,
   "happenedOn": null,
+  "happenedUntil": null,
   "placeId": null,
+  "placeIds": null,
   "tags": null,
   "title": null,
 } satisfies MemoryCreate

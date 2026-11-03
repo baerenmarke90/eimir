@@ -80,7 +80,7 @@ async function tabToElement(page: Page, id: string): Promise<void> {
   throw new Error(`Keyboard focus did not reach #${id}.`);
 }
 
-async function expectKeyboardFilePicker(page: Page, id: string): Promise<void> {
+async function expectKeyboardFilePicker(page: Page): Promise<void> {
   const trigger = page.getByRole('button', {
     name: photoSources.addMedia,
     exact: true,
@@ -92,7 +92,10 @@ async function expectKeyboardFilePicker(page: Page, id: string): Promise<void> {
     exact: true,
   });
   await expect(sourceSheet).toBeVisible();
-  const input = page.locator(`#${id}`);
+  const input = sourceSheet.locator('input[type="file"]');
+  await expect(input).toHaveCount(1);
+  const id = await input.getAttribute('id');
+  if (!id) throw new Error('The device file input needs a label target.');
   await expect(input).toBeEnabled();
   await expectHiddenGeometry(input);
   await expect(input).not.toHaveAccessibleName('');
@@ -317,7 +320,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       page.getByRole('heading', { name: de.memory.heading }),
     ).toBeVisible();
     await page.setViewportSize(VIEWPORTS[1]);
-    await expectKeyboardFilePicker(page, 'memory-create-images');
+    await expectKeyboardFilePicker(page);
 
     for (const viewport of VIEWPORTS) {
       await page.setViewportSize(viewport);
@@ -332,7 +335,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       }),
     ).toBeVisible();
     await page.setViewportSize(VIEWPORTS[1]);
-    await expectKeyboardFilePicker(page, 'heart-moment-edit-photo');
+    await expectKeyboardFilePicker(page);
 
     for (const viewport of VIEWPORTS) {
       await page.setViewportSize(viewport);

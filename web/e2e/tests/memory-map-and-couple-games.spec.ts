@@ -1,12 +1,12 @@
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
-import taskCopy from '../../src/i18n/locales/taskBoundary';
+import { expect, type Page, test } from '@playwright/test';
+import calendarCopy from '../../src/i18n/locales/calendarPlan';
 import experienceCopy from '../../src/i18n/locales/coupleExperiences';
 import de from '../../src/i18n/locales/de';
-import calendarCopy from '../../src/i18n/locales/calendarPlan';
 import gameCopy from '../../src/i18n/locales/games';
 import mapCopy from '../../src/i18n/locales/memoryMap';
+import taskCopy from '../../src/i18n/locales/taskBoundary';
 import {
   ACCOUNT_ID,
   captureScreenshot,
@@ -101,17 +101,32 @@ for (const [width, theme] of [
       }),
     );
     await signIn(page);
-    await page.evaluate(() => document.fonts.ready);
     const storyTabs = page.getByRole('tablist', {
       name: de.story.viewToggleAria,
     });
+    await expect(storyTabs).toBeVisible();
+    const discoverTab = storyTabs.getByRole('tab', {
+      name: de.story.tabDiscover,
+      exact: true,
+    });
+    await discoverTab.click();
+    await expect(discoverTab).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#momente-panel-discover')).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
     const discoverBounds = await storyTabs.boundingBox();
-    await page
-      .getByRole('tab', { name: de.story.tabTimeline, exact: true })
-      .click();
+    const diaryTab = storyTabs.getByRole('tab', {
+      name: de.story.tabTimeline,
+      exact: true,
+    });
+    await diaryTab.click();
+    await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#momente-panel-timeline')).toBeVisible();
     const diaryBounds = await storyTabs.boundingBox();
     await page.getByRole('tab', { name: mapCopy.entry }).click();
-    await expect(page.getByRole('tab', { name: mapCopy.entry })).toBeVisible();
+    await expect(
+      page.getByRole('tab', { name: mapCopy.entry }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#momente-panel-map')).toBeVisible();
     const mapBounds = await storyTabs.boundingBox();
     if (!discoverBounds || !diaryBounds || !mapBounds)
       throw new Error('All peer-view navigation bounds must be measurable');

@@ -1,16 +1,18 @@
-import photoSources from '../../src/i18n/locales/photoSources';
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { captureScreenshot } from '../support/storyTimelineFixture';
 import { readFile, writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
+import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { fulfillEmptyMomentPlaces } from '../support/photoSources';
+import {
+  fulfillEmptyMomentPlaces,
+  fulfillUnconfiguredPhotoSources,
+} from '../support/photoSources';
+import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -717,7 +719,20 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(actions).toBeVisible();
 
       // The photo is intentionally prominent in #862 but remains optional.
+      const mediaTrigger = page.getByRole('button', {
+        name: photoSources.addMedia,
+        exact: true,
+      });
+      await mediaTrigger.click();
+      const mediaSheet = page.getByRole('dialog', {
+        name: photoSources.addMedia,
+        exact: true,
+      });
+      await expect(mediaSheet).toBeVisible();
       await expect(photoInput).not.toHaveAttribute('required', '');
+      await page.keyboard.press('Escape');
+      await expect(mediaSheet).not.toBeVisible();
+      await expect(mediaTrigger).toBeFocused();
 
       // Preserve the existing product default while making the choice explicit.
       await expect(sharedRadio).toBeChecked();

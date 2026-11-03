@@ -127,6 +127,27 @@ independent security review and real-provider/device acceptance remain in
   Local browser fixtures are synthetic; no real Immich account or
   physical Pixel acceptance is claimed. Google remains unavailable.
 
+The later Google-excluded revision repeated the API 36 host-emulator loss
+while playing the selected video (`bad color buffer handle 667` with Emulator
+37.2.13; ADB then reports no emulator). The documented
+[Android Chromium graphics workaround](https://developer.android.com/studio/run/emulator-troubleshooting#cannot_open_webpage_correctly)
+was tried only on this CI lane; disabling Vulkan was confirmed in emulator.log
+but did not prevent the same host-process loss (`bad color buffer handle 740`).
+Remove that ineffective flag and pin only this lane to the preceding stable
+Emulator 37.2.12 from the [official archive](https://developer.android.com/studio/emulator_archive),
+with its published SHA-256 and a runtime version assertion. Install it separately
+from the SDK-managed engine. API 28 and 37.1 keep the current engine; both passed
+on `97568753`. Capture host-emulator exit status and version alongside existing
+diagnostics. A 37.2.13 host resource-lifetime regression is a working hypothesis,
+not an app crash diagnosis; the release notes identify changes in that area.
+No product runtime or acceptance assertion changes. Real gallery confirmation,
+exact consent-specific SHA-256, repeated File reads, deliberate Play, decoded
+frame, dimensions and seek remain required. A fresh commit receives fresh CI.
+API 37.1 separately lost its instrumentation process to Android's low-memory
+killer during first-boot work, before any test began. Its targeted retry request
+was deferred because sibling jobs were still running; the necessary API 36
+workflow change instead starts new exact-head checks.
+
 Runtime images are in [evidence](evidence/README.md). The generated preflight
 above does not stand in for those implementation captures.
 

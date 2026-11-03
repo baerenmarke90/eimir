@@ -82,6 +82,21 @@ jobs:
             --package 'system-images;${{ matrix.image }};${{ matrix.tag }};x86_64'
           test -s "$ANDROID_AVD_HOME/eimir-launcher.ini"
           sudo setfacl -m "u:$USER:rw" /dev/kvm
+          emulator_binary="$ANDROID_HOME/emulator/emulator"
+          if [ '${{ matrix.api }}' = '36' ]; then
+            # Keep the preceding stable host engine while investigating 37.2.13's
+            # repeatable color-buffer/process loss during selected-video playback.
+            # Archive and SHA-256: https://developer.android.com/studio/emulator_archive
+            emulator_archive="$RUNNER_TEMP/emulator-linux_x64-16428233.zip"
+            curl --fail --location --proto '=https' --proto-redir '=https' \
+              https://redirector.gvt1.com/edgedl/android/repository/emulator-linux_x64-16428233.zip \
+              --output "$emulator_archive"
+            printf '%s  %s\n' b08fc43d8608d2955f607f1b287beb525041e730086bdca3af152accac3af9c1 "$emulator_archive" \
+              | sha256sum --check --status
+            unzip -q "$emulator_archive" -d "$RUNNER_TEMP/eimir-api36-emulator"
+            emulator_binary="$RUNNER_TEMP/eimir-api36-emulator/emulator/emulator"
+          fi
+          printf 'EIMIR_EMULATOR_BINARY=%s\n' "$emulator_binary" >> "$GITHUB_ENV"
       - name: Build, lint and test the Android adapter
         working-directory: android
         run: |
@@ -93,10 +108,19 @@ jobs:
         run: |
           export PATH="$ANDROID_HOME/platform-tools:$PATH"
           free -m | tee host-memory.log
-          "$ANDROID_HOME/emulator/emulator" -list-avds | grep -Fx eimir-launcher
-          "$ANDROID_HOME/emulator/emulator" -avd eimir-launcher -no-window \
-            -no-audio -no-snapshot -no-boot-anim -gpu swiftshader -memory ${{ matrix.memory }} -partition-size 2048 \
-            > emulator.log 2>&1 &
+          "$EIMIR_EMULATOR_BINARY" -version | tee emulator-version.log
+          if [ '${{ matrix.api }}' = '36' ]; then
+            grep -E '^Android emulator version 37\.2\.12([. ]|$)' emulator-version.log
+          fi
+          "$EIMIR_EMULATOR_BINARY" -list-avds | grep -Fx eimir-launcher
+          (
+            set +e
+            "$EIMIR_EMULATOR_BINARY" -avd eimir-launcher -no-window \
+              -no-audio -no-snapshot -no-boot-anim -gpu swiftshader \
+              -memory ${{ matrix.memory }} -partition-size 2048 > emulator.log 2>&1
+            emulator_status=$?
+            printf 'Emulator exited with status %s\n' "$emulator_status" > emulator-exit.log
+          ) &
           timeout 180 adb wait-for-device
           for attempt in $(seq 1 120); do
             boot=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
@@ -220,6 +244,8 @@ jobs:
             android/app/build/reports/
             android/app/build/outputs/androidTest-results/
             android/emulator.log
+            android/emulator-version.log
+            android/emulator-exit.log
             android/host-memory.log
             android/guest-memory-before-tests.log
             android/instrumentation.log

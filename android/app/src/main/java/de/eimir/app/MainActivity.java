@@ -119,7 +119,11 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onNewIntent(Intent intent) {
-        if (recoveringRenderer && intent != null) pendingRendererIntent = new Intent(intent);
+        if (recoveringRenderer && intent != null) {
+            pendingRendererIntent = new Intent(intent);
+            // Also retain delivery between scheduling recreation and the actual relaunch.
+            setIntent(pendingRendererIntent);
+        }
         super.onNewIntent(intent);
     }
 

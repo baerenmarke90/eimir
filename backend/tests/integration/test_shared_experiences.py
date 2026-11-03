@@ -104,6 +104,7 @@ def test_share_replay_partner_dashboard_and_single_generic_push(
         assert first.status_code == 201, first.text
         replay = client.post(path(actors), json=body(kind), headers=headers)
         assert replay.status_code == 200 and replay.json()["id"] == first.json()["id"]
+        assert replay.headers["etag"] == first.headers["etag"]
         identifier = UUID(first.json()["id"])
         events = list(
             session.scalars(select(OutboxEvent).where(OutboxEvent.subject_id == identifier))
@@ -149,7 +150,7 @@ def test_share_replay_partner_dashboard_and_single_generic_push(
         assert (
             client.delete(
                 path(actors) + f"/{identifier}",
-                headers={**auth(actors["token_a"]), "If-Match": "1"},
+                headers={**auth(actors["token_a"]), "If-Match": first.headers["etag"]},
             ).status_code
             == 204
         )

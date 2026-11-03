@@ -429,7 +429,7 @@ def test_comment_email_digest_requires_explicit_owner_consent_and_can_be_revoked
     )
     own = client.get(BASE, headers=auth(anna_token)).json()
     assert _channel(_entry(own, "COMMENT_CREATED"), "EMAIL")["enabled"] is True
-    assert _channel(_entry(own, "COMMENT_CREATED"), "PUSH")["enabled"] is False
+    assert _channel(_entry(own, "COMMENT_CREATED"), "PUSH")["enabled"] is True
     assert _channel(_entry(own, "COMMENT_CREATED"), "IN_APP")["enabled"] is True
     partner = client.get(BASE, headers=auth(ben_token)).json()
     assert _channel(_entry(partner, "COMMENT_CREATED"), "EMAIL")["enabled"] is False

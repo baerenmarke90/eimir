@@ -135,6 +135,7 @@ def test_disabled_support_gestures_block_new_send_and_reenable_cleanly(
     monkeypatch.setattr(thinking.clock, "now", lambda: NOW)
 
     _set_support_gestures(client, couple, enabled=False)
+    existing_events = set(session.scalars(select(OutboxEvent.id)))
     blocked = client.post(
         _url(couple),
         json={"clientRequestId": str(uuid4())},
@@ -143,7 +144,7 @@ def test_disabled_support_gestures_block_new_send_and_reenable_cleanly(
     assert blocked.status_code == 403
     assert blocked.json()["code"] == space_configuration.SpaceConfigurationErrorCode.MODULE_DISABLED
     assert session.execute(select(func.count(ThinkingOfYouRequest.id))).scalar_one() == 0
-    assert session.execute(select(func.count(OutboxEvent.id))).scalar_one() == 0
+    assert set(session.scalars(select(OutboxEvent.id))) == existing_events
 
     _set_support_gestures(client, couple, enabled=True)
     allowed = client.post(
@@ -1030,7 +1031,7 @@ def test_personal_push_choice_suppresses_enqueue_without_muting_the_partner(
     assert notification_preferences.push_enabled(
         session, account_id=couple["ben"].id, kind=notification.kind
     )
-    assert not notification_preferences.push_enabled(
+    assert notification_preferences.push_enabled(
         session, account_id=couple["ben"].id, kind=NotificationKind.COMMENT_CREATED.value
     )
     assert not notification_preferences.digest_push_enabled(

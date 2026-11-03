@@ -19,14 +19,18 @@ import android.os.Build;
 import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.view.KeyEvent;
-import android.view.InputDevice;
-import android.view.MotionEvent;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.webkit.WebChromeClient.FileChooserParams;
 import android.webkit.WebView;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.uiautomator.By;
+import androidx.test.uiautomator.BySelector;
+import androidx.test.uiautomator.UiDevice;
+import androidx.test.uiautomator.UiObject2;
+import androidx.test.uiautomator.UiObject2Ext;
+import androidx.test.uiautomator.Until;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -390,24 +394,25 @@ public class PhotoFileChooserTest {
         if (PhotoFileChooser.supportsPickerMetadata()) {
             // This is the actual SDK-extension-23 picker consent, not a shell
             // grant of ACCESS_MEDIA_LOCATION or an original-URI override.
-            AccessibilityNodeInfo includeLocation = findDocument("Include location");
             captureNativeDiagnostics("native-photo-location-consent");
+            AccessibilityNodeInfo includeLocation = findDocument("Include location");
             assertNotNull("The system picker asks to include the selected photos' location", includeLocation);
-            tapNativeControl(includeLocation);
+            activateStableNativeControl(includeLocation);
         }
         // Match the actual diary input's complete MIME list and multiple mode.
-        AccessibilityNodeInfo document = findDocument(token);
         captureNativeDiagnostics("native-photo-picker");
+        AccessibilityNodeInfo document = findDocument(token);
         assertNotNull("The real Android photo picker exposes the foreign-owned fixture", document);
-        tapNativeControl(document);
-        // SDK-extension-23 pickers label the final selection action "Done";
-        // older system photo pickers use "Add". Both are explicit confirmation.
-        String confirmLabel = PhotoFileChooser.supportsPickerMetadata() ? "Done" : "Add";
-        AccessibilityNodeInfo confirm = findDocument(confirmLabel);
+        activateStableNativeControl(document);
+        // Picker UI updates independently of the metadata SDK extension. Both
+        // deployed implementations require an explicit native confirmation.
         captureNativeDiagnostics("native-photo-confirmation");
-        assertNotNull("The system picker requires explicit selection confirmation: " + confirmLabel,
+        AccessibilityNodeInfo confirm = findDocument("Done", "Add");
+        assertNotNull("The system picker requires explicit selection confirmation",
             confirm);
-        tapNativeControl(confirm);
+        assertTrue("The confirmation belongs to the native photo picker",
+            isSystemPhotoPicker(confirm.getPackageName()));
+        activateStableNativeControl(confirm);
         byte[] uploadedBytes = selectedFileBytes(view);
         java.nio.file.Files.write(new File(context.getFilesDir(), "native-selected-photo.jpg").toPath(), uploadedBytes);
         assertArrayEquals("The existing Web File intake receives the original bytes",
@@ -488,16 +493,21 @@ public class PhotoFileChooserTest {
                 catch (Exception failure) { throw new AssertionError(failure); }
             }, event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && isSystemVideoPicker(event.getPackageName()), 15000);
+        // Screenshots synchronize native surfaces and can replace accessibility nodes.
+        // Acquire the control only after recording, immediately before its tap.
+        captureNativeDiagnostics("native-video-picker");
         AccessibilityNodeInfo selected = findDocument("Video taken");
         assertNotNull("The system video gallery exposes the foreign-owned video", selected);
-        captureNativeDiagnostics("native-video-picker");
-        tapNativeControl(selected);
-        // Match the actual multiple-video input and complete the platform's
-        // deliberate confirmation, including the extension-23 gallery's Done.
-        String confirmLabel = PhotoFileChooser.supportsPickerMetadata() ? "Done" : "Add";
-        AccessibilityNodeInfo confirm = findDocument(confirmLabel);
-        assertNotNull("The video gallery requires explicit confirmation: " + confirmLabel, confirm);
-        tapNativeControl(confirm);
+        activateStableNativeControl(selected);
+        // The Compose picker can expose Done before metadata extension 23.
+        // Observe the real selection action instead of inferring its UI label
+        // from an unrelated platform capability.
+        captureNativeDiagnostics("native-video-confirmation");
+        AccessibilityNodeInfo confirm = findDocument("Done", "Add");
+        assertNotNull("The video gallery requires explicit confirmation", confirm);
+        assertTrue("The confirmation belongs to the native video picker",
+            isSystemVideoPicker(confirm.getPackageName()));
+        activateStableNativeControl(confirm);
         byte[] bytes = selectedFileBytes(view);
         assertTrue("Chromium receives video bytes", bytes.length > 0);
         assertEquals("true", javascriptValue(view, "window.videoRepeatedReads===true"));
@@ -568,7 +578,11 @@ public class PhotoFileChooserTest {
             Rect bounds = new Rect();
             node.getBoundsInScreen(bounds);
             hierarchy.append(bounds).append(" | ").append(node.getViewIdResourceName()).append(" | ")
-                .append(node.getText()).append(" | ").append(node.getContentDescription()).append('\n');
+                .append(node.getText()).append(" | ").append(node.getContentDescription())
+                .append(" | enabled=").append(node.isEnabled())
+                .append(" | selected=").append(node.isSelected())
+                .append(" | clickable=").append(node.isClickable())
+                .append(" | package=").append(node.getPackageName()).append('\n');
             for (int i = 0; i < node.getChildCount(); i++) {
                 AccessibilityNodeInfo child = node.getChild(i);
                 if (child != null) nodes.add(child);
@@ -661,13 +675,38 @@ public class PhotoFileChooserTest {
         return result.get();
     }
 
-    private void tapNativeControl(AccessibilityNodeInfo document) throws Exception {
-        // Consent banners and diagnostic screenshots can move a previously found node.
-        assertTrue("The identified system control is still attached", document.refresh());
-        assertTrue("The identified document is visible", document.isVisibleToUser());
-        Rect bounds = new Rect();
-        document.getBoundsInScreen(bounds);
-        tapScreenBounds(bounds);
+    private void activateStableNativeControl(AccessibilityNodeInfo document) throws Exception {
+        // Resolve the same system control through the cross-app test framework.
+        // A visible Compose node can precede its stable layout and touch target.
+        BySelector selector = By.pkg(document.getPackageName().toString());
+        CharSequence text = document.getText();
+        CharSequence description = document.getContentDescription();
+        if (text != null) selector.text(text.toString());
+        else {
+            assertNotNull("The identified system control has a label", description);
+            selector.desc(description.toString());
+        }
+        UiDevice device = UiDevice.getInstance(instrumentation);
+        UiObject2 control = device.wait(Until.findObject(selector), 10000);
+        assertNotNull("The identified system control remains available", control);
+        assertFalse("The system control's hierarchy and pixels become stable",
+            UiObject2Ext.waitForStable(control, 3000, 500, 50, true).isTimeout());
+        // Stability screenshots can replace accessibility nodes. Reacquire before
+        // resolving the system control's actual action owner.
+        control = device.findObject(selector);
+        assertNotNull("The stable system control remains attached", control);
+        assertTrue("The stable system control is enabled", control.isEnabled());
+        Rect bounds = control.getVisibleBounds();
+        assertFalse("The stable system control is visible", bounds.isEmpty());
+        // Compose exposes the media description on a non-clickable image child.
+        // Reuse the existing native selection action on its actionable ancestor,
+        // rather than making external picker selection depend on renderer-delayed
+        // touch injection. WebView input and playback still use real native taps.
+        AccessibilityNodeInfo fresh = findDocument((text != null ? text : description).toString());
+        assertNotNull("The stable system control has a fresh accessibility node", fresh);
+        assertEquals("The fresh control belongs to the identified system picker",
+            document.getPackageName(), fresh.getPackageName());
+        activateNativeControl(fresh);
     }
 
     private void activateNativeControl(AccessibilityNodeInfo control) {
@@ -692,29 +731,18 @@ public class PhotoFileChooserTest {
 
     private void tapScreenBounds(Rect bounds) throws Exception {
         assertFalse("The identified document has touch bounds", bounds.isEmpty());
-        // Public UiAutomation input waits for platform window/surface transitions.
-        // Queue one tap without an Espresso down/up idle gap becoming a long press.
-        // Match Android's tap event timestamps; no sleep or gesture retry is needed.
-        long now = SystemClock.uptimeMillis();
-        MotionEvent down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN,
-            bounds.centerX(), bounds.centerY(), 0);
-        MotionEvent up = MotionEvent.obtain(now, now, MotionEvent.ACTION_UP,
-            bounds.centerX(), bounds.centerY(), 0);
-        down.setSource(InputDevice.SOURCE_TOUCHSCREEN);
-        up.setSource(InputDevice.SOURCE_TOUCHSCREEN);
-        try {
-            UiAutomation automation = instrumentation.getUiAutomation();
-            assertTrue("Android accepts the identified control's touch down",
-                automation.injectInputEvent(down, false));
-            assertTrue("Android accepts the identified control's touch up",
-                automation.injectInputEvent(up, true));
-        } finally {
-            down.recycle();
-            up.recycle();
-        }
+        // UiAutomation synchronizes surfaces between injected events, even for
+        // asynchronous gestures. A slow renderer can hold DOWN until Android
+        // recognizes a long press. The platform input command dispatches one
+        // complete tap without that per-event surface synchronization. It still
+        // traverses the real touchscreen path; selection, confirmation and File
+        // handoff are verified below, with no action replay or accessibility click.
+        String output = UiDevice.getInstance(instrumentation).executeShellCommand(
+            "input touchscreen tap " + bounds.centerX() + " " + bounds.centerY());
+        assertEquals("Android accepts the identified control's native tap", "", output.trim());
     }
 
-    private AccessibilityNodeInfo findDocument(String name) throws Exception {
+    private AccessibilityNodeInfo findDocument(String... names) throws Exception {
         UiAutomation automation = instrumentation.getUiAutomation();
         long deadline = SystemClock.uptimeMillis() + 10000;
         do {
@@ -727,9 +755,11 @@ public class PhotoFileChooserTest {
                 AccessibilityNodeInfo node = nodes.remove();
                 CharSequence text = node.getText();
                 CharSequence description = node.getContentDescription();
-                if (node.isVisibleToUser() && ((text != null && (("Allow all".equals(name) || "Include location".equals(name))
-                        ? text.toString().equals(name) : text.toString().startsWith(name)))
-                        || (description != null && description.toString().startsWith(name)))) return node;
+                for (String name : names) {
+                    if (node.isVisibleToUser() && ((text != null && (("Allow all".equals(name) || "Include location".equals(name))
+                            ? text.toString().equals(name) : text.toString().startsWith(name)))
+                            || (description != null && description.toString().startsWith(name)))) return node;
+                }
                 for (int i = 0; i < node.getChildCount(); i++) {
                     AccessibilityNodeInfo child = node.getChild(i);
                     if (child != null) nodes.add(child);

@@ -11,12 +11,15 @@ import android.os.Binder;
 import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.provider.OpenableColumns;
-import java.io.FileNotFoundException;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -30,12 +33,14 @@ public final class SelectedMediaProvider extends ContentProvider {
         final String name;
         final String type;
         final long size;
+        final long offset;
 
         Lease(AssetFileDescriptor source, String name, String type) {
             this.source = source;
             this.name = name;
             this.type = type;
             this.size = source.getLength();
+            this.offset = source.getStartOffset();
         }
     }
 
@@ -47,6 +52,7 @@ public final class SelectedMediaProvider extends ContentProvider {
         Uri adopt(Context context, Uri selected) {
             AssetFileDescriptor source = null;
             try {
+                synchronized (leases) { if (closed) return selected; }
                 String type = context.getContentResolver().getType(selected);
                 if (!"video/mp4".equals(type) && !"video/quicktime".equals(type)) return selected;
                 String name = "video" + ("video/mp4".equals(type) ? ".mp4" : ".mov");
@@ -76,18 +82,20 @@ public final class SelectedMediaProvider extends ContentProvider {
 
         @Override
         public void close() {
+            List<Lease> released = new ArrayList<>();
             synchronized (leases) {
                 closed = true;
                 for (String token : tokens) {
                     Lease lease = leases.remove(token);
-                    if (lease != null) closeDescriptor(lease.source);
+                    if (lease != null) released.add(lease);
                 }
                 tokens.clear();
             }
+            for (Lease lease : released) closeDescriptor(lease.source);
         }
     }
 
-    private static void closeDescriptor(AssetFileDescriptor descriptor) {
+    private static void closeDescriptor(Closeable descriptor) {
         if (descriptor == null) return;
         try { descriptor.close(); }
         catch (IOException unavailable) { /* The lease is already invalidated. */ }
@@ -140,20 +148,34 @@ public final class SelectedMediaProvider extends ContentProvider {
     @Override
     public AssetFileDescriptor openAssetFile(Uri uri, String mode) throws FileNotFoundException {
         if (!"r".equals(mode)) throw new FileNotFoundException("Selected media is read only");
+        Lease lease;
+        ParcelFileDescriptor anchor;
         synchronized (leases) {
-            Lease lease = lease(uri);
+            lease = lease(uri);
             try {
-                // Reuse the same granted descriptor and metadata snapshot. Reopening
-                // the Photo Picker proxy can change its synthetic file metadata.
-                // Each consumer gets an independent read cursor on that same
-                // already-granted open file, including concurrent Chromium reads.
-                ParcelFileDescriptor reader = ParcelFileDescriptor.open(new File("/proc/self/fd/"
-                    + lease.source.getParcelFileDescriptor().getFd()), ParcelFileDescriptor.MODE_READ_ONLY);
-                return new AssetFileDescriptor(reader,
-                    lease.source.getStartOffset(), lease.size);
+                anchor = ParcelFileDescriptor.dup(lease.source.getFileDescriptor());
             } catch (IOException unavailable) {
                 throw new FileNotFoundException("Selected media unavailable");
             }
+        }
+        ParcelFileDescriptor reader = null;
+        try {
+            // Reopen the same granted file with an independent cursor. Provider
+            // work must never hold the registry lock needed by Activity disposal.
+            reader = ParcelFileDescriptor.open(new File("/proc/self/fd/" + anchor.getFd()),
+                ParcelFileDescriptor.MODE_READ_ONLY);
+            synchronized (leases) {
+                if (leases.get(uri.getLastPathSegment()) != lease)
+                    throw new FileNotFoundException("Selected media unavailable");
+            }
+            AssetFileDescriptor result = new AssetFileDescriptor(reader, lease.offset, lease.size);
+            reader = null;
+            return result;
+        } catch (IOException unavailable) {
+            throw new FileNotFoundException("Selected media unavailable");
+        } finally {
+            closeDescriptor(reader);
+            closeDescriptor(anchor);
         }
     }
 

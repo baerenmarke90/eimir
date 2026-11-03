@@ -397,13 +397,13 @@ public class PhotoFileChooserTest {
             captureNativeDiagnostics("native-photo-location-consent");
             AccessibilityNodeInfo includeLocation = findDocument("Include location");
             assertNotNull("The system picker asks to include the selected photos' location", includeLocation);
-            tapNativeControl(includeLocation);
+            activateStableNativeControl(includeLocation);
         }
         // Match the actual diary input's complete MIME list and multiple mode.
         captureNativeDiagnostics("native-photo-picker");
         AccessibilityNodeInfo document = findDocument(token);
         assertNotNull("The real Android photo picker exposes the foreign-owned fixture", document);
-        tapNativeControl(document);
+        activateStableNativeControl(document);
         // SDK-extension-23 pickers label the final selection action "Done";
         // older system photo pickers use "Add". Both are explicit confirmation.
         String confirmLabel = PhotoFileChooser.supportsPickerMetadata() ? "Done" : "Add";
@@ -411,7 +411,7 @@ public class PhotoFileChooserTest {
         AccessibilityNodeInfo confirm = findDocument(confirmLabel);
         assertNotNull("The system picker requires explicit selection confirmation: " + confirmLabel,
             confirm);
-        tapNativeControl(confirm);
+        activateStableNativeControl(confirm);
         byte[] uploadedBytes = selectedFileBytes(view);
         java.nio.file.Files.write(new File(context.getFilesDir(), "native-selected-photo.jpg").toPath(), uploadedBytes);
         assertArrayEquals("The existing Web File intake receives the original bytes",
@@ -497,14 +497,14 @@ public class PhotoFileChooserTest {
         captureNativeDiagnostics("native-video-picker");
         AccessibilityNodeInfo selected = findDocument("Video taken");
         assertNotNull("The system video gallery exposes the foreign-owned video", selected);
-        tapNativeControl(selected);
+        activateStableNativeControl(selected);
         // Match the actual multiple-video input and complete the platform's
         // deliberate confirmation, including the extension-23 gallery's Done.
         String confirmLabel = PhotoFileChooser.supportsPickerMetadata() ? "Done" : "Add";
         captureNativeDiagnostics("native-video-confirmation");
         AccessibilityNodeInfo confirm = findDocument(confirmLabel);
         assertNotNull("The video gallery requires explicit confirmation: " + confirmLabel, confirm);
-        tapNativeControl(confirm);
+        activateStableNativeControl(confirm);
         byte[] bytes = selectedFileBytes(view);
         assertTrue("Chromium receives video bytes", bytes.length > 0);
         assertEquals("true", javascriptValue(view, "window.videoRepeatedReads===true"));
@@ -672,7 +672,7 @@ public class PhotoFileChooserTest {
         return result.get();
     }
 
-    private void tapNativeControl(AccessibilityNodeInfo document) throws Exception {
+    private void activateStableNativeControl(AccessibilityNodeInfo document) throws Exception {
         // Resolve the same system control through the cross-app test framework.
         // A visible Compose node can precede its stable layout and touch target.
         BySelector selector = By.pkg(document.getPackageName().toString());
@@ -689,13 +689,21 @@ public class PhotoFileChooserTest {
         assertFalse("The system control's hierarchy and pixels become stable",
             UiObject2Ext.waitForStable(control, 3000, 500, 50, true).isTimeout());
         // Stability screenshots can replace accessibility nodes. Reacquire before
-        // the real native touch used for the WebView controls too.
+        // resolving the system control's actual action owner.
         control = device.findObject(selector);
         assertNotNull("The stable system control remains attached", control);
         assertTrue("The stable system control is enabled", control.isEnabled());
         Rect bounds = control.getVisibleBounds();
         assertFalse("The stable system control is visible", bounds.isEmpty());
-        tapScreenBounds(bounds);
+        // Compose exposes the media description on a non-clickable image child.
+        // Reuse the existing native selection action on its actionable ancestor,
+        // rather than making external picker selection depend on renderer-delayed
+        // touch injection. WebView input and playback still use real native taps.
+        AccessibilityNodeInfo fresh = findDocument((text != null ? text : description).toString());
+        assertNotNull("The stable system control has a fresh accessibility node", fresh);
+        assertEquals("The fresh control belongs to the identified system picker",
+            document.getPackageName(), fresh.getPackageName());
+        activateNativeControl(fresh);
     }
 
     private void activateNativeControl(AccessibilityNodeInfo control) {

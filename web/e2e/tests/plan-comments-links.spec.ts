@@ -239,9 +239,9 @@ for (const scenario of scenarios) {
       storyProducts.authoredLinks.unavailable,
     );
     await expect(panel.getByRole('link')).toHaveAttribute('href', COMMENT_URL);
-    const own = panel
-      .locator('.comment-card')
-      .filter({ has: page.locator('.comment-author-self') });
+    const own = panel.locator('.comment-card').filter({
+      has: page.locator('.comment-author').getByText('Lea', { exact: true }),
+    });
     await own.getByRole('button', { name: copy.edit }).click();
     await own.getByRole('textbox').fill(`Bring lunch and tea. ${COMMENT_URL}`);
     await own.getByRole('button', { name: copy.save, exact: true }).click();
@@ -418,7 +418,7 @@ for (const [width, theme] of [
     const place = page.getByRole('link', { name: /Riverside park/ });
     await expect(place).toHaveAttribute('href', '/plan/places/place-park');
     await expect(place).toContainText('12 River Lane');
-    await expect(place).toContainText(m5s3.common.place);
+    await expect(place).not.toContainText(m5s3.common.place);
     const wish = page.getByRole('link', {
       name: m5s3.plan.openWish,
       exact: true,

@@ -32,10 +32,12 @@ from eimir.create_receipts import service as create_receipts
 from eimir.create_receipts.models import CreateReceiptResourceType
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.heart_moments.models import HeartMoment
+from eimir.identity.models import Account
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.outbox import service as outbox_service
 from eimir.plans.models import Plan
+from eimir.relationship.models import Membership, MembershipStatus
 
 _COMMENT_SUBJECT_TYPE = "comment"
 _RECEIPT_RESOURCE_TYPE = CreateReceiptResourceType.COMMENT.value
@@ -124,7 +126,9 @@ def _memory_parent(
             memory = require_readable(session, Memory, context, target_id)
         except NotFoundError as error:
             raise _target_not_available() from error
-    return CommentParent(CommentTarget.MEMORY, memory.id, memory.owner_id)
+    return CommentParent(
+        CommentTarget.MEMORY, memory.experience_root_id or memory.id, memory.owner_id
+    )
 
 
 def _milestone_parent(
@@ -252,7 +256,7 @@ def _record_created(
     session: Session,
     comment: Comment,
     *,
-    recipient_id: UUID,
+    recipient_id: UUID | None,
 ) -> None:
     outbox_service.record(
         session,
@@ -299,9 +303,22 @@ def create_comment(
     )
     session.add(comment)
     _flush(session)
-    if parent.owner_id != context.account_id:
-        _record_created(session, comment, recipient_id=parent.owner_id)
-        _flush(session)
+    # Conversation events belong to both partners, including the parent's
+    # author's replies. Parent ownership is not the notification recipient.
+    recipient_id = session.scalar(
+        select(Membership.account_id)
+        .join(Account, Account.id == Membership.account_id)
+        .where(
+            Membership.space_id == context.space_id,
+            Membership.status == MembershipStatus.ACTIVE.value,
+            Membership.account_id != context.account_id,
+            Account.disabled_at.is_(None),
+        )
+        .order_by(Membership.account_id)
+        .limit(1)
+    )
+    _record_created(session, comment, recipient_id=recipient_id)
+    _flush(session)
     return comment
 
 
@@ -415,6 +432,7 @@ def _cursor_binding(
 ) -> dict[str, Any]:
     return {
         "collection": "comments",
+        "order": "oldest-first-v2",
         "spaceId": str(context.space_id),
         "targetType": target_type.value,
         "targetId": str(target_id),
@@ -487,13 +505,13 @@ def list_comments(
         )
         statement = statement.where(
             or_(
-                Comment.created_at < created_at,
-                and_(Comment.created_at == created_at, Comment.id < comment_id),
+                Comment.created_at > created_at,
+                and_(Comment.created_at == created_at, Comment.id > comment_id),
             )
         )
     rows = list(
         session.execute(
-            statement.order_by(Comment.created_at.desc(), Comment.id.desc()).limit(limit + 1)
+            statement.order_by(Comment.created_at.asc(), Comment.id.asc()).limit(limit + 1)
         ).scalars()
     )
     has_more = len(rows) > limit

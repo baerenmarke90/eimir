@@ -54,6 +54,7 @@ def fingerprint(
     happened_until: date | None = None,
     tags: MemoryTags | None = None,
     experience_kind: ExperienceKind | None = None,
+    experience_reply_to: UUID | None = None,
     place_id: UUID | None = None,
     place_ids: list[UUID] | None = None,
 ) -> str:
@@ -79,6 +80,8 @@ def fingerprint(
         content["happenedUntil"] = happened_until.isoformat()
     if place_ids is not None:
         content["placeIds"] = [str(identifier) for identifier in place_ids]
+    if experience_reply_to is not None:
+        content["experienceReplyTo"] = str(experience_reply_to)
     canonical = json.dumps(
         content,
         sort_keys=True,

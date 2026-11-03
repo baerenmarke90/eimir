@@ -1,7 +1,7 @@
 # Module notification workflow
 
 **Product Owner decision:** 2026-11-01, approved implementation on PR #1568.
-**Runtime policy:** v6 in `engagement/notification_policy.py`.
+**Runtime policy:** v7 in `engagement/notification_policy.py`.
 
 **Narrow follow-up decision #1620 (2026-11-03):** personal default-off gentle
 prompts may offer adaptive writing/Memory invitations under the complete
@@ -25,8 +25,10 @@ foundation. It does not introduce the previously rejected daily summary.
    Reactions and Wish-round invitations/results coalesce by recipient and target.
    A replay cannot clear a later read state. No second unread ledger exists.
 4. Intersect event class, existing recipient consent, quiet hours and transport
-   readiness. Comments retain the existing separately opted-in hourly digest;
-   no individual comment Push or daily engagement Push is introduced. New kinds
+   readiness. The 2026-11-03 Product Owner correction (#1626) makes partner
+   comment Push immediate by default for registered endpoints, retaining explicit
+   opt-outs and Quiet Hours. Comment Email retains its separately opted-in hourly
+   digest; there is no daily engagement Push. New kinds
    inherit the relevant existing recipient group rather than another settings UI.
 5. The public lock-screen version stays neutral; Android's sensitive-content
    preference remains user-controlled. The Product Owner's 2026-11-01 follow-up
@@ -69,7 +71,7 @@ foundation. It does not introduce the previously rejected daily summary.
 | Memories / diary / HeartMoments | Create ordinary shared content | Activity and source refresh; explicit experience sharing uses the deliberate message workflow. Owner-only HeartMoments stay private. |
 | Milestones / chapters | Shared creation; important date approaches | Existing Activity; the date's existing reminder occurrence owns timed attention. |
 | Shared photos / saved map | Upload, gallery or place relation changes | Refresh/progress in context; no per-photo, GPS, map or import-history Push. |
-| Comments | Partner comments on accessible content | Existing Center and separately opted-in bounded digests; open thread updates without an extra foreground surface. |
+| Comments | Either partner comments on accessible content, including replies on their own parent entry | One reference-only event, Activity and partner Center item; immediate Push under existing endpoint/recipient choices and Quiet Hours. No self-notice. Email remains an opted-in hourly digest; the open thread updates silently. |
 | Manual shared reminders | A partner deliberately creates a shared reminder | One recipient-owned creation notice, with current creator/title and an authorized reminder read action; inherits existing reminder choices and respects Quiet Hours. Generated/private-source rules and imports remain silent. |
 | Photo reactions | Partner adds/changes a preset reaction | One coalesced Center item per recipient/Memory, no external delivery. Removing the last incoming reaction removes its derived notice. |
 | Plans | A new binding scheduled Plan, including scheduling an existing idea | Center only, expiry at the relevant appointment boundary; an undated idea is Activity only. |
@@ -132,3 +134,29 @@ do not produce a later queued Push.
 
 The generated preflight and evidence are recorded in
 [daily questions](design/references/daily-couple-prompts/README.md).
+
+
+## 2026-11-03 delivery audit (#1626)
+
+All 18 persisted Notification kinds were checked against event admission,
+recipient resolution, channel policy/preferences, Quiet Hours, target opening,
+source privacy and account/membership retirement. The current inventory above
+remains the complete module contract. Happiness and Time Travel already have an
+immediate deliberate-share path; their separately authored answers now share one
+Journal/Discover projection and one comment thread. Question selection, derived
+views and imports must not generate additional partner messages.
+
+Two concrete defects were corrected: comment events formerly existed only when
+the commenter differed from the parent owner, so the original author's reply was
+missing from both Activity and Center; and comment Push had only a separately
+opted-in hourly digest. Recipients now come from the other active enabled member,
+including parent-author replies. Push uses the existing immediate delivery path;
+Email deliberately retains the old digest policy. Stored false channel choices,
+neutral public presentation, authorization at delivery/open time and Quiet Hours
+remain binding. The Push preference UI explains immediate comments accurately.
+There is no new preference group, provider, global banner or background tracker.
+
+Ordinary Diary/HeartMoment creation and unscheduled ideas remain Activity-only;
+photo reactions and newly scheduled Plans retain their approved Center-only
+class. These are explicit quiet-module decisions above, not missing transports.
+No claim of a new physical-device FCM receipt is made by the source/queue audit.

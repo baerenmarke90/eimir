@@ -875,6 +875,28 @@ export function HeartMomentProductPage({
             onSubmit={submitEdit}
           >
             <HeartMomentFields heartMoment={heartMoment} />
+            {heartMoment.visibility === ContentVisibility.SHARED ? (
+              <MomentPlaces
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={currentAccountId}
+                spaceId={spaceId}
+                targetId={heartMoment.id}
+                canManage={heartMoment.capabilities.canDelete}
+                kind="heart-moments"
+                offline={offline}
+                onNavigate={(proceed) => {
+                  const ownsTask = captureEditOwnership();
+                  const ownsRead = captureAuthorizedQuery(
+                    queryClient,
+                    queryKey,
+                  );
+                  editorLifecycle.requestClose(() => {
+                    if (ownsTask() && ownsRead()) proceed();
+                  });
+                }}
+              />
+            ) : null}
             <PlanPhotosEditor
               controller={photos}
               spaceId={spaceId}
@@ -1101,7 +1123,7 @@ export function HeartMomentProductPage({
           accountId={currentAccountId}
           spaceId={spaceId}
           targetId={heartMoment.id}
-          canManage={heartMoment.capabilities.canEdit}
+          canManage={false}
           kind="heart-moments"
           offline={offline}
         />

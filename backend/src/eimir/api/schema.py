@@ -55,9 +55,14 @@ def story_resource_capabilities(
     from eimir.authorization import PrivacyClass
 
     author = resource.owner_id == account_id
+    authored_experience = getattr(resource, "experience_kind", None) is not None
     return ResourceCapabilities(
         can_edit=author
-        or (resource.shared_edit and resource.privacy_class == PrivacyClass.SPACE_SHARED.value),
+        or (
+            resource.shared_edit
+            and not authored_experience
+            and resource.privacy_class == PrivacyClass.SPACE_SHARED.value
+        ),
         can_delete=author,
         can_comment=can_comment,
     )

@@ -134,7 +134,9 @@ export function MemoryPhotoGallery({
   offline,
   loadImage,
   commentTriggerRef,
+  projectionMemoryId,
 }: {
+  projectionMemoryId?: string;
   memory: MemoryDetail;
   apis: ReferenceApis;
   accountId: string;
@@ -156,7 +158,10 @@ export function MemoryPhotoGallery({
     [],
   );
   const [announcement, setAnnouncement] = useState('');
-  const queryKey = authorSummaryQueryKeys.memory(memory.spaceId, memory.id);
+  const queryKey = authorSummaryQueryKeys.memory(
+    memory.spaceId,
+    projectionMemoryId ?? memory.id,
+  );
   const photos = [...memory.attachments]
     .filter((item) => item.status === 'READY')
     .sort((a, b) => a.position - b.position);
@@ -193,14 +198,25 @@ export function MemoryPhotoGallery({
     onSuccess: (updated, variables) => {
       if (!variables.isCurrent()) return;
       const observed = client.getQueryData<{ value: MemoryDetail }>(queryKey);
-      if (!observed || observed.value.version > updated.version) return;
-      client.setQueryData(queryKey, { value: updated, source: 'network' });
+      if (!observed) return;
+      const observedVersion =
+        observed.value.id === updated.id
+          ? observed.value.version
+          : (observed.value.experienceAnswers?.find(
+              (answer) => answer.id === updated.id,
+            )?.version ?? memory.version);
+      if (observedVersion > updated.version) return;
+      const projected =
+        projectionMemoryId && projectionMemoryId !== updated.id
+          ? { ...observed.value, experienceAnswers: updated.experienceAnswers }
+          : updated;
+      client.setQueryData(queryKey, { value: projected, source: 'network' });
       void saveProductReadCacheEntry({
         accountId,
         spaceId: updated.spaceId,
         kind: 'memory',
-        resourceId: updated.id,
-        value: updated,
+        resourceId: projected.id,
+        value: projected,
         serialize: MemoryDetailToJSON,
       }).catch(() => {
         // The server-confirmed result remains valid if the optional read cache is unavailable.

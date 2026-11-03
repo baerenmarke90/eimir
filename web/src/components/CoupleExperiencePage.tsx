@@ -24,6 +24,7 @@ import {
 import type { WhoOfUsParticipant } from '../client/whoOfUsSession';
 import { resolvedLocale, useTranslation } from '../i18n';
 import experienceCopy from '../i18n/locales/coupleExperiences';
+import { ExperienceAnswers } from './ExperienceAnswers';
 import { MemoryCreatePage } from './MemoryCreatePage';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -80,6 +81,30 @@ export function CoupleExperiencePage({
       : ExperienceKind.TIME_TRAVEL;
   const route = kind === 'happiness' ? HAPPINESS_ROUTE : TIME_TRAVEL_ROUTE;
   const creating = location.pathname === `${route}/new`;
+  const replyId = creating ? searchParams.get('replyTo') : null;
+  const reply = useQuery({
+    queryKey: [
+      'couple-experience-reply',
+      apiBaseUrl,
+      accountId,
+      spaceId,
+      replyId,
+    ],
+    queryFn: async ({ signal }) => {
+      if (!replyId) throw new Error('Experience reference is missing.');
+      try {
+        return await memories.getMemory(
+          { spaceId, memoryId: replyId },
+          { signal },
+        );
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    enabled: Boolean(replyId),
+    retry: false,
+    gcTime: 0,
+  });
   const scope = [apiBaseUrl, accountId, spaceId];
   const entitlement = useQuery({
     queryKey: ['couple-experience-entitlement', ...scope],
@@ -182,6 +207,13 @@ export function CoupleExperiencePage({
           void participants.refetch();
         }}
       />
+    ) : replyId && reply.isPending ? (
+      <UiState kind="loading" title={t('states.loading.title')} />
+    ) : replyId && (reply.error || reply.data?.experienceKind !== origin) ? (
+      <ProblemState
+        error={reply.error ?? new Error('Experience source is unavailable.')}
+        onRetry={() => void reply.refetch()}
+      />
     ) : !allowed ? (
       <UiState
         kind="empty"
@@ -198,19 +230,21 @@ export function CoupleExperiencePage({
   if (creating && state === null) {
     return (
       <MemoryCreatePage
-        key={`${apiBaseUrl}:${accountId}:${spaceId}:${origin}`}
+        key={`${apiBaseUrl}:${accountId}:${spaceId}:${origin}:${replyId ?? ''}`}
         apiBaseUrl={apiBaseUrl}
         accessToken={accessToken}
         accountId={accountId}
         spaceId={spaceId}
         experienceKind={origin}
         partnerName={partner?.displayName}
+        experienceReply={reply.data}
         experienceQuestion={
-          selectedId && isKnownQuestion(selectedId)
+          reply.data?.title ??
+          (selectedId && isKnownQuestion(selectedId)
             ? t(`coupleExperiences.questions.${kind}.${selectedId}`)
             : isCoupleExperiencePromptId(legacyPromptId)
               ? t(`coupleExperiences.prompts.${kind}.${legacyPromptId}`)
-              : undefined
+              : undefined)
         }
         onSaved={async () => {
           await client.invalidateQueries({
@@ -298,7 +332,16 @@ export function CoupleExperiencePage({
                             {entry.author.displayName}
                           </span>
                           {entry.title ? <h3>{entry.title}</h3> : null}
-                          <p>{entry.body.slice(0, 280)}</p>
+                          {entry.experienceKind &&
+                          entry.experienceAnswers?.length ? (
+                            <ExperienceAnswers
+                              answers={entry.experienceAnswers ?? []}
+                              kind={entry.experienceKind}
+                              compact
+                            />
+                          ) : (
+                            <p>{entry.body.slice(0, 280)}</p>
+                          )}
                           <time dateTime={entry.createdAt.toISOString()}>
                             {new Intl.DateTimeFormat(resolvedLocale(), {
                               dateStyle: 'medium',

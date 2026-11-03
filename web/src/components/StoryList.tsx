@@ -29,6 +29,7 @@ import {
 } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { HeartEmotionBadge } from './HeartEmotionVisual';
+import { ExperienceAnswers } from './ExperienceAnswers';
 import { MemoryPreview } from './MemoryPreview';
 import { PreviewCardLink } from './PreviewCardLink';
 import {
@@ -357,6 +358,15 @@ export function StoryList({
 
                   {!presentation.titleIsDate ? (
                     <h4>{presentation.title}</h4>
+                  ) : null}
+                  {item.kind === 'MEMORY' &&
+                  item.memory.experienceKind &&
+                  (item.memory.experienceAnswers?.length ?? 0) > 0 ? (
+                    <ExperienceAnswers
+                      answers={item.memory.experienceAnswers ?? []}
+                      kind={item.memory.experienceKind}
+                      compact
+                    />
                   ) : null}
                   {item.kind === 'HEART_MOMENT' ? (
                     <HeartEmotionBadge emotion={item.heartMoment.emotion} />

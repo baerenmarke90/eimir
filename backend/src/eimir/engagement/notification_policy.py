@@ -15,7 +15,7 @@ from uuid import UUID
 
 from eimir.engagement.models import NotificationKind
 
-POLICY_VERSION = 6
+POLICY_VERSION = 7
 GENERIC_PRESENTATION_KEY = "notification.generic"
 DIGEST_WINDOW = timedelta(hours=1)
 
@@ -59,15 +59,16 @@ class PushPresentation:
 class NotificationPolicy:
     delivery_class: DeliveryClass
     preview: PushPreviewPolicy
+    immediate_push: bool = False
 
     @property
     def push_immediately(self) -> bool:
-        return self.delivery_class is DeliveryClass.IMMEDIATE
+        return self.immediate_push or self.delivery_class is DeliveryClass.IMMEDIATE
 
 
 # Explicit, closed catalog: a new kind cannot silently inherit a push channel.
-# DIGESTIBLE events remain in the Notification Center until an approved digest
-# exists; there is no one-off push fallback.
+# DIGESTIBLE is the Email baseline. Explicit immediate_push overrides permit
+# the reviewed comment Push path without changing Email frequency.
 POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
     {
         NotificationKind.GENTLE_PROMPT: NotificationPolicy(
@@ -108,7 +109,7 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.COMMENT_CREATED: NotificationPolicy(
-            DeliveryClass.DIGESTIBLE, GENERIC_PREVIEW
+            DeliveryClass.DIGESTIBLE, GENERIC_PREVIEW, immediate_push=True
         ),
         NotificationKind.THINKING_OF_YOU: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW

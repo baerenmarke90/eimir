@@ -29,11 +29,16 @@ from eimir.api.schema import (
     story_resource_capabilities,
 )
 from eimir.api.v1.attachments import AttachmentSummary
-from eimir.api.v1.memories import MemoryAttachmentSummary
+from eimir.api.v1.memories import (
+    ExperienceAnswer,
+    MemoryAttachmentSummary,
+    project_experience_answers,
+)
 from eimir.attachments import binding
 from eimir.attachments.models import Attachment, MediaType
 from eimir.authorization import ContentVisibility, readable, visibility_of
 from eimir.core import clock
+from eimir.domain.experiences import ExperienceKind
 from eimir.heart_moments import media as heart_media
 from eimir.heart_moments.models import HeartEmotion, HeartMoment
 from eimir.memories.models import Memory
@@ -47,9 +52,9 @@ router = APIRouter(tags=["story"])
 class MemorySummary(ApiModel):
     """Memory projection used as a timeline card.
 
-    The body is intentionally omitted: the card needs a heading and images,
-    while returning one hundred full texts would produce data nobody requested.
-    The body remains available on the detail route.
+    Ordinary Memory bodies remain on the detail route. Guided experiences
+    include their bounded authored responses so one shared card can present
+    both partners without a per-card detail request.
     """
 
     id: UUID
@@ -61,6 +66,8 @@ class MemorySummary(ApiModel):
     author: AuthorSummary
     capabilities: ResourceCapabilities
     attachments: list[MemoryAttachmentSummary]
+    experience_kind: ExperienceKind | None = None
+    experience_answers: list[ExperienceAnswer] = Field(default_factory=list)
 
 
 class SharedHeartMomentSummary(ApiModel):
@@ -399,6 +406,7 @@ def project_story_items(
     milestones = _load(session, authorization, Milestone, ids_by_kind[StoryKind.MILESTONE])
 
     galleries = binding.attachments_of_memories(session, list(memories))
+    answers = project_experience_answers(session, authorization, list(memories.values()))
     heart_galleries = heart_media.galleries(session, list(heart_moments.values()))
     authors = _authors(
         session,
@@ -422,6 +430,10 @@ def project_story_items(
                     memory=MemorySummary(
                         id=memory.id,
                         title=memory.payload.title,
+                        experience_kind=ExperienceKind(memory.experience_kind)
+                        if memory.experience_kind
+                        else None,
+                        experience_answers=answers.get(memory.experience_root_id or memory.id, []),
                         happened_on=memory.happened_on,
                         happened_until=memory.happened_until,
                         selected_cover_attachment_id=memory.payload.selected_cover_attachment_id,

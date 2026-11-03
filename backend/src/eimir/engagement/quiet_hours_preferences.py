@@ -13,8 +13,8 @@ from eimir.identity import effects as account_effects
 from eimir.identity.models import Account
 
 # Explicit partner signals can wait for the recipient's next available hour.
-# REMINDER_DUE follows its own chosen schedule. An explicitly opted-in comment
-# digest follows the same recipient window after its aggregation period.
+# REMINDER_DUE follows its own chosen schedule. Immediate comment Push and
+# opted-in comment Email digests follow the same recipient window.
 DEFERABLE_KINDS = frozenset(
     {
         NotificationKind.REMINDER_CREATED,

@@ -88,6 +88,7 @@ export * from './EngagementTarget';
 export * from './EntitlementSourceType';
 export * from './EntitlementStatus';
 export * from './EntitlementTier';
+export * from './ExperienceAnswer';
 export * from './ExperienceKind';
 export * from './ExportStatus';
 export * from './FcmConfiguration';

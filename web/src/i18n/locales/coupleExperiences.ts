@@ -1,5 +1,10 @@
 export default {
   title: 'Zeit für euch',
+  sharedHappiness: 'Geteilter Glücksmoment',
+  sharedTimeTravel: 'Gemeinsame Zeitreise',
+  editOwnAnswer: 'Deine Antwort bearbeiten',
+  sharedGallery: 'Gemeinsame Galerie',
+  addOwnAnswer: 'Deine Antwort ergänzen',
   partner: 'deinem Partner',
   notification: '{{name}} hat einen Moment mit dir geteilt.',
   notifications: {

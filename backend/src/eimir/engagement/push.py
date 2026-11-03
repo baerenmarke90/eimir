@@ -317,7 +317,8 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
     ).scalars()
     for notification in notifications:
         digest = (
-            notification_policy.digest_presentation_for(notification.kind, notification.id)
+            notification_policy.presentation_for(notification.kind, notification.id) is None
+            and notification_policy.digest_presentation_for(notification.kind, notification.id)
             is not None
         )
         if (
@@ -522,7 +523,9 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
         _finish_unavailable(delivery, "NOTIFICATION_ALREADY_READ")
         return
     digest = (
-        notification_policy.digest_presentation_for(notification.kind, notification.id) is not None
+        notification_policy.presentation_for(notification.kind, notification.id) is None
+        and notification_policy.digest_presentation_for(notification.kind, notification.id)
+        is not None
     )
     presentation = (
         notification_policy.digest_presentation_for(notification.kind, notification.id)

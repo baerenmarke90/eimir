@@ -1,7 +1,7 @@
 
 # MemorySummary
 
-Memory projection used as a timeline card.  The body is intentionally omitted: the card needs a heading and images, while returning one hundred full texts would produce data nobody requested. The body remains available on the detail route.
+Memory projection used as a timeline card.  Ordinary Memory bodies remain on the detail route. Guided experiences include their bounded authored responses so one shared card can present both partners without a per-card detail request.
 
 ## Properties
 
@@ -11,6 +11,8 @@ Name | Type
 `author` | [AuthorSummary](AuthorSummary.md)
 `capabilities` | [ResourceCapabilities](ResourceCapabilities.md)
 `createdAt` | Date
+`experienceAnswers` | [Array&lt;ExperienceAnswer&gt;](ExperienceAnswer.md)
+`experienceKind` | [ExperienceKind](ExperienceKind.md)
 `happenedOn` | Date
 `happenedUntil` | Date
 `id` | string
@@ -28,6 +30,8 @@ const example = {
   "author": null,
   "capabilities": null,
   "createdAt": null,
+  "experienceAnswers": null,
+  "experienceKind": null,
   "happenedOn": null,
   "happenedUntil": null,
   "id": null,

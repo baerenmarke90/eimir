@@ -76,6 +76,7 @@ import { useDiscoverLayout } from '../client/useDiscoverLayout';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CoupleExperienceLinks } from './CoupleExperienceLinks';
 import { EimirIcon } from './EimirIcon';
+import { ExperienceAnswers } from './ExperienceAnswers';
 import { MemoryPreview } from './MemoryPreview';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -132,6 +133,8 @@ interface TapestryEntry {
   author: AuthorSummary;
   dateTime: string;
   dateLabel: string;
+  experience?: Extract<StoryItem, { kind: 'MEMORY' }>['memory'];
+  wide?: boolean;
   mediaShape?: 'landscape' | 'portrait' | 'square';
 }
 
@@ -164,6 +167,10 @@ function buildTapestryEntry(
     role,
     presentation,
     firstAttachment,
+    experience:
+      item.kind === 'MEMORY' && item.memory.experienceKind
+        ? item.memory
+        : undefined,
     path,
     memoryId,
     author,
@@ -195,7 +202,14 @@ function buildTapestryBands(
         if (entry.role === 'media') {
           // Composition is stable within a curated selection; no timer or
           // random render can move a photograph while someone is browsing.
-          entry.mediaShape = mediaIndex++ % 3 === 1 ? 'portrait' : 'landscape';
+          const index = mediaIndex++;
+          entry.wide =
+            index % 3 === 1 ||
+            (item.kind === 'MEMORY' &&
+              (Boolean(item.memory.happenedUntil) ||
+                item.memory.attachments.length >= 3));
+          entry.mediaShape =
+            !entry.wide && index % 3 === 2 ? 'portrait' : 'landscape';
         }
         return entry;
       }),
@@ -1035,7 +1049,10 @@ export function StoryProductPage({
                             <Link
                               key={entry.key}
                               data-discover-wide={
-                                presentation.title.length > 90 || undefined
+                                entry.wide ||
+                                Boolean(entry.experience) ||
+                                presentation.title.length > 90 ||
+                                undefined
                               }
                               to={path}
                               className="momente-tapestry-item momente-tapestry-milestone momente-tapestry-reveal"
@@ -1076,7 +1093,10 @@ export function StoryProductPage({
                           <Link
                             key={entry.key}
                             data-discover-wide={
-                              presentation.title.length > 90 || undefined
+                              entry.wide ||
+                              Boolean(entry.experience) ||
+                              presentation.title.length > 90 ||
+                              undefined
                             }
                             to={path}
                             data-media-shape={entry.mediaShape}
@@ -1121,6 +1141,15 @@ export function StoryProductPage({
                                   {presentation.title}
                                 </h4>
                               )}
+                              {entry.experience?.experienceKind ? (
+                                <ExperienceAnswers
+                                  answers={
+                                    entry.experience.experienceAnswers ?? []
+                                  }
+                                  kind={entry.experience.experienceKind}
+                                  compact
+                                />
+                              ) : null}
                               <div className="momente-tapestry-meta">
                                 {!presentation.titleIsDate ? (
                                   <time dateTime={dateTime}>{dateLabel}</time>

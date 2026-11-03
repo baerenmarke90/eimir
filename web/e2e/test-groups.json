@@ -433,6 +433,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 7,
       "reason": "Period/cover/order-save-return acceptance across Compact/Expanded, Light/Dark, 200% text, reduced motion, pointer/keyboard movement and Axe."
+    },
+    "shared-experience-answers.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "Shared response authorship, own-answer edit and return, comment chronology, mobile/Expanded Light/Dark and accessible reflow."
     }
   }
 }

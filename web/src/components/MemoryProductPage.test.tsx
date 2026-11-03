@@ -242,15 +242,16 @@ describe('Memory detail edit action (#1014)', () => {
     );
   }
 
-  it('lets a partner add a Place while retaining the absence of delete authority', async () => {
+  it('keeps place management behind Edit while retaining partner read access', async () => {
     const list = vi
       .spyOn(PlacesApi.prototype, 'listMomentPlaces')
       .mockResolvedValue({ items: [], hasMore: false, nextCursor: null });
     try {
       renderDetail('Partner-authored memory', 'account-2');
+      await screen.findByRole('link', { name: memoryProduct.edit });
       expect(
-        await screen.findByRole('button', { name: photoPlaces.add }),
-      ).toBeTruthy();
+        screen.queryByRole('button', { name: photoPlaces.add }),
+      ).toBeNull();
       expect(
         screen.queryByRole('button', { name: memoryProduct.delete }),
       ).toBeNull();
@@ -408,6 +409,19 @@ describe('Memory view receipt', () => {
     expect(recordStoryViewMock).toHaveBeenCalledWith({
       spaceId: 'space-1',
       storyViewReceipt: { kind: 'MEMORY', itemId: 'memory-1' },
+    });
+  });
+
+  it('records the shared source when a response detail is opened from a notification', async () => {
+    const { recordStoryViewMock, resolveQuery, memory } = setupReceiptTest();
+    memory.experienceKind = 'HAPPINESS';
+    memory.experienceRootId = 'shared-source';
+    resolveQuery(memory);
+    expect(await screen.findByText('A shared evening')).toBeTruthy();
+    expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
+    expect(recordStoryViewMock).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      storyViewReceipt: { kind: 'MEMORY', itemId: 'shared-source' },
     });
   });
 

@@ -127,6 +127,19 @@ independent security review and real-provider/device acceptance remain in
   Local browser fixtures are synthetic; no real Immich account or
   physical Pixel acceptance is claimed. Google remains unavailable.
 
+The later Google-excluded revision repeated the API 36 host-emulator loss
+while playing the selected video (`bad color buffer handle 667` with Emulator
+37.2.13; ADB then reports no emulator). Apply the documented
+[Android Chromium graphics workaround](https://developer.android.com/studio/run/emulator-troubleshooting#cannot_open_webpage_correctly)
+only to this CI lane: disable its Vulkan emulation and retain SwiftShader GLES.
+No product runtime or acceptance assertion changes. Real gallery confirmation,
+exact consent-specific SHA-256, repeated File reads, deliberate Play, decoded
+frame, dimensions and seek remain required. A fresh commit receives fresh CI.
+API 37.1 separately lost its instrumentation process to Android's low-memory
+killer during first-boot work, before any test began. Its targeted retry request
+was deferred because sibling jobs were still running; the necessary API 36
+workflow change instead starts new exact-head checks.
+
 Runtime images are in [evidence](evidence/README.md). The generated preflight
 above does not stand in for those implementation captures.
 

@@ -94,8 +94,16 @@ jobs:
           export PATH="$ANDROID_HOME/platform-tools:$PATH"
           free -m | tee host-memory.log
           "$ANDROID_HOME/emulator/emulator" -list-avds | grep -Fx eimir-launcher
+          graphics_args=()
+          if [ '${{ matrix.api }}' = '36' ]; then
+            # Emulator 37.2.13 loses its host color buffer during Chromium video.
+            # Use Android's documented GLES workaround; retain decode/seek tests.
+            # https://developer.android.com/studio/run/emulator-troubleshooting#cannot_open_webpage_correctly
+            graphics_args=(-feature -Vulkan)
+          fi
           "$ANDROID_HOME/emulator/emulator" -avd eimir-launcher -no-window \
-            -no-audio -no-snapshot -no-boot-anim -gpu swiftshader -memory ${{ matrix.memory }} -partition-size 2048 \
+            -no-audio -no-snapshot -no-boot-anim -gpu swiftshader "${graphics_args[@]}" \
+            -memory ${{ matrix.memory }} -partition-size 2048 \
             > emulator.log 2>&1 &
           timeout 180 adb wait-for-device
           for attempt in $(seq 1 120); do

@@ -35,6 +35,7 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
     static final String FALLBACK_REQUEST_LOCATION_METADATA =
         "androidx.activity.result.contract.extra.PICK_IMAGES_REQUEST_LOCATION_METADATA_ACCESS";
     private final ActivityResultLauncher<Intent> mediaPicker;
+    private final SelectedMediaProvider.Owner selectedVideos = new SelectedMediaProvider.Owner();
     private Selection pending;
     private boolean askedLocationPermission;
     private volatile boolean disposed;
@@ -79,8 +80,9 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
                         if (disposed) return;
                         // The modern picker owns its metadata consent. Its grant must
                         // never be upgraded with ACCESS_MEDIA_LOCATION.
-                        originals[i] = selection.pickerMetadata || isVideoSelection(selection.params) ? selected[i]
-                            : originalUri(bridge.getContext(), selected[i]);
+                        originals[i] = isVideoSelection(selection.params)
+                            ? selectedVideos.adopt(bridge.getContext(), selected[i])
+                            : selection.pickerMetadata ? selected[i] : originalUri(bridge.getContext(), selected[i]);
                     }
                     bridge.getActivity().runOnUiThread(() -> complete(selection, originals));
                 });
@@ -142,6 +144,7 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
         Selection selection = pending;
         pending = null;
         disposed = true;
+        selectedVideos.close();
         if (selection != null) selection.callback.onReceiveValue(null);
     }
 
@@ -176,15 +179,11 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
 
     static Intent mediaIntent(Context context, FileChooserParams params, boolean pickerMetadata) {
         if (isVideoSelection(params)) {
-            // Photo Picker proxy metadata can change between WebView File reads.
-            // A document grant avoids that Chromium failure without caching video
-            // or requesting access to the whole media library.
-            return new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("video/*")
-                .addCategory(Intent.CATEGORY_OPENABLE)
-                .putExtra(Intent.EXTRA_MIME_TYPES, params.getAcceptTypes().clone())
-                .putExtra(Intent.EXTRA_ALLOW_MULTIPLE,
-                    params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE)
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            PickVisualMediaRequest request = new PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.VideoOnly.INSTANCE).build();
+            return params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE
+                ? new ActivityResultContracts.PickMultipleVisualMedia().createIntent(context, request)
+                : new ActivityResultContracts.PickVisualMedia().createIntent(context, request);
         }
         if (pickerMetadata) {
             PickVisualMediaRequest request = new PickVisualMediaRequest.Builder()

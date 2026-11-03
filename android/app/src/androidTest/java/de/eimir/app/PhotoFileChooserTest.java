@@ -55,6 +55,13 @@ public class PhotoFileChooserTest {
     private PhotoFileChooser chooser;
     private static Uri fixture;
     private static File source;
+    // Exact oracles for video-with-metadata.mp4. Android's selected-file
+    // location redaction zeros only its 35-byte loci box after the size field;
+    // every other byte, including both encoded streams, must remain identical.
+    private static final String VIDEO_FIXTURE_SHA256 =
+        "f8af59464b9cfa212bc95f129f923acf955d571ffd97c1b2cbb4be057069e0f6";
+    private static final String LOCATION_REDACTED_VIDEO_SHA256 =
+        "73ce039ba4f3d2e0245dd3255202cf830f4b7fddbbd036884a35c8ce5c07f1b8";
 
     private static FileChooserParams parameters(int mode, boolean capture, String... types) {
         return new FileChooserParams() {
@@ -142,18 +149,69 @@ public class PhotoFileChooserTest {
             true, "video/mp4")));
         Intent intent = PhotoFileChooser.mediaIntent(context,
             parameters(FileChooserParams.MODE_OPEN, false, "video/mp4", "video/quicktime"), true);
-        assertEquals(Intent.ACTION_OPEN_DOCUMENT, intent.getAction());
+        boolean modern = androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
+            .isPhotoPickerAvailable(context);
+        if (Build.VERSION.SDK_INT >= 33) assertEquals(MediaStore.ACTION_PICK_IMAGES, intent.getAction());
+        else if (!modern) assertEquals(Intent.ACTION_OPEN_DOCUMENT, intent.getAction());
         assertEquals("video/*", intent.getType());
-        assertTrue(intent.hasCategory(Intent.CATEGORY_OPENABLE));
-        assertEquals(Intent.FLAG_GRANT_READ_URI_PERMISSION, intent.getFlags());
-        assertArrayEquals(new String[] {"video/mp4", "video/quicktime"},
-            intent.getStringArrayExtra(Intent.EXTRA_MIME_TYPES));
+        assertEquals(0, intent.getFlags() & (Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION));
         assertFalse(intent.getBooleanExtra(PhotoFileChooser.REQUEST_LOCATION_METADATA, false));
         assertFalse(intent.getBooleanExtra(PhotoFileChooser.FALLBACK_REQUEST_LOCATION_METADATA, false));
         assertFalse(intent.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false));
-        assertTrue(PhotoFileChooser.mediaIntent(context,
-            parameters(FileChooserParams.MODE_OPEN_MULTIPLE, false, "video/mp4"), false)
-                .getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false));
+        Intent multiple = PhotoFileChooser.mediaIntent(context,
+            parameters(FileChooserParams.MODE_OPEN_MULTIPLE, false, "video/mp4"), false);
+        assertTrue(multiple.getBooleanExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
+            || multiple.getIntExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 1) > 1
+            || multiple.getIntExtra("androidx.activity.result.contract.extra.SYSTEM_FALLBACK_PICK_IMAGES_MAX", 1) > 1
+            || multiple.getIntExtra("com.google.android.gms.provider.extra.PICK_IMAGES_MAX", 1) > 1);
+    }
+
+    @Test
+    public void selectedVideoLeasesKeepIndependentReadersAndCloseWithTheirOwner() throws Exception {
+        File video = new File(context.getCacheDir(), "selected-media-lease.mp4");
+        byte[] expected = new byte[] {1, 2, 3, 4, 5};
+        java.nio.file.Files.write(video.toPath(), expected);
+        Uri original = androidx.core.content.FileProvider.getUriForFile(context,
+            context.getPackageName() + ".fileprovider", video);
+        SelectedMediaProvider.Owner owner = new SelectedMediaProvider.Owner();
+        Uri selected = owner.adopt(context, original);
+        try {
+            assertEquals(context.getPackageName() + ".selectedmedia", selected.getAuthority());
+            assertEquals("video/mp4", context.getContentResolver().getType(selected));
+            android.content.pm.ProviderInfo provider = context.getPackageManager()
+                .resolveContentProvider(selected.getAuthority(), 0);
+            assertNotNull(provider);
+            assertFalse(provider.exported);
+            assertFalse(provider.grantUriPermissions);
+            try (InputStream first = context.getContentResolver().openInputStream(selected);
+                    InputStream second = context.getContentResolver().openInputStream(selected)) {
+                assertEquals(1, first.read());
+                assertArrayEquals(expected, readBytes(second));
+                assertArrayEquals(new byte[] {2, 3, 4, 5}, readBytes(first));
+            }
+            try (OutputStream ignored = context.getContentResolver().openOutputStream(selected)) {
+                fail("Selected media must never grant write access");
+            } catch (java.io.FileNotFoundException expectedReadOnly) { /* Read-only lease. */ }
+            assertNull(context.getContentResolver().getType(selected.buildUpon().appendPath("other").build()));
+            owner.close();
+            owner.close();
+            try (InputStream ignored = context.getContentResolver().openInputStream(selected)) {
+                fail("Disposed owners must invalidate every selected URI");
+            } catch (java.io.FileNotFoundException expectedClosed) { /* No surviving owner. */ }
+            assertEquals(original, owner.adopt(context, original));
+        } finally {
+            owner.close();
+            video.delete();
+        }
+    }
+
+    private static byte[] readBytes(InputStream input) throws Exception {
+        java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+        byte[] buffer = new byte[1024];
+        int count;
+        while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+        return output.toByteArray();
     }
 
     @Test
@@ -370,12 +428,14 @@ public class PhotoFileChooserTest {
     }
 
     private static boolean isSystemVideoPicker(CharSequence packageName) {
-        return packageName != null && packageName.toString().endsWith(".documentsui");
+        return isSystemPhotoPicker(packageName);
     }
 
     @Test
     public void videoSelectionReachesChromiumAndDecodesWithoutPhotoMetadataConsent() throws Exception {
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q);
+        assumeTrue(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
+            .isPhotoPickerAvailable(context));
         String external = InstrumentationRegistry.getArguments().getString("externalVideoUri");
         assertNotNull("CI provides a shell-owned video", external);
         try (InputStream ignored = context.getContentResolver().openInputStream(Uri.parse(external))) {
@@ -388,7 +448,7 @@ public class PhotoFileChooserTest {
         // Keep the established JavaScript-enabled document. Synthetic app-origin
         // navigation stalls behind Capacitor routing on the API 37.1 fixture.
         assertEquals("true", javascriptValue(view, "(function(){"
-            + "document.body.innerHTML=`<input id='photo' type='file' accept='video/mp4,video/quicktime' "
+            + "document.body.innerHTML=`<input id='photo' type='file' accept='video/mp4,video/quicktime' multiple "
             + "style='position:fixed;top:20%;left:20%;width:60%;height:60px'>"
             + "<video id='video' controls playsinline preload='none' style='position:fixed;top:40%;left:10%;width:80%'></video>"
             + "<button id='play-video' style='position:fixed;bottom:10%;left:20%;width:60%;height:60px'>Play</button>`;"
@@ -396,7 +456,10 @@ public class PhotoFileChooserTest {
             + "input.onchange=async()=>{window.photoFileEvents=(window.photoFileEvents||0)+1;"
             + "window.photoSelectedCount=input.files.length;try{const file=input.files[0];window.videoMime=file.type;"
             + "window.photoDescriptor={size:file.size,type:file.type,lastModified:file.lastModified};"
-            + "const bytes=new Uint8Array(await file.arrayBuffer());let binary='';"
+            + "const bytes=new Uint8Array(await file.arrayBuffer());"
+            + "for(let read=0;read<3;read++){const again=new Uint8Array(await file.arrayBuffer());"
+            + "if(again.length!==bytes.length||again.some((value,index)=>value!==bytes[index]))throw new Error('Changed bytes');}"
+            + "window.videoRepeatedReads=true;let binary='';"
             + "for(const value of bytes)binary+=String.fromCharCode(value);window.selectedPhotoBytes=btoa(binary);"
             + "video.onloadedmetadata=()=>window.videoReady=true;"
             + "video.onerror=()=>window.videoError=video.error?.message||String(video.error?.code);"
@@ -415,13 +478,27 @@ public class PhotoFileChooserTest {
                 catch (Exception failure) { throw new AssertionError(failure); }
             }, event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && isSystemVideoPicker(event.getPackageName()), 15000);
+        AccessibilityNodeInfo selected = findDocument("Video taken");
+        assertNotNull("The system video gallery exposes the foreign-owned video", selected);
         captureNativeDiagnostics("native-video-picker");
-        AccessibilityNodeInfo selected = findDocument("eimir-native-video.mp4");
-        assertNotNull("The system document picker exposes the foreign-owned video", selected);
-        activateNativeControl(selected);
+        tapNativeControl(selected);
+        // Match the actual multiple-video input and complete the platform's
+        // deliberate confirmation, including the extension-23 gallery's Done.
+        String confirmLabel = PhotoFileChooser.supportsPickerMetadata() ? "Done" : "Add";
+        AccessibilityNodeInfo confirm = findDocument(confirmLabel);
+        assertNotNull("The video gallery requires explicit confirmation: " + confirmLabel, confirm);
+        tapNativeControl(confirm);
         byte[] bytes = selectedFileBytes(view);
         assertTrue("Chromium receives video bytes", bytes.length > 0);
+        assertEquals("true", javascriptValue(view, "window.videoRepeatedReads===true"));
         java.nio.file.Files.write(new File(context.getFilesDir(), "native-selected-video.mp4").toPath(), bytes);
+        String expected = InstrumentationRegistry.getArguments().getString("externalVideoSha256");
+        String actual = sha256(bytes);
+        assertNotNull("CI identifies the original foreign-owned fixture", expected);
+        assertEquals("The selected-gallery oracle belongs to this exact source fixture",
+            VIDEO_FIXTURE_SHA256, expected);
+        assertEquals("The descriptor bridge must preserve Android's exact location-redacted bytes",
+            LOCATION_REDACTED_VIDEO_SHA256, actual);
         assertEquals("true", javascriptValue(view,
             "document.getElementById('video').paused && document.getElementById('video').controls"));
         // Match production preload=none: only a deliberate Play requests metadata/frames.
@@ -439,6 +516,13 @@ public class PhotoFileChooserTest {
         captureNativeDiagnostics("native-video-playback");
         javascriptValue(view, "(()=>{const v=document.getElementById('video');"
             + "URL.revokeObjectURL(v.src);v.removeAttribute('src');v.load();return true})()");
+    }
+
+    private static String sha256(byte[] bytes) throws Exception {
+        StringBuilder result = new StringBuilder();
+        for (byte value : java.security.MessageDigest.getInstance("SHA-256").digest(bytes))
+            result.append(String.format(java.util.Locale.ROOT, "%02x", value & 255));
+        return result.toString();
     }
 
     private void awaitJavascript(WebView view, String condition) throws Exception {

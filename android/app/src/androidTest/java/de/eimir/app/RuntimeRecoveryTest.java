@@ -65,6 +65,19 @@ public class RuntimeRecoveryTest {
         }
     }
 
+    private void returnTask(LauncherActivity activity) {
+        ActivityManager manager = (ActivityManager) instrumentation.getTargetContext()
+            .getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.AppTask task : manager.getAppTasks()) {
+            if (task.getTaskInfo().id == activity.getTaskId()) {
+                // Recents-style return without delivering another launch intent.
+                task.moveToFront();
+                return;
+            }
+        }
+        fail("The existing app task must remain available");
+    }
+
     @Test
     public void healthyBackgroundReturnRetainsTheSameBridgeAndWebView() throws Exception {
         AtomicReference<WebView> original = new AtomicReference<>();
@@ -150,18 +163,7 @@ public class RuntimeRecoveryTest {
                     .setAction(Intent.ACTION_VIEW).setData(Uri.parse("de.eimir.app://notifications"))
                     .putExtra("synthetic-new-intent", true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             } else {
-                ActivityManager manager = (ActivityManager) instrumentation.getTargetContext()
-                    .getSystemService(Context.ACTIVITY_SERVICE);
-                boolean found = false;
-                for (ActivityManager.AppTask task : manager.getAppTasks()) {
-                    if (task.getTaskInfo().taskId == activity.getTaskId()) {
-                        // Recents-style return without delivering another launch intent.
-                        task.moveToFront();
-                        found = true;
-                        break;
-                    }
-                }
-                assertTrue("The existing app task must remain available", found);
+                returnTask(activity);
             }
             assertTrue("Foreground return must recreate the bridge", recreated.await(15, TimeUnit.SECONDS));
             assertNotSame(original.get(), returned.get());
@@ -198,10 +200,12 @@ public class RuntimeRecoveryTest {
         Instrumentation.ActivityMonitor recovery = instrumentation.addMonitor(
             RuntimeRecoveryActivity.class.getName(), null, false);
         AtomicReference<WebView> view = new AtomicReference<>();
+        AtomicReference<LauncherActivity> owner = new AtomicReference<>();
         CountDownLatch gone = new CountDownLatch(1);
         try (ActivityScenario<LauncherActivity> scenario = ActivityScenario.launch(LauncherActivity.class)) {
             ready(scenario);
             scenario.onActivity(activity -> {
+                owner.set(activity);
                 view.set(activity.getBridge().getWebView());
                 activity.getBridge().addWebViewListener(new WebViewListener() {
                     @Override
@@ -216,7 +220,9 @@ public class RuntimeRecoveryTest {
             instrumentation.runOnMainSync(() -> view.get().loadUrl("chrome://crash"));
             assertTrue(gone.await(15, TimeUnit.SECONDS));
             assertEquals("Even a crash must not start a background Activity", 0, recovery.getHits());
-            scenario.moveToState(Lifecycle.State.RESUMED);
+            // The expected native dialog immediately finishes the old Activity;
+            // RESUMED is a transition, not the stable state to await here.
+            returnTask(owner.get());
             Activity dialog = recovery.waitForActivityWithTimeout(15_000);
             assertNotNull(dialog);
             onView(withText(R.string.runtime_recovery_title)).inRoot(isDialog()).check(matches(isDisplayed()));

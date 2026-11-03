@@ -215,7 +215,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: android-launcher-verification-api-${{ matrix.api }}
+          name: android-launcher-verification-api-${{ matrix.api }}-attempt-${{ github.run_attempt }}
           path: |
             android/app/build/reports/
             android/app/build/outputs/androidTest-results/

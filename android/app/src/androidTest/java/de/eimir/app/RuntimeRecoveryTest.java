@@ -13,6 +13,7 @@ import android.app.ActivityManager;
 import android.app.Instrumentation;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
@@ -30,6 +31,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Assume;
@@ -46,12 +48,47 @@ public class RuntimeRecoveryTest {
     }
 
     private void ready(LauncherActivity activity) throws Exception {
+        PackageInfo provider = WebView.getCurrentWebViewPackage();
+        boolean legacyNativeFixture = Build.VERSION.SDK_INT == 28 && provider != null
+            && provider.versionName != null && provider.versionName.startsWith("69.");
+        if (!legacyNativeFixture) awaitBundledInterface(activity);
+        // The stock API 28/Chromium 69 image cannot parse the existing Web bundle.
+        // Preserve that lane's native adapter/frame assertions; it is not Web UI acceptance.
         CountDownLatch frame = new CountDownLatch(1);
         instrumentation.runOnMainSync(() -> activity.getBridge().getWebView().postVisualStateCallback(
             1, new WebView.VisualStateCallback() {
                 @Override public void onComplete(long requestId) { frame.countDown(); }
             }));
         assertTrue("A live renderer must confirm a foreground frame", frame.await(15, TimeUnit.SECONDS));
+    }
+
+    private void awaitBundledInterface(LauncherActivity activity) throws Exception {
+        CountDownLatch content = new CountDownLatch(1);
+        AtomicBoolean observing = new AtomicBoolean(true);
+        // A compositor frame can still be the empty launch document. Await the
+        // actual bundled React surface, then acknowledge its painted frame.
+        instrumentation.runOnMainSync(() -> {
+            WebView view = activity.getBridge().getWebView();
+            Runnable probe = new Runnable() {
+                @Override public void run() {
+                    if (!observing.get()) return;
+                    view.evaluateJavascript(
+                        "Boolean(document.querySelector('#root main') && document.getElementById('root').textContent.trim())",
+                        value -> {
+                            if (!observing.get()) return;
+                            if ("true".equals(value)) content.countDown();
+                            else view.postOnAnimation(this);
+                        });
+                }
+            };
+            probe.run();
+        });
+        try {
+            assertTrue("The bundled app must render its interface, not remain on a blank launch document",
+                content.await(15, TimeUnit.SECONDS));
+        } finally {
+            observing.set(false);
+        }
     }
 
     private void capture(String name) throws Exception {

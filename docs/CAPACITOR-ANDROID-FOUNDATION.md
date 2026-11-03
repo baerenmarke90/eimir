@@ -443,3 +443,10 @@ implementation. No new dependency, service, account, data egress or cost.
 The isolated native lane retains screenshots and diagnostics. Pure policy
 regressions cover delayed delivery, one-shot fallback, picker interruption and
 rearming. Physical Pixel acceptance remains separate from emulator evidence.
+
+Bundled-interface readiness is required before native return screenshots on
+modern providers. The stock API 28 image still ships Chromium 69 and cannot
+parse the existing product bundle; its pre-existing native adapter/frame/crash
+coverage is not bundled Web-product acceptance. This exact legacy fixture is
+classified explicitly, not treated as a successful UI result. Provisioning a
+supported provider and extending that acceptance is tracked in [#1613](https://github.com/baerenmarke90/eimir/issues/1613).

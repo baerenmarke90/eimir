@@ -689,12 +689,16 @@ public class PhotoFileChooserTest {
         assertFalse("The system control's hierarchy and pixels become stable",
             UiObject2Ext.waitForStable(control, 3000, 500, 50, true).isTimeout());
         // Stability screenshots can replace accessibility nodes. Reacquire before
-        // the framework's real touch, without replaying a gesture on failure.
+        // the regular synchronous touch used for the WebView controls too.
         control = device.findObject(selector);
         assertNotNull("The stable system control remains attached", control);
         assertTrue("The stable system control is enabled", control.isEnabled());
-        assertFalse("The stable system control is visible", control.getVisibleBounds().isEmpty());
-        control.click();
+        Rect bounds = control.getVisibleBounds();
+        assertFalse("The stable system control is visible", bounds.isEmpty());
+        // UiObject2's default zero-dwell asynchronous gesture can lose a tap on
+        // a busy picker. UiDevice owns regular click timing and dispatch; assert
+        // its result without replaying a selection or bypassing native input.
+        tapScreenBounds(bounds);
     }
 
     private void activateNativeControl(AccessibilityNodeInfo control) {

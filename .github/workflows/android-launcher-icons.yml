@@ -113,10 +113,18 @@ jobs:
             grep -E '^Android emulator version 37\.2\.12([. ]|$)' emulator-version.log
           fi
           "$EIMIR_EMULATOR_BINARY" -no-window -list-avds | grep -Fx eimir-launcher
+          emulator_graphics_args=()
+          if [ '${{ matrix.api }}' = '36' ]; then
+            # Independent API 36 runs lost color buffers during Chromium video.
+            # Keep real GLES rendering/decoding on Android's compatibility path:
+            # https://developer.android.com/studio/run/emulator-troubleshooting#cannot-open-webpage-correctly
+            emulator_graphics_args=(-feature -Vulkan)
+          fi
           (
             set +e
             "$EIMIR_EMULATOR_BINARY" -avd eimir-launcher -no-window \
               -no-audio -no-snapshot -no-boot-anim -gpu swiftshader \
+              "${emulator_graphics_args[@]}" \
               -memory ${{ matrix.memory }} -partition-size 2048 > emulator.log 2>&1
             emulator_status=$?
             printf 'Emulator exited with status %s\n' "$emulator_status" > emulator-exit.log

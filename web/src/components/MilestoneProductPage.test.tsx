@@ -10,11 +10,12 @@ import type { ReferenceApis } from '../client/referenceFlow';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import navigation from '../i18n/locales/navigation';
 import storyProducts from '../i18n/locales/storyProducts';
+import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 import { MilestoneProductPage } from './MilestoneProductPage';
 import { QuickCreateMenu } from './QuickCreateMenu';
 
-const backToStoryName = /^Zurück$/;
+const backToStoryName = taskBoundary.back;
 
 beforeEach(() => {
   window.matchMedia = (query: string) => ({

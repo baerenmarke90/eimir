@@ -6,6 +6,8 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
 import photoSources from '../../src/i18n/locales/photoSources';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import deFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
@@ -342,7 +344,7 @@ for (const [width, colorScheme] of [
     }
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
-      .fill('Unser Wochenende am See.');
+      .fill(deFixtures.memoryExperiences.body);
     await page.getByRole('button', { name: experiences.addPeriod }).click();
     await page.getByLabel(experiences.through).fill('2027-01-03');
     // The native date editor keeps calendar dates rather than timezone instants.
@@ -444,7 +446,7 @@ for (const [width, colorScheme] of [
     );
     await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
     await expect(
-      page.getByRole('button', { name: 'Zurück', exact: true }),
+      page.getByRole('button', { name: taskBoundary.back, exact: true }),
     ).toHaveCount(1);
     await expect(page.getByText(/31.*2026.*3.*2027/).first()).toBeVisible();
     await page.screenshot({

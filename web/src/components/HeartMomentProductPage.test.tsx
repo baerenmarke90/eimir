@@ -13,11 +13,12 @@ import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import navigation from '../i18n/locales/navigation';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
 import storyProducts from '../i18n/locales/storyProducts';
+import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 import { HeartMomentProductPage } from './HeartMomentProductPage';
 import { QuickCreateMenu } from './QuickCreateMenu';
 
-const backToStoryName = /^Zurück$/;
+const backToStoryName = taskBoundary.back;
 
 beforeEach(() => {
   window.matchMedia = (query: string) => ({

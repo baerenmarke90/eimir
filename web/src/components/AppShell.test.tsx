@@ -9,6 +9,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import navigation from '../i18n/locales/navigation';
+import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 
 /** Opening anchor tags, so attribute order in the markup does not matter. */
@@ -135,11 +136,11 @@ describe('AppShell', () => {
   it('keeps contextual Story return controls separate from mobile global chrome', () => {
     const html = renderShell('/story/memories/memory-1');
     expect(html).toContain('shell-detail-context');
-    expect(
-      html.match(
-        /<button[^>]*class="back-link tertiary[^"]*"[^>]*>Zurück<\/button>/g,
-      ),
-    ).toHaveLength(1);
+    const backButtons = new DOMParser()
+      .parseFromString(html, 'text/html')
+      .querySelectorAll('button.back-link.tertiary');
+    expect(backButtons).toHaveLength(1);
+    expect(backButtons[0]?.textContent).toBe(taskBoundary.back);
     expect(renderShell('/story')).not.toContain('shell-detail-context');
   });
 

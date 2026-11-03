@@ -507,8 +507,13 @@ public class PhotoFileChooserTest {
         assertNotNull("CI identifies the original foreign-owned fixture", expected);
         assertEquals("The selected-gallery oracle belongs to this exact source fixture",
             VIDEO_FIXTURE_SHA256, expected);
-        assertEquals("The descriptor bridge must preserve Android's exact location-redacted bytes",
-            LOCATION_REDACTED_VIDEO_SHA256, actual);
+        // The combined picker deliberately retains original-photo metadata
+        // consent. Android applies that explicit gallery grant to its selected
+        // video too; video-only intake deliberately requests no such grant.
+        // Both paths must preserve their exact platform-provided bytes.
+        assertEquals("The descriptor bridge must preserve the exact bytes authorized by this picker",
+            acceptedTypes.startsWith("image/") ? VIDEO_FIXTURE_SHA256 : LOCATION_REDACTED_VIDEO_SHA256,
+            actual);
         assertEquals("true", javascriptValue(view,
             "document.getElementById('video').paused && document.getElementById('video').controls"));
         // Match production preload=none: only a deliberate Play requests metadata/frames.

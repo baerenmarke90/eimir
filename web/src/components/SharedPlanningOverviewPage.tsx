@@ -13,6 +13,7 @@ import { PlanDetailToJSON } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import { authorDisplayName } from '../client/authorPresentation';
 import { decodePlansOverview } from '../client/overviewSnapshots';
+import { formatCalendarDate } from '../client/formatRecency';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   groupPlanningOverviewPlans,
@@ -35,6 +36,7 @@ import { useTranslation } from '../i18n';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { PlanCover } from './PlanCover';
+import { PlanningStatusScope, type PlanningScope } from './PlanningStatusScope';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { WishSelectionEntry } from './WishSelectionEntry';
@@ -58,7 +60,12 @@ function nextCursor<T>(page: PageShape<T>): string | undefined {
 }
 
 function segmentForHash(hash: string): PlanenSegment | null {
-  if (hash === '#plan-title' || hash === '#plans') return 'plans';
+  if (
+    hash === '#plan-title' ||
+    hash === '#plans' ||
+    hash === '#experienced-plans'
+  )
+    return 'plans';
   if (
     hash === '#wish-title' ||
     hash === '#wishes' ||
@@ -187,17 +194,25 @@ export function SharedPlanningOverviewPage({
   const [activeSegment, setActiveSegment] = useState<PlanenSegment>(
     () => segmentForHash(location.hash) ?? 'plans',
   );
-  const [wishStatus, setWishStatus] = useState<'OPEN' | 'COMPLETED'>(() =>
+  const [wishStatus, setWishStatus] = useState<PlanningScope>(() =>
     location.hash === '#fulfilled-wishes' ? 'COMPLETED' : 'OPEN',
   );
-  function changeWishStatus(status: 'OPEN' | 'COMPLETED') {
-    setWishStatus(status);
+  const [planStatus, setPlanStatus] = useState<PlanningScope>(() =>
+    location.hash === '#experienced-plans' ? 'COMPLETED' : 'OPEN',
+  );
+  function changeStatus(kind: PlanenSegment, status: PlanningScope) {
+    if (kind === 'plans') setPlanStatus(status);
+    else setWishStatus(status);
+    const hash =
+      kind === 'plans'
+        ? status === 'COMPLETED'
+          ? '#experienced-plans'
+          : '#plans'
+        : status === 'COMPLETED'
+          ? '#fulfilled-wishes'
+          : '#wishes';
     void navigate(
-      {
-        pathname: location.pathname,
-        search: location.search,
-        hash: status === 'COMPLETED' ? '#fulfilled-wishes' : '#wishes',
-      },
+      { pathname: location.pathname, search: location.search, hash },
       { replace: true, state: location.state },
     );
   }
@@ -205,6 +220,9 @@ export function SharedPlanningOverviewPage({
   useLayoutEffect(() => {
     const segment = segmentForHash(location.hash);
     if (segment) setActiveSegment(segment);
+    if (location.hash === '#experienced-plans') setPlanStatus('COMPLETED');
+    else if (location.hash === '#plans' || location.hash === '#plan-title')
+      setPlanStatus('OPEN');
     if (location.hash === '#fulfilled-wishes') setWishStatus('COMPLETED');
     else if (location.hash === '#wishes' || location.hash === '#wish-title')
       setWishStatus('OPEN');
@@ -215,8 +233,9 @@ export function SharedPlanningOverviewPage({
       registerOriginMetadata({
         planningSegment: activeSegment,
         planningWishStatus: wishStatus,
+        planningPlanStatus: planStatus,
       }),
-    [activeSegment, wishStatus, registerOriginMetadata],
+    [activeSegment, wishStatus, planStatus, registerOriginMetadata],
   );
 
   useLayoutEffect(() => {
@@ -227,6 +246,11 @@ export function SharedPlanningOverviewPage({
     if (!origin) return;
     const segment = segmentForHash(location.hash) ?? origin.planningSegment;
     if (segment) setActiveSegment(segment);
+    if (location.hash === '#experienced-plans') setPlanStatus('COMPLETED');
+    else if (location.hash === '#plans' || location.hash === '#plan-title')
+      setPlanStatus('OPEN');
+    else if (origin.planningPlanStatus)
+      setPlanStatus(origin.planningPlanStatus);
     if (location.hash === '#fulfilled-wishes') setWishStatus('COMPLETED');
     else if (location.hash === '#wishes' || location.hash === '#wish-title')
       setWishStatus('OPEN');
@@ -292,13 +316,15 @@ export function SharedPlanningOverviewPage({
   const planGroups = groupPlanningOverviewPlans(
     plans.data?.pages.flatMap((page) => page.items) ?? [],
   );
-  const hasPlans = Boolean(
-    planGroups.focal ||
-      planGroups.later.length ||
-      planGroups.undated.length ||
-      planGroups.past.length ||
-      planGroups.completed.length,
-  );
+  const hasPlans =
+    planStatus === 'COMPLETED'
+      ? planGroups.completed.length > 0
+      : Boolean(
+          planGroups.focal ||
+            planGroups.later.length ||
+            planGroups.undated.length ||
+            planGroups.past.length,
+        );
 
   function openFromOverview(
     event: MouseEvent<HTMLAnchorElement>,
@@ -311,6 +337,7 @@ export function SharedPlanningOverviewPage({
     const taskOriginKey = captureOrigin({
       planningSegment: segment,
       planningWishStatus: wishStatus,
+      planningPlanStatus: planStatus,
       selectedKey,
     });
     void navigate(to, {
@@ -346,7 +373,13 @@ export function SharedPlanningOverviewPage({
               focal ? 'planen-next-schedule' : 'planen-agenda-schedule'
             }
           >
-            {planScheduleLabel(plan)}
+            {plan.status === 'COMPLETED'
+              ? plan.experiencedOn
+                ? t('m5s3.overview.experiencedOn', {
+                    date: formatCalendarDate(plan.experiencedOn),
+                  })
+                : t('m5s3.overview.completedLabel')
+              : planScheduleLabel(plan)}
           </span>
           {plan.description ? (
             <span
@@ -394,6 +427,11 @@ export function SharedPlanningOverviewPage({
           <span aria-hidden="true">+</span>
           {t('m5s3.overview.addPlan')}
         </Link>
+        <PlanningStatusScope
+          kind="plans"
+          value={planStatus}
+          onChange={(status) => changeStatus('plans', status)}
+        />
         {plans.isLoading && !plans.data ? (
           <UiState kind="loading" title={t('states.loading.title')} />
         ) : null}
@@ -408,12 +446,20 @@ export function SharedPlanningOverviewPage({
         ) : null}
         {!plans.isLoading && !plans.error && !hasPlans ? (
           <div className="planen-empty-state">
-            <h2>{t('m5s3.overview.plansEmpty')}</h2>
-            <p>{t('m5s3.plan.createIntro')}</p>
+            <h2>
+              {t(
+                planStatus === 'COMPLETED'
+                  ? 'm5s3.overview.experiencedPlansEmpty'
+                  : planGroups.completed.length
+                    ? 'm5s3.overview.openPlansEmpty'
+                    : 'm5s3.overview.plansEmpty',
+              )}
+            </h2>
+            {planStatus === 'OPEN' ? <p>{t('m5s3.plan.createIntro')}</p> : null}
           </div>
         ) : null}
 
-        {planGroups.focal ? (
+        {planStatus === 'OPEN' && planGroups.focal ? (
           <section
             className="planen-next"
             aria-labelledby="planen-next-heading"
@@ -423,7 +469,7 @@ export function SharedPlanningOverviewPage({
           </section>
         ) : null}
 
-        {planGroups.later.length ? (
+        {planStatus === 'OPEN' && planGroups.later.length ? (
           <section
             className="planen-agenda"
             aria-labelledby="planen-later-heading"
@@ -439,9 +485,9 @@ export function SharedPlanningOverviewPage({
           </section>
         ) : null}
 
-        <WishSelectionEntry segment="plans" />
+        {planStatus === 'OPEN' ? <WishSelectionEntry segment="plans" /> : null}
 
-        {planGroups.undated.length ? (
+        {planStatus === 'OPEN' && planGroups.undated.length ? (
           <section
             className="planen-undated"
             aria-labelledby="planen-undated-heading"
@@ -472,31 +518,34 @@ export function SharedPlanningOverviewPage({
           </section>
         ) : null}
 
-        {planGroups.past.length || planGroups.completed.length ? (
-          <details className="planen-history">
-            <summary>{t('m5s3.overview.historyHeading')}</summary>
-            <p>{t('m5s3.overview.historyIntro')}</p>
+        {planStatus === 'OPEN' && planGroups.past.length ? (
+          <section
+            className="planen-agenda"
+            aria-labelledby="planen-past-heading"
+          >
+            <h2 id="planen-past-heading">{t('m5s3.overview.pastOpenPlans')}</h2>
             <ul>
-              {[...planGroups.past, ...planGroups.completed].map((plan) => (
-                <li key={plan.id}>
-                  <Link
-                    {...planningLinkProps(
-                      planDetailPath(plan.id),
-                      'plans',
-                      plan.id,
-                    )}
-                  >
-                    <span>{plan.title}</span>
-                    <small>
-                      {plan.status === 'COMPLETED'
-                        ? t('m5s3.overview.completedLabel')
-                        : t('m5s3.overview.pastLabel')}
-                    </small>
-                  </Link>
+              {planGroups.past.map((plan) => (
+                <li key={plan.id} className="planen-agenda-item">
+                  {renderPlanPreview(plan)}
                 </li>
               ))}
             </ul>
-          </details>
+          </section>
+        ) : null}
+        {planStatus === 'COMPLETED' && planGroups.completed.length ? (
+          <section
+            className="planen-agenda"
+            aria-label={t('m5s3.overview.experiencedPlans')}
+          >
+            <ul>
+              {planGroups.completed.map((plan) => (
+                <li key={plan.id} className="planen-agenda-item">
+                  {renderPlanPreview(plan)}
+                </li>
+              ))}
+            </ul>
+          </section>
         ) : null}
       </PlanenPanel>
 
@@ -512,24 +561,11 @@ export function SharedPlanningOverviewPage({
           <span aria-hidden="true">+</span>
           {t('m5s3.overview.addWish')}
         </Link>
-        <fieldset className="planen-wish-scope">
-          <legend className="sr-only">{t('m5s3.overview.wishScope')}</legend>
-          {(['OPEN', 'COMPLETED'] as const).map((status) => (
-            <button
-              key={status}
-              type="button"
-              className={wishStatus === status ? 'secondary' : 'tertiary'}
-              aria-pressed={wishStatus === status}
-              onClick={() => changeWishStatus(status)}
-            >
-              {t(
-                status === 'COMPLETED'
-                  ? 'm5s3.overview.fulfilledWishes'
-                  : 'm5s3.wish.status.OPEN',
-              )}
-            </button>
-          ))}
-        </fieldset>
+        <PlanningStatusScope
+          kind="wishes"
+          value={wishStatus}
+          onChange={(status) => changeStatus('wishes', status)}
+        />
         <WishSelectionEntry segment="wishes" />
         {wishes.isLoading && !wishes.data ? (
           <UiState kind="loading" title={t('states.loading.title')} />

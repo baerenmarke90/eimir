@@ -80,7 +80,6 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
-import { StoryBrowseLayer } from './StoryBrowseLayer';
 import { StoryRetrospective } from './StoryRetrospective';
 import { type StoryView, StoryViewTabs } from './StoryViewTabs';
 import './StoryUnifiedPage.css';
@@ -917,41 +916,6 @@ export function StoryProductPage({
             className="momente-discover-page"
             aria-labelledby="momente-tab-discover"
           >
-            <div className="discover-toolbar" aria-busy={renewing}>
-              <div>
-                <h2>{t('story.discoverInvitation')}</h2>
-                <p>{t('story.discoverDaily')}</p>
-              </div>
-              <button
-                type="button"
-                className="secondary"
-                disabled={renewing || discoverQuery.isFetching}
-                onClick={() => void renewSelection()}
-              >
-                {t(renewing ? 'story.discoverRenewing' : 'story.discoverRenew')}
-              </button>
-            </div>
-            {newDayAvailable ? (
-              <p className="discover-feedback" role="status">
-                {t('story.discoverNewDay')}
-              </p>
-            ) : null}
-            {renewed ? (
-              <p className="sr-only" role="status">
-                {t('story.discoverRenewed')}
-              </p>
-            ) : null}
-            {renewProblem ? (
-              <p className="discover-feedback" role="alert">
-                {t(
-                  clientProblemKind(renewProblem) === 'offline'
-                    ? 'story.discoverOffline'
-                    : clientProblemKind(renewProblem) === 'rateLimit'
-                      ? 'story.discoverRateLimit'
-                      : 'story.discoverRenewError',
-                )}
-              </p>
-            ) : null}
             {/* 1. Featured Editorial Highlight */}
             {featuredItem && featuredPresentation ? (
               <article className="momente-hero-highlight">
@@ -1170,6 +1134,37 @@ export function StoryProductPage({
                 ))}
               </div>
             </section>
+            <div className="discover-toolbar" aria-busy={renewing}>
+              <button
+                type="button"
+                className="secondary"
+                disabled={renewing || discoverQuery.isFetching}
+                onClick={() => void renewSelection()}
+              >
+                {t(renewing ? 'story.discoverRenewing' : 'story.discoverRenew')}
+              </button>
+            </div>
+            {newDayAvailable ? (
+              <p className="discover-feedback" role="status">
+                {t('story.discoverNewDay')}
+              </p>
+            ) : null}
+            {renewed ? (
+              <p className="sr-only" role="status">
+                {t('story.discoverRenewed')}
+              </p>
+            ) : null}
+            {renewProblem ? (
+              <p className="discover-feedback" role="alert">
+                {t(
+                  clientProblemKind(renewProblem) === 'offline'
+                    ? 'story.discoverOffline'
+                    : clientProblemKind(renewProblem) === 'rateLimit'
+                      ? 'story.discoverRateLimit'
+                      : 'story.discoverRenewError',
+                )}
+              </p>
+            ) : null}
           </section>
         ) : null}
         {activeView === 'discover' &&
@@ -1339,21 +1334,6 @@ export function StoryProductPage({
               </button>
             </div>
           </ShortTaskSheet>
-          <StoryBrowseLayer
-            onOpen={(event, path) => {
-              if (
-                event.button !== 0 ||
-                event.metaKey ||
-                event.ctrlKey ||
-                event.shiftKey ||
-                event.altKey
-              )
-                return;
-              event.preventDefault();
-              const taskOriginKey = captureOrigin();
-              void navigate(path, { state: { taskOriginKey } });
-            }}
-          />
           {activeView === 'timeline' &&
           combinedStory &&
           (timelineItems.length > 0 ||

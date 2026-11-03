@@ -345,9 +345,6 @@
   --diary-entry-surface: var(--heart-emotion-surface);
 }
 
-.story-page-unified .momente-diary-section > .momente-browse-layer {
-  margin: 0 0 var(--space-2);
-}
 .story-page-unified .momente-diary-section .story-card-milestone {
   --diary-entry-surface: var(--color-shared-surface);
 }
@@ -413,15 +410,6 @@
   justify-content: space-between;
   gap: var(--space-3);
 }
-.discover-toolbar > div {
-  flex: 1 1 12rem;
-  min-width: 0;
-}
-.discover-toolbar h2 {
-  font: var(--font-content-heading);
-  margin: 0;
-}
-.discover-toolbar p,
 .discover-feedback {
   font: var(--font-supporting-copy);
   color: var(--color-text-secondary);

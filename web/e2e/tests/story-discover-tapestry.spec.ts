@@ -4,9 +4,9 @@ import fs from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import memoryMap from '../../src/i18n/locales/memoryMap';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
-import sharedPhotos from '../../src/i18n/locales/sharedPhotos';
+import navigation from '../../src/i18n/locales/navigation';
+import productTour from '../../src/i18n/locales/productTour';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import localizedFixture from '../fixtures/locales/de';
 
@@ -615,6 +615,19 @@ test('Momente Discover uses two compact rediscovery columns and a separate full 
   await expect(page.locator('.momente-tapestry-item')).toHaveCount(
     canonicalItemLabels.length,
   );
+  await expect(
+    page.getByText(de.story.discoverInvitation, { exact: true }),
+  ).toHaveCount(0);
+  const renewalFollowsContent = await page
+    .locator('.discover-toolbar')
+    .evaluate((toolbar) =>
+      Boolean(
+        toolbar.previousElementSibling?.contains(
+          document.querySelector('.momente-tapestry'),
+        ),
+      ),
+    );
+  expect(renewalFollowsContent).toBe(true);
   const tapestryLinkTitles = await page
     .locator('.momente-tapestry-item')
     .evaluateAll((nodes) =>
@@ -654,118 +667,82 @@ test('Momente Discover uses two compact rediscovery columns and a separate full 
   expect(unexpectedRequests).toEqual([]);
 });
 
-test('Momente browse layer keeps four structural destinations compact and secondary at 390px', async ({
+test('Diary uses its filter and keeps annual history reachable under More', async ({
   page,
-}, testInfo) => {
-  const unexpectedRequests = await installDiscoverApiMocks(page);
-  await page.emulateMedia({ colorScheme: 'light' });
+}, info) => {
+  const unexpected = await installDiscoverApiMocks(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/story?tab=timeline');
   await signIn(page);
   await page.goto('/story?tab=timeline');
-
-  const browse = page.getByRole('navigation', { name: de.story.browseTitle });
-  await expect(browse).toBeVisible();
-  await expect(browse.getByRole('link')).toHaveCount(4);
   await expect(
-    browse.getByRole('link', { name: sharedPhotos.browse, exact: true }),
-  ).toHaveAttribute('href', '/story/photos');
-  await expect(
-    browse.getByRole('link', { name: de.story.browseMilestones }),
-  ).toHaveAttribute('href', '/story?tab=timeline&type=MILESTONE');
-  await expect(
-    browse.getByRole('link', { name: de.story.browseChapters }),
-  ).toHaveAttribute('href', '/story/chapters');
-  await expect(
-    browse.getByRole('link', { name: de.story.browseYears }),
-  ).toHaveAttribute('href', '/story/years');
-
+    page.getByRole('navigation', { name: de.story.browseTitle }),
+  ).toHaveCount(0);
   await expect(page.getByRole('tab')).toHaveCount(3);
-  await expect(
-    page.getByRole('tab', { name: memoryMap.entry, exact: true }),
-  ).toHaveAttribute('aria-selected', 'false');
-  await expect(
-    page.getByRole('tab', { name: de.story.tabTimeline, exact: true }),
-  ).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('.momente-archive-links')).toHaveCount(0);
-  await expect(page.locator('.momente-year-archive')).toHaveCount(0);
-  await expect(page.getByText(de.story.milestonesDesc)).toHaveCount(0);
-  await expect(page.getByText(de.story.yearArchiveSubtitle)).toHaveCount(0);
-  await expect(page.getByText(de.story.yearArchiveAll)).toHaveCount(0);
-
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  await browse.scrollIntoViewIfNeeded();
-
-  const linkBoxes = await browse.getByRole('link').evaluateAll((links) =>
-    links.map((link) => {
-      const rect = link.getBoundingClientRect();
-      return { width: rect.width, height: rect.height };
-    }),
-  );
-  for (const box of linkBoxes) {
-    expect(box.width).toBeGreaterThanOrEqual(44);
-    expect(box.height).toBeGreaterThanOrEqual(44);
-  }
-
-  const dimensions = await page.evaluate(() => ({
-    clientWidth: document.documentElement.clientWidth,
-    scrollWidth: document.documentElement.scrollWidth,
-  }));
-  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
-
-  const milestoneEntry = browse.getByRole('link', {
-    name: de.story.browseMilestones,
+  await expect(page.locator('.story-filter-toggle')).toBeVisible();
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await page
+    .locator('.product-tour')
+    .getByRole('button', { name: productTour.later, exact: true })
+    .click();
+  const years = page.getByRole('link', {
+    name: de.more.yearsTitle,
+    exact: true,
   });
-  await milestoneEntry.focus();
-  await expect(milestoneEntry).toBeFocused();
+  await expect(years).toHaveAttribute('href', '/story/years');
+  await expect(
+    page.locator('.more-destination[href="/story/photos"]'),
+  ).toBeVisible();
+  await expect(
+    page.locator('.more-destination[href="/story/chapters"]'),
+  ).toBeVisible();
+  await years.focus();
+  await expect(years).toBeFocused();
+  const bounds = await years.boundingBox();
+  expect(bounds?.height).toBeGreaterThanOrEqual(44);
   await expectNoWcagViolations(page);
-  expect(unexpectedRequests).toEqual([]);
-
   await page.screenshot({
-    path: testInfo.outputPath('972-browse-390-light.png'),
+    path: info.outputPath('1616-more-years-390-light.png'),
     fullPage: false,
   });
+  await years.click();
+  await expect(
+    page.getByRole('heading', { name: de.storyYears.title, level: 1 }),
+  ).toBeVisible();
+  await page.goBack();
+  await expect(years).toBeVisible();
+  expect(unexpected).toEqual([]);
 });
 
-test('Momente browse layer reflows at 320px with enlarged text in dark mode', async ({
+test('Diary filter reflows at 320px with 200 percent text in dark mode', async ({
   page,
-}, testInfo) => {
-  const unexpectedRequests = await installDiscoverApiMocks(page);
-  await page.emulateMedia({ colorScheme: 'dark' });
+}, info) => {
+  const unexpected = await installDiscoverApiMocks(page);
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 320, height: 720 });
   await page.goto('/story?tab=timeline');
   await signIn(page);
   await page.goto('/story?tab=timeline');
-  await page.addStyleTag({ content: 'html { font-size: 125%; }' });
-
-  const browse = page.getByRole('navigation', { name: de.story.browseTitle });
-  await expect(browse).toBeVisible();
-  await expect(browse.getByRole('link')).toHaveCount(4);
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
   await expect(
-    browse.getByRole('link', { name: sharedPhotos.browse, exact: true }),
-  ).toHaveAttribute('href', '/story/photos');
-
+    page.getByRole('navigation', { name: de.story.browseTitle }),
+  ).toHaveCount(0);
+  const filter = page.locator('.story-filter-toggle');
+  await expect(filter).toBeVisible();
+  await filter.click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(filter).toBeFocused();
   const dimensions = await page.evaluate(() => ({
-    clientWidth: document.documentElement.clientWidth,
-    scrollWidth: document.documentElement.scrollWidth,
+    client: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
   }));
-  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
-
-  const linkBoxes = await browse.getByRole('link').evaluateAll((links) =>
-    links.map((link) => {
-      const rect = link.getBoundingClientRect();
-      return { width: rect.width, height: rect.height };
-    }),
-  );
-  for (const box of linkBoxes) {
-    expect(box.width).toBeGreaterThanOrEqual(44);
-    expect(box.height).toBeGreaterThanOrEqual(44);
-  }
-
+  expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.client);
   await expectNoWcagViolations(page);
-  expect(unexpectedRequests).toEqual([]);
+  expect(unexpected).toEqual([]);
   await page.screenshot({
-    path: testInfo.outputPath('972-browse-320-dark-large-text.png'),
+    path: info.outputPath('1616-diary-320-dark-large-text.png'),
     fullPage: false,
   });
 });
@@ -829,7 +806,7 @@ for (const [width, theme] of [
     await expect(diary.locator('[data-heart-emotion]')).toHaveCount(6);
     await expect(
       diary.getByRole('navigation', { name: de.story.browseTitle }),
-    ).toBeVisible();
+    ).toHaveCount(0);
     await expect(diary.locator('.story-filter-toggle svg')).toBeVisible();
     const surfaces = await diary
       .locator('[data-heart-emotion]')

@@ -101,8 +101,30 @@ for (const [width, theme] of [
       }),
     );
     await signIn(page);
+    await page.evaluate(() => document.fonts.ready);
+    const storyTabs = page.getByRole('tablist', {
+      name: de.story.viewToggleAria,
+    });
+    const discoverBounds = await storyTabs.boundingBox();
+    await page
+      .getByRole('tab', { name: de.story.tabTimeline, exact: true })
+      .click();
+    const diaryBounds = await storyTabs.boundingBox();
     await page.getByRole('tab', { name: mapCopy.entry }).click();
     await expect(page.getByRole('tab', { name: mapCopy.entry })).toBeVisible();
+    const mapBounds = await storyTabs.boundingBox();
+    if (!discoverBounds || !diaryBounds || !mapBounds)
+      throw new Error('All peer-view navigation bounds must be measurable');
+    for (const bounds of [diaryBounds, mapBounds]) {
+      expect(Math.abs(bounds.y - discoverBounds.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(bounds.x - discoverBounds.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(bounds.width - discoverBounds.width)).toBeLessThanOrEqual(
+        1,
+      );
+      expect(
+        Math.abs(bounds.height - discoverBounds.height),
+      ).toBeLessThanOrEqual(1);
+    }
     const place = page
       .getByRole('list', { name: mapCopy.places })
       .getByRole('button', { name: 'Lake · 2 Erinnerungen' });

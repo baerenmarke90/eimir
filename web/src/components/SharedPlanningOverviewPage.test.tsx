@@ -235,7 +235,7 @@ describe('SharedPlanningOverviewPage', () => {
     expect(placesHtml).toContain(i18n.t('m5s3.place.emptyOverview'));
   });
 
-  it('keeps Wishes and Plans separate and composes focal, later, undated, and receded history', () => {
+  it('keeps Wishes separate and composes only open focal, later and undated Plans', () => {
     // Both dated fixtures must remain in the future for this composition case.
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-02T10:00:00Z'));
@@ -315,9 +315,8 @@ describe('SharedPlanningOverviewPage', () => {
     expect(wishesPanelHtml).not.toContain('Already turned into a plan');
     expect(wishesPanelHtml).not.toContain('Already come true');
 
-    // Plans: dated PLANNED items lead, soonest first, then the undated group;
-    // completed history remains present behind the receded disclosure.
-    expect(html).toContain('Already experienced');
+    // Completed Plans have their own explicit scope; open planning stays focused.
+    expect(html).not.toContain('Already experienced');
     const soonIndex = html.indexOf('Autumn hike');
     const laterIndex = html.indexOf('Concert in October');
     const ideaIndex = html.indexOf('Try a new recipe');
@@ -328,7 +327,6 @@ describe('SharedPlanningOverviewPage', () => {
       plansPanelHtml.indexOf('wish-selection-entry'),
     );
     expect(plansPanelHtml).toContain('planen-agenda-copy');
-    expect(ideaIndex).toBeLessThan(html.indexOf('Already experienced'));
 
     // Creator attribution is real domain data, not a hardcoded name.
     expect(html).toContain(i18n.t('m5s3.overview.createdBy', { name: 'Lea' }));

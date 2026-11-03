@@ -1,10 +1,6 @@
-.memory-map-page {
+.memory-map-page > [role="tabpanel"] {
   max-width: 54rem;
   margin-inline: auto;
-}
-.memory-map-page > .page-heading {
-  margin-block-end: var(--space-5);
-  padding-block-end: 0;
 }
 .memory-map-page .page-heading-title-container h1 {
   min-width: 0;
@@ -226,9 +222,6 @@
   }
 }
 
-.memory-map-page .story-view-tabs {
-  margin-block-end: var(--space-4);
-}
 .memory-map-marker-content {
   display: block;
   position: relative;

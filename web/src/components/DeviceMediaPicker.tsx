@@ -31,16 +31,34 @@ export function DeviceMediaPicker(props: Props) {
 function EnabledDeviceMediaPicker(
   props: Props & { context: VideoCaptureContext },
 ) {
+  const { t } = useTranslation();
   const { context } = props;
   const policy = useVideoUploadPolicy(context);
   return (
     <>
       <DeviceInput
         {...props}
+        disabled={props.disabled || policy.isPending}
         videos={Boolean(
           policy.data?.videoProcessingEnabled && policy.data.videoUploadAllowed,
         )}
       />
+      {policy.isPending ? (
+        <p role="status">{t('states.loading.title')}</p>
+      ) : null}
+      {policy.isError ? (
+        <div role="alert">
+          <p>{t('photoSources.videoAvailabilityUnavailable')}</p>
+          <button
+            type="button"
+            className="tertiary"
+            disabled={props.disabled || policy.isFetching}
+            onClick={() => void policy.refetch()}
+          >
+            {t('common.retry')}
+          </button>
+        </div>
+      ) : null}
       {policy.data?.videoProcessingEnabled &&
       !policy.data.videoUploadAllowed ? (
         <VideoUploadAction {...props} context={context} />

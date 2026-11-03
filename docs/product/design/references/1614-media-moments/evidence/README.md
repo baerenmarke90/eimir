@@ -1,8 +1,9 @@
 # Runtime evidence
 
 Synthetic authenticated browser fixtures against the #1614 runtime tree
-`dd9f2c1eeba735afcd374047f6bc3fdb1fa5f01f`. Later changes add tests/evidence;
-the Web runtime is unchanged. These are actual Chromium captures, not generated
+`dd9f2c1eeba735afcd374047f6bc3fdb1fa5f01f`. The final follow-up additionally guards the video-policy pending/error state;
+the captured ordinary photo/provider/Moments composition is unchanged. The
+separate final video and delayed-policy journeys verify that bounded state. These are actual Chromium captures, not generated
 references. They do not prove live provider approval or physical Android behavior.
 
 | State | Capture |

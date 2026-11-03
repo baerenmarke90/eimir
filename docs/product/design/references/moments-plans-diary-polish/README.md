@@ -5,7 +5,10 @@
 Requested by the Product Owner on 2026-11-03. Baseline: main
 `a7d443dea7070bf546ccfcaa48280420da4ef818` plus PR #1615 head
 `79497532c78182d8472e9a888424086c96c74be8`. The implementation branch merges
-that main into the dependency without changing its media/provider work.
+that main into the dependency without changing its media/provider work. Before
+final validation it also incorporated dependency head
+`a1d0659481cc3cb07d82d1bc11141afad94a593c`; those changes affect provider
+selection/native tests, not the reviewed destination compositions.
 
 ![Generated Compact composition reference](preflight.png)
 
@@ -28,7 +31,9 @@ captures and journeys will be recorded separately.
 - Compact: preserve root heading and the three peer Story tabs at one position
   across routes. Reuse PageHeader and StoryViewTabs, with one spacing contract.
   Remove the redundant Diary browse strip; More exposes the existing years
-  route. Its existing review capabilities and access policy remain intact.
+  route. Existing Photos and Chapters destinations also move to More so removing
+  the strip does not orphan those capabilities. Milestones remain in the type
+  filter. Existing review capabilities and access policy remain intact.
 - Plans: reuse the Wishes status-scope pattern for Open/Experienced; Open
   includes ideas, upcoming and past uncompleted plans. Experienced includes
   only completed plans. Preserve grouping, scoped return, selection and scroll.
@@ -74,3 +79,8 @@ Localized labels, semantic controls, Back/focus, keyboard, reflow, stale cached
 reads and in-session return ownership are the relevant quality boundaries.
 Validation will cover actual open/filter/detail/return, More/year navigation,
 map/header geometry and description expansion, plus existing regression suites.
+
+## Delivery evidence
+
+[Actual runtime captures and behavioral results](evidence/README.md) record the
+implemented result independently of the generated composition guide.

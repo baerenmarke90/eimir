@@ -47,7 +47,10 @@ together. Plan galleries retain their existing image-only contract. The shared
 video policy controls admission; Free discovery, disabled processing and
 retained playback remain unchanged. Android extends the existing chooser to
 mixed media and applies the existing selected-video descriptor lease per item,
-while retaining photo metadata consent and its older-platform fallback.
+while retaining photo metadata consent and its older-platform fallback. The
+combined gallery applies its explicit original-metadata grant to a selected
+video too; its byte oracle must therefore remain distinct from the redacted
+video-only gallery oracle. Both paths retain exact byte equality.
 
 Immich thumbnail responses with `application/octet-stream` were rejected before
 reaching the image element. Accept only bounded JPEG/WebP signatures under that
@@ -91,7 +94,7 @@ Keep #1614 open for that outstanding part of the PO request.
 ### Verification
 
 - All 2,573 Web unit/component tests passed (two pre-existing skips). The final
-  focused 22-case pass additionally includes partner place enrichment and the
+  focused 25-case pass additionally includes partner place enrichment and the
   three thumbnail lifetime/error/cancellation regressions.
 - 106 Immich/transport tests passed, including generic binary previews,
   MIME/non-image rejection, owner rejection and the existing SSRF boundaries.
@@ -101,6 +104,10 @@ Keep #1614 open for that outstanding part of the PO request.
   the fixed-source run supersedes it. Source-choice UX changed two selectors:
   partial binding now checks the disabled source trigger, and Pro discovery
   explicitly opens that source task before its existing explanation.
+- Seven final video browser journeys and an additional delayed/failed-policy
+  fallback/retry case passed after guarding pending eligibility.
+  Device selection waits for its media allowlist; a policy error retains photos
+  and offers explicit retry rather than silently opening the wrong picker.
 - Typecheck, production Web build, semantic-token/PWA checks, Capacitor
   foundation, focused Biome lint, provider Ruff and `git diff --check` passed.
 - Hosted exact-head native build/emulator and CI remain independent gates.

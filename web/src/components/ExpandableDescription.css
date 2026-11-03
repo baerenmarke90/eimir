@@ -4,12 +4,10 @@
 }
 
 .description-disclosure {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  max-inline-size: 100%;
   min-block-size: var(--space-12);
-  padding-inline: 0;
-  margin-top: var(--space-1);
+  margin-top: var(--space-2);
   text-align: start;
-  color: var(--color-link-text);
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
 }

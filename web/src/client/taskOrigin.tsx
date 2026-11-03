@@ -34,6 +34,7 @@ export interface TaskOriginMetadata {
   /** Restores the Plans/Wishes peer mode without publishing it in the URL. */
   planningSegment?: 'plans' | 'wishes';
   planningWishStatus?: 'OPEN' | 'COMPLETED';
+  planningPlanStatus?: 'OPEN' | 'COMPLETED';
 }
 
 export interface TaskOrigin extends TaskOriginMetadata {
@@ -229,6 +230,7 @@ export function TaskOriginProvider({
         searchKind: snapshot.searchKind,
         planningSegment: snapshot.planningSegment,
         planningWishStatus: snapshot.planningWishStatus,
+        planningPlanStatus: snapshot.planningPlanStatus,
         historyIndex: Number.isInteger(currentState?.idx)
           ? currentState.idx
           : null,

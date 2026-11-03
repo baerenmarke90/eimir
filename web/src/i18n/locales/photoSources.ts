@@ -1,4 +1,10 @@
 const photoSources = {
+  addMedia: 'Medien hinzufügen',
+  device: 'Vom Gerät auswählen',
+  deviceMedia: 'Fotos und Videos gemeinsam auswählen',
+  googleUnavailable:
+    'Die direkte Verbindung ist noch nicht verfügbar. Über die Galerie deines Geräts kannst du auch verfügbare Cloud-Fotos auswählen.',
+  previewFailed: 'Vorschau nicht verfügbar',
   more: 'Andere Fotoquelle',
   title: 'Fotos hinzufügen',
   google: 'Google Fotos',

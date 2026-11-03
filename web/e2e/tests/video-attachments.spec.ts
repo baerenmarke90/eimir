@@ -1,3 +1,4 @@
+import photoSources from '../../src/i18n/locales/photoSources';
 import { swipeCarousel } from '../support/mediaCarouselGesture';
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
@@ -236,16 +237,16 @@ for (const [width, colorScheme] of [
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(momentBody);
-    await page.locator('input[type=file][accept^="image/"]').setInputFiles({
-      name: 'lake.jpg',
-      mimeType: 'image/jpeg',
-      buffer: image,
-    });
-    await page.locator('input[type=file][accept^="video/"]').setInputFiles({
-      name: 'jump.mp4',
-      mimeType: 'video/mp4',
-      buffer: movie,
-    });
+    await page
+      .getByRole('button', { name: photoSources.addMedia, exact: true })
+      .click();
+    const device = page.locator('input[type=file][accept^="image/"]');
+    await expect(device).toHaveAttribute('accept', /image\/jpeg.*video\/mp4/);
+    await expect(page.locator('input[type=file]')).toHaveCount(1);
+    await device.setInputFiles([
+      { name: 'sunrise.jpg', mimeType: 'image/jpeg', buffer: image },
+      { name: 'jump.mp4', mimeType: 'video/mp4', buffer: movie },
+    ]);
     await expect(page.locator('.photo-draft-tile')).toHaveCount(2);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),

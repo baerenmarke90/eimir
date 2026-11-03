@@ -70,7 +70,6 @@ import {
 import { MomentPlaces } from './MomentPlaces';
 import { PageHeader } from './PageHeader';
 import { PhotoDraftGallery } from './PhotoDraftGallery';
-import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
@@ -625,6 +624,19 @@ export function MemoryProductPage({
             />
 
             <AttachmentDraftPicker
+              sourceContext={{
+                apiBaseUrl,
+                accessToken,
+                accountId: currentAccountId,
+                spaceId,
+                remaining: Math.max(
+                  0,
+                  MAX_MEMORY_ATTACHMENTS -
+                    keptBoundAttachmentCount -
+                    attachments.items.length,
+                ),
+                beginSelection: attachments.beginSelection,
+              }}
               id="memory-edit-images"
               videoContext={{ apis, accountId: currentAccountId, spaceId }}
               disabled={updateMutation.isPending}
@@ -720,19 +732,6 @@ export function MemoryProductPage({
                   </button>
                 </div>
               ))}
-            <PhotoSourcePicker
-              apiBaseUrl={apiBaseUrl}
-              accessToken={accessToken}
-              accountId={currentAccountId}
-              spaceId={spaceId}
-              remaining={Math.max(
-                0,
-                MAX_MEMORY_ATTACHMENTS -
-                  keptBoundAttachmentCount -
-                  attachments.items.length,
-              )}
-              beginSelection={attachments.beginSelection}
-            />
 
             <div className="form-actions">
               <Link
@@ -1033,7 +1032,7 @@ export function MemoryProductPage({
           accountId={currentAccountId}
           spaceId={spaceId}
           targetId={memory.id}
-          canManage={false}
+          canManage={memory.capabilities.canEdit}
           kind="memories"
           offline={offline}
           compact

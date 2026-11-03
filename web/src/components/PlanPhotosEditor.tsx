@@ -8,7 +8,6 @@ import { useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { SensitiveMediaCover } from './SensitiveMedia';
 import { PhotoDraftGallery } from './PhotoDraftGallery';
-import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
 import './PlanPhotosEditor.css';
 
@@ -80,6 +79,29 @@ export function PlanPhotosEditor({
     <div className="plan-photos-editor">
       <AttachmentDraftPicker
         id="plan-photos"
+        sourceContext={
+          photoSourceContext
+            ? {
+                ...photoSourceContext,
+                spaceId,
+                remaining: Math.max(
+                  0,
+                  MAX_MEMORY_ATTACHMENTS - controller.items.length,
+                ),
+                beginSelection: () => {
+                  const ticket = controller.uploads.beginSelection();
+                  return {
+                    ...ticket,
+                    commit: (files) => {
+                      const accepted = ticket.commit(files);
+                      if (accepted) onChange();
+                      return accepted;
+                    },
+                  };
+                },
+              }
+            : undefined
+        }
         showItems={false}
         disabled={disabled || !canUpload}
         attachments={{
@@ -90,28 +112,6 @@ export function PlanPhotosEditor({
           },
         }}
       />
-      {photoSourceContext ? (
-        <PhotoSourcePicker
-          {...photoSourceContext}
-          spaceId={spaceId}
-          remaining={Math.max(
-            0,
-            MAX_MEMORY_ATTACHMENTS - controller.items.length,
-          )}
-          disabled={disabled || !canUpload}
-          beginSelection={() => {
-            const ticket = controller.uploads.beginSelection();
-            return {
-              ...ticket,
-              commit: (files) => {
-                const accepted = ticket.commit(files);
-                if (accepted) onChange();
-                return accepted;
-              },
-            };
-          }}
-        />
-      ) : null}
       <PhotoDraftGallery
         disabled={disabled}
         items={controller.items.map((item, index) => ({

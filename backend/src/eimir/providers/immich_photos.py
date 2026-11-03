@@ -194,9 +194,22 @@ class ImmichSelectedPhotoReader:
             "GET",
             f"/api/assets/{selected_id}/thumbnail?size=thumbnail",
             limit=2 * 1024 * 1024,
-            mime_types={"image/jpeg", "image/webp"},
+            # Immich can legitimately serve its thumbnail as octet-stream.
+            # Normalize only known raster signatures; never forward that generic
+            # type, arbitrary upstream content or a redirect to the browser.
+            mime_types={"image/jpeg", "image/webp", "application/octet-stream"},
             deadline=deadline,
         )
 
-        extension = "webp" if response.mime_type == "image/webp" else "jpg"
-        return SelectedPhoto(response.content, response.mime_type, "preview." + extension)
+        content = response.content
+        mime = (
+            "image/jpeg"
+            if content.startswith(b"\xff\xd8\xff")
+            else "image/webp"
+            if len(content) >= 12 and content[:4] == b"RIFF" and content[8:12] == b"WEBP"
+            else None
+        )
+        if mime is None or response.mime_type not in {mime, "application/octet-stream"}:
+            raise ImmichPhotoError("PHOTO_SOURCE_RESPONSE_INVALID")
+        extension = "webp" if mime == "image/webp" else "jpg"
+        return SelectedPhoto(content, mime, "preview." + extension)

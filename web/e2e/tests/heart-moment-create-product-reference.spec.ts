@@ -1,3 +1,4 @@
+import photoSources from '../../src/i18n/locales/photoSources';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -1038,6 +1039,9 @@ test('photo-only Heart Moment saves without text and opens its photo (#509)', as
   await page.setViewportSize({ width: 390, height: 844 });
   await openHeartMomentCreate(page);
   await expect(page.locator('#heart-moment-text')).not.toBeFocused();
+  await page
+    .getByRole('button', { name: photoSources.addMedia, exact: true })
+    .click();
   await page.locator('#heart-moment-create-photo').setInputFiles({
     name: 'cabin-lake.jpg',
     mimeType: 'image/jpeg',

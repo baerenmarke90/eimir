@@ -40,6 +40,8 @@ interface PhotoSourceScenario {
   originals: number;
   cancelled: number;
   disconnected: number;
+  previewFailures?: number;
+  thumbnails?: number;
   waitForOriginal?: () => Promise<void>;
 }
 
@@ -104,6 +106,7 @@ for (const [width, colorScheme] of [
     page,
   }, testInfo) => {
     const source = sourceScenario();
+    if (width === 390) source.previewFailures = 1;
     const photos = emptyPhotoBatch();
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
@@ -112,15 +115,19 @@ for (const [width, colorScheme] of [
       await page.evaluate(() => {
         document.documentElement.style.fontSize = '32px';
       });
-    const devicePicker = page.locator('.immersive-create-media .file-picker');
-    const sourcePicker = page.getByRole('button', { name: photoSources.more });
-    const [deviceBox, sourceBox] = await Promise.all([
-      devicePicker.boundingBox(),
-      sourcePicker.boundingBox(),
-    ]);
-    if (!deviceBox || !sourceBox) throw new Error('Photo actions are missing.');
-    expect(sourceBox.y).toBeGreaterThan(deviceBox.y + deviceBox.height);
+    const sourcePicker = page.getByRole('button', {
+      name: photoSources.addMedia,
+      exact: true,
+    });
+    const sourceBox = await sourcePicker.boundingBox();
+    if (!sourceBox) throw new Error('Media action is missing.');
     expect(sourceBox.height).toBeGreaterThanOrEqual(44);
+    await expect(
+      page.locator('.immersive-create-media .photo-source-trigger'),
+    ).toHaveCount(1);
+    await expect(
+      page.getByText(de.memory.sharedTitle, { exact: true }),
+    ).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: testInfo.outputPath(`photo-actions-${width}-${colorScheme}.png`),
@@ -133,8 +140,8 @@ for (const [width, colorScheme] of [
     await page
       .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
       .fill(AUTHORED_BODY);
-    await page.getByRole('button', { name: photoSources.more }).click();
-    const sheet = page.getByRole('dialog', { name: photoSources.title });
+    await page.getByRole('button', { name: photoSources.addMedia }).click();
+    const sheet = page.locator('.photo-source-sheet[role=dialog]');
     await sheet
       .getByRole('button', { name: photoSources.link, exact: true })
       .click();
@@ -190,6 +197,11 @@ for (const [width, colorScheme] of [
     await sheet.getByRole('button', { name: photoSources.continue }).click();
     await sheet.getByLabel('Foto 1', { exact: true }).check();
     await sheet.getByLabel('Foto 2', { exact: true }).check();
+    if (width === 390) {
+      await sheet
+        .getByRole('button', { name: de.common.retry, exact: true })
+        .click();
+    }
     await expect(sheet.locator('.photo-source-choice img')).toHaveCount(2);
     await expectNoHorizontalOverflow(page);
     const accessibility = await new AxeBuilder({ page })
@@ -253,8 +265,8 @@ test('Google browser authorization returns selected copies to the unsaved diary'
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
-  await page.getByRole('button', { name: photoSources.more }).click();
-  const sheet = page.getByRole('dialog', { name: photoSources.title });
+  await page.getByRole('button', { name: photoSources.addMedia }).click();
+  const sheet = page.locator('.photo-source-sheet[role=dialog]');
   await sheet.getByLabel(photoSources.google, { exact: true }).check();
   await expect(
     sheet.getByLabel(photoSources.accept, { exact: true }),
@@ -310,8 +322,8 @@ test('closing a pending source transfer keeps authored words and rejects late ph
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
-  await page.getByRole('button', { name: photoSources.more }).click();
-  const sheet = page.getByRole('dialog', { name: photoSources.title });
+  await page.getByRole('button', { name: photoSources.addMedia }).click();
+  const sheet = page.locator('.photo-source-sheet[role=dialog]');
   await expect(
     sheet.getByLabel(photoSources.accept, { exact: true }),
   ).toHaveCount(0);
@@ -338,8 +350,8 @@ test('Pro expiry retains the personal link and permits disconnect without import
 }) => {
   const source = sourceScenario(true, false);
   await signInAndOpenMemoryCreate(page, emptyPhotoBatch(), source);
-  await page.getByRole('button', { name: photoSources.more }).click();
-  const sheet = page.getByRole('dialog', { name: photoSources.title });
+  await page.getByRole('button', { name: photoSources.addMedia }).click();
+  const sheet = page.locator('.photo-source-sheet[role=dialog]');
   await expect(sheet.getByText(photoSources.proRequired)).toBeVisible();
   await expect(
     sheet.getByRole('button', { name: photoSources.continue }),
@@ -364,8 +376,8 @@ test('offline source import at narrow large text preserves the diary draft', asy
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
-  await page.getByRole('button', { name: photoSources.more }).click();
-  const sheet = page.getByRole('dialog', { name: photoSources.title });
+  await page.getByRole('button', { name: photoSources.addMedia }).click();
+  const sheet = page.locator('.photo-source-sheet[role=dialog]');
   await expect(
     sheet.getByLabel(photoSources.accept, { exact: true }),
   ).toHaveCount(0);
@@ -518,7 +530,21 @@ async function installApiMocks(
       source &&
       pathname.includes('/photo-selections/selected-session/items/')
     ) {
-      if (new URL(request.url()).searchParams.get('thumbnail') !== 'true') {
+      if (new URL(request.url()).searchParams.get('thumbnail') === 'true') {
+        source.thumbnails = (source.thumbnails ?? 0) + 1;
+        if (source.previewFailures) {
+          source.previewFailures--;
+          await route.fulfill({
+            status: 503,
+            contentType: 'application/problem+json',
+            body: JSON.stringify({
+              status: 503,
+              code: 'PHOTO_SOURCE_UNAVAILABLE',
+            }),
+          });
+          return;
+        }
+      } else {
         source.originals++;
         await source.waitForOriginal?.();
       }
@@ -878,6 +904,9 @@ for (const [width, colorScheme] of [
     await page
       .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
       .fill(AUTHORED_BODY);
+    await page
+      .getByRole('button', { name: photoSources.addMedia, exact: true })
+      .click();
     await page.locator('#memory-create-images').setInputFiles(
       ['one.png', 'two.png', 'three.png'].map((name) => ({
         name,
@@ -1261,6 +1290,9 @@ for (const [width, colorScheme] of [
     await page.getByLabel(de.memory.dateLabel).fill('2025-12-24');
     await showMemoryDetails(page);
     await page.getByLabel(de.memory.titleLabelOptional).fill(AUTHORED_TITLE);
+    await page
+      .getByRole('button', { name: photoSources.addMedia, exact: true })
+      .click();
     await page.locator('#memory-create-images').setInputFiles(
       ['one.png', 'two.png'].map((name) => ({
         name,
@@ -1493,6 +1525,9 @@ test('diary recovery retries only attachment binding for an already created entr
   await page
     .getByLabel(de.memory.bodyLabel, { exact: true })
     .fill(AUTHORED_BODY);
+  await page
+    .getByRole('button', { name: photoSources.addMedia, exact: true })
+    .click();
   await page.locator('#memory-create-images').setInputFiles({
     name: 'photo.png',
     mimeType: 'image/png',
@@ -1562,6 +1597,9 @@ test('diary restores a file whose unbound server upload has expired', async ({
   await page
     .getByLabel(de.memory.bodyLabel, { exact: true })
     .fill(AUTHORED_BODY);
+  await page
+    .getByRole('button', { name: photoSources.addMedia, exact: true })
+    .click();
   await page.locator('#memory-create-images').setInputFiles({
     name: 'photo.png',
     mimeType: 'image/png',
@@ -1607,6 +1645,9 @@ async function stageRecoveryPhotos(page: Page, photos: PhotoBatchScenario) {
   await page
     .getByLabel(de.memory.bodyLabel, { exact: true })
     .fill(AUTHORED_BODY);
+  await page
+    .getByRole('button', { name: photoSources.addMedia, exact: true })
+    .click();
   await page.locator('#memory-create-images').setInputFiles(
     ['first.jpg', 'second.jpg'].map((name) => ({
       name,
@@ -2141,6 +2182,9 @@ for (const [width, colorScheme] of [
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(AUTHORED_BODY);
+    await page
+      .getByRole('button', { name: photoSources.addMedia, exact: true })
+      .click();
     await page.locator('#memory-create-images').setInputFiles(
       Array.from({ length: 10 }, (_, index) => ({
         name: `travel-${index}.jpg`,
@@ -2242,6 +2286,9 @@ for (const [width, colorScheme] of [
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(AUTHORED_BODY);
+    await page
+      .getByRole('button', { name: photoSources.addMedia, exact: true })
+      .click();
     await page.locator('#memory-create-images').setInputFiles(
       ['one.jpg', 'two.jpg', 'three.jpg'].map((name) => ({
         name,
@@ -2254,6 +2301,9 @@ for (const [width, colorScheme] of [
     await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
     await page
       .getByRole('link', { name: memoryProduct.edit, exact: true })
+      .click();
+    await page
+      .getByRole('button', { name: photoSources.addMedia, exact: true })
       .click();
     await page.locator('#memory-edit-images').setInputFiles({
       name: 'later.jpg',
@@ -2407,8 +2457,8 @@ for (const kind of ['plan', 'heart'] as const) {
         })
         .check();
     else await expect(page.locator('.planning-create-sharing')).toHaveCount(0);
-    await page.getByRole('button', { name: photoSources.more }).click();
-    const sheet = page.getByRole('dialog', { name: photoSources.title });
+    await page.getByRole('button', { name: photoSources.addMedia }).click();
+    const sheet = page.locator('.photo-source-sheet[role=dialog]');
     await expect(
       sheet.getByLabel(photoSources.accept, { exact: true }),
     ).toHaveCount(0);

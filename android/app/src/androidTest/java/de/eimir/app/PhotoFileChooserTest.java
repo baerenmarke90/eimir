@@ -433,6 +433,15 @@ public class PhotoFileChooserTest {
 
     @Test
     public void videoSelectionReachesChromiumAndDecodesWithoutPhotoMetadataConsent() throws Exception {
+        verifyVideoSelection("video/mp4,video/quicktime");
+    }
+
+    @Test
+    public void combinedSelectionReachesChromiumAndDecodesVideo() throws Exception {
+        verifyVideoSelection("image/jpeg,image/png,image/webp,image/heic,image/heif,video/mp4,video/quicktime");
+    }
+
+    private void verifyVideoSelection(String acceptedTypes) throws Exception {
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q);
         assumeTrue(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
             .isPhotoPickerAvailable(context));
@@ -448,7 +457,7 @@ public class PhotoFileChooserTest {
         // Keep the established JavaScript-enabled document. Synthetic app-origin
         // navigation stalls behind Capacitor routing on the API 37.1 fixture.
         assertEquals("true", javascriptValue(view, "(function(){"
-            + "document.body.innerHTML=`<input id='photo' type='file' accept='video/mp4,video/quicktime' multiple "
+            + "document.body.innerHTML=`<input id='photo' type='file' accept='" + acceptedTypes + "' multiple "
             + "style='position:fixed;top:20%;left:20%;width:60%;height:60px'>"
             + "<video id='video' controls playsinline preload='none' style='position:fixed;top:40%;left:10%;width:80%'></video>"
             + "<button id='play-video' style='position:fixed;bottom:10%;left:20%;width:60%;height:60px'>Play</button>`;"

@@ -132,6 +132,7 @@ interface TapestryEntry {
   author: AuthorSummary;
   dateTime: string;
   dateLabel: string;
+  mediaShape?: 'landscape' | 'portrait' | 'square';
 }
 
 function buildTapestryEntry(
@@ -184,13 +185,20 @@ function buildTapestryBands(
   nicknameFor?: (accountId: string) => string | null,
 ): TapestryBand[] {
   if (items.length === 0) return [];
+  let mediaIndex = 0;
   return [
     {
       key: 'discover',
       label: '',
-      entries: items.map((item) =>
-        buildTapestryEntry(item, t, locale, nicknameFor),
-      ),
+      entries: items.map((item) => {
+        const entry = buildTapestryEntry(item, t, locale, nicknameFor);
+        if (entry.role === 'media') {
+          // Composition is stable within a curated selection; no timer or
+          // random render can move a photograph while someone is browsing.
+          entry.mediaShape = mediaIndex++ % 3 === 1 ? 'portrait' : 'landscape';
+        }
+        return entry;
+      }),
     },
   ];
 }
@@ -1106,6 +1114,7 @@ export function StoryProductPage({
                               presentation.title.length > 90 || undefined
                             }
                             to={path}
+                            data-media-shape={entry.mediaShape}
                             className={`momente-tapestry-item momente-tapestry-${role} momente-tapestry-reveal`}
                             data-discover-reveal-key={`item:${entry.key}`}
                             aria-label={`${t(`storyItem.${role}`)}: ${presentation.title}`}

@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { PhotoSourcesApi } from '../api/generated/apis/PhotoSourcesApi';
 import type { PhotoSelectionView } from '../api/generated/models/PhotoSelectionView';
 import type { PhotoSourceAvailability } from '../api/generated/models/PhotoSourceAvailability';
@@ -20,6 +27,7 @@ import { normalizeClientError } from '../client/problemDetails';
 import type { AttachmentDraftSelection } from '../client/useAttachmentDrafts';
 import { useTranslation } from '../i18n';
 import { ProMark } from './ProMark';
+import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './PhotoSourcePicker.css';
 
@@ -31,7 +39,7 @@ interface SelectionTask {
   popup: Window | null;
 }
 
-function SourceThumbnail({
+export function SourceThumbnail({
   api,
   spaceId,
   selectionId,
@@ -44,19 +52,31 @@ function SourceThumbnail({
   itemId: string;
   signal: AbortSignal;
 }) {
+  const { t } = useTranslation();
   const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const target = useRef<HTMLSpanElement>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const element = target.current;
     if (!element) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setVisible(true);
+      return;
+    }
     const observer = new IntersectionObserver(
-      ([entry]) => setVisible(entry.isIntersecting),
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        setVisible(true);
+        observer.disconnect();
+      },
       { rootMargin: '120px' },
     );
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a deliberate retry owns a fresh request even when the selected identity is unchanged
   useEffect(() => {
     if (!visible || signal.aborted) {
       setUrl(null);
@@ -66,26 +86,42 @@ function SourceThumbnail({
     const abort = () => request.abort();
     signal.addEventListener('abort', abort, { once: true });
     let owned: OwnedObjectUrl | undefined;
+    setUrl(null);
+    setFailed(false);
     void readPhotoThumbnail(api, spaceId, selectionId, itemId, request.signal)
       .then((blob) => {
         if (request.signal.aborted || signal.aborted) return;
         owned = createOwnedObjectUrl(blob);
         setUrl(owned.url);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!request.signal.aborted && !signal.aborted) setFailed(true);
+      });
     return () => {
       request.abort();
       signal.removeEventListener('abort', abort);
       owned?.dispose();
     };
-  }, [api, spaceId, selectionId, itemId, signal, visible]);
+  }, [api, spaceId, selectionId, itemId, signal, visible, attempt]);
   return (
     <span ref={target} className="photo-source-thumbnail">
-      {url ? (
-        <img src={url} alt="" loading="lazy" />
+      {url && !failed ? (
+        <img src={url} alt="" onError={() => setFailed(true)} />
+      ) : failed ? (
+        <span className="photo-source-thumbnail-error">
+          <span>{t('photoSources.previewFailed')}</span>
+          <button
+            type="button"
+            className="tertiary"
+            disabled={signal.aborted}
+            onClick={() => setAttempt((value) => value + 1)}
+          >
+            {t('common.retry')}
+          </button>
+        </span>
       ) : (
         <span className="photo-source-placeholder" aria-hidden="true">
-          ▧
+          <EimirIcon name="foto" />
         </span>
       )}
     </span>
@@ -101,6 +137,7 @@ export function PhotoSourcePicker({
   remaining,
   beginSelection,
   disabled = false,
+  devicePicker,
 }: {
   apiBaseUrl: string;
   accessToken: string;
@@ -109,6 +146,7 @@ export function PhotoSourcePicker({
   remaining: number;
   beginSelection: () => AttachmentDraftSelection;
   disabled?: boolean;
+  devicePicker?: (close: () => void) => ReactNode;
 }) {
   const { t } = useTranslation();
   const api = useMemo(
@@ -440,9 +478,12 @@ export function PhotoSourcePicker({
     }
   }
 
-  if (!availability || (!availability.enabled && !availability.immichConnected))
+  if (
+    !devicePicker &&
+    (!availability || (!availability.enabled && !availability.immichConnected))
+  )
     return null;
-  const canImport = availability.enabled && availability.canImport;
+  const canImport = Boolean(availability?.enabled && availability.canImport);
   const activeTask = task.current;
   return (
     <>
@@ -454,15 +495,29 @@ export function PhotoSourcePicker({
         onClick={() => {
           setMessage('');
           setConsent(false);
-          setSource(availability.googleAvailable ? 'google' : 'immich');
+          setSource(availability?.googleAvailable ? 'google' : 'immich');
           setOpen(true);
         }}
       >
-        {t('photoSources.more')} <ProMark label={t('photoSources.pro')} />
+        {devicePicker ? (
+          <>
+            <EimirIcon name="hinzufuegen" /> {t('photoSources.addMedia')}
+          </>
+        ) : (
+          <>
+            {t('photoSources.more')} <ProMark label={t('photoSources.pro')} />
+          </>
+        )}
       </button>
       <ShortTaskSheet
         open={open}
-        title={t(linking ? 'photoSources.linkTitle' : 'photoSources.title')}
+        title={t(
+          linking
+            ? 'photoSources.linkTitle'
+            : devicePicker && !view
+              ? 'photoSources.addMedia'
+              : 'photoSources.title',
+        )}
         closeLabel={t('taskSheets.close')}
         onClose={close}
         restoreFocusRef={trigger}
@@ -498,7 +553,7 @@ export function PhotoSourcePicker({
                   disabled ||
                   busy ||
                   remaining <= 0 ||
-                  (source === 'immich' && !availability.immichConnected)
+                  (source === 'immich' && !availability?.immichConnected)
                 }
                 onClick={() => void start()}
               >
@@ -571,23 +626,28 @@ export function PhotoSourcePicker({
             {!view.items.length ? <p>{t('photoSources.empty')}</p> : null}
             <div className="photo-source-grid">
               {view.items.map((item, index) => (
-                <label className="photo-source-choice" key={item.id}>
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(item.id)}
-                    disabled={
-                      busy ||
-                      (!selected.includes(item.id) &&
-                        selected.length >= remaining)
-                    }
-                    onChange={(event) =>
-                      setSelected((items) =>
-                        event.target.checked
-                          ? [...items, item.id]
-                          : items.filter((id) => id !== item.id),
-                      )
-                    }
-                  />
+                <div className="photo-source-choice" key={item.id}>
+                  <label className="photo-source-select">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(item.id)}
+                      disabled={
+                        busy ||
+                        (!selected.includes(item.id) &&
+                          selected.length >= remaining)
+                      }
+                      onChange={(event) =>
+                        setSelected((items) =>
+                          event.target.checked
+                            ? [...items, item.id]
+                            : items.filter((id) => id !== item.id),
+                        )
+                      }
+                    />
+                    <span className="sr-only">
+                      {t('photoSources.photo', { number: index + 1 })}
+                    </span>
+                  </label>
                   <SourceThumbnail
                     api={activeTask.api}
                     spaceId={spaceId}
@@ -595,10 +655,7 @@ export function PhotoSourcePicker({
                     itemId={item.id}
                     signal={activeTask.request.signal}
                   />
-                  <span className="sr-only">
-                    {t('photoSources.photo', { number: index + 1 })}
-                  </span>
-                </label>
+                </div>
               ))}
             </div>
             {view.hasMore ? (
@@ -614,13 +671,14 @@ export function PhotoSourcePicker({
           </>
         ) : (
           <>
-            {!availability.canImport ? (
+            {devicePicker?.(close)}
+            {availability && !availability.canImport ? (
               <p>{t('photoSources.proRequired')}</p>
             ) : null}
             {canImport ? (
               <fieldset disabled={busy} className="photo-source-options">
                 <legend className="sr-only">{t('photoSources.title')}</legend>
-                {availability.googleAvailable ? (
+                {availability?.googleAvailable ? (
                   <label>
                     <input
                       type="radio"
@@ -632,7 +690,7 @@ export function PhotoSourcePicker({
                     {t('photoSources.google')}
                   </label>
                 ) : null}
-                {availability.immichConnected ? (
+                {availability?.immichConnected ? (
                   <label>
                     <input
                       type="radio"
@@ -646,7 +704,13 @@ export function PhotoSourcePicker({
                 ) : null}
               </fieldset>
             ) : null}
-            {canImport && !availability.immichConnected ? (
+            {!availability?.googleAvailable ? (
+              <p className="photo-source-unavailable">
+                <strong>{t('photoSources.google')}</strong>
+                <span>{t('photoSources.googleUnavailable')}</span>
+              </p>
+            ) : null}
+            {canImport && !availability?.immichConnected ? (
               <button
                 type="button"
                 className="secondary"
@@ -659,7 +723,7 @@ export function PhotoSourcePicker({
                 {t('photoSources.link')}
               </button>
             ) : null}
-            {availability.immichConnected ? (
+            {availability?.immichConnected ? (
               <div>
                 <p>{availability.immichOrigin}</p>
                 <button

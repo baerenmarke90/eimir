@@ -55,6 +55,39 @@
   font-size: 1rem;
 }
 
+/* Album rhythm follows the stable selection, while measured rows retain DOM
+   and keyboard order. A portrait shares the height of neighboring short pieces. */
+.story-page-unified .momente-tapestry-media {
+  border: 0;
+  box-shadow: none;
+}
+
+.story-page-unified
+  [data-media-shape="portrait"]
+  .momente-tapestry-media-frame {
+  aspect-ratio: 2 / 3;
+}
+
+.story-page-unified
+  [data-media-shape="landscape"]
+  .momente-tapestry-media-frame {
+  aspect-ratio: 4 / 3;
+}
+
+.story-page-unified .momente-tapestry-note {
+  border: 0;
+  border-end-start-radius: var(--radius-medium);
+  box-shadow: none;
+}
+
+.story-page-unified .momente-tapestry-milestone {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: var(--space-4) var(--space-2);
+  align-self: center;
+}
+
 .story-page-unified .momente-tapestry-quote {
   font-size: 1rem;
   border: 0;

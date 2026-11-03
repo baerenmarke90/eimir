@@ -78,7 +78,6 @@ import {
 import { MomentPlaces } from './MomentPlaces';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
-import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { ProblemState } from './ProblemState';
 import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
@@ -607,19 +606,18 @@ export function HeartMomentProductPage({
             <div className="heart-moment-create-media">
               <AttachmentDraftPicker
                 id="heart-moment-create-photo"
+                sourceContext={{
+                  apiBaseUrl,
+                  accessToken,
+                  accountId: currentAccountId,
+                  spaceId,
+                  remaining: 1,
+                  beginSelection: attachments.beginSelection,
+                }}
                 videoContext={{ apis, accountId: currentAccountId, spaceId }}
                 disabled={createMutation.isPending}
                 attachments={attachments}
                 multiple={false}
-              />
-              <PhotoSourcePicker
-                apiBaseUrl={apiBaseUrl}
-                accessToken={accessToken}
-                accountId={currentAccountId}
-                spaceId={spaceId}
-                remaining={Math.max(0, 1 - attachments.items.length)}
-                beginSelection={attachments.beginSelection}
-                disabled={createMutation.isPending}
               />
             </div>
 
@@ -952,6 +950,14 @@ export function HeartMomentProductPage({
             ) : null}
             <AttachmentDraftPicker
               id="heart-moment-edit-photo"
+              sourceContext={{
+                apiBaseUrl,
+                accessToken,
+                accountId: currentAccountId,
+                spaceId,
+                remaining: 1,
+                beginSelection: attachments.beginSelection,
+              }}
               videoContext={{ apis, accountId: currentAccountId, spaceId }}
               disabled={
                 updateMutation.isPending ||

@@ -1,11 +1,11 @@
 import type { AttachmentDraft } from '../client/attachmentDraftState';
+import type { AttachmentDraftSelection } from '../client/useAttachmentDrafts';
+import { DeviceMediaPicker } from './DeviceMediaPicker';
+import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { useTranslation } from '../i18n';
 import { DraftMediaPreview } from './DraftMediaPreview';
 import { PhotoDraftGallery } from './PhotoDraftGallery';
-import {
-  type VideoCaptureContext,
-  VideoUploadAction,
-} from './VideoUploadAction';
+import type { VideoCaptureContext } from './VideoUploadAction';
 
 export interface AttachmentDraftPickerController {
   items: AttachmentDraft[];
@@ -26,6 +26,7 @@ export function AttachmentDraftPicker({
   disabled = false,
   showItems = true,
   videoContext,
+  sourceContext,
 }: {
   id: string;
   attachments: AttachmentDraftPickerController;
@@ -33,56 +34,55 @@ export function AttachmentDraftPicker({
   disabled?: boolean;
   showItems?: boolean;
   videoContext?: VideoCaptureContext;
+  sourceContext?: {
+    apiBaseUrl: string;
+    accessToken: string;
+    accountId: string;
+    spaceId: string;
+    remaining: number;
+    beginSelection: () => AttachmentDraftSelection;
+  };
 }) {
   const { t } = useTranslation();
+  const devicePicker = (close: () => void) => (
+    <DeviceMediaPicker
+      id={id}
+      multiple={multiple}
+      disabled={disabled}
+      context={videoContext}
+      onFiles={(files) => {
+        if (!multiple && files.length)
+          for (const item of attachments.items) attachments.remove(item.id);
+        attachments.addFiles(files);
+        close();
+      }}
+    />
+  );
 
   return (
     <div className="field-group attachment-draft-picker">
-      <label htmlFor={id}>{t('memory.photoLabel')}</label>
-      <input
-        className="visually-hidden-input"
-        id={id}
-        name={id}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-        multiple={multiple}
-        disabled={disabled}
-        onChange={(event) => {
-          const files = event.currentTarget.files;
-          if (!multiple && files && files.length > 0) {
-            for (const item of attachments.items) attachments.remove(item.id);
-          }
-          attachments.addFiles(files);
-          event.currentTarget.value = '';
-        }}
-      />
-      <label className="file-picker" htmlFor={id}>
-        <span className="file-picker-icon" aria-hidden="true">
-          +
-        </span>
-        <span>
-          <strong>
-            {attachments.items.length
-              ? t('memory.photoAddMore')
-              : t('memory.photoSelect')}
-          </strong>
-          <small>{t('memory.photoFormats')}</small>
-        </span>
-      </label>
-
-      {videoContext ? (
-        <VideoUploadAction
-          id={id}
-          context={videoContext}
-          multiple={multiple}
-          disabled={disabled}
-          onFiles={(files) => {
-            if (!multiple)
-              for (const item of attachments.items) attachments.remove(item.id);
-            attachments.addFiles(files);
+      {sourceContext ? (
+        <PhotoSourcePicker
+          {...sourceContext}
+          beginSelection={() => {
+            const ticket = sourceContext.beginSelection();
+            return {
+              ...ticket,
+              commit: (files) => {
+                if (ticket.signal.aborted || !files.length) return false;
+                if (!multiple)
+                  for (const item of attachments.items)
+                    attachments.remove(item.id);
+                return ticket.commit(files);
+              },
+            };
           }}
+          disabled={disabled}
+          devicePicker={devicePicker}
         />
-      ) : null}
+      ) : (
+        devicePicker(() => {})
+      )}
 
       {showItems && attachments.items.length > 0 ? (
         <p className="field-help">{t('sensitiveMedia.help')}</p>

@@ -296,8 +296,9 @@ def test_manual_reminder_collision_is_account_wide_and_no_in_app_fetch_consumes_
     assert gentle.reserve(session, owner.id) is None
 
 
-def test_opt_out_cancels_prepared_candidate_and_releases_certain_non_delivery(
-    session: Session,
+@pytest.mark.parametrize("change", ["opt_out", "quiet_hours"])
+def test_changed_policy_cancels_prepared_candidate_and_releases_certain_non_delivery(
+    session: Session, change: str
 ) -> None:
     owner, _, _, context = _seed(session)
     _learn(session, context)
@@ -305,11 +306,18 @@ def test_opt_out_cancels_prepared_candidate_and_releases_certain_non_delivery(
     occasion, delivery = _queued(session, owner.id)
     payload = gentle_delivery.prepare(session, {"deliveryId": str(delivery.id)})
     assert payload.get("gentleSubmissionToken")
-    gentle.set_enabled(session, owner.id, False)
+    if change == "opt_out":
+        gentle.set_enabled(session, owner.id, False)
+    else:
+        owner.quiet_hours_start, owner.quiet_hours_end = time(18), time(21)
+        session.flush()
     push.handle_delivery(session, payload)
     session.flush()
     assert provider.calls == []
     assert occasion.attempted_at is None
+    profile = session.get(GentleProfile, owner.id)
+    if profile is not None:
+        assert profile.last_attempt_at is None and profile.attempts_since_use == 0
 
 
 def test_provider_ambiguity_counts_once_and_never_retries_transport(session: Session) -> None:
@@ -328,6 +336,37 @@ def test_provider_ambiguity_counts_once_and_never_retries_transport(session: Ses
     assert profile is not None and profile.attempts_since_use == 1
     assert profile.last_attempt_at == occasion.attempted_at == NOW
     assert len(provider.calls) == 1
+    assert gentle.reserve(session, owner.id) is None
+
+
+@pytest.mark.parametrize("memory", [False, True])
+def test_sent_prompt_opens_after_its_send_window_and_bulk_read_is_not_own_use(
+    client, session: Session, monkeypatch: pytest.MonkeyPatch, memory: bool
+) -> None:  # type: ignore[no-untyped-def]
+    owner, _, space, context = _seed(session)
+    _learn(session, context, reading=memory)
+    source = _memory(session, context) if memory else None
+    provider, _ = _endpoint(session, owner.id)
+    occasion, delivery = _queued(session, owner.id)
+    push.handle_delivery(
+        session, gentle_delivery.prepare(session, {"deliveryId": str(delivery.id)})
+    )
+    assert len(provider.calls) == 1
+    profile = session.get(GentleProfile, owner.id)
+    assert profile is not None
+    previous_use = profile.last_use_at
+    resumed_at = NOW + timedelta(days=1)
+    monkeypatch.setattr(clock, "now", lambda: resumed_at)
+    token = auth(sign_in(session, owner))
+    path = f"/api/v1/spaces/{space.id}/notifications"
+    assert client.post(f"{path}/read-all", headers=token).status_code == 200
+    assert profile.last_use_at == previous_use
+    response = client.post(f"{path}/{occasion.notification_id}/open", headers=token)
+    assert response.status_code == 200
+    assert response.json()["kind"] == gentle.KIND
+    assert response.json()["targetId"] == (str(source.id) if source else None)
+    assert occasion.opened_at == profile.last_use_at == resumed_at
+    assert profile.attempts_since_use == 0 and profile.last_attempt_at == NOW
     assert gentle.reserve(session, owner.id) is None
 
 
@@ -439,6 +478,7 @@ def test_manual_historical_save_is_current_use_and_domain_import_does_not_train(
     assert response.status_code == 201
     assert profile.last_use_at == profile.last_save_at == NOW
     assert profile.observations[-1]["day"] == NOW.date().isoformat()
+    assert gentle.suggestion(session, context) is None
 
 
 def test_source_deletion_removes_references_without_erasing_attempt_budget(
@@ -453,10 +493,12 @@ def test_source_deletion_removes_references_without_erasing_attempt_budget(
     payload = gentle_delivery.prepare(session, {"deliveryId": str(delivery.id)})
     push.handle_delivery(session, payload)
     assert len(provider.calls) == 1
+    gentle.exclude_memory(session, context, memory.id)
     session.delete(memory)
     session.flush()
     session.refresh(occasion)
     assert occasion.memory_id is None and occasion.attempted_at == NOW
+    assert session.get(GentleMemoryExclusion, (owner.id, memory.id)) is None
     gentle.set_enabled(session, owner.id, False)
     gentle.set_enabled(session, owner.id, True)
     profile = session.get(GentleProfile, owner.id)

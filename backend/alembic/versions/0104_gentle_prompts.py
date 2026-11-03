@@ -129,7 +129,7 @@ def upgrade() -> None:
         sa.Column(
             "memory_id",
             pg.UUID(as_uuid=True),
-            sa.ForeignKey("memories.id", ondelete="SET NULL"),
+            sa.ForeignKey("memories.id", ondelete="CASCADE"),
             primary_key=True,
         ),
         sa.Column(

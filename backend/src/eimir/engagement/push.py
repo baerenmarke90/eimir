@@ -595,6 +595,11 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
         accounts[notification.recipient_account_id], kind=notification.kind, at=checked_at
     )
     if release_at is not None:
+        if notification.kind == NotificationKind.GENTLE_PROMPT.value:
+            # Optional invitations expire in their learned window. A changed
+            # quiet policy must cancel this handoff rather than defer its claim.
+            _finish_unavailable(delivery, "GENTLE_WINDOW_UNAVAILABLE")
+            return
         delivery.deferred_until = release_at
         raise DeferredJobError(min(release_at, checked_at + QUIET_HOURS_RECHECK))
 

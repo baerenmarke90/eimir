@@ -704,12 +704,6 @@ export function PhotoSourcePicker({
                 ) : null}
               </fieldset>
             ) : null}
-            {!availability?.googleAvailable ? (
-              <p className="photo-source-unavailable">
-                <strong>{t('photoSources.google')}</strong>
-                <span>{t('photoSources.googleUnavailable')}</span>
-              </p>
-            ) : null}
             {canImport && !availability?.immichConnected ? (
               <button
                 type="button"

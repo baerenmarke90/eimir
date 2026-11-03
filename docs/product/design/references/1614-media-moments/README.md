@@ -78,20 +78,23 @@ reduced-motion feedback, with no extra requests or randomized render layout.
 The redundant diary sharing block is removed by the explicit PO request.
 Authoritative visibility, actual Save and recovery-state copy are unchanged.
 
-### Google Photos remains open
+### Google Photos excluded by the Product Owner
 
-The source chooser names Google Photos and explains its unavailable direct
-connection and the existing system-gallery fallback. **This is not direct
-Google integration enablement.** #1467's literal server gate remains intact.
-The implemented same-origin Web proof/recovery seam is not an Android browser
-broker: the app and external browser do not share the required HttpOnly cookie.
-Use the already documented authenticated browser-hosted task design in
-`../../../integrations/1467-google-enablement-design.md` for that follow-up;
-it still needs independent security review and real deployment/provider/device
-acceptance. Do not substitute a transferable launch link, bearer URL or flag.
-Keep #1614 open for that outstanding part of the PO request.
+On 2026-11-03 the Product Owner explicitly removed Google Photos from this
+delivery and requested merging the remaining changes. Remove the newly added
+unavailable-provider hint from the source chooser. The generated preflight
+above records the original scope; it is superseded by this narrower decision.
+The pre-existing gated adapter and #1467's literal server gate are unchanged.
+Direct Google enablement remains a separate follow-up under #1467 and is not
+an acceptance item for #1614 or this PR. Its documented browser-hosted task,
+independent security review and real-provider/device acceptance remain in
+`../../../integrations/1467-google-enablement-design.md`.
 
 ### Verification
+
+- After excluding Google Photos: 14 focused component tests, five complete
+  Immich source-selection browser journeys, the production Web build and
+  focused lint passed. The source-choice capture reflects the final scope.
 
 - All 2,573 Web unit/component tests passed (two pre-existing skips). The final
   focused 25-case pass additionally includes partner place enrichment and the
@@ -121,7 +124,7 @@ Keep #1614 open for that outstanding part of the PO request.
   ADB reports no emulators and no app assertion/crash is recorded. This is not
   claimed as API 36 acceptance. Fresh final-head CI remains an independent gate.
 - Hosted exact-head native build/emulator and CI remain independent gates.
-  Local browser fixtures are synthetic; no real Immich/Google account or
+  Local browser fixtures are synthetic; no real Immich account or
   physical Pixel acceptance is claimed. Google remains unavailable.
 
 Runtime images are in [evidence](evidence/README.md). The generated preflight

@@ -116,20 +116,21 @@ jobs:
             grep -E '^Android emulator version 37\.2\.12([. ]|$)' emulator-version.log
           fi
           "$EIMIR_EMULATOR_BINARY" -no-window -list-avds | grep -Fx eimir-launcher
+          emulator_gpu=swiftshader
           emulator_graphics_args=()
           if [ '${{ matrix.api }}' = '36' ]; then
-            # Independent API 36 runs lost color buffers during Chromium video.
-            # Use real GLES rendering and the guest Android software decoder.
-            # Host-emulated video decoding still lost color buffers after the
-            # Vulkan workaround; byte/frame/play/pause/seek checks remain real.
-            # https://developer.android.com/studio/run/emulator-troubleshooting#cannot-open-webpage-correctly
+            # SwiftShader still crashes after disabling host video decoding.
+            # Use the supported Mesa software GPU with real guest decoding;
+            # keep every byte/frame/play/pause/seek assertion and time budget.
+            # https://developer.android.com/studio/run/emulator-acceleration
             # https://android.googlesource.com/platform/external/qemu/+/emu-master-dev/android/data/advancedFeatures.ini
-            emulator_graphics_args=(-feature -Vulkan,-HardwareDecoder)
+            emulator_gpu=lavapipe
+            emulator_graphics_args=(-feature -HardwareDecoder)
           fi
           (
             set +e
             "$EIMIR_EMULATOR_BINARY" -avd eimir-launcher -no-window \
-              -no-audio -no-snapshot -no-boot-anim -gpu swiftshader \
+              -no-audio -no-snapshot -no-boot-anim -gpu "$emulator_gpu" \
               "${emulator_graphics_args[@]}" \
               -memory ${{ matrix.memory }} -partition-size 2048 > emulator.log 2>&1
             emulator_status=$?

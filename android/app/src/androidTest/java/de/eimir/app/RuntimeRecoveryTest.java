@@ -65,15 +65,26 @@ public class RuntimeRecoveryTest {
     private void awaitBundledInterface(LauncherActivity activity) throws Exception {
         CountDownLatch content = new CountDownLatch(1);
         AtomicBoolean observing = new AtomicBoolean(true);
-        // A compositor frame can still be the empty launch document. Await the
-        // actual bundled React surface, then acknowledge its painted frame.
+        // DOM content can precede the login surface's finite entry animations.
+        // Require visible content and completed finite motion before capturing.
         instrumentation.runOnMainSync(() -> {
             WebView view = activity.getBridge().getWebView();
             Runnable probe = new Runnable() {
                 @Override public void run() {
                     if (!observing.get()) return;
                     view.evaluateJavascript(
-                        "Boolean(document.querySelector('#root main') && document.getElementById('root').textContent.trim())",
+                        "(()=>{const main=document.querySelector('#root main');"
+                            + "if(!main||!main.innerText.trim())return false;"
+                            + "const visible=element=>{const r=element.getBoundingClientRect();"
+                            + "if(r.width<=0||r.height<=0||r.bottom<=0||r.right<=0"
+                            + "||r.top>=innerHeight||r.left>=innerWidth)return false;"
+                            + "for(let node=element;node;node=node.parentElement){const style=getComputedStyle(node);"
+                            + "if(style.display==='none'||style.visibility!=='visible'||Number(style.opacity)<0.99)return false;}"
+                            + "return true;};"
+                            + "if(![...main.querySelectorAll('h1,h2,label,button,input')].some(visible))return false;"
+                            + "return !main.getAnimations({subtree:true}).some(animation=>"
+                            + "(animation.playState==='running'||animation.playState==='pending')"
+                            + "&&Number.isFinite(animation.effect.getComputedTiming().endTime));})()",
                         value -> {
                             if (!observing.get()) return;
                             if ("true".equals(value)) content.countDown();

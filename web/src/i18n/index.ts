@@ -14,6 +14,7 @@ import de from './locales/de';
 import demo from './locales/demo';
 import experiences from './locales/experiences';
 import games from './locales/games';
+import gentlePrompts from './locales/gentlePrompts';
 import importantDates from './locales/importantDates';
 import m5s3 from './locales/m5s3';
 import m5s5 from './locales/m5s5';
@@ -66,6 +67,7 @@ if (!i18n.isInitialized) {
           ...de,
           memoryMap,
           calendarPlan,
+          gentlePrompts,
           coupleExperiences,
           sensitiveMedia,
           video,

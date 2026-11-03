@@ -244,9 +244,12 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
     # Account rows are pseudonymized rather than necessarily hard-deleted, so
     # their ON DELETE cascade is not the lifecycle authority for behavior data.
     from eimir.create_receipts import service as shared_create_receipts
+    from eimir.engagement import gentle
     from eimir.memories import create_receipts
     from eimir.story import view_service
 
+    gentle.purge_account(session, account_id)
+    account.gentle_prompts_enabled = False
     view_service.purge_viewer(session, viewer_account_id=account_id)
     create_receipts.purge_account(session, account_id=account_id)
     shared_create_receipts.purge_account(session, account_id=account_id)

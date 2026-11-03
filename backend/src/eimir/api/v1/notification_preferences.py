@@ -138,7 +138,7 @@ def get_own_notification_preferences(
                     NotificationChannelPreference(
                         channel=NotificationChannel.IN_APP,
                         enabled=in_app_choices[kind],
-                        configurable=True,
+                        configurable=kind is not NotificationKind.GENTLE_PROMPT,
                     ),
                     NotificationChannelPreference(
                         channel=NotificationChannel.PUSH,

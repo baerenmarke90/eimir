@@ -7,6 +7,7 @@ eimir. Android 0.2.0-test.42
 - Map-selected coordinates are retained when creating Places, including zero coordinates and collapsed technical details.
 - Moment details use the same concise Back control and preserve the originating view. Confirmed deletions can finish safely after leaving the editor.
 - Includes the current main improvements to Immich/media selection, Moments and Diary presentation, Plan filters and fullscreen maps.
+- Includes optional personal gentle prompts from current main; they remain disabled until explicitly enabled.
 - Includes the current native recovery and selected-media ownership fixes while retaining the removable test updater.
 
 Same package de.eimir.app, canonical signing certificate and persistent test origin as test.41; increasing versionCode 42. Publication requires the exact candidate's source, browser, security, migration and Android gates. The protected publisher verifies signing, predecessor compatibility and all public release bytes. Physical-device installation, session/data continuity and OS-link acceptance remain separate device checks; this test release does not establish store readiness.

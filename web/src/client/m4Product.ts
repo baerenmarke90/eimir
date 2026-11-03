@@ -9,6 +9,7 @@ import type { EngagementTarget } from '../api/generated/models/EngagementTarget'
 import type { SearchKind } from '../api/generated/models/SearchKind';
 import {
   appRoutePath,
+  MEMORY_CREATE_ROUTE,
   MORE_PEOPLE_ROUTE,
   chapterDetailPath,
   collectionDetailPath,
@@ -162,11 +163,13 @@ export function notificationPath(item: {
 }): string | null {
   return (
     engagementTargetPath(item.targetType, item.targetId) ??
-    (item.kind === 'PLAN_CANCELLED'
-      ? '/plan'
-      : item.kind === 'PARTNER_JOINED'
-        ? '/today'
-        : null)
+    (item.kind === 'GENTLE_PROMPT'
+      ? MEMORY_CREATE_ROUTE
+      : item.kind === 'PLAN_CANCELLED'
+        ? '/plan'
+        : item.kind === 'PARTNER_JOINED'
+          ? '/today'
+          : null)
   );
 }
 

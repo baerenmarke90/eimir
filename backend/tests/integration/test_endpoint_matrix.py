@@ -459,6 +459,27 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/activity"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/notifications"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/notifications/unread-count"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/gentle-prompts/use", body={"kind": "FOREGROUND"}),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/gentle-prompts/suggestion"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/gentle-prompts/{occasionId}/dismiss",
+        resource_absence="RESOURCE_NOT_FOUND",
+        placeholders=("occasionId",),
+        fixture_aliases={"occasionId": "notificationId"},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/gentle-prompts/{occasionId}/open",
+        resource_absence="RESOURCE_NOT_FOUND",
+        placeholders=("occasionId",),
+        fixture_aliases={"occasionId": "notificationId"},
+    ),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/gentle-prompts/memories/{memoryId}/exclusion",
+        resource_absence="RESOURCE_NOT_FOUND",
+    ),
     Endpoint(
         "POST",
         "/api/v1/spaces/{spaceId}/notifications/{notificationId}/read",

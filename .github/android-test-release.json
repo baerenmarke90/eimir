@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "sourceRevision": "c8c3e1eb3c52f36d507c529023535f4357143b08",
-  "versionName": "0.2.0-test.41",
-  "versionCode": 41,
-  "previousVersionName": "0.2.0-test.40",
-  "notesFile": "docs/releases/android-test-0.2.0-test.41-notes.txt"
+  "sourceRevision": "43108789ab372039b5711d4838ff86d29f777238",
+  "versionName": "0.2.0-test.42",
+  "versionCode": 42,
+  "previousVersionName": "0.2.0-test.41",
+  "notesFile": "docs/releases/android-test-0.2.0-test.42-notes.txt"
 }

@@ -170,13 +170,21 @@ jobs:
           fi
           adb -e shell cat /proc/meminfo > guest-memory-before-tests.log
           timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.IdentityAppLinksTest,de.eimir.app.LauncherIconsTest,de.eimir.app.UnifiedPushAccountReplacementTest,de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.FcmServiceOwnershipTest,de.eimir.app.PushStorageFailureTest,de.eimir.app.PlanCalendarTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee instrumentation.log
+          grep -Eq '^OK \(35 tests\)' instrumentation.log
+          # System picker journeys have their own bounded invocation, as do
+          # renderer recovery and notification handoff below. The combined
+          # 46-test process exhausted its 180-second budget on API 36.
+          timeout 180 adb -e shell am instrument -w -r \
             -e externalPhotoUri "$external_photo_uri" \
             -e externalVideoUri "$external_video_uri" \
             -e externalVideoSha256 "$(sha256sum ../backend/tests/fixtures/media/video-with-metadata.mp4 | cut -d' ' -f1)" \
-            -e class de.eimir.app.IdentityAppLinksTest,de.eimir.app.LauncherIconsTest,de.eimir.app.UnifiedPushAccountReplacementTest,de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.FcmServiceOwnershipTest,de.eimir.app.PushStorageFailureTest,de.eimir.app.PhotoFileChooserTest,de.eimir.app.PlanCalendarTest \
+            -e class de.eimir.app.PhotoFileChooserTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
-            | tee instrumentation.log
-          grep -Eq '^OK \([1-9][0-9]* tests?\)' instrumentation.log
+            | tee photo-file-chooser.log
+          grep -Eq '^OK \(11 tests\)' photo-file-chooser.log
           # Keep deliberate renderer termination isolated from other WebViews.
           timeout 180 adb -e shell am instrument -w -r \
             -e class de.eimir.app.RuntimeRecoveryTest \
@@ -249,6 +257,7 @@ jobs:
             android/host-memory.log
             android/guest-memory-before-tests.log
             android/instrumentation.log
+            android/photo-file-chooser.log
             android/runtime-recovery.log
             android/renderer-background-return.png
             android/renderer-real-crash.png

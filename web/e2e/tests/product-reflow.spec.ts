@@ -592,17 +592,18 @@ for (const colorScheme of ['light', 'dark'] as const) {
   });
 }
 
-test('representative layout families keep their accepted normal viewport reflow', async ({
-  page,
-}) => {
-  test.setTimeout(120_000);
-  const unexpectedRequests = await installApiMocks(page);
-  await page.setViewportSize({ width: 390, height: 900 });
-  await page.goto('/today');
-  await signIn(page);
-
-  for (const width of [320, 390, 1440, 1920]) {
+// Each viewport journey owns the existing bounded budget. All 32 route visits
+// must complete; they must not compete for one aggregate deadline.
+for (const width of [320, 390, 1440, 1920]) {
+  test(`representative layout families keep their accepted normal viewport reflow at ${width}px`, async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    const unexpectedRequests = await installApiMocks(page);
     await page.setViewportSize({ width, height: 1024 });
+    await page.goto('/today');
+    await signIn(page);
+
     for (const path of [
       '/today',
       '/story',
@@ -625,10 +626,9 @@ test('representative layout families keep their accepted normal viewport reflow'
         ).toHaveCount(0);
       }
     }
-  }
-
-  expect(unexpectedRequests).toEqual([]);
-});
+    expect(unexpectedRequests).toEqual([]);
+  });
+}
 
 test('400 percent reflow keeps keyboard-reachable controls inside the viewport', async ({
   page,

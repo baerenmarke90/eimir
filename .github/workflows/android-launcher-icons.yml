@@ -108,11 +108,11 @@ jobs:
         run: |
           export PATH="$ANDROID_HOME/platform-tools:$PATH"
           free -m | tee host-memory.log
-          "$EIMIR_EMULATOR_BINARY" -version | tee emulator-version.log
+          "$EIMIR_EMULATOR_BINARY" -no-window -version | tee emulator-version.log
           if [ '${{ matrix.api }}' = '36' ]; then
             grep -E '^Android emulator version 37\.2\.12([. ]|$)' emulator-version.log
           fi
-          "$EIMIR_EMULATOR_BINARY" -list-avds | grep -Fx eimir-launcher
+          "$EIMIR_EMULATOR_BINARY" -no-window -list-avds | grep -Fx eimir-launcher
           (
             set +e
             "$EIMIR_EMULATOR_BINARY" -avd eimir-launcher -no-window \

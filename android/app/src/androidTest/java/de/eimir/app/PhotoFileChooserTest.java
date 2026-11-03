@@ -689,15 +689,12 @@ public class PhotoFileChooserTest {
         assertFalse("The system control's hierarchy and pixels become stable",
             UiObject2Ext.waitForStable(control, 3000, 500, 50, true).isTimeout());
         // Stability screenshots can replace accessibility nodes. Reacquire before
-        // the regular synchronous touch used for the WebView controls too.
+        // the real native touch used for the WebView controls too.
         control = device.findObject(selector);
         assertNotNull("The stable system control remains attached", control);
         assertTrue("The stable system control is enabled", control.isEnabled());
         Rect bounds = control.getVisibleBounds();
         assertFalse("The stable system control is visible", bounds.isEmpty());
-        // UiObject2's default zero-dwell asynchronous gesture can lose a tap on
-        // a busy picker. UiDevice owns regular click timing and dispatch; assert
-        // its result without replaying a selection or bypassing native input.
         tapScreenBounds(bounds);
     }
 
@@ -723,10 +720,15 @@ public class PhotoFileChooserTest {
 
     private void tapScreenBounds(Rect bounds) throws Exception {
         assertFalse("The identified document has touch bounds", bounds.isEmpty());
-        // WebView geometry still identifies the real input; UI Automator owns
-        // native gesture timing instead of a hand-built MotionEvent sequence.
-        assertTrue("Android accepts the identified control's native tap",
-            UiDevice.getInstance(instrumentation).click(bounds.centerX(), bounds.centerY()));
+        // UiAutomation synchronizes surfaces between injected events, even for
+        // asynchronous gestures. A slow renderer can hold DOWN until Android
+        // recognizes a long press. The platform input command dispatches one
+        // complete tap without that per-event surface synchronization. It still
+        // traverses the real touchscreen path; selection, confirmation and File
+        // handoff are verified below, with no action replay or accessibility click.
+        String output = UiDevice.getInstance(instrumentation).executeShellCommand(
+            "input touchscreen tap " + bounds.centerX() + " " + bounds.centerY());
+        assertEquals("Android accepts the identified control's native tap", "", output.trim());
     }
 
     private AccessibilityNodeInfo findDocument(String name) throws Exception {

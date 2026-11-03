@@ -5,6 +5,8 @@ const photoSources = {
   googleUnavailable:
     'Die direkte Verbindung ist noch nicht verfügbar. Über die Galerie deines Geräts kannst du auch verfügbare Cloud-Fotos auswählen.',
   previewFailed: 'Vorschau nicht verfügbar',
+  videoAvailabilityUnavailable:
+    'Videos sind gerade nicht verfügbar. Du kannst Fotos auswählen oder es erneut versuchen.',
   more: 'Andere Fotoquelle',
   title: 'Fotos hinzufügen',
   google: 'Google Fotos',

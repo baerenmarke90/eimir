@@ -8,17 +8,25 @@ import android.view.ViewGroup;
 import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebView;
 import androidx.core.splashscreen.SplashScreen;
+import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.WebViewListener;
 
 public class MainActivity extends BridgeActivity {
+    private static final String RECOVERY_ATTEMPTED = "eimir.rendererRecoveryAttempted";
     private static volatile boolean foreground;
     private PhotoFileChooser photoFileChooser;
     private boolean recoveringRenderer;
+    private boolean resumed;
+    private long resumeGeneration;
+    private RendererRecovery rendererRecovery;
+    private Intent pendingRendererIntent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         SplashScreen.installSplashScreen(this);
+        rendererRecovery = new RendererRecovery(
+            savedInstanceState != null && savedInstanceState.getBoolean(RECOVERY_ATTEMPTED));
         registerPlugin(NativePushBridge.class);
         registerPlugin(AppIconPlugin.class);
         registerPlugin(NativeSessionStoragePlugin.class);
@@ -55,19 +63,70 @@ public class MainActivity extends BridgeActivity {
     private boolean recoverRenderer(WebView view, RenderProcessGoneDetail detail) {
         if (recoveringRenderer) return true;
         recoveringRenderer = true;
+        resumeGeneration++;
         Log.w("EimirRuntime", "renderer_gone crashed=" + detail.didCrash()
-            + " priority=" + detail.rendererPriorityAtExit());
+            + " priority=" + detail.rendererPriorityAtExit() + " resumed=" + resumed);
+        rendererRecovery.lost(detail.didCrash(), photoFileChooser != null && photoFileChooser.hasPendingSelection());
         if (photoFileChooser != null) {
             try { photoFileChooser.dispose(); }
             catch (RuntimeException unavailable) { Log.w("EimirRuntime", "Picker callback unavailable after renderer exit"); }
             photoFileChooser = null;
         }
+        // Capacitor's later lifecycle/detach callbacks must never reach a dead WebView.
+        Bridge deadBridge = bridge;
+        bridge = null;
+        if (deadBridge != null) deadBridge.onDestroy();
         if (view.getParent() instanceof ViewGroup) ((ViewGroup) view.getParent()).removeView(view);
         view.destroy();
-        // Never reload a dead renderer or automatically replay an interrupted write.
-        startActivity(new Intent(this, RuntimeRecoveryActivity.class));
-        finish();
+        scheduleRendererRecovery();
         return true;
+    }
+
+    private void scheduleRendererRecovery() {
+        if (!resumed || !recoveringRenderer || isFinishing() || isDestroyed()) return;
+        // Leave onRenderProcessGone before Activity recreation or native navigation.
+        getWindow().getDecorView().post(() -> {
+            if (!resumed || isFinishing() || isDestroyed()) return;
+            RendererRecovery.Action action = rendererRecovery.take();
+            if (action == RendererRecovery.Action.RECREATE) {
+                // Retain only a new intent received after loss, never replay the old launch link.
+                setIntent(pendingRendererIntent != null ? pendingRendererIntent
+                    : new Intent(this, LauncherActivity.class).setAction(Intent.ACTION_MAIN));
+                pendingRendererIntent = null;
+                recreate();
+            } else if (action == RendererRecovery.Action.PROMPT) {
+                startActivity(new Intent(this, RuntimeRecoveryActivity.class));
+                finish();
+            }
+        });
+    }
+
+    private void confirmForegroundRenderer() {
+        if (bridge == null) return;
+        WebView view = bridge.getWebView();
+        long generation = ++resumeGeneration;
+        // A gone callback may arrive during resume. Only a live renderer can end that return window.
+        view.postVisualStateCallback(generation, new WebView.VisualStateCallback() {
+            @Override
+            public void onComplete(long requestId) {
+                if (resumed && generation == resumeGeneration && bridge != null
+                        && bridge.getWebView() == view && !recoveringRenderer) {
+                    rendererRecovery.rendered();
+                }
+            }
+        });
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        if (recoveringRenderer && intent != null) pendingRendererIntent = new Intent(intent);
+        super.onNewIntent(intent);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle state) {
+        state.putBoolean(RECOVERY_ATTEMPTED, rendererRecovery.attempted());
+        super.onSaveInstanceState(state);
     }
 
     @Override
@@ -80,12 +139,23 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         foreground = true;
+        resumed = true;
+        if (recoveringRenderer) scheduleRendererRecovery();
+        else confirmForegroundRenderer();
     }
 
     @Override
     public void onPause() {
+        resumed = false;
+        resumeGeneration++;
         foreground = false;
         super.onPause();
+    }
+
+    @Override
+    public void onStop() {
+        rendererRecovery.stopped();
+        super.onStop();
     }
 
     static boolean isForeground() {

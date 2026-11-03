@@ -134,6 +134,10 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
         selection.callback.onReceiveValue(result);
     }
 
+    boolean hasPendingSelection() {
+        return pending != null;
+    }
+
     void dispose() {
         Selection selection = pending;
         pending = null;

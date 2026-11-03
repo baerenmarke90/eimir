@@ -3,8 +3,8 @@ import { initReactI18next } from 'react-i18next';
 import accountSettings from './locales/accountSettings';
 import appIcon from './locales/appIcon';
 import calendarPlan from './locales/calendarPlan';
-import coupleExperiences from './locales/coupleExperiences';
 import contextTags from './locales/contextTags';
+import coupleExperiences from './locales/coupleExperiences';
 import dailyEnergy from './locales/dailyEnergy';
 import dailyInsights from './locales/dailyInsights';
 import dailyQuote from './locales/dailyQuote';
@@ -40,6 +40,7 @@ import spaceOffboarding from './locales/spaceOffboarding';
 import storyProducts from './locales/storyProducts';
 import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
+import video from './locales/video';
 import weeklyInsights from './locales/weeklyInsights';
 import wirDesign from './locales/wirDesign';
 import wishSelection from './locales/wishSelection';
@@ -65,6 +66,7 @@ if (!i18n.isInitialized) {
           calendarPlan,
           coupleExperiences,
           sensitiveMedia,
+          video,
           taskBoundary,
           taskSheets,
           accountSettings,

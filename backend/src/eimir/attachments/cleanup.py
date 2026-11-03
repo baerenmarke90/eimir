@@ -16,11 +16,11 @@ from datetime import timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from eimir.attachments import service, upload_ownership
-from eimir.attachments.models import Attachment, AttachmentStatus
+from eimir.attachments.models import Attachment, AttachmentStatus, MediaType, PlaybackGrant
 from eimir.core.clock import now
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
@@ -105,6 +105,11 @@ def _expire_stale_uploads(session: Session) -> int:
                     Attachment.status == AttachmentStatus.FAILED.value,
                     func.coalesce(Attachment.failed_at, Attachment.created_at) < cutoff,
                 ),
+                and_(
+                    Attachment.status == AttachmentStatus.VALIDATING.value,
+                    Attachment.media_type == MediaType.VIDEO.value,
+                    func.coalesce(Attachment.uploaded_at, Attachment.created_at) < cutoff,
+                ),
             )
         )
         .with_for_update(skip_locked=True)
@@ -173,6 +178,7 @@ def run_media_cleanup(session: Session, payload: dict[str, Any]) -> None:
     del payload
 
     expired_uploads = _expire_stale_uploads(session)
+    session.execute(delete(PlaybackGrant).where(PlaybackGrant.expires_at <= now()))
     expired_unbound = _expire_unbound_ready(session)
     session.flush()
     removed, failed = _purge_marked(session)

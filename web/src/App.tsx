@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Link,
   Navigate,
@@ -8,70 +8,55 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom';
+import { AppearanceApi } from './api/generated/apis/AppearanceApi';
+import { DailyCheckInsApi } from './api/generated/apis/DailyCheckInsApi';
+import { DailyQuoteApi } from './api/generated/apis/DailyQuoteApi';
+import { EntitlementsApi } from './api/generated/apis/EntitlementsApi';
+import { SpacesApi } from './api/generated/apis/SpacesApi';
 import type { AccountView } from './api/generated/models/AccountView';
 import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/AttachmentReadRequest';
 import type { SpaceView } from './api/generated/models/SpaceView';
 import type { TokenView } from './api/generated/models/TokenView';
-import { AppearanceApi } from './api/generated/apis/AppearanceApi';
-import { ReminderReadPage } from './components/ReminderReadPage';
-import { DailyCheckInsApi } from './api/generated/apis/DailyCheckInsApi';
-import { DailyQuoteApi } from './api/generated/apis/DailyQuoteApi';
-import { EntitlementsApi } from './api/generated/apis/EntitlementsApi';
-import { ProfilesApi } from './client/mediaApis';
-import { SpacesApi } from './api/generated/apis/SpacesApi';
 import { Configuration } from './client/apiConfiguration';
-import { loadReferenceClientConfig } from './client/config';
-import {
-  ActiveAccountMismatchError,
-  revokeUnacceptedSession,
-} from './client/identityFlow';
-import { useSessionRefresh } from './client/useSessionRefresh';
-import { useIdentityEntry } from './client/useIdentityEntry';
-import { createM4ProductApis } from './client/m4Product';
-import { createPeopleApi } from './client/peopleApi';
-import { createPrivateAreaApi } from './client/privateArea';
-import { invalidateDashboard } from './client/dashboardQueries';
-import {
-  clientProblemKind,
-  normalizeClientError,
-} from './client/problemDetails';
-import { PartnerNicknameProvider } from './client/partnerNickname';
 import { AppIconProvider } from './client/appIconContext';
-import { WirDesignProvider } from './client/wirDesign';
-import { clearProductReadCacheInBackground } from './client/productReadCache';
 import { invalidateStoryProjections } from './client/authorSummaryConsumers';
+import { loadReferenceClientConfig } from './client/config';
+import { invalidateDashboard } from './client/dashboardQueries';
 import {
   rememberCurrentAuthReturnTarget,
   restoreAuthReturnTarget,
 } from './client/deepLinks';
 import {
-  clearStoredSession,
-  isAccessTokenValid,
-  loadStoredSession,
-  refreshSessionTokens,
-  storeSession,
-} from './client/sessionPersistence';
-import { createReferenceApis } from './client/referenceFlow';
-import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
-import { loadInstanceAccessStatus } from './client/instanceStatus';
-import {
   stopNativePushForSignedOutAccount,
   useDevicePush,
 } from './client/devicePush';
-import { signOutSession } from './client/signOutSession';
-import { createServerAdminApis } from './client/serverAdmin';
+import {
+  ActiveAccountMismatchError,
+  revokeUnacceptedSession,
+} from './client/identityFlow';
+import { loadInstanceAccessStatus } from './client/instanceStatus';
+import { createM4ProductApis } from './client/m4Product';
+import { ProfilesApi } from './client/mediaApis';
+import { PartnerNicknameProvider } from './client/partnerNickname';
+import { createPeopleApi } from './client/peopleApi';
+import { createPrivateAreaApi } from './client/privateArea';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from './client/problemDetails';
+import { clearProductReadCacheInBackground } from './client/productReadCache';
+import { createReferenceApis } from './client/referenceFlow';
 import {
   ACTIVITY_ROUTE,
   appRoutePath,
   CHAPTER_CREATE_ROUTE,
   CHAPTER_DETAIL_ROUTE_PATTERN,
-  COLLECTION_DETAIL_ROUTE_PATTERN,
   COLLECTION_CREATE_ROUTE,
+  COLLECTION_DETAIL_ROUTE_PATTERN,
   DEFAULT_APP_ROUTE,
   GAMES_MOMENTS_ROUTE,
-  HAPPINESS_ROUTE,
-  TIME_TRAVEL_ROUTE,
   GAMES_WISH_DETECTIVE_ROUTE,
+  HAPPINESS_ROUTE,
   HEART_MOMENT_CREATE_ROUTE,
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
   HEART_MOMENT_EDIT_ROUTE_PATTERN,
@@ -79,37 +64,47 @@ import {
   MEMORY_CREATE_ROUTE,
   MEMORY_DETAIL_ROUTE_PATTERN,
   MEMORY_EDIT_ROUTE_PATTERN,
+  MEMORY_MAP_ROUTE,
   MILESTONE_CREATE_ROUTE,
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MILESTONE_EDIT_ROUTE_PATTERN,
+  MORE_COLLECTIONS_ROUTE,
   MORE_INSIGHTS_PATTERNS_ROUTE,
   MORE_INSIGHTS_RECAP_ROUTE,
   MORE_INSIGHTS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
+  MORE_PASSPORT_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
-  MEMORY_MAP_ROUTE,
-  MORE_COLLECTIONS_ROUTE,
   MORE_PROFILE_ROUTE,
-  MORE_PASSPORT_ROUTE,
-  RECAP_DETAIL_ROUTE_PATTERN,
   MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
-  PLAN_CREATE_ROUTE,
-  REMINDER_DETAIL_ROUTE_PATTERN,
-  PLAN_DETAIL_ROUTE_PATTERN,
   PLACE_DETAIL_ROUTE_PATTERN,
+  PLAN_CREATE_ROUTE,
+  PLAN_DETAIL_ROUTE_PATTERN,
+  RECAP_DETAIL_ROUTE_PATTERN,
+  REMINDER_DETAIL_ROUTE_PATTERN,
   SEARCH_ROUTE,
   SERVER_ADMIN_ROUTE,
   STORY_CHAPTERS_ROUTE,
+  STORY_PHOTOS_ROUTE,
   STORY_YEAR_ROUTE_PATTERN,
   STORY_YEARS_ROUTE,
-  STORY_PHOTOS_ROUTE,
-  WISH_DETAIL_ROUTE_PATTERN,
+  TIME_TRAVEL_ROUTE,
   WISH_CREATE_ROUTE,
+  WISH_DETAIL_ROUTE_PATTERN,
   WISH_SELECTION_ROUTE,
 } from './client/routes';
+import { createServerAdminApis } from './client/serverAdmin';
+import {
+  clearStoredSession,
+  isAccessTokenValid,
+  loadStoredSession,
+  refreshSessionTokens,
+  storeSession,
+} from './client/sessionPersistence';
 import { createSharedPlanningApis } from './client/sharedPlanning';
+import { signOutSession } from './client/signOutSession';
 import { postSnackbar } from './client/snackbar';
 import {
   canReuseMembershipsAfterRefreshFailure,
@@ -117,21 +112,27 @@ import {
   loadAuthorizedSpaces,
   resolveActiveSpaceId,
 } from './client/spaceContext';
+import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
+import { useIdentityEntry } from './client/useIdentityEntry';
+import { useSessionRefresh } from './client/useSessionRefresh';
+import { VideoProcessingContext } from './client/video';
+import { WirDesignProvider } from './client/wirDesign';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
-import { SharedPhotosPage } from './components/SharedPhotosPage';
 import { Brand } from './components/Brand';
+import { BrandedStartup } from './components/BrandedStartup';
 import { ChapterCreatePage } from './components/ChapterCreatePage';
 import { ChapterProductPage } from './components/ChapterProductPage';
 import { ChaptersOverviewPage } from './components/ChaptersOverviewPage';
 import { CollectionProductPage } from './components/CollectionProductPage';
 import { CollectionsOverviewPage } from './components/CollectionsOverviewPage';
+import { CoupleExperiencePage } from './components/CoupleExperiencePage';
 import { DailyInsightsPage } from './components/DailyInsightsPage';
 import { DemoEntry } from './components/DemoEntry';
+import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
-import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
 import {
   ActivityProductPage,
@@ -139,27 +140,27 @@ import {
   SearchProductPage,
 } from './components/M4ProductPages';
 import { MemoryCreatePage } from './components/MemoryCreatePage';
+import { MemoryMapPage } from './components/MemoryMapPage';
 import { MemoryProductPage } from './components/MemoryProductPage';
-import { CoupleExperiencePage } from './components/CoupleExperiencePage';
-import { OurMomentsGamePage } from './components/OurMomentsGamePage';
-import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
 import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
+import { OurMomentsGamePage } from './components/OurMomentsGamePage';
 import { PlaceProductPage } from './components/PlaceProductPage';
-import { MemoryMapPage } from './components/MemoryMapPage';
 import { PlacesOverviewPage } from './components/PlacesOverviewPage';
-import { PlanProductPage } from './components/PlanProductPage';
 import { PlanningCreatePage } from './components/PlanningCreatePage';
+import { PlanProductPage } from './components/PlanProductPage';
 import { PrivateAreaProductPage } from './components/PrivateAreaProductPage';
 import { ProblemState } from './components/ProblemState';
 import { ProfilePage } from './components/ProfilePage';
-import { RelationshipRecapsPage } from './components/RelationshipRecapsPage';
 import { RelatedPeoplePage } from './components/RelatedPeoplePage';
+import { RelationshipRecapsPage } from './components/RelationshipRecapsPage';
+import { ReminderReadPage } from './components/ReminderReadPage';
 import {
   ServerAdminAccessGate,
   ServerAdminPage,
 } from './components/ServerAdminPage';
 import { SettingsPage } from './components/SettingsPage';
+import { SharedPhotosPage } from './components/SharedPhotosPage';
 import { SharedPlanningOverviewPage } from './components/SharedPlanningOverviewPage';
 import { StoryProductPage } from './components/StoryProductPage';
 import {
@@ -169,7 +170,7 @@ import {
 import { ThemeControl } from './components/ThemeControl';
 import { TodayPage } from './components/TodayPage';
 import { UiState } from './components/UiState';
-import { BrandedStartup } from './components/BrandedStartup';
+import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
 import { WishProductPage } from './components/WishProductPage';
 import { WishSelectionPage } from './components/WishSelectionPage';
 import { useTranslation } from './i18n';
@@ -1401,13 +1402,17 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   }
 
   return (
-    <AuthenticatedApp
-      tokens={tokens}
-      account={account}
-      logout={logout}
-      apiBaseUrl={config.apiBaseUrl}
-      spaceId={activeSpaceId}
-      serverAdmin={capabilitiesQuery.data?.serverAdmin ?? false}
-    />
+    <VideoProcessingContext.Provider
+      value={capabilitiesQuery.data?.videoProcessingEnabled === true}
+    >
+      <AuthenticatedApp
+        tokens={tokens}
+        account={account}
+        logout={logout}
+        apiBaseUrl={config.apiBaseUrl}
+        spaceId={activeSpaceId}
+        serverAdmin={capabilitiesQuery.data?.serverAdmin ?? false}
+      />
+    </VideoProcessingContext.Provider>
   );
 }

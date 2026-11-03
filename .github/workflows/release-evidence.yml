@@ -39,6 +39,11 @@ on:
         type: string
   workflow_call:
     inputs:
+      include_video_media:
+        description: Include the same-revision restricted video worker for the private test channel.
+        required: false
+        default: false
+        type: boolean
       include_android:
         description: Build Android APK/AAB evidence for this release channel.
         required: false
@@ -77,6 +82,7 @@ env:
   SYFT_LINUX_AMD64_SHA256: "0d6be741479eddd2c8644a288990c04f3df0d609bbc1599a005532a9dff63509"
   ANDROID_PROJECT_DIR: "android"
   INCLUDE_ANDROID: ${{ github.event_name == 'pull_request' || inputs.include_android }}
+  INCLUDE_VIDEO_MEDIA: ${{ inputs.include_video_media == true }}
   ANDROID_VERSION_CODE: ${{ inputs.android_version_code || (github.event_name == 'pull_request' && 1 || '') }}
   ANDROID_API_BASE_URL: ${{ inputs.android_api_base_url || (github.event_name == 'pull_request' && 'https://api.eimir.invalid' || '') }}
   RELEASE_VERSION: ${{ inputs.release_version || (github.event_name == 'pull_request' && '0.1.0' || '') }}
@@ -177,6 +183,21 @@ jobs:
             --tag "$image" \
             ./backend
           docker image save --output release-evidence/backend-runtime.image.tar "$image"
+
+      - name: Build restricted video worker from the exact backend
+        if: env.INCLUDE_VIDEO_MEDIA == 'true'
+        run: |
+          set -euo pipefail
+          python3 tools/media/check-advisories.py
+          image="eimir-media:evidence-$GITHUB_SHA"
+          docker build --file backend/Dockerfile.media \
+            --build-arg "EIMIR_BACKEND_IMAGE=eimir-backend:evidence-$GITHUB_SHA" \
+            --label "org.opencontainers.image.title=eimir restricted video worker" \
+            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.version=$RELEASE_VERSION" \
+            --tag "$image" .
+          docker image save --output release-evidence/media-runtime.image.tar "$image"
 
       - name: Build Web runtime image archive
         run: |
@@ -357,6 +378,10 @@ jobs:
             -o "spdx-json=release-evidence/sbom/backend-runtime.spdx.json"
           syft scan "docker-archive:release-evidence/web-runtime.image.tar" \
             -o "spdx-json=release-evidence/sbom/web-runtime.spdx.json"
+          if [ "$INCLUDE_VIDEO_MEDIA" = "true" ]; then
+            syft scan "docker-archive:release-evidence/media-runtime.image.tar" \
+              -o "spdx-json=release-evidence/sbom/media-runtime.spdx.json"
+          fi
           if [ "$INCLUDE_ANDROID" = "true" ]; then
             syft scan "file:release-evidence/android/eimir-release-unsigned.apk" \
               -o "spdx-json=release-evidence/sbom/android-apk.spdx.json"
@@ -386,6 +411,8 @@ jobs:
               ("backend-runtime", root / "backend-runtime.image.tar", root / "sbom/backend-runtime.spdx.json", ["api", "worker", "migrate"]),
               ("web-runtime", root / "web-runtime.image.tar", root / "sbom/web-runtime.spdx.json", ["web"]),
           ]
+          if os.environ["INCLUDE_VIDEO_MEDIA"].lower() == "true":
+              subjects.append(("media-runtime", root / "media-runtime.image.tar", root / "sbom/media-runtime.spdx.json", ["video-worker"]))
           if include_android:
               subjects.extend([
                   ("android-apk", root / "android/eimir-release-unsigned.apk", root / "sbom/android-apk.spdx.json", ["android-apk"]),
@@ -483,6 +510,9 @@ jobs:
               sbom/web-runtime.spdx.json
               evidence-index.json
             )
+            if [ "$INCLUDE_VIDEO_MEDIA" = "true" ]; then
+              files+=(media-runtime.image.tar sbom/media-runtime.spdx.json)
+            fi
             if [ "$INCLUDE_ANDROID" = "true" ]; then
               files+=(
                 android/eimir-release-unsigned.apk
@@ -543,6 +573,15 @@ jobs:
           bundle-directory: release-evidence/attestations
           bundle-prefix: web-runtime
 
+      - name: Attest restricted video worker
+        if: env.INCLUDE_VIDEO_MEDIA == 'true'
+        uses: ./.github/actions/attest-release-artifact
+        with:
+          subject-path: release-evidence/media-runtime.image.tar
+          sbom-path: release-evidence/sbom/media-runtime.spdx.json
+          bundle-directory: release-evidence/attestations
+          bundle-prefix: media-runtime
+
       - name: Attest Android APK
         if: inputs.include_android || github.event_name == 'pull_request'
         uses: ./.github/actions/attest-release-artifact
@@ -588,6 +627,9 @@ jobs:
 
           verify_subject release-evidence/backend-runtime.image.tar backend-runtime
           verify_subject release-evidence/web-runtime.image.tar web-runtime
+          if [ "$INCLUDE_VIDEO_MEDIA" = "true" ]; then
+            verify_subject release-evidence/media-runtime.image.tar media-runtime
+          fi
           if [ "$INCLUDE_ANDROID" = "true" ]; then
             verify_subject release-evidence/android/eimir-release-unsigned.apk android-apk
             verify_subject release-evidence/android/eimir-release-unsigned.aab android-aab

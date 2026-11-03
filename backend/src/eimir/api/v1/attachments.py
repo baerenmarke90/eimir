@@ -3,18 +3,21 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from tempfile import TemporaryFile
 from typing import Annotated, Literal, Self
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Request, Response, status
 from fastapi.responses import StreamingResponse
 from pydantic import ConfigDict, Field, StrictBool, model_validator
+from starlette.concurrency import run_in_threadpool
 
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.attachments import service, upload_ownership
+from eimir.attachments.content import content_response
 from eimir.attachments.models import Attachment, AttachmentStatus, MediaType
 from eimir.core.clock import now
 from eimir.media import create_signed_upload, get_media_store
@@ -125,6 +128,7 @@ class AttachmentSummary(ApiModel):
     width: int | None
     height: int | None
     has_thumbnail: bool
+    duration_seconds: int | None = None
     is_sensitive: bool = Field(
         default=False,
         description="Manual sensitive-content classification; never an access-control boundary.",
@@ -155,6 +159,7 @@ class UploadDescriptor(ApiModel):
 
 
 class ReadDescriptor(ApiModel):
+    media_type: MediaType | None = None
     method: Literal["STREAM", "SIGNED_URL"]
     url: str
     expires_at: datetime | None = None
@@ -290,17 +295,19 @@ async def upload_attachment_content(
     """
     claim = upload_ownership.claim_upload(session, authorization, attachment_id)
     try:
-        chunks: list[bytes] = []
-        bytes_read = 0
-        async for chunk in request.stream():
-            bytes_read += len(chunk)
-            if bytes_read > claim.rule.max_size:
-                raise service.too_large()
-            chunks.append(chunk)
-            if upload_ownership.should_renew(claim):
-                claim = upload_ownership.renew_upload_claim(session, claim)
-
-        upload_ownership.complete_upload(session, claim, b"".join(chunks))
+        # Transfer size must not become process memory, including when the
+        # encrypted S3 adapter consumes this private, automatically removed file.
+        with TemporaryFile(mode="w+b") as body:
+            bytes_read = 0
+            async for chunk in request.stream():
+                bytes_read += len(chunk)
+                if bytes_read > claim.rule.max_size:
+                    raise service.too_large()
+                await run_in_threadpool(body.write, chunk)
+                if upload_ownership.should_renew(claim):
+                    claim = upload_ownership.renew_upload_claim(session, claim)
+            body.seek(0)
+            await run_in_threadpool(upload_ownership.complete_upload, session, claim, body)
     except BaseException:
         # Token matching makes this safe even if another request reclaimed an
         # expired generation while this one was unwinding.
@@ -379,12 +386,14 @@ def create_attachment_read_access(
     if signed_url is not None:
         return ReadDescriptor(
             method="SIGNED_URL",
+            media_type=MediaType(attachment.media_type),
             url=signed_url,
             expires_at=now() + SIGNED_READ_TTL,
         )
 
     return ReadDescriptor(
         method="STREAM",
+        media_type=MediaType(attachment.media_type),
         url=_content_path(authorization.space_id, attachment.id, body.variant),
     )
 
@@ -398,9 +407,10 @@ def create_attachment_read_access(
 def get_attachment_content(
     authorization: Authorization,
     session: DbSession,
+    request: Request,
     attachment_id: Annotated[str, Path(alias="attachmentId")],
     variant: ReadVariant = "original",
-) -> StreamingResponse:
+) -> Response:
     """Authorized streaming route (media pipeline, section 9).
 
     Every access is verified immediately before opening the content. A
@@ -422,33 +432,11 @@ def get_attachment_content(
         else (attachment.mime_type or "application/octet-stream")
     )
 
-    # Read the first block before the response starts. Decryption authenticates
-    # per block, so a wrong key or a tampered object is reported as an error
-    # here instead of after a 200 has already been sent.
-    try:
-        first = source.read(STREAM_CHUNK)
-    except BaseException:
-        source.close()
-        raise
-
-    def chunks() -> object:
-        try:
-            chunk = first
-            while chunk:
-                yield chunk
-                chunk = source.read(STREAM_CHUNK)
-        finally:
-            source.close()
-
-    return StreamingResponse(
-        chunks(),  # type: ignore[arg-type]
+    return content_response(
+        source,
         media_type=media_type,
-        headers={
-            # Do not leak a filesystem path or username in the header; the
-            # download name is controlled by the server.
-            "Content-Disposition": f'inline; filename="{attachment.id}"',
-            "Cache-Control": "private, no-store",
-        },
+        filename=str(attachment.id),
+        range_header=request.headers.get("range"),
     )
 
 

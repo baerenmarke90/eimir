@@ -6,6 +6,20 @@ here does not belong in the project.
 
 As of: 2026-10-20
 
+## Optional video processor (2026-11-02)
+
+FFmpeg 9.0.2, upstream commit `946fcce07b6dcd0331c8cc609192aeff5e1924f8`,
+is built from the checksum-pinned official archive only in `backend/Dockerfile.media`.
+License: LGPL-2.1-or-later for this restricted build; GPL, nonfree, autodetected
+libraries and network protocols are disabled. Corresponding source, license,
+configuration and the local MOV encryption rejection patch ship with the image.
+No new Python/npm/native dependency or external media provider is introduced.
+The synthetic blue H.264/AAC fixture in `backend/tests/fixtures/media/` was
+created for #88 using FFmpeg color/anullsrc generators; it contains no third-party
+imagery, personal data or audio recording. Its deliberately synthetic metadata
+is only a stripping-test input. See [operations and security review](operations/video-uploads.md)
+and `tools/media/advisory-review.json`; unresolved evidence is not a blanket waiver.
+
 ## Reproducibility and verification
 
 `backend/uv.lock` is the binding, cross-platform resolution of all direct and
@@ -115,10 +129,10 @@ the product's largest attack surfaces. `pillow-heif` brings libheif and thus
 HEIC/HEIF, which are part of the M2-D04 allowlist; it registers as a Pillow
 plugin and is not called separately.
 
-Both are deliberately the only additions in this slice. Video and the ffmpeg
-invocation it requires are a separate later step under M2-D23 because a system
-binary affects the container image and installation instructions and falls
-outside the `uv audit` gate.
+Both remain the only Python additions in that image slice. The separate #88
+video delivery now supplies the optional restricted FFmpeg image documented
+above. Its system binary has a distinct source/advisory/license gate because
+it falls outside `uv audit`; the common API/general-worker image is unchanged.
 
 Media parsers are an explicit attack surface. They therefore receive special
 attention under the existing policy: no known security finding in the lock,

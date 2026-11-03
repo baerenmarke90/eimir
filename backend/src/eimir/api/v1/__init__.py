@@ -54,6 +54,7 @@ from eimir.api.v1 import (
     spaces,
     story,
     transfer,
+    video,
     wish_selections,
     wishes,
 )
@@ -77,6 +78,7 @@ normal_router.include_router(session_context.router)
 normal_router.include_router(demo.router)
 normal_router.include_router(invitations.router)
 normal_router.include_router(attachments.router)
+normal_router.include_router(video.router)
 normal_router.include_router(photo_sources.router)
 normal_router.include_router(story.router)
 normal_router.include_router(search.router)

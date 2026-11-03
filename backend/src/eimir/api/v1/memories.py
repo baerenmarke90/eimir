@@ -172,6 +172,7 @@ def _memory_detail(
                 width=entry.attachment.width,
                 height=entry.attachment.height,
                 has_thumbnail=entry.attachment.has_thumbnail,
+                duration_seconds=entry.attachment.duration_seconds,
                 is_sensitive=entry.attachment.payload.is_sensitive,
                 position=entry.position,
                 reactions=[

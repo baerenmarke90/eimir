@@ -112,6 +112,7 @@ jobs:
           adb -e install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           # Seed under shell's UID: eimir must not own/read this image before selection.
           external_photo_uri=not-applicable
+          external_video_uri=not-applicable
           if [ '${{ matrix.api }}' != '28' ]; then
             adb -e shell mkdir -p /sdcard/DCIM/Camera
             adb -e push app/src/androidTest/assets/external-gps-camera.jpg /sdcard/DCIM/Camera/external-gps-camera.jpg
@@ -129,10 +130,24 @@ jobs:
             [[ "$external_photo_id" =~ ^[0-9]+$ ]]
             external_photo_uri="content://media/external_primary/images/media/$external_photo_id"
             ! grep -F 'owner_package_name=de.eimir.app' external-photo-owner.log
+            adb -e push ../backend/tests/fixtures/media/video-with-metadata.mp4 /sdcard/DCIM/Camera/eimir-native-video.mp4
+            adb -e shell content insert --uri content://media/external_primary/video/media \
+              --bind _data:s:/storage/emulated/0/DCIM/Camera/eimir-native-video.mp4 \
+              --bind _display_name:s:eimir-native-video.mp4 --bind mime_type:s:video/mp4
+            adb -e shell cmd activity broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
+              -d file:///storage/emulated/0/DCIM/Camera/eimir-native-video.mp4
+            adb -e shell content query --uri content://media/external_primary/video/media \
+              --projection _id:_display_name:owner_package_name | tee external-video-owner.log
+            external_video_id=$(grep -F '_display_name=eimir-native-video.mp4' external-video-owner.log \
+              | sed -n 's/.*_id=\([0-9]*\),.*/\1/p' | tr -d '\r')
+            [[ "$external_video_id" =~ ^[0-9]+$ ]]
+            external_video_uri="content://media/external_primary/video/media/$external_video_id"
+            ! grep -F 'owner_package_name=de.eimir.app' external-video-owner.log
           fi
           adb -e shell cat /proc/meminfo > guest-memory-before-tests.log
           timeout 180 adb -e shell am instrument -w -r \
             -e externalPhotoUri "$external_photo_uri" \
+            -e externalVideoUri "$external_video_uri" \
             -e class de.eimir.app.IdentityAppLinksTest,de.eimir.app.LauncherIconsTest,de.eimir.app.UnifiedPushAccountReplacementTest,de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.FcmServiceOwnershipTest,de.eimir.app.PushStorageFailureTest,de.eimir.app.PhotoFileChooserTest,de.eimir.app.PlanCalendarTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
@@ -175,7 +190,7 @@ jobs:
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b crash -d -t 200 \
             > native-crash.log 2>&1 || true
-          for proof in native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg; do
+          for proof in native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
             if "$ANDROID_HOME/platform-tools/adb" -e shell run-as de.eimir.app.debug test -f "files/$proof"; then
               "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.eimir.app.debug \
                 cat "files/$proof" > "$proof"
@@ -227,4 +242,7 @@ jobs:
             android/native-photo-dom.txt
             android/native-photo-location-consent.png
             android/native-photo-location-consent.txt
+            android/native-video-*
+            android/native-selected-video.mp4
+            android/external-video-owner.log
           if-no-files-found: ignore

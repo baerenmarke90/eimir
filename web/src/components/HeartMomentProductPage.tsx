@@ -1,6 +1,3 @@
-import { ExpandableDescription } from './ExpandableDescription';
-import type { ObjectUrlSource } from '../client/objectUrlResource';
-import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
 import {
   useIsMutating,
   useMutation,
@@ -34,6 +31,7 @@ import {
 } from '../client/createRequestIdentity';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { localDateInputValue } from '../client/dateInput';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
 import {
   ClientProblemError,
@@ -51,6 +49,8 @@ import {
   heartMomentDetailPath,
   heartMomentEditPath,
 } from '../client/routes';
+import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjections';
+import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
 import {
@@ -59,11 +59,11 @@ import {
 } from '../client/useAttachmentDrafts';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
+import { loadVideoSource } from '../client/video';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
-import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { CommentsPanel } from './CommentsPanel';
+import { ExpandableDescription } from './ExpandableDescription';
 import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
 import {
   HEART_MOMENT_TAGS,
@@ -71,14 +71,16 @@ import {
   HeartMomentTagChoices,
 } from './HeartMomentTagChoices';
 import { GalleryExpandAction, MediaGallery } from './MediaGallery';
-import { MomentPlaces } from './MomentPlaces';
 import {
   MomentPlaceField,
   type MomentPlaceSelection,
 } from './MomentPlaceField';
+import { MomentPlaces } from './MomentPlaces';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
+import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { ProblemState } from './ProblemState';
+import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
 import {
@@ -605,6 +607,7 @@ export function HeartMomentProductPage({
             <div className="heart-moment-create-media">
               <AttachmentDraftPicker
                 id="heart-moment-create-photo"
+                videoContext={{ apis, accountId: currentAccountId, spaceId }}
                 disabled={createMutation.isPending}
                 attachments={attachments}
                 multiple={false}
@@ -888,6 +891,8 @@ export function HeartMomentProductPage({
                     {
                       id: heartMoment.attachment.id,
                       mediaType: heartMoment.attachment.mediaType,
+                      hasThumbnail: heartMoment.attachment.hasThumbnail,
+                      durationSeconds: heartMoment.attachment.durationSeconds,
                       isSensitive:
                         sensitivityDraft?.key === sensitivityKey
                           ? sensitivityDraft.value
@@ -896,6 +901,26 @@ export function HeartMomentProductPage({
                   ]}
                   loadMedia={(attachmentId, signal) =>
                     loadAttachment(heartMoment.id, attachmentId, signal)
+                  }
+                  loadPoster={(id, signal) =>
+                    loadAuthorizedStoryImageResource(
+                      apis,
+                      spaceId,
+                      'HEART_MOMENT',
+                      heartMoment.id,
+                      id,
+                      { signal, variant: 'thumbnail' },
+                    )
+                  }
+                  loadPlayback={(id, signal) =>
+                    loadVideoSource(
+                      apis,
+                      spaceId,
+                      'HEART_MOMENT',
+                      heartMoment.id,
+                      id,
+                      signal,
+                    )
                   }
                   resourceScopeKey={`heart-moment:${currentAccountId}:${spaceId}:${mode}:${heartMoment.id}`}
                 />
@@ -927,6 +952,7 @@ export function HeartMomentProductPage({
             ) : null}
             <AttachmentDraftPicker
               id="heart-moment-edit-photo"
+              videoContext={{ apis, accountId: currentAccountId, spaceId }}
               disabled={
                 updateMutation.isPending ||
                 (Boolean(heartMoment.attachment) &&
@@ -1085,11 +1111,33 @@ export function HeartMomentProductPage({
               {
                 id: heartMoment.attachment.id,
                 mediaType: heartMoment.attachment.mediaType,
+                hasThumbnail: heartMoment.attachment.hasThumbnail,
+                durationSeconds: heartMoment.attachment.durationSeconds,
                 isSensitive: heartMoment.attachment.isSensitive,
               },
             ]}
             loadMedia={(attachmentId, signal) =>
               loadAttachment(heartMoment.id, attachmentId, signal)
+            }
+            loadPoster={(id, signal) =>
+              loadAuthorizedStoryImageResource(
+                apis,
+                spaceId,
+                'HEART_MOMENT',
+                heartMoment.id,
+                id,
+                { signal, variant: 'thumbnail' },
+              )
+            }
+            loadPlayback={(id, signal) =>
+              loadVideoSource(
+                apis,
+                spaceId,
+                'HEART_MOMENT',
+                heartMoment.id,
+                id,
+                signal,
+              )
             }
             resourceScopeKey={`heart-moment:${currentAccountId}:${spaceId}:${mode}:${heartMoment.id}`}
             renderPhotoActions={(_item, openFullScreen, revealed) => (

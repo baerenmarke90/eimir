@@ -15,7 +15,7 @@ are triggered by successful completions of the required main workflows:
    Actions variable `EIMIR_TEST_CHANNEL_ENABLED=true`, the owning repository and
    its `main` ref. Pull requests never receive publishing permissions.
 2. Checks once for the exact revision's newest push runs of CI, Web
-   Browser QA, CodeQL SAST, Self-Hosted Deployment Guard and Self-Hosted Recovery.
+   Browser QA, CodeQL SAST, Self-Hosted Deployment Guard, Self-Hosted Recovery and Media Video.
    Missing, pending, skipped, failed or cancelled workflows cannot admit a build.
    An unfinished candidate exits without building; the next required workflow
    completion retries it. No runner waits for other workflows. Completion events
@@ -30,28 +30,41 @@ are triggered by successful completions of the required main workflows:
    operator changes; pull-request browser path filters remain unchanged.
 3. Runs the channel contracts, then reuses Release Evidence with Android excluded:
    build-once runtime archives, hashes, SPDX SBOMs and verified attestations.
-   Nothing builds on the Docker host.
-4. Loads both archives, verifies source/version/platform labels, publishes to the
-   existing GHCR backend/Web packages and checks the exact registry manifests and
+   The private test channel additionally includes the restricted `media-runtime`
+   derivative, built from that exact backend image, with its own archive, SPDX
+   SBOM, provenance and offline verification. Nothing builds on the Docker host.
+4. Loads all three archives, verifies source/version/platform labels, publishes to the
+   existing GHCR backend/Web/media packages and checks the exact registry manifests and
    pulled-back image identities. Docker pushes only `linux/amd64`, so containerd
    provenance indexes are not deployment references. The single registry
    manifest's config digest must match the exact config bytes in the verified
    build archive and a fresh pull-back save archive. Docker image IDs are not
    used as config digests because their meaning depends on the image store.
    Original evidence archives, SBOMs and GitHub attestations remain intact.
-5. Publishes one generated commit on `deploy/eimir-test` after both images exist.
+5. Publishes one generated commit on `deploy/eimir-test` after all three images exist.
    Current `main` and CI are rechecked before promotion. Ref updates are never
    forced, so a concurrent writer is refused.
 6. Arcane Git Sync picks up that commit and redeploys the whole project.
 
 `channel.json` binds the source SHA, root Compose hash, evidence run, archive/SBOM
-hashes and both OCI references. Generated `compose.yaml` is JSON (valid YAML and
+hashes and all three OCI references. Generated `compose.yaml` is JSON (valid YAML and
 Compose), exported from the canonical root Cloud profile. Only instance wiring
 changes: existing resources, secret expressions, proxy aliases and image digests.
 The FCM opt-in mount comes from the small canonical operator fragment and is
 compiled inline; the generated channel still consists of the same three files.
 No second maintained topology, bootstrap/reset service, database container or
 public host port is added. Canonical migration/readiness dependencies are retained.
+
+The 2026-11-02 video completion request authorizes the private test rollout.
+The exporter includes canonical `cloud-video-worker`, pins its independently
+verified image and enables new video admission in the API and worker roles only
+after all exact-source media checks succeed. Publication refuses missing media
+evidence and preserves the previous channel when any image fails. The media role
+receives only its database/media configuration and keys; no SMTP, FCM sender mount
+or personal photo-provider credential is passed. Its canonical read-only root,
+private tmpfs, CPU/memory/PID limits and migration dependency remain intact.
+General Cloud/Self-Hosted production admission still defaults off; this private
+channel selection does not approve a public/store or general production rollout.
 
 ## One-time GitHub setup
 

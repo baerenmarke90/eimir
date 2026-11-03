@@ -23,6 +23,11 @@
           "serverAdmin": {
             "title": "Serveradmin",
             "type": "boolean"
+          },
+          "videoProcessingEnabled": {
+            "default": false,
+            "title": "Videoprocessingenabled",
+            "type": "boolean"
           }
         },
         "required": [
@@ -576,6 +581,17 @@
       "AttachmentSummary": {
         "description": "Projection of a bound attachment at its parent resource.\n\nA single shared type is used rather than one per domain. Duplicate DTO\nnames would make OpenAPI generate module-qualified schema names and leak\ninternal paths into the public contract.",
         "properties": {
+          "durationSeconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Durationseconds"
+          },
           "hasThumbnail": {
             "title": "Hasthumbnail",
             "type": "boolean"
@@ -693,6 +709,42 @@
           "expectedSize"
         ],
         "title": "AttachmentUploadCreate",
+        "type": "object"
+      },
+      "AttachmentUploadPolicy": {
+        "properties": {
+          "acceptedMimeTypes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Acceptedmimetypes",
+            "type": "array"
+          },
+          "videoMaxBytes": {
+            "title": "Videomaxbytes",
+            "type": "integer"
+          },
+          "videoMaxDurationSeconds": {
+            "title": "Videomaxdurationseconds",
+            "type": "integer"
+          },
+          "videoProcessingEnabled": {
+            "title": "Videoprocessingenabled",
+            "type": "boolean"
+          },
+          "videoUploadAllowed": {
+            "title": "Videouploadallowed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "acceptedMimeTypes",
+          "videoProcessingEnabled",
+          "videoUploadAllowed",
+          "videoMaxBytes",
+          "videoMaxDurationSeconds"
+        ],
+        "title": "AttachmentUploadPolicy",
         "type": "object"
       },
       "AuthCapabilities": {
@@ -3982,6 +4034,17 @@
       "MemoryAttachmentSummary": {
         "description": "A bound attachment plus its position in the memory gallery.",
         "properties": {
+          "durationSeconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Durationseconds"
+          },
           "hasThumbnail": {
             "title": "Hasthumbnail",
             "type": "boolean"
@@ -5101,6 +5164,17 @@
       "OrderedAttachmentSummary": {
         "description": "A bound photo with its stable position in a parent's gallery.",
         "properties": {
+          "durationSeconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Durationseconds"
+          },
           "hasThumbnail": {
             "title": "Hasthumbnail",
             "type": "boolean"
@@ -7473,6 +7547,16 @@
               }
             ],
             "title": "Expiresat"
+          },
+          "mediaType": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MediaType"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "method": {
             "enum": [
@@ -11840,6 +11924,48 @@
           "requiredHeaders"
         ],
         "title": "UploadDescriptor",
+        "type": "object"
+      },
+      "VideoPlaybackAccess": {
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "title": "Expiresat",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "expiresAt"
+        ],
+        "title": "VideoPlaybackAccess",
+        "type": "object"
+      },
+      "VideoPlaybackRequest": {
+        "properties": {
+          "parentId": {
+            "format": "uuid",
+            "title": "Parentid",
+            "type": "string"
+          },
+          "parentType": {
+            "enum": [
+              "MEMORY",
+              "HEART_MOMENT"
+            ],
+            "title": "Parenttype",
+            "type": "string"
+          }
+        },
+        "required": [
+          "parentType",
+          "parentId"
+        ],
+        "title": "VideoPlaybackRequest",
         "type": "object"
       },
       "WeeklyFeedbackUpdate": {
@@ -17747,6 +17873,58 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/attachment-upload-policy": {
+      "get": {
+        "operationId": "getAttachmentUploadPolicy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentUploadPolicy"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Upload Policy",
+        "tags": [
+          "attachments"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/attachments": {
       "post": {
         "operationId": "createAttachmentUpload",
@@ -18278,6 +18456,182 @@
           }
         },
         "summary": "Finalize Attachment Upload",
+        "tags": [
+          "attachments"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/attachments/{attachmentId}/playback": {
+      "get": {
+        "operationId": "streamVideoPlayback",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "attachmentId",
+            "required": true,
+            "schema": {
+              "title": "Attachmentid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 40,
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          }
+        },
+        "summary": "Read Playback",
+        "tags": [
+          "attachments"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/attachments/{attachmentId}/playback-access": {
+      "post": {
+        "operationId": "createVideoPlaybackAccess",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attachmentId",
+            "required": true,
+            "schema": {
+              "title": "Attachmentid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VideoPlaybackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoPlaybackAccess"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Create Playback Access",
         "tags": [
           "attachments"
         ]

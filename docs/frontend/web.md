@@ -11,7 +11,7 @@ M5 Web S2 completes the product surfaces for Memories, HeartMoments, and Milesto
 - Milestone create, detail, edit, delete, comments, and deep links.
 - Story cards link directly to the corresponding detail route.
 - Story filtering uses the generated API contract for content kind, year, and ordering; cursor pagination appends API pages without reordering them locally.
-- Image galleries provide a fullscreen viewer, keyboard navigation, touch swipe navigation, and an item counter. Video playback remains out of scope because the current backend intentionally rejects video fail-closed; a future video slice must provide the media and accessibility contract before the web client enables playback.
+- Shared galleries provide a fullscreen viewer, keyboard navigation, native touch swipe and an item counter. The bounded #88 slice adds MP4/MOV H.264/AAC videos to Memories and HeartMoments: posters use the existing authorized image cache, while only the active fullscreen item owns a native, deliberate-play video element and transient parent/session-bound range URL. Video intake requires the backend availability flag and Space Pro capability; retained playback remains available without either. Plans and avatars keep image-only intake. See [the interaction contract](../product/design/references/88-video/README.md) and [operations/security](../operations/video-uploads.md).
 - Memory and HeartMoment attachment drafts upload immediately after selection, show a local preview and upload progress, and can be cancelled before binding the attachment to domain content.
 
 Routes:

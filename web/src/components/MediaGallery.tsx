@@ -1,27 +1,28 @@
-import type { ObjectUrlSource } from '../client/objectUrlResource';
 import {
+  type ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
-  type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
 import {
   MediaType,
   type MediaType as MediaTypeValue,
 } from '../api/generated/models/MediaType';
-import { useObjectUrlResources } from '../client/useObjectUrlResources';
+import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
+import { useObjectUrlResources } from '../client/useObjectUrlResources';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import {
-  SensitiveMediaCover,
   SensitiveMediaControl,
+  SensitiveMediaCover,
   useSensitiveMediaReveals,
 } from './SensitiveMedia';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
-import { EimirIcon } from './EimirIcon';
+import { VideoPlayer, type VideoSourceLoader } from './VideoPlayer';
 import './MediaGallery.css';
 
 export function GalleryExpandAction({
@@ -48,11 +49,15 @@ export interface GalleryMediaItem {
   id: string;
   mediaType: MediaTypeValue;
   isSensitive?: boolean;
+  durationSeconds?: number | null;
+  hasThumbnail?: boolean;
 }
 
 export function MediaGallery({
   items,
   loadMedia,
+  loadPoster,
+  loadPlayback,
   resourceScopeKey = 'gallery',
   renderPreviews,
   renderCaption,
@@ -67,6 +72,11 @@ export function MediaGallery({
     attachmentId: string,
     signal?: AbortSignal,
   ) => Promise<ObjectUrlSource>;
+  loadPoster?: (
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<ObjectUrlSource>;
+  loadPlayback?: VideoSourceLoader;
   resourceScopeKey?: string;
   /** Custom thumbnail surface; originals are then loaded only for the active photo and neighbours. */
   renderPreviews?: (open: (index: number) => void) => ReactNode;
@@ -137,6 +147,27 @@ export function MediaGallery({
     (attachmentId, signal) => loadMedia(attachmentId, signal),
   );
   const urls = mediaResources.urls;
+  const posterFocus = activeIndex ?? carouselIndex;
+  const posterIds = loadPoster
+    ? items
+        .filter(
+          (item, index) =>
+            item.mediaType === MediaType.VIDEO &&
+            (!item.isSensitive || reveals.isRevealed(item.id)) &&
+            item.hasThumbnail !== false &&
+            [
+              posterFocus,
+              (posterFocus + 1) % items.length,
+              (posterFocus - 1 + items.length) % items.length,
+            ].includes(index),
+        )
+        .map((item) => item.id)
+    : [];
+  const posters = useObjectUrlResources(
+    `video-posters:${resourceScopeKey}`,
+    posterIds,
+    (id, signal) => loadPoster!(id, signal),
+  );
   const failed = new Set(Object.keys(mediaResources.errors));
   const closeButton = useRef<HTMLButtonElement | null>(null);
   const lightboxDialog = useRef<HTMLDivElement | null>(null);
@@ -323,6 +354,7 @@ export function MediaGallery({
       if (event.key === 'Escape') {
         closeLightbox();
       }
+      if (event.target instanceof HTMLVideoElement) return;
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
         changeActive(-1);
@@ -497,8 +529,57 @@ export function MediaGallery({
     setActiveIndex(index);
   }
 
-  function renderMedia(item: GalleryMediaItem, className: string) {
-    if (item.mediaType === MediaType.VIDEO || failed.has(item.id)) {
+  function videoPoster(item: GalleryMediaItem) {
+    if (!loadPlayback)
+      return (
+        <div className="media-gallery-unavailable">
+          {t('media.unavailable')}
+        </div>
+      );
+    const url = posters.urls[item.id];
+    if (item.isSensitive !== false && !reveals.isRevealed(item.id))
+      return (
+        <SensitiveMediaCover>
+          {url && item.isSensitive ? <img src={url} alt="" /> : null}
+        </SensitiveMediaCover>
+      );
+    return (
+      <span className="video-poster">
+        {url ? <img src={url} alt="" /> : null}
+        <span className="video-play-mark" aria-hidden="true">
+          ▶
+        </span>
+        {item.durationSeconds != null ? (
+          <span className="video-duration media-overlay">
+            {Math.floor(item.durationSeconds / 60)}:
+            {String(item.durationSeconds % 60).padStart(2, '0')}
+          </span>
+        ) : null}
+      </span>
+    );
+  }
+
+  function renderMedia(
+    item: GalleryMediaItem,
+    className: string,
+    activeVideo = false,
+  ) {
+    if (item.mediaType === MediaType.VIDEO) {
+      const revealed =
+        item.isSensitive === false || reveals.isRevealed(item.id);
+      return activeVideo && revealed && loadPlayback ? (
+        <VideoPlayer
+          key={`${resourceScopeKey}:${item.id}`}
+          id={item.id}
+          scope={resourceScopeKey}
+          poster={posters.urls[item.id]}
+          load={loadPlayback}
+        />
+      ) : (
+        videoPoster(item)
+      );
+    }
+    if (failed.has(item.id)) {
       return (
         <div className="media-gallery-unavailable">
           {t('media.unavailable')}
@@ -525,7 +606,8 @@ export function MediaGallery({
   }
 
   function renderCarouselMedia(item: GalleryMediaItem) {
-    if (item.mediaType === MediaType.VIDEO || failed.has(item.id)) {
+    if (item.mediaType === MediaType.VIDEO) return videoPoster(item);
+    if (failed.has(item.id)) {
       return (
         <div className="media-gallery-unavailable">
           {t('media.unavailable')}
@@ -760,6 +842,7 @@ export function MediaGallery({
           {!directSensitiveToggle &&
           items[carouselIndex]?.isSensitive === true ? (
             <SensitiveMediaControl
+              video={items[carouselIndex]?.mediaType === MediaType.VIDEO}
               revealed={reveals.isRevealed(items[carouselIndex]!.id)}
               onToggle={() => reveals.toggle(items[carouselIndex]!.id)}
             />
@@ -785,7 +868,9 @@ export function MediaGallery({
               <div
                 className={`media-lightbox${renderCaption ? ' media-lightbox-captioned' : ''}`}
               >
-                <div className="media-lightbox-stage">
+                <div
+                  className={`media-lightbox-stage${activeItem.mediaType === MediaType.VIDEO ? ' is-video' : ''}`}
+                >
                   {items.length > 1 ? (
                     <div
                       ref={lightboxTrack}
@@ -816,7 +901,11 @@ export function MediaGallery({
                           data-lightbox-index={index}
                           aria-hidden={index !== activeIndex}
                         >
-                          {renderMedia(item, 'media-lightbox-content')}
+                          {renderMedia(
+                            item,
+                            'media-lightbox-content',
+                            index === activeIndex,
+                          )}
                         </div>
                       ))}
 
@@ -830,12 +919,13 @@ export function MediaGallery({
                       </div>
                     </div>
                   ) : (
-                    renderMedia(activeItem, 'media-lightbox-content')
+                    renderMedia(activeItem, 'media-lightbox-content', true)
                   )}
 
                   {activeItem.isSensitive === true ? (
                     <SensitiveMediaControl
                       overlay
+                      video={activeItem.mediaType === MediaType.VIDEO}
                       revealed={reveals.isRevealed(activeItem.id)}
                       onToggle={() => reveals.toggle(activeItem.id)}
                     />

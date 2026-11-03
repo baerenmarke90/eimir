@@ -1,9 +1,11 @@
 import type { AttachmentDraft } from '../client/attachmentDraftState';
-import { SensitiveMediaCover } from './SensitiveMedia';
 import { useTranslation } from '../i18n';
-import { selectedPhotoUnavailable } from '../client/selectedMediaRetention';
-import { EimirIcon } from './EimirIcon';
+import { DraftMediaPreview } from './DraftMediaPreview';
 import { PhotoDraftGallery } from './PhotoDraftGallery';
+import {
+  type VideoCaptureContext,
+  VideoUploadAction,
+} from './VideoUploadAction';
 
 export interface AttachmentDraftPickerController {
   items: AttachmentDraft[];
@@ -23,12 +25,14 @@ export function AttachmentDraftPicker({
   multiple = true,
   disabled = false,
   showItems = true,
+  videoContext,
 }: {
   id: string;
   attachments: AttachmentDraftPickerController;
   multiple?: boolean;
   disabled?: boolean;
   showItems?: boolean;
+  videoContext?: VideoCaptureContext;
 }) {
   const { t } = useTranslation();
 
@@ -66,6 +70,20 @@ export function AttachmentDraftPicker({
         </span>
       </label>
 
+      {videoContext ? (
+        <VideoUploadAction
+          id={id}
+          context={videoContext}
+          multiple={multiple}
+          disabled={disabled}
+          onFiles={(files) => {
+            if (!multiple)
+              for (const item of attachments.items) attachments.remove(item.id);
+            attachments.addFiles(files);
+          }}
+        />
+      ) : null}
+
       {showItems && attachments.items.length > 0 ? (
         <p className="field-help">{t('sensitiveMedia.help')}</p>
       ) : null}
@@ -77,19 +95,8 @@ export function AttachmentDraftPicker({
             name: attachment.file.name,
             draft: attachment,
             isSensitive: attachment.isSensitive === true,
-            preview: selectedPhotoUnavailable(attachment.file) ? (
-              <span role="img" aria-label={t('memory.diary.photoMissing')}>
-                <EimirIcon name="foto" />
-              </span>
-            ) : attachment.isSensitive ? (
-              <SensitiveMediaCover />
-            ) : (
-              <img
-                src={attachment.previewUrl}
-                alt={t('memory.photoPreviewAlt', {
-                  name: attachment.file.name,
-                })}
-              />
+            preview: (
+              <DraftMediaPreview draft={attachment} context={videoContext} />
             ),
           }))}
           onMove={multiple ? attachments.move : undefined}
@@ -103,7 +110,13 @@ export function AttachmentDraftPicker({
       ) : null}
       {attachments.hasPending ? (
         <p className="field-help" role="status" aria-live="polite">
-          {t('memory.photoPendingSave')}
+          {t(
+            attachments.items.some((item) =>
+              item.file.type.startsWith('video/'),
+            )
+              ? 'video.pendingSave'
+              : 'memory.photoPendingSave',
+          )}
         </p>
       ) : null}
       {attachments.rejectedCount ? (

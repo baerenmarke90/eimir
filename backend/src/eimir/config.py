@@ -225,6 +225,10 @@ class Settings(IdentityCompatibleSettings):
 
     media_store: MediaStoreBackend = MediaStoreBackend.LOCAL
     media_root: str = "./data/media"
+    # Optional video processor; clients never infer availability from Pro alone.
+    video_upload_enabled: bool = False
+    ffmpeg_path: str = "/opt/eimir-media/bin/ffmpeg"
+    ffprobe_path: str = "/opt/eimir-media/bin/ffprobe"
     # Operator-owned Photon origin; an empty value disables reverse lookup.
     # Only canonical saved photo coordinates and language reach this service.
     photo_place_geocoding_url: str = "https://photon.komoot.io"

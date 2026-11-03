@@ -1,0 +1,12 @@
+eimir. Android 0.2.0-test.41
+
+- Short MP4/MOV videos with H.264 and optional AAC can be added to Memories and Heart Moments through a separate native picker.
+- Video uploads support up to 3 minutes, 250 MiB and 4K. Other codecs, HDR and encrypted media are rejected with localized feedback.
+- Mixed photo/video galleries preserve ordering, sensitivity, deliberate playback, seeking and return. Videos are never loaded into the persistent photo cache.
+- New uploads require eimir. Pro for the relationship. Previously stored videos remain readable and exportable after expiry.
+- The private test deployment includes the separate bounded video worker. General production video admission remains opt-in.
+- Includes the current main fixes for partner editing, long descriptions, push onboarding and decoded image continuity.
+- Includes the latest fullscreen map framing and bounded decoded-image/cache memory fixes.
+
+Same package de.eimir.app and canonical signing identity as test.40; increasing versionCode 41.
+Automated source, codec, Web and Android checks are recorded on the source revision. Physical-device installation, OS links and data-continuity acceptance remain pending; this test publication does not establish store readiness.

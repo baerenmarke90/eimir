@@ -29,6 +29,11 @@ import {
     AttachmentUploadCreateToJSON,
 } from '../models/AttachmentUploadCreate';
 import {
+    type AttachmentUploadPolicy,
+    AttachmentUploadPolicyFromJSON,
+    AttachmentUploadPolicyToJSON,
+} from '../models/AttachmentUploadPolicy';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
@@ -43,6 +48,16 @@ import {
     UploadDescriptorFromJSON,
     UploadDescriptorToJSON,
 } from '../models/UploadDescriptor';
+import {
+    type VideoPlaybackAccess,
+    VideoPlaybackAccessFromJSON,
+    VideoPlaybackAccessToJSON,
+} from '../models/VideoPlaybackAccess';
+import {
+    type VideoPlaybackRequest,
+    VideoPlaybackRequestFromJSON,
+    VideoPlaybackRequestToJSON,
+} from '../models/VideoPlaybackRequest';
 
 export interface CreateAttachmentReadAccessRequest {
     attachmentId: string;
@@ -53,6 +68,12 @@ export interface CreateAttachmentReadAccessRequest {
 export interface CreateAttachmentUploadRequest {
     spaceId: string;
     attachmentUploadCreate: AttachmentUploadCreate;
+}
+
+export interface CreateVideoPlaybackAccessRequest {
+    attachmentId: string;
+    spaceId: string;
+    videoPlaybackRequest: VideoPlaybackRequest;
 }
 
 export interface DeleteAttachmentRequest {
@@ -76,6 +97,16 @@ export interface GetAttachmentContentRequest {
     attachmentId: string;
     spaceId: string;
     variant?: GetAttachmentContentVariantEnum;
+}
+
+export interface GetAttachmentUploadPolicyRequest {
+    spaceId: string;
+}
+
+export interface StreamVideoPlaybackRequest {
+    spaceId: string;
+    attachmentId: string;
+    token: string;
 }
 
 export interface UploadAttachmentContentRequest {
@@ -203,6 +234,69 @@ export class AttachmentsApi extends runtime.BaseAPI {
      */
     async createAttachmentUpload(requestParameters: CreateAttachmentUploadRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UploadDescriptor> {
         const response = await this.createAttachmentUploadRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for createVideoPlaybackAccess without sending the request
+     */
+    async createVideoPlaybackAccessRequestOpts(requestParameters: CreateVideoPlaybackAccessRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['attachmentId'] == null) {
+            throw new runtime.RequiredError(
+                'attachmentId',
+                'Required parameter "attachmentId" was null or undefined when calling createVideoPlaybackAccess().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling createVideoPlaybackAccess().'
+            );
+        }
+
+        if (requestParameters['videoPlaybackRequest'] == null) {
+            throw new runtime.RequiredError(
+                'videoPlaybackRequest',
+                'Required parameter "videoPlaybackRequest" was null or undefined when calling createVideoPlaybackAccess().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/attachments/{attachmentId}/playback-access`;
+        urlPath = urlPath.replace('{attachmentId}', encodeURIComponent(String(requestParameters['attachmentId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: VideoPlaybackRequestToJSON(requestParameters['videoPlaybackRequest']),
+        };
+    }
+
+    /**
+     * Create Playback Access
+     */
+    async createVideoPlaybackAccessRaw(requestParameters: CreateVideoPlaybackAccessRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<VideoPlaybackAccess>> {
+        const requestOptions = await this.createVideoPlaybackAccessRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => VideoPlaybackAccessFromJSON(jsonValue));
+    }
+
+    /**
+     * Create Playback Access
+     */
+    async createVideoPlaybackAccess(requestParameters: CreateVideoPlaybackAccessRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<VideoPlaybackAccess> {
+        const response = await this.createVideoPlaybackAccessRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -441,6 +535,114 @@ export class AttachmentsApi extends runtime.BaseAPI {
      */
     async getAttachmentContent(requestParameters: GetAttachmentContentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.getAttachmentContentRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for getAttachmentUploadPolicy without sending the request
+     */
+    async getAttachmentUploadPolicyRequestOpts(requestParameters: GetAttachmentUploadPolicyRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getAttachmentUploadPolicy().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/attachment-upload-policy`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Upload Policy
+     */
+    async getAttachmentUploadPolicyRaw(requestParameters: GetAttachmentUploadPolicyRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AttachmentUploadPolicy>> {
+        const requestOptions = await this.getAttachmentUploadPolicyRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AttachmentUploadPolicyFromJSON(jsonValue));
+    }
+
+    /**
+     * Upload Policy
+     */
+    async getAttachmentUploadPolicy(requestParameters: GetAttachmentUploadPolicyRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AttachmentUploadPolicy> {
+        const response = await this.getAttachmentUploadPolicyRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for streamVideoPlayback without sending the request
+     */
+    async streamVideoPlaybackRequestOpts(requestParameters: StreamVideoPlaybackRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling streamVideoPlayback().'
+            );
+        }
+
+        if (requestParameters['attachmentId'] == null) {
+            throw new runtime.RequiredError(
+                'attachmentId',
+                'Required parameter "attachmentId" was null or undefined when calling streamVideoPlayback().'
+            );
+        }
+
+        if (requestParameters['token'] == null) {
+            throw new runtime.RequiredError(
+                'token',
+                'Required parameter "token" was null or undefined when calling streamVideoPlayback().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['token'] != null) {
+            queryParameters['token'] = requestParameters['token'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/attachments/{attachmentId}/playback`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+        urlPath = urlPath.replace('{attachmentId}', encodeURIComponent(String(requestParameters['attachmentId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Read Playback
+     */
+    async streamVideoPlaybackRaw(requestParameters: StreamVideoPlaybackRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.streamVideoPlaybackRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Read Playback
+     */
+    async streamVideoPlayback(requestParameters: StreamVideoPlaybackRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.streamVideoPlaybackRaw(requestParameters, initOverrides);
     }
 
     /**

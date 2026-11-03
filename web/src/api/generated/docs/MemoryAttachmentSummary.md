@@ -7,6 +7,7 @@ A bound attachment plus its position in the memory gallery.
 
 Name | Type
 ------------ | -------------
+`durationSeconds` | number
 `hasThumbnail` | boolean
 `height` | number
 `id` | string
@@ -26,6 +27,7 @@ import type { MemoryAttachmentSummary } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "durationSeconds": null,
   "hasThumbnail": null,
   "height": null,
   "id": null,

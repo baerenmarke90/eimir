@@ -319,3 +319,22 @@ describe('loadAuthorizedStoryImage', () => {
     expect(getAttachmentContentRaw).not.toHaveBeenCalled();
   });
 });
+
+it('uses only the poster when an existing image surface receives a video', async () => {
+  const { apis, createAttachmentReadAccess, getAttachmentContentRaw } =
+    storyApis({ descriptor: { method: 'STREAM', url: '/content' } });
+  createAttachmentReadAccess.mockResolvedValue({
+    method: 'STREAM',
+    url: '/content',
+    mediaType: 'VIDEO',
+  });
+  await loadAuthorizedStoryImage(apis, 'space', 'MEMORY', 'memory', 'video', {
+    createObjectUrl: () => 'blob:poster',
+  });
+  expect(createAttachmentReadAccess).toHaveBeenCalledTimes(2);
+  expect(getAttachmentContentRaw).toHaveBeenCalledTimes(1);
+  expect(getAttachmentContentRaw).toHaveBeenCalledWith(
+    { spaceId: 'space', attachmentId: 'video', variant: 'thumbnail' },
+    { signal: expect.any(AbortSignal) },
+  );
+});

@@ -496,6 +496,7 @@ public class PhotoFileChooserTest {
         // deliberate confirmation, including the extension-23 gallery's Done.
         String confirmLabel = PhotoFileChooser.supportsPickerMetadata() ? "Done" : "Add";
         AccessibilityNodeInfo confirm = findDocument(confirmLabel);
+        captureNativeDiagnostics("native-video-confirmation");
         assertNotNull("The video gallery requires explicit confirmation: " + confirmLabel, confirm);
         tapNativeControl(confirm);
         byte[] bytes = selectedFileBytes(view);
@@ -568,7 +569,11 @@ public class PhotoFileChooserTest {
             Rect bounds = new Rect();
             node.getBoundsInScreen(bounds);
             hierarchy.append(bounds).append(" | ").append(node.getViewIdResourceName()).append(" | ")
-                .append(node.getText()).append(" | ").append(node.getContentDescription()).append('\n');
+                .append(node.getText()).append(" | ").append(node.getContentDescription())
+                .append(" | enabled=").append(node.isEnabled())
+                .append(" | selected=").append(node.isSelected())
+                .append(" | clickable=").append(node.isClickable())
+                .append(" | package=").append(node.getPackageName()).append('\n');
             for (int i = 0; i < node.getChildCount(); i++) {
                 AccessibilityNodeInfo child = node.getChild(i);
                 if (child != null) nodes.add(child);

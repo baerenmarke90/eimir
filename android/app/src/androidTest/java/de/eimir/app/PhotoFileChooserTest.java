@@ -434,6 +434,8 @@ public class PhotoFileChooserTest {
     @Test
     public void videoSelectionReachesChromiumAndDecodesWithoutPhotoMetadataConsent() throws Exception {
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q);
+        assumeTrue(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
+            .isPhotoPickerAvailable(context));
         String external = InstrumentationRegistry.getArguments().getString("externalVideoUri");
         assertNotNull("CI provides a shell-owned video", external);
         try (InputStream ignored = context.getContentResolver().openInputStream(Uri.parse(external))) {
@@ -493,9 +495,10 @@ public class PhotoFileChooserTest {
         String expected = InstrumentationRegistry.getArguments().getString("externalVideoSha256");
         String actual = sha256(bytes);
         assertNotNull("CI identifies the original foreign-owned fixture", expected);
-        assertTrue("Only Android's exact location-redacted fixture variant is permitted: " + actual,
-            expected.equals(actual) || (VIDEO_FIXTURE_SHA256.equals(expected)
-                && LOCATION_REDACTED_VIDEO_SHA256.equals(actual)));
+        assertEquals("The selected-gallery oracle belongs to this exact source fixture",
+            VIDEO_FIXTURE_SHA256, expected);
+        assertEquals("The descriptor bridge must preserve Android's exact location-redacted bytes",
+            LOCATION_REDACTED_VIDEO_SHA256, actual);
         assertEquals("true", javascriptValue(view,
             "document.getElementById('video').paused && document.getElementById('video').controls"));
         // Match production preload=none: only a deliberate Play requests metadata/frames.

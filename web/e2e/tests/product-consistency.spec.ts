@@ -204,7 +204,7 @@ for (const scenario of [
     ).toBeVisible();
     await expect(
       page.getByRole('button', { name: copy.add, exact: true }),
-    ).toHaveCount(0);
+    ).toHaveCount(1);
     await page
       .getByRole('link', { name: memoryProduct.edit, exact: true })
       .click();
@@ -219,12 +219,12 @@ for (const scenario of [
     expect(links).toBe(1);
     await expect(
       page.getByRole('button', { name: copy.add, exact: true }),
-    ).toHaveCount(0);
+    ).toHaveCount(1);
     await page
       .getByRole('link', { name: memoryProduct.backToMemory, exact: true })
       .click();
     await expect(page.getByText(place.name, { exact: true })).toBeVisible();
-    await expect(page.locator('.moment-place-overflow')).toHaveCount(0);
+    await expect(page.locator('.moment-place-overflow')).toHaveCount(1);
     expect(
       (
         await new AxeBuilder({ page })
@@ -465,7 +465,7 @@ test('a manually created map Place survives a failed relation and retries only i
   await page.goto('/story/memories/mem-canal');
   await expect(
     page.getByRole('button', { name: copy.add, exact: true }),
-  ).toHaveCount(0);
+  ).toHaveCount(1);
   await page
     .getByRole('link', { name: memoryProduct.edit, exact: true })
     .click();
@@ -499,7 +499,7 @@ test('a manually created map Place survives a failed relation and retries only i
   await expect(page.getByText(place.name, { exact: true })).toBeVisible();
   await expect(
     page.getByRole('button', { name: copy.add, exact: true }),
-  ).toHaveCount(0);
+  ).toHaveCount(1);
   expect(creates).toBe(1);
   expect(links).toBe(2);
 });

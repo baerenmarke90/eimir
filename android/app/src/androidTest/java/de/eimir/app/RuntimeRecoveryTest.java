@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Assume;
 import org.junit.Test;
@@ -37,8 +38,14 @@ public class RuntimeRecoveryTest {
     private final Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
 
     private void ready(ActivityScenario<LauncherActivity> scenario) throws Exception {
+        AtomicReference<LauncherActivity> owner = new AtomicReference<>();
+        scenario.onActivity(owner::set);
+        ready(owner.get());
+    }
+
+    private void ready(LauncherActivity activity) throws Exception {
         CountDownLatch frame = new CountDownLatch(1);
-        scenario.onActivity(activity -> activity.getBridge().getWebView().postVisualStateCallback(
+        instrumentation.runOnMainSync(() -> activity.getBridge().getWebView().postVisualStateCallback(
             1, new WebView.VisualStateCallback() {
                 @Override public void onComplete(long requestId) { frame.countDown(); }
             }));
@@ -86,23 +93,36 @@ public class RuntimeRecoveryTest {
             RuntimeRecoveryActivity.class.getName(), null, false);
         AtomicReference<LauncherActivity> original = new AtomicReference<>();
         AtomicReference<LauncherActivity> returned = new AtomicReference<>();
+        AtomicReference<WebView> originalView = new AtomicReference<>();
         AtomicReference<WebViewRenderProcess> process = new AtomicReference<>();
+        AtomicInteger freshCreations = new AtomicInteger();
+        CountDownLatch stopped = new CountDownLatch(1);
         CountDownLatch gone = new CountDownLatch(1);
         CountDownLatch recreated = new CountDownLatch(1);
         ActivityLifecycleCallback callback = (activity, stage) -> {
+            if (activity == original.get() && stage == Stage.STOPPED) stopped.countDown();
+            if (stage == Stage.CREATED && activity instanceof LauncherActivity && activity != original.get()) {
+                freshCreations.incrementAndGet();
+            }
             if (stage == Stage.RESUMED && activity instanceof LauncherActivity && activity != original.get()) {
                 returned.set((LauncherActivity) activity);
                 recreated.countDown();
             }
         };
-        try (ActivityScenario<LauncherActivity> scenario = ActivityScenario.launch(LauncherActivity.class)) {
-            ready(scenario);
-            scenario.onActivity(activity -> {
-                original.set(activity);
+        try {
+            // ActivityScenario matches action/data as well as the component. Recovery
+            // intentionally replaces that intent, so observe the real task lifecycle.
+            LauncherActivity activity = (LauncherActivity) instrumentation.startActivitySync(
+                new Intent(instrumentation.getTargetContext(), LauncherActivity.class)
+                    .setAction(Intent.ACTION_MAIN).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            original.set(activity);
+            ready(activity);
+            instrumentation.runOnMainSync(() -> {
                 // A previously consumed launch link must not become a new cold-start intent.
-                activity.setIntent(new Intent(Intent.ACTION_VIEW,
-                    Uri.parse("de.eimir.app://recent-authentication/oidc?code=synthetic-consumed"))
+                activity.setIntent(new Intent(activity.getIntent()).setAction(Intent.ACTION_VIEW)
+                    .setData(Uri.parse("de.eimir.app://recent-authentication/oidc?code=synthetic-consumed"))
                     .putExtra("synthetic-consumed", true));
+                originalView.set(activity.getBridge().getWebView());
                 process.set(activity.getBridge().getWebView().getWebViewRenderProcess());
                 activity.getBridge().addWebViewListener(new WebViewListener() {
                     @Override
@@ -116,40 +136,45 @@ public class RuntimeRecoveryTest {
                 ActivityLifecycleMonitorRegistry.getInstance().addLifecycleCallback(callback);
             });
             assertNotNull(process.get());
-            scenario.moveToState(Lifecycle.State.CREATED);
+            instrumentation.runOnMainSync(() -> assertTrue(activity.moveTaskToBack(true)));
+            assertTrue("The actual task must reach the background", stopped.await(15, TimeUnit.SECONDS));
             instrumentation.runOnMainSync(() -> assertTrue(process.get().terminate()));
             assertTrue("A real non-crash exit must reach the handler", gone.await(15, TimeUnit.SECONDS));
             assertNull("Recovery must not start an Activity in the background", returned.get());
             assertEquals(0, recovery.getHits());
+            Intent returnIntent = new Intent(instrumentation.getTargetContext(), LauncherActivity.class)
+                .setAction(Intent.ACTION_MAIN).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             if (incomingIntent) {
-                instrumentation.getTargetContext().startActivity(new Intent(
-                    instrumentation.getTargetContext(), LauncherActivity.class)
-                    .setAction(Intent.ACTION_VIEW).setData(Uri.parse("de.eimir.app://notifications"))
-                    .putExtra("synthetic-new-intent", true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-            } else {
-                scenario.moveToState(Lifecycle.State.RESUMED);
+                returnIntent.setAction(Intent.ACTION_VIEW).setData(Uri.parse("de.eimir.app://notifications"))
+                    .putExtra("synthetic-new-intent", true);
             }
+            instrumentation.getTargetContext().startActivity(returnIntent);
             assertTrue("Foreground return must recreate the bridge", recreated.await(15, TimeUnit.SECONDS));
             assertNotSame(original.get(), returned.get());
-            ready(scenario);
-            scenario.onActivity(activity -> {
-                assertSame(returned.get(), activity);
-                assertNotNull(activity.getBridge().getPlugin("NativeSessionStorage"));
-                assertNotNull(activity.getBridge().getPlugin("EimirPush"));
+            ready(returned.get());
+            instrumentation.runOnMainSync(() -> {
+                LauncherActivity fresh = returned.get();
+                assertNotSame("Recreation must allocate a new WebView", originalView.get(), fresh.getBridge().getWebView());
+                assertNotNull(fresh.getBridge().getPlugin("NativeSessionStorage"));
+                assertNotNull(fresh.getBridge().getPlugin("EimirPush"));
                 if (incomingIntent) {
-                    assertEquals("de.eimir.app://notifications", activity.getIntent().getDataString());
-                    assertTrue(activity.getIntent().getBooleanExtra("synthetic-new-intent", false));
+                    assertEquals("de.eimir.app://notifications", fresh.getIntent().getDataString());
+                    assertTrue(fresh.getIntent().getBooleanExtra("synthetic-new-intent", false));
                 } else {
-                    assertEquals(Intent.ACTION_MAIN, activity.getIntent().getAction());
-                    assertNull(activity.getIntent().getData());
+                    assertEquals(Intent.ACTION_MAIN, fresh.getIntent().getAction());
+                    assertNull(fresh.getIntent().getData());
                 }
-                assertFalse(activity.getIntent().hasExtra("synthetic-consumed"));
+                assertFalse(fresh.getIntent().hasExtra("synthetic-consumed"));
             });
+            assertEquals("Return must allocate exactly one Activity", 1, freshCreations.get());
             assertEquals("Normal reclamation must not show the crash dialog", 0, recovery.getHits());
             capture("renderer-background-return.png");
         } finally {
-            instrumentation.runOnMainSync(() ->
-                ActivityLifecycleMonitorRegistry.getInstance().removeLifecycleCallback(callback));
+            instrumentation.runOnMainSync(() -> {
+                ActivityLifecycleMonitorRegistry.getInstance().removeLifecycleCallback(callback);
+                if (returned.get() != null && !returned.get().isDestroyed()) returned.get().finish();
+                if (original.get() != null && !original.get().isDestroyed()) original.get().finish();
+            });
             instrumentation.removeMonitor(recovery);
         }
     }

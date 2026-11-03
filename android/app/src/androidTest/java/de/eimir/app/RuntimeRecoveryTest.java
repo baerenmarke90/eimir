@@ -9,7 +9,9 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static androidx.test.espresso.matcher.RootMatchers.isDialog;
 
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.Instrumentation;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
@@ -142,13 +144,25 @@ public class RuntimeRecoveryTest {
             assertTrue("A real non-crash exit must reach the handler", gone.await(15, TimeUnit.SECONDS));
             assertNull("Recovery must not start an Activity in the background", returned.get());
             assertEquals(0, recovery.getHits());
-            Intent returnIntent = new Intent(instrumentation.getTargetContext(), LauncherActivity.class)
-                .setAction(Intent.ACTION_MAIN).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             if (incomingIntent) {
-                returnIntent.setAction(Intent.ACTION_VIEW).setData(Uri.parse("de.eimir.app://notifications"))
-                    .putExtra("synthetic-new-intent", true);
+                instrumentation.getTargetContext().startActivity(new Intent(
+                    instrumentation.getTargetContext(), LauncherActivity.class)
+                    .setAction(Intent.ACTION_VIEW).setData(Uri.parse("de.eimir.app://notifications"))
+                    .putExtra("synthetic-new-intent", true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            } else {
+                ActivityManager manager = (ActivityManager) instrumentation.getTargetContext()
+                    .getSystemService(Context.ACTIVITY_SERVICE);
+                boolean found = false;
+                for (ActivityManager.AppTask task : manager.getAppTasks()) {
+                    if (task.getTaskInfo().taskId == activity.getTaskId()) {
+                        // Recents-style return without delivering another launch intent.
+                        task.moveToFront();
+                        found = true;
+                        break;
+                    }
+                }
+                assertTrue("The existing app task must remain available", found);
             }
-            instrumentation.getTargetContext().startActivity(returnIntent);
             assertTrue("Foreground return must recreate the bridge", recreated.await(15, TimeUnit.SECONDS));
             assertNotSame(original.get(), returned.get());
             ready(returned.get());

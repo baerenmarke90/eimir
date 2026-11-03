@@ -1,7 +1,9 @@
 # Runtime evidence for #1616
 
 Main baseline: `a7d443dea7070bf546ccfcaa48280420da4ef818`; dependency #1615:
-`a1d0659481cc3cb07d82d1bc11141afad94a593c`. The accompanying implementation's
+`a1d0659481cc3cb07d82d1bc11141afad94a593c`, followed by its test/documentation-only
+update `e758c08d6f3a27013e44811c00e895f386f5bc4d`. Runtime source fingerprints
+remain unchanged by that merge. The accompanying implementation's
 changed runtime sources are fingerprinted in [runtime-sources.sha256](runtime-sources.sha256).
 Captures come from actual React/Vite journeys in Chromium 153, using the existing
 repository API fixtures, real DOM/CSS, keyboard/focus and Axe checks. Map tiles

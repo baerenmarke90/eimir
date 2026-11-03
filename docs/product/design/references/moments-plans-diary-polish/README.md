@@ -8,7 +8,10 @@ Requested by the Product Owner on 2026-11-03. Baseline: main
 that main into the dependency without changing its media/provider work. Before
 final validation it also incorporated dependency head
 `a1d0659481cc3cb07d82d1bc11141afad94a593c`; those changes affect provider
-selection/native tests, not the reviewed destination compositions.
+selection/native tests, not the reviewed destination compositions. The later
+`e758c08d6f3a27013e44811c00e895f386f5bc4d` dependency update only adjusts
+provider test selectors/documentation and is also merged; runtime fingerprints
+remain unchanged.
 
 ![Generated Compact composition reference](preflight.png)
 

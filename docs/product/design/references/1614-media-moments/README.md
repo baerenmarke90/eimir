@@ -108,8 +108,18 @@ Keep #1614 open for that outstanding part of the PO request.
   fallback/retry case passed after guarding pending eligibility.
   Device selection waits for its media allowlist; a policy error retains photos
   and offers explicit retry rather than silently opening the wrong picker.
+- All 24 Places/product-consistency browser cases passed across the main run
+  and one corrected expectation. Existing no-add/no-management expectations for
+  an editable Memory are replaced with positive capability-driven affordance
+  checks; map safety, dirty exits, failed assignment, duplicate prevention and
+  exact persistence assertions remain intact. Read-only component checks remain.
 - Typecheck, production Web build, semantic-token/PWA checks, Capacitor
   foundation, focused Biome lint, provider Ruff and `git diff --check` passed.
+- Native API 28 and API 37.1 passed on `a1d06594`, including the mixed intake
+  and exact consent-specific byte oracle. API 36 lost the entire emulator
+  during video rendering: emulator.log ends with `bad color buffer handle 649`,
+  ADB reports no emulators and no app assertion/crash is recorded. This is not
+  claimed as API 36 acceptance. Fresh final-head CI remains an independent gate.
 - Hosted exact-head native build/emulator and CI remain independent gates.
   Local browser fixtures are synthetic; no real Immich/Google account or
   physical Pixel acceptance is claimed. Google remains unavailable.

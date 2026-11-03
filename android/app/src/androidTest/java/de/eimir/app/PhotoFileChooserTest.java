@@ -404,13 +404,14 @@ public class PhotoFileChooserTest {
         AccessibilityNodeInfo document = findDocument(token);
         assertNotNull("The real Android photo picker exposes the foreign-owned fixture", document);
         activateStableNativeControl(document);
-        // SDK-extension-23 pickers label the final selection action "Done";
-        // older system photo pickers use "Add". Both are explicit confirmation.
-        String confirmLabel = PhotoFileChooser.supportsPickerMetadata() ? "Done" : "Add";
+        // Picker UI updates independently of the metadata SDK extension. Both
+        // deployed implementations require an explicit native confirmation.
         captureNativeDiagnostics("native-photo-confirmation");
-        AccessibilityNodeInfo confirm = findDocument(confirmLabel);
-        assertNotNull("The system picker requires explicit selection confirmation: " + confirmLabel,
+        AccessibilityNodeInfo confirm = findDocument("Done", "Add");
+        assertNotNull("The system picker requires explicit selection confirmation",
             confirm);
+        assertTrue("The confirmation belongs to the native photo picker",
+            isSystemPhotoPicker(confirm.getPackageName()));
         activateStableNativeControl(confirm);
         byte[] uploadedBytes = selectedFileBytes(view);
         java.nio.file.Files.write(new File(context.getFilesDir(), "native-selected-photo.jpg").toPath(), uploadedBytes);
@@ -498,12 +499,14 @@ public class PhotoFileChooserTest {
         AccessibilityNodeInfo selected = findDocument("Video taken");
         assertNotNull("The system video gallery exposes the foreign-owned video", selected);
         activateStableNativeControl(selected);
-        // Match the actual multiple-video input and complete the platform's
-        // deliberate confirmation, including the extension-23 gallery's Done.
-        String confirmLabel = PhotoFileChooser.supportsPickerMetadata() ? "Done" : "Add";
+        // The Compose picker can expose Done before metadata extension 23.
+        // Observe the real selection action instead of inferring its UI label
+        // from an unrelated platform capability.
         captureNativeDiagnostics("native-video-confirmation");
-        AccessibilityNodeInfo confirm = findDocument(confirmLabel);
-        assertNotNull("The video gallery requires explicit confirmation: " + confirmLabel, confirm);
+        AccessibilityNodeInfo confirm = findDocument("Done", "Add");
+        assertNotNull("The video gallery requires explicit confirmation", confirm);
+        assertTrue("The confirmation belongs to the native video picker",
+            isSystemVideoPicker(confirm.getPackageName()));
         activateStableNativeControl(confirm);
         byte[] bytes = selectedFileBytes(view);
         assertTrue("Chromium receives video bytes", bytes.length > 0);
@@ -739,7 +742,7 @@ public class PhotoFileChooserTest {
         assertEquals("Android accepts the identified control's native tap", "", output.trim());
     }
 
-    private AccessibilityNodeInfo findDocument(String name) throws Exception {
+    private AccessibilityNodeInfo findDocument(String... names) throws Exception {
         UiAutomation automation = instrumentation.getUiAutomation();
         long deadline = SystemClock.uptimeMillis() + 10000;
         do {
@@ -752,9 +755,11 @@ public class PhotoFileChooserTest {
                 AccessibilityNodeInfo node = nodes.remove();
                 CharSequence text = node.getText();
                 CharSequence description = node.getContentDescription();
-                if (node.isVisibleToUser() && ((text != null && (("Allow all".equals(name) || "Include location".equals(name))
-                        ? text.toString().equals(name) : text.toString().startsWith(name)))
-                        || (description != null && description.toString().startsWith(name)))) return node;
+                for (String name : names) {
+                    if (node.isVisibleToUser() && ((text != null && (("Allow all".equals(name) || "Include location".equals(name))
+                            ? text.toString().equals(name) : text.toString().startsWith(name)))
+                            || (description != null && description.toString().startsWith(name)))) return node;
+                }
                 for (int i = 0; i < node.getChildCount(); i++) {
                     AccessibilityNodeInfo child = node.getChild(i);
                     if (child != null) nodes.add(child);

@@ -14,6 +14,9 @@ import {
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_ROUTE,
   SEARCH_ROUTE,
+  STORY_CHAPTERS_ROUTE,
+  STORY_PHOTOS_ROUTE,
+  STORY_YEARS_ROUTE,
   SERVER_ADMIN_ROUTE,
   type AppRouteIcon,
 } from '../client/routes';
@@ -44,6 +47,21 @@ const PERSONAL_DESTINATIONS: readonly MoreDestination[] = [
 ];
 
 const SHARED_DESTINATIONS: readonly MoreDestination[] = [
+  {
+    path: STORY_YEARS_ROUTE,
+    icon: 'plan',
+    titleKey: 'more.yearsTitle',
+  },
+  {
+    path: STORY_PHOTOS_ROUTE,
+    icon: 'story',
+    titleKey: 'sharedPhotos.browse',
+  },
+  {
+    path: STORY_CHAPTERS_ROUTE,
+    icon: 'chapter',
+    titleKey: 'story.browseChapters',
+  },
   {
     path: MORE_PASSPORT_ROUTE,
     icon: 'chapter',

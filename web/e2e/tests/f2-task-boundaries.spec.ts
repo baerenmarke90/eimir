@@ -1306,10 +1306,13 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   await page.evaluate(() => document.fonts.ready);
   await expectNoOverflow(page);
   await page.setViewportSize({ width: 320, height: 844 });
-  await page.locator('.momente-browse-layer').screenshot({
-    path: testInfo.outputPath('f2-story-browse-large-text-320.png'),
-    animations: 'disabled',
-  });
+  await expect(page.locator('.momente-browse-layer')).toHaveCount(0);
+  await page
+    .getByRole('tablist', { name: de.story.viewToggleAria })
+    .screenshot({
+      path: testInfo.outputPath('f2-story-modes-large-text-320.png'),
+      animations: 'disabled',
+    });
   await page
     .getByRole('button', {
       name: storyProducts.storyFilters.toggleButton,

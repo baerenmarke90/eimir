@@ -165,7 +165,11 @@ type PlanningMockCalls = {
 
 async function installPlanningMocks(
   page: Page,
-  options: { empty?: boolean; secondaryDomains?: boolean } = {},
+  options: {
+    empty?: boolean;
+    secondaryDomains?: boolean;
+    pastOpen?: boolean;
+  } = {},
 ): Promise<PlanningMockCalls> {
   const calls: PlanningMockCalls = {
     conversionBody: null,
@@ -449,6 +453,15 @@ async function installPlanningMocks(
         // Deliberately not chronological, and includes a defensive rogue
         // completed row so the client selector proves the section contract.
         items = [latePlan, completedPlan, earlyPlan];
+        if (options.pastOpen)
+          items.push(
+            planDetail({
+              id: 'past-open',
+              title: 'A plan still waiting',
+              status: 'PLANNED',
+              plannedStart: '2020-01-01T10:00:00Z',
+            }),
+          );
       } else if (!options.empty && requestedStatus === 'IDEA') {
         items = converted ? [convertedPlan, ideaPlan] : [ideaPlan];
       }
@@ -586,9 +599,13 @@ test('Plans leads with the nearest intention, then later and undated Plans, whil
   await expect(plansPanel.locator('.planen-undated-link')).toContainText(
     IDEA_TITLE,
   );
-  await expect(plansPanel.locator('.planen-history')).toContainText(
-    COMPLETED_TITLE,
-  );
+  await expect(plansPanel.getByText(COMPLETED_TITLE)).toHaveCount(0);
+  await expect(
+    plansPanel.getByRole('button', {
+      name: m5s3.wish.status.OPEN,
+      exact: true,
+    }),
+  ).toHaveAttribute('aria-pressed', 'true');
   await captureR3Evidence(
     page,
     testInfo,
@@ -657,6 +674,17 @@ test('planning segments keep their relationship-native empty states', async ({
   await signIn(page);
   await page.goto('/plan');
 
+  await expect(page.getByText(m5s3.overview.plansEmpty)).toBeVisible();
+  await page
+    .getByRole('button', { name: m5s3.overview.experiencedPlans, exact: true })
+    .click();
+  await expect(
+    page.getByText(m5s3.overview.experiencedPlansEmpty),
+  ).toBeVisible();
+  await expect(page.getByText(m5s3.overview.plansEmpty)).toHaveCount(0);
+  await page
+    .getByRole('button', { name: m5s3.wish.status.OPEN, exact: true })
+    .click();
   await expect(page.getByText(m5s3.overview.plansEmpty)).toBeVisible();
   await captureR3Evidence(page, testInfo, 'r3-overview-empty-390-light.png');
   await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
@@ -875,3 +903,95 @@ test('Wishes panel requests and shows only OPEN Wishes; PLANNED/COMPLETED are ex
 
   expect(requestedStatus).toBe('OPEN');
 });
+
+for (const [width, theme] of [
+  [360, 'light'],
+  [390, 'dark'],
+  [430, 'light'],
+  [1280, 'dark'],
+  [320, 'light'],
+] as const) {
+  test(`Plan Open and Experienced scopes retain past intentions and restore after detail at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await installPlanningMocks(page, { pastOpen: true });
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/plans/${COMPLETED_PLAN_ID}`,
+      (route) => route.fulfill({ json: completedPlan }),
+    );
+    await page.goto('/plan');
+    await signIn(page);
+    await page.goto('/plan');
+    if (width === 320)
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    const panel = page.getByRole('tabpanel', {
+      name: m5s3.overview.segmentPlans,
+    });
+    const open = panel.getByRole('button', {
+      name: m5s3.wish.status.OPEN,
+      exact: true,
+    });
+    const experienced = panel.getByRole('button', {
+      name: m5s3.overview.experiencedPlans,
+      exact: true,
+    });
+    await expect(open).toHaveAttribute('aria-pressed', 'true');
+    await expect(
+      panel.getByRole('link', { name: /A plan still waiting/ }),
+    ).toBeVisible();
+    await expect(panel.getByText(COMPLETED_TITLE)).toHaveCount(0);
+    await captureR3Evidence(
+      page,
+      info,
+      `1616-plans-open-${width}-${theme}.png`,
+    );
+    await experienced.click();
+    await expect(experienced).toHaveAttribute('aria-pressed', 'true');
+    await expect(
+      panel.getByRole('link', { name: /A plan still waiting/ }),
+    ).toHaveCount(0);
+    await expect(panel.getByText(EARLY_TITLE)).toHaveCount(0);
+    const completed = panel.getByRole('link', {
+      name: new RegExp(COMPLETED_TITLE),
+    });
+    await expect(completed).toBeVisible();
+    await captureR3Evidence(
+      page,
+      info,
+      `1616-plans-experienced-${width}-${theme}.png`,
+    );
+    await completed.click();
+    await expect(
+      page.getByRole('heading', { name: COMPLETED_TITLE, level: 1 }),
+    ).toBeVisible();
+    await page
+      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .click();
+    await expect(experienced).toHaveAttribute('aria-pressed', 'true');
+    await expect(completed).toBeFocused();
+    await page
+      .getByRole('tab', { name: m5s3.overview.segmentWishes, exact: true })
+      .click();
+    await expect(
+      page.getByRole('button', {
+        name: m5s3.overview.fulfilledWishes,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await page
+      .getByRole('tab', { name: m5s3.overview.segmentPlans, exact: true })
+      .click();
+    await expect(experienced).toHaveAttribute('aria-pressed', 'true');
+    await open.click();
+    await expect(
+      panel.getByRole('link', { name: /A plan still waiting/ }),
+    ).toBeVisible();
+    const dimensions = await page.evaluate(() => ({
+      client: document.documentElement.clientWidth,
+      scroll: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.client);
+  });
+}

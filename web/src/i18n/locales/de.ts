@@ -15,6 +15,7 @@ const de = {
     newMemory: 'Neue Erinnerung',
   },
   more: {
+    yearsTitle: 'Unser Jahr',
     eyebrow: 'Mehr',
     title: 'Alles Weitere',
     intro: 'Persönliches, gemeinsame Listen und Einstellungen.',

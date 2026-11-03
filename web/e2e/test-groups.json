@@ -158,7 +158,7 @@
     },
     "planning-upcoming.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 9
+      "baselineTests": 14
     },
     "planning-wish-completion-continuation.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -411,7 +411,7 @@
     },
     "plan-comments-links.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 8,
+      "baselineTests": 12,
       "reason": "Plan comments must retain author, tenant, retry and canonical return contracts, with explicit bounded link previews and narrow/large-text accessibility."
     },
     "video-attachments.spec.ts": {

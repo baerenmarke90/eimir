@@ -159,29 +159,13 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     ).toHaveCount(0);
     await expect(imageMemoryCard).not.toContainText(SELF_ATTRIBUTION);
 
-    const browseShell = page.locator('.momente-browse-links');
-    await expect(browseShell).toBeVisible();
-    const browseLink = page.locator('.momente-browse-link').first();
-    const browseShape = await browseShell.evaluate((element) => {
-      const style = getComputedStyle(element);
-      const root = getComputedStyle(document.documentElement);
-      return {
-        radius: style.borderRadius,
-        expectedRadius: root.getPropertyValue('--radius-card').trim(),
-        shadow: style.boxShadow,
-      };
-    });
-    const browseLinkShape = await browseLink.evaluate((element) => {
-      const style = getComputedStyle(element);
-      const root = getComputedStyle(document.documentElement);
-      return {
-        radius: style.borderRadius,
-        expectedRadius: root.getPropertyValue('--radius-large').trim(),
-      };
-    });
-    expect(browseShape.radius).toBe(browseShape.expectedRadius);
-    expect(browseShape.shadow).not.toBe('none');
-    expect(browseLinkShape.radius).toBe(browseLinkShape.expectedRadius);
+    // The Diary filter replaces the removed structural browse strip.
+    await expect(page.locator('.momente-browse-layer')).toHaveCount(0);
+    const modes = page.getByRole('tablist', { name: de.story.viewToggleAria });
+    await expect(modes.getByRole('tab')).toHaveCount(3);
+    await expect(
+      modes.getByRole('tab', { name: de.story.tabTimeline, exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
     await captureScreenshot(
       page,
       testInfo,
@@ -323,27 +307,19 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     });
     expect(hasHorizontalOverflow).toBe(false);
 
-    const browseLinks = page.locator('.momente-browse-link');
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expect(browseLinks).toHaveCount(4);
-    expect(
-      await browseLinks.evaluateAll((links) =>
-        links.map((link) => link.getAttribute('href')),
-      ),
-    ).toEqual([
-      '/story/photos',
-      '/story?tab=timeline&type=MILESTONE',
-      '/story/chapters',
-      '/story/years',
-    ]);
-    for (const link of await browseLinks.all()) {
-      const box = await link.boundingBox();
-      if (!box) throw new Error('Expected a visible Momente browse link');
-      expect(box.width).toBeGreaterThanOrEqual(44);
-      expect(box.height).toBeGreaterThanOrEqual(44);
-      expect(box.x).toBeGreaterThanOrEqual(0);
-      expect(box.x + box.width).toBeLessThanOrEqual(320);
-    }
+    await expect(page.locator('.momente-browse-layer')).toHaveCount(0);
+    const filter = page.getByRole('button', {
+      name: storyProducts.storyFilters.toggleButton,
+      exact: true,
+    });
+    await expect(filter).toBeVisible();
+    const filterBox = await filter.boundingBox();
+    if (!filterBox) throw new Error('Expected a visible Diary filter');
+    expect(filterBox.width).toBeGreaterThanOrEqual(44);
+    expect(filterBox.height).toBeGreaterThanOrEqual(44);
+    expect(filterBox.x).toBeGreaterThanOrEqual(0);
+    expect(filterBox.x + filterBox.width).toBeLessThanOrEqual(320);
     await captureScreenshot(
       page,
       testInfo,
@@ -408,10 +384,13 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       'rgba(0, 0, 0, 0)',
     );
     await expect(page.locator('.story-card-author')).toHaveCount(0);
-    const browseWidth = await page
-      .locator('.momente-browse-links')
-      .evaluate((element) => element.getBoundingClientRect().width);
-    expect(browseWidth).toBeLessThan(700);
+    await expect(page.locator('.momente-browse-layer')).toHaveCount(0);
+    await expect(
+      page.getByRole('button', {
+        name: storyProducts.storyFilters.toggleButton,
+        exact: true,
+      }),
+    ).toBeVisible();
     await captureScreenshot(
       page,
       testInfo,

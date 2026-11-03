@@ -43,6 +43,9 @@ describe('MoreOverviewPage', () => {
     expect(html).toContain(de.more.groups.utility);
 
     for (const href of [
+      '/story/years',
+      '/story/photos',
+      '/story/chapters',
       '/more/profile',
       '/more/private',
       '/more/people',
@@ -62,13 +65,14 @@ describe('MoreOverviewPage', () => {
     expect(weeklyInsightsIndex).toBeGreaterThan(-1);
     expect(weeklyInsightsIndex).toBeLessThan(peopleIndex);
 
+    expect(html).toContain(de.more.yearsTitle);
     expect(html).toContain('Alex');
     expect(html).not.toContain('href="/more/private/notes"');
     expect(html).not.toContain('more-destination-description');
     expect(html).not.toContain(de.more.intro);
 
     const rowMatches = html.match(/class="more-destination"/g);
-    expect(rowMatches).toHaveLength(11);
+    expect(rowMatches).toHaveLength(14);
 
     const badgeMatches = html.match(/class="more-destination-badge"/g);
     expect(badgeMatches).toHaveLength(3);

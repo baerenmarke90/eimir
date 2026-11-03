@@ -372,10 +372,8 @@ export function PlanProductPage({
 
   const lifecycleError = completion.error || returnMutation.error;
 
-  const placeName = plan.placeId
-    ? (placesQuery.data?.find((place) => place.id === plan.placeId)?.name ??
-      null)
-    : null;
+  const place = placesQuery.data?.find((item) => item.id === plan.placeId);
+  const placeName = place?.name ?? null;
   const scheduleLabel = planScheduleLabel(plan);
   const hasSubfacts = Boolean(plan.experiencedOn);
   const showsLifecycle =
@@ -719,11 +717,15 @@ export function PlanProductPage({
           <div className="planen-detail-context">
             {placeName && plan.placeId ? (
               <Link
-                className="planen-place-context"
+                className="button-link secondary-link planen-place-context"
                 to={placeDetailPath(plan.placeId)}
               >
                 <EimirIcon name="orte" />
-                <span>{placeName}</span>
+                <span className="planen-place-copy">
+                  <small>{t('m5s3.common.place')}</small>
+                  <strong>{placeName}</strong>
+                  {place?.address ? <span>{place.address}</span> : null}
+                </span>
               </Link>
             ) : null}
             <PlanWishLink

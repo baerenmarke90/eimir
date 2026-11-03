@@ -38,6 +38,12 @@ const m5s3 = {
     keepEditing: 'Weiter bearbeiten',
   },
   overview: {
+    planScope: 'Pläne anzeigen',
+    experiencedPlans: 'Erlebt',
+    experiencedPlansEmpty: 'Noch keine gemeinsam erlebten Pläne.',
+    experiencedOn: 'Erlebt am {{date}}',
+    openPlansEmpty: 'Gerade keine offenen Pläne.',
+    pastOpenPlans: 'Termin liegt zurück',
     wishScope: 'Wünsche anzeigen',
     fulfilledWishes: 'Erfüllt',
     fulfilledWishesEmpty: 'Noch keine erfüllten Wünsche.',

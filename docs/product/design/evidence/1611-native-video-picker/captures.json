@@ -1,0 +1,65 @@
+[
+  {
+    "file": "api36-native-video-picker.png",
+    "api": "36",
+    "bytes": 45693,
+    "width": 1080,
+    "height": 2340,
+    "sha256": "4fb25cced3787ad9adea14a5d6d0637569b4d90cd0d335ba5d05557bb541a039",
+    "git_blob_sha": "a53fb2bf72acbbda5dc3bb92f4ba756d15575982"
+  },
+  {
+    "file": "api36-native-video-playback.png",
+    "api": "36",
+    "bytes": 45515,
+    "width": 1080,
+    "height": 2340,
+    "sha256": "cd2cf6930246f8c4aba80b7cd62c7f283ad353b533e164a0ef0db501d637e196",
+    "git_blob_sha": "d38d5a534d3495cb281491317e28f54db0d95e6a"
+  },
+  {
+    "file": "api36-renderer-background-return.png",
+    "api": "36",
+    "bytes": 422136,
+    "width": 1080,
+    "height": 2340,
+    "sha256": "759152b1e3df3a07ae751581a31a90398c2f050b57649e9df7ce692eab313bc4",
+    "git_blob_sha": "1efa8194502f9259dd6260557929efec4318abc9"
+  },
+  {
+    "file": "api36-renderer-real-crash.png",
+    "api": "36",
+    "bytes": 63746,
+    "width": 1080,
+    "height": 2340,
+    "sha256": "bceb7ee65b3fcab62c889e70cd2796201ed29ef96ee4f0fd29b3cc2d1fa5dd4c",
+    "git_blob_sha": "128b5d51f80ae5b92896b36ec75eed7e1b3a721b"
+  },
+  {
+    "file": "api37-native-video-picker.png",
+    "api": "37",
+    "bytes": 79990,
+    "width": 1080,
+    "height": 2340,
+    "sha256": "ca23247d9a897bbf4392bc0d58d6204b29eac132a0e89979c4e98dae966d3ace",
+    "git_blob_sha": "2b3f4cc9b09b62af52e960cb84015d1a8677956f"
+  },
+  {
+    "file": "api37-native-video-playback.png",
+    "api": "37",
+    "bytes": 47245,
+    "width": 1080,
+    "height": 2340,
+    "sha256": "2a14fa9920383ddd2234cab1b42d4270793589c53bff78a01c8af7cc137a648e",
+    "git_blob_sha": "6c4f87f8ddddc2f744db379ff90318cdf6634e46"
+  },
+  {
+    "file": "api37-renderer-background-return.png",
+    "api": "37",
+    "bytes": 459143,
+    "width": 1080,
+    "height": 2340,
+    "sha256": "fab6c210bf36905675a573e5cc89ebf3c8d70d9c688113e6ad08ba0d58f8b94c",
+    "git_blob_sha": "b9da8fa964d2a5d69ce383e042c8a6395b823be9"
+  }
+]

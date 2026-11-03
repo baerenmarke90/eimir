@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Assume;
@@ -46,6 +47,32 @@ public class RuntimeRecoveryTest {
     }
 
     private void ready(LauncherActivity activity) throws Exception {
+        CountDownLatch content = new CountDownLatch(1);
+        AtomicBoolean observing = new AtomicBoolean(true);
+        // A compositor frame can still be the empty launch document. Await the
+        // actual bundled React surface, then acknowledge its painted frame.
+        instrumentation.runOnMainSync(() -> {
+            WebView view = activity.getBridge().getWebView();
+            Runnable probe = new Runnable() {
+                @Override public void run() {
+                    if (!observing.get()) return;
+                    view.evaluateJavascript(
+                        "Boolean(document.querySelector('#root main') && document.getElementById('root').textContent.trim())",
+                        value -> {
+                            if (!observing.get()) return;
+                            if ("true".equals(value)) content.countDown();
+                            else view.postOnAnimation(this);
+                        });
+                }
+            };
+            probe.run();
+        });
+        try {
+            assertTrue("The bundled app must render its interface, not remain on a blank launch document",
+                content.await(15, TimeUnit.SECONDS));
+        } finally {
+            observing.set(false);
+        }
         CountDownLatch frame = new CountDownLatch(1);
         instrumentation.runOnMainSync(() -> activity.getBridge().getWebView().postVisualStateCallback(
             1, new WebView.VisualStateCallback() {

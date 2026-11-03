@@ -77,6 +77,7 @@ def _endpoint(session: Session, account_id: UUID, *, provider: FakePushProvider 
         provider_key="gentle-test",
         endpoint_value=f"secret-{uuid4()}",
     )
+    session.flush()
     return provider, endpoint
 
 

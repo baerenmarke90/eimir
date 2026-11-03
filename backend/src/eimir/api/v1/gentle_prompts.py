@@ -16,6 +16,7 @@ from eimir.core.errors import NotFoundError
 from eimir.core.ids import parse_id
 from eimir.engagement import gentle
 from eimir.engagement.models import GentleOccasion
+from eimir.memories.models import Memory
 
 router = APIRouter(prefix="/spaces/{spaceId}/gentle-prompts", tags=["notifications"])
 
@@ -129,5 +130,8 @@ def exclude_memory(
     session: DbSession,
     memory_id: Annotated[str, Path(alias="memoryId")],
 ) -> Response:
-    gentle.exclude_memory(session, authorization, _occasion_id(memory_id))
+    identifier = parse_id(memory_id)
+    if identifier is None:
+        raise Memory.privacy_absence.error()
+    gentle.exclude_memory(session, authorization, identifier)
     return Response(status_code=204, headers={"Cache-Control": "private, no-store"})

@@ -718,7 +718,6 @@ export function PlanProductPage({
               >
                 <EimirIcon name="orte" />
                 <span className="planen-place-copy">
-                  <small>{t('m5s3.common.place')}</small>
                   <strong>{placeName}</strong>
                   {place?.address ? <span>{place.address}</span> : null}
                 </span>

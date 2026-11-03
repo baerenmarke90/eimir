@@ -22,12 +22,12 @@ def test_each_persisted_kind_has_an_explicit_delivery_class() -> None:
     assert for_kind("UNRECOGNIZED_EVENT") is None
 
 
-def test_comment_has_no_immediate_push_but_allows_one_generic_opted_in_digest() -> None:
+def test_comment_push_is_immediate_while_email_retains_its_opted_in_digest() -> None:
     policy = for_kind(NotificationKind.COMMENT_CREATED.value)
     assert policy is not None
     assert policy.delivery_class is DeliveryClass.DIGESTIBLE
-    assert not policy.push_immediately
-    assert presentation_for(NotificationKind.COMMENT_CREATED.value, uuid4()) is None
+    assert policy.push_immediately
+    assert presentation_for(NotificationKind.COMMENT_CREATED.value, uuid4()) is not None
     reference = notification_policy.digest_presentation_for(
         NotificationKind.COMMENT_CREATED.value, uuid4()
     )
@@ -79,7 +79,7 @@ def test_preview_contract_fails_closed_for_unreviewed_fields_and_classes(
         assert policy.preview.generic_only
         assert policy.preview.neutral_lockscreen
 
-    assert presentation_for(NotificationKind.COMMENT_CREATED.value, notification_id) is None
+    assert presentation_for(NotificationKind.COMMENT_CREATED.value, notification_id) is not None
     assert presentation_for("UNRECOGNIZED_EVENT", notification_id) is None
     expanded_preview = replace(GENERIC_PREVIEW, allow_sender_name=True)
     expanded_catalog = dict(POLICIES)

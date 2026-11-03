@@ -1,0 +1,54 @@
+.experience-answers {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin-block: var(--space-3);
+}
+.experience-shared-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-brand-text);
+  font: var(--font-supporting-copy);
+}
+.experience-shared-label svg {
+  width: var(--space-5);
+  height: var(--space-5);
+  flex-shrink: 0;
+}
+.experience-answer {
+  min-width: 0;
+  padding: var(--space-4);
+  background: var(--color-surface-panel-tint);
+  color: var(--color-text);
+  border-radius: var(--radius-medium);
+}
+.experience-answer[data-answer-tone="1"] {
+  background: var(--color-page-tint-brand);
+}
+.experience-answer-author {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  overflow-wrap: anywhere;
+}
+.experience-answer p {
+  font: var(--font-reading-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: var(--space-2) 0 0;
+}
+.experience-answers-compact .experience-answer {
+  padding: var(--space-3);
+}
+.experience-answers-compact .experience-answer p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+.experience-shared-gallery {
+  display: grid;
+  gap: var(--space-3);
+}

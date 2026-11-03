@@ -599,7 +599,7 @@ test('Momente Discover tapestry is axe-clean in dark mode', async ({
   });
 });
 
-test('Momente Discover uses two compact rediscovery columns and a separate full Diary on mobile with no horizontal overflow', async ({
+test('Momente Discover mixes narrow and full-width memories with natural heights and no horizontal overflow', async ({
   page,
 }, info) => {
   const unexpectedRequests = await installDiscoverApiMocks(page);
@@ -652,6 +652,36 @@ test('Momente Discover uses two compact rediscovery columns and a separate full 
   );
   expect(ratios).toContain('2 / 3');
   expect(ratios).toContain('4 / 3');
+  expect(ratios).toContain('16 / 10');
+  const accent = grid
+    .locator('.momente-tapestry-media[data-discover-wide="true"]')
+    .first();
+  const accentBounds = await accent.boundingBox();
+  const gridBounds = await grid.boundingBox();
+  expect(accentBounds?.width).toBeCloseTo(gridBounds!.width, 0);
+  const layoutBounds = await grid.evaluate((element) => ({
+    gridBottom: element.getBoundingClientRect().bottom,
+    contentBottom: Math.max(
+      ...Array.from(element.children).map(
+        (child) => child.getBoundingClientRect().bottom,
+      ),
+    ),
+    rowUnit: parseFloat(getComputedStyle(element).gridAutoRows),
+    gap: parseFloat(getComputedStyle(element).rowGap),
+  }));
+  expect(
+    layoutBounds.gridBottom - layoutBounds.contentBottom,
+  ).toBeLessThanOrEqual(layoutBounds.rowUnit + layoutBounds.gap);
+
+  // Browse the real reveal lifecycle before capturing the entire album.
+  for (const card of await grid.locator('.momente-tapestry-item').all()) {
+    await card.scrollIntoViewIfNeeded();
+    await expect(card).toHaveCSS('opacity', '1');
+  }
+  await page
+    .getByRole('heading', { level: 1 })
+    .first()
+    .scrollIntoViewIfNeeded();
   await page.screenshot({
     path: info.outputPath('1614-moments-390-light.png'),
     fullPage: true,

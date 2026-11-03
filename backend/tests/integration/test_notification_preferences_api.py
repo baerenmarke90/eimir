@@ -111,7 +111,7 @@ def test_only_owner_can_read_or_change_personal_push_choice(client, session: Ses
     assert _channel(thinking, "PUSH") == {"channel": "PUSH", "enabled": True, "configurable": True}
     comment = _entry(initial.json(), NotificationKind.COMMENT_CREATED.value)
     assert comment["deliveryClass"] == "DIGESTIBLE"
-    assert _channel(comment, "PUSH")["enabled"] is False
+    assert _channel(comment, "PUSH")["enabled"] is True
     assert _channel(comment, "PUSH")["configurable"] is True
     assert _channel(thinking, "IN_APP")["enabled"] is True
     assert _channel(thinking, "IN_APP")["configurable"] is True
@@ -184,7 +184,7 @@ def test_in_app_choice_is_independent_per_kind_and_account(client, session: Sess
     )
 
 
-def test_comment_digest_push_requires_explicit_owner_choice_without_transport(
+def test_immediate_comment_push_respects_each_accounts_explicit_choice_without_transport(
     client, session: Session
 ) -> None:  # type: ignore[no-untyped-def]
     anna = make_account(session, "Anna")
@@ -205,10 +205,10 @@ def test_comment_digest_push_requires_explicit_owner_choice_without_transport(
         "channel": "PUSH",
         "enabled": True,
     }
-    assert notification_preferences.digest_push_enabled(
+    assert not notification_preferences.digest_push_enabled(
         session, account_id=anna.id, kind=NotificationKind.COMMENT_CREATED.value
     )
-    assert not notification_preferences.push_enabled(
+    assert notification_preferences.push_enabled(
         session, account_id=anna.id, kind=NotificationKind.COMMENT_CREATED.value
     )
     assert (
@@ -221,7 +221,7 @@ def test_comment_digest_push_requires_explicit_owner_choice_without_transport(
         _channel(
             _entry(client.get(BASE, headers=auth(ben_token)).json(), "COMMENT_CREATED"), "PUSH"
         )["enabled"]
-        is False
+        is True
     )
 
     disabled = client.patch(path, json={"enabled": False}, headers=auth(anna_token))
@@ -229,6 +229,10 @@ def test_comment_digest_push_requires_explicit_owner_choice_without_transport(
     assert not notification_preferences.digest_push_enabled(
         session, account_id=anna.id, kind=NotificationKind.COMMENT_CREATED.value
     )
+    assert not notification_preferences.push_enabled(
+        session, account_id=anna.id, kind="COMMENT_CREATED"
+    )
+    assert notification_preferences.push_enabled(session, account_id=ben.id, kind="COMMENT_CREATED")
     rows = session.execute(select(NotificationPreference)).scalars().all()
     assert len(rows) == 1
     assert rows[0].account_id == anna.id

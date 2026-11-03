@@ -242,15 +242,16 @@ describe('Memory detail edit action (#1014)', () => {
     );
   }
 
-  it('lets a partner add a Place while retaining the absence of delete authority', async () => {
+  it('keeps place management behind Edit while retaining partner read access', async () => {
     const list = vi
       .spyOn(PlacesApi.prototype, 'listMomentPlaces')
       .mockResolvedValue({ items: [], hasMore: false, nextCursor: null });
     try {
       renderDetail('Partner-authored memory', 'account-2');
+      await screen.findByRole('link', { name: memoryProduct.edit });
       expect(
-        await screen.findByRole('button', { name: photoPlaces.add }),
-      ).toBeTruthy();
+        screen.queryByRole('button', { name: photoPlaces.add }),
+      ).toBeNull();
       expect(
         screen.queryByRole('button', { name: memoryProduct.delete }),
       ).toBeNull();

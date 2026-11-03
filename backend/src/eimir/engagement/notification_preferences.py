@@ -34,8 +34,8 @@ def push_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
     """Intersect the current delivery class with the recipient's PUSH choice.
 
     No override preserves the established immediate-push behavior for an
-    already registered endpoint. A digestible or unknown kind can never be
-    promoted to immediate delivery by an override.
+    already registered endpoint. Preferences cannot promote an unreviewed kind
+    to immediate delivery. Comment Push has an explicit policy override.
     """
     policy = notification_policy.for_kind(kind)
     if policy is None or not policy.push_immediately:
@@ -47,7 +47,12 @@ def push_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
 
 def digest_push_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
     """Require an explicit recipient opt-in for a reviewed digest kind."""
-    if not notification_policy.digest_kind_allowed(kind):
+    policy = notification_policy.for_kind(kind)
+    if (
+        policy is None
+        or policy.push_immediately
+        or not notification_policy.digest_kind_allowed(kind)
+    ):
         return False
     return _explicit_choice_enabled(
         session, account_id=account_id, kind=kind, channel=NotificationChannel.PUSH
@@ -66,7 +71,7 @@ def in_app_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
 def email_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
     """Require an explicit recipient opt-in and an immediate reviewed kind."""
     policy = notification_policy.for_kind(kind)
-    if policy is None or not policy.push_immediately:
+    if policy is None or policy.delivery_class is not notification_policy.DeliveryClass.IMMEDIATE:
         return False
     return _explicit_choice_enabled(
         session, account_id=account_id, kind=kind, channel=NotificationChannel.EMAIL
@@ -140,7 +145,7 @@ def own_push_choices(session: Session, *, account_id: UUID) -> dict[Notification
                 kind.value,
                 overrides.get(INHERITED_KINDS[kind].value, True)
                 if kind in INHERITED_KINDS
-                else not notification_policy.digest_kind_allowed(kind.value),
+                else notification_policy.POLICIES[kind].push_immediately,
             )
         )
         if notification_policy.push_choice_allowed(kind.value)

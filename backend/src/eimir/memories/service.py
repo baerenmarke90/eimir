@@ -37,12 +37,13 @@ from eimir.core.errors import (
     ValidationError,
 )
 from eimir.core.ids import parse_id
+from eimir.db.locks import lock_subject
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.domain.experiences import MAX_EXPERIENCE_TEXT, ExperienceKind
 from eimir.entitlements import service as entitlement_service
 from eimir.entitlements.models import Capability
 from eimir.identity.models import Account
-from eimir.memories import create_receipts
+from eimir.memories import create_receipts, experiences
 from eimir.memories import places as memory_places
 from eimir.memories.models import (
     Memory,
@@ -171,6 +172,7 @@ def create_memory(
     happened_on: date | None,
     tags: MemoryTags | None = None,
     experience_kind: ExperienceKind | None = None,
+    experience_reply_to: UUID | None = None,
     place_id: UUID | None = None,
     place_ids: list[UUID] | None = None,
     happened_until: date | None = None,
@@ -183,12 +185,29 @@ def create_memory(
         if experience_kind is not None
         else None
     )
+    reply_root = None
+    if experience_reply_to is not None:
+        lock_subject(session, "experience-threads", str(context.space_id))
+        experiences.reconcile(session, context)
+        source = require_readable(session, Memory, context, experience_reply_to)
+        if experience_kind is None or source.experience_kind != experience_kind.value:
+            raise NotFoundError("Experience not available.", "RESOURCE_NOT_FOUND")
+        reply_root = source.experience_root_id or source.id
+        existing = experiences.responses(session, context, [source]).get(reply_root, [])
+        if any(entry.owner_id == context.account_id for entry in existing):
+            raise ConflictError("Edit your existing answer instead.", "EXPERIENCE_ALREADY_ANSWERED")
+        title, happened_on, happened_until = (
+            source.payload.title,
+            source.happened_on,
+            source.happened_until,
+        )
     selected_places = place_ids if place_ids is not None else ([place_id] if place_id else [])
     memory_places.validate(selected_places)
     memory = Memory(
         space_id=context.space_id,
         owner_id=context.account_id,
         privacy_class=shared_privacy(),
+        experience_root_id=reply_root,
         happened_on=happened_on,
         happened_until=happened_until,
         experience_kind=experience_kind.value if experience_kind is not None else None,
@@ -198,6 +217,8 @@ def create_memory(
     )
     session.add(memory)
     _flush(session)
+    if experience_kind is not None:
+        experiences.reconcile(session, context)
     if selected_places:
         memory_places.replace(session, context, memory, selected_places)
     _flush(session)
@@ -218,6 +239,7 @@ def create_memory_once(
     happened_on: date | None,
     tags: MemoryTags | None = None,
     experience_kind: ExperienceKind | None = None,
+    experience_reply_to: UUID | None = None,
     place_id: UUID | None = None,
     place_ids: list[UUID] | None = None,
     happened_until: date | None = None,
@@ -236,6 +258,7 @@ def create_memory_once(
             happened_on=happened_on,
             tags=tags,
             experience_kind=experience_kind,
+            experience_reply_to=experience_reply_to,
             place_id=place_id,
             place_ids=place_ids,
             happened_until=happened_until,
@@ -249,6 +272,7 @@ def create_memory_once(
         happened_on=happened_on,
         tags=tags or [],
         experience_kind=experience_kind,
+        experience_reply_to=experience_reply_to,
         place_id=place_id,
         place_ids=place_ids,
         happened_until=happened_until,
@@ -266,6 +290,7 @@ def create_memory_once(
         happened_on=happened_on,
         tags=tags,
         experience_kind=experience_kind,
+        experience_reply_to=experience_reply_to,
         place_id=place_id,
         place_ids=place_ids,
         happened_until=happened_until,
@@ -279,7 +304,10 @@ def get_memory(
     context: AuthorizationContext,
     memory_id: UUID | str,
 ) -> Memory:
-    return require_readable(session, Memory, context, memory_id)
+    memory = require_readable(session, Memory, context, memory_id)
+    if memory.experience_kind is not None:
+        experiences.reconcile(session, context)
+    return memory
 
 
 def set_photo_reaction(
@@ -359,6 +387,7 @@ def update_memory(
         else None
     )
     memory = require_editable_locked(session, Memory, context, memory_id)
+    experiences.require_author(memory, context)
     _ensure_expected_version(memory, expected_version)
     if "place_ids" in changed_fields:
         assert place_ids is not None
@@ -370,6 +399,22 @@ def update_memory(
         memory_places.replace(session, context, memory, place_ids, observed=observed_places)
     from eimir.memories.periods import validate_period
 
+    if memory.experience_kind is not None:
+        if (
+            ("title" in changed_fields and title != memory.payload.title)
+            or ("happened_on" in changed_fields and happened_on != memory.happened_on)
+            or ("happened_until" in changed_fields and happened_until != memory.happened_until)
+        ):
+            raise ValidationError(
+                "The shared question and day cannot be changed by one answer.",
+                "EXPERIENCE_QUESTION_IMMUTABLE",
+            )
+        if "body" in changed_fields and (
+            not body or not body.strip() or len(body) > MAX_EXPERIENCE_TEXT
+        ):
+            raise ValidationError(
+                "An experience needs a non-blank answer.", "EXPERIENCE_TEXT_INVALID"
+            )
     next_start = happened_on if "happened_on" in changed_fields else memory.happened_on
     next_end = happened_until if "happened_until" in changed_fields else memory.happened_until
     validate_period(next_start, next_end)
@@ -409,8 +454,10 @@ def delete_memory(
     *,
     expected_version: int,
 ) -> None:
+    lock_subject(session, "experience-threads", str(context.space_id))
     memory = require_writable_locked(session, Memory, context, memory_id)
     _ensure_expected_version(memory, expected_version)
+    experiences.before_delete(session, context, memory)
     actor_id = context.account_id
     from eimir.story import view_service
     from eimir.story.service import StoryKind
@@ -514,7 +561,8 @@ def list_memories(
     year: int | None,
     experience_kind: ExperienceKind | None = None,
 ) -> MemoryPageResult:
-    statement = _apply_year_filter(readable(Memory, context), year)
+    experiences.reconcile(session, context)
+    statement = _apply_year_filter(readable(Memory, context), year).where(experiences.roots_only())
     if experience_kind is not None:
         statement = statement.where(Memory.experience_kind == experience_kind.value)
     if cursor is not None:
@@ -566,6 +614,7 @@ def replace_attachments(
     from eimir.attachments import binding
 
     memory = require_editable_locked(session, Memory, context, memory_id)
+    experiences.require_author(memory, context)
     _ensure_expected_version(memory, expected_version)
 
     positions = [position for _, position in entries]

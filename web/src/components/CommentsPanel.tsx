@@ -325,8 +325,12 @@ function CommentsPanelContent({
     });
   }
 
-  const comments =
-    commentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const comments = (
+    commentsQuery.data?.pages.flatMap((page) => page.items) ?? []
+  ).sort(
+    (a, b) =>
+      a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id),
+  );
   const canReadComments =
     commentsQuery.data !== undefined &&
     !['unauthorized', 'permission', 'notFound'].includes(
@@ -405,12 +409,6 @@ function CommentsPanelContent({
                 <div className="comment-head">
                   <span className="comment-author">
                     <strong>{authorFirstName(comment.author)}</strong>
-                    {own ? (
-                      <span className="comment-author-self">
-                        {' · '}
-                        {t('comments.authorSelf')}
-                      </span>
-                    ) : null}
                   </span>
                   <span>
                     <time dateTime={comment.createdAt.toISOString()}>

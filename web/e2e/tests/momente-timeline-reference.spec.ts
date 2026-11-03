@@ -642,7 +642,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       const commentAuthors = page.locator('.comment-author');
       await expect(commentAuthors).toHaveCount(2);
       await expect(commentAuthors.nth(0)).toHaveText(
-        `Lea · ${storyProducts.comments.authorSelf}`,
+        'Lea',
       );
       await expect(commentAuthors.nth(1)).toHaveText('Alex');
       await expect(page.locator('.comment-list')).not.toContainText(

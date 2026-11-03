@@ -474,3 +474,15 @@
 .story-timeline-months .story-year-month-header::after {
   display: none;
 }
+
+/* Selected photo moments break the narrow pairs without reordering focus. */
+.story-page-unified
+  .momente-tapestry-media[data-discover-wide="true"]
+  .momente-tapestry-media-frame {
+  aspect-ratio: 16 / 10;
+}
+.story-page-unified
+  .momente-tapestry-media[data-discover-wide="true"]
+  .momente-tapestry-title {
+  font: var(--font-content-heading);
+}

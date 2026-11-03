@@ -54,6 +54,7 @@ function fixture(): MemoryDetail {
 function setup(
   save: (...args: unknown[]) => Promise<MemoryDetail>,
   scope = 'account:space:memory',
+  responseProjection = false,
 ) {
   const client = new QueryClient({
     defaultOptions: {
@@ -61,7 +62,7 @@ function setup(
       mutations: { retry: false },
     },
   });
-  const memory = fixture();
+  const memory = { ...fixture(), version: responseProjection ? 9 : 1 };
   client.setQueryData(key, { value: memory, source: 'network' });
   const apis = {
     memories: { setMemoryPhotoReaction: save },
@@ -73,7 +74,12 @@ function setup(
     });
     return (
       <MemoryPhotoGallery
-        memory={query.data!.value}
+        memory={
+          responseProjection
+            ? { ...query.data!.value, id: 'response', version: 1 }
+            : query.data!.value
+        }
+        projectionMemoryId={responseProjection ? 'memory' : undefined}
         apis={apis}
         accountId="account"
         scope={currentScope}
@@ -232,4 +238,46 @@ it('retains the previous server state on failure and ignores completion after a 
   expect(client.getQueryData<{ value: MemoryDetail }>(key)?.value.version).toBe(
     1,
   );
+});
+
+it('reactions on a response keep the shared detail cache identity and parent content', async () => {
+  const updated: MemoryDetail = {
+    ...fixture(),
+    id: 'response',
+    version: 2,
+    experienceKind: 'HAPPINESS',
+    experienceAnswers: [
+      {
+        id: 'response',
+        body: 'A separate authored answer',
+        author: { id: 'partner', displayName: 'Sam' },
+        version: 2,
+        capabilities: { canEdit: false, canDelete: false, canComment: true },
+        attachments: [
+          {
+            ...fixture().attachments[0]!,
+            reactions: [{ reaction: 'LOVE', count: 1, own: true }],
+          },
+        ],
+      },
+    ],
+  };
+  const save = vi.fn().mockResolvedValue(updated);
+  const { client, memory } = setup(save, 'account:space:response', true);
+  fireEvent.click(screen.getByRole('button', { name: photoReactions.open }));
+  fireEvent.click(screen.getByRole('button', { name: 'Liebe' }));
+  await waitFor(() =>
+    expect(
+      client.getQueryData<{ value: MemoryDetail }>(key)?.value
+        .experienceAnswers,
+    ).toHaveLength(1),
+  );
+  expect(save).toHaveBeenCalledWith(
+    expect.objectContaining({ memoryId: 'response' }),
+  );
+  const result = client.getQueryData<{ value: MemoryDetail }>(key)!.value;
+  expect(result.id).toBe('memory');
+  expect(result.author).toEqual(memory.author);
+  expect(result.title).toBe(memory.title);
+  expect(result.experienceAnswers?.[0]?.id).toBe('response');
 });

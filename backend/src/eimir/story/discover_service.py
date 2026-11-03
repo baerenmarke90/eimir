@@ -31,6 +31,7 @@ from eimir.core import clock
 from eimir.core.ids import parse_id
 from eimir.db.locks import lock_subject
 from eimir.heart_moments.models import HeartMoment
+from eimir.memories import experiences
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.relationship.models import Membership, MembershipStatus
@@ -115,6 +116,8 @@ def _authorized_descriptors(kind: StoryKind, context: AuthorizationContext) -> A
         effective_date.label("effective_date"),
         model.created_at.label("created_at"),
     )
+    if kind is StoryKind.MEMORY:
+        statement = statement.where(experiences.roots_only())
     if kind is StoryKind.HEART_MOMENT:
         statement = statement.where(HeartMoment.privacy_class == PrivacyClass.SPACE_SHARED.value)
     return statement
@@ -896,6 +899,7 @@ def read_discover(
     algorithm_version: str = ALGORITHM_VERSION,
 ) -> DiscoverReadResult:
     """Keep daily curation stable while admitting newly shared content immediately."""
+    experiences.reconcile(session, context)
     instant = clock.ensure_utc(at if at is not None else clock.now())
     selection_date = clock.today_in(account_timezone, at=instant)
     refs = _snapshot_refs(

@@ -72,6 +72,7 @@ export function MemoryCreatePage({
   experienceKind,
   partnerName,
   experienceQuestion,
+  experienceReply,
 }: {
   accessToken: string;
   apiBaseUrl: string;
@@ -81,6 +82,7 @@ export function MemoryCreatePage({
   experienceKind?: ExperienceKind;
   partnerName?: string;
   experienceQuestion?: string;
+  experienceReply?: MemoryDetail;
 }) {
   const { t } = useTranslation();
   const experienceName =
@@ -92,7 +94,11 @@ export function MemoryCreatePage({
   const { requestReturn } = useTaskOrigin();
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
-  const [initialDate] = useState(localDateInputValue);
+  const [initialDate] = useState(() =>
+    experienceReply?.happenedOn
+      ? experienceReply.happenedOn.toISOString().slice(0, 10)
+      : localDateInputValue(),
+  );
   const [initialTitle] = useState(
     () => experienceQuestion ?? searchParams.get('title') ?? '',
   );
@@ -130,6 +136,7 @@ export function MemoryCreatePage({
     accountId,
     spaceId,
     experienceKind,
+    experienceReply?.id,
   ]);
   const recoveryScopeRef = useRef(recoveryScope);
   useLayoutEffect(() => {
@@ -310,7 +317,9 @@ export function MemoryCreatePage({
     apiBaseUrl,
     accountId,
     spaceId,
-    purpose: experienceKind,
+    purpose: experienceReply
+      ? `${experienceKind}:reply:${experienceReply.id}`
+      : experienceKind,
     snapshot: draftSnapshot,
     dirty,
     suspended: pending || uncertain || Boolean(partial),
@@ -660,6 +669,12 @@ export function MemoryCreatePage({
               }),
           body,
           experienceKind,
+          ...(experienceReply
+            ? {
+                experienceReplyTo:
+                  experienceReply.experienceRootId ?? experienceReply.id,
+              }
+            : {}),
           tags: [...(submittedTags ?? tags)],
           happenedOn: submittedDate,
           ...(happenedUntil ? { happenedUntil: submittedUntil } : {}),
@@ -918,7 +933,7 @@ export function MemoryCreatePage({
               </div>
             ) : null}
 
-            {experienceKind !== 'HAPPINESS' ? (
+            {experienceKind !== 'HAPPINESS' && !experienceReply ? (
               <div className="field-group immersive-create-date-field">
                 <span id="happenedOn-label">{t('memory.dateLabel')}</span>
                 {dateEditorOpen || dateSummaryText === null ? (

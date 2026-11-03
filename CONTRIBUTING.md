@@ -15,26 +15,112 @@ A Pull Request submission does not guarantee inclusion in the project.
 
 ## Retrying failed CI jobs
 
-Inspect the failed job and its diagnostics before retrying. For a transient
-runner, network, or service failure on the same revision, open the failed
-workflow run and choose **Re-run jobs → Re-run failed jobs**. GitHub reruns the
-failed jobs and their dependent checks while keeping successful independent
-jobs completed. The same operation is available through the GitHub CLI:
+This is the canonical CI preparation, diagnosis, correction, and retry procedure
+for human contributors and coding agents. Reduce avoidable PR-to-merge cycles
+by understanding the gates and fixing known causes together. A justified new
+finding may require another cycle; speculative reruns are not a substitute for
+diagnosis.
+
+### Inspect the gates before implementation
+
+Before implementation and the initial PR push, inspect the workflows and
+repository rules affected by the change:
+
+- workflow events, path filters/classifiers, required check names and dependencies;
+- the current base branch, relevant dependent PRs, and useful existing diagnostics;
+- PR-description, reuse/business/design review, documentation, generated-client,
+  and visual-evidence requirements where applicable.
+
+Prepare the relevant commands and evidence in advance. Revisit this scope when
+the change or its integration context materially changes. A draft PR may be
+useful for collaboration or hosted-only validation; do not use repeated
+draft/ready transitions merely to retrigger checks.
+
+### Run proportionate preflight checks
+
+Before a correction push, run the cheapest meaningful checks for the affected
+responsibilities, such as formatting, lint, type checking, focused tests, and
+applicable contract, migration or build checks. Use the repository's existing
+commands and infrastructure. Run independent checks in parallel where supported;
+do not let one early local failure conceal other independent failures.
+
+Broaden validation only for a concrete remaining risk or a required gate.
+A small documentation change does not automatically require every application
+suite locally. When required infrastructure is only available in CI, record the
+hosted validation plan and the actual local limitation rather than inventing
+local success or adding an unnecessary approval step.
+
+### Diagnose the current revision as a whole
+
+Inspect available results, failed steps, logs, and artifacts from useful
+independent jobs and shards for the current revision and workflow attempt.
+Keep a concise inventory in working notes or the existing PR validation section:
+root cause, affected checks, intended fix, and validation. Group dependent
+symptoms under their shared cause; separate transient infrastructure failures
+and unrelated baseline problems.
+
+Start investigation as soon as useful evidence exists. Normally let remaining
+useful independent checks finish before pushing corrections, since a new push
+may cancel them. Do not wait indefinitely for a hung, unavailable, or unrelated
+job: diagnose the stall, preserve useful logs, state which evidence is missing,
+and continue work that does not depend on it.
+
+Resolve known related causes and predictable follow-on errors as a coherent
+validated batch before the next push. Several meaningful local commits are
+fine. Do not push after each isolated red message while already known related
+failures remain untreated; do not force unrelated fixes into one commit.
+
+Cancel only runs owned by the current work that are demonstrably obsolete or
+diagnosed as hung. Sharing a PR does not establish ownership of another
+contributor's run. Do not cancel unrelated work or required merge/deployment
+validation to obtain a green status. Pending, cancelled, or unavailable required
+evidence remains unresolved.
+
+### Retry only when the evidence supports it
+
+For a diagnosed, plausibly transient runner, network, or service failure on the
+same revision, open the failed workflow run and choose **Re-run jobs →
+Re-run failed jobs**, or rerun the specific failed job when appropriate.
+GitHub reruns failed jobs and their dependent checks while preserving successful
+independent jobs. The failed-jobs operation is also available through the CLI:
 
 ```bash
 gh run rerun RUN_ID --failed --repo baerenmarke90/eimir
 ```
 
 A retry uses the original commit and workflow definition. When a failure needs
-a code, test, or workflow fix, push a new commit and let its relevant checks run.
-Do not push an empty commit, close/reopen a PR, or use **Re-run all jobs** merely
-to retry a transient failure. See [GitHub's rerun documentation](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs).
+a code, test, or workflow fix, validate a coherent correction batch, push a new
+commit, and obtain fresh applicable checks. If the same failure recurs, inspect
+the new diagnostics and deepen the diagnosis before another unchanged retry.
+
+Do not push an empty commit, close/reopen a PR, repeatedly toggle draft/ready,
+or use **Re-run all jobs** merely to retry a transient failure. See
+[GitHub's rerun documentation](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs).
+
+For PR-body or missing-evidence failures, fix the actual metadata and prepare
+the complete correction in one edit where possible. Inspect the workflow's
+trigger and source of PR data: rerunning an old event may retain stale metadata.
+Use the supported fresh event when needed instead of repeatedly retrying that
+old payload or modifying unrelated code to force a run.
 
 Browser QA already keeps its matrix shards independent (`fail-fast: false`).
 For example, if only `PR-critical 3/4` fails, a failed-jobs retry reruns that
 shard and the `Playwright + axe` aggregate; the other successful shards and
 unrelated workflows remain completed. A GitHub job is the retry unit, so steps
 within the failed job start again. See [Web Browser QA](docs/m5/WEB-BROWSER-QA.md).
+
+### Verify what will merge
+
+Confirm required results for the final PR head and the relevant base/integration
+or merge-queue context. Results from an older revision can explain a failure;
+they cannot establish that changed code passes.
+
+Keep required context names, independent retry boundaries, diagnostic artifacts,
+and fail-closed aggregates intact. Do not weaken assertions, coverage, branch
+protections, or evidence requirements to shorten the cycle. Record root causes,
+the correction batch, validation, and any retry reason briefly in the existing
+PR validation section. This procedure requires neither a new approval process
+nor an arbitrary maximum number of justified pushes.
 
 ## Product design work
 

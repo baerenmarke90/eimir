@@ -22,7 +22,7 @@ from eimir.config import get_settings
 from eimir.daily_checkins import retention as daily_checkin_retention
 from eimir.db.session import unit_of_work
 from eimir.demo import reset as demo_reset
-from eimir.engagement import email_delivery, push_providers
+from eimir.engagement import email_delivery, gentle_jobs, push_providers
 from eimir.engagement import push as push_delivery
 from eimir.engagement import service as engagement_service
 from eimir.identity import deletion_jobs as account_deletion_jobs
@@ -67,6 +67,7 @@ def _ensure_maintenance() -> None:
     try:
         with unit_of_work() as session:
             maintenance.ensure_scheduled(session)
+            gentle_jobs.ensure_scheduled(session)
             media_cleanup.ensure_scheduled(session)
             reminder_runtime.ensure_scheduled(session)
             demo_reset.ensure_scheduled(session)
@@ -101,6 +102,7 @@ def main() -> None:
     photo_enrichment.register_handlers()
     recap_jobs.register_handlers()
     maintenance.register_handlers()
+    gentle_jobs.register_handlers()
     media_cleanup.register_handlers()
     account_media.register_handlers()
     push_delivery.register_handlers()

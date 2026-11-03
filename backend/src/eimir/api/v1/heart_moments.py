@@ -11,7 +11,11 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
-from eimir.api.deps import Authorization, DbSession, PhotoBindingAuthorization
+from eimir.api.deps import (
+    Authorization,
+    DbSession,
+    PhotoBindingAuthorization,
+)
 from eimir.api.errors import problem_responses
 from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import (
@@ -24,6 +28,7 @@ from eimir.api.v1.attachments import AttachmentEntry, AttachmentSummary, Ordered
 from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS, BoundAttachment
 from eimir.attachments.models import Attachment, MediaType
 from eimir.authorization import ContentVisibility, visibility_of
+from eimir.engagement.gentle import record_manual_save
 from eimir.heart_moments import media, service
 from eimir.heart_moments.models import HeartEmotion, HeartMoment
 from eimir.heart_moments.tags import HeartMomentTags, unique_tags
@@ -286,6 +291,8 @@ def create_heart_moment(
     )
     if not result.created:
         response.status_code = status.HTTP_200_OK
+    if result.created:
+        record_manual_save(session, authorization)
     response.headers["ETag"] = etag_for(result.heart_moment.version)
     return _heart_moment_detail(session, authorization, result.heart_moment)
 
@@ -377,6 +384,7 @@ def update_heart_moment(
         attachments=_selection(body.attachments),
         selected_cover_attachment_id=body.selected_cover_attachment_id,
     )
+    record_manual_save(session, authorization)
     response.headers["ETag"] = etag_for(heart_moment.version)
     return _heart_moment_detail(session, authorization, heart_moment)
 

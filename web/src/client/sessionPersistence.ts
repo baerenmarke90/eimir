@@ -152,7 +152,13 @@ function parseStoredAccount(raw: unknown): AccountView | null {
   if (typeof obj.id !== 'string' || typeof obj.displayName !== 'string') {
     return null;
   }
-  return { id: obj.id, displayName: obj.displayName };
+  return {
+    id: obj.id,
+    displayName: obj.displayName,
+    ...(typeof obj.gentlePromptsEnabled === 'boolean'
+      ? { gentlePromptsEnabled: obj.gentlePromptsEnabled }
+      : {}),
+  };
 }
 
 export type StoredSession = {

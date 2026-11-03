@@ -590,6 +590,31 @@ def build_export_archive(
                 for row in connections
                 if row.payload.account_id == authorization.account_id
             ]
+            from eimir.engagement.models import GentleMemoryExclusion, GentleProfile
+
+            profile = session.get(GentleProfile, authorization.account_id)
+            account = session.get(Account, authorization.account_id)
+            account_document["personalGentlePrompts"] = {
+                "enabled": bool(account and account.gentle_prompts_enabled),
+                "observations": profile.observations if profile else [],
+                "lastUseAt": profile.last_use_at.isoformat()
+                if profile and profile.last_use_at
+                else None,
+                "lastSaveAt": profile.last_save_at.isoformat()
+                if profile and profile.last_save_at
+                else None,
+                "intervalDays": profile.interval_days if profile else None,
+                "windows": profile.windows if profile else [],
+                "excludedMemoryIds": [
+                    str(identifier)
+                    for identifier in session.scalars(
+                        select(GentleMemoryExclusion.memory_id).where(
+                            GentleMemoryExclusion.account_id == authorization.account_id,
+                            GentleMemoryExclusion.space_id == authorization.space_id,
+                        )
+                    )
+                ],
+            }
         # Connection credentials and transient selections are never portable.
         # Personal appearance is export-only metadata. Import never activates
         # paid choices or changes an installation based on untrusted bundles.

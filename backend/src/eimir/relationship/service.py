@@ -361,10 +361,12 @@ def end_membership(
     content.
     """
     from eimir.create_receipts import service as shared_create_receipts
+    from eimir.engagement import gentle
     from eimir.memories import create_receipts
     from eimir.story import view_service
     from eimir.wish_selections.service import purge_space
 
+    gentle.purge_space_member(session, membership.account_id, membership.space_id)
     view_service.purge_viewer_for_space(
         session,
         space_id=membership.space_id,

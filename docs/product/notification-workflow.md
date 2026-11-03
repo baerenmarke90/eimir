@@ -1,7 +1,13 @@
 # Module notification workflow
 
 **Product Owner decision:** 2026-11-01, approved implementation on PR #1568.
-**Runtime policy:** v5 in `engagement/notification_policy.py`.
+**Runtime policy:** v6 in `engagement/notification_policy.py`.
+
+**Narrow follow-up decision #1620 (2026-11-03):** personal default-off gentle
+prompts may offer adaptive writing/Memory invitations under the complete
+[own-use, attention, transport and lifecycle contract](gentle-prompts.md).
+This supersedes the inactivity exclusion below only for that explicit opt-in;
+ordinary partner events, daily rediscovery and questions retain their semantics.
 
 This is the product's event-to-attention contract, not a settings specification.
 It supersedes the older deferral of wider Activity admission in the #515 delivery
@@ -54,6 +60,7 @@ foundation. It does not introduce the previously rejected daily summary.
 | Thinking of you / kiss / check-in gesture | Deliberate paced partner signal | Existing neutral immediate delivery and quiet-hours behavior. No request to reciprocate. |
 | Vibe / energy check-in | Enter/update own dimension; permitted mutual reveal | Refresh current module only; no submission/status/mood/presence notification. |
 | Relationship duration / presence | Clock/day or presence changes | Display only; no online/offline, absence or daily counter notice. |
+| Personal gentle prompts | Explicit own-account opt-in and conservatively learned eligibility | One recipient-wide rolling budget, 14/28-day backoff and pause after three attempts without use. Dedicated automatic semantic, no partner actor, unread item or foreground banner. Existing queue/Outbox/PushDelivery, source rechecks and expiry own delivery. |
 | Daily quote | New quote | Display on opening; no notice. |
 | Retrospective / keepsake / daily rediscovery | New authorized selection | Quiet source card; no Push or unread item. PR #1568's daily eligibility remains. |
 | Upcoming / anticipation | A selected source reminder becomes due | Existing recipient-specific occurrence, idempotency and schedule; no duplicate reminder from the dashboard projection or countdown. |

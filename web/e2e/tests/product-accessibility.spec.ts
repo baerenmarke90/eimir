@@ -8,6 +8,7 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 import notificationSettings from '../../src/i18n/locales/notificationSettings';
+import gentleCopy from '../../src/i18n/locales/gentlePrompts';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import privateArea from '../../src/i18n/locales/privateArea';
 import profiles from '../../src/i18n/locales/profiles';
@@ -76,17 +77,36 @@ type SpaceConfigurationPatch = {
   energyVisibilityMode?: 'IMMEDIATE' | 'MUTUAL_REVEAL';
 };
 
-async function installAuthorizedApiMocks(
-  page: Page,
-): Promise<
-  string[] & { spaceConfigurationPatches: SpaceConfigurationPatch[] }
+async function installAuthorizedApiMocks(page: Page): Promise<
+  string[] & {
+    spaceConfigurationPatches: SpaceConfigurationPatch[];
+    gentleState: {
+      enabled: boolean;
+      dismissed: boolean;
+      failNextSave: boolean;
+      receipts: number;
+      occasion: number;
+    };
+  }
 > {
   const spaceConfigurationPatches: SpaceConfigurationPatch[] = [];
-  const unexpectedRequests: string[] = [];
+  const gentleState = {
+    enabled: false,
+    dismissed: false,
+    failNextSave: false,
+    receipts: 0,
+    occasion: 4,
+  };
+  const unexpectedRequests = [] as unknown as Awaited<
+    ReturnType<typeof installAuthorizedApiMocks>
+  >;
   // Non-enumerable so the many `expect(unexpectedRequests).toEqual([])`
   // assertions keep comparing only the recorded unexpected requests.
   Object.defineProperty(unexpectedRequests, 'spaceConfigurationPatches', {
     value: spaceConfigurationPatches,
+  });
+  Object.defineProperty(unexpectedRequests, 'gentleState', {
+    value: gentleState,
   });
   let supportGesturesEnabled = true;
   let vibeCheckEnabled = false;
@@ -170,6 +190,7 @@ async function installAuthorizedApiMocks(
         account: {
           displayName: 'Anna',
           id: ACCOUNT_ID,
+          gentlePromptsEnabled: gentleState.enabled,
         },
         tokens: {
           accessExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
@@ -185,6 +206,7 @@ async function installAuthorizedApiMocks(
       await fulfillJson({
         displayName: 'Anna',
         id: ACCOUNT_ID,
+        gentlePromptsEnabled: gentleState.enabled,
       });
       return;
     }
@@ -293,7 +315,7 @@ async function installAuthorizedApiMocks(
 
     if (method === 'GET' && pathname === '/api/v1/notification-preferences') {
       await fulfillJson({
-        catalogVersion: 2,
+        catalogVersion: 6,
         quietHours,
         capabilities: [
           {
@@ -321,15 +343,22 @@ async function installAuthorizedApiMocks(
           'THINKING_OF_YOU',
           'PARTNER_KISS',
           'PARTNER_CHECK_IN',
+          'GENTLE_PROMPT',
         ].map((kind) => ({
           kind,
           deliveryClass:
             kind === 'COMMENT_CREATED' ? 'DIGESTIBLE' : 'IMMEDIATE',
           channels: [
-            { channel: 'IN_APP', enabled: true, configurable: true },
+            {
+              channel: 'IN_APP',
+              enabled: kind !== 'GENTLE_PROMPT',
+              configurable: kind !== 'GENTLE_PROMPT',
+            },
             {
               channel: 'PUSH',
-              enabled: kind === 'COMMENT_CREATED' && commentPushEnabled,
+              enabled:
+                (kind === 'GENTLE_PROMPT' && gentleState.enabled) ||
+                (kind === 'COMMENT_CREATED' && commentPushEnabled),
               configurable: true,
             },
             {
@@ -337,11 +366,66 @@ async function installAuthorizedApiMocks(
               enabled:
                 (kind === 'COMMENT_CREATED' && commentEmailEnabled) ||
                 (kind === 'REMINDER_DUE' && reminderEmailEnabled),
-              configurable: true,
+              configurable: kind !== 'GENTLE_PROMPT',
             },
           ],
         })),
       });
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === '/api/v1/notification-preferences/GENTLE_PROMPT/PUSH'
+    ) {
+      if (gentleState.failNextSave) {
+        gentleState.failNextSave = false;
+        await fulfillJson(
+          {
+            title: 'Temporarily unavailable',
+            status: 503,
+            code: 'SERVICE_UNAVAILABLE',
+          },
+          503,
+        );
+        return;
+      }
+      gentleState.enabled = (
+        request.postDataJSON() as { enabled: boolean }
+      ).enabled;
+      await fulfillJson({
+        kind: 'GENTLE_PROMPT',
+        channel: 'PUSH',
+        enabled: gentleState.enabled,
+      });
+      return;
+    }
+    if (pathname.startsWith(`/api/v1/spaces/${SPACE_ID}/gentle-prompts/`)) {
+      if (pathname.endsWith('/use')) {
+        gentleState.receipts += 1;
+        await route.fulfill({ status: 204 });
+      } else if (
+        pathname.endsWith('/dismiss') ||
+        pathname.endsWith('/exclusion')
+      ) {
+        gentleState.dismissed = true;
+        await route.fulfill({ status: 204 });
+      } else {
+        const opening = pathname.endsWith('/open');
+        const available = gentleState.enabled && !gentleState.dismissed;
+        if (opening) gentleState.dismissed = true;
+        await fulfillJson(
+          available
+            ? {
+                id: `44444444-4444-4444-8444-44444444444${gentleState.occasion}`,
+                kind: 'WRITING',
+                memoryId: null,
+                expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+                writingVariant: 0,
+              }
+            : null,
+        );
+      }
       return;
     }
 
@@ -486,11 +570,23 @@ async function installAuthorizedApiMocks(
       pathname === `/api/v1/spaces/${SPACE_ID}/dashboard`
     ) {
       await fulfillJson({
-        recentShared: [],
+        recentShared: gentleState.enabled
+          ? [
+              {
+                id: '55555555-5555-4555-8555-555555555555',
+                type: 'MEMORY',
+                titleOrText: 'Saved field notes',
+                occurredOn: '2020-10-01',
+                createdAt: TEST_NOW,
+              },
+            ]
+          : [],
         relationshipDuration: null,
         retrospective: null,
         space: {
-          partner: null,
+          partner: gentleState.enabled
+            ? { id: '66666666-6666-4666-8666-666666666666', displayName: 'Ben' }
+            : null,
           spaceId: SPACE_ID,
         },
         upcoming: [],
@@ -500,12 +596,14 @@ async function installAuthorizedApiMocks(
 
     if (
       method === 'GET' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/profiles/${ACCOUNT_ID}`
+      (pathname === `/api/v1/spaces/${SPACE_ID}/profiles/${ACCOUNT_ID}` ||
+        pathname ===
+          `/api/v1/spaces/${SPACE_ID}/profiles/66666666-6666-4666-8666-666666666666`)
     ) {
       await fulfillJson({
-        accountId: ACCOUNT_ID,
+        accountId: pathname.split('/').at(-1),
         createdAt: TEST_NOW,
-        displayName: 'Anna',
+        displayName: pathname.endsWith(ACCOUNT_ID) ? 'Anna' : 'Ben',
         id: PROFILE_ID,
         preferences: [],
         profileAttachmentId: null,
@@ -2128,3 +2226,106 @@ test('authenticated shell reflows below a 320px layout width at 200 percent zoom
   expect(dimensions.bodyScrollWidth).toBeLessThan(320);
   expect(unexpectedRequests).toEqual([]);
 });
+
+for (const view of [
+  { width: 360, height: 900, scheme: 'light', large: false },
+  { width: 390, height: 1000, scheme: 'dark', large: false },
+  { width: 430, height: 1000, scheme: 'light', large: false },
+  { width: 1280, height: 1000, scheme: 'dark', large: false },
+  { width: 320, height: 1000, scheme: 'dark', large: true },
+] as const) {
+  test(`gentle prompts: saved consent, quiet dismissal and blank composer at ${view.width} ${view.scheme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize(view);
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript((large) => {
+      localStorage.setItem('eimir.theme', 'system');
+      if (large) {
+        document.addEventListener('DOMContentLoaded', () => {
+          document.documentElement.style.setProperty(
+            'font-size',
+            '200%',
+            'important',
+          );
+        });
+      }
+    }, view.large);
+    const requests = await installAuthorizedApiMocks(page);
+    await page.goto('/today');
+    await signIn(page);
+    await page.goto('/more/settings/notifications');
+    const toggle = page.getByRole('switch', {
+      name: gentleCopy.label,
+      exact: true,
+    });
+    await expect(toggle).toHaveAttribute('aria-checked', 'false');
+    if (view.large)
+      await expect(page.locator('html')).toHaveCSS('font-size', '32px');
+    requests.gentleState.failNextSave = true;
+    await toggle.click();
+    await expect(
+      page.getByText(notificationSettings.groupFailed),
+    ).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-checked', 'false');
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-checked', 'true');
+    await expect(
+      page.getByText(gentleCopy.description, { exact: true }),
+    ).toHaveCount(1);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: info.outputPath(
+        `notification-settings-gentle-${view.width}-${view.scheme}.png`,
+      ),
+      fullPage: true,
+    });
+    await page.reload();
+    await expect(toggle).toHaveAttribute('aria-checked', 'true');
+    await page
+      .getByRole('link', { name: navigation.today, exact: true })
+      .click();
+    await expect(
+      page.getByRole('heading', { name: gentleCopy.writingTitle }),
+    ).toBeVisible();
+    await expect(page.locator('.gentle-suggestion')).toHaveCount(1);
+    if (view.large)
+      await expect(page.locator('html')).toHaveCSS('font-size', '32px');
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: info.outputPath(`today-gentle-${view.width}-${view.scheme}.png`),
+      fullPage: true,
+    });
+    await page
+      .getByRole('button', { name: gentleCopy.dismiss, exact: true })
+      .click();
+    await expect(
+      page.getByText(gentleCopy.dismissed, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(gentleCopy.dismissed, { exact: true }),
+    ).toBeFocused();
+    await page.reload();
+    await expect(page.locator('.gentle-suggestion')).toHaveCount(0);
+    // A separate server occasion is offered after this dismissal's day.
+    requests.gentleState.dismissed = false;
+    requests.gentleState.occasion += 1;
+    await page.reload();
+    const before = requests.gentleState.receipts;
+    await page
+      .getByRole('button', { name: gentleCopy.write, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/story\/memories\/new$/);
+    await expect(page.locator('input[name="title"]')).toHaveValue('');
+    await expect(page.locator('textarea')).toHaveValue('');
+    expect(requests.gentleState.receipts - before).toBeLessThanOrEqual(1);
+    await page.goto('/today');
+    await expect(page.locator('.gentle-suggestion')).toHaveCount(0);
+    expect(requests).toEqual([]);
+  });
+}

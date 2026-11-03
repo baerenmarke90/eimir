@@ -280,6 +280,9 @@ class FcmPushProvider:
     def accepts_endpoint(self, endpoint: str) -> bool:
         return _parse(endpoint) is not None
 
+    def supports_notification_reference(self, endpoint: str) -> bool:
+        return _parse(endpoint) is not None
+
     def registration_identity(self, endpoint: str) -> str:
         registration = _parse(endpoint)
         if registration is None:

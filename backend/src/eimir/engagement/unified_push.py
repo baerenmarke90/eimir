@@ -212,6 +212,10 @@ class UnifiedPushProvider:
     def accepts_endpoint(self, endpoint: str) -> bool:
         return self._parse(endpoint) is not None
 
+    def supports_notification_reference(self, endpoint: str) -> bool:
+        registration = self._parse(endpoint)
+        return registration is not None and registration.notification_reference_version == 1
+
     def registration_identity(self, endpoint: str) -> str:
         registration = self._parse(endpoint)
         if registration is None:

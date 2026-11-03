@@ -164,6 +164,26 @@ PhotoBindingAuthorization = Annotated[AuthorizationContext, Depends(photo_bindin
 AccountBoundAuthorization = Annotated[AuthorizationContext, Depends(photo_binding_authorization)]
 
 
+def recipient_effect_authorization(
+    session: DbSession,
+    account: CurrentAccount,
+    space_id: Annotated[str, Path(alias="spaceId")],
+) -> AuthorizationContext:
+    """Serialize recipient-owned effects before acquiring the Membership barrier."""
+    from eimir.identity import effects
+
+    with session.no_autoflush:
+        accounts = effects.lock_enabled_accounts(session, {account.id})
+    if accounts is None:
+        raise NotFoundError("Space not found.", SpaceErrorCode.NOT_FOUND)
+    return authorization_context(tenant_context(session, account, space_id))
+
+
+RecipientEffectAuthorization = Annotated[
+    AuthorizationContext, Depends(recipient_effect_authorization)
+]
+
+
 def ensure_capability(
     session: Session,
     space_id: UUID,

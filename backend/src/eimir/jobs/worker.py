@@ -22,16 +22,23 @@ from eimir.observability import safe_exception_summary, set_correlation_id
 log = logging.getLogger(__name__)
 
 Handler = Callable[[Session, dict[str, Any]], None]
+Preparation = Callable[[Session, dict[str, Any]], dict[str, Any]]
 
 
 class JobRegistry:
     def __init__(self) -> None:
         self._handlers: dict[str, Handler] = {}
+        self._preparations: dict[str, Preparation] = {}
 
-    def register(self, kind: str, handler: Handler) -> None:
+    def register(self, kind: str, handler: Handler, *, prepare: Preparation | None = None) -> None:
         if kind in self._handlers:
             raise ValueError(f"Handler for '{kind}' is already registered.")
         self._handlers[kind] = handler
+        if prepare is not None:
+            self._preparations[kind] = prepare
+
+    def preparation(self, kind: str) -> Preparation | None:
+        return self._preparations.get(kind)
 
     def get(self, kind: str) -> Handler | None:
         return self._handlers.get(kind)
@@ -79,6 +86,20 @@ def _run_job(job_id: Any, kind: str, payload: dict[str, Any]) -> None:
     set_correlation_id(str(correlation_id) if correlation_id else None)
 
     try:
+        preparation = registry.preparation(kind)
+        if preparation is not None:
+            try:
+                # Commit an irreversible submission claim before external I/O.
+                # Only the current invocation receives the transient handoff.
+                with unit_of_work() as preparation_session:
+                    payload = preparation(preparation_session, payload)
+            except Exception as exc:
+                with unit_of_work() as failed_session:
+                    failed_job = failed_session.get(Job, job_id)
+                    if failed_job is not None:
+                        queue.fail(failed_job, safe_exception_summary(exc))
+                log.exception("job preparation failed", extra={"kind": kind})
+                return
         with unit_of_work() as session:
             job = session.get(Job, job_id)
             if job is None:

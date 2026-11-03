@@ -200,6 +200,13 @@ def project_event(session: Session, event: OutboxEvent) -> None:
     if not _event_effects_allowed(session, event):
         return
 
+    if event_type is EventType.GENTLE_PROMPT_READY:
+        from eimir.engagement import gentle
+
+        gentle.project(session, event)
+        push.ensure_deliveries_for_source_event(session, event.id)
+        return
+
     if event_type is EventType.PARTNER_THINKING_OF_YOU:
         thinking.project_notification(session, event)
         push.ensure_deliveries_for_source_event(session, event.id)
@@ -583,7 +590,32 @@ def _projectable_predicate(
 
 def _current_notification_predicate(session: Session, context: AuthorizationContext) -> Any:
     current = wish_selections.get_selection(session, context)
+    from eimir.engagement.models import GentleMemoryExclusion, GentleOccasion
+    from eimir.identity.models import Account
+
+    gentle_available = (
+        select(GentleOccasion.id)
+        .where(
+            GentleOccasion.notification_id == Notification.id,
+            GentleOccasion.account_id == context.account_id,
+            GentleOccasion.space_id == context.space_id,
+            GentleOccasion.cancelled_at.is_(None),
+            GentleOccasion.dismissed_at.is_(None),
+            or_(GentleOccasion.kind == "WRITING", GentleOccasion.memory_id.is_not(None)),
+            select(Account.id)
+            .where(Account.id == context.account_id, Account.gentle_prompts_enabled.is_(True))
+            .exists(),
+            ~select(GentleMemoryExclusion.memory_id)
+            .where(
+                GentleMemoryExclusion.account_id == context.account_id,
+                GentleMemoryExclusion.memory_id == GentleOccasion.memory_id,
+            )
+            .exists(),
+        )
+        .exists()
+    )
     return and_(
+        or_(Notification.kind != NotificationKind.GENTLE_PROMPT.value, gentle_available),
         or_(
             Notification.kind.not_in(
                 [NotificationKind.PLAN_CREATED.value, NotificationKind.PLAN_CHANGED.value]

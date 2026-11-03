@@ -1,4 +1,5 @@
 import { useTranslation } from '../i18n';
+import { MomentPlaceActionsMenu } from './MomentPlaceActionsMenu';
 import {
   MomentPlaceField,
   type MomentPlaceSelection,
@@ -8,10 +9,12 @@ import {
 export function OrderedMomentPlacesField({
   value,
   onChange,
+  onNavigate,
   ...props
 }: Omit<Parameters<typeof MomentPlaceField>[0], 'value' | 'onChange'> & {
   value: MomentPlaceSelection[];
   onChange: (places: MomentPlaceSelection[]) => void;
+  onNavigate?: (proceed: () => void) => void;
 }) {
   const { t } = useTranslation();
   function move(index: number, offset: number) {
@@ -46,17 +49,30 @@ export function OrderedMomentPlacesField({
               >
                 {t('experiences.later')}
               </button>
-              <button
-                type="button"
-                className="tertiary"
-                disabled={props.disabled}
-                aria-label={t('experiences.removePlace', { name: place.name })}
-                onClick={() =>
-                  onChange(value.filter((item) => item.id !== place.id))
-                }
-              >
-                {t('memory.photoRemove')}
-              </button>
+              {onNavigate ? (
+                <MomentPlaceActionsMenu
+                  place={place}
+                  disabled={props.disabled}
+                  onNavigate={onNavigate}
+                  onRemove={() =>
+                    onChange(value.filter((item) => item.id !== place.id))
+                  }
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="tertiary"
+                  disabled={props.disabled}
+                  aria-label={t('experiences.removePlace', {
+                    name: place.name,
+                  })}
+                  onClick={() =>
+                    onChange(value.filter((item) => item.id !== place.id))
+                  }
+                >
+                  {t('memory.photoRemove')}
+                </button>
+              )}
             </div>
           </li>
         ))}

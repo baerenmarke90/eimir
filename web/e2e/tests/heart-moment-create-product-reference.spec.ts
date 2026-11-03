@@ -342,7 +342,8 @@ async function installApiMocks(page: Page): Promise<string[]> {
         authorId: ACCOUNT_ID,
         author: { id: ACCOUNT_ID, displayName: 'Anna' },
         capabilities: { canEdit: true, canDelete: true, canComment: true },
-        attachment: submitted.attachmentId ? attachment : null,
+        attachment: submitted.attachments?.length ? attachment : null,
+        attachments: submitted.attachments?.length ? [attachment] : [],
         createdAt: TEST_NOW,
         updatedAt: TEST_NOW,
         version: 1,
@@ -702,7 +703,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
       const note = page.locator('.heart-moment-create-note');
       const visibility = page.locator('.heart-moment-create-visibility');
       const actions = page.locator('.heart-moment-create-actions');
-      const photoInput = page.locator('#heart-moment-create-photo');
+      const photoInput = page
+        .getByRole('dialog', {
+          name: photoSources.addMedia,
+          exact: true,
+        })
+        .getByLabel(de.memory.photoLabel, { exact: true });
       const sharedRadio = page.locator(
         '#heart-moment-create-visibility-shared',
       );
@@ -1062,11 +1068,17 @@ test('photo-only Heart Moment saves without text and opens its photo (#509)', as
   await page
     .getByRole('button', { name: photoSources.addMedia, exact: true })
     .click();
-  await page.locator('#heart-moment-create-photo').setInputFiles({
-    name: 'cabin-lake.jpg',
-    mimeType: 'image/jpeg',
-    buffer: await readFile(PHOTO),
-  });
+  await page
+    .getByRole('dialog', {
+      name: photoSources.addMedia,
+      exact: true,
+    })
+    .getByLabel(de.memory.photoLabel, { exact: true })
+    .setInputFiles({
+      name: 'cabin-lake.jpg',
+      mimeType: 'image/jpeg',
+      buffer: await readFile(PHOTO),
+    });
   await expect(page.getByText(de.memory.photoReady)).toBeVisible();
   await expect(page.locator('#heart-moment-text')).toHaveValue('');
 
@@ -1082,7 +1094,10 @@ test('photo-only Heart Moment saves without text and opens its photo (#509)', as
     expect.objectContaining({
       text: '',
       tags: [],
-      attachmentId: ATTACHMENT_ID,
+      attachments: [
+        { attachmentId: ATTACHMENT_ID, position: 0, isSensitive: false },
+      ],
+      selectedCoverAttachmentId: null,
     }),
   );
   await expect(page).toHaveURL(

@@ -18,6 +18,14 @@ arrangement task. Widths 320/360/390/430 and 1280, Light/Dark, reduced motion an
 shows its saved result, with a nonfirst cover still selected and original gallery
 positions retained. Exact runtime source fingerprints are in `sources.json`.
 
+`places-edit-actions-390-light.png` and `places-edit-actions-390-dark.png`
+show the restored contextual Place actions inside the ordered Memory editor.
+The strict `photo-places.spec.ts` journeys cover map-link identity, canonical
+Place correction and return, dirty Keep/Discard, staged removal, explicit Save
+and reopening without a removed Place reappearing. These pass at 360/390/430
+and 1280 in both themes. Source fingerprints also cover the shared action menu,
+editor lifecycle and gallery/source contract regression tests.
+
 Complementary unit/component tests cover cancellation/Finish, cover retention and
 scope teardown, partial/idempotent media association and the map-picked zero
 coordinate request while technical details stay collapsed. PostgreSQL/HTTP

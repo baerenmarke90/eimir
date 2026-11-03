@@ -591,6 +591,7 @@ export function MemoryProductPage({
       event.preventDefault();
       if (
         attachments.hasPending ||
+        placePending ||
         attachments.items.some((item) => item.status === 'failed') ||
         queryClient.isMutating({ mutationKey: deleteKey }) ||
         queryClient.isMutating({ mutationKey: updateKey })
@@ -712,6 +713,13 @@ export function MemoryProductPage({
               }
               disabled={updateMutation.isPending}
               onPendingChange={setPlacePending}
+              onNavigate={(proceed) => {
+                const ownsTask = captureSaveOwnership();
+                const ownsRead = captureAuthorizedQuery(queryClient, memoryKey);
+                editorLifecycle.requestClose(() => {
+                  if (ownsTask() && ownsRead()) proceed();
+                });
+              }}
             />
             <MemoryTagChoices
               selected={selectedTags}
@@ -853,6 +861,7 @@ export function MemoryProductPage({
                 type="submit"
                 disabled={
                   updateMutation.isPending ||
+                  placePending ||
                   attachments.hasPending ||
                   attachments.items.some((item) => item.status === 'failed') ||
                   deleteMutation.isBlocked

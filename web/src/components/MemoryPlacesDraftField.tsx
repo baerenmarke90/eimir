@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import { Configuration } from '../client/apiConfiguration';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { useTranslation } from '../i18n';
 import type { MomentPlaceSelection } from './MomentPlaceField';
 import { OrderedMomentPlacesField } from './OrderedMomentPlacesField';
@@ -35,11 +36,12 @@ export function MemoryPlacesDraftField({
   );
   const query = useQuery({
     queryKey: [
-      'memory-place-draft',
+      ...authorSummaryQueryKeys.places(props.spaceId),
+      'memory-draft',
       props.apiBaseUrl,
       props.accountId,
-      props.spaceId,
       memoryId,
+      order,
     ],
     retry: false,
     queryFn: async ({ signal }) => {

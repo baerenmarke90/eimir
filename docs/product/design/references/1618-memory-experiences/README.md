@@ -142,6 +142,29 @@ feature matrix and domain specification record the PO extension.
 
 ## Validation
 
+### Merge regression correction
+
+The ordered Memory editor retains the existing contextual Place actions:
+open the pinned map, correct the canonical Place, or confirm removal. Saved
+relations and editor selections share `MomentPlaceActionsMenu` and the existing
+ShortTaskSheet lifecycle. In the editor, removal changes only the local draft;
+the parent Save sends the observed membership and new ordered membership
+atomically. Cancel never writes that removal. Place coordinates travel with
+the selected reference so an already selected map remains available.
+
+Navigation to canonical Place editing uses `useTaskEditorLifecycle` rather than
+a second discard/history implementation. Dirty work requires deliberate discard,
+pending work blocks departure, and Keep Editing clears the requested destination.
+The destination callback remains transient and checks task/read ownership before
+navigation. The place-draft query uses the shared Place-consumer key root, so
+canonical corrections invalidate the returned editor as well.
+
+Browser regression fixtures now use the gallery request/response contract and
+the named shared source picker. The recovery assertion still compares all
+three complete binding payloads, including the automatic-cover null value;
+no retry, timeout, privacy assertion, or gate was relaxed. These corrections
+preserve the preflight's existing capabilities and Core/business boundaries.
+
 See [runtime evidence](evidence/README.md). Local strict typecheck, production
 bundle, focused backend/domain tests and complete authoring journeys are run;
 full suites and fresh hosted migration/PostgreSQL/security/browser checks are

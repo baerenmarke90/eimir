@@ -7,6 +7,7 @@ import de from '../../src/i18n/locales/de';
 import contextTags from '../../src/i18n/locales/contextTags';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import photoSources from '../../src/i18n/locales/photoSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -64,7 +65,7 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 
 /**
  * A focused mock harness for the create-surface visual regression checks:
- * the inline shared-visibility metadata on Memory Create, the local "today"
+ * the focused Memory Create composition, the local "today"
  * date default on HeartMoment/Milestone Create, and readable Memory Detail prose.
  */
 async function installApiMocks(page: Page): Promise<void> {
@@ -249,56 +250,24 @@ async function signIn(page: Page): Promise<void> {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
-async function expectSharingMetadataAligned(page: Page): Promise<void> {
-  const note = page.locator('.immersive-sharing-note');
-  await expect(note).toBeVisible();
-  await expect(note).toHaveAttribute('role', 'note');
+async function expectFocusedMemoryCapture(page: Page): Promise<void> {
+  // #1614 explicitly retires the redundant fixed-audience block. Keep its
+  // absence covered instead of requiring the removed heart and caption.
+  await expect(page.locator('.immersive-sharing-note')).toHaveCount(0);
   await expect(
-    note.getByText(de.memory.sharedTitle, { exact: true }),
+    page.getByText(de.memory.sharedTitle, { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(de.memory.sharedBody, { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel(de.memory.titleLabelOptional)).toBeVisible();
+  await expect(
+    page.locator('.immersive-create-narrative textarea'),
   ).toBeVisible();
-  await expect(
-    note.getByText(de.memory.sharedBody, { exact: true }),
-  ).toBeHidden();
-
-  const icon = note.locator('.sharing-icon');
-  const svg = icon.locator('svg');
-  const path = svg.locator('path').first();
-  await expect(icon).toBeVisible();
-  await expect(svg).toBeVisible();
-  await expect(path).toBeVisible();
-
-  const [iconBox, svgBox, noteLayout, maskImage] = await Promise.all([
-    icon.boundingBox(),
-    svg.boundingBox(),
-    note.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return { display: style.display, alignItems: style.alignItems };
-    }),
-    svg.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return style.maskImage || style.getPropertyValue('-webkit-mask-image');
-    }),
-  ]);
-  if (!iconBox || !svgBox) throw new Error('Sharing icon did not render.');
-
-  expect(noteLayout.display).toBe('flex');
-  expect(noteLayout.alignItems).toBe('center');
-  expect(maskImage === 'none' || maskImage === '').toBe(true);
-
-  const iconCenterX = iconBox.x + iconBox.width / 2;
-  const svgCenterX = svgBox.x + svgBox.width / 2;
-  const iconCenterY = iconBox.y + iconBox.height / 2;
-  const svgCenterY = svgBox.y + svgBox.height / 2;
-
-  // 2.5px is the #855 ceiling for the retained 16px SVG geometry. It absorbs
-  // sub-pixel/runner quantization while still detecting the old several-pixel
-  // left/top displacement that motivated the original heart-centering test.
-  expect(Math.abs(iconCenterX - svgCenterX)).toBeLessThanOrEqual(2.5);
-  expect(Math.abs(iconCenterY - svgCenterY)).toBeLessThanOrEqual(2.5);
 }
 
 for (const colorScheme of ['light', 'dark'] as const) {
-  test(`Memory Create aligns the inline shared-visibility metadata (${colorScheme})`, async ({
+  test(`Memory Create preserves focused capture without the retired sharing block (${colorScheme})`, async ({
     page,
   }, testInfo) => {
     await page.emulateMedia({ colorScheme });
@@ -312,7 +281,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       page.getByRole('heading', { name: de.memory.heading }),
     ).toBeVisible();
 
-    await expectSharingMetadataAligned(page);
+    await expectFocusedMemoryCapture(page);
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: testInfo.outputPath(
@@ -322,7 +291,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     });
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await expectSharingMetadataAligned(page);
+    await expectFocusedMemoryCapture(page);
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: testInfo.outputPath(`shell-memory-create-390-${colorScheme}.png`),
@@ -330,7 +299,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     });
 
     await page.setViewportSize({ width: 390, height: 667 });
-    await expectSharingMetadataAligned(page);
+    await expectFocusedMemoryCapture(page);
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: testInfo.outputPath(
@@ -340,7 +309,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     });
 
     await page.setViewportSize({ width: 320, height: 568 });
-    await expectSharingMetadataAligned(page);
+    await expectFocusedMemoryCapture(page);
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: testInfo.outputPath(
@@ -353,7 +322,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '24px';
     });
-    await expectSharingMetadataAligned(page);
+    await expectFocusedMemoryCapture(page);
     await expectNoHorizontalOverflow(page);
     await page.screenshot({
       path: testInfo.outputPath(
@@ -410,11 +379,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await expect(homeTag).not.toBeChecked();
 
     const axeResult = await new AxeBuilder({ page })
-      .include('.immersive-sharing-note')
-      .include('.memory-tag-choices')
-      .include('.immersive-create-narrative')
-      .include('.immersive-create-title-field')
-      .include('.immersive-create-date-field')
+      .include('.immersive-create-form')
       .withTags([
         'wcag2a',
         'wcag2aa',
@@ -429,7 +394,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 }
 
 for (const width of [390, 320] as const) {
-  test(`Memory Create keeps sharing and the empty photo picker compact at ${width}px (#855)`, async ({
+  test(`Memory Create keeps ordered Places and the empty photo picker compact at ${width}px (#855)`, async ({
     browser,
   }, testInfo) => {
     const context = await browser.newContext({
@@ -448,18 +413,24 @@ for (const width of [390, 320] as const) {
         page.getByRole('heading', { name: de.memory.heading }),
       ).toBeVisible();
 
-      await expectSharingMetadataAligned(page);
+      await expectFocusedMemoryCapture(page);
 
       await showMemoryDetails(page);
 
       const title = page.getByLabel(de.memory.titleLabelOptional);
       const media = page.locator('.immersive-create-media');
-      const picker = media.locator('.file-picker');
+      const picker = media.getByRole('button', {
+        name: photoSources.addMedia,
+        exact: true,
+      });
+      await expect(picker).toBeVisible();
+      await expect(picker).toHaveClass(/photo-source-trigger/);
+      await expect(media.locator('.file-picker')).toHaveCount(0);
       const narrative = page.locator('.immersive-create-narrative');
       const titleField = page.locator('.immersive-create-title-field');
       const dateField = page.locator('.immersive-create-date-field');
       const dateSummary = dateField.locator('.immersive-create-date-summary');
-      const note = page.locator('.immersive-sharing-note');
+      const places = page.locator('.ordered-moment-places');
       const actions = page.locator('.form-actions');
       const saveButton = page.getByRole('button', { name: de.memory.save });
       const quickCreateTrigger = page.locator(
@@ -473,7 +444,7 @@ for (const width of [390, 320] as const) {
         // Assert content order independently of that task ownership boundary.
         const children = Array.from(
           form.querySelectorAll(
-            '.immersive-create-media, .immersive-create-narrative, .immersive-create-title-field, .immersive-create-date-field, .immersive-sharing-note, .form-actions',
+            '.immersive-create-media, .immersive-create-narrative, .immersive-create-title-field, .immersive-create-date-field, .ordered-moment-places, .form-actions',
           ),
         );
         return {
@@ -489,8 +460,8 @@ for (const width of [390, 320] as const) {
           dateFieldIndex: children.findIndex((el) =>
             el.classList.contains('immersive-create-date-field'),
           ),
-          noteIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-sharing-note'),
+          placesIndex: children.findIndex((el) =>
+            el.classList.contains('ordered-moment-places'),
           ),
           actionsIndex: children.findIndex((el) =>
             el.classList.contains('form-actions'),
@@ -505,11 +476,11 @@ for (const width of [390, 320] as const) {
       expect(domOrder.titleFieldIndex).toBeLessThan(domOrder.dateFieldIndex);
       expect(domOrder.dateFieldIndex).toBeLessThan(domOrder.narrativeIndex);
       expect(domOrder.narrativeIndex).toBeLessThan(domOrder.mediaIndex);
-      expect(domOrder.mediaIndex).toBeLessThan(domOrder.noteIndex);
-      expect(domOrder.noteIndex).toBeLessThan(domOrder.actionsIndex);
+      expect(domOrder.mediaIndex).toBeLessThan(domOrder.placesIndex);
+      expect(domOrder.placesIndex).toBeLessThan(domOrder.actionsIndex);
 
       const [
-        noteBox,
+        placesBox,
         mediaBox,
         pickerBox,
         narrativeBox,
@@ -520,7 +491,7 @@ for (const width of [390, 320] as const) {
         mediaBorder,
         pickerBorder,
       ] = await Promise.all([
-        note.boundingBox(),
+        places.boundingBox(),
         media.boundingBox(),
         picker.boundingBox(),
         narrative.boundingBox(),
@@ -532,7 +503,7 @@ for (const width of [390, 320] as const) {
         picker.evaluate((element) => getComputedStyle(element).borderTopStyle),
       ]);
       if (
-        !noteBox ||
+        !placesBox ||
         !mediaBox ||
         !pickerBox ||
         !narrativeBox ||
@@ -544,30 +515,34 @@ for (const width of [390, 320] as const) {
         throw new Error('Memory Create composition did not render.');
       }
 
-      // 1. Authored content (photo, narrative, title, date) precedes the visibility cue
-      expect(mediaBox.y + mediaBox.height).toBeLessThanOrEqual(noteBox.y);
+      // 1. Authored content precedes optional ordered Places.
+      expect(mediaBox.y + mediaBox.height).toBeLessThanOrEqual(placesBox.y);
       expect(narrativeBox.y + narrativeBox.height).toBeLessThanOrEqual(
-        noteBox.y,
+        placesBox.y,
       );
       expect(titleFieldBox.y + titleFieldBox.height).toBeLessThanOrEqual(
-        noteBox.y,
+        placesBox.y,
       );
       expect(dateFieldBox.y + dateFieldBox.height).toBeLessThanOrEqual(
-        noteBox.y,
+        placesBox.y,
       );
 
-      // 2. Visibility cue precedes the primary form action area and Save button
-      expect(noteBox.y + noteBox.height).toBeLessThanOrEqual(actionsBox.y);
-      expect(noteBox.y + noteBox.height).toBeLessThanOrEqual(saveBox.y);
+      // 2. Place enrichment precedes the primary form action area and Save button.
+      expect(placesBox.y + placesBox.height).toBeLessThanOrEqual(actionsBox.y);
+      expect(placesBox.y + placesBox.height).toBeLessThanOrEqual(saveBox.y);
 
-      // 3. Optional enrichment and the completion cue retain deliberate separation
-      const spacingAbove = noteBox.y - (titleFieldBox.y + titleFieldBox.height);
-      const spacingBelow = actionsBox.y - (noteBox.y + noteBox.height);
+      // 3. Optional enrichment and completion retain deliberate separation.
+      const spacingAbove = placesBox.y - (mediaBox.y + mediaBox.height);
+      const spacingBelow = actionsBox.y - (placesBox.y + placesBox.height);
       expect(spacingAbove).toBeGreaterThanOrEqual(10);
       expect(spacingBelow).toBeGreaterThanOrEqual(10);
 
-      // 4. Inline metadata remains a single quiet, compact row
-      expect(noteBox.height).toBeLessThan(40);
+      // 4. Empty Places remain compact and keep a reachable add control.
+      await expect(places.getByRole('listitem')).toHaveCount(0);
+      expect(placesBox.height).toBeLessThan(125);
+      const addPlaceBox = await places.getByRole('button').boundingBox();
+      if (!addPlaceBox) throw new Error('Add Place did not render.');
+      expect(addPlaceBox.height + 0.001).toBeGreaterThanOrEqual(44);
 
       // 5. Media picker remains compact with solid boundaries
       expect(mediaBorder).toBe('solid');
@@ -622,16 +597,16 @@ for (const width of [390, 320] as const) {
         )
         .toBe(closedBg);
 
-      // 7. Floating global Quick Create FAB does not collide with the visibility note
+      // 7. Floating global Quick Create does not collide with optional Places.
       if (await quickCreateTrigger.isVisible()) {
         const fabBox = await quickCreateTrigger.boundingBox();
         if (fabBox) {
           const overlapsHorizontally =
-            noteBox.x < fabBox.x + fabBox.width &&
-            noteBox.x + noteBox.width > fabBox.x;
+            placesBox.x < fabBox.x + fabBox.width &&
+            placesBox.x + placesBox.width > fabBox.x;
           const overlapsVertically =
-            noteBox.y < fabBox.y + fabBox.height &&
-            noteBox.y + noteBox.height > fabBox.y;
+            placesBox.y < fabBox.y + fabBox.height &&
+            placesBox.y + placesBox.height > fabBox.y;
           expect(overlapsHorizontally && overlapsVertically).toBe(false);
         }
       }

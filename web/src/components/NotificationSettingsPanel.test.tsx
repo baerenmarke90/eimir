@@ -7,6 +7,7 @@ import { NotificationKind } from '../api/generated/models/NotificationKind';
 import type { NotificationPreferencesView } from '../api/generated/models/NotificationPreferencesView';
 import type { DevicePushController } from '../client/devicePush';
 import notificationSettings from '../i18n/locales/notificationSettings';
+import gentleCopy from '../i18n/locales/gentlePrompts';
 import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 
 function view(emailAvailable = true): NotificationPreferencesView {
@@ -142,6 +143,83 @@ function deviceController(
 }
 
 describe('NotificationSettingsPanel', () => {
+  it('keeps gentle prompts to one independent off switch even without device permission', async () => {
+    const data = view();
+    data.items.push({
+      kind: NotificationKind.GENTLE_PROMPT,
+      deliveryClass: 'IMMEDIATE',
+      channels: [
+        {
+          channel: NotificationChannel.IN_APP,
+          enabled: false,
+          configurable: false,
+        },
+        {
+          channel: NotificationChannel.PUSH,
+          enabled: false,
+          configurable: true,
+        },
+        {
+          channel: NotificationChannel.EMAIL,
+          enabled: false,
+          configurable: false,
+        },
+      ],
+    });
+    const update = vi.fn(
+      async (request: {
+        kind: NotificationKind;
+        channel: NotificationChannel;
+        notificationPreferenceUpdate: { enabled: boolean };
+      }) => ({
+        kind: request.kind,
+        channel: request.channel,
+        enabled: request.notificationPreferenceUpdate.enabled,
+      }),
+    );
+    setup(data, update);
+    const toggle = await screen.findByRole('switch', {
+      name: gentleCopy.label,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+    expect(screen.getAllByText(gentleCopy.description)).toHaveLength(1);
+    fireEvent.click(toggle);
+    await waitFor(() =>
+      expect(toggle.getAttribute('aria-checked')).toBe('true'),
+    );
+    expect(update).toHaveBeenCalledExactlyOnceWith({
+      kind: NotificationKind.GENTLE_PROMPT,
+      channel: NotificationChannel.PUSH,
+      notificationPreferenceUpdate: { enabled: true },
+    });
+    fireEvent.click(toggle);
+    await waitFor(() =>
+      expect(toggle.getAttribute('aria-checked')).toBe('false'),
+    );
+  });
+
+  it('preserves actual off consent when saving gentle prompts fails', async () => {
+    const data = view();
+    data.items.push({
+      kind: NotificationKind.GENTLE_PROMPT,
+      deliveryClass: 'IMMEDIATE',
+      channels: [
+        {
+          channel: NotificationChannel.PUSH,
+          enabled: false,
+          configurable: true,
+        },
+      ],
+    });
+    setup(data, vi.fn().mockRejectedValue(new Error('network unavailable')));
+    const toggle = await screen.findByRole('switch', {
+      name: gentleCopy.label,
+    });
+    fireEvent.click(toggle);
+    await screen.findByText(notificationSettings.groupFailed);
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+  });
+
   it('preserves mixed event choices on opening and saves a group through its eligible events', async () => {
     const update = vi.fn().mockImplementation(async (request) => ({
       kind: request.kind,

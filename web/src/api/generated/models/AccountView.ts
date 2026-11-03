@@ -27,6 +27,12 @@ export interface AccountView {
     displayName: string;
     /**
      * 
+     * @type {boolean}
+     * @memberof AccountView
+     */
+    gentlePromptsEnabled?: boolean;
+    /**
+     * 
      * @type {string}
      * @memberof AccountView
      */
@@ -53,6 +59,7 @@ export function AccountViewFromJSONTyped(json: any, ignoreDiscriminator: boolean
     return {
         
         'displayName': json['displayName'],
+        'gentlePromptsEnabled': json['gentlePromptsEnabled'] == null ? undefined : json['gentlePromptsEnabled'],
         'id': json['id'],
     };
 }
@@ -69,6 +76,7 @@ export function AccountViewToJSONTyped(value?: AccountView | null, ignoreDiscrim
     return {
         
         'displayName': value['displayName'],
+        'gentlePromptsEnabled': value['gentlePromptsEnabled'],
         'id': value['id'],
     };
 }

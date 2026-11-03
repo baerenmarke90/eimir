@@ -72,6 +72,11 @@ class RequestLoggingMiddleware:
         start_time = time.monotonic()
         status_code = 500
         path = scope.get("path", "")
+        if re.fullmatch(r"/api/v1/spaces/[^/]+/gentle-prompts(?:/.*)?", path):
+            # Own-use receipts and suggestion actions must not become a log-based
+            # behavioral history. Request IDs and normal security checks remain.
+            await self.app(scope, receive, send)
+            return
         method = scope.get("method", "")
 
         async def send_wrapper(message: Message) -> None:

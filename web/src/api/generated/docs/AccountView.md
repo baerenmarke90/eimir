@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `displayName` | string
+`gentlePromptsEnabled` | boolean
 `id` | string
 
 ## Example
@@ -17,6 +18,7 @@ import type { AccountView } from ''
 // TODO: Update the object below with actual values
 const example = {
   "displayName": null,
+  "gentlePromptsEnabled": null,
   "id": null,
 } satisfies AccountView
 

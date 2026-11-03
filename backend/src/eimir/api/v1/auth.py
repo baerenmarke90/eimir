@@ -137,6 +137,7 @@ class RecoveryConsumeRequest(ApiModel):
 class AccountView(ApiModel):
     id: UUID
     display_name: str
+    gentle_prompts_enabled: bool = False
 
 
 class TokenView(ApiModel):
@@ -165,7 +166,11 @@ class SignupSessionView(SessionView):
 
 def _view(result: SignedIn | cloud.SignedIn | oidc.SignedIn | passkeys.SignedIn) -> SessionView:
     return SessionView(
-        account=AccountView(id=result.account.id, display_name=result.account.display_name),
+        account=AccountView(
+            id=result.account.id,
+            display_name=result.account.display_name,
+            gentle_prompts_enabled=result.account.gentle_prompts_enabled,
+        ),
         tokens=TokenView(
             access_token=result.tokens.access_token,
             refresh_token=result.tokens.refresh_token,
@@ -272,7 +277,11 @@ def change_password(
     responses=problem_responses(401),
 )
 def me(account: CurrentAccount) -> AccountView:
-    return AccountView(id=account.id, display_name=account.display_name)
+    return AccountView(
+        id=account.id,
+        display_name=account.display_name,
+        gentle_prompts_enabled=account.gentle_prompts_enabled,
+    )
 
 
 @router.post(

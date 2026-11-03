@@ -396,7 +396,11 @@ class TestExistingCloudUser:
         body = signed_up(cloud_client, mailbox, ANNA, displayName="Ignoriert")
 
         assert body["accountCreated"] is False
-        assert body["account"] == {"id": str(anna.id), "displayName": "Anna"}
+        assert body["account"] == {
+            "id": str(anna.id),
+            "displayName": "Anna",
+            "gentlePromptsEnabled": False,
+        }
         assert accounts_with(session, ANNA) == 1
         session.expire_all()
         email = session.execute(select(AccountEmail).where(AccountEmail.email == ANNA)).scalar_one()

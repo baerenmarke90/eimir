@@ -20,7 +20,7 @@ from pydantic.json_schema import SkipJsonSchema
 
 from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
-from eimir.api.deps import Authorization, DbSession
+from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
@@ -33,6 +33,7 @@ from eimir.api.v1.attachments import AttachmentEntry, AttachmentSummary, Ordered
 from eimir.api.v1.wishes import ETAG_HEADERS, WishDetail, wish_detail
 from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS, BoundAttachment
 from eimir.attachments.models import MediaType
+from eimir.engagement.gentle import record_manual_save
 from eimir.plans import service
 from eimir.plans.media import PhotoSelection, photos_of_plans
 from eimir.plans.models import Plan, PlanStatus
@@ -369,7 +370,7 @@ def _schedule_values(
     },
 )
 def create_plan(
-    authorization: Authorization,
+    authorization: AccountBoundAuthorization,
     session: DbSession,
     response: Response,
     body: PlanCreate,
@@ -393,6 +394,8 @@ def create_plan(
     )
     if not result.created:
         response.status_code = http_status.HTTP_200_OK
+    if result.created:
+        record_manual_save(session, authorization)
     response.headers["ETag"] = etag_for(result.plan.version)
     return _plan_detail(session, authorization, result.plan)
 
@@ -459,7 +462,7 @@ def get_plan(
     responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 409, 422)},
 )
 def update_plan(
-    authorization: Authorization,
+    authorization: AccountBoundAuthorization,
     session: DbSession,
     response: Response,
     body: PlanUpdate,
@@ -483,6 +486,7 @@ def update_plan(
         selected_cover_attachment_id=body.selected_cover_attachment_id,
         schedule_values=_schedule_values(body.schedule) if body.schedule else None,
     )
+    record_manual_save(session, authorization)
     response.headers["ETag"] = etag_for(plan.version)
     return _plan_detail(session, authorization, plan)
 

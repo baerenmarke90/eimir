@@ -11,7 +11,12 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
-from eimir.api.deps import Authorization, DbSession, PhotoBindingAuthorization
+from eimir.api.deps import (
+    AccountBoundAuthorization,
+    Authorization,
+    DbSession,
+    PhotoBindingAuthorization,
+)
 from eimir.api.errors import problem_responses
 from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import (
@@ -24,6 +29,7 @@ from eimir.api.v1.attachments import AttachmentEntry, OrderedAttachmentSummary
 from eimir.attachments import binding
 from eimir.attachments.models import MediaType
 from eimir.domain.experiences import ExperienceKind
+from eimir.engagement.gentle import record_manual_save
 from eimir.memories import places as memory_places
 from eimir.memories import service
 from eimir.memories.models import Memory, PhotoReaction
@@ -270,7 +276,7 @@ def set_memory_photo_reaction(
     },
 )
 def create_memory(
-    authorization: Authorization,
+    authorization: AccountBoundAuthorization,
     session: DbSession,
     response: Response,
     body: MemoryCreate,
@@ -299,6 +305,8 @@ def create_memory(
     )
     if not result.created:
         response.status_code = status.HTTP_200_OK
+    if result.created:
+        record_manual_save(session, authorization)
     response.headers["ETag"] = etag_for(result.memory.version)
     return _memory_detail(session, authorization, result.memory)
 
@@ -363,7 +371,7 @@ def get_memory(
     },
 )
 def update_memory(
-    authorization: Authorization,
+    authorization: AccountBoundAuthorization,
     session: DbSession,
     response: Response,
     body: MemoryUpdate,
@@ -384,6 +392,7 @@ def update_memory(
         place_ids=body.place_ids,
         expected_place_ids=body.expected_place_ids,
     )
+    record_manual_save(session, authorization)
     response.headers["ETag"] = etag_for(memory.version)
     return _memory_detail(session, authorization, memory)
 

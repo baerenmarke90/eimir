@@ -173,8 +173,8 @@ class StoryViewReceipt(ApiModel):
 )
 def record_story_view(
     receipt: StoryViewReceipt,
+    authorization: AccountBoundAuthorization,
     tenant: Tenant,
-    authorization: Authorization,
     session: DbSession,
 ) -> Response:
     """Record an intentional Story detail view without retaining an event history."""
@@ -185,6 +185,10 @@ def record_story_view(
         kind=receipt.kind,
         item_id=receipt.item_id,
     )
+    from eimir.engagement import gentle
+
+    if receipt.kind is StoryKind.MEMORY:
+        gentle.record_use(session, authorization, memory_read=True)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

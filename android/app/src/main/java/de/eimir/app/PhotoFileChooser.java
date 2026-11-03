@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 
-/** Preserve original-photo consent and provide separate video-only selection. */
+/** Preserve original-photo consent for photo, video and combined selection. */
 final class PhotoFileChooser extends BridgeWebChromeClient {
     // The Web intake owns its smaller photo limit and its rejected-file feedback.
     private static final int MAX_RESULT_URIS = 1000;
@@ -81,6 +81,7 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
                         // The modern picker owns its metadata consent. Its grant must
                         // never be upgraded with ACCESS_MEDIA_LOCATION.
                         originals[i] = isVideoSelection(selection.params)
+                                || (isMixedSelection(selection.params) && isSelectedVideo(bridge.getContext(), selected[i]))
                             ? selectedVideos.adopt(bridge.getContext(), selected[i])
                             : selection.pickerMetadata ? selected[i] : originalUri(bridge.getContext(), selected[i]);
                     }
@@ -97,7 +98,7 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
             return true;
         }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
-                || (!isPhotoSelection(params) && !isVideoSelection(params))) {
+                || (!isPhotoSelection(params) && !isVideoSelection(params) && !isMixedSelection(params))) {
             return super.onShowFileChooser(view, callback, params);
         }
         boolean video = isVideoSelection(params);
@@ -177,6 +178,31 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
             && android.os.ext.SdkExtensions.getExtensionVersion(Build.VERSION_CODES.TIRAMISU) >= 23;
     }
 
+    static boolean isMixedSelection(FileChooserParams params) {
+        if (params.isCaptureEnabled()
+                || (params.getMode() != FileChooserParams.MODE_OPEN
+                    && params.getMode() != FileChooserParams.MODE_OPEN_MULTIPLE)) return false;
+        boolean photo = false;
+        boolean video = false;
+        for (String type : params.getAcceptTypes()) {
+            if (type == null) return false;
+            String value = type.toLowerCase(Locale.ROOT);
+            if (value.startsWith("image/")) photo = true;
+            else if (value.startsWith("video/")) video = true;
+            else return false;
+        }
+        return photo && video;
+    }
+
+    private static boolean isSelectedVideo(Context context, Uri selected) {
+        try {
+            String type = context.getContentResolver().getType(selected);
+            return type != null && type.toLowerCase(Locale.ROOT).startsWith("video/");
+        } catch (SecurityException | IllegalArgumentException unavailable) {
+            return false;
+        }
+    }
+
     static Intent mediaIntent(Context context, FileChooserParams params, boolean pickerMetadata) {
         if (isVideoSelection(params)) {
             PickVisualMediaRequest request = new PickVisualMediaRequest.Builder()
@@ -187,7 +213,9 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
         }
         if (pickerMetadata) {
             PickVisualMediaRequest request = new PickVisualMediaRequest.Builder()
-                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE).build();
+                .setMediaType(isMixedSelection(params)
+                    ? ActivityResultContracts.PickVisualMedia.ImageAndVideo.INSTANCE
+                    : ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE).build();
             Intent intent = params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE
                 ? new ActivityResultContracts.PickMultipleVisualMedia().createIntent(context, request)
                 : new ActivityResultContracts.PickVisualMedia().createIntent(context, request);
@@ -198,7 +226,7 @@ final class PhotoFileChooser extends BridgeWebChromeClient {
         // grants support authorized originals; old ACTION_PICK_IMAGES grants do not.
         // Chromium may use */* for a list of image MIME types. Keep the image
         // category explicit so Android routes it to the media picker.
-        Intent intent = params.createIntent().setType("image/*");
+        Intent intent = params.createIntent().setType(isMixedSelection(params) ? "*/*" : "image/*");
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,
             params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
         intent.putExtra(Intent.EXTRA_MIME_TYPES, params.getAcceptTypes().clone());

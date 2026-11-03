@@ -1,3 +1,4 @@
+import photoSources from '../../src/i18n/locales/photoSources';
 import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -350,6 +351,9 @@ async function fillMemory(page: Page, withPhoto = false) {
     .fill(TITLE);
   await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(BODY);
   if (withPhoto) {
+    await page
+      .getByRole('button', { name: photoSources.addMedia, exact: true })
+      .click();
     await page.locator('#memory-create-images').setInputFiles({
       name: 'river.jpg',
       mimeType: 'image/jpeg',
@@ -549,6 +553,9 @@ test('photo-only Quick Create saves a Memory without text and returns to its sco
   await expect(
     page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
   ).toHaveValue('');
+  await page
+    .getByRole('button', { name: photoSources.addMedia, exact: true })
+    .click();
   await page.locator('#memory-create-images').setInputFiles({
     name: 'river.jpg',
     mimeType: 'image/jpeg',
@@ -1100,6 +1107,9 @@ test('failed uploads retain authored content and can retry before the first crea
   await signIn(page);
   await openMemory(page);
   await fillMemory(page);
+  await page
+    .getByRole('button', { name: photoSources.addMedia, exact: true })
+    .click();
   await page.locator('#memory-create-images').setInputFiles({
     name: 'river.jpg',
     mimeType: 'image/jpeg',

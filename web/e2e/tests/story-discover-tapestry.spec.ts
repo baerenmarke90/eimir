@@ -601,7 +601,7 @@ test('Momente Discover tapestry is axe-clean in dark mode', async ({
 
 test('Momente Discover uses two compact rediscovery columns and a separate full Diary on mobile with no horizontal overflow', async ({
   page,
-}) => {
+}, info) => {
   const unexpectedRequests = await installDiscoverApiMocks(page);
   await page.setViewportSize({ width: 390, height: 1800 });
   await page.goto('/story?tab=discover');
@@ -632,6 +632,17 @@ test('Momente Discover uses two compact rediscovery columns and a separate full 
         .length,
   );
   expect(columnCount).toBe(2);
+  const frames = page.locator('.momente-tapestry-media-frame');
+  await expect(frames).toHaveCount(6);
+  const ratios = await frames.evaluateAll((elements) =>
+    elements.map((element) => getComputedStyle(element).aspectRatio),
+  );
+  expect(ratios).toContain('2 / 3');
+  expect(ratios).toContain('4 / 3');
+  await page.screenshot({
+    path: info.outputPath('1614-moments-390-light.png'),
+    fullPage: true,
+  });
 
   const dimensions = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,

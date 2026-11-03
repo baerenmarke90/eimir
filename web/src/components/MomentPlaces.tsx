@@ -173,7 +173,7 @@ export function MomentPlaces({
       >
         {t('photoPlaces.title')}
       </h2>
-      {canManage && !denied && !query.isPending && items.length === 0 ? (
+      {canManage && !denied && !query.isPending ? (
         <button
           ref={addTrigger}
           type="button"

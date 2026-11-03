@@ -1,3 +1,4 @@
+import photoSources from '../../src/i18n/locales/photoSources';
 import { swipeCarousel } from '../support/mediaCarouselGesture';
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
@@ -236,16 +237,16 @@ for (const [width, colorScheme] of [
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
       .fill(momentBody);
-    await page.locator('input[type=file][accept^="image/"]').setInputFiles({
-      name: 'lake.jpg',
-      mimeType: 'image/jpeg',
-      buffer: image,
-    });
-    await page.locator('input[type=file][accept^="video/"]').setInputFiles({
-      name: 'jump.mp4',
-      mimeType: 'video/mp4',
-      buffer: movie,
-    });
+    await page
+      .getByRole('button', { name: photoSources.addMedia, exact: true })
+      .click();
+    const device = page.locator('input[type=file][accept^="image/"]');
+    await expect(device).toHaveAttribute('accept', /image\/jpeg.*video\/mp4/);
+    await expect(page.locator('input[type=file]')).toHaveCount(1);
+    await device.setInputFiles([
+      { name: 'sunrise.jpg', mimeType: 'image/jpeg', buffer: image },
+      { name: 'jump.mp4', mimeType: 'video/mp4', buffer: movie },
+    ]);
     await expect(page.locator('.photo-draft-tile')).toHaveCount(2);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
@@ -343,12 +344,73 @@ for (const [width, colorScheme] of [
   });
 }
 
+test('source selection waits for video eligibility and preserves photo fallback through an explicit retry', async ({
+  page,
+}) => {
+  const { unknown } = await setup(page, {});
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let requests = 0;
+  await page.route('**/attachment-upload-policy', async (route) => {
+    requests++;
+    if (requests === 1) {
+      await gate;
+      await route.fulfill({
+        status: 503,
+        json: { status: 503, code: 'UNAVAILABLE' },
+      });
+    } else
+      await route.fulfill({
+        json: {
+          acceptedMimeTypes: ['image/jpeg', 'video/mp4', 'video/quicktime'],
+          videoProcessingEnabled: true,
+          videoUploadAllowed: true,
+          videoMaxBytes: 262144000,
+          videoMaxDurationSeconds: 180,
+        },
+      });
+  });
+  await signIn(page);
+  await page.goto('/story/memories/new');
+  const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
+  await body.fill(momentBody);
+  await page
+    .getByRole('button', { name: photoSources.addMedia, exact: true })
+    .click();
+  const input = page.locator('#memory-create-images');
+  await expect(input).toBeDisabled();
+  release();
+  await expect(
+    page.getByText(photoSources.videoAvailabilityUnavailable, { exact: true }),
+  ).toBeVisible();
+  await expect(input).toBeEnabled();
+  await expect(input).not.toHaveAttribute('accept', /video/);
+  expect(requests).toBe(1);
+  await page
+    .getByRole('button', { name: de.common.retry, exact: true })
+    .click();
+  await expect(input).toHaveAttribute('accept', /image\/jpeg.*video\/mp4/);
+  expect(requests).toBe(2);
+  await page
+    .getByRole('dialog', { name: photoSources.addMedia })
+    .locator('.photo-source-footer')
+    .getByRole('button', { name: taskSheets.close, exact: true })
+    .click();
+  await expect(body).toHaveValue(momentBody);
+  expect(unknown).toEqual([]);
+});
+
 test('Pro explanation preserves the current Memory draft', async ({ page }) => {
   const { unknown } = await setup(page, { allowed: false });
   await signIn(page);
   await page.goto('/story/memories/new');
   const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
   await body.fill(momentBody);
+  await page
+    .getByRole('button', { name: photoSources.addMedia, exact: true })
+    .click();
   await page.getByRole('button', { name: new RegExp(videoCopy.add) }).click();
   const sheet = page.getByRole('dialog', { name: videoCopy.proTitle });
   await expect(sheet).toContainText(videoCopy.proBody);

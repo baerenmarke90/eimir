@@ -53,14 +53,12 @@ import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
-import { DestinationIcon } from './DestinationIcon';
 import { type MemoryTag, MemoryTagChoices } from './MemoryTagChoices';
 import {
   MomentPlaceField,
   type MomentPlaceSelection,
 } from './MomentPlaceField';
 import { PageHeader } from './PageHeader';
-import { PhotoSourcePicker } from './PhotoSourcePicker';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryCreatePageShell } from './StoryFormPageShell';
@@ -934,18 +932,18 @@ export function MemoryCreatePage({
                   id="memory-create-images"
                   videoContext={{ apis, accountId, spaceId }}
                   attachments={attachments}
+                  sourceContext={{
+                    apiBaseUrl,
+                    accessToken,
+                    accountId,
+                    spaceId,
+                    remaining: Math.max(
+                      0,
+                      MAX_MEMORY_ATTACHMENTS - attachments.items.length,
+                    ),
+                    beginSelection: attachments.beginSelection,
+                  }}
                   multiple
-                />
-                <PhotoSourcePicker
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={accessToken}
-                  accountId={accountId}
-                  spaceId={spaceId}
-                  remaining={Math.max(
-                    0,
-                    MAX_MEMORY_ATTACHMENTS - attachments.items.length,
-                  )}
-                  beginSelection={attachments.beginSelection}
                 />
               </div>
             ) : null}
@@ -983,25 +981,6 @@ export function MemoryCreatePage({
                 />
               </details>
             ) : null}
-            <div
-              className="sharing-note immersive-sharing-note"
-              role="note"
-              aria-label={t('memory.visibilityAria')}
-            >
-              <span className="sharing-icon" aria-hidden="true">
-                <DestinationIcon icon="people" />
-              </span>
-              <div>
-                <strong>{t('memory.sharedTitle')}</strong>
-                <p>
-                  {t(
-                    experienceKind
-                      ? 'coupleExperiences.shareHint'
-                      : 'memory.sharedBody',
-                  )}
-                </p>
-              </div>
-            </div>
           </fieldset>
           {dirty &&
           !diaryDraft.recovery &&

@@ -1,3 +1,4 @@
+import photoSources from '../../src/i18n/locales/photoSources';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -513,6 +514,9 @@ for (const view of [
         content: 'html { font-size: 200% !important; }',
       });
     await page.locator('#planning-create-title').fill(TITLE);
+    await page
+      .getByRole('button', { name: photoSources.addMedia, exact: true })
+      .click();
     await page
       .locator('#plan-photos')
       .setInputFiles([

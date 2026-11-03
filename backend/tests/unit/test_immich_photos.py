@@ -104,6 +104,56 @@ def reader() -> photos.ImmichSelectedPhotoReader:
     return photos.ImmichSelectedPhotoReader(ORIGIN, SecretStr(KEY))
 
 
+@pytest.mark.parametrize(
+    ("body", "expected_mime", "extension"),
+    [
+        (b"\xff\xd8\xffsynthetic", "image/jpeg", "jpg"),
+        (b"RIFF\x04\x00\x00\x00WEBPsynthetic", "image/webp", "webp"),
+    ],
+)
+def test_thumbnail_normalizes_immich_generic_binary_type_without_fetching_originals(
+    monkeypatch: pytest.MonkeyPatch, body: bytes, expected_mime: str, extension: str
+) -> None:
+    sockets, _, _, _ = setup_transport(
+        monkeypatch,
+        [
+            http_response(metadata(ownerId=ASSET)),
+            http_response(body, mime="application/octet-stream"),
+        ],
+    )
+    result = reader().thumbnail(ASSET, ASSET)
+    assert result.content == body
+    assert result.mime_type == expected_mime
+    assert result.filename == "preview." + extension
+    assert bytes(sockets[1].sent).startswith(
+        f"GET /api/assets/{ASSET}/thumbnail?size=thumbnail HTTP/1.1\r\n".encode()
+    )
+
+
+@pytest.mark.parametrize(
+    ("body", "mime"),
+    [
+        (b"<html>upstream failure</html>", "application/octet-stream"),
+        (b"RIFF\x04\x00\x00\x00WEBPsynthetic", "image/jpeg"),
+    ],
+)
+def test_thumbnail_does_not_forward_nonimages_or_mislabeled_bytes(
+    monkeypatch: pytest.MonkeyPatch, body: bytes, mime: str
+) -> None:
+    setup_transport(
+        monkeypatch, [http_response(metadata(ownerId=ASSET)), http_response(body, mime=mime)]
+    )
+    with pytest.raises(photos.ImmichPhotoError, match="PHOTO_SOURCE_RESPONSE_INVALID"):
+        reader().thumbnail(ASSET, ASSET)
+
+
+def test_thumbnail_never_reads_a_different_accounts_bytes(monkeypatch: pytest.MonkeyPatch) -> None:
+    _, factory, _, _ = setup_transport(monkeypatch, [http_response(metadata(ownerId="other"))])
+    with pytest.raises(photos.ImmichPhotoError, match="PHOTO_SOURCE_IMAGE_UNAVAILABLE"):
+        reader().thumbnail(ASSET, ASSET)
+    assert factory.call_count == 1
+
+
 def test_reads_only_selected_id_with_header_secret_and_actual_pinned_socket(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

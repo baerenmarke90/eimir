@@ -9,8 +9,8 @@
         "migrate"
       ],
       "sbom": "sbom/backend-runtime.spdx.json",
-      "sbomSha256": "21b96e74873e75f18e43cc8ab207495153a021506a01f19fcceacbba82b84890",
-      "sha256": "802acbfa114d9c572c997e1a8bc0bba0f5047e3cea29bc11a45b8fccc63f2766"
+      "sbomSha256": "610d50e0ea79739c5729fd1faa8e5cb2b6ca5c0aab0d4d9e6bc02e661aef6cd5",
+      "sha256": "f668aad6e96e5fe016fa772986729e638aeaf876087f30afd9bc71d82b1b0fa7"
     },
     {
       "id": "web-runtime",
@@ -19,8 +19,8 @@
         "web"
       ],
       "sbom": "sbom/web-runtime.spdx.json",
-      "sbomSha256": "9d12bc6ffcf1e2ad609a5be7ef6a19e6a067f5f76620ee0852aab78a7913005a",
-      "sha256": "5c50a8b1962a528f6342ebf7e3e090ba6f89a096cacbc7fd04e490e31bde3442"
+      "sbomSha256": "881cd17d7f4f32b3e2c160c0b4e9e76308a1f78c7ca1eaf7b7fedec6dd72f19d",
+      "sha256": "3e889a5dd408e45bec71c3e59fabd2975d88273a63ab03bd4de8fbd5d9a51675"
     },
     {
       "id": "media-runtime",
@@ -29,18 +29,18 @@
         "video-worker"
       ],
       "sbom": "sbom/media-runtime.spdx.json",
-      "sbomSha256": "b8fa566620cd067db37d64148363ffa3664b94f74e67d0a4dc18156bafa9a9de",
-      "sha256": "572b70057401533172d9e87e32e5e068d14022073b8b8184ff0fc53b5cbd393c"
+      "sbomSha256": "de587069c63a5de38e5debedc8030d7030b3360aeb993f37d31d577bbe96494e",
+      "sha256": "71b29343c9f94125bd3ca19907c226663a9a442c2e5ee399938ee4aa7c89e995"
     }
   ],
   "canonicalComposeSha256": "a6d99e8f42497aeae5bf33a320e9879d50b6154ccc02385b9b6161810340a204",
-  "evidenceRun": "https://github.com/baerenmarke90/eimir/actions/runs/41691898448",
+  "evidenceRun": "https://github.com/baerenmarke90/eimir/actions/runs/41737352438",
   "images": {
-    "backend": "ghcr.io/baerenmarke90/eimir-backend@sha256:0bc665e3ef7653129de37cf4e0b46aee72e2b4621f75ead998bf7edb4881da07",
-    "media": "ghcr.io/baerenmarke90/eimir-media@sha256:6497fd058ae5fd9e0c5e467939598756600b46218a6528300a0ca4e1768c3047",
-    "web": "ghcr.io/baerenmarke90/eimir-web@sha256:6645a3fbb92f1caa3657ca4db8d6a75cccc4d8aea7f104f0edabac14a16bb9f3"
+    "backend": "ghcr.io/baerenmarke90/eimir-backend@sha256:2f0f1357f60ce293711a7d37382560253cfad86f04c5e4290563c72136c1b62d",
+    "media": "ghcr.io/baerenmarke90/eimir-media@sha256:f370205d3d521575223fcb1e2a4ed6e8c583d33d1326bc2c384af50452c8c99f",
+    "web": "ghcr.io/baerenmarke90/eimir-web@sha256:937bd5711f3b3f9ec1e49833ff0bb2e9a4d0cbb210bc5fb9a6ebb6e0793739f7"
   },
   "kind": "eimir-private-test-channel",
   "schemaVersion": 1,
-  "sourceRevision": "633fc6afa3e74bb3bf58b4c79649c1be0d7c6b21"
+  "sourceRevision": "cf71ad7784497f9efd4037bb2276af593803de30"
 }

@@ -141,6 +141,7 @@ def before_delete(session: Session, context: AuthorizationContext, memory: Memor
         replacement = remaining[0].id
         for entry in remaining:
             entry.experience_root_id = replacement
+            flag_modified(entry, "updated_at")
         session.execute(
             update(Comment)
             .where(

@@ -1,4 +1,10 @@
 const de = {
+  sharedExperience: {
+    question: 'Was hat euren heutigen Tag schön beginnen lassen?',
+    ownInitial: 'Unser Kaffee zusammen.',
+    partnerAnswer: 'Dein Lächeln am Morgen.',
+    ownEdited: 'Unser Kaffee und ein langer gemeinsamer Spaziergang.',
+  },
   memoryExperiences: {
     body: 'Unser Wochenende am See.',
   },

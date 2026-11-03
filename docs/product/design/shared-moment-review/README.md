@@ -49,7 +49,9 @@ The shared question/date is immutable to an individual response edit. Deleting
 one's response retains the partner's response and moves the shared discussion if
 a new canonical root is needed. Export retains the original authored sources;
 import does not replay partner notifications. Older response contracts still show
-the existing body/gallery instead of an empty screen.
+the existing body/gallery instead of an empty screen. Response deep links retain
+their identity while intentional-view receipts resolve to the shared canonical
+source, including older clients posting the response ID.
 
 ## Cross-cutting review
 

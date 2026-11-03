@@ -223,7 +223,7 @@ export function MemoryProductPage({
     apis,
     spaceId,
     kind: 'MEMORY',
-    itemId: memoryId ?? '',
+    itemId: memoryQuery.data?.value.experienceRootId ?? memoryId ?? '',
     presented: mode === 'detail' && memoryQuery.isSuccess,
   });
 
@@ -563,7 +563,11 @@ export function MemoryProductPage({
     .sort((left, right) => left.position - right.position);
 
   if (mode === 'edit') {
-    if (!memory.capabilities.canEdit || offline) {
+    if (
+      !memory.capabilities.canEdit ||
+      offline ||
+      (memory.experienceKind && memory.authorId !== currentAccountId)
+    ) {
       return (
         <div className="page page-reading">
           <PageHeader
@@ -1002,7 +1006,11 @@ export function MemoryProductPage({
         ) : undefined
       }
       titleAction={
-        !memory.experienceKind && memory.capabilities.canEdit && !offline ? (
+        (!memory.experienceKind ||
+          (!memory.experienceAnswers?.length &&
+            memory.authorId === currentAccountId)) &&
+        memory.capabilities.canEdit &&
+        !offline ? (
           <StoryDetailEditLink
             to={memoryEditPath(memory.id)}
             label={t('memoryProduct.edit')}

@@ -412,6 +412,19 @@ describe('Memory view receipt', () => {
     });
   });
 
+  it('records the shared source when a response detail is opened from a notification', async () => {
+    const { recordStoryViewMock, resolveQuery, memory } = setupReceiptTest();
+    memory.experienceKind = 'HAPPINESS';
+    memory.experienceRootId = 'shared-source';
+    resolveQuery(memory);
+    expect(await screen.findByText('A shared evening')).toBeTruthy();
+    expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
+    expect(recordStoryViewMock).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      storyViewReceipt: { kind: 'MEMORY', itemId: 'shared-source' },
+    });
+  });
+
   it('does not damage or replace the presented page if recordStoryView POST fails', async () => {
     const recordStoryViewMock = vi
       .fn()

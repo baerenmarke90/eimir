@@ -3,6 +3,10 @@ import { expect, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import copy from '../../src/i18n/locales/coupleExperiences';
+import photoPlaces from '../../src/i18n/locales/photoPlaces';
+import storyProducts from '../../src/i18n/locales/storyProducts';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import localizedFixture from '../fixtures/locales/de';
 import {
   installMocks,
   signIn,
@@ -12,6 +16,8 @@ import {
   SPACE_ID,
   DETAIL_COMMENTS,
 } from '../support/storyTimelineFixture';
+
+const fixture = localizedFixture.sharedExperience;
 
 for (const [width, theme] of [
   [360, 'light'],
@@ -28,8 +34,8 @@ for (const [width, theme] of [
       strict: true,
       withDetailComments: true,
     });
-    const question = 'Was hat euren heutigen Tag schön beginnen lassen?';
-    let ownBody = 'Unser Kaffee zusammen.';
+    const question = fixture.question;
+    let ownBody = fixture.ownInitial;
     let version = 3;
     const readonly = { canEdit: false, canDelete: false, canComment: true };
     const own = { canEdit: true, canDelete: true, canComment: true };
@@ -37,7 +43,7 @@ for (const [width, theme] of [
       {
         id: 'mem-canal',
         author: PARTNER,
-        body: 'Dein Lächeln am Morgen.',
+        body: fixture.partnerAnswer,
         version: 2,
         capabilities: readonly,
         attachments: [],
@@ -57,7 +63,7 @@ for (const [width, theme] of [
       authorId: id === 'mem-canal' ? PARTNER.id : ME.id,
       author: id === 'mem-canal' ? PARTNER : ME,
       title: question,
-      body: id === 'mem-canal' ? 'Dein Lächeln am Morgen.' : ownBody,
+      body: id === 'mem-canal' ? fixture.partnerAnswer : ownBody,
       happenedOn: '2026-09-16',
       happenedUntil: null,
       createdAt: '2026-09-16T08:00:00Z',
@@ -121,27 +127,27 @@ for (const [width, theme] of [
     const timeline = page.locator('.story-timeline');
     await expect(timeline.locator('.experience-answer')).toHaveCount(2);
     await expect(timeline).toContainText(ownBody);
-    await expect(timeline).toContainText('Dein Lächeln am Morgen.');
+    await expect(timeline).toContainText(fixture.partnerAnswer);
     await captureScreenshot(
       page,
       info,
       `shared-answers-journal-${width}-${theme}.png`,
       { fullPage: true },
     );
-    await timeline
-      .getByRole('link', { name: new RegExp(question.replace(/[?]/g, '\\?')) })
-      .click();
+    await timeline.getByRole('link', { name: question }).click();
     await expect(page.locator('.experience-answer')).toHaveCount(2);
     await expect(
       page.getByRole('link', { name: copy.editOwnAnswer }),
     ).toHaveCount(1);
     await expect(
-      page.getByRole('button', { name: 'Ort hinzufügen', exact: true }),
+      page.getByRole('button', { name: photoPlaces.add, exact: true }),
     ).toHaveCount(0);
     const comments = page.locator('.comment-card');
     await expect(comments.nth(0)).toContainText('Still smiling about this.');
     await expect(comments.nth(1)).toContainText('Me too.');
-    await expect(page.locator('.comment-list')).not.toContainText('von dir');
+    await expect(page.locator('.comment-list')).not.toContainText(
+      storyProducts.comments.authorSelf,
+    );
     const violations = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
       .analyze();
@@ -161,18 +167,18 @@ for (const [width, theme] of [
     ).not.toBeVisible();
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
-      .fill('Unser Kaffee und ein langer gemeinsamer Spaziergang.');
+      .fill(fixture.ownEdited);
     await page
       .getByRole('button', { name: memoryProduct.save, exact: true })
       .click();
     await expect(page.locator('.experience-answer')).toContainText([
-      'Dein Lächeln am Morgen.',
-      'Unser Kaffee und ein langer gemeinsamer Spaziergang.',
+      fixture.partnerAnswer,
+      fixture.ownEdited,
     ]);
-    expect(writes).toEqual([
-      'Unser Kaffee und ein langer gemeinsamer Spaziergang.',
-    ]);
-    await page.getByRole('button', { name: 'Zurück', exact: true }).click();
+    expect(writes).toEqual([fixture.ownEdited]);
+    await page
+      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .click();
     // The confirmed editor replaces itself with the actual result; Back restores the journal origin.
     await expect(
       page.getByRole('tab', { name: de.story.tabTimeline, exact: true }),

@@ -193,6 +193,19 @@ def require_readable_story_item(
     found = session.execute(
         _leg(kind, context, year=None).where(model.id == identifier).with_for_update(read=True)
     ).one_or_none()
+    if found is None and kind is StoryKind.MEMORY:
+        canonical_id = session.scalar(
+            readable(Memory, context)
+            .where(Memory.id == identifier)
+            .with_only_columns(Memory.experience_root_id)
+        )
+        if canonical_id is not None and canonical_id != identifier:
+            identifier = canonical_id
+            found = session.execute(
+                _leg(kind, context, year=None)
+                .where(model.id == identifier)
+                .with_for_update(read=True)
+            ).one_or_none()
     if found is None:
         raise absence_of(model).error()
     return identifier

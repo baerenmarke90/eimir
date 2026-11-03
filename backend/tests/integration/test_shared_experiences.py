@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 from zipfile import ZipFile
 
@@ -406,6 +406,22 @@ def test_shared_answers_keep_one_journal_item_and_author_only_writes(
     )
     assert second.status_code == 201, second.text
     reply = second.json()
+    from eimir.story.view_models import StoryItemViewAggregate
+
+    for source in (root["id"], reply["id"]):
+        receipt = client.post(
+            path(actors, "story-views"),
+            headers=auth(actors["token_b"]),
+            json={"kind": "MEMORY", "itemId": source},
+        )
+        assert receipt.status_code == 204, receipt.text
+    aggregate = session.scalar(
+        select(StoryItemViewAggregate).where(
+            StoryItemViewAggregate.space_id == actors["space"].id,
+            StoryItemViewAggregate.viewer_account_id == actors["b"].id,
+        )
+    )
+    assert aggregate.item_id == UUID(root["id"]) and aggregate.distinct_view_days_capped == 1
     assert reply["title"] == root["title"] and reply["experienceRootId"] == root["id"]
     duplicate = client.post(
         path(actors),
@@ -457,8 +473,9 @@ def test_shared_answers_keep_one_journal_item_and_author_only_writes(
     assert invalid_question.status_code == 422
 
 
+@pytest.mark.parametrize("mode", ["disabled", "migrating"])
 def test_legacy_responses_reconcile_without_moving_content_and_survive_author_deletion_of_answer(
-    client, session: Session, actors
+    client, session: Session, actors, encryption, mode
 ):  # type: ignore[no-untyped-def]
     from datetime import date
 
@@ -467,6 +484,7 @@ def test_legacy_responses_reconcile_without_moving_content_and_survive_author_de
     from eimir.comments.models import CommentTarget
     from eimir.memories.models import MemoryPayload
 
+    encryption.apply(mode)
     memories = []
     for author, text in [(actors["a"], "First answer"), (actors["b"], "Second answer")]:
         entry = Memory(
@@ -475,6 +493,8 @@ def test_legacy_responses_reconcile_without_moving_content_and_survive_author_de
             privacy_class=PrivacyClass.SPACE_SHARED.value,
             experience_kind="HAPPINESS",
             happened_on=date(2020, 6, 12),
+            created_at=datetime(2020, 6, 12, 8, tzinfo=UTC),
+            updated_at=datetime(2020, 6, 12, 8, tzinfo=UTC),
             payload=MemoryPayload(title="What made today beautiful?", body=text),
         )
         session.add(entry)
@@ -488,6 +508,8 @@ def test_legacy_responses_reconcile_without_moving_content_and_survive_author_de
         target_id=memories[1].id,
         body="A shared conversation",
     )
+    discussion.created_at = discussion.updated_at = datetime(2020, 6, 12, 9, tzinfo=UTC)
+    session.flush()
     original_ids = [entry.id for entry in memories]
     authored_timestamps = [entry.updated_at for entry in memories]
     comment_timestamp = discussion.updated_at
@@ -508,6 +530,8 @@ def test_legacy_responses_reconcile_without_moving_content_and_survive_author_de
     survivor = client.get(path(actors), headers=auth(actors["token_b"])).json()["items"]
     assert len(survivor) == 1 and survivor[0]["id"] == str(original_ids[1])
     assert survivor[0]["experienceAnswers"][0]["body"] == "Second answer"
+    assert memories[1].updated_at == authored_timestamps[1]
+    assert discussion.updated_at == comment_timestamp
     thread = client.get(
         path(actors) + "/" + survivor[0]["id"] + "/comments", headers=auth(actors["token_b"])
     ).json()

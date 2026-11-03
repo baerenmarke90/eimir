@@ -332,7 +332,8 @@ export function CoupleExperiencePage({
                             {entry.author.displayName}
                           </span>
                           {entry.title ? <h3>{entry.title}</h3> : null}
-                          {entry.experienceKind ? (
+                          {entry.experienceKind &&
+                          entry.experienceAnswers?.length ? (
                             <ExperienceAnswers
                               answers={entry.experienceAnswers ?? []}
                               kind={entry.experienceKind}

@@ -239,7 +239,7 @@ for (const scenario of [
     ).toBeVisible();
     await expect(
       page.getByRole('button', { name: copy.add, exact: true }),
-    ).toHaveCount(1);
+    ).toHaveCount(0);
     await page
       .getByRole('link', { name: memoryProduct.edit, exact: true })
       .click();
@@ -267,7 +267,7 @@ for (const scenario of [
     });
     expect(links).toBe(0);
     await expect(page.getByText(place.name, { exact: true })).toBeVisible();
-    await expect(page.locator('.moment-place-overflow')).toHaveCount(1);
+    await expect(page.locator('.moment-place-overflow')).toHaveCount(0);
     expect(
       (
         await new AxeBuilder({ page })

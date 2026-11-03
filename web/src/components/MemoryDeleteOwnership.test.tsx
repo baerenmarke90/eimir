@@ -134,6 +134,10 @@ function setup() {
                   />
                 }
               />
+              <Route
+                path="/story/memories/:memoryId"
+                element={<h1>Memory detail</h1>}
+              />
               <Route path="/story" element={<h1>Timeline</h1>} />
               <Route path="/away" element={<h1>Another task</h1>} />
             </Routes>
@@ -465,8 +469,15 @@ describe('Memory delete response and task ownership', () => {
   }
   it('restores global pending protection after a real leave and return without reviving navigation ownership', async () => {
     const s = setup();
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByRole('textbox', { name: de.memory.titleLabel }),
+      ' — later draft',
+    );
     await s.start();
-    await s.leave();
+    await user.click(screen.getByRole('link', { name: de.common.cancel }));
+    await screen.findByRole('heading', { name: 'Memory detail' });
+    expect(s.path()).toBe('/story/memories/memory-1');
     await userEvent
       .setup()
       .click(screen.getByRole('link', { name: 'Return to first editor' }));

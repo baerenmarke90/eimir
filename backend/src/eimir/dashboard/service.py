@@ -18,7 +18,7 @@ from sqlalchemy import Date, and_, case, cast, extract, func, or_, select
 from sqlalchemy.orm import InstrumentedAttribute, Session
 from sqlalchemy.sql.elements import ColumnElement
 
-from eimir.attachments.binding import attachments_of_memories
+from eimir.attachments.binding import attachments_of_memories, cover_of
 from eimir.attachments.models import AttachmentStatus
 from eimir.authorization import AuthorizationContext, PrivacyClass, readable
 from eimir.chapters.models import Chapter
@@ -475,15 +475,18 @@ def _retrospective(
 
     if chosen.type == DashboardItemType.MEMORY:
         galleries = attachments_of_memories(session, [chosen.id])
-        for bound in galleries.get(chosen.id, []):
-            if bound.attachment.status == AttachmentStatus.READY:
-                chosen = replace(
-                    chosen,
-                    preview_attachment_id=bound.attachment.id,
-                    preview_is_sensitive=bound.attachment.payload.is_sensitive,
-                    preview_has_thumbnail=bound.attachment.has_thumbnail,
-                )
-                break
+        memory = session.get(Memory, chosen.id)
+        preview = cover_of(
+            galleries.get(chosen.id, []),
+            memory.payload.selected_cover_attachment_id if memory else None,
+        )
+        if preview and preview.status == AttachmentStatus.READY:
+            chosen = replace(
+                chosen,
+                preview_attachment_id=preview.id,
+                preview_is_sensitive=preview.payload.is_sensitive,
+                preview_has_thumbnail=preview.has_thumbnail,
+            )
     return chosen
 
 
@@ -732,12 +735,13 @@ def _recent_shared(
         preview_id = None
         preview_sensitive = False
         preview_has_thumbnail = False
-        for bound in memory_galleries.get(memory.id, []):
-            if bound.attachment.status == AttachmentStatus.READY:
-                preview_id = bound.attachment.id
-                preview_sensitive = bound.attachment.payload.is_sensitive
-                preview_has_thumbnail = bound.attachment.has_thumbnail
-                break
+        preview = cover_of(
+            memory_galleries.get(memory.id, []), memory.payload.selected_cover_attachment_id
+        )
+        if preview and preview.status == AttachmentStatus.READY:
+            preview_id = preview.id
+            preview_sensitive = preview.payload.is_sensitive
+            preview_has_thumbnail = preview.has_thumbnail
         candidates.append(
             DashboardItem(
                 type=DashboardItemType.MEMORY,

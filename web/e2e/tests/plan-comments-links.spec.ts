@@ -20,7 +20,11 @@ const copy = storyProducts.comments;
 
 async function openPlan(
   page: Page,
-  options: { failCreate?: boolean; canComment?: boolean } = {},
+  options: {
+    failCreate?: boolean;
+    canComment?: boolean;
+    enriched?: boolean;
+  } = {},
 ) {
   const unknown = await installMocks(page, { strict: true });
   const calls = {
@@ -36,15 +40,17 @@ async function openPlan(
     id: PLAN_ID,
     spaceId: SPACE_ID,
     title: 'Picnic in the park',
-    description: `Pick a spot for our picnic.\n${DESCRIPTION_URL}`,
+    description: options.enriched
+      ? `${'A shared afternoon in the park with room for a long conversation. '.repeat(25)}\n${DESCRIPTION_URL}`
+      : `Pick a spot for our picnic.\n${DESCRIPTION_URL}`,
     status: 'PLANNED',
     plannedOn: '2099-09-14',
     plannedStart: null,
     plannedEnd: null,
     experiencedOn: null,
     anticipationEnabled: false,
-    sourceWishId: null,
-    placeId: null,
+    sourceWishId: options.enriched ? 'wish-outside' : null,
+    placeId: options.enriched ? 'place-park' : null,
     createdBy: ACCOUNT_ID,
     creator: { id: ACCOUNT_ID, displayName: 'Lea' },
     createdAt: '2026-11-01T10:00:00Z',
@@ -74,7 +80,29 @@ async function openPlan(
       });
     if (path === `${base}/places` && method === 'GET')
       return route.fulfill({
-        json: { items: [], hasMore: false, nextCursor: null },
+        json: {
+          items: options.enriched
+            ? [
+                {
+                  id: 'place-park',
+                  spaceId: SPACE_ID,
+                  name: 'Riverside park',
+                  address: '12 River Lane',
+                  description: null,
+                  latitude: null,
+                  longitude: null,
+                  creator: plan.creator,
+                  createdBy: ACCOUNT_ID,
+                  createdAt: plan.createdAt,
+                  updatedAt: plan.updatedAt,
+                  version: 1,
+                  capabilities: CAPABILITIES,
+                },
+              ]
+            : [],
+          hasMore: false,
+          nextCursor: null,
+        },
       });
     if (path === `${base}/plans/${PLAN_ID}` && method === 'GET')
       return route.fulfill({ json: plan });
@@ -350,3 +378,81 @@ test('Plan editing preserves a started reply and offline mode cannot submit it',
   expect(state.calls.creates).toEqual([]);
   expect(state.unknown).toEqual([]);
 });
+
+for (const [width, theme] of [
+  [390, 'light'],
+  [430, 'dark'],
+  [1280, 'dark'],
+  [320, 'light'],
+] as const) {
+  test(`Plan long description and recognizable place and Wish actions at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    const state = await openPlan(page, { enriched: true });
+    if (width === 320)
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    const more = page.getByRole('button', {
+      name: storyProducts.descriptionDisclosure.more,
+      exact: true,
+    });
+    await expect(more).toHaveAttribute('aria-expanded', 'false');
+    await more.click();
+    const less = page.getByRole('button', {
+      name: storyProducts.descriptionDisclosure.less,
+      exact: true,
+    });
+    await expect(less).toHaveAttribute('aria-expanded', 'true');
+    const style = await less.evaluate((element) => {
+      const css = getComputedStyle(element);
+      return {
+        underline: css.textDecorationLine,
+        padding: parseFloat(css.paddingInlineStart),
+        height: element.getBoundingClientRect().height,
+      };
+    });
+    expect(style.underline).toBe('none');
+    expect(style.padding).toBeGreaterThan(0);
+    expect(style.height).toBeGreaterThanOrEqual(44);
+    const place = page.getByRole('link', { name: /Riverside park/ });
+    await expect(place).toHaveAttribute('href', '/plan/places/place-park');
+    await expect(place).toContainText('12 River Lane');
+    await expect(place).toContainText(m5s3.common.place);
+    const wish = page.getByRole('link', {
+      name: m5s3.plan.openWish,
+      exact: true,
+    });
+    await expect(wish).toHaveAttribute('href', '/plan/wishes/wish-outside');
+    for (const control of [place, wish]) {
+      const box = await control.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      const padding = await control.evaluate((element) =>
+        parseFloat(getComputedStyle(element).paddingInlineStart),
+      );
+      expect(padding).toBeGreaterThan(0);
+    }
+    await less.scrollIntoViewIfNeeded();
+    await captureScreenshot(
+      page,
+      info,
+      `1616-plan-context-${width}-${theme}.png`,
+      { fullPage: false },
+    );
+    await less.click();
+    await expect(more).toHaveAttribute('aria-expanded', 'false');
+    const dimensions = await page.evaluate(() => ({
+      client: document.documentElement.clientWidth,
+      scroll: document.documentElement.scrollWidth,
+    }));
+    expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.client);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    expect(state.unknown).toEqual([]);
+  });
+}

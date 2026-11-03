@@ -9,10 +9,12 @@ import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import copy from '../../src/i18n/locales/photoPlaces';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
+  ACCOUNT_ID,
   CAPABILITIES,
   captureScreenshot,
   installMocks,
   getTimelineItems,
+  ME,
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
@@ -30,6 +32,26 @@ const place = {
   updatedAt: '2026-10-29T12:00:00Z',
   capabilities: CAPABILITIES,
 };
+function createMemoryFixture() {
+  return {
+    id: 'mem-canal',
+    spaceId: SPACE_ID,
+    author: ME,
+    authorId: ACCOUNT_ID,
+    title: 'Breakfast by the canal',
+    body: 'A wonderful morning by the water.',
+    tags: [],
+    attachments: [],
+    happenedOn: '2026-05-12',
+    happenedUntil: null,
+    placeIds: [] as string[],
+    capabilities: CAPABILITIES,
+    createdAt: '2026-05-12T08:30:00Z',
+    updatedAt: '2026-05-12T08:30:00Z',
+    version: 1,
+  };
+}
+
 for (const scenario of [
   { width: 390, height: 844, theme: 'light', scale: 1 },
   { width: 430, height: 932, theme: 'dark', scale: 1 },
@@ -51,8 +73,21 @@ for (const scenario of [
     const unexpected = await installMocks(page);
     let linked = false;
     let links = 0;
+    const updates: Record<string, unknown>[] = [];
+    let memory = createMemoryFixture();
     await page.route('**/api/v1/**', async (route) => {
       const path = new URL(route.request().url()).pathname;
+      if (path === `${BASE}/memories/mem-canal`) {
+        if (route.request().method() === 'PATCH') {
+          const { expectedPlaceIds, ...values } = route
+            .request()
+            .postDataJSON();
+          updates.push({ ...values, expectedPlaceIds });
+          memory = { ...memory, ...values, version: memory.version + 1 };
+          linked = memory.placeIds.includes(place.id);
+        }
+        return route.fulfill({ json: memory });
+      }
       if (path === `${BASE}/places`)
         return route.fulfill({
           json: { items: [place], nextCursor: null, hasMore: false },
@@ -204,7 +239,7 @@ for (const scenario of [
     ).toBeVisible();
     await expect(
       page.getByRole('button', { name: copy.add, exact: true }),
-    ).toHaveCount(0);
+    ).toHaveCount(1);
     await page
       .getByRole('link', { name: memoryProduct.edit, exact: true })
       .click();
@@ -216,15 +251,23 @@ for (const scenario of [
     await picker.getByRole('button', { name: /Our park by the water/ }).click();
     await expect(picker).toBeHidden();
     await expect(page.getByText(place.name, { exact: true })).toBeVisible();
-    expect(links).toBe(1);
+    expect(links).toBe(0);
+    expect(updates).toEqual([]);
     await expect(
       page.getByRole('button', { name: copy.add, exact: true }),
-    ).toHaveCount(0);
+    ).toHaveCount(1);
     await page
-      .getByRole('link', { name: memoryProduct.backToMemory, exact: true })
+      .getByRole('button', { name: memoryProduct.save, exact: true })
       .click();
+    await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+    expect(updates).toHaveLength(1);
+    expect(updates[0]).toMatchObject({
+      placeIds: [place.id],
+      expectedPlaceIds: [],
+    });
+    expect(links).toBe(0);
     await expect(page.getByText(place.name, { exact: true })).toBeVisible();
-    await expect(page.locator('.moment-place-overflow')).toHaveCount(0);
+    await expect(page.locator('.moment-place-overflow')).toHaveCount(1);
     expect(
       (
         await new AxeBuilder({ page })
@@ -393,17 +436,22 @@ for (const [width, theme] of [
     await expect(page.locator('.today-content')).toHaveCount(0);
   });
 
-test('a manually created map Place survives a failed relation and retries only its unfinished assignment', async ({
+test('a created map Place survives a failed Memory save and retries only its staged assignment', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await installMocks(page);
-  let creates = 0;
-  let links = 0;
-  let linked = false;
+  const unexpected = await installMocks(page, { strict: true });
+  const creates: Record<string, unknown>[] = [];
+  const assignments: {
+    body: Record<string, unknown>;
+    ifMatch: string | undefined;
+  }[] = [];
+  let legacyLinks = 0;
+  let memory = createMemoryFixture();
   await page.route('**/api/v1/**', async (route) => {
-    const path = new URL(route.request().url()).pathname;
-    const method = route.request().method();
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    const method = request.method();
     if (path === `${BASE}/places/lookup`)
       return route.fulfill({
         json: {
@@ -419,16 +467,14 @@ test('a manually created map Place survives a failed relation and retries only i
         },
       });
     if (path === `${BASE}/places` && method === 'POST') {
-      creates++;
-      return route.fulfill({
-        status: 201,
-        json: { ...place, ...route.request().postDataJSON() },
-      });
+      const values = request.postDataJSON();
+      creates.push(values);
+      return route.fulfill({ status: 201, json: { ...place, ...values } });
     }
     if (path === `${BASE}/places`)
       return route.fulfill({
         json: {
-          items: creates ? [place] : [],
+          items: creates.length ? [place] : [],
           nextCursor: null,
           hasMore: false,
         },
@@ -436,26 +482,36 @@ test('a manually created map Place survives a failed relation and retries only i
     if (path === `${BASE}/moments/memories/mem-canal/places`)
       return route.fulfill({
         json: {
-          items: linked ? [place] : [],
+          items: memory.placeIds.includes(place.id) ? [place] : [],
           nextCursor: null,
           hasMore: false,
         },
       });
+    if (path === `${BASE}/memories/mem-canal`) {
+      if (method === 'PATCH') {
+        const body = request.postDataJSON();
+        assignments.push({ body, ifMatch: request.headers()['if-match'] });
+        if (assignments.length === 1)
+          return route.fulfill({
+            status: 500,
+            contentType: 'application/problem+json',
+            json: {
+              status: 500,
+              code: 'TEST_SAVE_FAILURE',
+              title: 'Temporary save failure',
+              type: 'about:blank',
+            },
+          });
+        const { expectedPlaceIds: _expectedPlaceIds, ...values } = body;
+        memory = { ...memory, ...values, version: memory.version + 1 };
+      }
+      return route.fulfill({ json: memory });
+    }
     if (
       path === `${BASE}/places/saved-place/memories/mem-canal` &&
       method === 'PUT'
     ) {
-      links++;
-      if (links === 1)
-        return route.fulfill({
-          status: 500,
-          json: {
-            status: 500,
-            code: 'TEST_LINK_FAILURE',
-            title: 'Temporary assignment failure',
-          },
-        });
-      linked = true;
+      legacyLinks++;
       return route.fulfill({ status: 204 });
     }
     return route.fallback();
@@ -463,9 +519,6 @@ test('a manually created map Place survives a failed relation and retries only i
   await page.route('**/*.tile.openstreetmap.org/**', (route) => route.abort());
   await signIn(page);
   await page.goto('/story/memories/mem-canal');
-  await expect(
-    page.getByRole('button', { name: copy.add, exact: true }),
-  ).toHaveCount(0);
   await page
     .getByRole('link', { name: memoryProduct.edit, exact: true })
     .click();
@@ -486,20 +539,47 @@ test('a manually created map Place survives a failed relation and retries only i
       exact: true,
     })
     .click();
+  await expect(
+    map.getByText(copy.sharedCreateHint, { exact: true }),
+  ).toBeVisible();
   await map
-    .getByRole('button', { name: planningCopy.map.confirm, exact: true })
+    .getByRole('button', { name: copy.saveSharedPlace, exact: true })
     .click();
-  const retry = picker.getByRole('button', { name: copy.retryLink });
-  await expect(retry).toBeEnabled();
-  expect(creates).toBe(1);
-  expect(links).toBe(1);
-  await expect(picker.getByRole('alert')).toBeVisible();
-  await retry.click();
+  await expect(map).toBeHidden();
   await expect(picker).toBeHidden();
   await expect(page.getByText(place.name, { exact: true })).toBeVisible();
+  expect(creates).toEqual([
+    {
+      name: place.name,
+      address: place.address,
+      latitude: place.latitude,
+      longitude: place.longitude,
+    },
+  ]);
+  expect(assignments).toEqual([]);
+  expect(legacyLinks).toBe(0);
+  const save = page.getByRole('button', {
+    name: memoryProduct.save,
+    exact: true,
+  });
+  await save.click();
   await expect(
-    page.getByRole('button', { name: copy.add, exact: true }),
-  ).toHaveCount(0);
-  expect(creates).toBe(1);
-  expect(links).toBe(2);
+    page.getByText(de.states.server.title, { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(place.name, { exact: true })).toBeVisible();
+  expect(assignments).toHaveLength(1);
+  expect(memory.placeIds).toEqual([]);
+  await save.click();
+  await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+  await expect(page.getByText(place.name, { exact: true })).toBeVisible();
+  expect(creates).toHaveLength(1);
+  expect(assignments).toHaveLength(2);
+  expect(assignments[0].body).toMatchObject({
+    placeIds: [place.id],
+    expectedPlaceIds: [],
+  });
+  expect(assignments[1].body).toEqual(assignments[0].body);
+  expect(assignments.map((entry) => entry.ifMatch)).toEqual(['1', '1']);
+  expect(legacyLinks).toBe(0);
+  expect(unexpected).toEqual([]);
 });

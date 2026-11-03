@@ -8,12 +8,14 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom';
+import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import de from '../i18n/locales/de';
 import memoryProduct from '../i18n/locales/memoryProduct';
+import photoPlaces from '../i18n/locales/photoPlaces';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 import { MemoryProductPage } from './MemoryProductPage';
@@ -146,8 +148,7 @@ describe('Memory editor return context', () => {
       fireEvent.click(screen.getByText('Edit selected Memory'));
       fireEvent.click(
         screen.getByRole('link', {
-          name:
-            exit === 'cancel' ? de.common.cancel : memoryProduct.backToMemory,
+          name: exit === 'cancel' ? de.common.cancel : taskBoundary.back,
         }),
       );
       fireEvent.click(
@@ -167,7 +168,10 @@ describe('Memory editor return context', () => {
 });
 
 describe('Memory detail edit action (#1014)', () => {
-  function renderDetail(memoryTitle = 'A shared evening') {
+  function renderDetail(
+    memoryTitle = 'A shared evening',
+    viewer = 'account-1',
+  ) {
     const memory: MemoryDetail = {
       id: 'memory-1',
       spaceId: 'space-1',
@@ -186,8 +190,8 @@ describe('Memory detail edit action (#1014)', () => {
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false, staleTime: Infinity } },
     });
-    client.setQueryData(['profile-identity', 'space-1', 'account-1'], {
-      accountId: 'account-1',
+    client.setQueryData(['profile-identity', 'space-1', viewer], {
+      accountId: viewer,
       displayName: 'Alex',
       profileAttachmentId: null,
       version: 1,
@@ -207,12 +211,12 @@ describe('Memory detail edit action (#1014)', () => {
     render(
       <QueryClientProvider client={client}>
         <MemoryRouter initialEntries={['/story/memories/memory-1']}>
-          <TaskOriginProvider accountId="account-1" spaceId="space-1">
+          <TaskOriginProvider accountId={viewer} spaceId="space-1">
             <AppShell
               onLogout={() => undefined}
               apiBaseUrl="http://example.test"
               accessToken="test"
-              account={{ id: 'account-1', displayName: 'Alex' }}
+              account={{ id: viewer, displayName: 'Alex' }}
               spaceId="space-1"
             >
               <Routes>
@@ -225,7 +229,7 @@ describe('Memory detail edit action (#1014)', () => {
                       apiBaseUrl="http://example.test"
                       accessToken="test"
                       spaceId="space-1"
-                      currentAccountId="account-1"
+                      currentAccountId={viewer}
                       loadMemoryImage={async () => ''}
                     />
                   }
@@ -237,6 +241,27 @@ describe('Memory detail edit action (#1014)', () => {
       </QueryClientProvider>,
     );
   }
+
+  it('lets a partner add a Place while retaining the absence of delete authority', async () => {
+    const list = vi
+      .spyOn(PlacesApi.prototype, 'listMomentPlaces')
+      .mockResolvedValue({ items: [], hasMore: false, nextCursor: null });
+    try {
+      renderDetail('Partner-authored memory', 'account-2');
+      expect(
+        await screen.findByRole('button', { name: photoPlaces.add }),
+      ).toBeTruthy();
+      expect(
+        screen.queryByRole('button', { name: memoryProduct.delete }),
+      ).toBeNull();
+      expect(list).toHaveBeenCalledWith(
+        expect.objectContaining({ targetId: 'memory-1', kind: 'memories' }),
+        expect.anything(),
+      );
+    } finally {
+      list.mockRestore();
+    }
+  });
 
   it('replaces the oversized text button with a compact icon-only edit link', async () => {
     renderDetail();

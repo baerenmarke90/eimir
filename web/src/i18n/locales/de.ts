@@ -15,6 +15,7 @@ const de = {
     newMemory: 'Neue Erinnerung',
   },
   more: {
+    yearsTitle: 'Unser Jahr',
     eyebrow: 'Mehr',
     title: 'Alles Weitere',
     intro: 'Persönliches, gemeinsame Listen und Einstellungen.',
@@ -312,7 +313,7 @@ const de = {
     photos_other: '{{count}} Fotos',
   },
   storyYears: {
-    backToMoments: '← Zurück zu Momente',
+    backToMoments: 'Zurück',
     backToYears: '← Unsere Jahre',
     eyebrow: 'Jahresarchiv',
     title: 'Unsere Jahre',
@@ -341,7 +342,7 @@ const de = {
     offline: 'Offline – zuletzt gespeicherte Jahreschronik',
   },
   memory: {
-    backToStory: '← Zurück zu Momente',
+    backToStory: 'Zurück',
     eyebrow: 'Euer Tagebuch',
     heading: 'Neuer Tagebucheintrag',
     intro: 'Ein Gedanke, ein Foto oder eure ganze Geschichte.',

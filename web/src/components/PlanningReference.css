@@ -774,7 +774,7 @@
   inline-size: 100%;
 }
 
-.planen-wish-scope {
+.planen-status-scope {
   border: 0;
   padding: 0;
   min-inline-size: 0;
@@ -789,7 +789,7 @@
   align-items: start;
   flex-wrap: wrap;
   column-gap: var(--space-5);
-  row-gap: var(--space-1);
+  row-gap: var(--space-3);
   min-inline-size: 0;
 }
 
@@ -798,9 +798,22 @@
   align-items: center;
   gap: var(--space-2);
   min-block-size: var(--space-12);
-  color: var(--color-link-text);
-  text-decoration: none;
+  max-inline-size: 100%;
+  justify-content: start;
+  text-align: start;
   overflow-wrap: anywhere;
+}
+
+.planen-place-copy {
+  display: grid;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.planen-place-copy > small,
+.planen-place-copy > span {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
 }
 
 .planen-place-context .eimir-icon {

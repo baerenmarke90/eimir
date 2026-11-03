@@ -1,14 +1,17 @@
 import type { TFunction } from 'i18next';
-import { resolvedLocale } from '../i18n';
-import { formatDateInputValue, formatDateSummary } from './dateInput';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import type { MemoryUpdate } from '../api/generated/models/MemoryUpdate';
 import type { MemoryTag } from '../components/MemoryTagChoices';
+import { resolvedLocale } from '../i18n';
+import { formatDateInputValue, formatDateSummary } from './dateInput';
 
 export interface MemoryEditValues {
   title: string;
   body: string;
   happenedOn: string;
+  happenedUntil?: string;
+  placeIds?: string[];
+  expectedPlaceIds?: string[];
   tags: MemoryTag[];
 }
 
@@ -43,10 +46,17 @@ export function memoryPreviewTitle(
   title: string | null | undefined,
   date: Date | null | undefined,
   t: TFunction,
+  through?: Date | null,
 ): { title: string; titleIsDate: boolean } {
   if (date && (!title?.trim() || isGeneratedMemoryTitle(title, date, t))) {
     return {
-      title: formatDateSummary(memoryDateInputValue(date), resolvedLocale()),
+      title:
+        through && through.getTime() !== date.getTime()
+          ? new Intl.DateTimeFormat(resolvedLocale(), {
+              dateStyle: 'medium',
+              timeZone: 'UTC',
+            }).formatRange(date, through)
+          : formatDateSummary(memoryDateInputValue(date), resolvedLocale()),
       titleIsDate: true,
     };
   }
@@ -55,6 +65,19 @@ export function memoryPreviewTitle(
 
 export function memoryUpdatePayload(values: MemoryEditValues): MemoryUpdate {
   return {
+    ...(values.happenedUntil !== undefined
+      ? {
+          happenedUntil: values.happenedUntil
+            ? new Date(`${values.happenedUntil}T00:00:00.000Z`)
+            : null,
+        }
+      : {}),
+    ...(values.placeIds !== undefined
+      ? {
+          placeIds: values.placeIds,
+          expectedPlaceIds: values.expectedPlaceIds ?? [],
+        }
+      : {}),
     title: values.title,
     body: values.body,
     tags: values.tags,

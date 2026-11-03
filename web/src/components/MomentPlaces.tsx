@@ -5,7 +5,6 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { PlaceRelationsApi } from '../api/generated/apis/PlaceRelationsApi';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
@@ -16,14 +15,13 @@ import { assertOnlineWrite } from '../client/connectivity';
 import { photoPlaceMapUrl, photoPlacesRequest } from '../client/photoPlaces';
 import { clientProblemKind } from '../client/problemDetails';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
-import { placeDetailPath } from '../client/routes';
 import { postSnackbar } from '../client/snackbar';
-import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
+import { MomentPlaceActionsMenu } from './MomentPlaceActionsMenu';
 import { MomentPlacePicker } from './MomentPlacePicker';
 import { ProblemState } from './ProblemState';
-import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import { ShortTaskSheet } from './ShortTaskSheet';
 import './MomentPlaces.css';
 
 export function MomentPlaces({
@@ -37,6 +35,7 @@ export function MomentPlaces({
   compact = false,
   canManage = false,
   onNavigate,
+  orderedIds,
 }: {
   apiBaseUrl: string;
   accessToken: string;
@@ -48,19 +47,14 @@ export function MomentPlaces({
   compact?: boolean;
   canManage?: boolean;
   onNavigate?: (proceed: () => void) => void;
+  orderedIds?: string[];
 }) {
   const { t } = useTranslation();
   const client = useQueryClient();
-  const navigate = useNavigate();
-  const { captureOrigin } = useTaskOrigin();
   const heading = useRef<HTMLHeadingElement>(null);
-  const sheet = useRef<ShortTaskSheetHandle>(null);
-  const unlinkInFlight = useRef(false);
   const [adding, setAdding] = useState(false);
   const [addingPending, setAddingPending] = useState(false);
   const addTrigger = useRef<HTMLButtonElement>(null);
-  const [selected, setSelected] = useState<PlaceDetail | null>(null);
-  const [confirm, setConfirm] = useState(false);
   const [removed, setRemoved] = useState(false);
   const isPlaceholder = (name: string) =>
     name === t('photoPlaces.initialName') || name === 'Photo location';
@@ -136,7 +130,6 @@ export function MomentPlaces({
     onSuccess: (admitted) => {
       if (!admitted()) return;
       setRemoved(true);
-      setSelected(null);
       void client.invalidateQueries({
         queryKey: authorSummaryQueryKeys.places(spaceId),
       });
@@ -148,10 +141,11 @@ export function MomentPlaces({
   );
   const items = denied
     ? []
-    : (query.data?.pages.flatMap((page) => page.items) ?? []);
-  const mapUrl = selected
-    ? photoPlaceMapUrl(selected.latitude, selected.longitude)
-    : null;
+    : (query.data?.pages.flatMap((page) => page.items) ?? []).sort((a, b) => {
+        const left = orderedIds?.indexOf(a.id) ?? -1;
+        const right = orderedIds?.indexOf(b.id) ?? -1;
+        return (left < 0 ? Infinity : left) - (right < 0 ? Infinity : right);
+      });
   if (
     !query.isPending &&
     !query.error &&
@@ -173,7 +167,7 @@ export function MomentPlaces({
       >
         {t('photoPlaces.title')}
       </h2>
-      {canManage && !denied && !query.isPending && items.length === 0 ? (
+      {canManage && !denied && !query.isPending ? (
         <button
           ref={addTrigger}
           type="button"
@@ -272,21 +266,14 @@ export function MomentPlaces({
                 ) : null}
               </div>
               {canManage ? (
-                <button
-                  type="button"
-                  className="tertiary moment-place-overflow"
-                  aria-label={t('photoPlaces.actions', { name })}
-                  title={t('photoPlaces.actions', { name })}
-                  aria-haspopup="dialog"
-                  aria-expanded={selected?.id === place.id}
-                  onClick={() => {
-                    setSelected(place);
-                    setConfirm(false);
-                    mutation.reset();
-                  }}
-                >
-                  <span aria-hidden="true">⋯</span>
-                </button>
+                <MomentPlaceActionsMenu
+                  place={{ ...place, name }}
+                  disabled={mutation.isPending}
+                  offline={offline}
+                  restoreFocusRef={heading}
+                  onNavigate={onNavigate}
+                  onRemove={() => mutation.mutateAsync(place.id)}
+                />
               ) : null}
             </li>
           );
@@ -302,90 +289,6 @@ export function MomentPlaces({
           {t('photoPlaces.more')}
         </button>
       ) : null}
-      <ShortTaskSheet
-        ref={sheet}
-        open={selected !== null && !denied}
-        title={selected ? readableName(selected) : t('photoPlaces.title')}
-        onClose={() => setSelected(null)}
-        isCloseBlocked={mutation.isPending}
-        restoreFocusRef={heading}
-      >
-        {selected ? (
-          <div className="moment-place-actions">
-            {confirm ? (
-              <>
-                <p>{t('photoPlaces.removeHint')}</p>
-                <button
-                  type="button"
-                  className="destructive"
-                  disabled={!canManage || mutation.isPending || offline}
-                  onClick={() => {
-                    if (!canManage || unlinkInFlight.current) return;
-                    unlinkInFlight.current = true;
-                    mutation.mutate(selected.id, {
-                      onSettled: () => {
-                        unlinkInFlight.current = false;
-                      },
-                    });
-                  }}
-                >
-                  {t('photoPlaces.remove')}
-                </button>
-                <button
-                  type="button"
-                  className="secondary"
-                  disabled={mutation.isPending}
-                  onClick={() => setConfirm(false)}
-                >
-                  {t('photoPlaces.cancel')}
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  className="button-link secondary-link"
-                  to={placeDetailPath(selected.id)}
-                  onClick={(event) => {
-                    event.preventDefault();
-                    const path = placeDetailPath(selected.id);
-                    sheet.current?.closeForNavigation(() => {
-                      const proceed = () => {
-                        const taskOriginKey = captureOrigin();
-                        void navigate(path, { state: { taskOriginKey } });
-                      };
-                      if (onNavigate) onNavigate(proceed);
-                      else proceed();
-                    });
-                  }}
-                >
-                  {t('photoPlaces.edit')}
-                </Link>
-                {mapUrl ? (
-                  <a
-                    className="button-link secondary-link"
-                    href={mapUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    referrerPolicy="no-referrer"
-                  >
-                    {t('photoPlaces.maps')}
-                  </a>
-                ) : null}
-                <button
-                  type="button"
-                  className="tertiary"
-                  disabled={!canManage || offline}
-                  onClick={() => setConfirm(true)}
-                >
-                  {t('photoPlaces.remove')}
-                </button>
-              </>
-            )}
-            {offline ? <p role="status">{t('photoPlaces.offline')}</p> : null}
-            {mutation.error ? <ProblemState error={mutation.error} /> : null}
-          </div>
-        ) : null}
-      </ShortTaskSheet>
     </section>
   );
 }

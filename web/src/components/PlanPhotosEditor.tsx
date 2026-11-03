@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import type { OrderedAttachmentSummary } from '../api/generated/models/OrderedAttachmentSummary';
+import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
 import { mediaCacheScopeForClient } from '../client/authorizedMediaCache';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import type { PlanPhotoDraftController } from '../client/usePlanPhotoDrafts';
 import { useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
-import { SensitiveMediaCover } from './SensitiveMedia';
+import { DraftMediaPreview } from './DraftMediaPreview';
 import { PhotoDraftGallery } from './PhotoDraftGallery';
-import { PhotoSourcePicker } from './PhotoSourcePicker';
-import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
+import { SensitiveMediaCover } from './SensitiveMedia';
 import './PlanPhotosEditor.css';
 
 function SavedPhoto({
@@ -17,22 +17,24 @@ function SavedPhoto({
   controller,
   spaceId,
   planId,
+  parentType,
 }: {
   photo: OrderedAttachmentSummary;
   controller: PlanPhotoDraftController;
   spaceId: string;
   planId: string;
+  parentType: 'PLAN' | 'HEART_MOMENT';
 }) {
   const { t } = useTranslation();
   const [attempt, setAttempt] = useState(0);
   const resource = useObjectUrlResource(
-    `${mediaCacheScopeForClient(controller.apis.attachments).id}:${spaceId}:PLAN:${planId}:thumbnail:${attempt}`,
+    `${mediaCacheScopeForClient(controller.apis.attachments).id}:${spaceId}:${parentType}:${planId}:thumbnail:${attempt}`,
     photo.id,
     (id, signal) =>
       loadAuthorizedStoryImageResource(
         controller.apis,
         spaceId,
-        'PLAN',
+        parentType,
         planId,
         id,
         {
@@ -62,9 +64,13 @@ export function PlanPhotosEditor({
   canUpload,
   onChange,
   photoSourceContext,
+  parentType = 'PLAN',
+  canManageExisting = true,
 }: {
   controller: PlanPhotoDraftController;
   spaceId: string;
+  parentType?: 'PLAN' | 'HEART_MOMENT';
+  canManageExisting?: boolean;
   planId?: string;
   disabled: boolean;
   canUpload: boolean;
@@ -80,7 +86,39 @@ export function PlanPhotosEditor({
     <div className="plan-photos-editor">
       <AttachmentDraftPicker
         id="plan-photos"
+        sourceContext={
+          photoSourceContext
+            ? {
+                ...photoSourceContext,
+                spaceId,
+                remaining: Math.max(
+                  0,
+                  MAX_MEMORY_ATTACHMENTS - controller.items.length,
+                ),
+                beginSelection: () => {
+                  const ticket = controller.uploads.beginSelection();
+                  return {
+                    ...ticket,
+                    commit: (files) => {
+                      const accepted = ticket.commit(files);
+                      if (accepted) onChange();
+                      return accepted;
+                    },
+                  };
+                },
+              }
+            : undefined
+        }
         showItems={false}
+        videoContext={
+          parentType === 'HEART_MOMENT' && photoSourceContext
+            ? {
+                apis: controller.apis,
+                spaceId,
+                accountId: photoSourceContext.accountId,
+              }
+            : undefined
+        }
         disabled={disabled || !canUpload}
         attachments={{
           ...controller.uploads,
@@ -90,28 +128,6 @@ export function PlanPhotosEditor({
           },
         }}
       />
-      {photoSourceContext ? (
-        <PhotoSourcePicker
-          {...photoSourceContext}
-          spaceId={spaceId}
-          remaining={Math.max(
-            0,
-            MAX_MEMORY_ATTACHMENTS - controller.items.length,
-          )}
-          disabled={disabled || !canUpload}
-          beginSelection={() => {
-            const ticket = controller.uploads.beginSelection();
-            return {
-              ...ticket,
-              commit: (files) => {
-                const accepted = ticket.commit(files);
-                if (accepted) onChange();
-                return accepted;
-              },
-            };
-          }}
-        />
-      ) : null}
       <PhotoDraftGallery
         disabled={disabled}
         items={controller.items.map((item, index) => ({
@@ -121,6 +137,9 @@ export function PlanPhotosEditor({
             t('m5s3.planImage.photoNumber', { number: index + 1 }),
           isSensitive: item.isSensitive,
           draft: item.draft,
+          mediaType: item.existing?.mediaType,
+          canRemove: !item.existing || canManageExisting,
+          canEditSensitivity: !item.existing || canManageExisting,
           preview: item.isSensitive ? (
             <SensitiveMediaCover />
           ) : item.existing && planId ? (
@@ -129,11 +148,32 @@ export function PlanPhotosEditor({
               controller={controller}
               spaceId={spaceId}
               planId={planId}
+              parentType={parentType}
             />
           ) : item.draft ? (
-            <img src={item.draft.previewUrl} alt="" />
+            <DraftMediaPreview
+              draft={item.draft}
+              context={
+                photoSourceContext
+                  ? {
+                      apis: controller.apis,
+                      spaceId,
+                      accountId: photoSourceContext.accountId,
+                    }
+                  : undefined
+              }
+            />
           ) : null,
         }))}
+        selectedCoverKey={controller.selectedCoverKey}
+        onSelectCover={(key) => {
+          controller.selectCover(key);
+          onChange();
+        }}
+        onOrderChange={(keys) => {
+          controller.reorder(keys);
+          onChange();
+        }}
         onMove={(key, offset) => {
           controller.move(key, offset);
           onChange();

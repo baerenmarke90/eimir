@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import navigation from '../../src/i18n/locales/navigation';
+import productTour from '../../src/i18n/locales/productTour';
 import sharedPhotos from '../../src/i18n/locales/sharedPhotos';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
@@ -387,11 +389,25 @@ test('shared photos: Compact/Expanded themes, 320px, 200% text and accessible ga
   });
   await page.goto('/story?tab=timeline');
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('.momente-browse-layer')).toHaveCount(0);
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await page
+    .locator('.product-tour')
+    .getByRole('button', { name: productTour.later, exact: true })
+    .click();
   await page
     .getByRole('link', { name: sharedPhotos.browse, exact: true })
     .click();
   await expect(page).toHaveURL(/\/story\/photos$/);
   await page.goBack();
+  await expect(page).toHaveURL(/\/more$/);
+  await expect(
+    page.getByRole('link', { name: sharedPhotos.browse, exact: true }),
+  ).toBeVisible();
+  await page.getByRole('link', { name: navigation.story, exact: true }).click();
+  await page
+    .getByRole('tab', { name: de.story.tabTimeline, exact: true })
+    .click();
   await expect(page).toHaveURL(/\/story\?tab=timeline$/);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(

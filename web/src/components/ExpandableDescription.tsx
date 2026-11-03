@@ -49,7 +49,7 @@ export function ExpandableDescription({
       {excerpt !== readable ? (
         <button
           type="button"
-          className="tertiary description-disclosure"
+          className="secondary description-disclosure"
           aria-controls={id}
           aria-expanded={expanded}
           onClick={() => setExpandedIdentity(expanded ? null : identity)}

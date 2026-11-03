@@ -20,6 +20,7 @@ Name | Type
 `plannedEnd` | Date
 `plannedOn` | Date
 `plannedStart` | Date
+`selectedCoverAttachmentId` | string
 `sourceWishId` | string
 `spaceId` | string
 `status` | [PlanStatus](PlanStatus.md)
@@ -48,6 +49,7 @@ const example = {
   "plannedEnd": null,
   "plannedOn": null,
   "plannedStart": null,
+  "selectedCoverAttachmentId": null,
   "sourceWishId": null,
   "spaceId": null,
   "status": null,

@@ -27,6 +27,12 @@ export interface MemoryMapEntry {
     happenedOn: Date;
     /**
      * 
+     * @type {Date}
+     * @memberof MemoryMapEntry
+     */
+    happenedUntil?: Date | null;
+    /**
+     * 
      * @type {number}
      * @memberof MemoryMapEntry
      */
@@ -106,6 +112,7 @@ export function MemoryMapEntryFromJSONTyped(json: any, ignoreDiscriminator: bool
     return {
         
         'happenedOn': (new Date(json['happenedOn'])),
+        'happenedUntil': json['happenedUntil'] === undefined ? undefined : json['happenedUntil'] === null ? null : (new Date(json['happenedUntil'])),
         'latitude': json['latitude'],
         'longitude': json['longitude'],
         'memoryId': json['memoryId'],
@@ -130,6 +137,7 @@ export function MemoryMapEntryToJSONTyped(value?: MemoryMapEntry | null, ignoreD
     return {
         
         'happenedOn': value['happenedOn'].toISOString().substring(0,10),
+        'happenedUntil': value['happenedUntil'] == null ? value['happenedUntil'] : value['happenedUntil'].toISOString().substring(0,10),
         'latitude': value['latitude'],
         'longitude': value['longitude'],
         'memoryId': value['memoryId'],

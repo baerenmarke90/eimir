@@ -20,10 +20,11 @@ from eimir.api.schema import (
     ResourceCapabilities,
     story_resource_capabilities,
 )
-from eimir.api.v1.attachments import AttachmentSummary
+from eimir.api.v1.attachments import AttachmentEntry, AttachmentSummary, OrderedAttachmentSummary
+from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS, BoundAttachment
 from eimir.attachments.models import Attachment, MediaType
 from eimir.authorization import ContentVisibility, visibility_of
-from eimir.heart_moments import service
+from eimir.heart_moments import media, service
 from eimir.heart_moments.models import HeartEmotion, HeartMoment
 from eimir.heart_moments.tags import HeartMomentTags, unique_tags
 
@@ -37,6 +38,29 @@ ETAG_HEADERS = {
 }
 
 
+def _validate_gallery(body: HeartMomentCreate | HeartMomentUpdate) -> None:
+    if "attachments" not in body.model_fields_set:
+        return
+    if body.attachments is None:
+        raise ValueError("attachments must not be null")
+    if body.model_fields_set & {"attachment_id", "attachment_is_sensitive"}:
+        raise ValueError("attachments cannot be combined with legacy attachment fields")
+    positions = sorted(entry.position for entry in body.attachments)
+    if positions != list(range(len(positions))):
+        raise ValueError("media positions must be contiguous and start at zero")
+
+
+def _selection(entries: list[AttachmentEntry] | None) -> media.MediaSelection | None:
+    return (
+        [
+            (entry.attachment_id, entry.is_sensitive)
+            for entry in sorted(entries, key=lambda entry: entry.position)
+        ]
+        if entries is not None
+        else None
+    )
+
+
 class HeartMomentCreate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -46,6 +70,10 @@ class HeartMomentCreate(ApiModel):
     happened_on: date
     attachment_id: UUID | None = None
     attachment_is_sensitive: bool | None = Field(default=None, strict=True)
+    attachments: list[AttachmentEntry] | None = Field(
+        default=None, max_length=MAX_GALLERY_ATTACHMENTS
+    )
+    selected_cover_attachment_id: UUID | None = None
     tags: HeartMomentTags = Field(default_factory=list)
     place_id: UUID | None = None
 
@@ -59,7 +87,8 @@ class HeartMomentCreate(ApiModel):
 
     @model_validator(mode="after")
     def _has_content(self) -> Self:
-        if not self.text and not self.tags and self.attachment_id is None:
+        _validate_gallery(self)
+        if not self.text and not self.tags and self.attachment_id is None and not self.attachments:
             raise ValueError("a thought, context tag or photo is required")
         if self.attachment_is_sensitive is not None and self.attachment_id is None:
             raise ValueError("attachmentIsSensitive requires an attachment")
@@ -81,12 +110,17 @@ class HeartMomentUpdate(ApiModel):
     happened_on: date | None = None
     attachment_id: UUID | None = None
     attachment_is_sensitive: bool | None = Field(default=None, strict=True)
+    attachments: list[AttachmentEntry] | None = Field(
+        default=None, max_length=MAX_GALLERY_ATTACHMENTS
+    )
+    selected_cover_attachment_id: UUID | None = None
     tags: HeartMomentTags | None = None
 
     _unique_tags = field_validator("tags")(unique_tags)
 
     @model_validator(mode="after")
     def _validate_patch(self) -> Self:
+        _validate_gallery(self)
         if not self.model_fields_set:
             raise ValueError("at least one field must be supplied")
         if "text" in self.model_fields_set:
@@ -123,6 +157,8 @@ class HeartMomentDetail(ApiModel):
     author: AuthorSummary
     capabilities: ResourceCapabilities
     attachment: AttachmentSummary | None
+    attachments: list[OrderedAttachmentSummary] = Field(default_factory=list)
+    selected_cover_attachment_id: UUID | None = None
 
 
 class HeartMomentPage(ApiModel):
@@ -136,6 +172,7 @@ def _heart_moment_detail(
     authorization: Authorization,
     heart_moment: HeartMoment,
     author: AuthorSummary | None = None,
+    gallery: list[BoundAttachment] | None = None,
 ) -> HeartMomentDetail:
     if author is None:
         author = resolve_author_summary(
@@ -146,6 +183,11 @@ def _heart_moment_detail(
         session.get(Attachment, heart_moment.attachment_id)
         if heart_moment.attachment_id is not None
         else None
+    )
+    entries = (
+        gallery
+        if gallery is not None
+        else media.galleries(session, [heart_moment])[heart_moment.id]
     )
     return HeartMomentDetail(
         id=heart_moment.id,
@@ -165,6 +207,23 @@ def _heart_moment_detail(
             authorization.account_id,
             can_comment=visibility is ContentVisibility.SHARED,
         ),
+        selected_cover_attachment_id=heart_moment.payload.selected_cover_attachment_id,
+        attachments=[
+            OrderedAttachmentSummary(
+                id=entry.attachment.id,
+                position=entry.position,
+                status="READY",
+                media_type=MediaType(entry.attachment.media_type),
+                mime_type=entry.attachment.mime_type,
+                size=entry.attachment.size,
+                width=entry.attachment.width,
+                height=entry.attachment.height,
+                has_thumbnail=entry.attachment.has_thumbnail,
+                duration_seconds=entry.attachment.duration_seconds,
+                is_sensitive=entry.attachment.payload.is_sensitive,
+            )
+            for entry in entries
+        ],
         attachment=(
             AttachmentSummary(
                 id=attachment.id,
@@ -221,6 +280,8 @@ def create_heart_moment(
         attachment_id=body.attachment_id,
         attachment_is_sensitive=body.attachment_is_sensitive,
         tags=body.tags,
+        attachments=_selection(body.attachments),
+        selected_cover_attachment_id=body.selected_cover_attachment_id,
         place_id=body.place_id,
     )
     if not result.created:
@@ -250,10 +311,15 @@ def list_heart_moments(
         visibility=visibility,
     )
     authors = resolve_author_summaries(session, {moment.owner_id for moment in page.items})
+    galleries = media.galleries(session, page.items)
     return HeartMomentPage(
         items=[
             _heart_moment_detail(
-                session, authorization, heart_moment, author=authors.get(heart_moment.owner_id)
+                session,
+                authorization,
+                heart_moment,
+                author=authors.get(heart_moment.owner_id),
+                gallery=galleries.get(heart_moment.id, []),
             )
             for heart_moment in page.items
         ],
@@ -308,6 +374,8 @@ def update_heart_moment(
         attachment_id=body.attachment_id,
         attachment_is_sensitive=body.attachment_is_sensitive,
         tags=body.tags,
+        attachments=_selection(body.attachments),
+        selected_cover_attachment_id=body.selected_cover_attachment_id,
     )
     response.headers["ETag"] = etag_for(heart_moment.version)
     return _heart_moment_detail(session, authorization, heart_moment)

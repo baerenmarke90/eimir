@@ -1,3 +1,4 @@
+import photoSources from '../../src/i18n/locales/photoSources';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { showMemoryDetails } from '../support/memoryDiary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
@@ -329,6 +330,9 @@ test.describe('R1 Memory Create evidence', () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 900 });
     await openMemoryCreate(page);
+    await page
+      .getByRole('button', { name: photoSources.addMedia, exact: true })
+      .click();
     await page.locator('#memory-create-images').setInputFiles(CABIN_FIXTURE);
     await expect(page.getByText(de.memory.photoReady)).toBeVisible();
     await page.screenshot({
@@ -343,6 +347,9 @@ test.describe('R1 Memory Create evidence', () => {
       await page.emulateMedia({ colorScheme });
       await page.setViewportSize({ width: 390, height: 1000 });
       await openMemoryCreate(page);
+      await page
+        .getByRole('button', { name: photoSources.addMedia, exact: true })
+        .click();
       await page.locator('#memory-create-images').setInputFiles(CABIN_FIXTURE);
       await expect(page.getByText(de.memory.photoReady)).toBeVisible();
       await page

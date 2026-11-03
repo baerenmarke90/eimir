@@ -4,14 +4,9 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import {
-  type FormEvent,
-  useCallback,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type FormEvent, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import type { AttachmentEntry } from '../api/generated/models/AttachmentEntry';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
 import type { HeartMomentDetail } from '../api/generated/models/HeartMomentDetail';
@@ -53,16 +48,15 @@ import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjec
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
-import {
-  formatAttachmentDraftContextKey,
-  useAttachmentDrafts,
-} from '../client/useAttachmentDrafts';
+import { formatAttachmentDraftContextKey } from '../client/useAttachmentDrafts';
+import { useOrderedPhotoDrafts } from '../client/useOrderedPhotoDrafts';
 import { useStoryDeletion } from '../client/useStoryDeletion';
 import { useTaskActivation } from '../client/useTaskActivation';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { loadVideoSource } from '../client/video';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
+import { DraftExitPrompt } from './DraftExitPrompt';
 import { ExpandableDescription } from './ExpandableDescription';
 import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
 import {
@@ -78,9 +72,8 @@ import {
 import { MomentPlaces } from './MomentPlaces';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
-import { PhotoSourcePicker } from './PhotoSourcePicker';
+import { PlanPhotosEditor } from './PlanPhotosEditor';
 import { ProblemState } from './ProblemState';
-import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
 import {
@@ -88,6 +81,7 @@ import {
   StoryEditorPageShell,
 } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import { VisibilityBadge, VisibilityGlyph } from './VisibilityBadge';
 
@@ -102,8 +96,8 @@ interface HeartMomentCreateValues {
   readonly emotion: HeartEmotionValue;
   readonly happenedOn: Date;
   readonly visibility: ContentVisibilityValue;
-  readonly attachmentId?: string;
-  readonly attachmentIsSensitive?: boolean;
+  readonly attachments?: AttachmentEntry[];
+  readonly selectedCoverAttachmentId?: string | null;
   readonly tags: string[];
   readonly placeId?: string;
 }
@@ -166,7 +160,7 @@ export function HeartMomentProductPage({
   const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
   const location = useLocation();
-  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const { requestReturn } = useTaskOrigin();
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const params = useParams();
@@ -187,59 +181,23 @@ export function HeartMomentProductPage({
     heartMomentId,
   ] as const;
   const [createContentError, setCreateContentError] = useState(false);
+  const [formDirty, setFormDirty] = useState(false);
   const [createPlace, setCreatePlace] = useState<MomentPlaceSelection>();
   const [placePending, setPlacePending] = useState(false);
   const [editContentError, setEditContentError] = useState(false);
   const [createVisibility, setCreateVisibility] =
     useState<ContentVisibilityValue>(ContentVisibility.SHARED);
-  const sensitivityKey = JSON.stringify([contextKey, heartMomentId, mode]);
-  const [sensitivityDraft, setSensitivityDraft] = useState<{
-    key: string;
-    value: boolean;
-  } | null>(null);
   const createAttemptRef =
     useRef<CreateRequestAttempt<HeartMomentCreateSnapshot> | null>(null);
-  const [removeExistingPhotoState, setRemoveExistingPhotoState] = useState<{
-    contextKey: string;
-    remove: boolean;
-  }>(() => ({
-    contextKey,
-    remove: false,
-  }));
-
-  const removeExistingPhoto =
-    removeExistingPhotoState.contextKey === contextKey
-      ? removeExistingPhotoState.remove
-      : false;
-
-  useLayoutEffect(() => {
-    setRemoveExistingPhotoState((current) =>
-      current.contextKey === contextKey
-        ? current
-        : { contextKey, remove: false },
-    );
-  }, [contextKey]);
-
-  const setRemoveExistingPhoto = useCallback(
-    (updater: boolean | ((prev: boolean) => boolean)) => {
-      setRemoveExistingPhotoState((current) => {
-        const active =
-          current.contextKey === contextKey ? current.remove : false;
-        const next = typeof updater === 'function' ? updater(active) : updater;
-        return { contextKey, remove: next };
-      });
-    },
-    [contextKey],
-  );
-
-  const attachments = useAttachmentDrafts({
+  const photos = useOrderedPhotoDrafts({
     apis,
     apiBaseUrl,
     accessToken,
     spaceId,
     accountId: currentAccountId,
-    maxAttachments: 1,
+    resourceKey: `${heartMomentId ?? 'new'}:${mode}`,
   });
+  const attachments = photos.uploads;
 
   const heartMomentQuery = useQuery({
     queryKey,
@@ -260,6 +218,29 @@ export function HeartMomentProductPage({
     enabled: mode !== 'create' && Boolean(heartMomentId),
     retry: false,
   });
+
+  const loadedMediaScope = useRef('');
+  const mediaScope = JSON.stringify([
+    apiBaseUrl,
+    contextKey,
+    heartMomentId,
+    mode,
+  ]);
+  const loadPhotos = photos.load;
+  useLayoutEffect(() => {
+    const moment = heartMomentQuery.data?.value;
+    if (mode !== 'edit' || !moment || loadedMediaScope.current === mediaScope)
+      return;
+    loadedMediaScope.current = mediaScope;
+    loadPhotos(
+      moment.attachments?.length
+        ? moment.attachments
+        : moment.attachment
+          ? [{ ...moment.attachment, position: 0 }]
+          : [],
+      moment.selectedCoverAttachmentId,
+    );
+  }, [mediaScope, mode, heartMomentQuery.data, loadPhotos]);
 
   useStoryViewReceipt({
     apis,
@@ -321,10 +302,12 @@ export function HeartMomentProductPage({
         invalidateDashboard(queryClient, spaceId),
       ]);
       if (!request.isCurrent()) return;
-      navigate(heartMomentDetailPath(heartMoment.id), {
-        replace: true,
-        state: { saved: true, taskOriginKey: originKey },
-      });
+      editorLifecycle.closeConfirmed(() =>
+        navigate(heartMomentDetailPath(heartMoment.id), {
+          replace: true,
+          state: { saved: true, taskOriginKey: originKey },
+        }),
+      );
     },
   });
 
@@ -355,7 +338,7 @@ export function HeartMomentProductPage({
         protectSensitiveMediaProjections(
           queryClient,
           saved.spaceId,
-          saved.attachment ? [saved.attachment] : [],
+          saved.attachments ?? (saved.attachment ? [saved.attachment] : []),
         );
         return saved;
       } catch (error) {
@@ -395,8 +378,7 @@ export function HeartMomentProductPage({
     onSuccess: async (heartMoment, request) => {
       if (!request.isCurrent()) return;
       attachments.clear();
-      setRemoveExistingPhoto(false);
-      setSensitivityDraft(null);
+      photos.clear();
       queryClient.setQueryData(queryKey, {
         value: heartMoment,
         source: 'network',
@@ -407,10 +389,12 @@ export function HeartMomentProductPage({
         invalidateDashboard(queryClient, spaceId),
       ]);
       if (!request.isCurrent()) return;
-      navigate(heartMomentDetailPath(heartMoment.id), {
-        replace: true,
-        state: { taskOriginKey: originKey },
-      });
+      editorLifecycle.closeConfirmed(() =>
+        navigate(heartMomentDetailPath(heartMoment.id), {
+          replace: true,
+          state: { taskOriginKey: originKey },
+        }),
+      );
     },
   });
 
@@ -524,6 +508,27 @@ export function HeartMomentProductPage({
   const { confirming: confirmDelete, setConfirming: setConfirmDelete } =
     deleteMutation;
 
+  const editorLifecycle = useTaskEditorLifecycle({
+    isActive: mode !== 'detail',
+    isDirty:
+      !deleteMutation.isPending &&
+      (formDirty ||
+        Boolean(createPlace) ||
+        photos.items.some((item) => item.draft !== undefined)),
+    isCloseBlocked:
+      createMutation.isPending ||
+      updateMutation.isPending ||
+      placePending ||
+      attachments.hasPending,
+    onClose: () => {
+      if (mode === 'create') requestReturn(originKey);
+      else if (heartMomentId)
+        navigate(heartMomentDetailPath(heartMomentId), {
+          replace: true,
+          state: { taskOriginKey: originKey },
+        });
+    },
+  });
   if (mode === 'create') {
     function submitCreate(event: FormEvent<HTMLFormElement>) {
       event.preventDefault();
@@ -554,12 +559,8 @@ export function HeartMomentProductPage({
           emotion: String(data.get('emotion')) as HeartEmotionValue,
           happenedOn: new Date(`${happenedOn}T00:00:00Z`),
           visibility: String(data.get('visibility')) as ContentVisibilityValue,
-          attachmentId: attachments.readyIds[0],
-          attachmentIsSensitive: attachments.readyIds.length
-            ? (attachments.items.find(
-                (item) => item.attachmentId === attachments.readyIds[0],
-              )?.isSensitive ?? false)
-            : undefined,
+          attachments: photos.entries,
+          selectedCoverAttachmentId: photos.selectedCoverAttachmentId,
         },
         isCurrent: captureCreateOwnership(),
       });
@@ -570,17 +571,10 @@ export function HeartMomentProductPage({
         header={
           <header className="heart-moment-create-header">
             <div className="heart-moment-create-topline">
-              <button
-                type="button"
-                className="back-link tertiary heart-moment-create-back"
-                onClick={() => requestReturn(originKey)}
-              >
-                {t(
-                  resolveOrigin(originKey)
-                    ? 'taskBoundary.back'
-                    : 'heartMomentProduct.backToStory',
-                )}
-              </button>
+              <TaskBackButton
+                className="heart-moment-create-back"
+                onClick={editorLifecycle.requestClose}
+              />
             </div>
             <div className="heart-moment-create-title-lockup">
               <span className="heart-moment-create-heart" aria-hidden="true">
@@ -600,26 +594,29 @@ export function HeartMomentProductPage({
         labelledBy="heart-moment-create-heading"
       >
         <>
+          <DraftExitPrompt
+            open={editorLifecycle.showDiscardConfirm}
+            onKeep={editorLifecycle.keepEditing}
+            onDiscard={() => editorLifecycle.closeConfirmed()}
+          />
           <form
+            onChange={() => setFormDirty(true)}
             onSubmit={submitCreate}
             className="immersive-create-form heart-moment-create-form"
           >
             <div className="heart-moment-create-media">
-              <AttachmentDraftPicker
-                id="heart-moment-create-photo"
-                videoContext={{ apis, accountId: currentAccountId, spaceId }}
-                disabled={createMutation.isPending}
-                attachments={attachments}
-                multiple={false}
-              />
-              <PhotoSourcePicker
-                apiBaseUrl={apiBaseUrl}
-                accessToken={accessToken}
-                accountId={currentAccountId}
+              <PlanPhotosEditor
+                controller={photos}
                 spaceId={spaceId}
-                remaining={Math.max(0, 1 - attachments.items.length)}
-                beginSelection={attachments.beginSelection}
+                parentType="HEART_MOMENT"
                 disabled={createMutation.isPending}
+                canUpload
+                onChange={() => setFormDirty(true)}
+                photoSourceContext={{
+                  apiBaseUrl,
+                  accessToken,
+                  accountId: currentAccountId,
+                }}
               />
             </div>
 
@@ -732,7 +729,7 @@ export function HeartMomentProductPage({
               <button
                 type="button"
                 className="button-link secondary-link"
-                onClick={() => requestReturn(originKey)}
+                onClick={editorLifecycle.requestClose}
               >
                 {t('common.cancel')}
               </button>
@@ -781,11 +778,11 @@ export function HeartMomentProductPage({
           <PageHeader
             before={
               <Link
-                className="back-link"
+                className="back-link tertiary"
                 to={heartMomentDetailPath(heartMoment.id)}
                 state={{ taskOriginKey: originKey }}
               >
-                {t('heartMomentProduct.backToHeartMoment')}
+                {t('taskBoundary.back')}
               </Link>
             }
             title={t('heartMomentProduct.editHeading')}
@@ -822,13 +819,9 @@ export function HeartMomentProductPage({
         return;
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
-      const replacementAttachmentId = attachments.readyIds[0];
       const text = String(data.get('text') || '').trim();
       const tags = data.getAll('tags') as HeartMomentTag[];
-      const hasPhoto =
-        Boolean(replacementAttachmentId) ||
-        (Boolean(heartMoment.attachment) && !removeExistingPhoto);
-      if (!text && !tags.length && !hasPhoto) {
+      if (!text && !tags.length && !photos.entries.length) {
         setEditContentError(true);
         return;
       }
@@ -838,23 +831,9 @@ export function HeartMomentProductPage({
         tags,
         emotion: String(data.get('emotion')) as HeartEmotionValue,
         happenedOn: new Date(`${happenedOn}T00:00:00Z`),
+        attachments: photos.entries,
+        selectedCoverAttachmentId: photos.selectedCoverAttachmentId,
       };
-      if (replacementAttachmentId)
-        update.attachmentId = replacementAttachmentId;
-      else if (removeExistingPhoto) update.attachmentId = null;
-
-      if (replacementAttachmentId)
-        update.attachmentIsSensitive =
-          attachments.items.find(
-            (item) => item.attachmentId === replacementAttachmentId,
-          )?.isSensitive ?? false;
-      else if (
-        heartMoment.attachment &&
-        !removeExistingPhoto &&
-        heartMoment.capabilities.canDelete
-      )
-        update.attachmentIsSensitive =
-          data.get('attachmentIsSensitive') === 'on';
       const ownsTask = captureEditOwnership();
       const ownsRead = captureAuthorizedQuery(queryClient, queryKey);
       updateMutation.mutate({
@@ -868,11 +847,15 @@ export function HeartMomentProductPage({
       <StoryEditorPageShell
         before={
           <Link
-            className="back-link"
+            className="back-link tertiary"
             to={heartMomentDetailPath(heartMoment.id)}
+            onClick={(event) => {
+              event.preventDefault();
+              editorLifecycle.requestClose();
+            }}
             state={{ taskOriginKey: originKey }}
           >
-            {t('heartMomentProduct.backToHeartMoment')}
+            {t('taskBoundary.back')}
           </Link>
         }
         title={t('heartMomentProduct.editHeading')}
@@ -881,92 +864,42 @@ export function HeartMomentProductPage({
         sectionHeading={t('heartMomentProduct.formAria')}
       >
         <>
-          <form className="form-grid" onSubmit={submitEdit}>
+          <DraftExitPrompt
+            open={editorLifecycle.showDiscardConfirm}
+            onKeep={editorLifecycle.keepEditing}
+            onDiscard={() => editorLifecycle.closeConfirmed()}
+          />
+          <form
+            className="form-grid"
+            onChange={() => setFormDirty(true)}
+            onSubmit={submitEdit}
+          >
             <HeartMomentFields heartMoment={heartMoment} />
-            {heartMoment.attachment && !removeExistingPhoto ? (
-              <div className="field-group">
-                <span>{t('heartMomentProduct.photoLabel')}</span>
-                <MediaGallery
-                  items={[
-                    {
-                      id: heartMoment.attachment.id,
-                      mediaType: heartMoment.attachment.mediaType,
-                      hasThumbnail: heartMoment.attachment.hasThumbnail,
-                      durationSeconds: heartMoment.attachment.durationSeconds,
-                      isSensitive:
-                        sensitivityDraft?.key === sensitivityKey
-                          ? sensitivityDraft.value
-                          : heartMoment.attachment.isSensitive,
-                    },
-                  ]}
-                  loadMedia={(attachmentId, signal) =>
-                    loadAttachment(heartMoment.id, attachmentId, signal)
-                  }
-                  loadPoster={(id, signal) =>
-                    loadAuthorizedStoryImageResource(
-                      apis,
-                      spaceId,
-                      'HEART_MOMENT',
-                      heartMoment.id,
-                      id,
-                      { signal, variant: 'thumbnail' },
-                    )
-                  }
-                  loadPlayback={(id, signal) =>
-                    loadVideoSource(
-                      apis,
-                      spaceId,
-                      'HEART_MOMENT',
-                      heartMoment.id,
-                      id,
-                      signal,
-                    )
-                  }
-                  resourceScopeKey={`heart-moment:${currentAccountId}:${spaceId}:${mode}:${heartMoment.id}`}
-                />
-                {heartMoment.capabilities.canDelete ? (
-                  <SensitiveMediaCheckbox
-                    name="attachmentIsSensitive"
-                    showHelp
-                    checked={
-                      sensitivityDraft?.key === sensitivityKey
-                        ? sensitivityDraft.value
-                        : (heartMoment.attachment.isSensitive ?? true)
-                    }
-                    onChange={(value) =>
-                      setSensitivityDraft({ key: sensitivityKey, value })
-                    }
-                    disabled={updateMutation.isPending}
-                  />
-                ) : null}
-                {heartMoment.capabilities.canDelete ? (
-                  <button
-                    type="button"
-                    className="tertiary"
-                    onClick={() => setRemoveExistingPhoto(true)}
-                  >
-                    {t('memory.photoRemove')}
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-            <AttachmentDraftPicker
-              id="heart-moment-edit-photo"
-              videoContext={{ apis, accountId: currentAccountId, spaceId }}
-              disabled={
-                updateMutation.isPending ||
-                (Boolean(heartMoment.attachment) &&
-                  !heartMoment.capabilities.canDelete)
-              }
-              attachments={attachments}
-              multiple={false}
+            <PlanPhotosEditor
+              controller={photos}
+              spaceId={spaceId}
+              planId={heartMoment.id}
+              parentType="HEART_MOMENT"
+              disabled={updateMutation.isPending}
+              canUpload
+              canManageExisting={heartMoment.capabilities.canDelete}
+              onChange={() => setFormDirty(true)}
+              photoSourceContext={{
+                apiBaseUrl,
+                accessToken,
+                accountId: currentAccountId,
+              }}
             />
             <div className="form-actions">
               <Link
                 className="button-link secondary-link"
                 to={heartMomentDetailPath(heartMoment.id)}
                 state={{ taskOriginKey: originKey }}
-                onClick={() => setConfirmDelete(false)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  setConfirmDelete(false);
+                  editorLifecycle.requestClose();
+                }}
               >
                 {t('common.cancel')}
               </Link>
@@ -1104,18 +1037,22 @@ export function HeartMomentProductPage({
         </ul>
       ) : null}
 
-      {heartMoment.attachment ? (
+      {heartMoment.attachments?.length || heartMoment.attachment ? (
         <section aria-label={t('heartMomentProduct.photoLabel')}>
           <MediaGallery
-            items={[
-              {
-                id: heartMoment.attachment.id,
-                mediaType: heartMoment.attachment.mediaType,
-                hasThumbnail: heartMoment.attachment.hasThumbnail,
-                durationSeconds: heartMoment.attachment.durationSeconds,
-                isSensitive: heartMoment.attachment.isSensitive,
-              },
-            ]}
+            initialMediaId={heartMoment.selectedCoverAttachmentId ?? undefined}
+            items={(heartMoment.attachments?.length
+              ? heartMoment.attachments
+              : heartMoment.attachment
+                ? [{ ...heartMoment.attachment, position: 0 }]
+                : []
+            ).map((item) => ({
+              id: item.id,
+              mediaType: item.mediaType,
+              hasThumbnail: item.hasThumbnail,
+              durationSeconds: item.durationSeconds,
+              isSensitive: item.isSensitive,
+            }))}
             loadMedia={(attachmentId, signal) =>
               loadAttachment(heartMoment.id, attachmentId, signal)
             }

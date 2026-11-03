@@ -156,7 +156,7 @@ export function PlanWishLink({
       {plan.sourceWishId ? (
         <Link
           ref={sourceLink}
-          className="plan-wish-source"
+          className="button-link secondary-link plan-wish-source"
           to={wishDetailPath(plan.sourceWishId)}
         >
           <EimirIcon name="wuensche" />
@@ -166,7 +166,7 @@ export function PlanWishLink({
         <button
           ref={trigger}
           type="button"
-          className="tertiary"
+          className="secondary plan-wish-source"
           disabled={disabled}
           aria-haspopup="dialog"
           aria-expanded={open}
@@ -176,7 +176,8 @@ export function PlanWishLink({
             setOpen(true);
           }}
         >
-          {t('m5s3.plan.linkWish')}
+          <EimirIcon name="wuensche" />
+          <span>{t('m5s3.plan.linkWish')}</span>
         </button>
       )}
       <ShortTaskSheet

@@ -13,6 +13,7 @@ Name | Type
 `description` | string
 `placeId` | string
 `schedule` | [PlanSchedule](PlanSchedule.md)
+`selectedCoverAttachmentId` | string
 `title` | string
 
 ## Example
@@ -28,6 +29,7 @@ const example = {
   "description": null,
   "placeId": null,
   "schedule": null,
+  "selectedCoverAttachmentId": null,
   "title": null,
 } satisfies PlanCreate
 

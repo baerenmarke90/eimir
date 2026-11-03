@@ -1,0 +1,12 @@
+eimir. Android 0.2.0-test.42
+
+- Memories can cover several days and include several ordered Places, for example a shared weekend trip.
+- Memories, Heart Moments and Plans share a mobile media-arrangement task with touch sorting and accessible movement controls.
+- Choose a cover independently of media order. Automatic cover selection follows the first medium; reordering preserves an explicit cover.
+- Heart Moments support galleries while retaining private/shared visibility and existing author and partner permissions.
+- Map-selected coordinates are retained when creating Places, including zero coordinates and collapsed technical details.
+- Moment details use the same concise Back control and preserve the originating view. Confirmed deletions can finish safely after leaving the editor.
+- Includes the current main improvements to Immich/media selection, Moments and Diary presentation, Plan filters and fullscreen maps.
+- Includes the current native recovery and selected-media ownership fixes while retaining the removable test updater.
+
+Same package de.eimir.app, canonical signing certificate and persistent test origin as test.41; increasing versionCode 42. Publication requires the exact candidate's source, browser, security, migration and Android gates. The protected publisher verifies signing, predecessor compatibility and all public release bytes. Physical-device installation, session/data continuity and OS-link acceptance remain separate device checks; this test release does not establish store readiness.

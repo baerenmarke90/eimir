@@ -3355,6 +3355,21 @@
             ],
             "title": "Attachmentissensitive"
           },
+          "attachments": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AttachmentEntry"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachments"
+          },
           "emotion": {
             "$ref": "#/components/schemas/HeartEmotion"
           },
@@ -3374,6 +3389,18 @@
               }
             ],
             "title": "Placeid"
+          },
+          "selectedCoverAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedcoverattachmentid"
           },
           "tags": {
             "items": {
@@ -3414,6 +3441,13 @@
               }
             ]
           },
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/OrderedAttachmentSummary"
+            },
+            "title": "Attachments",
+            "type": "array"
+          },
           "author": {
             "$ref": "#/components/schemas/AuthorSummary"
           },
@@ -3442,6 +3476,18 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "selectedCoverAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedcoverattachmentid"
           },
           "spaceId": {
             "format": "uuid",
@@ -3554,6 +3600,21 @@
             ],
             "title": "Attachmentissensitive"
           },
+          "attachments": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AttachmentEntry"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachments"
+          },
           "emotion": {
             "anyOf": [
               {
@@ -3575,6 +3636,18 @@
               }
             ],
             "title": "Happenedon"
+          },
+          "selectedCoverAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedcoverattachmentid"
           },
           "tags": {
             "anyOf": [
@@ -4023,6 +4096,18 @@
             },
             "title": "Attachments",
             "type": "array"
+          },
+          "selectedCoverAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedcoverattachmentid"
           }
         },
         "required": [
@@ -4167,6 +4252,18 @@
             ],
             "title": "Happenedon"
           },
+          "happenedUntil": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Happeneduntil"
+          },
           "placeId": {
             "anyOf": [
               {
@@ -4178,6 +4275,22 @@
               }
             ],
             "title": "Placeid"
+          },
+          "placeIds": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placeids"
           },
           "tags": {
             "items": {
@@ -4251,10 +4364,42 @@
             ],
             "title": "Happenedon"
           },
+          "happenedUntil": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Happeneduntil"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "placeIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Placeids",
+            "type": "array"
+          },
+          "selectedCoverAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedcoverattachmentid"
           },
           "spaceId": {
             "format": "uuid",
@@ -4309,6 +4454,18 @@
             "format": "date",
             "title": "Happenedon",
             "type": "string"
+          },
+          "happenedUntil": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Happeneduntil"
           },
           "latitude": {
             "title": "Latitude",
@@ -4465,10 +4622,34 @@
             ],
             "title": "Happenedon"
           },
+          "happenedUntil": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Happeneduntil"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "selectedCoverAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedcoverattachmentid"
           },
           "title": {
             "title": "Title",
@@ -4501,6 +4682,22 @@
             ],
             "title": "Body"
           },
+          "expectedPlaceIds": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expectedplaceids"
+          },
           "happenedOn": {
             "anyOf": [
               {
@@ -4512,6 +4709,34 @@
               }
             ],
             "title": "Happenedon"
+          },
+          "happenedUntil": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Happeneduntil"
+          },
+          "placeIds": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placeids"
           },
           "tags": {
             "anyOf": [
@@ -6382,6 +6607,18 @@
             "$ref": "#/components/schemas/PlanSchedule",
             "title": "Schedule"
           },
+          "selectedCoverAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedcoverattachmentid"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -6508,6 +6745,18 @@
               }
             ],
             "title": "Plannedstart"
+          },
+          "selectedCoverAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedcoverattachmentid"
           },
           "sourceWishId": {
             "anyOf": [
@@ -6717,6 +6966,18 @@
                 "type": "null"
               }
             ]
+          },
+          "selectedCoverAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedcoverattachmentid"
           },
           "title": {
             "title": "Title",
@@ -10746,6 +11007,11 @@
               }
             ]
           },
+          "attachmentCount": {
+            "default": 0,
+            "title": "Attachmentcount",
+            "type": "integer"
+          },
           "author": {
             "$ref": "#/components/schemas/AuthorSummary"
           },
@@ -10769,6 +11035,18 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "selectedCoverAttachmentId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedcoverattachmentid"
           },
           "text": {
             "title": "Text",

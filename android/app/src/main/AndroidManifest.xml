@@ -213,6 +213,12 @@
         </activity-alias>
 
         <provider
+            android:name="de.eimir.app.SelectedMediaProvider"
+            android:authorities="${applicationId}.selectedmedia"
+            android:exported="false"
+            android:grantUriPermissions="false" />
+
+        <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
             android:exported="false"

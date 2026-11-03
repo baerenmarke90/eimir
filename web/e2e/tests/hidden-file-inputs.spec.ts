@@ -1,9 +1,10 @@
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import photoSources from '../../src/i18n/locales/photoSources';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -80,7 +81,19 @@ async function tabToElement(page: Page, id: string): Promise<void> {
 }
 
 async function expectKeyboardFilePicker(page: Page, id: string): Promise<void> {
+  const trigger = page.getByRole('button', {
+    name: photoSources.addMedia,
+    exact: true,
+  });
+  await trigger.focus();
+  await trigger.press('Enter');
+  const sourceSheet = page.getByRole('dialog', {
+    name: photoSources.addMedia,
+    exact: true,
+  });
+  await expect(sourceSheet).toBeVisible();
   const input = page.locator(`#${id}`);
+  await expect(input).toBeEnabled();
   await expectHiddenGeometry(input);
   await expect(input).not.toHaveAccessibleName('');
 
@@ -91,6 +104,9 @@ async function expectKeyboardFilePicker(page: Page, id: string): Promise<void> {
   await expect(picker).toBeVisible();
   await expect(picker).toHaveCSS('outline-style', 'solid');
   await expect(picker).toHaveCSS('outline-width', '3px');
+  await page.keyboard.press('Escape');
+  await expect(sourceSheet).not.toBeVisible();
+  await expect(trigger).toBeFocused();
 }
 
 async function installApiMocks(page: Page): Promise<void> {

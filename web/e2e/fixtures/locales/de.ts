@@ -3,6 +3,9 @@ const de = {
     longNotes: 'Eine ausführliche Beschreibung der Änderungen. ',
     notes: 'Verbesserungen für eure Testversion.',
   },
+  memoryExperiences: {
+    body: 'Unser Wochenende am See.',
+  },
   videoAttachment: {
     body: 'Der kleine Sprung ins Wasser, über den wir noch immer lachen. ❤️',
     title: 'Unser Sprung ins Glück',

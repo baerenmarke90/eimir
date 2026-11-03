@@ -98,6 +98,7 @@ eimir.
 │   │   └── media and notes
 │   └── Einkauf (later, feature-controlled)
 └── Mehr
+    ├── Unser Jahr (annual shared history; canonical route `/story/years`)
     ├── Spielen (relationship-native games; canonical route `/games`)
     ├── Menschen (related people and important dates)
     ├── Orte (shared places and destinations)
@@ -285,6 +286,14 @@ or `SPACE_SHARED`. `public` is not a valid value.
 - Switching primary navigation does not create stacked detail history.
 - Opening a Web utility/account destination keeps its canonical history entry;
   closing an account popover itself does not create history.
+
+The 2026-11-03 PO follow-up (#1616) places the existing annual shared-history
+entry under More as **Unser Jahr**. The canonical `/story/years` and year-detail
+routes keep their Story meaning. The Diary uses its existing month/filter
+control instead of a separate browse strip. Shared Photos and Chapters remain
+reachable under More alongside the annual archive. Plans expose **Offen / Erlebt**;
+past uncompleted intentions stay Open, while Experienced contains completed
+Plans only. Wishes retain **Offen / Erfüllt** and the same scope interaction.
 
 ## 10. Open product decisions
 

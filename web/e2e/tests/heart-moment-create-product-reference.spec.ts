@@ -1,15 +1,19 @@
-import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { captureScreenshot } from '../support/storyTimelineFixture';
 import { readFile, writeFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
+import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
-import { fulfillEmptyMomentPlaces } from '../support/photoSources';
+import {
+  fulfillEmptyMomentPlaces,
+  fulfillUnconfiguredPhotoSources,
+} from '../support/photoSources';
+import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -338,7 +342,8 @@ async function installApiMocks(page: Page): Promise<string[]> {
         authorId: ACCOUNT_ID,
         author: { id: ACCOUNT_ID, displayName: 'Anna' },
         capabilities: { canEdit: true, canDelete: true, canComment: true },
-        attachment: submitted.attachmentId ? attachment : null,
+        attachment: submitted.attachments?.length ? attachment : null,
+        attachments: submitted.attachments?.length ? [attachment] : [],
         createdAt: TEST_NOW,
         updatedAt: TEST_NOW,
         version: 1,
@@ -698,7 +703,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
       const note = page.locator('.heart-moment-create-note');
       const visibility = page.locator('.heart-moment-create-visibility');
       const actions = page.locator('.heart-moment-create-actions');
-      const photoInput = page.locator('#heart-moment-create-photo');
+      const photoInput = page
+        .getByRole('dialog', {
+          name: photoSources.addMedia,
+          exact: true,
+        })
+        .getByLabel(de.memory.photoLabel, { exact: true });
       const sharedRadio = page.locator(
         '#heart-moment-create-visibility-shared',
       );
@@ -716,7 +726,24 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(actions).toBeVisible();
 
       // The photo is intentionally prominent in #862 but remains optional.
+      const mediaTrigger = media.getByRole('button', {
+        name: photoSources.addMedia,
+        exact: true,
+      });
+      await mediaTrigger.click();
+      const mediaSheet = page.getByRole('dialog', {
+        name: photoSources.addMedia,
+        exact: true,
+      });
+      await expect(mediaSheet).toBeVisible();
+      await expect(photoInput).toBeAttached();
       await expect(photoInput).not.toHaveAttribute('required', '');
+      await mediaSheet
+        .locator('.photo-source-footer')
+        .getByRole('button', { name: taskSheets.close, exact: true })
+        .click();
+      await expect(mediaSheet).not.toBeVisible();
+      await expect(mediaTrigger).toBeFocused();
 
       // Preserve the existing product default while making the choice explicit.
       await expect(sharedRadio).toBeChecked();
@@ -1038,11 +1065,20 @@ test('photo-only Heart Moment saves without text and opens its photo (#509)', as
   await page.setViewportSize({ width: 390, height: 844 });
   await openHeartMomentCreate(page);
   await expect(page.locator('#heart-moment-text')).not.toBeFocused();
-  await page.locator('#heart-moment-create-photo').setInputFiles({
-    name: 'cabin-lake.jpg',
-    mimeType: 'image/jpeg',
-    buffer: await readFile(PHOTO),
-  });
+  await page
+    .getByRole('button', { name: photoSources.addMedia, exact: true })
+    .click();
+  await page
+    .getByRole('dialog', {
+      name: photoSources.addMedia,
+      exact: true,
+    })
+    .getByLabel(de.memory.photoLabel, { exact: true })
+    .setInputFiles({
+      name: 'cabin-lake.jpg',
+      mimeType: 'image/jpeg',
+      buffer: await readFile(PHOTO),
+    });
   await expect(page.getByText(de.memory.photoReady)).toBeVisible();
   await expect(page.locator('#heart-moment-text')).toHaveValue('');
 
@@ -1058,7 +1094,10 @@ test('photo-only Heart Moment saves without text and opens its photo (#509)', as
     expect.objectContaining({
       text: '',
       tags: [],
-      attachmentId: ATTACHMENT_ID,
+      attachments: [
+        { attachmentId: ATTACHMENT_ID, position: 0, isSensitive: false },
+      ],
+      selectedCoverAttachmentId: null,
     }),
   );
   await expect(page).toHaveURL(

@@ -248,7 +248,7 @@ it('reveals an automatically added Place after saving a photo into a recently op
     ),
   ).toBeTruthy();
   expect(list).toHaveBeenCalledTimes(2);
-  expect(screen.queryByRole('button', { name: photoPlaceCopy.add })).toBeNull();
+  expect(screen.getByRole('button', { name: photoPlaceCopy.add })).toBeTruthy();
   expect(
     screen.getByRole('button', {
       name: photoPlaceCopy.actions.replace('{{name}}', place.name),

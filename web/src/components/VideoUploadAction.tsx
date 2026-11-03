@@ -14,6 +14,24 @@ export interface VideoCaptureContext {
   spaceId: string;
 }
 
+export function useVideoUploadPolicy(context: VideoCaptureContext) {
+  return useQuery({
+    queryKey: [
+      'video-upload-policy',
+      context.apis.attachments.contentBaseUrl,
+      context.accountId,
+      context.spaceId,
+    ],
+    queryFn: ({ signal }) =>
+      context.apis.attachments.getAttachmentUploadPolicy(
+        { spaceId: context.spaceId },
+        { signal },
+      ),
+    staleTime: 60_000,
+    retry: false,
+  });
+}
+
 /** Separate native video intake preserves the existing original-photo consent. */
 export function VideoUploadAction(props: {
   id: string;
@@ -38,21 +56,7 @@ function EnabledVideoUploadAction({
   const [proOpen, setProOpen] = useState(false);
   const sheet = useRef<ShortTaskSheetHandle>(null);
   const navigate = useNavigate();
-  const policy = useQuery({
-    queryKey: [
-      'video-upload-policy',
-      context.apis.attachments.contentBaseUrl,
-      context.accountId,
-      context.spaceId,
-    ],
-    queryFn: ({ signal }) =>
-      context.apis.attachments.getAttachmentUploadPolicy(
-        { spaceId: context.spaceId },
-        { signal },
-      ),
-    staleTime: 60_000,
-    retry: false,
-  });
+  const policy = useVideoUploadPolicy(context);
   if (!policy.data?.videoProcessingEnabled) return null;
   return (
     <div className="video-upload-action">

@@ -15,6 +15,7 @@ Name | Type
 `experiencedOn` | Date
 `placeId` | string
 `schedule` | [PlanSchedule](PlanSchedule.md)
+`selectedCoverAttachmentId` | string
 `title` | string
 
 ## Example
@@ -32,6 +33,7 @@ const example = {
   "experiencedOn": null,
   "placeId": null,
   "schedule": null,
+  "selectedCoverAttachmentId": null,
   "title": null,
 } satisfies PlanUpdate
 

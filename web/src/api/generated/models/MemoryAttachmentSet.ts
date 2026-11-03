@@ -33,6 +33,12 @@ export interface MemoryAttachmentSet {
      * @memberof MemoryAttachmentSet
      */
     attachments: Array<MemoryAttachmentEntry>;
+    /**
+     * 
+     * @type {string}
+     * @memberof MemoryAttachmentSet
+     */
+    selectedCoverAttachmentId?: string | null;
 }
 
 /**
@@ -54,6 +60,7 @@ export function MemoryAttachmentSetFromJSONTyped(json: any, ignoreDiscriminator:
     return {
         
         'attachments': ((json['attachments'] as Array<any>).map(MemoryAttachmentEntryFromJSON)),
+        'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
     };
 }
 
@@ -69,6 +76,7 @@ export function MemoryAttachmentSetToJSONTyped(value?: MemoryAttachmentSet | nul
     return {
         
         'attachments': ((value['attachments'] as Array<any>).map(MemoryAttachmentEntryToJSON)),
+        'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
     };
 }
 

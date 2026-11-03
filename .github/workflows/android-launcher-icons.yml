@@ -82,6 +82,21 @@ jobs:
             --package 'system-images;${{ matrix.image }};${{ matrix.tag }};x86_64'
           test -s "$ANDROID_AVD_HOME/eimir-launcher.ini"
           sudo setfacl -m "u:$USER:rw" /dev/kvm
+          emulator_binary="$ANDROID_HOME/emulator/emulator"
+          if [ '${{ matrix.api }}' = '36' ]; then
+            # Keep the preceding stable host engine while investigating 37.2.13's
+            # repeatable color-buffer/process loss during selected-video playback.
+            # Archive and SHA-256: https://developer.android.com/studio/emulator_archive
+            emulator_archive="$RUNNER_TEMP/emulator-linux_x64-16428233.zip"
+            curl --fail --location --proto '=https' --proto-redir '=https' \
+              https://redirector.gvt1.com/edgedl/android/repository/emulator-linux_x64-16428233.zip \
+              --output "$emulator_archive"
+            printf '%s  %s\n' b08fc43d8608d2955f607f1b287beb525041e730086bdca3af152accac3af9c1 "$emulator_archive" \
+              | sha256sum --check --status
+            unzip -q "$emulator_archive" -d "$RUNNER_TEMP/eimir-api36-emulator"
+            emulator_binary="$RUNNER_TEMP/eimir-api36-emulator/emulator/emulator"
+          fi
+          printf 'EIMIR_EMULATOR_BINARY=%s\n' "$emulator_binary" >> "$GITHUB_ENV"
       - name: Build, lint and test the Android adapter
         working-directory: android
         run: |
@@ -93,10 +108,19 @@ jobs:
         run: |
           export PATH="$ANDROID_HOME/platform-tools:$PATH"
           free -m | tee host-memory.log
-          "$ANDROID_HOME/emulator/emulator" -list-avds | grep -Fx eimir-launcher
-          "$ANDROID_HOME/emulator/emulator" -avd eimir-launcher -no-window \
-            -no-audio -no-snapshot -no-boot-anim -gpu swiftshader -memory ${{ matrix.memory }} -partition-size 2048 \
-            > emulator.log 2>&1 &
+          "$EIMIR_EMULATOR_BINARY" -no-window -version | tee emulator-version.log
+          if [ '${{ matrix.api }}' = '36' ]; then
+            grep -E '^Android emulator version 37\.2\.12([. ]|$)' emulator-version.log
+          fi
+          "$EIMIR_EMULATOR_BINARY" -no-window -list-avds | grep -Fx eimir-launcher
+          (
+            set +e
+            "$EIMIR_EMULATOR_BINARY" -avd eimir-launcher -no-window \
+              -no-audio -no-snapshot -no-boot-anim -gpu swiftshader \
+              -memory ${{ matrix.memory }} -partition-size 2048 > emulator.log 2>&1
+            emulator_status=$?
+            printf 'Emulator exited with status %s\n' "$emulator_status" > emulator-exit.log
+          ) &
           timeout 180 adb wait-for-device
           for attempt in $(seq 1 120); do
             boot=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
@@ -148,6 +172,7 @@ jobs:
           timeout 180 adb -e shell am instrument -w -r \
             -e externalPhotoUri "$external_photo_uri" \
             -e externalVideoUri "$external_video_uri" \
+            -e externalVideoSha256 "$(sha256sum ../backend/tests/fixtures/media/video-with-metadata.mp4 | cut -d' ' -f1)" \
             -e class de.eimir.app.IdentityAppLinksTest,de.eimir.app.LauncherIconsTest,de.eimir.app.UnifiedPushAccountReplacementTest,de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.FcmServiceOwnershipTest,de.eimir.app.PushStorageFailureTest,de.eimir.app.PhotoFileChooserTest,de.eimir.app.PlanCalendarTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
@@ -190,14 +215,20 @@ jobs:
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b crash -d -t 200 \
             > native-crash.log 2>&1 || true
-          for proof in native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
-            if "$ANDROID_HOME/platform-tools/adb" -e shell run-as de.eimir.app.debug test -f "files/$proof"; then
+          for proof in renderer-background-return.png renderer-real-crash.png native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
+            # `test` is a shell builtin, not a run-as executable on these images.
+            if "$ANDROID_HOME/platform-tools/adb" -e shell \
+                "run-as de.eimir.app.debug sh -c 'test -f files/$proof'"; then
               "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.eimir.app.debug \
                 cat "files/$proof" > "$proof"
             else
               rm -f "$proof"
             fi
           done
+          test -s renderer-real-crash.png
+          if [ '${{ matrix.api }}' != '28' ]; then
+            test -s renderer-background-return.png
+          fi
       - name: Capture failed instrumentation process diagnostics
         if: failure()
         working-directory: android
@@ -208,15 +239,19 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: android-launcher-verification-api-${{ matrix.api }}
+          name: android-launcher-verification-api-${{ matrix.api }}-attempt-${{ github.run_attempt }}
           path: |
             android/app/build/reports/
             android/app/build/outputs/androidTest-results/
             android/emulator.log
+            android/emulator-version.log
+            android/emulator-exit.log
             android/host-memory.log
             android/guest-memory-before-tests.log
             android/instrumentation.log
             android/runtime-recovery.log
+            android/renderer-background-return.png
+            android/renderer-real-crash.png
             android/notification-open.log
             android/push-preview.log
             android/fixture-logcat.log

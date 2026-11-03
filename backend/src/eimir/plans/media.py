@@ -100,6 +100,8 @@ def replace_photos(
         session.add(
             binding.PlanAttachment(plan_id=plan.id, attachment_id=photo_id, position=position)
         )
+    if plan.payload.selected_cover_attachment_id not in ids:
+        plan.payload = plan.payload.model_copy(update={"selected_cover_attachment_id": None})
     for photo_id in previous - set(ids):
         candidate = locked.get(photo_id)
         if candidate is not None:
@@ -124,3 +126,11 @@ def replace_cover(
     replace_photos(
         session, context, plan, ([(attachment_id, is_sensitive)] if attachment_id else []) + extra
     )
+
+
+def select_cover(session: Session, plan: Plan, identifier: UUID | None) -> None:
+    if identifier is not None and not any(
+        item.attachment.id == identifier for item in photos_of_plans(session, [plan])[plan.id]
+    ):
+        raise ValidationError("The cover must belong to this gallery.", "GALLERY_COVER_INVALID")
+    plan.payload = plan.payload.model_copy(update={"selected_cover_attachment_id": identifier})

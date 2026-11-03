@@ -107,6 +107,7 @@ class PlanCreate(ApiModel):
     description: str | SkipJsonSchema[None] = None
     place_id: UUID | SkipJsonSchema[None] = None
     schedule: PlanSchedule | SkipJsonSchema[None] = None
+    selected_cover_attachment_id: UUID | None = None
     cover_attachment_id: UUID | SkipJsonSchema[None] = None
     cover_is_sensitive: StrictBool = False
     attachments: (
@@ -158,6 +159,7 @@ class PlanUpdate(ApiModel):
     experienced_on: date | SkipJsonSchema[None] = None
     anticipation_enabled: StrictBool | SkipJsonSchema[None] = None
     schedule: PlanSchedule | None = None
+    selected_cover_attachment_id: UUID | None = None
     cover_attachment_id: UUID | None = None
     cover_is_sensitive: StrictBool | SkipJsonSchema[None] = None
     attachments: (
@@ -234,6 +236,7 @@ class PlanDetail(ApiModel):
     place_id: UUID | None
     title: str
     description: str | None
+    selected_cover_attachment_id: UUID | None = None
     cover_attachment: AttachmentSummary | None = None
     attachments: list[OrderedAttachmentSummary] = Field(default_factory=list)
     status: PlanStatus
@@ -303,6 +306,10 @@ def _plan_detail(
         )
         for item in photos
     ]
+    cover = next(
+        (item for item in summaries if item.id == plan.payload.selected_cover_attachment_id),
+        summaries[0] if summaries else None,
+    )
     return PlanDetail(
         id=plan.id,
         space_id=plan.space_id,
@@ -311,8 +318,9 @@ def _plan_detail(
         place_id=plan.place_id,
         title=plan.payload.title,
         description=plan.payload.description,
-        cover_attachment=AttachmentSummary(**summaries[0].model_dump(exclude={"position"}))
-        if summaries
+        selected_cover_attachment_id=plan.payload.selected_cover_attachment_id,
+        cover_attachment=AttachmentSummary(**cover.model_dump(exclude={"position"}))
+        if cover
         else None,
         attachments=summaries,
         status=PlanStatus(plan.status),
@@ -375,6 +383,7 @@ def create_plan(
         cover_attachment_id=body.cover_attachment_id,
         cover_is_sensitive=body.cover_is_sensitive,
         photos=_photo_selection(body.attachments),
+        selected_cover_attachment_id=body.selected_cover_attachment_id,
         title=body.title,
         description=body.description,
         place_id=body.place_id,
@@ -471,6 +480,7 @@ def update_plan(
         cover_attachment_id=body.cover_attachment_id,
         cover_is_sensitive=body.cover_is_sensitive,
         photos=_photo_selection(body.attachments),
+        selected_cover_attachment_id=body.selected_cover_attachment_id,
         schedule_values=_schedule_values(body.schedule) if body.schedule else None,
     )
     response.headers["ETag"] = etag_for(plan.version)

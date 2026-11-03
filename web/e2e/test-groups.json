@@ -3,8 +3,8 @@
   "baseline": {
     "main": "6a3d09724ab9aceefbdb35f730d2615b98d88e69",
     "specFiles": 48,
-    "tests": 328,
-    "prCriticalTests": 164
+    "tests": 329,
+    "prCriticalTests": 165
   },
   "dispositions": {
     "PR_CRITICAL": "Runs on every Web pull request and in the full regression.",
@@ -162,7 +162,7 @@
     },
     "planning-upcoming.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 9
+      "baselineTests": 14
     },
     "planning-wish-completion-continuation.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -415,12 +415,12 @@
     },
     "plan-comments-links.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 8,
+      "baselineTests": 12,
       "reason": "Plan comments must retain author, tenant, retry and canonical return contracts, with explicit bounded link previews and narrow/large-text accessibility."
     },
     "video-attachments.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 7,
+      "baselineTests": 8,
       "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled."
     },
     "android-push-onboarding.spec.ts": {
@@ -432,6 +432,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,
       "reason": "Readable long descriptions, explicit external preview, quiet Plan context and partner edit rights must remain accessible and preserve content/author/route across responsive states."
+    },
+    "memory-experiences.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7,
+      "reason": "Period/cover/order-save-return acceptance across Compact/Expanded, Light/Dark, 200% text, reduced motion, pointer/keyboard movement and Axe."
     }
   }
 }

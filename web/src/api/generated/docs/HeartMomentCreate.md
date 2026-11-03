@@ -8,9 +8,11 @@ Name | Type
 ------------ | -------------
 `attachmentId` | string
 `attachmentIsSensitive` | boolean
+`attachments` | [Array&lt;AttachmentEntry&gt;](AttachmentEntry.md)
 `emotion` | [HeartEmotion](HeartEmotion.md)
 `happenedOn` | Date
 `placeId` | string
+`selectedCoverAttachmentId` | string
 `tags` | Array&lt;string&gt;
 `text` | string
 `visibility` | [ContentVisibility](ContentVisibility.md)
@@ -24,9 +26,11 @@ import type { HeartMomentCreate } from ''
 const example = {
   "attachmentId": null,
   "attachmentIsSensitive": null,
+  "attachments": null,
   "emotion": null,
   "happenedOn": null,
   "placeId": null,
+  "selectedCoverAttachmentId": null,
   "tags": null,
   "text": null,
   "visibility": null,

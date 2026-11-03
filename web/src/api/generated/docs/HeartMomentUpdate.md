@@ -9,8 +9,10 @@ Name | Type
 ------------ | -------------
 `attachmentId` | string
 `attachmentIsSensitive` | boolean
+`attachments` | [Array&lt;AttachmentEntry&gt;](AttachmentEntry.md)
 `emotion` | [HeartEmotion](HeartEmotion.md)
 `happenedOn` | Date
+`selectedCoverAttachmentId` | string
 `tags` | Array&lt;string&gt;
 `text` | string
 
@@ -23,8 +25,10 @@ import type { HeartMomentUpdate } from ''
 const example = {
   "attachmentId": null,
   "attachmentIsSensitive": null,
+  "attachments": null,
   "emotion": null,
   "happenedOn": null,
+  "selectedCoverAttachmentId": null,
   "tags": null,
   "text": null,
 } satisfies HeartMomentUpdate

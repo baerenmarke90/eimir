@@ -4,6 +4,7 @@ import { selectedPhotoUnavailable } from '../client/selectedMediaRetention';
 import { useTranslation } from '../i18n';
 import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import './PhotoDraftGallery.css';
+import { PhotoArrangeTask } from './PhotoArrangeTask';
 
 export interface PhotoDraftGalleryItem {
   key: string;
@@ -25,9 +26,15 @@ export function PhotoDraftGallery({
   onRemove,
   onRetry,
   removeLabel,
+  onOrderChange,
+  selectedCoverKey,
+  onSelectCover,
 }: {
   items: PhotoDraftGalleryItem[];
   disabled?: boolean;
+  onOrderChange?: (keys: string[]) => void;
+  selectedCoverKey?: string | null;
+  onSelectCover?: (key: string | null) => void;
   onMove?: (key: string, offset: -1 | 1) => void;
   onSensitive?: (key: string, value: boolean) => void;
   onRemove: (key: string) => void;
@@ -37,6 +44,7 @@ export function PhotoDraftGallery({
   const { t } = useTranslation();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [arranging, setArranging] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const selected = items.find((item) => item.key === selectedKey) ?? items[0];
   if (!selected) return null;
@@ -85,6 +93,23 @@ export function PhotoDraftGallery({
   }
   return (
     <div className="photo-draft-gallery">
+      {onOrderChange && items.length > 1 ? (
+        <button
+          type="button"
+          className="secondary"
+          disabled={disabled}
+          onClick={() => setArranging(true)}
+        >
+          {t('experiences.arrange')}
+        </button>
+      ) : null}
+      {arranging && onOrderChange ? (
+        <PhotoArrangeTask
+          items={items}
+          onFinish={onOrderChange}
+          onClose={() => setArranging(false)}
+        />
+      ) : null}
       <ol
         className="photo-draft-grid"
         aria-label={t(mixed ? 'video.selected' : 'memory.photoDraftsAria')}
@@ -129,6 +154,16 @@ export function PhotoDraftGallery({
                 </span>
               ) : null}
             </button>
+            {onSelectCover &&
+            item.key ===
+              (selectedCoverKey &&
+              items.some((entry) => entry.key === selectedCoverKey)
+                ? selectedCoverKey
+                : items[0].key) ? (
+              <span className="photo-draft-cover">
+                {t('experiences.cover')}
+              </span>
+            ) : null}
           </li>
         ))}
       </ol>
@@ -190,6 +225,29 @@ export function PhotoDraftGallery({
           </strong>
           <span className="photo-draft-filename">{selected.name}</span>
         </div>
+        {onSelectCover ? (
+          <div className="field-group">
+            <button
+              type="button"
+              className="secondary"
+              disabled={disabled}
+              aria-pressed={selectedCoverKey === selected.key}
+              onClick={() => onSelectCover(selected.key)}
+            >
+              {t('experiences.chooseCover')}
+            </button>
+            <button
+              type="button"
+              className="tertiary"
+              disabled={disabled}
+              aria-pressed={!selectedCoverKey}
+              onClick={() => onSelectCover(null)}
+            >
+              {t('experiences.automaticCover')}
+            </button>
+            <p className="field-help">{t('experiences.coverHelp')}</p>
+          </div>
+        ) : null}
         {onSensitive && selected.canEditSensitivity !== false ? (
           <SensitiveMediaCheckbox
             checked={selected.isSensitive}

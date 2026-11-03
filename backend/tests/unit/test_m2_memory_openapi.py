@@ -47,11 +47,21 @@ def test_memory_write_dtos_only_expose_approved_fields() -> None:
         "tags",
         "experienceKind",
         "placeId",
+        "placeIds",
+        "happenedUntil",
     }
     assert set(create["required"]) == {"title"}
     assert create["properties"]["body"]["default"] == ""
     assert create["additionalProperties"] is False
-    assert set(update["properties"]) == {"title", "body", "happenedOn", "tags"}
+    assert set(update["properties"]) == {
+        "title",
+        "body",
+        "happenedOn",
+        "happenedUntil",
+        "tags",
+        "placeIds",
+        "expectedPlaceIds",
+    }
     assert update["additionalProperties"] is False
 
 

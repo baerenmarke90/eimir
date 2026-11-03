@@ -1,11 +1,10 @@
-import { ExpandableDescription } from './ExpandableDescription';
-import { type FormEvent, useRef } from 'react';
 import {
   useIsMutating,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { type FormEvent, useRef } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import {
@@ -13,30 +12,31 @@ import {
   MilestoneDetailToJSON,
 } from '../api/generated/models/MilestoneDetail';
 import type { MilestoneUpdate } from '../api/generated/models/MilestoneUpdate';
-import { loadProductWithReadCache } from '../client/productReadCache';
+import {
+  authorSummaryQueryKeys,
+  invalidateStoryProjections,
+} from '../client/authorSummaryConsumers';
+import {
+  type CreateRequestAttempt,
+  submitCreateRequest,
+} from '../client/createRequestIdentity';
+import { invalidateDashboard } from '../client/dashboardQueries';
+import { localDateInputValue } from '../client/dateInput';
+import { usePartnerNickname } from '../client/partnerNickname';
 import { normalizeClientError } from '../client/problemDetails';
-import { useStoryDeletion } from '../client/useStoryDeletion';
-import { useStoryViewReceipt } from '../client/storyViewReceipt';
-import { useTaskOrigin } from '../client/taskOrigin';
+import { loadProductWithReadCache } from '../client/productReadCache';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
   milestoneDetailPath,
   milestoneEditPath,
 } from '../client/routes';
-import { invalidateDashboard } from '../client/dashboardQueries';
-import {
-  type CreateRequestAttempt,
-  submitCreateRequest,
-} from '../client/createRequestIdentity';
-import {
-  authorSummaryQueryKeys,
-  invalidateStoryProjections,
-} from '../client/authorSummaryConsumers';
-import { localDateInputValue } from '../client/dateInput';
-import { usePartnerNickname } from '../client/partnerNickname';
+import { useStoryViewReceipt } from '../client/storyViewReceipt';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { useStoryDeletion } from '../client/useStoryDeletion';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
+import { ExpandableDescription } from './ExpandableDescription';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -47,6 +47,7 @@ import {
   StoryEditorPageShell,
 } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 
 export type MilestoneProductMode = 'create' | 'detail' | 'edit';
@@ -94,7 +95,7 @@ export function MilestoneProductPage({
   const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
   const location = useLocation();
-  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const { requestReturn } = useTaskOrigin();
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const params = useParams();
@@ -270,19 +271,7 @@ export function MilestoneProductPage({
       <StoryCreatePageShell
         header={
           <PageHeader
-            before={
-              <button
-                type="button"
-                className="back-link tertiary"
-                onClick={() => requestReturn(originKey)}
-              >
-                {t(
-                  resolveOrigin(originKey)
-                    ? 'taskBoundary.back'
-                    : 'milestoneProduct.backToStory',
-                )}
-              </button>
-            }
+            before={<TaskBackButton onClick={() => requestReturn(originKey)} />}
             title={t('milestoneProduct.createHeading')}
             className="create-heading"
           />

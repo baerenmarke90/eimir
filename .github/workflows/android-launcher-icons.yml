@@ -190,19 +190,29 @@ jobs:
             ! grep -Eq '^\[(ro\.boot\.)?qemu\.hwcodec\.(avcdec|hevcdec|vpxdec)\]: \[2\]$' \
               guest-properties-before-tests.log
           fi
-          # Bound complete launcher and push/calendar journeys independently.
-          # The 35-test aggregate took 160 seconds before runner teardown on
-          # API 36's compatible ANGLE software path, close to its 180-second cap.
+          # Bound complete launcher, provider lifecycle and contract journeys
+          # independently. The 28-case push aggregate also approached its cap
+          # on a slower API 36 runner after launcher isolation.
           timeout 180 adb -e shell am instrument -w -r \
             -e class de.eimir.app.IdentityAppLinksTest,de.eimir.app.LauncherIconsTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
           grep -Eq '^OK \(7 tests\)' instrumentation.log
           timeout 180 adb -e shell am instrument -w -r \
-            -e class de.eimir.app.UnifiedPushAccountReplacementTest,de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.FcmServiceOwnershipTest,de.eimir.app.PushStorageFailureTest,de.eimir.app.PlanCalendarTest \
+            -e class de.eimir.app.UnifiedPushAccountReplacementTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee -a instrumentation.log
-          grep -Eq '^OK \(28 tests\)' instrumentation.log
+          grep -Eq '^OK \(3 tests\)' instrumentation.log
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.FcmServiceOwnershipTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee -a instrumentation.log
+          grep -Eq '^OK \(9 tests\)' instrumentation.log
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.PushStorageFailureTest,de.eimir.app.PlanCalendarTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee -a instrumentation.log
+          grep -Eq '^OK \(16 tests\)' instrumentation.log
           # System picker journeys have their own bounded invocation, as do
           # renderer recovery and notification handoff below. The combined
           # 46-test process exhausted its 180-second budget on API 36.

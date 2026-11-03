@@ -390,21 +390,21 @@ public class PhotoFileChooserTest {
         if (PhotoFileChooser.supportsPickerMetadata()) {
             // This is the actual SDK-extension-23 picker consent, not a shell
             // grant of ACCESS_MEDIA_LOCATION or an original-URI override.
-            AccessibilityNodeInfo includeLocation = findDocument("Include location");
             captureNativeDiagnostics("native-photo-location-consent");
+            AccessibilityNodeInfo includeLocation = findDocument("Include location");
             assertNotNull("The system picker asks to include the selected photos' location", includeLocation);
             tapNativeControl(includeLocation);
         }
         // Match the actual diary input's complete MIME list and multiple mode.
-        AccessibilityNodeInfo document = findDocument(token);
         captureNativeDiagnostics("native-photo-picker");
+        AccessibilityNodeInfo document = findDocument(token);
         assertNotNull("The real Android photo picker exposes the foreign-owned fixture", document);
         tapNativeControl(document);
         // SDK-extension-23 pickers label the final selection action "Done";
         // older system photo pickers use "Add". Both are explicit confirmation.
         String confirmLabel = PhotoFileChooser.supportsPickerMetadata() ? "Done" : "Add";
-        AccessibilityNodeInfo confirm = findDocument(confirmLabel);
         captureNativeDiagnostics("native-photo-confirmation");
+        AccessibilityNodeInfo confirm = findDocument(confirmLabel);
         assertNotNull("The system picker requires explicit selection confirmation: " + confirmLabel,
             confirm);
         tapNativeControl(confirm);
@@ -488,15 +488,17 @@ public class PhotoFileChooserTest {
                 catch (Exception failure) { throw new AssertionError(failure); }
             }, event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && isSystemVideoPicker(event.getPackageName()), 15000);
+        // Screenshots synchronize native surfaces and can replace accessibility nodes.
+        // Acquire the control only after recording, immediately before its tap.
+        captureNativeDiagnostics("native-video-picker");
         AccessibilityNodeInfo selected = findDocument("Video taken");
         assertNotNull("The system video gallery exposes the foreign-owned video", selected);
-        captureNativeDiagnostics("native-video-picker");
         tapNativeControl(selected);
         // Match the actual multiple-video input and complete the platform's
         // deliberate confirmation, including the extension-23 gallery's Done.
         String confirmLabel = PhotoFileChooser.supportsPickerMetadata() ? "Done" : "Add";
-        AccessibilityNodeInfo confirm = findDocument(confirmLabel);
         captureNativeDiagnostics("native-video-confirmation");
+        AccessibilityNodeInfo confirm = findDocument(confirmLabel);
         assertNotNull("The video gallery requires explicit confirmation: " + confirmLabel, confirm);
         tapNativeControl(confirm);
         byte[] bytes = selectedFileBytes(view);

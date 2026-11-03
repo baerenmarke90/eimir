@@ -17,3 +17,23 @@ R2/R4 and D1/D4/D8. Existing personal content stays the focal point. Existing ro
 ## Reuse, model and privacy
 
 Reuse TanStack Query, existing browser/Android APIs, authorized byte cache, Object URL ownership and motion tokens. No new dependency/provider/account/telemetry service. Core reliability and interaction improve identically for Cloud/Self-Hosted; optional designs retain current entitlements. No API/DB schema, offline write, media derivative, quota or grant change. Only bounded presentation metadata is persisted; no private content, token, signed URL or grant. Native diagnostics contain build/WebView/renderer facts only.
+
+
+## Background reclamation correction (#1609, 2026-11-03)
+
+The later Product Owner report of the same interruption dialog after background
+return exposes a lifecycle distinction: normal OS reclamation is not a renderer
+crash. The blanket explicit-only sentence above is superseded for a non-crash
+loss of a backgrounded renderer, including a delayed callback during return
+before the renderer has confirmed a foreground frame. Recreate the complete
+existing Capacitor Activity once on return; do not reuse a dead WebView, launch
+an Activity while hidden, replay a consumed launch link, or retry a write.
+Healthy resumes keep the existing bridge. Actual crashes, foreground losses,
+interrupted media selection and repeated loss before a healthy visit retain the
+existing explicit recovery surface. Existing encrypted session and authored
+draft owners remain authoritative; volatile input survival is not promised.
+
+This is a behavioral repair within the existing generated composition and
+interaction contract, with no new layout, copy, theme, controls or motion.
+Native renderer-termination and frame/lifecycle evidence is required; the user's
+screenshot does not identify the Pixel's `didCrash()` result or prove an OOM.

@@ -405,3 +405,48 @@ existing Android API 28/36/37.1 workflow. The bridge registration is checked
 alongside other wrapper capabilities. Installed third-party calendar behavior,
 physical-device Back/TalkBack and save/cancel acceptance remain separate from
 these contract checks and browser/component coverage.
+
+
+## Background renderer reclamation (#1609)
+
+`MainActivity` distinguishes Android's non-crash background renderer reclamation
+from real renderer crashes. A healthy resume retains the existing bridge and
+WebView. A real `onRenderProcessGone` callback invalidates the Activity's bridge
+reference, disposes picker/plugin owners once, detaches and destroys the dead
+WebView, and returns handled. No later Activity lifecycle or detach callback
+may use that dead bridge.
+
+A non-crash exit after `onStop` permits one complete Activity recreation on the
+next foreground return, including a delayed exit callback before a live
+`postVisualStateCallback` confirms a foreground frame. Recovery never launches
+another Activity while hidden. The attempt bit survives recreation; only a
+later confirmed foreground frame followed by another background visit rearms
+it. Actual crashes, foreground losses, interrupted native media selections and
+repeated losses remain explicit through the existing localized
+`RuntimeRecoveryActivity`. No timer, renderer-priority override or automatic
+write retry is introduced.
+
+Recreation uses an ordinary launcher intent unless a new intent arrived while
+the bridge was absent. It does not replay the consumed original auth/push link
+or restore a pending plugin operation. Existing encrypted native session
+storage, scoped authored drafts and disposable image-cache contracts remain
+unchanged. Volatile unsaved fields/files are not guaranteed to survive renderer
+death, and this policy cannot establish the root cause of an unlogged device
+crash.
+
+Android's [termination handling guidance](https://developer.android.com/develop/ui/views/layout/webapps/handle-termination)
+and Capacitor 8.5.2's existing `BridgeActivity`/`Bridge` lifecycle own the
+implementation. No new dependency, service, account, data egress or cost.
+`RuntimeRecoveryTest` exercises real non-crash termination through
+`WebViewRenderProcess.terminate()` on API 29+, healthy return and real
+`chrome://crash` recovery; API 28 retains the supported healthy/crash cases.
+The isolated native lane retains screenshots and diagnostics. Pure policy
+regressions cover delayed delivery, one-shot fallback, picker interruption and
+rearming. Physical Pixel acceptance remains separate from emulator evidence.
+
+Bundled-interface readiness is required before native return screenshots on
+modern providers. The stock API 28 image still ships Chromium 69 and cannot
+parse the existing product bundle; its pre-existing native adapter/frame/crash
+coverage is not bundled Web-product acceptance. This exact legacy fixture is
+classified explicitly, not treated as a successful UI result. Provisioning a
+supported provider and extending that acceptance is tracked in [#1613](https://github.com/baerenmarke90/eimir/issues/1613).

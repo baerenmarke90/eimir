@@ -190,14 +190,20 @@ jobs:
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b crash -d -t 200 \
             > native-crash.log 2>&1 || true
-          for proof in native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
-            if "$ANDROID_HOME/platform-tools/adb" -e shell run-as de.eimir.app.debug test -f "files/$proof"; then
+          for proof in renderer-background-return.png renderer-real-crash.png native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
+            # `test` is a shell builtin, not a run-as executable on these images.
+            if "$ANDROID_HOME/platform-tools/adb" -e shell \
+                "run-as de.eimir.app.debug sh -c 'test -f files/$proof'"; then
               "$ANDROID_HOME/platform-tools/adb" -e exec-out run-as de.eimir.app.debug \
                 cat "files/$proof" > "$proof"
             else
               rm -f "$proof"
             fi
           done
+          test -s renderer-real-crash.png
+          if [ '${{ matrix.api }}' != '28' ]; then
+            test -s renderer-background-return.png
+          fi
       - name: Capture failed instrumentation process diagnostics
         if: failure()
         working-directory: android
@@ -217,6 +223,8 @@ jobs:
             android/guest-memory-before-tests.log
             android/instrumentation.log
             android/runtime-recovery.log
+            android/renderer-background-return.png
+            android/renderer-real-crash.png
             android/notification-open.log
             android/push-preview.log
             android/fixture-logcat.log

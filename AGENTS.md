@@ -242,17 +242,20 @@ Reuse, business-model, product-design, or cross-cutting decisions must never wea
 
 ## Pull requests
 
-### CI failures and targeted retries
+### CI preflight, consolidated fixes, and targeted retries
 
-This policy applies to human contributors and coding agents handling any pull request. Follow the [contributor retry instructions](CONTRIBUTING.md#retrying-failed-ci-jobs).
+This policy applies to human contributors and coding agents handling any pull request. Follow the [contributor CI procedure](CONTRIBUTING.md#retrying-failed-ci-jobs). The goal is informed convergence to merge readiness, not repeated speculative pushes or reruns.
 
-- Inspect the failed job and its diagnostics before deciding whether to retry or fix the cause.
-- Before pushing merge-readiness fixes, inspect the relevant workflow commands and all failed jobs, run the complete affected test groups locally where supported, and fix the collected failures together. Do not stop diagnosis at the first failure or start a CI retry after each individual correction. If local execution is unavailable, document the limitation and collect the hosted diagnostics before the next correction batch.
-- For a transient failure on the same commit, use **Re-run failed jobs** or a specific-job rerun. Preserve successful independent jobs; do not restart every workflow, push an empty commit, or close/reopen the PR merely to retry.
-- Code, test, or workflow fixes require a new commit and fresh relevant checks. Never copy successful statuses from an older revision or retry an old run as proof of a new commit.
-- When changing workflows, keep independent expensive checks in independently retryable jobs where practical. Matrix checks should retain `fail-fast: false` when sibling jobs can finish independently. Required aggregate checks must still reject failed, cancelled, or unexpectedly skipped required work.
-- Diagnostic artifacts produced by retried jobs must distinguish attempts or follow an explicit safe replacement contract. Preserve stable artifact names where downstream release consumers require them; review those consumers before renaming artifacts.
-- Record any retries and their reason in the PR validation results. A repeatable test failure needs a fix; retries must not hide it or weaken existing gates.
+- Before implementation and the initial PR push, inspect the applicable Actions workflows, event/path filters and classifiers, required checks, base/dependency context, and PR-body, documentation, and design-evidence gates. Prepare a proportionate validation plan and complete required metadata/evidence before requesting final review.
+- Run cheap relevant preflight checks before pushing; run independent checks in parallel where supported. Broader suites need a relevant risk or required gate, not an automatic all-suites rule for every small change.
+- Collect available failures and diagnostics from useful independent jobs/shards on the current revision. Distinguish root causes, dependent symptoms, transient infrastructure failures, and unrelated baseline issues. Start diagnosis immediately, but normally let still-useful independent checks finish before a correction push.
+- Resolve known related causes and predictable follow-on errors as one coherent validated batch. Several meaningful local commits are fine; do not trigger another remote cycle for each isolated red message while known failures remain untreated. Do not bundle unrelated changes or wait indefinitely for hung/unavailable jobs.
+- Retry an unchanged revision only for a diagnosed, plausibly transient failure, using **Re-run failed jobs** or a specific-job rerun. Preserve successful independent jobs. Repeated failure requires further diagnosis; do not use speculative rerun-all, empty commits, close/reopen loops, or artificial draft/ready transitions.
+- Code, test, or workflow fixes require a new commit and fresh applicable checks. Confirm the final head and relevant integration/merge context; older success is not evidence for changed source. For PR-metadata failures, correct the actual body/evidence and use the supported fresh event if rerunning would retain stale event data.
+- Cancel only demonstrably obsolete or diagnosed-hung runs owned by the current work, after preserving useful diagnostics. A shared PR does not authorize cancelling another contributor's work; required merge/deployment checks and missing evidence must not be treated as successful.
+- When changing workflows, keep independent expensive checks separately retryable where practical and retain `fail-fast: false` for independent matrix jobs. Required aggregates must reject failed, cancelled, or unexpectedly skipped required work. Do not weaken checks, assertions, coverage, protections, or required context names to shorten the cycle.
+- Diagnostic artifacts from retries must distinguish attempts or use an explicit safe replacement contract. Preserve stable artifact names consumed by release workflows.
+- Record the relevant root causes, correction batch, validation, and any retry reason briefly in the existing PR validation section. This adds no separate approval process or arbitrary limit on the number of justified pushes.
 
 ### Required reviews
 

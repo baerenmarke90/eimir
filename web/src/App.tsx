@@ -36,6 +36,7 @@ import {
 } from './client/identityFlow';
 import { loadInstanceAccessStatus } from './client/instanceStatus';
 import { createM4ProductApis } from './client/m4Product';
+import { useGentleUse } from './client/gentlePrompts';
 import { ProfilesApi } from './client/mediaApis';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { createPeopleApi } from './client/peopleApi';
@@ -284,6 +285,7 @@ function AuthenticatedApp({
     () => createM4ProductApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
   );
+  useGentleUse({ account, spaceId, api: m4Apis.notifications });
   const devicePush = useDevicePush({
     accountId: account.id,
     apiBaseUrl,

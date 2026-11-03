@@ -112,6 +112,11 @@
             "title": "Displayname",
             "type": "string"
           },
+          "gentlePromptsEnabled": {
+            "default": false,
+            "title": "Gentlepromptsenabled",
+            "type": "boolean"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -2954,6 +2959,68 @@
         "title": "GameWishCandidateSet",
         "type": "object"
       },
+      "GentleSuggestion": {
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "title": "Expiresat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "WRITING",
+              "MEMORY"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "memoryId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Memoryid"
+          },
+          "writingVariant": {
+            "title": "Writingvariant",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "memoryId",
+          "expiresAt",
+          "writingVariant"
+        ],
+        "title": "GentleSuggestion",
+        "type": "object"
+      },
+      "GentleUseReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "FOREGROUND",
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "GentleUseReceipt",
+        "type": "object"
+      },
       "GiftIdeaCreate": {
         "additionalProperties": false,
         "properties": {
@@ -5140,6 +5207,7 @@
       },
       "NotificationKind": {
         "enum": [
+          "GENTLE_PROMPT",
           "REMINDER_CREATED",
           "TRANSFER_READY",
           "TRANSFER_COMPLETED",
@@ -22840,6 +22908,300 @@
         "summary": "Get Game Wish Candidates",
         "tags": [
           "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/gentle-prompts/memories/{memoryId}/exclusion": {
+      "put": {
+        "operationId": "excludeGentleMemory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memoryId",
+            "required": true,
+            "schema": {
+              "title": "Memoryid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Exclude Memory",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/gentle-prompts/suggestion": {
+      "get": {
+        "operationId": "getGentleSuggestion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/GentleSuggestion"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Getgentlesuggestion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Suggestion",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/gentle-prompts/use": {
+      "post": {
+        "operationId": "recordGentleUse",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GentleUseReceipt"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Record Use",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/gentle-prompts/{occasionId}/dismiss": {
+      "post": {
+        "operationId": "dismissGentleSuggestion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "occasionId",
+            "required": true,
+            "schema": {
+              "title": "Occasionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Dismiss Suggestion",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/gentle-prompts/{occasionId}/open": {
+      "post": {
+        "operationId": "openGentleSuggestion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "occasionId",
+            "required": true,
+            "schema": {
+              "title": "Occasionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GentleSuggestion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Open Suggestion",
+        "tags": [
+          "notifications"
         ]
       }
     },

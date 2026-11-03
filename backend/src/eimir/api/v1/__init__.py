@@ -26,6 +26,7 @@ from eimir.api.v1 import (
     engagement,
     entitlements,
     games,
+    gentle_prompts,
     health,
     heart_moments,
     instance,
@@ -85,6 +86,7 @@ normal_router.include_router(search.router)
 normal_router.include_router(dashboard.router)
 normal_router.include_router(recaps.router)
 normal_router.include_router(engagement.router)
+normal_router.include_router(gentle_prompts.router)
 normal_router.include_router(notification_preferences.router)
 normal_router.include_router(push_endpoints.router)
 normal_router.include_router(memories.router)

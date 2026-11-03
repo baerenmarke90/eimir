@@ -434,6 +434,15 @@ A shared component is ready when:
 
 Section anatomy is heading/action row followed by the content surface, under Product Reference v1's 2026-10-29 PO addendum. Keep the section heading outside the surface and use consistent spacing with adjacent modules. Personal content titles inside cards are a separate semantic role and remain with their content. Preserve semantic section/heading associations, reachable contextual actions, dynamic states, theme contrast, large-text wrapping and reduced motion. Decorative quote rules and extra heading/body gaps are not part of this contract.
 
+## Personal gentle invitations
+
+Personal gentle suggestions reuse the contextual short-sheet action pattern in
+the existing Wir context region. Confirmed dismissal/exclusion removes only the
+personal occasion and restores focus to readable status; it never deletes a
+Memory or creates another unread state. Opens resolve current access before
+the existing task-origin route; a departed surface cannot redirect another
+editor. See [the bounded delivery contract](product/gentle-prompts.md).
+
 ## Contextual Place actions
 
 `MomentPlaceActionsMenu` supplies the same named overflow trigger, pinned-map

@@ -116,10 +116,34 @@ class PushProviderRegistry:
 providers = PushProviderRegistry()
 
 
+def supports_targeted_delivery(session: Session, endpoint: PushEndpoint) -> bool:
+    """Optional invitations require a negotiated usable destination, not a legacy wake."""
+    provider = providers.get(endpoint.provider_key)
+    supports_reference = getattr(provider, "supports_notification_reference", None)
+    if not callable(supports_reference):
+        return False
+    secret = session.scalar(
+        select(PushEndpointSecret).where(PushEndpointSecret.push_endpoint_id == endpoint.id)
+    )
+    value = secret.payload.value if secret is not None else endpoint.endpoint_value
+    if supports_reference(value) is not True:
+        return False
+    if endpoint.provider_key == "fcm":
+        preview = session.scalar(
+            select(PushPreviewSecret).where(PushPreviewSecret.push_endpoint_id == endpoint.id)
+        )
+        return preview is not None and _lock_live_preview_family(
+            session, account_id=endpoint.account_id, family_id=preview.device_session_id
+        )
+    return True
+
+
 def register_handlers() -> None:
     """Register the existing Job Queue handler exactly once per worker process."""
     if registry.get(JOB_KIND) is None:
-        registry.register(JOB_KIND, handle_delivery)
+        from eimir.engagement.gentle_delivery import prepare
+
+        registry.register(JOB_KIND, handle_delivery, prepare=prepare)
 
 
 def _lock_live_preview_family(
@@ -316,12 +340,21 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
             # A missing choice has never opted in. Do not create latent jobs
             # that could start sending when a future Settings control is used.
             continue
-        endpoints = session.execute(
-            select(PushEndpoint).where(
-                PushEndpoint.account_id == notification.recipient_account_id,
-                PushEndpoint.disabled_at.is_(None),
+        endpoints = list(
+            session.scalars(
+                select(PushEndpoint)
+                .where(
+                    PushEndpoint.account_id == notification.recipient_account_id,
+                    PushEndpoint.disabled_at.is_(None),
+                )
+                .order_by(PushEndpoint.created_at.desc(), PushEndpoint.id.desc())
             )
-        ).scalars()
+        )
+        if notification.kind == NotificationKind.GENTLE_PROMPT.value:
+            # One supported endpoint owns the canonical account invitation.
+            endpoints = [
+                endpoint for endpoint in endpoints if supports_targeted_delivery(session, endpoint)
+            ][:1]
         for endpoint in endpoints:
             created_at = clock.now() if digest else None
             statement = (
@@ -437,6 +470,13 @@ def _delivery_account_snapshot(
 
 
 def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
+    _handle_delivery(session, payload)
+    from eimir.engagement.gentle_delivery import release_certain_non_delivery
+
+    release_certain_non_delivery(session, payload)
+
+
+def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     """Deliver one Notification without carrying relationship plaintext."""
     raw_id = payload.get("deliveryId")
     if not isinstance(raw_id, str):
@@ -591,7 +631,18 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
         _finish_unavailable(delivery)
         return
 
+    adaptive = notification.kind == NotificationKind.GENTLE_PROMPT.value
+    if adaptive:
+        from eimir.engagement.gentle_delivery import admitted
+
+        if not supports_targeted_delivery(session, endpoint) or not admitted(
+            session, notification, payload
+        ):
+            _finish_unavailable(delivery, "GENTLE_SUBMISSION_UNAVAILABLE")
+            return
+
     delivery.attempts += 1
+    submitted = False
     try:
         secret = session.execute(
             select(PushEndpointSecret).where(PushEndpointSecret.push_endpoint_id == endpoint.id)
@@ -617,6 +668,10 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
                         endpoint_value, preview_secret.payload.key, preview
                     ),
                 }
+            elif adaptive:
+                _finish_unavailable(delivery, "GENTLE_DESTINATION_UNAVAILABLE")
+                return
+        submitted = True
         result = provider.send(
             idempotency_key=(
                 f"digest:{notification.recipient_account_id}:{notification.space_id}:"
@@ -629,18 +684,24 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
             generic_presentation_key=presentation.key,
         )
     except PushProviderError as exc:
+        if adaptive and not submitted:
+            _finish_unavailable(delivery, "GENTLE_PREPARATION_FAILED")
+            return
         if exc.code == "PUSH_SUBSCRIPTION_GONE":
             endpoint.disabled_at = clock.now()
-        _record_failure(delivery, exc.code, terminal=not exc.retryable)
-        if exc.retryable and delivery.attempts < MAX_PUSH_ATTEMPTS:
+        _record_failure(delivery, exc.code, terminal=adaptive or not exc.retryable)
+        if not adaptive and exc.retryable and delivery.attempts < MAX_PUSH_ATTEMPTS:
             raise RetryableJobError(
                 exc.code, retry_not_before=exc.retry_not_before, retry_base=exc.retry_base
             ) from exc
         return
     except Exception as exc:
+        if adaptive and not submitted:
+            _finish_unavailable(delivery, "GENTLE_PREPARATION_FAILED")
+            return
         code = "PROVIDER_ERROR"
-        _record_failure(delivery, code)
-        if delivery.attempts < MAX_PUSH_ATTEMPTS:
+        _record_failure(delivery, code, terminal=adaptive)
+        if not adaptive and delivery.attempts < MAX_PUSH_ATTEMPTS:
             raise RetryableJobError(code) from exc
         return
 

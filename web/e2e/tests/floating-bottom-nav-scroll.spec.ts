@@ -1054,7 +1054,7 @@ async function dragTouch(
   }
 }
 
-async function swipePrimary(page: Page, direction: 'next' | 'previous') {
+async function expectPrimaryReadingSurface(page: Page) {
   const surfaceForRoute: Record<string, string> = {
     '/today': '.today-page',
     '/story': '.story-page',
@@ -1074,6 +1074,10 @@ async function swipePrimary(page: Page, direction: 'next' | 'previous') {
     'data-primary-tab-entry',
     /.+/,
   );
+}
+
+async function swipePrimary(page: Page, direction: 'next' | 'previous') {
+  await expectPrimaryReadingSurface(page);
   const width = page.viewportSize()?.width ?? 390;
   const startX = direction === 'next' ? width * 0.75 : width * 0.25;
   // Use existing readable content, never a control or a synthetic gesture pad.
@@ -1304,6 +1308,8 @@ test.describe('primary tab touch navigation', () => {
     await installApiMocks(page);
     await page.goto('/login');
     await signIn(page);
+    await expect(page).toHaveURL(/\/today$/);
+    await expectPrimaryReadingSurface(page);
     await page.evaluate(() => {
       const scroller = document.createElement('div');
       scroller.dataset.testHorizontalContent = 'true';
@@ -1315,7 +1321,9 @@ test.describe('primary tab touch navigation', () => {
         item.textContent = `Synthetic horizontal item ${index + 1}`;
         scroller.append(item);
       }
-      document.querySelector('main')?.prepend(scroller);
+      const main = document.querySelector('main');
+      if (!main) throw new Error('The primary reading surface disappeared.');
+      main.prepend(scroller);
     });
     const scroller = page.locator('[data-test-horizontal-content]');
     const box = await scroller.boundingBox();

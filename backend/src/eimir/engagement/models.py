@@ -10,6 +10,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -42,6 +43,7 @@ class ActivityKind(StrEnum):
 
 
 class NotificationKind(StrEnum):
+    GENTLE_PROMPT = "GENTLE_PROMPT"
     REMINDER_CREATED = "REMINDER_CREATED"
     TRANSFER_READY = "TRANSFER_READY"
     TRANSFER_COMPLETED = "TRANSFER_COMPLETED"
@@ -110,6 +112,82 @@ _SUPPORT_GESTURE_KIND_VALUES = ", ".join(f"'{value.value}'" for value in Support
 _TARGET_VALUES = ", ".join(f"'{value.value}'" for value in EngagementTarget)
 _PUSH_STATUS_VALUES = ", ".join(f"'{value.value}'" for value in PushDeliveryStatus)
 _EMAIL_STATUS_VALUES = ", ".join(f"'{value.value}'" for value in EmailDeliveryStatus)
+
+
+class GentleProfile(Base):
+    """Private bounded observations; one recipient budget across every Space."""
+
+    __tablename__ = "gentle_profiles"
+
+    account_id: Mapped[UUID] = mapped_column(
+        ForeignKey("accounts.id", ondelete="CASCADE"), primary_key=True
+    )
+    space_id: Mapped[UUID | None] = mapped_column(ForeignKey("spaces.id", ondelete="SET NULL"))
+    observations: Mapped[list[dict[str, object]]] = mapped_column(
+        postgresql.JSONB, nullable=False, default=list
+    )
+    last_use_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_save_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    interval_days: Mapped[float | None] = mapped_column(Float)
+    windows: Mapped[list[int]] = mapped_column(postgresql.JSONB, nullable=False, default=list)
+    attempts_since_use: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
+    last_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    next_check_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "jsonb_typeof(observations) = 'array' AND jsonb_array_length(observations) <= 8",
+            name="gentle_observations_bounded",
+        ),
+        CheckConstraint("attempts_since_use BETWEEN 0 AND 3", name="gentle_attempts_bounded"),
+        Index("ix_gentle_profiles_next_check", "next_check_at", "account_id"),
+    )
+
+
+class GentleOccasion(IdMixin, Base):
+    """One bounded candidate, never a second inbox or unread ledger."""
+
+    __tablename__ = "gentle_occasions"
+
+    account_id: Mapped[UUID] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"))
+    space_id: Mapped[UUID] = mapped_column(ForeignKey("spaces.id", ondelete="CASCADE"))
+    occasion_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    memory_id: Mapped[UUID | None] = mapped_column(ForeignKey("memories.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    baseline_use_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    attempted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    dismissed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    submission_token: Mapped[UUID | None] = mapped_column(postgresql.UUID(as_uuid=True))
+    notification_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("notifications.id", ondelete="SET NULL")
+    )
+
+    __table_args__ = (
+        UniqueConstraint("account_id", "occasion_key", name="uq_gentle_account_occasion"),
+        CheckConstraint("kind IN ('WRITING', 'MEMORY')", name="gentle_occasion_kind"),
+        CheckConstraint("kind = 'MEMORY' OR memory_id IS NULL", name="gentle_source_kind"),
+        Index("ix_gentle_occasions_account_attempted", "account_id", "attempted_at"),
+        Index("ix_gentle_occasions_created", "created_at", "id"),
+        Index("ix_gentle_occasions_memory_created", "account_id", "memory_id", "created_at"),
+    )
+
+
+class GentleMemoryExclusion(Base):
+    __tablename__ = "gentle_memory_exclusions"
+
+    account_id: Mapped[UUID] = mapped_column(
+        ForeignKey("accounts.id", ondelete="CASCADE"), primary_key=True
+    )
+    memory_id: Mapped[UUID] = mapped_column(
+        ForeignKey("memories.id", ondelete="CASCADE"), primary_key=True
+    )
+    space_id: Mapped[UUID] = mapped_column(ForeignKey("spaces.id", ondelete="CASCADE"))
 
 
 class Activity(IdMixin, Base):

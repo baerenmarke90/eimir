@@ -107,3 +107,15 @@ meaningful PostgreSQL coverage for reservation, cancellation and ambiguous
 submission and use hosted PostgreSQL when unavailable locally. Collect useful
 independent failures before a coherent correction push; target unchanged retries
 only to diagnosed transient failures. No hosted run has been manually retried.
+
+## Integrated implementation and evidence
+
+The dependency was refreshed through #1619 head
+`977f9c9d07e52c21b6ddd635a5a026173cf85758` before the implementation PR.
+Its final corrections are integrated through normal merges. The original
+preflight remains the before-implementation record.
+
+[Actual runtime screenshots, behavioral results and source fingerprints](evidence/README.md)
+cover Compact/Expanded, Light/Dark, 200% text and reduced motion.
+[The implemented policy and lifecycle](../../../gentle-prompts.md) document
+selection, retention, delivery claims and the existing transport boundary.

@@ -12,7 +12,7 @@ from fastapi import status as http_status
 from pydantic import ConfigDict
 
 from eimir.api.authors import resolve_author_summaries
-from eimir.api.deps import Authorization, DbSession, ensure_capability
+from eimir.api.deps import AccountBoundAuthorization, Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary
 from eimir.engagement import presentation, service, thinking
@@ -247,7 +247,7 @@ def _present_opened_notification(
     tags=["notifications"],
 )
 def open_notification(
-    authorization: Authorization,
+    authorization: AccountBoundAuthorization,
     session: DbSession,
     response: Response,
     notification_id: Annotated[str, Path(alias="notificationId")],
@@ -260,6 +260,22 @@ def open_notification(
     notification = service.mark_notification_read(
         session, authorization, notification_id, include_external=True
     )
+    if notification.kind == NotificationKind.GENTLE_PROMPT.value:
+        from sqlalchemy import select
+
+        from eimir.core import clock
+        from eimir.engagement import gentle
+        from eimir.engagement.models import GentleOccasion
+
+        occasion = session.scalar(
+            select(GentleOccasion).where(
+                GentleOccasion.notification_id == notification.id,
+                GentleOccasion.account_id == authorization.account_id,
+            )
+        )
+        if occasion is not None:
+            occasion.opened_at = occasion.opened_at or clock.now()
+            gentle.record_use(session, authorization)
     return _present_opened_notification(notification, session, authorization, response)
 
 

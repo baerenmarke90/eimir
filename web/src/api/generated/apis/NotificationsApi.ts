@@ -19,6 +19,16 @@ import {
     DevicePushConfigurationToJSON,
 } from '../models/DevicePushConfiguration';
 import {
+    type GentleSuggestion,
+    GentleSuggestionFromJSON,
+    GentleSuggestionToJSON,
+} from '../models/GentleSuggestion';
+import {
+    type GentleUseReceipt,
+    GentleUseReceiptFromJSON,
+    GentleUseReceiptToJSON,
+} from '../models/GentleUseReceipt';
+import {
     type NotificationChannel,
     NotificationChannelFromJSON,
     NotificationChannelToJSON,
@@ -114,6 +124,20 @@ import {
     UnifiedPushConfigurationToJSON,
 } from '../models/UnifiedPushConfiguration';
 
+export interface DismissGentleSuggestionRequest {
+    occasionId: string;
+    spaceId: string;
+}
+
+export interface ExcludeGentleMemoryRequest {
+    memoryId: string;
+    spaceId: string;
+}
+
+export interface GetGentleSuggestionRequest {
+    spaceId: string;
+}
+
 export interface GetNotificationUnreadCountRequest {
     spaceId: string;
 }
@@ -133,9 +157,19 @@ export interface MarkNotificationReadRequest {
     spaceId: string;
 }
 
+export interface OpenGentleSuggestionRequest {
+    occasionId: string;
+    spaceId: string;
+}
+
 export interface OpenNotificationRequest {
     notificationId: string;
     spaceId: string;
+}
+
+export interface RecordGentleUseRequest {
+    spaceId: string;
+    gentleUseReceipt: GentleUseReceipt;
 }
 
 export interface RegisterOwnPushEndpointRequest {
@@ -170,6 +204,110 @@ export interface UpdateOwnQuietHoursRequest {
  * 
  */
 export class NotificationsApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for dismissGentleSuggestion without sending the request
+     */
+    async dismissGentleSuggestionRequestOpts(requestParameters: DismissGentleSuggestionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['occasionId'] == null) {
+            throw new runtime.RequiredError(
+                'occasionId',
+                'Required parameter "occasionId" was null or undefined when calling dismissGentleSuggestion().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling dismissGentleSuggestion().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/gentle-prompts/{occasionId}/dismiss`;
+        urlPath = urlPath.replace('{occasionId}', encodeURIComponent(String(requestParameters['occasionId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Dismiss Suggestion
+     */
+    async dismissGentleSuggestionRaw(requestParameters: DismissGentleSuggestionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.dismissGentleSuggestionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Dismiss Suggestion
+     */
+    async dismissGentleSuggestion(requestParameters: DismissGentleSuggestionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.dismissGentleSuggestionRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for excludeGentleMemory without sending the request
+     */
+    async excludeGentleMemoryRequestOpts(requestParameters: ExcludeGentleMemoryRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['memoryId'] == null) {
+            throw new runtime.RequiredError(
+                'memoryId',
+                'Required parameter "memoryId" was null or undefined when calling excludeGentleMemory().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling excludeGentleMemory().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/gentle-prompts/memories/{memoryId}/exclusion`;
+        urlPath = urlPath.replace('{memoryId}', encodeURIComponent(String(requestParameters['memoryId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Exclude Memory
+     */
+    async excludeGentleMemoryRaw(requestParameters: ExcludeGentleMemoryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.excludeGentleMemoryRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Exclude Memory
+     */
+    async excludeGentleMemory(requestParameters: ExcludeGentleMemoryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.excludeGentleMemoryRaw(requestParameters, initOverrides);
+    }
 
     /**
      * Creates request options for getDevicePushConfiguration without sending the request
@@ -207,6 +345,51 @@ export class NotificationsApi extends runtime.BaseAPI {
      */
     async getDevicePushConfiguration(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DevicePushConfiguration> {
         const response = await this.getDevicePushConfigurationRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getGentleSuggestion without sending the request
+     */
+    async getGentleSuggestionRequestOpts(requestParameters: GetGentleSuggestionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getGentleSuggestion().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/gentle-prompts/suggestion`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Get Suggestion
+     */
+    async getGentleSuggestionRaw(requestParameters: GetGentleSuggestionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GentleSuggestion>> {
+        const requestOptions = await this.getGentleSuggestionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GentleSuggestionFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Suggestion
+     */
+    async getGentleSuggestion(requestParameters: GetGentleSuggestionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GentleSuggestion> {
+        const response = await this.getGentleSuggestionRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -485,6 +668,59 @@ export class NotificationsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for openGentleSuggestion without sending the request
+     */
+    async openGentleSuggestionRequestOpts(requestParameters: OpenGentleSuggestionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['occasionId'] == null) {
+            throw new runtime.RequiredError(
+                'occasionId',
+                'Required parameter "occasionId" was null or undefined when calling openGentleSuggestion().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling openGentleSuggestion().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/gentle-prompts/{occasionId}/open`;
+        urlPath = urlPath.replace('{occasionId}', encodeURIComponent(String(requestParameters['occasionId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Open Suggestion
+     */
+    async openGentleSuggestionRaw(requestParameters: OpenGentleSuggestionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GentleSuggestion>> {
+        const requestOptions = await this.openGentleSuggestionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GentleSuggestionFromJSON(jsonValue));
+    }
+
+    /**
+     * Open Suggestion
+     */
+    async openGentleSuggestion(requestParameters: OpenGentleSuggestionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GentleSuggestion> {
+        const response = await this.openGentleSuggestionRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for openNotification without sending the request
      */
     async openNotificationRequestOpts(requestParameters: OpenNotificationRequest): Promise<runtime.RequestOpts> {
@@ -537,6 +773,60 @@ export class NotificationsApi extends runtime.BaseAPI {
     async openNotification(requestParameters: OpenNotificationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NotificationItem> {
         const response = await this.openNotificationRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for recordGentleUse without sending the request
+     */
+    async recordGentleUseRequestOpts(requestParameters: RecordGentleUseRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling recordGentleUse().'
+            );
+        }
+
+        if (requestParameters['gentleUseReceipt'] == null) {
+            throw new runtime.RequiredError(
+                'gentleUseReceipt',
+                'Required parameter "gentleUseReceipt" was null or undefined when calling recordGentleUse().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/gentle-prompts/use`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: GentleUseReceiptToJSON(requestParameters['gentleUseReceipt']),
+        };
+    }
+
+    /**
+     * Record Use
+     */
+    async recordGentleUseRaw(requestParameters: RecordGentleUseRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.recordGentleUseRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Record Use
+     */
+    async recordGentleUse(requestParameters: RecordGentleUseRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.recordGentleUseRaw(requestParameters, initOverrides);
     }
 
     /**

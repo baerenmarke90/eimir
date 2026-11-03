@@ -511,9 +511,10 @@ export function HeartMomentProductPage({
   const editorLifecycle = useTaskEditorLifecycle({
     isActive: mode !== 'detail',
     isDirty:
-      formDirty ||
-      Boolean(createPlace) ||
-      photos.items.some((item) => item.draft !== undefined),
+      !deleteMutation.isPending &&
+      (formDirty ||
+        Boolean(createPlace) ||
+        photos.items.some((item) => item.draft !== undefined)),
     isCloseBlocked:
       createMutation.isPending ||
       updateMutation.isPending ||

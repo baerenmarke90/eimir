@@ -563,6 +563,12 @@ describe('HeartMoment delete response ownership', () => {
 
   it('prevents a visibility write from the real detail while deletion is pending', async () => {
     const h = setup();
+    await userEvent
+      .setup()
+      .type(
+        screen.getByRole('textbox', { name: copy.textLabel }),
+        ' A later draft.',
+      );
     await h.submit();
     await userEvent
       .setup()

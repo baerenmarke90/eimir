@@ -135,8 +135,18 @@ export function NotificationSettingsPanel({
       }
       return isCurrent();
     },
-    onSuccess: (isCurrent) => {
-      if (isCurrent) setFeedback(t('notificationSettings.groupSaved'));
+    onSuccess: (isCurrent, choices) => {
+      if (!isCurrent) return;
+      setFeedback(t('notificationSettings.groupSaved'));
+      if (
+        choices.some(
+          (choice) =>
+            choice.kind === NotificationKind.GENTLE_PROMPT && choice.enabled,
+        ) &&
+        devicePush?.available &&
+        devicePushAction(devicePush) === 'enable'
+      )
+        void devicePush.enable();
     },
     onError: () => {
       setFeedback(t('notificationSettings.groupFailed'));
@@ -270,6 +280,39 @@ export function NotificationSettingsPanel({
               </Link>
             )}
           </div>
+
+          {data.items.some(
+            (item) => item.kind === NotificationKind.GENTLE_PROMPT,
+          ) ? (
+            <div className="notification-settings-group">
+              <PreferenceSwitch
+                label={t('gentlePrompts.label')}
+                description={t('gentlePrompts.description')}
+                checked={
+                  data.items
+                    .find(
+                      (item) => item.kind === NotificationKind.GENTLE_PROMPT,
+                    )
+                    ?.channels.find(
+                      (channel) => channel.channel === NotificationChannel.PUSH,
+                    )?.enabled === true
+                }
+                disabled={mutation.isPending}
+                onCheckedChange={(enabled) =>
+                  saveChoices([
+                    {
+                      kind: NotificationKind.GENTLE_PROMPT,
+                      channel: NotificationChannel.PUSH,
+                      enabled,
+                    },
+                  ])
+                }
+              />
+              {!capabilities.get(NotificationChannel.PUSH)?.available ? (
+                <p className="muted">{t('gentlePrompts.permissionHint')}</p>
+              ) : null}
+            </div>
+          ) : null}
 
           {data.items.length === 0 ? (
             <p>{t('notificationSettings.empty')}</p>

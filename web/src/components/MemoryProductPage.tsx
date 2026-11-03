@@ -459,19 +459,17 @@ export function MemoryProductPage({
   const editorLifecycle = useTaskEditorLifecycle({
     isActive: mode === 'edit',
     isDirty:
-      formDirty ||
-      photoOrderChanged ||
-      coverChanged ||
-      removedAttachmentIds.size > 0 ||
-      attachments.items.length > 0 ||
-      placesDraft?.scope === photoOrderScope ||
-      tagDraft?.memoryId === memoryId ||
-      Object.keys(sensitiveValues).length > 0,
+      !deleteMutation.isPending &&
+      (formDirty ||
+        photoOrderChanged ||
+        coverChanged ||
+        removedAttachmentIds.size > 0 ||
+        attachments.items.length > 0 ||
+        placesDraft?.scope === photoOrderScope ||
+        tagDraft?.memoryId === memoryId ||
+        Object.keys(sensitiveValues).length > 0),
     isCloseBlocked:
-      updateMutation.isPending ||
-      deleteMutation.isPending ||
-      attachments.hasPending ||
-      placePending,
+      updateMutation.isPending || attachments.hasPending || placePending,
     onClose: () => {
       if (memoryId)
         navigate(memoryDetailPath(memoryId), {

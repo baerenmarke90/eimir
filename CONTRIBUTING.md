@@ -15,6 +15,13 @@ A Pull Request submission does not guarantee inclusion in the project.
 
 ## Retrying failed CI jobs
 
+Before pushing merge-readiness fixes, inspect the relevant workflow commands and
+all failed jobs. Run complete affected test groups locally where supported,
+collect their failures without stopping at the first failed test, and fix the
+causes together before requesting fresh checks. Do not restart CI after each
+individual correction. If local execution is unavailable, document the
+limitation and collect hosted diagnostics before the next correction batch.
+
 Inspect the failed job and its diagnostics before retrying. For a transient
 runner, network, or service failure on the same revision, open the failed
 workflow run and choose **Re-run jobs → Re-run failed jobs**. GitHub reruns the

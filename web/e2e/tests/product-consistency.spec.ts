@@ -9,10 +9,12 @@ import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import copy from '../../src/i18n/locales/photoPlaces';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
+  ACCOUNT_ID,
   CAPABILITIES,
   captureScreenshot,
   installMocks,
   getTimelineItems,
+  ME,
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
@@ -51,8 +53,37 @@ for (const scenario of [
     const unexpected = await installMocks(page);
     let linked = false;
     let links = 0;
+    const updates: Record<string, unknown>[] = [];
+    let memory = {
+      id: 'mem-canal',
+      spaceId: SPACE_ID,
+      author: ME,
+      authorId: ACCOUNT_ID,
+      title: 'Breakfast by the canal',
+      body: 'A wonderful morning by the water.',
+      tags: [],
+      attachments: [],
+      happenedOn: '2026-05-12',
+      happenedUntil: null,
+      placeIds: [] as string[],
+      capabilities: CAPABILITIES,
+      createdAt: '2026-05-12T08:30:00Z',
+      updatedAt: '2026-05-12T08:30:00Z',
+      version: 1,
+    };
     await page.route('**/api/v1/**', async (route) => {
       const path = new URL(route.request().url()).pathname;
+      if (path === `${BASE}/memories/mem-canal`) {
+        if (route.request().method() === 'PATCH') {
+          const { expectedPlaceIds, ...values } = route
+            .request()
+            .postDataJSON();
+          updates.push({ ...values, expectedPlaceIds });
+          memory = { ...memory, ...values, version: memory.version + 1 };
+          linked = memory.placeIds.includes(place.id);
+        }
+        return route.fulfill({ json: memory });
+      }
       if (path === `${BASE}/places`)
         return route.fulfill({
           json: { items: [place], nextCursor: null, hasMore: false },
@@ -216,13 +247,21 @@ for (const scenario of [
     await picker.getByRole('button', { name: /Our park by the water/ }).click();
     await expect(picker).toBeHidden();
     await expect(page.getByText(place.name, { exact: true })).toBeVisible();
-    expect(links).toBe(1);
+    expect(links).toBe(0);
+    expect(updates).toEqual([]);
     await expect(
       page.getByRole('button', { name: copy.add, exact: true }),
     ).toHaveCount(1);
     await page
-      .getByRole('link', { name: memoryProduct.backToMemory, exact: true })
+      .getByRole('button', { name: memoryProduct.save, exact: true })
       .click();
+    await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
+    expect(updates).toHaveLength(1);
+    expect(updates[0]).toMatchObject({
+      placeIds: [place.id],
+      expectedPlaceIds: [],
+    });
+    expect(links).toBe(0);
     await expect(page.getByText(place.name, { exact: true })).toBeVisible();
     await expect(page.locator('.moment-place-overflow')).toHaveCount(1);
     expect(

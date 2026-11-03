@@ -247,6 +247,7 @@ Reuse, business-model, product-design, or cross-cutting decisions must never wea
 This policy applies to human contributors and coding agents handling any pull request. Follow the [contributor retry instructions](CONTRIBUTING.md#retrying-failed-ci-jobs).
 
 - Inspect the failed job and its diagnostics before deciding whether to retry or fix the cause.
+- Before pushing merge-readiness fixes, inspect the relevant workflow commands and all failed jobs, run the complete affected test groups locally where supported, and fix the collected failures together. Do not stop diagnosis at the first failure or start a CI retry after each individual correction. If local execution is unavailable, document the limitation and collect the hosted diagnostics before the next correction batch.
 - For a transient failure on the same commit, use **Re-run failed jobs** or a specific-job rerun. Preserve successful independent jobs; do not restart every workflow, push an empty commit, or close/reopen the PR merely to retry.
 - Code, test, or workflow fixes require a new commit and fresh relevant checks. Never copy successful statuses from an older revision or retry an old run as proof of a new commit.
 - When changing workflows, keep independent expensive checks in independently retryable jobs where practical. Matrix checks should retain `fail-fast: false` when sibling jobs can finish independently. Required aggregate checks must still reject failed, cancelled, or unexpectedly skipped required work.

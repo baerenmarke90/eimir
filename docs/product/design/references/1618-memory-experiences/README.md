@@ -154,7 +154,11 @@ the selected reference so an already selected map remains available.
 
 Navigation to canonical Place editing uses `useTaskEditorLifecycle` rather than
 a second discard/history implementation. Dirty work requires deliberate discard,
-pending work blocks departure, and Keep Editing clears the requested destination.
+pending authoring work blocks departure, and Keep Editing clears the requested destination.
+An admitted, confirmed deletion may settle after departure through the existing
+`useStoryDeletion` ownership contract. It blocks duplicate and competing writes,
+but does not trap Back/Cancel behind another draft-discard decision; a failure
+retains the draft and requires deliberate retry.
 The destination callback remains transient and checks task/read ownership before
 navigation. The place-draft query uses the shared Place-consumer key root, so
 canonical corrections invalidate the returned editor as well.

@@ -55,6 +55,13 @@ public class PhotoFileChooserTest {
     private PhotoFileChooser chooser;
     private static Uri fixture;
     private static File source;
+    // Exact oracles for video-with-metadata.mp4. Android's selected-file
+    // location redaction zeros only its 35-byte loci box after the size field;
+    // every other byte, including both encoded streams, must remain identical.
+    private static final String VIDEO_FIXTURE_SHA256 =
+        "f8af59464b9cfa212bc95f129f923acf955d571ffd97c1b2cbb4be057069e0f6";
+    private static final String LOCATION_REDACTED_VIDEO_SHA256 =
+        "73ce039ba4f3d2e0245dd3255202cf830f4b7fddbbd036884a35c8ce5c07f1b8";
 
     private static FileChooserParams parameters(int mode, boolean capture, String... types) {
         return new FileChooserParams() {
@@ -482,9 +489,13 @@ public class PhotoFileChooserTest {
         byte[] bytes = selectedFileBytes(view);
         assertTrue("Chromium receives video bytes", bytes.length > 0);
         assertEquals("true", javascriptValue(view, "window.videoRepeatedReads===true"));
-        assertEquals("The gallery delivers exactly the seeded foreign-owned video",
-            InstrumentationRegistry.getArguments().getString("externalVideoSha256"), sha256(bytes));
         java.nio.file.Files.write(new File(context.getFilesDir(), "native-selected-video.mp4").toPath(), bytes);
+        String expected = InstrumentationRegistry.getArguments().getString("externalVideoSha256");
+        String actual = sha256(bytes);
+        assertNotNull("CI identifies the original foreign-owned fixture", expected);
+        assertTrue("Only Android's exact location-redacted fixture variant is permitted: " + actual,
+            expected.equals(actual) || (VIDEO_FIXTURE_SHA256.equals(expected)
+                && LOCATION_REDACTED_VIDEO_SHA256.equals(actual)));
         assertEquals("true", javascriptValue(view,
             "document.getElementById('video').paused && document.getElementById('video').controls"));
         // Match production preload=none: only a deliberate Play requests metadata/frames.

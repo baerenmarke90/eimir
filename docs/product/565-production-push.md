@@ -20,6 +20,11 @@ The Product Owner then requested named, contextual previews and source actions.
 The [contextual-push decision and preflight](design/references/565-contextual-push/README.md)
 supersedes generic-only device presentation; encrypted provider data and a neutral
 public lock-screen version remain. Actual Play-distributed acceptance is #1577.
+The [2026-11-04 completeness correction](design/references/565-contextual-push/content-completeness.md)
+completes the native event catalog and adds mutually negotiated v2 comment/answer
+excerpts. It retains strict v1 compatibility, current-source authorization and
+neutral public presentation; both server migration and an updated Android build
+are needed to use the new excerpts.
 Code merge, provider authentication, fixture tests and an unsigned build do not
 constitute that delivery acceptance or Play Store publication.
 

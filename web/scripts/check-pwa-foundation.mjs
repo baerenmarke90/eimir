@@ -244,4 +244,32 @@ assert(
   'Production registration must target the first-party service worker.',
 );
 
+// The production CSP must admit the shipped foundation. Otherwise browsers
+// refuse the manifest and the service-worker registration, and the swallowed
+// registration error hides that installation and the offline fallback are off.
+const cspHeaders = [
+  ...read('nginx.conf').matchAll(
+    /add_header\s+Content-Security-Policy\s+"([^"]*)"/g,
+  ),
+];
+assert(
+  cspHeaders.length === 1,
+  'nginx.conf must deliver exactly one Content-Security-Policy header.',
+);
+const cspDirectives = new Map();
+for (const directive of cspHeaders[0][1].split(';')) {
+  const [name, ...sources] = directive.trim().split(/\s+/);
+  // Browsers ignore repeated directives, so only the first occurrence counts.
+  if (name && !cspDirectives.has(name.toLowerCase())) {
+    cspDirectives.set(name.toLowerCase(), sources);
+  }
+}
+for (const directive of ['manifest-src', 'worker-src']) {
+  const sources = cspDirectives.get(directive) ?? [];
+  assert(
+    sources.length === 1 && sources[0] === "'self'",
+    `nginx.conf CSP must set ${directive} to exactly 'self' for the first-party PWA foundation.`,
+  );
+}
+
 console.log('PWA foundation checks passed.');

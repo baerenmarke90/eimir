@@ -8,6 +8,29 @@ from project_identity_scan import LEGACY_PATTERN, Classification, classify
 
 
 class ProjectIdentityScanTest(unittest.TestCase):
+    def test_opaque_push_ciphertext_is_exempt_only_as_a_complete_jwe_field(self) -> None:
+        path = Path("android/app/src/androidTest/assets/push-preview-catalog.json")
+        compact = "eyJhbGciOiJkaXIifQ..AAAAAAAAAAAAAAAA.AAsbsBcc.AAAAAAAAAAAAAAAAAAAAAA"
+        line = f'      "jwe": "{compact}",'
+        self.assertEqual(classify(path, line, "sbs")[0], Classification.FALSE_POSITIVE)
+        for candidate, text in (
+            (Path("android/app/src/main/assets/push-preview-catalog.json"), line),
+            (Path("android/app/src/androidTest/assets/other.json"), line),
+            (path, line.replace('"jwe"', '"title"')),
+            (path, line.replace(compact, "SideBySide")),
+            (path, line.replace("..", ".")),
+            (path, line.replace("AAAAAAAAAAAAAAAA.", "short.")),
+            (path, line.replace(".AAAAAAAAAAAAAAAAAAAAAA", ".short")),
+            (path, line + ' "title": "SideBySide"'),
+            (path, line + " // SideBySide"),
+            (path, '"jwe": "SideBySide. is not ciphertext"'),
+        ):
+            with self.subTest(path=candidate, line=text):
+                self.assertEqual(
+                    classify(candidate, text, "SideBySide")[0],
+                    Classification.MUST_RENAME,
+                )
+
     def test_unclassified_active_reference_must_be_renamed(self) -> None:
         classification, _ = classify(
             Path("backend/src/example.py"),

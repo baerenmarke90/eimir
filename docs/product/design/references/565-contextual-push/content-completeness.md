@@ -99,3 +99,33 @@ The initial hosted CI's language gate rejected new German product copy; the
 correction registers exact approved literals and keeps surrounding engineering
 prose in scope, with its negative regression checks intact. No path exclusion,
 assertion relaxation or hosted manual rerun is used.
+
+## Final correction preflight
+
+The identity scan rejected an accidental legacy-name byte sequence inside one
+sender-produced compact JWE. Only the complete `jwe` property line in the exact
+native catalog is now classified as opaque. Other fields, other paths, malformed
+compact values and accompanying prose remain subject to the unchanged guard.
+The scanner and upgrade regressions pass locally (16 and 5 tests), and the full
+tracked identity scan reports zero MUST_RENAME findings. The engineering-language
+audit and its 27 regressions also pass.
+
+The native source-action test now expands the outer group and comment through
+Android's ACTION_EXPAND contract. Acceptance requires the actual authored
+TextView, an expanded ancestor, no collapsed expandable ancestor, and text bounds
+fully contained by visible parents. A merged description alone cannot pass.
+Capture both screenshot and hierarchy, re-read after the OS animation, and retain
+all PendingIntent, activation, source-action and public-redaction assertions.
+The existing hosted API 36 job additionally runs this same case in Dark at 150%
+font scale and verifies the effective configuration; APIs 28/36/37.1 retain their
+normal coverage. Fresh hosted execution and replacement visual evidence remain
+required before merge. This environment has no installed Android SDK/emulator;
+the existing hosted native matrix supplies that execution rather than a claimed
+local Android pass.
+
+The completed baseline API 36 run exposed a second test defect: Android's
+auto-group summary appears in getActiveNotifications as a fourth entry. Count
+the exact three individual notices separately from at most one OS-flagged group
+summary, require its GROUP_SUMMARY flag, and reject app-authored summary rows.
+The three messages retain every existing privacy/action assertion. This follows
+the OS grouping contract rather than loosening the expected message count.

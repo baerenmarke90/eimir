@@ -7,7 +7,7 @@
     "prCriticalTests": 165
   },
   "dispositions": {
-    "PR_CRITICAL": "Runs on every Web pull request and in the full regression.",
+    "PR_CRITICAL": "Eligible for the four PR shards: always-run core plus affected product dependencies. Always included in full regression.",
     "FULL_REGRESSION": "Runs in the full regression after merge/manual execution, not every Web pull request.",
     "LOWER_LEVEL": "Still runs in the full regression until equivalent lower-level coverage is committed and the browser case can be removed."
   },

@@ -4,7 +4,7 @@ This package contains Playwright browser E2E and axe accessibility checks for th
 
 The suite has two execution groups:
 
-- `npm run test:pr`: the fast pull-request gate. It runs the browser tests classified as `PR_CRITICAL`.
+- `npm run test:pr`: the PR shard runner. CI supplies the validated core-plus-impact selection. Without a plan it conservatively runs every `PR_CRITICAL` file.
 - `npm run test:full` or `npm test`: the complete retained browser regression.
 
 The classification lives in `test-groups.json`. Every `tests/*.spec.ts` file must be present there exactly once. `npm run test:inventory` fails when a spec is added or removed without updating the inventory.
@@ -31,15 +31,23 @@ npm run test:full -- --shard=3/4
 ```
 
 Pull requests run four isolated CI shards with one Playwright worker each.
+`test-impact.json` assigns every retained spec to its production entry roots and
+declares the always-run core. The planner follows actual transitive imports,
+re-exports and styles using the existing Rolldown parser. It includes each
+changed surviving spec and every affected feature/reference suite. Shared
+foundations, unknown paths, removed dependencies and incomplete graphs require
+the entire retained regression. See the [selection contract and measured
+inventory](../../docs/m5/BROWSER-IMPACT-SELECTION.md).
+
 With `fullyParallel: true`, Playwright assigns individual cases across the
 four runners while each browser has dedicated runner resources. A file can
 span a shard boundary, but not every file is split across multiple shards. Main and
 manual full-regression runs keep their existing four-shard topology. Local
 runs keep Playwright's default worker count.
 
-On a pull request, changed `FULL_REGRESSION` and `LOWER_LEVEL` files additionally
-run in full. Changed `PR_CRITICAL` files are already included in all critical
-shards' combined coverage and do not run again. The same validated inventory
+On a pull request, affected or changed `FULL_REGRESSION` and `LOWER_LEVEL` files
+additionally run in full. Selected `PR_CRITICAL` files are already included in all
+critical shards' combined coverage and do not run again. The same validated inventory
 owns both selections; removed specs are omitted and renamed destinations must
 exist in the current inventory. API/inventory failures fail planning. The unique
 file count must match PR metadata; truncated success responses (including the
@@ -49,7 +57,7 @@ CLI failures publish no file output and redact the API token.
 Run the dependency-free planning regressions from this directory with:
 
 ```bash
-node --test scripts/changed-specs.test.mjs
+node --test scripts/*.test.mjs
 ```
 
 A visible full run is available through:
@@ -62,7 +70,7 @@ The Playwright configuration starts the existing Web Vite server from the parent
 
 ## Classification rules
 
-- `PR_CRITICAL`: product-critical browser behavior that should block every Web pull request.
+- `PR_CRITICAL`: product-critical browser behavior assigned to the PR shards when its product dependencies change; the explicitly declared core runs on every Web PR.
 - `FULL_REGRESSION`: retained acceptance/reference coverage that runs after merge or by manual full execution.
 - `LOWER_LEVEL`: a browser case that remains in the full regression until equivalent deterministic lower-level coverage is committed and its browser duplication can be removed.
 

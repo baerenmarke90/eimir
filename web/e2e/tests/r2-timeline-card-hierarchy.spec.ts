@@ -370,6 +370,16 @@ function card(page: Page, title: string): Locator {
   return page.locator('.story-card-link', { hasText: title });
 }
 
+async function pinMonthHeading(page: Page, heading: Locator): Promise<void> {
+  const bounds = await heading.boundingBox();
+  if (!bounds) throw new Error('Timeline month heading is missing.');
+  // Reach the chosen month through real input, independent of photo/card height.
+  await page.mouse.wheel(0, bounds.y + 24);
+  await expect
+    .poll(async () => Math.abs((await heading.boundingBox())?.y ?? 999))
+    .toBeLessThanOrEqual(1);
+}
+
 /** Every footer child stays inside its card, and no two footer parts overlap. */
 async function expectContainedFooters(page: Page): Promise<void> {
   const problems = await page.evaluate(() => {
@@ -600,12 +610,7 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
       'relative',
     );
 
-    await august.evaluate((el) => {
-      window.scrollBy(0, el.getBoundingClientRect().top + 24);
-    });
-    await expect
-      .poll(async () => Math.abs((await august.boundingBox())?.y ?? 999))
-      .toBeLessThanOrEqual(1);
+    await pinMonthHeading(page, august);
 
     expect(
       await topbar.evaluate((el) => el.getBoundingClientRect().bottom),
@@ -645,14 +650,12 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
   }, testInfo) => {
     await openTimeline(page, { width: 390, height: 844 });
     const shell = page.locator('.mobile-bottom-shell');
+    const month = page.locator('.story-year-month-header').first();
 
     await expect(shell).toBeVisible();
     expect(await shell.getAttribute('data-hidden')).toBeNull();
 
-    for (let step = 0; step < 9; step += 1) {
-      await page.mouse.wheel(0, 120);
-      await page.waitForTimeout(40);
-    }
+    await pinMonthHeading(page, month);
 
     await expect(shell).toBeVisible();
     expect(await shell.getAttribute('data-hidden')).toBeNull();
@@ -662,13 +665,9 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
         .evaluate((el) => el.getBoundingClientRect().bottom),
     ).toBeLessThanOrEqual(0);
 
-    const pinned = await page.evaluate(() => {
-      const boxes = Array.from(
-        document.querySelectorAll('.story-year-month-header'),
-      ).map((el) => el.getBoundingClientRect());
-      return boxes.some((box) => Math.abs(box.top) <= 1);
-    });
-    expect(pinned).toBe(true);
+    expect(Math.abs((await month.boundingBox())?.y ?? 999)).toBeLessThanOrEqual(
+      1,
+    );
 
     await page.mouse.wheel(0, -40);
     await expect(shell).toBeVisible();

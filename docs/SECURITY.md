@@ -770,7 +770,8 @@ encryption: the running application holds the keys and can read the content.
 ## End-to-end encryption
 
 **Not yet implemented.** The architecture is prepared for it; see
-[ARCHITECTURE.md](ARCHITECTURE.md).
+[ARCHITECTURE.md](ARCHITECTURE.md). The proposed MX design (a concept for review, not an
+implementation) is [mx/E2EE-CONCEPT.md](mx/E2EE-CONCEPT.md).
 
 The claim that even the operator cannot read content may be used **only** after
 actual implementation and an external audit. Stage 1 is not E2EE and must not

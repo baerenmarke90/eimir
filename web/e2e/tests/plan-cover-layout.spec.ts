@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import photoSources from '../../src/i18n/locales/photoSources';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
@@ -80,6 +81,7 @@ async function fixture(
     },
   };
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const req = route.request();
     const url = new URL(req.url());
     const path = url.pathname;
@@ -386,6 +388,7 @@ async function galleryFixture(page: Page) {
     creates = 0,
     patches = 0;
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const req = route.request();
     const url = new URL(req.url());
     const path = url.pathname;

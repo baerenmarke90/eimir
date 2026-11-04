@@ -1,4 +1,5 @@
 import type { Route } from '@playwright/test';
+import { fulfillDefaultProductContext } from './productContext';
 
 /** Default shell preference in journeys that do not exercise icon selection.
  * This admits only the new GET; writes and all other unknown requests retain
@@ -6,6 +7,7 @@ import type { Route } from '@playwright/test';
  */
 export async function fulfillDefaultAppIcon(route: Route): Promise<boolean> {
   const request = route.request();
+  if (await fulfillDefaultProductContext(route)) return true;
   if (
     request.method() !== 'GET' ||
     !/^\/api\/v1\/spaces\/[^/]+\/appearance\/(app-icon|wir-design)$/.test(

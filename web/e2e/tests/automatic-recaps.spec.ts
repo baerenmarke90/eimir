@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
@@ -92,6 +93,7 @@ async function setup(
   let deniedOverview = false;
   let overviewReads = 0;
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const req = route.request(),
       path = new URL(req.url()).pathname,
       method = req.method();

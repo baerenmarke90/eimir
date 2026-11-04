@@ -16,31 +16,31 @@ authoritative; this image does not authorize invented fields or capabilities.
 
 ## Acceptance checklist
 
-1. [ ] Notification onboarding enables Small Invitations after explicit consent;
+1. [x] Notification onboarding enables Small Invitations after explicit consent;
    Later/denial does not. The existing independent off switch remains effective.
-2. [ ] System IANA time zone replaces manual normal-user clock/zone settings and
+2. [x] System IANA time zone replaces manual normal-user clock/zone settings and
    updates scheduling on foreground/resume without shifting authored calendar dates.
-3. [ ] Shared Happiness/Time Travel invitations expire and disappear after opening
+3. [x] Shared Happiness/Time Travel invitations expire and disappear after opening
    the current contribution; later partner contributions can appear again.
-4. [ ] Existing authorized Wishes and Plans can be linked from a Memory, with
+4. [x] Existing authorized Wishes and Plans can be linked from a Memory, with
    canonical destinations, explicit save/failure state and typed relations.
-5. [ ] Monthly invitations expire/are consumed and show their actual period;
+5. [x] Monthly invitations expire/are consumed and show their actual period;
    previous-month material is never labelled as current-month material.
-6. [ ] Discover mixes wide and narrow photo/text cards without vacant half rows,
+6. [x] Discover mixes wide and narrow photo/text cards without vacant half rows,
    preserves source/focus order, and remains usable at large text/narrow widths.
-7. [ ] Own-comment overflow does not move author, timestamp or row alignment.
-8. [ ] Video upload transfers actual bytes, reports actual progress/processing,
+7. [x] Own-comment overflow does not move author, timestamp or row alignment.
+8. [x] Video upload transfers actual bytes, reports actual progress/processing,
    cancels safely and exits stalled transfers with an actionable retained retry.
-9. [ ] Places sort alphabetically across pages and selection surfaces, with
+9. [x] Places sort alphabetically across pages and selection surfaces, with
    active/archived/all scopes and encrypted names preserved.
-10. [ ] Memories has no manual Renew Discovery button; safe rotation remains.
-11. [ ] Dates use the same native field interaction throughout. Range end says
+10. [x] Memories has no manual Renew Discovery button; safe rotation remains.
+11. [x] Dates use the same native field interaction throughout. Range end says
     “Bis”, uses regular weight and no redundant arrow/Change action.
-12. [ ] HeartMoment feeling follows Place and precedes the shared tag editor.
-13. [ ] New-Plan labels omit parenthesized optional markers.
-14. [ ] Tags learn from authorized authored labels. The existing periodic worker
+12. [x] HeartMoment feeling follows Place and precedes the shared tag editor.
+13. [x] New-Plan labels omit parenthesized optional markers.
+14. [x] Tags learn from authorized authored labels. The existing periodic worker
     and local inference propose labels without silently changing authored content.
-15. [ ] All paginated product lists load on scroll, including photo settings and
+15. [x] All paginated product lists load on scroll, including photo settings and
     source selection. Loaded pages and media use bounded account/Space storage,
     stop on errors/offline/end, and survive supported navigation/restart.
 
@@ -103,4 +103,49 @@ here before final review. Merge and publication require separate authorization.
 ## Execution evidence
 
 Owning work record: [#1634](https://github.com/baerenmarke90/eimir/issues/1634).
-Implementation and execution evidence are pending.
+All fifteen implementation items are included in this branch. Local checks:
+
+- 217 targeted Web tests passed, including consent, invitation expiry, native dates,
+  binary transfer, scoped durable pages, denial and late-result revocation.
+- Backend non-integration sweep: 1,272 passed initially; the three findings were
+  corrected together. The affected files plus new proposal/CORS tests then passed
+  all 38 checks. Ruff, mypy, generated contract, TypeScript and production build pass.
+- Browser acceptance covers capture/save/return at 320/360/390/430/1280, the new
+  Plan/Wish link/unlink journey, stable comment metadata, explicit learned/AI labels,
+  native push consent/denial, gallery pagination/retry/restart/access revocation,
+  and Discover renewal/rate/offline/denial through the shared pull gesture.
+- The dependency planner conservatively selects all 88 browser specs because the
+  shared App/interaction boundary changes. Full regression and PostgreSQL/encrypted
+  integration results are recorded on the owning PR; no test is omitted by `--grep`
+  from its required CI context. Focused local runs diagnose individual behavior.
+
+| Reviewed state | Committed evidence |
+| --- | --- |
+| Compact Discover, populated mixed-width rows | [390 light](evidence/moments-390-light.webp) |
+| Own/partner comment metadata | [390 dark](evidence/comments-390-dark.webp) |
+| Existing Plan/Wish associations | [360 light](evidence/links-360-light.webp), [1280 dark](evidence/links-1280-dark.webp) |
+| Place → feeling → shared tag editor | [390](evidence/heart-tags-390.webp) |
+| Photo gallery, retained media and scrolling | [390 dark](evidence/photos-390-dark.webp), [1280 light](evidence/photos-1280-light.webp) |
+| Capture and native date reflow | [390 light](evidence/capture-390-light.webp), [320 large text / forced colors](evidence/capture-320-large.webp) |
+
+The local browser uses the exact pinned Chrome for Testing 151.0.7922.34 headless
+shell. Its official Google artifact was usable after the Playwright CDN download
+returned a corrupt archive. PostgreSQL cannot start under this runtime's UID
+restrictions, so real SQL/migrations run in the existing PostgreSQL CI service.
+The native retained-XHR contract and real HTTP byte/CORS boundary are tested;
+physical Android/mobile-network upload latency remains device acceptance, not a
+claimed browser result. No APK publication or deployment is part of this PR.
+
+Durability is bounded: twelve contiguous shared pages per scoped/filter query,
+256 KiB per snapshot, five-minute live freshness, thirty-minute in-memory GC;
+existing photo storage keeps at most 192 entries / 48 MiB for seven days.
+Private/mixed query stores are not persisted. Account/Space, denial, source privacy
+and mutation invalidations retire stale snapshots and late network completions.
+Photo-provider picker selections remain transient, with loaded pages and mounted
+thumbnails retained during that task.
+
+Database upgrades add protected discardable tag proposals (0107) and typed
+Memory–Plan/Wish associations (0108). Existing essential Transfer export/restore
+includes the new authored links; derived proposals are reproducible and excluded.
+The existing local worker scans bounded shared source batches every six hours,
+with no external provider, automatic tag rewrite, or private-source inference.

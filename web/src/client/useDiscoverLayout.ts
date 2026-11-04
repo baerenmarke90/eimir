@@ -25,21 +25,42 @@ export function useDiscoverLayout(
           .filter(Boolean).length;
         if (grid.clientWidth === 0 || columns < 2) {
           delete grid.dataset.discoverMeasured;
-          for (const child of Array.from(grid.children))
-            (child as HTMLElement).style.removeProperty('--discover-rows');
+          for (const child of Array.from(grid.children)) {
+            const item = child as HTMLElement;
+            item.style.removeProperty('--discover-rows');
+            delete item.dataset.discoverFillRow;
+          }
           continue;
         }
+        // A full-width card clears both columns. Promote the unpaired card
+        // before it instead of leaving an empty half row or reordering focus.
+        let unpaired: HTMLElement | undefined;
+        for (const child of Array.from(grid.children)) {
+          const item = child as HTMLElement;
+          delete item.dataset.discoverFillRow;
+          if (item.dataset.discoverWide === 'true') {
+            if (unpaired) unpaired.dataset.discoverFillRow = 'true';
+            unpaired = undefined;
+          } else {
+            unpaired = unpaired ? undefined : item;
+          }
+        }
+        if (unpaired) unpaired.dataset.discoverFillRow = 'true';
+        // Let native grid size paired cards from their content before quantizing
+        // rows. Equal row bounds avoid outside holes beside shorter notes/photos.
+        delete grid.dataset.discoverMeasured;
+        const items = Array.from(grid.children) as HTMLElement[];
+        const heights = items.map((item) => item.offsetHeight);
         grid.dataset.discoverMeasured = 'true';
         const measured = getComputedStyle(grid);
         const unit = Number.parseFloat(measured.gridAutoRows);
         const gap = Number.parseFloat(measured.rowGap) || 0;
         if (!Number.isFinite(unit) || unit <= 0) continue;
-        for (const child of Array.from(grid.children)) {
-          const item = child as HTMLElement;
+        for (const [index, item] of items.entries()) {
           // Layout dimensions do not include the viewport reveal's transform.
           const span = Math.max(
             1,
-            Math.ceil((item.offsetHeight + gap) / (unit + gap)),
+            Math.ceil((heights[index] + gap) / (unit + gap)),
           );
           const value = String(span);
           if (item.style.getPropertyValue('--discover-rows') !== value)
@@ -61,8 +82,10 @@ export function useDiscoverLayout(
       cancelAnimationFrame(frame);
       for (const grid of grids) {
         delete grid.dataset.discoverMeasured;
-        for (const child of Array.from(grid.children))
+        for (const child of Array.from(grid.children)) {
           (child as HTMLElement).style.removeProperty('--discover-rows');
+          delete (child as HTMLElement).dataset.discoverFillRow;
+        }
       }
     };
   }, [rootRef, revision, enabled]);

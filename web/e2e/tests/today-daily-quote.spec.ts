@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
@@ -45,6 +46,7 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
   };
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const method = request.method();
     const url = new URL(request.url());

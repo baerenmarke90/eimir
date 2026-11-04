@@ -173,6 +173,8 @@ export function AppShell(props: AppShellProps) {
     <ApiRuntimeProvider
       apiBaseUrl={props.apiBaseUrl}
       accessToken={props.accessToken}
+      accountId={props.account.id}
+      spaceId={props.spaceId}
     >
       <TaskOriginProvider
         key={`${props.account.id}:${props.spaceId}`}

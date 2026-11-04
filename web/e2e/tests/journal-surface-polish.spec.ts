@@ -206,9 +206,7 @@ test('Own activity filters requests before pagination and retains its scope thro
   await expect(page.getByText('A shared memory', { exact: true })).toHaveCount(
     0,
   );
-  await page
-    .getByRole('button', { name: m5s5.activity.loadMore, exact: true })
-    .click();
+  await page.locator('.auto-load-sentinel').scrollIntoViewIfNeeded();
   await expect(
     page.getByText('An earlier memory', { exact: true }),
   ).toBeVisible();

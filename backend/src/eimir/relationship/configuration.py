@@ -218,6 +218,34 @@ def _ensure_daily_timezone_change_allowed(
         )
 
 
+def sync_system_timezone(
+    session: Session, space_id: UUID, membership: Membership, timezone: str
+) -> bool:
+    """Follow the manager's device without reinterpreting an active shared day.
+
+    A participating partner's personal scheduler still follows their own device.
+    The established Space lock and active-day guard own shared-day changes.
+    """
+    try:
+        configuration = _locked_configuration(session, space_id, membership)
+    except ForbiddenError:
+        return False
+    if configuration.daily_context_timezone == timezone:
+        return False
+    try:
+        _ensure_daily_timezone_change_allowed(
+            session,
+            space_id=space_id,
+            current_timezone=configuration.daily_context_timezone,
+            next_timezone=timezone,
+        )
+    except ConflictError:
+        return True
+    configuration.daily_context_timezone = _daily_timezone(timezone)
+    session.flush()
+    return False
+
+
 def update(
     session: Session,
     space_id: UUID,

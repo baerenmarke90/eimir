@@ -1,3 +1,4 @@
+import { AutoLoadMore } from './AutoLoadMore';
 import {
   useInfiniteQuery,
   useMutation,
@@ -722,14 +723,13 @@ function WishSelectionTask({
               ))}
             </fieldset>
             {wishes.hasNextPage ? (
-              <button
-                type="button"
+              <AutoLoadMore
+                query={wishes}
                 className="tertiary"
-                disabled={wishes.isFetchingNextPage}
-                onClick={() => void wishes.fetchNextPage()}
+                blocked={wishes.isFetchingNextPage}
               >
                 {t('m5s3.common.loadMore')}
-              </button>
+              </AutoLoadMore>
             ) : null}
             <p className="wish-selection-support" role="status">
               {t(

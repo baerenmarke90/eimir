@@ -1,3 +1,4 @@
+import { AutoLoadMore } from './AutoLoadMore';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import type { PlacesApi } from '../api/generated/apis/PlacesApi';
@@ -210,14 +211,13 @@ export function PlaceChoicePicker({
           ))}
       </ul>
       {places.hasNextPage ? (
-        <button
+        <AutoLoadMore
+          query={places}
           className="tertiary"
-          type="button"
-          disabled={pending || places.isFetchingNextPage || offline}
-          onClick={() => void places.fetchNextPage()}
+          blocked={pending || places.isFetchingNextPage || offline}
         >
           {t('photoPlaces.more')}
-        </button>
+        </AutoLoadMore>
       ) : null}
     </div>
   );

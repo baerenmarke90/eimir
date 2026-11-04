@@ -20,7 +20,7 @@ const experiences = {
   automaticCover: 'Automatisch das erste Medium',
   coverHelp:
     'Das Titelbild bleibt beim Verschieben erhalten. Ohne Auswahl wird das erste Medium angezeigt.',
-  through: 'Bis einschließlich',
+  through: 'Bis',
   addPeriod: 'Zeitraum hinzufügen',
   removePeriod: 'Nur einen Tag merken',
   invalidPeriod: 'Das Ende muss am selben Tag oder nach dem Beginn liegen.',

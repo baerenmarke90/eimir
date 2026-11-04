@@ -80,7 +80,7 @@ export function monthlyRecapInvitation(
   const period =
     day >= last - 2
       ? year * 12 + month
-      : day <= 7
+      : day <= 3
         ? year * 12 + month - 1
         : null;
   if (period === null) return undefined;

@@ -1,0 +1,12 @@
+.native-date-input {
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.native-date-input::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+.field-group:has(> input.native-date-input) > label {
+  font-weight: 400;
+}

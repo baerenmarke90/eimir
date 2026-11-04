@@ -1,4 +1,5 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
+import { AutoLoadMore } from './AutoLoadMore';
 import {
   lazy,
   Suspense,
@@ -97,7 +98,7 @@ export function MemoryMapPage({
     },
     [setParams, location.state],
   );
-  const query = useInfiniteQuery({
+  const query = useWarmInfiniteQuery({
     queryKey: [
       ...authorSummaryQueryKeys.memoryMap(spaceId),
       accountId,
@@ -318,18 +319,17 @@ export function MemoryMapPage({
               </div>
             ) : null}
             {query.hasNextPage ? (
-              <button
-                type="button"
+              <AutoLoadMore
+                query={query}
                 className="secondary"
-                disabled={query.isFetchingNextPage}
-                onClick={() => void query.fetchNextPage()}
+                blocked={query.isFetchingNextPage}
               >
                 {t(
                   query.isFetchingNextPage
                     ? 'states.loading.title'
                     : 'memoryMap.loadMore',
                 )}
-              </button>
+              </AutoLoadMore>
             ) : null}
             {selected ? (
               <section

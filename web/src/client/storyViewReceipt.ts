@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { dashboardQueryKey } from './dashboardQueries';
 import type { ReferenceApis } from './referenceFlow';
 import type { StoryKind } from '../api/generated/models/StoryKind';
 
@@ -15,6 +17,7 @@ export function useStoryViewReceipt({
   itemId: string;
   presented: boolean;
 }) {
+  const queryClient = useQueryClient();
   const recordedRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -35,9 +38,12 @@ export function useStoryViewReceipt({
           itemId,
         },
       })
+      .then(() =>
+        queryClient.invalidateQueries({ queryKey: dashboardQueryKey(spaceId) }),
+      )
       .catch(() => {
         // Intentional view receipt failures must not break the detail page.
         // Backend same-day idempotent semantics apply.
       });
-  }, [apis, spaceId, kind, itemId, presented]);
+  }, [apis, spaceId, kind, itemId, presented, queryClient]);
 }

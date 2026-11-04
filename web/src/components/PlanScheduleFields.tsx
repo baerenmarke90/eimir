@@ -1,3 +1,4 @@
+import { NativeDateInput } from './NativeDateField';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from '../i18n';
 
@@ -85,12 +86,11 @@ export function PlanScheduleFields({
   return (
     <>
       <label htmlFor={`${idPrefix}-date`}>{t('m5s3.plan.plannedDate')}</label>
-      <input
+      <NativeDateInput
         form={formId}
         ref={dateRef}
         id={`${idPrefix}-date`}
         name="plannedDate"
-        type="date"
         value={date}
         onChange={(event) => {
           const nextDate = event.target.value;
@@ -183,10 +183,9 @@ export function PlanScheduleFields({
                 <label htmlFor={`${idPrefix}-end-date`}>
                   {t('m5s3.plan.endDate')}
                 </label>
-                <input
+                <NativeDateInput
                   form={formId}
                   id={`${idPrefix}-end-date`}
-                  type="date"
                   min={date}
                   value={endDate}
                   disabled={!showEnd}

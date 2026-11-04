@@ -1,3 +1,4 @@
+import { AutoLoadMore } from './AutoLoadMore';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { type FormEvent, useState } from 'react';
 import {
@@ -26,7 +27,6 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import {
   DeleteConfirmation,
-  LoadMoreButton,
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
   usePrivateAreaTaskContext,
@@ -290,11 +290,9 @@ export function GiftIdeasListPage({ api, accountId, spaceId }: Props) {
               </li>
             ))}
           </ul>
-          <LoadMoreButton
-            hasMore={Boolean(query.hasNextPage)}
-            loading={query.isFetchingNextPage}
-            onLoadMore={() => void query.fetchNextPage()}
-          />
+          <AutoLoadMore query={query} className="secondary">
+            {t('privateArea.loadMore')}
+          </AutoLoadMore>
         </section>
       ) : null}
     </>

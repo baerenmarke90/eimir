@@ -348,9 +348,6 @@ for (const [width, colorScheme] of [
     await page.getByRole('button', { name: experiences.addPeriod }).click();
     await page.getByLabel(experiences.through).fill('2027-01-03');
     // The native date editor keeps calendar dates rather than timezone instants.
-    await page
-      .getByRole('button', { name: de.memory.dateChangeAction })
-      .click();
     await page.locator('#happenedOn').fill('2026-12-31');
     await page.getByRole('button', { name: photoSources.addMedia }).click();
     const input = page.locator('dialog[open] input[type="file"]');

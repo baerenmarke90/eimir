@@ -21,9 +21,15 @@ No browser-testing dependency is shipped in the production Web bundle.
 
 `web/e2e/test-groups.json` is the authoritative browser-test inventory.
 
+The current per-PR selection contract is [Browser impact selection](BROWSER-IMPACT-SELECTION.md).
+An always-run core plus actual transitive dependencies selects affected feature
+and reference coverage. Shared/unknown changes run every retained spec. The four
+PR shard names and full-regression topology remain; historical counts below are
+not current Playwright collection counts.
+
 Every `web/e2e/tests/*.spec.ts` file must be classified. The inventory runner fails closed when a spec exists without a classification or when the inventory references a removed file.
 
-Current #1042 state:
+Historical #1042 state:
 
 - 46 spec files
 - original full-regression baseline: **351** browser tests
@@ -60,7 +66,9 @@ cd web/e2e
 npm run test:pr
 ```
 
-This group keeps product-critical create/save/retry/navigation/session/privacy/accessibility and focused Today/Momente/Planning behavior in every Web pull request.
+Without a CI plan this command conservatively runs the complete critical group.
+CI selects the always-run cross-surface core and complete affected spec files
+through the shared ownership/dependency plan.
 
 ### Full regression
 
@@ -79,13 +87,13 @@ The full regression includes every retained browser spec, including Product Refe
 
 For a `pull_request` touching `web/**` or the workflow itself:
 
-1. a lightweight planning job validates the shared test inventory, proves its planner with deterministic tests and resolves changed browser-spec files through every page of the GitHub PR Files API;
-2. four PR-critical jobs run `npm run test:pr -- --shard=1/4` through `--shard=4/4` in parallel;
-3. if retained non-critical browser specs changed, one additional isolated job runs those changed specs completely; changed PR-critical files are already covered by step 2 and are not executed twice;
+1. a planning job validates both inventories, proves the planner with deterministic tests and resolves the complete GitHub PR Files response, bound to the event's head SHA;
+2. four PR-critical jobs run `npm run test:pr -- --shard=1/4` through `--shard=4/4` against the validated core-plus-impact selection;
+3. one additional isolated job runs affected or changed non-critical specs completely when required; critical files are already covered by step 2 and are not executed twice;
 4. each browser job writes to its own Playwright output directory and uploads its own short-lived evidence artifact;
 5. a stable `Playwright + axe` aggregate job fails if any required shard or targeted verification fails.
 
-For a push to `main` touching the same surfaces, and for manual execution, four isolated jobs run the complete retained regression as `--shard=1/4` through `--shard=4/4`. The aggregate `Playwright + axe` result remains the stable workflow-level browser-QA status.
+For every push to `main`, and for manual execution, four isolated jobs run the complete retained regression as `--shard=1/4` through `--shard=4/4`. The aggregate `Playwright + axe` result remains the stable workflow-level browser-QA status.
 
 Native Playwright sharding uses the existing `fullyParallel: true` configuration to distribute individual tests, including cases within the same file. Every retained test is assigned to exactly one shard. Each shard preserves the established one-worker execution model and all assertions, test selection, retries, timeouts and diagnostics.
 
@@ -160,9 +168,14 @@ Sharding reduces wall-clock latency, not the number of retained product contract
 
 ## Maintenance rule
 
-A new browser spec must be classified when it is added.
+A new browser spec must be classified in both inventories when it is added,
+with all relevant production entry roots. Shared and unclassified dependencies
+must remain conservative; see the current selection contract linked above.
 
-Use `PR_CRITICAL` when failure would represent a material regression that should block every Web change. Use `FULL_REGRESSION` for broader acceptance/reference coverage that is valuable after merge but does not need to gate every unrelated pull request.
+Use `PR_CRITICAL` for critical behavior executed in the PR shards when affected,
+and explicitly declare cross-surface core files as always-run. `FULL_REGRESSION`
+retains broader acceptance/reference coverage; it also runs when its dependencies
+or spec change, and always in the complete regression.
 
 `LOWER_LEVEL` is a migration state, not permission to weaken coverage. Before deleting such a browser case, commit equivalent lower-level coverage and document the overlap in #1042 or its follow-up. If an audit shows that the contract depends materially on real layout, media emulation, focus, routing or computed browser styles, classify it back as browser regression coverage instead of manufacturing a lower-level replacement.
 

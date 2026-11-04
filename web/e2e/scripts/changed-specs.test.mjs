@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -252,6 +252,23 @@ test('missing configuration fails before querying GitHub', async () => {
   await assert.rejects(
     resolveChangedSpecs({ environment: {} }),
     /are required/,
+  );
+});
+
+test('a stale event cannot select files from a different PR head', async (t) => {
+  await assert.rejects(
+    resolveChangedSpecs({
+      environment: { ...environment, PR_HEAD_SHA: 'expected-head' },
+      inventoryRoot: fixture(t),
+      fetchImpl: async (url) => ({
+        ok: true,
+        json: async () =>
+          url.includes('/files?')
+            ? []
+            : { changed_files: 0, head: { sha: 'newer-head' } },
+      }),
+    }),
+    /PR head changed/,
   );
 });
 

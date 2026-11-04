@@ -82,6 +82,31 @@ test('changed critical, reference and newly added specs run completely exactly o
   assert.equal(new Set(combined(result)).size, combined(result).length);
 });
 
+test('cross-surface journeys follow their real destination rather than their historical spec filename', () => {
+  for (const [source, spec] of [
+    ['HeartMomentProductPage', 'private-token-contrast'],
+    ['PlanningCreatePage', 'plan-cover-layout'],
+    ['MemoryCreatePage', 'memory-experiences'],
+    ['MemoryCreatePage', 'planning-completion-story-continuation'],
+    ['MemoryCreatePage', 'planning-wish-completion-continuation'],
+    ['MemoryProductPage', 'memory-map-and-couple-games'],
+    ['HeartMomentProductPage', 'today-keepsake-precedence'],
+    ['DailyInsightsPage', 'today-pro-insights'],
+    ['PlaceProductPage', 'moment-relation-picker'],
+    ['PlanProductPage', 'relationship-reflections'],
+    ['SharedPhotosPage', 'story-discover-tapestry'],
+    ['CollectionProductPage', 'today-pinned-collection'],
+    ['M4ProductPages', 'private-area-reference'],
+  ]) {
+    const result = plan([changed(`web/src/components/${source}.tsx`)]);
+    assert.equal(result.full, false, source);
+    assert.ok(
+      combined(result).includes(`${spec}.spec.ts`),
+      `${source}: ${spec}`,
+    );
+  }
+});
+
 test('removed specs are omitted and renamed surviving reference specs remain selected', () => {
   const result = plan([
     changed('web/e2e/tests/removed.spec.ts', 'removed'),

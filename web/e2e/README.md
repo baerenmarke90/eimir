@@ -9,7 +9,7 @@ The suite has two execution groups:
 
 The classification lives in `test-groups.json`. Every `tests/*.spec.ts` file must be present there exactly once. `npm run test:inventory` fails when a spec is added or removed without updating the inventory.
 
-From this directory, after `npm ci`:
+After installing locked dependencies with `npm ci` in both `web` and `web/e2e`, run from this directory:
 
 ```bash
 ./node_modules/.bin/playwright install chromium

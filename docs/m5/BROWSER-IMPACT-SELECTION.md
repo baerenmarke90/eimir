@@ -83,9 +83,9 @@ counts on main `b9046626ace5678b2629d4fa196a775b1cae0f10` plus this change:
 | --- | ---: | ---: |
 | Previous unconditional PR selection | 68 | 789 |
 | Always-run core (documentation/unit-only change) | 10 | 128 |
-| `PrivateNotesPage.tsx` | 16 | 224 |
-| `AppIconSettingsPanel.tsx` | 28 | 350 |
-| `MemoryProductPage.tsx` | 39 | 418 |
+| `PrivateNotesPage.tsx` | 16 | 243 |
+| `AppIconSettingsPanel.tsx` | 31 | 381 |
+| `MemoryProductPage.tsx` | 43 | 502 |
 | Shared shell or unknown dependency | 87 | 999 |
 | Complete retained regression | 87 | 999 |
 
@@ -119,7 +119,7 @@ splitting or a second test definition. Without this variable, local `test:pr`
 retains the complete critical group and `test:full` retains every spec.
 
 New specs must update both inventories and declare all relevant production
-entry roots, including cross-surface continuations. Review root ownership again
+entry roots, including cross-surface continuations. The ownership regressions explicitly protect private HeartMoment contrast, Plan/Wish-to-Memory capture, map-to-Memory return, insights, relation pickers and retained-source navigation. Review root ownership again
 when a journey starts using another feature. Shared paths and new unsupported
 dependency mechanisms must remain conservative. Reclassifying/removing the core
 or deleting a browser case requires concrete coverage/contract evidence, not a

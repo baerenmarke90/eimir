@@ -1,3 +1,4 @@
+import { TaskBackLink } from './TaskBackButton';
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -96,6 +97,9 @@ export function ServerAdminAccessGate({
     <div className="server-admin-shell server-admin-gate-shell">
       <ThemeControl />
       <header className="server-admin-topbar">
+        <TaskBackLink to={DEFAULT_APP_ROUTE}>
+          {t('serverAdmin.backToApp')}
+        </TaskBackLink>
         <Brand to={DEFAULT_APP_ROUTE} ariaLabel={t('brand.homeAria')} />
       </header>
       <main className="server-admin-main">
@@ -122,12 +126,6 @@ export function ServerAdminAccessGate({
                   {t('serverAdmin.access.retry')}
                 </button>
               ) : null}
-              <Link
-                className="button-link secondary-link"
-                to={DEFAULT_APP_ROUTE}
-              >
-                {t('serverAdmin.backToApp')}
-              </Link>
             </div>
           }
         />
@@ -1009,14 +1007,14 @@ export function ServerAdminPage({
         {t('navigation.skipToContent')}
       </a>
       <header className="server-admin-topbar">
+        <TaskBackLink to={DEFAULT_APP_ROUTE}>
+          {t('serverAdmin.backToApp')}
+        </TaskBackLink>
         <Brand to={DEFAULT_APP_ROUTE} ariaLabel={t('brand.homeAria')} />
         <nav
           className="server-admin-topbar-actions"
           aria-label={t('serverAdmin.title')}
         >
-          <Link className="secondary-link" to={DEFAULT_APP_ROUTE}>
-            {t('serverAdmin.backToApp')}
-          </Link>
           <button type="button" className="text-button" onClick={logout}>
             {t('serverAdmin.logout')}
           </button>

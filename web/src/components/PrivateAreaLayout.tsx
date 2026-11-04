@@ -1,5 +1,6 @@
+import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   PRIVATE_COLLECTIONS_PATH,
   PRIVATE_GIFT_IDEAS_PATH,
@@ -114,22 +115,14 @@ export function PrivateAreaDetailBack({
   const { t } = useTranslation();
   const { origin, returnToOrigin } = usePrivateAreaTaskContext(fallbackPath);
   if (!origin) {
-    return (
-      <Link className="back-link" to={fallbackPath}>
-        {fallbackLabel}
-      </Link>
-    );
+    return <TaskBackLink to={fallbackPath}>{fallbackLabel}</TaskBackLink>;
   }
   return (
-    <button
-      type="button"
-      className="back-link tertiary"
-      onClick={returnToOrigin}
-    >
+    <TaskBackButton type="button" onClick={returnToOrigin}>
       {origin.to === '/search'
         ? t('privateArea.backToSearch')
         : t('privateArea.backToOrigin')}
-    </button>
+    </TaskBackButton>
   );
 }
 

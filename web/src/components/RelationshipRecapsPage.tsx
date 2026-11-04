@@ -1,3 +1,4 @@
+import { TaskBackButton } from './TaskBackButton';
 import { AutoLoadMore } from './AutoLoadMore';
 import {
   useCallback,
@@ -566,9 +567,9 @@ function RecapReader({
       style={{ '--recap-dwell': `${duration}ms` } as CSSProperties}
     >
       <div className="recap-reader-top">
-        <button type="button" className="recap-back" onClick={back}>
-          ‹ {t(returnsToWir ? 'navigation.today' : 'recaps.back')}
-        </button>
+        <TaskBackButton onClick={back}>
+          {t(returnsToWir ? 'navigation.today' : 'recaps.back')}
+        </TaskBackButton>
         {value ? (
           <span>{recapPeriodLabel(value, resolvedLocale())}</span>
         ) : null}

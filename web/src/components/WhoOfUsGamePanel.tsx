@@ -1,3 +1,4 @@
+import { TaskBackButton } from './TaskBackButton';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { loadGameParticipants } from '../client/gameParticipants';
@@ -66,9 +67,9 @@ function ActiveWhoOfUsSessionView({
           <button type="button" onClick={() => session.restart()}>
             {t('games.whoOfUs.restart')}
           </button>
-          <button type="button" className="secondary-button" onClick={onExit}>
+          <TaskBackButton type="button" onClick={onExit}>
             {t('games.whoOfUs.backToGames')}
-          </button>
+          </TaskBackButton>
         </div>
       </section>
     );
@@ -288,9 +289,9 @@ export function WhoOfUsGamePanel({
     <div className="who-of-us-game">
       <PageHeader
         before={
-          <button type="button" className="back-link" onClick={onExit}>
+          <TaskBackButton type="button" onClick={onExit}>
             {t('games.whoOfUs.back')}
-          </button>
+          </TaskBackButton>
         }
         eyebrow={t('games.entries.perspective.role')}
         title={t('games.entries.perspective.title')}

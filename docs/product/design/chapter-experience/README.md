@@ -211,3 +211,43 @@ navigation, conflicts, marker-only pages/years and accessible reflow.
 
 The GitHub PR owns live validation and merge state. Publication is outside this
 task; these ordinary Web changes introduce no new native platform capability.
+
+### Confirmed deletion and editor history
+
+The final hosted integration sweep exposed a real return race after a confirmed
+Chapter deletion. The editor owns a same-route Back entry. Returning to the diary
+before retiring that entry could consume only the editor step, leaving the reader
+on the deleted Chapter; its new read then correctly returned 404. Both hosted
+attempts failed, and the unchanged full journey reproduced the race locally.
+
+Deletion completion now uses the existing confirmed editor-close primitive before
+removing the detail query and returning to the captured origin. Account/Space
+activation and exact authorized-query admission are checked again inside that
+completion callback. The fallback overview and successor-focus contract remain;
+dirty/pending user exits retain their existing protection.
+
+A regression uses BrowserRouter, the actual editor history entry, an authorized
+diary origin with its year scope, and a deleted source that rejects later reads.
+All 18 focused Chapter/editor/history unit checks pass. The unchanged complete
+create/link/read/unlink/edit/diary/delete journey passes five consecutive runs
+after the correction. The full Chapter/browser and exact final-head hosted
+results are recorded in PR #1636. No position bound, timeout, retry or permission
+assertion is relaxed.
+
+The same hosted integration run exposed a 30-second budget overrun in the existing
+320px gentle-prompt scenario. Its saved-consent and invitation-use portions now
+form two complete journeys at each of the same five viewport/theme variants.
+The first retains failed-save recovery, successful consent, reload persistence,
+the resulting Today invitation, both accessibility scans and screenshots. The
+second starts with that persisted server consent and retains dismissal/focus,
+reload persistence, a later occasion, the blank composer, receipt bound and
+consumed-invitation absence after another document load. Every existing assertion
+remains, with the same 30-second test and five-second expectation limits.
+
+All ten journeys pass without retries, taking 13.3–16.5 seconds each while the
+complete Web suite runs alongside them. Browser ownership and selection remain
+on the same 89 complete specs. The five extra case boundaries introduce no new
+feature variants or repeated global feature acceptance; they isolate the two
+existing contracts so document loads and accessibility work cannot consume each
+other's normal test budget. Actual final collection is 1,020 cases rather than
+1,015. The owning PR records the planning checks and final hosted result.

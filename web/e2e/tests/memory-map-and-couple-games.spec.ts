@@ -692,6 +692,7 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
                       id: incoming.id,
                       kind: incoming.experienceKind,
                       text: incoming.body,
+                      prompt: incoming.title,
                       authorId: incoming.authorId,
                       happenedOn: incoming.happenedOn,
                       createdAt: incoming.createdAt,

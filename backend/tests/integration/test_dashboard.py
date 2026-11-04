@@ -1079,3 +1079,58 @@ def test_recent_same_day_selection_matches_the_final_order_before_limiting(
     ]
     if kind == "memory":
         assert response.json()["keepsake"]["id"] == str(entries[-1].id)
+
+
+@pytest.mark.parametrize("kind", ["HAPPINESS", "TIME_TRAVEL"])
+@pytest.mark.parametrize("is_reply", [False, True])
+def test_incoming_experience_preserves_original_prompt_with_partner_answer(
+    client, session, couple, monkeypatch, kind, is_reply
+):  # type: ignore[no-untyped-def]
+    _freeze(monkeypatch)
+    prompt = "Which part of our morning stayed with you?"
+    own = Memory(
+        **_resource(couple, couple["anna"].id),
+        payload=MemoryPayload(title="Own prompt", body="Own answer", tags=[]),
+        experience_kind=kind,
+        created_at=FIXED_NOW,
+    )
+    foreign = Memory(
+        space_id=couple["foreign_space"].id,
+        owner_id=couple["outsider"].id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        payload=MemoryPayload(title="Other Space prompt", body="Other answer", tags=[]),
+        experience_kind=kind,
+        created_at=FIXED_NOW,
+    )
+    session.add_all([own, foreign])
+    session.flush()
+    assert _dashboard(client, couple).json()["incomingExperience"] is None
+    root = Memory(
+        **_resource(couple, couple["anna" if is_reply else "ben"].id),
+        payload=MemoryPayload(title=prompt, body="Original answer", tags=[]),
+        experience_kind=kind,
+        happened_on=date(2026, 8, 30),
+        created_at=FIXED_NOW - timedelta(minutes=1),
+    )
+    session.add(root)
+    session.flush()
+    if is_reply:
+        reply = Memory(
+            **_resource(couple, couple["ben"].id),
+            payload=MemoryPayload(title=prompt, body="Waking up beside you.", tags=[]),
+            experience_kind=kind,
+            experience_root_id=root.id,
+            happened_on=root.happened_on,
+            created_at=FIXED_NOW,
+        )
+        session.add(reply)
+        session.flush()
+    response = _dashboard(client, couple)
+    assert response.status_code == 200
+    incoming = response.json()["incomingExperience"]
+    assert incoming["id"] == str(root.id)
+    assert incoming["kind"] == kind
+    assert incoming["prompt"] == prompt
+    assert incoming["text"] == ("Waking up beside you." if is_reply else "Original answer")
+    assert incoming["authorId"] == str(couple["ben"].id)
+    assert incoming["happenedOn"] == "2026-08-30"

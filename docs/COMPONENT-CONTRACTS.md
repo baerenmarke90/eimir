@@ -148,6 +148,31 @@ App-icon selection uses this contract for its explicit Save and recovery state.
 - Web only and only from at least three understandable hierarchy levels.
 - Supplement primary navigation and never replace the page title.
 
+### 5.4 Secondary-page Back
+
+Every authenticated secondary destination, including future routes, receives one
+upper-left, rounded, icon-only chevron from `SubpageNavigation` in the AppShell.
+Primary roots are derived from the shared route registry and do not receive Back.
+Use `TaskBackButton` for a guarded task exit or `TaskBackLink` for an existing
+navigation link. The shell places these page-owned controls in the same slot and
+removes its default; page implementations must not add textual Back chrome.
+The accessible name remains localized, the target is at least 44 CSS px, and
+keyboard/focus, modified links, pending/dirty guards and task-origin return remain
+owned by the existing task. A direct entry falls back to its canonical parent.
+The separate administration shell uses the same control at its upper left.
+See [the composition and evidence](product/design/subpage-navigation-context/README.md).
+
+### 5.5 Moment date and Place context
+
+Memory and shared HeartMoment readers group the calendar date and all authorized
+Places above media in one wrapping row. Each Place opens its address/map and
+attribution in the existing short sheet; no external request occurs until an
+explicit link. Private HeartMoments do not request shared Places. A Memory's
+date-only fallback heading displays its calendar date once, with Places beside
+it where space permits. `MomentDate` provides the same calendar treatment to
+timeline and relation previews; formatting and date-only semantics stay with
+the caller. Metadata uses normal supporting text independently of heading type.
+
 ## 6. Content components
 
 ### 6.1 List Item

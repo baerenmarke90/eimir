@@ -35,26 +35,6 @@
   }
 }
 
-/* Detail return navigation lives in the persistent app bar. Keep the shared
- * return control in the component for loading/error fallbacks, but remove the
- * duplicate from the successful detail composition. */
-.memory-product-page > .back-link {
-  display: none;
-}
-
-.shell-detail-back svg {
-  width: 1.35rem;
-  height: 1.35rem;
-}
-.shell-detail-back:has(span) {
-  width: auto;
-  display: inline-flex;
-  gap: var(--space-1);
-  align-items: center;
-  color: var(--color-link-text);
-  font: var(--font-supporting-copy);
-}
-
 .memory-product-page .page-heading {
   margin-bottom: 0;
   padding-bottom: 0;

@@ -90,3 +90,88 @@ navigation -> edit -> dirty/pending Back -> save -> read -> return; unknown
 future subpages, deep links, privacy/denial and multi-Place metadata. Review
 Compact 360/390/430, Expanded Light/Dark, 320px large text and reduced motion.
 Shared shell changes conservatively select the full retained hosted browser suite.
+
+
+## Implementation acceptance, 2026-11-04
+
+The final source includes the updated Chapter dependency at
+`947d3098268faadc747e6cead37a5470f0f912d2`, including confirmed editor-history
+retirement on deletion. The generated preflight above remains the original
+pre-implementation record; its destination composition is unchanged.
+
+| Request | Delivered behavior | Evidence |
+| --- | --- | --- |
+| Universal Back | AppShell supplies every secondary route by default. Existing guarded buttons and links move into its single upper-left slot; all four primary roots stay clear. Direct entries use canonical domain parents. | Unknown future-route and ownership component checks; complete Settings, Chapter and Story browser journeys. |
+| Date / Place | Calendar date and every authorized Place appear together above media. Date-only fallback headings show the date once. All Places retain their order, map/address/attribution disclosure, query/error states and automatic pagination. Private HeartMoments make no shared-Place request. | Multi-Place component regression, narrow/large-text screenshots and shared/private HeartMoment browser checks. |
+| Incoming happiness / time travel | The dashboard returns the authorized original prompt alongside its existing answer. Wir presents prompt, answer, author and calendar date together; canonical opening consumes the same stable invitation. Old cached projections use honest type context. Long preview truncation is marked. | Four PostgreSQL root/reply projections across both kinds, foreign-Space/own-source exclusion, six Light/Dark/Expanded answer journeys and axe. |
+
+### Executed checks
+
+- Full Web suite: **2,647 passed, two existing skips** on the pre-integration
+  source. The subsequent Chapter integration and annual-return changes pass
+  **33 focused final-source checks**, alongside nine Place/year checks.
+- Backend suite without integration: **1,288 passed, 28 existing skips**.
+  PostgreSQL Dashboard suite: **37 passed**, including all four new prompt/reply
+  projection cases. The temporary database was removed after validation.
+- The complete **14-case** new browser spec passes at 360/390/430, Expanded
+  Light/Dark, 320px with 200% text/reduced motion, both shared experience kinds,
+  canonical return/consumption and shared/private HeartMoment location privacy.
+- TypeScript, lint, formatting, design-token/PWA validation, production build and
+  backend lint/format/type checks pass. The 38 browser-planning regressions and
+  complete 90-spec inventory pass. Shared navigation conservatively selects the
+  full retained hosted browser regression; no global core case was added.
+- An initial browser fixture renewed `createdAt` on each Dashboard read, making
+  a consumed invitation appear new. Keeping the source timestamp stable fixes
+  both complete journeys without changing production receipt behavior, retries,
+  timeouts or assertions. Incomplete unrelated Today fixtures were completed
+  before final visual capture. No hosted manual retry or rerun-all was used.
+- Local validation uses Node 24.22.1 and Python 3.14.6; hosted workflows retain
+  the repository-pinned runtime and all required checks. Backend tests run in the
+  temporary database network after diagnosing an unavailable host TCP mapping;
+  skipped connection-probe results are not counted as database passes.
+
+### Current-source visual evidence
+
+All images use synthetic fixture identities/content and existing repository demo
+media. The reference image is not used as a product asset.
+
+| State | Screenshot |
+| --- | --- |
+| Compact Memory, 360 Light | [View](evidence/story-context-360-light.png) |
+| Compact Memory, 390 Dark | [View](evidence/story-context-390-dark.png) |
+| Compact Memory, 430 Light | [View](evidence/story-context-430-light.png) |
+| Expanded Memory, Light | [View](evidence/story-context-1280-light.png) |
+| Expanded Memory, Dark | [View](evidence/story-context-1280-dark.png) |
+| 320px, 200% text, reduced motion | [View](evidence/story-context-320-light-large-reduced.png) |
+| Shared HeartMoment, 390 Light | [View](evidence/story-context-heart-shared-390-light.png) |
+| Happiness, 390 Light | [View](evidence/today-context-happiness-390-light.png) |
+| Happiness, 390 Dark | [View](evidence/today-context-happiness-390-dark.png) |
+| Happiness, Expanded Dark | [View](evidence/today-context-happiness-1280-dark.png) |
+| Time travel, 390 Light | [View](evidence/today-context-time_travel-390-light.png) |
+| Time travel, 390 Dark | [View](evidence/today-context-time_travel-390-dark.png) |
+| Time travel, Expanded Dark | [View](evidence/today-context-time_travel-1280-dark.png) |
+
+Open -> contextual Place sheet -> map/attribution -> Escape/focus -> Back and
+Settings category -> index are checked in the actual browser. Existing Chapter,
+HeartMoment, accessibility and focused-task suites retain their full edit/save,
+dirty-exit, history, scroll and focus contracts. Final hosted results remain
+mandatory before merge; this record does not claim an APK publication.
+
+
+### Final source-review corrections
+
+The final review preserves the Plan completion continuation's focus return after
+Back moves outside the page subtree. A real portaled-control regression fails
+without that correction and passes with it. Shared Wish selection now targets
+the same shared Back slot while retaining its full destination assertions.
+Explicit colors use the existing `--color-text` adapter role.
+
+The final correction passes 32 focused component checks and TypeScript. Actual
+Playwright collection is **1,034 cases in 90 complete specs**; the new 14-case
+acceptance spec remains feature-owned rather than expanding the always-run core.
+The first combined diagnostic browser sweep recorded 54 passes, one local
+`ERR_NETWORK_CHANGED` event before sign-in (confirmed from its trace), and two
+new-spec cases invalidated when their inventory expanded during that local run.
+That diagnostic run is not counted as a complete pass. The stable final specs
+receive fresh complete lifecycle/browser coverage and the normal hosted sweep.
+No retry, timeout, assertion or branch protection was relaxed.

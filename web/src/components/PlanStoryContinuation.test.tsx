@@ -8,6 +8,8 @@ import { MEMORY_CREATE_ROUTE, MILESTONE_CREATE_ROUTE } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { i18n } from '../i18n';
 import { PlanStoryContinuation } from './PlanStoryContinuation';
+import { SubpageNavigation } from './SubpageNavigation';
+import { TaskBackButton } from './TaskBackButton';
 
 const plan: PlanDetail = {
   capabilities: { canComment: true, canDelete: true, canEdit: true },
@@ -49,6 +51,30 @@ function renderContinuation(sharedAchievementEnabled = false) {
 }
 
 describe('PlanStoryContinuation', () => {
+  it('restores focus to the shared upper-left Back after dismissing completion', () => {
+    render(
+      <MemoryRouter initialEntries={['/plan/plans/plan-1']}>
+        <main className="product-main">
+          <SubpageNavigation>
+            <div className="planning-page">
+              <TaskBackButton>Return to Plans</TaskBackButton>
+              <PlanStoryContinuation
+                apis={{} as SharedPlanningApis}
+                spaceId="space-1"
+                plan={plan}
+              />
+            </div>
+          </SubpageNavigation>
+        </main>
+      </MemoryRouter>,
+    );
+    const back = screen.getByRole('button', { name: 'Return to Plans' });
+    expect(back.closest('.subpage-back-slot')).not.toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.planStory.later') }),
+    );
+    expect(document.activeElement).toBe(back);
+  });
   it('renders exactly one team celebration when the Space module is enabled', () => {
     const view = renderContinuation(true);
 

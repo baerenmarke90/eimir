@@ -2,6 +2,48 @@
 
 These rules apply to AI-assisted and human implementation work in this repository.
 
+## Task continuity and delivery evidence
+
+- **Establish the current baseline.** Before implementation or release work, inspect
+  current `main`, the working branch, relevant Issues/PRs and comments, dependencies,
+  and applicable checks. Refresh affected assumptions after dependent merges or when
+  resuming work. Follow [Status Sources and Drift Rules](docs/STATUS-SOURCES.md);
+  chat history and remembered SHAs are orientation, not proof of current state.
+- **Make the requested outcome traceable.** Translate requests, screenshots, and
+  follow-up corrections into proportionate acceptance criteria in the existing
+  Issue or PR. Preserve agreed scope and authorization across follow-ups. Use one
+  coherent work record for related implementation and fixes; do not require the
+  Product Owner to repeat requirements in multiple tools.
+- **Verify execution readiness for the actual scope.** Confirm the checkout/ref,
+  required dependencies, commands, services, and access before claiming that an
+  environment can build or test the change. Repository connectivity or an available
+  terminal alone does not establish readiness. Reuse an existing project setup;
+  documentation-only work does not require a full application or Android build.
+  State concrete missing capabilities and continue work that does not depend on them.
+- **Coordinate parallel work and handoffs.** Give independent changes separate
+  branches/worktrees and explicit dependencies. Related work should continue in its
+  owning task/PR where practical. A handoff records the exact revision, completed
+  validation, unresolved findings, and next action. Preserve other contributors'
+  work and check the integration baseline before combining dependent changes.
+- **Report observed delivery states.** Distinguish implemented, validated, merged,
+  and published. Bind validation to the tested revision and relevant environment,
+  naming failed or unperformed checks and product/device acceptance still outstanding.
+  Confirm a merge against the actual target branch. Confirm publication through the
+  release/version, source revision, successful publishing run, and available expected
+  artifacts; include the relevant PR, run, release, and download links in the result.
+  A requested release is complete only when its published result is verified.
+- **Make background continuation verifiable.** Claim that cloud work continues only
+  when an actual task/workflow is running or a follow-up process has been configured.
+  Record its reference and the mechanism responsible for reviewing completion and
+  handling failures; starting a build alone does not establish that follow-up.
+  Report a pause or missing continuation explicitly instead of implying unattended
+  progress after a completed response.
+
+Use the existing Issue/PR validation sections and authoritative status sources for
+this evidence. This contract adds no parallel status document, unconditional test
+suite, or additional approval gate. Reuse authorization already given for the task;
+merge and publication still require authorization and all applicable protections.
+
 ## Mandatory sources
 
 Before relevant work, read at least these documents:

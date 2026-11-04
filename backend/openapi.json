@@ -1089,6 +1089,52 @@
         "title": "ChapterRelationTargets",
         "type": "object"
       },
+      "ChapterTimelineMarker": {
+        "description": "A diary-only destination at an authored chapter start, not Story content.",
+        "properties": {
+          "endOn": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endon"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "position": {
+            "exclusiveMaximum": 100.0,
+            "minimum": 0.0,
+            "title": "Position",
+            "type": "integer"
+          },
+          "startOn": {
+            "format": "date",
+            "title": "Starton",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "startOn",
+          "endOn",
+          "position"
+        ],
+        "title": "ChapterTimelineMarker",
+        "type": "object"
+      },
       "ChapterUpdate": {
         "additionalProperties": false,
         "description": "Partial correction of Chapter metadata and its canonical Place reference.",
@@ -1509,6 +1555,30 @@
         ],
         "title": "ContentVisibility",
         "type": "string"
+      },
+      "ContextTagSuggestionsView": {
+        "properties": {
+          "learned": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Learned",
+            "type": "array"
+          },
+          "proposed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Proposed",
+            "type": "array"
+          }
+        },
+        "required": [
+          "learned",
+          "proposed"
+        ],
+        "title": "ContextTagSuggestionsView",
+        "type": "object"
       },
       "CoupleExperienceQuestions": {
         "properties": {
@@ -2629,6 +2699,44 @@
         ],
         "title": "DeliveryClass",
         "type": "string"
+      },
+      "DeviceContextUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "spaceId": {
+            "format": "uuid",
+            "title": "Spaceid",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "timezone",
+          "spaceId"
+        ],
+        "title": "DeviceContextUpdate",
+        "type": "object"
+      },
+      "DeviceContextView": {
+        "properties": {
+          "sharedDayPending": {
+            "title": "Shareddaypending",
+            "type": "boolean"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "timezone",
+          "sharedDayPending"
+        ],
+        "title": "DeviceContextView",
+        "type": "object"
       },
       "DevicePushConfiguration": {
         "properties": {
@@ -11934,6 +12042,13 @@
             "title": "Availableyears",
             "type": "array"
           },
+          "chapterMarkers": {
+            "items": {
+              "$ref": "#/components/schemas/ChapterTimelineMarker"
+            },
+            "title": "Chaptermarkers",
+            "type": "array"
+          },
           "hasMore": {
             "title": "Hasmore",
             "type": "boolean"
@@ -13137,6 +13252,67 @@
           }
         },
         "summary": "Delete the authenticated Account",
+        "tags": [
+          "account"
+        ]
+      }
+    },
+    "/api/v1/account/device-context": {
+      "put": {
+        "operationId": "updateOwnDeviceContext",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceContextUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceContextView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Own Device Context",
         "tags": [
           "account"
         ]
@@ -21482,6 +21658,105 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/context-tag-suggestions": {
+      "get": {
+        "operationId": "getContextTagSuggestions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "parentType",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "MEMORY",
+                    "HEART_MOMENT"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parenttype"
+            }
+          },
+          {
+            "in": "query",
+            "name": "parentId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parentid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextTagSuggestionsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Context Tag Suggestions",
+        "tags": [
+          "context-tags"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/daily-check-in/insights": {
       "get": {
         "description": "Return longitudinal Daily Check-in insights for the authorized Space.\n\nProtected by the Pro capability `daily.insights`. Free Spaces receive\n403 Forbidden with `PREMIUM_ENTITLEMENT_REQUIRED`.",
@@ -25951,6 +26226,376 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans": {
+      "get": {
+        "operationId": "listMemoryPlans",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memoryId",
+            "required": true,
+            "schema": {
+              "title": "Memoryid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationTargets"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "List Targets",
+        "tags": [
+          "memory-planning-relations"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans/{targetId}": {
+      "delete": {
+        "operationId": "unlinkMemoryPlan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memoryId",
+            "required": true,
+            "schema": {
+              "title": "Memoryid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "targetId",
+            "required": true,
+            "schema": {
+              "title": "Targetid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Unlink",
+        "tags": [
+          "memory-planning-relations"
+        ]
+      },
+      "put": {
+        "operationId": "linkMemoryPlan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memoryId",
+            "required": true,
+            "schema": {
+              "title": "Memoryid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "targetId",
+            "required": true,
+            "schema": {
+              "title": "Targetid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Link",
+        "tags": [
+          "memory-planning-relations"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/memories/{memoryId}/wishes": {
+      "get": {
+        "operationId": "listMemoryWishes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memoryId",
+            "required": true,
+            "schema": {
+              "title": "Memoryid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelationTargets"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "List Targets",
+        "tags": [
+          "memory-planning-relations"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/memories/{memoryId}/wishes/{targetId}": {
+      "delete": {
+        "operationId": "unlinkMemoryWish",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memoryId",
+            "required": true,
+            "schema": {
+              "title": "Memoryid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "targetId",
+            "required": true,
+            "schema": {
+              "title": "Targetid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Unlink",
+        "tags": [
+          "memory-planning-relations"
+        ]
+      },
+      "put": {
+        "operationId": "linkMemoryWish",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "memoryId",
+            "required": true,
+            "schema": {
+              "title": "Memoryid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "targetId",
+            "required": true,
+            "schema": {
+              "title": "Targetid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Link",
+        "tags": [
+          "memory-planning-relations"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/memory-map": {
       "get": {
         "description": "Pro map over readable saved memories and places; no location tracking.",
@@ -28340,7 +28985,7 @@
             "name": "order",
             "required": false,
             "schema": {
-              "default": "NEWEST",
+              "default": "NAME",
               "enum": [
                 "NEWEST",
                 "NAME"
@@ -35683,6 +36328,16 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeChapters",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Includechapters",
+              "type": "boolean"
             }
           }
         ],

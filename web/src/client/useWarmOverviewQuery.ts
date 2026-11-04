@@ -28,7 +28,7 @@ export function observeOverviewInvalidation(client: QueryClient): void {
       | {
           accountId: string;
           spaceId: string;
-          kind: 'dashboard-overview' | 'plans-overview';
+          kind: 'dashboard-overview' | 'plans-overview' | 'shared-list';
           resourceId: string;
         }
       | undefined;

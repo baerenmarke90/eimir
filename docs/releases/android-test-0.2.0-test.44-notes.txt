@@ -1,0 +1,10 @@
+eimir. Android 0.2.0-test.44
+
+- Chapters have a photo-led overview and detail experience, protected editing and deletion, linked moments and markers in the diary.
+- Memories can link existing Wishes and Plans. Native date entry, Heart Moment feelings and tags, comment alignment and alphabetical Places are more consistent.
+- Discover fills its layout without empty half rows and preserves the loaded content and return position. Product lists load further pages on scroll with bounded, account- and Space-scoped retention.
+- Video uploads transfer actual bytes, show progress and processing, and retain a safe retry after interruption or cancellation.
+- Notification consent, system time-zone updates, shared-experience invitations and monthly recap invitations follow the latest main fixes.
+- Includes the complete current main through the merged Chapter and November 4 device-review work, while retaining the removable test updater.
+
+Same package de.eimir.app, canonical signing certificate, Firebase client and persistent test origin as test.43; increasing versionCode 44. Publication requires the exact candidate's source, browser, security, migration and Android checks, followed by signing, predecessor and anonymous public-asset verification. Physical-device installation, session/data continuity and OS-link acceptance remain separate device checks; this test release does not establish store readiness.

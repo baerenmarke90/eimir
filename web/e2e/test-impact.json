@@ -1,0 +1,750 @@
+{
+  "version": 1,
+  "specs": {
+    "android-push-onboarding.spec.ts": {
+      "roots": [
+        "web/src/components/DevicePushOnboarding.tsx",
+        "web/src/components/IdentityEntry.tsx",
+        "web/src/components/NotificationSettingsPanel.tsx"
+      ]
+    },
+    "app-icon-selection.spec.ts": {
+      "roots": [
+        "web/src/components/AppIconSettingsPanel.tsx",
+        "web/src/components/ProfileAppearancePanel.tsx",
+        "web/src/client/appIconContext.tsx"
+      ]
+    },
+    "app-updates.spec.ts": {
+      "roots": [
+        "web/src/components/AppUpdatesPanel.tsx",
+        "web/src/components/AppUpdatesSummary.tsx",
+        "web/src/components/SettingsIndex.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/client/appUpdates.ts",
+        "web/src/client/useAppUpdateState.ts"
+      ]
+    },
+    "automatic-recaps.spec.ts": {
+      "roots": [
+        "web/src/components/RelationshipPassport.tsx",
+        "web/src/components/RelationshipRecapsPage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/RecapTasks.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/PlanProductPage.tsx"
+      ]
+    },
+    "browser-session-reload.spec.ts": {
+      "roots": [
+        "web/src/components/IdentityEntry.tsx",
+        "web/src/components/NativeSessionGate.tsx",
+        "web/src/components/FirstSpaceGate.tsx"
+      ],
+      "always": true
+    },
+    "chapter-create-navigation.spec.ts": {
+      "roots": [
+        "web/src/components/ChapterCreatePage.tsx",
+        "web/src/components/ChapterProductPage.tsx",
+        "web/src/components/ChaptersOverviewPage.tsx"
+      ]
+    },
+    "cloud-onboarding-entry.spec.ts": {
+      "roots": [
+        "web/src/components/IdentityEntry.tsx",
+        "web/src/components/NativeSessionGate.tsx",
+        "web/src/components/FirstSpaceGate.tsx"
+      ]
+    },
+    "comments-create-ownership.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/PlanProductPage.tsx"
+      ]
+    },
+    "comments-delete-ownership.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/PlanProductPage.tsx"
+      ]
+    },
+    "comments-edit-ownership.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/PlanProductPage.tsx"
+      ]
+    },
+    "comments-offline-writes.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/PlanProductPage.tsx"
+      ]
+    },
+    "content-reading.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/WishProductPage.tsx"
+      ]
+    },
+    "contextual-reminder-notification.spec.ts": {
+      "roots": [
+        "web/src/components/M4ProductPages.tsx",
+        "web/src/components/ReminderReadPage.tsx",
+        "web/src/components/NotificationSettingsPanel.tsx"
+      ]
+    },
+    "create-surface-visual-checks.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/ChapterCreatePage.tsx",
+        "web/src/components/MilestoneProductPage.tsx"
+      ]
+    },
+    "f2-task-boundaries.spec.ts": {
+      "roots": [
+        "web/src/components/QuickCreateMenu.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PrivateAreaProductPage.tsx"
+      ],
+      "always": true
+    },
+    "floating-bottom-nav-scroll.spec.ts": {
+      "roots": [
+        "web/src/components/AppShell.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/PrivateAreaProductPage.tsx"
+      ],
+      "always": true
+    },
+    "floating-bottom-nav.spec.ts": {
+      "roots": [
+        "web/src/components/AppShell.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/GamesProductArea.tsx",
+        "web/src/components/OurMomentsGamePage.tsx"
+      ]
+    },
+    "heart-moment-create-product-reference.spec.ts": {
+      "roots": ["web/src/components/HeartMomentProductPage.tsx"]
+    },
+    "heart-moment-delete-ownership.spec.ts": {
+      "roots": ["web/src/components/HeartMomentProductPage.tsx"]
+    },
+    "heart-moment-reading.spec.ts": {
+      "roots": ["web/src/components/HeartMomentProductPage.tsx"]
+    },
+    "hidden-file-inputs.spec.ts": {
+      "roots": [
+        "web/src/components/QuickCreateMenu.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/ProfilePage.tsx"
+      ],
+      "always": true
+    },
+    "i18n-accessible-names.spec.ts": {
+      "roots": [
+        "web/src/components/AppShell.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/PlanProductPage.tsx"
+      ],
+      "always": true
+    },
+    "journal-surface-polish.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/MemoryMapPage.tsx",
+        "web/src/components/ProfilePage.tsx",
+        "web/src/components/ProfileAppearancePanel.tsx",
+        "web/src/components/ProInformationPanel.tsx",
+        "web/src/components/M4ProductPages.tsx"
+      ]
+    },
+    "media-url-continuity.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryCreatePage.tsx"
+      ],
+      "always": true
+    },
+    "memory-carousel-stability.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryCreatePage.tsx"
+      ]
+    },
+    "memory-create-defaults.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PhotoSourceSettingsPanel.tsx"
+      ]
+    },
+    "memory-delete-ownership.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryCreatePage.tsx"
+      ],
+      "always": true
+    },
+    "memory-diary-storage.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PhotoSourceSettingsPanel.tsx"
+      ]
+    },
+    "memory-experiences.spec.ts": {
+      "roots": [
+        "web/src/components/CoupleExperiencePage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/MemoryCreatePage.tsx"
+      ]
+    },
+    "memory-map-and-couple-games.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryMapPage.tsx",
+        "web/src/components/CoupleExperiencePage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/AccountSettingsPanel.tsx",
+        "web/src/components/GamesProductArea.tsx",
+        "web/src/components/MemoryProductPage.tsx"
+      ]
+    },
+    "milestone-delete-ownership.spec.ts": {
+      "roots": ["web/src/components/MilestoneProductPage.tsx"]
+    },
+    "mobile-header-more.spec.ts": {
+      "roots": [
+        "web/src/components/PageHeader.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/PlanProductPage.tsx"
+      ]
+    },
+    "moment-relation-picker.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/ChapterProductPage.tsx",
+        "web/src/components/CollectionProductPage.tsx",
+        "web/src/components/PlaceProductPage.tsx"
+      ]
+    },
+    "momente-discover-canonical.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx"
+      ]
+    },
+    "momente-timeline-filter-refresh.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx"
+      ]
+    },
+    "momente-timeline-progressive-loading.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx"
+      ]
+    },
+    "momente-timeline-reference.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx"
+      ]
+    },
+    "optional-product-tour.spec.ts": {
+      "roots": ["web/src/client/productTour.tsx"]
+    },
+    "partner-nickname.spec.ts": {
+      "roots": [
+        "web/src/components/ProfilePage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx"
+      ]
+    },
+    "partner-quick-actions.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "people-important-dates-mobile-first.spec.ts": {
+      "roots": [
+        "web/src/components/RelatedPeoplePage.tsx",
+        "web/src/components/ProfilePage.tsx"
+      ]
+    },
+    "perspective-game.spec.ts": {
+      "roots": [
+        "web/src/components/WhoOfUsGamePanel.tsx",
+        "web/src/components/OurMomentsGamePage.tsx",
+        "web/src/components/GamesProductArea.tsx"
+      ]
+    },
+    "photo-places.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PhotoSourceSettingsPanel.tsx",
+        "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "places-and-lists-design.spec.ts": {
+      "roots": [
+        "web/src/components/PlacesOverviewPage.tsx",
+        "web/src/components/PlaceProductPage.tsx",
+        "web/src/components/CollectionsOverviewPage.tsx",
+        "web/src/components/CollectionProductPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PlanProductPage.tsx"
+      ]
+    },
+    "plan-comments-links.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/PlanProductPage.tsx"
+      ]
+    },
+    "plan-cover-layout.spec.ts": {
+      "roots": [
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/PlanCover.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx"
+      ]
+    },
+    "plan-inline-place-create.spec.ts": {
+      "roots": [
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/PlaceProductPage.tsx",
+        "web/src/components/PlacesOverviewPage.tsx"
+      ]
+    },
+    "planning-completion-story-continuation.spec.ts": {
+      "roots": [
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/WishProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx"
+      ]
+    },
+    "planning-focused-create.spec.ts": {
+      "roots": [
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/WishProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/TodayPage.tsx"
+      ]
+    },
+    "planning-reference.spec.ts": {
+      "roots": [
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/WishProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/TodayPage.tsx"
+      ]
+    },
+    "planning-upcoming.spec.ts": {
+      "roots": [
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/WishProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/ChapterProductPage.tsx"
+      ]
+    },
+    "planning-wish-completion-continuation.spec.ts": {
+      "roots": [
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/WishProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/MemoryCreatePage.tsx"
+      ]
+    },
+    "private-area-reference.spec.ts": {
+      "roots": [
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/M4ProductPages.tsx"
+      ]
+    },
+    "private-token-contrast.spec.ts": {
+      "roots": [
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/VisibilityBadge.tsx"
+      ]
+    },
+    "product-accessibility.spec.ts": {
+      "roots": [
+        "web/src/components/AppShell.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/MemoryCreatePage.tsx"
+      ],
+      "always": true
+    },
+    "product-consistency.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/ProfilePage.tsx"
+      ]
+    },
+    "product-gutters.spec.ts": {
+      "roots": [
+        "web/src/components/AppShell.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "product-reference-foundations.spec.ts": {
+      "roots": ["web/e2e/fixtures/product-reference-foundations.tsx"]
+    },
+    "product-reflow.spec.ts": {
+      "roots": [
+        "web/src/components/AppShell.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "quick-create-destination-handoff.spec.ts": {
+      "roots": [
+        "web/src/components/QuickCreateMenu.tsx",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PrivateAreaProductPage.tsx"
+      ],
+      "always": true
+    },
+    "r1-memory-capture-evidence.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PhotoSourceSettingsPanel.tsx"
+      ]
+    },
+    "r2-momente-timeline-evidence.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/M4ProductPages.tsx"
+      ]
+    },
+    "r2-timeline-card-hierarchy.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx"
+      ]
+    },
+    "relationship-reflections.spec.ts": {
+      "roots": [
+        "web/src/components/RelationshipPassport.tsx",
+        "web/src/components/RelationshipRecapsPage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/RecapTasks.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/ProfilePage.tsx",
+        "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "session-retention.spec.ts": {
+      "roots": [
+        "web/src/components/IdentityEntry.tsx",
+        "web/src/components/NativeSessionGate.tsx",
+        "web/src/components/FirstSpaceGate.tsx"
+      ],
+      "always": true
+    },
+    "shared-experience-answers.spec.ts": {
+      "roots": [
+        "web/src/components/CoupleExperiencePage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/TodayPage.tsx"
+      ]
+    },
+    "shared-photos.spec.ts": {
+      "roots": [
+        "web/src/components/SharedPhotosPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/StoryProductPage.tsx"
+      ]
+    },
+    "shared-story-summary-visual.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "shared-wish-selection.spec.ts": {
+      "roots": [
+        "web/src/components/WishSelectionPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/WishProductPage.tsx"
+      ]
+    },
+    "story-discover-tapestry.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx",
+        "web/src/components/ChaptersOverviewPage.tsx",
+        "web/src/components/SharedPhotosPage.tsx",
+        "web/src/components/StoryYearsPage.tsx"
+      ]
+    },
+    "story-featured-metadata.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx"
+      ]
+    },
+    "story-timeline-attachment-meta.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx"
+      ]
+    },
+    "story-timeline-comment-presence.spec.ts": {
+      "roots": [
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx"
+      ]
+    },
+    "story-years-product-reference.spec.ts": {
+      "roots": [
+        "web/src/components/StoryYearsPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MilestoneProductPage.tsx"
+      ]
+    },
+    "theme-forced-colors.spec.ts": {
+      "roots": [
+        "web/src/components/AppShell.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "today-agenda-composition.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "today-daily-energy.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "today-daily-quote.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "today-daily-vibe.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "today-freshness.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "today-keepsake-precedence.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx"
+      ]
+    },
+    "today-living-home.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/M4ProductPages.tsx"
+      ]
+    },
+    "today-pinned-collection.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/CollectionsOverviewPage.tsx",
+        "web/src/components/CollectionProductPage.tsx"
+      ]
+    },
+    "today-pro-insights.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/DailyInsightsPage.tsx",
+        "web/src/components/MoreOverviewPage.tsx"
+      ]
+    },
+    "today-recent-trace.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/M4ProductPages.tsx"
+      ]
+    },
+    "video-attachments.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryCreatePage.tsx"
+      ]
+    },
+    "wir-design-selection.spec.ts": {
+      "roots": [
+        "web/src/components/WirDesignSettings.tsx",
+        "web/src/components/DashboardSettingsPanel.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SettingsPage.tsx",
+        "web/src/components/ProfilePage.tsx",
+        "web/src/components/PrivateAreaProductPage.tsx"
+      ]
+    },
+    "wish-detective.spec.ts": {
+      "roots": [
+        "web/src/components/WishDetectiveGamePage.tsx",
+        "web/src/components/GamesProductArea.tsx"
+      ]
+    },
+    "chapter-experience.spec.ts": {
+      "roots": [
+        "web/src/components/ChaptersOverviewPage.tsx",
+        "web/src/components/ChapterCreatePage.tsx",
+        "web/src/components/ChapterProductPage.tsx",
+        "web/src/components/PlanningRelationManager.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/StoryYearsPage.tsx",
+        "web/src/components/MemoryProductPage.tsx"
+      ]
+    },
+    "device-review.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryPlanningLinks.tsx",
+        "web/src/components/CommentsPanel.tsx",
+        "web/src/components/ContextTagEditor.tsx",
+        "web/src/components/HeartMomentProductPage.tsx"
+      ]
+    }
+  }
+}

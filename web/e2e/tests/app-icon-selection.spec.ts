@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import fs from 'node:fs';
 import path from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
@@ -37,6 +38,7 @@ async function installMocks(
   let version = initialIcon === 'original' ? 0 : 1;
   const writes: string[] = [];
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (

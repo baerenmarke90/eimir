@@ -65,7 +65,7 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
     "space.json": ("space_profiles",),
     "profiles.json": ("partner_profiles", "partner_nicknames", "profile_preferences"),
     "people.json": ("related_persons", "important_dates"),
-    "memories.json": ("memories", "memory_attachments"),
+    "memories.json": ("memories", "memory_attachments", "memory_plans", "memory_wishes"),
     "heart-moments.json": ("heart_moments", "heart_moment_attachments"),
     "milestones.json": ("milestones",),
     "comments.json": ("comments",),
@@ -108,6 +108,8 @@ CHILD_PARENT: dict[str, tuple[str, str]] = {
     "recap_sources": ("edition_id", "recap_editions"),
 }
 RELATION_REQUIREMENTS: dict[str, tuple[tuple[str, str], ...]] = {
+    "memory_plans": (("memory_id", "memories"), ("plan_id", "plans")),
+    "memory_wishes": (("memory_id", "memories"), ("wish_id", "wishes")),
     "place_memories": (("place_id", "places"), ("memory_id", "memories")),
     "place_milestones": (("place_id", "places"), ("milestone_id", "milestones")),
     "place_heart_moments": (("place_id", "places"), ("heart_moment_id", "heart_moments")),
@@ -148,6 +150,8 @@ INSERT_ORDER = (
     "recap_editions",
     "recap_sources",
     "recap_reflections",
+    "memory_plans",
+    "memory_wishes",
     "place_memories",
     "place_milestones",
     "place_heart_moments",

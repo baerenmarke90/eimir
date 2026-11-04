@@ -204,6 +204,17 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
             "the exact generated-reference prompt describes four adjacent screens, not a project name",
         )
 
+    if (
+        path == Path("docs/product/design/chapter-experience/reference-prompt.txt")
+        and match == "side by side"
+        and "four complete smartphone screens side by side" in normalized
+        and normalized.count("side by side") == 1
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact reference prompt describes four adjacent screens, not a project name",
+        )
+
     if "side by side" in normalized and any(
         layout_term in normalized
         for layout_term in ("row", "photograph", "representation", "muted role")

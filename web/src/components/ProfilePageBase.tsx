@@ -1,3 +1,4 @@
+import { NativeDateInput } from './NativeDateField';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
@@ -300,10 +301,9 @@ export function RelationshipSettingsSection({
             <label htmlFor="relationship-started-on">
               {t('profiles.relationshipStartLabel')}
             </label>
-            <input
+            <NativeDateInput
               id="relationship-started-on"
               name="relationshipStartedOn"
-              type="date"
               value={startedOn}
               onChange={(e) => {
                 setStartedOn(e.target.value);

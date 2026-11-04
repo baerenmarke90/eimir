@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
@@ -593,6 +594,7 @@ for (const [width, colorScheme] of [
       capabilities: { canEdit: true, canDelete: true, canComment: false },
     };
     await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultProductContext(route)) return;
       const request = route.request();
       const url = new URL(request.url());
       const base = `/api/v1/spaces/${SPACE_ID}`;

@@ -429,7 +429,6 @@ for (const width of [390, 320] as const) {
       const narrative = page.locator('.immersive-create-narrative');
       const titleField = page.locator('.immersive-create-title-field');
       const dateField = page.locator('.immersive-create-date-field');
-      const dateSummary = dateField.locator('.immersive-create-date-summary');
       const places = page.locator('.ordered-moment-places');
       const actions = page.locator('.form-actions');
       const saveButton = page.getByRole('button', { name: de.memory.save });
@@ -551,51 +550,18 @@ for (const width of [390, 320] as const) {
       expect(pickerBox.height).toBeLessThan(80);
       expect(pickerBox.height).toBeGreaterThanOrEqual(44);
 
-      // 6. Date summary is a calm rounded secondary control that reveals the
-      // editable date input on demand (#964 replacement for the retired
-      // generic optional-details disclosure).
-      const dateValue = dateField.locator('#happenedOn-summary-value');
-      const dateChange = dateField.locator('#happenedOn-summary-change');
-
-      await expect(dateSummary).toBeVisible();
-      await expect(dateValue).toBeVisible();
-      await expect(dateChange).toHaveText(de.memory.dateChangeAction);
-
-      const summaryBox = await dateSummary.boundingBox();
-      if (!summaryBox) throw new Error('Date summary did not render.');
-      // Mobile touch target: minimum 44px height
-      // Browser transform geometry can differ by a fraction of a CSS pixel.
-      expect(summaryBox.height + 0.001).toBeGreaterThanOrEqual(44);
-      // Fill the content region independently of responsive page gutters.
-      expect(summaryBox.width).toBeGreaterThanOrEqual(44);
-      expect(summaryBox.x).toBeCloseTo(dateFieldBox.x, 1);
-      expect(summaryBox.width).toBeCloseTo(dateFieldBox.width, 1);
-
-      // Verify tap-to-open/tap-away-to-close and stable resting material
-      // (#964 replacement for the retired native details open/close (#888))
-      const closedBg = await dateSummary.evaluate(
-        (el) => window.getComputedStyle(el).backgroundColor,
-      );
+      // 6. One visible, labelled native date field; no second action.
       const dateInput = dateField.locator('#happenedOn');
-      await expect(dateInput).toHaveCount(0);
-      await dateSummary.tap();
       await expect(dateInput).toBeVisible();
-      await expect(dateInput).toBeFocused();
-      if (width === 390) {
-        await page.screenshot({
-          path: testInfo.outputPath('shell-memory-create-date-open-390.png'),
-        });
-      }
+      await expect(dateInput).toHaveAttribute('type', 'date');
+      await expect(dateField.getByRole('button')).toHaveCount(0);
+      const dateBox = await dateInput.boundingBox();
+      if (!dateBox) throw new Error('Date field did not render');
+      expect(dateBox.height + 0.001).toBeGreaterThanOrEqual(44);
+      expect(dateBox.width).toBeGreaterThanOrEqual(44);
+      await dateInput.fill('2025-12-24');
       await title.tap();
-      await expect(dateInput).toHaveCount(0);
-      await expect(dateSummary).toBeVisible();
-      await expect
-        .poll(async () =>
-          dateSummary.evaluate(
-            (el) => window.getComputedStyle(el).backgroundColor,
-          ),
-        )
-        .toBe(closedBg);
+      await expect(dateInput).toHaveValue('2025-12-24');
 
       // 7. Floating global Quick Create does not collide with optional Places.
       if (await quickCreateTrigger.isVisible()) {
@@ -623,7 +589,7 @@ for (const width of [390, 320] as const) {
 }
 
 for (const colorScheme of ['light', 'dark'] as const) {
-  test(`Memory Create keeps date-summary resting material stable when opened (${colorScheme}) (#964)`, async ({
+  test(`Memory Create native date stays editable and stable (${colorScheme})`, async ({
     browser,
   }, testInfo) => {
     const context = await browser.newContext({
@@ -637,133 +603,36 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await installApiMocks(page);
       await page.goto('/today');
       await signIn(page);
-
       await page.goto('/story/memories/new');
+      const date = page.locator('#happenedOn');
+      await expect(date).toHaveValue(localToday());
+      await expect(date).toHaveAttribute('type', 'date');
       await expect(
-        page.getByRole('heading', { name: de.memory.heading }),
-      ).toBeVisible();
-
-      const dateField = page.locator('.immersive-create-date-field');
-      const dateSummary = dateField.locator('.immersive-create-date-summary');
-      const dateInput = dateField.locator('#happenedOn');
-      await showMemoryDetails(page);
-      const title = page.getByLabel(de.memory.titleLabelOptional);
-
-      await expect(dateSummary).toBeVisible();
-      await expect(dateInput).toHaveCount(0);
-
-      // Verify touch target >= 44 CSS px
-      const summaryBox = await dateSummary.boundingBox();
-      if (!summaryBox) throw new Error('Date summary did not render.');
-      // Browser transform geometry can differ by a fraction of a CSS pixel.
-      expect(summaryBox.height + 0.001).toBeGreaterThanOrEqual(44);
-
+        page.locator('.immersive-create-date-field').getByRole('button'),
+      ).toHaveCount(0);
+      const before = await date.evaluate(
+        (el) => getComputedStyle(el).backgroundColor,
+      );
+      await date.fill('2025-12-24');
+      await page.getByLabel(de.memory.bodyLabel, { exact: true }).tap();
+      await expect(date).toHaveValue('2025-12-24');
+      expect(
+        await date.evaluate((el) => getComputedStyle(el).backgroundColor),
+      ).toBe(before);
+      await date.focus();
+      await expect(date).toBeFocused();
       await expectNoHorizontalOverflow(page);
-
-      // 1. Capture computed resting visual properties while CLOSED
-      const closedStyles = await dateSummary.evaluate((el) => {
-        const cs = window.getComputedStyle(el);
-        return {
-          backgroundColor: cs.backgroundColor,
-          color: cs.color,
-          borderTopColor: cs.borderTopColor,
-          borderTopWidth: cs.borderTopWidth,
-          borderTopStyle: cs.borderTopStyle,
-        };
-      });
-
       await page.screenshot({
-        path: testInfo.outputPath(
-          `shell-memory-create-date-390-${colorScheme}-closed.png`,
-        ),
+        path: testInfo.outputPath(`native-date-390-${colorScheme}.png`),
+        fullPage: true,
       });
-
-      // 2. Open the date editor via tap on touch device
-      // No artificial mouse.move(0, 0) or blur()!
-      await dateSummary.tap();
-      await expect(dateInput).toBeVisible();
-      await expect(dateInput).toBeFocused();
-
-      await expectNoHorizontalOverflow(page);
-
-      await page.screenshot({
-        path: testInfo.outputPath(
-          `shell-memory-create-date-390-${colorScheme}-open.png`,
-        ),
-      });
-
-      // 3. Tap elsewhere to blur and close again: the summary control's
-      // resting material remains identical (no sticky hover/active state)
-      await title.tap();
-      await expect(dateInput).toHaveCount(0);
-      await expect(dateSummary).toBeVisible();
-
-      await expect
-        .poll(async () =>
-          dateSummary.evaluate((el) => {
-            const cs = window.getComputedStyle(el);
-            return {
-              backgroundColor: cs.backgroundColor,
-              color: cs.color,
-              borderTopColor: cs.borderTopColor,
-              borderTopWidth: cs.borderTopWidth,
-              borderTopStyle: cs.borderTopStyle,
-            };
-          }),
-        )
-        .toEqual({
-          backgroundColor: closedStyles.backgroundColor,
-          color: closedStyles.color,
-          borderTopColor: closedStyles.borderTopColor,
-          borderTopWidth: closedStyles.borderTopWidth,
-          borderTopStyle: closedStyles.borderTopStyle,
-        });
-
-      // 4. Tap to open again: material remains identical once re-closed
-      await dateSummary.tap();
-      await expect(dateInput).toBeVisible();
-      await title.tap();
-      await expect(dateInput).toHaveCount(0);
-
-      await expect
-        .poll(async () =>
-          dateSummary.evaluate((el) => {
-            const cs = window.getComputedStyle(el);
-            return {
-              backgroundColor: cs.backgroundColor,
-              color: cs.color,
-              borderTopColor: cs.borderTopColor,
-            };
-          }),
-        )
-        .toEqual({
-          backgroundColor: closedStyles.backgroundColor,
-          color: closedStyles.color,
-          borderTopColor: closedStyles.borderTopColor,
-        });
-
-      // 5. Keyboard operation: Space/Enter open the editor and move focus
-      // straight to the date input (no separate toggle step, since the
-      // control isn't a persistent open/close disclosure)
-      await dateSummary.focus();
-      await page.keyboard.press('Space');
-      await expect(dateInput).toBeVisible();
-      await expect(dateInput).toBeFocused();
-
-      // Moving focus elsewhere blurs and closes it, restoring the resting
-      // summary. (Tab alone cycles the native date input's internal
-      // day/month/year segments rather than leaving the control, so we move
-      // focus explicitly instead.)
-      await title.tap();
-      await expect(dateInput).toHaveCount(0);
-      await expect(dateSummary).toBeVisible();
     } finally {
       await context.close();
     }
   });
 }
 
-test('Memory Create date summary stays stable under 320px reflow, reduced motion, and forced colors (#964)', async ({
+test('Memory Create native date supports 320px large text, reduced motion and forced colors', async ({
   browser,
 }, testInfo) => {
   const context = await browser.newContext({
@@ -776,155 +645,45 @@ test('Memory Create date summary stays stable under 320px reflow, reduced motion
     await installApiMocks(page);
     await page.goto('/today');
     await signIn(page);
-
     await page.goto('/story/memories/new');
-    await expect(
-      page.getByRole('heading', { name: de.memory.heading }),
-    ).toBeVisible();
-
-    const dateField = page.locator('.immersive-create-date-field');
-    const dateSummary = dateField.locator('.immersive-create-date-summary');
-    const dateInput = dateField.locator('#happenedOn');
-    await showMemoryDetails(page);
-    const title = page.getByLabel(de.memory.titleLabelOptional);
-
-    // --- 320px Reflow with Touch ---
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+    const date = page.locator('#happenedOn');
+    await date.fill('2025-12-24');
+    await expect(date).toHaveValue('2025-12-24');
     await expectNoHorizontalOverflow(page);
-
-    const closedStyles320 = await dateSummary.evaluate((el) => {
-      const cs = window.getComputedStyle(el);
-      return {
-        backgroundColor: cs.backgroundColor,
-        color: cs.color,
-        borderTopColor: cs.borderTopColor,
-      };
-    });
-
-    // Measure the summary control while it's still mounted: unlike the old
-    // native <details>/<summary>, this control unmounts on open (swapped for
-    // the <input>), so its box must be captured before tapping it open.
-    const summaryBox320 = await dateSummary.boundingBox();
-    if (!summaryBox320)
-      throw new Error('Date summary did not render at 320px.');
-    expect(summaryBox320.height + 0.001).toBeGreaterThanOrEqual(44);
-
-    await page.screenshot({
-      path: testInfo.outputPath(
-        'shell-memory-create-date-320-reflow-closed.png',
-      ),
-    });
-
-    // Tap to open without artificial mouse/blur cleanup
-    await dateSummary.tap();
-    await expect(dateInput).toBeVisible();
-
-    await expectNoHorizontalOverflow(page);
-
-    await page.screenshot({
-      path: testInfo.outputPath('shell-memory-create-date-320-reflow-open.png'),
-    });
-
-    // Tap elsewhere to close again: material remains identical
-    await title.tap();
-    await expect(dateInput).toHaveCount(0);
-    await expect
-      .poll(async () =>
-        dateSummary.evaluate((el) => {
-          const cs = window.getComputedStyle(el);
-          return {
-            backgroundColor: cs.backgroundColor,
-            color: cs.color,
-            borderTopColor: cs.borderTopColor,
-          };
-        }),
-      )
-      .toEqual({
-        backgroundColor: closedStyles320.backgroundColor,
-        color: closedStyles320.color,
-        borderTopColor: closedStyles320.borderTopColor,
+    const box = await date.boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+    for (const forcedColors of ['none', 'active'] as const) {
+      await page.emulateMedia({ reducedMotion: 'reduce', forcedColors });
+      await expect(date).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      await page.screenshot({
+        path: testInfo.outputPath(`native-date-320-large-${forcedColors}.png`),
+        fullPage: true,
       });
-
-    // --- Reduced Motion ---
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-
-    const summaryTransition = await dateSummary.evaluate(
-      (el) => window.getComputedStyle(el).transitionDuration,
-    );
-    expect(summaryTransition === '0s' || summaryTransition === '').toBe(true);
-
-    await page.screenshot({
-      path: testInfo.outputPath('shell-memory-create-date-reduced-motion.png'),
-      fullPage: true,
-    });
-
-    // --- Forced Colors / High Contrast ---
-    await page.emulateMedia({
-      forcedColors: 'active',
-      reducedMotion: 'no-preference',
-    });
-    await expect(dateSummary).toBeVisible();
-    await expectNoHorizontalOverflow(page);
-
-    await page.screenshot({
-      path: testInfo.outputPath('shell-memory-create-date-forced-colors.png'),
-      fullPage: true,
-    });
+    }
   } finally {
     await context.close();
   }
 });
 
-test('Memory Create date summary provides hover feedback on desktop fine pointer (#964)', async ({
+test('Memory Create native date keeps desktop keyboard focus and calendar semantics', async ({
   page,
 }) => {
   await installApiMocks(page);
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/today');
   await signIn(page);
-
   await page.goto('/story/memories/new');
-  await expect(
-    page.getByRole('heading', { name: de.memory.heading }),
-  ).toBeVisible();
-
-  const dateField = page.locator('.immersive-create-date-field');
-  const dateSummary = dateField.locator('.immersive-create-date-summary');
-
-  await expect(dateSummary).toBeVisible();
-
-  // 1. Resting state (no hover)
-  await page.mouse.move(0, 0);
-  const restingBg = await dateSummary.evaluate(
-    (el) => window.getComputedStyle(el).backgroundColor,
-  );
-
-  // 2. Hover with mouse
-  await dateSummary.hover();
-  await expect
-    .poll(async () =>
-      dateSummary.evaluate((el) => window.getComputedStyle(el).backgroundColor),
-    )
-    .not.toBe(restingBg);
-  const hoveredBg = await dateSummary.evaluate(
-    (el) => window.getComputedStyle(el).backgroundColor,
-  );
-
-  // On desktop fine pointer, hover changes the surface background
-  expect(hoveredBg).not.toBe(restingBg);
-
-  // 3. Move mouse away -> returns to resting
-  await page.mouse.move(0, 0);
-  await expect
-    .poll(async () =>
-      dateSummary.evaluate((el) => window.getComputedStyle(el).backgroundColor),
-    )
-    .toBe(restingBg);
-  const unhoveredBg = await dateSummary.evaluate(
-    (el) => window.getComputedStyle(el).backgroundColor,
-  );
-  expect(unhoveredBg).toBe(restingBg);
-  expect(unhoveredBg).not.toBe(hoveredBg);
+  const date = page.locator('#happenedOn');
+  await date.focus();
+  await expect(date).toBeFocused();
+  await date.fill('2025-12-24');
+  await expect(date).toHaveValue('2025-12-24');
+  await expect(date).toHaveCSS('font-weight', '400');
+  await expectNoHorizontalOverflow(page);
 });
 
 test('HeartMoment Create defaults the date to local today and stays typeable', async ({

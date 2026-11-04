@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import photoSources from '../../src/i18n/locales/photoSources';
 import { swipeCarousel } from '../support/mediaCarouselGesture';
 import { readFileSync } from 'node:fs';
@@ -87,6 +88,7 @@ async function setup(
       : (null as ReturnType<typeof memory> | null),
   };
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request(),
       url = new URL(request.url()),
       p = url.pathname,

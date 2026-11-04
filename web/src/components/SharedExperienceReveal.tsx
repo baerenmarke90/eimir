@@ -1,5 +1,6 @@
 import type { DashboardExperience } from '../api/generated/models/DashboardExperience';
 import { memoryDetailPath } from '../client/routes';
+import { useAttentionReceipt } from '../client/attentionReceipt';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
 import { TodayDestinationLink } from './TodayDestinationLink';
@@ -8,12 +9,20 @@ import './CoupleExperiences.css';
 export function SharedExperienceReveal({
   entry,
   partnerName,
+  scope = [],
 }: {
   entry: DashboardExperience;
   partnerName: string;
+  scope?: readonly string[];
 }) {
   const { t } = useTranslation();
   const happiness = entry.kind === 'HAPPINESS';
+  const receipt = useAttentionReceipt(
+    scope,
+    `experience:${entry.id}:${entry.createdAt.toISOString()}`,
+    entry.createdAt.getTime() + 3 * 24 * 60 * 60_000,
+  );
+  if (!receipt.visible) return null;
   return (
     <section
       className="today-section shared-experience-section"
@@ -44,6 +53,7 @@ export function SharedExperienceReveal({
           <TodayDestinationLink
             className="button-link"
             to={memoryDetailPath(entry.id)}
+            onFollow={receipt.consume}
           >
             {t('coupleExperiences.incoming.open')}
           </TodayDestinationLink>

@@ -778,10 +778,13 @@ test('P2 Chapter to Place reads as relationship content and preserves return con
     page.getByRole('heading', { name: CHAPTER_TITLE, level: 1 }),
   ).toBeVisible();
   await expect(page.getByText(CHAPTER_DESCRIPTION)).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: m5s3.chapter.contextHeading }),
-  ).toBeVisible();
-  const placeLink = page.getByRole('link', { name: new RegExp(PLACE_NAME) });
+  const context = page.getByRole('region', {
+    name: m5s3.chapter.contextHeading,
+  });
+  await expect(context).toBeVisible();
+  const placeLink = context.getByRole('link', {
+    name: new RegExp(PLACE_NAME),
+  });
   await expect(placeLink).toBeVisible();
   expect(
     await page.evaluate(

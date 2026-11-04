@@ -22,6 +22,7 @@ concurrency:
 jobs:
   pr-critical:
     if: github.event_name == 'pull_request'
+    needs: changed-spec-plan
     name: PR-critical ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
     container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
@@ -58,6 +59,8 @@ jobs:
 
       - name: Run PR-critical shard
         working-directory: web/e2e
+        env:
+          EIMIR_BROWSER_SPECS: ${{ needs.changed-spec-plan.outputs.critical-specs }}
         run: >-
           npm run test:pr --
           --shard=${{ matrix.shard }}/4
@@ -98,36 +101,28 @@ jobs:
     if: github.event_name == 'pull_request'
     name: Changed browser spec plan
     runs-on: ubuntu-latest
+    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
     outputs:
       has-specs: ${{ steps.plan.outputs.has-specs }}
-      specs: ${{ steps.plan.outputs.specs }}
+      critical-specs: ${{ steps.plan.outputs.critical-specs }}
+      additional-specs: ${{ steps.plan.outputs.additional-specs }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Verify changed-spec planning coverage
-        run: node --test web/e2e/scripts/changed-specs.test.mjs
+      - name: Install locked Web planning dependencies
+        working-directory: web
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Verify browser planning coverage
+        run: node --test web/e2e/scripts/*.test.mjs
 
       - name: Resolve changed browser specs
         id: plan
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          set -eu
-          changed_specs="$(node web/e2e/scripts/changed-specs.mjs)"
-          if [ -z "$changed_specs" ]; then
-            echo "has-specs=false" >> "$GITHUB_OUTPUT"
-            echo "specs=" >> "$GITHUB_OUTPUT"
-            echo "No additional changed browser specs outside the PR-critical group."
-            exit 0
-          fi
-          echo "has-specs=true" >> "$GITHUB_OUTPUT"
-          {
-            echo "specs<<EOF"
-            printf '%s\n' "$changed_specs"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-          printf 'Changed browser specs:\n%s\n' "$changed_specs"
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node web/e2e/scripts/pr-browser-plan.mjs
 
   changed-specs:
     if: needs.changed-spec-plan.outputs.has-specs == 'true'
@@ -165,13 +160,8 @@ jobs:
       - name: Verify changed browser specs
         working-directory: web/e2e
         env:
-          CHANGED_SPECS: ${{ needs.changed-spec-plan.outputs.specs }}
-        run: |
-          set -eu
-          printf 'Changed browser specs:\n%s\n' "$CHANGED_SPECS"
-          # Spec filenames are repository-controlled and contain no whitespace.
-          # Intentional word splitting passes each changed spec as one Playwright argument.
-          npm run test:full -- $CHANGED_SPECS --output=test-results-changed-specs
+          EIMIR_BROWSER_SPECS: ${{ needs.changed-spec-plan.outputs.additional-specs }}
+        run: npm run test:full -- --output=test-results-changed-specs
 
       - name: Upload changed-spec failure diagnostics
         if: failure()
@@ -288,6 +278,8 @@ jobs:
     name: Playwright + axe
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - name: Verify browser QA topology
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -295,43 +287,8 @@ jobs:
           PLAN_RESULT: ${{ needs.changed-spec-plan.result }}
           CHANGED_RESULT: ${{ needs.changed-specs.result }}
           FULL_RESULT: ${{ needs.full-regression.result }}
-        run: |
-          set -eu
-          if [ "$EVENT_NAME" = "pull_request" ]; then
-            [ "$PR_RESULT" = "success" ] || {
-              echo "PR-critical shards: $PR_RESULT"
-              exit 1
-            }
-            [ "$PLAN_RESULT" = "success" ] || {
-              echo "Changed-spec plan: $PLAN_RESULT"
-              exit 1
-            }
-            if [ "$CHANGED_RESULT" != "success" ] && [ "$CHANGED_RESULT" != "skipped" ]; then
-              echo "Changed-spec verification: $CHANGED_RESULT"
-              exit 1
-            fi
-            [ "$FULL_RESULT" = "skipped" ] || {
-              echo "Full regression unexpectedly ran for a pull request: $FULL_RESULT"
-              exit 1
-            }
-          else
-            [ "$FULL_RESULT" = "success" ] || {
-              echo "Full-regression shards: $FULL_RESULT"
-              exit 1
-            }
-            [ "$PR_RESULT" = "skipped" ] || {
-              echo "PR-critical shards unexpectedly ran outside a pull request: $PR_RESULT"
-              exit 1
-            }
-            [ "$PLAN_RESULT" = "skipped" ] || {
-              echo "Changed-spec plan unexpectedly ran outside a pull request: $PLAN_RESULT"
-              exit 1
-            }
-            [ "$CHANGED_RESULT" = "skipped" ] || {
-              echo "Changed-spec verification unexpectedly ran outside a pull request: $CHANGED_RESULT"
-              exit 1
-            }
-          fi
+          HAS_SPECS: ${{ needs.changed-spec-plan.outputs.has-specs }}
+        run: node web/e2e/scripts/verify-browser-qa.mjs
 
       - name: Explain targeted retry
         if: failure()

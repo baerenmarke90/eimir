@@ -1,4 +1,12 @@
 const memoryProduct = {
+  planning: {
+    heading: 'Dazu gehört',
+    add: 'Wunsch oder Plan verknüpfen',
+    plans: 'Pläne',
+    wishes: 'Wünsche',
+    empty: 'Hier gibt es noch keine passenden Wünsche oder Pläne.',
+    remove: 'Verknüpfung mit „{{title}}“ entfernen',
+  },
   open: 'Erinnerung öffnen',
   backToStory: 'Zurück',
   backToMemory: 'Zurück',

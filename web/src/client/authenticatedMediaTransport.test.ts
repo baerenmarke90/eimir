@@ -37,6 +37,7 @@ const descriptor: UploadDescriptor = {
 const file = new File(['photo'], 'moment.jpg', { type: 'image/jpeg' });
 const uploads: Upload[] = [];
 let result: (request: Upload) => void;
+let emitLoadEnd = true;
 class Upload extends EventTarget {
   status = 204;
   statusText = 'No Content';
@@ -58,7 +59,7 @@ class Upload extends EventTarget {
     uploads.push(this);
     queueMicrotask(() => {
       result(this);
-      this.dispatchEvent(new Event('loadend'));
+      if (emitLoadEnd) this.dispatchEvent(new Event('loadend'));
     });
   }
   abort() {
@@ -69,6 +70,7 @@ class Upload extends EventTarget {
 
 beforeEach(async () => {
   uploads.length = 0;
+  emitLoadEnd = true;
   result = (request) => request.onload?.();
   vi.stubGlobal('XMLHttpRequest', Upload);
   await clearStoredSession();
@@ -168,4 +170,35 @@ it('keeps signed object-storage uploads free of session credentials', async () =
   expect(uploads[0].url).toBe('https://storage.example/photo');
   expect(uploads[0].headers.has('Authorization')).toBe(false);
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it('fails and aborts a stalled transfer, retaining the original file for an explicit retry', async () => {
+  const { UPLOAD_STALL_TIMEOUT_MS } = await import('./referenceFlow');
+  const timers = vi.spyOn(globalThis, 'setTimeout');
+  const aborted = vi.spyOn(Upload.prototype, 'abort');
+  result = () => {};
+  emitLoadEnd = false;
+  const upload = uploadAttachmentBytesWithProgress(
+    api,
+    'access-a',
+    descriptor,
+    file,
+  );
+  const failure = expect(upload).rejects.toThrow();
+  const { waitFor } = await import('@testing-library/react');
+  await waitFor(() => expect(uploads).toHaveLength(1));
+  const callback = timers.mock.calls.find(
+    ([, delay]) => delay === UPLOAD_STALL_TIMEOUT_MS,
+  )?.[0];
+  if (typeof callback !== 'function')
+    throw new Error('Stall watchdog was not armed');
+  callback();
+  await failure;
+  expect(aborted).toHaveBeenCalledTimes(1);
+  result = (request) => request.onload?.();
+  emitLoadEnd = true;
+  await uploadAttachmentBytesWithProgress(api, 'access-a', descriptor, file);
+  expect(uploads.at(-1)?.body).toBe(file);
+  timers.mockRestore();
+  aborted.mockRestore();
 });

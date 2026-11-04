@@ -1,6 +1,7 @@
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
+import { AutoLoadMore } from './AutoLoadMore';
 import { useEffect, useRef } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { ChapterDetail } from '../api/generated/models/ChapterDetail';
 import {
   type DeleteFocusTarget,
@@ -9,11 +10,15 @@ import {
 import { normalizeClientError } from '../client/problemDetails';
 import { chapterDetailPath, CHAPTER_CREATE_ROUTE } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { formatChapterPeriod } from '../client/chapterPresentation';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { useTaskListReturn } from '../client/useTaskListReturn';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import './SharedPlanningPages.css';
+import './ChapterExperience.css';
 
 const PAGE_SIZE = 20;
 
@@ -31,14 +36,6 @@ function nextCursor<T>(page: PageShape<T>): string | undefined {
   return page.nextCursor ?? undefined;
 }
 
-function formatDate(value: Date | null): string | null {
-  if (!value) return null;
-  return new Intl.DateTimeFormat(resolvedLocale(), {
-    dateStyle: 'medium',
-    timeZone: 'UTC',
-  }).format(value);
-}
-
 export function ChaptersOverviewPage({
   apis,
   spaceId,
@@ -48,25 +45,37 @@ export function ChaptersOverviewPage({
 }) {
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
   const createActionRef = useRef<HTMLAnchorElement>(null);
   const chapterRefs = useRef(new Map<string, HTMLAnchorElement>());
   const restoredDeleteFocusRef = useRef(false);
 
-  const chapters = useInfiniteQuery({
+  const chapters = useWarmInfiniteQuery({
     queryKey: ['m5-s3', 'chapters', spaceId],
-    queryFn: ({ pageParam }) =>
+    queryFn: ({ pageParam, signal }) =>
       apiCall(() =>
-        apis.chapters.listChapters({
-          spaceId,
-          cursor: pageParam,
-          limit: PAGE_SIZE,
-        }),
+        apis.chapters.listChapters(
+          {
+            spaceId,
+            cursor: pageParam,
+            limit: PAGE_SIZE,
+          },
+          { signal },
+        ),
       ),
     initialPageParam: null as string | null,
     getNextPageParam: nextCursor<ChapterDetail>,
     retry: false,
   });
 
+  useTaskListReturn({
+    ready: Boolean(chapters.data),
+    busy: chapters.isFetching,
+    loadedPageCount: chapters.data?.pages.length ?? 1,
+    canLoadMore: Boolean(chapters.hasNextPage) && !chapters.isError,
+    loadMore: chapters.fetchNextPage,
+  });
   const chapterItems = chapters.data?.pages.flatMap((page) => page.items) ?? [];
   const deleteFocusTarget = (
     location.state as Record<string, unknown> | null
@@ -84,7 +93,7 @@ export function ChaptersOverviewPage({
   }, [chapters.isFetching, deleteFocusTarget]);
 
   return (
-    <div className="page planning-page">
+    <div className="page planning-page chapter-page">
       <PageHeader
         eyebrow={t('navigation.story')}
         title={t('m5s3.chapter.heading')}
@@ -94,13 +103,27 @@ export function ChaptersOverviewPage({
             ref={createActionRef}
             className="button-link"
             to={CHAPTER_CREATE_ROUTE}
+            onClick={(event) => {
+              if (
+                event.button !== 0 ||
+                event.metaKey ||
+                event.ctrlKey ||
+                event.shiftKey ||
+                event.altKey
+              )
+                return;
+              const taskOriginKey = captureOrigin();
+              if (!taskOriginKey) return;
+              event.preventDefault();
+              void navigate(CHAPTER_CREATE_ROUTE, { state: { taskOriginKey } });
+            }}
           >
             {t('m5s3.chapter.create')}
           </Link>
         }
       />
 
-      <section className="planning-subsection">
+      <section className="chapter-overview-content">
         {chapters.isLoading ? (
           <UiState kind="loading" title={t('states.loading.title')} />
         ) : null}
@@ -112,44 +135,67 @@ export function ChaptersOverviewPage({
         ) : null}
 
         {chapterItems.length === 0 && !chapters.isLoading && !chapters.error ? (
-          <p className="planning-empty">{t('m5s3.common.empty')}</p>
+          <UiState
+            kind="empty"
+            title={t('m5s3.chapter.emptyTitle')}
+            body={t('m5s3.chapter.emptyBody')}
+          />
         ) : (
-          <ul className="planning-list">
-            {chapterItems.map((chapter) => (
-              <li className="planning-card-item" key={chapter.id}>
-                <Link
-                  ref={(element) => {
-                    if (element) chapterRefs.current.set(chapter.id, element);
-                    else chapterRefs.current.delete(chapter.id);
-                  }}
-                  className="planning-card planning-card-link"
-                  to={chapterDetailPath(chapter.id)}
-                >
-                  <div className="planning-card-copy">
-                    <h3>{chapter.title}</h3>
-                    {formatDate(chapter.startOn) ? (
-                      <p className="planning-meta">
-                        {formatDate(chapter.startOn)}
-                      </p>
+          <ul className="chapter-shelf">
+            {chapterItems.map((chapter) => {
+              const period = formatChapterPeriod(chapter, t, resolvedLocale());
+              return (
+                <li key={chapter.id}>
+                  <Link
+                    ref={(element) => {
+                      if (element) chapterRefs.current.set(chapter.id, element);
+                      else chapterRefs.current.delete(chapter.id);
+                    }}
+                    className="chapter-shelf-link"
+                    data-task-item-key={`chapter-${chapter.id}`}
+                    to={chapterDetailPath(chapter.id)}
+                    onClick={(event) => {
+                      if (
+                        event.button !== 0 ||
+                        event.metaKey ||
+                        event.ctrlKey ||
+                        event.shiftKey ||
+                        event.altKey
+                      )
+                        return;
+                      const taskOriginKey = captureOrigin({
+                        selectedKey: `chapter-${chapter.id}`,
+                        loadedPageCount: chapters.data?.pages.length ?? 1,
+                      });
+                      if (!taskOriginKey) return;
+                      event.preventDefault();
+                      void navigate(chapterDetailPath(chapter.id), {
+                        state: { taskOriginKey },
+                      });
+                    }}
+                  >
+                    <h2>{chapter.title}</h2>
+                    {period ? <p className="chapter-period">{period}</p> : null}
+                    {chapter.description?.trim() ? (
+                      <p className="chapter-excerpt">{chapter.description}</p>
                     ) : null}
-                  </div>
-                </Link>
-              </li>
-            ))}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
 
         {chapters.hasNextPage ? (
-          <button
-            type="button"
+          <AutoLoadMore
+            query={chapters}
             className="tertiary compact-action"
-            onClick={() => void chapters.fetchNextPage()}
-            disabled={chapters.isFetchingNextPage}
+            blocked={chapters.isFetchingNextPage}
           >
             {chapters.isFetchingNextPage
               ? t('m5s3.common.loadingMore')
               : t('m5s3.common.loadMore')}
-          </button>
+          </AutoLoadMore>
         ) : null}
       </section>
     </div>

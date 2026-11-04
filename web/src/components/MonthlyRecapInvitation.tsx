@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { RecapsApi } from '../api/generated/apis/RecapsApi';
 import type { RecapView } from '../api/generated/models/RecapView';
 import { normalizeClientError } from '../client/problemDetails';
+import { useAttentionReceipt } from '../client/attentionReceipt';
 import {
   monthlyRecapInvitation,
   recapPeriodLabel,
@@ -64,6 +65,16 @@ export function MonthlyRecapInvitation({
   excludeSourceIds?: readonly string[];
 }) {
   const { t } = useTranslation();
+  const receipt = useAttentionReceipt(
+    [
+      media.mediaApis.attachments.contentBaseUrl,
+      media.account.id,
+      media.spaceId,
+    ],
+    `recap:${value?.id ?? ''}`,
+    value ? new Date(value.year, value.month ?? 0, 4).getTime() : 0,
+  );
+  if (!value || !receipt.visible) return null;
   const source = value?.sources.find((item) => item.available);
   const cover =
     source?.previewAttachmentId && !excludeSourceIds.includes(source.id)
@@ -93,6 +104,7 @@ export function MonthlyRecapInvitation({
             <TodayDestinationLink
               to={`${recapDetailPath(value.id)}?play=1`}
               className="button-link monthly-recap-watch"
+              onFollow={receipt.consume}
             >
               <span aria-hidden="true">▶</span> {t('recaps.watchNow')}
             </TodayDestinationLink>

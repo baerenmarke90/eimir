@@ -38,10 +38,12 @@ export function DevicePushOnboarding({
   devicePush,
   accountId,
   apiBaseUrl,
+  onEnablePrompts,
 }: {
   devicePush: DevicePushController;
   accountId: string;
   apiBaseUrl: string;
+  onEnablePrompts?: () => Promise<void>;
 }) {
   const { t } = useTranslation();
   const decisionKey = `eimir-device-push-onboarding-v1:${apiBaseUrl}:${accountId}`;
@@ -52,11 +54,39 @@ export function DevicePushOnboarding({
   const [offline, setOffline] = useState(false);
   const blocked = useDocumentLeaveBlocked();
   const activationPending = useRef(false);
+  const consentRequested = useRef(false);
+  const consentPending = useRef(false);
+  const consentFailed = useRef(false);
+  const [promptError, setPromptError] = useState(false);
+  const [promptBusy, setPromptBusy] = useState(false);
   const activateRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!devicePush.available) return;
     if (devicePush.state === 'on' && devicePush.registered) {
+      if (consentPending.current || consentFailed.current || promptError)
+        return;
+      if (consentRequested.current && onEnablePrompts) {
+        consentPending.current = true;
+        setPromptBusy(true);
+        void onEnablePrompts()
+          .then(() => {
+            consentRequested.current = false;
+            rememberAnswer(decisionKey);
+            setAnswered(true);
+            setOpen(false);
+            postSnackbar('notificationSettings.deviceOn');
+          })
+          .catch(() => {
+            consentFailed.current = true;
+            setPromptError(true);
+          })
+          .finally(() => {
+            consentPending.current = false;
+            setPromptBusy(false);
+          });
+        return;
+      }
       rememberAnswer(decisionKey);
       setAnswered(true);
       if (open) {
@@ -80,6 +110,8 @@ export function DevicePushOnboarding({
     devicePush.registered,
     devicePush.state,
     open,
+    onEnablePrompts,
+    promptError,
   ]);
 
   function answer() {
@@ -100,6 +132,7 @@ export function DevicePushOnboarding({
     }
     setOffline(false);
     activationPending.current = true;
+    consentRequested.current = true;
     answer();
     try {
       if (devicePushAction(devicePush) === 'openSettings')
@@ -111,6 +144,7 @@ export function DevicePushOnboarding({
   }
 
   const busy =
+    promptBusy ||
     devicePush.state === 'connecting' ||
     devicePush.state === 'disconnecting' ||
     devicePush.state === 'loading';
@@ -124,6 +158,18 @@ export function DevicePushOnboarding({
       initialFocusRef={activateRef}
       footer={
         <div className="form-actions">
+          {promptError ? (
+            <button
+              type="button"
+              disabled={promptBusy}
+              onClick={() => {
+                consentFailed.current = false;
+                setPromptError(false);
+              }}
+            >
+              {t('common.retry')}
+            </button>
+          ) : null}
           {action && (
             <button
               ref={activateRef}
@@ -151,6 +197,9 @@ export function DevicePushOnboarding({
     >
       <p>{t('notificationSettings.onboardingIntro')}</p>
       <p className="muted">{t('notificationSettings.deviceIntro')}</p>
+      {promptError ? (
+        <p role="alert">{t('notificationSettings.onboardingPromptsFailed')}</p>
+      ) : null}
       {(offline || devicePush.state !== 'off') && (
         <p role="status" aria-live="polite">
           {t(

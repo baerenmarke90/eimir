@@ -2,6 +2,48 @@
 
 These rules apply to AI-assisted and human implementation work in this repository.
 
+## Task continuity and delivery evidence
+
+- **Establish the current baseline.** Before implementation or release work, inspect
+  current `main`, the working branch, relevant Issues/PRs and comments, dependencies,
+  and applicable checks. Refresh affected assumptions after dependent merges or when
+  resuming work. Follow [Status Sources and Drift Rules](docs/STATUS-SOURCES.md);
+  chat history and remembered SHAs are orientation, not proof of current state.
+- **Make the requested outcome traceable.** Translate requests, screenshots, and
+  follow-up corrections into proportionate acceptance criteria in the existing
+  Issue or PR. Preserve agreed scope and authorization across follow-ups. Use one
+  coherent work record for related implementation and fixes; do not require the
+  Product Owner to repeat requirements in multiple tools.
+- **Verify execution readiness for the actual scope.** Confirm the checkout/ref,
+  required dependencies, commands, services, and access before claiming that an
+  environment can build or test the change. Repository connectivity or an available
+  terminal alone does not establish readiness. Reuse an existing project setup;
+  documentation-only work does not require a full application or Android build.
+  State concrete missing capabilities and continue work that does not depend on them.
+- **Coordinate parallel work and handoffs.** Give independent changes separate
+  branches/worktrees and explicit dependencies. Related work should continue in its
+  owning task/PR where practical. A handoff records the exact revision, completed
+  validation, unresolved findings, and next action. Preserve other contributors'
+  work and check the integration baseline before combining dependent changes.
+- **Report observed delivery states.** Distinguish implemented, validated, merged,
+  and published. Bind validation to the tested revision and relevant environment,
+  naming failed or unperformed checks and product/device acceptance still outstanding.
+  Confirm a merge against the actual target branch. Confirm publication through the
+  release/version, source revision, successful publishing run, and available expected
+  artifacts; include the relevant PR, run, release, and download links in the result.
+  A requested release is complete only when its published result is verified.
+- **Make background continuation verifiable.** Claim that cloud work continues only
+  when an actual task/workflow is running or a follow-up process has been configured.
+  Record its reference and the mechanism responsible for reviewing completion and
+  handling failures; starting a build alone does not establish that follow-up.
+  Report a pause or missing continuation explicitly instead of implying unattended
+  progress after a completed response.
+
+Use the existing Issue/PR validation sections and authoritative status sources for
+this evidence. This contract adds no parallel status document, unconditional test
+suite, or additional approval gate. Reuse authorization already given for the task;
+merge and publication still require authorization and all applicable protections.
+
 ## Mandatory sources
 
 Before relevant work, read at least these documents:
@@ -256,6 +298,20 @@ This policy applies to human contributors and coding agents handling any pull re
 - When changing workflows, keep independent expensive checks separately retryable where practical and retain `fail-fast: false` for independent matrix jobs. Required aggregates must reject failed, cancelled, or unexpectedly skipped required work. Do not weaken checks, assertions, coverage, protections, or required context names to shorten the cycle.
 - Diagnostic artifacts from retries must distinguish attempts or use an explicit safe replacement contract. Preserve stable artifact names consumed by release workflows.
 - Record the relevant root causes, correction batch, validation, and any retry reason briefly in the existing PR validation section. This adds no separate approval process or arbitrary limit on the number of justified pushes.
+
+### Mandatory Web browser test selection
+
+For Web product, browser-test and browser-CI work, the [Browser impact selection contract](docs/m5/BROWSER-IMPACT-SELECTION.md) is binding for human contributors and coding agents.
+
+- Use the shared validated plan: the always-run cross-surface core plus complete affected feature/reference specs. Do not restore an unconditional growing feature suite for every unrelated Web PR.
+- New or changed browser journeys must have reviewed ownership in both `web/e2e/test-groups.json` and `web/e2e/test-impact.json`. Include all relevant production entry roots and cross-surface destinations; a historical filename is not evidence of ownership. Revisit roots when journeys or source paths change.
+- Feature-specific acceptance evidence and broad viewport/theme variants must not automatically become global always-run work. An addition to, or material expansion of, the always-run core needs a concrete cross-surface contract and a traceable rationale in the PR, including overlap with existing coverage and the collected selection impact.
+- Prefer equivalent deterministic lower-level coverage for pure invariants. Delete browser cases only after proving redundancy, obsolescence or an equivalent committed replacement; retain real-browser layout, focus, navigation, privacy and accessibility protection where required.
+- Shared foundations, unknown/unmapped changes and incomplete dependency analysis must remain conservative. Preserve validation of complete PR-file responses, revision binding, changed surviving specs, disjoint execution groups and rejection of malformed/empty plans or unexpectedly skipped required work.
+- Preserve full automatic regression on `main` and manual execution, stable required contexts, independent retry boundaries and useful diagnostics. Impact-based scheduling is not permission to reduce required product contracts or weaken protection rules.
+- Before pushing browser-selection changes, run the planning regressions and inventory checks and document actual Playwright collection counts and relevant measured runtime when available. Historical baselines and target durations do not establish current coverage or justify weaker assertions.
+
+The recorded test counts are measurements, not permanent quotas. Change the core deliberately as product contracts evolve; do not allow unrelated feature additions to silently recreate a large unconditional PR suite. Follow the [contributor procedure](CONTRIBUTING.md#web-browser-test-selection).
 
 ### Required reviews
 

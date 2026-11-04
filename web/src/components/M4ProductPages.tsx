@@ -1,3 +1,4 @@
+import { AutoLoadMore } from './AutoLoadMore';
 import {
   useInfiniteQuery,
   useIsMutating,
@@ -333,16 +334,15 @@ export function SearchProductPage({
             ))}
           </ul>
           {searchQuery.hasNextPage ? (
-            <button
-              type="button"
+            <AutoLoadMore
+              query={searchQuery}
               className="secondary"
-              onClick={() => void searchQuery.fetchNextPage()}
-              disabled={searchQuery.isFetchingNextPage}
+              blocked={searchQuery.isFetchingNextPage}
             >
               {searchQuery.isFetchingNextPage
                 ? t('m5s5.search.loadingMore')
                 : t('m5s5.search.loadMore')}
-            </button>
+            </AutoLoadMore>
           ) : null}
         </section>
       ) : null}
@@ -473,16 +473,15 @@ export function ActivityProductPage({
               ))}
             </ul>
             {activityQuery.hasNextPage ? (
-              <button
-                type="button"
+              <AutoLoadMore
+                query={activityQuery}
                 className="secondary"
-                onClick={() => void activityQuery.fetchNextPage()}
-                disabled={activityQuery.isFetchingNextPage}
+                blocked={activityQuery.isFetchingNextPage}
               >
                 {activityQuery.isFetchingNextPage
                   ? t('m5s5.activity.loadingMore')
                   : t('m5s5.activity.loadMore')}
-              </button>
+              </AutoLoadMore>
             ) : null}
           </section>
         ) : null}
@@ -838,16 +837,15 @@ export function NotificationsProductPage({
             ))}
           </ul>
           {notificationsQuery.hasNextPage ? (
-            <button
-              type="button"
+            <AutoLoadMore
+              query={notificationsQuery}
               className="secondary"
-              onClick={() => void notificationsQuery.fetchNextPage()}
-              disabled={notificationsQuery.isFetchingNextPage}
+              blocked={notificationsQuery.isFetchingNextPage}
             >
               {notificationsQuery.isFetchingNextPage
                 ? t('m5s5.notifications.loadingMore')
                 : t('m5s5.notifications.loadMore')}
-            </button>
+            </AutoLoadMore>
           ) : null}
         </section>
       ) : null}

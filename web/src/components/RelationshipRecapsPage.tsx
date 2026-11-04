@@ -1,3 +1,4 @@
+import { AutoLoadMore } from './AutoLoadMore';
 import {
   useCallback,
   useEffect,
@@ -402,14 +403,13 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
           </section>
         ) : null}
         {query.hasNextPage ? (
-          <button
-            type="button"
+          <AutoLoadMore
+            query={query}
             className="secondary"
-            disabled={query.isFetchingNextPage}
-            onClick={() => void query.fetchNextPage()}
+            blocked={query.isFetchingNextPage}
           >
             {t('recaps.more')}
-          </button>
+          </AutoLoadMore>
         ) : null}
       </div>
       <details className="recap-explanation">
@@ -497,7 +497,17 @@ function RecapReader({
   const page = Number.isInteger(requestedPage)
     ? Math.max(0, Math.min(pageCount - 1, requestedPage))
     : 0;
+  const ownsRouteEntry = useCallback(() => {
+    const entry = window.history.state;
+    // Native Back retires an entry before the router commits the next render.
+    // A retired reader must not replace that destination with its old URL.
+    return (
+      !Number.isInteger(entry?.idx) ||
+      (entry?.key ?? 'default') === location.key
+    );
+  }, [location.key]);
   const setPage = (next: number, automatic = false) => {
+    if (!ownsRouteEntry()) return;
     const update = new URLSearchParams(search);
     if (next) update.set('page', String(next));
     else update.delete('page');
@@ -513,11 +523,11 @@ function RecapReader({
   const autoStart = useRef(search.get('play') === '1').current;
   // Consume playback intent once so a canonical source return stays paused.
   useEffect(() => {
-    if (!search.has('play')) return;
+    if (!search.has('play') || !ownsRouteEntry()) return;
     const update = new URLSearchParams(search);
     update.delete('play');
     setSearch(update, { replace: true, state: location.state });
-  }, [location.state, search, setSearch]);
+  }, [location.state, ownsRouteEntry, search, setSearch]);
   const pageKey = `${recapId}:${page}:${value?.version ?? 0}`;
   const pageMedia =
     page === 0

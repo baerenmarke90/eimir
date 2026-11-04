@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import navigation from '../../src/i18n/locales/navigation';
@@ -27,6 +28,7 @@ async function setup(page: Page, serverAdmin = false) {
   let signOuts = 0;
   let reads = 0;
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     if (pathname === '/api/v1/auth/capabilities')

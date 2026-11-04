@@ -90,8 +90,10 @@ export function taskOriginPath(
     pathname,
   );
   const recapReader = /^\/more\/passport\/[^/]+$/.test(pathname);
+  const storyYear = /^\/story\/years\/\d{4}$/.test(pathname);
   if (
     !recapReader &&
+    !storyYear &&
     !memoryEditor &&
     !planningDetail &&
     !secondaryDetail &&
@@ -99,6 +101,8 @@ export function taskOriginPath(
     ![
       '/today',
       '/story',
+      '/story/chapters',
+      '/story/years',
       '/story/happiness',
       '/story/time-travel',
       STORY_PHOTOS_ROUTE,

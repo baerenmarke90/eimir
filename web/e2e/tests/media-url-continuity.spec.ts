@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import { test, expect } from '@playwright/test';
 import navigation from '../../src/i18n/locales/navigation';
 import {
@@ -24,6 +25,7 @@ for (const [width, theme] of [
     let downloads = 0;
     const attachment = `/api/v1/spaces/${SPACE_ID}/attachments/att-canal-1`;
     await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultProductContext(route)) return;
       const url = new URL(route.request().url());
       if (
         url.pathname.endsWith('/content') &&

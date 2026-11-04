@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import copy from '../../src/i18n/locales/wirDesign';
@@ -29,6 +30,7 @@ async function fixture(
   const writes: string[] = [];
   const base = `/api/v1/spaces/${SPACE_ID}`;
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (path.includes('/attachments/') && path.endsWith('/content')) {
@@ -653,6 +655,7 @@ test('quote and statistics order survives pointer release, keyboard movement and
   let order = [...DASHBOARD_MODULE_KEYS];
   const orders: string[][] = [];
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith('/dashboard/preferences/order')) {
       order = route.request().postDataJSON().moduleKeys;
@@ -757,7 +760,8 @@ test('quote and statistics order survives pointer release, keyboard movement and
       },
     );
   }
-  await page.goto('/today');
+  await page.locator('.product-shell a[href="/today"]:visible').click();
+  await expect(page).toHaveURL(/\/today$/);
   await expect(page.locator('.shared-story-summary')).toBeVisible();
   expect(
     await page
@@ -772,7 +776,15 @@ test('quote and statistics order survives pointer release, keyboard movement and
   ).toBe(true);
   await page.reload();
   await expect(page.locator('.shared-story-summary')).toBeVisible();
+  expect(state.unexpected).toEqual([]);
+});
 
+test('quote preference recovery keeps aligned controls and accessible feedback', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  const state = await fixture(page);
   let quoteFailure = true;
   await page.route('**/daily-quote/preferences', (route) =>
     quoteFailure
@@ -780,8 +792,17 @@ test('quote and statistics order survives pointer release, keyboard movement and
           status: 503,
           json: { title: 'Synthetic outage', status: 503 },
         })
-      : route.fallback(),
+      : route.fulfill({
+          json: {
+            enabled: true,
+            selectedCategoryIds: [],
+            selectedSourceIds: [],
+            version: 1,
+          },
+          headers: { ETag: '"quote-pref:1"' },
+        }),
   );
+  await signIn(page);
   await page.goto('/more/settings/today');
   await page.reload();
   const failedQuote = page.locator('[data-sortable-item-id="daily_quote"]');
@@ -851,6 +872,7 @@ for (const [width, theme] of [
       })),
     };
     await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultProductContext(route)) return;
       const path = new URL(route.request().url()).pathname;
       if (path === '/api/v1/notification-preferences')
         return route.fulfill({ json: notifications });

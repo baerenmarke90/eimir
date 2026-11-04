@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { expect, test } from '@playwright/test';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
@@ -36,6 +37,7 @@ for (const mode of [
       const staleRequests: string[] = [];
       await page.clock.install();
       await page.route('**/api/v1/**', async (route) => {
+        if (await fulfillDefaultProductContext(route)) return;
         const request = route.request();
         const path = new URL(request.url()).pathname;
         const json = (body: unknown, status = 200) =>

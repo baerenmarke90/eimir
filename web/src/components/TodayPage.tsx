@@ -1,3 +1,4 @@
+import { useAttentionReceipt } from '../client/attentionReceipt';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -207,7 +208,13 @@ function RecentItemTypeIcon({ type }: { type: DashboardItemType }) {
   );
 }
 
-function RecentSharedItemCard({ item }: { item: DashboardItem }) {
+function RecentSharedItemCard({
+  item,
+  onFollow,
+}: {
+  item: DashboardItem;
+  onFollow?: () => void;
+}) {
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
   const rawDate = item.occurredOn ?? item.scheduledAt ?? item.createdAt;
@@ -245,7 +252,11 @@ function RecentSharedItemCard({ item }: { item: DashboardItem }) {
 
   if (path) {
     return (
-      <TodayDestinationLink to={path} className="today-recent-tile">
+      <TodayDestinationLink
+        onFollow={onFollow}
+        to={path}
+        className="today-recent-tile"
+      >
         {tileInner}
       </TodayDestinationLink>
     );
@@ -614,9 +625,11 @@ function TodayLivingModuleCard({
  * The bounded projection deliberately makes no counted-total claim.
  */
 function TodayMonthlyStrip({
+  onFollow,
   items,
   loadMemoryImage,
 }: {
+  onFollow?: () => void;
   items: readonly DashboardItem[];
   loadMemoryImage: (
     memoryId: string,
@@ -658,7 +671,11 @@ function TodayMonthlyStrip({
             }`}
           >
             {path ? (
-              <TodayDestinationLink to={path} className="today-monthly-tile">
+              <TodayDestinationLink
+                onFollow={onFollow}
+                to={path}
+                className="today-monthly-tile"
+              >
                 {tile}
                 <span className="today-monthly-caption">
                   <strong>{title}</strong>
@@ -1048,6 +1065,19 @@ export function TodayPage({
     excludeItemIds: [...featuredIds, ...monthlyStrip.map((item) => item.id)],
   });
 
+  const monthlyItems = [...monthlyStrip, ...monthlyNotes];
+  const monthlyReceipt = useAttentionReceipt(
+    [apiBaseUrl ?? '', account?.id ?? '', spaceId],
+    `month:${new Date().getFullYear()}:${new Date().getMonth()}:${monthlyItems.map((item) => item.id).join(':')}`,
+    Math.max(
+      0,
+      ...monthlyItems.map(
+        (item) => (item.occurredOn ?? item.createdAt)?.getTime() ?? 0,
+      ),
+    ) +
+      3 * 24 * 60 * 60_000,
+  );
+
   // The quiet trace is the same first page as Activities, including comments.
   const recentActivities = activityItems.slice(0, 4);
 
@@ -1245,6 +1275,7 @@ export function TodayPage({
       incomingExperience &&
       isDashboardModuleVisible(dashboardPreferences, 'shared_experience') ? (
         <SharedExperienceReveal
+          scope={[apiBaseUrl ?? '', account?.id ?? '', spaceId]}
           entry={incomingExperience}
           partnerName={partnerName}
         />
@@ -1457,28 +1488,29 @@ export function TodayPage({
     ),
     monthly_highlights: (
       <>
+        {monthlyRecapEntry}
         {/* 5. Diesen Monat — this month's shared life, shown rather than
                   counted. */}
         {monthlyHighlightsVisible &&
-        (monthlyStrip.length > 0 ||
-          monthlyNotes.length > 0 ||
-          monthlyRecapEdition) ? (
+        monthlyReceipt.visible &&
+        (monthlyStrip.length > 0 || monthlyNotes.length > 0) ? (
           <TodayModuleSection
             className="today-section-monthly"
             title={t('m5s5.today.monthly.title')}
             headerAction={
-              <Link
+              <TodayDestinationLink
+                onFollow={monthlyReceipt.consume}
                 to={`${appRoutePath('story')}?tab=timeline`}
                 className="today-section-link"
                 aria-label={t('m5s5.today.monthly.allAriaLabel')}
               >
                 {t('m5s5.today.monthly.allAction')}
-              </Link>
+              </TodayDestinationLink>
             }
           >
-            {monthlyRecapEntry}
             {loadMemoryImage && monthlyStrip.length > 0 ? (
               <TodayMonthlyStrip
+                onFollow={monthlyReceipt.consume}
                 items={monthlyStrip}
                 loadMemoryImage={loadMemoryImage}
               />
@@ -1486,13 +1518,15 @@ export function TodayPage({
             {monthlyNotes.length > 0 ? (
               <div className="today-monthly-notes">
                 {monthlyNotes.map((item) => (
-                  <RecentSharedItemCard key={item.id} item={item} />
+                  <RecentSharedItemCard
+                    key={item.id}
+                    item={item}
+                    onFollow={monthlyReceipt.consume}
+                  />
                 ))}
               </div>
             ) : null}
           </TodayModuleSection>
-        ) : monthlyHighlightsVisible ? (
-          monthlyRecapEntry
         ) : null}
       </>
     ),

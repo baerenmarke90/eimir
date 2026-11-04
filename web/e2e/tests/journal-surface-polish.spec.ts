@@ -206,7 +206,8 @@ test('Own activity filters requests before pagination and retains its scope thro
   await expect(page.getByText('A shared memory', { exact: true })).toHaveCount(
     0,
   );
-  await page.locator('.auto-load-sentinel').scrollIntoViewIfNeeded();
+  // This short page already exposes the loading boundary. It must fetch the
+  // next scoped page automatically; the completed sentinel may already be gone.
   await expect(
     page.getByText('An earlier memory', { exact: true }),
   ).toBeVisible();

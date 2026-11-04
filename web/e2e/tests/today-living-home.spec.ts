@@ -1206,7 +1206,7 @@ test.describe('Today R4: the living home of a relationship', () => {
     await expect(page.locator('.today-section-monthly')).toHaveCount(0);
     await expect(
       page.getByRole('link', { name: recaps.profileLink }),
-    ).toHaveAttribute('href', '/more/passport');
+    ).toHaveCount(0);
     await expect(page.locator('.today-moment-figure')).toHaveCount(0);
     await expect(page.locator('.today-moment-text')).toBeVisible();
     await expect(page.getByText(TRACE_ONLY.titleOrText)).toBeVisible();

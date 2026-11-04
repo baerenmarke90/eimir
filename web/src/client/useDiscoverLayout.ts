@@ -32,56 +32,73 @@ export function useDiscoverLayout(
           }
           continue;
         }
-        // A full-width card clears both columns. Promote the unpaired card
-        // before it instead of leaving an empty half row or reordering focus.
-        let unpaired: HTMLElement | undefined;
-        for (const child of Array.from(grid.children)) {
-          const item = child as HTMLElement;
-          delete item.dataset.discoverFillRow;
-          if (item.dataset.discoverWide === 'true') {
-            if (unpaired) unpaired.dataset.discoverFillRow = 'true';
-            unpaired = undefined;
-          } else {
-            unpaired = unpaired ? undefined : item;
+        // Natural-height measurement must not shorten document flow: near the
+        // end, the browser would clamp scrollY before measured rows are restored.
+        // Reserve the containing band's size, without stretching the grid's own
+        // natural rows, and release it in the same synchronous layout pass.
+        const band = grid.parentElement;
+        const previousMinSize = band?.style.minBlockSize ?? '';
+        const previousPriority =
+          band?.style.getPropertyPriority('min-block-size') ?? '';
+        if (band) band.style.minBlockSize = `${band.offsetHeight}px`;
+        try {
+          // A full-width card clears both columns. Promote the unpaired card
+          // before it instead of leaving an empty half row or reordering focus.
+          let unpaired: HTMLElement | undefined;
+          for (const child of Array.from(grid.children)) {
+            const item = child as HTMLElement;
+            delete item.dataset.discoverFillRow;
+            if (item.dataset.discoverWide === 'true') {
+              if (unpaired) unpaired.dataset.discoverFillRow = 'true';
+              unpaired = undefined;
+            } else {
+              unpaired = unpaired ? undefined : item;
+            }
           }
-        }
-        if (unpaired) unpaired.dataset.discoverFillRow = 'true';
-        // Let native grid size paired cards from their content before quantizing
-        // rows. Equal row bounds avoid outside holes beside shorter notes/photos.
-        delete grid.dataset.discoverMeasured;
-        const items = Array.from(grid.children) as HTMLElement[];
-        const heights = items.map((item) => item.offsetHeight);
-        // Inline milestones may center within their cells, so their natural
-        // boxes can differ. Both occupied columns still need the same row span.
-        for (let index = 0; index < items.length; index += 1) {
-          const item = items[index];
-          if (
-            item.dataset.discoverWide === 'true' ||
-            item.dataset.discoverFillRow === 'true'
-          )
-            continue;
-          const next = index + 1;
-          if (next < items.length)
-            heights[index] = heights[next] = Math.max(
-              heights[index],
-              heights[next],
+          if (unpaired) unpaired.dataset.discoverFillRow = 'true';
+          // Let native grid size paired cards from their content before quantizing
+          // rows. Equal row bounds avoid outside holes beside shorter notes/photos.
+          delete grid.dataset.discoverMeasured;
+          const items = Array.from(grid.children) as HTMLElement[];
+          const heights = items.map((item) => item.offsetHeight);
+          // Inline milestones may center within their cells, so their natural
+          // boxes can differ. Both occupied columns still need the same row span.
+          for (let index = 0; index < items.length; index += 1) {
+            const item = items[index];
+            if (
+              item.dataset.discoverWide === 'true' ||
+              item.dataset.discoverFillRow === 'true'
+            )
+              continue;
+            const next = index + 1;
+            if (next < items.length)
+              heights[index] = heights[next] = Math.max(
+                heights[index],
+                heights[next],
+              );
+            index += 1;
+          }
+          grid.dataset.discoverMeasured = 'true';
+          const measured = getComputedStyle(grid);
+          const unit = Number.parseFloat(measured.gridAutoRows);
+          const gap = Number.parseFloat(measured.rowGap) || 0;
+          if (!Number.isFinite(unit) || unit <= 0) continue;
+          for (const [index, item] of items.entries()) {
+            // Layout dimensions do not include the viewport reveal's transform.
+            const span = Math.max(
+              1,
+              Math.ceil((heights[index] + gap) / (unit + gap)),
             );
-          index += 1;
-        }
-        grid.dataset.discoverMeasured = 'true';
-        const measured = getComputedStyle(grid);
-        const unit = Number.parseFloat(measured.gridAutoRows);
-        const gap = Number.parseFloat(measured.rowGap) || 0;
-        if (!Number.isFinite(unit) || unit <= 0) continue;
-        for (const [index, item] of items.entries()) {
-          // Layout dimensions do not include the viewport reveal's transform.
-          const span = Math.max(
-            1,
-            Math.ceil((heights[index] + gap) / (unit + gap)),
+            const value = String(span);
+            if (item.style.getPropertyValue('--discover-rows') !== value)
+              item.style.setProperty('--discover-rows', value);
+          }
+        } finally {
+          band?.style.setProperty(
+            'min-block-size',
+            previousMinSize,
+            previousPriority,
           );
-          const value = String(span);
-          if (item.style.getPropertyValue('--discover-rows') !== value)
-            item.style.setProperty('--discover-rows', value);
         }
       }
     }

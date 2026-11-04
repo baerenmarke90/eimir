@@ -406,7 +406,7 @@ the canonical seed or its domain service signatures.
 
 | Delivered area | Canonical content or deliberate acceptance boundary |
 | --- | --- |
-| Shared-experience question and full authored answer (#1643) | Existing guided-experience source Memories retain their authored title/question and body. Current source authorization, sharing, expiry and receipt rules decide whether Today presents an incoming experience; do not fabricate a current partner contribution. |
+| Shared-experience question and full authored answer (#1643) | Visitors can author a guided experience through the normal flow, retaining its title/question and body. No guided-experience entry is pre-seeded. Current source authorization, sharing, expiry and receipt rules decide whether Today presents an incoming experience; do not fabricate a current partner contribution. |
 | Secondary-page Back control and date presentation (#1643) | Existing Memory, Plan, Wish, Chapter and Place records populate the normal detail/editor routes. Browser/native acceptance owns guarded return, retained origin and date typography; no additional seed state is necessary. |
 | Complete native contextual push content (#1644) | The two-person lake comment exchange provides ordinary authored comment sources. A real visitor must register their own device and consent through the normal flow before new actions can generate eligible notifications. Historical seeded comments are not replayed to manufacture previews. Public redaction, encrypted-preview version negotiation, Quiet Hours and source authorization remain normal product behavior. |
 

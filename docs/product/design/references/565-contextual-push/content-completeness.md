@@ -74,3 +74,28 @@ both shared experience kinds, additive migration/rollback and OpenAPI/client
 drift. Retain source-tap ownership, neutral public content and retirement checks.
 Native synthetic presentation evidence and final-head CI remain merge gates.
 Merging source does not publish a signed Android update or deploy a server.
+
+## Runtime evidence and remaining acceptance
+
+The API 36 emulator's [Light capture](evidence/content-api36-light.png) shows
+the real decrypted comment excerpt, source action, kiss and titled reminder.
+All names and authored words are synthetic interoperability fixtures. The
+additional Android System serial-console notice belongs to the emulator.
+
+The [Dark capture at 150% font size](evidence/content-api36-dark-large.png)
+currently shows Android's collapsed notification group. It does **not** prove
+expanded excerpt readability. Remaining acceptance is to expand the group and
+the comment through Android's accessibility actions, assert the displayed
+authored words, and replace that capture with the reviewed expanded result.
+SystemUI can expose a child's text to accessibility while its group is still
+visually collapsed; checking only text presence is insufficient for this proof.
+
+The source/transport implementation at `4ecc731bf4cfb91ebad138d601b878a1134a1be1`
+passed hosted native tests on APIs 28, 36 and 37.1. Local API 36 coverage also
+passed all six preview tests, three activation-binding tests and eight source-
+opening tests. The refined screenshot wait passes locally in Light and Dark,
+but still needs the explicit expansion acceptance above and fresh hosted checks.
+The initial hosted CI's language gate rejected new German product copy; the
+correction registers exact approved literals and keeps surrounding engineering
+prose in scope, with its negative regression checks intact. No path exclusion,
+assertion relaxation or hosted manual rerun is used.

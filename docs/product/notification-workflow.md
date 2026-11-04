@@ -44,6 +44,15 @@ foundation. It does not introduce the previously rejected daily summary.
    generic wake. Legacy registrations keep their generic wake. The UnifiedPush wake may carry
    only a canonical Notification ID, never actor, category, title, body, photo,
    private choice, filename or an arbitrary route. Legacy wakes open the Center.
+   The 2026-11-04 [content-completeness correction](design/references/565-contextual-push/content-completeness.md)
+   adds negotiated preview v2 with a short current comment/shared-answer excerpt.
+   V1 retains its exact field set. Additive server/native maximum-version fields
+   select v2 only when both support it; older workers retain readable keys and
+   emit v1. Text is projected from the exact currently authorized source only
+   for delivery, never persisted in notification/event/job metadata. Public
+   lock-screen content remains neutral. Every known native kind has its own
+   accurate localized label, including content-free automatic invitations and
+   source-free due notices; a digest remains explicitly plural.
 6. A tap resolves current authenticated recipient state and opens its canonical
    destination. An unavailable target falls back to the Center. Account/Space
    changes invalidate pending navigation, and an active editor defers navigation

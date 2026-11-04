@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
@@ -72,6 +73,7 @@ async function installContent(page: Page, dense = false) {
   const linked = new Set(['mem-canal']);
   const writes: string[] = [];
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
     const root = `/api/v1/spaces/${SPACE_ID}`;

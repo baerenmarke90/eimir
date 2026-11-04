@@ -664,8 +664,6 @@ export function HeartMomentProductPage({
               />
             ) : null}
 
-            <HeartMomentTagChoices editorRef={tagEditorRef} />
-
             <div className="heart-moment-create-field-grid">
               <div className="heart-moment-create-field heart-moment-create-emotion-picker">
                 <HeartEmotionPicker
@@ -674,6 +672,8 @@ export function HeartMomentProductPage({
                 />
               </div>
             </div>
+
+            <HeartMomentTagChoices editorRef={tagEditorRef} />
 
             <fieldset className="heart-moment-create-visibility">
               <legend>{t('heartMomentProduct.visibilityLabel')}</legend>
@@ -1263,6 +1263,7 @@ function HeartMomentFields({
         />
       </div>
       <HeartMomentTagChoices
+        parentId={heartMoment?.id}
         selected={heartMoment?.tags}
         editorRef={editorRef}
       />

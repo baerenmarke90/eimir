@@ -64,7 +64,14 @@ def test_the_decided_wish_and_plan_surface_is_now_complete() -> None:
         WISH_COMPLETE,
         CONVERT,
     }
-    assert plan_paths == {COLLECTION, DETAIL, *LIFECYCLE, f"{DETAIL}/comments"}
+    assert plan_paths == {
+        COLLECTION,
+        DETAIL,
+        *LIFECYCLE,
+        f"{DETAIL}/comments",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans",
+        "/api/v1/spaces/{spaceId}/memories/{memoryId}/plans/{targetId}",
+    }
 
 
 def test_every_lifecycle_operation_requires_if_match() -> None:

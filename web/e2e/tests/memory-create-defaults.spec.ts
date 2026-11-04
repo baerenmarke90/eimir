@@ -1019,10 +1019,10 @@ for (const [width, colorScheme] of [
   });
 }
 
-async function openDateEditor(page: Page): Promise<void> {
-  await page
-    .getByRole('button', { name: new RegExp(de.memory.dateLabel) })
-    .click();
+async function expectDateField(page: Page): Promise<void> {
+  await expect(
+    page.getByLabel(de.memory.dateLabel, { exact: true }),
+  ).toBeVisible();
 }
 
 async function submitAndReadCreateRequest(
@@ -1045,7 +1045,7 @@ test('Memory Create opens with browser-local today and an optional title', async
   page,
 }) => {
   await signInAndOpenMemoryCreate(page);
-  await openDateEditor(page);
+  await expectDateField(page);
 
   await expect(page.getByLabel(de.memory.dateLabel)).toHaveValue(
     await browserLocalToday(page),
@@ -1194,7 +1194,7 @@ test('a selected date wins and is also used by a text-only fallback title', asyn
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
-  await openDateEditor(page);
+  await expectDateField(page);
   await page.getByLabel(de.memory.dateLabel).fill('2025-12-24');
 
   const requestBody = await submitAndReadCreateRequest(page);
@@ -1213,7 +1213,7 @@ test('text-only with a cleared date and whitespace title falls back using local 
     .fill(AUTHORED_BODY);
   await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional).fill('   ');
-  await openDateEditor(page);
+  await expectDateField(page);
   await page.getByLabel(de.memory.dateLabel).fill('');
   const expectedDate = await browserLocalToday(page);
 
@@ -1231,7 +1231,7 @@ test('an authored title is kept while the selected happenedOn date is submitted'
   await signInAndOpenMemoryCreate(page);
   await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional).fill(AUTHORED_TITLE);
-  await openDateEditor(page);
+  await expectDateField(page);
   await page.getByLabel(de.memory.dateLabel).fill('2025-12-24');
 
   const requestBody = await submitAndReadCreateRequest(page);
@@ -1246,11 +1246,11 @@ test('Memory Create defaults render without overflow and capture product visual 
   await page.emulateMedia({ colorScheme: 'light' });
   await page.setViewportSize({ width: 390, height: 844 });
   await signInAndOpenMemoryCreate(page);
-  await openDateEditor(page);
+  await expectDateField(page);
   await expect(page.getByLabel(de.memory.dateLabel)).toHaveValue(
     await browserLocalToday(page),
   );
-  // Return to the closed date-summary state before capturing visual
+  // Leave the date field before capturing visual
   // evidence, so the screenshots reflect what the page actually renders
   // by default rather than the transient date-editing state.
   await showMemoryDetails(page);
@@ -1321,7 +1321,7 @@ for (const [width, colorScheme] of [
     const text =
       'A quiet afternoon together.\n\nWe want to remember the little details.';
     await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(text);
-    await openDateEditor(page);
+    await expectDateField(page);
     await page.getByLabel(de.memory.dateLabel).fill('2025-12-24');
     await showMemoryDetails(page);
     await page.getByLabel(de.memory.titleLabelOptional).fill(AUTHORED_TITLE);

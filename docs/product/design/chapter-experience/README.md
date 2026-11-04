@@ -156,5 +156,58 @@ Preserve both inventory entries and re-run the browser planner, typecheck, cache
 ownership tests and affected Chapter/Story journeys on the actual combined tree.
 The other shared diffs auto-merge, but that is not product acceptance.
 
-This PR remains based on current main rather than including an unapproved draft
-workstream. No combined-tree compatibility, merge or release is claimed here.
+## Integrated acceptance, 2026-11-04
+
+The Product Owner authorized merging #1637 first and then #1636. The integration
+includes #1637 at `87fb7271badba9cbbe537e3bb5ad8c597518656d` and the Chapter
+implementation at `ff82ee84b05aa3c14aecad09d9452ec3a41b568d`. The earlier parallel
+boundary above records the diagnosis; this section records its resolution.
+
+Both browser inventory entries and their production roots are retained. The
+protected Chapter editor, task-origin return and shared native date field remain.
+The refreshed overview uses the shared warm infinite-query and automatic-loading
+primitives without losing cancellation, loaded-page return or focus restoration.
+The cache now has one Account/Space/kind removal contract, preserving both the
+shared-list generation lease and the derived-Story revocation stamp. A regression
+verifies that revoking both groups rejects late writes while retaining unrelated
+source details. No business/freemium classification or source authority changes.
+
+Two acceptance-fixture corrections preserve the complete journey: linked Memory
+details supply the required body, and annual Chapter pagination uses the same
+automatic scroll interaction as the product. Counts, unique identities, return,
+destructive consequences, ownership and accessibility assertions remain.
+
+- The full Web suite passes with the CI Node 24.21.0 runtime: **2,623 passed,
+  two existing skips** across 294 files. An initial Node 22 run exposed an
+  incompatible jsdom Blob/Undici Response fixture; the unchanged avatar test and
+  full suite pass under the actual CI runtime. No product/test workaround added.
+- **20 complete affected browser cases pass** across Chapters, legacy capture,
+  the shared Place/Chapter moment picker and device-review links/labels. The
+  current-source sweep passed 19; its long create/read/unlink/edit/diary/delete
+  journey reached the test budget while competing with the full unit suite.
+  Trace evidence showed document loading consuming that budget. The complete
+  unchanged journey then passed alone in 18.7 seconds. No timeout, retry, assertion
+  or interaction delay was changed. The earlier integrated-source sweep passed
+  all 20 together.
+- TypeScript, lint, formatting, token/PWA checks and the production Web build
+  pass. The changed browser spec typechecks; all **38 browser planner regressions**
+  and the **89-spec inventory** pass. The final PR records current collection and
+  hosted results. PostgreSQL and generated-client drift remain authoritative CI
+  checks for the final integrated revision.
+
+The following current-source captures use synthetic content and the pinned
+Chromium 151.0.7922.34. Overview, reader and diary are reviewed at each size;
+the browser journeys also verify open/interact/save/result/return, dirty/pending
+navigation, conflicts, marker-only pages/years and accessible reflow.
+
+| State | Overview | Reader | Diary |
+| --- | --- | --- | --- |
+| Compact 360 Light | [View](evidence/story-chapter-360-light-overview.png) | [View](evidence/story-chapter-360-light-detail.png) | [View](evidence/story-chapter-360-light-diary.png) |
+| Compact 390 Dark | [View](evidence/story-chapter-390-dark-overview.png) | [View](evidence/story-chapter-390-dark-detail.png) | [View](evidence/story-chapter-390-dark-diary.png) |
+| Compact 430 Light | [View](evidence/story-chapter-430-light-overview.png) | [View](evidence/story-chapter-430-light-detail.png) | [View](evidence/story-chapter-430-light-diary.png) |
+| Expanded 1280 Light | [View](evidence/story-chapter-1280-light-overview.png) | [View](evidence/story-chapter-1280-light-detail.png) | [View](evidence/story-chapter-1280-light-diary.png) |
+| Expanded 1280 Dark | [View](evidence/story-chapter-1280-dark-overview.png) | [View](evidence/story-chapter-1280-dark-detail.png) | [View](evidence/story-chapter-1280-dark-diary.png) |
+| 320, 200% text, reduced motion | [View](evidence/story-chapter-320-light-large-reduced-overview.png) | [View](evidence/story-chapter-320-light-large-reduced-detail.png) | [View](evidence/story-chapter-320-light-large-reduced-diary.png) |
+
+The GitHub PR owns live validation and merge state. Publication is outside this
+task; these ordinary Web changes introduce no new native platform capability.

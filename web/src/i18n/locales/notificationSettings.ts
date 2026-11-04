@@ -37,7 +37,9 @@ const notificationSettings = {
   deviceTitle: 'Auf diesem Gerät',
   onboardingTitle: 'Benachrichtigungen aktivieren?',
   onboardingIntro:
-    'Erfahre, wenn dein Partner etwas mit dir teilt oder eine Erinnerung fällig ist. Deine Auswahl kannst du jederzeit in den Einstellungen ändern.',
+    'Erfahre, wenn dein Partner etwas mit dir teilt oder eine Erinnerung fällig ist. Kleine Impulse erinnern euch gelegentlich an eure gemeinsame Zeit. Du kannst sie jederzeit einzeln ausschalten.',
+  onboardingPromptsFailed:
+    'Push ist eingerichtet. Kleine Impulse konnten noch nicht aktiviert werden. Versuche es erneut oder ändere die Auswahl später in den Einstellungen.',
   onboardingActivate: 'Aktivieren',
   onboardingLater: 'Später',
   onboardingOffline:
@@ -76,7 +78,7 @@ const notificationSettings = {
   quietHoursTitle: 'Ruhezeiten',
   quietHoursIntro:
     'Push- und E-Mail-Nachrichten für Partnergesten warten bis danach. Deine In-App-Auswahl bleibt unverändert; fällige Erinnerungen folgen ihrer gewählten Uhrzeit.',
-  quietHoursTimezone: 'Es gilt deine Account-Zeitzone: {{timeZone}}.',
+  quietHoursTimezone: 'Die Zeiten richten sich automatisch nach deinem Gerät.',
   quietHoursEnable: 'Ruhezeit aktivieren',
   quietHoursStart: 'Von',
   quietHoursEnd: 'Bis',

@@ -69,6 +69,7 @@ async function installChapters(
       const source = getTimelineItems()[0].memory;
       return json(route, {
         ...source,
+        body: 'A wonderful morning by the water.',
         spaceId: SPACE_ID,
         authorId: ACCOUNT_ID,
         updatedAt: '2026-05-12T08:30:00Z',
@@ -365,9 +366,7 @@ test('marker-only progressive pages, overlapping starts, annual archive and cont
   await page.goto('/story/years');
   await page.getByRole('link', { name: /2001/ }).click();
   await expect(page.locator('.chapter-diary-marker')).toHaveCount(25);
-  await page
-    .getByRole('button', { name: de.storyYears.loadMore, exact: true })
-    .click();
+  await page.locator('.chapter-diary-marker').last().scrollIntoViewIfNeeded();
   await expect(page.locator('.chapter-diary-marker')).toHaveCount(27);
   expect(unexpected).toEqual([]);
 });

@@ -36,7 +36,8 @@ import {
 } from './client/identityFlow';
 import { loadInstanceAccessStatus } from './client/instanceStatus';
 import { createM4ProductApis } from './client/m4Product';
-import { useGentleUse } from './client/gentlePrompts';
+import { enableGentlePrompts, useGentleUse } from './client/gentlePrompts';
+import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { ProfilesApi } from './client/mediaApis';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { createPeopleApi } from './client/peopleApi';
@@ -286,6 +287,11 @@ function AuthenticatedApp({
     [apiBaseUrl, tokens.accessToken],
   );
   useGentleUse({ account, spaceId, api: m4Apis.notifications });
+  useSystemTimeZone(apiBaseUrl, tokens.accessToken, account.id, spaceId);
+  const enableOnboardingPrompts = useCallback(
+    () => enableGentlePrompts(queryClient, m4Apis.notifications, account.id),
+    [queryClient, m4Apis.notifications, account.id],
+  );
   const devicePush = useDevicePush({
     accountId: account.id,
     apiBaseUrl,
@@ -969,6 +975,7 @@ function AuthenticatedApp({
           devicePush={devicePush}
           accountId={account.id}
           apiBaseUrl={apiBaseUrl}
+          onEnablePrompts={enableOnboardingPrompts}
         />
       </WirDesignProvider>
     </AppIconProvider>

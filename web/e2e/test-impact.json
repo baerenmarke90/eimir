@@ -727,6 +727,14 @@
         "web/src/components/StoryYearsPage.tsx",
         "web/src/components/MemoryProductPage.tsx"
       ]
+    },
+    "device-review.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryPlanningLinks.tsx",
+        "web/src/components/CommentsPanel.tsx",
+        "web/src/components/ContextTagEditor.tsx",
+        "web/src/components/HeartMomentProductPage.tsx"
+      ]
     }
   }
 }

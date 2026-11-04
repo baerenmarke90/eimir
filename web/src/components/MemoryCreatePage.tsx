@@ -19,7 +19,6 @@ import {
   dateInputValueToApiDate,
   effectiveDateInputValue,
   formatDateInputValue,
-  formatDateSummary,
   localDateInputValue,
 } from '../client/dateInput';
 import {
@@ -57,6 +56,7 @@ import { type MemoryTag, MemoryTagChoices } from './MemoryTagChoices';
 import type { MomentPlaceSelection } from './MomentPlaceField';
 import { OrderedMomentPlacesField } from './OrderedMomentPlacesField';
 import { PageHeader } from './PageHeader';
+import { NativeDateField, NativeDateInput } from './NativeDateField';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryCreatePageShell } from './StoryFormPageShell';
@@ -113,7 +113,6 @@ export function MemoryCreatePage({
   const [tagDraftText, setTagDraftText] = useState('');
   const [happenedOn, setHappenedOn] = useState(initialDate);
   const [invalidDate, setInvalidDate] = useState(false);
-  const [dateEditorOpen, setDateEditorOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const bodyInputRef = useRef<HTMLTextAreaElement>(null);
   const tagEditorRef = useRef<ContextTagEditorHandle>(null);
@@ -176,17 +175,6 @@ export function MemoryCreatePage({
       outcomeNoticeRef.current?.scrollIntoView?.({ block: 'end' });
     }
   }, [outcomeNoticeVisible, verifiable, deletedAfterSave]);
-  useEffect(() => {
-    if (!dateEditorOpen) return;
-    const field = dateInputRef.current;
-    field?.focus();
-    try {
-      field?.showPicker?.();
-    } catch {
-      // Some browsers reject showPicker() outside a trusted gesture; the
-      // focused native input remains fully usable via the keyboard.
-    }
-  }, [dateEditorOpen]);
   const apis = useMemo(
     () => createReferenceApis(apiBaseUrl, accessToken),
     [apiBaseUrl, accessToken],
@@ -439,19 +427,6 @@ export function MemoryCreatePage({
     }
   }
 
-  // null when happenedOn cannot be parsed (e.g. an out-of-range year the
-  // native date input accepted via direct keyboard entry): the editable
-  // input stays shown rather than risking a throw from the summary format.
-  const dateSummaryText = useMemo(() => {
-    try {
-      return formatDateSummary(
-        effectiveDateInputValue(happenedOn),
-        resolvedLocale(),
-      );
-    } catch {
-      return null;
-    }
-  }, [happenedOn]);
   const exitAction = useRef<(() => void) | null>(null);
   const onClose = useCallback(() => {
     if (!owner.current.active) return;
@@ -479,6 +454,7 @@ export function MemoryCreatePage({
     owner.current.pending = true;
     setPending(true);
     await diaryDraft.clear();
+    void queryClient.invalidateQueries({ queryKey: ['context-tags', spaceId] });
     if (!owner.current.active) return;
     queryClient.setQueryData(
       authorSummaryQueryKeys.memory(spaceId, memory.id),
@@ -495,6 +471,15 @@ export function MemoryCreatePage({
           taskOriginKey: originKey,
           memorySaved: true,
           photosUnconfirmed,
+          sourcePlanToLink: sourcePlanId
+            ? {
+                id: sourcePlanId,
+                memoryId: memory.id,
+                accountId,
+                spaceId,
+                instance: apiBaseUrl,
+              }
+            : undefined,
         },
       });
     };
@@ -647,7 +632,6 @@ export function MemoryCreatePage({
     } catch {
       // No request has started: retain an editable draft, never an uncertain save.
       setInvalidDate(true);
-      setDateEditorOpen(true);
       dateInputRef.current?.focus();
       return;
     }
@@ -934,48 +918,19 @@ export function MemoryCreatePage({
             ) : null}
 
             {experienceKind !== 'HAPPINESS' && !experienceReply ? (
-              <div className="field-group immersive-create-date-field">
-                <span id="happenedOn-label">{t('memory.dateLabel')}</span>
-                {dateEditorOpen || dateSummaryText === null ? (
-                  <input
-                    ref={dateInputRef}
-                    id="happenedOn"
-                    aria-labelledby="happenedOn-label"
-                    aria-invalid={invalidDate || undefined}
-                    aria-describedby={
-                      invalidDate ? 'memory-date-error' : undefined
-                    }
-                    name="happenedOn"
-                    type="date"
-                    value={happenedOn}
-                    onChange={(event) => {
-                      setHappenedOn(event.target.value);
-                      setInvalidDate(false);
-                    }}
-                    onBlur={() => setDateEditorOpen(false)}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    className="immersive-create-date-summary"
-                    aria-labelledby="happenedOn-label happenedOn-summary-value happenedOn-summary-change"
-                    onClick={() => setDateEditorOpen(true)}
-                  >
-                    <span id="happenedOn-summary-value">{dateSummaryText}</span>
-                    <span
-                      id="happenedOn-summary-change"
-                      className="immersive-create-date-change"
-                    >
-                      {t('memory.dateChangeAction')}
-                    </span>
-                  </button>
-                )}
-                {invalidDate ? (
-                  <p id="memory-date-error" role="alert">
-                    {t('taskBoundary.invalidDate')}
-                  </p>
-                ) : null}
-              </div>
+              <NativeDateField
+                ref={dateInputRef}
+                id="happenedOn"
+                name="happenedOn"
+                label={t('memory.dateLabel')}
+                value={happenedOn}
+                error={invalidDate ? t('taskBoundary.invalidDate') : undefined}
+                fieldClassName="immersive-create-date-field"
+                onChange={(event) => {
+                  setHappenedOn(event.target.value);
+                  setInvalidDate(false);
+                }}
+              />
             ) : null}
 
             {!experienceKind ? (
@@ -985,9 +940,8 @@ export function MemoryCreatePage({
                     <label htmlFor="memory-create-through">
                       {t('experiences.through')}
                     </label>
-                    <input
+                    <NativeDateInput
                       id="memory-create-through"
-                      type="date"
                       min={happenedOn}
                       value={happenedUntil}
                       onChange={(event) => {

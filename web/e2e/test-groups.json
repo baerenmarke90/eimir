@@ -443,6 +443,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 9,
       "reason": "Affected-feature acceptance for Chapter capture/read/edit/link/unlink, dated diary pagination and return; visual variants remain feature-scoped, never always-run core."
+    },
+    "device-review.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5,
+      "reason": "Device-review typed links, aligned own-comment metadata, learned and explicit AI labels at Compact/Expanded."
     }
   }
 }

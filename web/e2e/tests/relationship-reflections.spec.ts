@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import photoSources from '../../src/i18n/locales/photoSources';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -76,6 +77,7 @@ async function fixture(
     capabilities: CAPABILITIES,
   });
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
     const method = request.method();
@@ -536,6 +538,7 @@ test('Plan overview bounds prose, preserves full detail, and restores a cold sna
     release = resolve;
   });
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     if (new URL(route.request().url()).pathname === `${BASE}/plans`)
       await delayed;
     await route.fallback();

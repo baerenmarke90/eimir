@@ -1,3 +1,4 @@
+import { AutoLoadMore } from './AutoLoadMore';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
@@ -433,16 +434,15 @@ export function StoryYearDetailPage({
 
           {storyQuery.hasNextPage ? (
             <div className="story-year-pagination">
-              <button
-                type="button"
+              <AutoLoadMore
+                query={storyQuery}
                 className="secondary"
-                onClick={() => void storyQuery.fetchNextPage()}
-                disabled={storyQuery.isFetchingNextPage}
+                blocked={storyQuery.isFetchingNextPage}
               >
                 {storyQuery.isFetchingNextPage
                   ? t('storyYears.loadingMore')
                   : t('storyYears.loadMore')}
-              </button>
+              </AutoLoadMore>
             </div>
           ) : null}
         </div>

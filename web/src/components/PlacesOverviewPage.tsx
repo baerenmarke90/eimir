@@ -1,8 +1,6 @@
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
+import { AutoLoadMore } from './AutoLoadMore';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   Link,
@@ -92,7 +90,7 @@ export function PlacesOverviewPage({
   const placeRefs = useRef(new Map<string, HTMLAnchorElement>());
   const restoredDeleteFocusRef = useRef(false);
 
-  const places = useInfiniteQuery({
+  const places = useWarmInfiniteQuery({
     queryKey: overviewKey,
     queryFn: ({ pageParam }) =>
       apiCall(() =>
@@ -304,16 +302,15 @@ export function PlacesOverviewPage({
         )}
 
         {places.hasNextPage ? (
-          <button
-            type="button"
+          <AutoLoadMore
+            query={places}
             className="tertiary compact-action"
-            onClick={() => void places.fetchNextPage()}
-            disabled={places.isFetchingNextPage}
+            blocked={places.isFetchingNextPage}
           >
             {places.isFetchingNextPage
               ? t('m5s3.common.loadingMore')
               : t('m5s3.common.loadMore')}
-          </button>
+          </AutoLoadMore>
         ) : null}
 
         <SharedContentSheet

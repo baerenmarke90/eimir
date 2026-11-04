@@ -1,3 +1,4 @@
+import { AutoLoadMore } from './AutoLoadMore';
 import {
   useInfiniteQuery,
   useQuery,
@@ -353,14 +354,13 @@ export function CoupleExperiencePage({
                 </ul>
               )}
               {history.hasNextPage ? (
-                <button
-                  type="button"
+                <AutoLoadMore
+                  query={history}
                   className="secondary"
-                  disabled={history.isFetchingNextPage}
-                  onClick={() => void history.fetchNextPage()}
+                  blocked={history.isFetchingNextPage}
                 >
                   {t('coupleExperiences.more')}
-                </button>
+                </AutoLoadMore>
               ) : null}
             </>
           )}

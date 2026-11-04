@@ -1,3 +1,4 @@
+import { AutoLoadMore } from './AutoLoadMore';
 import {
   useCallback,
   useEffect,
@@ -402,14 +403,13 @@ function RecapLibrary({ api, ...props }: RecapsPageProps & { api: RecapsApi }) {
           </section>
         ) : null}
         {query.hasNextPage ? (
-          <button
-            type="button"
+          <AutoLoadMore
+            query={query}
             className="secondary"
-            disabled={query.isFetchingNextPage}
-            onClick={() => void query.fetchNextPage()}
+            blocked={query.isFetchingNextPage}
           >
             {t('recaps.more')}
-          </button>
+          </AutoLoadMore>
         ) : null}
       </div>
       <details className="recap-explanation">

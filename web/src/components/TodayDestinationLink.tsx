@@ -10,12 +10,14 @@ export function TaskOriginLink({
   ariaLabel,
   children,
   previewControls = false,
+  onFollow,
 }: {
   to: string;
   className?: string;
   ariaLabel?: string;
   children: ReactNode;
   previewControls?: boolean;
+  onFollow?: () => void;
 }) {
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
@@ -29,6 +31,7 @@ export function TaskOriginLink({
     )
       return;
     const taskOriginKey = captureOrigin();
+    onFollow?.();
     if (!taskOriginKey) return;
     event.preventDefault();
     void navigate(to, { state: { taskOriginKey } });

@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import copy from '../../src/i18n/locales/wirDesign';
@@ -29,6 +30,7 @@ async function fixture(
   const writes: string[] = [];
   const base = `/api/v1/spaces/${SPACE_ID}`;
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (path.includes('/attachments/') && path.endsWith('/content')) {
@@ -653,6 +655,7 @@ test('quote and statistics order survives pointer release, keyboard movement and
   let order = [...DASHBOARD_MODULE_KEYS];
   const orders: string[][] = [];
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith('/dashboard/preferences/order')) {
       order = route.request().postDataJSON().moduleKeys;
@@ -851,6 +854,7 @@ for (const [width, theme] of [
       })),
     };
     await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultProductContext(route)) return;
       const path = new URL(route.request().url()).pathname;
       if (path === '/api/v1/notification-preferences')
         return route.fulfill({ json: notifications });

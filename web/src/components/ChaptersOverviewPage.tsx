@@ -1,5 +1,6 @@
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
+import { AutoLoadMore } from './AutoLoadMore';
 import { useEffect, useRef } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { ChapterDetail } from '../api/generated/models/ChapterDetail';
 import {
@@ -50,7 +51,7 @@ export function ChaptersOverviewPage({
   const chapterRefs = useRef(new Map<string, HTMLAnchorElement>());
   const restoredDeleteFocusRef = useRef(false);
 
-  const chapters = useInfiniteQuery({
+  const chapters = useWarmInfiniteQuery({
     queryKey: ['m5-s3', 'chapters', spaceId],
     queryFn: ({ pageParam, signal }) =>
       apiCall(() =>
@@ -186,16 +187,15 @@ export function ChaptersOverviewPage({
         )}
 
         {chapters.hasNextPage ? (
-          <button
-            type="button"
+          <AutoLoadMore
+            query={chapters}
             className="tertiary compact-action"
-            onClick={() => void chapters.fetchNextPage()}
-            disabled={chapters.isFetchingNextPage}
+            blocked={chapters.isFetchingNextPage}
           >
             {chapters.isFetchingNextPage
               ? t('m5s3.common.loadingMore')
               : t('m5s3.common.loadMore')}
-          </button>
+          </AutoLoadMore>
         ) : null}
       </section>
     </div>

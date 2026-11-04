@@ -8,11 +8,13 @@ import {
   PRODUCT_READ_CACHE_MAX_AGE_MS,
   canPersistProductReadPayload,
   clearProductReadCache,
+  captureSharedListCacheWrite,
   deleteProductReadCacheKind,
   isFreshProductCacheTimestamp,
   loadProductWithReadCache,
   mayUseOfflineProductCache,
   saveProductReadCacheEntry,
+  revokeSharedListCache,
   type ProductReadCacheStorage,
 } from './productReadCache';
 
@@ -228,6 +230,54 @@ describe('M5 Web S6 persistent read cache policy', () => {
     expect(
       storedRecords(storage).filter((record) => record.kind === 'story'),
     ).toEqual([]);
+  });
+
+  it('revokes loaded lists and diary markers through the same scoped storage contract', async () => {
+    await loadMemory('account-a', 'space-a', 'memory-1', async () => ({
+      id: 'memory-1',
+      label: 'Retained source',
+    }));
+    for (const kind of ['story', 'shared-list'] as const) {
+      await saveProductReadCacheEntry({
+        accountId: 'account-a',
+        spaceId: 'space-a',
+        kind,
+        resourceId: 'chapters',
+        value: {
+          pages: [{ items: [{ id: 'old-chapter' }] }],
+          pageParams: [null],
+        },
+        serialize: (value) => value,
+      });
+    }
+    const remove = vi.spyOn(storage, 'removeKind');
+    const listLease = captureSharedListCacheWrite('account-a', 'space-a');
+    expect(listLease()).toBe(true);
+    const diary = deferred<{ id: string }>();
+    const pending = loadProductWithReadCache({
+      accountId: 'account-a',
+      spaceId: 'space-a',
+      kind: 'story',
+      resourceId: 'late-diary',
+      load: () => diary.promise,
+      serialize: (value) => value,
+      deserialize: (value) => value as { id: string },
+    });
+
+    revokeSharedListCache('space-a');
+    await deleteProductReadCacheKind('account-a', 'space-a', 'story');
+    diary.resolve({ id: 'old-chapter' });
+    await pending;
+    await __waitForProductReadCacheMutationsForTests();
+
+    expect(remove.mock.calls).toEqual([
+      ['account-a', 'space-a', 'shared-list'],
+      ['account-a', 'space-a', 'story'],
+    ]);
+    expect(listLease()).toBe(false);
+    expect(storedRecords(storage).map((record) => record.kind)).toEqual([
+      'memory',
+    ]);
   });
 
   it('allows cache fallback only for transport and server availability failures', () => {

@@ -59,6 +59,38 @@ class _ChapterRelationColumns(_RelationAuditColumns):
     chapter_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
 
 
+class MemoryPlan(_RelationAuditColumns, Base):
+    __tablename__ = "memory_plans"
+    memory_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    plan_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["memory_id", "space_id"], ["memories.id", "memories.space_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ["plan_id", "space_id"], ["plans.id", "plans.space_id"], ondelete="CASCADE"
+        ),
+        Index("ix_memory_plans_plan_id", "plan_id"),
+        Index("ix_memory_plans_space_id", "space_id"),
+    )
+
+
+class MemoryWish(_RelationAuditColumns, Base):
+    __tablename__ = "memory_wishes"
+    memory_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    wish_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["memory_id", "space_id"], ["memories.id", "memories.space_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ["wish_id", "space_id"], ["wishes.id", "wishes.space_id"], ondelete="CASCADE"
+        ),
+        Index("ix_memory_wishes_wish_id", "wish_id"),
+        Index("ix_memory_wishes_space_id", "space_id"),
+    )
+
+
 class PlaceMemory(_PlaceRelationColumns, Base):
     """A memory that took place at a location."""
 

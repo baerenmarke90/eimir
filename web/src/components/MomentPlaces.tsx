@@ -1,3 +1,4 @@
+import { AutoLoadMore } from './AutoLoadMore';
 import {
   type InfiniteData,
   useInfiniteQuery,
@@ -280,14 +281,13 @@ export function MomentPlaces({
         })}
       </ul>
       {query.hasNextPage ? (
-        <button
-          type="button"
+        <AutoLoadMore
+          query={query}
           className="tertiary"
-          disabled={query.isFetchingNextPage}
-          onClick={() => void query.fetchNextPage()}
+          blocked={query.isFetchingNextPage}
         >
           {t('photoPlaces.more')}
-        </button>
+        </AutoLoadMore>
       ) : null}
     </section>
   );

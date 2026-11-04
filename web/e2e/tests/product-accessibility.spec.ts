@@ -1317,7 +1317,7 @@ test.describe('Space configuration Daily Check-in modules', () => {
     // rejects the write and the manager would be stuck.
     await energySwitch.click();
     await expect(energySwitch).toHaveAttribute('aria-checked', 'true');
-    await expect(zoneSelect).toHaveValue('Europe/Berlin');
+    await expect(zoneSelect).toHaveCount(0);
 
     // The zone is now Space state and is not sent again.
     await vibeSwitch.click();
@@ -1359,7 +1359,6 @@ test.describe('Space configuration Daily Check-in modules', () => {
       for (const control of [
         energySwitch,
         vibeSwitch,
-        zoneSelect,
         ...(await page.locator('.space-visibility-option').all()),
       ]) {
         const box = await control.boundingBox();
@@ -1497,7 +1496,7 @@ test.describe('Complete Settings pages reflow (#1162)', () => {
     expect(unexpectedRequests).toEqual([]);
   });
 
-  test('Settings selects and switches stay operable with a visible focus ring at 320 px and 200 percent text', async ({
+  test('Settings switches and visibility choices stay operable with a visible focus ring at 320 px and 200 percent text', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 320, height: 844 });
@@ -1535,15 +1534,36 @@ test.describe('Complete Settings pages reflow (#1162)', () => {
     const zoneSelect = page.getByRole('combobox', {
       name: profileIdentity.dailyContextTimezoneLabel,
     });
-    await expect(zoneSelect).toBeVisible();
-    const selectBox = await zoneSelect.boundingBox();
-    expect(selectBox?.height ?? 0).toBeGreaterThanOrEqual(44);
-    expect(selectBox?.x ?? -1).toBeGreaterThanOrEqual(0);
-    expect((selectBox?.x ?? 0) + (selectBox?.width ?? 0)).toBeLessThanOrEqual(
+    await expect(zoneSelect).toHaveCount(0);
+    expect(unexpectedRequests.spaceConfigurationPatches).toEqual([
+      { vibeCheckEnabled: true, dailyContextTimezone: 'Europe/Berlin' },
+    ]);
+
+    // Time zones follow the device. The module's remaining visibility choices
+    // must still be reachable and keyboard operable at large text.
+    const choice = page.locator('.space-visibility-option', {
+      hasText: profileIdentity.visibilityMutualReveal,
+    });
+    await expect(choice).toBeVisible();
+    const choiceBox = await choice.boundingBox();
+    expect(choiceBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(choiceBox?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((choiceBox?.x ?? 0) + (choiceBox?.width ?? 0)).toBeLessThanOrEqual(
       320,
     );
-    await zoneSelect.selectOption('Europe/Berlin');
-    await expect(zoneSelect).toHaveValue('Europe/Berlin');
+    const radio = choice.getByRole('radio');
+    await radio.focus();
+    await expect(radio).toBeFocused();
+    expect(
+      await choice.evaluate((element) =>
+        Number.parseFloat(getComputedStyle(element).outlineWidth),
+      ),
+    ).toBeGreaterThanOrEqual(2);
+    await page.keyboard.press('Space');
+    await expect(radio).toBeChecked();
+    expect(unexpectedRequests.spaceConfigurationPatches.at(-1)).toEqual({
+      vibeVisibilityMode: 'MUTUAL_REVEAL',
+    });
     await expectNoHorizontalOverflow(page);
     expect(unexpectedRequests).toEqual([]);
   });

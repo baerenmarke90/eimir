@@ -13,6 +13,35 @@ Contributions are welcome through GitHub Pull Requests.
 
 A Pull Request submission does not guarantee inclusion in the project.
 
+## Web browser test selection
+
+The [Browser impact selection contract](docs/m5/BROWSER-IMPACT-SELECTION.md) and
+the corresponding mandatory rule in `AGENTS.md` apply to every contributor and
+coding agent. Ordinary Web PRs use the shared always-run core plus affected
+product dependencies. Full regression remains automatic on `main` and for
+manual execution; unknown or ambiguous dependencies remain conservative.
+
+When adding or changing a browser journey, update both inventories and review
+all relevant production roots, including navigation into another feature. Keep
+feature/reference matrices scoped to their owners. Explain any new global core
+contract and its collected test impact in the PR; do not automatically make
+one-off acceptance evidence permanent work for every unrelated change.
+
+For changes to the browser selection, install the existing locked Web and E2E
+dependencies and run these preflight checks from the repository root:
+
+```bash
+node --test web/e2e/scripts/*.test.mjs
+cd web/e2e
+npm run test:inventory
+```
+
+Inspect the exact selection/reasons in the planning job summary. Report current
+Playwright collection counts, not historical inventory baselines, and separate
+those counts from measured hosted execution time. Preserve all required product
+contracts, safety fallbacks, diagnostics and independent retries. A runtime
+budget alone never justifies deleting or weakening a test.
+
 ## Retrying failed CI jobs
 
 This is the canonical CI preparation, diagnosis, correction, and retry procedure

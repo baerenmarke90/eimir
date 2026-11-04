@@ -31,6 +31,12 @@ export interface PlaceUpdate {
     address?: string | null;
     /**
      * 
+     * @type {boolean}
+     * @memberof PlaceUpdate
+     */
+    archived?: boolean;
+    /**
+     * 
      * @type {string}
      * @memberof PlaceUpdate
      */
@@ -73,6 +79,7 @@ export function PlaceUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolean
     return {
         
         'address': json['address'] === undefined ? undefined : json['address'] === null ? null : json['address'],
+        'archived': json['archived'] == null ? undefined : json['archived'],
         'description': json['description'] === undefined ? undefined : json['description'] === null ? null : json['description'],
         'latitude': json['latitude'] === undefined ? undefined : json['latitude'] === null ? null : json['latitude'],
         'longitude': json['longitude'] === undefined ? undefined : json['longitude'] === null ? null : json['longitude'],
@@ -92,6 +99,7 @@ export function PlaceUpdateToJSONTyped(value?: PlaceUpdate | null, ignoreDiscrim
     return {
         
         'address': value['address'],
+        'archived': value['archived'],
         'description': value['description'],
         'latitude': value['latitude'],
         'longitude': value['longitude'],

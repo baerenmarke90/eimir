@@ -137,7 +137,7 @@ def test_stored_places_stay_provider_agnostic() -> None:
         assert set(schema.get("properties", {})) & forbidden == set(), name
 
     parameters = {p["name"] for p in _paths()[COLLECTION]["get"].get("parameters", [])}
-    assert parameters == {"spaceId", "cursor", "limit"}
+    assert parameters == {"spaceId", "cursor", "limit", "scope", "order"}
 
 
 def test_the_plan_contract_now_carries_the_place() -> None:

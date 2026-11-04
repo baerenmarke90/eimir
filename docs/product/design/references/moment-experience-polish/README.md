@@ -23,5 +23,5 @@ Place links. Keep protected names out of plaintext indexes and cursors. Settings
 owns the existing Immich setup; capture owns deliberate selection only. Existing
 Pro, authorization, consent, downgrade and Cloud/Self-Hosted boundaries remain.
 
-Actual implementation evidence and exact-source validation are recorded here
-before merge, including Compact/Expanded, Light/Dark and reduced-motion journeys.
+See [implementation acceptance and actual visual evidence](acceptance.md) for
+Compact/Expanded, Light/Dark, reduced motion and complete save/return journeys.

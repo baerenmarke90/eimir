@@ -33,6 +33,12 @@ export const SETTINGS_CATEGORIES: readonly SettingsCategoryDefinition[] = [
     descriptionKey: 'profileIdentity.appearanceIntro',
   },
   {
+    id: 'media',
+    path: SETTINGS_CATEGORY_ROUTES.media,
+    titleKey: 'photoSources.settingsTitle',
+    descriptionKey: 'photoSources.settingsIntro',
+  },
+  {
     id: 'data',
     path: SETTINGS_CATEGORY_ROUTES.data,
     titleKey: 'profileIdentity.settingsData',

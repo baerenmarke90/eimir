@@ -389,8 +389,8 @@
 .media-gallery-privacy-indicator .sensitive-media-cover,
 .media-gallery-privacy-indicator .sensitive-media-label {
   min-height: 0;
-  width: var(--space-8);
-  height: var(--space-8);
+  width: var(--space-12);
+  height: var(--space-12);
   border-radius: var(--radius-pill);
 }
 .media-gallery-privacy-indicator .sensitive-media-cover {
@@ -450,4 +450,13 @@
   display: grid;
   gap: var(--space-2);
   margin-block: var(--space-2);
+}
+
+.media-gallery-privacy-indicator .sensitive-media-label {
+  inset: 0;
+}
+
+.media-gallery-carousel-slide .sensitive-media-label {
+  position: absolute;
+  inset: var(--space-3) var(--space-3) auto auto;
 }

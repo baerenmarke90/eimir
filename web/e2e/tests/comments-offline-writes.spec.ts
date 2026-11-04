@@ -130,6 +130,9 @@ for (const scenario of cases) {
           await state.panel.locator('.comment-menu-trigger').click();
         if (operation === 'update') {
           await state.panel
+            .getByLabel(copy.moreActions, { exact: true })
+            .click();
+          await state.panel
             .getByRole('button', { name: copy.edit, exact: true })
             .click();
           await state.panel

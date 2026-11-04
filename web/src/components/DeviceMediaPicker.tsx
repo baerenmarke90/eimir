@@ -98,9 +98,6 @@ function DeviceInput({
         <EimirIcon name="foto" />
         <span>
           <strong>{t('photoSources.device')}</strong>
-          <small>
-            {t(videos ? 'photoSources.deviceMedia' : 'memory.photoFormats')}
-          </small>
         </span>
       </label>
     </div>

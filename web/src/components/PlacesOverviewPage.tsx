@@ -4,7 +4,12 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import {
   authorSummaryQueryKeys,
@@ -29,6 +34,8 @@ import { PlaceMapPicker, type PlaceMapSelection } from './PlaceMapPicker';
 import { ProblemState } from './ProblemState';
 import { ContentChevron, SharedContentSheet } from './SharedContentSheet';
 import type { ShortTaskSheetHandle } from './ShortTaskSheet';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { StatusScope } from './StatusScope';
 import { UiState } from './UiState';
 import './SharedPlanningPages.css';
 import './SharedContentPages.css';
@@ -59,6 +66,15 @@ export function PlacesOverviewPage({
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const scope =
+    searchParams.get('scope') === 'ARCHIVED'
+      ? 'ARCHIVED'
+      : searchParams.get('scope') === 'ALL'
+        ? 'ALL'
+        : 'ACTIVE';
+  const overviewKey = authorSummaryQueryKeys.placesOverview(spaceId, scope);
+  const { captureOrigin } = useTaskOrigin();
   const createInFlightRef = useRef(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createDirty, setCreateDirty] = useState(false);
@@ -77,13 +93,15 @@ export function PlacesOverviewPage({
   const restoredDeleteFocusRef = useRef(false);
 
   const places = useInfiniteQuery({
-    queryKey: authorSummaryQueryKeys.placesOverview(spaceId),
+    queryKey: overviewKey,
     queryFn: ({ pageParam }) =>
       apiCall(() =>
         apis.places.listPlaces({
           spaceId,
           cursor: pageParam,
           limit: PAGE_SIZE,
+          order: 'NAME',
+          scope,
         }),
       ),
     initialPageParam: null as string | null,
@@ -142,10 +160,7 @@ export function PlacesOverviewPage({
     setCoordinateError(false);
     const description = String(data.get('description')).trim();
     const address = String(data.get('address')).trim();
-    const isCurrentQuery = captureQueryIdentity(
-      queryClient,
-      authorSummaryQueryKeys.placesOverview(spaceId),
-    );
+    const isCurrentQuery = captureQueryIdentity(queryClient, overviewKey);
     createInFlightRef.current = true;
     createPlace.mutate(
       {
@@ -160,11 +175,7 @@ export function PlacesOverviewPage({
           if (
             !isCurrentQuery() ||
             ['unauthorized', 'permission', 'notFound'].includes(
-              clientProblemKind(
-                queryClient.getQueryState(
-                  authorSummaryQueryKeys.placesOverview(spaceId),
-                )?.error,
-              ),
+              clientProblemKind(queryClient.getQueryState(overviewKey)?.error),
             )
           )
             return;
@@ -175,7 +186,9 @@ export function PlacesOverviewPage({
             created,
           );
           createSheetRef.current?.closeForNavigation(() =>
-            navigate(placeDetailPath(created.id)),
+            navigate(placeDetailPath(created.id), {
+              state: { taskOriginKey: captureOrigin() },
+            }),
           );
           setMapChoice(undefined);
           setCoordinateDraft({ latitude: '', longitude: '' });
@@ -204,6 +217,20 @@ export function PlacesOverviewPage({
         }
       />
 
+      <StatusScope
+        label={t('m5s3.place.scope')}
+        value={scope}
+        options={(['ACTIVE', 'ARCHIVED', 'ALL'] as const).map((value) => ({
+          value,
+          label: t(`m5s3.place.scope${value}`),
+        }))}
+        onChange={(next) => {
+          const params = new URLSearchParams(searchParams);
+          if (next === 'ACTIVE') params.delete('scope');
+          else params.set('scope', next);
+          setSearchParams(params);
+        }}
+      />
       <section className="planning-subsection">
         {places.isLoading ? (
           <UiState kind="loading" title={t('states.loading.title')} />
@@ -216,7 +243,13 @@ export function PlacesOverviewPage({
         ) : null}
 
         {placeItems.length === 0 && !places.isLoading && !places.error ? (
-          <p className="planning-empty">{t('m5s3.place.emptyOverview')}</p>
+          <p className="planning-empty">
+            {t(
+              scope === 'ARCHIVED'
+                ? 'm5s3.place.emptyArchive'
+                : 'm5s3.place.emptyOverview',
+            )}
+          </p>
         ) : (
           <ul className="content-overview-list content-overview-places">
             {placeItems.map((place) => (
@@ -228,12 +261,32 @@ export function PlacesOverviewPage({
                   }}
                   className="content-overview-row"
                   to={placeDetailPath(place.id)}
+                  onClick={(event) => {
+                    if (
+                      event.button !== 0 ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.shiftKey ||
+                      event.altKey
+                    )
+                      return;
+                    event.preventDefault();
+                    const taskOriginKey = captureOrigin();
+                    navigate(placeDetailPath(place.id), {
+                      state: { taskOriginKey },
+                    });
+                  }}
                 >
                   <span className="content-overview-icon">
                     <DestinationIcon icon="places" />
                   </span>
                   <div className="content-overview-copy">
                     <h2>{place.name}</h2>
+                    {place.archived ? (
+                      <span className="planning-meta">
+                        {t('m5s3.place.scopeARCHIVED')}
+                      </span>
+                    ) : null}
                     {place.address ? (
                       <p className="planning-meta">{place.address}</p>
                     ) : null}

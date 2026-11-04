@@ -326,7 +326,7 @@ export function StoryList({
             >
               <StoryTimelineMarker kind={item.kind} />
               <CardLink
-                className={`story-card-link${presentation.titleIsDate && imageAttachment ? ' story-card-photo-led' : ''}`}
+                className={`story-card-link${imageAttachment ? ' story-card-photo-led' : ''}`}
                 to={productPath}
                 data-task-item-key={itemKey}
                 onClick={(event) => onOpenItem?.(event, item, productPath)}

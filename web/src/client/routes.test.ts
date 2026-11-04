@@ -125,6 +125,7 @@ describe('settings category routes', () => {
       today: '/more/settings/today',
       memories: '/more/settings/memories',
       appearance: '/more/settings/appearance',
+      media: '/more/settings/media',
       data: '/more/settings/data',
       account: '/more/settings/account',
     });

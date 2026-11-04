@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `address` | string
+`archived` | boolean
 `capabilities` | [ResourceCapabilities](ResourceCapabilities.md)
 `createdAt` | Date
 `createdBy` | string
@@ -29,6 +30,7 @@ import type { PlaceDetail } from ''
 // TODO: Update the object below with actual values
 const example = {
   "address": null,
+  "archived": null,
   "capabilities": null,
   "createdAt": null,
   "createdBy": null,

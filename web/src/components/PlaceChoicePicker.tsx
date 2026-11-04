@@ -55,7 +55,13 @@ export function PlaceChoicePicker({
     queryFn: async ({ pageParam, signal }) => {
       try {
         return await api.listPlaces(
-          { spaceId, cursor: pageParam, limit: 20 },
+          {
+            spaceId,
+            cursor: pageParam,
+            limit: 20,
+            order: 'NAME',
+            scope: 'ACTIVE',
+          },
           { signal },
         );
       } catch (failure) {

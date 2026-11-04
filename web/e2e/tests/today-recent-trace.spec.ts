@@ -2,6 +2,7 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import m5s5 from '../../src/i18n/locales/m5s5';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -86,12 +87,20 @@ const RECENT_SHARED_ITEMS = [
   },
 ];
 
-/*
- * R4 promotes the Heart Moment to the text-first focal role and the Milestone
- * to the single `Gerade bei euch` slot. The trace never repeats content the
- * page already features above it, so three fixtures remain as trace tiles.
- */
-const TRACE_TILE_COUNT = 3;
+// Activity chronology is independent of content occurrence dates and featured modules.
+const TRACE_TILE_COUNT = 4;
+const ACTIVITY_ITEMS = RECENT_SHARED_ITEMS.map((item, index) => ({
+  id: `activity-${index}`,
+  sourceEventId: `source-${index}`,
+  kind: index === 0 ? 'COMMENT_CREATED' : `${item.type}_CREATED`,
+  actorId: PARTNER_ID,
+  actor: { id: PARTNER_ID, displayName: 'Ben' },
+  occurredAt: daysAgo(index),
+  createdAt: daysAgo(index),
+  targetId: item.id,
+  targetType: item.type,
+  target: { targetId: item.id, targetType: item.type, title: item.titleOrText },
+}));
 
 async function installMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
@@ -175,7 +184,11 @@ async function installMocks(page: Page): Promise<void> {
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/activity`
     ) {
-      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      await fulfillJson({
+        hasMore: false,
+        items: ACTIVITY_ITEMS,
+        nextCursor: null,
+      });
       return;
     }
     if (
@@ -212,7 +225,7 @@ async function signIn(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/today$/);
 }
 
-test('Today "Zuletzt bei euch" renders as compact borderless mini-tiles and uses desktop width', async ({
+test('Today event trace keeps compact borderless composition and authoritative order', async ({
   page,
 }) => {
   await installMocks(page);
@@ -231,17 +244,14 @@ test('Today "Zuletzt bei euch" renders as compact borderless mini-tiles and uses
   const tiles = page.locator('.today-recent-tile');
   await expect(tiles).toHaveCount(TRACE_TILE_COUNT);
 
-  // The first eligible shared story item is the deliberate text-first focal
-  // item and is not repeated as a trace tile below it.
+  // The featured story and the authoritative activity trace retain their
+  // distinct purposes, even when an activity refers to the featured target.
   await expect(page.locator('.today-moment-text')).toHaveCount(1);
-  await expect(
-    page.getByText('Danke, dass du heute für mich da warst.'),
-  ).toHaveCount(1);
+  await expect(tiles.first()).toContainText(ACTIVITY_ITEMS[0].target.title);
 
-  // The promoted Milestone appears once, as the contextual module, and is
-  // not duplicated as a trace tile below it.
+  // A promoted Milestone also remains present at its actual activity position.
   await expect(page.locator('.today-living-milestone')).toHaveCount(1);
-  await expect(page.getByText('Ein Jahr in unserer Wohnung')).toHaveCount(1);
+  await expect(tiles.nth(2)).toContainText(ACTIVITY_ITEMS[2].target.title);
 
   // Tinted backgrounds and rounded corners retain each compact unit while
   // respecting the Product Owner's borderless surface decision.
@@ -297,11 +307,10 @@ test('Today "Zuletzt bei euch" renders as compact borderless mini-tiles and uses
   const truncatedTitles = titleOverflow.filter((t) => t.truncated);
   expect(truncatedTitles).toHaveLength(0);
 
-  // Type is still available to assistive tech, but not as a separate
-  // visible badge next to an already type-specific icon.
-  await expect(page.locator('.today-recent-tile .sr-only').first()).toHaveText(
-    /./,
+  await expect(tiles).toHaveText(
+    ACTIVITY_ITEMS.slice(0, 4).map((item) => new RegExp(item.target.title)),
   );
+  await expect(tiles.first()).toContainText(m5s5.activityAction.COMMENT_CREATED);
 
   // Data, order, and navigation are unchanged.
   await expect(
@@ -409,7 +418,9 @@ test('Today "Zuletzt bei euch" stays regression-free on mobile and in dark mode'
   expect(result.violations).toEqual([]);
 });
 
-test('Today "Zuletzt bei euch" is axe-clean in dark mode', async ({ page }) => {
+test('Today and Activities show the same event titles and order in dark mode', async ({
+  page,
+}) => {
   await installMocks(page);
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -417,6 +428,20 @@ test('Today "Zuletzt bei euch" is axe-clean in dark mode', async ({ page }) => {
   await signIn(page);
   await page.waitForSelector('.today-recent-tile');
 
+  const traceTitles = await page
+    .locator('.today-activity-trace .activity-card-target-title')
+    .allTextContents();
+  await page.getByRole('link', { name: /Alle Aktivitäten ansehen/ }).click();
+  await expect(page).toHaveURL(/\/today\/activity$/);
+  await expect(page.locator('.activity-card-target-title')).toHaveCount(
+    ACTIVITY_ITEMS.length,
+  );
+  expect(
+    (await page.locator('.activity-card-target-title').allTextContents()).slice(
+      0,
+      4,
+    ),
+  ).toEqual(traceTitles);
   const result = await new AxeBuilder({ page }).analyze();
   expect(result.violations).toEqual([]);
 });

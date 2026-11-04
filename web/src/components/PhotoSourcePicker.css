@@ -142,3 +142,25 @@
 .photo-source-setup-help li + li {
   margin-block-start: var(--space-2);
 }
+
+.photo-source-sheet .media-device-choice .file-picker,
+.photo-source-sheet .photo-source-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-3);
+  min-block-size: var(--touch-target-web);
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  box-shadow: none;
+  font: var(--font-action-label);
+}
+.photo-source-sheet .media-device-choice .file-picker strong {
+  font: inherit;
+}
+.photo-source-sheet .photo-source-trigger {
+  margin-block-start: var(--space-3);
+}

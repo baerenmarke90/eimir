@@ -186,7 +186,7 @@ describe('PlaceProductPage editor lifecycle', () => {
     await waitFor(() => expect(createPlace).toHaveBeenCalledTimes(1));
     act(() =>
       client.removeQueries({
-        queryKey: authorSummaryQueryKeys.placesOverview('space-1'),
+        queryKey: authorSummaryQueryKeys.placesOverview('space-1', 'ACTIVE'),
         exact: true,
       }),
     );

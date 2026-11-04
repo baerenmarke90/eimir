@@ -166,6 +166,8 @@ export async function loadAllPlaces(
   do {
     const page = await apis.places.listPlaces({
       spaceId,
+      scope: 'ACTIVE',
+      order: 'NAME',
       cursor,
       limit: 50,
     });

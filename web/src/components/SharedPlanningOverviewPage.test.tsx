@@ -219,7 +219,7 @@ describe('SharedPlanningOverviewPage', () => {
       defaultOptions: { queries: { retry: false } },
     });
     placesClient.setQueryData(
-      authorSummaryQueryKeys.placesOverview('space-1'),
+      authorSummaryQueryKeys.placesOverview('space-1', 'ACTIVE'),
       emptyInfinitePage(),
     );
     const placesHtml = renderToStaticMarkup(

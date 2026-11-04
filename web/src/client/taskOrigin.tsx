@@ -12,6 +12,7 @@ import {
   ACTIVITY_ROUTE,
   MEMORY_MAP_ROUTE,
   MORE_COLLECTIONS_ROUTE,
+  MORE_PLACES_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PASSPORT_ROUTE,
   PRIMARY_APP_ROUTES,
@@ -103,6 +104,7 @@ export function taskOriginPath(
       STORY_PHOTOS_ROUTE,
       MEMORY_MAP_ROUTE,
       MORE_COLLECTIONS_ROUTE,
+      MORE_PLACES_ROUTE,
       '/plan',
       WISH_SELECTION_ROUTE,
       '/more',
@@ -127,6 +129,12 @@ export function taskOriginPath(
     if (recapReader && Number.isInteger(page) && page > 0 && page <= 13)
       safe.set('page', String(page));
     return safe.size ? `${pathname}?${safe}` : pathname;
+  }
+  if (pathname === MORE_PLACES_ROUTE) {
+    const scope = new URLSearchParams(search).get('scope');
+    return scope === 'ARCHIVED' || scope === 'ALL'
+      ? `${pathname}?scope=${scope}`
+      : pathname;
   }
   if (pathname === ACTIVITY_ROUTE) {
     return new URLSearchParams(search).get('scope') === 'own'

@@ -50,8 +50,10 @@ export const authorSummaryQueryKeys = {
   wishes: (spaceId: string) => ['m5-s3', 'wishes', spaceId] as const,
   plans: (spaceId: string) => ['m5-s3', 'plans', spaceId] as const,
   places: placeRootKey,
-  placesOverview: (spaceId: string) =>
-    [...placeRootKey(spaceId), 'overview'] as const,
+  placesOverview: (spaceId: string, scope?: 'ACTIVE' | 'ARCHIVED' | 'ALL') =>
+    scope
+      ? ([...placeRootKey(spaceId), 'overview', scope, 'NAME'] as const)
+      : ([...placeRootKey(spaceId), 'overview'] as const),
   placeOptions: (spaceId: string) =>
     [...placeRootKey(spaceId), 'options'] as const,
   chapters: (spaceId: string) => ['m5-s3', 'chapters', spaceId] as const,

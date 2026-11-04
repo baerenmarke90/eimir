@@ -6443,6 +6443,11 @@
             ],
             "title": "Address"
           },
+          "archived": {
+            "default": false,
+            "title": "Archived",
+            "type": "boolean"
+          },
           "capabilities": {
             "$ref": "#/components/schemas/ResourceCapabilities"
           },
@@ -6670,6 +6675,10 @@
               }
             ],
             "title": "Address"
+          },
+          "archived": {
+            "title": "Archived",
+            "type": "boolean"
           },
           "description": {
             "anyOf": [
@@ -28324,6 +28333,35 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "NEWEST",
+              "enum": [
+                "NEWEST",
+                "NAME"
+              ],
+              "title": "Order",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "ALL",
+              "enum": [
+                "ACTIVE",
+                "ARCHIVED",
+                "ALL"
+              ],
+              "title": "Scope",
+              "type": "string"
             }
           }
         ],

@@ -1426,3 +1426,46 @@
   gap: var(--space-3);
   margin-top: var(--space-4);
 }
+
+.today-activity-trace {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.today-activity-trace .activity-card-compact {
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.activity-card-compact .activity-card-target {
+  order: -1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.activity-card-compact .activity-card-title {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+.today-activity-trace > .activity-result-wrapper {
+  min-width: 0;
+  display: flex;
+}
+.today-activity-trace .today-recent-tile {
+  width: 100%;
+}
+.today-activity-trace .today-recent-tile-title {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 640px) {
+  .today-activity-trace > .activity-result-wrapper {
+    flex: 1 1 220px;
+    max-width: 18rem;
+  }
+}

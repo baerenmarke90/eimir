@@ -8,6 +8,8 @@ import {
   useState,
 } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { captureAuthorizedQuery } from '../client/queryIdentity';
+import { postSnackbar } from '../client/snackbar';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import {
   authorSummaryQueryKeys,
@@ -34,6 +36,7 @@ import { PlaceMapPicker } from './PlaceMapPicker';
 import { DestinationIcon } from './DestinationIcon';
 import { SharedContentSheet } from './SharedContentSheet';
 import type { ShortTaskSheetHandle } from './ShortTaskSheet';
+import { TaskBackButton } from './TaskBackButton';
 import { PageHeader } from './PageHeader';
 import { PlanningRelationManager } from './PlanningRelationManager';
 import { ProblemState } from './ProblemState';
@@ -82,6 +85,9 @@ function PlaceEditor({
   deleteError,
   onSubmit,
   onDelete,
+  onArchive,
+  archivePending,
+  archiveError,
   onClose,
 }: {
   open: boolean;
@@ -98,6 +104,9 @@ function PlaceEditor({
   deleteError: unknown;
   onSubmit: (draft: PlaceDraft) => void;
   onDelete: () => void;
+  onArchive: () => void;
+  archivePending: boolean;
+  archiveError: unknown;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -113,7 +122,7 @@ function PlaceEditor({
     }
   }, [open]);
   const isDirty = JSON.stringify(draft) !== JSON.stringify(placeDraft(place));
-  const isPending = updatePending || deletePending;
+  const isPending = updatePending || deletePending || archivePending;
 
   useEffect(() => {
     if (confirmDelete) deleteHeadingRef.current?.focus();
@@ -306,6 +315,28 @@ function PlaceEditor({
             </fieldset>
           </form>
 
+          {place.capabilities.canEdit ? (
+            <div className="form-actions">
+              <button
+                type="button"
+                className="secondary"
+                disabled={isPending || isDirty}
+                onClick={onArchive}
+              >
+                {t(
+                  archivePending
+                    ? 'm5s3.common.saving'
+                    : place.archived
+                      ? 'm5s3.place.restore'
+                      : 'm5s3.place.archive',
+                )}
+              </button>
+              {isDirty ? (
+                <p className="field-help">{t('m5s3.place.archiveSaveFirst')}</p>
+              ) : null}
+              {archiveError ? <ProblemState error={archiveError} /> : null}
+            </div>
+          ) : null}
           {place.capabilities.canDelete ? (
             <div style={{ marginTop: 'var(--space-8)' }}>
               {!confirmDelete ? (
@@ -376,7 +407,7 @@ export function PlaceProductPage({
   const { placeId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const { requestReturn } = useTaskOrigin();
   const originKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const queryClient = useQueryClient();
@@ -431,6 +462,36 @@ export function PlaceProductPage({
     },
   });
 
+  const archiveMutation = useMutation({
+    networkMode: 'always',
+    retry: false,
+    mutationFn: async (place: PlaceDetail) => {
+      try {
+        assertOnlineWrite();
+        return await apis.places.updatePlace({
+          spaceId,
+          placeId: place.id,
+          ifMatch: planningIfMatch(place),
+          placeUpdate: { archived: !place.archived },
+        });
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    onMutate: () => ({ isCurrent: captureAuthorizedQuery(queryClient, key) }),
+    onSuccess: async (place, _previous, context) => {
+      if (!context?.isCurrent()) return;
+      queryClient.setQueryData(key, place);
+      await invalidatePlaceConsumers(queryClient, spaceId);
+      if (!context.isCurrent()) return;
+      setIsEditing(false);
+      setDraft(null);
+      postSnackbar(
+        t(place.archived ? 'm5s3.place.archived' : 'm5s3.place.restored'),
+      );
+    },
+  });
+
   const deleteMutation = useMutation({
     networkMode: 'always',
     mutationFn: (place: PlaceDetail) =>
@@ -444,9 +505,16 @@ export function PlaceProductPage({
       }),
     onMutate: (place) => ({
       focusTarget: deleteFocusTargetFromInfiniteData(
-        queryClient.getQueryData<InfiniteItemsData<PlaceDetail>>(
-          authorSummaryQueryKeys.placesOverview(spaceId),
-        ),
+        queryClient
+          .getQueriesData<InfiniteItemsData<PlaceDetail>>({
+            queryKey: authorSummaryQueryKeys.placesOverview(spaceId),
+          })
+          .map(([, data]) => data)
+          .find((data) =>
+            data?.pages.some((page) =>
+              page.items.some((item) => item.id === place.id),
+            ),
+          ),
         place.id,
       ),
     }),
@@ -495,17 +563,9 @@ export function PlaceProductPage({
     <div className="page shared-content-page">
       <PageHeader
         before={
-          <button
-            type="button"
-            className="back-link tertiary"
+          <TaskBackButton
             onClick={() => requestReturn(originKey, MORE_PLACES_ROUTE)}
-          >
-            {t(
-              resolveOrigin(originKey)
-                ? 'taskBoundary.back'
-                : 'm5s3.common.shortBackToPlaces',
-            )}
-          </button>
+          />
         }
         className="shared-authored-heading"
         title={place.name}
@@ -513,7 +573,7 @@ export function PlaceProductPage({
           place.capabilities.canEdit ? (
             <ListEntryIconButton
               ref={editTriggerRef}
-              disabled={isEditing}
+              disabled={isEditing || archiveMutation.isPending}
               icon="edit"
               className="tertiary"
               label={t('common.edit')}
@@ -561,14 +621,25 @@ export function PlaceProductPage({
           })
         }
         onDelete={() => deleteMutation.mutate(place)}
+        onArchive={() => {
+          if (!archiveMutation.isPending) archiveMutation.mutate(place);
+        }}
+        archivePending={archiveMutation.isPending}
+        archiveError={archiveMutation.error}
         onClose={() => {
           setIsEditing(false);
           setDraft(null);
           updateMutation.reset();
           deleteMutation.reset();
+          archiveMutation.reset();
         }}
       />
 
+      {place.archived ? (
+        <p className="planning-meta" role="status">
+          {t('m5s3.place.scopeARCHIVED')}
+        </p>
+      ) : null}
       {place.address || place.description ? (
         <div className="shared-place-intro">
           {place.address ? (

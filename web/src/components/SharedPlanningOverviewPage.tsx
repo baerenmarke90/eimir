@@ -364,6 +364,14 @@ export function SharedPlanningOverviewPage({
         className={`${focal ? 'planen-next-link' : 'planen-agenda-link'}${plan.coverAttachment ? ' planen-preview-has-cover' : ''}`}
         {...planningLinkProps(planDetailPath(plan.id), 'plans', plan.id)}
       >
+        <PlanCover
+          plan={plan}
+          spaceId={spaceId}
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          interactive={false}
+          presentation="preview"
+        />
         <span className={focal ? 'planen-next-copy' : 'planen-agenda-copy'}>
           <strong className={focal ? undefined : 'planen-agenda-title'}>
             {plan.title}
@@ -391,14 +399,6 @@ export function SharedPlanningOverviewPage({
             </span>
           ) : null}
         </span>
-        <PlanCover
-          plan={plan}
-          spaceId={spaceId}
-          apiBaseUrl={apiBaseUrl}
-          accessToken={accessToken}
-          interactive={false}
-          presentation="preview"
-        />
       </Link>
     );
   }

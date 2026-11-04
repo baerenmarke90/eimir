@@ -392,7 +392,7 @@ No authorization required
 
 ## listPlaces
 
-> PlacePage listPlaces(spaceId, cursor, limit)
+> PlacePage listPlaces(spaceId, cursor, limit, order, scope)
 
 List Places
 
@@ -416,6 +416,10 @@ async function example() {
     cursor: cursor_example,
     // number (optional)
     limit: 56,
+    // 'NEWEST' | 'NAME' (optional)
+    order: order_example,
+    // 'ACTIVE' | 'ARCHIVED' | 'ALL' (optional)
+    scope: scope_example,
   } satisfies ListPlacesRequest;
 
   try {
@@ -438,6 +442,8 @@ example().catch(console.error);
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
 | **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **limit** | `number` |  | [Optional] [Defaults to `50`] |
+| **order** | `NEWEST`, `NAME` |  | [Optional] [Defaults to `&#39;NEWEST&#39;`] [Enum: NEWEST, NAME] |
+| **scope** | `ACTIVE`, `ARCHIVED`, `ALL` |  | [Optional] [Defaults to `&#39;ALL&#39;`] [Enum: ACTIVE, ARCHIVED, ALL] |
 
 ### Return type
 

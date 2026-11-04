@@ -197,7 +197,10 @@
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/StoryProductPage.tsx",
-        "web/src/components/MemoryCreatePage.tsx"
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/MemoryPreview.tsx",
+        "web/src/components/SensitiveMedia.tsx"
       ]
     },
     "memory-create-defaults.spec.ts": {

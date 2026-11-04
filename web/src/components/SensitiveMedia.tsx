@@ -96,8 +96,15 @@ export function SensitiveMediaControl({
       )}
       onClick={onToggle}
     >
-      <span>
-        {t(revealed ? 'sensitiveMedia.conceal' : 'sensitiveMedia.reveal')}
+      <span
+        className="sensitive-media-control-copy"
+        data-reserve-label={t(
+          revealed ? 'sensitiveMedia.reveal' : 'sensitiveMedia.conceal',
+        )}
+      >
+        <span>
+          {t(revealed ? 'sensitiveMedia.conceal' : 'sensitiveMedia.reveal')}
+        </span>
       </span>
     </button>
   );

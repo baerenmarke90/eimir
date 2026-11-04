@@ -725,7 +725,7 @@ for (const state of [
   { width: 1280, theme: 'dark', textScale: 1 },
   { width: 320, theme: 'dark', textScale: 2 },
 ] as const) {
-  test(`overview Privacy icons independently reveal blurred photos at ${state.width}px ${state.theme}${state.textScale > 1 ? ' 200% text' : ''}`, async ({
+  test(`overview reveal controls independently reveal blurred photos without a lock glyph at ${state.width}px ${state.theme}${state.textScale > 1 ? ' 200% text' : ''}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width: state.width, height: 900 });
@@ -757,7 +757,8 @@ for (const state of [
       });
       await photo.scrollIntoViewIfNeeded();
       await expect(photo.locator('.sensitive-media-blurred img')).toBeVisible();
-      await expect(button.locator('.eimir-icon-privatsphaere')).toBeVisible();
+      await expect(button.locator('svg')).toHaveCount(0);
+      await expect(button).toHaveText(sensitiveMedia.reveal);
       expect(await button.evaluate((node) => node.closest('a'))).toBeNull();
       await button.hover();
       const frame = await photo.boundingBox();
@@ -776,7 +777,10 @@ for (const state of [
       });
       expect(target.width).toBeGreaterThanOrEqual(44);
       expect(target.height).toBeGreaterThanOrEqual(44);
-      expect(target.x).toBeGreaterThan(frame.x + frame.width / 2);
+      expect(target.x).toBeGreaterThanOrEqual(frame.x);
+      expect(target.x + target.width).toBeLessThanOrEqual(
+        frame.x + frame.width,
+      );
       expect(target.y).toBeGreaterThanOrEqual(frame.y);
       expect(
         await photo
@@ -820,15 +824,20 @@ for (const state of [
         expect(revealedTarget.y + revealedTarget.height).toBeLessThanOrEqual(
           revealedFrame.y + revealedFrame.height,
         );
-        expect(revealedTarget.x).toBeGreaterThan(
+        // A named text control can grow toward the center at 200% text.
+        // Keep it inside the upper-right edge and the photo center unobscured.
+        expect(revealedTarget.x + revealedTarget.width).toBeGreaterThan(
           revealedFrame.x + revealedFrame.width / 2,
         );
         expect(revealedTarget.y + revealedTarget.height).toBeLessThan(
           revealedFrame.y + revealedFrame.height / 2,
         );
       } else {
-        expect(revealedTarget.x).toBeGreaterThan(
-          revealedFrame.x + revealedFrame.width / 2,
+        expect(revealedTarget.x + revealedTarget.width).toBeLessThanOrEqual(
+          revealedFrame.x + revealedFrame.width,
+        );
+        expect(revealedTarget.y + revealedTarget.height).toBeLessThan(
+          revealedFrame.y + revealedFrame.height / 2,
         );
         expect(revealedTarget.y).toBeLessThan(
           revealedFrame.y + revealedFrame.height / 2,
@@ -858,7 +867,7 @@ for (const state of [
         .include('.preview-card-link-target')
         .analyze();
       expect(violations.violations).toEqual([]);
-      // A click on the photo outside the icon still opens detail, concealed.
+      // A click on the photo outside the control still opens detail, concealed.
       const currentFrame = await photo.boundingBox();
       if (!currentFrame) throw new Error('Expected a visible photo frame.');
       await page.mouse.click(currentFrame.x + 12, currentFrame.y + 12);

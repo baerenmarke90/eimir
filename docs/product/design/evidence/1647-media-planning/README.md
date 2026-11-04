@@ -27,6 +27,9 @@ remain single-photo intake.
 
 The sensitive cover and reveal control have no lock glyph. Conceal/reveal,
 accessible names, classification and volatile reveal reset remain in place.
+Both localized action labels reserve the same geometry, so toggling does not
+move the touch target. Compact padding keeps the photo center clear at 200%
+text while allowing the named control to extend left from its upper-right edge.
 
 | Evidence | Observed behavior |
 |---|---|
@@ -36,6 +39,7 @@ accessible names, classification and volatile reveal reset remain in place.
 | [Plan association](plan-edit-link-choice-390-light.png) | Existing Wish selection entered through Edit; unsaved text and fresh If-Match retained |
 | [Dropped photo in Edit](memory-edit-drop-ready-390-light.png), [saved result](memory-drop-saved-390-light.png) | Browser DataTransfer → existing upload → save → read-only detail; association trigger absent from reading |
 | [Sensitive overview](plan-cover-overview-390-portrait-dark-false-true.png), [after explicit reveal](plan-cover-detail-390-portrait-dark-false-true.png) | Concealment and reveal retained, glyph absent |
+| [Named conceal control](overview-diary-390-dark-concealed.png), [revealed Today](overview-wir-390-dark-revealed.png), [keyboard / 200% text](overview-diary-320-dark-revealed.png), [Expanded](overview-diary-1280-dark-revealed.png) | No lock glyph; stable 44px-or-larger target, current focus, photo-center clearance, keyboard conceal and source return |
 | [Cold Plan restore](planning-warm-snapshot-390.png) | Saved content shown immediately and labelled until current revalidation completes |
 
 ## Validation
@@ -79,3 +83,12 @@ exercises the pipeline; these numbers are **not a realistic compression benchmar
 The compiled worker executes under the exact production CSP with zero policy
 violations, without blob/remote workers, inline scripts or eval. Unit tests cover
 original fallback, abort of active/queued work, output bounds and timeout.
+
+Five retained independent-reveal browser cases also pass across 360/390/430,
+Expanded and 320px/200% text (22.7 seconds, one worker). They now assert a
+named text control without an SVG rather than requiring the removed lock.
+The original blur, explicit reveal, focus, keyboard conceal, contrast, touch
+geometry, source navigation and concealed-return assertions remain. Width is
+reserved for both labels; the former icon-only right-half constraint is now
+upper-right containment with photo-center clearance, allowing localized text
+to scale without being clipped. This adds no cases to the always-run core.

@@ -716,6 +716,14 @@
         "web/src/components/WishDetectiveGamePage.tsx",
         "web/src/components/GamesProductArea.tsx"
       ]
+    },
+    "device-review.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryPlanningLinks.tsx",
+        "web/src/components/CommentsPanel.tsx",
+        "web/src/components/ContextTagEditor.tsx",
+        "web/src/components/HeartMomentProductPage.tsx"
+      ]
     }
   }
 }

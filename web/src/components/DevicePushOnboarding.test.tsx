@@ -236,3 +236,50 @@ it('explains an offline activation and requires a deliberate online retry', asyn
   });
   expect(view.devicePush.enable).toHaveBeenCalledTimes(1);
 });
+
+it('enables Small Invitations once after explicit consent and confirmed push, with retained retry', async () => {
+  const prompts = vi
+    .fn()
+    .mockRejectedValueOnce(new Error('temporarily unavailable'))
+    .mockResolvedValue(undefined);
+  const initial = controller();
+  const view = render(
+    <DevicePushOnboarding
+      accountId={accountId}
+      apiBaseUrl={apiBaseUrl}
+      devicePush={initial}
+      onEnablePrompts={prompts}
+    />,
+  );
+  fireEvent.click(
+    await screen.findByRole('button', { name: copy.onboardingActivate }),
+  );
+  expect(prompts).not.toHaveBeenCalled();
+  view.rerender(
+    <DevicePushOnboarding
+      accountId={accountId}
+      apiBaseUrl={apiBaseUrl}
+      devicePush={controller({ state: 'on', registered: true })}
+      onEnablePrompts={prompts}
+    />,
+  );
+  await waitFor(() => expect(prompts).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy());
+  fireEvent.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+  await waitFor(() => expect(prompts).toHaveBeenCalledTimes(2));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+});
+
+it('does not enable invitations during token refresh for an already registered device', async () => {
+  const prompts = vi.fn();
+  render(
+    <DevicePushOnboarding
+      accountId={accountId}
+      apiBaseUrl={apiBaseUrl}
+      devicePush={controller({ state: 'on', registered: true })}
+      onEnablePrompts={prompts}
+    />,
+  );
+  await act(async () => {});
+  expect(prompts).not.toHaveBeenCalled();
+});

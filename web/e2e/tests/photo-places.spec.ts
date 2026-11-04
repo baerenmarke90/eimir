@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -267,6 +268,7 @@ async function installPhotoPlaces(page: Page, pending = false) {
   const writes: string[] = [];
   let memoryVersion = 1;
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const req = route.request(),
       pathname = new URL(req.url()).pathname,
       method = req.method();

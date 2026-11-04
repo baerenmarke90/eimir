@@ -106,3 +106,7 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+/* Photo positions stay fixed while hovering and restoring a gallery origin. */
+.shared-photos-tile:hover:not(:disabled) {
+  transform: none;
+}

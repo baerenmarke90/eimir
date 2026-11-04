@@ -247,9 +247,7 @@ test('shared photos: lazy variants, viewer Back, bounded originals and canonical
   await expect(page.locator('.shared-photos-tile').nth(1)).toBeFocused();
   await expect(page).toHaveURL(/\/story\/photos$/);
 
-  await page
-    .getByRole('button', { name: sharedPhotos.more, exact: true })
-    .click();
+  await page.locator('.auto-load-sentinel').scrollIntoViewIfNeeded();
   await expect(page.locator('.shared-photos-tile')).toHaveCount(44);
   const selected = page.locator('[data-photo-id="photo-42"]');
   await selected.scrollIntoViewIfNeeded();
@@ -424,6 +422,10 @@ test('shared photos: empty and failed first page disclose no count, offline stat
   await screenshot(page, testInfo, 'story-photos-empty.png');
   await page.unroute('**/api/v1/**');
   await mocks(page, 'error');
+  // This case exercises a failed cold read, independently of the warm snapshot.
+  await page.evaluate(() =>
+    localStorage.removeItem('eimir-web-read-cache-context-v3'),
+  );
   await page.reload();
   await expect(page.getByRole('alert')).toBeVisible();
   await expect(page.locator('.shared-photos-count')).toHaveCount(0);
@@ -468,9 +470,7 @@ test('shared photos: a failed next page retains loaded photos and retries the sa
     });
   });
 
-  await page
-    .getByRole('button', { name: sharedPhotos.more, exact: true })
-    .click();
+  await page.locator('.auto-load-sentinel').scrollIntoViewIfNeeded();
   await expect(page.getByText(sharedPhotos.pageError)).toBeVisible();
   await expect(page.locator('.shared-photos-tile')).toHaveCount(40);
   expect(cursors).toEqual(['second-page']);

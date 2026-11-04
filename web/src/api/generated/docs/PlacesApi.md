@@ -442,7 +442,7 @@ example().catch(console.error);
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
 | **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **limit** | `number` |  | [Optional] [Defaults to `50`] |
-| **order** | `NEWEST`, `NAME` |  | [Optional] [Defaults to `&#39;NEWEST&#39;`] [Enum: NEWEST, NAME] |
+| **order** | `NEWEST`, `NAME` |  | [Optional] [Defaults to `&#39;NAME&#39;`] [Enum: NEWEST, NAME] |
 | **scope** | `ACTIVE`, `ARCHIVED`, `ALL` |  | [Optional] [Defaults to `&#39;ALL&#39;`] [Enum: ACTIVE, ARCHIVED, ALL] |
 
 ### Return type

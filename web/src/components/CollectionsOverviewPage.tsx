@@ -1,9 +1,7 @@
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
+import { AutoLoadMore } from './AutoLoadMore';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import {
@@ -72,7 +70,7 @@ export function CollectionsOverviewPage({
   const collectionRefs = useRef(new Map<string, HTMLAnchorElement>());
   const restoredDeleteFocusRef = useRef(false);
 
-  const collections = useInfiniteQuery({
+  const collections = useWarmInfiniteQuery({
     queryKey: ['m5-s3', 'collections', spaceId],
     queryFn: ({ pageParam }) =>
       apiCall(() =>
@@ -242,16 +240,15 @@ export function CollectionsOverviewPage({
         )}
 
         {collections.hasNextPage ? (
-          <button
-            type="button"
+          <AutoLoadMore
+            query={collections}
             className="tertiary compact-action"
-            onClick={() => void collections.fetchNextPage()}
-            disabled={collections.isFetchingNextPage}
+            blocked={collections.isFetchingNextPage}
           >
             {collections.isFetchingNextPage
               ? t('m5s3.common.loadingMore')
               : t('m5s3.common.loadMore')}
-          </button>
+          </AutoLoadMore>
         ) : null}
 
         <SharedContentSheet

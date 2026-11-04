@@ -6,6 +6,7 @@ import re
 from ipaddress import ip_address
 
 from starlette.datastructures import Headers
+from starlette.middleware.cors import CORSMiddleware
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from eimir.api.errors import problem
@@ -15,6 +16,35 @@ ORDINARY_REQUEST_MAX_BYTES = 8 * 1024 * 1024
 
 _ATTACHMENT_CONTENT_PATH = re.compile(r"/api/v1/spaces/[^/]+/attachments/[^/]+/content\Z")
 _TRANSFER_IMPORT_PATH = re.compile(r"/api/v1/spaces/[^/]+/transfer/imports\Z")
+
+
+class PackagedUploadCorsMiddleware:
+    """Permit native browser File streaming only on the bearer-protected route.
+
+    No cookies, wildcard origin, ordinary API route, or authorization bypass.
+    The standard middleware owns preflight and Vary behavior.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+        self.upload = CORSMiddleware(
+            app,
+            allow_origins=["https://localhost"],
+            allow_methods=["PUT"],
+            allow_headers=["Authorization", "Content-Type"],
+            allow_credentials=False,
+            max_age=600,
+        )
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if (
+            scope["type"] == "http"
+            and scope.get("method") in {"PUT", "OPTIONS"}
+            and _ATTACHMENT_CONTENT_PATH.fullmatch(scope.get("path", ""))
+        ):
+            await self.upload(scope, receive, send)
+        else:
+            await self.app(scope, receive, send)
 
 
 def _has_dedicated_stream_limit(scope: Scope) -> bool:

@@ -24,6 +24,16 @@ import {
     AccountDeletionRequestToJSON,
 } from '../models/AccountDeletionRequest';
 import {
+    type DeviceContextUpdate,
+    DeviceContextUpdateFromJSON,
+    DeviceContextUpdateToJSON,
+} from '../models/DeviceContextUpdate';
+import {
+    type DeviceContextView,
+    DeviceContextViewFromJSON,
+    DeviceContextViewToJSON,
+} from '../models/DeviceContextView';
+import {
     type PhotoLocationPreference,
     PhotoLocationPreferenceFromJSON,
     PhotoLocationPreferenceToJSON,
@@ -46,6 +56,10 @@ export interface DeleteOwnAccountApiV1AccountDeletionPostRequest {
 export interface SetPhotoLocationPreferenceRequest {
     ifMatch: string;
     photoLocationPreferenceUpdate: PhotoLocationPreferenceUpdate;
+}
+
+export interface UpdateOwnDeviceContextRequest {
+    deviceContextUpdate: DeviceContextUpdate;
 }
 
 /**
@@ -194,6 +208,53 @@ export class AccountApi extends runtime.BaseAPI {
      */
     async setPhotoLocationPreference(requestParameters: SetPhotoLocationPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PhotoLocationPreference> {
         const response = await this.setPhotoLocationPreferenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateOwnDeviceContext without sending the request
+     */
+    async updateOwnDeviceContextRequestOpts(requestParameters: UpdateOwnDeviceContextRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['deviceContextUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'deviceContextUpdate',
+                'Required parameter "deviceContextUpdate" was null or undefined when calling updateOwnDeviceContext().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/account/device-context`;
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: DeviceContextUpdateToJSON(requestParameters['deviceContextUpdate']),
+        };
+    }
+
+    /**
+     * Update Own Device Context
+     */
+    async updateOwnDeviceContextRaw(requestParameters: UpdateOwnDeviceContextRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeviceContextView>> {
+        const requestOptions = await this.updateOwnDeviceContextRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DeviceContextViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Update Own Device Context
+     */
+    async updateOwnDeviceContext(requestParameters: UpdateOwnDeviceContextRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeviceContextView> {
+        const response = await this.updateOwnDeviceContextRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

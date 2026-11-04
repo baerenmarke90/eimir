@@ -1,3 +1,4 @@
+import { NativeDateInput } from './NativeDateField';
 import {
   onlineManager,
   useIsMutating,
@@ -590,11 +591,10 @@ export function PlanProductPage({
                   <label htmlFor="plan-edit-experienced">
                     {t('m5s3.plan.experiencedOn')}
                   </label>
-                  <input
+                  <NativeDateInput
                     form="plan-edit-form"
                     id="plan-edit-experienced"
                     name="experiencedOn"
-                    type="date"
                     defaultValue={dateOnlyInput(plan.experiencedOn)}
                   />
                 </>
@@ -847,10 +847,9 @@ export function PlanProductPage({
             <label htmlFor="plan-complete-date">
               {t('m5s3.plan.experiencedOn')}
             </label>
-            <input
+            <NativeDateInput
               id="plan-complete-date"
               name="experiencedOn"
-              type="date"
               required
               readOnly={writesPending}
               defaultValue={localCalendarDateInput()}

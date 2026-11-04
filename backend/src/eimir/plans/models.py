@@ -161,6 +161,7 @@ class Plan(
 
     __table_args__ = (
         UniqueConstraint("cover_attachment_id", name="uq_plans_cover_attachment"),
+        UniqueConstraint("id", "space_id", name="uq_plans_id_space_id"),
         CheckConstraint("privacy_class = 'SPACE_SHARED'", name="privacy_is_space_shared"),
         CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
         # A schedule has exactly one semantic start representation. Keeping the

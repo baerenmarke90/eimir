@@ -1,3 +1,4 @@
+import { AutoLoadMore } from './AutoLoadMore';
 import {
   type QueryClient,
   type QueryKey,
@@ -539,16 +540,15 @@ function CommentsPanelContent({
       ) : null}
 
       {commentsQuery.hasNextPage ? (
-        <button
-          type="button"
+        <AutoLoadMore
+          query={commentsQuery}
           className="secondary"
-          onClick={() => void commentsQuery.fetchNextPage()}
-          disabled={commentsQuery.isFetchingNextPage}
+          blocked={commentsQuery.isFetchingNextPage}
         >
           {commentsQuery.isFetchingNextPage
             ? t('comments.loadingMore')
             : t('comments.loadMore')}
-        </button>
+        </AutoLoadMore>
       ) : null}
 
       {triggerContainer ? createPortal(trigger, triggerContainer) : trigger}

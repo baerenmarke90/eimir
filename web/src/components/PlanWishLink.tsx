@@ -1,3 +1,4 @@
+import { AutoLoadMore } from './AutoLoadMore';
 import {
   useInfiniteQuery,
   useMutation,
@@ -245,14 +246,13 @@ export function PlanWishLink({
           </fieldset>
         ) : null}
         {wishes.hasNextPage ? (
-          <button
-            type="button"
+          <AutoLoadMore
+            query={wishes}
             className="tertiary"
-            disabled={wishes.isFetchingNextPage || mutation.isPending}
-            onClick={() => void wishes.fetchNextPage()}
+            blocked={wishes.isFetchingNextPage || mutation.isPending}
           >
             {t('m5s3.common.loadMore')}
-          </button>
+          </AutoLoadMore>
         ) : null}
         {mutation.error ? (
           <ProblemState

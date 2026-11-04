@@ -1,4 +1,5 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
+import { AutoLoadMore } from './AutoLoadMore';
 import {
   type MouseEvent,
   type ReactNode,
@@ -268,7 +269,7 @@ export function SharedPlanningOverviewPage({
     });
   }, [location.state, location.hash, resolveOrigin, primaryDestination]);
 
-  const wishes = useInfiniteQuery({
+  const wishes = useWarmInfiniteQuery({
     queryKey: [
       'm5-s3',
       'wishes',
@@ -620,16 +621,15 @@ export function SharedPlanningOverviewPage({
           </ul>
         ) : null}
         {wishes.hasNextPage ? (
-          <button
-            type="button"
+          <AutoLoadMore
+            query={wishes}
             className="tertiary compact-action"
-            onClick={() => void wishes.fetchNextPage()}
-            disabled={wishes.isFetchingNextPage}
+            blocked={wishes.isFetchingNextPage}
           >
             {wishes.isFetchingNextPage
               ? t('m5s3.common.loadingMore')
               : t('m5s3.common.loadMore')}
-          </button>
+          </AutoLoadMore>
         ) : null}
       </PlanenPanel>
     </div>

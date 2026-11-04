@@ -671,7 +671,7 @@ test.describe('Today R4: personal content precedes the practical horizon', () =>
     await expect(page.locator('.today-section-monthly')).toHaveCount(0);
     await expect(
       page.getByRole('link', { name: recaps.profileLink }),
-    ).toHaveAttribute('href', '/more/passport');
+    ).toHaveCount(0);
     await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
     await expect(page.getByRole('link', { name: recaps.watchNow })).toHaveCount(
       0,

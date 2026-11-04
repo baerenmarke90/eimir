@@ -19,6 +19,7 @@ from types import FrameType
 from eimir.attachments import account_media
 from eimir.attachments import cleanup as media_cleanup
 from eimir.config import get_settings
+from eimir.context_tags import jobs as context_tag_jobs
 from eimir.daily_checkins import retention as daily_checkin_retention
 from eimir.db.session import unit_of_work
 from eimir.demo import reset as demo_reset
@@ -77,6 +78,7 @@ def _ensure_maintenance() -> None:
             photo_source_retention.ensure_scheduled(session)
             photo_enrichment.ensure_scheduled(session)
             recap_jobs.ensure_scheduled(session)
+            context_tag_jobs.ensure_scheduled(session)
     except Exception:
         log.exception("could not schedule maintenance")
 
@@ -101,6 +103,7 @@ def main() -> None:
     photo_source_retention.register_handlers()
     photo_enrichment.register_handlers()
     recap_jobs.register_handlers()
+    context_tag_jobs.register_handlers()
     maintenance.register_handlers()
     gentle_jobs.register_handlers()
     media_cleanup.register_handlers()

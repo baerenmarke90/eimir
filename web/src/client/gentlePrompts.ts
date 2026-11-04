@@ -1,11 +1,54 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { NotificationPreferencesView } from '../api/generated/models/NotificationPreferencesView';
+import { captureAuthorizedQuery } from './queryIdentity';
 
 export const GENTLE_PROMPT_KIND = 'GENTLE_PROMPT';
 export const OWN_USE_COALESCE_MS = 15 * 60 * 1000;
+
+/** Explicit onboarding consent; token refresh/registration never invokes this. */
+export async function enableGentlePrompts(
+  queryClient: QueryClient,
+  api: NotificationsApi,
+  accountId: string,
+) {
+  const queryKey = ['notification-preferences', accountId];
+  const preferences = queryClient.fetchQuery({
+    queryKey,
+    queryFn: ({ signal }) => api.getOwnNotificationPreferences({ signal }),
+    staleTime: 0,
+  });
+  const current = captureAuthorizedQuery(queryClient, queryKey);
+  await preferences;
+  if (!current()) throw new Error('Notification preference owner changed.');
+  const updated = await api.updateOwnNotificationPreference({
+    kind: GENTLE_PROMPT_KIND,
+    channel: 'PUSH',
+    notificationPreferenceUpdate: { enabled: true },
+  });
+  if (!current()) return;
+  queryClient.setQueryData<NotificationPreferencesView>(
+    queryKey,
+    (value) =>
+      value && {
+        ...value,
+        items: value.items.map((item) =>
+          item.kind === updated.kind
+            ? {
+                ...item,
+                channels: item.channels.map((channel) =>
+                  channel.channel === updated.channel
+                    ? { ...channel, enabled: updated.enabled }
+                    : channel,
+                ),
+              }
+            : item,
+        ),
+      },
+  );
+}
 
 export function gentleSuggestionKey(accountId: string, spaceId: string) {
   return ['gentle-suggestion', accountId, spaceId] as const;

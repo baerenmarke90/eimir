@@ -1,3 +1,4 @@
+import { NativeDateInput } from './NativeDateField';
 import type { FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
@@ -124,11 +125,11 @@ export function ChapterCreatePage({
                   <label htmlFor="chapter-start">
                     {t('m5s3.chapter.startOn')}
                   </label>
-                  <input id="chapter-start" name="startOn" type="date" />
+                  <NativeDateInput id="chapter-start" name="startOn" />
                 </div>
                 <div className="field-group">
                   <label htmlFor="chapter-end">{t('m5s3.chapter.endOn')}</label>
-                  <input id="chapter-end" name="endOn" type="date" />
+                  <NativeDateInput id="chapter-end" name="endOn" />
                 </div>
               </div>
               <div className="field-group">

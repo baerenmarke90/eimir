@@ -1,3 +1,4 @@
+import { NativeDateInput } from './NativeDateField';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
@@ -66,6 +67,7 @@ import { ExperienceAnswers } from './ExperienceAnswers';
 import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { ExpandableDescription } from './ExpandableDescription';
 import { MemoryPhotoGallery } from './MemoryPhotoGallery';
+import { MemoryPlanningLinks } from './MemoryPlanningLinks';
 import { MemoryPlacesDraftField } from './MemoryPlacesDraftField';
 import { MemoryPreview } from './MemoryPreview';
 import {
@@ -709,10 +711,9 @@ export function MemoryProductPage({
               hidden={Boolean(memory.experienceKind)}
             >
               <label htmlFor="memory-edit-date">{t('memory.dateLabel')}</label>
-              <input
+              <NativeDateInput
                 id="memory-edit-date"
                 name="happenedOn"
-                type="date"
                 defaultValue={memoryDateInputValue(memory.happenedOn)}
               />
             </div>
@@ -724,10 +725,9 @@ export function MemoryProductPage({
               <label htmlFor="memory-edit-through">
                 {t('experiences.through')}
               </label>
-              <input
+              <NativeDateInput
                 id="memory-edit-through"
                 name="happenedUntil"
-                type="date"
                 defaultValue={memoryDateInputValue(
                   memory.happenedUntil ?? null,
                 )}
@@ -759,6 +759,7 @@ export function MemoryProductPage({
               }}
             />
             <MemoryTagChoices
+              parentId={memory.id}
               editorRef={tagEditorRef}
               selected={selectedTags}
               onChange={(tags) => setTagDraft({ memoryId: memory.id, tags })}
@@ -1189,6 +1190,45 @@ export function MemoryProductPage({
           compact
         />
       </div>
+      {!memory.experienceKind ? (
+        <MemoryPlanningLinks
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          accountId={currentAccountId}
+          spaceId={spaceId}
+          memoryId={memory.id}
+          canManage={memory.capabilities.canEdit}
+          offline={offline}
+          initialPlanId={(() => {
+            const candidate = (
+              location.state as {
+                sourcePlanToLink?: {
+                  id?: unknown;
+                  memoryId?: unknown;
+                  accountId?: unknown;
+                  spaceId?: unknown;
+                  instance?: unknown;
+                };
+              } | null
+            )?.sourcePlanToLink;
+            return candidate?.memoryId === memory.id &&
+              candidate.accountId === currentAccountId &&
+              candidate.spaceId === spaceId &&
+              candidate.instance === apiBaseUrl &&
+              typeof candidate.id === 'string'
+              ? candidate.id
+              : undefined;
+          })()}
+          onInitialPlanConsumed={() => {
+            const state = { ...location.state };
+            delete state.sourcePlanToLink;
+            void navigate(`${location.pathname}${location.search}`, {
+              replace: true,
+              state,
+            });
+          }}
+        />
+      ) : null}
       <CommentsPanel
         triggerContainer={commentHost}
         commentsApi={apis.comments}

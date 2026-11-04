@@ -216,13 +216,8 @@ describe('SpaceConfigurationPanel', () => {
       ),
     ).toHaveLength(2);
     expect(
-      screen.getByText(
-        profileIdentity.dailyContextTimezoneReadOnly.replace(
-          '{{timezone}}',
-          'Europe/Berlin',
-        ),
-      ),
-    ).toBeTruthy();
+      screen.queryByText(profileIdentity.dailyContextTimezoneLabel),
+    ).toBeNull();
     expect(
       screen.queryByText(profileIdentity.spaceModulesKeepDataNote),
     ).toBeNull();
@@ -315,10 +310,11 @@ describe('SpaceConfigurationPanel', () => {
           },
         });
       });
-      const select = await screen.findByRole('combobox', {
-        name: profileIdentity.dailyContextTimezoneLabel,
-      });
-      expect((select as HTMLSelectElement).value).toBe('Europe/Vienna');
+      expect(
+        screen.queryByRole('combobox', {
+          name: profileIdentity.dailyContextTimezoneLabel,
+        }),
+      ).toBeNull();
     } finally {
       zone.mockRestore();
     }
@@ -418,49 +414,20 @@ describe('SpaceConfigurationPanel', () => {
     ).toBeNull();
   });
 
-  it('explains a refused time zone change while today already has Daily Check-in state', async () => {
-    const getSpaceConfigurationRaw = vi
-      .fn()
-      .mockResolvedValue(rawResponse(configuration(), '"7"'));
-    const updateSpaceConfigurationRaw = vi
-      .fn()
-      .mockRejectedValue(
-        new ClientProblemError(
-          'conflict',
-          409,
-          'SPACE_DAILY_CONTEXT_TIMEZONE_ACTIVE_CHECK_IN',
-        ),
-      );
+  it('keeps system clock and zone controls out of manager settings', async () => {
     const spacesApi = {
-      getSpaceConfigurationRaw,
-      updateSpaceConfigurationRaw,
+      getSpaceConfigurationRaw: vi
+        .fn()
+        .mockResolvedValue(rawResponse(configuration(), '"7"')),
     } as unknown as SpacesApi;
-
     renderPanel(spacesApi);
-    fireEvent.change(
-      await screen.findByRole('combobox', {
-        name: profileIdentity.dailyContextTimezoneLabel,
-      }),
-      { target: { value: 'Europe/Paris' } },
-    );
-
+    await screen.findByRole('switch', {
+      name: profileIdentity.vibeCheckToggle,
+    });
+    expect(screen.queryByRole('combobox')).toBeNull();
     expect(
-      await screen.findByText(profileIdentity.dailyContextTimezoneLocked),
-    ).toBeTruthy();
-    expect(updateSpaceConfigurationRaw).toHaveBeenCalledWith({
-      spaceId: 'space-1',
-      ifMatch: '"7"',
-      spaceConfigurationUpdate: { dailyContextTimezone: 'Europe/Paris' },
-    });
-    await waitFor(() => {
-      expect(
-        (
-          screen.getByRole('combobox', {
-            name: profileIdentity.dailyContextTimezoneLabel,
-          }) as HTMLSelectElement
-        ).value,
-      ).toBe('Europe/Berlin');
-    });
+      screen.queryByLabelText(profileIdentity.dailyContextTimezoneLabel),
+    ).toBeNull();
   });
 
   it('refreshes authoritative state after an ETag conflict without retrying the write', async () => {

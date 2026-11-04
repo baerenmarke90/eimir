@@ -148,6 +148,38 @@ async function nativePush(page: Page, deny = false) {
 
 async function mocks(page: Page) {
   await installMocks(page);
+  let gentle = false;
+  await page.route('**/api/v1/notification-preferences', (route) =>
+    route.fulfill({
+      json: {
+        catalogVersion: 1,
+        capabilities: [],
+        items: [
+          {
+            kind: 'GENTLE_PROMPT',
+            channels: [{ channel: 'PUSH', enabled: gentle }],
+          },
+        ],
+        quietHours: {
+          enabled: false,
+          start: '22:00',
+          end: '08:00',
+          timezone: 'Europe/Berlin',
+          version: 0,
+        },
+      },
+    }),
+  );
+  await page.route(
+    '**/api/v1/notification-preferences/GENTLE_PROMPT/PUSH',
+    (route) => {
+      expect(route.request().method()).toBe('PATCH');
+      gentle = route.request().postDataJSON().enabled;
+      return route.fulfill({
+        json: { kind: 'GENTLE_PROMPT', channel: 'PUSH', enabled: gentle },
+      });
+    },
+  );
   await page.route(
     `**/api/v1/spaces/${SPACE_ID}/dashboard/preferences`,
     (route) => route.fulfill({ json: { items: [] } }),
@@ -277,14 +309,27 @@ test('activation waits for authenticated endpoint registration before confirming
     await registration;
     await route.fulfill({ json: { id: 'registered-endpoint' } });
   });
+  let promptWrites = 0;
+  await page.route(
+    '**/api/v1/notification-preferences/GENTLE_PROMPT/PUSH',
+    (route) => {
+      promptWrites += 1;
+      expect(route.request().postDataJSON()).toEqual({ enabled: true });
+      return route.fulfill({
+        json: { kind: 'GENTLE_PROMPT', channel: 'PUSH', enabled: true },
+      });
+    },
+  );
   await signIn(page);
   const dialog = page.getByRole('dialog', { name: copy.onboardingTitle });
   await dialog.getByRole('button', { name: copy.onboardingActivate }).click();
   await expect.poll(() => registrations).toBe(1);
+  expect(promptWrites).toBe(0);
   await expect(dialog.getByRole('status')).toHaveText(copy.deviceConnecting);
   await expect(dialog).toBeVisible();
   release();
   await expect(dialog).toHaveCount(0);
+  expect(promptWrites).toBe(1);
   expect(
     await page.evaluate(() =>
       localStorage.getItem(

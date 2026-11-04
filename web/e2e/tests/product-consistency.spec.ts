@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
@@ -76,6 +77,7 @@ for (const scenario of [
     const updates: Record<string, unknown>[] = [];
     let memory = createMemoryFixture();
     await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultProductContext(route)) return;
       const path = new URL(route.request().url()).pathname;
       if (path === `${BASE}/memories/mem-canal`) {
         if (route.request().method() === 'PATCH') {
@@ -449,6 +451,7 @@ test('a created map Place survives a failed Memory save and retries only its sta
   let legacyLinks = 0;
   let memory = createMemoryFixture();
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
     const method = request.method();

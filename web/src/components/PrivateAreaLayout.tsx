@@ -227,26 +227,3 @@ export function DeleteConfirmation({
     </section>
   );
 }
-
-export function LoadMoreButton({
-  hasMore,
-  loading,
-  onLoadMore,
-}: {
-  hasMore: boolean;
-  loading: boolean;
-  onLoadMore: () => void;
-}) {
-  const { t } = useTranslation();
-  if (!hasMore) return null;
-  return (
-    <button
-      type="button"
-      className="secondary"
-      onClick={onLoadMore}
-      disabled={loading}
-    >
-      {loading ? t('privateArea.loadingMore') : t('privateArea.loadMore')}
-    </button>
-  );
-}

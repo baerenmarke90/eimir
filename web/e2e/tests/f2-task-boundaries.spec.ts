@@ -365,10 +365,10 @@ async function fillMemory(page: Page, withPhoto = false) {
   }
 }
 
-async function openDateEditor(page: Page) {
-  await page
-    .getByRole('button', { name: new RegExp(de.memory.dateLabel) })
-    .click();
+async function expectDateField(page: Page) {
+  await expect(
+    page.getByLabel(de.memory.dateLabel, { exact: true }),
+  ).toBeVisible();
 }
 
 async function expectNoOverflow(page: Page) {
@@ -1226,7 +1226,7 @@ test('an unsupported date stays editable and never starts a network save', async
   await signIn(page);
   await openMemory(page);
   await fillMemory(page);
-  await openDateEditor(page);
+  await expectDateField(page);
   await page
     .getByLabel(de.memory.dateLabel, { exact: true })
     .fill('10000-01-01');
@@ -1366,7 +1366,7 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
       }),
     );
   expect(readableLabels.filter((label) => label.lines > 1)).toEqual([]);
-  await openDateEditor(page);
+  await expectDateField(page);
   const dateSpace = await page
     .getByLabel(de.memory.dateLabel, { exact: true })
     .evaluate((element) => {
@@ -1394,8 +1394,7 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   expect(dateSpace.available).toBeGreaterThanOrEqual(
     dateSpace.text + dateSpace.picker,
   );
-  // Return to the closed date-summary state before the readability
-  // screenshot, so it reflects what the page renders by default.
+  // Leave the date field before reviewing resting text/controls.
   await showMemoryDetails(page);
   await page.getByLabel(de.memory.titleLabelOptional, { exact: true }).click();
   await testInfo.attach('large-text-readability', {

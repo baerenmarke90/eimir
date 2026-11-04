@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import storyProducts from '../../src/i18n/locales/storyProducts';
@@ -60,6 +61,7 @@ async function openPlan(
     attachments: [],
   };
   await page.route(`**/api/v1/spaces/${SPACE_ID}/**`, async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const path = new URL(request.url()).pathname;
     const method = request.method();

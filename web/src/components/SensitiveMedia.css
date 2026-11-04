@@ -51,20 +51,17 @@
 }
 .sensitive-media-preview > .sensitive-media-preview-control {
   position: absolute;
-  inset: 0;
+  inset: var(--space-3) var(--space-3) auto auto;
   z-index: 1;
-  width: var(--space-12);
-  height: var(--space-12);
-  margin: auto;
+  width: var(--touch-target-web);
+  height: var(--touch-target-web);
+  margin: 0;
+  padding: 0;
   border: 0;
 }
 .sensitive-media-preview > .sensitive-media-preview-control:hover,
 .sensitive-media-preview > .sensitive-media-preview-control:active {
   transform: none;
-}
-.sensitive-media-preview > .sensitive-media-preview-control.is-revealed {
-  inset: var(--space-3) var(--space-3) auto auto;
-  margin: 0;
 }
 .sensitive-media-control {
   min-width: 44px;
@@ -79,6 +76,10 @@
 .sensitive-media-control .eimir-icon {
   width: var(--space-5);
   height: var(--space-5);
+}
+.sensitive-media-preview > .sensitive-media-preview-control .eimir-icon {
+  width: calc(var(--touch-target-web) / 2);
+  height: calc(var(--touch-target-web) / 2);
 }
 .media-lightbox-stage > .sensitive-media-control {
   position: absolute;

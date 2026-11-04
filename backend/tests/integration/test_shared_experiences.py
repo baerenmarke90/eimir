@@ -539,6 +539,51 @@ def test_legacy_responses_reconcile_without_moving_content_and_survive_author_de
     assert [entry["id"] for entry in thread["items"]] == [str(discussion.id)]
 
 
+def test_pending_partner_answer_with_an_earlier_insert_joins_the_established_thread(
+    client, session: Session, actors
+):  # type: ignore[no-untyped-def]
+    from datetime import date
+
+    from eimir.authorization import PrivacyClass
+    from eimir.memories.models import MemoryPayload
+
+    grant(session, actors["space"].id, actors["a"].id)
+    question = "What made today beautiful?"
+    created = client.post(
+        path(actors),
+        headers=auth(actors["token_a"]),
+        json={**body(), "title": question},
+    )
+    assert created.status_code == 201
+    root = session.get(Memory, UUID(created.json()["id"]))
+    assert root is not None
+    earlier = root.created_at - timedelta(seconds=1)
+    pending = Memory(
+        space_id=actors["space"].id,
+        owner_id=actors["b"].id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        experience_kind="HAPPINESS",
+        happened_on=date(2020, 6, 12),
+        created_at=earlier,
+        updated_at=earlier,
+        payload=MemoryPayload(title=question, body="The other partner's answer"),
+    )
+    session.add(pending)
+    session.flush()
+
+    page = client.get(path(actors), headers=auth(actors["token_b"])).json()
+
+    assert len(page["items"]) == 1
+    assert page["items"][0]["id"] == str(root.id)
+    assert {answer["id"] for answer in page["items"][0]["experienceAnswers"]} == {
+        str(root.id),
+        str(pending.id),
+    }
+    assert pending.payload.body == "The other partner's answer"
+    assert pending.updated_at == earlier
+    assert root.version == created.json()["version"]
+
+
 def test_concurrent_partner_answers_form_one_shared_projection(production_client):  # type: ignore[no-untyped-def]
     client, maker = production_client
     with maker.begin() as setup:

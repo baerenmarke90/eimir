@@ -21,6 +21,8 @@ from eimir.identity.models import AccountEmail
 from eimir.media import get_media_store
 from eimir.memories import service as memory_service
 from eimir.memories.models import Memory
+from eimir.places import service as place_service
+from eimir.places.models import Place
 from eimir.private_notes import service as private_note_service
 from eimir.profiles import service as profile_service
 from eimir.profiles.models import PartnerProfile
@@ -284,6 +286,29 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
         tags=["everyday", "Our tradition"],
     )
 
+    place = place_service.create_place(
+        session,
+        source_authorization,
+        name="Portable place",
+        description=None,
+        address=None,
+        latitude=None,
+        longitude=None,
+    )
+    place_service.update_place(
+        session,
+        source_authorization,
+        place.id,
+        expected_version=place.version,
+        changed_fields=frozenset({"archived"}),
+        archived=True,
+        name=None,
+        description=None,
+        address=None,
+        latitude=None,
+        longitude=None,
+    )
+
     with service.build_export_archive(
         session, source_authorization, TransferScope.SHARED
     ) as bundle:
@@ -324,6 +349,9 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
     imported_heart = session.execute(
         select(HeartMoment).where(HeartMoment.space_id == target_space.id)
     ).scalar_one()
+    imported_place = session.scalars(select(Place).where(Place.space_id == target_space.id)).one()
+    assert imported_place.archived is True
+    assert imported_place.payload.name == "Portable place"
     assert imported_memory.payload.tags == ["home", "Our first summer"]
     assert imported_heart.payload.tags == ["everyday", "Our tradition"]
 

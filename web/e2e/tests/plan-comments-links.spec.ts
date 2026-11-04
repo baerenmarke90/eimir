@@ -242,10 +242,40 @@ for (const scenario of scenarios) {
     const own = panel.locator('.comment-card').filter({
       has: page.locator('.comment-author').getByText('Lea', { exact: true }),
     });
+    await expect(
+      own.getByRole('button', { name: copy.edit, exact: true }),
+    ).toBeHidden();
+    await expect(
+      own
+        .locator('.comment-head')
+        .getByLabel(copy.moreActions, { exact: true }),
+    ).toHaveCount(1);
+    await own.getByLabel(copy.moreActions, { exact: true }).click();
+    await expect(
+      own.getByRole('button', { name: copy.edit, exact: true }),
+    ).toBeVisible();
+    if (scenario.width === 390 || scenario.width === 360)
+      await captureScreenshot(
+        page,
+        testInfo,
+        `story-comment-menu-${scenario.width}-${scenario.theme}.png`,
+        { fullPage: true },
+      );
+    await own.getByLabel(copy.moreActions, { exact: true }).press('Escape');
+    await expect(
+      own.getByRole('button', { name: copy.edit, exact: true }),
+    ).toBeHidden();
+    await expect(
+      own.getByLabel(copy.moreActions, { exact: true }),
+    ).toBeFocused();
+    await own.getByLabel(copy.moreActions, { exact: true }).click();
     await own.getByRole('button', { name: copy.edit }).click();
     await own.getByRole('textbox').fill(`Bring lunch and tea. ${COMMENT_URL}`);
     await own.getByRole('button', { name: copy.save, exact: true }).click();
     await expect(own.getByRole('textbox')).toHaveCount(0);
+    await expect(
+      own.getByLabel(copy.moreActions, { exact: true }),
+    ).toBeFocused();
     await expect(panel.getByText(/Bring lunch and tea/)).toBeVisible();
     expect(state.calls.edits).toBe(1);
     await captureScreenshot(

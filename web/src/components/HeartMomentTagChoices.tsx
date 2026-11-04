@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type Ref } from 'react';
 import { useTranslation } from '../i18n';
-import { ContextTagEditor } from './ContextTagEditor';
+import {
+  ContextTagEditor,
+  type ContextTagEditorHandle,
+} from './ContextTagEditor';
 
 export const HEART_MOMENT_TAGS = [
   'everyday',
@@ -12,8 +15,10 @@ export type HeartMomentTag = string;
 
 export function HeartMomentTagChoices({
   selected = [],
+  editorRef,
 }: {
   selected?: readonly string[];
+  editorRef?: Ref<ContextTagEditorHandle>;
 }) {
   const { t } = useTranslation();
   const [tags, setTags] = useState<string[]>([...selected]);
@@ -23,6 +28,7 @@ export function HeartMomentTagChoices({
   }, [identity]);
   return (
     <ContextTagEditor
+      ref={editorRef}
       selected={tags}
       onChange={setTags}
       suggestions={HEART_MOMENT_TAGS}

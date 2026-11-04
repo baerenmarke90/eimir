@@ -244,6 +244,15 @@ describe('StoryList card hierarchy (#969)', () => {
     );
   });
 
+  it('gives titled photo memories the same photo-led hierarchy as untitled entries', () => {
+    const { container } = renderList([memory]);
+    const link = container.querySelector('.story-card-link');
+    expect(link?.classList.contains('story-card-photo-led')).toBe(true);
+    expect(
+      screen.getByRole('heading', { name: 'Evening at the lake' }),
+    ).toBeDefined();
+  });
+
   it('starts every card with its content, not a metadata row', () => {
     const { container } = renderList([memory, heartMoment, milestone]);
 

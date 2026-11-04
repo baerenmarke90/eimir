@@ -720,3 +720,111 @@ class TestPrivacy:
         response = create_place(client, couple, latitude=95.123456)
         assert response.status_code == 422
         assert "95.123456" not in response.text
+
+
+class TestPlaceArchive:
+    """Archiving is versioned organization, never a content deletion."""
+
+    def test_archive_restore_keeps_plan_and_is_shared(self, client, couple):  # type: ignore[no-untyped-def]
+        place = create_place(client, couple).json()
+        plan = client.post(
+            f"/api/v1/spaces/{couple['space'].id}/plans",
+            json={"title": "Shared evening", "placeId": place["id"]},
+            headers=auth(couple["token_a"]),
+        ).json()
+        detail = f"{path(couple['space'].id)}/{place['id']}"
+        archived = client.patch(
+            detail, json={"archived": True}, headers=if_match(couple["token_b"], place["version"])
+        )
+        assert archived.status_code == 200
+        assert archived.json()["archived"] is True
+        assert archived.json()["version"] == place["version"] + 1
+        for scope, expected in (
+            ("ACTIVE", []),
+            ("ARCHIVED", [place["id"]]),
+            ("ALL", [place["id"]]),
+        ):
+            page = client.get(
+                path(couple["space"].id),
+                params={"scope": scope, "order": "NAME"},
+                headers=auth(couple["token_a"]),
+            ).json()
+            assert [item["id"] for item in page["items"]] == expected
+        retained = client.get(
+            f"/api/v1/spaces/{couple['space'].id}/plans/{plan['id']}",
+            headers=auth(couple["token_a"]),
+        ).json()
+        assert retained["placeId"] == place["id"]
+        assert retained["version"] == plan["version"]
+        assert client.get(detail, headers=auth(couple["token_b"])).status_code == 200
+        assert (
+            client.patch(
+                detail,
+                json={"archived": False},
+                headers=if_match(couple["token_a"], place["version"]),
+            ).status_code
+            == 409
+        )
+        restored = client.patch(
+            detail,
+            json={"archived": False},
+            headers=if_match(couple["token_a"], archived.json()["version"]),
+        )
+        assert restored.status_code == 200
+        assert restored.json()["archived"] is False
+        assert (
+            client.patch(
+                detail,
+                json={"archived": None},
+                headers=if_match(couple["token_a"], restored.json()["version"]),
+            ).status_code
+            == 422
+        )
+        assert (
+            client.patch(
+                detail,
+                json={"archived": True},
+                headers=if_match(couple["foreign_token"], restored.json()["version"]),
+            ).status_code
+            == 404
+        )
+
+    def test_alphabetical_pages_bind_scope_and_do_not_expose_names_in_cursor(self, client, couple):  # type: ignore[no-untyped-def]
+        import base64
+        import json
+
+        for name in ("Zoo", "Äpfel", "bostalsee", "Abend", "Café"):
+            assert create_place(client, couple, name=name).status_code == 201
+        params = {"scope": "ACTIVE", "order": "NAME", "limit": 2}
+        first = client.get(
+            path(couple["space"].id), params=params, headers=auth(couple["token_a"])
+        ).json()
+        assert [item["name"] for item in first["items"]] == ["Abend", "Äpfel"]
+        cursor = first["nextCursor"]
+        encoded = cursor.split(".")[0]
+        contents = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+        assert contents["p"] == {"id": first["items"][-1]["id"]}
+        names = [item["name"] for item in first["items"]]
+        while cursor:
+            page = client.get(
+                path(couple["space"].id),
+                params={**params, "cursor": cursor},
+                headers=auth(couple["token_a"]),
+            ).json()
+            names.extend(item["name"] for item in page["items"])
+            cursor = page["nextCursor"]
+        assert names == ["Abend", "Äpfel", "bostalsee", "Café", "Zoo"]
+        for changed in ({"scope": "ALL"}, {"order": "NEWEST"}):
+            rejected = client.get(
+                path(couple["space"].id),
+                params={**params, "cursor": first["nextCursor"], **changed},
+                headers=auth(couple["token_a"]),
+            )
+            assert rejected.status_code == 400
+            assert rejected.json()["code"] == "INVALID_CURSOR"
+        foreign = client.get(
+            path(couple["foreign_space"].id),
+            params={**params, "cursor": first["nextCursor"]},
+            headers=auth(couple["token_b"]),
+        )
+        assert foreign.status_code == 400

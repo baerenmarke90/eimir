@@ -101,11 +101,15 @@ describe('shared planning client helpers', () => {
       spaceId: 'space-1',
       cursor: null,
       limit: 50,
+      order: 'NAME',
+      scope: 'ACTIVE',
     });
     expect(listPlaces).toHaveBeenNthCalledWith(2, {
       spaceId: 'space-1',
       cursor: 'cursor-2',
       limit: 50,
+      order: 'NAME',
+      scope: 'ACTIVE',
     });
   });
 

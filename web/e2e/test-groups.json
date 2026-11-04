@@ -396,7 +396,7 @@
     },
     "places-and-lists-design.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 7,
+      "baselineTests": 8,
       "reason": "Places and Lists create/result/return, dirty modal boundaries, read-first entry editing, failed-save recovery, checking, sorting, removal and theme/reflow acceptance."
     },
     "memory-map-and-couple-games.spec.ts": {

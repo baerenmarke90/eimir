@@ -123,6 +123,7 @@ export const SETTINGS_CATEGORY_IDS = [
   'today',
   'memories',
   'appearance',
+  'media',
   'data',
   'account',
 ] as const;
@@ -137,6 +138,7 @@ export const SETTINGS_CATEGORY_ROUTES = {
   today: `${MORE_SETTINGS_ROUTE}/today`,
   memories: `${MORE_SETTINGS_ROUTE}/memories`,
   appearance: `${MORE_SETTINGS_ROUTE}/appearance`,
+  media: `${MORE_SETTINGS_ROUTE}/media`,
   data: `${MORE_SETTINGS_ROUTE}/data`,
   account: `${MORE_SETTINGS_ROUTE}/account`,
 } as const satisfies Record<SettingsCategoryId, string>;

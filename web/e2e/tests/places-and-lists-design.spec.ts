@@ -1,5 +1,6 @@
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -31,6 +32,7 @@ async function installContent(page: Page, dense = false) {
   const places = [
     {
       ...base,
+      archived: false,
       id: 'park',
       name: 'Volkspark',
       description: deFixture.placesAndLists.placeDescription,
@@ -89,10 +91,22 @@ async function installContent(page: Page, dense = false) {
         },
       });
     if (sub === '/places') {
-      if (method === 'GET')
-        return route.fulfill({ json: { items: places, nextCursor: null } });
+      if (method === 'GET') {
+        const params = new URL(request.url()).searchParams;
+        const scope = params.get('scope') ?? 'ALL';
+        const items = places.filter(
+          (place) =>
+            scope === 'ALL' || place.archived === (scope === 'ARCHIVED'),
+        );
+        return route.fulfill({ json: { items, nextCursor: null } });
+      }
       if (method === 'POST') {
-        const created = { ...base, ...request.postDataJSON(), id: 'new-place' };
+        const created = {
+          ...base,
+          archived: false,
+          ...request.postDataJSON(),
+          id: 'new-place',
+        };
         places.push(created);
         writes.push('create-place');
         return route.fulfill({ status: 201, json: created });
@@ -341,9 +355,7 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await dialog.getByRole('button', { name: m5s3.common.saveChanges }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('h1')).toHaveText('Unser Volkspark');
-  await page
-    .getByRole('button', { name: m5s3.common.shortBackToPlaces })
-    .click();
+  await page.getByRole('button', { name: taskBoundary.back }).click();
   await page.getByRole('button', { name: m5s3.place.create }).click();
   dialog = page.getByRole('dialog');
   await dialog.getByLabel(m5s3.place.name, { exact: true }).fill('Unser Café');
@@ -353,9 +365,7 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
     .click();
   await expect(page.locator('h1')).toHaveText('Unser Café');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await page
-    .getByRole('button', { name: m5s3.common.shortBackToPlaces })
-    .click();
+  await page.getByRole('button', { name: taskBoundary.back }).click();
   await expect(page.getByRole('link', { name: /Unser Café/ })).toBeVisible();
 
   await openOverview(page, 'collections');
@@ -503,5 +513,57 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
     'delete-item',
     'create-list',
   ]);
+  expect(state.unexpected).toEqual([]);
+});
+
+test('Places archive and restore keep linked moments and the selected scope on return', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  const state = await installContent(page);
+  await signIn(page);
+  await openOverview(page, 'places');
+  const filters = page.getByRole('group', { name: m5s3.place.scope });
+  await expect(filters.getByRole('button')).toHaveCount(3);
+  await expect(
+    filters.getByRole('button', { name: m5s3.place.scopeACTIVE, exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('link', { name: /Volkspark/ }).click();
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await page
+    .getByRole('button', { name: m5s3.place.archive, exact: true })
+    .click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(
+    page.getByRole('link', { name: /Breakfast by the canal/ }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .first()
+    .click();
+  await expect(page.locator('.content-overview-row')).toHaveCount(0);
+  await page
+    .getByRole('button', { name: m5s3.place.scopeARCHIVED, exact: true })
+    .click();
+  await expect(page.getByRole('link', { name: /Volkspark/ })).toBeVisible();
+  await captureScreenshot(page, info, 'places-archived-390-dark.png');
+  await page.getByRole('link', { name: /Volkspark/ }).click();
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  await page
+    .getByRole('button', { name: m5s3.place.restore, exact: true })
+    .click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/scope=ARCHIVED/);
+  await expect(page.locator('.content-overview-row')).toHaveCount(0);
+  await page
+    .getByRole('button', { name: m5s3.place.scopeACTIVE, exact: true })
+    .click();
+  await expect(page.getByRole('link', { name: /Volkspark/ })).toBeVisible();
+  expect(state.writes).toEqual(['edit-place', 'edit-place']);
   expect(state.unexpected).toEqual([]);
 });

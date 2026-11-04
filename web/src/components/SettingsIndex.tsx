@@ -11,6 +11,7 @@ const CATEGORY_ICONS: Record<SettingsCategoryId, EimirIconName> = {
   today: 'vibe',
   appearance: 'einstellungen',
   memories: 'momente',
+  media: 'foto',
   data: 'listen',
   account: 'profil',
 };

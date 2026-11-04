@@ -88,6 +88,8 @@ export interface ListPlacesRequest {
     spaceId: string;
     cursor?: string | null;
     limit?: number;
+    order?: ListPlacesOrderEnum;
+    scope?: ListPlacesScopeEnum;
 }
 
 export interface LookupPlacesRequest {
@@ -423,6 +425,14 @@ export class PlacesApi extends runtime.BaseAPI {
             queryParameters['limit'] = requestParameters['limit'];
         }
 
+        if (requestParameters['order'] != null) {
+            queryParameters['order'] = requestParameters['order'];
+        }
+
+        if (requestParameters['scope'] != null) {
+            queryParameters['scope'] = requestParameters['scope'];
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
 
@@ -587,3 +597,21 @@ export class PlacesApi extends runtime.BaseAPI {
     }
 
 }
+
+/**
+ * @export
+ */
+export const ListPlacesOrderEnum = {
+    NEWEST: 'NEWEST',
+    NAME: 'NAME'
+} as const;
+export type ListPlacesOrderEnum = typeof ListPlacesOrderEnum[keyof typeof ListPlacesOrderEnum];
+/**
+ * @export
+ */
+export const ListPlacesScopeEnum = {
+    ACTIVE: 'ACTIVE',
+    ARCHIVED: 'ARCHIVED',
+    ALL: 'ALL'
+} as const;
+export type ListPlacesScopeEnum = typeof ListPlacesScopeEnum[keyof typeof ListPlacesScopeEnum];

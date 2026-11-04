@@ -114,6 +114,18 @@ describe('task origin privacy and lifetime', () => {
     expect(origin.primaryDestination('/story')).toEqual({ to: '/story' });
   });
 
+  it('keeps Places lifecycle scope on return and excludes authored or unknown query values', () => {
+    expect(taskOriginPath('/more/places', '?scope=ARCHIVED&name=private')).toBe(
+      '/more/places?scope=ARCHIVED',
+    );
+    expect(taskOriginPath('/more/places', '?scope=ALL')).toBe(
+      '/more/places?scope=ALL',
+    );
+    expect(taskOriginPath('/more/places', '?scope=invalid&name=private')).toBe(
+      '/more/places',
+    );
+  });
+
   it('allowlists local primary routes and serializes only non-sensitive Timeline scope', () => {
     expect(taskOriginPath('//other.example', '')).toBeNull();
     expect(taskOriginPath('/story/memories/memory-1', '?body=private')).toBe(

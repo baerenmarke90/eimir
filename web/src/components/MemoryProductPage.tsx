@@ -63,6 +63,7 @@ import { CommentsPanel } from './CommentsPanel';
 import { DraftExitPrompt } from './DraftExitPrompt';
 import { DraftMediaPreview } from './DraftMediaPreview';
 import { ExperienceAnswers } from './ExperienceAnswers';
+import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { ExpandableDescription } from './ExpandableDescription';
 import { MemoryPhotoGallery } from './MemoryPhotoGallery';
 import { MemoryPlacesDraftField } from './MemoryPlacesDraftField';
@@ -212,6 +213,7 @@ export function MemoryProductPage({
     retry: false,
   });
   const editForm = useRef<HTMLFormElement>(null);
+  const tagEditorRef = useRef<ContextTagEditorHandle>(null);
   const [formDirty, setFormDirty] = useState(false);
   const [placePending, setPlacePending] = useState(false);
   const [tagDraft, setTagDraft] = useState<{
@@ -616,6 +618,8 @@ export function MemoryProductPage({
       )
         return;
       const data = new FormData(event.currentTarget);
+      const tags = tagEditorRef.current?.commitDraft();
+      if (!tags) return;
       const ownsTask = captureSaveOwnership();
       const ownsRead = captureAuthorizedQuery(queryClient, memoryKey);
       updateMutation.mutate({
@@ -624,7 +628,7 @@ export function MemoryProductPage({
         values: {
           title: String(data.get('title') || ''),
           body: String(data.get('body') || ''),
-          tags: [...selectedTags],
+          tags,
           happenedOn: String(data.get('happenedOn') || ''),
           happenedUntil: String(data.get('happenedUntil') || ''),
           ...(placesDraft?.scope === photoOrderScope
@@ -755,6 +759,7 @@ export function MemoryProductPage({
               }}
             />
             <MemoryTagChoices
+              editorRef={tagEditorRef}
               selected={selectedTags}
               onChange={(tags) => setTagDraft({ memoryId: memory.id, tags })}
               disabled={updateMutation.isPending}

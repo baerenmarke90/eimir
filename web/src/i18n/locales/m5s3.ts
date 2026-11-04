@@ -256,6 +256,17 @@ const m5s3 = {
     help: 'Optional. Das Bild gehört zu eurem gemeinsamen Plan.',
   },
   place: {
+    scope: 'Orte filtern',
+    scopeACTIVE: 'Aktiv',
+    scopeARCHIVED: 'Archiviert',
+    scopeALL: 'Alle',
+    archive: 'Ort archivieren',
+    restore: 'Ort wiederherstellen',
+    archived: 'Ort archiviert. Eure Verknüpfungen bleiben erhalten.',
+    restored: 'Ort wiederhergestellt.',
+    emptyArchive: 'Hier erscheinen eure archivierten Orte.',
+    archiveSaveFirst: 'Speichere zuerst deine Änderungen oder verwirf sie.',
+
     heading: 'Orte',
     intro: 'Ein Name reicht. Adresse und Standort könnt ihr ergänzen.',
     emptyOverview:

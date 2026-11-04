@@ -400,16 +400,23 @@ export function PlanProductPage({
           }}
         />
       ) : null}
-      <PageHeader
-        before={
-          <TaskBackButton
-            onClick={() =>
-              isEditing
-                ? editorLifecycle.requestClose()
-                : requestReturn(originKey, `${appRoutePath('plan')}#plans`)
-            }
-          />
+      <TaskBackButton
+        onClick={() =>
+          isEditing
+            ? editorLifecycle.requestClose()
+            : requestReturn(originKey, `${appRoutePath('plan')}#plans`)
         }
+      />
+
+      {!isEditing ? (
+        <PlanPhotoGallery
+          plan={plan}
+          spaceId={spaceId}
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+        />
+      ) : null}
+      <PageHeader
         title={plan.title}
         titleEditor={
           isEditing ? (
@@ -450,14 +457,6 @@ export function PlanProductPage({
         }
       />
 
-      {!isEditing ? (
-        <PlanPhotoGallery
-          plan={plan}
-          spaceId={spaceId}
-          apiBaseUrl={apiBaseUrl}
-          accessToken={accessToken}
-        />
-      ) : null}
       <section
         className="planning-facts planen-detail-summary"
         aria-label={t('m5s3.plan.scheduleFacts')}

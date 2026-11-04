@@ -8,6 +8,7 @@ Place correction payload.  ``latitude`` and ``longitude`` may explicitly be ``nu
 Name | Type
 ------------ | -------------
 `address` | string
+`archived` | boolean
 `description` | string
 `latitude` | number
 `longitude` | number
@@ -21,6 +22,7 @@ import type { PlaceUpdate } from ''
 // TODO: Update the object below with actual values
 const example = {
   "address": null,
+  "archived": null,
   "description": null,
   "latitude": null,
   "longitude": null,

@@ -5,7 +5,15 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import ClassVar
 
-from sqlalchemy import CheckConstraint, Index, Numeric, SmallInteger, UniqueConstraint, text
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Index,
+    Numeric,
+    SmallInteger,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from eimir.authorization import (
@@ -74,6 +82,10 @@ class Place(
     # rounding would shift it slightly on every write.
     latitude: Mapped[Decimal | None] = mapped_column(Numeric(8, COORDINATE_PLACES))
     longitude: Mapped[Decimal | None] = mapped_column(Numeric(9, COORDINATE_PLACES))
+
+    archived: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
 
     crypto_version: Mapped[int] = mapped_column(
         SmallInteger,

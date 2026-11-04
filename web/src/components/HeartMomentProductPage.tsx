@@ -4,7 +4,13 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { type FormEvent, useLayoutEffect, useRef, useState } from 'react';
+import {
+  type FormEvent,
+  type Ref,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { AttachmentEntry } from '../api/generated/models/AttachmentEntry';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
@@ -56,12 +62,12 @@ import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { loadVideoSource } from '../client/video';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
+import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { DraftExitPrompt } from './DraftExitPrompt';
 import { ExpandableDescription } from './ExpandableDescription';
 import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
 import {
   HEART_MOMENT_TAGS,
-  type HeartMomentTag,
   HeartMomentTagChoices,
 } from './HeartMomentTagChoices';
 import { GalleryExpandAction, MediaGallery } from './MediaGallery';
@@ -185,6 +191,7 @@ export function HeartMomentProductPage({
   const [createPlace, setCreatePlace] = useState<MomentPlaceSelection>();
   const [placePending, setPlacePending] = useState(false);
   const [editContentError, setEditContentError] = useState(false);
+  const tagEditorRef = useRef<ContextTagEditorHandle>(null);
   const [createVisibility, setCreateVisibility] =
     useState<ContentVisibilityValue>(ContentVisibility.SHARED);
   const createAttemptRef =
@@ -543,7 +550,8 @@ export function HeartMomentProductPage({
       const happenedOn = String(data.get('happenedOn') || '');
       if (!happenedOn) return;
       const text = String(data.get('text') || '').trim();
-      const tags = data.getAll('tags') as HeartMomentTag[];
+      const tags = tagEditorRef.current?.commitDraft();
+      if (!tags) return;
       if (!text && !tags.length && !attachments.readyIds.length) {
         setCreateContentError(true);
         return;
@@ -604,6 +612,15 @@ export function HeartMomentProductPage({
             onSubmit={submitCreate}
             className="immersive-create-form heart-moment-create-form"
           >
+            <NativeDateField
+              id="heart-moment-date"
+              name="happenedOn"
+              label={t('heartMomentProduct.happenedOnLabel')}
+              required
+              defaultValue={localDateInputValue()}
+              openPickerOnClick
+              fieldClassName="heart-moment-create-field heart-moment-create-date"
+            />
             <div className="heart-moment-create-media">
               <PlanPhotosEditor
                 controller={photos}
@@ -647,7 +664,7 @@ export function HeartMomentProductPage({
               />
             ) : null}
 
-            <HeartMomentTagChoices />
+            <HeartMomentTagChoices editorRef={tagEditorRef} />
 
             <div className="heart-moment-create-field-grid">
               <div className="heart-moment-create-field heart-moment-create-emotion-picker">
@@ -656,16 +673,6 @@ export function HeartMomentProductPage({
                   idPrefix="heart-moment-create-emotion"
                 />
               </div>
-
-              <NativeDateField
-                id="heart-moment-date"
-                name="happenedOn"
-                label={t('heartMomentProduct.happenedOnLabel')}
-                required
-                defaultValue={localDateInputValue()}
-                openPickerOnClick
-                fieldClassName="heart-moment-create-field heart-moment-create-date"
-              />
             </div>
 
             <fieldset className="heart-moment-create-visibility">
@@ -820,7 +827,8 @@ export function HeartMomentProductPage({
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
       const text = String(data.get('text') || '').trim();
-      const tags = data.getAll('tags') as HeartMomentTag[];
+      const tags = tagEditorRef.current?.commitDraft();
+      if (!tags) return;
       if (!text && !tags.length && !photos.entries.length) {
         setEditContentError(true);
         return;
@@ -874,7 +882,10 @@ export function HeartMomentProductPage({
             onChange={() => setFormDirty(true)}
             onSubmit={submitEdit}
           >
-            <HeartMomentFields heartMoment={heartMoment} />
+            <HeartMomentFields
+              heartMoment={heartMoment}
+              editorRef={tagEditorRef}
+            />
             {heartMoment.visibility === ContentVisibility.SHARED ? (
               <MomentPlaces
                 apiBaseUrl={apiBaseUrl}
@@ -1221,12 +1232,23 @@ export function HeartMomentProductPage({
 
 function HeartMomentFields({
   heartMoment,
+  editorRef,
 }: {
   heartMoment?: HeartMomentDetail;
+  editorRef: Ref<ContextTagEditorHandle>;
 }) {
   const { t } = useTranslation();
   return (
     <>
+      <NativeDateField
+        id="heart-moment-date"
+        name="happenedOn"
+        label={t('heartMomentProduct.happenedOnLabel')}
+        required
+        defaultValue={
+          heartMoment ? dateInputValue(heartMoment.happenedOn) : undefined
+        }
+      />
       <div className="field-group">
         <label htmlFor="heart-moment-text">
           {t('heartMomentProduct.textLabel')}
@@ -1240,20 +1262,14 @@ function HeartMomentFields({
           placeholder={t('heartMomentProduct.textPlaceholder')}
         />
       </div>
-      <HeartMomentTagChoices selected={heartMoment?.tags} />
+      <HeartMomentTagChoices
+        selected={heartMoment?.tags}
+        editorRef={editorRef}
+      />
       <HeartEmotionPicker
         legend={t('heartMomentProduct.emotionLabel')}
         defaultValue={heartMoment?.emotion ?? HeartEmotion.LOVED}
         idPrefix="heart-moment-edit-emotion"
-      />
-      <NativeDateField
-        id="heart-moment-date"
-        name="happenedOn"
-        label={t('heartMomentProduct.happenedOnLabel')}
-        required
-        defaultValue={
-          heartMoment ? dateInputValue(heartMoment.happenedOn) : undefined
-        }
       />
     </>
   );

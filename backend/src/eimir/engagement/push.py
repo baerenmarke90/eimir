@@ -175,12 +175,15 @@ def register_endpoint(
     registration_identity: str | None = None,
     preview_key: str | None = None,
     preview_session_id: UUID | None = None,
+    preview_version: int = 1,
 ) -> PushEndpoint:
     """Create/reactivate one technical endpoint without exposing it publicly."""
     provider = provider_key.strip()
     endpoint = endpoint_value.strip()
     if not provider or not endpoint:
         raise ValueError("push endpoint and provider must not be blank")
+    if preview_version not in {1, 2}:
+        raise ValueError("Unsupported preview protocol version.")
 
     with session.no_autoflush:
         account = session.execute(
@@ -263,11 +266,13 @@ def register_endpoint(
                 PushPreviewSecret(
                     push_endpoint_id=endpoint_id,
                     device_session_id=preview_session_id,
+                    preview_version=preview_version,
                     payload=PushPreviewKeyPayload(key=preview_key),
                 )
             )
         else:
             preview.device_session_id = preview_session_id
+            preview.preview_version = preview_version
             if preview.payload.key != preview_key:
                 preview.payload = PushPreviewKeyPayload(key=preview_key)
     return endpoint_row
@@ -666,7 +671,9 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
             if preview_secret is not None and _lock_live_preview_family(
                 session, account_id=endpoint.account_id, family_id=preview_secret.device_session_id
             ):
-                preview = push_preview.for_notification(session, notification, digest=digest)
+                preview = push_preview.for_notification(
+                    session, notification, digest=digest, version=preview_secret.preview_version
+                )
                 if preview is None:
                     _finish_unavailable(delivery, "PUSH_TARGET_UNAVAILABLE")
                     return

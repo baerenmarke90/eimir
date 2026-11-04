@@ -10,8 +10,9 @@ import {
   waitUntilAttachmentReady,
 } from './referenceFlow';
 import { selectedPhotoUnavailable } from './selectedMediaRetention';
+import { compressVideoForUpload } from './videoCompression';
 
-export type DraftUploadPhase = 'uploading' | 'validating';
+export type DraftUploadPhase = 'preparing' | 'uploading' | 'validating';
 
 export interface ReadyDraftAttachment {
   attachmentId: string;
@@ -60,14 +61,24 @@ export async function uploadMemoryDraftAttachment(
   let createdAttachment: { id: string; version: number } | null = null;
   try {
     throwIfAborted(options.signal);
+    let uploadFile = file;
+    if (video) {
+      onPhase?.('preparing');
+      uploadFile = await compressVideoForUpload(
+        file,
+        options.signal,
+        options.onProgress,
+      );
+      throwIfAborted(options.signal);
+    }
     onPhase?.('uploading');
     const upload = await apis.attachments.createAttachmentUpload({
       spaceId,
       attachmentUploadCreate: {
-        expectedMimeType: file.type,
-        expectedSize: file.size,
+        expectedMimeType: uploadFile.type,
+        expectedSize: uploadFile.size,
         mediaType: video ? MediaType.VIDEO : MediaType.IMAGE,
-        originalName: file.name,
+        originalName: uploadFile.name,
         preserveMetadata: video ? false : (options.preserveMetadata ?? false),
       },
     });
@@ -80,7 +91,7 @@ export async function uploadMemoryDraftAttachment(
       apiBaseUrl,
       accessToken,
       upload,
-      file,
+      uploadFile,
       options,
       fetchApi,
     );

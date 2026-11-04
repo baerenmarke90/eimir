@@ -2,6 +2,8 @@ export default {
   add: 'Video hinzufügen',
   label: 'Fotos & Videos',
   preview: 'Video-Vorschau',
+  preparing: 'Video wird auf deinem Gerät vorbereitet …',
+  processing: 'Video wird verarbeitet …',
   show: 'Video anzeigen',
   hide: 'Video verbergen',
   play: 'Video abspielen',

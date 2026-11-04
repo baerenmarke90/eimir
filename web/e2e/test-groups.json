@@ -295,7 +295,7 @@
     },
     "today-daily-vibe.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 19
+      "baselineTests": 20
     },
     "today-freshness.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -420,8 +420,8 @@
     },
     "video-attachments.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 8,
-      "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled."
+      "baselineTests": 9,
+      "reason": "Mixed video/photo intake and ordered save, native controls with deliberate playback/seek/return, no original-video image cache, Pro draft safety and retained playback with intake disabled, including sensitive reveal/conceal at 320px with large text."
     },
     "android-push-onboarding.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -456,6 +456,11 @@
     "subpage-navigation-context.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "reason": "Complete secondary navigation and moment-context acceptance; automatically selected for affected shell, readers and Wir."
+    },
+    "media-planning-corrections.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 9,
+      "reason": "Feature-owned acceptance for bounded Plan/Wish browsing, restored context, Edit-only linking, draft-safe media drop and the real local video codec worker; broad theme/reflow variants do not expand the always-run core."
     }
   }
 }

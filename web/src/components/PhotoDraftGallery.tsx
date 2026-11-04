@@ -57,7 +57,9 @@ export function PhotoDraftGallery({
   const mixed = items.some(isVideo);
   const unavailable = draft && selectedPhotoUnavailable(draft.file);
   const pending =
-    draft?.status === 'uploading' || draft?.status === 'validating';
+    draft?.status === 'preparing' ||
+    draft?.status === 'uploading' ||
+    draft?.status === 'validating';
   function move(offset: -1 | 1) {
     if (disabled || index + offset < 0 || index + offset >= items.length)
       return;
@@ -84,11 +86,15 @@ export function PhotoDraftGallery({
     return t(
       item.draft?.status === 'failed'
         ? 'memory.photoFailed'
-        : item.draft?.status === 'uploading'
-          ? 'memory.photoUploading'
-          : item.draft?.status === 'validating'
-            ? 'memory.photoValidating'
-            : 'memory.photoReady',
+        : item.draft?.status === 'preparing'
+          ? 'video.preparing'
+          : item.draft?.status === 'uploading'
+            ? 'memory.photoUploading'
+            : item.draft?.status === 'validating'
+              ? isVideo(item)
+                ? 'video.processing'
+                : 'memory.photoValidating'
+              : 'memory.photoReady',
     );
   }
   return (
@@ -261,7 +267,7 @@ export function PhotoDraftGallery({
         >
           {status(selected)}
         </span>
-        {draft?.status === 'uploading' ? (
+        {draft?.status === 'uploading' || draft?.status === 'preparing' ? (
           <progress
             max={100}
             value={draft.progress}

@@ -20,6 +20,7 @@ public final class PushPreview {
     final String kind;
     final String name;
     final String title;
+    final String text;
     final String targetType;
     final boolean digest;
     private static final Set<String> FIELDS = new HashSet<>(Arrays.asList(
@@ -31,6 +32,7 @@ public final class PushPreview {
         kind = value.getString("kind");
         name = label(value.getString("name"), 80);
         title = label(value.getString("title"), 140);
+        text = value.getInt("v") == 2 ? label(value.getString("body"), 180) : "";
         targetType = value.getString("targetType");
         digest = value.getBoolean("digest");
     }
@@ -69,7 +71,10 @@ public final class PushPreview {
             Set<String> fields = new HashSet<>();
             java.util.Iterator<String> names = value.keys();
             while (names.hasNext()) fields.add(names.next());
-            if (!FIELDS.equals(fields) || value.getInt("v") != 1
+            int version = value.getInt("v");
+            Set<String> expected = new HashSet<>(FIELDS);
+            if (version == 2) expected.add("body");
+            if (!expected.equals(fields) || (version != 1 && version != 2)
                     || value.getLong("issuedAt") > now + 60 || value.getLong("expiresAt") <= now
                     || value.getLong("issuedAt") < now - 360
                     || value.getLong("expiresAt") > now + 360
@@ -80,18 +85,26 @@ public final class PushPreview {
     }
 
     private int bodyResource() {
-        if (digest) return "COMMENT_CREATED".equals(kind) ? R.string.push_comment_digest : 0;
+        if (digest) return "COMMENT_CREATED".equals(kind)
+            ? (title.isEmpty() ? R.string.push_comment_digest : R.string.push_comment_digest_title) : 0;
         switch (kind) {
+            case "GENTLE_PROMPT": return "MEMORY".equals(targetType)
+                ? (title.isEmpty() ? R.string.push_gentle_memory : R.string.push_gentle_memory_title)
+                : R.string.push_gentle_writing;
+            case "COMMENT_CREATED": return title.isEmpty() ? R.string.push_comment : R.string.push_comment_title;
             case "REMINDER_CREATED": return title.isEmpty() ? R.string.push_reminder_created : R.string.push_reminder_created_title;
             case "REMINDER_DUE": return title.isEmpty() ? R.string.push_reminder_due : R.string.push_reminder_due_title;
             case "PARTNER_KISS": return R.string.push_kiss;
             case "THINKING_OF_YOU": return R.string.push_thinking;
             case "PARTNER_CHECK_IN": return R.string.push_check_in;
             case "COUPLE_EXPERIENCE_SHARED": return title.isEmpty() ? R.string.push_shared_moment : R.string.push_shared_moment_title;
+            case "PLAN_CREATED": return title.isEmpty() ? R.string.push_plan_created : R.string.push_plan_created_title;
             case "PLAN_CHANGED": return title.isEmpty() ? R.string.push_plan_changed : R.string.push_plan_changed_title;
             case "PLAN_CANCELLED": return R.string.push_plan_cancelled;
             case "WISH_SELECTION_SHARED": return R.string.push_wish_selection_shared;
             case "WISH_SELECTION_READY": return R.string.push_wish_selection_ready;
+            case "PHOTO_REACTION": return title.isEmpty() ? R.string.push_photo_reaction : R.string.push_photo_reaction_title;
+            case "PARTNER_JOINED": return R.string.push_partner_joined;
             case "TRANSFER_READY": return R.string.push_transfer_ready;
             case "TRANSFER_COMPLETED": return R.string.push_transfer_completed;
             case "TRANSFER_FAILED": return R.string.push_transfer_failed;
@@ -102,16 +115,22 @@ public final class PushPreview {
     @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
     public String body(Context context) {
         int resource = bodyResource();
-        return context.getString(resource == 0 ? R.string.push_notification_body : resource,
+        String summary = context.getString(resource == 0 ? R.string.push_notification_body : resource,
             name.isEmpty() ? context.getString(R.string.push_partner) : name, title);
+        return !digest && !text.isEmpty()
+            && ("COMMENT_CREATED".equals(kind) || "COUPLE_EXPERIENCE_SHARED".equals(kind))
+            ? summary + "\n" + text : summary;
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
     public String action(Context context) {
         if (bodyResource() == 0 || targetType.isEmpty()) return null;
+        if ("COMMENT_CREATED".equals(kind)) return context.getString(R.string.push_view_comments);
         return context.getString("REMINDER".equals(targetType) ? R.string.push_view_reminder :
             "PLAN".equals(targetType) ? R.string.push_view_plan :
             "MEMORY".equals(targetType) || "HEART_MOMENT".equals(targetType) ? R.string.push_view_moment :
-            digest ? R.string.push_view_comments : R.string.push_view);
+            "WISH_SELECTION".equals(targetType) ? R.string.push_view_wish_selection :
+            "TRANSFER_EXPORT".equals(targetType) || "TRANSFER_IMPORT".equals(targetType) ? R.string.push_view_transfer :
+            R.string.push_view);
     }
 }

@@ -1,4 +1,3 @@
-import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
@@ -9,6 +8,7 @@ import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import fixtureCopy from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import {
   installMediaOwnershipMetrics,
   mediaOwnershipMetrics,
@@ -725,7 +725,7 @@ for (const state of [
   { width: 1280, theme: 'dark', textScale: 1 },
   { width: 320, theme: 'dark', textScale: 2 },
 ] as const) {
-  test(`overview Privacy icons independently reveal blurred photos at ${state.width}px ${state.theme}${state.textScale > 1 ? ' 200% text' : ''}`, async ({
+  test(`overview reveal controls independently reveal blurred photos without a lock glyph at ${state.width}px ${state.theme}${state.textScale > 1 ? ' 200% text' : ''}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width: state.width, height: 900 });
@@ -757,7 +757,8 @@ for (const state of [
       });
       await photo.scrollIntoViewIfNeeded();
       await expect(photo.locator('.sensitive-media-blurred img')).toBeVisible();
-      await expect(button.locator('.eimir-icon-privatsphaere')).toBeVisible();
+      await expect(button.locator('svg')).toHaveCount(0);
+      await expect(button).toHaveText(sensitiveMedia.reveal);
       expect(await button.evaluate((node) => node.closest('a'))).toBeNull();
       await button.hover();
       const frame = await photo.boundingBox();
@@ -776,7 +777,10 @@ for (const state of [
       });
       expect(target.width).toBeGreaterThanOrEqual(44);
       expect(target.height).toBeGreaterThanOrEqual(44);
-      expect(target.x).toBeGreaterThan(frame.x + frame.width / 2);
+      expect(target.x).toBeGreaterThanOrEqual(frame.x);
+      expect(target.x + target.width).toBeLessThanOrEqual(
+        frame.x + frame.width,
+      );
       expect(target.y).toBeGreaterThanOrEqual(frame.y);
       expect(
         await photo
@@ -820,15 +824,20 @@ for (const state of [
         expect(revealedTarget.y + revealedTarget.height).toBeLessThanOrEqual(
           revealedFrame.y + revealedFrame.height,
         );
-        expect(revealedTarget.x).toBeGreaterThan(
+        // A named text control can grow toward the center at 200% text.
+        // Keep it inside the upper-right edge and the photo center unobscured.
+        expect(revealedTarget.x + revealedTarget.width).toBeGreaterThan(
           revealedFrame.x + revealedFrame.width / 2,
         );
         expect(revealedTarget.y + revealedTarget.height).toBeLessThan(
           revealedFrame.y + revealedFrame.height / 2,
         );
       } else {
-        expect(revealedTarget.x).toBeGreaterThan(
-          revealedFrame.x + revealedFrame.width / 2,
+        expect(revealedTarget.x + revealedTarget.width).toBeLessThanOrEqual(
+          revealedFrame.x + revealedFrame.width,
+        );
+        expect(revealedTarget.y + revealedTarget.height).toBeLessThan(
+          revealedFrame.y + revealedFrame.height / 2,
         );
         expect(revealedTarget.y).toBeLessThan(
           revealedFrame.y + revealedFrame.height / 2,
@@ -858,7 +867,7 @@ for (const state of [
         .include('.preview-card-link-target')
         .analyze();
       expect(violations.violations).toEqual([]);
-      // A click on the photo outside the icon still opens detail, concealed.
+      // A click on the photo outside the control still opens detail, concealed.
       const currentFrame = await photo.boundingBox();
       if (!currentFrame) throw new Error('Expected a visible photo frame.');
       await page.mouse.click(currentFrame.x + 12, currentFrame.y + 12);
@@ -1617,6 +1626,30 @@ test('photo overlay controls remain separate, readable and operable in fullscree
   await expect(close).toHaveCSS('color', 'rgb(255, 255, 255)');
   await page.screenshot({
     path: info.outputPath('fullscreen-glass-controls.png'),
+  });
+  await privacy.click();
+  await expect(
+    dialog.getByRole('button', { name: sensitiveMedia.show, exact: true }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+  await dialog
+    .getByRole('button', { name: sensitiveMedia.show, exact: true })
+    .click();
+  const largePrivacy = await privacy.boundingBox();
+  const largeClose = await close.boundingBox();
+  const largeStage = await dialog
+    .locator('.media-lightbox-stage')
+    .boundingBox();
+  if (!largePrivacy || !largeClose || !largeStage)
+    throw new Error('Missing scaled fullscreen controls.');
+  expect(largePrivacy.x).toBeGreaterThanOrEqual(largeStage.x);
+  expect(largePrivacy.x + largePrivacy.width).toBeLessThan(largeClose.x);
+  expect(largePrivacy.y + largePrivacy.height).toBeLessThanOrEqual(
+    largeStage.y + largeStage.height,
+  );
+  await page.screenshot({
+    path: info.outputPath('fullscreen-sensitive-320-large.png'),
   });
   await privacy.click();
   await expect(

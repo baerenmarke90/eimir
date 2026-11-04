@@ -20,6 +20,12 @@ LEGACY_PATTERN = re.compile(
     r"SideBySide-Next|SideBySide|sidebyside|side-by-side|side by side|SBS_|\bSBS\b|sbs_|sbs-|sbs(?=[A-Z])",
     re.IGNORECASE,
 )
+# Only a complete compact direct-encryption value is opaque. Keep every other
+# field and any prose on the same line subject to the normal identity rules.
+PUSH_PREVIEW_JWE_LINE = re.compile(
+    r'\s*"jwe"\s*:\s*"[A-Za-z0-9_-]+\.\.[A-Za-z0-9_-]{16}\.'
+    r'[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{22}"[,]?\s*'
+)
 
 
 class Classification(StrEnum):
@@ -85,6 +91,15 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
     """Return the narrow exception for one occurrence, or MUST_RENAME."""
 
     normalized = line.casefold()
+
+    if (
+        path == Path("android/app/src/androidTest/assets/push-preview-catalog.json")
+        and PUSH_PREVIEW_JWE_LINE.fullmatch(line)
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the compact sender-encrypted fixture value is opaque ciphertext, not a project identity",
+        )
 
     if path in GUARD_FILES:
         return (
@@ -165,6 +180,17 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
         return (
             Classification.FALSE_POSITIVE,
             "side-by-side is used as generic responsive-layout terminology",
+        )
+
+    if (
+        path == Path("docs/product/design/references/1647-media-planning/reference-prompt.txt")
+        and match == "side by side"
+        and "three complete 390px smartphone screens side by side" in normalized
+        and normalized.count("side by side") == 1
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact reference prompt describes three adjacent screens, not a project name",
         )
 
     if match == "side by side" and (

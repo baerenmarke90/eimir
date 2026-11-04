@@ -146,7 +146,7 @@ function changeAria(value: string): string {
 }
 
 describe('DailyVibeCheckIn', () => {
-  it('offers all six semantic values without rendering an empty or hidden person', async () => {
+  it('offers all seven semantic values without rendering an empty or hidden person', async () => {
     const api = {
       getDailyCheckInTodayRaw: vi
         .fn()
@@ -171,7 +171,7 @@ describe('DailyVibeCheckIn', () => {
         within(dialog).getByRole('button', { name: label }),
       ).not.toBeNull();
     }
-    expect(dialog.querySelectorAll('[data-vibe-icon]')).toHaveLength(6);
+    expect(dialog.querySelectorAll('[data-vibe-icon]')).toHaveLength(7);
   });
 
   it('keeps the Vibe sheet open while partner sync refetches in the background', async () => {

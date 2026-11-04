@@ -2165,6 +2165,7 @@
       "DailyVibe": {
         "description": "Stable V1 daily-state values owned by #429.\n\nThese values describe today's relationship-facing state. They are not\ndiagnoses, scores, or HeartMoment emotions; localized UI copy remains a\npresentation concern.",
         "enum": [
+          "VERY_GOOD",
           "GOOD",
           "OKAY",
           "STRESSED",
@@ -2980,6 +2981,12 @@
             "title": "Androidpackage",
             "type": "string"
           },
+          "encryptedPreviewMaxVersion": {
+            "const": 2,
+            "default": 2,
+            "title": "Encryptedpreviewmaxversion",
+            "type": "integer"
+          },
           "encryptedPreviewVersion": {
             "const": 1,
             "default": 1,
@@ -3013,7 +3020,10 @@
             "type": "string"
           },
           "version": {
-            "const": 1,
+            "enum": [
+              1,
+              2
+            ],
             "title": "Version",
             "type": "integer"
           }
@@ -30120,6 +30130,26 @@
                 }
               ],
               "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "overviewScope",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "OPEN",
+                    "COMPLETED"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Overviewscope"
             }
           }
         ],

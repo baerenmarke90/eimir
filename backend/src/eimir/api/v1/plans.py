@@ -10,7 +10,7 @@ knows Wish; Wish does not know Plan.
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, Response
@@ -412,6 +412,9 @@ def list_plans(
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     status: Annotated[PlanStatus | None, Query()] = None,
+    overview_scope: Annotated[
+        Literal["OPEN", "COMPLETED"] | None, Query(alias="overviewScope")
+    ] = None,
 ) -> PlanPage:
     page = service.list_plans(
         session,
@@ -419,6 +422,7 @@ def list_plans(
         cursor=cursor,
         limit=limit,
         status=status,
+        overview_scope=overview_scope,
     )
     creators = resolve_author_summaries(session, {plan.owner_id for plan in page.items})
     galleries = photos_of_plans(session, page.items)

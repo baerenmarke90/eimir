@@ -54,6 +54,7 @@ function setup(
   load: (cursor: string | null) => Promise<Page>,
   accountId = 'account',
   resource = 'photos',
+  revalidateOnRestore = false,
 ) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -73,12 +74,15 @@ function setup(
   );
   const result = renderHook(
     () =>
-      useWarmInfiniteQuery({
-        queryKey: key,
-        initialPageParam: null as string | null,
-        queryFn: ({ pageParam }) => load(pageParam),
-        getNextPageParam: (page) => page.nextCursor,
-      }),
+      useWarmInfiniteQuery(
+        {
+          queryKey: key,
+          initialPageParam: null as string | null,
+          queryFn: ({ pageParam }) => load(pageParam),
+          getNextPageParam: (page) => page.nextCursor,
+        },
+        { revalidateOnRestore },
+      ),
     { wrapper },
   );
   return { ...result, client, key };
@@ -105,6 +109,36 @@ it('restores all loaded pages with typed dates after a new QueryClient without a
   );
   expect(load).toHaveBeenCalledTimes(2);
 });
+it('marks a restored Plan prefix as cached until its deliberate cold revalidation completes', async () => {
+  const first = setup(
+    async () => page('saved', null),
+    'account',
+    'plans',
+    true,
+  );
+  await waitFor(() => expect(first.result.current.data).toBeDefined());
+  await __waitForProductReadCacheMutationsForTests();
+  first.unmount();
+  first.client.clear();
+  let release!: (value: Page) => void;
+  const load = vi.fn(
+    () =>
+      new Promise<Page>((resolve) => {
+        release = resolve;
+      }),
+  );
+  const restored = setup(load, 'account', 'plans', true);
+  await waitFor(() => expect(restored.result.current.isCached).toBe(true));
+  expect(restored.result.current.data?.pages[0].items[0].id).toBe('saved');
+  expect(restored.result.current.cachedAt).toBeInstanceOf(Date);
+  await waitFor(() => expect(load).toHaveBeenCalledTimes(1));
+  await act(async () => {
+    release(page('fresh', null));
+  });
+  await waitFor(() => expect(restored.result.current.isCached).toBe(false));
+  expect(restored.result.current.data?.pages[0].items[0].id).toBe('fresh');
+});
+
 it('keeps filters separate and retires prior-account or revoked late reads', async () => {
   const first = setup(async () => page('photo', null));
   await waitFor(() => expect(first.result.current.data).toBeDefined());

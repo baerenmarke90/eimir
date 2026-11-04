@@ -441,10 +441,12 @@
   bottom: auto;
 }
 .media-lightbox-stage.is-video .sensitive-media-control {
-  top: var(--space-3);
+  top: calc(var(--space-3) + var(--space-12) + var(--space-2));
+  right: var(--space-3);
   bottom: auto;
-  left: 50%;
-  transform: translateX(-50%);
+  left: auto;
+  max-width: calc(100% - var(--space-3) - var(--space-3));
+  transform: none;
 }
 .video-upload-action {
   display: grid;

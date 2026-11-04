@@ -383,6 +383,44 @@ async function signIn(page: Page) {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
+test('Very good saves, survives return, and keeps the existing Energy value', async ({
+  page,
+}, testInfo) => {
+  const state = await installMocks(page, { energyEnabled: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await signIn(page);
+  await page.getByRole('button', { name: dailyVibe.chooseAria }).click();
+  const sheet = page.getByRole('dialog', { name: dailyVibe.sheetTitle });
+  await expect(sheet.locator('[data-vibe-icon]')).toHaveCount(7);
+  await sheet
+    .getByRole('button', { name: dailyVibe.values.VERY_GOOD, exact: true })
+    .click();
+  await sheet
+    .getByRole('button', { name: dailyVibe.share, exact: true })
+    .click();
+  await expect(sheet).toHaveCount(0);
+  expect(state.lastPatch()).toEqual({ vibe: 'VERY_GOOD', vibeNote: null });
+  await expect(
+    page.locator('.daily-vibe-own [data-vibe-icon="VERY_GOOD"]'),
+  ).toBeVisible();
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await page.getByRole('link', { name: navigation.today, exact: true }).click();
+  await expect(
+    page.locator('.daily-vibe-own [data-vibe-icon="VERY_GOOD"]'),
+  ).toBeVisible();
+  await expect(page.getByTestId('daily-energy-own-battery')).toHaveAttribute(
+    'aria-label',
+    dailyEnergy.badgeAriaValue.replace('{{value}}', '60'),
+  );
+  expect(state.patchCount()).toBe(1);
+  expect(state.unexpectedRequests).toEqual([]);
+  await page.screenshot({
+    path: testInfo.outputPath('very-good-confirmed-390-dark.png'),
+    fullPage: false,
+  });
+});
+
 for (const theme of ['light', 'dark'] as const) {
   test(`disabled Vibe cleanup keeps section spacing and clears only Vibe in ${theme}`, async ({
     page,
@@ -671,7 +709,7 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   await expect(sheet).toBeVisible();
   const noteField = sheet.getByPlaceholder(dailyVibe.notePlaceholder);
   await expect(
-    sheet.getByRole('button', { name: dailyVibe.values.GOOD }),
+    sheet.getByRole('button', { name: dailyVibe.values.VERY_GOOD }),
   ).toBeFocused();
   await expect(noteField).not.toBeFocused();
 
@@ -699,7 +737,7 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
     await expect(option.locator('svg')).toHaveAttribute('aria-hidden', 'true');
   }
   await sheet.screenshot({
-    path: testInfo.outputPath('today-vibe-six-labeled-symbols-390-light.png'),
+    path: testInfo.outputPath('today-vibe-seven-labeled-symbols-390-light.png'),
     animations: 'disabled',
   });
 

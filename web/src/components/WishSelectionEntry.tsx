@@ -6,15 +6,17 @@ import './WishSelection.css';
 
 export function WishSelectionEntry({
   segment,
+  compact = false,
 }: {
   segment: 'plans' | 'wishes';
+  compact?: boolean;
 }) {
   const { t } = useTranslation();
   const { captureOrigin } = useTaskOrigin();
   const navigate = useNavigate();
   return (
     <section
-      className="wish-selection-entry"
+      className={`wish-selection-entry${compact ? ' is-compact' : ''}`}
       aria-labelledby={`wish-selection-entry-${segment}`}
     >
       <h2 id={`wish-selection-entry-${segment}`}>{t('wishSelection.title')}</h2>

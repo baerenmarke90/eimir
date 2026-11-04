@@ -10,16 +10,11 @@ import {
 } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
-import { PlanDetailToJSON } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import { authorDisplayName } from '../client/authorPresentation';
-import { decodePlansOverview } from '../client/overviewSnapshots';
 import { formatCalendarDate } from '../client/formatRecency';
 import { usePartnerNickname } from '../client/partnerNickname';
-import {
-  groupPlanningOverviewPlans,
-  loadPlanningOverviewPlans,
-} from '../client/planningOverview';
+import { groupPlanningOverviewPlans } from '../client/planningOverview';
 import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
 import {
@@ -32,8 +27,8 @@ import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { handleTabKeyDown } from '../client/tabKeyboard';
 import { textExcerpt } from '../client/textExcerpt';
-import { useWarmOverviewQuery } from '../client/useWarmOverviewQuery';
 import { useTranslation } from '../i18n';
+import { OVERVIEW_STALE_TIME } from '../client/useWarmOverviewQuery';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { PlanCover } from './PlanCover';
@@ -56,8 +51,16 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   }
 }
 
-function nextCursor<T>(page: PageShape<T>): string | undefined {
-  return page.nextCursor ?? undefined;
+function nextCursor<T>(
+  page: PageShape<T>,
+  _pages: PageShape<T>[],
+  previous: string | null,
+  cursors: (string | null)[],
+): string | undefined {
+  const next = page.nextCursor;
+  return next && next !== previous && !cursors.includes(next)
+    ? next
+    : undefined;
 }
 
 function segmentForHash(hash: string): PlanenSegment | null {
@@ -168,7 +171,6 @@ function PlanenPanel({
 export function SharedPlanningOverviewPage({
   apis,
   spaceId,
-  accountId,
   apiBaseUrl,
   accessToken,
 }: {
@@ -276,47 +278,63 @@ export function SharedPlanningOverviewPage({
       spaceId,
       ...(wishStatus === 'COMPLETED' ? [wishStatus] : []),
     ],
-    queryFn: ({ pageParam }) =>
+    enabled: activeSegment === 'wishes',
+    queryFn: ({ pageParam, signal }) =>
       apiCall(() =>
-        apis.wishes.listWishes({
-          spaceId,
-          cursor: pageParam,
-          limit: PAGE_SIZE,
-          status: wishStatus,
-        }),
+        apis.wishes.listWishes(
+          {
+            spaceId,
+            cursor: pageParam,
+            limit: PAGE_SIZE,
+            status: wishStatus,
+          },
+          { signal },
+        ),
       ),
     initialPageParam: null as string | null,
     getNextPageParam: nextCursor<WishDetail>,
     retry: false,
   });
 
-  const plans = useWarmOverviewQuery({
-    queryKey: ['m5-s3', 'plans', spaceId],
-    accountId,
-    apiBaseUrl,
-    spaceId,
-    kind: 'plans-overview',
-    load: () =>
-      apiCall(async () => ({
-        pages: [
-          {
-            items: await loadPlanningOverviewPlans(apis, spaceId),
-            nextCursor: null,
-          },
-        ],
-        pageParams: [null],
-      })),
-    serialize: (value) =>
-      value.pages.flatMap((page) => page.items).map(PlanDetailToJSON),
-    deserialize: (payload) => decodePlansOverview(payload, spaceId),
-  });
-
-  const wishItems = (
-    wishes.data?.pages.flatMap((page) => page.items) ?? []
-  ).filter((wish) => wish.status === wishStatus);
-  const planGroups = groupPlanningOverviewPlans(
-    plans.data?.pages.flatMap((page) => page.items) ?? [],
+  const plans = useWarmInfiniteQuery(
+    {
+      queryKey: ['m5-s3', 'plans', spaceId, 'overview', planStatus],
+      staleTime: OVERVIEW_STALE_TIME,
+      enabled: activeSegment === 'plans',
+      queryFn: ({ pageParam, signal }) =>
+        apiCall(() =>
+          apis.plans.listPlans(
+            {
+              spaceId,
+              cursor: pageParam,
+              limit: PAGE_SIZE,
+              overviewScope: planStatus,
+            },
+            { signal },
+          ),
+        ),
+      initialPageParam: null as string | null,
+      getNextPageParam: nextCursor<PlanDetail>,
+      retry: false,
+    },
+    { revalidateOnRestore: true },
   );
+
+  const wishItems = [
+    ...new Map(
+      (wishes.data?.pages.flatMap((page) => page.items) ?? [])
+        .filter((wish) => wish.status === wishStatus)
+        .map((wish) => [wish.id, wish]),
+    ).values(),
+  ];
+  const planGroups = groupPlanningOverviewPlans([
+    ...new Map(
+      (plans.data?.pages.flatMap((page) => page.items) ?? []).map((plan) => [
+        plan.id,
+        plan,
+      ]),
+    ).values(),
+  ]);
   const hasPlans =
     planStatus === 'COMPLETED'
       ? planGroups.completed.length > 0
@@ -442,8 +460,13 @@ export function SharedPlanningOverviewPage({
             onRetry={() => void plans.refetch()}
           />
         ) : null}
-        {plans.isCached ? (
-          <OverviewCacheNotice cachedAt={plans.cachedAt} />
+        {plans.data &&
+        (plans.isCached ||
+          plans.fetchStatus === 'paused' ||
+          navigator.onLine === false) ? (
+          <OverviewCacheNotice
+            cachedAt={plans.cachedAt ?? new Date(plans.dataUpdatedAt)}
+          />
         ) : null}
         {!plans.isLoading && !plans.error && !hasPlans ? (
           <div className="planen-empty-state">
@@ -451,9 +474,7 @@ export function SharedPlanningOverviewPage({
               {t(
                 planStatus === 'COMPLETED'
                   ? 'm5s3.overview.experiencedPlansEmpty'
-                  : planGroups.completed.length
-                    ? 'm5s3.overview.openPlansEmpty'
-                    : 'm5s3.overview.plansEmpty',
+                  : 'm5s3.overview.openPlansEmpty',
               )}
             </h2>
             {planStatus === 'OPEN' ? <p>{t('m5s3.plan.createIntro')}</p> : null}
@@ -548,6 +569,13 @@ export function SharedPlanningOverviewPage({
             </ul>
           </section>
         ) : null}
+        {activeSegment === 'plans' && plans.hasNextPage ? (
+          <AutoLoadMore query={plans} className="tertiary compact-action">
+            {plans.isFetchingNextPage
+              ? t('m5s3.common.loadingMore')
+              : t('m5s3.common.loadMore')}
+          </AutoLoadMore>
+        ) : null}
       </PlanenPanel>
 
       <PlanenPanel
@@ -567,7 +595,7 @@ export function SharedPlanningOverviewPage({
           value={wishStatus}
           onChange={(status) => changeStatus('wishes', status)}
         />
-        <WishSelectionEntry segment="wishes" />
+        <WishSelectionEntry segment="wishes" compact />
         {wishes.isLoading && !wishes.data ? (
           <UiState kind="loading" title={t('states.loading.title')} />
         ) : null}
@@ -600,27 +628,32 @@ export function SharedPlanningOverviewPage({
                     wish.id,
                   )}
                 >
-                  <strong>{wish.title}</strong>
-                  {wishStatus === 'COMPLETED' ? (
-                    <span>{t('m5s3.wish.status.COMPLETED')}</span>
-                  ) : null}
-                  <span>
-                    {t('m5s3.overview.createdBy', {
-                      name: wish.creator.isFormerMember
-                        ? authorDisplayName(wish.creator)
-                        : relationshipLabel(
-                            wish.creator.id,
-                            wish.creator.displayName,
-                            t('couplePresencePartnerFallback'),
-                          ),
-                    })}
+                  <span className="planen-wish-copy">
+                    <strong>{wish.title}</strong>
+                    {wishStatus === 'COMPLETED' ? (
+                      <span>{t('m5s3.wish.status.COMPLETED')}</span>
+                    ) : null}
+                    <span>
+                      {t('m5s3.overview.createdBy', {
+                        name: wish.creator.isFormerMember
+                          ? authorDisplayName(wish.creator)
+                          : relationshipLabel(
+                              wish.creator.id,
+                              wish.creator.displayName,
+                              t('couplePresencePartnerFallback'),
+                            ),
+                      })}
+                    </span>
+                  </span>
+                  <span className="planen-wish-chevron" aria-hidden="true">
+                    ›
                   </span>
                 </Link>
               </li>
             ))}
           </ul>
         ) : null}
-        {wishes.hasNextPage ? (
+        {activeSegment === 'wishes' && wishes.hasNextPage ? (
           <AutoLoadMore
             query={wishes}
             className="tertiary compact-action"

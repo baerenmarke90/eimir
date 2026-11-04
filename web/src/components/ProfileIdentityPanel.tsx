@@ -19,6 +19,7 @@ import { useTranslation } from '../i18n';
 import { NativeDateField } from './NativeDateField';
 import { ListEntryIconButton } from './ListEntryActions';
 import { PersonIdentity } from './PersonIdentity';
+import { MediaDropZone } from './MediaDropZone';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { VisibilityBadge } from './VisibilityBadge';
@@ -336,82 +337,92 @@ export function ProfileIdentityPanel({
             ) : null}
 
             {editingIdentity ? (
-              <div className="profile-identity-actions-row eimir-motion-disclosure">
-                <button
-                  type="button"
-                  className="secondary compact-action"
-                  onClick={() => {
-                    displayNameMutation.reset();
-                    setSaved(false);
-                    setEditingName((previous) => !previous);
-                  }}
-                  disabled={pending}
-                >
-                  {editingName
-                    ? t('common.cancel')
-                    : t('profileIdentity.editName')}
-                </button>
-
-                <button
-                  type="button"
-                  className="secondary compact-action"
-                  onClick={() => {
-                    birthdayMutation.reset();
-                    setSaved(false);
-                    setEditingBirthday((previous) => !previous);
-                  }}
-                  disabled={pending}
-                >
-                  {editingBirthday
-                    ? t('common.cancel')
-                    : t('profileIdentity.editBirthday')}
-                </button>
-
-                <button
-                  type="button"
-                  className="secondary compact-action"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={pending}
-                >
-                  {avatarMutation.isPending
-                    ? t('profileIdentity.replacingAvatar')
-                    : t('profileIdentity.changeAvatar')}
-                </button>
-
-                {profile.profileAttachmentId ? (
+              <MediaDropZone
+                multiple={false}
+                disabled={pending}
+                onFiles={(files) => {
+                  if (pending || !files[0]) return;
+                  resetActionState();
+                  avatarMutation.mutate(files[0]);
+                }}
+              >
+                <div className="profile-identity-actions-row eimir-motion-disclosure">
                   <button
                     type="button"
-                    className="tertiary compact-action"
-                    disabled={pending}
+                    className="secondary compact-action"
                     onClick={() => {
-                      resetActionState();
-                      removeAvatarMutation.mutate();
+                      displayNameMutation.reset();
+                      setSaved(false);
+                      setEditingName((previous) => !previous);
                     }}
+                    disabled={pending}
                   >
-                    {removeAvatarMutation.isPending
-                      ? t('profileIdentity.removingAvatar')
-                      : t('profileIdentity.removeAvatar')}
+                    {editingName
+                      ? t('common.cancel')
+                      : t('profileIdentity.editName')}
                   </button>
-                ) : null}
 
-                <input
-                  ref={fileInputRef}
-                  id="profile-avatar-file"
-                  className="profile-identity-file-input visually-hidden-input"
-                  type="file"
-                  accept="image/*"
-                  aria-label={t('profileIdentity.changeAvatar')}
-                  tabIndex={-1}
-                  disabled={pending}
-                  onChange={(event) => {
-                    const file = event.currentTarget.files?.[0];
-                    event.currentTarget.value = '';
-                    if (!file) return;
-                    resetActionState();
-                    avatarMutation.mutate(file);
-                  }}
-                />
-              </div>
+                  <button
+                    type="button"
+                    className="secondary compact-action"
+                    onClick={() => {
+                      birthdayMutation.reset();
+                      setSaved(false);
+                      setEditingBirthday((previous) => !previous);
+                    }}
+                    disabled={pending}
+                  >
+                    {editingBirthday
+                      ? t('common.cancel')
+                      : t('profileIdentity.editBirthday')}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="secondary compact-action"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={pending}
+                  >
+                    {avatarMutation.isPending
+                      ? t('profileIdentity.replacingAvatar')
+                      : t('profileIdentity.changeAvatar')}
+                  </button>
+
+                  {profile.profileAttachmentId ? (
+                    <button
+                      type="button"
+                      className="tertiary compact-action"
+                      disabled={pending}
+                      onClick={() => {
+                        resetActionState();
+                        removeAvatarMutation.mutate();
+                      }}
+                    >
+                      {removeAvatarMutation.isPending
+                        ? t('profileIdentity.removingAvatar')
+                        : t('profileIdentity.removeAvatar')}
+                    </button>
+                  ) : null}
+
+                  <input
+                    ref={fileInputRef}
+                    id="profile-avatar-file"
+                    className="profile-identity-file-input visually-hidden-input"
+                    type="file"
+                    accept="image/*"
+                    aria-label={t('profileIdentity.changeAvatar')}
+                    tabIndex={-1}
+                    disabled={pending}
+                    onChange={(event) => {
+                      const file = event.currentTarget.files?.[0];
+                      event.currentTarget.value = '';
+                      if (!file) return;
+                      resetActionState();
+                      avatarMutation.mutate(file);
+                    }}
+                  />
+                </div>
+              </MediaDropZone>
             ) : null}
 
             {phaseKey ? (

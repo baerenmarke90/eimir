@@ -1,0 +1,13 @@
+eimir. Android 0.2.0-test.45
+
+- Vibe check-in adds Very good and includes it in saved check-ins and insights.
+- Eligible videos can be compressed privately on the device before upload. Unsupported or uneconomical conversion safely retains the original; server validation remains authoritative.
+- Standalone video processing loads its required models and selectively resumes live uploads stranded by the former persistence failure.
+- Plans and Wishes load further pages on scroll, preserve the loaded range and return position, and allow deliberate retry after a failed continuation.
+- Wishes use a clearer single-column reading order. Association changes belong under Edit while existing linked content remains reachable from reading.
+- Media editing accepts constrained file drag and drop through the existing upload/save pipeline, including single-photo profile and person controls.
+- Sensitive media no longer shows the lock glyph. Explicit reveal, concealment on return/background and classification remain protected, including readable fullscreen video controls with large text.
+- Notifications retain authorized authored content previews and protected Android handoff from merged #1644.
+- Includes merged main 57cd3b92 (#1644 and #1648), while retaining the removable test updater.
+
+Same package de.eimir.app, canonical signing certificate, Firebase client and persistent test origin as test.44; increasing versionCode 45. Publication requires exact-candidate source, browser, security, migration and Android checks, protected signing, predecessor compatibility and anonymous public-asset verification. Physical-device installation, session/data continuity and OS-link acceptance remain separate observed checks; this test release does not establish store readiness.

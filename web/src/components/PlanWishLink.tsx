@@ -35,12 +35,14 @@ export function PlanWishLink({
   spaceId,
   plan,
   disabled,
+  editing = false,
   onLinked,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
   plan: PlanDetail;
   disabled: boolean;
+  editing?: boolean;
   onLinked: (plan: PlanDetail) => Promise<void>;
 }) {
   const { t } = useTranslation();
@@ -52,6 +54,7 @@ export function PlanWishLink({
   const inFlight = useRef(false);
   const focusLinkedSource = useRef(false);
   const eligible =
+    editing &&
     plan.capabilities.canEdit &&
     !plan.sourceWishId &&
     plan.status !== 'COMPLETED';

@@ -194,6 +194,17 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | react-dom | 19.2.8 | npm | MIT |
 | react-router-dom | 7.18.2 | npm | MIT |
 | leaflet | 1.9.4 | npm / Leaflet | BSD-2-Clause |
+| mediabunny | 1.65.2 | npm / [upstream](https://github.com/Vanilagy/mediabunny/tree/v1.65.2) | MPL-2.0 |
+
+Mediabunny is used unmodified in a lazy, same-origin Web Worker for optional
+on-device MP4/MOV optimization (#1647). It supplies container handling around
+native WebCodecs; no software codec, WASM runtime, remote converter or provider
+is added. Its two transitive dependencies are Web API type declarations, recorded
+with integrity hashes in the npm lock. The MPL notice and source location ship
+in `web/public/licenses/mediabunny-NOTICE.txt`; the complete license ships beside
+it. Cloud and Self-Hosted use the same bundled code without provider fees or
+additional user setup. Unsupported, failed, oversized or uneconomical local
+conversion retains the original and existing server-side validation.
 
 ## Web — M2-S8 Development
 

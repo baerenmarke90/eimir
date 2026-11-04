@@ -1,4 +1,18 @@
 const de = {
+  chapterExperience: {
+    summerTitle: 'Unser Sommer in Belgien',
+    description:
+      'Ein paar Tage am Meer. Nur wir.\nUnd viele kleine Geschichten.',
+    createdTitle: 'Unser gemeinsamer Herbst',
+    createdDescription: 'Ein neuer Abschnitt.',
+    pendingTitle: 'Noch nicht gespeichert',
+    correction: 'Meine Korrektur bleibt hier.',
+    homeTitle:
+      'Zuhause zu zweit – und all die kleinen Dinge, die unseren Alltag besonders machen',
+    homeDescription:
+      'Unser Alltag, unsere kleinen Rituale und ganz viel gemeinsames Ankommen.',
+    section: 'Abschnitt',
+  },
   sharedExperience: {
     question: 'Was hat euren heutigen Tag schön beginnen lassen?',
     ownInitial: 'Unser Kaffee zusammen.',

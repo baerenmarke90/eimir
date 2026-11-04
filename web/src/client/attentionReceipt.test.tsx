@@ -59,3 +59,16 @@ it('expires an unopened invitation while the app remains visible', async () => {
   });
   expect(screen.queryByRole('button')).toBeNull();
 });
+
+it('hides a three-day-old invitation on its first render', () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2026-11-04T10:00:00Z'));
+  const createdAt = Date.parse('2026-11-01T09:00:00Z');
+  render(
+    <Invitation
+      account="already-expired"
+      until={createdAt + 3 * 24 * 60 * 60_000}
+    />,
+  );
+  expect(screen.queryByRole('button')).toBeNull();
+});

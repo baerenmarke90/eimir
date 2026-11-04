@@ -252,3 +252,15 @@ build. The hosted PostgreSQL/encrypted, generated-client, video, security and
 Self-Hosted lanes passed on `87fb727`; the only subsequent runtime changes are the
 two Web lifecycle fixes described above. Final-head hosted results are recorded
 on the owning PR.
+
+
+### Chapter integration validation
+
+The Chapter integration adopts the exact final shared production correction from
+`33a361e1ee450ac15d6ca63826d635d0aa052c39`, preserving its inactive-day refresh
+regression. Additional first-render receipt and integrated warm-Dashboard tests
+prove expired invitations are hidden and an authorized durable snapshot survives
+device synchronization until its live replacement. The combined candidate is
+validated independently and recorded in PR #1636; required hosted checks bind to
+that exact combined source. No timeouts, position bounds, selection or permission
+gates are relaxed.

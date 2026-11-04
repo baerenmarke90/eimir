@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ChapterTimelineMarker } from './ChapterTimelineMarker';
+import {
+    ChapterTimelineMarkerFromJSON,
+    ChapterTimelineMarkerFromJSONTyped,
+    ChapterTimelineMarkerToJSON,
+    ChapterTimelineMarkerToJSONTyped,
+} from './ChapterTimelineMarker';
 import type { StoryItem } from './StoryItem';
 import {
     StoryItemFromJSON,
@@ -33,6 +40,12 @@ export interface StoryPage {
      * @memberof StoryPage
      */
     availableYears?: Array<number>;
+    /**
+     * 
+     * @type {Array<ChapterTimelineMarker>}
+     * @memberof StoryPage
+     */
+    chapterMarkers?: Array<ChapterTimelineMarker>;
     /**
      * 
      * @type {boolean}
@@ -74,6 +87,7 @@ export function StoryPageFromJSONTyped(json: any, ignoreDiscriminator: boolean):
     return {
         
         'availableYears': json['availableYears'] == null ? undefined : json['availableYears'],
+        'chapterMarkers': json['chapterMarkers'] == null ? undefined : ((json['chapterMarkers'] as Array<any>).map(ChapterTimelineMarkerFromJSON)),
         'hasMore': json['hasMore'],
         'items': ((json['items'] as Array<any>).map(StoryItemFromJSON)),
         'nextCursor': json['nextCursor'],
@@ -92,6 +106,7 @@ export function StoryPageToJSONTyped(value?: StoryPage | null, ignoreDiscriminat
     return {
         
         'availableYears': value['availableYears'],
+        'chapterMarkers': value['chapterMarkers'] == null ? undefined : ((value['chapterMarkers'] as Array<any>).map(ChapterTimelineMarkerToJSON)),
         'hasMore': value['hasMore'],
         'items': ((value['items'] as Array<any>).map(StoryItemToJSON)),
         'nextCursor': value['nextCursor'],

@@ -4,16 +4,18 @@ import { ListEntryIconButton } from './ListEntryActions';
 import { ProblemState } from './ProblemState';
 import { SharedContentSheet } from './SharedContentSheet';
 
-export function PlaceMomentActions({
+export function RelationMomentActions({
   name,
   pending,
   error,
   onRemove,
+  ownerKind = 'place',
 }: {
   name: string;
   pending: boolean;
   error: unknown;
   onRemove: () => Promise<unknown>;
+  ownerKind?: 'place' | 'chapter';
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -38,7 +40,13 @@ export function PlaceMomentActions({
       >
         {(requestClose) => (
           <>
-            <p>{t('m5s3.relations.unlinkPlaceConsequence')}</p>
+            <p>
+              {t(
+                ownerKind === 'chapter'
+                  ? 'm5s3.relations.unlinkChapterConsequence'
+                  : 'm5s3.relations.unlinkPlaceConsequence',
+              )}
+            </p>
             <div className="shared-content-sheet-actions">
               <button
                 type="button"
@@ -54,7 +62,11 @@ export function PlaceMomentActions({
                 }}
               >
                 {t(
-                  pending ? 'm5s3.common.saving' : 'm5s3.relations.unlinkPlace',
+                  pending
+                    ? 'm5s3.common.saving'
+                    : ownerKind === 'chapter'
+                      ? 'm5s3.relations.unlink'
+                      : 'm5s3.relations.unlinkPlace',
                 )}
               </button>
               <button

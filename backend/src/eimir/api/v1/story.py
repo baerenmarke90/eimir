@@ -37,6 +37,7 @@ from eimir.api.v1.memories import (
 from eimir.attachments import binding
 from eimir.attachments.models import Attachment, MediaType
 from eimir.authorization import ContentVisibility, readable, visibility_of
+from eimir.chapters.models import Chapter
 from eimir.core import clock
 from eimir.domain.experiences import ExperienceKind
 from eimir.heart_moments import media as heart_media
@@ -146,11 +147,22 @@ class StoryItem(RootModel[StoryItemVariant]):
     root: StoryItemVariant
 
 
+class ChapterTimelineMarker(ApiModel):
+    """A diary-only destination at an authored chapter start, not Story content."""
+
+    id: UUID
+    title: str
+    start_on: date
+    end_on: date | None
+    position: int = Field(ge=0, lt=service.MAX_LIMIT)
+
+
 class StoryPage(ApiModel):
     items: list[StoryItem]
     next_cursor: str | None
     has_more: bool
     available_years: list[int] = Field(default_factory=list)
+    chapter_markers: list[ChapterTimelineMarker] = Field(default_factory=list)
 
 
 class DiscoverLeadContext(ApiModel):
@@ -352,6 +364,7 @@ def get_story_timeline(
     order: Annotated[StoryOrder, Query()] = StoryOrder.DESC,
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=service.MAX_LIMIT)] = service.DEFAULT_LIMIT,
+    include_chapters: Annotated[bool, Query(alias="includeChapters")] = False,
 ) -> StoryPage:
     """Return the caller's viewer-authorized timeline of memories, milestones, and heart moments.
 
@@ -367,18 +380,62 @@ def get_story_timeline(
         order=order,
         cursor=cursor,
         limit=limit,
+        include_chapters=include_chapters,
     )
     available_years = service.read_available_years(
         session,
         authorization,
         kinds=kinds_tuple,
+        include_chapters=include_chapters,
     )
+    items = project_story_items(session, authorization, page.items)
     return StoryPage(
-        items=project_story_items(session, authorization, page.items),
+        items=items,
         next_cursor=page.next_cursor,
         has_more=page.has_more,
         available_years=available_years,
+        chapter_markers=project_chapter_markers(
+            session, authorization, page.chapter_markers, page.items, items
+        ),
     )
+
+
+def project_chapter_markers(
+    session: DbSession,
+    authorization: Authorization,
+    rows: list[service.ChapterTimelineRow],
+    source_rows: list[StoryRow],
+    source_items: list[StoryItem],
+) -> list[ChapterTimelineMarker]:
+    if not rows:
+        return []
+    chapters = {
+        chapter.id: chapter
+        for chapter in session.scalars(
+            readable(Chapter, authorization).where(Chapter.id.in_([row.id for row in rows]))
+        )
+    }
+    surviving_sources = {_story_item_identity(item) for item in source_items}
+    prefix = [0]
+    for source_row in source_rows:
+        prefix.append(prefix[-1] + int((source_row.kind, source_row.id) in surviving_sources))
+    markers: list[ChapterTimelineMarker] = []
+    for marker_index, row in enumerate(rows):
+        chapter = chapters.get(row.id)
+        if chapter is None or chapter.start_on != row.effective_date:
+            continue
+        markers.append(
+            ChapterTimelineMarker(
+                id=chapter.id,
+                title=chapter.payload.title,
+                start_on=chapter.start_on,
+                end_on=chapter.end_on,
+                # A source can become unreadable between the key query and its
+                # authorized projection. Keep the surviving combined order exact.
+                position=prefix[row.position - marker_index] + len(markers),
+            )
+        )
+    return markers
 
 
 def project_story_items(

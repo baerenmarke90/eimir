@@ -53,6 +53,13 @@ function createApis(chapterOverrides: Record<string, unknown> = {}) {
     chapterRelations: {
       listChapterContent: vi.fn().mockResolvedValue({ items: [] }),
     },
+    places: {
+      getPlace: vi.fn().mockResolvedValue({ id: 'place-lake', name: 'Lake' }),
+      listPlaces: vi.fn().mockResolvedValue({
+        items: [{ id: 'place-lake', name: 'Lake' }],
+        nextCursor: null,
+      }),
+    },
     memories: { getMemory: vi.fn() },
     heartMoments: { getHeartMoment: vi.fn() },
     milestones: { getMilestone: vi.fn() },
@@ -98,6 +105,12 @@ function renderChapter(
 
 beforeEach(() => {
   window.history.replaceState(null, '', '/');
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
 });
 
 describe('ChapterProductPage read presentation', () => {
@@ -122,19 +135,50 @@ describe('ChapterProductPage read presentation', () => {
     });
 
     expect(
-      await screen.findByRole('heading', {
+      await screen.findByRole('region', {
         name: i18n.t('m5s3.chapter.contextHeading'),
       }),
     ).toBeTruthy();
     expect(screen.getByText(/01\.06\.2026/)).toBeTruthy();
     expect(screen.getByText(/31\.08\.2026/)).toBeTruthy();
-    const placeLink = screen.getByRole('link', { name: /Lake/ });
+    const placeLink = await screen.findByRole('link', { name: /Lake/ });
     expect(placeLink.getAttribute('href')).toBe('/plan/places/place-lake');
   });
 });
 
 describe('ChapterProductPage editor lifecycle', () => {
-  it('reads Chapter places from the canonical selector cache', async () => {
+  it('keeps linked-source navigation outside the protected editor and restores it on Cancel', async () => {
+    const apis = createApis();
+    apis.chapterRelations.listChapterContent = vi.fn().mockResolvedValue({
+      items: [{ targetType: 'MEMORY', targetId: 'linked-memory' }],
+    });
+    apis.memories.getMemory = vi.fn().mockResolvedValue({
+      id: 'linked-memory',
+      title: 'A shared memory',
+      happenedOn: new Date('2026-06-01T00:00:00Z'),
+      createdAt: new Date('2026-06-01T00:00:00Z'),
+      attachments: [],
+    });
+    const user = userEvent.setup();
+    renderChapter(apis);
+    expect(
+      await screen.findByRole('link', { name: /A shared memory/ }),
+    ).toBeTruthy();
+    await user.click(
+      screen.getByRole('button', { name: i18n.t('common.edit') }),
+    );
+    expect(screen.queryByRole('link', { name: /A shared memory/ })).toBeNull();
+    await user.click(
+      screen.getByRole('button', {
+        name: i18n.t('common.cancel'),
+      }),
+    );
+    expect(
+      await screen.findByRole('link', { name: /A shared memory/ }),
+    ).toBeTruthy();
+  });
+
+  it('chooses Chapter places with the shared authorized picker', async () => {
     const user = userEvent.setup();
     renderChapter(createApis(), false, (queryClient) => {
       queryClient.setQueryData(authorSummaryQueryKeys.placeOptions('space-1'), [
@@ -145,7 +189,16 @@ describe('ChapterProductPage editor lifecycle', () => {
     await user.click(
       screen.getByRole('button', { name: i18n.t('common.edit') }),
     );
-    expect(screen.getByRole('option', { name: 'Lake' })).toBeTruthy();
+    await user.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.chapter.choosePlace') }),
+    );
+    await user.click(await screen.findByRole('button', { name: /Lake/ }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(
+      screen
+        .getByRole('button', { name: i18n.t('m5s3.common.saveChanges') })
+        .hasAttribute('disabled'),
+    ).toBe(false);
   });
 
   it('focuses the editor and closes a clean editor with Escape', async () => {

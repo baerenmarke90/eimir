@@ -103,6 +103,10 @@ for (const [width, theme] of [
       `device-comments-${width}-${theme}.png`,
       { fullPage: true },
     );
+    await expect(
+      page.getByRole('button', { name: memory.planning.add, exact: true }),
+    ).toHaveCount(0);
+    await page.getByRole('link', { name: memory.edit, exact: true }).click();
     const linked = page.getByRole('region', { name: memory.planning.heading });
     for (const kind of ['plans', 'wishes'] as const) {
       await page

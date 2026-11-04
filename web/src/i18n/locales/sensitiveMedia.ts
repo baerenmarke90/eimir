@@ -4,4 +4,6 @@ export default {
   help: 'Wird zunächst unscharf angezeigt. Die Freigabe bleibt unverändert.',
   show: 'Bild anzeigen',
   hide: 'Wieder verbergen',
+  reveal: 'Anzeigen',
+  conceal: 'Verbergen',
 };

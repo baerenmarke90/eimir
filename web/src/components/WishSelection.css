@@ -19,6 +19,13 @@
 .wish-selection-invitation > a {
   justify-self: start;
 }
+.wish-selection-entry.is-compact {
+  margin-block: var(--space-2);
+}
+.wish-selection-entry.is-compact .wish-selection-invitation {
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
 .wish-selection-task {
   display: grid;
   gap: var(--space-5);

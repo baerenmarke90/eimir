@@ -15,6 +15,26 @@ A missing poster does not invalidate an independently validated video.
 No transcoding, HDR, HEVC, DRM, adaptive streaming or external media URL is
 supported. Plans, avatars and related-person photos retain image-only intake.
 
+### Local preparation (#1647)
+
+The shared Web/Capacitor client can optimize selected H.264/AAC recordings before
+transfer using native WebCodecs and the bundled, unmodified Mediabunny container
+library. Only one dedicated worker runs at a time. Files below 8 MiB bypass
+conversion; eligible clips retain their aspect ratio and audio, with at most
+1080p/30 fps and a 4 Mbit/s video target. HDR and unsupported input tracks are
+not converted. Do not discard audio to make an encoder succeed.
+
+Preparation has a 120-second wall limit and a 100 MiB output ceiling. The client
+uses a result only when it is at least ten percent smaller; otherwise it uploads
+the original. Failure, missing codecs or worker restrictions also use the original.
+Cancellation terminates local work, including queued callers. Selected originals
+remain unchanged and no media or codec diagnostics are logged or persisted.
+The server remains authoritative for every codec, privacy and byte limit.
+
+The production CSP permits compiled same-origin workers; remote/blob workers,
+inline scripts and eval remain disallowed. This does not enable a new service
+worker or change the PWA policy. MPL license/source notices ship in `/licenses/`.
+
 New uploads require both the operator flag and the Space capability
 `media.video_upload`. Existing video reads always use canonical parent
 authorization. Mixed galleries preserve ordering and sensitive-media reveal.
@@ -58,6 +78,14 @@ docker build -f backend/Dockerfile.media \
   --build-arg EIMIR_BACKEND_IMAGE=registry.example/eimir-backend@sha256:REPLACE_WITH_TESTED_DIGEST \
   -t registry.example/eimir-media:REVIEWED_REVISION .
 ```
+
+The standalone role explicitly loads Account and Space model metadata before
+processing. Without those dependencies SQLAlchemy cannot prepare Attachment
+writes; importing the whole API in tests previously concealed the defect.
+At startup, bounded recovery requeues only exhausted video jobs recorded with
+`NoReferencedTableError` whose attachment is still a live validating video.
+Deleted/ready media and all other failures are excluded. Normal validation and
+its cancellation/version barriers remain authoritative on the recovered job.
 
 The archive commit and SHA-256 are pinned in that Dockerfile. Only MOV, H.264,
 AAC, file/pipe, required remux/poster filters and outputs are compiled.

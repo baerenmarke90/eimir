@@ -1,7 +1,12 @@
 import { MomentDate } from './MomentDate';
 import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { NativeDateInput } from './NativeDateField';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   type FormEvent,
   useCallback,
@@ -144,6 +149,18 @@ export function MemoryProductPage({
   const params = useParams();
   const queryClient = useQueryClient();
   const memoryId = params.memoryId;
+  const planningPending =
+    useIsMutating({
+      mutationKey: [
+        'memory-planning',
+        apiBaseUrl,
+        currentAccountId,
+        spaceId,
+        memoryId,
+        'write',
+      ],
+      exact: true,
+    }) > 0;
   const memoryKey = authorSummaryQueryKeys.memory(spaceId, memoryId);
   const contextKey = formatAttachmentDraftContextKey(currentAccountId, spaceId);
   const deleteKey = [
@@ -486,7 +503,10 @@ export function MemoryProductPage({
         tagDraft?.memoryId === memoryId ||
         Object.keys(sensitiveValues).length > 0),
     isCloseBlocked:
-      updateMutation.isPending || attachments.hasPending || placePending,
+      updateMutation.isPending ||
+      attachments.hasPending ||
+      placePending ||
+      planningPending,
     onClose: () => {
       if (memoryId)
         navigate(memoryDetailPath(memoryId), {
@@ -882,6 +902,20 @@ export function MemoryProductPage({
                 </div>
               ))}
 
+            {!memory.experienceKind ? (
+              <MemoryPlanningLinks
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={currentAccountId}
+                spaceId={spaceId}
+                memoryId={memory.id}
+                canManage={
+                  memory.capabilities.canEdit && !updateMutation.isPending
+                }
+                editing
+                offline={offline}
+              />
+            ) : null}
             <div className="form-actions">
               <Link
                 className="button-link secondary-link"
@@ -900,6 +934,7 @@ export function MemoryProductPage({
                 disabled={
                   updateMutation.isPending ||
                   placePending ||
+                  planningPending ||
                   attachments.hasPending ||
                   attachments.items.some((item) => item.status === 'failed') ||
                   deleteMutation.isBlocked

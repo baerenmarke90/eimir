@@ -40,6 +40,7 @@ const dailyVibe = {
   saveError: 'Dein Vibe konnte nicht gespeichert werden.',
   retry: 'Erneut versuchen',
   values: {
+    VERY_GOOD: 'Sehr gut',
     GOOD: 'Gut & entspannt',
     OKAY: 'Ganz okay',
     STRESSED: 'Anstrengender Tag',
@@ -48,6 +49,7 @@ const dailyVibe = {
     NEEDS_SPACE: 'Etwas Ruhe',
   },
   partnerVisible: {
+    VERY_GOOD: '{{name}} geht es heute sehr gut.',
     GOOD: '{{name}} geht es heute gut.',
     OKAY: 'Bei {{name}} ist heute alles ganz okay.',
     STRESSED: '{{name}} hat heute einen anstrengenden Tag.',

@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryPreview } from './MemoryPreview';
 import { PreviewCardLink } from './PreviewCardLink';
 import de from '../i18n/locales/de';
+import { i18n } from '../i18n';
 
 it('requests an available thumbnail for preview and keeps the original fallback distinct', async () => {
   const load = vi.fn(async () => 'blob:preview');
@@ -195,7 +196,8 @@ describe('sensitive overview previews', () => {
     expect(screen.queryByRole('img')).toBeNull();
     const button = screen.getByRole('button', { name: 'Bild anzeigen' });
     expect(button.closest('a')).toBeNull();
-    expect(button.querySelector('.eimir-icon-privatsphaere')).not.toBeNull();
+    expect(button.querySelector('svg')).toBeNull();
+    expect(button.textContent).toBe(i18n.t('sensitiveMedia.reveal'));
     await waitFor(() =>
       expect(
         view.container.querySelector('.sensitive-media-blurred img'),

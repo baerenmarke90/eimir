@@ -520,6 +520,26 @@ export function PlanProductPage({
                 setEditDirty(true);
               }}
             />
+            <PlanWishLink
+              key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
+              apis={apis}
+              spaceId={spaceId}
+              plan={plan}
+              editing
+              disabled={writesPending}
+              onLinked={async (updated) => {
+                setEditingPlan((current) =>
+                  current
+                    ? {
+                        ...current,
+                        version: updated.version,
+                        sourceWishId: updated.sourceWishId,
+                      }
+                    : current,
+                );
+                await commitPlan(updated);
+              }}
+            />
             <fieldset
               className="form-grid planning-editor-fields"
               disabled={writesPending}

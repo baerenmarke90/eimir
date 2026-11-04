@@ -32,6 +32,7 @@
     "i18next": "26.4.6",
     "leaflet": "1.9.4",
     "linkify-it": "6.1.0",
+    "mediabunny": "1.65.2",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-i18next": "17.0.11",

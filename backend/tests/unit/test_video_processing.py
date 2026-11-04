@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +14,27 @@ from eimir.attachments import videos
 from eimir.config import get_settings
 
 SAMPLE = Path(__file__).parents[1] / "fixtures/media/video-with-metadata.mp4"
+
+
+def test_standalone_worker_can_prepare_attachment_persistence_without_api_bootstrap() -> None:
+    program = """
+from eimir.jobs import video_worker
+from eimir.attachments.models import Attachment
+from sqlalchemy.orm import configure_mappers
+configure_mappers()
+assert Attachment.__mapper__._sorted_tables
+for foreign_key in Attachment.__table__.foreign_keys:
+    assert foreign_key.column.table.name in {"accounts", "spaces"}
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", program],
+        cwd=Path(__file__).parents[2],
+        env={**os.environ, "PYTHONPATH": "src"},
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 @pytest.fixture

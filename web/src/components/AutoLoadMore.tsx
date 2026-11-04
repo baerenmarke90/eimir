@@ -80,8 +80,8 @@ export function AutoLoadTrigger({
   const id = useId();
   const pagination = useTimelineAutoPagination({
     sentinelRef,
-    enabled: true,
-    blocked: blocked || failed,
+    enabled: !failed,
+    blocked,
     hasNextPage: Boolean(cursor),
     isFetchingNextPage: loading,
     cursor,

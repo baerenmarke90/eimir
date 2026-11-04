@@ -169,7 +169,7 @@ describe('SharedPlanningOverviewPage', () => {
       defaultOptions: { queries: { retry: false } },
     });
     planningClient.setQueryData(
-      ['m5-s3', 'plans', 'space-1'],
+      ['m5-s3', 'plans', 'space-1', 'overview', 'OPEN'],
       emptyInfinitePage(),
     );
     planningClient.setQueryData(
@@ -193,7 +193,7 @@ describe('SharedPlanningOverviewPage', () => {
     );
 
     expect(planningHtml).toContain(i18n.t('m5s3.overview.wishesEmpty'));
-    expect(planningHtml).toContain(i18n.t('m5s3.overview.plansEmpty'));
+    expect(planningHtml).toContain(i18n.t('m5s3.overview.openPlansEmpty'));
     expect(planningHtml).not.toContain(i18n.t('m5s3.wish.createIntro'));
 
     const collectionsClient = new QueryClient({
@@ -262,7 +262,7 @@ describe('SharedPlanningOverviewPage', () => {
       ]),
     );
     queryClient.setQueryData(
-      ['m5-s3', 'plans', 'space-1'],
+      ['m5-s3', 'plans', 'space-1', 'overview', 'OPEN'],
       infinitePage([
         plan({ id: 'plan-idea', title: 'Try a new recipe', status: 'IDEA' }),
         // Completed Plans remain discoverable only in the receded history.

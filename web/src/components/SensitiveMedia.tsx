@@ -4,7 +4,6 @@ import { flushSync } from 'react-dom';
 import { useTranslation } from '../i18n';
 import './SensitiveMedia.css';
 import './MediaOverlay.css';
-import { EimirIcon } from './EimirIcon';
 
 /** Deliberately volatile: never serialize reveal state with media or navigation. */
 export function useSensitiveMediaReveals(identity: string, enabled = true) {
@@ -61,10 +60,7 @@ export function SensitiveMediaCover({
         </span>
       ) : null}
       {showLabel ? (
-        <span className="sensitive-media-label media-overlay">
-          <EimirIcon name="privatsphaere" />
-          <span className="sr-only">{t('sensitiveMedia.label')}</span>
-        </span>
+        <span className="sr-only">{t('sensitiveMedia.label')}</span>
       ) : null}
     </span>
   );
@@ -100,7 +96,9 @@ export function SensitiveMediaControl({
       )}
       onClick={onToggle}
     >
-      <EimirIcon name="privatsphaere" />
+      <span>
+        {t(revealed ? 'sensitiveMedia.conceal' : 'sensitiveMedia.reveal')}
+      </span>
     </button>
   );
 }

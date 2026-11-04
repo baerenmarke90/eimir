@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, Response, status
@@ -162,11 +162,14 @@ class PlaceUpdate(ApiModel):
     address: str | None = None
     latitude: float | None = None
     longitude: float | None = None
+    archived: bool | SkipJsonSchema[None] = None
 
     @model_validator(mode="after")
     def _validate_patch(self) -> Self:
         if not self.model_fields_set:
             raise ValueError("at least one field must be supplied")
+        if "archived" in self.model_fields_set and self.archived is None:
+            raise ValueError("archived must not be null")
         if "name" in self.model_fields_set:
             if self.name is None or not self.name.strip():
                 raise ValueError("name must not be null or blank")
@@ -182,6 +185,7 @@ class PlaceDetail(ApiModel):
     description: str | None
     address: str | None
     geocoding_source: str | None = None
+    archived: bool = False
     latitude: float | None
     longitude: float | None
     version: int
@@ -271,6 +275,7 @@ def place_detail(
         description=place.payload.description,
         address=place.payload.address,
         geocoding_source=place.payload.geocoding_source,
+        archived=place.archived,
         latitude=_as_number(place.latitude),
         longitude=_as_number(place.longitude),
         version=place.version,
@@ -325,8 +330,12 @@ def list_places(
     session: DbSession,
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    order: Annotated[Literal["NEWEST", "NAME"], Query()] = "NEWEST",
+    scope: Annotated[Literal["ACTIVE", "ARCHIVED", "ALL"], Query()] = "ALL",
 ) -> PlacePage:
-    page = service.list_places(session, authorization, cursor=cursor, limit=limit)
+    page = service.list_places(
+        session, authorization, cursor=cursor, limit=limit, order=order, scope=scope
+    )
     creators = resolve_author_summaries(session, {place.owner_id for place in page.items})
     return PlacePage(
         items=[
@@ -380,6 +389,7 @@ def update_place(
         address=body.address,
         latitude=body.latitude,
         longitude=body.longitude,
+        archived=body.archived,
     )
     response.headers["ETag"] = etag_for(place.version)
     return place_detail(session, authorization, place)

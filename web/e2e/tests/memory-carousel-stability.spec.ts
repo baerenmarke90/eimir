@@ -775,12 +775,8 @@ for (const state of [
       });
       expect(target.width).toBeGreaterThanOrEqual(44);
       expect(target.height).toBeGreaterThanOrEqual(44);
-      expect(
-        Math.abs(target.x + target.width / 2 - frame.x - frame.width / 2),
-      ).toBeLessThan(1);
-      expect(
-        Math.abs(target.y + target.height / 2 - frame.y - frame.height / 2),
-      ).toBeLessThan(1);
+      expect(target.x).toBeGreaterThan(frame.x + frame.width / 2);
+      expect(target.y).toBeGreaterThanOrEqual(frame.y);
       expect(
         await photo
           .locator('.sensitive-media-blurred')
@@ -808,53 +804,27 @@ for (const state of [
       const revealedFrame = await photo.boundingBox();
       if (!revealedTarget || !revealedFrame)
         throw new Error('Missing revealed photo geometry.');
+      expect(Math.abs(revealedTarget.x - target.x)).toBeLessThan(1);
+      expect(Math.abs(revealedTarget.y - target.y)).toBeLessThan(1);
+      expect(revealedTarget.width).toBe(target.width);
+      expect(revealedTarget.height).toBe(target.height);
       expect(revealedTarget.width).toBeGreaterThanOrEqual(44);
       expect(revealedTarget.height).toBeGreaterThanOrEqual(44);
       if (surface === 'diary') {
-        // The approved compact Diary has a 4rem thumbnail. Keep the effective
-        // target inside it and the painted circular material off its center.
-        expect(revealedTarget.x).toBeGreaterThanOrEqual(revealedFrame.x - 0.5);
-        expect(revealedTarget.y).toBeGreaterThanOrEqual(revealedFrame.y - 0.5);
+        expect(revealedTarget.x).toBeGreaterThanOrEqual(revealedFrame.x);
+        expect(revealedTarget.y).toBeGreaterThanOrEqual(revealedFrame.y);
         expect(revealedTarget.x + revealedTarget.width).toBeLessThanOrEqual(
-          revealedFrame.x + revealedFrame.width + 0.5,
+          revealedFrame.x + revealedFrame.width,
         );
         expect(revealedTarget.y + revealedTarget.height).toBeLessThanOrEqual(
-          revealedFrame.y + revealedFrame.height + 0.5,
+          revealedFrame.y + revealedFrame.height,
         );
-        const paint = await revealedButton.evaluate((node) => {
-          const style = getComputedStyle(node);
-          return {
-            clip: style.backgroundClip,
-            backdrop: style.backdropFilter,
-            shadow: style.boxShadow,
-            left: parseFloat(style.paddingLeft),
-            right: parseFloat(style.paddingRight),
-            top: parseFloat(style.paddingTop),
-            bottom: parseFloat(style.paddingBottom),
-          };
-        });
-        expect(paint.clip).toBe('content-box');
-        expect(paint.backdrop).toBe('none');
-        expect(paint.shadow).toBe('none');
-        const radiusX = (revealedTarget.width - paint.left - paint.right) / 2;
-        const radiusY = (revealedTarget.height - paint.top - paint.bottom) / 2;
-        expect(radiusX).toBeGreaterThan(0);
-        expect(radiusY).toBeGreaterThan(0);
-        const centerX = revealedTarget.x + paint.left + radiusX;
-        const centerY = revealedTarget.y + paint.top + radiusY;
-        expect(centerX).toBeGreaterThan(
+        expect(revealedTarget.x).toBeGreaterThan(
           revealedFrame.x + revealedFrame.width / 2,
         );
-        expect(centerY).toBeLessThan(
+        expect(revealedTarget.y + revealedTarget.height).toBeLessThan(
           revealedFrame.y + revealedFrame.height / 2,
         );
-        expect(
-          ((revealedFrame.x + revealedFrame.width / 2 - centerX) / radiusX) **
-            2 +
-            ((revealedFrame.y + revealedFrame.height / 2 - centerY) /
-              radiusY) **
-              2,
-        ).toBeGreaterThan(1);
       } else {
         expect(revealedTarget.x).toBeGreaterThan(
           revealedFrame.x + revealedFrame.width / 2,

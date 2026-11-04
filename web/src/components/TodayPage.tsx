@@ -1,5 +1,10 @@
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useActivityQuery,
+  readableActivityItems,
+} from '../client/activityQueries';
+import { ActivityCard } from './ActivityCard';
 import { Fragment, type ReactNode, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
@@ -834,13 +839,8 @@ export function TodayPage({
     retry: false,
   });
 
-  const activityQuery = useQuery({
-    queryKey: ['m4', 'activity', spaceId],
-    queryFn: () =>
-      apiCall(() => apis.activity.getActivity({ spaceId, limit: 10 })),
-    enabled: Boolean(apis?.activity && spaceId),
-    retry: false,
-  });
+  const activityQuery = useActivityQuery(apis.activity, spaceId, account?.id);
+  const activityItems = readableActivityItems(activityQuery);
 
   const partner = dashboardQuery.data?.space.partner;
   const partnerName = relationshipLabel(
@@ -1002,7 +1002,7 @@ export function TodayPage({
   // 4. Gerade bei euch: one module, deterministic priority, never a stack.
   const livingModule = selectLivingModule({
     partnerId: partner?.id,
-    activityItems: activityQuery.data?.items,
+    activityItems,
     recentShared,
     excludeItemIds: [
       ...(retrospectiveId ? [retrospectiveId] : []),
@@ -1048,15 +1048,8 @@ export function TodayPage({
     excludeItemIds: [...featuredIds, ...monthlyStrip.map((item) => item.id)],
   });
 
-  // 6. Zuletzt bei euch: the quiet trace, minus everything featured above it -
-  // the photos the strip just claimed included, so a Memory is never both a
-  // thumbnail up there and a row down here.
-  const traceExcludedIds = new Set(featuredIds);
-  for (const item of [...monthlyStrip, ...monthlyNotes])
-    traceExcludedIds.add(item.id);
-  const recentSharedForTrace = recentShared.filter(
-    (item) => !traceExcludedIds.has(item.id),
-  );
+  // The quiet trace is the same first page as Activities, including comments.
+  const recentActivities = activityItems.slice(0, 4);
 
   /*
    * Per-user module visibility (#817). This is presentation only: every
@@ -1507,7 +1500,7 @@ export function TodayPage({
       <>
         {/* 6. Zuletzt bei euch — deliberately secondary. Full activity
                   navigation stays reachable from here. */}
-        {recentSharedVisible && recentSharedForTrace.length > 0 ? (
+        {recentSharedVisible && recentActivities.length > 0 ? (
           <TodayModuleSection
             className="today-section-recent"
             title={t('m5s5.dashboard.recentTitle')}
@@ -1521,11 +1514,18 @@ export function TodayPage({
               </Link>
             }
           >
-            <div className="today-stream today-stream-recent">
-              {recentSharedForTrace.slice(0, 4).map((item: DashboardItem) => (
-                <RecentSharedItemCard key={item.id} item={item} />
+            <ol className="today-stream today-stream-recent today-activity-trace">
+              {recentActivities.map((item) => (
+                <ActivityCard
+                  key={item.id}
+                  item={item}
+                  spaceId={spaceId}
+                  profilesApi={profilesApi}
+                  currentAccountId={account?.id}
+                  compact
+                />
               ))}
-            </div>
+            </ol>
           </TodayModuleSection>
         ) : null}
       </>

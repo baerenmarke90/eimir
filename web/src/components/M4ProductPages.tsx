@@ -19,7 +19,6 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
-import type { ActivityItem } from '../api/generated/models/ActivityItem';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import type { SearchKind } from '../api/generated/models/SearchKind';
 import type { SearchResult } from '../api/generated/models/SearchResult';
@@ -42,7 +41,6 @@ import {
   type NotificationReadAttempt,
 } from '../client/notificationRead';
 import { getNotificationItemTitle } from '../client/notificationTitle';
-import { usePartnerNickname } from '../client/partnerNickname';
 import {
   ClientProblemError,
   normalizeClientError,
@@ -51,6 +49,11 @@ import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { handleTabKeyDown } from '../client/tabKeyboard';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { ActivityCard } from './ActivityCard';
+import {
+  useActivityQuery,
+  readableActivityItems,
+} from '../client/activityQueries';
 import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
 import { AuthorAvatar } from './PersonIdentity';
@@ -347,106 +350,6 @@ export function SearchProductPage({
   );
 }
 
-function ActivityCard({
-  item,
-  profilesApi,
-  spaceId,
-  currentAccountId,
-  onOpen,
-}: {
-  item: ActivityItem;
-  profilesApi?: ProfilesApi | null;
-  spaceId: string;
-  currentAccountId?: string;
-  onOpen?: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
-}) {
-  const { t } = useTranslation();
-  const { relationshipLabel } = usePartnerNickname();
-  const path = engagementTargetPath(item.targetType, item.targetId);
-
-  const isOwn = Boolean(
-    currentAccountId && item.actor?.id === currentAccountId,
-  );
-  const actorName = isOwn
-    ? t('m5s5.activity.you')
-    : item.actor
-      ? item.actor.isFormerMember
-        ? authorDisplayName(item.actor)
-        : relationshipLabel(
-            item.actor.id,
-            item.actor.displayName,
-            t('couplePresencePartnerFallback'),
-          )
-      : undefined;
-
-  const actionText = isOwn
-    ? t(`m5s5.activityActionOwn.${item.kind}`)
-    : item.actor
-      ? t(`m5s5.activityAction.${item.kind}`)
-      : t(`m5s5.activityKind.${item.kind}`);
-
-  const inner = (
-    <div
-      className={`activity-card ${path ? 'activity-card-interactive eimir-motion-lift' : 'activity-card-static'} activity-card-${item.targetType?.toLowerCase() ?? 'unknown'}`}
-    >
-      <div className="activity-card-header">
-        {item.actor ? (
-          <AuthorAvatar
-            author={
-              isOwn
-                ? { ...item.actor, displayName: t('m5s5.activity.you') }
-                : item.actor
-            }
-            profilesApi={profilesApi}
-            spaceId={spaceId}
-            size="small"
-          />
-        ) : null}
-        <div className="activity-card-actor-copy">
-          <p className="activity-card-title">
-            {actorName ? (
-              <>
-                <strong>{actorName}</strong> {actionText}
-              </>
-            ) : (
-              actionText
-            )}
-          </p>
-          <time
-            className="activity-card-date"
-            dateTime={item.occurredAt.toISOString()}
-          >
-            {formatDateTime(item.occurredAt)}
-          </time>
-        </div>
-      </div>
-      {item.target?.title ? (
-        <div className="activity-card-target">
-          <span className="activity-card-target-title">
-            {item.target.title}
-          </span>
-        </div>
-      ) : null}
-    </div>
-  );
-
-  return (
-    <li className="activity-result-wrapper">
-      {path ? (
-        <Link
-          className="activity-result-link"
-          to={path}
-          onClick={(event) => onOpen?.(event, path)}
-        >
-          {inner}
-        </Link>
-      ) : (
-        inner
-      )}
-    </li>
-  );
-}
-
 export function ActivityProductPage({
   apis,
   spaceId,
@@ -469,22 +372,13 @@ export function ActivityProductPage({
   }
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
-  const activityQuery = useInfiniteQuery({
-    queryKey: ['m5-s5', 'activity', spaceId, currentAccountId, scope],
-    queryFn: ({ pageParam }) =>
-      apiCall(() =>
-        apis.activity.getActivity({
-          spaceId,
-          cursor: pageParam,
-          limit: PAGE_SIZE,
-          scope,
-        }),
-      ),
-    initialPageParam: null as string | null,
-    getNextPageParam: opaqueNextCursor,
-    retry: false,
-  });
-  const items = activityQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const activityQuery = useActivityQuery(
+    apis.activity,
+    spaceId,
+    currentAccountId,
+    scope,
+  );
+  const items = readableActivityItems(activityQuery);
 
   return (
     <div className="page m4-product-page">

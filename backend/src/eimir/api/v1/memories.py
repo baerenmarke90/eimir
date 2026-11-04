@@ -30,8 +30,8 @@ from eimir.attachments import binding
 from eimir.attachments.models import MediaType
 from eimir.domain.experiences import ExperienceKind
 from eimir.engagement.gentle import record_manual_save
+from eimir.memories import experiences, service
 from eimir.memories import places as memory_places
-from eimir.memories import service
 from eimir.memories.models import Memory, PhotoReaction
 from eimir.memories.tags import MemoryTags, unique_tags
 
@@ -56,6 +56,7 @@ class MemoryCreate(ApiModel):
     place_id: UUID | None = None
     place_ids: list[UUID] | None = Field(default=None, max_length=20)
     experience_kind: ExperienceKind | None = None
+    experience_reply_to: UUID | None = None
 
     _unique_tags = field_validator("tags")(unique_tags)
 
@@ -139,6 +140,15 @@ class MemoryAttachmentSummary(OrderedAttachmentSummary):
     reactions: list[PhotoReactionSummary] = Field(default_factory=list)
 
 
+class ExperienceAnswer(ApiModel):
+    id: UUID
+    body: str
+    author: AuthorSummary
+    version: int
+    capabilities: ResourceCapabilities
+    attachments: list[MemoryAttachmentSummary] = Field(default_factory=list)
+
+
 class MemoryDetail(ApiModel):
     id: UUID
     space_id: UUID
@@ -157,6 +167,8 @@ class MemoryDetail(ApiModel):
     capabilities: ResourceCapabilities
     attachments: list[MemoryAttachmentSummary]
     experience_kind: ExperienceKind | None = None
+    experience_root_id: UUID | None = None
+    experience_answers: list[ExperienceAnswer] = Field(default_factory=list)
 
 
 class MemoryPage(ApiModel):
@@ -165,11 +177,78 @@ class MemoryPage(ApiModel):
     has_more: bool
 
 
+def _memory_attachments(
+    authorization: Authorization, memory: Memory, bound_attachments: list[binding.BoundAttachment]
+) -> list[MemoryAttachmentSummary]:
+    return [
+        MemoryAttachmentSummary(
+            id=entry.attachment.id,
+            status="READY",
+            media_type=MediaType(entry.attachment.media_type),
+            mime_type=entry.attachment.mime_type,
+            size=entry.attachment.size,
+            width=entry.attachment.width,
+            height=entry.attachment.height,
+            has_thumbnail=entry.attachment.has_thumbnail,
+            duration_seconds=entry.attachment.duration_seconds,
+            is_sensitive=entry.attachment.payload.is_sensitive,
+            position=entry.position,
+            reactions=[
+                PhotoReactionSummary(
+                    reaction=choice,
+                    count=sum(
+                        item.attachment_id == entry.attachment.id and item.reaction == choice
+                        for item in memory.payload.photo_reactions
+                    ),
+                    own=any(
+                        item.attachment_id == entry.attachment.id
+                        and item.reaction == choice
+                        and item.account_id == authorization.account_id
+                        for item in memory.payload.photo_reactions
+                    ),
+                )
+                for choice in PhotoReaction
+                if any(
+                    item.attachment_id == entry.attachment.id and item.reaction == choice
+                    for item in memory.payload.photo_reactions
+                )
+            ],
+        )
+        for entry in bound_attachments
+    ]
+
+
+def project_experience_answers(
+    session: DbSession, authorization: Authorization, memories: list[Memory]
+) -> dict[UUID, list[ExperienceAnswer]]:
+    groups = experiences.responses(session, authorization, memories)
+    entries = [entry for group in groups.values() for entry in group]
+    if not entries:
+        return {}
+    authors = resolve_author_summaries(session, {entry.owner_id for entry in entries})
+    galleries = binding.attachments_of_memories(session, [entry.id for entry in entries])
+    return {
+        root: [
+            ExperienceAnswer(
+                id=entry.id,
+                body=entry.payload.body,
+                author=authors[entry.owner_id],
+                version=entry.version,
+                capabilities=story_resource_capabilities(entry, authorization.account_id),
+                attachments=_memory_attachments(authorization, entry, galleries.get(entry.id, [])),
+            )
+            for entry in group
+        ]
+        for root, group in groups.items()
+    }
+
+
 def _memory_detail(
     session: DbSession,
     authorization: Authorization,
     memory: Memory,
     author: AuthorSummary | None = None,
+    answers: dict[UUID, list[ExperienceAnswer]] | None = None,
 ) -> MemoryDetail:
     if author is None:
         author = resolve_author_summary(session, memory.owner_id, resource="Memory author")
@@ -195,42 +274,13 @@ def _memory_detail(
         capabilities=story_resource_capabilities(
             memory, authorization.account_id, can_comment=True
         ),
-        attachments=[
-            MemoryAttachmentSummary(
-                id=entry.attachment.id,
-                status="READY",
-                media_type=MediaType(entry.attachment.media_type),
-                mime_type=entry.attachment.mime_type,
-                size=entry.attachment.size,
-                width=entry.attachment.width,
-                height=entry.attachment.height,
-                has_thumbnail=entry.attachment.has_thumbnail,
-                duration_seconds=entry.attachment.duration_seconds,
-                is_sensitive=entry.attachment.payload.is_sensitive,
-                position=entry.position,
-                reactions=[
-                    PhotoReactionSummary(
-                        reaction=choice,
-                        count=sum(
-                            item.attachment_id == entry.attachment.id and item.reaction == choice
-                            for item in memory.payload.photo_reactions
-                        ),
-                        own=any(
-                            item.attachment_id == entry.attachment.id
-                            and item.reaction == choice
-                            and item.account_id == authorization.account_id
-                            for item in memory.payload.photo_reactions
-                        ),
-                    )
-                    for choice in PhotoReaction
-                    if any(
-                        item.attachment_id == entry.attachment.id and item.reaction == choice
-                        for item in memory.payload.photo_reactions
-                    )
-                ],
-            )
-            for entry in bound_attachments
-        ],
+        experience_root_id=memory.experience_root_id,
+        experience_answers=(
+            answers
+            if answers is not None
+            else project_experience_answers(session, authorization, [memory])
+        ).get(memory.experience_root_id or memory.id, []),
+        attachments=_memory_attachments(authorization, memory, bound_attachments),
     )
 
 
@@ -299,6 +349,7 @@ def create_memory(
         tags=body.tags,
         place_id=body.place_id,
         experience_kind=body.experience_kind,
+        experience_reply_to=body.experience_reply_to,
         happened_on=body.happened_on,
         happened_until=body.happened_until,
         place_ids=body.place_ids,
@@ -334,9 +385,12 @@ def list_memories(
         experience_kind=experience_kind,
     )
     authors = resolve_author_summaries(session, {memory.owner_id for memory in page.items})
+    answers = project_experience_answers(session, authorization, page.items)
     return MemoryPage(
         items=[
-            _memory_detail(session, authorization, memory, author=authors.get(memory.owner_id))
+            _memory_detail(
+                session, authorization, memory, author=authors.get(memory.owner_id), answers=answers
+            )
             for memory in page.items
         ],
         next_cursor=page.next_cursor,

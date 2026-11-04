@@ -145,7 +145,26 @@ async function installMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/activity`
     ) {
-      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      await fulfillJson({
+        hasMore: false,
+        nextCursor: null,
+        items: RECENT_SHARED_ITEMS.map((item, index) => ({
+          id: `event-${index}`,
+          sourceEventId: `source-${index}`,
+          actorId: PARTNER_ID,
+          actor: { id: PARTNER_ID, displayName: 'Alex' },
+          kind: 'MEMORY_CREATED',
+          occurredAt: '2026-09-10T12:00:00Z',
+          createdAt: '2026-09-10T12:00:00Z',
+          targetType: item.type,
+          targetId: item.id,
+          target: {
+            targetType: item.type,
+            targetId: item.id,
+            title: item.titleOrText,
+          },
+        })),
+      });
       return;
     }
     if (

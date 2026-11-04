@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `body` | string
 `experienceKind` | [ExperienceKind](ExperienceKind.md)
+`experienceReplyTo` | string
 `happenedOn` | Date
 `happenedUntil` | Date
 `placeId` | string
@@ -24,6 +25,7 @@ import type { MemoryCreate } from ''
 const example = {
   "body": null,
   "experienceKind": null,
+  "experienceReplyTo": null,
   "happenedOn": null,
   "happenedUntil": null,
   "placeId": null,

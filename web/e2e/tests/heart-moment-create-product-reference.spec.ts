@@ -787,6 +787,23 @@ for (const colorScheme of ['light', 'dark'] as const) {
         { exact: true },
       );
       await expect(dateInput).toHaveValue(localToday());
+      const dateBox = await dateInput.boundingBox();
+      const textBox = await page.locator('#heart-moment-text').boundingBox();
+      if (!dateBox || !textBox)
+        throw new Error('Date or prose field is missing.');
+      expect(dateBox.y).toBeLessThan(textBox.y);
+      const choices = await page
+        .locator('.heart-emotion-choice')
+        .evaluateAll((nodes) =>
+          nodes.map((node) => {
+            const { x, y, width, height } = node.getBoundingClientRect();
+            return { x, y, width, height };
+          }),
+        );
+      expect(choices).toHaveLength(6);
+      expect(Math.abs(choices[0].y - choices[1].y)).toBeLessThan(1);
+      expect(choices[1].x).toBeGreaterThan(choices[0].x);
+      expect(choices[2].y).toBeGreaterThan(choices[0].y);
 
       const domOrder = await form.evaluate((element) => {
         const children = Array.from(element.children);

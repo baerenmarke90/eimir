@@ -271,20 +271,6 @@
   border-radius: var(--radius-medium);
 }
 
-/* Compact anchors retain the full touch target while the revealed icon's
-   painted material stays clear of the photograph's center. */
-.story-page-unified
-  .momente-diary-section
-  .story-timeline
-  .sensitive-media-preview
-  > .sensitive-media-preview-control.is-revealed {
-  inset: 0 0 auto auto;
-  padding: calc((var(--space-12) - var(--space-5)) / 2);
-  background-clip: content-box;
-  backdrop-filter: none;
-  box-shadow: none;
-}
-
 .story-page-unified
   .momente-diary-section
   .story-timeline
@@ -364,7 +350,7 @@
   background: var(--color-shared-accent);
 }
 
-/* Untitled photo memories read as photographs with their ordinary date footer. */
+/* Photo entries lead with their media regardless of title or event kind. */
 .story-page-unified
   .momente-diary-section
   .story-timeline
@@ -473,4 +459,16 @@
 
 .story-timeline-months .story-year-month-header::after {
   display: none;
+}
+
+/* Selected photo moments break the narrow pairs without reordering focus. */
+.story-page-unified
+  .momente-tapestry-media[data-discover-wide="true"]
+  .momente-tapestry-media-frame {
+  aspect-ratio: 16 / 10;
+}
+.story-page-unified
+  .momente-tapestry-media[data-discover-wide="true"]
+  .momente-tapestry-title {
+  font: var(--font-content-heading);
 }

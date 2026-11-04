@@ -167,6 +167,22 @@ const RICH_SPACE = {
       occurredAt: inDays(-1),
       sourceEventId: 'ev-rich-signal',
     },
+    {
+      id: 'act-recent-heart',
+      kind: 'HEART_MOMENT_CREATED',
+      actorId: PARTNER_ID,
+      actor: { id: PARTNER_ID, displayName: 'Alex' },
+      targetType: 'HEART_MOMENT',
+      targetId: TRACE_ONLY.id,
+      target: {
+        targetType: 'HEART_MOMENT',
+        targetId: TRACE_ONLY.id,
+        title: TRACE_ONLY.titleOrText,
+      },
+      createdAt: inDays(-2),
+      occurredAt: inDays(-2),
+      sourceEventId: 'ev-recent-heart',
+    },
   ],
 };
 
@@ -1127,7 +1143,7 @@ test.describe('Today R4: the living home of a relationship', () => {
     });
   }
 
-  test('never shows the same memory as both a `Diesen Monat` thumbnail and a `Zuletzt bei euch` row', async ({
+  test('keeps monthly photos independent of the authoritative activity targets', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -1212,7 +1228,7 @@ test.describe('Today R4: the living home of a relationship', () => {
     await capture(page, testInfo, 'text-first-no-photo-390-light');
   });
 
-  test('never shows the same shared memory as both a partner signal and a later section', async ({
+  test('keeps the comment activity even when its target also owns the contextual signal', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -1239,15 +1255,19 @@ test.describe('Today R4: the living home of a relationship', () => {
     // photo already featured as `Euer Moment`.
     await expect(page.locator('.today-living-partner_signal')).toHaveCount(1);
 
-    // Its underlying memory is featured content now, so no later section
-    // links to it again anywhere on the page.
+    // The activity remains a real event even when its target is featured.
+    // Monthly content still avoids repeating the contextual photo.
     const links = await page
       .locator('.today-content a')
       .evaluateAll((nodes) =>
         nodes.map((node) => node.getAttribute('href') ?? ''),
       );
     const commentedHref = `/story/memories/${STRIP_PHOTOS[0].id}`;
-    expect(links.filter((href) => href === commentedHref)).toHaveLength(1);
+    expect(links.filter((href) => href === commentedHref)).toHaveLength(2);
+    await expect(page.locator('.today-activity-trace a')).toHaveAttribute(
+      'href',
+      commentedHref,
+    );
 
     // The other photos of the month are untouched, so nothing over-filtered.
     await expect(page.locator('.today-monthly-tile')).toHaveCount(2);

@@ -1,4 +1,8 @@
 const photoSources = {
+  settingsTitle: 'Medienquellen',
+  settingsIntro: 'Verbinde deinen Fotodienst für neue Momente.',
+  connected: 'Immich ist verbunden.',
+  configureInSettings: 'Verbinde Immich unter Einstellungen › Medienquellen.',
   addMedia: 'Medien hinzufügen',
   device: 'Vom Gerät auswählen',
   deviceMedia: 'Fotos und Videos gemeinsam auswählen',

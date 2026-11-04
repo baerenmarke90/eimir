@@ -42,6 +42,12 @@ export interface PlaceDetail {
     address: string | null;
     /**
      * 
+     * @type {boolean}
+     * @memberof PlaceDetail
+     */
+    archived?: boolean;
+    /**
+     * 
      * @type {ResourceCapabilities}
      * @memberof PlaceDetail
      */
@@ -151,6 +157,7 @@ export function PlaceDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean
     return {
         
         'address': json['address'],
+        'archived': json['archived'] == null ? undefined : json['archived'],
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
         'createdAt': (new Date(json['createdAt'])),
         'createdBy': json['createdBy'],
@@ -179,6 +186,7 @@ export function PlaceDetailToJSONTyped(value?: PlaceDetail | null, ignoreDiscrim
     return {
         
         'address': value['address'],
+        'archived': value['archived'],
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),
         'createdAt': value['createdAt'].toISOString(),
         'createdBy': value['createdBy'],

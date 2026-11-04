@@ -7,7 +7,7 @@ import json
 from dataclasses import replace
 from datetime import UTC, datetime, time, timedelta
 from types import MappingProxyType
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import httpx
 import pytest
@@ -129,47 +129,13 @@ def _set_support_gestures(client, couple, *, enabled: bool) -> None:  # type: ig
     assert response.json()["supportGesturesEnabled"] is enabled
 
 
-def _comment_digest_receipt(
-    session: Session,
-    couple,
-    endpoint_id: UUID,
-    *,
-    minute: int,
-    target_id: UUID | None = None,
-) -> PushDelivery:  # type: ignore[no-untyped-def]
-    """Create an already queued receipt to exercise provider-time selection."""
-    created_at = NOW + timedelta(minutes=minute)
-    notification = Notification(
-        space_id=couple["space"].id,
-        recipient_account_id=couple["ben"].id,
-        source_event_id=uuid4(),
-        kind=NotificationKind.COMMENT_CREATED.value,
-        actor_id=couple["anna"].id,
-        target_type="HEART_MOMENT" if target_id is not None else None,
-        target_id=target_id,
-        created_at=created_at,
-    )
-    session.add(notification)
-    session.flush()
-    delivery = PushDelivery(
-        notification_id=notification.id,
-        push_endpoint_id=endpoint_id,
-        provider_key="fake",
-        status=PushDeliveryStatus.PENDING.value,
-        attempts=0,
-        created_at=created_at,
-    )
-    session.add(delivery)
-    session.flush()
-    return delivery
-
-
 def test_disabled_support_gestures_block_new_send_and_reenable_cleanly(
     client, session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
     monkeypatch.setattr(thinking.clock, "now", lambda: NOW)
 
     _set_support_gestures(client, couple, enabled=False)
+    existing_events = set(session.scalars(select(OutboxEvent.id)))
     blocked = client.post(
         _url(couple),
         json={"clientRequestId": str(uuid4())},
@@ -178,7 +144,7 @@ def test_disabled_support_gestures_block_new_send_and_reenable_cleanly(
     assert blocked.status_code == 403
     assert blocked.json()["code"] == space_configuration.SpaceConfigurationErrorCode.MODULE_DISABLED
     assert session.execute(select(func.count(ThinkingOfYouRequest.id))).scalar_one() == 0
-    assert session.execute(select(func.count(OutboxEvent.id))).scalar_one() == 0
+    assert set(session.scalars(select(OutboxEvent.id))) == existing_events
 
     _set_support_gestures(client, couple, enabled=True)
     allowed = client.post(
@@ -682,10 +648,10 @@ def test_quiet_hours_preserves_due_reminder_schedule(session: Session, couple, m
     assert len(provider.calls) == 1
 
 
-def test_digestible_notification_does_not_enqueue_or_send_an_individual_push(
+def test_comment_push_is_immediate_without_digest_opt_in_and_honors_disable(
     session: Session, couple
 ) -> None:  # type: ignore[no-untyped-def]
-    endpoint = push.register_endpoint(
+    push.register_endpoint(
         session,
         account_id=couple["ben"].id,
         provider_key="fake",
@@ -694,42 +660,43 @@ def test_digestible_notification_does_not_enqueue_or_send_an_individual_push(
     provider = FakePushProvider()
     push.providers.register("fake", provider)
 
-    source_event_id = uuid4()
-    notification = Notification(
-        space_id=couple["space"].id,
-        recipient_account_id=couple["ben"].id,
-        source_event_id=source_event_id,
-        kind=NotificationKind.COMMENT_CREATED.value,
-        actor_id=couple["anna"].id,
-        target_type=None,
-        target_id=None,
-        created_at=NOW,
+    def notice():
+        row = Notification(
+            space_id=couple["space"].id,
+            recipient_account_id=couple["ben"].id,
+            source_event_id=uuid4(),
+            kind=NotificationKind.COMMENT_CREATED.value,
+            actor_id=couple["anna"].id,
+            target_type=None,
+            target_id=None,
+            created_at=NOW,
+        )
+        session.add(row)
+        session.flush()
+        push.ensure_deliveries_for_source_event(session, row.source_event_id)
+        return session.scalar(select(PushDelivery).where(PushDelivery.notification_id == row.id))
+
+    first = notice()
+    push.handle_delivery(session, {"deliveryId": str(first.id)})
+    push.handle_delivery(session, {"deliveryId": str(first.id)})
+    assert first.status == PushDeliveryStatus.SUCCEEDED.value
+    assert first.attempts == 1 and len(provider.calls) == 1
+    assert provider.calls[0]["notificationReference"]["kind"] == "COMMENT_CREATED"
+    assert not str(provider.calls[0]["idempotencyKey"]).startswith("digest:")
+    session.add(
+        NotificationPreference(
+            account_id=couple["ben"].id, kind="COMMENT_CREATED", channel="PUSH", enabled=False
+        )
     )
-    session.add(notification)
     session.flush()
-
-    push.ensure_deliveries_for_source_event(session, source_event_id)
-    assert session.execute(select(PushDelivery)).scalars().all() == []
-
-    # A stale manually queued record cannot bypass the explicit opt-in gate.
-    stale_delivery = PushDelivery(
-        notification_id=notification.id,
-        push_endpoint_id=endpoint.id,
-        provider_key="fake",
-        status=PushDeliveryStatus.PENDING.value,
-        attempts=0,
-    )
-    session.add(stale_delivery)
-    session.flush()
-    push.handle_delivery(session, {"deliveryId": str(stale_delivery.id)})
-
-    assert stale_delivery.status == PushDeliveryStatus.UNAVAILABLE.value
-    assert stale_delivery.last_error_code == "PUSH_PREFERENCE_DISABLED"
-    assert stale_delivery.attempts == 0
-    assert provider.calls == []
+    blocked = notice()
+    push.handle_delivery(session, {"deliveryId": str(blocked.id)})
+    assert blocked.status == PushDeliveryStatus.UNAVAILABLE.value
+    assert blocked.last_error_code == "PUSH_PREFERENCE_DISABLED"
+    assert len(provider.calls) == 1
 
 
-def test_opted_in_comment_batch_sends_one_generic_push_after_window(
+def test_each_partner_comment_delivers_once_without_waiting_for_an_hour(
     session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
     instant = [NOW + timedelta(minutes=10)]
@@ -772,96 +739,19 @@ def test_opted_in_comment_batch_sends_one_generic_push_after_window(
     )
     assert len(deliveries) == 2
 
-    with pytest.raises(DeferredJobError):
-        push.handle_delivery(session, {"deliveryId": str(deliveries[0].id)})
-    assert provider.calls == []
-    instant[0] = NOW + timedelta(hours=1, minutes=1)
     push.handle_delivery(session, {"deliveryId": str(deliveries[0].id)})
     push.handle_delivery(session, {"deliveryId": str(deliveries[1].id)})
     push.handle_delivery(session, {"deliveryId": str(deliveries[1].id)})
-    assert deliveries[0].status == PushDeliveryStatus.UNAVAILABLE.value
-    assert deliveries[0].last_error_code == "DIGEST_COALESCED"
-    assert deliveries[1].status == PushDeliveryStatus.SUCCEEDED.value
-    assert len(provider.calls) == 1
-    assert provider.calls[0]["notificationReference"] == {
-        "id": str(notifications[1].id),
-        "kind": NotificationKind.COMMENT_CREATED.value,
-    }
-    assert str(provider.calls[0]["idempotencyKey"]).startswith("digest:")
+    assert all(delivery.status == PushDeliveryStatus.SUCCEEDED.value for delivery in deliveries)
+    assert len(provider.calls) == 2
+    assert [call["notificationReference"]["id"] for call in provider.calls] == [
+        str(row.id) for row in notifications
+    ]
+    assert len({call["idempotencyKey"] for call in provider.calls}) == 2
     assert all(notification.read_at is None for notification in notifications)
 
 
-def test_failed_comment_digest_attempt_closes_hour_for_older_receipts(
-    session: Session, couple, monkeypatch
-) -> None:  # type: ignore[no-untyped-def]
-    monkeypatch.setattr(push.clock, "now", lambda: NOW + timedelta(hours=1, minutes=1))
-    endpoint = push.register_endpoint(
-        session, account_id=couple["ben"].id, provider_key="fake", endpoint_value="failed-digest"
-    )
-    provider = FakePushProvider()
-    push.providers.register("fake", provider)
-    session.add(
-        NotificationPreference(
-            account_id=couple["ben"].id,
-            kind=NotificationKind.COMMENT_CREATED.value,
-            channel=NotificationChannel.PUSH.value,
-            enabled=True,
-        )
-    )
-    session.flush()
-
-    older = _comment_digest_receipt(session, couple, endpoint.id, minute=10)
-    newest = _comment_digest_receipt(session, couple, endpoint.id, minute=20)
-    for attempt in range(push.MAX_PUSH_ATTEMPTS):
-        # A provider can accept a Push and still report a transport error.
-        provider.fail_once = True
-        if attempt < push.MAX_PUSH_ATTEMPTS - 1:
-            with pytest.raises(RetryableJobError):
-                push.handle_delivery(session, {"deliveryId": str(newest.id)})
-        else:
-            push.handle_delivery(session, {"deliveryId": str(newest.id)})
-    assert newest.status == PushDeliveryStatus.FAILED.value
-    assert len(provider.calls) == push.MAX_PUSH_ATTEMPTS
-
-    push.handle_delivery(session, {"deliveryId": str(older.id)})
-    assert older.status == PushDeliveryStatus.UNAVAILABLE.value
-    assert older.last_error_code == "DIGEST_COALESCED"
-    assert len(provider.calls) == push.MAX_PUSH_ATTEMPTS
-    assert len({call["idempotencyKey"] for call in provider.calls}) == 1
-
-
-def test_unavailable_comment_digest_receipt_keeps_older_valid_fallback(
-    session: Session, couple, monkeypatch
-) -> None:  # type: ignore[no-untyped-def]
-    monkeypatch.setattr(push.clock, "now", lambda: NOW + timedelta(hours=1, minutes=1))
-    endpoint = push.register_endpoint(
-        session, account_id=couple["ben"].id, provider_key="fake", endpoint_value="valid-fallback"
-    )
-    provider = FakePushProvider()
-    push.providers.register("fake", provider)
-    session.add(
-        NotificationPreference(
-            account_id=couple["ben"].id,
-            kind=NotificationKind.COMMENT_CREATED.value,
-            channel=NotificationChannel.PUSH.value,
-            enabled=True,
-        )
-    )
-    session.flush()
-
-    older = _comment_digest_receipt(session, couple, endpoint.id, minute=10)
-    newest = _comment_digest_receipt(session, couple, endpoint.id, minute=20, target_id=uuid4())
-    push.handle_delivery(session, {"deliveryId": str(newest.id)})
-    assert newest.status == PushDeliveryStatus.UNAVAILABLE.value
-    assert newest.last_error_code == "PUSH_TARGET_UNAVAILABLE"
-    assert provider.calls == []
-
-    push.handle_delivery(session, {"deliveryId": str(older.id)})
-    assert older.status == PushDeliveryStatus.SUCCEEDED.value
-    assert len(provider.calls) == 1
-
-
-def test_comment_digest_rechecks_opt_in_and_target_privacy(
+def test_immediate_comment_push_rechecks_consent_and_target_privacy(
     session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
     instant = [NOW + timedelta(minutes=10)]
@@ -955,7 +845,7 @@ def test_comment_digest_rechecks_opt_in_and_target_privacy(
     assert provider.calls == []
 
 
-def test_comment_digest_obeys_current_quiet_hours_and_timezone(
+def test_immediate_comment_push_obeys_current_quiet_hours_and_timezone(
     session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
     instant = [NOW.replace(hour=21, minute=10)]
@@ -1141,7 +1031,7 @@ def test_personal_push_choice_suppresses_enqueue_without_muting_the_partner(
     assert notification_preferences.push_enabled(
         session, account_id=couple["ben"].id, kind=notification.kind
     )
-    assert not notification_preferences.push_enabled(
+    assert notification_preferences.push_enabled(
         session, account_id=couple["ben"].id, kind=NotificationKind.COMMENT_CREATED.value
     )
     assert not notification_preferences.digest_push_enabled(

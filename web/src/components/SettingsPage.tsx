@@ -44,6 +44,7 @@ import { PartnerConnectionPanel } from './PartnerConnectionPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
 import { ProInformationPanel } from './ProInformationPanel';
+import { PhotoSourceSettingsPanel } from './PhotoSourceSettingsPanel';
 import { SettingsIndex } from './SettingsIndex';
 import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
@@ -230,6 +231,16 @@ export function SettingsPage(props: SettingsPageProps) {
       >
         <ProfileAppearancePanel id="settings-appearance-panel" />
       </div>
+    );
+  } else if (categoryId === 'media') {
+    categoryContent = (
+      <PhotoSourceSettingsPanel
+        key={`${props.apiBaseUrl}:${props.account.id}:${props.spaceId}`}
+        apiBaseUrl={props.apiBaseUrl}
+        accessToken={props.accessToken}
+        accountId={props.account.id}
+        spaceId={props.spaceId}
+      />
     );
   } else if (categoryId === 'data') {
     categoryContent = (

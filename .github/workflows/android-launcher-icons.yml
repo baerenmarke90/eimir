@@ -190,19 +190,29 @@ jobs:
             ! grep -Eq '^\[(ro\.boot\.)?qemu\.hwcodec\.(avcdec|hevcdec|vpxdec)\]: \[2\]$' \
               guest-properties-before-tests.log
           fi
-          # Bound complete launcher and push/calendar journeys independently.
-          # The 35-test aggregate took 160 seconds before runner teardown on
-          # API 36's compatible ANGLE software path, close to its 180-second cap.
+          # Bound complete launcher, provider lifecycle and contract journeys
+          # independently. The 28-case push aggregate also approached its cap
+          # on a slower API 36 runner after launcher isolation.
           timeout 180 adb -e shell am instrument -w -r \
             -e class de.eimir.app.IdentityAppLinksTest,de.eimir.app.LauncherIconsTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
           grep -Eq '^OK \(7 tests\)' instrumentation.log
           timeout 180 adb -e shell am instrument -w -r \
-            -e class de.eimir.app.UnifiedPushAccountReplacementTest,de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.FcmServiceOwnershipTest,de.eimir.app.PushStorageFailureTest,de.eimir.app.PlanCalendarTest \
+            -e class de.eimir.app.UnifiedPushAccountReplacementTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee -a instrumentation.log
-          grep -Eq '^OK \(28 tests\)' instrumentation.log
+          grep -Eq '^OK \(3 tests\)' instrumentation.log
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.FcmServiceOwnershipTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee -a instrumentation.log
+          grep -Eq '^OK \(9 tests\)' instrumentation.log
+          timeout 180 adb -e shell am instrument -w -r \
+            -e class de.eimir.app.NativePushNotificationBindingTest,de.eimir.app.FcmWakeContractTest,de.eimir.app.FcmRegistrationQueueTest,de.eimir.app.PushStorageFailureTest,de.eimir.app.PlanCalendarTest \
+            de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
+            | tee -a instrumentation.log
+          grep -Eq '^OK \(16 tests\)' instrumentation.log
           # System picker journeys have their own bounded invocation, as do
           # renderer recovery and notification handoff below. The combined
           # 46-test process exhausted its 180-second budget on API 36.
@@ -259,7 +269,7 @@ jobs:
             EimirPushFixture:I '*:S' > fixture-logcat.log 2>&1 || true
           timeout 15 "$ANDROID_HOME/platform-tools/adb" -e logcat -b crash -d -t 200 \
             > native-crash.log 2>&1 || true
-          for proof in renderer-background-return.png renderer-real-crash.png native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
+          for proof in renderer-background-return.png renderer-real-crash.png native-photo-input.png native-photo-input.txt native-photo-picker.png native-photo-picker.txt native-photo-result.png native-photo-result.txt native-photo-confirmation.png native-photo-confirmation.txt native-photo-permission.png native-photo-permission.txt native-photo-after-back.png native-photo-after-back.txt native-photo-dom.png native-photo-dom.txt native-photo-location-consent.png native-photo-location-consent.txt native-selected-photo.jpg native-video-picker.png native-video-picker.txt native-video-confirmation.png native-video-confirmation.txt native-video-playback.png native-video-playback.txt native-video-failure.png native-video-failure.txt native-selected-video.mp4; do
             # `test` is a shell builtin, not a run-as executable on these images.
             if "$ANDROID_HOME/platform-tools/adb" -e shell \
                 "run-as de.eimir.app.debug sh -c 'test -f files/$proof'"; then

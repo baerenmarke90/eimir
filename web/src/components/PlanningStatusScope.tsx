@@ -1,4 +1,5 @@
 import { useTranslation } from '../i18n';
+import { StatusScope } from './StatusScope';
 
 export type PlanningScope = 'OPEN' | 'COMPLETED';
 
@@ -14,31 +15,24 @@ export function PlanningStatusScope({
 }) {
   const { t } = useTranslation();
   return (
-    <fieldset className="planen-status-scope">
-      <legend className="sr-only">
-        {t(
-          kind === 'plans'
-            ? 'm5s3.overview.planScope'
-            : 'm5s3.overview.wishScope',
-        )}
-      </legend>
-      {(['OPEN', 'COMPLETED'] as const).map((status) => (
-        <button
-          key={status}
-          type="button"
-          className={value === status ? 'secondary' : 'tertiary'}
-          aria-pressed={value === status}
-          onClick={() => onChange(status)}
-        >
-          {t(
-            status === 'OPEN'
-              ? 'm5s3.wish.status.OPEN'
-              : kind === 'plans'
-                ? 'm5s3.overview.experiencedPlans'
-                : 'm5s3.overview.fulfilledWishes',
-          )}
-        </button>
-      ))}
-    </fieldset>
+    <StatusScope
+      label={t(
+        kind === 'plans'
+          ? 'm5s3.overview.planScope'
+          : 'm5s3.overview.wishScope',
+      )}
+      value={value}
+      onChange={onChange}
+      options={(['OPEN', 'COMPLETED'] as const).map((status) => ({
+        value: status,
+        label: t(
+          status === 'OPEN'
+            ? 'm5s3.wish.status.OPEN'
+            : kind === 'plans'
+              ? 'm5s3.overview.experiencedPlans'
+              : 'm5s3.overview.fulfilledWishes',
+        ),
+      }))}
+    />
   );
 }

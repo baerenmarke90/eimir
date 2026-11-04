@@ -45,6 +45,7 @@ import { protectSensitiveMediaProjections } from '../client/sensitiveMediaProjec
 import { postSnackbar } from '../client/snackbar';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { TaskOriginLink } from './TodayDestinationLink';
 import {
   formatAttachmentDraftContextKey,
   useAttachmentDrafts,
@@ -61,6 +62,8 @@ import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
 import { DraftExitPrompt } from './DraftExitPrompt';
 import { DraftMediaPreview } from './DraftMediaPreview';
+import { ExperienceAnswers } from './ExperienceAnswers';
+import type { ContextTagEditorHandle } from './ContextTagEditor';
 import { ExpandableDescription } from './ExpandableDescription';
 import { MemoryPhotoGallery } from './MemoryPhotoGallery';
 import { MemoryPlacesDraftField } from './MemoryPlacesDraftField';
@@ -210,6 +213,7 @@ export function MemoryProductPage({
     retry: false,
   });
   const editForm = useRef<HTMLFormElement>(null);
+  const tagEditorRef = useRef<ContextTagEditorHandle>(null);
   const [formDirty, setFormDirty] = useState(false);
   const [placePending, setPlacePending] = useState(false);
   const [tagDraft, setTagDraft] = useState<{
@@ -221,7 +225,7 @@ export function MemoryProductPage({
     apis,
     spaceId,
     kind: 'MEMORY',
-    itemId: memoryId ?? '',
+    itemId: memoryQuery.data?.value.experienceRootId ?? memoryId ?? '',
     presented: mode === 'detail' && memoryQuery.isSuccess,
   });
 
@@ -423,6 +427,16 @@ export function MemoryProductPage({
       await Promise.all([
         invalidateStoryProjections(queryClient, spaceId),
         queryClient.invalidateQueries({ queryKey: memoryKey }),
+        ...(memory.experienceRootId
+          ? [
+              queryClient.invalidateQueries({
+                queryKey: authorSummaryQueryKeys.memory(
+                  spaceId,
+                  memory.experienceRootId,
+                ),
+              }),
+            ]
+          : []),
         invalidateDashboard(queryClient, spaceId),
       ]);
       if (!request.isCurrent()) return;
@@ -551,7 +565,11 @@ export function MemoryProductPage({
     .sort((left, right) => left.position - right.position);
 
   if (mode === 'edit') {
-    if (!memory.capabilities.canEdit || offline) {
+    if (
+      !memory.capabilities.canEdit ||
+      offline ||
+      (memory.experienceKind && memory.authorId !== currentAccountId)
+    ) {
       return (
         <div className="page page-reading">
           <PageHeader
@@ -564,7 +582,11 @@ export function MemoryProductPage({
                 {t('taskBoundary.back')}
               </Link>
             }
-            title={t('memoryProduct.editHeading')}
+            title={
+              memory.experienceKind
+                ? t('coupleExperiences.editOwnAnswer')
+                : t('memoryProduct.editHeading')
+            }
           />
           <UiState
             kind={offline ? 'offline' : 'permission'}
@@ -596,6 +618,8 @@ export function MemoryProductPage({
       )
         return;
       const data = new FormData(event.currentTarget);
+      const tags = tagEditorRef.current?.commitDraft();
+      if (!tags) return;
       const ownsTask = captureSaveOwnership();
       const ownsRead = captureAuthorizedQuery(queryClient, memoryKey);
       updateMutation.mutate({
@@ -604,7 +628,7 @@ export function MemoryProductPage({
         values: {
           title: String(data.get('title') || ''),
           body: String(data.get('body') || ''),
-          tags: [...selectedTags],
+          tags,
           happenedOn: String(data.get('happenedOn') || ''),
           happenedUntil: String(data.get('happenedUntil') || ''),
           ...(placesDraft?.scope === photoOrderScope
@@ -632,7 +656,11 @@ export function MemoryProductPage({
             {t('taskBoundary.back')}
           </Link>
         }
-        title={t('memoryProduct.editHeading')}
+        title={
+          memory.experienceKind
+            ? t('coupleExperiences.editOwnAnswer')
+            : t('memoryProduct.editHeading')
+        }
         headerClassName="create-heading"
         sectionLabelledBy="memory-edit-heading"
         sectionHeading={t('memoryProduct.formAria')}
@@ -650,7 +678,10 @@ export function MemoryProductPage({
             onSubmit={submit}
             className="form-grid memory-form"
           >
-            <div className="field-group">
+            <div
+              className="field-group"
+              hidden={Boolean(memory.experienceKind)}
+            >
               <label htmlFor="memory-edit-title">
                 {t('memory.titleLabel')}
               </label>
@@ -668,10 +699,15 @@ export function MemoryProductPage({
                 id="memory-edit-body"
                 name="body"
                 rows={6}
+                required={Boolean(memory.experienceKind)}
+                maxLength={memory.experienceKind ? 2000 : undefined}
                 defaultValue={memory.body}
               />
             </div>
-            <div className="field-group">
+            <div
+              className="field-group"
+              hidden={Boolean(memory.experienceKind)}
+            >
               <label htmlFor="memory-edit-date">{t('memory.dateLabel')}</label>
               <input
                 id="memory-edit-date"
@@ -681,7 +717,10 @@ export function MemoryProductPage({
               />
             </div>
 
-            <div className="field-group">
+            <div
+              className="field-group"
+              hidden={Boolean(memory.experienceKind)}
+            >
               <label htmlFor="memory-edit-through">
                 {t('experiences.through')}
               </label>
@@ -720,6 +759,7 @@ export function MemoryProductPage({
               }}
             />
             <MemoryTagChoices
+              editorRef={tagEditorRef}
               selected={selectedTags}
               onChange={(tags) => setTagDraft({ memoryId: memory.id, tags })}
               disabled={updateMutation.isPending}
@@ -971,7 +1011,11 @@ export function MemoryProductPage({
         ) : undefined
       }
       titleAction={
-        memory.capabilities.canEdit && !offline ? (
+        (!memory.experienceKind ||
+          (!memory.experienceAnswers?.length &&
+            memory.authorId === currentAccountId)) &&
+        memory.capabilities.canEdit &&
+        !offline ? (
           <StoryDetailEditLink
             to={memoryEditPath(memory.id)}
             label={t('memoryProduct.edit')}
@@ -1006,7 +1050,28 @@ export function MemoryProductPage({
       containerClassName="memory-detail-container"
       articleClassName="memory-detail-card"
     >
-      {memory.body.trim() ? (
+      {memory.experienceKind && (memory.experienceAnswers?.length ?? 0) > 0 ? (
+        <ExperienceAnswers
+          answers={memory.experienceAnswers ?? []}
+          kind={memory.experienceKind}
+          editable={!offline}
+          originKey={typeof originKey === 'string' ? originKey : undefined}
+        />
+      ) : null}
+      {memory.experienceKind &&
+      memory.experienceAnswers &&
+      !memory.experienceAnswers.some(
+        (answer) => answer.author.id === currentAccountId,
+      ) ? (
+        <TaskOriginLink
+          className="button-link"
+          to={`${memory.experienceKind === 'HAPPINESS' ? '/story/happiness' : '/story/time-travel'}/new?replyTo=${encodeURIComponent(memory.experienceRootId ?? memory.id)}`}
+        >
+          {t('coupleExperiences.addOwnAnswer')}
+        </TaskOriginLink>
+      ) : null}
+      {(!memory.experienceKind || !memory.experienceAnswers?.length) &&
+      memory.body.trim() ? (
         <ExpandableDescription
           text={memory.body}
           scope={JSON.stringify([
@@ -1057,7 +1122,44 @@ export function MemoryProductPage({
       ) : null}
 
       <div className="memory-media-context">
-        {readyAttachments.length > 0 ? (
+        {memory.experienceKind &&
+        memory.experienceAnswers?.some(
+          (answer) => (answer.attachments?.length ?? 0) > 0,
+        ) ? (
+          <section aria-label={t('coupleExperiences.sharedGallery')}>
+            <h2>{t('coupleExperiences.sharedGallery')}</h2>
+            <div className="experience-shared-gallery">
+              {memory.experienceAnswers
+                .filter((answer) => (answer.attachments?.length ?? 0) > 0)
+                .map((answer, index) => (
+                  <MemoryPhotoGallery
+                    key={answer.id}
+                    memory={{
+                      ...memory,
+                      id: answer.id,
+                      authorId: answer.author.id,
+                      author: answer.author,
+                      body: answer.body,
+                      version: answer.version,
+                      capabilities: answer.capabilities,
+                      attachments: answer.attachments ?? [],
+                    }}
+                    apis={apis}
+                    accountId={currentAccountId}
+                    offline={offline}
+                    projectionMemoryId={memory.id}
+                    commentTriggerRef={index === 0 ? setCommentHost : undefined}
+                    loadImage={(attachmentId, signal) =>
+                      loadMemoryImage(answer.id, attachmentId, signal)
+                    }
+                    scope={`memory:${apiBaseUrl}:${currentAccountId}:${spaceId}:${mode}:${answer.id}`}
+                  />
+                ))}
+            </div>
+          </section>
+        ) : null}
+        {(!memory.experienceKind || !memory.experienceAnswers?.length) &&
+        readyAttachments.length > 0 ? (
           <section aria-label={t('memory.photoLabel')}>
             <MemoryPhotoGallery
               commentTriggerRef={setCommentHost}
@@ -1081,7 +1183,7 @@ export function MemoryProductPage({
           accountId={currentAccountId}
           spaceId={spaceId}
           targetId={memory.id}
-          canManage={memory.capabilities.canEdit}
+          canManage={false}
           kind="memories"
           offline={offline}
           compact
@@ -1092,20 +1194,22 @@ export function MemoryProductPage({
         commentsApi={apis.comments}
         spaceId={spaceId}
         parentKind="memory"
-        parentId={memory.id}
+        parentId={memory.experienceRootId ?? memory.id}
         currentAccountId={currentAccountId}
         canComment={memory.capabilities.canComment}
         offline={offline}
       />
 
-      <footer className="memory-provenance-footer">
-        <p>
-          {t('memoryProduct.provenance', {
-            author: provenanceAuthor,
-            createdAt: formatCreatedAt(memory.createdAt),
-          })}
-        </p>
-      </footer>
+      {!memory.experienceKind ? (
+        <footer className="memory-provenance-footer">
+          <p>
+            {t('memoryProduct.provenance', {
+              author: provenanceAuthor,
+              createdAt: formatCreatedAt(memory.createdAt),
+            })}
+          </p>
+        </footer>
+      ) : null}
     </StoryDetailPageShell>
   );
 }

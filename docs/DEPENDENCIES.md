@@ -365,6 +365,14 @@ project/package alignment are separate from server credential installation.
 | JSON-java (sideload host parser tests only; excluded from APKs) | 20250517 | Maven Central / stleary/JSON-java | Public Domain |
 | androidx.test.ext:junit | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.test.espresso:espresso-core | 3.7.0 | Google Maven | Apache-2.0 |
+| androidx.test.uiautomator:uiautomator (instrumentation only) | 2.4.0 | Google Maven | Apache-2.0 |
+
+UI Automator provides bounded native-control stability checks and genuine
+cross-app touches in the selected-media instrumentation fixture. It is an
+`androidTestImplementation` dependency and is absent from the shipped app.
+Its Android shell artifacts and Gradle module metadata are included in strict
+dependency verification; the downloaded AAR hashes match Google Maven's
+published module metadata.
 
 The Android release evidence job uses JDK 21, installs SDK Platform 36 and Build
 Tools 36.0.0, builds the unsigned release APK/AAB, and verifies package

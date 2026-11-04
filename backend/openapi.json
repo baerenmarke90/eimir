@@ -2797,6 +2797,45 @@
         "title": "EntitlementTier",
         "type": "string"
       },
+      "ExperienceAnswer": {
+        "properties": {
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryAttachmentSummary"
+            },
+            "title": "Attachments",
+            "type": "array"
+          },
+          "author": {
+            "$ref": "#/components/schemas/AuthorSummary"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/ResourceCapabilities"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "body",
+          "author",
+          "version",
+          "capabilities"
+        ],
+        "title": "ExperienceAnswer",
+        "type": "object"
+      },
       "ExperienceKind": {
         "enum": [
           "HAPPINESS",
@@ -4307,6 +4346,18 @@
               }
             ]
           },
+          "experienceReplyTo": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Experiencereplyto"
+          },
           "happenedOn": {
             "anyOf": [
               {
@@ -4409,6 +4460,13 @@
             "title": "Createdat",
             "type": "string"
           },
+          "experienceAnswers": {
+            "items": {
+              "$ref": "#/components/schemas/ExperienceAnswer"
+            },
+            "title": "Experienceanswers",
+            "type": "array"
+          },
           "experienceKind": {
             "anyOf": [
               {
@@ -4418,6 +4476,18 @@
                 "type": "null"
               }
             ]
+          },
+          "experienceRootId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Experiencerootid"
           },
           "happenedOn": {
             "anyOf": [
@@ -4657,7 +4727,7 @@
         "type": "object"
       },
       "MemorySummary": {
-        "description": "Memory projection used as a timeline card.\n\nThe body is intentionally omitted: the card needs a heading and images,\nwhile returning one hundred full texts would produce data nobody requested.\nThe body remains available on the detail route.",
+        "description": "Memory projection used as a timeline card.\n\nOrdinary Memory bodies remain on the detail route. Guided experiences\ninclude their bounded authored responses so one shared card can present\nboth partners without a per-card detail request.",
         "properties": {
           "attachments": {
             "items": {
@@ -4676,6 +4746,23 @@
             "format": "date-time",
             "title": "Createdat",
             "type": "string"
+          },
+          "experienceAnswers": {
+            "items": {
+              "$ref": "#/components/schemas/ExperienceAnswer"
+            },
+            "title": "Experienceanswers",
+            "type": "array"
+          },
+          "experienceKind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExperienceKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "happenedOn": {
             "anyOf": [
@@ -6356,6 +6443,11 @@
             ],
             "title": "Address"
           },
+          "archived": {
+            "default": false,
+            "title": "Archived",
+            "type": "boolean"
+          },
           "capabilities": {
             "$ref": "#/components/schemas/ResourceCapabilities"
           },
@@ -6583,6 +6675,10 @@
               }
             ],
             "title": "Address"
+          },
+          "archived": {
+            "title": "Archived",
+            "type": "boolean"
           },
           "description": {
             "anyOf": [
@@ -28237,6 +28333,35 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "default": "NEWEST",
+              "enum": [
+                "NEWEST",
+                "NAME"
+              ],
+              "title": "Order",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "ALL",
+              "enum": [
+                "ACTIVE",
+                "ARCHIVED",
+                "ALL"
+              ],
+              "title": "Scope",
+              "type": "string"
             }
           }
         ],

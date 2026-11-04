@@ -15,7 +15,8 @@ const notificationSettings = {
   closeness: 'Nähe',
   comment: 'Kommentare',
   commentDescription: 'Neue Kommentare werden im Posteingang gesammelt.',
-  commentPushDescription: 'Höchstens ein neutraler Push pro Stunde.',
+  commentPushDescription:
+    'Neue Kommentare deines Partners direkt als Push. Ruhezeiten werden berücksichtigt.',
   commentEmailDescription: 'Höchstens eine neutrale E-Mail pro Stunde.',
   reminder: 'Fällige Erinnerungen',
   reminderCreated: 'Neue Erinnerungen',

@@ -38,6 +38,7 @@ from eimir.authorization.guard import absence_of
 from eimir.core import cursor as cursor_codec
 from eimir.core.ids import parse_id
 from eimir.heart_moments.models import HeartMoment
+from eimir.memories import experiences
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 
@@ -152,6 +153,8 @@ def _leg(
         model.created_at.label("created_at"),
         model.id.label("id"),
     )
+    if kind is StoryKind.MEMORY:
+        statement = statement.where(experiences.roots_only())
     if shared_only and kind is StoryKind.HEART_MOMENT:
         statement = statement.where(model.privacy_class == PrivacyClass.SPACE_SHARED.value)
     if year is not None:
@@ -190,6 +193,19 @@ def require_readable_story_item(
     found = session.execute(
         _leg(kind, context, year=None).where(model.id == identifier).with_for_update(read=True)
     ).one_or_none()
+    if found is None and kind is StoryKind.MEMORY:
+        canonical_id = session.scalar(
+            readable(Memory, context)
+            .where(Memory.id == identifier)
+            .with_only_columns(Memory.experience_root_id)
+        )
+        if canonical_id is not None and canonical_id != identifier:
+            identifier = canonical_id
+            found = session.execute(
+                _leg(kind, context, year=None)
+                .where(model.id == identifier)
+                .with_for_update(read=True)
+            ).one_or_none()
     if found is None:
         raise absence_of(model).error()
     return identifier
@@ -207,6 +223,7 @@ def read_shared_story_counts(
     account's own private HeartMoment never inflates a "shared with your
     partner" count (#1021).
     """
+    experiences.reconcile(session, context)
     combined = union_all(
         *(_leg(kind, context, year=None, shared_only=True) for kind in StoryKind)
     ).subquery("shared_story_counts")
@@ -324,6 +341,7 @@ def read_timeline(
     that account's own OWNER_ONLY HeartMoments at their ordinary sort
     position, but never the partner's.
     """
+    experiences.reconcile(session, context)
     selected = kinds or tuple(StoryKind)
     legs = [_leg(kind, context, year=year) for kind in selected]
     combined = union_all(*legs).subquery("story")

@@ -41,6 +41,12 @@ export interface MemoryCreate {
     experienceKind?: ExperienceKind | null;
     /**
      * 
+     * @type {string}
+     * @memberof MemoryCreate
+     */
+    experienceReplyTo?: string | null;
+    /**
+     * 
      * @type {Date}
      * @memberof MemoryCreate
      */
@@ -99,6 +105,7 @@ export function MemoryCreateFromJSONTyped(json: any, ignoreDiscriminator: boolea
         
         'body': json['body'] == null ? undefined : json['body'],
         'experienceKind': json['experienceKind'] === undefined ? undefined : json['experienceKind'] === null ? null : ExperienceKindFromJSON(json['experienceKind']),
+        'experienceReplyTo': json['experienceReplyTo'] === undefined ? undefined : json['experienceReplyTo'] === null ? null : json['experienceReplyTo'],
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
         'happenedUntil': json['happenedUntil'] === undefined ? undefined : json['happenedUntil'] === null ? null : (new Date(json['happenedUntil'])),
         'placeId': json['placeId'] === undefined ? undefined : json['placeId'] === null ? null : json['placeId'],
@@ -121,6 +128,7 @@ export function MemoryCreateToJSONTyped(value?: MemoryCreate | null, ignoreDiscr
         
         'body': value['body'],
         'experienceKind': ExperienceKindToJSON(value['experienceKind']),
+        'experienceReplyTo': value['experienceReplyTo'],
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
         'happenedUntil': value['happenedUntil'] == null ? value['happenedUntil'] : value['happenedUntil'].toISOString().substring(0,10),
         'placeId': value['placeId'],

@@ -40,7 +40,6 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentEditor } from './CommentEditor';
 import { AuthoredText } from './AuthoredText';
 import type { LinkPreviewsApi } from '../api/generated/apis/LinkPreviewsApi';
-import { ListEntryIconButton } from './ListEntryActions';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 
@@ -179,6 +178,13 @@ function CommentsPanelContent({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const commentActionRefs = useRef(new Map<string, HTMLElement>());
+  const previousEditingId = useRef<string | null>(null);
+  useEffect(() => {
+    if (previousEditingId.current && !editingId)
+      commentActionRefs.current.get(previousEditingId.current)?.focus();
+    previousEditingId.current = editingId;
+  }, [editingId]);
   const [composerOpen, setComposerOpen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -325,8 +331,12 @@ function CommentsPanelContent({
     });
   }
 
-  const comments =
-    commentsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const comments = (
+    commentsQuery.data?.pages.flatMap((page) => page.items) ?? []
+  ).sort(
+    (a, b) =>
+      a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id),
+  );
   const canReadComments =
     commentsQuery.data !== undefined &&
     !['unauthorized', 'permission', 'notFound'].includes(
@@ -405,12 +415,6 @@ function CommentsPanelContent({
                 <div className="comment-head">
                   <span className="comment-author">
                     <strong>{authorFirstName(comment.author)}</strong>
-                    {own ? (
-                      <span className="comment-author-self">
-                        {' · '}
-                        {t('comments.authorSelf')}
-                      </span>
-                    ) : null}
                   </span>
                   <span>
                     <time dateTime={comment.createdAt.toISOString()}>
@@ -419,12 +423,79 @@ function CommentsPanelContent({
                     {edited ? ` · ${t('comments.edited')}` : ''}
                   </span>
                   {own && !offline && editingId !== comment.id ? (
-                    <ListEntryIconButton
-                      className="comment-edit"
-                      icon="edit"
-                      label={t('comments.edit')}
-                      onClick={() => setEditingId(comment.id)}
-                    />
+                    <details
+                      className="comment-menu"
+                      onKeyDown={(event) => {
+                        if (event.key === 'Escape') {
+                          event.preventDefault();
+                          event.currentTarget.open = false;
+                          event.currentTarget.querySelector('summary')?.focus();
+                        }
+                      }}
+                      onBlur={(event) => {
+                        if (
+                          !event.currentTarget.contains(
+                            event.relatedTarget as Node | null,
+                          )
+                        )
+                          event.currentTarget.open = false;
+                      }}
+                    >
+                      <summary
+                        ref={(element) => {
+                          if (element)
+                            commentActionRefs.current.set(comment.id, element);
+                          else commentActionRefs.current.delete(comment.id);
+                        }}
+                        className="comment-menu-trigger"
+                        aria-label={t('comments.moreActions')}
+                        title={t('comments.moreActions')}
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <circle cx="12" cy="12" r="1.5" />
+                          <circle cx="19" cy="12" r="1.5" />
+                          <circle cx="5" cy="12" r="1.5" />
+                        </svg>
+                      </summary>
+                      <div className="comment-menu-dropdown">
+                        <button
+                          type="button"
+                          className="comment-menu-item comment-edit"
+                          onClick={(event) => {
+                            event.currentTarget
+                              .closest('details')
+                              ?.removeAttribute('open');
+                            setEditingId(comment.id);
+                          }}
+                        >
+                          {t('comments.edit')}
+                        </button>
+                        <button
+                          type="button"
+                          className="comment-menu-item comment-delete comment-menu-item-danger"
+                          onClick={(e) => {
+                            const details = (e.target as HTMLElement).closest(
+                              'details',
+                            );
+                            if (details) details.open = false;
+                            removeComment(comment);
+                          }}
+                          disabled={deleting}
+                        >
+                          {t('comments.delete')}
+                        </button>
+                      </div>
+                    </details>
                   ) : null}
                 </div>
                 {own && editingId === comment.id ? (
@@ -452,47 +523,6 @@ function CommentsPanelContent({
                       ])}
                       offline={offline}
                     />
-                    {own && !offline ? (
-                      <details className="comment-menu">
-                        <summary
-                          className="comment-menu-trigger"
-                          aria-label={t('comments.moreActions')}
-                          title={t('comments.moreActions')}
-                        >
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                          >
-                            <circle cx="12" cy="12" r="1.5" />
-                            <circle cx="19" cy="12" r="1.5" />
-                            <circle cx="5" cy="12" r="1.5" />
-                          </svg>
-                        </summary>
-                        <div className="comment-menu-dropdown">
-                          <button
-                            type="button"
-                            className="comment-menu-item comment-delete comment-menu-item-danger"
-                            onClick={(e) => {
-                              const details = (e.target as HTMLElement).closest(
-                                'details',
-                              );
-                              if (details) details.open = false;
-                              removeComment(comment);
-                            }}
-                            disabled={deleting}
-                          >
-                            {t('comments.delete')}
-                          </button>
-                        </div>
-                      </details>
-                    ) : null}
                   </>
                 )}
               </li>

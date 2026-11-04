@@ -96,6 +96,10 @@ class Memory(
     happened_on: Mapped[date | None] = mapped_column(Date)
     happened_until: Mapped[date | None] = mapped_column(Date)
     experience_kind: Mapped[str | None] = mapped_column(String(16))
+    experience_root_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("memories.id", ondelete="SET NULL", name="fk_memories_experience_root"),
+    )
     crypto_version: Mapped[int] = mapped_column(
         SmallInteger,
         nullable=False,
@@ -108,6 +112,12 @@ class Memory(
     )
 
     __table_args__ = (
+        Index("ix_memories_space_experience_root", "space_id", "experience_root_id"),
+        Index(
+            "ix_memories_ungrouped_experience",
+            "space_id",
+            postgresql_where=text("experience_kind IS NOT NULL AND experience_root_id IS NULL"),
+        ),
         CheckConstraint(
             "happened_until IS NULL OR (happened_on IS NOT NULL AND happened_until >= happened_on)",
             name="memory_period_valid",
@@ -175,7 +185,7 @@ class MemoryCreateReceipt(IdMixin, Base):
     # the Memory has been deleted.
     memory_id: Mapped[UUID | None] = mapped_column(
         postgresql.UUID(as_uuid=True),
-        ForeignKey("memories.id", ondelete="SET NULL"),
+        ForeignKey("memories.id", ondelete="SET NULL", name="fk_memories_experience_root"),
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

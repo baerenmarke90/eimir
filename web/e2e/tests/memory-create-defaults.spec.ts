@@ -138,20 +138,14 @@ for (const [width, colorScheme] of [
       await page.evaluate(() => {
         document.documentElement.style.removeProperty('font-size');
       });
-    await page
-      .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
-      .fill(AUTHORED_BODY);
-    await page.getByRole('button', { name: photoSources.addMedia }).click();
-    const sheet = page.locator('.photo-source-sheet[role=dialog]');
+    await page.goto('/more/settings/media');
     await expect(
-      sheet.getByText(photoSources.google, { exact: true }),
-    ).toHaveCount(0);
-    if (width === 390)
-      await page.screenshot({
-        path: testInfo.outputPath('1614-media-sources-390-light.png'),
-        fullPage: true,
-      });
-    await sheet
+      page.getByRole('heading', {
+        name: photoSources.settingsTitle,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await page
       .getByRole('button', { name: photoSources.link, exact: true })
       .click();
     const link = page.getByRole('dialog', { name: photoSources.linkTitle });
@@ -192,7 +186,7 @@ for (const [width, colorScheme] of [
     await link
       .getByRole('button', { name: photoSources.connect, exact: true })
       .click();
-    await expect(sheet).toBeVisible();
+    await expect(link).toBeHidden();
     expect(source.links).toEqual([
       {
         origin: 'https://my-photos.example',
@@ -200,10 +194,31 @@ for (const [width, colorScheme] of [
         consent: true,
       },
     ]);
+    await page.goto('/story/memories/new');
+    await page
+      .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
+      .fill(AUTHORED_BODY);
+    await page
+      .getByRole('button', { name: photoSources.addMedia, exact: true })
+      .click();
+    const sheet = page.locator('.photo-source-sheet[role=dialog]');
+    await expect(sheet.getByRole('radio')).toHaveCount(0);
+    await expect(
+      sheet.getByRole('button', { name: photoSources.link, exact: true }),
+    ).toHaveCount(0);
+    if (width === 390)
+      await captureScreenshot(
+        page,
+        testInfo,
+        '1628-media-sources-390-light.png',
+        { fullPage: true },
+      );
     await expect(
       sheet.getByLabel(photoSources.accept, { exact: true }),
     ).toHaveCount(0);
-    await sheet.getByRole('button', { name: photoSources.continue }).click();
+    await sheet
+      .getByRole('button', { name: photoSources.immich, exact: true })
+      .click();
     await sheet.getByLabel('Foto 1', { exact: true }).check();
     await sheet.getByLabel('Foto 2', { exact: true }).check();
     if (width === 390) {
@@ -276,11 +291,12 @@ test('Google browser authorization returns selected copies to the unsaved diary'
     .fill(AUTHORED_BODY);
   await page.getByRole('button', { name: photoSources.addMedia }).click();
   const sheet = page.locator('.photo-source-sheet[role=dialog]');
-  await sheet.getByLabel(photoSources.google, { exact: true }).check();
+  await sheet
+    .getByRole('button', { name: photoSources.google, exact: true })
+    .click();
   await expect(
     sheet.getByLabel(photoSources.accept, { exact: true }),
   ).toHaveCount(0);
-  await sheet.getByRole('button', { name: photoSources.continue }).click();
   await expect(sheet).toBeHidden({ timeout: 15_000 });
   expect(externalUrls).toEqual(['https://accounts.google.com/authorize']);
   await expect(
@@ -336,7 +352,9 @@ test('closing a pending source transfer keeps authored words and rejects late ph
   await expect(
     sheet.getByLabel(photoSources.accept, { exact: true }),
   ).toHaveCount(0);
-  await sheet.getByRole('button', { name: photoSources.continue }).click();
+  await sheet
+    .getByRole('button', { name: photoSources.immich, exact: true })
+    .click();
   await sheet.getByLabel('Foto 1', { exact: true }).check();
   await sheet.getByRole('button', { name: photoSources.import }).click();
   await expect.poll(() => source.originals).toBe(1);
@@ -361,13 +379,19 @@ test('Pro expiry retains the personal link and permits disconnect without import
   await signInAndOpenMemoryCreate(page, emptyPhotoBatch(), source);
   await page.getByRole('button', { name: photoSources.addMedia }).click();
   const sheet = page.locator('.photo-source-sheet[role=dialog]');
-  await expect(sheet.getByText(photoSources.proRequired)).toBeVisible();
   await expect(
-    sheet.getByRole('button', { name: photoSources.continue }),
-  ).toHaveCount(0);
-  await sheet.getByRole('button', { name: photoSources.disconnect }).click();
+    sheet.getByRole('button', { name: photoSources.immich, exact: true }),
+  ).toBeDisabled();
+  await sheet
+    .locator('.photo-source-footer')
+    .getByRole('button', { name: taskSheets.close, exact: true })
+    .click();
+  await page.goto('/more/settings/media');
+  await page
+    .getByRole('button', { name: photoSources.disconnect, exact: true })
+    .click();
   await expect(
-    sheet.getByText(photoSources.disconnected, { exact: true }),
+    page.getByText(photoSources.disconnected, { exact: true }),
   ).toBeVisible();
   expect(source.disconnected).toBe(1);
   expect(source.starts).toBe(0);
@@ -390,7 +414,9 @@ test('offline source import at narrow large text preserves the diary draft', asy
   await expect(
     sheet.getByLabel(photoSources.accept, { exact: true }),
   ).toHaveCount(0);
-  await sheet.getByRole('button', { name: photoSources.continue }).click();
+  await sheet
+    .getByRole('button', { name: photoSources.immich, exact: true })
+    .click();
   await sheet.getByLabel('Foto 1', { exact: true }).check();
   await expectNoHorizontalOverflow(page);
   await context.setOffline(true);
@@ -2472,7 +2498,9 @@ for (const kind of ['plan', 'heart'] as const) {
     await expect(
       sheet.getByLabel(photoSources.accept, { exact: true }),
     ).toHaveCount(0);
-    await sheet.getByRole('button', { name: photoSources.continue }).click();
+    await sheet
+      .getByRole('button', { name: photoSources.immich, exact: true })
+      .click();
     await sheet.getByLabel('Foto 1', { exact: true }).check();
     await sheet.getByLabel('Foto 2', { exact: true }).check();
     await sheet.getByRole('button', { name: photoSources.import }).click();
@@ -2509,6 +2537,13 @@ for (const kind of ['plan', 'heart'] as const) {
       })),
     });
     expect(source.originals).toBe(count);
+    if (kind === 'plan') {
+      const media = await page.locator('.plan-photo-gallery').boundingBox();
+      const title = await page.locator('h1').boundingBox();
+      if (!media || !title)
+        throw new Error('Saved Plan media or title is missing.');
+      expect(media.y + media.height).toBeLessThanOrEqual(title.y);
+    }
     await expect(page.getByText(AUTHORED_BODY, { exact: true })).toBeVisible();
     await captureScreenshot(page, info, `planning-source-${kind}-result.png`, {
       fullPage: true,

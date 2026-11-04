@@ -264,7 +264,7 @@ def test_shared_to_private_removes_comments_and_resurrects_nothing(
     assert listed.json()["items"] == []
 
 
-def test_comment_created_event_is_content_free_and_only_for_other_parent(
+def test_every_comment_creates_a_content_free_partner_event_including_parent_author_replies(
     client,
     couple,
     session,
@@ -289,8 +289,10 @@ def test_comment_created_event_is_content_free_and_only_for_other_parent(
             select(OutboxEvent).where(OutboxEvent.event_type == "COMMENT_CREATED")
         ).scalars()
     )
-    assert len(events) == 1
-    event = events[0]
+    assert len(events) == 2
+    own_event = next(event for event in events if event.actor_id == couple["anna"].id)
+    assert own_event.payload.recipient_id == couple["ben"].id
+    event = next(event for event in events if event.actor_id == couple["ben"].id)
     assert event.actor_id == couple["ben"].id
     assert event.payload.recipient_id == couple["anna"].id
     assert event.payload.target_type == "MEMORY"
@@ -388,3 +390,30 @@ def test_unknown_parent_remains_privacy_safe_404(client, couple) -> None:  # typ
     )
     assert response.status_code == 404
     assert response.json()["code"] == "COMMENT_TARGET_NOT_AVAILABLE"
+
+
+def test_oldest_first_pagination_is_stable_at_equal_timestamps(client, couple, session):  # type: ignore[no-untyped-def]
+    from datetime import UTC, datetime
+
+    from sqlalchemy import update
+
+    from eimir.comments.models import Comment
+
+    parent = memory(client, couple)
+    path = comment_path(couple["space"].id, "memories", parent["id"])
+    ids = [
+        client.post(path, json={"body": str(index)}, headers=auth(couple["token_b"])).json()["id"]
+        for index in range(4)
+    ]
+    session.execute(update(Comment).values(created_at=datetime(2020, 1, 1, tzinfo=UTC)))
+    session.flush()
+    seen, cursor = [], None
+    for _ in range(4):
+        page = client.get(
+            path,
+            params={"limit": 1, **({"cursor": cursor} if cursor else {})},
+            headers=auth(couple["token_a"]),
+        ).json()
+        seen.extend(entry["id"] for entry in page["items"])
+        cursor = page["nextCursor"]
+    assert seen == sorted(ids) and len(set(seen)) == 4 and cursor is None

@@ -8,6 +8,7 @@ const normalize = (value: string) =>
   value.trim().split(/\s+/u).join(' ').normalize('NFC');
 
 export interface ContextTagEditorHandle {
+  /** Forms owning this handle commit on submit, without moving the pressed button on blur. */
   commitDraft(): string[] | null;
 }
 
@@ -126,6 +127,15 @@ export function ContextTagEditor({
             }
           }}
           onBlur={(event) => {
+            const next = event.relatedTarget;
+            if (
+              ref &&
+              (next instanceof HTMLButtonElement ||
+                next instanceof HTMLInputElement) &&
+              next.type === 'submit' &&
+              next.form === event.currentTarget.form
+            )
+              return;
             if (event.relatedTarget !== addRef.current && draft.trim())
               commit(true);
           }}

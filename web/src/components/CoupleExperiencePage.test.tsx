@@ -48,6 +48,8 @@ function setup(
                   {
                     id: 'saved',
                     body: 'A real shared note',
+                    experienceKind:
+                      kind === 'happiness' ? 'HAPPINESS' : 'TIME_TRAVEL',
                     author: { id: 'b', displayName: 'B' },
                     createdAt: new Date('2026-10-01'),
                   } as MemoryDetail,

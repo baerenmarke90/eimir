@@ -49,8 +49,8 @@ test('the visible address opens the pinned map directly and retains the saved mo
   await expect(address).toBeVisible();
   await expect(
     page.getByRole('button', { name: photoPlaceCopy.add }),
-  ).toHaveCount(1);
-  await expect(page.locator('.moment-place-overflow')).toHaveCount(1);
+  ).toHaveCount(0);
+  await expect(page.locator('.moment-place-overflow')).toHaveCount(0);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   const popupPromise = page.waitForEvent('popup');
   await address.click();
@@ -443,8 +443,8 @@ for (const colorScheme of ['light', 'dark'] as const) {
       ).toBe(true);
       await expect(
         page.getByRole('button', { name: photoPlaceCopy.add }),
-      ).toHaveCount(1);
-      await expect(page.locator('.moment-place-overflow')).toHaveCount(1);
+      ).toHaveCount(0);
+      await expect(page.locator('.moment-place-overflow')).toHaveCount(0);
       await page
         .getByRole('link', { name: memoryProduct.edit, exact: true })
         .click();

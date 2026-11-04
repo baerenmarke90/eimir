@@ -27,6 +27,13 @@ import {
     AuthorSummaryToJSON,
     AuthorSummaryToJSONTyped,
 } from './AuthorSummary';
+import type { ExperienceKind } from './ExperienceKind';
+import {
+    ExperienceKindFromJSON,
+    ExperienceKindFromJSONTyped,
+    ExperienceKindToJSON,
+    ExperienceKindToJSONTyped,
+} from './ExperienceKind';
 import type { MemoryAttachmentSummary } from './MemoryAttachmentSummary';
 import {
     MemoryAttachmentSummaryFromJSON,
@@ -34,13 +41,20 @@ import {
     MemoryAttachmentSummaryToJSON,
     MemoryAttachmentSummaryToJSONTyped,
 } from './MemoryAttachmentSummary';
+import type { ExperienceAnswer } from './ExperienceAnswer';
+import {
+    ExperienceAnswerFromJSON,
+    ExperienceAnswerFromJSONTyped,
+    ExperienceAnswerToJSON,
+    ExperienceAnswerToJSONTyped,
+} from './ExperienceAnswer';
 
 /**
  * Memory projection used as a timeline card.
  * 
- * The body is intentionally omitted: the card needs a heading and images,
- * while returning one hundred full texts would produce data nobody requested.
- * The body remains available on the detail route.
+ * Ordinary Memory bodies remain on the detail route. Guided experiences
+ * include their bounded authored responses so one shared card can present
+ * both partners without a per-card detail request.
  * @export
  * @interface MemorySummary
  */
@@ -69,6 +83,18 @@ export interface MemorySummary {
      * @memberof MemorySummary
      */
     createdAt: Date;
+    /**
+     * 
+     * @type {Array<ExperienceAnswer>}
+     * @memberof MemorySummary
+     */
+    experienceAnswers?: Array<ExperienceAnswer>;
+    /**
+     * 
+     * @type {ExperienceKind}
+     * @memberof MemorySummary
+     */
+    experienceKind?: ExperienceKind | null;
     /**
      * 
      * @type {Date}
@@ -101,6 +127,8 @@ export interface MemorySummary {
     title: string;
 }
 
+
+
 /**
  * Check if a given object implements the MemorySummary interface.
  */
@@ -129,6 +157,8 @@ export function MemorySummaryFromJSONTyped(json: any, ignoreDiscriminator: boole
         'author': AuthorSummaryFromJSON(json['author']),
         'capabilities': ResourceCapabilitiesFromJSON(json['capabilities']),
         'createdAt': (new Date(json['createdAt'])),
+        'experienceAnswers': json['experienceAnswers'] == null ? undefined : ((json['experienceAnswers'] as Array<any>).map(ExperienceAnswerFromJSON)),
+        'experienceKind': json['experienceKind'] === undefined ? undefined : json['experienceKind'] === null ? null : ExperienceKindFromJSON(json['experienceKind']),
         'happenedOn': (json['happenedOn'] == null ? null : new Date(json['happenedOn'])),
         'happenedUntil': json['happenedUntil'] === undefined ? undefined : json['happenedUntil'] === null ? null : (new Date(json['happenedUntil'])),
         'id': json['id'],
@@ -152,6 +182,8 @@ export function MemorySummaryToJSONTyped(value?: MemorySummary | null, ignoreDis
         'author': AuthorSummaryToJSON(value['author']),
         'capabilities': ResourceCapabilitiesToJSON(value['capabilities']),
         'createdAt': value['createdAt'].toISOString(),
+        'experienceAnswers': value['experienceAnswers'] == null ? undefined : ((value['experienceAnswers'] as Array<any>).map(ExperienceAnswerToJSON)),
+        'experienceKind': ExperienceKindToJSON(value['experienceKind']),
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
         'happenedUntil': value['happenedUntil'] == null ? value['happenedUntil'] : value['happenedUntil'].toISOString().substring(0,10),
         'id': value['id'],

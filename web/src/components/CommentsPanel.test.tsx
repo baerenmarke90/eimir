@@ -120,7 +120,7 @@ describe('CommentsPanel', () => {
     expect(html).toContain('bearbeitet');
   });
 
-  it('uses first names and marks only the current viewer with the self marker (#1064)', () => {
+  it('uses first names without a redundant self marker', () => {
     const html = renderPanel([
       comment({
         id: 'own',
@@ -138,7 +138,7 @@ describe('CommentsPanel', () => {
     expect(html).toContain('<strong>Alex</strong>');
     expect(html).not.toContain('Philipp Reis');
     expect(html).not.toContain('Alex Winter');
-    expect(html.split(storyProducts.comments.authorSelf).length - 1).toBe(1);
+    expect(html).not.toContain(storyProducts.comments.authorSelf);
   });
 
   describe('"Kommentieren" sits at the end of the comment flow (#1015)', () => {

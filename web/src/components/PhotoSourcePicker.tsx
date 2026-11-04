@@ -1,14 +1,6 @@
-import {
-  type ReactNode,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import type { PhotoSourcesApi } from '../api/generated/apis/PhotoSourcesApi';
 import type { PhotoSelectionView } from '../api/generated/models/PhotoSelectionView';
-import type { PhotoSourceAvailability } from '../api/generated/models/PhotoSourceAvailability';
 import {
   createOwnedObjectUrl,
   type OwnedObjectUrl,
@@ -17,13 +9,12 @@ import {
   closePhotoBrowser,
   openPhotoBrowser,
   photoFile,
-  photoSourcesApi,
   preparePhotoBrowser,
   readPhotoThumbnail,
   selectionReady,
   waitForPhotoPoll,
 } from '../client/photoSources';
-import { normalizeClientError } from '../client/problemDetails';
+import { usePhotoSources } from '../client/usePhotoSources';
 import type { AttachmentDraftSelection } from '../client/useAttachmentDrafts';
 import { useTranslation } from '../i18n';
 import { ProMark } from './ProMark';
@@ -149,22 +140,13 @@ export function PhotoSourcePicker({
   devicePicker?: (close: () => void) => ReactNode;
 }) {
   const { t } = useTranslation();
-  const api = useMemo(
-    () => photoSourcesApi(apiBaseUrl, accessToken),
-    [apiBaseUrl, accessToken],
-  );
-  const apiRef = useRef(api);
-  useLayoutEffect(() => {
-    apiRef.current = api;
-  }, [api]);
-  const [availability, setAvailability] =
-    useState<PhotoSourceAvailability | null>(null);
+  const { apiRef, availability } = usePhotoSources({
+    apiBaseUrl,
+    accessToken,
+    accountId,
+    spaceId,
+  });
   const [open, setOpen] = useState(false);
-  const [linking, setLinking] = useState(false);
-  const [origin, setOrigin] = useState('');
-  const [key, setKey] = useState('');
-  const [consent, setConsent] = useState(false);
-  const [source, setSource] = useState<'google' | 'immich'>('google');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [view, setView] = useState<PhotoSelectionView | null>(null);
@@ -172,13 +154,11 @@ export function PhotoSourcePicker({
   const trigger = useRef<HTMLButtonElement>(null);
   const task = useRef<SelectionTask | null>(null);
   const lifetime = useRef(new AbortController());
-  const formRequest = useRef<AbortController | null>(null);
 
   function release() {
     const current = task.current;
     task.current = null;
     current?.request.abort();
-    formRequest.current?.abort();
     current?.ticket.cancel();
     if (current) {
       void closePhotoBrowser(current.popup);
@@ -194,22 +174,11 @@ export function PhotoSourcePicker({
   useEffect(() => {
     const owner = new AbortController();
     lifetime.current = owner;
-    setAvailability(null);
     setOpen(false);
-    setLinking(false);
-    setOrigin('');
-    setKey('');
-    setConsent(false);
     setView(null);
     setSelected([]);
     setMessage('');
     setBusy(false);
-    void apiRef.current
-      .getPhotoSources({ spaceId }, { signal: owner.signal })
-      .then((value) => {
-        if (!owner.signal.aborted) setAvailability(value);
-      })
-      .catch(() => {});
     return () => {
       owner.abort();
       release();
@@ -219,109 +188,9 @@ export function PhotoSourcePicker({
   function close() {
     release();
     setOpen(false);
-    setLinking(false);
-    setKey('');
-    setConsent(false);
     setBusy(false);
     setView(null);
     setSelected([]);
-  }
-
-  async function refreshAvailability() {
-    const owner = lifetime.current;
-    const value = await apiRef.current.getPhotoSources(
-      { spaceId },
-      { signal: owner.signal },
-    );
-    if (lifetime.current === owner && !owner.signal.aborted)
-      setAvailability(value);
-  }
-
-  async function connect() {
-    if (!availability || !consent || busy) return;
-    const owner = new AbortController();
-    formRequest.current = owner;
-    setBusy(true);
-    setMessage('');
-    try {
-      await apiRef.current.connectImmichPhotoSource(
-        {
-          spaceId,
-          ifMatch: JSON.stringify(availability.immichConnectionToken),
-          photoSourceConnectionCreate: {
-            origin: origin.trim(),
-            apiKey: key,
-            consent: true,
-          },
-        },
-        { signal: owner.signal },
-      );
-      if (owner.signal.aborted) return;
-      setKey('');
-      await refreshAvailability();
-      if (owner.signal.aborted) return;
-      setLinking(false);
-      setSource('immich');
-      setConsent(false);
-    } catch (error) {
-      await showConnectionFailure(
-        error,
-        owner,
-        'photoSources.addressUnavailable',
-      );
-    } finally {
-      if (!owner.signal.aborted) setBusy(false);
-    }
-  }
-
-  async function disconnect() {
-    if (!availability) return;
-    release();
-    const owner = new AbortController();
-    formRequest.current = owner;
-    setBusy(true);
-    setMessage('');
-    try {
-      setView(null);
-      await apiRef.current.disconnectImmichPhotoSource(
-        {
-          spaceId,
-          ifMatch: JSON.stringify(availability.immichConnectionToken),
-        },
-        { signal: owner.signal },
-      );
-      if (owner.signal.aborted) return;
-      await refreshAvailability();
-      if (!owner.signal.aborted) setMessage(t('photoSources.disconnected'));
-    } catch (error) {
-      await showConnectionFailure(error, owner, 'photoSources.unavailable');
-    } finally {
-      if (!owner.signal.aborted) setBusy(false);
-    }
-  }
-
-  async function showConnectionFailure(
-    error: unknown,
-    owner: AbortController,
-    fallback: string,
-  ) {
-    if (owner.signal.aborted) return;
-    const problem = await normalizeClientError(error);
-    if (owner.signal.aborted) return;
-    if (problem.status === 409 || problem.status === 403) {
-      await refreshAvailability().catch(() => {});
-      if (owner.signal.aborted) return;
-      setKey('');
-      setLinking(false);
-      setConsent(false);
-      setMessage(
-        t(
-          problem.status === 409
-            ? 'photoSources.connectionChanged'
-            : 'photoSources.proRequired',
-        ),
-      );
-    } else setMessage(t(fallback));
   }
 
   async function importItems(
@@ -358,7 +227,6 @@ export function PhotoSourcePicker({
       release();
       setView(null);
       setSelected([]);
-      setConsent(false);
       if (partial)
         setMessage(
           files.length
@@ -375,9 +243,9 @@ export function PhotoSourcePicker({
     }
   }
 
-  async function start() {
+  async function start(source: 'google' | 'immich') {
     const owner = lifetime.current;
-    if (disabled || busy || remaining <= 0) return;
+    if (disabled || busy || task.current || remaining <= 0) return;
     if (!navigator.onLine) {
       setMessage(t('photoSources.offline'));
       return;
@@ -494,8 +362,6 @@ export function PhotoSourcePicker({
         disabled={disabled || remaining <= 0}
         onClick={() => {
           setMessage('');
-          setConsent(false);
-          setSource(availability?.googleAvailable ? 'google' : 'immich');
           setOpen(true);
         }}
       >
@@ -512,11 +378,9 @@ export function PhotoSourcePicker({
       <ShortTaskSheet
         open={open}
         title={t(
-          linking
-            ? 'photoSources.linkTitle'
-            : devicePicker && !view
-              ? 'photoSources.addMedia'
-              : 'photoSources.title',
+          devicePicker && !view
+            ? 'photoSources.addMedia'
+            : 'photoSources.title',
         )}
         closeLabel={t('taskSheets.close')}
         onClose={close}
@@ -527,15 +391,7 @@ export function PhotoSourcePicker({
             <button type="button" className="secondary" onClick={close}>
               {t('taskSheets.close')}
             </button>
-            {linking ? (
-              <button
-                type="button"
-                disabled={!consent || !origin.trim() || !key || busy}
-                onClick={() => void connect()}
-              >
-                {t(busy ? 'photoSources.connecting' : 'photoSources.connect')}
-              </button>
-            ) : view ? (
+            {view ? (
               <button
                 type="button"
                 disabled={!selected.length || busy}
@@ -546,78 +402,12 @@ export function PhotoSourcePicker({
               >
                 {t('photoSources.import')}
               </button>
-            ) : canImport ? (
-              <button
-                type="button"
-                disabled={
-                  disabled ||
-                  busy ||
-                  remaining <= 0 ||
-                  (source === 'immich' && !availability?.immichConnected)
-                }
-                onClick={() => void start()}
-              >
-                {t('photoSources.continue')}
-              </button>
-            ) : undefined}
+            ) : null}
           </div>
         }
       >
         {message ? <p role={busy ? 'status' : 'alert'}>{message}</p> : null}
-        {linking ? (
-          <>
-            <p>{t('photoSources.privateLink')}</p>
-            <details className="photo-source-setup-help">
-              <summary>{t('photoSources.setupHelp')}</summary>
-              <ol>
-                <li>{t('photoSources.setupOpen')}</li>
-                <li>{t('photoSources.setupKey')}</li>
-                <li>{t('photoSources.setupPermissions')}</li>
-              </ol>
-              <p>{t('photoSources.setupFallback')}</p>
-            </details>
-            <label className="field-group">
-              {t('photoSources.address')}
-              <input
-                type="url"
-                inputMode="url"
-                autoCapitalize="none"
-                autoComplete="off"
-                value={origin}
-                disabled={busy}
-                onChange={(event) => setOrigin(event.target.value)}
-                aria-describedby="immich-address-hint"
-              />
-            </label>
-            <p id="immich-address-hint" className="field-help">
-              {t('photoSources.addressHint')}
-            </p>
-            <label className="field-group">
-              {t('photoSources.key')}
-              <input
-                type="password"
-                aria-describedby="immich-key-hint"
-                autoComplete="off"
-                value={key}
-                disabled={busy}
-                onChange={(event) => setKey(event.target.value)}
-              />
-            </label>
-            <p id="immich-key-hint" className="field-help">
-              {t('photoSources.keyIsNotPassword')}
-            </p>
-            <p className="field-help">{t('photoSources.permissions')}</p>
-            <label className="photo-source-consent">
-              <input
-                type="checkbox"
-                checked={consent}
-                disabled={busy}
-                onChange={(event) => setConsent(event.target.checked)}
-              />
-              {t('photoSources.linkConsent')}
-            </label>
-          </>
-        ) : view && activeTask ? (
+        {view && activeTask ? (
           <>
             <p role="status">
               {t('photoSources.selected', { count: selected.length })}
@@ -672,72 +462,38 @@ export function PhotoSourcePicker({
         ) : (
           <>
             {devicePicker?.(close)}
-            {availability && !availability.canImport ? (
-              <p>{t('photoSources.proRequired')}</p>
-            ) : null}
-            {canImport ? (
-              <fieldset disabled={busy} className="photo-source-options">
-                <legend className="sr-only">{t('photoSources.title')}</legend>
-                {availability?.googleAvailable ? (
-                  <label>
-                    <input
-                      type="radio"
-                      name="photo-source"
-                      value="google"
-                      checked={source === 'google'}
-                      onChange={() => setSource('google')}
-                    />
-                    {t('photoSources.google')}
-                  </label>
-                ) : null}
-                {availability?.immichConnected ? (
-                  <label>
-                    <input
-                      type="radio"
-                      name="photo-source"
-                      value="immich"
-                      checked={source === 'immich'}
-                      onChange={() => setSource('immich')}
-                    />
-                    {t('photoSources.immich')}
-                  </label>
-                ) : null}
-              </fieldset>
-            ) : null}
-            {canImport && !availability?.immichConnected ? (
+            {canImport && availability?.googleAvailable ? (
               <button
                 type="button"
-                className="secondary"
-                onClick={() => {
-                  setLinking(true);
-                  setConsent(false);
-                  setMessage('');
-                }}
+                className="secondary photo-source-trigger"
+                disabled={busy || disabled}
+                onClick={() => void start('google')}
               >
-                {t('photoSources.link')}
+                <EimirIcon name="foto" /> {t('photoSources.google')}
               </button>
             ) : null}
-            {availability?.immichConnected ? (
-              <div>
-                <p>{availability.immichOrigin}</p>
-                <button
-                  type="button"
-                  className="tertiary"
-                  disabled={busy}
-                  onClick={() => void disconnect()}
-                >
-                  {t('photoSources.disconnect')}
-                </button>
-              </div>
+            {canImport && availability?.googleAvailable ? (
+              <p>{t('photoSources.googleConsent')}</p>
             ) : null}
-            {canImport ? (
-              <p>
-                {t(
-                  source === 'google'
-                    ? 'photoSources.googleConsent'
-                    : 'photoSources.consent',
-                )}
-              </p>
+            {availability?.enabled || availability?.immichConnected ? (
+              <button
+                type="button"
+                className="secondary photo-source-trigger"
+                disabled={
+                  busy ||
+                  disabled ||
+                  !canImport ||
+                  !availability.immichConnected
+                }
+                title={
+                  availability.immichConnected
+                    ? undefined
+                    : t('photoSources.configureInSettings')
+                }
+                onClick={() => void start('immich')}
+              >
+                <EimirIcon name="foto" /> {t('photoSources.immich')}
+              </button>
             ) : null}
           </>
         )}

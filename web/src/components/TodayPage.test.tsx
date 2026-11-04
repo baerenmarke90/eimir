@@ -1,3 +1,4 @@
+import type { ActivityItem } from '../api/generated/models/ActivityItem';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
@@ -18,6 +19,36 @@ import de from '../i18n/locales/de';
 import m5s5 from '../i18n/locales/m5s5';
 import { formatRelationshipDuration, TodayPage } from './TodayPage';
 
+function event(overrides: Partial<ActivityItem> = {}): ActivityItem {
+  return {
+    id: 'trace-event',
+    sourceEventId: 'source-event',
+    kind: 'MEMORY_CREATED',
+    actorId: null,
+    actor: null,
+    targetType: 'MEMORY',
+    targetId: 'trace-memory',
+    target: {
+      targetId: 'trace-memory',
+      targetType: 'MEMORY',
+      title: 'A recent shared event',
+    },
+    createdAt: new Date('2026-09-04T12:00:00Z'),
+    occurredAt: new Date('2026-09-04T12:00:00Z'),
+    ...overrides,
+  };
+}
+function seedActivity(
+  client: QueryClient,
+  page: { items: Partial<ActivityItem>[]; nextCursor: string | null },
+  accountId?: string,
+) {
+  client.setQueryData(['m5-s5', 'activity', 'space-1', accountId, 'shared'], {
+    pages: [{ ...page, items: page.items.map((item) => event(item)) }],
+    pageParams: [null],
+  });
+}
+
 /**
  * By default this seeds an already-resolved (empty-override) Dashboard
  * preferences response, so every existing content assertion keeps seeing the
@@ -31,6 +62,7 @@ function renderTodayPage(
   dashboardData: unknown,
   itemLimit?: 1 | 2 | 3,
   options?: {
+    activityItems?: ActivityItem[];
     preferences?: unknown;
     preferencesPending?: boolean;
     supportGesturesEnabled?: boolean;
@@ -42,6 +74,11 @@ function renderTodayPage(
     defaultOptions: { queries: { retry: false } },
   });
   queryClient.setQueryData(['m5-s5', 'dashboard', 'space-1'], dashboardData);
+  seedActivity(
+    queryClient,
+    { items: options?.activityItems ?? [], nextCursor: null },
+    'account-1',
+  );
   if (!options?.preferencesPending) {
     queryClient.setQueryData(
       dashboardPreferencesQueryKey('account-1', 'space-1'),
@@ -111,45 +148,49 @@ describe('TodayPage', () => {
   });
 
   it('renders couple presence hero, days together, the partner quick-actions trigger, and the composed modules', () => {
-    const html = renderTodayPage({
-      space: {
-        id: 'space-1',
-        partner: { id: 'partner-1', displayName: 'Marie' },
-      },
-      relationshipDuration: {
-        daysTogether: 420,
-        displayMode: DurationDisplayMode.DAYS,
-        startedOn: new Date('2025-01-01T00:00:00Z'),
-      },
-      upcoming: [
-        {
-          id: 'plan-1',
-          type: 'PLAN',
-          titleOrText: 'Weekend trip to Paris',
-          scheduledAt: new Date('2026-09-15T10:00:00Z'),
+    const html = renderTodayPage(
+      {
+        space: {
+          id: 'space-1',
+          partner: { id: 'partner-1', displayName: 'Marie' },
         },
-      ],
-      recentShared: [
-        {
-          id: 'mem-1',
-          type: 'MEMORY',
-          titleOrText: 'Park Picnic',
-          occurredOn: new Date('2026-09-01T14:00:00Z'),
+        relationshipDuration: {
+          daysTogether: 420,
+          displayMode: DurationDisplayMode.DAYS,
+          startedOn: new Date('2025-01-01T00:00:00Z'),
         },
-        {
-          id: 'chapter-1',
-          type: 'CHAPTER',
-          titleOrText: 'Our first chapter',
-          createdAt: new Date('2026-08-30T14:00:00Z'),
+        upcoming: [
+          {
+            id: 'plan-1',
+            type: 'PLAN',
+            titleOrText: 'Weekend trip to Paris',
+            scheduledAt: new Date('2026-09-15T10:00:00Z'),
+          },
+        ],
+        recentShared: [
+          {
+            id: 'mem-1',
+            type: 'MEMORY',
+            titleOrText: 'Park Picnic',
+            occurredOn: new Date('2026-09-01T14:00:00Z'),
+          },
+          {
+            id: 'chapter-1',
+            type: 'CHAPTER',
+            titleOrText: 'Our first chapter',
+            createdAt: new Date('2026-08-30T14:00:00Z'),
+          },
+        ],
+        retrospective: {
+          id: 'heart-1',
+          type: 'HEART_MOMENT',
+          titleOrText: 'Morning Smile',
+          createdAt: new Date('2025-09-03T08:00:00Z'),
         },
-      ],
-      retrospective: {
-        id: 'heart-1',
-        type: 'HEART_MOMENT',
-        titleOrText: 'Morning Smile',
-        createdAt: new Date('2025-09-03T08:00:00Z'),
       },
-    });
+      undefined,
+      { activityItems: [event()] },
+    );
 
     expect(html).not.toContain('today-date-heading');
     expect(html).not.toContain('today-date-value');
@@ -181,7 +222,7 @@ describe('TodayPage', () => {
     expect(html).not.toContain('today-card-badges');
     expect(html).toContain('today-agenda-row');
     expect(html).toContain('today-living-retrospective');
-    expect(html).toContain('today-recent-tile');
+    expect(html).toContain('activity-card');
   });
 
   it('does not expose the Support Gesture affordance while the Space module is disabled', () => {
@@ -482,7 +523,7 @@ describe('TodayPage', () => {
     },
   );
 
-  it('renders the server-provided Keepsake as the Heroic focal point when no retrospective exists, and filters it out of the Shared Trace below', () => {
+  it('renders the server Keepsake without inventing an activity trace from recent content', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -543,9 +584,9 @@ describe('TodayPage', () => {
     expect(photoOccurrences).toBe(1);
     expect(keepsakeIndex).toBeGreaterThan(-1);
 
-    // The text-only memory still appears as a quiet Shared Trace row
-    expect(traceIndex).toBeGreaterThan(-1);
-    expect(html).toContain('Text Memory');
+    // Domain history alone must not impersonate the authoritative event trace.
+    expect(traceIndex).toBe(-1);
+    expect(html).not.toContain('Text Memory');
   });
 
   it('shows a real Keepsake even when many newer non-memory recentShared items would otherwise crowd it out (regression #790)', () => {
@@ -692,7 +733,7 @@ describe('TodayPage', () => {
       ],
       retrospective: null,
     });
-    queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+    seedActivity(queryClient, {
       items: [],
       nextCursor: null,
     });
@@ -724,7 +765,7 @@ describe('TodayPage', () => {
     const keepsakeIndex = html.indexOf('today-section-moment');
     const traceIndex = html.indexOf('today-section-recent');
     expect(keepsakeIndex).toBeGreaterThan(-1);
-    expect(traceIndex).toBeGreaterThan(keepsakeIndex);
+    expect(traceIndex).toBe(-1);
   });
 
   it("keeps the planning area's internal upcoming/signal order intact when a generic Keepsake also exists (#840)", () => {
@@ -756,7 +797,7 @@ describe('TodayPage', () => {
       recentShared: [],
       retrospective: null,
     });
-    queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+    seedActivity(queryClient, {
       items: [
         {
           id: 'act-1',
@@ -828,7 +869,7 @@ describe('TodayPage', () => {
       },
       recentShared: [],
     });
-    queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+    seedActivity(queryClient, {
       items: [],
       nextCursor: null,
     });
@@ -899,55 +940,35 @@ describe('TodayPage', () => {
     expect(html).toContain('Photo Memory');
   });
 
-  it('renders compact shared-life mini-tiles (not activity-log cards) and secondary all-activity action', () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+  it('renders the first four authoritative activities, including comments, in event order', () => {
+    const queryClient = new QueryClient();
     queryClient.setQueryData(['m5-s5', 'dashboard', 'space-1'], {
-      space: { id: 'space-1', partner: { id: 'p-1', displayName: 'Sam' } },
-      relationshipDuration: null,
+      space: { id: 'space-1', partner: null },
       upcoming: [],
       recentShared: [
         {
-          id: 'item-1',
+          id: 'unrelated',
           type: 'CHAPTER',
-          titleOrText: 'Summer Chapter',
-          occurredOn: new Date('2026-09-04T10:00:00Z'),
-        },
-        {
-          id: 'item-2',
-          type: 'COLLECTION',
-          titleOrText: 'Rainy Day Movies',
-          createdAt: new Date('2026-09-03T10:00:00Z'),
-        },
-        {
-          id: 'item-3',
-          type: 'HEART_MOMENT',
-          titleOrText: 'Love Note',
-          occurredOn: new Date('2026-09-01T10:00:00Z'),
-        },
-        {
-          id: 'item-4',
-          type: 'MILESTONE',
-          titleOrText: 'First Shared Home',
-          occurredOn: new Date('2026-08-01T10:00:00Z'),
-        },
-        {
-          id: 'item-5',
-          type: 'MEMORY',
-          titleOrText: 'Fifth entry',
-          occurredOn: new Date('2026-07-01T10:00:00Z'),
-        },
-        {
-          id: 'item-6',
-          type: 'MEMORY',
-          titleOrText: 'Should be sliced out',
-          occurredOn: new Date('2026-06-01T10:00:00Z'),
+          titleOrText: 'Old domain-only content',
         },
       ],
       retrospective: null,
     });
-
+    seedActivity(queryClient, {
+      items: Array.from({ length: 5 }, (_, index) =>
+        event({
+          id: `event-${index}`,
+          kind: index === 0 ? 'COMMENT_CREATED' : 'MEMORY_CREATED',
+          targetId: `memory-${index}`,
+          target: {
+            targetType: 'MEMORY',
+            targetId: `memory-${index}`,
+            title: `Event target ${index}`,
+          },
+        }),
+      ),
+      nextCursor: null,
+    });
     const html = renderToStaticMarkup(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
@@ -955,41 +976,23 @@ describe('TodayPage', () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-
-    // The section needs one heading, without a synonymous activity kicker.
-    expect(html).not.toContain('today-section-kicker');
-    expect(html).toContain(m5s5.dashboard.recentTitle);
-    // The descriptive subline read as redundant activity-log copy and was
-    // removed per Product Owner review; the section no longer renders one.
-    expect(html).not.toContain('today-section-subline');
-
-    // Renders as small, soft mini-tiles, not the old activity-log/database
-    // record cards (icon-badge + heading + kind/date subtitle stacked in a
-    // vertical list).
-    expect(html).toContain('today-recent-tile');
-    expect(html).not.toContain('recent-shared-card');
-    expect(html).toContain('Summer Chapter');
-    expect(html).toContain('Rainy Day Movies');
-
-    // Type is still available to assistive tech, just not as its own
-    // visible badge next to an already type-specific icon.
-    expect(html).toContain('sr-only');
-    expect(html).toContain(m5s5.kind.CHAPTER);
-    expect(html).toContain(m5s5.kind.COLLECTION);
-
-    // Still caps the remaining trace at four after higher-priority content is
-    // de-duplicated. A later item may enter the bounded trace when earlier
-    // items become the focal/context subjects.
-    expect(html.match(/today-recent-tile"/g)).toHaveLength(4);
-
-    // Whatever the page already features above (here the Milestone, promoted
-    // into the single `Gerade bei euch` slot) is not repeated as a trace row.
-    expect(html).toContain('today-living-milestone');
-    expect(html.split('First Shared Home').length - 1).toBe(1);
-
-    // Offers secondary action to full activity page
-    expect(html).toContain('href="/today/activity"');
-    expect(html).toContain(m5s5.dashboard.allActivityAction);
+    const trace = sectionHtml(html, 'today-section-recent');
+    expect(trace.match(/activity-result-wrapper/g)).toHaveLength(4);
+    for (let index = 0; index < 4; index++)
+      expect(trace).toContain(`Event target ${index}`);
+    expect(trace.indexOf('Event target 0')).toBeLessThan(
+      trace.indexOf('Event target 1'),
+    );
+    expect(trace.indexOf('Event target 1')).toBeLessThan(
+      trace.indexOf('Event target 2'),
+    );
+    expect(trace.indexOf('Event target 2')).toBeLessThan(
+      trace.indexOf('Event target 3'),
+    );
+    expect(trace).toContain(m5s5.activityKind.COMMENT_CREATED);
+    expect(trace).not.toContain('Event target 4');
+    expect(trace).not.toContain('Old domain-only content');
+    expect(trace).toContain('href="/today/activity"');
   });
 
   it('orchestrates primary contextual slot and relationship signal when partner activity exists', () => {
@@ -1020,7 +1023,7 @@ describe('TodayPage', () => {
       ],
       retrospective: null,
     });
-    queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+    seedActivity(queryClient, {
       items: [
         {
           id: 'act-1',
@@ -1101,7 +1104,7 @@ describe('TodayPage', () => {
       ],
       retrospective: null,
     });
-    queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+    seedActivity(queryClient, {
       items: [],
       nextCursor: null,
     });
@@ -1156,7 +1159,7 @@ describe('TodayPage', () => {
       recentShared: [],
       retrospective: null,
     });
-    queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+    seedActivity(queryClient, {
       items: [],
       nextCursor: null,
     });
@@ -1204,7 +1207,7 @@ describe('TodayPage', () => {
       recentShared: [],
       retrospective: null,
     });
-    queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+    seedActivity(queryClient, {
       items: [
         {
           id: 'act-1',
@@ -1274,10 +1277,14 @@ describe('TodayPage', () => {
       recentShared: [],
       retrospective: null,
     });
-    queryClient.setQueryData(['m4', 'activity', 'space-1'], {
-      items: [],
-      nextCursor: null,
-    });
+    seedActivity(
+      queryClient,
+      {
+        items: [],
+        nextCursor: null,
+      },
+      'account-1',
+    );
     queryClient.setQueryData(
       dashboardPreferencesQueryKey('account-1', 'space-1'),
       { items: [{ moduleKey: 'upcoming', itemLimit: 2 }] },
@@ -1334,7 +1341,7 @@ describe('TodayPage', () => {
       ],
       retrospective: null,
     });
-    queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+    seedActivity(queryClient, {
       items: [
         {
           id: 'act-own',
@@ -1392,7 +1399,7 @@ describe('TodayPage', () => {
       ],
       retrospective: null,
     });
-    queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+    seedActivity(queryClient, {
       items: [
         {
           id: 'act-null',
@@ -1450,7 +1457,7 @@ describe('TodayPage', () => {
       ],
       retrospective: null,
     });
-    queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+    seedActivity(queryClient, {
       items: [
         {
           id: 'act-1',
@@ -1508,7 +1515,7 @@ describe('TodayPage', () => {
       ],
       retrospective: null,
     });
-    queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+    seedActivity(queryClient, {
       items: [
         {
           id: 'act-memory',
@@ -1692,7 +1699,7 @@ function renderWithPartnerComment(commentTargetId: string): string {
     ],
     retrospective: null,
   });
-  queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+  seedActivity(queryClient, {
     items: [
       {
         id: 'act-1',
@@ -1834,7 +1841,7 @@ function renderMonthlyOverflowSpace(): string {
     ],
     retrospective: null,
   });
-  queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+  seedActivity(queryClient, {
     items: [],
     nextCursor: null,
   });
@@ -1852,7 +1859,7 @@ function renderMonthlyOverflowSpace(): string {
   );
 }
 
-it('never repeats a `Diesen Monat` photo as a `Zuletzt bei euch` row', () => {
+it('keeps the monthly photo strip bounded and chronological', () => {
   const html = renderMonthlyOverflowSpace();
   const monthly = sectionHtml(html, 'today-section-monthly');
   const trace = sectionHtml(html, 'today-section-recent');
@@ -1866,38 +1873,35 @@ it('never repeats a `Diesen Monat` photo as a `Zuletzt bei euch` row', () => {
   ).toBe(3);
   for (const title of ['Strip Photo A', 'Strip Photo B', 'Strip Photo C']) {
     expect(monthly).toContain(title);
-    expect(trace).not.toContain(title);
   }
 });
 
-it('adds text and overflow moments to the month without repeating them in the trace', () => {
+it('adds text and overflow moments to the month', () => {
   const html = renderMonthlyOverflowSpace();
   const monthly = sectionHtml(html, 'today-section-monthly');
   const trace = sectionHtml(html, 'today-section-recent');
 
   // Photos outside the compact strip and text moments now enrich the month.
   expect(monthly).toContain('Overflow Photo D');
-  expect(trace).not.toContain('Overflow Photo D');
 
   // Text highlights use the same current-month classification.
   expect(monthly).toContain('Quiet Heart Moment');
-  expect(trace).not.toContain('Quiet Heart Moment');
 });
 
-it('keeps `Euer Moment` and the `Gerade bei euch` module out of the trace as before', () => {
+it('does not create an activity trace from featured dashboard content', () => {
   const html = renderMonthlyOverflowSpace();
   const trace = sectionHtml(html, 'today-section-recent');
 
   // Featured above as the photo anchor.
   expect(html).toContain('today-moment-figure');
-  expect(trace).not.toContain('Hero Photo');
+  expect(trace).toBe('');
 
   // Featured above as the single contextual module.
   expect(html).toContain('today-living-milestone');
   expect(trace).not.toContain('Shared Milestone');
 });
 
-it('leaves the trace untouched when the month contributes no photos', () => {
+it('requires activity events even when recent content contains no photos', () => {
   const html = renderTodayPage({
     space: { id: 'space-1', partner: { id: 'p-1', displayName: 'Sam' } },
     relationshipDuration: null,
@@ -1926,7 +1930,7 @@ it('leaves the trace untouched when the month contributes no photos', () => {
     'Text Only Moment',
   );
   expect(trace).not.toContain('Text Only Moment');
-  expect(trace).toContain('Shared Chapter');
+  expect(trace).toBe('');
 });
 
 it('renders `Diesen Monat` as up to three real shared photos, never a count derived from the capped feed', () => {
@@ -2173,7 +2177,7 @@ describe('formatRelationshipDuration', () => {
         ],
         retrospective: null,
       });
-      queryClient.setQueryData(['m4', 'activity', 'space-1'], {
+      seedActivity(queryClient, {
         items: [],
         nextCursor: null,
       });
@@ -2326,19 +2330,23 @@ describe('formatRelationshipDuration', () => {
         ['m5-s5', 'dashboard', 'space-1'],
         allModulesEligibleDashboard(),
       );
-      queryClient.setQueryData(['m4', 'activity', 'space-1'], {
-        items: [
-          {
-            id: 'partner-comment',
-            kind: 'COMMENT_CREATED',
-            actorId: 'partner-1',
-            targetType: 'MEMORY',
-            targetId: 'another-shared-memory',
-            createdAt: new Date(),
-          },
-        ],
-        nextCursor: null,
-      });
+      seedActivity(
+        queryClient,
+        {
+          items: [
+            {
+              id: 'partner-comment',
+              kind: 'COMMENT_CREATED',
+              actorId: 'partner-1',
+              targetType: 'MEMORY',
+              targetId: 'another-shared-memory',
+              createdAt: new Date(),
+            },
+          ],
+          nextCursor: null,
+        },
+        'account-1',
+      );
       // A resolved (possibly empty) preferences response - not pending, see
       // the dedicated "never flashes" test below for the pending case.
       queryClient.setQueryData(

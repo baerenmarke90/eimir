@@ -1,0 +1,13 @@
+eimir. Android 0.2.0-test.43
+
+- Places are sorted alphabetically and can be archived or restored. Active, Archived and All filters preserve existing linked moments and return context.
+- Device selection and Immich are direct, equal media-source actions. Personal Immich setup and disconnect now live under Settings > Media sources.
+- Memory capture uses the shared Place presentation. Heart Moments place the date first and arrange feelings in two compact columns.
+- Sensitive-media controls keep the same position when revealing or concealing an image, including enlarged text.
+- Own comments offer Edit and Delete through the header overflow. Discussions retain chronological order and author-only editing.
+- Titled diary photos receive the larger photo-led presentation. Plan photographs lead both the overview and detail composition.
+- The Wir activity trace uses the same authorized events and order as Activities, including comments.
+- Shared Happiness and Time Travel answers stay together while each partner retains ownership of their own response. Concurrent answers now preserve the established shared thread.
+- Includes the latest notification, native picker confirmation and action-ownership fixes from main, together with the existing memory periods, ordered Places and media arrangement.
+
+Same package de.eimir.app, canonical signing certificate, Firebase client and persistent test origin as test.42; increasing versionCode 43. The removable updater remains enabled. Publication requires the exact candidate's source, browser, security, migration and Android checks, followed by signing, predecessor and anonymous public-asset verification. Physical-device installation, session/data continuity and OS-link acceptance remain separate device checks; this test release does not establish store readiness.

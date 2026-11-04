@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 from zipfile import ZipFile
 
@@ -104,6 +104,7 @@ def test_share_replay_partner_dashboard_and_single_generic_push(
         assert first.status_code == 201, first.text
         replay = client.post(path(actors), json=body(kind), headers=headers)
         assert replay.status_code == 200 and replay.json()["id"] == first.json()["id"]
+        assert replay.headers["etag"] == first.headers["etag"]
         identifier = UUID(first.json()["id"])
         events = list(
             session.scalars(select(OutboxEvent).where(OutboxEvent.subject_id == identifier))
@@ -149,7 +150,7 @@ def test_share_replay_partner_dashboard_and_single_generic_push(
         assert (
             client.delete(
                 path(actors) + f"/{identifier}",
-                headers={**auth(actors["token_a"]), "If-Match": "1"},
+                headers={**auth(actors["token_a"]), "If-Match": first.headers["etag"]},
             ).status_code
             == 204
         )
@@ -384,3 +385,223 @@ def test_transfer_round_trip_preserves_origin_without_resending(session: Session
         )
         == 0
     )
+
+
+@pytest.mark.parametrize("mode", ["disabled", "migrating"])
+def test_shared_answers_keep_one_journal_item_and_author_only_writes(
+    client, session: Session, actors, encryption, mode
+):  # type: ignore[no-untyped-def]
+    encryption.apply(mode)
+    grant(session, actors["space"].id, actors["a"].id)
+    first = client.post(
+        path(actors),
+        headers=auth(actors["token_a"]),
+        json={**body(), "title": "What made today beautiful?", "body": "Our coffee together."},
+    )
+    assert first.status_code == 201, first.text
+    root = first.json()
+    second = client.post(
+        path(actors),
+        headers=auth(actors["token_b"]),
+        json={**body(), "experienceReplyTo": root["id"], "body": "Your smile this morning."},
+    )
+    assert second.status_code == 201, second.text
+    reply = second.json()
+    from eimir.story.view_models import StoryItemViewAggregate
+
+    for source in (root["id"], reply["id"]):
+        receipt = client.post(
+            path(actors, "story-views"),
+            headers=auth(actors["token_b"]),
+            json={"kind": "MEMORY", "itemId": source},
+        )
+        assert receipt.status_code == 204, receipt.text
+    aggregate = session.scalar(
+        select(StoryItemViewAggregate).where(
+            StoryItemViewAggregate.space_id == actors["space"].id,
+            StoryItemViewAggregate.viewer_account_id == actors["b"].id,
+        )
+    )
+    assert aggregate.item_id == UUID(root["id"]) and aggregate.distinct_view_days_capped == 1
+    assert reply["title"] == root["title"] and reply["experienceRootId"] == root["id"]
+    duplicate = client.post(
+        path(actors),
+        headers=auth(actors["token_b"]),
+        json={**body(), "experienceReplyTo": root["id"]},
+    )
+    assert duplicate.status_code == 409
+    assert duplicate.json()["code"] == "EXPERIENCE_ALREADY_ANSWERED"
+    page = client.get(path(actors), headers=auth(actors["token_b"])).json()
+    assert [entry["id"] for entry in page["items"]] == [root["id"]]
+    answers = page["items"][0]["experienceAnswers"]
+    assert [answer["body"] for answer in answers] == [
+        "Our coffee together.",
+        "Your smile this morning.",
+    ]
+    assert [answer["capabilities"]["canEdit"] for answer in answers] == [False, True]
+    detail = path(actors) + "/" + root["id"]
+    forbidden = client.patch(
+        detail,
+        headers={**auth(actors["token_b"]), "If-Match": str(root["version"])},
+        json={"body": "Overwritten"},
+    )
+    assert forbidden.status_code == 404
+    forbidden_gallery = client.put(
+        detail + "/attachments",
+        headers={**auth(actors["token_b"]), "If-Match": str(root["version"])},
+        json={"attachments": []},
+    )
+    assert forbidden_gallery.status_code == 404
+    own = client.patch(
+        path(actors) + "/" + reply["id"],
+        headers={**auth(actors["token_b"]), "If-Match": str(reply["version"])},
+        json={"body": "Your smile, always."},
+    )
+    assert own.status_code == 200, own.text
+    journal = client.get(path(actors, "timeline"), headers=auth(actors["token_b"])).json()
+    assert len(journal["items"]) == 1
+    assert [entry["body"] for entry in journal["items"][0]["memory"]["experienceAnswers"]] == [
+        "Our coffee together.",
+        "Your smile, always.",
+    ]
+    outsider = client.get(detail, headers=auth(actors["token_outsider"]))
+    assert outsider.status_code == 404
+    invalid_question = client.patch(
+        detail,
+        headers={**auth(actors["token_a"]), "If-Match": str(root["version"])},
+        json={"title": "Different shared question?"},
+    )
+    assert invalid_question.status_code == 422
+
+
+@pytest.mark.parametrize("mode", ["disabled", "migrating"])
+def test_legacy_responses_reconcile_without_moving_content_and_survive_author_deletion_of_answer(
+    client, session: Session, actors, encryption, mode
+):  # type: ignore[no-untyped-def]
+    from datetime import date
+
+    from eimir.authorization import PrivacyClass
+    from eimir.comments import service as comments
+    from eimir.comments.models import CommentTarget
+    from eimir.memories.models import MemoryPayload
+
+    encryption.apply(mode)
+    memories = []
+    for author, text in [(actors["a"], "First answer"), (actors["b"], "Second answer")]:
+        entry = Memory(
+            space_id=actors["space"].id,
+            owner_id=author.id,
+            privacy_class=PrivacyClass.SPACE_SHARED.value,
+            experience_kind="HAPPINESS",
+            happened_on=date(2020, 6, 12),
+            created_at=datetime(2020, 6, 12, 8, tzinfo=UTC),
+            updated_at=datetime(2020, 6, 12, 8, tzinfo=UTC),
+            payload=MemoryPayload(title="What made today beautiful?", body=text),
+        )
+        session.add(entry)
+        session.flush()
+        memories.append(entry)
+    context = AuthorizationContext(account_id=actors["a"].id, space_id=actors["space"].id)
+    discussion = comments.create_comment(
+        session,
+        context,
+        target_type=CommentTarget.MEMORY,
+        target_id=memories[1].id,
+        body="A shared conversation",
+    )
+    discussion.created_at = discussion.updated_at = datetime(2020, 6, 12, 9, tzinfo=UTC)
+    session.flush()
+    original_ids = [entry.id for entry in memories]
+    authored_timestamps = [entry.updated_at for entry in memories]
+    comment_timestamp = discussion.updated_at
+    page = client.get(path(actors), headers=auth(actors["token_a"])).json()
+    assert len(page["items"]) == 1
+    root = page["items"][0]
+    assert {entry["id"] for entry in root["experienceAnswers"]} == {
+        str(value) for value in original_ids
+    }
+    assert [entry.payload.body for entry in memories] == ["First answer", "Second answer"]
+    assert [entry.updated_at for entry in memories] == authored_timestamps
+    assert discussion.updated_at == comment_timestamp
+    removed = client.delete(
+        path(actors) + "/" + root["id"],
+        headers={**auth(actors["token_a"]), "If-Match": str(root["version"])},
+    )
+    assert removed.status_code == 204, removed.text
+    survivor = client.get(path(actors), headers=auth(actors["token_b"])).json()["items"]
+    assert len(survivor) == 1 and survivor[0]["id"] == str(original_ids[1])
+    assert survivor[0]["experienceAnswers"][0]["body"] == "Second answer"
+    assert memories[1].updated_at == authored_timestamps[1]
+    assert discussion.updated_at == comment_timestamp
+    thread = client.get(
+        path(actors) + "/" + survivor[0]["id"] + "/comments", headers=auth(actors["token_b"])
+    ).json()
+    assert [entry["id"] for entry in thread["items"]] == [str(discussion.id)]
+
+
+def test_pending_partner_answer_with_an_earlier_insert_joins_the_established_thread(
+    client, session: Session, actors
+):  # type: ignore[no-untyped-def]
+    from datetime import date
+
+    from eimir.authorization import PrivacyClass
+    from eimir.memories.models import MemoryPayload
+
+    grant(session, actors["space"].id, actors["a"].id)
+    question = "What made today beautiful?"
+    created = client.post(
+        path(actors),
+        headers=auth(actors["token_a"]),
+        json={**body(), "title": question},
+    )
+    assert created.status_code == 201
+    root = session.get(Memory, UUID(created.json()["id"]))
+    assert root is not None
+    earlier = root.created_at - timedelta(seconds=1)
+    pending = Memory(
+        space_id=actors["space"].id,
+        owner_id=actors["b"].id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        experience_kind="HAPPINESS",
+        happened_on=date(2020, 6, 12),
+        created_at=earlier,
+        updated_at=earlier,
+        payload=MemoryPayload(title=question, body="The other partner's answer"),
+    )
+    session.add(pending)
+    session.flush()
+
+    page = client.get(path(actors), headers=auth(actors["token_b"])).json()
+
+    assert len(page["items"]) == 1
+    assert page["items"][0]["id"] == str(root.id)
+    assert {answer["id"] for answer in page["items"][0]["experienceAnswers"]} == {
+        str(root.id),
+        str(pending.id),
+    }
+    assert pending.payload.body == "The other partner's answer"
+    assert pending.updated_at == earlier
+    assert root.version == created.json()["version"]
+
+
+def test_concurrent_partner_answers_form_one_shared_projection(production_client):  # type: ignore[no-untyped-def]
+    client, maker = production_client
+    with maker.begin() as setup:
+        first, second = make_account(setup, "First"), make_account(setup, "Second")
+        space = make_space(setup, first)
+        relationships.add_member(setup, space.id, second)
+        grant(setup, space.id, first.id)
+        tokens = [sign_in(setup, first), sign_in(setup, second)]
+        url = f"/api/v1/spaces/{space.id}/memories"
+
+    def submit(token):
+        return client.post(
+            url, headers=auth(token), json={**body(), "title": "What made today beautiful?"}
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(submit, tokens))
+    assert [response.status_code for response in results] == [201, 201]
+    page = client.get(url, headers=auth(tokens[0])).json()
+    assert len(page["items"]) == 1
+    assert len(page["items"][0]["experienceAnswers"]) == 2

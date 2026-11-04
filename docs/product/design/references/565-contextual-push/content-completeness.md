@@ -75,30 +75,44 @@ drift. Retain source-tap ownership, neutral public content and retirement checks
 Native synthetic presentation evidence and final-head CI remain merge gates.
 Merging source does not publish a signed Android update or deploy a server.
 
-## Runtime evidence and remaining acceptance
+## Runtime visual acceptance
 
-The API 36 emulator's [Light capture](evidence/content-api36-light.png) shows
-the real decrypted comment excerpt, source action, kiss and titled reminder.
-All names and authored words are synthetic interoperability fixtures. The
-additional Android System serial-console notice belongs to the emulator.
+The API 36 [Light capture](evidence/content-api36-light.png) and
+[Dark capture at 150% font size](evidence/content-api36-dark-large.png) now show
+both the expanded OS group and expanded comment. The complete authored words
+and canonical View comments action are visibly readable in both captures.
+The Dark capture replaces the former collapsed-group image; text presence in
+an accessibility description alone was not accepted as visual evidence.
 
-The [Dark capture at 150% font size](evidence/content-api36-dark-large.png)
-currently shows Android's collapsed notification group. It does **not** prove
-expanded excerpt readability. Remaining acceptance is to expand the group and
-the comment through Android's accessibility actions, assert the displayed
-authored words, and replace that capture with the reviewed expanded result.
-SystemUI can expose a child's text to accessibility while its group is still
-visually collapsed; checking only text presence is insufficient for this proof.
+Capture source: `e3933021373cf0fdd2b86cb176814f07ad720b84`,
+[native workflow, attempt 1](https://github.com/baerenmarke90/eimir/actions/runs/41898589557/attempts/1),
+API 36 job `126814624784`, artifact `13358415538`. Both PNGs were visually
+reviewed against the native reference. All names and authored words are
+synthetic interoperability fixtures. The additional Android System serial-console
+notice belongs to the emulator.
 
-The source/transport implementation at `4ecc731bf4cfb91ebad138d601b878a1134a1be1`
-passed hosted native tests on APIs 28, 36 and 37.1. Local API 36 coverage also
-passed all six preview tests, three activation-binding tests and eight source-
-opening tests. The refined screenshot wait passes locally in Light and Dark,
-but still needs the explicit expansion acceptance above and fresh hosted checks.
-The initial hosted CI's language gate rejected new German product copy; the
-correction registers exact approved literals and keeps surrounding engineering
-prose in scope, with its negative regression checks intact. No path exclusion,
-assertion relaxation or hosted manual rerun is used.
+The test expands the outer group and actual comment through Android's
+accessibility actions and re-reads the settled hierarchy. It requires the real
+TextView and fully visible bounds inside expanded ancestors, then verifies the
+real comment/reminder PendingIntents and public-version redaction. The separate
+Dark case also asserts effective night mode and 1.5 font scale. Full API 28, 36 and 37.1 jobs pass on this source; API 36 includes the
+additional Dark case and actual native-photo/Web/API/worker pipeline.
+
+The API 37.1 first attempt failed before push tests in an unchanged combined-media
+selection case: Android delivered TYPE_VIEW_LONG_CLICKED instead of the requested
+short touchscreen tap, while the later video-selection case passed. Its single targeted job retry passed with unchanged source, assertions and
+timeouts, preserving successful APIs 28/36 and attempt-specific diagnostics under
+the contributor retry policy. The successful API 37.1 retry is job
+`126823020843` in attempt 2 of the same native workflow. Final-head native
+checks remain required.
+
+The same source passes 1,293 backend unit tests (28 declared skips), all 3,310
+PostgreSQL integration tests, Ruff/format/mypy, OpenAPI and generated-client drift
+checks in [CI](https://github.com/baerenmarke90/eimir/actions/runs/41898589485).
+The first hosted CI's language failure is fixed through exact approved product
+literals with negative regressions. The identity false-positive correction below
+also passes the hosted Change Detection gate. No assertion, timeout, required
+context or delivery policy is relaxed.
 
 ## Final correction preflight
 
@@ -118,8 +132,8 @@ Capture both screenshot and hierarchy, re-read after the OS animation, and retai
 all PendingIntent, activation, source-action and public-redaction assertions.
 The existing hosted API 36 job additionally runs this same case in Dark at 150%
 font scale and verifies the effective configuration; APIs 28/36/37.1 retain their
-normal coverage. Fresh hosted execution and replacement visual evidence remain
-required before merge. This environment has no installed Android SDK/emulator;
+normal coverage. The replacement visual evidence is accepted above; applicable checks on the
+final head remain required before merge. This environment has no installed Android SDK/emulator;
 the existing hosted native matrix supplies that execution rather than a claimed
 local Android pass.
 

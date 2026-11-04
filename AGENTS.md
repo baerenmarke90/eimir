@@ -257,6 +257,20 @@ This policy applies to human contributors and coding agents handling any pull re
 - Diagnostic artifacts from retries must distinguish attempts or use an explicit safe replacement contract. Preserve stable artifact names consumed by release workflows.
 - Record the relevant root causes, correction batch, validation, and any retry reason briefly in the existing PR validation section. This adds no separate approval process or arbitrary limit on the number of justified pushes.
 
+### Mandatory Web browser test selection
+
+For Web product, browser-test and browser-CI work, the [Browser impact selection contract](docs/m5/BROWSER-IMPACT-SELECTION.md) is binding for human contributors and coding agents.
+
+- Use the shared validated plan: the always-run cross-surface core plus complete affected feature/reference specs. Do not restore an unconditional growing feature suite for every unrelated Web PR.
+- New or changed browser journeys must have reviewed ownership in both `web/e2e/test-groups.json` and `web/e2e/test-impact.json`. Include all relevant production entry roots and cross-surface destinations; a historical filename is not evidence of ownership. Revisit roots when journeys or source paths change.
+- Feature-specific acceptance evidence and broad viewport/theme variants must not automatically become global always-run work. An addition to, or material expansion of, the always-run core needs a concrete cross-surface contract and a traceable rationale in the PR, including overlap with existing coverage and the collected selection impact.
+- Prefer equivalent deterministic lower-level coverage for pure invariants. Delete browser cases only after proving redundancy, obsolescence or an equivalent committed replacement; retain real-browser layout, focus, navigation, privacy and accessibility protection where required.
+- Shared foundations, unknown/unmapped changes and incomplete dependency analysis must remain conservative. Preserve validation of complete PR-file responses, revision binding, changed surviving specs, disjoint execution groups and rejection of malformed/empty plans or unexpectedly skipped required work.
+- Preserve full automatic regression on `main` and manual execution, stable required contexts, independent retry boundaries and useful diagnostics. Impact-based scheduling is not permission to reduce required product contracts or weaken protection rules.
+- Before pushing browser-selection changes, run the planning regressions and inventory checks and document actual Playwright collection counts and relevant measured runtime when available. Historical baselines and target durations do not establish current coverage or justify weaker assertions.
+
+The recorded test counts are measurements, not permanent quotas. Change the core deliberately as product contracts evolve; do not allow unrelated feature additions to silently recreate a large unconditional PR suite. Follow the [contributor procedure](CONTRIBUTING.md#web-browser-test-selection).
+
 ### Required reviews
 
 A relevant pull request without a traceable reuse review is not merge-ready. Pure domain changes may mark the review as `not relevant` with a short rationale.

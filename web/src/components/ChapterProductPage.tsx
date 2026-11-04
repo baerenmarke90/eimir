@@ -62,6 +62,7 @@ function ChapterEditor({
   placeName,
   captureAdmission,
   requestCloseRef,
+  confirmedCloseRef,
   draft,
   setDraft,
   titleInputRef,
@@ -80,6 +81,7 @@ function ChapterEditor({
   placeName?: string;
   captureAdmission: () => () => boolean;
   requestCloseRef: RefObject<(() => void) | null>;
+  confirmedCloseRef: RefObject<((afterClose: () => void) => void) | null>;
   draft: ChapterDraft;
   setDraft: (draft: ChapterDraft) => void;
   titleInputRef: RefObject<HTMLInputElement | null>;
@@ -116,10 +118,17 @@ function ChapterEditor({
   });
   useEffect(() => {
     requestCloseRef.current = lifecycle.requestClose;
+    confirmedCloseRef.current = lifecycle.closeConfirmed;
     return () => {
       requestCloseRef.current = null;
+      confirmedCloseRef.current = null;
     };
-  }, [requestCloseRef, lifecycle.requestClose]);
+  }, [
+    requestCloseRef,
+    confirmedCloseRef,
+    lifecycle.requestClose,
+    lifecycle.closeConfirmed,
+  ]);
 
   useEffect(() => {
     if (confirmDelete) deleteHeadingRef.current?.focus();
@@ -281,6 +290,9 @@ function ScopedChapterProductPage({
   const editTriggerRef = useRef<HTMLButtonElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const editorRequestCloseRef = useRef<(() => void) | null>(null);
+  const editorConfirmedCloseRef = useRef<
+    ((afterClose: () => void) => void) | null
+  >(null);
   const key = authorSummaryQueryKeys.chapterDetail(spaceId, chapterId);
 
   const chapterQuery = useQuery({
@@ -387,17 +399,25 @@ function ScopedChapterProductPage({
       if (!request.ownsTask() || !request.admitted()) return;
       await invalidateChapterProjections(queryClient, spaceId, accountId);
       if (!request.ownsTask() || !request.admitted()) return;
-      queryClient.removeQueries({ queryKey: key });
-      if (resolveOrigin(originKey)) {
-        requestReturn(originKey, STORY_CHAPTERS_ROUTE);
-        return;
-      }
-      navigate(STORY_CHAPTERS_ROUTE, {
-        replace: true,
-        state: {
-          [PLANNING_DELETE_FOCUS_STATE_KEY]: context.focusTarget,
-        },
-      });
+      const returnAfterEditor = () => {
+        if (!request.ownsTask() || !request.admitted()) return;
+        queryClient.removeQueries({ queryKey: key });
+        if (resolveOrigin(originKey)) {
+          requestReturn(originKey, STORY_CHAPTERS_ROUTE);
+          return;
+        }
+        navigate(STORY_CHAPTERS_ROUTE, {
+          replace: true,
+          state: {
+            [PLANNING_DELETE_FOCUS_STATE_KEY]: context.focusTarget,
+          },
+        });
+      };
+      // Retire the editor's same-route history entry before returning to its
+      // origin; otherwise Back consumes that entry and reopens the deleted read.
+      if (editorConfirmedCloseRef.current)
+        editorConfirmedCloseRef.current(returnAfterEditor);
+      else returnAfterEditor();
     },
   });
 
@@ -530,6 +550,7 @@ function ScopedChapterProductPage({
           placeName={linkedPlace?.name}
           captureAdmission={captureOwnership}
           requestCloseRef={editorRequestCloseRef}
+          confirmedCloseRef={editorConfirmedCloseRef}
           draft={draft}
           setDraft={setDraft}
           titleInputRef={titleInputRef}

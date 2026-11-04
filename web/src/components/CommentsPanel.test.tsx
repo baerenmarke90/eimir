@@ -176,14 +176,15 @@ describe('CommentsPanel', () => {
       );
     });
 
-    it('places "Weitere Kommentare laden" before the compose trigger when paginated', () => {
+    it('places the automatic pagination sentinel before the compose trigger when paginated', () => {
       const html = renderPanel(
         [comment({ id: 'only', body: 'Only comment here' })],
         { hasMore: true, nextCursor: 'cursor-2' },
       );
 
-      expect(html).toContain('Weitere Kommentare laden');
-      expect(html.indexOf('Weitere Kommentare laden')).toBeLessThan(
+      expect(html.match(/class="auto-load-sentinel"/g)).toHaveLength(1);
+      expect(html).not.toContain('Weitere Kommentare laden');
+      expect(html.indexOf('class="auto-load-sentinel"')).toBeLessThan(
         html.indexOf('Kommentieren'),
       );
     });

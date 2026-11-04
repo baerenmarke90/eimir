@@ -149,3 +149,38 @@ Memory–Plan/Wish associations (0108). Existing essential Transfer export/resto
 includes the new authored links; derived proposals are reproducible and excluded.
 The existing local worker scans bounded shared source batches every six hours,
 with no external provider, automatic tag rewrite, or private-source inference.
+
+### Continuation audit
+
+The replacement-thread audit preserves the same implementation and work record.
+View-receipt completion now uses the existing authorized Query-identity lease
+before invalidating a Dashboard, and retires on unmount. Provider-backed tests
+exercise the real hook and reject late invalidation of a replacement Dashboard.
+The pagination fallback is determined after client mount, retaining automatic
+scrolling and accessible recovery without server-rendered pagination chrome.
+The comment-order assertion now verifies that the single pagination sentinel
+precedes composition, matching the reviewed automatic-loading contract.
+
+The complete corrected Web suite passes: 2,611 tests and two existing skips.
+The complete suite remains an unchanged required CI gate.
+All 18 recap browser journeys pass with the browser clock fixed to the fixture's
+October 30 viewer day, the accessibility scan targeting the actual invitation,
+and denied covers absent. No timeout, retry, ownership or accessibility assertion
+is relaxed. The browser-planning regressions (38), inventory, formatting, lint,
+typecheck and production build pass. Twelve focused backend contract, proposal,
+CORS and protected-payload checks also pass. Exact final-head CI and database results
+belong to [PR #1637](https://github.com/baerenmarke90/eimir/pull/1637).
+
+The initial PostgreSQL sweep also identified missing ownership entries for the
+eight new API operations, an incorrect use of the existing production-client
+tuple fixture, and the obsolete newest-first Places expectation. The correction
+adds the operations to the full anonymous/tenant/resource matrix, uses the real
+request client, and asserts the requested alphabetical default. The unchanged
+matrix-completeness assertion now runs as a unit test, so an omitted operation
+fails the cheap preflight without requiring PostgreSQL. The new protected model
+is explicitly registered in the integration fixture, also selecting the existing
+encrypted-mode CI lane for this PR.
+
+The pinned [Capacitor 8.5.2 native bridge](https://github.com/ionic-team/capacitor/blob/8.5.2/core/native-bridge.ts)
+was checked directly: it retains the browser XHR constructor and methods before
+patching, matching the binary upload adapter rather than assuming an SDK shape.

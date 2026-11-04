@@ -73,6 +73,7 @@ async function setup(
     hideMonthly?: boolean;
   } = {},
 ) {
+  await page.clock.setFixedTime(new Date('2026-10-30T12:00:00Z'));
   await page.addInitScript(
     ({ account, space }) =>
       localStorage.setItem(`eimir:product-tour:v1:${account}:${space}`, 'seen'),
@@ -347,11 +348,8 @@ for (const [width, theme] of [
       ),
     ).toBe(true);
     expect(
-      (
-        await new AxeBuilder({ page })
-          .include('.today-section-monthly')
-          .analyze()
-      ).violations,
+      (await new AxeBuilder({ page }).include('.monthly-recap-entry').analyze())
+        .violations,
     ).toEqual([]);
     expect(state.prepares()).toBe(0);
     expect(state.writes()).toBe(0);
@@ -527,7 +525,7 @@ test('an authoritative overview denial removes a previously visible recap cover'
     document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
   });
   await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
-  await expect(page.locator('.monthly-recap-library-link')).toBeVisible();
+  await expect(page.locator('.monthly-recap-photo')).toHaveCount(0);
 });
 
 for (const [width, theme] of [

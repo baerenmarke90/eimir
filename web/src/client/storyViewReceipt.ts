@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { dashboardQueryKey } from './dashboardQueries';
+import { captureAuthorizedQuery } from './queryIdentity';
 import type { ReferenceApis } from './referenceFlow';
 import type { StoryKind } from '../api/generated/models/StoryKind';
 
@@ -29,6 +30,9 @@ export function useStoryViewReceipt({
     if (recordedRef.current === key) return;
 
     recordedRef.current = key;
+    const dashboardKey = dashboardQueryKey(spaceId);
+    const current = captureAuthorizedQuery(queryClient, dashboardKey);
+    let active = true;
 
     apis.story
       ?.recordStoryView({
@@ -38,12 +42,16 @@ export function useStoryViewReceipt({
           itemId,
         },
       })
-      .then(() =>
-        queryClient.invalidateQueries({ queryKey: dashboardQueryKey(spaceId) }),
-      )
+      .then(() => {
+        if (active && current())
+          return queryClient.invalidateQueries({ queryKey: dashboardKey });
+      })
       .catch(() => {
         // Intentional view receipt failures must not break the detail page.
         // Backend same-day idempotent semantics apply.
       });
+    return () => {
+      active = false;
+    };
   }, [apis, spaceId, kind, itemId, presented, queryClient]);
 }

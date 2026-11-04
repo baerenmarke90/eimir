@@ -168,9 +168,7 @@ export function useTimelineAutoPagination({
 }) {
   const requestedCursorRef = useRef<string | null>(null);
   const previousScopeKeyRef = useRef(scopeKey);
-  const [manualFallback, setManualFallback] = useState(
-    () => typeof IntersectionObserver === 'undefined',
-  );
+  const [manualFallback, setManualFallback] = useState(false);
 
   useEffect(() => {
     if (previousScopeKeyRef.current === scopeKey) return;

@@ -258,12 +258,13 @@ def test_unqualified_places_are_alphabetical_across_pages(
 
 
 def test_local_ai_proposes_without_rewriting_tags_and_rejects_a_changed_source(
-    production_client: TestClient, engine: Any, monkeypatch: pytest.MonkeyPatch
+    production_client: tuple[TestClient, Any], engine: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from eimir.authorization import AuthorizationContext
     from eimir.context_tags import jobs
     from eimir.memories.models import Memory
 
+    client, _maker = production_client
     with Session(engine) as setup:
         owner = make_account(setup, "Local inference owner")
         space = make_space(setup, owner)
@@ -271,7 +272,7 @@ def test_local_ai_proposes_without_rewriting_tags_and_rejects_a_changed_source(
         headers = auth(sign_in(setup, owner))
         setup.commit()
     path = f"/api/v1/spaces/{space_id}/memories"
-    response = production_client.post(path, headers=headers, json={"title": "Belgien"})
+    response = client.post(path, headers=headers, json={"title": "Belgien"})
     assert response.status_code == 201, response.text
     entry = response.json()
     context = AuthorizationContext(account_id=owner_id, space_id=space_id)
@@ -285,15 +286,13 @@ def test_local_ai_proposes_without_rewriting_tags_and_rejects_a_changed_source(
     with Session(engine) as worker:
         jobs._generate(worker, Memory, UUID(entry["id"]), context)
         worker.commit()
-    suggestions = production_client.get(
-        f"/api/v1/spaces/{space_id}/context-tag-suggestions", headers=headers
-    )
+    suggestions = client.get(f"/api/v1/spaces/{space_id}/context-tag-suggestions", headers=headers)
     assert suggestions.json()["proposed"] == ["Belgien"]
-    assert production_client.get(f"{path}/{entry['id']}", headers=headers).json()["tags"] == []
+    assert client.get(f"{path}/{entry['id']}", headers=headers).json()["tags"] == []
     assert len(calls) == 1
 
     def edited_during_inference(payload: dict[str, Any], **_kwargs: Any) -> dict[str, Any]:
-        changed = production_client.patch(
+        changed = client.patch(
             f"{path}/{entry['id']}",
             headers={**headers, "If-Match": str(entry["version"])},
             json={"title": "Another source"},
@@ -306,8 +305,8 @@ def test_local_ai_proposes_without_rewriting_tags_and_rejects_a_changed_source(
         jobs._generate(worker, Memory, UUID(entry["id"]), context)
         worker.commit()
     assert (
-        production_client.get(
-            f"/api/v1/spaces/{space_id}/context-tag-suggestions", headers=headers
-        ).json()["proposed"]
+        client.get(f"/api/v1/spaces/{space_id}/context-tag-suggestions", headers=headers).json()[
+            "proposed"
+        ]
         == []
     )

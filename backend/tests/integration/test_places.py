@@ -185,7 +185,7 @@ class TestCrud:
         assert second.status_code == 409
         assert second.json()["code"] == "RESOURCE_VERSION_CONFLICT"
 
-    def test_list_shows_newest_first(  # type: ignore[no-untyped-def]
+    def test_list_is_alphabetical_by_default(  # type: ignore[no-untyped-def]
         self,
         client,
         couple,
@@ -193,7 +193,7 @@ class TestCrud:
         first = create_place(client, couple, name="Erster").json()
         second = create_place(client, couple, name="Zweiter").json()
         page = client.get(path(couple["space"].id), headers=auth(couple["token_a"])).json()
-        assert [entry["id"] for entry in page["items"]] == [second["id"], first["id"]]
+        assert [entry["id"] for entry in page["items"]] == [first["id"], second["id"]]
 
     def test_cursor_applies_only_in_its_space(  # type: ignore[no-untyped-def]
         self,

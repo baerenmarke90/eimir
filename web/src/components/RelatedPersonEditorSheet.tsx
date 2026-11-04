@@ -1,6 +1,5 @@
 import { NativeDateInput } from './NativeDateField';
 import {
-  type ChangeEvent,
   type FormEvent,
   type KeyboardEvent,
   useCallback,
@@ -10,6 +9,7 @@ import {
   useState,
 } from 'react';
 import type { AttachmentsApi } from '../api/generated/apis/AttachmentsApi';
+import { MediaDropZone } from './MediaDropZone';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { PersonRelationship } from '../api/generated/models/PersonRelationship';
 import type { RelatedPersonFields } from '../api/generated/models/RelatedPersonFields';
@@ -265,9 +265,8 @@ export function RelatedPersonEditorSheet({
     containModalTabFocus(event, dialogRef.current, { visibleOnly: true });
   }
 
-  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  async function selectAvatar(file?: File) {
+    if (!file || pending || uploadPhase) return;
 
     setUploadError(null);
     if (!file.type.startsWith('image/')) {
@@ -392,58 +391,66 @@ export function RelatedPersonEditorSheet({
                   <p>{t('people.identitySectionHelp')}</p>
                 </div>
 
-                <div className="related-person-identity-row">
-                  <div className="people-editor-avatar" aria-hidden="true">
-                    {displayedAvatarUrl ? (
-                      <img src={displayedAvatarUrl} alt="" />
-                    ) : (
-                      <span>{initials}</span>
-                    )}
-                  </div>
-                  <div className="people-editor-avatar-actions">
-                    <span className="field-label">
-                      {t('people.avatarLabel')}
-                    </span>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="visually-hidden-file-input"
-                      aria-label={t('people.avatarLabel')}
-                    />
-                    <div className="people-editor-avatar-buttons">
-                      <button
-                        type="button"
-                        className="secondary compact-action"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={pending || Boolean(uploadPhase)}
-                      >
-                        {displayedAvatarUrl
-                          ? t('people.avatarChange')
-                          : t('people.avatarUpload')}
-                      </button>
+                <MediaDropZone
+                  multiple={false}
+                  disabled={pending || Boolean(uploadPhase)}
+                  onFiles={(files) => void selectAvatar(files[0])}
+                >
+                  <div className="related-person-identity-row">
+                    <div className="people-editor-avatar" aria-hidden="true">
                       {displayedAvatarUrl ? (
+                        <img src={displayedAvatarUrl} alt="" />
+                      ) : (
+                        <span>{initials}</span>
+                      )}
+                    </div>
+                    <div className="people-editor-avatar-actions">
+                      <span className="field-label">
+                        {t('people.avatarLabel')}
+                      </span>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(event) => {
+                          void selectAvatar(event.currentTarget.files?.[0]);
+                          event.currentTarget.value = '';
+                        }}
+                        className="visually-hidden-file-input"
+                        aria-label={t('people.avatarLabel')}
+                      />
+                      <div className="people-editor-avatar-buttons">
                         <button
                           type="button"
-                          className="tertiary compact-action"
-                          onClick={handleAvatarRemove}
+                          className="secondary compact-action"
+                          onClick={() => fileInputRef.current?.click()}
                           disabled={pending || Boolean(uploadPhase)}
                         >
-                          {t('people.avatarRemove')}
+                          {displayedAvatarUrl
+                            ? t('people.avatarChange')
+                            : t('people.avatarUpload')}
                         </button>
+                        {displayedAvatarUrl ? (
+                          <button
+                            type="button"
+                            className="tertiary compact-action"
+                            onClick={handleAvatarRemove}
+                            disabled={pending || Boolean(uploadPhase)}
+                          >
+                            {t('people.avatarRemove')}
+                          </button>
+                        ) : null}
+                      </div>
+                      {uploadPhase ? (
+                        <small className="field-help" role="status">
+                          {uploadPhase === 'validating'
+                            ? t('people.avatarValidating')
+                            : t('people.avatarUploading')}
+                        </small>
                       ) : null}
                     </div>
-                    {uploadPhase ? (
-                      <small className="field-help" role="status">
-                        {uploadPhase === 'validating'
-                          ? t('people.avatarValidating')
-                          : t('people.avatarUploading')}
-                      </small>
-                    ) : null}
                   </div>
-                </div>
-
+                </MediaDropZone>
                 {uploadError ? (
                   <p className="field-help field-error" role="alert">
                     {uploadError}

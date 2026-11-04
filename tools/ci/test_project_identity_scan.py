@@ -119,6 +119,19 @@ class ProjectIdentityScanTest(unittest.TestCase):
         )
         self.assertEqual(classification, Classification.MUST_RENAME)
 
+    def test_media_planning_prompt_exception_preserves_exact_layout_provenance(self) -> None:
+        path = Path("docs/product/design/references/1647-media-planning/reference-prompt.txt")
+        line = "Create three complete 390px smartphone screens side by side."
+        self.assertEqual(classify(path, line, "side by side")[0], Classification.FALSE_POSITIVE)
+        for candidate, text, match in (
+            (path, "Use side by side branding.", "side by side"),
+            (path, line + " Use SideBySide branding.", "SideBySide"),
+            (path, line + " Use side by side branding.", "side by side"),
+            (Path("backend/src/example.py"), line, "side by side"),
+        ):
+            with self.subTest(path=candidate, match=match):
+                self.assertEqual(classify(candidate, text, match)[0], Classification.MUST_RENAME)
+
     def test_exact_places_and_lists_prompt_retains_ordinary_layout_wording(self) -> None:
         path = Path("docs/product/design/references/places-and-lists/reference-prompt.txt")
         line = "Preflight, four whole Compact smartphone app screens side-by-side."

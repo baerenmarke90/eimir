@@ -1,4 +1,5 @@
 export type AttachmentDraftStatus =
+  | 'preparing'
   | 'uploading'
   | 'validating'
   | 'ready'
@@ -26,7 +27,7 @@ export type AttachmentDraftAction =
       type: 'phase';
       id: string;
       attempt: number;
-      status: 'uploading' | 'validating';
+      status: 'preparing' | 'uploading' | 'validating';
     }
   | {
       type: 'ready';
@@ -99,7 +100,7 @@ export function attachmentDraftReducer(
         (draft) => ({
           ...draft,
           status: action.status,
-          progress: action.status === 'validating' ? 100 : draft.progress,
+          progress: action.status === 'validating' ? 100 : 0,
           error: undefined,
         }),
       );
@@ -184,6 +185,9 @@ export function readyAttachmentIds(drafts: AttachmentDraft[]): string[] {
 
 export function hasPendingAttachments(drafts: AttachmentDraft[]): boolean {
   return drafts.some(
-    (draft) => draft.status === 'uploading' || draft.status === 'validating',
+    (draft) =>
+      draft.status === 'preparing' ||
+      draft.status === 'uploading' ||
+      draft.status === 'validating',
   );
 }

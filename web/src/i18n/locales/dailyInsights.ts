@@ -61,6 +61,7 @@ const dailyInsights = {
     dayGroup: 'Tage der Woche',
   },
   lanes: {
+    VERY_GOOD: 'Sehr gut',
     GOOD: 'Gut',
     OKAY: 'Okay',
     NEEDS_CONNECTION: 'Nähe',

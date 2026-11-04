@@ -476,7 +476,7 @@ No authorization required
 
 ## listPlans
 
-> PlanPage listPlans(spaceId, cursor, limit, status)
+> PlanPage listPlans(spaceId, cursor, limit, status, overviewScope)
 
 List Plans
 
@@ -502,6 +502,8 @@ async function example() {
     limit: 56,
     // PlanStatus (optional)
     status: ...,
+    // 'OPEN' | 'COMPLETED' (optional)
+    overviewScope: overviewScope_example,
   } satisfies ListPlansRequest;
 
   try {
@@ -525,6 +527,7 @@ example().catch(console.error);
 | **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **limit** | `number` |  | [Optional] [Defaults to `50`] |
 | **status** | `PlanStatus` |  | [Optional] [Defaults to `undefined`] [Enum: IDEA, PLANNED, COMPLETED] |
+| **overviewScope** | `OPEN`, `COMPLETED` |  | [Optional] [Defaults to `undefined`] [Enum: OPEN, COMPLETED] |
 
 ### Return type
 

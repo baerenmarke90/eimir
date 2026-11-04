@@ -92,3 +92,13 @@ it('rejects repeated cursors instead of continuously appending the same page', a
   await intersect();
   expect(query.fetchNextPage).not.toHaveBeenCalled();
 });
+
+it('allows deliberate retry when the query itself is in the error state', async () => {
+  const query = { ...makeQuery(), isError: true };
+  render(<AutoLoadMore query={query}>Retry</AutoLoadMore>);
+  await intersect();
+  expect(query.fetchNextPage).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+  await act(async () => undefined);
+  expect(query.fetchNextPage).toHaveBeenCalledTimes(1);
+});

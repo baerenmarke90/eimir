@@ -1,4 +1,11 @@
 const de = {
+  mediaPlanning: {
+    wish: 'Ein Wochenende zu zweit – gemeinsam Neues entdecken und Zeit füreinander haben',
+    plan: 'Unser gemeinsamer Ausflug',
+    description:
+      'Ein Tag für uns beide. Wir nehmen uns Zeit für einen langen Spaziergang und lassen den Alltag hinter uns.',
+    edit: 'Unsere geänderte Verabredung',
+  },
   subpageNavigation: {
     legacyMemoryTitle: 'Erinnerung vom 27.10.2026',
     approvedDate: '27. Oktober 2026',

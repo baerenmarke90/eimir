@@ -88,7 +88,11 @@ async function fixture(
     if (path === `${BASE}/plans`)
       return route.fulfill({
         json: {
-          items: url.searchParams.get('status') === 'PLANNED' ? [plan] : [],
+          items:
+            url.searchParams.get('overviewScope') === 'OPEN' ||
+            url.searchParams.get('status') === 'PLANNED'
+              ? [plan]
+              : [],
           nextCursor: null,
         },
       });
@@ -284,6 +288,8 @@ for (const scenario of [
     await preview.click();
     await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN}$`));
     if (scenario.sensitive) {
+      await expect(page.locator('.sensitive-media-cover svg')).toHaveCount(0);
+      await expect(page.locator('.sensitive-media-control svg')).toHaveCount(0);
       await expect(
         page.locator(
           '.plan-photo-gallery .media-gallery-carousel-slide .sensitive-media-cover',

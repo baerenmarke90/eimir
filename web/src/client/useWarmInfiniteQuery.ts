@@ -57,6 +57,7 @@ export function useWarmInfiniteQuery<TPage, TPageParam>(
     QueryKey,
     TPageParam
   >,
+  { revalidateOnRestore = false }: { revalidateOnRestore?: boolean } = {},
 ) {
   const runtime = useApiRuntime();
   const client = useQueryClient();
@@ -67,6 +68,10 @@ export function useWarmInfiniteQuery<TPage, TPageParam>(
   const keyRef = useRef(options.queryKey);
   keyRef.current = options.queryKey;
   const [hydrated, setHydrated] = useState('');
+  const [restored, setRestored] = useState<{
+    identity: string;
+    refreshedAt?: Date;
+  }>();
   const durable = Boolean(accountId && spaceId);
   const meta = useMemo(
     () =>
@@ -113,10 +118,14 @@ export function useWarmInfiniteQuery<TPage, TPageParam>(
       .then((cached) => {
         if (!live || !current()) return;
         const state = client.getQueryState(key);
-        if (cached && !state?.data && !state?.isInvalidated)
+        if (cached && !state?.data && !state?.isInvalidated) {
           client.setQueryData(key, cached.value, {
-            updatedAt: cached.refreshedAt?.getTime(),
+            // A Plan's former overview contract revalidates a cold snapshot.
+            updatedAt: revalidateOnRestore ? 0 : cached.refreshedAt?.getTime(),
           });
+          if (revalidateOnRestore)
+            setRestored({ identity, refreshedAt: cached.refreshedAt });
+        }
       })
       .catch(() => undefined)
       .finally(() => {
@@ -125,7 +134,7 @@ export function useWarmInfiniteQuery<TPage, TPageParam>(
     return () => {
       live = false;
     };
-  }, [accountId, spaceId, identity, client, resourceId]);
+  }, [accountId, spaceId, identity, client, resourceId, revalidateOnRestore]);
   const denied = ['unauthorized', 'permission', 'notFound'].includes(
     clientProblemKind(query.error),
   );
@@ -174,6 +183,13 @@ export function useWarmInfiniteQuery<TPage, TPageParam>(
   return {
     ...query,
     data: denied ? undefined : query.data,
+    isCached:
+      !denied &&
+      Boolean(query.data) &&
+      restored?.identity === identity &&
+      query.dataUpdatedAt === 0,
+    cachedAt:
+      restored?.identity === identity ? restored.refreshedAt : undefined,
     isLoading:
       query.isLoading || (durable && hydrated !== identity && !query.data),
   };

@@ -197,7 +197,10 @@
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/StoryProductPage.tsx",
-        "web/src/components/MemoryCreatePage.tsx"
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/MemoryPreview.tsx",
+        "web/src/components/SensitiveMedia.tsx"
       ]
     },
     "memory-create-defaults.spec.ts": {
@@ -698,7 +701,11 @@
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/StoryProductPage.tsx",
-        "web/src/components/MemoryCreatePage.tsx"
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/MediaGallery.tsx",
+        "web/src/components/MediaGallery.css",
+        "web/src/components/SensitiveMedia.tsx",
+        "web/src/components/SensitiveMedia.css"
       ]
     },
     "wir-design-selection.spec.ts": {
@@ -747,6 +754,19 @@
         "web/src/components/SharedExperienceReveal.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "media-planning-corrections.spec.ts": {
+      "roots": [
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/WishProductPage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/MediaDropZone.tsx",
+        "web/src/components/AutoLoadMore.tsx",
+        "web/src/client/videoCompression.ts",
+        "web/src/client/videoCompression.worker.ts",
+        "web/src/client/compressVideo.ts"
       ]
     }
   }

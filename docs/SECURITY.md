@@ -644,7 +644,9 @@ required by the current Vite build:
 | `img-src` | `'self' blob: https://tile.openstreetmap.org` | local assets, authorized image bytes through short-lived object URLs and deliberately loaded OSM raster map tiles |
 | `connect-src` | `'self'` plus explicit hosting origins | API plus direct presigned uploads/reads through `fetch()` |
 | `font-src` | `'self'` | no external font CDNs |
-| `object-src`, `frame-src`, `media-src`, `manifest-src`, `worker-src` | `'none'` | no currently approved domain requirement; video remains fail-closed |
+| `media-src` | `'self'` plus explicit hosting origins | deliberate authorized video playback from the API/media store |
+| `worker-src` | `'self'` | bundled local video compression worker; no remote or blob workers |
+| `object-src`, `frame-src`, `manifest-src` | `'none'` | no approved domain requirement |
 | `base-uri` / `frame-ancestors` | `'none'` | no base-URL rewriting and no framing |
 | `form-action` | `'self'` | forms may navigate only to the same origin |
 

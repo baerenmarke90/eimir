@@ -20,6 +20,7 @@ import m5s5 from './locales/m5s5';
 import m5s6 from './locales/m5s6';
 import memoryMap from './locales/memoryMap';
 import memoryProduct from './locales/memoryProduct';
+import mediaDrop from './locales/mediaDrop';
 import navigation from './locales/navigation';
 import notificationSettings from './locales/notificationSettings';
 import partnerConnection from './locales/partnerConnection';
@@ -91,6 +92,7 @@ if (!i18n.isInitialized) {
           m5s5,
           ...m5s6,
           memoryProduct,
+          mediaDrop,
           partnerConnection,
           people,
           privateArea,

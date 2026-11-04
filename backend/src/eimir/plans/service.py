@@ -996,8 +996,15 @@ def list_plans(
     cursor: str | None,
     limit: int,
     status: PlanStatus | None,
+    overview_scope: str | None = None,
 ) -> PlanPageResult:
     """List newest plans first, ordered by metadata like wishes."""
+    if overview_scope is not None:
+        if status is not None or overview_scope not in {"OPEN", "COMPLETED"}:
+            raise ValidationError("Choose one Plan browse scope.", "PLAN_BROWSE_SCOPE_CONFLICT")
+        from eimir.plans.browse import list_overview
+
+        return list_overview(session, context, scope=overview_scope, cursor=cursor, limit=limit)
     statement = readable(Plan, context)
     if status is not None:
         statement = statement.where(Plan.status == status.value)

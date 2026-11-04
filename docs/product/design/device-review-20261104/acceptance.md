@@ -210,3 +210,8 @@ After reconciliation, 12 affected Web unit checks, three cheap backend proposal/
 matrix checks, 17 planner checks, inventory, TypeScript, formatting, Ruff and the
 production build pass. Current-head hosted checks remain mandatory; no failed job
 was blindly rerun and no permission, timeout or retry assertion was weakened.
+
+The remaining historical R1 capture-evidence interaction now edits the native
+date field directly, rather than clicking the removed date-summary button. All
+19 complete R1 journeys pass, retaining title/text/photo composition, confirmed
+canonical save, large text, theme, width and reduced-motion coverage.

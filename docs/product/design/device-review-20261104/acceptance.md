@@ -264,3 +264,24 @@ device synchronization until its live replacement. The combined candidate is
 validated independently and recorded in PR #1636; required hosted checks bind to
 that exact combined source. No timeouts, position bounds, selection or permission
 gates are relaxed.
+
+### Immediate browser Back from a monthly invitation
+
+Inspection of a hosted automatic retry reproduced a second return race. Opening
+the invitation creates a reader URL with playback intent. Native Back can move
+to Today before the reader's queued effect removes that intent; the retired
+effect then replaced Today with the reader again. The trace records Back landing
+on Today, followed by the stale reader URL replacement. This was a navigation
+race, rather than a missing invitation or slow content read.
+
+Reader URL cleanup and page changes now admit updates only while the native
+history key still belongs to that router entry. This also retires automatic
+playback URL updates after Back. The existing complete browser regression adds
+the exact Today URL assertion and passes five consecutive runs after correction,
+retaining the consumed-invitation assertion and normal expectation timeout. The
+owning PR records the full reader and final Web validation.
+
+The complete 20-case recap browser suite passes, including normal/reduced-motion
+playback, source returns, selection, private drafts, explicit sharing, withdrawal,
+retained Free reads and expiry. The full Web suite again passes 2,626 tests with
+two existing skips. TypeScript, production build, formatting and lint pass.

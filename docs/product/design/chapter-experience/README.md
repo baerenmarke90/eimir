@@ -249,5 +249,14 @@ complete Web suite runs alongside them. Browser ownership and selection remain
 on the same 89 complete specs. The five extra case boundaries introduce no new
 feature variants or repeated global feature acceptance; they isolate the two
 existing contracts so document loads and accessibility work cannot consume each
-other's normal test budget. Actual final collection is 1,020 cases rather than
-1,015. The owning PR records the planning checks and final hosted result.
+other's normal test budget.
+
+The hosted sweep also repeated a pre-existing quote-settings budget overrun.
+Its order/visibility persistence and failure/recovery portions now run as two
+complete journeys. The first follows the actual primary navigation into Today
+and retains both settings and Today reload checks. The second retains the full
+failure width, accessibility, retry, enabled-control and alignment assertions.
+Both complete journeys pass twice without retries, taking 9.4–13.9 seconds each.
+This adds one further case boundary with the same normal timeouts. Actual final
+collection is 1,021 cases rather than 1,015, on the same 89 owned specs and feature
+variants. The owning PR records the planning checks and final hosted result.

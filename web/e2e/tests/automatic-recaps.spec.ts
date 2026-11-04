@@ -792,6 +792,7 @@ test('opening a monthly invitation consumes that edition on return', async ({
     .click();
   await expect(page).toHaveURL(new RegExp(recapDetailPath('october')));
   await page.goBack();
+  await expect(page).toHaveURL(/\/today$/);
   await expect(page.locator('.today-content')).toBeVisible();
   await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
 });

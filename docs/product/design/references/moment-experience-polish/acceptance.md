@@ -20,7 +20,7 @@ HeartMoment, privacy and draft-Place captures were refreshed after their fixes.
 | Sensitive images | Reveal/conceal control keeps identical corner geometry and a 44px target, including 200% text; reveal remains local and resets on leaving/backgrounding. | [Concealed](diary-430-concealed.png), [revealed](diary-430-revealed.png), [large concealed](diary-320-large-text-concealed.png), [large revealed](diary-320-large-text-revealed.png) |
 | Comments | Own-author header overflow contains Edit/Delete; editor autofocus and return focus; oldest-first chronology retained. | [Open comment menu](comment-menu-390-dark.png) |
 | Diary | Titled photo entries share the existing larger photo-led treatment; chronology and titles remain intact. | [Photo-led diary](diary-430-revealed.png) |
-| Plans | Overview cover and detail gallery lead the composition; title/date/actions follow. | [Saved Plan](plan-photos-first.png) |
+| Plans | Overview cover and detail gallery lead the composition; title/date/actions follow. | [Saved Plan](plan-photos-first.png), [overview at 320px/200% text](plan-overview-320-large-text.png) |
 | Wir activity trace | Same authorized shared activity query, actor/action/target/date semantics and event order as Activities, including comments. | [Compact dark trace](wir-activities-390-dark.png) |
 
 Product Reference v1 R1–R5 and Screen Templates 4/8/9/11 remain authoritative.
@@ -94,6 +94,11 @@ Existing roots, author content, timestamps and the transaction lock are retained
   mypy. Required CI checks the deterministic and concurrent PostgreSQL cases.
 - The initial CI format failure in the final trace assertion is corrected;
   the complete Web format check passes again.
+- The broad browser run passed 787 cases and exposed one obsolete Plan oracle
+  requiring copy above the photograph at 200% text. The PO's photo-first order
+  is now asserted at all four reference sizes, preserving overflow, theme and
+  reduced-motion checks. All four focused scenarios pass; actual large-text
+  overview evidence is linked above. No runtime layout or assertion was weakened.
 - Backend: Ruff, mypy (350 source files), 48 focused unit tests passed.
 - Web build, typecheck, lint, format and engineering-language checks passed.
 - API schema regenerated with pinned OpenAPI Generator 7.24.0 and compared with

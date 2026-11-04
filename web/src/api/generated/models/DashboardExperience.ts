@@ -62,6 +62,12 @@ export interface DashboardExperience {
      * @type {string}
      * @memberof DashboardExperience
      */
+    prompt?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof DashboardExperience
+     */
     text: string;
 }
 
@@ -95,6 +101,7 @@ export function DashboardExperienceFromJSONTyped(json: any, ignoreDiscriminator:
         'happenedOn': (json['happenedOn'] == null ? null : new Date(json['happenedOn'])),
         'id': json['id'],
         'kind': ExperienceKindFromJSON(json['kind']),
+        'prompt': json['prompt'] === undefined ? undefined : json['prompt'] === null ? null : json['prompt'],
         'text': json['text'],
     };
 }
@@ -115,6 +122,7 @@ export function DashboardExperienceToJSONTyped(value?: DashboardExperience | nul
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
         'id': value['id'],
         'kind': ExperienceKindToJSON(value['kind']),
+        'prompt': value['prompt'],
         'text': value['text'],
     };
 }

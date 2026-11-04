@@ -1,3 +1,4 @@
+import { TaskBackButton } from './TaskBackButton';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
@@ -816,14 +817,13 @@ export function MemoryCreatePage({
         <div ref={headingRef} tabIndex={-1} className="memory-task-heading">
           <PageHeader
             before={
-              <button
+              <TaskBackButton
                 type="button"
-                className="back-link tertiary"
                 onClick={requestClose}
                 aria-disabled={pending}
               >
                 {t('taskBoundary.close')}
-              </button>
+              </TaskBackButton>
             }
             title={t(
               experienceKind

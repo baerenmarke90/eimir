@@ -1,3 +1,4 @@
+import { TaskBackButton } from './TaskBackButton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type FormEvent,
@@ -296,14 +297,14 @@ export function PlanningCreatePage({
     <div className="page planning-create-task">
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             className="back-link tertiary"
             onClick={requestClose}
             aria-disabled={pending}
           >
             {t('taskBoundary.close')}
-          </button>
+          </TaskBackButton>
         }
         title={t(
           isPlan ? 'm5s3.plan.createHeading' : 'm5s3.wish.createHeading',

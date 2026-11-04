@@ -1,3 +1,4 @@
+import { TaskBackLink } from './TaskBackButton';
 import { AutoLoadMore } from './AutoLoadMore';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
@@ -74,9 +75,9 @@ function EmptyYearsState() {
     >
       <h2 id="story-years-empty-title">{t('storyYears.emptyTitle')}</h2>
       <p>{t('storyYears.emptyBody')}</p>
-      <Link className="button-link secondary-link" to={appRoutePath('story')}>
+      <TaskBackLink to={appRoutePath('story')}>
         {t('storyYears.backToMoments')}
-      </Link>
+      </TaskBackLink>
     </section>
   );
 }
@@ -336,9 +337,9 @@ export function StoryYearDetailPage({
         >
           <h2 id="story-year-invalid-title">{t('storyYears.invalidTitle')}</h2>
           <p>{t('storyYears.invalidBody')}</p>
-          <Link className="button-link secondary-link" to={STORY_YEARS_ROUTE}>
+          <TaskBackLink to={STORY_YEARS_ROUTE}>
             {t('storyYears.backToYears')}
-          </Link>
+          </TaskBackLink>
         </section>
       ) : null}
 
@@ -366,9 +367,9 @@ export function StoryYearDetailPage({
             {t('storyYears.unavailableTitle')}
           </h2>
           <p>{t('storyYears.unavailableBody', { year })}</p>
-          <Link className="button-link secondary-link" to={STORY_YEARS_ROUTE}>
+          <TaskBackLink to={STORY_YEARS_ROUTE}>
             {t('storyYears.backToYears')}
-          </Link>
+          </TaskBackLink>
         </section>
       ) : null}
 

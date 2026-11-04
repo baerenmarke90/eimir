@@ -1,8 +1,9 @@
 import type { DashboardExperience } from '../api/generated/models/DashboardExperience';
-import { memoryDetailPath } from '../client/routes';
 import { useAttentionReceipt } from '../client/attentionReceipt';
-import { useTranslation } from '../i18n';
+import { memoryDetailPath } from '../client/routes';
+import { resolvedLocale, useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
+import { MomentDate } from './MomentDate';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import './CoupleExperiences.css';
 
@@ -23,6 +24,11 @@ export function SharedExperienceReveal({
     entry.createdAt.getTime() + 3 * 24 * 60 * 60_000,
   );
   if (!receipt.visible) return null;
+  const date = entry.happenedOn ?? entry.createdAt;
+  const dateLabel = new Intl.DateTimeFormat(resolvedLocale(), {
+    dateStyle: 'medium',
+    ...(entry.happenedOn ? { timeZone: 'UTC' } : {}),
+  }).format(date);
   return (
     <section
       className="today-section shared-experience-section"
@@ -42,21 +48,47 @@ export function SharedExperienceReveal({
           key={entry.id}
           className={`shared-experience-reveal ${happiness ? 'is-happiness' : 'is-time-travel'}`}
         >
-          <EimirIcon
-            name={happiness ? 'highlights' : 'kapitel'}
-            className="shared-experience-symbol"
-          />
-          <p className="shared-experience-from">
-            {t('coupleExperiences.incoming.from', { name: partnerName })}
+          <div className="shared-experience-byline">
+            <EimirIcon
+              name={happiness ? 'highlights' : 'kapitel'}
+              className="shared-experience-symbol"
+            />
+            <p className="shared-experience-from">
+              {t('coupleExperiences.incoming.from', { name: partnerName })}
+            </p>
+          </div>
+          <p className="shared-experience-question">
+            {entry.prompt?.trim() ||
+              t(
+                happiness
+                  ? 'coupleExperiences.sharedHappiness'
+                  : 'coupleExperiences.sharedTimeTravel',
+              )}
           </p>
-          <p className="shared-experience-words">{entry.text}</p>
-          <TodayDestinationLink
-            className="button-link"
-            to={memoryDetailPath(entry.id)}
-            onFollow={receipt.consume}
+          <p
+            className="shared-experience-words"
+            data-long={entry.text.length > 180}
           >
-            {t('coupleExperiences.incoming.open')}
-          </TodayDestinationLink>
+            {entry.text}
+          </p>
+          <div className="shared-experience-footer">
+            <MomentDate
+              dateTime={
+                entry.happenedOn
+                  ? date.toISOString().slice(0, 10)
+                  : date.toISOString()
+              }
+            >
+              {dateLabel}
+            </MomentDate>
+            <TodayDestinationLink
+              className="button-link"
+              to={memoryDetailPath(entry.id)}
+              onFollow={receipt.consume}
+            >
+              {t('coupleExperiences.incoming.open')}
+            </TodayDestinationLink>
+          </div>
         </article>
       </div>
     </section>

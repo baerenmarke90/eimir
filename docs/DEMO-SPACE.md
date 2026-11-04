@@ -398,6 +398,24 @@ It describes fictional content in ordinary product views, not a separate Demo UI
 | Shared-experience and monthly invitation expiry | Existing fictional source history remains available. The ordinary source/period, entitlement, sharing and receipt rules decide whether an invitation exists. The seed does not invent a partner's current contribution or label an old month as the current month. |
 | Video upload progress and recovery | Requires a real supported short video, the ordinary `media.video_upload` grant and an available operator processor. The seed does not bypass those boundaries, pretend an upload succeeded or enable processing infrastructure. Existing curated photos are unchanged. |
 
+### Integration after #1643 and #1644
+
+The dependency integration baseline is main `107c9db7ac7d9e8bf38aea54311fc9a633b51e01`,
+which contains the regular merges of #1643 and #1644. Neither dependency changes
+the canonical seed or its domain service signatures.
+
+| Delivered area | Canonical content or deliberate acceptance boundary |
+| --- | --- |
+| Shared-experience question and full authored answer (#1643) | Existing guided-experience source Memories retain their authored title/question and body. Current source authorization, sharing, expiry and receipt rules decide whether Today presents an incoming experience; do not fabricate a current partner contribution. |
+| Secondary-page Back control and date presentation (#1643) | Existing Memory, Plan, Wish, Chapter and Place records populate the normal detail/editor routes. Browser/native acceptance owns guarded return, retained origin and date typography; no additional seed state is necessary. |
+| Complete native contextual push content (#1644) | The two-person lake comment exchange provides ordinary authored comment sources. A real visitor must register their own device and consent through the normal flow before new actions can generate eligible notifications. Historical seeded comments are not replayed to manufacture previews. Public redaction, encrypted-preview version negotiation, Quiet Hours and source authorization remain normal product behavior. |
+
+No new push endpoint, preview key, personal consent, notification receipt or generated
+AI proposal is seeded for these capabilities. The additive push-preview metadata
+migration runs through the normal migration chain before Demo initialization.
+The existing typed links, source content and curated photos already cover the
+remaining dependency presentation changes.
+
 Both public personas use the same authorized relations, diary and Place read services.
 The regression suite verifies private-label exclusion, typed planning links, source
 retention after unlink, non-destructive ensure, and canonical reset restoration.

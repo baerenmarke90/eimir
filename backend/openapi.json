@@ -2249,6 +2249,17 @@
           "kind": {
             "$ref": "#/components/schemas/ExperienceKind"
           },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt"
+          },
           "text": {
             "title": "Text",
             "type": "string"
@@ -2969,6 +2980,12 @@
             "title": "Androidpackage",
             "type": "string"
           },
+          "encryptedPreviewMaxVersion": {
+            "const": 2,
+            "default": 2,
+            "title": "Encryptedpreviewmaxversion",
+            "type": "integer"
+          },
           "encryptedPreviewVersion": {
             "const": 1,
             "default": 1,
@@ -3002,7 +3019,10 @@
             "type": "string"
           },
           "version": {
-            "const": 1,
+            "enum": [
+              1,
+              2
+            ],
             "title": "Version",
             "type": "integer"
           }

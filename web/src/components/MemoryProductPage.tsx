@@ -1,3 +1,5 @@
+import { MomentDate } from './MomentDate';
+import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { NativeDateInput } from './NativeDateField';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -84,7 +86,6 @@ import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
 import { StoryEditorPageShell } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
-import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 
 export type MemoryProductMode = 'detail' | 'edit';
@@ -576,13 +577,12 @@ export function MemoryProductPage({
         <div className="page page-reading">
           <PageHeader
             before={
-              <Link
-                className="back-link tertiary"
+              <TaskBackLink
                 to={memoryDetailPath(memory.id)}
                 state={{ taskOriginKey: originKey }}
               >
                 {t('taskBoundary.back')}
-              </Link>
+              </TaskBackLink>
             }
             title={
               memory.experienceKind
@@ -646,8 +646,7 @@ export function MemoryProductPage({
     return (
       <StoryEditorPageShell
         before={
-          <Link
-            className="back-link tertiary"
+          <TaskBackLink
             to={memoryDetailPath(memory.id)}
             onClick={(event) => {
               event.preventDefault();
@@ -656,7 +655,7 @@ export function MemoryProductPage({
             state={{ taskOriginKey: originKey }}
           >
             {t('taskBoundary.back')}
-          </Link>
+          </TaskBackLink>
         }
         title={
           memory.experienceKind
@@ -974,7 +973,6 @@ export function MemoryProductPage({
       </StoryEditorPageShell>
     );
   }
-
   const dateLabel = memory.happenedOn
     ? memory.happenedUntil &&
       memory.happenedUntil.getTime() !== memory.happenedOn.getTime()
@@ -995,20 +993,45 @@ export function MemoryProductPage({
     nicknameFor,
   );
 
+  const dateContext = (
+    <MomentDate
+      dateTime={
+        memory.happenedOn ? memoryDateInputValue(memory.happenedOn) : undefined
+      }
+    >
+      {dateLabel}
+    </MomentDate>
+  );
+  const placeContext = (
+    <MomentPlaces
+      key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${memory.id}`}
+      apiBaseUrl={apiBaseUrl}
+      accessToken={accessToken}
+      accountId={currentAccountId}
+      spaceId={spaceId}
+      targetId={memory.id}
+      canManage={false}
+      kind="memories"
+      offline={offline}
+      compact
+      inline
+    />
+  );
+
   return (
     <StoryDetailPageShell
-      title={hasAuthoredTitle ? memory.title : dateLabel}
-      description={
+      title={hasAuthoredTitle ? memory.title : dateContext}
+      titleContext={
+        !hasAuthoredTitle ? (
+          <div className="moment-metadata">{placeContext}</div>
+        ) : undefined
+      }
+      metadata={
         hasAuthoredTitle ? (
-          <time
-            dateTime={
-              memory.happenedOn
-                ? memoryDateInputValue(memory.happenedOn)
-                : undefined
-            }
-          >
-            {dateLabel}
-          </time>
+          <div className="moment-metadata">
+            {dateContext}
+            {placeContext}
+          </div>
         ) : undefined
       }
       titleAction={
@@ -1176,19 +1199,6 @@ export function MemoryProductPage({
             />
           </section>
         ) : null}
-
-        <MomentPlaces
-          key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${memory.id}`}
-          apiBaseUrl={apiBaseUrl}
-          accessToken={accessToken}
-          accountId={currentAccountId}
-          spaceId={spaceId}
-          targetId={memory.id}
-          canManage={false}
-          kind="memories"
-          offline={offline}
-          compact
-        />
       </div>
       {!memory.experienceKind ? (
         <MemoryPlanningLinks

@@ -416,7 +416,7 @@ test('Watch now advances automatically, pauses for a source, and finishes withou
   ).toBeVisible();
   await page.clock.fastForward(90001);
   await expect(page.locator('.recap-spread h1')).toHaveText(copy.finishTitle);
-  await page.locator('.recap-back').click();
+  await page.locator('.subpage-back-slot .task-back-control').click();
   await expect(page).toHaveURL(/\/today$/);
   expect(state.prepares()).toBe(0);
   expect(state.unexpected).toEqual([]);

@@ -1,3 +1,4 @@
+import { TaskBackButton } from './TaskBackButton';
 import { AutoLoadMore } from './AutoLoadMore';
 import {
   useInfiniteQuery,
@@ -593,7 +594,7 @@ function WishSelectionTask({
     <div className="page wish-selection-task">
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             className="back-link tertiary"
             disabled={busy}
@@ -609,7 +610,7 @@ function WishSelectionTask({
                 ? 'wishSelection.toSelection'
                 : 'taskBoundary.back',
             )}
-          </button>
+          </TaskBackButton>
         }
         eyebrow={view.title && activeMode !== 'setup' ? view.title : undefined}
         title={t(`wishSelection.${titleKey}`)}

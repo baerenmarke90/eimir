@@ -39,7 +39,11 @@ export interface AppRouteDefinition {
   icon: AppRouteIcon;
   /** False where the destination owns sub-routes and must stay active in them. */
   end: boolean;
+  /** Peer views share the primary surface without a secondary-page boundary. */
+  peerPaths?: readonly string[];
 }
+
+export const MEMORY_MAP_ROUTE = '/story/map';
 
 /** Stable top-level route registry. Primary shell destinations are derived below. */
 export const APP_ROUTES = [
@@ -53,6 +57,7 @@ export const APP_ROUTES = [
   {
     id: 'story',
     path: '/story',
+    peerPaths: [MEMORY_MAP_ROUTE],
     labelKey: 'navigation.story',
     icon: 'story',
     end: false,
@@ -87,6 +92,25 @@ export const PRIMARY_APP_ROUTES = APP_ROUTES.filter(
 
 export const DEFAULT_APP_ROUTE = APP_ROUTES[0].path;
 export const WISH_SELECTION_ROUTE = '/plan/choose';
+
+/** Safe direct-entry fallback; existing task origins take precedence. */
+export function subpageParentPath(pathname: string): string {
+  const path = pathname.replace(/\/$/, '');
+  if (/^\/plan\/chapters\/(?:new|[^/]+)$/.test(path)) return '/story/chapters';
+  if (/^\/plan\/places\/(?:new|[^/]+)$/.test(path)) return '/more/places';
+  if (/^\/plan\/collections\/(?:new|[^/]+)$/.test(path))
+    return '/more/collections';
+  if (
+    /^\/story\/(?:memories|heart-moments|milestones)\/(?:new|[^/]+)$/.test(path)
+  )
+    return '/story';
+  if (/^\/plan\/(?:plans|wishes|reminders)\/(?:new|[^/]+)$/.test(path))
+    return '/plan';
+  if (path === '/search' || path === '/games' || path === '/server-admin')
+    return '/more';
+  const parent = path.slice(0, path.lastIndexOf('/'));
+  return parent || '/more';
+}
 
 export function appRoutePath(id: AppRouteId): string {
   const route = APP_ROUTES.find((candidate) => candidate.id === id);
@@ -357,5 +381,3 @@ export const RECAP_DETAIL_ROUTE_PATTERN = `${MORE_PASSPORT_ROUTE}/:recapId`;
 export function recapDetailPath(recapId: string): string {
   return `${MORE_PASSPORT_ROUTE}/${encodeURIComponent(recapId)}`;
 }
-
-export const MEMORY_MAP_ROUTE = '/story/map';

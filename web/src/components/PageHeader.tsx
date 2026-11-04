@@ -5,6 +5,8 @@ export function PageHeader({
   title,
   titleAction,
   titleEditor,
+  titleContext,
+  metadata,
   description,
   action,
   before,
@@ -15,6 +17,8 @@ export function PageHeader({
   title: ReactNode;
   titleAction?: ReactNode;
   titleEditor?: ReactNode;
+  titleContext?: ReactNode;
+  metadata?: ReactNode;
   description?: ReactNode;
   action?: ReactNode;
   before?: ReactNode;
@@ -36,9 +40,11 @@ export function PageHeader({
           ) : (
             <div className="page-heading-title-container">
               <h1>{title}</h1>
+              {titleContext}
               {titleAction}
             </div>
           )}
+          {metadata}
           {description ? <p>{description}</p> : null}
         </div>
         {action ? <div className="page-heading-action">{action}</div> : null}

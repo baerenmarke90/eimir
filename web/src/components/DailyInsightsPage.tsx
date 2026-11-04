@@ -1,3 +1,4 @@
+import { TaskBackLink } from './TaskBackButton';
 import { useQuery } from '@tanstack/react-query';
 import { type ReactNode, useMemo, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
@@ -142,9 +143,9 @@ function GateCard({ children }: { children?: ReactNode }) {
         {t('dailyInsights.gate.keptNote')}
       </p>
       {children}
-      <Link className="insight-link" to={appRoutePath('today')}>
+      <TaskBackLink to={appRoutePath('today')}>
         {t('dailyInsights.gate.back')}
-      </Link>
+      </TaskBackLink>
     </section>
   );
 }

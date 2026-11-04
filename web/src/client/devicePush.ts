@@ -56,7 +56,7 @@ type SelectedConfiguration =
       providerKey: 'fcm';
       firebaseProjectId: string;
       androidPackage: string;
-      encryptedPreviewVersion?: 1;
+      encryptedPreviewVersion?: 1 | 2;
     };
 
 type RegistrationOptions = SelectedConfiguration & {
@@ -286,7 +286,12 @@ function selectConfiguration(
           firebaseProjectId: available.fcm.projectId,
           androidPackage: available.fcm.androidPackage,
           ...(available.fcm.encryptedPreviewVersion === 1
-            ? { encryptedPreviewVersion: 1 as const }
+            ? {
+                encryptedPreviewVersion:
+                  available.fcm.encryptedPreviewMaxVersion === 2
+                    ? (2 as const)
+                    : (1 as const),
+              }
             : {}),
         }
       : null;
@@ -525,10 +530,14 @@ export function useDevicePush({
                 : null;
             const preview =
               configuration.current?.providerKey === 'fcm' &&
-              configuration.current.encryptedPreviewVersion === 1 &&
+              configuration.current.encryptedPreviewVersion !== undefined &&
               fcmSubscription?.previewVersion === 1
                 ? {
-                    version: 1 as const,
+                    version:
+                      configuration.current.encryptedPreviewVersion === 2 &&
+                      fcmSubscription.previewMaxVersion === 2
+                        ? (2 as const)
+                        : (1 as const),
                     key: fcmSubscription.previewKey as string,
                   }
                 : undefined;

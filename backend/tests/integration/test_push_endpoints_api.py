@@ -64,6 +64,7 @@ def test_device_configuration_is_authenticated_private_and_truthful(
             "projectId": "eimir-test",
             "androidPackage": "de.eimir.app",
             "encryptedPreviewVersion": 1,
+            "encryptedPreviewMaxVersion": 2,
         },
     }
     assert "test-fixture" not in configured.text
@@ -399,8 +400,9 @@ def test_registration_caps_active_endpoints_per_account(client, session: Session
     assert len(session.execute(select(PushEndpoint)).scalars().all()) == push.MAX_ACTIVE_ENDPOINTS
 
 
+@pytest.mark.parametrize("version", [1, 2])
 def test_preview_registration_is_owned_private_optional_and_legacy_compatible(
-    client, session: Session, fcm_provider, encryption
+    client, session: Session, fcm_provider, encryption, version
 ):
     encryption.apply("required")
     push.providers.register("fcm", fcm_provider)
@@ -415,7 +417,7 @@ def test_preview_registration_is_owned_private_optional_and_legacy_compatible(
     body = {
         "providerKey": "fcm",
         "endpointValue": endpoint,
-        "encryptedPreview": {"version": 1, "key": key},
+        "encryptedPreview": {"version": version, "key": key},
     }
     response = client.post(BASE, headers=headers, json=body)
     assert response.status_code == 200
@@ -424,6 +426,8 @@ def test_preview_registration_is_owned_private_optional_and_legacy_compatible(
     preview = session.scalar(select(PushPreviewSecret))
     assert str(preview.push_endpoint_id) == endpoint_id and preview.payload.key == key
     assert preview.crypto_version == 2
+    assert preview.preview_version == version
+    assert preview.payload.model_dump() == {"key": key}
     original_family = preview.device_session_id
     sessions.revoke(session.get(DeviceSession, original_family))
     session.flush()
@@ -441,8 +445,13 @@ def test_preview_registration_is_owned_private_optional_and_legacy_compatible(
     assert legacy.status_code == 200 and legacy.json()["id"] == endpoint_id
     assert session.scalar(select(PushPreviewSecret)) is None
     assert client.post(BASE, headers=headers, json=body).status_code == 200
+    downgraded = client.post(
+        BASE, headers=headers, json={**body, "encryptedPreview": {"version": 1, "key": key}}
+    )
+    assert downgraded.json()["id"] == endpoint_id
+    assert session.scalar(select(PushPreviewSecret)).preview_version == 1
     invalid = client.post(
-        BASE, headers=headers, json={**body, "encryptedPreview": {"version": 2, "key": key}}
+        BASE, headers=headers, json={**body, "encryptedPreview": {"version": 3, "key": key}}
     )
     assert invalid.status_code == 422 and key not in invalid.text
     assert client.delete(f"{BASE}/{endpoint_id}", headers=headers).status_code == 204

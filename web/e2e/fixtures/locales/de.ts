@@ -3,6 +3,19 @@ const de = {
     longNotes: 'Eine ausführliche Beschreibung der Änderungen. ',
     notes: 'Verbesserungen für eure Testversion.',
   },
+  subpageNavigation: {
+    legacyMemoryTitle: 'Erinnerung vom 27.10.2026',
+    approvedDate: '27. Oktober 2026',
+    approvedPlace: 'Beispielort',
+    approvedAddress: 'Musterstraße 1, 12345 Beispielort',
+    title: 'Unser Ausflug',
+    body: 'Ein Nachmittag am Fluss.',
+    place: 'Saarbrücken',
+    address: 'Am Ufer 1, Saarbrücken',
+    heartText: 'Unser gemeinsamer Spaziergang.',
+    prompt: 'Was hat deinen Tag schön beginnen lassen?',
+    answer: 'Neben dir aufzuwachen ❤️',
+  },
   chapterExperience: {
     summerTitle: 'Unser Sommer in Belgien',
     description:

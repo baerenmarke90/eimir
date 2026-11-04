@@ -5,6 +5,8 @@ eimir. Android 0.2.0-test.44
 - Discover fills its layout without empty half rows and preserves the loaded content and return position. Product lists load further pages on scroll with bounded, account- and Space-scoped retention.
 - Video uploads transfer actual bytes, show progress and processing, and retain a safe retry after interruption or cancellation.
 - Notification consent, system time-zone updates, shared-experience invitations and monthly recap invitations follow the latest main fixes.
-- Includes the complete current main through the merged Chapter and November 4 device-review work, while retaining the removable test updater.
+- Secondary pages use one consistent upper-left Back control. Memory and Heart Moment dates and all linked Places share a wrapping row above the photos.
+- Incoming Happiness and Time Travel answers include their original prompt, author and date while keeping their existing shared thread and opening behavior.
+- Includes current main e7bc4769 (merged #1643, Chapters and November 4 device-review work), while retaining the removable test updater.
 
 Same package de.eimir.app, canonical signing certificate, Firebase client and persistent test origin as test.43; increasing versionCode 44. Publication requires the exact candidate's source, browser, security, migration and Android checks, followed by signing, predecessor and anonymous public-asset verification. Physical-device installation, session/data continuity and OS-link acceptance remain separate device checks; this test release does not establish store readiness.

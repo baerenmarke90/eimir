@@ -1,3 +1,4 @@
+import { MomentDate } from './MomentDate';
 import { memoryPreviewTitle } from '../client/memoryProduct';
 import { useCallback } from 'react';
 import type { ReferenceApis } from '../client/referenceFlow';
@@ -85,9 +86,11 @@ export function RelationMomentPreview({
             <>
               {' '}
               ·{' '}
-              <time dateTime={target.effectiveDate.toISOString().slice(0, 10)}>
+              <MomentDate
+                dateTime={target.effectiveDate.toISOString().slice(0, 10)}
+              >
                 {date}
-              </time>
+              </MomentDate>
             </>
           ) : null}
         </span>

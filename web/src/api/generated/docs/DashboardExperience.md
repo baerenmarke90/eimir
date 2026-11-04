@@ -11,6 +11,7 @@ Name | Type
 `happenedOn` | Date
 `id` | string
 `kind` | [ExperienceKind](ExperienceKind.md)
+`prompt` | string
 `text` | string
 
 ## Example
@@ -25,6 +26,7 @@ const example = {
   "happenedOn": null,
   "id": null,
   "kind": null,
+  "prompt": null,
   "text": null,
 } satisfies DashboardExperience
 

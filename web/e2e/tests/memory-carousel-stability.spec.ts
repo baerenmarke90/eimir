@@ -7,6 +7,7 @@ import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoReactions from '../../src/i18n/locales/photoReactions';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import fixtureCopy from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import {
   installMediaOwnershipMetrics,
@@ -564,7 +565,7 @@ async function installApprovedMemoryDetail(page: Page) {
   const mocks = await installApiMocks(page, [photo]);
   let current = {
     ...memory(MEMORY_ID, [attachment(photo, 0)]),
-    title: 'Erinnerung vom 27.10.2026',
+    title: fixtureCopy.subpageNavigation.legacyMemoryTitle,
     happenedOn: '2026-10-27',
     body: '',
     attachments: [
@@ -590,8 +591,8 @@ async function installApprovedMemoryDetail(page: Page) {
               spaceId: SPACE_ID,
               createdBy: ACCOUNT_ID,
               creator: { id: ACCOUNT_ID, displayName: 'Lea' },
-              name: 'Beispielort',
-              address: 'Musterstraße 1, 12345 Beispielort',
+              name: fixtureCopy.subpageNavigation.approvedPlace,
+              address: fixtureCopy.subpageNavigation.approvedAddress,
               latitude: 0,
               longitude: 0,
               description: null,
@@ -882,7 +883,7 @@ for (const state of [
   { width: 430, theme: 'dark' },
   { width: 1280, theme: 'light' },
 ] as const) {
-  test(`approved Memory composition keeps location 12px from media at ${state.width}px ${state.theme}`, async ({
+  test(`Memory context stays above media and preserves reactions at ${state.width}px ${state.theme}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width: state.width, height: 900 });
@@ -900,21 +901,34 @@ for (const state of [
     await signIn(page);
     await page.goto(`/story/memories/${MEMORY_ID}`);
     await expect(
-      page.getByRole('heading', { name: '27. Oktober 2026', level: 1 }),
+      page.getByRole('heading', {
+        name: fixtureCopy.subpageNavigation.approvedDate,
+        level: 1,
+      }),
     ).toBeVisible();
-    await expect(page.locator('.moment-place-context strong')).toHaveText(
-      'Beispielort',
-    );
+    const place = page.locator('header .moment-metadata').getByRole('button', {
+      name: fixtureCopy.subpageNavigation.approvedPlace,
+      exact: true,
+    });
+    await expect(place).toBeVisible();
     await expect(page.locator('.moment-places h2')).toHaveClass('sr-only');
-    await expect(page.locator('.memory-photo-reactions')).toHaveCount(0);
-    const gap = await page.evaluate(
-      () =>
-        document.querySelector('.moment-places')!.getBoundingClientRect().top -
-        document
-          .querySelector('.media-gallery-carousel-viewport')!
-          .getBoundingClientRect().bottom,
+    await expect(page.locator('header .moment-date svg')).toBeVisible();
+    await expect(page.locator('header time')).toHaveCount(1);
+    await expect(page.locator('header time')).toHaveAttribute(
+      'datetime',
+      '2026-10-27',
     );
-    expect(gap).toBeCloseTo(12, 0);
+    await expect(
+      page.locator('.memory-media-context .moment-places'),
+    ).toHaveCount(0);
+    await expect(page.locator('.memory-photo-reactions')).toHaveCount(0);
+    const placeBox = await place.boundingBox();
+    const mediaBox = await page
+      .locator('.media-gallery-carousel-viewport')
+      .boundingBox();
+    if (!placeBox || !mediaBox)
+      throw new Error('Place and media bounds must be measurable');
+    expect(placeBox.y + placeBox.height).toBeLessThanOrEqual(mediaBox.y);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,

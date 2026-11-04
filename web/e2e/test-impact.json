@@ -745,6 +745,19 @@
         "web/src/components/ContextTagEditor.tsx",
         "web/src/components/HeartMomentProductPage.tsx"
       ]
+    },
+    "subpage-navigation-context.spec.ts": {
+      "roots": [
+        "web/src/components/AppShell.tsx",
+        "web/src/components/SubpageNavigation.tsx",
+        "web/src/components/TaskBackButton.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MomentPlaces.tsx",
+        "web/src/components/SharedExperienceReveal.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SettingsPage.tsx"
+      ]
     }
   }
 }

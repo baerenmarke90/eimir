@@ -94,6 +94,7 @@ class DashboardExperience:
     id: UUID
     kind: str
     text: str
+    prompt: str
     author_id: UUID
     happened_on: date | None
     created_at: datetime
@@ -130,7 +131,12 @@ def read_incoming_experience(
     return DashboardExperience(
         id=memory.experience_root_id or memory.id,
         kind=memory.experience_kind or "",
-        text=memory.payload.body[:280],
+        text=(
+            memory.payload.body[:279].rstrip() + "…"
+            if len(memory.payload.body) > 280
+            else memory.payload.body
+        ),
+        prompt=memory.payload.title,
         author_id=memory.owner_id,
         happened_on=memory.happened_on,
         created_at=memory.created_at,

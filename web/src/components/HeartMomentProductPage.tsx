@@ -1,3 +1,5 @@
+import { MomentDate } from './MomentDate';
+import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import {
   useIsMutating,
   useMutation,
@@ -87,7 +89,6 @@ import {
   StoryEditorPageShell,
 } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
-import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import { VisibilityBadge, VisibilityGlyph } from './VisibilityBadge';
 
@@ -784,13 +785,12 @@ export function HeartMomentProductPage({
         <div className="page page-reading">
           <PageHeader
             before={
-              <Link
-                className="back-link tertiary"
+              <TaskBackLink
                 to={heartMomentDetailPath(heartMoment.id)}
                 state={{ taskOriginKey: originKey }}
               >
                 {t('taskBoundary.back')}
-              </Link>
+              </TaskBackLink>
             }
             title={t('heartMomentProduct.editHeading')}
             description={t('heartMomentProduct.editIntro')}
@@ -854,8 +854,7 @@ export function HeartMomentProductPage({
     return (
       <StoryEditorPageShell
         before={
-          <Link
-            className="back-link tertiary"
+          <TaskBackLink
             to={heartMomentDetailPath(heartMoment.id)}
             onClick={(event) => {
               event.preventDefault();
@@ -864,7 +863,7 @@ export function HeartMomentProductPage({
             state={{ taskOriginKey: originKey }}
           >
             {t('taskBoundary.back')}
-          </Link>
+          </TaskBackLink>
         }
         title={t('heartMomentProduct.editHeading')}
         description={t('heartMomentProduct.editIntro')}
@@ -1017,12 +1016,30 @@ export function HeartMomentProductPage({
   return (
     <StoryDetailPageShell
       title={t('heartMomentProduct.detailEyebrow')}
-      description={
-        heartMoment.happenedOn ? (
-          <time dateTime={heartMoment.happenedOn.toISOString().slice(0, 10)}>
-            {formatDateOnly(heartMoment.happenedOn)}
-          </time>
-        ) : undefined
+      metadata={
+        <div className="moment-metadata">
+          {heartMoment.happenedOn ? (
+            <MomentDate
+              dateTime={heartMoment.happenedOn.toISOString().slice(0, 10)}
+            >
+              {formatDateOnly(heartMoment.happenedOn)}
+            </MomentDate>
+          ) : null}
+          {shared && !changingVisibility ? (
+            <MomentPlaces
+              key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${heartMoment.id}`}
+              apiBaseUrl={apiBaseUrl}
+              accessToken={accessToken}
+              accountId={currentAccountId}
+              spaceId={spaceId}
+              targetId={heartMoment.id}
+              canManage={false}
+              kind="heart-moments"
+              offline={offline}
+              inline
+            />
+          ) : null}
+        </div>
       }
       pageClassName="product-detail-page heart-moment-product-page"
       titleAction={
@@ -1126,19 +1143,6 @@ export function HeartMomentProductPage({
         <ProblemState error={visibilityMutation.error} />
       ) : null}
 
-      {shared && !changingVisibility ? (
-        <MomentPlaces
-          key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${heartMoment.id}`}
-          apiBaseUrl={apiBaseUrl}
-          accessToken={accessToken}
-          accountId={currentAccountId}
-          spaceId={spaceId}
-          targetId={heartMoment.id}
-          canManage={false}
-          kind="heart-moments"
-          offline={offline}
-        />
-      ) : null}
       {changingVisibility ? (
         <p className="muted" role="status">
           {t('heartMomentProduct.visibilityChanging')}

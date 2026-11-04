@@ -452,6 +452,10 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,
       "reason": "Device-review typed links, aligned own-comment metadata, learned and explicit AI labels at Compact/Expanded."
+    },
+    "subpage-navigation-context.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "reason": "Complete secondary navigation and moment-context acceptance; automatically selected for affected shell, readers and Wir."
     }
   }
 }

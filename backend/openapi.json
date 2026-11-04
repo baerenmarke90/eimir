@@ -2249,6 +2249,17 @@
           "kind": {
             "$ref": "#/components/schemas/ExperienceKind"
           },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt"
+          },
           "text": {
             "title": "Text",
             "type": "string"

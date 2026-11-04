@@ -1,3 +1,4 @@
+import { MomentDate } from './MomentDate';
 import { useQuery } from '@tanstack/react-query';
 import {
   type MouseEvent,
@@ -375,11 +376,11 @@ export function StoryList({
                   ) : null}
 
                   <div className="story-card-footer" id={metaId}>
-                    <time
+                    <MomentDate
                       dateTime={item.effectiveDate.toISOString().slice(0, 10)}
                     >
                       {formatTimelineDate(item.effectiveDate, locale)}
-                    </time>
+                    </MomentDate>
                     <span className="story-card-footer-author">
                       {presentation.visibility ? (
                         <span

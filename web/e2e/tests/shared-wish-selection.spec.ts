@@ -336,7 +336,7 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   expect(
     fixture.requests.find((item) => item.kind === 'plan')?.body.schedule,
   ).toEqual({ plannedOn: '2026-11-01' });
-  await page.locator('.planning-page .back-link').click();
+  await page.locator('.subpage-back-slot .task-back-control').click();
   await expect(page).toHaveURL(/\/plan\/choose$/);
   await expect(
     page.getByRole('link', {

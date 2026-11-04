@@ -39,6 +39,7 @@ import {
 } from '../client/shellUtilities';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
+import { useDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
@@ -244,6 +245,7 @@ function AuthenticatedAppShell({
   );
   const taskOriginKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
+  const protectedDraft = useDocumentLeaveBlocked();
   const isFocusedTask =
     /^\/more\/passport\/[^/]+$/.test(location.pathname) ||
     location.pathname === MEMORY_CREATE_ROUTE ||
@@ -251,6 +253,7 @@ function AuthenticatedAppShell({
     location.pathname === '/plan/plans/new' ||
     location.pathname === '/plan/wishes/new' ||
     location.pathname === '/plan/chapters/new' ||
+    (protectedDraft && /^\/plan\/chapters\/[^/]+$/.test(location.pathname)) ||
     location.pathname === '/plan/choose';
   const bottomNavigationRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {

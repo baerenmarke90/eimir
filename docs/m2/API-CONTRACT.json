@@ -348,7 +348,8 @@
         "spaceId",
         "type",
         "year",
-        "order"
+        "order",
+        "includeChapters"
       ],
       "payload": [
         "v",

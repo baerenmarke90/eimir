@@ -566,14 +566,16 @@ function ScopedChapterProductPage({
         />
       ) : null}
 
-      <PlanningRelationManager
-        apis={apis}
-        spaceId={spaceId}
-        ownerName={chapter.title}
-        ownerKind="chapter"
-        ownerId={chapter.id}
-        canManage={chapter.capabilities.canEdit && !isEditing}
-      />
+      {!isEditing ? (
+        <PlanningRelationManager
+          apis={apis}
+          spaceId={spaceId}
+          ownerName={chapter.title}
+          ownerKind="chapter"
+          ownerId={chapter.id}
+          canManage={chapter.capabilities.canEdit}
+        />
+      ) : null}
     </div>
   );
 }

@@ -122,7 +122,7 @@ export function ChaptersOverviewPage({
         }
       />
 
-      <section className="planning-subsection">
+      <section className="chapter-overview-content">
         {chapters.isLoading ? (
           <UiState kind="loading" title={t('states.loading.title')} />
         ) : null}

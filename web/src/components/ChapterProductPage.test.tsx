@@ -147,6 +147,37 @@ describe('ChapterProductPage read presentation', () => {
 });
 
 describe('ChapterProductPage editor lifecycle', () => {
+  it('keeps linked-source navigation outside the protected editor and restores it on Cancel', async () => {
+    const apis = createApis();
+    apis.chapterRelations.listChapterContent = vi.fn().mockResolvedValue({
+      items: [{ targetType: 'MEMORY', targetId: 'linked-memory' }],
+    });
+    apis.memories.getMemory = vi.fn().mockResolvedValue({
+      id: 'linked-memory',
+      title: 'A shared memory',
+      happenedOn: new Date('2026-06-01T00:00:00Z'),
+      createdAt: new Date('2026-06-01T00:00:00Z'),
+      attachments: [],
+    });
+    const user = userEvent.setup();
+    renderChapter(apis);
+    expect(
+      await screen.findByRole('link', { name: /A shared memory/ }),
+    ).toBeTruthy();
+    await user.click(
+      screen.getByRole('button', { name: i18n.t('common.edit') }),
+    );
+    expect(screen.queryByRole('link', { name: /A shared memory/ })).toBeNull();
+    await user.click(
+      screen.getByRole('button', {
+        name: i18n.t('common.cancel'),
+      }),
+    );
+    expect(
+      await screen.findByRole('link', { name: /A shared memory/ }),
+    ).toBeTruthy();
+  });
+
   it('chooses Chapter places with the shared authorized picker', async () => {
     const user = userEvent.setup();
     renderChapter(createApis(), false, (queryClient) => {

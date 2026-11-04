@@ -65,6 +65,16 @@ async function installChapters(
     const root = `/api/v1/spaces/${SPACE_ID}`;
     const path = url.pathname;
     const method = request.method();
+    if (path === `${root}/memories/mem-canal` && method === 'GET') {
+      const source = getTimelineItems()[0].memory;
+      return json(route, {
+        ...source,
+        spaceId: SPACE_ID,
+        authorId: ACCOUNT_ID,
+        updatedAt: '2026-05-12T08:30:00Z',
+        version: 1,
+      });
+    }
     if (path === `${root}/chapters` && method === 'GET')
       return json(route, {
         items: [...state.chapters.values()],
@@ -212,6 +222,13 @@ const edit = (page: Page) =>
   page.getByRole('button', { name: de.common.edit, exact: true });
 const titleField = (page: Page) =>
   page.getByRole('textbox', { name: m5s3.common.title, exact: true });
+async function expectNoHorizontalOverflow(page: Page) {
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth + 1,
+    ),
+  ).toBe(true);
+}
 async function addMemory(page: Page) {
   await page.getByRole('button', { name: m5s3.relations.addLabel }).click();
   const picker = page.getByRole('dialog', { name: m5s3.relations.addLabel });
@@ -392,6 +409,16 @@ test('dirty Back, retained failed creation and If-Match conflict preserve author
   await page
     .getByLabel(m5s3.common.description, { exact: true })
     .fill(content.chapterExperience.correction);
+  await expect(page.locator('.product-shell')).toHaveAttribute(
+    'data-focused-task',
+    'true',
+  );
+  await expect(
+    page.locator('.chapter-page [data-owner-kind="chapter"]'),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('navigation', { name: de.navigation.primary }),
+  ).toHaveCount(0);
   await page
     .getByRole('button', { name: m5s3.common.saveChanges, exact: true })
     .click();
@@ -439,6 +466,7 @@ for (const viewport of [
       }),
     ).toBeVisible();
     const prefix = `story-chapter-${viewport.width}-${viewport.theme}${viewport.large ? '-large-reduced' : ''}`;
+    await expectNoHorizontalOverflow(page);
     await captureScreenshot(page, testInfo, `${prefix}-overview.png`, {
       fullPage: true,
     });
@@ -458,6 +486,8 @@ for (const viewport of [
     ).toHaveCount(0);
     const add = page.getByRole('button', { name: m5s3.relations.addLabel });
     const first = page.getByRole('link', { name: /Breakfast by the canal/ });
+    await expect(first.locator('.relation-moment-art')).toHaveCount(1);
+    if (!viewport.large) await expect(first.locator('img')).toBeVisible();
     expect((await add.boundingBox())?.y).toBeLessThan(
       (await first.boundingBox())?.y ?? 0,
     );
@@ -466,6 +496,7 @@ for (const viewport of [
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
       .analyze();
     expect(axe.violations).toEqual([]);
+    await expectNoHorizontalOverflow(page);
     await captureScreenshot(page, testInfo, `${prefix}-detail.png`, {
       fullPage: true,
     });
@@ -478,11 +509,7 @@ for (const viewport of [
     await captureScreenshot(page, testInfo, `${prefix}-diary.png`, {
       fullPage: true,
     });
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= innerWidth + 1,
-      ),
-    ).toBe(true);
+    await expectNoHorizontalOverflow(page);
     expect(unexpected).toEqual([]);
   });
 }

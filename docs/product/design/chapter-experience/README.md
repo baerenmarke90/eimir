@@ -87,7 +87,9 @@ absent context, retains an actionable authorized Place, and gives linked moments
 room to lead. Add is above those moments; the existing shared contextual action
 sheet now handles Place and Chapter unlinking with the source-retention consequence.
 The same protected task lifecycle and native context fields serve chapter capture
-and correction. The selected Place remains a singular explicit reference.
+and correction. A dirty or pending correction uses the focused shell and hides
+linked-source destinations until the editor closes, so root navigation cannot
+bypass draft protection. The selected Place remains a singular explicit reference.
 
 The diary opts into `includeChapters`; ordinary StoryKind/StoryItem, Discover,
 photo flows and relation choices retain exactly their existing content kinds.
@@ -110,11 +112,12 @@ a storage failure cannot present a confirmed create as a failed creation.
 Local checks on the implementation source (the resulting PR records its exact
 commit and subsequent CI evidence):
 
-- Web: 2,606 tests passed, two pre-existing tests skipped. Typecheck, lint,
+- Web: 2,607 tests passed, two pre-existing tests skipped. Typecheck, lint,
   formatting, token/PWA checks and production build passed.
-- Backend: focused Story/OpenAPI tests passed; PostgreSQL integration tests are
-  collected but skipped locally because no test database is available. Ruff and
-  mypy passed for the changed runtime modules.
+- Backend: all 1,284 unit tests passed, with 28 existing skips. PostgreSQL
+  integration tests are collected but skipped locally because no test database
+  is available. Ruff and mypy passed for all runtime modules. The explicit
+  query/cursor manifest includes the optional includeChapters projection.
 - Browser selection: 38 planning regressions passed; inventory remains valid.
   Nine new feature-scoped browser cases cover complete create/read/edit/link/
   unlink/return/delete, failed saves/conflicts, marker-only pagination and years,
@@ -123,6 +126,10 @@ commit and subsequent CI evidence):
 - The versioned OpenAPI contract and Web client were regenerated with the
   repository's generator version 7.24.0. The container-based CI drift check remains
   authoritative; this environment has no Docker executable.
+- The identity scanner retains the exact generated reference prompt. A narrow,
+  path-bound linguistic classification recognizes its adjacent-screen description;
+  branding and active-code occurrences remain rejected. All 20 identity scanner/
+  migration regressions pass and the complete scan has no MUST_RENAME findings.
 
 The pinned Chromium download produced an invalid archive in this environment.
 Actual current-source browser execution, screenshots and PostgreSQL acceptance
@@ -132,12 +139,22 @@ live results, source screenshots, remaining findings and exact tested revisions.
 
 ## Parallel integration boundary
 
-Refs were refreshed immediately before the implementation push: main remains
-`52d2eeda39f11d430d01676de93ebe11c92a6567`; #1634's published branch remains
-`ad0ba864984fecfcd0e8e853b26f9cc1be6be4fa` (preflight only). This does not establish
-compatibility with its unpublished implementation. Reconcile ChaptersOverviewPage,
-ChapterCreatePage, PlanningRelationManager, StoryProductPage, StoryYearsPage,
-AppShell, taskOrigin and productReadCache after #1634 publishes its shared native
-fields, progressive loading and cache work. Preserve that ownership; this PR adds
-no competing pagination, cache store or native-date primitive. No merge or release
-is authorized by #1635.
+The latest refresh keeps main at `52d2eeda39f11d430d01676de93ebe11c92a6567`.
+#1634's implementation is now published as draft PR #1637, head
+`9d4a00667df0ba10ac670469594ebd0e618ba0be`. A dry merge against this PR's first
+implementation identifies four textual conflicts: browser inventory/impact,
+ChapterCreatePage and ChaptersOverviewPage. It also exposes a semantic conflict
+that Git does not flag: both branches add ProductReadCacheStorage.removeKind with
+different argument orders and duplicate IndexedDB implementations.
+
+Before combining, retain one account/Space-scoped removeKind contract and migrate
+the shared-list revocation call to it; preserve both the list-generation lease
+and this PR's derived-Story revocation stamp. Keep the protected Chapter editor
+and NativeDateField (which already delegates to NativeDateInput), and apply #1637's
+useWarmInfiniteQuery/AutoLoadMore to the refreshed overview and annual diary.
+Preserve both inventory entries and re-run the browser planner, typecheck, cache
+ownership tests and affected Chapter/Story journeys on the actual combined tree.
+The other shared diffs auto-merge, but that is not product acceptance.
+
+This PR remains based on current main rather than including an unapproved draft
+workstream. No combined-tree compatibility, merge or release is claimed here.

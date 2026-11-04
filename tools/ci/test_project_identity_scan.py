@@ -106,6 +106,19 @@ class ProjectIdentityScanTest(unittest.TestCase):
         classification, _ = classify(Path("backend/src/example.py"), line, "side-by-side")
         self.assertEqual(classification, Classification.MUST_RENAME)
 
+    def test_chapter_prompt_exception_preserves_layout_provenance_only(self) -> None:
+        path = Path("docs/product/design/chapter-experience/reference-prompt.txt")
+        line = "FOUR complete smartphone screens side by side, each about 390 CSS px wide."
+        self.assertEqual(classify(path, line, "side by side")[0], Classification.FALSE_POSITIVE)
+        for candidate, text, match in (
+            (path, "Use side by side branding.", "side by side"),
+            (path, line + " Use SideBySide branding.", "SideBySide"),
+            (path, line + " Use side by side branding.", "side by side"),
+            (Path("backend/src/example.py"), line, "side by side"),
+        ):
+            with self.subTest(path=candidate, match=match):
+                self.assertEqual(classify(candidate, text, match)[0], Classification.MUST_RENAME)
+
     def test_required_patterns_are_case_insensitive_and_complete(self) -> None:
         samples = (
             "SideBySide-Next",

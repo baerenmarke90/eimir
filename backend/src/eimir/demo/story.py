@@ -276,4 +276,3 @@ CHAPTERS: tuple[ChapterStory, ...] = (
         memory_keys=("first-evening-together",),
     ),
 )
-

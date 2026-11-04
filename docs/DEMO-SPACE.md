@@ -385,11 +385,11 @@ It describes fictional content in ordinary product views, not a separate Demo UI
 
 | Delivered area | Canonical content or deliberate acceptance boundary |
 | --- | --- |
-| Memory links to Plans and Wishes | `Spontaner Tagesausflug` links to the completed `Gemeinsamer Tagesausflug` Plan and Wish; `Spaziergang am See` links to the future `Herbstwanderung` Plan and Wish; `Ravioli-Abend` links to the `Neues Rezept ausprobieren` idea. `Filmabend auf dem Sofa` remains unlinked. Links never copy or complete sources. |
-| Chapter reader and diary markers | The five original, overlapping dated Chapters retain their explicit Memory links. `Abende ohne Uhr` is undated; `Unser Anfang` has only an end date. All seven Chapters have authored words and linked content. Only the five authored starts contribute diary markers; neither an end-only nor an undated Chapter invents a diary position/year. |
-| Learned context tags | Existing shared Memory and HeartMoment labels populate ordinary suggestions immediately, including repeated `Am See` and `Zuhause`. Lea's private `Überraschung` label remains absent for Alex. No generated proposal rows are fabricated; optional local inference uses its ordinary configured worker. |
-| Own and partner comments | `Spaziergang am See` has a two-person exchange, so either persona can compare their own contextual actions with the partner's comment alignment. |
-| Alphabetical Places and lifecycle scopes | Four active Places (`Alte Mühle`, `Café am Markt`, `Stadtgarten`, `Waldsee`) and the archived `Kleines Programmkino` exercise distinct Active/Archived/All results. Names are fictional; new Places have no invented GPS. |
+| Memory links to Plans and Wishes | The spontaneous day-trip Memory links to its completed Plan and Wish; the lake-walk Memory links to the future autumn-hike Plan and Wish; the ravioli evening links to the new-recipe idea. The movie-night Memory remains unlinked. Links never copy or complete sources. |
+| Chapter reader and diary markers | The five original, overlapping dated Chapters retain their explicit Memory links. A new unhurried-evenings Chapter is undated; a new relationship-beginnings Chapter has only an end date. All seven Chapters have authored words and linked content. Only the five authored starts contribute diary markers; neither an end-only nor an undated Chapter invents a diary position/year. |
+| Learned context tags | Existing shared Memory and HeartMoment labels populate ordinary suggestions immediately, including repeated lake/home themes. Lea's private surprise label remains absent for Alex. No generated proposal rows are fabricated; optional local inference uses its ordinary configured worker. |
+| Own and partner comments | The lake-walk Memory has a two-person exchange, so either persona can compare their own contextual actions with the partner's comment alignment. |
+| Alphabetical Places and lifecycle scopes | Four active Places (the mill, cafe, park and lake) and an archived cinema exercise distinct Active/Archived/All results. Names are fictional; new Places have no invented GPS. |
 | Discover, photo layout and removed manual renewal | Existing mixed photo/text Memories, single/multi-image content and untagged examples remain. The ordinary daily authorized Discover selection and reading flow own composition and safe rotation. |
 | Automatic list loading and retained browsing | The same canonical records are used by existing paginated views. Integration acceptance reads real diary and Place projections across small pages, without multiplying filler content or creating a second pagination mechanism. Device/browser acceptance still owns scrolling, offline retention and return behavior. |
 | Native dates, Plan labels and HeartMoment field order | Existing scheduled Plans, complete/open Chapter periods, dated Memories and the shared/private HeartMoments populate the actual forms. Field interaction and keyboard/large-text behavior are client acceptance, not seeded state. |
@@ -495,4 +495,3 @@ the authoritative capability/entitlement model rather than a client-side or Demo
 
 The canonical demo complements automated tests. It does not replace negative API cases, concurrency
 tests, migration checks, authorization tests, or CI/security gates.
-

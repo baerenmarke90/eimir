@@ -546,4 +546,3 @@ def test_production_creation_is_rejected_before_any_write(session: Session) -> N
 
     after = session.execute(select(func.count()).select_from(Account)).scalar_one()
     assert after == before
-

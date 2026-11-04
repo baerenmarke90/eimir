@@ -409,4 +409,3 @@ def test_reset_restores_story_links_and_coordinate_fixture(session: Session) -> 
     assert _memory_by_title(
         session, reset.space_id, "Unser erster Abend am Wasser"
     ).happened_on == date(2023, 8, 24)
-

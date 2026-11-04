@@ -1347,4 +1347,3 @@ def reset_demo_space(
         reference_date=reference_date,
         created=True,
     )
-

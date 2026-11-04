@@ -189,4 +189,3 @@ def ensure_story_structure(session: Session, result: DemoSeedResult) -> None:
     _ensure_chapter_story_links(session, context, memory_by_key, chapters)
     _ensure_memory_place_links(session, context, memory_by_key, places)
     _ensure_memory_planning_links(session, context, memory_by_key)
-

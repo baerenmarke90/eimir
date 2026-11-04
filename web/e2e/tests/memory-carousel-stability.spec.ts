@@ -1,4 +1,3 @@
-import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
@@ -9,6 +8,7 @@ import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import fixtureCopy from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
 import {
   installMediaOwnershipMetrics,
   mediaOwnershipMetrics,
@@ -1626,6 +1626,30 @@ test('photo overlay controls remain separate, readable and operable in fullscree
   await expect(close).toHaveCSS('color', 'rgb(255, 255, 255)');
   await page.screenshot({
     path: info.outputPath('fullscreen-glass-controls.png'),
+  });
+  await privacy.click();
+  await expect(
+    dialog.getByRole('button', { name: sensitiveMedia.show, exact: true }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+  await dialog
+    .getByRole('button', { name: sensitiveMedia.show, exact: true })
+    .click();
+  const largePrivacy = await privacy.boundingBox();
+  const largeClose = await close.boundingBox();
+  const largeStage = await dialog
+    .locator('.media-lightbox-stage')
+    .boundingBox();
+  if (!largePrivacy || !largeClose || !largeStage)
+    throw new Error('Missing scaled fullscreen controls.');
+  expect(largePrivacy.x).toBeGreaterThanOrEqual(largeStage.x);
+  expect(largePrivacy.x + largePrivacy.width).toBeLessThan(largeClose.x);
+  expect(largePrivacy.y + largePrivacy.height).toBeLessThanOrEqual(
+    largeStage.y + largeStage.height,
+  );
+  await page.screenshot({
+    path: info.outputPath('fullscreen-sensitive-320-large.png'),
   });
   await privacy.click();
   await expect(

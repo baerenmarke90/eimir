@@ -40,6 +40,7 @@ text while allowing the named control to extend left from its upper-right edge.
 | [Dropped photo in Edit](memory-edit-drop-ready-390-light.png), [saved result](memory-drop-saved-390-light.png) | Browser DataTransfer → existing upload → save → read-only detail; association trigger absent from reading |
 | [Sensitive overview](plan-cover-overview-390-portrait-dark-false-true.png), [after explicit reveal](plan-cover-detail-390-portrait-dark-false-true.png) | Concealment and reveal retained, glyph absent |
 | [Named conceal control](overview-diary-390-dark-concealed.png), [revealed Today](overview-wir-390-dark-revealed.png), [keyboard / 200% text](overview-diary-320-dark-revealed.png), [Expanded](overview-diary-1280-dark-revealed.png) | No lock glyph; stable 44px-or-larger target, current focus, photo-center clearance, keyboard conceal and source return |
+| [Photo fullscreen at 320 / 200%](fullscreen-sensitive-320-large.png), [sensitive video fullscreen](sensitive-video-320-large.png) | Readable icon-free reveal/conceal, separate close target and retained deliberate playback; the video action has its own row below the counter/close controls |
 | [Cold Plan restore](planning-warm-snapshot-390.png) | Saved content shown immediately and labelled until current revalidation completes |
 
 ## Validation
@@ -58,7 +59,7 @@ one worker, unchanged product assertions and no automatic retry (1.3 minutes).
 Old fixtures now model the additive overviewScope contract and enter Edit for
 association mutations; no browser journey was removed.
 
-The complete validated inventory collects **1,045 tests in 91 specs**. This
+The complete validated inventory collects **1,046 tests in 91 specs**. This
 change conservatively selects all specs (70 PR shard files plus 21 additional
 files) because generated API/shared foundations and dependencies changed.
 The new nine-case viewport/feature evidence stays FULL_REGRESSION, with reviewed
@@ -93,3 +94,23 @@ geometry, source navigation and concealed-return assertions remain. Width is
 reserved for both labels; the former icon-only right-half constraint is now
 upper-right containment with photo-center clearance, allowing localized text
 to scale without being clipped. This adds no cases to the always-run core.
+
+Final fullscreen acceptance runs the nine retained video cases plus the existing
+photo-overlay case, including a new sensitive-video large-text regression: all
+**10 pass without retries** (41.8 seconds, one Chromium worker). Visual review
+found the former centered video action collapsing into a column of letters at
+320px/200% text. It now has bounded width below the header controls, without
+changing reveal/playback authorization. Both browser inventories own this
+production CSS dependency; no viewport matrix was added to the global core.
+
+On the prior source `6c78e7c`, APIs 28/36 and every native photo/video
+chooser case pass. API 37.1 instead exposes a notification-fixture wait:
+SystemUI expands the group but its accessibility idle wait consumes the
+entire five-second acceptance deadline before the child comment expands.
+The archived screenshot/hierarchy show the collapsed child; this is separate
+from the earlier picker timeout. The fixture now polls the actual hierarchy
+after expansion within the same deadline, retaining every authored-TextView,
+expanded-row, visibility, bounds, theme and font-scale assertion. Fresh
+all-device acceptance is required on the final source; no retry is claimed
+as validation of this correction. Diagnostics: run 41925927282, job 126910199238,
+artifact 13370651148.

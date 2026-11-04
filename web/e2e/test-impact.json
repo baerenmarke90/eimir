@@ -701,7 +701,11 @@
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/StoryProductPage.tsx",
-        "web/src/components/MemoryCreatePage.tsx"
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/MediaGallery.tsx",
+        "web/src/components/MediaGallery.css",
+        "web/src/components/SensitiveMedia.tsx",
+        "web/src/components/SensitiveMedia.css"
       ]
     },
     "wir-design-selection.spec.ts": {

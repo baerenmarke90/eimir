@@ -1,14 +1,15 @@
-import { fulfillDefaultProductContext } from '../support/productContext';
-import photoSources from '../../src/i18n/locales/photoSources';
-import { swipeCarousel } from '../support/mediaCarouselGesture';
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import photoSources from '../../src/i18n/locales/photoSources';
+import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import storyCopy from '../../src/i18n/locales/storyProducts';
-import videoCopy from '../../src/i18n/locales/video';
 import taskSheets from '../../src/i18n/locales/taskSheets';
+import videoCopy from '../../src/i18n/locales/video';
 import fixtureCopy from '../fixtures/locales/de';
+import { swipeCarousel } from '../support/mediaCarouselGesture';
+import { fulfillDefaultProductContext } from '../support/productContext';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -74,7 +75,12 @@ function memory(
 }
 async function setup(
   page: Page,
-  options: { allowed?: boolean; enabled?: boolean; retained?: boolean } = {},
+  options: {
+    allowed?: boolean;
+    enabled?: boolean;
+    retained?: boolean;
+    sensitive?: boolean;
+  } = {},
 ) {
   const unknown = await installMocks(page, { strict: true });
   const state = {
@@ -84,7 +90,12 @@ async function setup(
     originalVideoReads: 0,
     uploads: 0,
     saved: options.retained
-      ? memory([attachment(VIDEO, 'VIDEO')])
+      ? memory([
+          {
+            ...attachment(VIDEO, 'VIDEO'),
+            isSensitive: options.sensitive ?? false,
+          },
+        ])
       : (null as ReturnType<typeof memory> | null),
   };
   await page.route('**/api/v1/**', async (route) => {
@@ -218,6 +229,66 @@ async function setup(
   });
   return { state, unknown };
 }
+
+test('retained sensitive video controls stay readable and separate at 320px with large text', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  const { state, unknown } = await setup(page, {
+    retained: true,
+    sensitive: true,
+    allowed: false,
+    enabled: false,
+  });
+  await signIn(page);
+  await page.goto(`/story/memories/${MEMORY}`);
+  await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+  await expect(
+    page.getByRole('button', { name: sensitiveMedia.show, exact: true }),
+  ).toBeVisible();
+  expect(state.grants).toBe(0);
+  await page
+    .getByRole('button', { name: sensitiveMedia.show, exact: true })
+    .click();
+  await page.getByRole('button', { name: videoCopy.play, exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  const privacy = dialog.getByRole('button', {
+    name: videoCopy.hide,
+    exact: true,
+  });
+  const close = dialog.getByRole('button', {
+    name: storyCopy.gallery.close,
+    exact: true,
+  });
+  await expect(privacy).toBeVisible();
+  const box = await privacy.boundingBox(),
+    closeBox = await close.boundingBox(),
+    stage = await dialog.locator('.media-lightbox-stage').boundingBox();
+  if (!box || !closeBox || !stage)
+    throw new Error('Missing scaled video controls.');
+  expect(box.x).toBeGreaterThanOrEqual(stage.x);
+  expect(box.x + box.width).toBeLessThanOrEqual(stage.x + stage.width);
+  expect(
+    box.x + box.width <= closeBox.x || box.y >= closeBox.y + closeBox.height,
+  ).toBe(true);
+  expect(box.width).toBeGreaterThanOrEqual(44);
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  // The localized action must not collapse into a column of single letters.
+  expect(box.width).toBeGreaterThan(box.height);
+  await expect(privacy.locator('svg')).toHaveCount(0);
+  await page.screenshot({
+    path: info.outputPath('sensitive-video-320-large.png'),
+  });
+  await privacy.click();
+  await expect(dialog.locator('video')).toHaveCount(0);
+  await expect(
+    dialog.getByRole('button', { name: videoCopy.show, exact: true }),
+  ).toBeVisible();
+  await close.click();
+  await expect(dialog).toHaveCount(0);
+  expect(unknown).toEqual([]);
+});
 
 for (const [width, colorScheme] of [
   [320, 'light'],

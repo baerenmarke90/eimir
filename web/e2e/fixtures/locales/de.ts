@@ -1,4 +1,13 @@
 const de = {
+  subpageNavigation: {
+    title: 'Unser Ausflug',
+    body: 'Ein Nachmittag am Fluss.',
+    place: 'Saarbrücken',
+    address: 'Am Ufer 1, Saarbrücken',
+    heartText: 'Unser gemeinsamer Spaziergang.',
+    prompt: 'Was hat deinen Tag schön beginnen lassen?',
+    answer: 'Neben dir aufzuwachen ❤️',
+  },
   chapterExperience: {
     summerTitle: 'Unser Sommer in Belgien',
     description:

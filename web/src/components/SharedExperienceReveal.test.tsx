@@ -1,3 +1,4 @@
+import { i18n } from '../i18n';
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -45,7 +46,11 @@ it.each(['HAPPINESS', 'TIME_TRAVEL'] as const)(
       question.compareDocumentPosition(answer) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(screen.getByText('Von Ben')).toBeTruthy();
+    expect(
+      screen.getByText(
+        i18n.t('coupleExperiences.incoming.from', { name: 'Ben' }),
+      ),
+    ).toBeTruthy();
     expect(container.querySelector('time')?.getAttribute('datetime')).toBe(
       '2026-11-04',
     );

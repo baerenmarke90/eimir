@@ -1,3 +1,5 @@
+import fixtureCopy from '../fixtures/locales/de';
+import placeCopy from '../../src/i18n/locales/photoPlaces';
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
@@ -14,6 +16,7 @@ import {
   signIn,
 } from '../support/storyTimelineFixture';
 
+const fixture = fixtureCopy.subpageNavigation;
 const base = `/api/v1/spaces/${SPACE_ID}`;
 const photo = readFileSync(
   new URL(
@@ -53,8 +56,8 @@ for (const [width, theme, large] of [
         json: {
           id: 'mem-canal',
           spaceId: SPACE_ID,
-          title: 'Unser Ausflug',
-          body: 'Ein Nachmittag am Fluss.',
+          title: fixture.title,
+          body: fixture.body,
           happenedOn: '2026-05-12',
           author: ME,
           authorId: ACCOUNT_ID,
@@ -84,8 +87,8 @@ for (const [width, theme, large] of [
           items: [
             {
               id: 'saar',
-              name: 'Saarbrücken',
-              address: 'Am Ufer 1, Saarbrücken',
+              name: fixture.place,
+              address: fixture.address,
               latitude: 49.23,
               longitude: 6.99,
               geocodingSource: 'openstreetmap',
@@ -111,13 +114,13 @@ for (const [width, theme, large] of [
     expect(backBox?.width).toBeGreaterThanOrEqual(44);
     expect(backBox?.height).toBeGreaterThanOrEqual(44);
     const title = page.getByRole('heading', {
-      name: 'Unser Ausflug',
+      name: fixture.title,
       level: 1,
     });
     expect(backBox?.y).toBeLessThan((await title.boundingBox())?.y ?? 0);
     const metadata = page.locator('header .moment-metadata');
     await expect(
-      metadata.getByRole('button', { name: 'Saarbrücken' }),
+      metadata.getByRole('button', { name: fixture.place }),
     ).toBeVisible();
     await expect(metadata.locator('.moment-date svg')).toBeVisible();
     await expect(metadata.locator('time')).toHaveAttribute(
@@ -126,7 +129,7 @@ for (const [width, theme, large] of [
     );
     const dateBox = await metadata.locator('time').boundingBox();
     const placeBox = await metadata
-      .getByRole('button', { name: 'Saarbrücken' })
+      .getByRole('button', { name: fixture.place })
       .boundingBox();
     if (!large && width >= 390)
       expect(
@@ -152,20 +155,21 @@ for (const [width, theme, large] of [
       `story-context-${width}-${theme}${large ? '-large-reduced' : ''}.png`,
       { fullPage: true },
     );
-    await metadata.getByRole('button', { name: 'Saarbrücken' }).click();
+    await metadata.getByRole('button', { name: fixture.place }).click();
     await expect(
-      page.getByRole('dialog', { name: 'Saarbrücken' }),
+      page.getByRole('dialog', { name: fixture.place }),
     ).toBeVisible();
-    await expect(page.getByRole('link', { name: /Am Ufer 1/ })).toHaveAttribute(
-      'href',
-      /49.23/,
-    );
+    await expect(
+      page.getByRole('link', {
+        name: placeCopy.mapAddress.replace('{{address}}', fixture.address),
+      }),
+    ).toHaveAttribute('href', /49.23/);
     await expect(
       page.getByRole('link', { name: '© OpenStreetMap' }),
     ).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(
-      metadata.getByRole('button', { name: 'Saarbrücken' }),
+      metadata.getByRole('button', { name: fixture.place }),
     ).toBeFocused();
     await back.click();
     await expect(page).toHaveURL(/\/story$/);
@@ -190,8 +194,8 @@ for (const [width, theme] of [
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
       await installMocks(page);
-      const prompt = 'Was hat deinen Tag schön beginnen lassen?';
-      const text = 'Neben dir aufzuwachen ❤️';
+      const prompt = fixture.prompt;
+      const text = fixture.answer;
       const createdAt = new Date().toISOString();
       await page.route(`**${base}/dashboard/preferences`, (route) =>
         route.fulfill({ json: { items: [] } }),
@@ -325,8 +329,8 @@ for (const shared of [true, false]) {
             items: [
               {
                 id: 'saar',
-                name: 'Saarbrücken',
-                address: 'Am Ufer 1',
+                name: fixture.place,
+                address: fixture.address,
                 latitude: 49.23,
                 longitude: 6.99,
               },
@@ -342,7 +346,7 @@ for (const shared of [true, false]) {
         json: {
           id: 'hm-love',
           spaceId: SPACE_ID,
-          text: 'Unser gemeinsamer Spaziergang.',
+          text: fixture.heartText,
           emotion: 'LOVED',
           happenedOn: '2026-11-04',
           author: ME,
@@ -360,13 +364,13 @@ for (const shared of [true, false]) {
     await signIn(page);
     await page.goto('/story/heart-moments/hm-love');
     await expect(
-      page.getByText('Unser gemeinsamer Spaziergang.', { exact: true }),
+      page.getByText(fixture.heartText, { exact: true }),
     ).toBeVisible();
     const meta = page.locator('header .moment-metadata');
     await expect(meta.locator('.moment-date svg')).toBeVisible();
     if (shared) {
       await expect(
-        meta.getByRole('button', { name: 'Saarbrücken' }),
+        meta.getByRole('button', { name: fixture.place }),
       ).toBeVisible();
       expect(reads).toBe(1);
       await captureScreenshot(
@@ -378,7 +382,7 @@ for (const shared of [true, false]) {
     } else {
       expect(reads).toBe(0);
       await expect(
-        page.getByRole('button', { name: 'Saarbrücken' }),
+        page.getByRole('button', { name: fixture.place }),
       ).toHaveCount(0);
     }
     await expect(

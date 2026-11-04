@@ -1,3 +1,4 @@
+import taskCopy from '../i18n/locales/taskBoundary';
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -37,9 +38,9 @@ it('automatically supplies Back for an unregistered future secondary page and a 
       </Routes>
     </MemoryRouter>,
   );
-  const back = screen.getByRole('button', { name: 'Zurück' });
+  const back = screen.getByRole('button', { name: taskCopy.back });
   expect(back.querySelector('svg')).not.toBeNull();
-  expect(back.querySelector('.sr-only')?.textContent).toBe('Zurück');
+  expect(back.querySelector('.sr-only')?.textContent).toBe(taskCopy.back);
   fireEvent.click(back);
   expect(screen.getByRole('heading', { name: 'Parent' })).toBeTruthy();
 });

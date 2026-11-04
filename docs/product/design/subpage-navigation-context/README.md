@@ -175,3 +175,16 @@ new-spec cases invalidated when their inventory expanded during that local run.
 That diagnostic run is not counted as a complete pass. The stable final specs
 receive fresh complete lifecycle/browser coverage and the normal hosted sweep.
 No retry, timeout, assertion or branch protection was relaxed.
+
+
+### Hosted correction batch
+
+All **77 complete final-source browser journeys pass together** across focused
+tasks, Plan completion, shared Wish selection and the new context spec. The
+unchanged consent case passes twice after the diagnosed local network event.
+The first hosted CI gate rejected seven localized fixture/expectation literals in
+handwritten test files. Their values now live in the existing German fixture or
+localization resources; product behavior, screenshots, test assertions and the
+auditor remain unchanged. Fresh head checks validate this source correction;
+no unchanged workflow retry is used. Other useful first-head browser lanes are
+allowed to finish so independent findings can be consolidated.

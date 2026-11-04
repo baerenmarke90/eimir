@@ -1132,8 +1132,6 @@ def test_incoming_experience_preserves_original_prompt_with_partner_answer(
     assert incoming["id"] == str(root.id)
     assert incoming["kind"] == kind
     assert incoming["prompt"] == prompt
-    assert incoming["text"] == (
-        reply_text[:279].rstrip() + "…" if is_reply else "Original answer"
-    )
+    assert incoming["text"] == (reply_text[:279].rstrip() + "…" if is_reply else "Original answer")
     assert incoming["authorId"] == str(couple["ben"].id)
     assert incoming["happenedOn"] == "2026-08-30"

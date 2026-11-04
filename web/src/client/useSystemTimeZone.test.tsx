@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
-import type { ReactNode } from 'react';
-import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { AccountApi } from '../api/generated/apis/AccountApi';
 import { useSystemTimeZone } from './useSystemTimeZone';
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -28,6 +30,13 @@ it('coalesces resume reads, syncs the current system zone and aborts retired own
       return { timezone: zone, sharedDayPending: false };
     });
   const client = new QueryClient();
+  const contextKey = ['daily-check-in', 'today', 'first', 'space'];
+  let revision = 0;
+  await client.fetchQuery({
+    queryKey: contextKey,
+    queryFn: async () => ++revision,
+  });
+  const refetch = vi.spyOn(client, 'refetchQueries');
   const invalidate = vi.spyOn(client, 'invalidateQueries');
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -43,6 +52,9 @@ it('coalesces resume reads, syncs the current system zone and aborts retired own
     { wrapper, initialProps: { account: 'first' } },
   );
   await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+  // Returning to a previously opened module must already use the new day,
+  // even when its Query has no mounted observer during device synchronization.
+  await waitFor(() => expect(client.getQueryData(contextKey)).toBe(2));
   act(() => {
     window.dispatchEvent(new Event('focus'));
     window.dispatchEvent(new Event('online'));
@@ -56,11 +68,14 @@ it('coalesces resume reads, syncs the current system zone and aborts retired own
     'Europe/Berlin',
     'Pacific/Auckland',
   ]);
-  expect(invalidate).toHaveBeenCalledWith({
-    queryKey: ['daily-check-in', 'today', 'first', 'space'],
+  expect(refetch).toHaveBeenCalledWith({
+    queryKey: contextKey,
+    type: 'all',
   });
+  expect(invalidate).not.toHaveBeenCalled();
   view.rerender({ account: 'second' });
   expect(calls[0].signal?.aborted).toBe(true);
   view.unmount();
   expect(calls.at(-1)?.signal?.aborted).toBe(true);
+  client.clear();
 });

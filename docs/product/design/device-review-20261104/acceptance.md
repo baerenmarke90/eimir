@@ -215,3 +215,40 @@ The remaining historical R1 capture-evidence interaction now edits the native
 date field directly, rather than clicking the removed date-summary button. All
 19 complete R1 journeys pass, retaining title/text/photo composition, confirmed
 canonical save, large text, theme, width and reduced-motion coverage.
+
+### Complete hosted browser findings
+
+The complete `87fb727` browser sweep exposed two runtime causes and outdated
+acceptance fixtures. They are corrected together, after all four shards and the
+additional-spec lane finished; no manual workflow retry was used.
+
+Natural Discover measurement briefly removed measured rows and shortened document
+flow. At the end of a short Expanded collection, the browser clamped the reader
+by 46 px before the measured height returned. The unchanged return test failed
+four of four local diagnostic runs; main passed its two comparison runs. The
+measurement now temporarily reserves the containing band's own height, without
+stretching natural grid rows, and restores the prior inline style synchronously.
+It adds no scroll command, delay, timeout or frame retry. The unchanged test then
+passes four of four, followed by all 35 complete navigation/Discover browser cases.
+
+Device-context synchronization also invalidated durable overview snapshots on
+startup, even though it did not change authored content or authorization. It now
+refetches the three affected context queries, preserving warm-start snapshots and
+updating inactive module queries for return. All 11 complete product-consistency
+journeys and 15 cache/device-context unit checks pass; the existing denial and
+retired-owner protections remain.
+
+The remaining invitation fixtures now use their authored November 1 clock in both
+accounts, retain the original share/reconciliation/privacy/axe checks, and require
+the receiver's invitation to stay absent after opening and returning. Empty/text-
+only Wir has no perpetual recap link. A short Own Activity page must load its next
+page automatically; its already completed sentinel need not remain mounted. All
+50 complete journal, game/map and living-home journeys pass with these contracts.
+
+After both runtime fixes, all 46 complete navigation, Discover and product-
+consistency cases pass together. The full Web suite also passes again: 2,611 tests
+and two existing skips, followed by typecheck, lint, formatting and production
+build. The hosted PostgreSQL/encrypted, generated-client, video, security and
+Self-Hosted lanes passed on `87fb727`; the only subsequent runtime changes are the
+two Web lifecycle fixes described above. Final-head hosted results are recorded
+on the owning PR.

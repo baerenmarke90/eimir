@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { AccountApi } from '../api/generated/apis/AccountApi';
 import { Configuration } from './apiConfiguration';
-import { localDateInputValue } from './dateInput';
-import { dashboardQueryKey } from './dashboardQueries';
 import { dailyCheckInTodayQueryKey } from './dailyCheckIn';
+import { dashboardQueryKey } from './dashboardQueries';
+import { localDateInputValue } from './dateInput';
 import { spaceConfigurationQueryKey } from './spaceConfiguration';
 
 /** The OS owns clock/zone; calendar dates already authored are never converted. */
@@ -47,15 +47,20 @@ export function useSystemTimeZone(
         );
         if (controller.signal.aborted) return;
         confirmed = identity;
+        // Device context changes the current day, not authored content or read
+        // authorization. Refresh it without revoking durable warm-start data.
         await Promise.all([
-          queryClient.invalidateQueries({
+          queryClient.refetchQueries({
             queryKey: dashboardQueryKey(spaceId),
+            type: 'all',
           }),
-          queryClient.invalidateQueries({
+          queryClient.refetchQueries({
             queryKey: dailyCheckInTodayQueryKey(accountId, spaceId),
+            type: 'all',
           }),
-          queryClient.invalidateQueries({
+          queryClient.refetchQueries({
             queryKey: spaceConfigurationQueryKey(accountId, spaceId),
+            type: 'all',
           }),
         ]);
       } catch {

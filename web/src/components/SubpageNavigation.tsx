@@ -16,8 +16,12 @@ export function SubpageNavigation({ children }: { children: ReactNode }) {
     return () => setOwners((count) => count - 1);
   }, []);
   const placement = useMemo(() => ({ slot, register }), [slot, register]);
+  const pathname = location.pathname.replace(/\/$/, '');
   const isRoot = PRIMARY_APP_ROUTES.some(
-    (route) => route.path === location.pathname.replace(/\/$/, ''),
+    (route) =>
+      route.path === pathname ||
+      ('peerPaths' in route &&
+        route.peerPaths.some((path) => path === pathname)),
   );
   if (isRoot) return children;
   const originKey = (location.state as { taskOriginKey?: unknown } | null)

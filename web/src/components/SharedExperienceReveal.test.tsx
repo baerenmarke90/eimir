@@ -15,7 +15,10 @@ it.each(['HAPPINESS', 'TIME_TRAVEL'] as const)(
       id: `shared-${kind}`,
       kind,
       prompt: 'Which part of the morning stayed with you?',
-      text: 'Waking up beside you.',
+      text:
+        kind === 'TIME_TRAVEL'
+          ? 'Waking up beside you. '.repeat(10).trim()
+          : 'Waking up beside you.',
       authorId: 'partner',
       happenedOn: new Date('2026-11-04T00:00:00Z'),
       createdAt: new Date(Date.now() + 60_000),
@@ -64,22 +67,29 @@ it.each(['HAPPINESS', 'TIME_TRAVEL'] as const)(
   },
 );
 
-it('uses truthful type context for an older projection without a prompt', () => {
-  render(
-    <MemoryRouter>
-      <SharedExperienceReveal
-        partnerName="Ben"
-        entry={{
-          id: 'legacy',
-          kind: 'HAPPINESS',
-          text: 'An authored thought.',
-          authorId: 'partner',
-          happenedOn: null,
-          createdAt: new Date(Date.now() + 60_000),
-        }}
-      />
-    </MemoryRouter>,
-  );
-  expect(screen.getByText(copy.sharedHappiness)).toBeTruthy();
-  expect(screen.getByText('An authored thought.')).toBeTruthy();
-});
+it.each(['HAPPINESS', 'TIME_TRAVEL'] as const)(
+  'uses truthful %s context for an older projection without a prompt',
+  (kind) => {
+    render(
+      <MemoryRouter>
+        <SharedExperienceReveal
+          partnerName="Ben"
+          entry={{
+            id: `legacy-${kind}`,
+            kind,
+            text: 'An authored thought.',
+            authorId: 'partner',
+            happenedOn: null,
+            createdAt: new Date(Date.now() + 60_000),
+          }}
+        />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByText(
+        kind === 'HAPPINESS' ? copy.sharedHappiness : copy.sharedTimeTravel,
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText('An authored thought.')).toBeTruthy();
+  },
+);

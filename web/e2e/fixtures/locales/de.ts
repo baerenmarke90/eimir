@@ -1,5 +1,9 @@
 const de = {
   subpageNavigation: {
+    legacyMemoryTitle: 'Erinnerung vom 27.10.2026',
+    approvedDate: '27. Oktober 2026',
+    approvedPlace: 'Beispielort',
+    approvedAddress: 'Musterstraße 1, 12345 Beispielort',
     title: 'Unser Ausflug',
     body: 'Ein Nachmittag am Fluss.',
     place: 'Saarbrücken',

@@ -1,4 +1,3 @@
-import { TaskBackButton } from './TaskBackButton';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { loadGameParticipants } from '../client/gameParticipants';
@@ -13,6 +12,7 @@ import {
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 
 function questionKey(questionId: WhoOfUsQuestionId): string {
@@ -25,11 +25,9 @@ function initialOf(displayName: string): string {
 
 function ActiveWhoOfUsSessionView({
   participants,
-  onExit,
   session,
 }: {
   participants: readonly [WhoOfUsParticipant, WhoOfUsParticipant];
-  onExit: () => void;
   session: WhoOfUsSession;
 }) {
   const { t } = useTranslation();
@@ -67,9 +65,6 @@ function ActiveWhoOfUsSessionView({
           <button type="button" onClick={() => session.restart()}>
             {t('games.whoOfUs.restart')}
           </button>
-          <TaskBackButton type="button" onClick={onExit}>
-            {t('games.whoOfUs.backToGames')}
-          </TaskBackButton>
         </div>
       </section>
     );
@@ -228,10 +223,8 @@ function ActiveWhoOfUsSessionView({
 
 function WhoOfUsSessionView({
   participants,
-  onExit,
 }: {
   participants: readonly [WhoOfUsParticipant, WhoOfUsParticipant];
-  onExit: () => void;
 }) {
   const [questions] = useState(() => selectWhoOfUsQuestions());
   const [session, setSession] = useState<WhoOfUsSession | null>(null);
@@ -246,11 +239,7 @@ function WhoOfUsSessionView({
   if (!session) return null;
 
   return (
-    <ActiveWhoOfUsSessionView
-      participants={participants}
-      onExit={onExit}
-      session={session}
-    />
+    <ActiveWhoOfUsSessionView participants={participants} session={session} />
   );
 }
 
@@ -317,10 +306,7 @@ export function WhoOfUsGamePanel({
           body={t('games.whoOfUs.coupleRequiredBody')}
         />
       ) : (
-        <WhoOfUsSessionView
-          participants={participantsQuery.data}
-          onExit={onExit}
-        />
+        <WhoOfUsSessionView participants={participantsQuery.data} />
       )}
     </div>
   );

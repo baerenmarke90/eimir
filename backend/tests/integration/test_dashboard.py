@@ -1088,6 +1088,7 @@ def test_incoming_experience_preserves_original_prompt_with_partner_answer(
 ):  # type: ignore[no-untyped-def]
     _freeze(monkeypatch)
     prompt = "Which part of our morning stayed with you?"
+    reply_text = "Waking up beside you. " * 20
     own = Memory(
         **_resource(couple, couple["anna"].id),
         payload=MemoryPayload(title="Own prompt", body="Own answer", tags=[]),
@@ -1117,7 +1118,7 @@ def test_incoming_experience_preserves_original_prompt_with_partner_answer(
     if is_reply:
         reply = Memory(
             **_resource(couple, couple["ben"].id),
-            payload=MemoryPayload(title=prompt, body="Waking up beside you.", tags=[]),
+            payload=MemoryPayload(title=prompt, body=reply_text, tags=[]),
             experience_kind=kind,
             experience_root_id=root.id,
             happened_on=root.happened_on,
@@ -1131,6 +1132,8 @@ def test_incoming_experience_preserves_original_prompt_with_partner_answer(
     assert incoming["id"] == str(root.id)
     assert incoming["kind"] == kind
     assert incoming["prompt"] == prompt
-    assert incoming["text"] == ("Waking up beside you." if is_reply else "Original answer")
+    assert incoming["text"] == (
+        reply_text[:279].rstrip() + "…" if is_reply else "Original answer"
+    )
     assert incoming["authorId"] == str(couple["ben"].id)
     assert incoming["happenedOn"] == "2026-08-30"

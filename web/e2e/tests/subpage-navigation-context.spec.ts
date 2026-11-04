@@ -131,6 +131,8 @@ for (const [width, theme, large] of [
     const placeBox = await metadata
       .getByRole('button', { name: fixture.place })
       .boundingBox();
+    expect(placeBox?.width).toBeGreaterThanOrEqual(44);
+    expect(placeBox?.height).toBeGreaterThanOrEqual(44);
     if (!large && width >= 390)
       expect(
         Math.abs(

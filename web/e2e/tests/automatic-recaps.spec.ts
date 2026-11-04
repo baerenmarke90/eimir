@@ -416,7 +416,7 @@ test('Watch now advances automatically, pauses for a source, and finishes withou
   ).toBeVisible();
   await page.clock.fastForward(90001);
   await expect(page.locator('.recap-spread h1')).toHaveText(copy.finishTitle);
-  await page.locator('.recap-back').click();
+  await page.locator('.subpage-back-slot .task-back-control').click();
   await expect(page).toHaveURL(/\/today$/);
   expect(state.prepares()).toBe(0);
   expect(state.unexpected).toEqual([]);
@@ -792,6 +792,7 @@ test('opening a monthly invitation consumes that edition on return', async ({
     .click();
   await expect(page).toHaveURL(new RegExp(recapDetailPath('october')));
   await page.goBack();
+  await expect(page).toHaveURL(/\/today$/);
   await expect(page.locator('.today-content')).toBeVisible();
   await expect(page.locator('.monthly-recap-invitation')).toHaveCount(0);
 });

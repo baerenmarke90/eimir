@@ -1,26 +1,31 @@
-import taskCopy from '../i18n/locales/taskBoundary';
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { subpageParentPath } from '../client/routes';
+import taskCopy from '../i18n/locales/taskBoundary';
 import { SubpageNavigation } from './SubpageNavigation';
 import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 
 afterEach(cleanup);
 
-it.each(['/today', '/story', '/plan', '/more', '/story/'])(
-  'keeps the primary destination %s free of Back chrome',
-  (path) => {
-    const { container } = render(
-      <MemoryRouter initialEntries={[path]}>
-        <SubpageNavigation>
-          <h1>Home</h1>
-        </SubpageNavigation>
-      </MemoryRouter>,
-    );
-    expect(container.querySelector('.back-link')).toBeNull();
-  },
-);
+it.each([
+  '/today',
+  '/story',
+  '/plan',
+  '/more',
+  '/story/',
+  '/story/map',
+  '/story/map/',
+])('keeps the primary destination %s free of Back chrome', (path) => {
+  const { container } = render(
+    <MemoryRouter initialEntries={[path]}>
+      <SubpageNavigation>
+        <h1>Home</h1>
+      </SubpageNavigation>
+    </MemoryRouter>,
+  );
+  expect(container.querySelector('.back-link')).toBeNull();
+});
 
 it('automatically supplies Back for an unregistered future secondary page and a safe parent', () => {
   render(
@@ -39,6 +44,7 @@ it('automatically supplies Back for an unregistered future secondary page and a 
     </MemoryRouter>,
   );
   const back = screen.getByRole('button', { name: taskCopy.back });
+  expect(back.getAttribute('title')).toBe(taskCopy.back);
   expect(back.querySelector('svg')).not.toBeNull();
   expect(back.querySelector('.sr-only')?.textContent).toBe(taskCopy.back);
   fireEvent.click(back);
@@ -85,6 +91,7 @@ it('retains modified-click link semantics and replaces the default with the owni
   );
   expect(screen.queryByRole('button')).toBeNull();
   const link = screen.getByRole('link', { name: 'Return to moment' });
+  expect(link.getAttribute('title')).toBe('Return to moment');
   expect(link.getAttribute('href')).toBe('/story/memories/m');
   expect(link.closest('.subpage-back-slot')).not.toBeNull();
 });

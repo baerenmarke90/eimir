@@ -188,3 +188,59 @@ localization resources; product behavior, screenshots, test assertions and the
 auditor remain unchanged. Fresh head checks validate this source correction;
 no unchanged workflow retry is used. Other useful first-head browser lanes are
 allowed to finish so independent findings can be consolidated.
+
+### Cloud integration review
+
+The final Chapter dependency merged through #1636 as
+`0d0ab5f809b61059a862fa2bd97d414684d449e1`. This continuation integrates that
+actual main revision, including `3e2d02ad` and its recap history-entry ownership
+fix, rather than treating the earlier included Chapter revision as final.
+The merge is conflict-free and preserves the three acceptance contracts above.
+
+Review found two page-owned Back controls in the completed perspective game.
+The persistent header control now remains the sole safe exit; the duplicate
+completion action is removed. A complete one-round component journey reproduces
+two portaled controls before the correction and verifies one control, working
+return to the game catalogue and restored default navigation afterward.
+Shared icon-only Back buttons and links also retain a localized mouse tooltip.
+The existing complete recap reader journey targets that same shared Back slot;
+its return-destination assertions remain intact after retiring `.recap-back`.
+The inline Place control explicitly retains both 44px minimum dimensions,
+including very short names; the real-browser context journey verifies its target.
+
+The preceding complete hosted browser sweep ran all 1,034 cases: 1,022 passed
+and 12 failed in four coherent groups. Besides the recap selector, five legacy
+carousel cases still required the superseded below-photo Place composition,
+two Place cases expected an undisclosed address, and four map cases exposed a
+real 56px root-tab shift. The old run was allowed to finish before publishing
+this consolidated correction.
+
+The route registry now declares the map as a peer of the Moments root. The
+shared shell retains root geometry for that route, including trailing-slash
+entry, while future secondary pages still receive Back automatically. The
+existing map geometry tolerance stays at one pixel. The carousel matrix now
+asserts one calendar date and an independently operable Place above media, no
+duplicate lower Place row, and all existing media/reaction/large-text behavior.
+The Place journeys explicitly open the named disclosure before accessing the
+same exact map URL, retain mutation/privacy checks, and verify Escape and focus
+restoration. No obsolete layout assertion is silently counted as current
+acceptance and no unrelated behavioral assertion was dropped.
+
+The incoming-experience regressions now exercise a long authored answer and
+both legacy projection kinds without `prompt`. The PostgreSQL root/reply cases
+retain own/foreign-Space exclusion and verify that a long reply keeps its
+original prompt and an explicitly marked bounded preview. No production
+authorization, receipt, query, timeout, retry or assertion is weakened.
+
+All 13 committed application screenshots were reviewed against the source and
+the generated preflight. Integration changes preserve their composition.
+The complete integrated Web suite passes with **2,653 tests and two existing
+skips**; all **57 focused component checks**, **38 browser-planning checks**,
+TypeScript, production build, formatting, lint and token/PWA checks pass.
+Actual browser collection is **1,035 cases in 90 specs** after #1636's final
+case-boundary correction. The unchanged selection remains conservative.
+The cloud workspace could not install the pinned Chromium archive, so fresh
+browser execution is provided by the existing hosted workflows; no local
+browser execution is claimed for this continuation.
+Fresh hosted checks on the published final head remain the merge evidence;
+earlier successes are revision-bound diagnostics. No release is requested.

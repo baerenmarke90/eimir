@@ -153,6 +153,8 @@ App-icon selection uses this contract for its explicit Save and recovery state.
 Every authenticated secondary destination, including future routes, receives one
 upper-left, rounded, icon-only chevron from `SubpageNavigation` in the AppShell.
 Primary roots are derived from the shared route registry and do not receive Back.
+Registry-owned peer views, including the Memory map, keep the same root boundary
+and tab geometry; they are not separate secondary pages.
 Use `TaskBackButton` for a guarded task exit or `TaskBackLink` for an existing
 navigation link. The shell places these page-owned controls in the same slot and
 removes its default; page implementations must not add textual Back chrome.

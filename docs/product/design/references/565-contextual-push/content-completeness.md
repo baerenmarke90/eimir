@@ -54,6 +54,11 @@ duplicates the existing pipeline. The closed event catalog, bounded authorized
 projection and additive capability negotiation are application responsibilities.
 No new dependency, provider, license, credentials or operator configuration.
 
+Primary platform sources rechecked on 2026-11-04:
+[FCM encrypted data](https://firebase.google.com/docs/cloud-messaging/encryption),
+[expandable notification templates](https://developer.android.com/develop/ui/compose/notifications/expanded),
+and [notification privacy/public versions](https://developer.android.com/develop/ui/compose/notifications/create-notification).
+
 **No business/freemium impact:** Notification Policy/Digest/Quiet Hours remains
 Free/Core, equal in Cloud and Self-Hosted. Originating feature entitlements stay
 authoritative. No pricing, quota, Space ownership, retention, storage, downgrade

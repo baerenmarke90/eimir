@@ -38,6 +38,10 @@ class EventType(StrEnum):
     WISH_SELECTION_SHARED = "WISH_SELECTION_SHARED"
     WISH_SELECTION_READY = "WISH_SELECTION_READY"
     MEMORY_UPDATED = "MEMORY_UPDATED"
+    MEMORY_PLAN_LINKED = "MEMORY_PLAN_LINKED"
+    MEMORY_PLAN_UNLINKED = "MEMORY_PLAN_UNLINKED"
+    MEMORY_WISH_LINKED = "MEMORY_WISH_LINKED"
+    MEMORY_WISH_UNLINKED = "MEMORY_WISH_UNLINKED"
     MEMORY_DELETED = "MEMORY_DELETED"
     HEART_MOMENT_CREATED = "HEART_MOMENT_CREATED"
     HEART_MOMENT_UPDATED = "HEART_MOMENT_UPDATED"
@@ -126,7 +130,7 @@ class PublicEventPayload(BaseModel):
     visibility: ContentVisibility | None = None
     experience_kind: ExperienceKind | None = None
 
-    target_type: Literal["MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN"] | None = None
+    target_type: Literal["MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN", "WISH"] | None = None
     target_id: UUID | None = None
     recipient_id: UUID | None = None
     occurrence_id: UUID | None = None

@@ -32,6 +32,7 @@ from eimir.authorization import (
     AuthorizationContext,
     PrivacyClass,
     PrivateResourceMixin,
+    require_editable_locked,
     require_readable,
     require_readable_shared,
     require_writable_locked,
@@ -46,14 +47,18 @@ from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
 from eimir.outbox import service as outbox_service
 from eimir.places.models import Place
+from eimir.plans.models import Plan
 from eimir.relations.models import (
     ChapterHeartMoment,
     ChapterMemory,
     ChapterMilestone,
+    MemoryPlan,
+    MemoryWish,
     PlaceHeartMoment,
     PlaceMemory,
     PlaceMilestone,
 )
+from eimir.wishes.models import Wish
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from collections.abc import Sequence
@@ -94,13 +99,39 @@ class RelationKind:
     relation: type[Base]
     parent: type[PrivateResourceMixin]
     parent_column: str
-    subject_type: Literal["place_relation", "chapter_relation"]
+    subject_type: Literal["place_relation", "chapter_relation", "memory_relation"]
     target: type[PrivateResourceMixin]
     target_column: str
-    event_target_type: TargetType
+    event_target_type: Literal["MEMORY", "HEART_MOMENT", "MILESTONE", "PLAN", "WISH"]
     linked_event: EventType
     unlinked_event: EventType
     shared_target_only: bool = False
+
+
+MEMORY_PLANS = RelationKind(
+    slug="plans",
+    relation=MemoryPlan,
+    parent=Memory,
+    parent_column="memory_id",
+    subject_type="memory_relation",
+    target=Plan,
+    target_column="plan_id",
+    event_target_type="PLAN",
+    linked_event=EventType.MEMORY_PLAN_LINKED,
+    unlinked_event=EventType.MEMORY_PLAN_UNLINKED,
+)
+MEMORY_WISHES = RelationKind(
+    slug="wishes",
+    relation=MemoryWish,
+    parent=Memory,
+    parent_column="memory_id",
+    subject_type="memory_relation",
+    target=Wish,
+    target_column="wish_id",
+    event_target_type="WISH",
+    linked_event=EventType.MEMORY_WISH_LINKED,
+    unlinked_event=EventType.MEMORY_WISH_UNLINKED,
+)
 
 
 PLACE_MEMORIES = RelationKind(
@@ -270,7 +301,11 @@ def link(
     """Link parent and target idempotently using Parent -> Target lock order."""
     parent = cast(
         "RelationParent",
-        require_writable_locked(session, kind.parent, context, parent_id),
+        (
+            require_editable_locked
+            if kind in (MEMORY_PLANS, MEMORY_WISHES)
+            else require_writable_locked
+        )(session, kind.parent, context, parent_id),
     )
     target = _require_relatable_target(session, context, kind, target_id)
 
@@ -323,7 +358,11 @@ def unlink(
     """Remove only the link; both original resources remain unchanged."""
     parent = cast(
         "RelationParent",
-        require_writable_locked(session, kind.parent, context, parent_id),
+        (
+            require_editable_locked
+            if kind in (MEMORY_PLANS, MEMORY_WISHES)
+            else require_writable_locked
+        )(session, kind.parent, context, parent_id),
     )
     target = _require_relatable_target(session, context, kind, target_id)
     if kind in (PLACE_MEMORIES, PLACE_HEART_MOMENTS):

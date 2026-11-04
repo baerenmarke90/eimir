@@ -1,5 +1,6 @@
 export default {
   label: 'Tags für euren Moment',
+  proposed: 'KI-Vorschläge · Du entscheidest, was passt.',
   help: 'Beschreibt euren Moment mit euren eigenen Worten.',
   newLabel: 'Eigenen Tag hinzufügen',
   placeholder: 'Zum Beispiel: Unser Urlaub',

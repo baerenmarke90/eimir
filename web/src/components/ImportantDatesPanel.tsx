@@ -1,3 +1,4 @@
+import { NativeDateInput } from './NativeDateField';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type ChangeEvent,
@@ -285,11 +286,10 @@ function ImportantDateEditorSheet({
                     <label htmlFor="important-date-date">
                       {t('importantDates.dateLabel')}
                     </label>
-                    <input
+                    <NativeDateInput
                       ref={initialInputRef}
                       id="important-date-date"
                       name="date"
-                      type="date"
                       required
                       value={dateVal}
                       onChange={(event: ChangeEvent<HTMLInputElement>) =>

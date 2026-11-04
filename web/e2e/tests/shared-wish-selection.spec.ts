@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/wishSelection';
@@ -118,6 +119,7 @@ async function install(page: Page, initial = emptyRound()) {
     };
   }
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request(),
       method = request.method(),
       path = new URL(request.url()).pathname;

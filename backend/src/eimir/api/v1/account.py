@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Literal
+from uuid import UUID
 
 from fastapi import APIRouter, Response, status
 from pydantic import ConfigDict
+from sqlalchemy import select
 
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import CurrentAccount, CurrentSession, DbSession
@@ -16,8 +18,47 @@ from eimir.attachments import photo_locations
 from eimir.auth import recent_auth
 from eimir.identity.deletion_models import AccountDeletionStatus
 from eimir.identity.deletion_self_service import accept_self_deletion
+from eimir.identity.models import Account
+from eimir.identity.preferences import set_preferences, validate_timezone
+from eimir.relationship.configuration import sync_system_timezone
+from eimir.relationship.service import require_membership
 
 router = APIRouter(prefix="/account", tags=["account"])
+
+
+class DeviceContextUpdate(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+    timezone: str
+    space_id: UUID
+
+
+class DeviceContextView(ApiModel):
+    timezone: str
+    shared_day_pending: bool
+
+
+@router.put(
+    "/device-context",
+    response_model=DeviceContextView,
+    operation_id="updateOwnDeviceContext",
+    responses=problem_responses(401, 404, 422),
+)
+def update_own_device_context(
+    body: DeviceContextUpdate,
+    account: CurrentAccount,
+    session: DbSession,
+    response: Response,
+) -> DeviceContextView:
+    timezone = validate_timezone(body.timezone)
+    membership = require_membership(session, account, body.space_id)
+    pending = sync_system_timezone(session, body.space_id, membership, timezone)
+    locked = session.scalars(
+        select(Account).where(Account.id == account.id).with_for_update()
+    ).one()
+    if locked.timezone != timezone:
+        set_preferences(session, locked, timezone=timezone)
+    response.headers["Cache-Control"] = "private, no-store"
+    return DeviceContextView(timezone=locked.timezone, shared_day_pending=pending)
 
 
 class PhotoLocationPreference(ApiModel):

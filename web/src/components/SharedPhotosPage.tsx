@@ -1,4 +1,6 @@
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
+import { AutoLoadMore } from './AutoLoadMore';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { SharedPhoto } from '../api/generated/models/SharedPhoto';
@@ -53,7 +55,7 @@ export function SharedPhotosPage({
       window.removeEventListener('offline', update);
     };
   }, []);
-  const photosQuery = useInfiniteQuery({
+  const photosQuery = useWarmInfiniteQuery({
     queryKey,
     initialPageParam: null as string | null,
     queryFn: async ({ pageParam, signal }) => {
@@ -351,7 +353,7 @@ export function SharedPhotosPage({
                   className="secondary"
                   onClick={() =>
                     void (photosQuery.isFetchNextPageError
-                      ? photosQuery.fetchNextPage()
+                      ? photosQuery.fetchNextPage({ cancelRefetch: false })
                       : photosQuery.refetch())
                   }
                 >
@@ -362,18 +364,17 @@ export function SharedPhotosPage({
           ) : null}
           {photosQuery.hasNextPage && !photosQuery.isError ? (
             <div className="shared-photos-more">
-              <button
-                type="button"
+              <AutoLoadMore
+                query={photosQuery}
                 className="secondary"
-                disabled={photosQuery.isFetching || offline}
-                onClick={() => void photosQuery.fetchNextPage()}
+                blocked={photosQuery.isFetching || offline}
               >
                 {t(
                   photosQuery.isFetchingNextPage
                     ? 'sharedPhotos.loadingMore'
                     : 'sharedPhotos.more',
                 )}
-              </button>
+              </AutoLoadMore>
             </div>
           ) : null}
         </>

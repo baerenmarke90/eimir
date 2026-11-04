@@ -229,9 +229,6 @@ describe('Memory capture mutation ownership', () => {
     fixture.create.mockResolvedValue(confirmed);
     setup();
     enterTitle();
-    fireEvent.click(
-      screen.getByRole('button', { name: new RegExp(de.memory.dateLabel) }),
-    );
     const date = screen.getByLabelText(de.memory.dateLabel) as HTMLInputElement;
     fireEvent.change(date, { target: { value: '10000-01-01' } });
     submit();

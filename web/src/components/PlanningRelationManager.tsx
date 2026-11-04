@@ -1,3 +1,4 @@
+import { AutoLoadMore } from './AutoLoadMore';
 import { type MouseEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -905,16 +906,15 @@ function ScopedPlanningRelationManager({
           </p>
         ) : null}
         {activeQuery.hasNextPage ? (
-          <button
-            type="button"
+          <AutoLoadMore
+            query={activeQuery}
             className="tertiary relation-moment-more"
-            disabled={activeQuery.isFetchingNextPage}
-            onClick={() => void activeQuery.fetchNextPage()}
+            blocked={activeQuery.isFetchingNextPage}
           >
             {activeQuery.isFetchingNextPage
               ? t('m5s3.common.loadingMore')
               : t('m5s3.common.loadMore')}
-          </button>
+          </AutoLoadMore>
         ) : null}
       </ShortTaskSheet>
 

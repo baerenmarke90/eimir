@@ -1,3 +1,4 @@
+import { NativeDateInput } from './NativeDateField';
 import {
   type ChangeEvent,
   type FormEvent,
@@ -530,10 +531,9 @@ export function RelatedPersonEditorSheet({
                       <label htmlFor="related-person-birthday">
                         {t('people.birthdayDateLabel')}
                       </label>
-                      <input
+                      <NativeDateInput
                         id="related-person-birthday"
                         name="birthday"
-                        type="date"
                         value={knownBirthday}
                         onChange={(event) =>
                           setKnownBirthday(event.currentTarget.value)

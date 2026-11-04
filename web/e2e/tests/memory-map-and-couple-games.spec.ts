@@ -703,11 +703,17 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           return route.fallback();
         });
       }
+      // The authored contribution and viewer day belong to this fixed fixture.
+      // The invitation must be fresh here; expiry is covered separately.
+      await page.clock.install({ time: new Date('2026-11-01T10:00:00Z') });
       await installMocks(page);
       await installExperienceRoutes(page);
       await signIn(page);
       const partnerContext = await browser.newContext();
       const partnerPage = await partnerContext.newPage();
+      await partnerPage.clock.install({
+        time: new Date('2026-11-01T10:00:00Z'),
+      });
       await installMocks(partnerPage, { asPartner: true });
       await installExperienceRoutes(partnerPage, true);
       try {
@@ -895,8 +901,8 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         await partnerPage.goBack();
         await expect(partnerPage).toHaveURL(/\/today$/);
         await expect(
-          partnerPage.locator('.shared-experience-words'),
-        ).toHaveText(words);
+          partnerPage.locator('.shared-experience-reveal'),
+        ).toHaveCount(0);
       } finally {
         await partnerContext.close();
       }

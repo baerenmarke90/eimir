@@ -362,9 +362,10 @@ test.describe('R1 Memory Create evidence', () => {
       await page.screenshot({
         path: path.join(EVIDENCE_DIR, `r1-mixed-390-${colorScheme}.png`),
       });
-      await page
-        .getByRole('button', { name: new RegExp(de.memory.dateLabel) })
-        .click();
+      const date = page.getByLabel(de.memory.dateLabel, { exact: true });
+      await expect(date).toHaveAttribute('type', 'date');
+      await date.fill('2026-08-15');
+      await expect(date).toHaveValue('2026-08-15');
       await page.screenshot({
         path: path.join(
           EVIDENCE_DIR,

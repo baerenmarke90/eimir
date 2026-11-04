@@ -1,3 +1,4 @@
+import { fulfillDefaultProductContext } from '../support/productContext';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -47,6 +48,7 @@ async function installRelations(page: Page, owner: 'place' | 'chapter') {
     capabilities: CAPABILITIES,
   };
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultProductContext(route)) return;
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname;

@@ -20,6 +20,7 @@ import { useTranslation } from '../i18n';
 import { ProMark } from './ProMark';
 import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
+import { AutoLoadTrigger } from './AutoLoadMore';
 import './PhotoSourcePicker.css';
 
 interface SelectionTask {
@@ -328,7 +329,7 @@ export function PhotoSourcePicker({
   async function more() {
     const owner = lifetime.current;
     const current = task.current;
-    if (!current?.id || busy) return;
+    if (!current?.id || busy) return false;
     setBusy(true);
     setMessage('');
     try {
@@ -336,10 +337,14 @@ export function PhotoSourcePicker({
         { spaceId, selectionId: current.id, more: true },
         { signal: current.request.signal },
       );
-      if (task.current === current) setView(next);
+      if (task.current !== current || current.request.signal.aborted)
+        return false;
+      setView(next);
+      return !next.hasMore || next.items.length > (view?.items.length ?? 0);
     } catch {
       if (!current.request.signal.aborted)
         setMessage(t('photoSources.unavailable'));
+      return false;
     } finally {
       if (!owner.signal.aborted && (!task.current || task.current === current))
         setBusy(false);
@@ -449,14 +454,17 @@ export function PhotoSourcePicker({
               ))}
             </div>
             {view.hasMore ? (
-              <button
-                type="button"
+              <AutoLoadTrigger
                 className="secondary"
-                disabled={busy}
-                onClick={() => void more()}
+                cursor={view.items.at(-1)?.id ?? view.id}
+                scopeKey={view.id}
+                loading={busy}
+                blocked={busy || navigator.onLine === false}
+                failed={Boolean(message)}
+                onLoad={more}
               >
                 {t('photoSources.loadMore')}
-              </button>
+              </AutoLoadTrigger>
             ) : null}
           </>
         ) : (

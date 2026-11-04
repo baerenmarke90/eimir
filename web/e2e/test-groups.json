@@ -438,6 +438,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 4,
       "reason": "Shared response authorship, own-answer edit and return, comment chronology, mobile/Expanded Light/Dark and accessible reflow."
+    },
+    "device-review.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5,
+      "reason": "Device-review typed links, aligned own-comment metadata, learned and explicit AI labels at Compact/Expanded."
     }
   }
 }

@@ -632,7 +632,9 @@ async function assertCompetingWritesLocked(page: Page): Promise<void> {
       includeHidden: true,
     }),
   ).toBeDisabled();
-  await expect(page.getByLabel(m5s3.plan.plannedDate)).toHaveCount(0);
+  // The completion date and planned date deliberately share the concise label
+  // "Datum". Only the schedule editor must be absent during completion.
+  await expect(page.locator('#plan-schedule-date')).toHaveCount(0);
   const action = page.getByRole('button', { name: m5s3.common.saving });
   await expect(action).toHaveAttribute('aria-disabled', 'true');
   await expect(action).toBeFocused();

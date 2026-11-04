@@ -1,4 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
+import { revokeSharedListCache } from './productReadCache';
 
 const placeRootKey = (spaceId: string) => ['m5-s3', 'places', spaceId] as const;
 
@@ -102,7 +103,9 @@ export async function invalidateStoryProjections(
   queryClient: QueryClient,
   spaceId: string,
 ): Promise<void> {
+  revokeSharedListCache(spaceId);
   await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['context-tags', spaceId] }),
     queryClient.invalidateQueries({
       queryKey: authorSummaryQueryKeys.story(spaceId),
     }),

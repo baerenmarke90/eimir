@@ -368,8 +368,10 @@ export function StoryProductPage({
     },
     enabled: true,
     staleTime: 30_000,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval:
+      activeView === 'discover' && !renewing ? 15 * 60_000 : false,
     retry: false,
   });
   // Reuse Today's authorized #452 candidate and its canonical Query key.
@@ -398,7 +400,7 @@ export function StoryProductPage({
     onRefresh: async () => {
       const [result] = await Promise.all([
         storyQuery.refetch(),
-        discoverQuery.refetch(),
+        renewSelection(),
         ...(dashboardApi ? [retrospectiveQuery.refetch()] : []),
       ]);
       if (!result.isError)
@@ -622,10 +624,6 @@ export function StoryProductPage({
   // paired with a new Dashboard day or presented as today's retrospective.
   const discoverDay = discoverQuery.data?.value.selectionDate;
   const dashboardDay = retrospectiveQuery.data?.viewerLocalDate;
-  const newDayAvailable =
-    discoverDay != null &&
-    dashboardDay != null &&
-    dashboardDay.getTime() > discoverDay.getTime();
   const sameSelectionDay =
     discoverDay != null &&
     dashboardDay != null &&
@@ -929,6 +927,9 @@ export function StoryProductPage({
         (featuredItem || discoverItems.length > 0) ? (
           <section
             className="momente-discover-page"
+            aria-busy={
+              renewing || storyQuery.isFetching || discoverQuery.isFetching
+            }
             aria-labelledby="momente-tab-discover"
           >
             {/* 1. Featured Editorial Highlight */}
@@ -1164,21 +1165,6 @@ export function StoryProductPage({
                 ))}
               </div>
             </section>
-            <div className="discover-toolbar" aria-busy={renewing}>
-              <button
-                type="button"
-                className="secondary"
-                disabled={renewing || discoverQuery.isFetching}
-                onClick={() => void renewSelection()}
-              >
-                {t(renewing ? 'story.discoverRenewing' : 'story.discoverRenew')}
-              </button>
-            </div>
-            {newDayAvailable ? (
-              <p className="discover-feedback" role="status">
-                {t('story.discoverNewDay')}
-              </p>
-            ) : null}
             {renewed ? (
               <p className="sr-only" role="status">
                 {t('story.discoverRenewed')}

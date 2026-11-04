@@ -375,6 +375,40 @@ Memories or backfills new story relations. Updating the Demo images alone theref
 not immediately add these examples to an existing Space; the next scheduled or explicit
 canonical reset does.
 
+### November device-review and Chapter coverage (#1645)
+
+The operator's recorded pre-update source is `52d2eeda39f11d430d01676de93ebe11c92a6567`.
+The comparison through `0d0ab5f809b61059a862fa2bd97d414684d449e1` contains the delivered
+#1634/#1637 device-review work and #1635/#1636 Chapter experience. Use the following
+coverage map after building the updated images and intentionally resetting the Demo.
+It describes fictional content in ordinary product views, not a separate Demo UI.
+
+| Delivered area | Canonical content or deliberate acceptance boundary |
+| --- | --- |
+| Memory links to Plans and Wishes | `Spontaner Tagesausflug` links to the completed `Gemeinsamer Tagesausflug` Plan and Wish; `Spaziergang am See` links to the future `Herbstwanderung` Plan and Wish; `Ravioli-Abend` links to the `Neues Rezept ausprobieren` idea. `Filmabend auf dem Sofa` remains unlinked. Links never copy or complete sources. |
+| Chapter reader and diary markers | The five original, overlapping dated Chapters retain their explicit Memory links. `Abende ohne Uhr` is undated; `Unser Anfang` has only an end date. All seven Chapters have authored words and linked content. Only the five authored starts contribute diary markers; neither an end-only nor an undated Chapter invents a diary position/year. |
+| Learned context tags | Existing shared Memory and HeartMoment labels populate ordinary suggestions immediately, including repeated `Am See` and `Zuhause`. Lea's private `Überraschung` label remains absent for Alex. No generated proposal rows are fabricated; optional local inference uses its ordinary configured worker. |
+| Own and partner comments | `Spaziergang am See` has a two-person exchange, so either persona can compare their own contextual actions with the partner's comment alignment. |
+| Alphabetical Places and lifecycle scopes | Four active Places (`Alte Mühle`, `Café am Markt`, `Stadtgarten`, `Waldsee`) and the archived `Kleines Programmkino` exercise distinct Active/Archived/All results. Names are fictional; new Places have no invented GPS. |
+| Discover, photo layout and removed manual renewal | Existing mixed photo/text Memories, single/multi-image content and untagged examples remain. The ordinary daily authorized Discover selection and reading flow own composition and safe rotation. |
+| Automatic list loading and retained browsing | The same canonical records are used by existing paginated views. Integration acceptance reads real diary and Place projections across small pages, without multiplying filler content or creating a second pagination mechanism. Device/browser acceptance still owns scrolling, offline retention and return behavior. |
+| Native dates, Plan labels and HeartMoment field order | Existing scheduled Plans, complete/open Chapter periods, dated Memories and the shared/private HeartMoments populate the actual forms. Field interaction and keyboard/large-text behavior are client acceptance, not seeded state. |
+| Notification onboarding and Small Invitations | Explicit real visitor/device consent remains required. The seed never enables personal prompt consent or fabricates a registered push device. |
+| System time zone | The current device supplies its actual IANA zone through the normal foreground/resume path. Fictional calendar dates are not shifted to manufacture a demo. |
+| Shared-experience and monthly invitation expiry | Existing fictional source history remains available. The ordinary source/period, entitlement, sharing and receipt rules decide whether an invitation exists. The seed does not invent a partner's current contribution or label an old month as the current month. |
+| Video upload progress and recovery | Requires a real supported short video, the ordinary `media.video_upload` grant and an available operator processor. The seed does not bypass those boundaries, pretend an upload succeeded or enable processing infrastructure. Existing curated photos are unchanged. |
+
+Both public personas use the same authorized relations, diary and Place read services.
+The regression suite verifies private-label exclusion, typed planning links, source
+retention after unlink, non-destructive ensure, and canonical reset restoration.
+These new examples appear only on a new canonical creation or intentional reset;
+redeploying or running `ensure` must not restore a link that a visitor removed.
+
+For the existing public instance, run the reset in the **`eimir-demo`** Compose project
+after both application images have been updated, using its existing project directory,
+environment and volumes. The independent test instance is outside this lifecycle.
+No repository merge by itself updates a running Demo or proves physical-device acceptance.
+
 The canonical demo ships a hash-pinned set of curated real stock photos under
 `backend/demo_assets/`. They are imported locally through upload registration, normal MediaStore
 storage, finalize, validation/sanitization, thumbnailing, and normal binding. Runtime bootstrap and
@@ -404,7 +438,7 @@ The runtime image copies `demo_assets` explicitly and validates it during image 
 
 Reset first validates the local catalog, then detaches all demo bindings and purges every attachment provider object before replacing the verified demo Space. The same local asset ids are re-imported in the same deterministic order, so repeated resets do not accumulate duplicate or orphaned media.
 
-The five album-like demo themes declared by `eimir.demo.story.CHAPTERS` use the existing Chapter model. eimir. currently has no separate Album product model, and this demo change intentionally does not add a DB column, API, or Web feature solely to simulate one.
+The seven album-like demo themes declared by `eimir.demo.story.CHAPTERS` use the existing Chapter model. eimir. currently has no separate Album product model, and this demo change intentionally does not add a DB column, API, or Web feature solely to simulate one.
 
 ### Maintainer flow for a new image
 
@@ -461,3 +495,4 @@ the authoritative capability/entitlement model rather than a client-side or Demo
 
 The canonical demo complements automated tests. It does not replace negative API cases, concurrency
 tests, migration checks, authorization tests, or CI/security gates.
+

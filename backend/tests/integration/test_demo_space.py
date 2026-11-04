@@ -119,7 +119,7 @@ def test_create_is_idempotent_and_representative(session: Session) -> None:
     assert _count(session, Milestone, first.space_id) == 3
     assert _count(session, Wish, first.space_id) == 3
     assert _count(session, Plan, first.space_id) == 7
-    assert _count(session, Place, first.space_id) == 2
+    assert _count(session, Place, first.space_id) == 5
     assert _count(session, Collection, first.space_id) == 3
     assert _count(session, PrivateNote, first.space_id) == 4
     assert _count(session, GiftIdea, first.space_id) == 4
@@ -546,3 +546,4 @@ def test_production_creation_is_rejected_before_any_write(session: Session) -> N
 
     after = session.execute(select(func.count()).select_from(Account)).scalar_one()
     assert after == before
+

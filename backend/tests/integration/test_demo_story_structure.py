@@ -11,16 +11,23 @@ from sqlalchemy.orm import Session
 from eimir.attachments import binding as attachment_binding
 from eimir.authorization import AuthorizationContext
 from eimir.chapters.models import Chapter
+from eimir.comments import service as comment_service
+from eimir.comments.models import CommentTarget
 from eimir.config import Environment
+from eimir.context_tags import service as context_tag_service
 from eimir.demo import create_demo_space, reset_demo_space
+from eimir.demo.service import DemoSeedResult
 from eimir.demo.story import CHAPTERS, MEMORIES
 from eimir.heart_moments.models import HeartMoment
 from eimir.memories import service as memory_service
 from eimir.memories.models import Memory
 from eimir.places import service as place_service
 from eimir.places.models import Place
+from eimir.plans.models import Plan
 from eimir.relations import service as relation_service
 from eimir.relations.models import PlaceMemory
+from eimir.story import service as story_service
+from eimir.wishes.models import Wish
 from tests.conftest import requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -138,6 +145,165 @@ def test_completed_demo_links_every_chapter_to_its_declared_story(session: Sessi
     assert snapshot == expected
 
 
+def _assert_memory_planning_showcase(session: Session, result: DemoSeedResult) -> None:
+    for account_id in (result.lea_id, result.alex_id):
+        context = AuthorizationContext(account_id=account_id, space_id=result.space_id)
+        for kind, model, expected in (
+            (
+                relation_service.MEMORY_PLANS,
+                Plan,
+                {
+                    "Spontaner Tagesausflug": "Gemeinsamer Tagesausflug",
+                    "Spaziergang am See": "Herbstwanderung",
+                    "Ravioli-Abend": "Neues Rezept ausprobieren",
+                },
+            ),
+            (
+                relation_service.MEMORY_WISHES,
+                Wish,
+                {
+                    "Spontaner Tagesausflug": "Gemeinsamer Tagesausflug",
+                    "Spaziergang am See": "Herbstwanderung",
+                },
+            ),
+        ):
+            targets = {
+                target.id: target.payload.title
+                for target in session.scalars(
+                    select(model).where(model.space_id == result.space_id)
+                )
+            }
+            for memory_title, target_title in expected.items():
+                memory = _memory_by_title(session, result.space_id, memory_title)
+                linked = relation_service.list_targets(session, context, memory.id, kind)
+                assert [targets[target_id] for target_id in linked] == [target_title]
+            unlinked = _memory_by_title(session, result.space_id, "Filmabend auf dem Sofa")
+            assert relation_service.list_targets(session, context, unlinked.id, kind) == []
+
+
+def test_demo_planning_links_survive_reset_but_ensure_preserves_visitor_unlink(
+    session: Session,
+) -> None:
+    result = _seed(session)
+    _assert_memory_planning_showcase(session, result)
+    context = AuthorizationContext(account_id=result.alex_id, space_id=result.space_id)
+    memory = _memory_by_title(session, result.space_id, "Spontaner Tagesausflug")
+    [plan_id] = relation_service.list_targets(
+        session, context, memory.id, relation_service.MEMORY_PLANS
+    )
+    relation_service.unlink(session, context, memory.id, plan_id, relation_service.MEMORY_PLANS)
+
+    ensured = _seed(session)
+    assert ensured.created is False
+    assert ensured.space_id == result.space_id
+    assert (
+        relation_service.list_targets(session, context, memory.id, relation_service.MEMORY_PLANS)
+        == []
+    )
+    assert session.get(Plan, plan_id) is not None
+    assert session.get(Memory, memory.id) is not None
+
+    restored = reset_demo_space(
+        session, environment=Environment.TEST, reference_date=REFERENCE_DATE
+    )
+    assert restored.space_id != result.space_id
+    _assert_memory_planning_showcase(session, restored)
+
+
+def test_demo_diary_only_marks_authored_chapter_starts_for_both_personas(session: Session) -> None:
+    result = _seed(session)
+    chapters = list(session.scalars(select(Chapter).where(Chapter.space_id == result.space_id)))
+    assert len(chapters) == 7
+    by_title = {chapter.payload.title: chapter for chapter in chapters}
+    assert by_title["Abende ohne Uhr"].start_on is None
+    assert by_title["Abende ohne Uhr"].end_on is None
+    assert by_title["Unser Anfang"].start_on is None
+    assert by_title["Unser Anfang"].end_on == date(2024, 8, 24)
+    expected_markers = {
+        chapter.id: chapter.start_on for chapter in chapters if chapter.start_on is not None
+    }
+    assert len(expected_markers) == 5
+
+    for account_id in (result.lea_id, result.alex_id):
+        context = AuthorizationContext(account_id=account_id, space_id=result.space_id)
+        cursor = None
+        markers = {}
+        while True:
+            page = story_service.read_timeline(
+                session, context, limit=2, cursor=cursor, include_chapters=True
+            )
+            assert len(page.items) + len(page.chapter_markers) <= 2
+            for marker in page.chapter_markers:
+                assert marker.id not in markers
+                markers[marker.id] = marker.effective_date
+            if not page.has_more:
+                break
+            assert page.next_cursor is not None and page.next_cursor != cursor
+            cursor = page.next_cursor
+        assert markers == expected_markers
+        years = story_service.read_available_years(session, context, include_chapters=True)
+        assert {2023, 2025, 2026} <= set(years)
+        assert 2024 not in years  # An end-only Chapter never invents a diary position/year.
+
+
+def test_demo_places_exercise_alphabetical_pages_and_lifecycle_scopes(session: Session) -> None:
+    result = _seed(session)
+    active = ["Alte Mühle", "Café am Markt", "Stadtgarten", "Waldsee"]
+    archived = ["Kleines Programmkino"]
+    for account_id in (result.lea_id, result.alex_id):
+        context = AuthorizationContext(account_id=account_id, space_id=result.space_id)
+        for scope, expected in (
+            ("ACTIVE", active),
+            ("ARCHIVED", archived),
+            ("ALL", sorted([*active, *archived], key=str.casefold)),
+        ):
+            cursor = None
+            names = []
+            while True:
+                page = place_service.list_places(
+                    session, context, cursor=cursor, limit=2, scope=scope
+                )
+                names.extend(place.payload.name for place in page.items)
+                if not page.has_more:
+                    break
+                assert page.next_cursor is not None and page.next_cursor != cursor
+                cursor = page.next_cursor
+            assert names == expected
+
+
+def test_demo_tag_suggestions_reuse_shared_labels_without_partner_private_labels(
+    session: Session,
+) -> None:
+    result = _seed(session)
+    lea = AuthorizationContext(account_id=result.lea_id, space_id=result.space_id)
+    alex = AuthorizationContext(account_id=result.alex_id, space_id=result.space_id)
+    lea_learned, lea_proposed = context_tag_service.suggestions(session, lea)
+    alex_learned, alex_proposed = context_tag_service.suggestions(session, alex)
+    assert {"Am See", "Zuhause", "Frühstück", "Dankbarkeit"} <= (
+        set(lea_learned) & set(alex_learned)
+    )
+    assert "Überraschung" in lea_learned
+    assert "Überraschung" not in alex_learned
+    assert lea_proposed == alex_proposed == []
+
+
+def test_demo_same_memory_shows_both_personas_comments(session: Session) -> None:
+    result = _seed(session)
+    memory = _memory_by_title(session, result.space_id, "Spaziergang am See")
+    for account_id in (result.lea_id, result.alex_id):
+        page = comment_service.list_comments(
+            session,
+            AuthorizationContext(account_id=account_id, space_id=result.space_id),
+            target_type=CommentTarget.MEMORY,
+            target_id=memory.id,
+            cursor=None,
+            limit=20,
+        )
+        assert len(page.items) == 2
+        assert {comment.owner_id for comment in page.items} == {result.lea_id, result.alex_id}
+        assert all(comment.payload.body for comment in page.items)
+
+
 def test_existing_demo_ensure_does_not_require_unchanged_story_titles(session: Session) -> None:
     result = _seed(session)
     context = AuthorizationContext(account_id=result.lea_id, space_id=result.space_id)
@@ -243,3 +409,4 @@ def test_reset_restores_story_links_and_coordinate_fixture(session: Session) -> 
     assert _memory_by_title(
         session, reset.space_id, "Unser erster Abend am Wasser"
     ).happened_on == date(2023, 8, 24)
+

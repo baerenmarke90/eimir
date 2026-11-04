@@ -708,6 +708,13 @@ def _seed_story(
         session,
         alex_context,
         target_type=CommentTarget.MEMORY,
+        target_id=memories["lake-walk"].id,
+        body="Und diesmal die große Thermoskanne. Für eine zweite Runde bleiben wir bestimmt.",
+    )
+    comment_service.create_comment(
+        session,
+        alex_context,
+        target_type=CommentTarget.MEMORY,
         target_id=memories["ravioli-evening"].id,
         body="Die krummen waren trotzdem die besten.",
     )
@@ -751,6 +758,44 @@ def _seed_planning(
         address=None,
         latitude=None,
         longitude=None,
+    )
+
+    for name, description in (
+        ("Alte Mühle", "Unser Zwischenstopp nach der langen Runde durch den Wald."),
+        ("Stadtgarten", "Eine Bank im Grünen, wenn nach Feierabend noch Zeit für draußen bleibt."),
+    ):
+        place_service.create_place(
+            session,
+            lea_context,
+            name=name,
+            description=description,
+            address=None,
+            latitude=None,
+            longitude=None,
+        )
+    cinema = place_service.create_place(
+        session,
+        alex_context,
+        name="Kleines Programmkino",
+        description=(
+            "Hier haben wir früher die Spätvorstellung besucht. Inzwischen ist es geschlossen."
+        ),
+        address=None,
+        latitude=None,
+        longitude=None,
+    )
+    place_service.update_place(
+        session,
+        alex_context,
+        cinema.id,
+        expected_version=cinema.version,
+        changed_fields=frozenset({"archived"}),
+        name=None,
+        description=None,
+        address=None,
+        latitude=None,
+        longitude=None,
+        archived=True,
     )
 
     wish_service.create_wish(session, lea_context, title="Zusammen einen Töpferkurs machen")
@@ -863,7 +908,11 @@ def _seed_planning(
             lea_context if chapter.title in {"Unser Sommer", "Kochabende"} else alex_context,
             title=chapter.title,
             description=chapter.description,
-            start_on=reference_date - timedelta(days=chapter.start_days_ago),
+            start_on=(
+                reference_date - timedelta(days=chapter.start_days_ago)
+                if chapter.start_days_ago is not None
+                else None
+            ),
             end_on=(
                 reference_date - timedelta(days=chapter.end_days_ago)
                 if chapter.end_days_ago is not None
@@ -1298,3 +1347,4 @@ def reset_demo_space(
         reference_date=reference_date,
         created=True,
     )
+

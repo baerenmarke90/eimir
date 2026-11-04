@@ -3,7 +3,6 @@ import path from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/appUpdates';
-import profileIdentity from '../../src/i18n/locales/profileIdentity';
 
 async function open(page: Page, options = '') {
   await page.route(
@@ -84,9 +83,10 @@ test('keeps check, cancel, ready and installation as separate deliberate actions
   );
   await page.getByRole('button', { name: copy.installAgain }).click();
   await expect(page.getByText(copy.phases.installerOpened)).toBeVisible();
-  await page
-    .getByRole('link', { name: profileIdentity.settingsBackToIndex })
-    .click();
+  await expect(page).toHaveURL(/\/more\/settings\/updates$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/more\/settings$/);
+  await expect(page.locator('.settings-index-page')).toBeVisible();
   await expect(page.getByRole('link', { name: /App-Updates/ })).toBeVisible();
 });
 

@@ -39,3 +39,22 @@ publisher, immutable release, all four anonymous public assets and the embedded
 APK source before reporting publication complete. Installed-device upgrade,
 session/Space/data continuity, OS App Links and actual push delivery remain
 separately observed acceptance boundaries.
+
+## Browser integration correction
+
+The initial exact-source run found one obsolete updater assertion: the fixture
+still used an isolated MemoryRouter and expected the Settings return link that
+main intentionally removed in `962436cd6e8ad9f5df0f763f701bc45831f70dd3`.
+The failure trace and screenshot show the installer-opened state correctly;
+the other 215 additional browser cases passed. Use BrowserRouter and the real
+same-document history, then assert browser Back restores the exact Settings
+route, index and updater entry. Retain the complete check/download/cancel/
+permission/explicit-install journey. No runtime UI, assertion deadline or
+release gate is changed. The corrected candidate requires fresh source checks.
+
+The old assertion reproduced locally. After the correction, all six updater
+browser cases pass with zero retries, including 320/360/430 px, Expanded,
+Light/Dark, enlarged text, accessibility and the complete installation/return
+journey. Browser-fixture typecheck and formatting pass. All four independent
+PR-critical groups on the initial candidate also passed; their results diagnose
+the scope and are not substituted for the corrected candidate's fresh checks.

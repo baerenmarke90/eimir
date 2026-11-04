@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import type {
   AppUpdatesAdapter,
   AppUpdateState,
@@ -115,9 +115,11 @@ const props = {
 };
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing updater fixture root');
+// Use the same browser history as the app so system Back returns to Settings.
+window.history.replaceState(null, '', '/more/settings');
 createRoot(root).render(
   <StrictMode>
-    <MemoryRouter initialEntries={['/more/settings']}>
+    <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <AppShell {...props} onLogout={() => undefined}>
           <Routes>
@@ -132,6 +134,6 @@ createRoot(root).render(
           </Routes>
         </AppShell>
       </QueryClientProvider>
-    </MemoryRouter>
+    </BrowserRouter>
   </StrictMode>,
 );

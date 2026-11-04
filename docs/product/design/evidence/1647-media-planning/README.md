@@ -81,7 +81,8 @@ threshold. They verify the real codec worker returns a smaller MP4 with one
 video track, one AAC audio track and the original duration. Padding deliberately
 exercises the pipeline; these numbers are **not a realistic compression benchmark**.
 The compiled worker executes under the exact production CSP with zero policy
-violations, without blob/remote workers, inline scripts or eval. Unit tests cover
+violations, without blob/remote workers, inline scripts or eval. Library logging is explicitly silent inside the private conversion worker.
+Unit tests cover
 original fallback, abort of active/queued work, output bounds and timeout.
 
 Five retained independent-reveal browser cases also pass across 360/390/430,

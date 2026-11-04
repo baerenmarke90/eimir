@@ -4,6 +4,8 @@ import {
   canEncodeVideo,
   Conversion,
   Input,
+  Logging,
+  LogLevel,
   MP4,
   Mp4OutputFormat,
   Output,
@@ -16,6 +18,8 @@ export async function compressVideo(
   file: File,
   onProgress: (progress: number) => void,
 ): Promise<ArrayBuffer | null> {
+  // The dedicated worker must never print private container or codec details.
+  Logging.level = LogLevel.Silent;
   const input = new Input({
     formats: [MP4, QTFF],
     source: new BlobSource(file),

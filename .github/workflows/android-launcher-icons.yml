@@ -42,7 +42,7 @@ jobs:
           - api: 36
             image: android-36
             tag: google_apis
-            memory: 2048
+            memory: 4096
           - api: '37.1'
             image: android-37.1
             tag: google_apis_ps16k
@@ -82,6 +82,28 @@ jobs:
             --path "$ANDROID_AVD_HOME/eimir-launcher.avd" \
             --package 'system-images;${{ matrix.image }};${{ matrix.tag }};x86_64'
           test -s "$ANDROID_AVD_HOME/eimir-launcher.ini"
+          if [ '${{ matrix.api }}' = '36' ]; then
+            # Headless software rendering saturated the two-core 1080p guest
+            # during cold boot: the Pixel Launcher ANR then covered the photo
+            # input. Keep the same ~392 dp phone viewport with fewer pixels and
+            # allow the guest to use the runner's four cores. No app/system
+            # packages, ANR checks, picker assertions or deadlines are disabled.
+            # https://developer.android.com/studio/run/managing-avds
+            python3 - <<'PYCONFIG'
+          import os
+          from pathlib import Path
+          config = Path(os.environ['ANDROID_AVD_HOME']) / 'eimir-launcher.avd/config.ini'
+          overrides = {
+              'hw.cpu.ncore': '4',
+              'hw.lcd.width': '720',
+              'hw.lcd.height': '1560',
+              'hw.lcd.density': '294',
+          }
+          lines = [line for line in config.read_text().splitlines()
+                   if line.partition('=')[0].strip() not in overrides]
+          config.write_text('\n'.join(lines + [f'{key}={value}' for key, value in overrides.items()]) + '\n')
+          PYCONFIG
+          fi
           sudo setfacl -m "u:$USER:rw" /dev/kvm
           emulator_binary="$ANDROID_HOME/emulator/emulator"
           if [ '${{ matrix.api }}' = '36' ]; then
@@ -185,6 +207,9 @@ jobs:
             ! grep -F 'owner_package_name=de.eimir.app' external-video-owner.log
           fi
           adb -e shell cat /proc/meminfo > guest-memory-before-tests.log
+          adb -e shell cat /sys/devices/system/cpu/online > guest-cpu-before-tests.log
+          adb -e shell wm size > guest-display-before-tests.log
+          adb -e shell wm density >> guest-display-before-tests.log
           adb -e shell getprop | tr -d '\r' > guest-properties-before-tests.log
           if [ '${{ matrix.api }}' = '36' ]; then
             ! grep -Eq '^\[(ro\.boot\.)?qemu\.hwcodec\.(avcdec|hevcdec|vpxdec)\]: \[2\]$' \
@@ -308,6 +333,8 @@ jobs:
             android/emulator-crash/
             android/host-memory.log
             android/guest-memory-before-tests.log
+            android/guest-cpu-before-tests.log
+            android/guest-display-before-tests.log
             android/guest-properties-before-tests.log
             android/instrumentation.log
             android/photo-file-chooser.log

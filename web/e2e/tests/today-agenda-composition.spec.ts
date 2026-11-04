@@ -601,6 +601,7 @@ test('touch dragging starts on the handle and keeps normal row scrolling availab
   browser,
 }) => {
   const context = await browser.newContext({
+    serviceWorkers: 'block',
     hasTouch: true,
     isMobile: true,
     viewport: { width: 390, height: 844 },

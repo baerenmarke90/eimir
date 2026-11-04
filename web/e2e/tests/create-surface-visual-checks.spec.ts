@@ -398,6 +398,7 @@ for (const width of [390, 320] as const) {
     browser,
   }, testInfo) => {
     const context = await browser.newContext({
+      serviceWorkers: 'block',
       hasTouch: true,
       isMobile: true,
       viewport: { width, height: 844 },
@@ -593,6 +594,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     browser,
   }, testInfo) => {
     const context = await browser.newContext({
+      serviceWorkers: 'block',
       hasTouch: true,
       isMobile: true,
       viewport: { width: 390, height: 844 },
@@ -636,6 +638,7 @@ test('Memory Create native date supports 320px large text, reduced motion and fo
   browser,
 }, testInfo) => {
   const context = await browser.newContext({
+    serviceWorkers: 'block',
     hasTouch: true,
     isMobile: true,
     viewport: { width: 320, height: 568 },

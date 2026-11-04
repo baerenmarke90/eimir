@@ -407,6 +407,7 @@ for (const [width, theme, reduced] of [
     baseURL,
   }, info) => {
     const context = await browser.newContext({
+      serviceWorkers: 'block',
       baseURL,
       viewport: { width, height: 900 },
       isMobile: width < 840,

@@ -184,3 +184,29 @@ encrypted-mode CI lane for this PR.
 The pinned [Capacitor 8.5.2 native bridge](https://github.com/ionic-team/capacitor/blob/8.5.2/core/native-bridge.ts)
 was checked directly: it retains the browser XHR constructor and methods before
 patching, matching the binary upload adapter rather than assuming an SDK shape.
+
+### Final device-review consolidation
+
+The final layout check measures occupied column bounds, including paired inline
+milestones, and verifies regular native-date label weight. All 55 complete browser
+cases in the recap, capture, device-review and Discover specs pass. Two added recap
+journeys verify consumed invitations stay absent after return and expired October
+invitations stay absent on November 4. Refreshed Compact evidence is linked above.
+
+The four additional complete browser specs exercise 75 journeys: 74 passed in one
+sweep, and the updated large-text Settings choice passed separately. Its transient
+replacement-select diagnostic was corrected to exercise the actual remaining
+module visibility choices, retaining the 44 px, viewport, keyboard, focus and
+saved-write assertions. The obsolete manual-zone control is explicitly absent.
+Plan completion checks the schedule editor by its actual field identity, retaining
+the readonly completion date and single pending write. Monthly composition uses
+one recent contribution, while the empty Space has no perpetual recap link.
+
+On consolidated head `9d4a006`, all four normal and all four encrypted PostgreSQL
+shards, complete Web units, generated clients, video and Self-Hosted checks passed.
+The final additions retain those fixes and add a private-source inference negative
+case, an explicit newest-first Places opt-in, and blank photo-only inference input.
+After reconciliation, 12 affected Web unit checks, three cheap backend proposal/API
+matrix checks, 17 planner checks, inventory, TypeScript, formatting, Ruff and the
+production build pass. Current-head hosted checks remain mandatory; no failed job
+was blindly rerun and no permission, timeout or retry assertion was weakened.

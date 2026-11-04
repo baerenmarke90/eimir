@@ -7,6 +7,6 @@
   display: none;
 }
 
-.field-group:has(> input.native-date-input) > label {
+.field-group:has(> input.native-date-input) > label:not(.choice-row) {
   font-weight: 400;
 }

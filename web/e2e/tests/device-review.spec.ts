@@ -198,6 +198,16 @@ test('device review: shared learned labels and AI proposals remain explicit in t
       exact: true,
     }),
   ).toHaveAttribute('type', 'date');
+  const dateLabelWeight = await page
+    .getByLabel(storyProducts.heartMomentProduct.happenedOnLabel, {
+      exact: true,
+    })
+    .evaluate((input) => {
+      const label = (input as HTMLInputElement).labels?.[0];
+      if (!label) throw new Error('Date label missing');
+      return getComputedStyle(label).fontWeight;
+    });
+  expect(dateLabelWeight).toBe('400');
   await captureScreenshot(page, info, 'device-tags-heart-390.png', {
     fullPage: true,
   });

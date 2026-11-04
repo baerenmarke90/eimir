@@ -26,7 +26,7 @@ export function useStoryViewReceipt({
 
     // Create a composite key to ensure we only record once per item per mount
     // even if `presented` toggles (which it shouldn't normally, but just in case).
-    const key = `${kind}:${itemId}`;
+    const key = `${spaceId}:${kind}:${itemId}`;
     if (recordedRef.current === key) return;
 
     recordedRef.current = key;

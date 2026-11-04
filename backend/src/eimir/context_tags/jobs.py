@@ -65,7 +65,7 @@ def _generate(
         return
     version = parent.version
     text = (
-        f"{parent.payload.title}\n{parent.payload.body}"
+        f"{parent.payload.title or ''}\n{parent.payload.body or ''}"
         if isinstance(parent, Memory)
         else parent.payload.text
     )[:1600]

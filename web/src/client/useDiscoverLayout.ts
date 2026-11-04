@@ -51,6 +51,23 @@ export function useDiscoverLayout(
         delete grid.dataset.discoverMeasured;
         const items = Array.from(grid.children) as HTMLElement[];
         const heights = items.map((item) => item.offsetHeight);
+        // Inline milestones may center within their cells, so their natural
+        // boxes can differ. Both occupied columns still need the same row span.
+        for (let index = 0; index < items.length; index += 1) {
+          const item = items[index];
+          if (
+            item.dataset.discoverWide === 'true' ||
+            item.dataset.discoverFillRow === 'true'
+          )
+            continue;
+          const next = index + 1;
+          if (next < items.length)
+            heights[index] = heights[next] = Math.max(
+              heights[index],
+              heights[next],
+            );
+          index += 1;
+        }
         grid.dataset.discoverMeasured = 'true';
         const measured = getComputedStyle(grid);
         const unit = Number.parseFloat(measured.gridAutoRows);

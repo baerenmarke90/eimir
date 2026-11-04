@@ -667,6 +667,37 @@ test('Momente Discover mixes narrow and full-width memories with natural heights
     layoutBounds.gridBottom - layoutBounds.contentBottom,
   ).toBeLessThanOrEqual(layoutBounds.rowUnit + layoutBounds.gap);
 
+  const vacantRows = await grid.evaluate((element) => {
+    const children = Array.from(element.children) as HTMLElement[];
+    return children.flatMap((item, index) => {
+      if (
+        item.offsetWidth >= element.clientWidth - 1 ||
+        (index > 0 && item.offsetTop === children[index - 1].offsetTop)
+      )
+        return [];
+      const next = children[index + 1];
+      // Inline milestone labels center in their tracks; material cards fill them.
+      if (
+        item.matches('.momente-tapestry-milestone') ||
+        next?.matches('.momente-tapestry-milestone')
+      )
+        return [];
+      if (
+        !next ||
+        Math.abs(item.offsetTop - next.offsetTop) > 1 ||
+        Math.abs(
+          item.offsetTop +
+            item.offsetHeight -
+            next.offsetTop -
+            next.offsetHeight,
+        ) > 1
+      )
+        return [index];
+      return [];
+    });
+  });
+  expect(vacantRows).toEqual([]);
+
   // Browse the real reveal lifecycle before capturing the entire album.
   for (const card of await grid.locator('.momente-tapestry-item').all()) {
     await card.scrollIntoViewIfNeeded();

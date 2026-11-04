@@ -262,9 +262,10 @@ def test_local_ai_proposes_without_rewriting_tags_and_rejects_a_changed_source(
 ) -> None:
     from eimir.authorization import AuthorizationContext
     from eimir.context_tags import jobs
+    from eimir.heart_moments.models import HeartMoment
     from eimir.memories.models import Memory
 
-    client, _maker = production_client
+    client, _session_factory = production_client
     with Session(engine) as setup:
         owner = make_account(setup, "Local inference owner")
         space = make_space(setup, owner)
@@ -289,6 +290,20 @@ def test_local_ai_proposes_without_rewriting_tags_and_rejects_a_changed_source(
     suggestions = client.get(f"/api/v1/spaces/{space_id}/context-tag-suggestions", headers=headers)
     assert suggestions.json()["proposed"] == ["Belgien"]
     assert client.get(f"{path}/{entry['id']}", headers=headers).json()["tags"] == []
+    assert len(calls) == 1
+    private = client.post(
+        f"/api/v1/spaces/{space_id}/heart-moments",
+        headers=headers,
+        json={
+            "text": "Private source must not reach inference",
+            "emotion": "LOVED",
+            "visibility": "PRIVATE",
+            "happenedOn": "2026-10-17",
+        },
+    )
+    assert private.status_code == 201, private.text
+    with Session(engine) as worker:
+        jobs._generate(worker, HeartMoment, UUID(private.json()["id"]), context)
     assert len(calls) == 1
 
     def edited_during_inference(payload: dict[str, Any], **_kwargs: Any) -> dict[str, Any]:

@@ -10,6 +10,7 @@ import type { ChapterContentItem } from '../api/generated/models/ChapterContentI
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { useApiRuntime } from '../client/apiRuntimeContext';
 import { assertOnlineWrite } from '../client/connectivity';
+import { galleryCover } from '../client/galleryCover';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { createReferenceApis } from '../client/referenceFlow';
 import { postSnackbar } from '../client/snackbar';
@@ -29,7 +30,7 @@ import {
 } from '../client/sharedPlanning';
 import { i18n, useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
-import { PlaceMomentActions } from './PlaceMomentActions';
+import { RelationMomentActions } from './RelationMomentActions';
 import { UiState } from './UiState';
 import { EimirIcon } from './EimirIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
@@ -109,11 +110,12 @@ async function loadLinkedRelationTargets(
               kind: 'MEMORY',
               label: memory.title,
               effectiveDate: memory.happenedOn ?? memory.createdAt,
-              attachment: memory.attachments?.find(
-                (attachment) =>
-                  attachment.mediaType === 'IMAGE' &&
-                  attachment.status === 'READY',
-              ),
+              attachment: (() => {
+                const cover = galleryCover(memory);
+                return cover?.mediaType === 'IMAGE' && cover.status === 'READY'
+                  ? cover
+                  : undefined;
+              })(),
             };
           }
           case 'HEART_MOMENT': {
@@ -415,8 +417,7 @@ function ScopedPlanningRelationManager({
   const unlinkFocusRef = useRef<string | null>(null);
   const unlinkMutation = useMutation({
     onMutate: ({ kind, targetId }) => {
-      if (ownerKind === 'place')
-        unlinkFocusRef.current = targetKey(kind, targetId);
+      unlinkFocusRef.current = targetKey(kind, targetId);
     },
     onError: () => {
       unlinkFocusRef.current = null;
@@ -660,6 +661,7 @@ function ScopedPlanningRelationManager({
     <section
       className="planning-subsection"
       aria-labelledby={`${ownerKind}-relations-heading`}
+      data-owner-kind={ownerKind}
     >
       <div className="layout-section-head">
         <div>
@@ -670,9 +672,8 @@ function ScopedPlanningRelationManager({
                 : 'm5s3.relations.headingChapter',
             )}
           </h2>
-          {ownerKind === 'chapter' ? <p>{t('m5s3.relations.intro')}</p> : null}
         </div>
-        {ownerKind === 'place' ? addButton : null}
+        {addButton}
       </div>
 
       {relationsQuery.isLoading ? (
@@ -704,6 +705,7 @@ function ScopedPlanningRelationManager({
                       target={target}
                       spaceId={spaceId}
                       mediaApis={mediaApis}
+                      mediaProminent={ownerKind === 'chapter'}
                     />
                   </Link>
                 ) : (
@@ -714,8 +716,9 @@ function ScopedPlanningRelationManager({
                     </span>
                   </div>
                 )}
-                {canManage && ownerKind === 'place' ? (
-                  <PlaceMomentActions
+                {canManage ? (
+                  <RelationMomentActions
+                    ownerKind={ownerKind}
                     name={target?.label ?? t('m5s3.relations.contentFallback')}
                     pending={unlinkMutation.isPending}
                     error={
@@ -730,20 +733,6 @@ function ScopedPlanningRelationManager({
                       })
                     }
                   />
-                ) : canManage ? (
-                  <button
-                    type="button"
-                    className="tertiary"
-                    disabled={unlinkMutation.isPending}
-                    onClick={() =>
-                      unlinkMutation.mutate({
-                        kind: relation.targetType,
-                        targetId: relation.targetId,
-                      })
-                    }
-                  >
-                    {t('m5s3.relations.unlink')}
-                  </button>
                 ) : null}
               </li>
             );
@@ -753,7 +742,6 @@ function ScopedPlanningRelationManager({
         <p className="planning-empty">{t('m5s3.relations.empty')}</p>
       ) : null}
 
-      {ownerKind === 'chapter' ? addButton : null}
       <ShortTaskSheet
         open={pickerOpen && canManage}
         title={t('m5s3.relations.addLabel')}

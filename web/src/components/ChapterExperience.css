@@ -1,0 +1,132 @@
+.chapter-page {
+  max-width: var(--reading-max);
+}
+.chapter-shelf {
+  display: grid;
+  gap: var(--space-6);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.chapter-shelf-link {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-5);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: background-color var(--duration-feedback) var(--easing-standard);
+}
+.chapter-shelf-link:hover {
+  background: var(--color-surface-subtle);
+}
+.chapter-shelf-link h2 {
+  margin: 0;
+  font: var(--font-content-heading);
+}
+.chapter-shelf-link p {
+  margin: 0;
+}
+.chapter-excerpt {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font: var(--font-reading-body);
+}
+.chapter-period {
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.chapter-reading-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+.chapter-reading-context p {
+  margin: 0;
+}
+.chapter-authored-words {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: 70ch;
+  font: var(--font-reading-body);
+  margin: var(--space-6) 0 var(--space-8);
+}
+.chapter-place-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.chapter-page .relation-moment-add {
+  margin-top: 0;
+}
+.chapter-page .planning-relation-list > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chapter-shelf-link {
+    transition: none;
+  }
+}
+.relation-moment-prominent {
+  align-items: start;
+}
+.relation-moment-prominent .relation-moment-art {
+  flex-basis: 100%;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+}
+.relation-moment-prominent .relation-moment-copy > strong {
+  font: var(--font-content-heading);
+}
+.chapter-diary-marker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--space-12);
+  padding: var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-shared-surface);
+  color: var(--color-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.chapter-diary-marker > svg {
+  flex: 0 0 var(--space-6);
+  width: var(--space-6);
+  height: var(--space-6);
+  color: var(--color-shared);
+}
+.chapter-diary-copy {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.chapter-diary-copy > strong {
+  font: var(--font-section-heading);
+}
+.chapter-diary-kind,
+.chapter-diary-period {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+}
+.diary-sequence {
+  display: grid;
+  gap: var(--space-5);
+}
+@media (min-width: 840px) {
+  .chapter-shelf {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}

@@ -310,7 +310,8 @@
         "year",
         "order",
         "cursor",
-        "limit"
+        "limit",
+        "includeChapters"
       ]
     }
   ],

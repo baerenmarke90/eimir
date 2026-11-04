@@ -250,6 +250,7 @@ function AuthenticatedAppShell({
     /^\/story\/(?:happiness|time-travel)\/new$/.test(location.pathname) ||
     location.pathname === '/plan/plans/new' ||
     location.pathname === '/plan/wishes/new' ||
+    location.pathname === '/plan/chapters/new' ||
     location.pathname === '/plan/choose';
   const bottomNavigationRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {

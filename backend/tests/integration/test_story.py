@@ -529,3 +529,138 @@ class TestAvailableYears:
         res = timeline(client, couple, token=couple["token_b"])
         assert res.status_code == 200
         assert res.json()["availableYears"] == [2025, 2022]
+
+
+class TestChapterDiaryProjection:
+    @staticmethod
+    def chapter(client, couple, *, start=None, end=None, title="A chapter"):  # type: ignore[no-untyped-def]
+        body = {"title": title}
+        if start is not None:
+            body["startOn"] = start
+        if end is not None:
+            body["endOn"] = end
+        result = client.post(
+            f"{base_path(couple['space'].id)}/chapters",
+            json=body,
+            headers=auth(couple["token_a"]),
+        )
+        assert result.status_code == 201, result.text
+        return result.json()
+
+    def test_marker_only_years_are_opt_in_and_do_not_expand_content_kinds(
+        self, client, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        chapter = self.chapter(client, couple, start="2001-04-07", end="2004-09-02")
+        self.chapter(client, couple, end="1999-01-01", title="End only")
+        self.chapter(client, couple, title="Undated")
+        ordinary = timeline(client, couple).json()
+        assert ordinary["items"] == []
+        assert ordinary["chapterMarkers"] == []
+        assert ordinary["availableYears"] == []
+        diary = timeline(client, couple, includeChapters=True, year=2001).json()
+        assert diary["items"] == []
+        assert [marker["id"] for marker in diary["chapterMarkers"]] == [chapter["id"]]
+        assert diary["chapterMarkers"][0]["startOn"] == "2001-04-07"
+        assert diary["chapterMarkers"][0]["endOn"] == "2004-09-02"
+        assert diary["availableYears"] == [2001]
+        filtered = timeline(client, couple, includeChapters=True, type="MEMORY").json()
+        assert filtered["chapterMarkers"] == []
+        assert filtered["availableYears"] == []
+        assert (
+            timeline(client, couple, includeChapters=True, year=2004).json()["chapterMarkers"] == []
+        )
+        partner = timeline(client, couple, includeChapters=True, token=couple["token_b"]).json()
+        assert partner["chapterMarkers"] == diary["chapterMarkers"]
+        assert (
+            timeline(client, couple, includeChapters=True, token=couple["token_f"]).status_code
+            == 404
+        )
+
+    @pytest.mark.parametrize("order", ["ASC", "DESC"])
+    def test_combined_keyset_limit_overlaps_and_complete_tie_key(
+        self, client, couple, session, order
+    ) -> None:  # type: ignore[no-untyped-def]
+        first = self.chapter(client, couple, start="2025-06-13", title="First")
+        second = self.chapter(client, couple, start="2025-06-13", title="Second")
+        source = memory(client, couple)
+        private = heart_moment(client, couple, visibility="PRIVATE")
+        for table in ["chapters", "memories", "heart_moments"]:
+            session.execute(text(f"UPDATE {table} SET created_at = '2025-06-13T12:00:00Z'"))
+        session.flush()
+        cursor = None
+        seen = []
+        page_count = 0
+        while True:
+            parameters = {"includeChapters": True, "order": order, "limit": 1}
+            if cursor:
+                parameters["cursor"] = cursor
+            response = timeline(client, couple, **parameters)
+            assert response.status_code == 200, response.text
+            page = response.json()
+            assert len(page["items"]) + len(page["chapterMarkers"]) == 1
+            seen.extend(ids(response))
+            seen.extend(marker["id"] for marker in page["chapterMarkers"])
+            page_count += 1
+            assert page_count <= 4
+            if not page["hasMore"]:
+                assert page["nextCursor"] is None
+                break
+            cursor = page["nextCursor"]
+            assert cursor
+            # Projection and account ownership are part of the opaque cursor.
+            assert timeline(client, couple, cursor=cursor, order=order, limit=1).status_code == 400
+            assert (
+                timeline(
+                    client, couple, **{**parameters, "cursor": cursor, "token": couple["token_b"]}
+                ).status_code
+                == 400
+            )
+        ascending = [source["id"], private["id"], *sorted([first["id"], second["id"]])]
+        assert seen == (ascending if order == "ASC" else list(reversed(ascending)))
+        assert len(set(seen)) == 4
+        full = timeline(client, couple, includeChapters=True, order=order)
+        combined = ids(full)
+        for marker in full.json()["chapterMarkers"]:
+            combined.insert(marker["position"], marker["id"])
+        assert combined == seen
+        partner = timeline(client, couple, includeChapters=True, token=couple["token_b"])
+        assert private["id"] not in ids(partner)
+
+    def test_edit_moves_marker_and_delete_keeps_original_source(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        chapter = self.chapter(client, couple, start="2001-04-07")
+        source = memory(client, couple)
+        path = f"{base_path(couple['space'].id)}/chapters/{chapter['id']}"
+        assert (
+            client.put(
+                f"{path}/memories/{source['id']}", headers=auth(couple["token_a"])
+            ).status_code
+            == 204
+        )
+        moved = client.patch(
+            path,
+            json={"startOn": "2002-05-08"},
+            headers={**auth(couple["token_a"]), "If-Match": str(chapter["version"])},
+        )
+        assert moved.status_code == 200, moved.text
+        assert (
+            timeline(client, couple, includeChapters=True, year=2001).json()["chapterMarkers"] == []
+        )
+        assert (
+            timeline(client, couple, includeChapters=True, year=2002).json()["chapterMarkers"][0][
+                "id"
+            ]
+            == chapter["id"]
+        )
+        stale = client.patch(
+            path,
+            json={"title": "Stale"},
+            headers={**auth(couple["token_a"]), "If-Match": str(chapter["version"])},
+        )
+        assert stale.status_code == 409
+        deleted = client.delete(
+            path, headers={**auth(couple["token_a"]), "If-Match": str(moved.json()["version"])}
+        )
+        assert deleted.status_code == 204, deleted.text
+        diary = timeline(client, couple, includeChapters=True)
+        assert diary.json()["chapterMarkers"] == []
+        assert ids(diary) == [source["id"]]

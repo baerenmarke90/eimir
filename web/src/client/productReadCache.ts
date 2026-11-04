@@ -50,6 +50,11 @@ export interface ProductReadCacheStorage {
   read(key: string): Promise<unknown>;
   write(record: unknown): Promise<void>;
   remove(key: string): Promise<void>;
+  removeKind?(
+    accountId: string,
+    spaceId: string,
+    kind: ProductCacheKind,
+  ): Promise<void>;
   clear(): Promise<void>;
   /** Discard the whole store when `clear` cannot complete.
    *
@@ -125,6 +130,7 @@ let persistedRowsAwaitingPurge = false;
  * unchanged from when its read started.
  */
 const resourceRevocationStamps = new Map<string, number>();
+const kindRevocationStamps = new Map<string, number>();
 let nextResourceRevocationStamp = 1;
 
 function resourceIdentityKey(
@@ -142,10 +148,11 @@ function currentResourceRevocationStamp(
   kind: ProductCacheKind,
   resourceId: string,
 ): number {
-  return (
+  return Math.max(
+    kindRevocationStamps.get(JSON.stringify([accountId, spaceId, kind])) ?? 0,
     resourceRevocationStamps.get(
       resourceIdentityKey(accountId, spaceId, kind, resourceId),
-    ) ?? 0
+    ) ?? 0,
   );
 }
 
@@ -486,6 +493,22 @@ const indexedDbStorage: ProductReadCacheStorage = {
   read: readCacheStoreRecord,
   write: (record) => mutateCacheStore((store) => store.put(record)),
   remove: (key) => mutateCacheStore((store) => store.delete(key)),
+  removeKind: (accountId, spaceId, kind) =>
+    mutateCacheStore((store) => {
+      const request = store.openCursor();
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) return;
+        const record = cursor.value as Partial<ProductCacheRecord>;
+        if (
+          record.accountId === accountId &&
+          record.spaceId === spaceId &&
+          record.kind === kind
+        )
+          cursor.delete();
+        cursor.continue();
+      };
+    }),
   clear: () => mutateCacheStore((store) => store.clear()),
   destroy: deleteCacheDatabase,
 };
@@ -860,7 +883,12 @@ export async function loadProductWithReadCache<T>({
       // a snapshot already known to be unauthorized or absent.
       await deleteProductReadCacheEntry(accountId, spaceId, kind, resourceId);
     }
-    if (!mayUseOfflineProductCache(normalized) || !isLeaseCurrent(lease)) {
+    if (
+      !mayUseOfflineProductCache(normalized) ||
+      !isLeaseCurrent(lease) ||
+      revocationStampAtStart !==
+        currentResourceRevocationStamp(accountId, spaceId, kind, resourceId)
+    ) {
       throw normalized;
     }
 
@@ -933,6 +961,26 @@ export async function deleteProductReadCacheEntry(
   );
 }
 
+/** Revoke derived collection snapshots, including reads already in flight. */
+export async function deleteProductReadCacheKind(
+  accountId: string,
+  spaceId: string,
+  kind: ProductCacheKind,
+): Promise<void> {
+  kindRevocationStamps.set(
+    JSON.stringify([accountId, spaceId, kind]),
+    nextResourceRevocationStamp++,
+  );
+  const lease = currentCacheLease(accountId, spaceId);
+  if (!lease) return;
+  await enqueueCacheMutation(async () => {
+    if (!isLeaseCurrent(lease)) return;
+    if (cacheStorage.removeKind)
+      await cacheStorage.removeKind(accountId, spaceId, kind);
+    else await cacheStorage.clear();
+  });
+}
+
 /** Invalidate everything this browser persisted, durably.
  *
  * The wipe is durable as soon as one of two independent things holds: the
@@ -992,6 +1040,7 @@ export function __resetProductReadCacheStateForTests(): void {
   persistedMarkerUntrusted = false;
   persistedRowsAwaitingPurge = false;
   resourceRevocationStamps.clear();
+  kindRevocationStamps.clear();
   nextResourceRevocationStamp = 1;
 }
 

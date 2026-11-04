@@ -160,7 +160,7 @@ No authorization required
 
 ## getStoryTimeline
 
-> StoryPage getStoryTimeline(spaceId, type, year, order, cursor, limit)
+> StoryPage getStoryTimeline(spaceId, type, year, order, cursor, limit, includeChapters)
 
 Get Story Timeline
 
@@ -192,6 +192,8 @@ async function example() {
     cursor: cursor_example,
     // number (optional)
     limit: 56,
+    // boolean (optional)
+    includeChapters: true,
   } satisfies GetStoryTimelineRequest;
 
   try {
@@ -217,6 +219,7 @@ example().catch(console.error);
 | **order** | `StoryOrder` |  | [Optional] [Defaults to `undefined`] [Enum: ASC, DESC] |
 | **cursor** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **limit** | `number` |  | [Optional] [Defaults to `50`] |
+| **includeChapters** | `boolean` |  | [Optional] [Defaults to `false`] |
 
 ### Return type
 

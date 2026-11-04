@@ -79,9 +79,65 @@ If-Match, stale-owner guards, date-only meaning, localized copy, accessible
 controls and bounded per-page work. No database-owned duplicate marker records
 or additional notification side effects.
 
-## Acceptance evidence
+## Implementation and acceptance evidence
 
-Implementation and execution evidence are pending. The initial local preflight
-found reusable JavaScript dependencies but no pinned Chromium executable. Existing
-repository screenshots are references only. Required browser/product acceptance
-must use a working pinned browser environment; collection is not execution.
+The overview now reads as authored chapter destinations with description excerpts
+and complete/open periods, without per-card detail requests. The reader omits
+absent context, retains an actionable authorized Place, and gives linked moments
+room to lead. Add is above those moments; the existing shared contextual action
+sheet now handles Place and Chapter unlinking with the source-retention consequence.
+The same protected task lifecycle and native context fields serve chapter capture
+and correction. The selected Place remains a singular explicit reference.
+
+The diary opts into `includeChapters`; ordinary StoryKind/StoryItem, Discover,
+photo flows and relation choices retain exactly their existing content kinds.
+One authorized SQL union supplies the combined keyset cursor/page limit. Only an
+authored start contributes a marker/year. Marker positions preserve the exact
+server order, including sub-millisecond creation ties that JavaScript Date cannot
+represent; clients never re-sort the combined chronology. The projection adjusts
+positions if a source becomes unreadable between query and authorized projection.
+Loaded-page aggregation prevents duplicates and normalizes retained positions.
+
+The existing Timeline return implementation was extracted as useTaskListReturn
+and reused by the diary, annual archive and Chapters overview. It retains validated
+origins, loaded range, layout-coordinate restoration and focus semantics. Chapter
+mutations revoke derived Story snapshots through the existing cache store and
+invalidate the affected diary/year queries. Late reads cannot repersist revoked
+snapshots. Account/Space task ownership, online write admission and If-Match remain
+binding. The shared cache's existing generation wipe is the failure fallback;
+a storage failure cannot present a confirmed create as a failed creation.
+
+Local checks on the implementation source (the resulting PR records its exact
+commit and subsequent CI evidence):
+
+- Web: 2,606 tests passed, two pre-existing tests skipped. Typecheck, lint,
+  formatting, token/PWA checks and production build passed.
+- Backend: focused Story/OpenAPI tests passed; PostgreSQL integration tests are
+  collected but skipped locally because no test database is available. Ruff and
+  mypy passed for the changed runtime modules.
+- Browser selection: 38 planning regressions passed; inventory remains valid.
+  Nine new feature-scoped browser cases cover complete create/read/edit/link/
+  unlink/return/delete, failed saves/conflicts, marker-only pagination and years,
+  plus Compact 360/390/430, Expanded Light/Dark and 320px large-text/reduced-motion
+  states. Collection/typechecking is not browser execution.
+- The versioned OpenAPI contract and Web client were regenerated with the
+  repository's generator version 7.24.0. The container-based CI drift check remains
+  authoritative; this environment has no Docker executable.
+
+The pinned Chromium download produced an invalid archive in this environment.
+Actual current-source browser execution, screenshots and PostgreSQL acceptance
+must therefore complete in CI before final review. The generated reference is
+composition guidance, not implementation evidence. The PR Validation section owns
+live results, source screenshots, remaining findings and exact tested revisions.
+
+## Parallel integration boundary
+
+Refs were refreshed immediately before the implementation push: main remains
+`52d2eeda39f11d430d01676de93ebe11c92a6567`; #1634's published branch remains
+`ad0ba864984fecfcd0e8e853b26f9cc1be6be4fa` (preflight only). This does not establish
+compatibility with its unpublished implementation. Reconcile ChaptersOverviewPage,
+ChapterCreatePage, PlanningRelationManager, StoryProductPage, StoryYearsPage,
+AppShell, taskOrigin and productReadCache after #1634 publishes its shared native
+fields, progressive loading and cache work. Preserve that ownership; this PR adds
+no competing pagination, cache store or native-date primitive. No merge or release
+is authorized by #1635.

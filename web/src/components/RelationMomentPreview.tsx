@@ -12,10 +12,12 @@ export function RelationMomentPreview({
   target,
   spaceId,
   mediaApis,
+  mediaProminent = false,
 }: {
   target: PlanningRelationTarget;
   spaceId: string;
   mediaApis: ReferenceApis | null;
+  mediaProminent?: boolean;
 }) {
   const { t } = useTranslation();
   const { title, titleIsDate } =
@@ -46,30 +48,32 @@ export function RelationMomentPreview({
         }).format(target.effectiveDate);
   return (
     <span
-      className={`relation-moment-preview relation-moment-preview-${target.kind.toLowerCase()}`}
+      className={`relation-moment-preview relation-moment-preview-${target.kind.toLowerCase()} ${mediaProminent ? 'relation-moment-prominent' : ''}`}
     >
-      <span className="relation-moment-art" aria-hidden="true">
-        {target.attachment && mediaApis ? (
-          <MemoryPreview
-            memoryId={target.id}
-            attachmentId={target.attachment.id}
-            isSensitive={target.attachment.isSensitive}
-            loadImage={loadImage}
-            loadingMode="near-viewport"
-            resourceScopeKey={`relation-preview:${spaceId}:${target.kind}:${target.id}`}
-          />
-        ) : (
-          <EimirIcon
-            name={
-              target.kind === 'MEMORY'
-                ? 'erinnerungen'
-                : target.kind === 'HEART_MOMENT'
-                  ? 'denken'
-                  : 'meilensteine'
-            }
-          />
-        )}
-      </span>
+      {target.attachment || !mediaProminent ? (
+        <span className="relation-moment-art" aria-hidden="true">
+          {target.attachment && mediaApis ? (
+            <MemoryPreview
+              memoryId={target.id}
+              attachmentId={target.attachment.id}
+              isSensitive={target.attachment.isSensitive}
+              loadImage={loadImage}
+              loadingMode="near-viewport"
+              resourceScopeKey={`relation-preview:${spaceId}:${target.kind}:${target.id}`}
+            />
+          ) : (
+            <EimirIcon
+              name={
+                target.kind === 'MEMORY'
+                  ? 'erinnerungen'
+                  : target.kind === 'HEART_MOMENT'
+                    ? 'denken'
+                    : 'meilensteine'
+              }
+            />
+          )}
+        </span>
+      ) : null}
       <span className="relation-moment-copy">
         <strong>{title}</strong>
         {target.excerpt && target.excerpt !== target.label ? (

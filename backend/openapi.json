@@ -1089,6 +1089,52 @@
         "title": "ChapterRelationTargets",
         "type": "object"
       },
+      "ChapterTimelineMarker": {
+        "description": "A diary-only destination at an authored chapter start, not Story content.",
+        "properties": {
+          "endOn": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endon"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "position": {
+            "exclusiveMaximum": 100.0,
+            "minimum": 0.0,
+            "title": "Position",
+            "type": "integer"
+          },
+          "startOn": {
+            "format": "date",
+            "title": "Starton",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "startOn",
+          "endOn",
+          "position"
+        ],
+        "title": "ChapterTimelineMarker",
+        "type": "object"
+      },
       "ChapterUpdate": {
         "additionalProperties": false,
         "description": "Partial correction of Chapter metadata and its canonical Place reference.",
@@ -11994,6 +12040,13 @@
               "type": "integer"
             },
             "title": "Availableyears",
+            "type": "array"
+          },
+          "chapterMarkers": {
+            "items": {
+              "$ref": "#/components/schemas/ChapterTimelineMarker"
+            },
+            "title": "Chaptermarkers",
             "type": "array"
           },
           "hasMore": {
@@ -36275,6 +36328,16 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeChapters",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Includechapters",
+              "type": "boolean"
             }
           }
         ],

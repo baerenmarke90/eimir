@@ -717,6 +717,17 @@
         "web/src/components/GamesProductArea.tsx"
       ]
     },
+    "chapter-experience.spec.ts": {
+      "roots": [
+        "web/src/components/ChaptersOverviewPage.tsx",
+        "web/src/components/ChapterCreatePage.tsx",
+        "web/src/components/ChapterProductPage.tsx",
+        "web/src/components/PlanningRelationManager.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/StoryYearsPage.tsx",
+        "web/src/components/MemoryProductPage.tsx"
+      ]
+    },
     "device-review.spec.ts": {
       "roots": [
         "web/src/components/MemoryPlanningLinks.tsx",

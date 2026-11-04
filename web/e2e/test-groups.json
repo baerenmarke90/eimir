@@ -439,6 +439,11 @@
       "baselineTests": 4,
       "reason": "Shared response authorship, own-answer edit and return, comment chronology, mobile/Expanded Light/Dark and accessible reflow."
     },
+    "chapter-experience.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9,
+      "reason": "Affected-feature acceptance for Chapter capture/read/edit/link/unlink, dated diary pagination and return; visual variants remain feature-scoped, never always-run core."
+    },
     "device-review.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 5,

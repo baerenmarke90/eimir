@@ -66,6 +66,7 @@ export interface GetStoryTimelineRequest {
     order?: StoryOrder;
     cursor?: string | null;
     limit?: number;
+    includeChapters?: boolean;
 }
 
 export interface RecordStoryViewRequest {
@@ -215,6 +216,10 @@ export class StoryApi extends runtime.BaseAPI {
 
         if (requestParameters['limit'] != null) {
             queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['includeChapters'] != null) {
+            queryParameters['includeChapters'] = requestParameters['includeChapters'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

@@ -293,19 +293,29 @@ const m5s3 = {
       'Der Ort und seine Verknüpfungen werden gelöscht. Erinnerungen, Herzmomente und Meilensteine selbst bleiben erhalten.',
   },
   chapter: {
+    since: 'Seit {{date}}',
+    until: 'Bis {{date}}',
+    diaryHint: 'Mit einem Beginn erscheint das Kapitel auch in eurem Tagebuch.',
+    choosePlace: 'Ort auswählen',
+    changePlace: 'Ort ändern',
+    removePlace: 'Ort entfernen',
+    emptyTitle: 'Eure Geschichte hat viele Kapitel',
+    emptyBody:
+      'Haltet einen Lebensabschnitt fest und sammelt die Momente, die dazugehören.',
+    descriptionPlaceholder: 'Was macht diesen Abschnitt für euch besonders?',
     heading: 'Kapitel',
-    intro: 'Kapitel bündeln eure gemeinsamen Erinnerungen und Meilensteine.',
+    intro: 'Die Abschnitte eurer Geschichte und die Momente, die dazugehören.',
     create: 'Kapitel hinzufügen',
     createEyebrow: 'Kapitel anlegen',
     createHeading: 'Neues Kapitel',
     createIntro:
       'Gebt eurem Kapitel einen Titel und ordnet Erinnerungen, Herzmomente und Meilensteine später darin ein.',
     formAria: 'Kapitel anlegen',
-    addMoreDetails: 'Beschreibung, Zeitraum und Ort hinzufügen (optional)',
+    addMoreDetails: 'Zeitraum und Ort ergänzen',
     loading: 'Kapitel wird geladen …',
     detailEyebrow: 'Gemeinsames Kapitel',
     startOn: 'Beginn',
-    endOn: 'Ende',
+    endOn: 'Bis',
     contextHeading: 'Zeitraum und Ort',
     noPeriod: 'Kein Zeitraum hinterlegt.',
     placeLabel: 'Ort: {{name}}',
@@ -317,12 +327,14 @@ const m5s3 = {
       'Nur das Kapitel und seine Verknüpfungen werden gelöscht. Die enthaltenen Erinnerungen, Herzmomente und Meilensteine bleiben unverändert erhalten.',
   },
   relations: {
+    unlinkChapterConsequence:
+      'Nur die Zuordnung zu diesem Kapitel wird entfernt. Der Moment selbst bleibt erhalten.',
     momentsHere: 'Momente hier',
     actions: 'Aktionen für „{{title}}“',
     unlinkPlaceConsequence:
       'Nur die Zuordnung zu diesem Ort wird entfernt. Der Moment selbst bleibt erhalten.',
     headingPlace: 'Was verbindet ihr mit diesem Ort?',
-    headingChapter: 'Was gehört zu diesem Kapitel?',
+    headingChapter: 'Momente in diesem Kapitel',
     intro:
       'Erinnerungen, Herzmomente und Meilensteine, die für euch dazugehören.',
     pickerIntro: 'Nur gemeinsame Momente. Private Herzmomente bleiben privat.',

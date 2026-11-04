@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `availableYears` | Array&lt;number&gt;
+`chapterMarkers` | [Array&lt;ChapterTimelineMarker&gt;](ChapterTimelineMarker.md)
 `hasMore` | boolean
 `items` | [Array&lt;StoryItem&gt;](StoryItem.md)
 `nextCursor` | string
@@ -19,6 +20,7 @@ import type { StoryPage } from ''
 // TODO: Update the object below with actual values
 const example = {
   "availableYears": null,
+  "chapterMarkers": null,
   "hasMore": null,
   "items": null,
   "nextCursor": null,

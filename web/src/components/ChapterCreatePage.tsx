@@ -1,94 +1,116 @@
-import { NativeDateInput } from './NativeDateField';
-import type { FormEvent } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { assertOnlineWrite } from '../client/connectivity';
 import { normalizeClientError } from '../client/problemDetails';
 import { chapterDetailPath, STORY_CHAPTERS_ROUTE } from '../client/routes';
 import {
   dateFromInput,
-  loadAllPlaces,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
+import { invalidateChapterProjections } from '../client/chapterQueries';
 import { useTranslation } from '../i18n';
+import { ChapterContextFields, type ChapterDraft } from './ChapterFields';
 import { PageHeader } from './PageHeader';
+import { PlanningDiscardConfirmation } from './PlanningEditorLifecycle';
 import { ProblemState } from './ProblemState';
+import { TaskBackButton } from './TaskBackButton';
 import './SharedPlanningPages.css';
+import './ChapterExperience.css';
 
-async function apiCall<T>(request: () => Promise<T>): Promise<T> {
-  try {
-    return await request();
-  } catch (error) {
-    throw await normalizeClientError(error);
-  }
+type Props = { apis: SharedPlanningApis; spaceId: string; accountId?: string };
+
+export function ChapterCreatePage(props: Props) {
+  return (
+    <ChapterCreateTask key={`${props.accountId}:${props.spaceId}`} {...props} />
+  );
 }
 
-export function ChapterCreatePage({
-  apis,
-  spaceId,
-}: {
-  apis: SharedPlanningApis;
-  spaceId: string;
-}) {
+function ChapterCreateTask({ apis, spaceId, accountId }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
-  const placesQuery = useQuery({
-    queryKey: authorSummaryQueryKeys.placeOptions(spaceId),
-    queryFn: () => apiCall(() => loadAllPlaces(apis, spaceId)),
-    staleTime: 30_000,
-    retry: false,
+  const location = useLocation();
+  const client = useQueryClient();
+  const { requestReturn } = useTaskOrigin();
+  const originKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
+  const [draft, setDraft] = useState<ChapterDraft>({
+    title: '',
+    description: '',
+    startOn: '',
+    endOn: '',
+    placeId: '',
   });
+  const [pending, setPending] = useState(false);
+  const inFlight = useRef(false);
+  const [placePending, setPlacePending] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const lifecycle = useTaskEditorLifecycle({
+    isDirty: Object.values(draft).some(Boolean),
+    isCloseBlocked: pending || placePending,
+    onClose: () => requestReturn(originKey, STORY_CHAPTERS_ROUTE),
+  });
+  const change = (values: Partial<ChapterDraft>) =>
+    setDraft((current) => ({ ...current, ...values }));
 
-  const createChapter = useMutation({
-    mutationFn: (values: {
-      title: string;
-      description?: string;
-      startOn?: Date;
-      endOn?: Date;
-      placeId?: string;
-    }) =>
-      apiCall(() =>
-        apis.chapters.createChapter({ spaceId, chapterCreate: values }),
-      ),
-    onSuccess: async (chapter) => {
-      await queryClient.invalidateQueries({
-        queryKey: ['m5-s3', 'chapters', spaceId],
+  async function save() {
+    if (inFlight.current || placePending || !draft.title.trim()) return;
+    const ownsTask = lifecycle.captureOwnership();
+    if (!ownsTask()) return;
+    inFlight.current = true;
+    setPending(true);
+    setError(null);
+    try {
+      assertOnlineWrite();
+      const chapter = await apis.chapters.createChapter({
+        spaceId,
+        chapterCreate: {
+          title: draft.title.trim(),
+          description: draft.description.trim() || undefined,
+          startOn: dateFromInput(draft.startOn),
+          endOn: dateFromInput(draft.endOn),
+          placeId: draft.placeId || undefined,
+        },
       });
-      navigate(chapterDetailPath(chapter.id), { replace: true });
-    },
-  });
-
-  function submitChapter(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const description = String(data.get('description')).trim();
-    const startOn = dateFromInput(String(data.get('startOn')).trim());
-    const endOn = dateFromInput(String(data.get('endOn')).trim());
-    const placeId = String(data.get('placeId')).trim();
-    createChapter.mutate({
-      title: String(data.get('title')).trim(),
-      description: description || undefined,
-      startOn: startOn ?? undefined,
-      endOn: endOn ?? undefined,
-      placeId: placeId || undefined,
-    });
+      if (!ownsTask()) return;
+      await invalidateChapterProjections(client, spaceId, accountId);
+      if (!ownsTask()) return;
+      lifecycle.closeConfirmed(
+        () =>
+          void navigate(chapterDetailPath(chapter.id), {
+            replace: true,
+            state: { taskOriginKey: originKey, saved: true },
+          }),
+      );
+    } catch (failure) {
+      const problem = await normalizeClientError(failure);
+      if (ownsTask()) setError(problem);
+    } finally {
+      inFlight.current = false;
+      if (ownsTask()) setPending(false);
+    }
   }
 
   return (
-    <div className="page page-reading create-page">
+    <div className="page page-reading create-page chapter-page">
       <PageHeader
         before={
-          <Link className="back-link" to={STORY_CHAPTERS_ROUTE}>
-            {t('m5s3.common.backToChapters')}
-          </Link>
+          <TaskBackButton
+            disabled={pending || placePending}
+            onClick={lifecycle.requestClose}
+          />
         }
         title={t('m5s3.chapter.createHeading')}
-        description={t('m5s3.chapter.createIntro')}
         className="create-heading"
       />
-
+      {lifecycle.showDiscardConfirm ? (
+        <PlanningDiscardConfirmation
+          onKeepEditing={lifecycle.keepEditing}
+          onDiscard={lifecycle.closeConfirmed}
+        />
+      ) : null}
       <section
         className="immersive-create-card"
         aria-labelledby="chapter-form-heading"
@@ -96,7 +118,13 @@ export function ChapterCreatePage({
         <h2 id="chapter-form-heading" className="sr-only">
           {t('m5s3.chapter.formAria')}
         </h2>
-        <form onSubmit={submitChapter} className="immersive-create-form">
+        <form
+          className="immersive-create-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void save();
+          }}
+        >
           <div className="immersive-create-hero">
             <label htmlFor="chapter-name" className="sr-only">
               {t('m5s3.common.title')}
@@ -108,65 +136,54 @@ export function ChapterCreatePage({
               maxLength={200}
               placeholder={t('m5s3.common.title')}
               className="immersive-create-title"
+              value={draft.title}
+              disabled={pending}
+              onChange={(event) => change({ title: event.target.value })}
             />
           </div>
-
+          <div className="field-group">
+            <label htmlFor="chapter-desc">{t('m5s3.common.description')}</label>
+            <textarea
+              id="chapter-desc"
+              name="description"
+              rows={4}
+              placeholder={t('m5s3.chapter.descriptionPlaceholder')}
+              value={draft.description}
+              disabled={pending}
+              onChange={(event) => change({ description: event.target.value })}
+            />
+          </div>
           <details className="immersive-create-details">
             <summary>{t('m5s3.chapter.addMoreDetails')}</summary>
             <div className="immersive-create-details-content">
-              <div className="field-group">
-                <label htmlFor="chapter-desc">
-                  {t('m5s3.common.description')}
-                </label>
-                <textarea id="chapter-desc" name="description" rows={3} />
-              </div>
-              <div className="planning-coordinate-grid">
-                <div className="field-group">
-                  <label htmlFor="chapter-start">
-                    {t('m5s3.chapter.startOn')}
-                  </label>
-                  <NativeDateInput id="chapter-start" name="startOn" />
-                </div>
-                <div className="field-group">
-                  <label htmlFor="chapter-end">{t('m5s3.chapter.endOn')}</label>
-                  <NativeDateInput id="chapter-end" name="endOn" />
-                </div>
-              </div>
-              <div className="field-group">
-                <label htmlFor="chapter-place">{t('m5s3.common.place')}</label>
-                <select
-                  id="chapter-place"
-                  name="placeId"
-                  defaultValue=""
-                  disabled={placesQuery.isLoading}
-                >
-                  <option value="">{t('m5s3.common.noPlace')}</option>
-                  {(placesQuery.data ?? []).map((place) => (
-                    <option key={place.id} value={place.id}>
-                      {place.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <ChapterContextFields
+                apis={apis}
+                spaceId={spaceId}
+                draft={draft}
+                onChange={change}
+                disabled={pending}
+                captureAdmission={lifecycle.captureOwnership}
+                onPendingChange={setPlacePending}
+              />
             </div>
           </details>
-
+          {error ? <ProblemState error={error} /> : null}
           <div className="form-actions">
-            <Link
-              className="button-link secondary-link"
-              to={STORY_CHAPTERS_ROUTE}
+            <button
+              type="button"
+              className="tertiary"
+              disabled={pending || placePending}
+              onClick={lifecycle.requestClose}
             >
               {t('common.cancel')}
-            </Link>
-            <button type="submit" disabled={createChapter.isPending}>
-              {createChapter.isPending
-                ? t('m5s3.common.saving')
-                : t('m5s3.common.save')}
+            </button>
+            <button
+              type="submit"
+              disabled={pending || placePending || !draft.title.trim()}
+            >
+              {t(pending ? 'm5s3.common.saving' : 'm5s3.common.save')}
             </button>
           </div>
-          {createChapter.error ? (
-            <ProblemState error={createChapter.error} />
-          ) : null}
         </form>
       </section>
     </div>

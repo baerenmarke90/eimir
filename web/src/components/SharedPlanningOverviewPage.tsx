@@ -28,6 +28,7 @@ import { useTaskOrigin } from '../client/taskOrigin';
 import { handleTabKeyDown } from '../client/tabKeyboard';
 import { textExcerpt } from '../client/textExcerpt';
 import { useTranslation } from '../i18n';
+import { OVERVIEW_STALE_TIME } from '../client/useWarmOverviewQuery';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
 import { PageHeader } from './PageHeader';
 import { PlanCover } from './PlanCover';
@@ -298,6 +299,7 @@ export function SharedPlanningOverviewPage({
   const plans = useWarmInfiniteQuery(
     {
       queryKey: ['m5-s3', 'plans', spaceId, 'overview', planStatus],
+      staleTime: OVERVIEW_STALE_TIME,
       enabled: activeSegment === 'plans',
       queryFn: ({ pageParam, signal }) =>
         apiCall(() =>

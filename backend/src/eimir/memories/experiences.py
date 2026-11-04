@@ -54,7 +54,10 @@ def reconcile(session: Session, context: AuthorizationContext) -> None:
         )
     )
     groups: dict[tuple[str, date, str], list[list[Memory]]] = {}
-    for entry in candidates:
+    # A concurrent insert can predate the committed root that won the lock.
+    # Seed established threads first so pending answers join that stable root
+    # regardless of insertion timestamps or lock-acquisition order.
+    for entry in sorted(candidates, key=lambda entry: entry.experience_root_id is None):
         question = entry.payload.title.strip()
         day = entry.happened_on or clock.ensure_utc(entry.created_at).date()
         key = (entry.experience_kind or "", day, question)

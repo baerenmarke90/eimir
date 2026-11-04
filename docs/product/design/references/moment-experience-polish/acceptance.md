@@ -2,7 +2,7 @@
 
 Owning issue: [#1628](https://github.com/baerenmarke90/eimir/issues/1628).
 Base: `cf71ad7784497f9efd4037bb2276af593803de30` (main, including #1625 and #1627).
-Final runtime source: `f168f782dfdf5bdf7a4efbe53c4c2f3ba42c00b4`.
+Captured UI source: `f168f782dfdf5bdf7a4efbe53c4c2f3ba42c00b4`.
 
 The generated [preflight](README.md) guided hierarchy. These are actual browser
 captures of the implementation using synthetic test content, not generated UI.
@@ -47,6 +47,14 @@ ContextTagEditor submit contract to commit pending tags atomically. Memory
 create/edit and HeartMoment create/edit share that contract; validation is not
 weakened and no delay, scroll workaround or retry was added.
 
+Required PostgreSQL CI also exposed a baseline shared-answer race: an insert
+can predate the committed root whose transaction acquired the projection lock
+first. Pending answers now join established threads before new threads are
+assigned, independent of insert timestamps. A deterministic unit regression
+reproduced the split before the fix; both candidate orders now pass. A matching
+PostgreSQL regression supplements the unchanged concurrent-request acceptance.
+Existing roots, author content, timestamps and the transaction lock are retained.
+
 ## Technical and cross-cutting review
 
 - Migration 0106 adds a default-false Place archive flag; existing data, links,
@@ -80,6 +88,12 @@ weakened and no delay, scroll workaround or retry was added.
   corrected. Final focused runs pass the tag-only save, sensitive geometry,
   Compact/Expanded/reflow, authoritative trace and Memory tag journeys.
 - Five final manual-Place recovery/save journeys cover 320 through 1280.
+- Eight final browser regressions passed for custom-tag capture, all five
+  privacy geometries, authoritative event order and exact Wir/Activities parity.
+- The shared-answer correction passed 17 focused backend unit tests, Ruff and
+  mypy. Required CI checks the deterministic and concurrent PostgreSQL cases.
+- The initial CI format failure in the final trace assertion is corrected;
+  the complete Web format check passes again.
 - Backend: Ruff, mypy (350 source files), 48 focused unit tests passed.
 - Web build, typecheck, lint, format and engineering-language checks passed.
 - API schema regenerated with pinned OpenAPI Generator 7.24.0 and compared with

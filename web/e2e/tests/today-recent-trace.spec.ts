@@ -310,7 +310,9 @@ test('Today event trace keeps compact borderless composition and authoritative o
   await expect(tiles).toHaveText(
     ACTIVITY_ITEMS.slice(0, 4).map((item) => new RegExp(item.target.title)),
   );
-  await expect(tiles.first()).toContainText(m5s5.activityAction.COMMENT_CREATED);
+  await expect(tiles.first()).toContainText(
+    m5s5.activityAction.COMMENT_CREATED,
+  );
 
   // Data, order, and navigation are unchanged.
   await expect(

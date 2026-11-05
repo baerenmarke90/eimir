@@ -44,6 +44,8 @@ describe('PrivateAreaProductPage', () => {
     expect(html).toContain('href="/more/private/notes"');
     expect(html).toContain('href="/more/private/gift-ideas"');
     expect(html).toContain('href="/more/private/collections"');
+    expect(html).toContain('href="/more/private/partner-notes"');
+    expect(html).toContain(privateArea.partnerNotes.title);
     expect(html).not.toContain(privateArea.notes.intro);
     expect(html).not.toContain(privateArea.gifts.intro);
     expect(html).not.toContain(privateArea.collections.intro);

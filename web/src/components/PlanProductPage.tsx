@@ -163,6 +163,24 @@ export function PlanProductPage({
     staleTime: 30_000,
     retry: false,
   });
+  const linkedPlaceId = planQuery.data?.placeId;
+  const listedPlace = placesQuery.data?.find(
+    (place) => place.id === linkedPlaceId,
+  );
+  const linkedPlaceQuery = useQuery({
+    queryKey: authorSummaryQueryKeys.placeDetail(
+      spaceId,
+      linkedPlaceId ?? undefined,
+    ),
+    queryFn: () => {
+      if (!linkedPlaceId) throw new Error('Missing linked Plan place.');
+      return apiCall(() =>
+        apis.places.getPlace({ spaceId, placeId: linkedPlaceId }),
+      );
+    },
+    enabled: Boolean(linkedPlaceId && !listedPlace && !placesQuery.isPending),
+    retry: false,
+  });
   const commitPlan = async (plan: PlanDetail) => {
     queryClient.setQueryData(key, plan);
     await Promise.all([
@@ -377,7 +395,7 @@ export function PlanProductPage({
 
   const lifecycleError = completion.error || returnMutation.error;
 
-  const place = placesQuery.data?.find((item) => item.id === plan.placeId);
+  const place = listedPlace ?? linkedPlaceQuery.data;
   const placeName = place?.name ?? null;
   const scheduleLabel = planScheduleLabel(plan);
   const hasSubfacts = Boolean(plan.experiencedOn);
@@ -462,9 +480,29 @@ export function PlanProductPage({
         className="planning-facts planen-detail-summary"
         aria-label={t('m5s3.plan.scheduleFacts')}
       >
-        <p className="planen-detail-schedule">
-          {scheduleLabel ?? t('m5s3.overview.undatedHeading')}
-        </p>
+        <div className="planen-detail-when-where">
+          <p className="planen-detail-schedule">
+            {scheduleLabel ?? t('m5s3.overview.undatedHeading')}
+          </p>
+          {!isEditing && placeName && plan.placeId ? (
+            <Link
+              className="planen-schedule-place"
+              to={placeDetailPath(plan.placeId)}
+            >
+              <EimirIcon name="orte" />
+              <span className="planen-place-copy">
+                <strong>{placeName}</strong>
+                {place?.address ? <span>{place.address}</span> : null}
+              </span>
+            </Link>
+          ) : null}
+        </div>
+        {!isEditing && linkedPlaceQuery.error && !place ? (
+          <ProblemState
+            error={linkedPlaceQuery.error}
+            onRetry={() => void linkedPlaceQuery.refetch()}
+          />
+        ) : null}
         {!isEditing && plan.status !== 'COMPLETED' ? (
           <PlanCalendarAction plan={plan} location={placeName ?? undefined} />
         ) : null}
@@ -730,18 +768,6 @@ export function PlanProductPage({
 
         {!isEditing ? (
           <div className="planen-detail-context">
-            {placeName && plan.placeId ? (
-              <Link
-                className="button-link secondary-link planen-place-context"
-                to={placeDetailPath(plan.placeId)}
-              >
-                <EimirIcon name="orte" />
-                <span className="planen-place-copy">
-                  <strong>{placeName}</strong>
-                  {place?.address ? <span>{place.address}</span> : null}
-                </span>
-              </Link>
-            ) : null}
             <PlanWishLink
               key={JSON.stringify([apiBaseUrl, accountId, spaceId, plan.id])}
               apis={apis}

@@ -767,7 +767,7 @@ export function PreferenceManager({
       <div className="profile-preferences-header">
         <div>
           <h2 id={`profile-manager-${visibility}`}>{title}</h2>
-          <p className="profile-section-intro">{intro}</p>
+          {intro ? <p className="profile-section-intro">{intro}</p> : null}
         </div>
         <button
           type="button"
@@ -995,17 +995,19 @@ export function PrivatePartnerNotesSection({
   partnerId,
   partnerName,
   items,
+  showPrivacyNotice = true,
 }: {
   profilesApi: ProfilesApi;
   spaceId: string;
   partnerId: string;
   partnerName: string;
   items: ProfilePreferenceView[];
+  showPrivacyNotice?: boolean;
 }) {
   const { t } = useTranslation();
   return (
     <div className="private-partner-notes-wrapper">
-      <PrivatePartnerNotesPrivacyNotice />
+      {showPrivacyNotice ? <PrivatePartnerNotesPrivacyNotice /> : null}
       <PreferenceManager
         profilesApi={profilesApi}
         spaceId={spaceId}
@@ -1013,7 +1015,7 @@ export function PrivatePartnerNotesSection({
         visibility={ProfileVisibility.PRIVATE_PARTNER_NOTE}
         items={items}
         title={t('profiles.privateTitle', { name: partnerName })}
-        intro={t('profiles.privateIntro')}
+        intro=""
         emptyTitle={t('profiles.emptyPrivateTitle')}
         emptyBody={t('profiles.emptyPrivateBody')}
       />
@@ -1098,15 +1100,6 @@ export function ProfilePreferencesSection({
       )
     : [];
 
-  const privatePartnerNotes =
-    preferencesQuery.data && partner
-      ? preferencesQuery.data.filter(
-          (pref) =>
-            pref.accountId === partner.id &&
-            pref.visibility === ProfileVisibility.PRIVATE_PARTNER_NOTE,
-        )
-      : [];
-
   return (
     <div className="profile-preferences-section">
       {preferencesQuery.isLoading ? (
@@ -1147,15 +1140,6 @@ export function ProfilePreferencesSection({
               partnerName={partnerName}
             />
           </div>
-          {preferencesQuery.data ? (
-            <PrivatePartnerNotesSection
-              profilesApi={profilesApi}
-              spaceId={spaceId}
-              partnerId={partner.id}
-              partnerName={partnerName}
-              items={privatePartnerNotes}
-            />
-          ) : null}
         </details>
       ) : null}
     </div>

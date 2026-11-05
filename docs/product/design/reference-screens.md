@@ -265,13 +265,18 @@ Light/Dark use neutral photo captions, restrained surface contrast and unchanged
 | Surface | Compact hierarchy and behavior |
 | --- | --- |
 | More | Compact person/profile entry → clearly private area → grouped shared destinations → named Settings, Notifications and Activity destinations → appropriately placed product-account entry |
-| Profile | Actual identity/relationship context → authored personal preferences → partner identity/shared preferences → separate explicitly private partner-note entry |
+| Profile | Actual identity/relationship context → authored personal preferences → partner identity/shared preferences |
 | Profile editing | One deliberate Edit entry reveals supported name/photo operations; personal content is not a permanent field stack |
 | Preference | Read category/value first; contextual short edit only for the authorized owner; no forbidden partner-edit controls |
-| Private partner notes | Explicit owner-only context before sensitive content, readable preview and dedicated writing task; never mixed into the shared profile |
+| Private partner notes | More → Nur für mich → partner notes; explicit owner-only context before sensitive content, readable preview and the existing private preference editor |
 | Settings index | Predictable categories leading to focused pages, including existing relationship, notifications, Today visibility, appearance, transfer and account functions |
 | Settings category | Back to index, precise title, existing controls and visible state; one local Save for staged submission or clear immediate feedback for immediate controls |
 | Data/account action | Explicit scope, validation, authentication and consequences; offboarding, sign-out and account deletion remain distinct |
+
+PO refinement [#1655](https://github.com/baerenmarke90/eimir/issues/1655)
+(2026-11-05): private partner notes belong under the private area rather than
+Profile. Preserve the existing owner-only preference records and write lifecycle;
+this changes their navigation, not their audience or storage.
 
 Per [PO decision #1507](mobile-header-more.md), More groups global search, the current-user avatar/name and named Profile, Notifications, Activity and Settings entries, capability-gated administration, safe sign-out and a quiet brand footer. Compact/Medium has no persistent global header; Expanded retains top navigation. An unread dot and accessible label on More use the existing recipient count; entering More does not mark notifications read. This replaces the former avatar-menu shortcut while preserving D6. Personal preferences precede commercial information. A compact eimir. Pro entry must reflect actual availability without invented price, entitlement or account-management capability. Games keeps its current Premium boundary.
 

@@ -584,6 +584,19 @@
 .private-partner-notes-wrapper .profile-section {
   background: transparent;
 }
+.private-partner-notes-page {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.private-partner-notes-page .private-partner-notes-wrapper,
+.private-partner-notes-page .profile-section {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
 
 .private-partner-notes-badge {
   display: inline-flex;

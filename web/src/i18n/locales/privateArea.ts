@@ -50,6 +50,10 @@ const privateArea = {
     pinned: 'Angeheftet',
     noBody: 'Keine weiteren Notizen.',
   },
+  partnerNotes: {
+    title: 'Notizen über meinen Partner',
+    shortTitle: 'Partnernotizen',
+  },
   gifts: {
     title: 'Geschenkideen',
     intro: 'Ideen und Vorbereitungen, die dein Partner nicht sehen kann.',

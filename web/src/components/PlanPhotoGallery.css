@@ -4,5 +4,6 @@
   margin-inline: auto;
 }
 .plan-photo-gallery .media-gallery-carousel-viewport {
+  aspect-ratio: 16 / 10;
   max-height: min(60svh, 28rem);
 }

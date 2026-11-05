@@ -127,7 +127,7 @@ async function fixture(
   return { reads, unexpected, writes: () => writes, plan };
 }
 
-async function expectCompleteImage(image: Locator, maxHeight: number) {
+async function expectPreviewCrop(image: Locator) {
   await expect(image).toBeVisible();
   await expect
     .poll(() =>
@@ -144,7 +144,9 @@ async function expectCompleteImage(image: Locator, maxHeight: number) {
     return {
       width: rect.width,
       height: rect.height,
-      ratio: img.naturalWidth / img.naturalHeight,
+      fit: getComputedStyle(img).objectFit,
+      frameWidth: frame.width,
+      frameHeight: frame.height,
       contained:
         rect.left >= frame.left - 1 &&
         rect.right <= frame.right + 1 &&
@@ -152,8 +154,10 @@ async function expectCompleteImage(image: Locator, maxHeight: number) {
         rect.bottom <= frame.bottom + 1,
     };
   });
-  expect(value.width / value.height).toBeCloseTo(value.ratio, 2);
-  expect(value.height).toBeLessThanOrEqual(maxHeight + 1);
+  expect(value.fit).toBe('cover');
+  expect(value.frameWidth / value.frameHeight).toBeCloseTo(16 / 10, 2);
+  expect(value.width).toBeCloseTo(value.frameWidth, 0);
+  expect(value.height).toBeCloseTo(value.frameHeight, 0);
   expect(value.contained).toBe(true);
 }
 
@@ -262,11 +266,7 @@ for (const scenario of [
     await expect(preview).toContainText(TITLE);
     // Large text can put this viewport-admitted cover below the fold.
     await preview.locator('.plan-cover').scrollIntoViewIfNeeded();
-    if (!scenario.sensitive)
-      await expectCompleteImage(
-        preview.locator('img'),
-        scenario.largeText ? 320 : 160,
-      );
+    if (!scenario.sensitive) await expectPreviewCrop(preview.locator('img'));
     else await expect(preview.locator('.sensitive-media-cover')).toBeVisible();
     await expect.poll(() => state.reads).toContain('thumbnail');
     await expect

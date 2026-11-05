@@ -38,6 +38,12 @@ const m5s3 = {
     keepEditing: 'Weiter bearbeiten',
   },
   overview: {
+    searchPlans: 'Pläne durchsuchen',
+    searchWishes: 'Wünsche durchsuchen',
+    clearSearch: 'Suche leeren',
+    noSearchResults: 'Keine Treffer.',
+    searchResults_one: '{{count}} Treffer',
+    searchResults_other: '{{count}} Treffer',
     planScope: 'Pläne anzeigen',
     experiencedPlans: 'Erlebt',
     experiencedPlansEmpty: 'Noch keine gemeinsam erlebten Pläne.',

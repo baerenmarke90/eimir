@@ -23,8 +23,27 @@
   margin-block: var(--space-2);
 }
 .wish-selection-entry.is-compact .wish-selection-invitation {
+  padding: 0;
+  background: transparent;
+}
+.wish-selection-compact-link {
+  display: inline-flex;
+  align-items: center;
   gap: var(--space-2);
-  padding: var(--space-3);
+  min-height: var(--touch-target-web);
+  padding-block: var(--space-2);
+  color: var(--color-brand-text);
+  font: var(--font-action-label);
+  text-decoration: none;
+}
+.wish-selection-compact-link:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+.wish-selection-compact-link > .eimir-icon {
+  width: var(--space-5);
+  height: var(--space-5);
+  flex: 0 0 var(--space-5);
 }
 .wish-selection-task {
   display: grid;

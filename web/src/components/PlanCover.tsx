@@ -104,7 +104,7 @@ export function PlanCover({
       data-media-deferred={!shouldLoad || undefined}
       className={`plan-cover plan-cover--${presentation}`}
       style={
-        concealed || presentation === 'preview'
+        concealed && presentation === 'detail'
           ? {
               aspectRatio:
                 cover.width && cover.height

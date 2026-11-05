@@ -547,6 +547,7 @@ function AuthenticatedApp({
               path={appRoutePath('plan')}
               element={
                 <SharedPlanningOverviewPage
+                  key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
                   {...planningProductProps}
                   accountId={account.id}
                   apiBaseUrl={apiBaseUrl}
@@ -843,6 +844,8 @@ function AuthenticatedApp({
               element={
                 <PrivateAreaProductPage
                   api={privateAreaApi}
+                  profilesApi={profilesApi}
+                  spacesApi={spacesApi}
                   accountId={account.id}
                   spaceId={spaceId}
                 />

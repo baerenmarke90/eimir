@@ -171,6 +171,16 @@
 .more-destination-icon > .person-identity {
   display: inline-flex;
 }
+.more-destination.more-profile-destination {
+  grid-template-columns: 3rem minmax(0, 1fr) auto;
+}
+.more-profile-avatar,
+.more-profile-avatar > .person-identity {
+  display: inline-flex;
+}
+.more-profile-avatar .person-identity-avatar {
+  border: 0;
+}
 
 .more-destination-icon svg {
   width: 1.35rem;

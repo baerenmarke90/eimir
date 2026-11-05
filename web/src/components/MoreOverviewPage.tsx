@@ -128,7 +128,7 @@ function MoreDestinationRow({
   return (
     <li>
       <Link
-        className="more-destination"
+        className={`more-destination${leading ? ' more-profile-destination' : ''}`}
         to={destination.path}
         aria-label={
           (unreadCount ?? 0) > 0
@@ -136,7 +136,10 @@ function MoreDestinationRow({
             : undefined
         }
       >
-        <span className="more-destination-icon" aria-hidden="true">
+        <span
+          className={leading ? 'more-profile-avatar' : 'more-destination-icon'}
+          aria-hidden="true"
+        >
           {leading ?? <DestinationIcon icon={destination.icon} />}
         </span>
         <span className="more-destination-copy">
@@ -229,7 +232,7 @@ export function MoreOverviewPage({
               <PersonIdentity
                 displayName={displayName}
                 imageUrl={avatarUrl}
-                size="small"
+                size="medium"
                 showName={false}
                 imageAlt={t('profileIdentity.imageAlt', { name: displayName })}
                 fallbackAlt={t('profileIdentity.fallbackAlt', {

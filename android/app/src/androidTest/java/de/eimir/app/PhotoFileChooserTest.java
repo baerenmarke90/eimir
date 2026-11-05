@@ -66,6 +66,9 @@ public class PhotoFileChooserTest {
         "f8af59464b9cfa212bc95f129f923acf955d571ffd97c1b2cbb4be057069e0f6";
     private static final String LOCATION_REDACTED_VIDEO_SHA256 =
         "73ce039ba4f3d2e0245dd3255202cf830f4b7fddbbd036884a35c8ce5c07f1b8";
+    // Native taps must hit the selector button, rather than the filename text.
+    private static final String FILE_INPUT_BUTTON_STYLE =
+        "document.head.insertAdjacentHTML('beforeend',`<style>#photo::file-selector-button{width:100%;height:100%}</style>`);";
 
     private static FileChooserParams parameters(int mode, boolean capture, String... types) {
         return new FileChooserParams() {
@@ -353,7 +356,7 @@ public class PhotoFileChooserTest {
         // Inject the real file input there: navigating to a synthetic localhost
         // path can stall the API 37.1 Chromium fixture behind Capacitor routing.
         String fixtureScript = "(function(){"
-            + "document.head.insertAdjacentHTML('beforeend',`<style>#photo::file-selector-button{width:100%;height:100%}</style>`);"
+            + FILE_INPUT_BUTTON_STYLE
             + "document.body.innerHTML=`<input id='photo' type='file' accept='image/jpeg,image/png,image/webp,image/heic,image/heif' multiple aria-label='Choose photo' "
             + "style='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:240px;height:60px'>`;"
             + "document.getElementById('photo').onchange=async(e)=>{"
@@ -463,6 +466,7 @@ public class PhotoFileChooserTest {
         // Keep the established JavaScript-enabled document. Synthetic app-origin
         // navigation stalls behind Capacitor routing on the API 37.1 fixture.
         assertEquals("true", javascriptValue(view, "(function(){"
+            + FILE_INPUT_BUTTON_STYLE
             + "document.body.innerHTML=`<input id='photo' type='file' accept='" + acceptedTypes + "' multiple "
             + "style='position:fixed;top:20%;left:20%;width:60%;height:60px'>"
             + "<video id='video' controls playsinline preload='none' style='position:fixed;top:40%;left:10%;width:80%'></video>"
@@ -488,11 +492,16 @@ public class PhotoFileChooserTest {
             + "document.getElementById('play-video').onclick=()=>video.play().catch(e=>window.videoError=e.name);"
             + "return input.type==='file';})()"));
         Rect input = photoInputScreenBounds(view);
-        instrumentation.getUiAutomation().executeAndWaitForEvent(() -> {
+        try {
+            instrumentation.getUiAutomation().executeAndWaitForEvent(() -> {
                 try { tapScreenBounds(input); }
                 catch (Exception failure) { throw new AssertionError(failure); }
             }, event -> event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && isSystemVideoPicker(event.getPackageName()), 15000);
+        } catch (TimeoutException failure) {
+            captureNativeDiagnostics("native-video-failure");
+            throw failure;
+        }
         // Screenshots synchronize native surfaces and can replace accessibility nodes.
         // Acquire the control only after recording, immediately before its tap.
         captureNativeDiagnostics("native-video-picker");

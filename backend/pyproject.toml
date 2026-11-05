@@ -38,6 +38,8 @@ dependencies = [
     "pillow-heif>=1.1",
     "google-auth-oauthlib>=1.5.0",
     "google-auth[requests]>=2.62,<3",
+    # Keep the adopted OAuth stack above the corrected device-grant advisory baseline.
+    "oauthlib>=4.0.1,<5",
     # Standard JWE encrypted device previews; never implement JOSE framing here.
     "joserfc==1.7.7",
 ]

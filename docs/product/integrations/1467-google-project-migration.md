@@ -74,6 +74,21 @@ long recommended intervals and no deadline extension. Run focused provider,
 configuration, browser-binding and API regressions, lint/type/OpenAPI checks and
 the normal affected CI gates. Synthetic tests are not real Google acceptance.
 
+The first hosted check exposed a prohibited second Compose manifest in the
+initial preparation. That addition was removed; the canonical runtime uses its
+existing environment injection. The topology contracts and their assertions
+are preserved unchanged.
+
+The same check found two changed security baselines. The existing OAuth stack
+now has an explicit `oauthlib>=4.0.1,<5` floor and a refreshed lock, following the
+corrected [upstream advisory](https://github.com/oauthlib/oauthlib/security/advisories/GHSA-3jp2-3mrg-2vxc).
+The frozen audit and focused OAuth/configuration tests pass with 4.0.1. No device
+grant flow is introduced. Separately, the current primary Debian JSON marks
+CVE-2026-6385 resolved in sid; its previous unresolved review is retained in the
+codec evidence as a resolved finding. The restricted MOV-only build and missing
+DVD subtitle parser/decoder were rechecked. No codec gate, ignore rule or decoder
+surface is changed, and no upstream fix is claimed for the pinned source.
+
 ## Operator handover: replacement Google project
 
 Use the Google account/organization that should own eimir.'s integration. The
@@ -129,41 +144,35 @@ Choose one supported deployment approach:
 | Environment/secret injection | `EIMIR_GOOGLE_PHOTOS_CLIENT_ID`, `EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET`; leave `EIMIR_GOOGLE_PHOTOS_WEB_CLIENT_FILE` empty |
 | Mounted Web-client JSON | `EIMIR_GOOGLE_PHOTOS_WEB_CLIENT_FILE=/run/secrets/google-photos-web-client.json`; leave both environment credentials empty |
 
-For the canonical Compose runtime, `compose.google-photos.yaml` is the optional
-secret-mount overlay for both Self-Hosted and Cloud profiles. Set the private
-host-local `EIMIR_GOOGLE_PHOTOS_WEB_CLIENT_HOST_FILE` in the existing operator
-environment. Store the file outside the checkout and make it readable by the
-existing container UID 10001 while keeping it inaccessible to unrelated users.
-Compose local-file secrets use the host file's effective permissions; setting
-`uid`/`mode` in Compose would not establish those host permissions.
+The canonical Compose runtime keeps exactly one `compose.yaml`. Use its existing
+environment/secret injection with the client ID/secret pair; no second maintained
+orchestration manifest is added. Retain the existing profiles, image identity,
+release guard, encryption keys, volumes and migration/start procedure.
 
-Before any restart, validate the combined topology without printing its expanded
+Before any restart, validate the normal topology without printing its expanded
 environment, which can contain secrets:
 
 ```bash
-docker compose --env-file /absolute/private/eimir.env \
-  -f compose.yaml -f compose.google-photos.yaml config --quiet
+docker compose --env-file /absolute/private/eimir.env config --quiet
 ```
 
-Retain the deployment's existing profiles, image identity, release guard,
-encryption keys, volumes and migration/start procedure. This overlay adds only a
-read-only OAuth secret. It does not deploy, change origins or enable Google.
-Runtime images must include this preparation before using its new file mode or
-setup module. Existing environment credentials remain supported.
-
+Runtime images must include this preparation before using its setup module.
 Check the actual configuration inside the running API image:
 
 ```bash
-docker compose --env-file /absolute/private/eimir.env \
-  -f compose.yaml -f compose.google-photos.yaml exec -T api \
+docker compose --env-file /absolute/private/eimir.env exec -T api \
   python -m eimir.photo_sources.google_setup --check-config
 ```
 
-Use `cloud-api` for the existing Cloud profile. Arcane/custom topologies may
-mount the same private file or inject the existing credential pair using their
-supported secret facilities. A different operator project/account needs no source
-edit. Recreate API/worker processes through the normal deployment procedure
-after environment changes. Mounted files are re-read per new OAuth transaction;
+Use `cloud-api` for the existing Cloud profile. An operator-managed topology
+that already supports private read-only file mounts may use the JSON alternative;
+set its container path with `EIMIR_GOOGLE_PHOTOS_WEB_CLIENT_FILE`. The canonical
+Compose path uses the existing environment pair and does not require such a mount.
+Keep any mounted file outside the checkout, readable by container UID 10001 and
+inaccessible to unrelated users. No secret file is included in an application
+image or repository. Different operator accounts/projects require no source edit.
+Recreate API/worker processes through the normal deployment procedure after
+environment changes. Mounted files are re-read per new OAuth transaction;
 replace them atomically rather than editing an active secret file in place.
 
 Exit 0 means the public manifest/configuration check succeeded; it does not mean

@@ -25,7 +25,7 @@ from eimir.api.schema import (
     story_resource_capabilities,
 )
 from eimir.api.v1.attachments import AttachmentEntry, AttachmentSummary, OrderedAttachmentSummary
-from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS, BoundAttachment
+from eimir.attachments.binding import MAX_GALLERY_ATTACHMENTS, BoundAttachment, can_edit_sensitivity
 from eimir.attachments.models import Attachment, MediaType
 from eimir.authorization import ContentVisibility, visibility_of
 from eimir.engagement.gentle import record_manual_save
@@ -231,6 +231,11 @@ def _heart_moment_detail(
                 has_thumbnail=entry.attachment.has_thumbnail,
                 duration_seconds=entry.attachment.duration_seconds,
                 is_sensitive=entry.attachment.payload.is_sensitive,
+                can_edit_sensitivity=can_edit_sensitivity(
+                    entry.attachment,
+                    account_id=authorization.account_id,
+                    parent_owner_id=heart_moment.owner_id,
+                ),
             )
             for entry in entries
         ],

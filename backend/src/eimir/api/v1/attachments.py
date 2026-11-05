@@ -149,6 +149,13 @@ class OrderedAttachmentSummary(AttachmentSummary):
     """A bound photo with its stable position in a parent's gallery."""
 
     position: int
+    can_edit_sensitivity: bool = Field(
+        default=False,
+        description=(
+            "Viewer-specific authority to edit classification through this parent; "
+            "never a read grant."
+        ),
+    )
 
 
 class UploadDescriptor(ApiModel):

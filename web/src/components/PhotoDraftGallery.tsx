@@ -1,10 +1,9 @@
-import { type ReactNode, useRef, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import type { AttachmentDraft } from '../client/attachmentDraftState';
 import { selectedPhotoUnavailable } from '../client/selectedMediaRetention';
 import { useTranslation } from '../i18n';
 import { SensitiveMediaCheckbox } from './SensitiveMedia';
 import './PhotoDraftGallery.css';
-import { ShortTaskSheet } from './ShortTaskSheet';
 import {
   PhotoDraftSorting,
   SortablePhotoDraftItem,
@@ -23,7 +22,7 @@ export interface PhotoDraftGalleryItem {
   canEditSensitivity?: boolean;
 }
 
-/** One bounded media selection with one inspector, independent of persistence. */
+/** Bounded media selection with contextual inline actions. */
 export function PhotoDraftGallery({
   items,
   disabled = false,
@@ -48,10 +47,9 @@ export function PhotoDraftGallery({
   removeLabel?: (key: string) => string;
 }) {
   const { t } = useTranslation();
-  const doneRef = useRef<HTMLButtonElement>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const selected = items.find((item) => item.key === selectedKey) ?? items[0];
   if (!selected) return null;
@@ -150,7 +148,7 @@ export function PhotoDraftGallery({
                 )}
                 onClick={() => {
                   setSelectedKey(item.key);
-                  setPreviewOpen(true);
+                  setActionsOpen(true);
                 }}
               >
                 <span className="photo-draft-tile-preview">{item.preview}</span>
@@ -228,34 +226,14 @@ export function PhotoDraftGallery({
             onClick={() => {
               if (items.indexOf(failed[0]) >= 6) setExpanded(true);
               setSelectedKey(failed[0].key);
-              setPreviewOpen(true);
+              setActionsOpen(true);
             }}
           >
             {t('memory.photoReviewFailure')}
           </button>
         </div>
       ) : null}
-      <ShortTaskSheet
-        open={previewOpen}
-        title={t(
-          isVideo(selected) ? 'video.position' : 'memory.photoPosition',
-          { position: index + 1, count: items.length },
-        )}
-        onClose={() => setPreviewOpen(false)}
-        className="photo-draft-preview-sheet"
-        initialFocusRef={doneRef}
-        footer={
-          <button
-            type="button"
-            ref={doneRef}
-            className="secondary"
-            onClick={() => setPreviewOpen(false)}
-          >
-            {t('gallery.done')}
-          </button>
-        }
-      >
-        <div className="photo-draft-large-preview">{selected.preview}</div>
+      {actionsOpen ? (
         <fieldset className="photo-draft-inspector">
           <legend className="sr-only">
             {t(
@@ -385,7 +363,7 @@ export function PhotoDraftGallery({
             ) : null}
           </div>
         </fieldset>
-      </ShortTaskSheet>
+      ) : null}
       <span className="sr-only" role="status" aria-live="polite">
         {announcement}
       </span>

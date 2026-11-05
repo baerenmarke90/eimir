@@ -60,6 +60,29 @@ function setup(
   );
 }
 describe('Pro memory map', () => {
+  it('sorts place choices by name after loading another page and retains grouping', async () => {
+    const list = vi
+      .fn()
+      .mockResolvedValueOnce({
+        items: [{ ...item, placeName: 'Zoo' }],
+        nextCursor: 'next',
+      })
+      .mockResolvedValueOnce({
+        items: [
+          { ...item, placeName: 'Äpfel', memoryId: 'm2', latitude: 50 },
+          { ...item, placeName: 'Zoo', memoryId: 'm3' },
+        ],
+        nextCursor: null,
+      });
+    setup(list);
+    fireEvent.click(await screen.findByRole('button', { name: copy.loadMore }));
+    await screen.findByRole('button', { name: 'Äpfel · 1 Erinnerung' });
+    const choices = screen.getAllByRole('button', { name: / · \d Erinner/ });
+    expect(choices.map((button) => button.getAttribute('aria-label'))).toEqual([
+      'Äpfel · 1 Erinnerung',
+      'Zoo · 2 Erinnerungen',
+    ]);
+  });
   it('commits a fullscreen location only after closing its owned history entry', async () => {
     setup(vi.fn().mockResolvedValue({ items: [item], nextCursor: null }));
     fireEvent.click(

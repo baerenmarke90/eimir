@@ -14,6 +14,7 @@ import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import { formatCalendarDate } from '../client/formatRecency';
 import { groupPlanningOverviewPlans } from '../client/planningOverview';
+import { sortByProductLabel } from '../client/productLabelOrder';
 import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
 import {
@@ -456,21 +457,19 @@ export function SharedPlanningOverviewPage({
     planSearch.trim() && plans.hasNextPage && !plans.error,
   );
 
-  const wishOrder = new Intl.Collator(resolvedLocale(), {
-    sensitivity: 'base',
-    numeric: true,
-  });
-  const wishItems = [
-    ...new Map(
-      (wishes.data?.pages.flatMap((page) => page.items) ?? [])
-        .filter((wish) => wish.status === wishStatus)
-        .filter((wish) =>
-          matchesSearch(wishSearch, wish.title, ...(wish.tags ?? [])),
-        )
-        .map((wish) => [wish.id, wish]),
-    ).values(),
-  ].sort(
-    (a, b) => wishOrder.compare(a.title, b.title) || a.id.localeCompare(b.id),
+  const wishItems = sortByProductLabel(
+    [
+      ...new Map(
+        (wishes.data?.pages.flatMap((page) => page.items) ?? [])
+          .filter((wish) => wish.status === wishStatus)
+          .filter((wish) =>
+            matchesSearch(wishSearch, wish.title, ...(wish.tags ?? [])),
+          )
+          .map((wish) => [wish.id, wish]),
+      ).values(),
+    ],
+    (wish) => wish.title,
+    resolvedLocale(),
   );
   const wishGroups = new Map<string, WishDetail[]>();
   for (const wish of wishItems) {

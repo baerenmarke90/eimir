@@ -282,13 +282,19 @@ for (const view of [
       new RegExp(de.memory.photoReady),
     );
     await tile.click();
-    const preview = page.getByRole('dialog');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(
-      preview.locator('.photo-draft-large-preview img'),
+      page.getByRole('group', { name: de.memory.photoSelected, exact: true }),
     ).toBeVisible();
-    await preview
-      .getByRole('button', { name: storyCopy.gallery.done, exact: true })
-      .click();
+    await expect(
+      page.getByRole('button', { name: de.memory.photoRemove, exact: true }),
+    ).toBeVisible();
+    await captureScreenshot(
+      page,
+      info,
+      `followup-media-inline-${view.width}-${view.theme}.png`,
+      { fullPage: true },
+    );
     await page
       .getByRole('button', { name: copy.common.save, exact: true })
       .click();

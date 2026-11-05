@@ -9,7 +9,10 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import fixtureCopy from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
-import { closeDraftActions, openDraftActions } from '../support/mediaDraft';
+import {
+  expectInlineDraftActions,
+  selectDraftMedia,
+} from '../support/mediaDraft';
 import {
   installMediaOwnershipMetrics,
   mediaOwnershipMetrics,
@@ -1911,7 +1914,7 @@ test('sensitive photo editing retains a failed classification draft and saves on
   await page.goto('/');
   await signIn(page);
   await page.goto(`/story/memories/${MEMORY_ID}/edit`);
-  await openDraftActions(page);
+  await selectDraftMedia(page);
   const mark = page
     .getByRole('checkbox', { name: sensitiveMedia.mark, exact: true })
     .first();
@@ -1921,7 +1924,7 @@ test('sensitive photo editing retains a failed classification draft and saves on
     path: '../../docs/product/design/references/1477/runtime-edit-390.png',
     fullPage: true,
   });
-  await closeDraftActions(page);
+  await expectInlineDraftActions(page);
   let rejectNext = true;
   await page.route(
     `**/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}/attachments`,
@@ -1947,9 +1950,9 @@ test('sensitive photo editing retains a failed classification draft and saves on
     })
     .click();
   await expect(page).toHaveURL(/edit$/);
-  await openDraftActions(page);
+  await selectDraftMedia(page);
   await expect(mark).not.toBeChecked();
-  await closeDraftActions(page);
+  await expectInlineDraftActions(page);
   await page
     .getByRole('button', {
       name: memoryProduct.save,

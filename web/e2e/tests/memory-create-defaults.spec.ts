@@ -1,4 +1,7 @@
-import { openDraftActions, closeDraftActions } from '../support/mediaDraft';
+import {
+  selectDraftMedia,
+  expectInlineDraftActions,
+} from '../support/mediaDraft';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
@@ -1431,13 +1434,13 @@ for (const [width, colorScheme] of [
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(2);
-    await openDraftActions(page);
+    await selectDraftMedia(page);
     await page
       .getByRole('button', {
         name: de.memory.photoMoveLater.replace('{{name}}', 'one.png'),
       })
       .click();
-    await closeDraftActions(page);
+    await expectInlineDraftActions(page);
     await page.getByLabel(contextTags.newLabel).fill('An unfinished label');
     await expect(page.locator('.memory-draft-status')).toHaveText(
       de.memory.diary.draft.saved,
@@ -1884,7 +1887,7 @@ for (const [width, colorScheme] of [
         .getByRole('group', { name: de.memory.photoSelected, exact: true })
         .getByRole('status'),
     ).toHaveText(de.memory.diary.photoMissing);
-    await closeDraftActions(page);
+    await expectInlineDraftActions(page);
     await expect(
       page.getByLabel(de.memory.bodyLabel, { exact: true }),
     ).toHaveValue(AUTHORED_BODY);
@@ -1914,14 +1917,16 @@ for (const [width, colorScheme] of [
       fullPage: true,
     });
     await page.unroute(missingPath, unavailable);
-    await openDraftActions(page, 1);
+    await selectDraftMedia(page, 1);
     await page
       .getByRole('button', { name: de.memory.diary.photoRetry, exact: true })
       .click();
-    await expect(page.getByRole('dialog').getByRole('status')).toHaveText(
-      de.memory.photoReady,
-    );
-    await closeDraftActions(page);
+    await expect(
+      page
+        .getByRole('group', { name: de.memory.photoSelected, exact: true })
+        .getByRole('status'),
+    ).toHaveText(de.memory.photoReady);
+    await expectInlineDraftActions(page);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(2);
@@ -2027,7 +2032,7 @@ test('known-created recovery can bind original photos after transient read failu
     .getByRole('group', { name: de.memory.photoSelected, exact: true })
     .getByRole('checkbox')
     .check();
-  await closeDraftActions(page);
+  await expectInlineDraftActions(page);
   let bindings = 0;
   const bindingBodies: unknown[] = [];
   await page.route(`**/memories/${MEMORY_ID}/attachments`, async (route) => {
@@ -2387,7 +2392,7 @@ for (const [width, colorScheme] of [
       'travel-2.jpg',
     );
     expect(photos.uploaded).toHaveLength(10);
-    await closeDraftActions(page);
+    await expectInlineDraftActions(page);
     await page.getByRole('button', { name: de.memory.photoShowLess }).click();
     await expect(tiles).toHaveCount(6);
     await expectNoHorizontalOverflow(page);
@@ -2491,7 +2496,7 @@ for (const [width, colorScheme] of [
       'aria-pressed',
       'true',
     );
-    await closeDraftActions(page);
+    await expectInlineDraftActions(page);
     await page
       .getByRole('heading', {
         name: memoryProduct.editHeading,

@@ -10,7 +10,10 @@ import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import deFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { nextFrame } from '../support/mediaCarouselGesture';
-import { closeDraftActions, openDraftActions } from '../support/mediaDraft';
+import {
+  expectInlineDraftActions,
+  selectDraftMedia,
+} from '../support/mediaDraft';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
 /** #1618: strict mocked API journeys and actual browser/visual evidence.
@@ -375,11 +378,14 @@ for (const [width, colorScheme] of [
       gallery.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(visibleCount);
     await gallery.locator('.photo-draft-tile').nth(1).click();
-    const actions = page.locator('dialog.photo-draft-preview-sheet[open]');
+    const actions = page.getByRole('group', {
+      name: de.memory.photoSelected,
+      exact: true,
+    });
     await actions
       .getByRole('button', { name: experiences.chooseCover })
       .click();
-    await closeDraftActions(page);
+    await expectInlineDraftActions(page);
     if (width === 390 && colorScheme === 'light') {
       const handle = gallery.getByRole('button', {
         name: experiences.moveHandle.replace('{{name}}', 'first.jpg'),
@@ -436,14 +442,14 @@ for (const [width, colorScheme] of [
         gallery.locator('.photo-draft-tile').first(),
       ).toHaveAttribute('aria-label', /first.jpg/);
     }
-    await openDraftActions(page, 2);
+    await selectDraftMedia(page, 2);
     const earlier = actions.getByRole('button', {
       name: de.memory.photoMoveEarlier.replace('{{name}}', 'third.jpg'),
       exact: true,
     });
     await earlier.click();
     await earlier.click();
-    await closeDraftActions(page);
+    await expectInlineDraftActions(page);
     await expect(gallery.locator('.photo-draft-tile').first()).toHaveAttribute(
       'aria-label',
       /third.jpg/,

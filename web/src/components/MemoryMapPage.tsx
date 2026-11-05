@@ -17,6 +17,7 @@ import {
 } from 'react-router-dom';
 import type { MemoryMapEntry } from '../api/generated/models/MemoryMapEntry';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { sortByProductLabel } from '../client/productLabelOrder';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import {
   ClientProblemError,
@@ -61,6 +62,7 @@ export function MemoryMapPage({
   ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
+  const locale = resolvedLocale();
   const { captureOrigin } = useTaskOrigin();
   const location = useLocation();
   const navigate = useNavigate();
@@ -144,8 +146,12 @@ export function MemoryMapPage({
       group.memories.set(entry.memoryId, entry);
       group.point.count = group.memories.size;
     }
-    return [...grouped.values()];
-  }, [query.data]);
+    return sortByProductLabel(
+      [...grouped.values()],
+      (group) => group.point.label,
+      locale,
+    );
+  }, [query.data, locale]);
   const thumbnail = useCallback(
     (entry?: MemoryMapEntry) =>
       entry?.previewAttachmentId && loadMemoryImage ? (
@@ -179,7 +185,6 @@ export function MemoryMapPage({
     [locations, t, thumbnail],
   );
   const selected = locations.find(({ point }) => point.id === selectedId);
-  const locale = resolvedLocale();
   const dateFormats = useMemo(
     () => ({
       full: new Intl.DateTimeFormat(locale, {

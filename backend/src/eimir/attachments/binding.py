@@ -376,6 +376,13 @@ def attachments_of_memory(session: Session, memory_id: UUID) -> list[BoundAttach
     return [BoundAttachment(attachment=row[1], position=row[0].position) for row in rows]
 
 
+def can_edit_sensitivity(
+    attachment: Attachment, *, account_id: UUID, parent_owner_id: UUID
+) -> bool:
+    """Match the existing parent-author or individual-uploader write authority."""
+    return account_id in (parent_owner_id, attachment.owner_id)
+
+
 def set_sensitive(attachment: Attachment, value: bool | None, *, allow_change: bool = True) -> None:
     """Update protected metadata only under the authorized parent's write/lock contract.
 

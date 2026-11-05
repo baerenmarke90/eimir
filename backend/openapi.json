@@ -28588,7 +28588,7 @@
       }
     },
     "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}": {
-      "post": {
+      "get": {
         "operationId": "readSelectedPhoto",
         "parameters": [
           {

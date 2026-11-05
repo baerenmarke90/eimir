@@ -43,6 +43,7 @@ interface PhotoSourceScenario {
   cancelled: number;
   disconnected: number;
   previewFailures?: number;
+  originalFailures?: number;
   thumbnails?: number;
   waitForOriginal?: () => Promise<void>;
 }
@@ -375,6 +376,80 @@ test('closing a pending source transfer keeps authored words and rejects late ph
   expect(photos.creates).toBe(0);
 });
 
+for (const failed of [1, 2]) {
+  test(`Immich retains failed selections and retries without duplicate imports (${failed})`, async ({
+    page,
+  }, testInfo) => {
+    const source = sourceScenario(true);
+    source.originalFailures = failed;
+    source.previewFailures = 1;
+    const photos = emptyPhotoBatch();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await signInAndOpenMemoryCreate(page, photos, source);
+    await page
+      .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
+      .fill(AUTHORED_BODY);
+    await page.getByRole('button', { name: photoSources.more }).click();
+    const sheet = page.locator('.photo-source-sheet[role=dialog]');
+    await sheet
+      .getByRole('button', { name: photoSources.immich, exact: true })
+      .click();
+    await expect(
+      sheet.getByText(photoSources.previewFailed, { exact: true }),
+    ).toBeVisible();
+    const beforeRetry = source.thumbnails ?? 0;
+    await sheet
+      .getByRole('button', { name: de.common.retry, exact: true })
+      .click();
+    await expect.poll(() => source.thumbnails ?? 0).toBe(beforeRetry + 1);
+    await expect(sheet.locator('.photo-source-choice img')).toHaveCount(2);
+    await expect(sheet.getByRole('checkbox', { checked: true })).toHaveCount(0);
+    for (const image of await sheet.locator('.photo-source-choice img').all()) {
+      await expect
+        .poll(() =>
+          image.evaluate((node: HTMLImageElement) => node.naturalWidth),
+        )
+        .toBeGreaterThan(0);
+    }
+    await sheet.getByLabel('Foto 1', { exact: true }).check();
+    await sheet.getByLabel('Foto 2', { exact: true }).check();
+    await sheet.getByRole('button', { name: photoSources.import }).click();
+    await expect(sheet.getByRole('alert')).toHaveText(
+      failed === 2
+        ? photoSources.importFailed
+        : photoSources.partial.replace('{{count}}', '1'),
+    );
+    await expect(sheet.getByRole('checkbox', { checked: true })).toHaveCount(
+      failed,
+    );
+    expect(source.cancelled).toBe(0);
+    expect(source.originals).toBe(2);
+    await expect(page.locator('.photo-draft-tile')).toHaveCount(2 - failed);
+    await expectNoHorizontalOverflow(page);
+    expect(
+      (await new AxeBuilder({ page }).include('.photo-source-sheet').analyze())
+        .violations,
+    ).toEqual([]);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `immich-import-recovery-${failed}-390-light.png`,
+      ),
+      fullPage: true,
+    });
+    await sheet.getByRole('button', { name: photoSources.import }).click();
+    await expect(sheet).toBeHidden();
+    await expect(page.locator('.photo-draft-tile')).toHaveCount(2);
+    expect(source.originals).toBe(2 + failed);
+    await expect(
+      page.getByRole('textbox', { name: de.memory.bodyLabel, exact: true }),
+    ).toHaveValue(AUTHORED_BODY);
+    await page.getByRole('button', { name: de.memory.save }).click();
+    await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+    expect(photos.bound).toHaveLength(2);
+  });
+}
+
 test('Pro expiry retains the personal link and permits disconnect without importing', async ({
   page,
 }) => {
@@ -568,6 +643,7 @@ async function installApiMocks(
       source &&
       pathname.includes('/photo-selections/selected-session/items/')
     ) {
+      expect(method).toBe('GET');
       if (new URL(request.url()).searchParams.get('thumbnail') === 'true') {
         source.thumbnails = (source.thumbnails ?? 0) + 1;
         if (source.previewFailures) {
@@ -585,6 +661,18 @@ async function installApiMocks(
       } else {
         source.originals++;
         await source.waitForOriginal?.();
+        if (source.originalFailures) {
+          source.originalFailures--;
+          await route.fulfill({
+            status: 503,
+            contentType: 'application/problem+json',
+            body: JSON.stringify({
+              status: 503,
+              code: 'PHOTO_SOURCE_UNAVAILABLE',
+            }),
+          });
+          return;
+        }
       }
       await route
         .fulfill({

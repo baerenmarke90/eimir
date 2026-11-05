@@ -685,7 +685,8 @@
     "today-freshness.spec.ts": {
       "roots": [
         "web/src/components/TodayPage.tsx",
-        "web/src/components/SettingsPage.tsx"
+        "web/src/components/SettingsPage.tsx",
+        "web/src/client/useSystemTimeZone.ts"
       ]
     },
     "today-keepsake-precedence.spec.ts": {

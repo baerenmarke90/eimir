@@ -1,10 +1,11 @@
-import { fulfillEmptyPlanComments } from '../support/planComments';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import navigation from '../../src/i18n/locales/navigation';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
+import { fulfillEmptyPlanComments } from '../support/planComments';
+import { fulfillDefaultProductContext } from '../support/productContext';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -26,14 +27,24 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   let dashboardRequestCount = 0;
   let isRescheduled = false;
   let planPatchCount = 0;
+  let acknowledgeDeviceContext: () => void = () => undefined;
+  const deviceContextReply = new Promise<void>((resolve) => {
+    acknowledgeDeviceContext = resolve;
+  });
 
   await page.route('**/api/v1/**', async (route) => {
-    if (await fulfillDefaultAppIcon(route)) return;
-    if (await fulfillUnconfiguredPhotoSources(route)) return;
-    if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
+    if (method === 'PUT' && pathname === '/api/v1/account/device-context') {
+      // Make the confirmed system-zone refresh a separate, observable startup step.
+      await deviceContextReply;
+      expect(await fulfillDefaultProductContext(route)).toBe(true);
+      return;
+    }
+    if (await fulfillDefaultAppIcon(route)) return;
+    if (await fulfillUnconfiguredPhotoSources(route)) return;
+    if (await fulfillEmptyPlanComments(route)) return;
 
     const fulfillJson = async (body: unknown, status = 200) =>
       route.fulfill({
@@ -398,11 +409,21 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   ).toBeVisible();
   expect(dashboardRequestCount).toBe(1);
 
+  // Acknowledging the system context deliberately refreshes the current-day data.
+  const contextRefresh = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'GET' &&
+      new URL(response.url()).pathname ===
+        `/api/v1/spaces/${SPACE_ID}/dashboard`,
+  );
+  acknowledgeDeviceContext();
+  await contextRefresh;
+  await expect.poll(() => dashboardRequestCount).toBe(2);
+
   // Step 2: Pull-to-refresh is an app-level mobile interaction on Today.
   const refreshIndicator = page.locator('.app-pull-refresh-indicator');
   await expect(refreshIndicator).toHaveCount(1);
   await expect(page.locator('html')).toHaveClass(/app-pull-refresh-enabled/);
-  await page.waitForTimeout(100);
   const requestsBeforePull = dashboardRequestCount;
   const browserRefreshSuppressed = await page.evaluate(() => {
     const dispatch = (type: string, y?: number) => {
@@ -435,6 +456,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
     document.dispatchEvent(event);
   });
   await expect.poll(() => dashboardRequestCount).toBe(requestsBeforePull + 1);
+  const requestsBeforeReschedule = dashboardRequestCount;
 
   // Step 3: Navigate to plan details via in-app UI click (NO page.reload())
   await agenda.getByRole('link', { name: /Later October trip/ }).click();
@@ -474,7 +496,9 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   await expect(page).toHaveURL(/\/today$/);
 
   // Step 5: Verify Dashboard query was automatically refetched after route re-entry.
-  await expect.poll(() => dashboardRequestCount).toBeGreaterThanOrEqual(2);
+  await expect
+    .poll(() => dashboardRequestCount)
+    .toBeGreaterThan(requestsBeforeReschedule);
 
   // Step 6: Verify the rescheduled item is now visible in the Shared Planning
   // Horizon agenda, and the stale title is gone

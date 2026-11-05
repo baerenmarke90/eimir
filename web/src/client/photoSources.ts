@@ -130,7 +130,7 @@ export function readPhotoThumbnail(
       void api
         .readSelectedPhoto(
           { spaceId, selectionId, itemId, thumbnail: true },
-          { signal },
+          { signal, cache: 'no-store' },
         )
         .then(resolve, reject)
         .finally(() => {

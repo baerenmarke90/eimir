@@ -20,6 +20,7 @@ import { postSnackbar } from '../client/snackbar';
 import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
 import { useTranslation } from '../i18n';
 import { DailyVibeIcon } from './DailyVibeIcon';
+import { EimirIcon } from './EimirIcon';
 import { useDailyCheckInWrite } from './useDailyCheckInWrite';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './DailyVibeCheckIn.css';
@@ -64,6 +65,21 @@ const VIBE_OPTIONS = [
 
 function vibeOption(value: DailyVibeValue) {
   return VIBE_OPTIONS.find((option) => option.value === value);
+}
+
+const FEELING_OPTIONS = VIBE_OPTIONS.slice(0, 5);
+
+function VibeNoteMarker() {
+  const { t } = useTranslation();
+  return (
+    <span
+      className="daily-vibe-note-marker"
+      title={t('dailyVibe.noteAvailable')}
+    >
+      <EimirIcon name="nachrichten" />
+      <span className="sr-only">{t('dailyVibe.noteAvailable')}</span>
+    </span>
+  );
 }
 
 function subscribeOnlineState(onStoreChange: () => void): () => void {
@@ -402,8 +418,11 @@ export function DailyVibeCheckIn({
 
   const ownOption = displayedOwnVibe ? vibeOption(displayedOwnVibe) : undefined;
   const ownLabel = ownOption ? t(ownOption.labelKey) : '';
+  const ownHasNote = Boolean(ownVibeNote?.trim()) && !ownPending;
   const triggerLabel = ownOption
-    ? t('dailyVibe.changeAria', { value: ownLabel })
+    ? t(ownHasNote ? 'dailyVibe.changeWithNoteAria' : 'dailyVibe.changeAria', {
+        value: ownLabel,
+      })
     : t('dailyVibe.chooseAria');
   const partnerProjection = snapshot.projection.vibe.partner;
   const partnerLabel = personalPartnerName;
@@ -417,7 +436,7 @@ export function DailyVibeCheckIn({
         ? t(partnerOption.labelKey)
         : t('dailyVibe.partnerFallbackVisible', { name: partnerLabel })
       : '';
-  const partnerNote = serverPartnerNote;
+  const partnerNote = serverPartnerNote?.trim() ? serverPartnerNote : null;
   const partnerCardClass =
     'daily-vibe-person daily-vibe-partner is-visible' +
     (revealVersion > 0 ? ' is-revealed' : ' is-startup-reveal');
@@ -427,7 +446,10 @@ export function DailyVibeCheckIn({
         {partnerOption ? <DailyVibeIcon value={partnerOption.value} /> : null}
       </span>
       <span className="daily-vibe-person-copy">
-        <span>{partnerLabel}</span>
+        <span className="daily-vibe-person-name">
+          <span>{partnerLabel}</span>
+          {partnerNote ? <VibeNoteMarker /> : null}
+        </span>
         <strong>{partnerValue}</strong>
       </span>
     </>
@@ -484,7 +506,10 @@ export function DailyVibeCheckIn({
                 <DailyVibeIcon value={ownOption.value} />
               </span>
               <span className="daily-vibe-person-copy">
-                <span>{t('dailyVibe.you')}</span>
+                <span className="daily-vibe-person-name">
+                  <span>{t('dailyVibe.you')}</span>
+                  {ownHasNote ? <VibeNoteMarker /> : null}
+                </span>
                 <strong>{ownLabel}</strong>
                 {ownPending ? (
                   <small className="daily-vibe-pending-status" role="status">
@@ -556,9 +581,13 @@ export function DailyVibeCheckIn({
         restoreFocusRef={triggerRef}
         className="daily-vibe-sheet"
       >
-        <p className="daily-vibe-sheet-intro">{t('dailyVibe.sheetIntro')}</p>
         <div className="daily-vibe-options">
-          {VIBE_OPTIONS.map((option, index) => {
+          {VIBE_OPTIONS.filter(
+            (option) =>
+              FEELING_OPTIONS.some(
+                (feeling) => feeling.value === option.value,
+              ) || option.value === ownVibe,
+          ).map((option, index) => {
             const selected = draftVibe === option.value;
             return (
               <button
@@ -582,9 +611,9 @@ export function DailyVibeCheckIn({
                 <span className="daily-vibe-option-glyph" aria-hidden="true">
                   <DailyVibeIcon value={option.value} />
                 </span>
-                <span>
-                  {t(option.labelKey)}
-                  {selected ? <span aria-hidden="true"> ✓</span> : null}
+                <span>{t(option.labelKey)}</span>
+                <span className="daily-vibe-option-check" aria-hidden="true">
+                  {selected ? '✓' : ''}
                 </span>
               </button>
             );
@@ -593,15 +622,13 @@ export function DailyVibeCheckIn({
 
         <label className="daily-vibe-note-field">
           <span>{t('dailyVibe.noteLabel')}</span>
-          <span className="daily-vibe-note-hint">
-            {t('dailyVibe.noteHint')}
-          </span>
           <textarea
             value={draftNote}
             maxLength={200}
             rows={3}
             disabled={mutation.isPending}
             placeholder={t('dailyVibe.notePlaceholder')}
+            aria-description={t('dailyVibe.noteHint')}
             onChange={(event) => {
               if (mutation.isInFlight()) return;
               mutation.reset();

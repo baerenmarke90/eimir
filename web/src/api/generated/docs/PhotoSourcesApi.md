@@ -9,7 +9,7 @@ All URIs are relative to *http://localhost*
 | [**disconnectImmichPhotoSource**](PhotoSourcesApi.md#disconnectimmichphotosource) | **DELETE** /api/v1/spaces/{spaceId}/photo-sources/immich | Disconnect |
 | [**getPhotoSources**](PhotoSourcesApi.md#getphotosources) | **GET** /api/v1/spaces/{spaceId}/photo-sources | Sources |
 | [**pollPhotoSelection**](PhotoSourcesApi.md#pollphotoselection) | **POST** /api/v1/spaces/{spaceId}/photo-selections/{selectionId}/poll | Poll |
-| [**readSelectedPhoto**](PhotoSourcesApi.md#readselectedphoto) | **POST** /api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId} | Read |
+| [**readSelectedPhoto**](PhotoSourcesApi.md#readselectedphoto) | **GET** /api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId} | Read |
 | [**startPhotoSelection**](PhotoSourcesApi.md#startphotoselection) | **POST** /api/v1/spaces/{spaceId}/photo-selections | Start |
 
 

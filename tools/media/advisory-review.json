@@ -51,10 +51,6 @@
     "CVE-2026-120247": {
       "evidenceSha256": "1dba6398642ed626fbbfe80a857ea8496f09aa6eccf68fc86c785753ca9132c5",
       "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only the explicitly reviewed H.264/HEVC and AAC/MP3/PCM audio decoding surface and file/pipe protocols are enabled. See original advisory description and build configuration."
-    },
-    "CVE-2026-6385": {
-      "evidenceSha256": "68993bb79516284e8d4709da374bbb45525cc91922dec1666ffe8e29be48c38e",
-      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only the explicitly reviewed H.264/HEVC and AAC/MP3/PCM audio decoding surface and file/pipe protocols are enabled. See original advisory description and build configuration."
     }
   },
   "dependencies": {
@@ -71,6 +67,16 @@
       "license": "WTFPL-2.0",
       "findings": {},
       "review": "Pinned upstream source, static color-conversion filters. Debian currently records no zimg advisories; absence from that feed is not vulnerability-free certification. No new input format/network parser or remote content flow."
+    }
+  },
+  "resolvedFindingReviews": {
+    "CVE-2026-6385": {
+      "reviewedAt": "2026-11-05",
+      "source": "https://security-tracker.debian.org/tracker/data/json",
+      "sidStatus": "resolved",
+      "debianFixedVersion": "7:9.0.2-1",
+      "previousUnresolvedEvidenceSha256": "68993bb79516284e8d4709da374bbb45525cc91922dec1666ffe8e29be48c38e",
+      "review": "The current primary Debian JSON marks sid resolved, so this finding is no longer in the unresolved-feed set checked by check-advisories.py. The updated description concerns DVD subtitle fragment reassembly reached by MPEG-PS/VOB input. The pinned restricted build still starts with --disable-everything and enables only the MOV demuxer and explicit H.264/HEVC/audio parsers and decoders, excluding MPEG-PS/VOB and DVD subtitle parsing/decoding; runtime input is forced MOV. This does not claim the pinned upstream commit contains a fix or that arbitrary system FFmpeg is safe. An unresolved reappearance remains a new guard failure. Existing restricted binary/runtime gates remain mandatory."
     }
   }
 }

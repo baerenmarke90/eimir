@@ -86,7 +86,9 @@ def replace(
         binding.set_sensitive(
             candidate,
             sensitive,
-            allow_change=context.account_id in (moment.owner_id, candidate.owner_id),
+            allow_change=binding.can_edit_sensitivity(
+                candidate, account_id=context.account_id, parent_owner_id=moment.owner_id
+            ),
         )
     for row in session.scalars(
         select(binding.HeartMomentAttachment).where(

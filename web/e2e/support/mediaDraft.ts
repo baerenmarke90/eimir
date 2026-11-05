@@ -1,20 +1,20 @@
 import { expect, type Page } from '@playwright/test';
-import storyProducts from '../../src/i18n/locales/storyProducts';
+import de from '../../src/i18n/locales/de';
 
-/** Open the contextual media task without changing or committing the outer draft. */
-export async function openDraftActions(page: Page, index = 0) {
-  const task = page.locator('dialog.photo-draft-preview-sheet[open]');
-  if (!(await task.count()))
-    await page.locator('.photo-draft-tile').nth(index).click();
-  await expect(task).toBeVisible();
-  return task;
+/** Select one media identity without opening a second task or saving the draft. */
+export async function selectDraftMedia(page: Page, index = 0) {
+  await page.locator('.photo-draft-tile').nth(index).click();
+  await expectInlineDraftActions(page);
+  return page.getByRole('group', {
+    name: de.memory.photoSelected,
+    exact: true,
+  });
 }
 
-export async function closeDraftActions(page: Page) {
-  const task = page.locator('dialog.photo-draft-preview-sheet[open]');
-  if (await task.count())
-    await task
-      .getByRole('button', { name: storyProducts.gallery.done, exact: true })
-      .click();
-  await expect(task).toHaveCount(0);
+/** Contextual actions remain usable inline; no Done/dismiss step is needed. */
+export async function expectInlineDraftActions(page: Page) {
+  await expect(page.locator('dialog.photo-draft-preview-sheet')).toHaveCount(0);
+  await expect(
+    page.getByRole('group', { name: de.memory.photoSelected, exact: true }),
+  ).toBeVisible();
 }

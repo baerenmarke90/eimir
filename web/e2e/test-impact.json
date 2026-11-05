@@ -836,6 +836,13 @@
         "web/src/components/usePullToRefresh.ts"
       ]
     },
+    "polish-sensitive-media.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/PlanPhotosEditor.tsx",
+        "web/src/components/PhotoDraftGallery.tsx"
+      ]
+    },
     "multilingual-product.spec.ts": {
       "roots": [
         "web/src/components/LanguageSettings.tsx",

@@ -1,4 +1,7 @@
-import { openDraftActions, closeDraftActions } from '../support/mediaDraft';
+import {
+  selectDraftMedia,
+  expectInlineDraftActions,
+} from '../support/mediaDraft';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import photoSources from '../../src/i18n/locales/photoSources';
 import AxeBuilder from '@axe-core/playwright';
@@ -335,12 +338,12 @@ for (const scenario of [
     await page
       .getByRole('button', { name: de.common.edit, exact: true })
       .click();
-    await openDraftActions(page);
+    await selectDraftMedia(page);
     await page
       .getByRole('group', { name: de.memory.photoSelected, exact: true })
       .getByRole('checkbox')
       .setChecked(!scenario.sensitive);
-    await closeDraftActions(page);
+    await expectInlineDraftActions(page);
     await page
       .getByRole('button', { name: de.common.cancel, exact: true })
       .click();
@@ -556,7 +559,7 @@ for (const view of [
     await expect(inspector.getByRole('status')).toHaveText(
       de.memory.photoReady,
     );
-    await closeDraftActions(page);
+    await expectInlineDraftActions(page);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
     ).toHaveCount(3);
@@ -669,15 +672,15 @@ for (const view of [
           name: new RegExp(de.memory.photoMoveLater.replace('{{name}}', '.+')),
         })
         .click();
-      await closeDraftActions(page);
+      await expectInlineDraftActions(page);
       await drafts.first().click();
       await inspector.getByRole('checkbox').check();
-      await closeDraftActions(page);
+      await expectInlineDraftActions(page);
       await drafts.last().click();
       await inspector
         .getByRole('button', { name: de.memory.photoRemove, exact: true })
         .click();
-      await closeDraftActions(page);
+      await expectInlineDraftActions(page);
     }
     await changeDraft();
     await page

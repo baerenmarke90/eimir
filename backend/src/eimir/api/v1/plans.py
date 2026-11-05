@@ -319,6 +319,7 @@ def _plan_detail(
             height=item.attachment.height,
             has_thumbnail=item.attachment.has_thumbnail,
             is_sensitive=item.attachment.payload.is_sensitive,
+            can_edit_sensitivity=True,
         )
         for item in photos
     ]

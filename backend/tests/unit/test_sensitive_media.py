@@ -6,10 +6,12 @@ import pytest
 from pydantic import ValidationError
 
 from eimir.api.v1.heart_moments import HeartMomentCreate
-from eimir.api.v1.memories import MemoryAttachmentEntry
-from eimir.attachments.binding import set_sensitive
+from eimir.api.v1.memories import MemoryAttachmentEntry, _memory_attachments
+from eimir.attachments.binding import BoundAttachment, can_edit_sensitivity, set_sensitive
 from eimir.attachments.models import Attachment, AttachmentPayload
+from eimir.authorization import AuthorizationContext
 from eimir.core.errors import ForbiddenError
+from eimir.memories.models import Memory, MemoryPayload
 
 
 @pytest.mark.parametrize("preserve_metadata", [False, True])
@@ -70,3 +72,39 @@ def test_create_cannot_claim_classification_without_a_photo() -> None:
                 "attachmentIsSensitive": True,
             }
         )
+
+
+@pytest.mark.parametrize("viewer", ["parent", "uploader", "partner"])
+def test_bound_summary_projects_individual_classification_authority(viewer: str) -> None:
+    parent_id, uploader_id, partner_id, space_id = (uuid4() for _ in range(4))
+    viewer_id = {"parent": parent_id, "uploader": uploader_id, "partner": partner_id}[viewer]
+    photo = Attachment(
+        id=uuid4(),
+        owner_id=uploader_id,
+        space_id=space_id,
+        status="READY",
+        media_type="IMAGE",
+        mime_type="image/jpeg",
+        size=100,
+        width=10,
+        height=10,
+        has_thumbnail=False,
+        payload=AttachmentPayload(original_name="selected.jpg"),
+    )
+    memory = Memory(owner_id=parent_id, payload=MemoryPayload(title="A moment", body="Words"))
+    summary = _memory_attachments(
+        AuthorizationContext(account_id=viewer_id, space_id=space_id),
+        memory,
+        [BoundAttachment(photo, 0)],
+    )[0]
+    allowed = viewer in {"parent", "uploader"}
+    assert summary.can_edit_sensitivity is allowed
+    assert summary.model_dump(by_alias=True)["canEditSensitivity"] is allowed
+    assert can_edit_sensitivity(photo, account_id=viewer_id, parent_owner_id=parent_id) is allowed
+    if allowed:
+        set_sensitive(photo, True, allow_change=summary.can_edit_sensitivity)
+        assert photo.payload.is_sensitive is True
+    else:
+        with pytest.raises(ForbiddenError):
+            set_sensitive(photo, True, allow_change=summary.can_edit_sensitivity)
+        assert photo.payload.is_sensitive is False

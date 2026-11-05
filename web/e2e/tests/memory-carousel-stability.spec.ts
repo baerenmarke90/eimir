@@ -1346,6 +1346,7 @@ for (const width of [320, 390] as const) {
     browser,
   }, testInfo) => {
     const context = await browser.newContext({
+      serviceWorkers: 'block',
       hasTouch: true,
       isMobile: true,
       viewport: { width, height: 844 },

@@ -19,6 +19,8 @@ export default defineConfig({
     baseURL,
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
+    // API-mocked journeys must reach their route handlers, including on reload.
+    serviceWorkers: 'block',
   },
   projects: [
     {
@@ -27,11 +29,14 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm --prefix .. run dev -- --host 127.0.0.1 --port ${port} --strictPort`,
+    // Routing disables the HTTP cache. Bundle once instead of reloading the
+    // development module graph for every document navigation in every test.
+    command: `npm --prefix .. run e2e:serve -- --host 127.0.0.1 --port ${port} --strictPort`,
     url: baseURL,
     // Native-container journeys require an explicit API origin, as shipped APKs do.
     env: { VITE_EIMIR_API_BASE_URL: baseURL },
-    reuseExistingServer: !process.env.CI && !process.env.EIMIR_E2E_PORT,
+    // Never accidentally validate a stale build or an unbundled dev server.
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });

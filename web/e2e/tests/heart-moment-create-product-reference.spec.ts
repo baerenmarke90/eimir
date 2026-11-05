@@ -688,6 +688,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     browser,
   }, testInfo) => {
     const context = await browser.newContext({
+      serviceWorkers: 'block',
       hasTouch: true,
       isMobile: true,
       viewport: { width: 390, height: 844 },
@@ -876,6 +877,7 @@ test('Heart Moment Create reflows at 320px and large text without horizontal ove
   browser,
 }, testInfo) => {
   const context = await browser.newContext({
+    serviceWorkers: 'block',
     hasTouch: true,
     isMobile: true,
     viewport: { width: 320, height: 568 },
@@ -942,6 +944,7 @@ test('Heart Moment Create preserves the reference rhythm on a small-height phone
   browser,
 }, testInfo) => {
   const context = await browser.newContext({
+    serviceWorkers: 'block',
     hasTouch: true,
     isMobile: true,
     viewport: { width: 390, height: 667 },
@@ -1142,6 +1145,7 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
   browser,
 }, testInfo) => {
   const context = await browser.newContext({
+    serviceWorkers: 'block',
     hasTouch: true,
     isMobile: true,
     viewport: { width: 390, height: 844 },

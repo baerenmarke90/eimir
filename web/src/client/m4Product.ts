@@ -1,5 +1,5 @@
 import { ActivityApi } from '../api/generated/apis/ActivityApi';
-import { DashboardApi } from '../api/generated/apis/DashboardApi';
+import { DashboardApi } from './mediaApis';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { SearchApi } from '../api/generated/apis/SearchApi';
 import { RecapsApi } from '../api/generated/apis/RecapsApi';

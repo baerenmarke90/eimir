@@ -18,6 +18,7 @@ import {
   nativeAppState,
 } from '../support/nativeAppLifecycle';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
+import { captureScreenshot } from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -725,7 +726,7 @@ for (const state of [
   { width: 1280, theme: 'dark', textScale: 1 },
   { width: 320, theme: 'dark', textScale: 2 },
 ] as const) {
-  test(`overview reveal controls independently reveal blurred photos without a lock glyph at ${state.width}px ${state.theme}${state.textScale > 1 ? ' 200% text' : ''}`, async ({
+  test(`overview privacy keeps independent Wir reveal and concealed Diary previews at ${state.width}px ${state.theme}${state.textScale > 1 ? ' 200% text' : ''}`, async ({
     page,
   }, info) => {
     await page.setViewportSize({ width: state.width, height: 900 });
@@ -748,7 +749,7 @@ for (const state of [
       const card = page.locator(
         surface === 'wir'
           ? '.today-moment.preview-card-link'
-          : '.story-card-link.preview-card-link',
+          : '.story-card-link',
       );
       const photo = card.locator('.sensitive-media-preview');
       const button = card.getByRole('button', {
@@ -757,6 +758,64 @@ for (const state of [
       });
       await photo.scrollIntoViewIfNeeded();
       await expect(photo.locator('.sensitive-media-blurred img')).toBeVisible();
+      if (surface === 'diary') {
+        await expect(card.locator('.sensitive-media-control')).toHaveCount(0);
+        await expect(photo.getByRole('img')).toHaveCount(0);
+        await expect(
+          card.getByText(sensitiveMedia.label, { exact: true }),
+        ).toHaveCount(1);
+        await expect(photo.locator('.sensitive-media-blurred')).toHaveCSS(
+          'filter',
+          'blur(12px)',
+        );
+        await expect(card).toHaveAttribute(
+          'href',
+          `/story/memories/${MEMORY_ID}`,
+        );
+        const violations = await new AxeBuilder({ page })
+          .include('.story-card-link')
+          .analyze();
+        expect(violations.violations).toEqual([]);
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+        ).toBe(true);
+        await captureScreenshot(
+          page,
+          info,
+          `diary-sensitive-${state.width}-${state.theme}-concealed.png`,
+          { fullPage: true },
+        );
+        await card.focus();
+        await page.keyboard.press('Enter');
+        await expect(page).toHaveURL(
+          new RegExp(`/story/memories/${MEMORY_ID}$`),
+        );
+        const detailPhoto = page.locator(
+          '.media-gallery-carousel-slide.is-active',
+        );
+        await expect(
+          detailPhoto.locator('.sensitive-media-cover'),
+        ).toBeVisible();
+        const detailGallery = page.locator('.media-gallery-carousel');
+        await detailGallery
+          .getByRole('button', { name: sensitiveMedia.show, exact: true })
+          .click();
+        await expect(detailPhoto.locator('.sensitive-media-cover')).toHaveCount(
+          0,
+        );
+        await expect(
+          detailGallery.getByRole('button', {
+            name: sensitiveMedia.hide,
+            exact: true,
+          }),
+        ).toBeVisible();
+        await page.goBack();
+        await expect(photo.locator('.sensitive-media-cover')).toBeVisible();
+        await expect(card.locator('.sensitive-media-control')).toHaveCount(0);
+        continue;
+      }
       await expect(button.locator('svg')).toHaveCount(0);
       await expect(button).toHaveText(sensitiveMedia.reveal);
       expect(await button.evaluate((node) => node.closest('a'))).toBeNull();
@@ -815,34 +874,15 @@ for (const state of [
       expect(revealedTarget.height).toBe(target.height);
       expect(revealedTarget.width).toBeGreaterThanOrEqual(44);
       expect(revealedTarget.height).toBeGreaterThanOrEqual(44);
-      if (surface === 'diary') {
-        expect(revealedTarget.x).toBeGreaterThanOrEqual(revealedFrame.x);
-        expect(revealedTarget.y).toBeGreaterThanOrEqual(revealedFrame.y);
-        expect(revealedTarget.x + revealedTarget.width).toBeLessThanOrEqual(
-          revealedFrame.x + revealedFrame.width,
-        );
-        expect(revealedTarget.y + revealedTarget.height).toBeLessThanOrEqual(
-          revealedFrame.y + revealedFrame.height,
-        );
-        // A named text control can grow toward the center at 200% text.
-        // Keep it inside the upper-right edge and the photo center unobscured.
-        expect(revealedTarget.x + revealedTarget.width).toBeGreaterThan(
-          revealedFrame.x + revealedFrame.width / 2,
-        );
-        expect(revealedTarget.y + revealedTarget.height).toBeLessThan(
-          revealedFrame.y + revealedFrame.height / 2,
-        );
-      } else {
-        expect(revealedTarget.x + revealedTarget.width).toBeLessThanOrEqual(
-          revealedFrame.x + revealedFrame.width,
-        );
-        expect(revealedTarget.y + revealedTarget.height).toBeLessThan(
-          revealedFrame.y + revealedFrame.height / 2,
-        );
-        expect(revealedTarget.y).toBeLessThan(
-          revealedFrame.y + revealedFrame.height / 2,
-        );
-      }
+      expect(revealedTarget.x + revealedTarget.width).toBeLessThanOrEqual(
+        revealedFrame.x + revealedFrame.width,
+      );
+      expect(revealedTarget.y + revealedTarget.height).toBeLessThan(
+        revealedFrame.y + revealedFrame.height / 2,
+      );
+      expect(revealedTarget.y).toBeLessThan(
+        revealedFrame.y + revealedFrame.height / 2,
+      );
       const material = await revealedButton.evaluate((node) => {
         const style = getComputedStyle(node);
         return {

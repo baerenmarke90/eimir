@@ -1,0 +1,237 @@
+{
+  "passingDistinctCases": 56,
+  "specs": {
+    "media-planning-corrections.spec.ts": 9,
+    "app-continuity-polish.spec.ts": 8,
+    "story-discover-tapestry.spec.ts": 18,
+    "shared-experience-answers.spec.ts": 4,
+    "planning-reference.spec.ts": 13,
+    "media-url-continuity.spec.ts": 4
+  },
+  "tests": [
+    {
+      "file": "app-continuity-polish.spec.ts",
+      "title": "Diary months clear system icons and both happiness answers stand apart at 1280 dark"
+    },
+    {
+      "file": "app-continuity-polish.spec.ts",
+      "title": "Diary months clear system icons and both happiness answers stand apart at 360 light"
+    },
+    {
+      "file": "app-continuity-polish.spec.ts",
+      "title": "Diary months clear system icons and both happiness answers stand apart at 390 dark"
+    },
+    {
+      "file": "app-continuity-polish.spec.ts",
+      "title": "Diary months clear system icons and both happiness answers stand apart at 430 light"
+    },
+    {
+      "file": "app-continuity-polish.spec.ts",
+      "title": "image bytes survive a native session cold start"
+    },
+    {
+      "file": "app-continuity-polish.spec.ts",
+      "title": "image bytes survive a page reload"
+    },
+    {
+      "file": "app-continuity-polish.spec.ts",
+      "title": "opening a current partner comment consumes only that event and moves it into quiet history"
+    },
+    {
+      "file": "app-continuity-polish.spec.ts",
+      "title": "the alphabet includes later API pages before showing the wish list"
+    },
+    {
+      "file": "media-planning-corrections.spec.ts",
+      "title": "Memory linking stays behind Edit and dropped photos join the existing save flow"
+    },
+    {
+      "file": "media-planning-corrections.spec.ts",
+      "title": "Plans load on scroll and an Edit-only Wish link preserves the unsaved title and version"
+    },
+    {
+      "file": "media-planning-corrections.spec.ts",
+      "title": "a failed next Wish page keeps content and a deliberate retry continues browsing"
+    },
+    {
+      "file": "media-planning-corrections.spec.ts",
+      "title": "alphabetical Wishes stay readable and preserve return at 1280 dark"
+    },
+    {
+      "file": "media-planning-corrections.spec.ts",
+      "title": "alphabetical Wishes stay readable and preserve return at 320 light"
+    },
+    {
+      "file": "media-planning-corrections.spec.ts",
+      "title": "alphabetical Wishes stay readable and preserve return at 360 light"
+    },
+    {
+      "file": "media-planning-corrections.spec.ts",
+      "title": "alphabetical Wishes stay readable and preserve return at 390 dark"
+    },
+    {
+      "file": "media-planning-corrections.spec.ts",
+      "title": "alphabetical Wishes stay readable and preserve return at 430 light"
+    },
+    {
+      "file": "media-planning-corrections.spec.ts",
+      "title": "real local codec worker reduces transfer bytes without dropping the audio track"
+    },
+    {
+      "file": "media-url-continuity.spec.ts",
+      "title": "Diary thumbnail survives a normal ninety-second detail visit without decoding a new URL"
+    },
+    {
+      "file": "media-url-continuity.spec.ts",
+      "title": "Memory gallery originals survive Wir and Moments tab navigation with fresh parent authorization"
+    },
+    {
+      "file": "media-url-continuity.spec.ts",
+      "title": "authorized thumbnail survives detail return at 1280 dark"
+    },
+    {
+      "file": "media-url-continuity.spec.ts",
+      "title": "authorized thumbnail survives detail return at 390 light"
+    },
+    {
+      "file": "planning-reference.spec.ts",
+      "title": "ArrowLeft/ArrowRight moves focus and selection between the Plans and Wishes tabs"
+    },
+    {
+      "file": "planning-reference.spec.ts",
+      "title": "Plan detail is axe-clean at 390x844 in dark mode"
+    },
+    {
+      "file": "planning-reference.spec.ts",
+      "title": "Plan detail is axe-clean at 390x844 in light mode"
+    },
+    {
+      "file": "planning-reference.spec.ts",
+      "title": "an existing Plan adopts an open Wish without duplication (1280)"
+    },
+    {
+      "file": "planning-reference.spec.ts",
+      "title": "an existing Plan adopts an open Wish without duplication (360)"
+    },
+    {
+      "file": "planning-reference.spec.ts",
+      "title": "an existing Plan adopts an open Wish without duplication (390)"
+    },
+    {
+      "file": "planning-reference.spec.ts",
+      "title": "an existing Plan adopts an open Wish without duplication (430)"
+    },
+    {
+      "file": "planning-reference.spec.ts",
+      "title": "clicking the focal Plan navigates from the Planning overview to the read-first detail page"
+    },
+    {
+      "file": "planning-reference.spec.ts",
+      "title": "cross-day Plan range reflows at 320px and keeps the same hierarchy when expanded"
+    },
+    {
+      "file": "planning-reference.spec.ts",
+      "title": "end time is progressive, blocks an invalid range, and submits the same-day end without a second date"
+    },
+    {
+      "file": "planning-reference.spec.ts",
+      "title": "shows the loading state while Plans are in flight, then the error state on failure, with a working retry"
+    },
+    {
+      "file": "planning-reference.spec.ts",
+      "title": "timed Plan range is readable at 390x844 in dark mode"
+    },
+    {
+      "file": "planning-reference.spec.ts",
+      "title": "timed Plan range is readable at 390x844 in light mode"
+    },
+    {
+      "file": "shared-experience-answers.spec.ts",
+      "title": "shared answers retain authorship through own edit and chronological comments at 1280 dark"
+    },
+    {
+      "file": "shared-experience-answers.spec.ts",
+      "title": "shared answers retain authorship through own edit and chronological comments at 360 light"
+    },
+    {
+      "file": "shared-experience-answers.spec.ts",
+      "title": "shared answers retain authorship through own edit and chronological comments at 390 dark"
+    },
+    {
+      "file": "shared-experience-answers.spec.ts",
+      "title": "shared answers retain authorship through own edit and chronological comments at 430 light"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Diary categories, red hearts and single-date headings at 1280 dark"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Diary categories, red hearts and single-date headings at 360 light"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Diary categories, red hearts and single-date headings at 390 dark"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Diary categories, red hearts and single-date headings at 430 light"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Diary filter reflows at 320px with 200 percent text in dark mode"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Diary uses its filter and keeps annual history reachable under More"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Discover long authored text uses its reading width at 1280 dark"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Discover long authored text uses its reading width at 360 light"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Discover long authored text uses its reading width at 390 dark"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Discover long authored text uses its reading width at 430 light"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Discover renewal confirms alternatives, guards duplicate activation and preserves content on rate/offline errors"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Momente Discover keeps a text-only retrospective readable at 320px in dark large-text mode"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Momente Discover mixes narrow and full-width memories with natural heights and no horizontal overflow"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Momente Discover presents the real #452 anniversary with authorized image and remains accessible on mobile"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Momente Discover preserves canonical backend order in its desktop CSS grid and stays axe-clean"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "Momente Discover tapestry is axe-clean in dark mode"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "long retrospective uses one full reading row without stretching its neighboring photo at 1280 dark"
+    },
+    {
+      "file": "story-discover-tapestry.spec.ts",
+      "title": "long retrospective uses one full reading row without stretching its neighboring photo at 390 light"
+    }
+  ]
+}

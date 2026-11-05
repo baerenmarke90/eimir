@@ -295,10 +295,23 @@
  * Milestone.
  */
 .story-timeline-marker-heart-moment,
-.story-timeline-marker-milestone {
+.story-timeline-marker-milestone,
+.story-timeline-marker-happiness {
   display: grid;
   place-items: center;
   box-sizing: border-box;
+}
+
+.story-timeline-marker-happiness {
+  width: var(--space-6);
+  height: var(--space-6);
+  background: var(--color-background);
+  color: var(--color-brand-text);
+}
+
+.story-timeline-marker-happiness .eimir-icon {
+  width: var(--space-5);
+  height: var(--space-5);
 }
 
 .story-timeline-marker-heart-moment {
@@ -340,6 +353,16 @@
     height: 14px;
   }
 
+  .story-timeline-marker-happiness {
+    width: var(--space-5);
+    height: var(--space-5);
+  }
+
+  .story-timeline-marker-happiness .eimir-icon {
+    width: var(--space-4);
+    height: var(--space-4);
+  }
+
   .story-timeline-item .story-timeline-marker-heart-moment svg {
     width: 12px;
     height: 12px;
@@ -359,13 +382,13 @@
 /*
  * Month headings remain useful progressive context, but they no longer need
  * to measure the global app header. The header is ordinary document flow and
- * leaves the viewport before a month heading reaches the top edge, so CSS
- * sticky positioning at the viewport edge is the complete contract.
+ * leaves the viewport before a month heading reaches the top edge. Keep only
+ * the heading below the real system safe area; the canvas stays edge-to-edge.
  */
 .story-timeline-months > .story-year-month > .story-year-month-header {
   position: sticky;
   z-index: 2;
-  top: 0;
+  top: calc(var(--safe-area-inset-top, 0px) + var(--space-2));
   margin-block: calc(var(--space-2) * -1);
   padding-block: var(--space-2);
   background: var(--color-background);

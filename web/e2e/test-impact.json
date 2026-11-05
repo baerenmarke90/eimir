@@ -1,6 +1,19 @@
 {
   "version": 1,
   "specs": {
+    "app-continuity-polish.spec.ts": {
+      "roots": [
+        "web/src/client/referenceFlow.ts",
+        "web/src/client/storyMediaLoader.ts",
+        "web/src/client/sessionPersistence.ts",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/CoupleExperiencePage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/client/attentionReceipt.ts"
+      ]
+    },
     "android-push-onboarding.spec.ts": {
       "roots": [
         "web/src/components/DevicePushOnboarding.tsx",

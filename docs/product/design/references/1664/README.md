@@ -105,3 +105,49 @@ Technical validation covers resolver ordering/variants/fallback, account scope,
 resource/interpolation/plural parity, migration/API concurrency, recipient mail
 and Push, relevant component behavior and conservative browser impact selection.
 Actual runtime evidence and final tested revision are recorded in the PR.
+
+
+## Runtime evidence and integration validation
+
+The implementation incorporates dependent #1668 head
+`29a276a422aa421fa617ac8742294e49148f9fbc` (including the per-image sensitivity
+correction) at integrated revision `4528e0d074193e867fc4c895faaf67cb32de9877`.
+Its merge into actual main remains a mandatory prerequisite for merging #1664.
+`source-files.sha256` fingerprints the tested product sources.
+
+The classified multilingual browser journey passed **12/12** on that revision:
+Open Appearance → select English → observe authoritative save and retained focus
+→ reload → return to Automatic/German → Back to Settings. Both partners keep
+independent preferences; sign-out returns to device detection. A real Memory
+editor retains authored input, text selection, focus, route, scroll and date
+through a device-language change, and editing continues in place. Offline save
+requires deliberate retry; no reconnect replay occurs. Ordered regional device
+lists and the static offline page are covered. Axe reports no WCAG A/AA findings
+in the affected Settings sections at all captured sizes, including 320/200%.
+
+- [360 Light](evidence/language-settings-360-light.png)
+- [390 Dark](evidence/language-settings-390-dark.png)
+- [430 Light](evidence/language-settings-430-light.png)
+- [Expanded Dark](evidence/language-settings-1280-dark.png)
+- [320 with 200% text](evidence/language-settings-320-light.png)
+- [English Memory draft](evidence/language-draft-390-english.png)
+- [Offline choice](evidence/language-offline-390.png)
+
+Resource/resolver/component/session coverage passed 35 tests; recipient
+resolution, preferences and push transport contracts passed 135 unit tests.
+Real PostgreSQL validation passed 32 preference/notification-mail cases and 33
+authentication cases, including four recipient-override/anti-enumeration cases.
+Migration upgrade → downgrade → upgrade and Alembic model drift check passed.
+Web typecheck/format/resource-generation/PWA checks and backend lint/format/API
+contract passed. Browser ownership/planner checks passed 38 tests and classify
+all 98 specs; shared i18n changes select the full retained regression. The scoped
+engineering-language audit and its 27 regression tests passed.
+
+The Android app and instrumentation APK compile successfully. Device execution
+uses the existing required API 28/36/37.1 CI matrix, now explicitly including
+RecipientLanguageTest and the additional locale/activation wake contract. Final
+native and complete regression evidence must be green in the implementation PR
+before merge. Local complete Web runs were interrupted by host ENOSPC; this is
+not recorded as a test pass, and no assertion, deadline or CI gate was weakened.
+The isolated test database and redundant temporary build data were removed to
+allow the focused integrated browser run to complete.

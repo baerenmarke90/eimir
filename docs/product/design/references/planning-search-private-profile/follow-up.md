@@ -253,3 +253,15 @@ image prompts. Ordinary adjacent-screen layout wording is now classified only
 for those two paths and three reviewed phrases. Negative regressions continue to
 reject actual legacy branding, changed wording, duplicate matches and other paths.
 Original generation prompts remain unchanged as provenance evidence.
+
+The same hosted browser run completed the remaining useful shards before the
+correction push. Two test races were diagnosed from its traces: a sign-in helper
+asserted an already-current URL before login completed, and keyboard dragging
+started before the preceding pointer drop had settled. The helpers now observe
+actual authentication and drag activation/completion, retaining the pointer,
+keyboard reorder, Escape cancellation, saved cover and return assertions.
+
+All 43 cases in both complete affected browser specifications pass with these
+helper corrections. All 23 identity-classifier and migration regressions pass;
+the full identity scan reports no active rename findings. Application runtime
+source remains identical to the validated implementation at `86b1e0ae4`.

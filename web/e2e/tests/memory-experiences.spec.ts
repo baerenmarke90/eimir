@@ -1,4 +1,3 @@
-import { openDraftActions, closeDraftActions } from '../support/mediaDraft';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +9,8 @@ import photoSources from '../../src/i18n/locales/photoSources';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import deFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { nextFrame } from '../support/mediaCarouselGesture';
+import { closeDraftActions, openDraftActions } from '../support/mediaDraft';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 
 /** #1618: strict mocked API journeys and actual browser/visual evidence.
@@ -409,26 +410,28 @@ for (const [width, colorScheme] of [
         'aria-label',
         /first.jpg/,
       );
-      await handle.focus();
-      await page.keyboard.press('Space');
-      await page.keyboard.press('ArrowLeft');
-      await page.keyboard.press('Space');
+      async function moveWithKeyboard(finish: 'Space' | 'Escape') {
+        await expect(handle).not.toHaveAttribute('aria-grabbed', 'true');
+        await handle.focus();
+        await page.keyboard.press('Space');
+        await expect(handle).toHaveAttribute('aria-grabbed', 'true');
+        await page.keyboard.press('ArrowLeft');
+        await nextFrame(page);
+        await page.keyboard.press(finish);
+        await expect(handle).not.toHaveAttribute('aria-grabbed', 'true');
+        await nextFrame(page);
+      }
+      await moveWithKeyboard('Space');
       await expect(gallery.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
         'aria-label',
         /first.jpg/,
       );
-      await handle.focus();
-      await page.keyboard.press('Space');
-      await page.keyboard.press('ArrowLeft');
-      await page.keyboard.press('Escape');
+      await moveWithKeyboard('Escape');
       await expect(gallery.locator('.photo-draft-tile').nth(1)).toHaveAttribute(
         'aria-label',
         /first.jpg/,
       );
-      await handle.focus();
-      await page.keyboard.press('Space');
-      await page.keyboard.press('ArrowLeft');
-      await page.keyboard.press('Space');
+      await moveWithKeyboard('Space');
       await expect(
         gallery.locator('.photo-draft-tile').first(),
       ).toHaveAttribute('aria-label', /first.jpg/);

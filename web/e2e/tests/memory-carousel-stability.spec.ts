@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import { openDraftActions, closeDraftActions } from '../support/mediaDraft';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoReactions from '../../src/i18n/locales/photoReactions';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
@@ -10,6 +9,7 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import fixtureCopy from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
+import { closeDraftActions, openDraftActions } from '../support/mediaDraft';
 import {
   installMediaOwnershipMetrics,
   mediaOwnershipMetrics,
@@ -559,7 +559,9 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.email).fill('lea@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await expect(page).toHaveURL(/\/today$/);
+  await expect(page.locator('.today-content')).toBeVisible();
 }
 
 async function installApprovedMemoryDetail(page: Page) {

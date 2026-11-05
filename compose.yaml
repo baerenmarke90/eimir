@@ -82,7 +82,7 @@
         ],
         "timeout": "5s"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:85447042e43c5b0fc785dbc936bb7b0c9f2d19c5dcd1a86cd0d66c977cdc33db",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:6b7f4699916371d26610f42512e8d14a63bbaf986e73905da94ea47308e561dc",
       "networks": {
         "app": {
           "aliases": [
@@ -131,7 +131,7 @@
       "environment": {
         "EIMIR_DATABASE_URL": "postgresql+psycopg://sidebyside:${POSTGRES_PASSWORD:?Set the existing instance value in Arcane}@eimir-test-postgres:5432/sidebyside"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:85447042e43c5b0fc785dbc936bb7b0c9f2d19c5dcd1a86cd0d66c977cdc33db",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:6b7f4699916371d26610f42512e8d14a63bbaf986e73905da94ea47308e561dc",
       "networks": {
         "app": null
       },
@@ -170,7 +170,7 @@
         "EIMIR_PUBLIC_BASE_URL": "${EIMIR_PUBLIC_BASE_URL:?Set the existing instance value in Arcane}",
         "EIMIR_VIDEO_UPLOAD_ENABLED": "true"
       },
-      "image": "ghcr.io/baerenmarke90/eimir-media@sha256:fb5e0b50cd9f507f907485bfe86d64ebe8c5f0b2004d8af0f5885305237eb73d",
+      "image": "ghcr.io/baerenmarke90/eimir-media@sha256:dfcc2011ca60ccdb7f7ab7d331db6ae4af7499b4a7d7703a92b593663e6597bd",
       "init": true,
       "mem_limit": "1073741824",
       "networks": {
@@ -183,7 +183,7 @@
       "security_opt": [
         "no-new-privileges:true"
       ],
-      "stop_grace_period": "15m0s",
+      "stop_grace_period": "25m0s",
       "tmpfs": [
         "/tmp:size=1g,mode=0700,uid=10001,gid=10001"
       ],
@@ -209,7 +209,7 @@
       "environment": {
         "EIMIR_WEB_CSP_CONNECT_ORIGINS": ""
       },
-      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:45fb8370e737cd786d69772f7d9487853d9b96379b8bb1c67b9628f365f7ae86",
+      "image": "ghcr.io/baerenmarke90/eimir-web@sha256:911758af0f8fc8f121ec7943852127bddd2c4b8e91ca984e81a5e427d84a6f94",
       "networks": {
         "app": {},
         "proxy": {
@@ -283,7 +283,7 @@
         "EIMIR_WEBAUTHN_RP_ID": "${EIMIR_WEBAUTHN_RP_ID:?Set the existing instance value in Arcane}",
         "EIMIR_WEBAUTHN_RP_NAME": "eimir."
       },
-      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:85447042e43c5b0fc785dbc936bb7b0c9f2d19c5dcd1a86cd0d66c977cdc33db",
+      "image": "ghcr.io/baerenmarke90/eimir-backend@sha256:6b7f4699916371d26610f42512e8d14a63bbaf986e73905da94ea47308e561dc",
       "networks": {
         "app": null
       },

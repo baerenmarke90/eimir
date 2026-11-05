@@ -1,0 +1,21 @@
+# Kotlin data classes for the experimental native Android test client.
+#
+# Models only by design: the transport (Retrofit/OkHttp) is a client decision
+# and stays hand-written in the app. DTOs are the actual drift risk, so they
+# are generated from the same contract the Web client uses.
+serializationLibrary: kotlinx_serialization
+library: jvm-retrofit2
+enumPropertyNaming: original
+sourceFolder: .
+packageName: eimir.api
+modelPackage: eimir.api.models
+
+# Discriminated oneOf schemas (for example StoryItem) become sealed wrappers.
+generateOneOfAnyOfWrappers: true
+
+# Free-form JSON (passkey credentials) maps to JsonElement, because
+# kotlinx.serialization has no serializer for `Any`.
+typeMappings:
+  AnyType: kotlinx.serialization.json.JsonElement
+importMappings:
+  kotlinx.serialization.json.JsonElement: kotlinx.serialization.json.JsonElement

@@ -47,6 +47,7 @@ PLATFORM_ROOTS = (
     Path(".github"),
     Path("web"),
     Path("android"),
+    Path("android-native-test"),
     Path("deploy"),
     Path("tools"),
 )
@@ -86,6 +87,11 @@ EXCLUDED_PLATFORM_PATHS = {
     Path("android/app/src/main/res/xml/config.xml"),
     Path("web/e2e/fixtures/locales/de.ts"),
     Path("web/package-lock.json"),
+    Path("android-native-test/gradlew"),
+    Path("android-native-test/gradlew.bat"),
+    Path("android-native-test/gradle/verification-metadata.xml"),
+    # Localization-owned product copy of the native test client (German default locale).
+    Path("android-native-test/app/src/main/res/values/strings.xml"),
     Path("tools/ci/engineering_language_audit.py"),
     Path("tools/ci/test_engineering_language_audit.py"),
 }
@@ -96,6 +102,12 @@ EXCLUDED_PLATFORM_PREFIXES = (
     Path("android/build"),
     Path("android/capacitor-cordova-android-plugins"),
     Path("android/gradle/wrapper"),
+    Path("android-native-test/.gradle"),
+    Path("android-native-test/.kotlin"),
+    Path("android-native-test/build"),
+    Path("android-native-test/app/build"),
+    Path("android-native-test/api/generated"),
+    Path("android-native-test/gradle/wrapper"),
     Path("web/dist"),
     Path("web/node_modules"),
     Path("web/e2e/node_modules"),

@@ -238,3 +238,183 @@ byte-free checkpoints without destructively upgrading unopened drafts.
 - Installed-device interruption, old-client/legacy-state and storage inspection.
 - Google policy/app verification, operator ingress logging and #797's separate
   Cloud operational acceptance. A repository merge is not deployment/go-live.
+
+## Production delivery blueprint — proposal, 2026-11-05
+
+This section finishes the implementation plan requested in #1661. It is a
+**concept only**; #1467 remains the delivery owner. No integration, availability
+gate, provider configuration or native capability is changed by this update.
+The earlier implemented safety/recovery sections remain the baseline, not a
+claim that the following gaps are closed.
+
+### Current code and specific remaining gaps
+
+Rechecked main `91a12b2eb87d9e95c9a7f4ff57bc7cb410ea4714`:
+
+| Boundary | Reuse | Remaining work |
+| --- | --- | --- |
+| Source choice | `PhotoSourcePicker`, `DeviceMediaPicker`, `AttachmentDraftPicker`, `PlanPhotosEditor` | Offer Google only when server eligibility accepts this destination, client contract and platform. Keep one shared source entry. |
+| Authorization | `google_photos.py`, API callback and `browser_binding.py` | Accept the existing same-origin browser proof in a real HTTPS deployment; add the authenticated app-to-browser task below. |
+| Selection lifetime | `PhotoSelection` / protected payload and expiry job | Current task lifetime is ten minutes. Current polling clamps an interval to 3–60 seconds and does not honor all provider deadlines. Persist and validate the provider interval, timeout and expiry; never poll earlier than permitted. |
+| Media types | `SelectedPhotoItem`, Google `items()` / `read()` | Current adapter rejects a whole selection containing VIDEO and returns in-memory image bytes. Add typed per-item outcomes and bounded streaming for supported videos. |
+| Saving / recovery | Attachment draft ownership, `memory-only-v1`, exact-save journal | Prove the same retention/idempotency contract on every supported create/edit destination and installed client; no provider-derived bytes in durable device caches. |
+| Admission | `google_import_available()` currently always returns false | Replace only after independent review and the platform/deployment acceptance below; no user or operator flag may override missing prerequisites. |
+
+### Consumer journey
+
+1. In an existing Memory, HeartMoment or Plan draft, open **„Andere Fotoquelle“**
+   and choose **„Google Fotos“**. The device/system picker remains directly
+   usable. No technical Google setup belongs in the consumer flow.
+2. Explain selected copying, temporary transfer and the destination before
+   authorization. Candidate de-DE copy: **„Wähle bei Google Fotos aus, was du
+   hinzufügen möchtest. eimir. übernimmt nur deine Auswahl. Geteilt wird sie
+   erst, wenn du diesen Eintrag speicherst.“** A private HeartMoment instead
+   explains that saved copies stay private until explicitly shared.
+3. Open Google authorization and the official Photos Picker in the supported
+   browser. On return, show selected media in the existing draft, preserving
+   words, date, existing attachments, order, cover and sensitivity.
+4. Permit removing/reordering, retrying individual failed imports and explicitly
+   saving. Provider selection alone never creates a shared Moment or publishes
+   files into Photos. Show partial success as partial success.
+
+No full-library browser, continuous synchronization, background album import,
+permanent Google connection, facial analysis or source-side editing is planned.
+Apple/iCloud stays with supported system selection. Android's system picker
+may expose a cloud source on some devices; that does not replace this explicit
+cross-platform Google flow or require Google services for ordinary eimir. use.
+
+### Authorization and installed-app handoff
+
+Use the existing server OAuth library, exact callback, state/PKCE and per-task
+HttpOnly browser proof. Request only
+`https://www.googleapis.com/auth/photospicker.mediaitems.readonly`, with online
+temporary authorization. Do not add a refresh-token store or broaden library
+scopes. Google authorization must use an external user agent, not the app's
+embedded WebView ([OAuth policy](https://developers.google.com/identity/protocols/oauth2/policies)).
+
+For Android/iOS, select the already proposed **authenticated browser-hosted
+task**. This is an eimir. application design, not a Google SDK requirement:
+
+- Authenticated app start creates an expiring selection bound to Account,
+  Space, initiating DeviceSession, destination restrictions and client/recovery
+  version. A random launch locator identifies it but grants no access.
+- The system browser authenticates the **same eimir. Account**, rechecks active
+  membership/entitlement and displays the intended destination. An explicit
+  one-use approval binds its browser transaction/proof to that app task.
+  Forwarding a launch link cannot authorize a different account/browser.
+- The Google callback can complete only that approved browser transaction.
+  App polling/read still requires the initiating DeviceSession. The browser
+  identity cannot substitute for the app identity or silently change the draft.
+- Completion wakes the app through a fixed validated HTTPS app/universal link;
+  the app then reads task state through authentication. No bearer, provider
+  token, OAuth code, browser proof or media URL belongs in the return link.
+  If automatic return is unavailable, show a plain return instruction and let
+  foreground authenticated polling discover completion.
+- Define and test production origins, exact callbacks, Android association and
+  iOS association/signing configuration before enabling those platforms. No
+  cookie copying, custom credential-bearing scheme or hardcoded demo origin.
+- Cancellation, browser closure, process death, logout, session revocation or a
+  changed Account/Space cancel or invalidate the owning task; a late callback
+  cannot import into the next draft. Multiple tasks remain individually bound.
+
+Extend the existing selection API with narrowly scoped prepare/approve/complete
+operations if needed; the final names belong in the OpenAPI change. Keep app
+read/cancel authenticated and all ownership checks server-side. An opaque client
+identifier is never proof of a secure client. Legacy tasks stay unadmitted, and
+independent review must verify effective old-client handling without trusting
+an easily spoofed version header.
+
+### Typed transfer and attachment contract
+
+The provider adapter should produce a bounded typed item descriptor with an
+opaque eimir. item ID, stable selection ordinal, IMAGE/VIDEO type, sanitized MIME,
+processing state and eligibility/failure code. Provider IDs, URLs and tokens stay
+only in the existing encrypted expiring payload; they do not enter public URLs,
+draft storage, exports or diagnostics. Enumerate every selected item so that
+an unsupported item cannot silently disappear or fail the entire valid batch.
+
+The Google session API owns completion and its polling/deadline advice
+([session contract](https://developers.google.com/photos/picker/reference/rest/v1/sessions)).
+Persist validated deadlines; stop at the earliest local authorization, provider
+session or polling timeout. Respect a zero timeout, cancellation and rate-limit
+backoff without extending the overall deadline. Delete tracked sessions and
+erase credentials on completion, cancellation and expiry using existing jobs.
+
+For images use authenticated downloads during authorization; Google's download
+excludes location metadata. For video bytes use the documented download variant
+only after provider processing is READY; this is a high-quality transcoded copy,
+not a promise of the original file ([media access](https://developers.google.com/photos/picker/guides/media-items)).
+Do not promise imported GPS, RAW/Live Photo semantics or lossless originals.
+
+Plans remain image-only. Other destinations accept video only where their
+existing video capability, deployment policy, size/count and storage quotas
+permit it. Recheck eligibility before starting each transfer and before binding.
+Validate actual bytes through the existing attachment ingestion and video
+processing pipeline; provider MIME/metadata is not authoritative.
+
+Use bounded server streaming into the existing protected staging storage and
+attachment pipeline for large media. Do not route entire videos through a browser
+Blob or the current image-bytes adapter. This extends attachment ingress, not a
+second uploader: one staged Attachment ID, existing progress/state, READY,
+authorized binding and normal orphan cleanup. Preserve ordinal/sensitivity on
+retry; an item-level idempotency key prevents duplicate staging after an uncertain
+response. A provider READY result is distinct from an eimir. Attachment READY.
+
+### Recovery, security and lifecycle
+
+Keep `memory-only-v1`: durable recovery may retain authored fields, opaque
+authorized attachment references and the exact save/binding journal, never
+Google-derived bytes or provider authorization material. Reload/process death
+restores READY references after authorization; missing volatile media requires
+explicit reselection or removal. Reconcile an uncertain Save before issuing a
+new create identity. Keep the earlier explicit unknown-provenance legacy draft
+decision; do not silently purge or relabel old device Files as encrypted.
+
+The secure-retention review must cover **saved imported copies as well as
+temporary files**: private storage, backups, workers, export intermediates,
+thumbnails, installed WebView HTTP/media caches and service workers. Apply the
+existing encryption/key-management and cache boundaries; if the accepted policy
+cannot be enforced for a deployment/client, leave Google unavailable there.
+Do not infer compliance from an encrypted database alone. Google's policy
+requires clear purpose/consent, deletion controls and secure handling, including
+encryption of stored derived data
+([provider policy](https://developers.google.com/photos/support/api-policy)).
+
+Account-owned authorization never grants the partner access to Google. Saved
+copies use the destination's existing visibility and later deletion/export
+rules. Ending authorization stops future retrieval; it is distinct from deleting
+already saved eimir. copies, which users can remove normally. Cover both actions
+in help/consent. No additional local-model proposals or external AI processing of
+imported content is implicitly authorized by this integration; assess any
+secondary use separately before enablement.
+
+### Delivery slices and completion evidence
+
+| Slice | Concrete output | Required evidence |
+| --- | --- | --- |
+| 1. Contract and policy preflight | Final typed item/task contracts, destination matrix, provider retention/use decision, current API/SDK review | Independent security/reuse review; repository-aware visual reference and Mobile Interaction Contract before new UI; Google project/verification blockers recorded |
+| 2. Web integration | Real same-origin authorization, provider deadlines, typed images and bounded attachment ingress; gate stays closed outside accepted test eligibility | Two-browser/account/replay negatives; denial/empty/partial/expired/offline/quota/429 cases; explicit Save and exact recovery; real provider test |
+| 3. Supported videos | Existing processing pipeline receives selected supported video through bounded server staging | Mixed selection/order, not-ready provider, actual MIME/codec/size limits, cancellation, no duplicate staging or unbounded heap use |
+| 4. Installed platform handoff | Browser approval, authenticated app completion and production associations/configuration | Signed Android/iOS release builds: browser closure, Back, foreground/background, process death, concurrent tasks, changed Account/Space and secret-free return |
+| 5. Deployment acceptance and enablement | Reviewed fail-closed eligibility replaces the blanket false gate only for accepted deployments/platforms | Provider verification, exact production callback, encryption/storage/backup/cache inspection, worker cleanup, sanitized ingress logs, #797 acceptance and working device/Immich fallback |
+
+Web validation can precede installed-app acceptance. #1467 stays open until the
+complete authorized Web/Android/iOS scope is accepted; merged preparation,
+synthetic providers and an operator probe are not production completion.
+
+External integration remains Premium through `integration.external_sync` for
+Cloud and Self-Hosted; ordinary device media remains Free/Core. Keep existing
+video tiers/quotas and non-destructive downgrade. Cancel, privacy recovery,
+disconnect, deletion/export and access to saved content remain non-paywallable.
+Costs are OAuth/provider operations, bounded transfer bandwidth, temporary plus
+final storage and existing video processing. Inspect the actual Google project's
+current quotas before rollout; do not invent a fixed universal API price or
+capacity. Measure concurrent transfers, memory, cleanup age and rate-limit
+frequency with aggregate counters, never media names/URLs or user content.
+
+Before implementation, re-read current #1467 and its discussions, this blueprint,
+the provider policies and the actual main. Production setup still requires the
+operator-owned Google project/API/OAuth client, verified origin/domain and
+privacy/consent information, supported secret injection and any required Google
+verification. Self-Hosted uses the same security contract with documented
+operator configuration; unsupported setups retain usable local/system media.

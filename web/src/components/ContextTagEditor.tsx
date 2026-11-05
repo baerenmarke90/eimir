@@ -128,7 +128,9 @@ function ContextTagEditorContent({
           ))}
         </ul>
       ) : null}
-      <label htmlFor={id}>{t('contextTags.newLabel')}</label>
+      <label className="sr-only" htmlFor={id}>
+        {t('contextTags.newLabel')}
+      </label>
       <div className="context-tag-entry">
         <input
           ref={inputRef}

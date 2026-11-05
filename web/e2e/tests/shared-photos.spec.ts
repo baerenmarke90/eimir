@@ -232,10 +232,11 @@ test('shared photos: lazy variants, viewer Back, bounded originals and canonical
     .poll(() => reads.filter((read) => read.variant === 'original').length)
     .toBe(3);
   await screenshot(page, testInfo, 'story-photos-viewer-390.png');
+  await expect(page.locator('.media-lightbox-footer button')).toHaveCount(1);
   const next = page
     .getByRole('dialog')
-    .locator('.media-lightbox-footer-nav')
     .getByRole('button', { name: storyProducts.gallery.next });
+  await expect(next).toHaveCount(1);
   await next.focus();
   await expect(next).toBeFocused();
   await page.keyboard.press('Enter');
@@ -399,6 +400,13 @@ test('shared photos: Compact/Expanded themes, 320px, 200% text and accessible ga
     .getByRole('link', { name: de.more.destinations.photos, exact: true })
     .click();
   await expect(page).toHaveURL(/\/story\/photos$/);
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/more$/);
+  await page
+    .getByRole('link', { name: de.more.destinations.photos, exact: true })
+    .click();
   await page.goBack();
   await expect(page).toHaveURL(/\/more$/);
   await expect(

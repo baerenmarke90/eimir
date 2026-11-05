@@ -518,8 +518,7 @@
  * keyboard and assistive technology without permanent overlaid arrows. */
 @media (max-width: 839px), (hover: none), (pointer: coarse) {
   .media-lightbox button.media-lightbox-nav,
-  .media-gallery-carousel button.media-gallery-carousel-nav,
-  .media-lightbox-footer-nav {
+  .media-gallery-carousel button.media-gallery-carousel-nav {
     display: block;
     position: absolute;
     min-inline-size: 0;
@@ -532,8 +531,7 @@
     clip-path: inset(50%);
   }
   .media-lightbox button.media-lightbox-nav:focus-visible,
-  .media-gallery-carousel button.media-gallery-carousel-nav:focus-visible,
-  .media-lightbox-footer-nav:focus-within {
+  .media-gallery-carousel button.media-gallery-carousel-nav:focus-visible {
     max-inline-size: none;
     max-block-size: none;
     min-inline-size: var(--touch-target-web);

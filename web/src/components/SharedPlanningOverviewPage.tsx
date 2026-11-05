@@ -78,14 +78,15 @@ function PlanningSearch({
   const { t } = useTranslation();
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const label = t(
+    kind === 'plans'
+      ? 'm5s3.overview.searchPlans'
+      : 'm5s3.overview.searchWishes',
+  );
   return (
     <search className="planen-search">
-      <label htmlFor={id}>
-        {t(
-          kind === 'plans'
-            ? 'm5s3.overview.searchPlans'
-            : 'm5s3.overview.searchWishes',
-        )}
+      <label className="sr-only" htmlFor={id}>
+        {label}
       </label>
       <div className="planen-search-field">
         <EimirIcon name="suche" />
@@ -93,6 +94,7 @@ function PlanningSearch({
           ref={inputRef}
           id={id}
           type="search"
+          placeholder={label}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           autoComplete="off"
@@ -688,10 +690,6 @@ export function SharedPlanningOverviewPage({
               ))}
             </ul>
           </section>
-        ) : null}
-
-        {planStatus === 'OPEN' ? (
-          <WishSelectionEntry segment="plans" compact />
         ) : null}
 
         {planStatus === 'OPEN' && planGroups.undated.length ? (

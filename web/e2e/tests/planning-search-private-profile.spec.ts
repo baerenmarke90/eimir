@@ -228,6 +228,23 @@ for (const view of [
     const planSearch = page.getByRole('searchbox', {
       name: copy.overview.searchPlans,
     });
+    await expect(planSearch).toHaveAttribute(
+      'placeholder',
+      copy.overview.searchPlans,
+    );
+    await expect(planSearch).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    if (!view.large) {
+      const searchBox = await page
+        .locator('.planen-panel:visible .planen-search')
+        .boundingBox();
+      expect(searchBox?.height).toBeLessThanOrEqual(56);
+    }
+    await expect(
+      page.getByRole('link', {
+        name: wishSelection.compactEntryAction,
+        exact: true,
+      }),
+    ).toHaveCount(0);
     await expect(planSearch).not.toBeFocused();
     await planSearch.fill('osterreich');
     await expect(page.locator('.planen-next-link')).toContainText(
@@ -294,6 +311,11 @@ for (const view of [
     const wishSearch = page.getByRole('searchbox', {
       name: copy.overview.searchWishes,
     });
+    await expect(wishSearch).toHaveAttribute(
+      'placeholder',
+      copy.overview.searchWishes,
+    );
+    await expect(wishSearch).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expect(page.locator('.planen-wish-copy > strong')).toHaveText([
       fixtures.planningFollowup.wish,
       fixtures.planningFollowup.secondWish,

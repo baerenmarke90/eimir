@@ -24,6 +24,21 @@ const answers: ExperienceAnswer[] = [
 ];
 
 describe('shared authored experience responses', () => {
+  it.each(['HAPPINESS', 'TIME_TRAVEL'] as const)(
+    'retains the shared label by default for %s detail and history consumers',
+    (kind) => {
+      const html = renderToStaticMarkup(
+        <MemoryRouter>
+          <ExperienceAnswers kind={kind} answers={answers} />
+        </MemoryRouter>,
+      );
+      expect(html).toContain('experience-shared-label');
+      expect(html).toContain(
+        kind === 'HAPPINESS' ? 'eimir-icon-highlights' : 'eimir-icon-kapitel',
+      );
+    },
+  );
+
   it('renders both responses and only the capability-authorized edit link', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>

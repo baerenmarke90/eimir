@@ -202,7 +202,8 @@ async function installMocks(
       }
       const requestedStatus = new URL(request.url()).searchParams.get('status');
       const items =
-        requestedStatus === 'PLANNED'
+        requestedStatus === 'PLANNED' ||
+        new URL(request.url()).searchParams.get('overviewScope') === 'OPEN'
           ? [
               {
                 capabilities: {
@@ -653,6 +654,10 @@ for (const [width, colorScheme] of [
       name: m5s3.plan.linkWish,
       exact: true,
     });
+    await expect(trigger).toHaveCount(0);
+    await page
+      .getByRole('button', { name: m5s3.common.edit, exact: true })
+      .click();
     await trigger.click();
     const sheet = page.getByRole('dialog', { name: m5s3.plan.linkWish });
     await sheet.getByRole('radio', { name: WISH_TITLE }).check();
@@ -685,8 +690,8 @@ for (const [width, colorScheme] of [
     await expect(source).toBeFocused();
     expect(writes).toHaveLength(1);
     await expect(
-      page.getByText(plan.description, { exact: true }),
-    ).toBeVisible();
+      page.getByRole('textbox', { name: m5s3.common.description, exact: true }),
+    ).toHaveValue(plan.description);
     await page.reload();
     await expect(source).toBeVisible();
     await source.click();

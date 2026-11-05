@@ -1,5 +1,12 @@
+import { MomentDate } from './MomentDate';
+import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import { NativeDateInput } from './NativeDateField';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   type FormEvent,
   useCallback,
@@ -84,7 +91,6 @@ import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
 import { StoryEditorPageShell } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
-import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 
 export type MemoryProductMode = 'detail' | 'edit';
@@ -143,6 +149,18 @@ export function MemoryProductPage({
   const params = useParams();
   const queryClient = useQueryClient();
   const memoryId = params.memoryId;
+  const planningPending =
+    useIsMutating({
+      mutationKey: [
+        'memory-planning',
+        apiBaseUrl,
+        currentAccountId,
+        spaceId,
+        memoryId,
+        'write',
+      ],
+      exact: true,
+    }) > 0;
   const memoryKey = authorSummaryQueryKeys.memory(spaceId, memoryId);
   const contextKey = formatAttachmentDraftContextKey(currentAccountId, spaceId);
   const deleteKey = [
@@ -485,7 +503,10 @@ export function MemoryProductPage({
         tagDraft?.memoryId === memoryId ||
         Object.keys(sensitiveValues).length > 0),
     isCloseBlocked:
-      updateMutation.isPending || attachments.hasPending || placePending,
+      updateMutation.isPending ||
+      attachments.hasPending ||
+      placePending ||
+      planningPending,
     onClose: () => {
       if (memoryId)
         navigate(memoryDetailPath(memoryId), {
@@ -576,13 +597,12 @@ export function MemoryProductPage({
         <div className="page page-reading">
           <PageHeader
             before={
-              <Link
-                className="back-link tertiary"
+              <TaskBackLink
                 to={memoryDetailPath(memory.id)}
                 state={{ taskOriginKey: originKey }}
               >
                 {t('taskBoundary.back')}
-              </Link>
+              </TaskBackLink>
             }
             title={
               memory.experienceKind
@@ -646,8 +666,7 @@ export function MemoryProductPage({
     return (
       <StoryEditorPageShell
         before={
-          <Link
-            className="back-link tertiary"
+          <TaskBackLink
             to={memoryDetailPath(memory.id)}
             onClick={(event) => {
               event.preventDefault();
@@ -656,7 +675,7 @@ export function MemoryProductPage({
             state={{ taskOriginKey: originKey }}
           >
             {t('taskBoundary.back')}
-          </Link>
+          </TaskBackLink>
         }
         title={
           memory.experienceKind
@@ -883,6 +902,20 @@ export function MemoryProductPage({
                 </div>
               ))}
 
+            {!memory.experienceKind ? (
+              <MemoryPlanningLinks
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={currentAccountId}
+                spaceId={spaceId}
+                memoryId={memory.id}
+                canManage={
+                  memory.capabilities.canEdit && !updateMutation.isPending
+                }
+                editing
+                offline={offline}
+              />
+            ) : null}
             <div className="form-actions">
               <Link
                 className="button-link secondary-link"
@@ -901,6 +934,7 @@ export function MemoryProductPage({
                 disabled={
                   updateMutation.isPending ||
                   placePending ||
+                  planningPending ||
                   attachments.hasPending ||
                   attachments.items.some((item) => item.status === 'failed') ||
                   deleteMutation.isBlocked
@@ -974,7 +1008,6 @@ export function MemoryProductPage({
       </StoryEditorPageShell>
     );
   }
-
   const dateLabel = memory.happenedOn
     ? memory.happenedUntil &&
       memory.happenedUntil.getTime() !== memory.happenedOn.getTime()
@@ -995,20 +1028,45 @@ export function MemoryProductPage({
     nicknameFor,
   );
 
+  const dateContext = (
+    <MomentDate
+      dateTime={
+        memory.happenedOn ? memoryDateInputValue(memory.happenedOn) : undefined
+      }
+    >
+      {dateLabel}
+    </MomentDate>
+  );
+  const placeContext = (
+    <MomentPlaces
+      key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${memory.id}`}
+      apiBaseUrl={apiBaseUrl}
+      accessToken={accessToken}
+      accountId={currentAccountId}
+      spaceId={spaceId}
+      targetId={memory.id}
+      canManage={false}
+      kind="memories"
+      offline={offline}
+      compact
+      inline
+    />
+  );
+
   return (
     <StoryDetailPageShell
-      title={hasAuthoredTitle ? memory.title : dateLabel}
-      description={
+      title={hasAuthoredTitle ? memory.title : dateContext}
+      titleContext={
+        !hasAuthoredTitle ? (
+          <div className="moment-metadata">{placeContext}</div>
+        ) : undefined
+      }
+      metadata={
         hasAuthoredTitle ? (
-          <time
-            dateTime={
-              memory.happenedOn
-                ? memoryDateInputValue(memory.happenedOn)
-                : undefined
-            }
-          >
-            {dateLabel}
-          </time>
+          <div className="moment-metadata">
+            {dateContext}
+            {placeContext}
+          </div>
         ) : undefined
       }
       titleAction={
@@ -1176,19 +1234,6 @@ export function MemoryProductPage({
             />
           </section>
         ) : null}
-
-        <MomentPlaces
-          key={`${apiBaseUrl}:${currentAccountId}:${spaceId}:${memory.id}`}
-          apiBaseUrl={apiBaseUrl}
-          accessToken={accessToken}
-          accountId={currentAccountId}
-          spaceId={spaceId}
-          targetId={memory.id}
-          canManage={false}
-          kind="memories"
-          offline={offline}
-          compact
-        />
       </div>
       {!memory.experienceKind ? (
         <MemoryPlanningLinks

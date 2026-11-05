@@ -8,11 +8,15 @@ from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
-from eimir.authorization import AuthorizationContext
+from eimir.authorization import AuthorizationContext, readable
+from eimir.comments.models import Comment
 from eimir.core import clock
+from eimir.domain.events import EventType
 from eimir.engagement import presentation
-from eimir.engagement.models import EngagementTarget, Notification
+from eimir.engagement.models import EngagementTarget, Notification, NotificationKind
 from eimir.identity.models import Account
+from eimir.memories.models import Memory
+from eimir.outbox.models import OutboxEvent
 
 
 def _label(value: str, limit: int) -> str:
@@ -22,16 +26,54 @@ def _label(value: str, limit: int) -> str:
         for c in value
         if c.isspace() or not unicodedata.category(c).startswith("C") or c == "\u200d"
     )
-    return " ".join(clean.split())[:limit]
+    normalized = " ".join(clean.split())
+    return normalized if len(normalized) <= limit else normalized[: limit - 1].rstrip() + "…"
 
 
-def for_notification(session: Session, notification: Notification, *, digest: bool) -> str | None:
+def _content(session: Session, notification: Notification, context: AuthorizationContext) -> str:
+    if notification.kind == NotificationKind.COMMENT_CREATED.value:
+        # The parent was reauthorized by for_notification. Read only the exact
+        # current comment referenced by this event, never the latest sibling.
+        comment = session.scalar(
+            readable(Comment, context)
+            .join(OutboxEvent, OutboxEvent.subject_id == Comment.id)
+            .where(
+                OutboxEvent.id == notification.source_event_id,
+                OutboxEvent.event_type == EventType.COMMENT_CREATED.value,
+                OutboxEvent.space_id == notification.space_id,
+                OutboxEvent.actor_id == notification.actor_id,
+                Comment.owner_id == notification.actor_id,
+                Comment.target_type == notification.target_type,
+                Comment.target_id == notification.target_id,
+            )
+        )
+        return _label(comment.payload.body, 180) if comment is not None else ""
+    if (
+        notification.kind == NotificationKind.COUPLE_EXPERIENCE_SHARED.value
+        and notification.target_type == EngagementTarget.MEMORY.value
+    ):
+        memory = session.scalar(
+            readable(Memory, context).where(
+                Memory.id == notification.target_id,
+                Memory.owner_id == notification.actor_id,
+                Memory.experience_kind.is_not(None),
+            )
+        )
+        return _label(memory.payload.body, 180) if memory is not None else ""
+    return ""
+
+
+def for_notification(
+    session: Session, notification: Notification, *, digest: bool, version: int = 1
+) -> str | None:
     from eimir.engagement import service
 
     context = AuthorizationContext(
         account_id=notification.recipient_account_id, space_id=notification.space_id
     )
-    if not service.notification_target_available(session, notification, context):
+    if version not in {1, 2} or not service.notification_target_available(
+        session, notification, context
+    ):
         return None
     actor = (
         session.get(Account, notification.actor_id) if notification.actor_id is not None else None
@@ -54,7 +96,7 @@ def for_notification(session: Session, notification: Notification, *, digest: bo
         return None
     return json.dumps(
         {
-            "v": 1,
+            "v": version,
             "notificationId": str(notification.id),
             "kind": notification.kind,
             "name": name,
@@ -63,6 +105,11 @@ def for_notification(session: Session, notification: Notification, *, digest: bo
             "digest": digest,
             "issuedAt": int(now.timestamp()),
             "expiresAt": int(expires.timestamp()),
+            **(
+                {"body": _content(session, notification, context) if not digest else ""}
+                if version == 2
+                else {}
+            ),
         },
         ensure_ascii=False,
         separators=(",", ":"),

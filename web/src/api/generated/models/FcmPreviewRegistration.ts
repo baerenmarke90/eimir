@@ -38,7 +38,8 @@ export interface FcmPreviewRegistration {
  * @export
  */
 export const FcmPreviewRegistrationVersionEnum = {
-    NUMBER_1: 1
+    NUMBER_1: 1,
+    NUMBER_2: 2
 } as const;
 export type FcmPreviewRegistrationVersionEnum = typeof FcmPreviewRegistrationVersionEnum[keyof typeof FcmPreviewRegistrationVersionEnum];
 
@@ -49,8 +50,6 @@ export type FcmPreviewRegistrationVersionEnum = typeof FcmPreviewRegistrationVer
 export function instanceOfFcmPreviewRegistration(value: object): value is FcmPreviewRegistration {
     if (!('key' in value) || value['key'] === undefined) return false;
     if (!('version' in value) || value['version'] === undefined) return false;
-    
-    if (value['version'] !== 1) return false;
     return true;
 }
 

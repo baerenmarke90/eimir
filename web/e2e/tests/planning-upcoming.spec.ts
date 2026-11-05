@@ -449,10 +449,16 @@ async function installPlanningMocks(
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/plans`) {
       const requestedStatus = url.searchParams.get('status');
       let items: unknown[] = [];
-      if (!options.empty && requestedStatus === 'PLANNED') {
+      if (
+        !options.empty &&
+        (requestedStatus === 'PLANNED' ||
+          url.searchParams.get('overviewScope') === 'OPEN')
+      ) {
         // Deliberately not chronological, and includes a defensive rogue
         // completed row so the client selector proves the section contract.
         items = [latePlan, completedPlan, earlyPlan];
+        if (url.searchParams.get('overviewScope') === 'OPEN')
+          items.push(...(converted ? [convertedPlan, ideaPlan] : [ideaPlan]));
         if (options.pastOpen)
           items.push(
             planDetail({
@@ -462,6 +468,11 @@ async function installPlanningMocks(
               plannedStart: '2020-01-01T10:00:00Z',
             }),
           );
+      } else if (
+        !options.empty &&
+        url.searchParams.get('overviewScope') === 'COMPLETED'
+      ) {
+        items = [completedPlan];
       } else if (!options.empty && requestedStatus === 'IDEA') {
         items = converted ? [convertedPlan, ideaPlan] : [ideaPlan];
       }
@@ -674,18 +685,18 @@ test('planning segments keep their relationship-native empty states', async ({
   await signIn(page);
   await page.goto('/plan');
 
-  await expect(page.getByText(m5s3.overview.plansEmpty)).toBeVisible();
+  await expect(page.getByText(m5s3.overview.openPlansEmpty)).toBeVisible();
   await page
     .getByRole('button', { name: m5s3.overview.experiencedPlans, exact: true })
     .click();
   await expect(
     page.getByText(m5s3.overview.experiencedPlansEmpty),
   ).toBeVisible();
-  await expect(page.getByText(m5s3.overview.plansEmpty)).toHaveCount(0);
+  await expect(page.getByText(m5s3.overview.openPlansEmpty)).toHaveCount(0);
   await page
     .getByRole('button', { name: m5s3.wish.status.OPEN, exact: true })
     .click();
-  await expect(page.getByText(m5s3.overview.plansEmpty)).toBeVisible();
+  await expect(page.getByText(m5s3.overview.openPlansEmpty)).toBeVisible();
   await captureR3Evidence(page, testInfo, 'r3-overview-empty-390-light.png');
   await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
   await expect(page.getByText(m5s3.overview.wishesEmpty)).toBeVisible();
@@ -778,10 +789,13 @@ test('P2 Chapter to Place reads as relationship content and preserves return con
     page.getByRole('heading', { name: CHAPTER_TITLE, level: 1 }),
   ).toBeVisible();
   await expect(page.getByText(CHAPTER_DESCRIPTION)).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: m5s3.chapter.contextHeading }),
-  ).toBeVisible();
-  const placeLink = page.getByRole('link', { name: new RegExp(PLACE_NAME) });
+  const context = page.getByRole('region', {
+    name: m5s3.chapter.contextHeading,
+  });
+  await expect(context).toBeVisible();
+  const placeLink = context.getByRole('link', {
+    name: new RegExp(PLACE_NAME),
+  });
   await expect(placeLink).toBeVisible();
   expect(
     await page.evaluate(

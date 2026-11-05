@@ -27,6 +27,12 @@ export interface FcmConfiguration {
     androidPackage: string;
     /**
      * 
+     * @type {FcmConfigurationEncryptedPreviewMaxVersionEnum}
+     * @memberof FcmConfiguration
+     */
+    encryptedPreviewMaxVersion?: FcmConfigurationEncryptedPreviewMaxVersionEnum;
+    /**
+     * 
      * @type {FcmConfigurationEncryptedPreviewVersionEnum}
      * @memberof FcmConfiguration
      */
@@ -45,6 +51,14 @@ export interface FcmConfiguration {
     providerKey: string;
 }
 
+
+/**
+ * @export
+ */
+export const FcmConfigurationEncryptedPreviewMaxVersionEnum = {
+    NUMBER_2: 2
+} as const;
+export type FcmConfigurationEncryptedPreviewMaxVersionEnum = typeof FcmConfigurationEncryptedPreviewMaxVersionEnum[keyof typeof FcmConfigurationEncryptedPreviewMaxVersionEnum];
 
 /**
  * @export
@@ -76,6 +90,7 @@ export function FcmConfigurationFromJSONTyped(json: any, ignoreDiscriminator: bo
     return {
         
         'androidPackage': json['androidPackage'],
+        'encryptedPreviewMaxVersion': json['encryptedPreviewMaxVersion'] == null ? undefined : json['encryptedPreviewMaxVersion'],
         'encryptedPreviewVersion': json['encryptedPreviewVersion'] == null ? undefined : json['encryptedPreviewVersion'],
         'projectId': json['projectId'],
         'providerKey': json['providerKey'],
@@ -94,6 +109,7 @@ export function FcmConfigurationToJSONTyped(value?: FcmConfiguration | null, ign
     return {
         
         'androidPackage': value['androidPackage'],
+        'encryptedPreviewMaxVersion': value['encryptedPreviewMaxVersion'],
         'encryptedPreviewVersion': value['encryptedPreviewVersion'],
         'projectId': value['projectId'],
         'providerKey': value['providerKey'],

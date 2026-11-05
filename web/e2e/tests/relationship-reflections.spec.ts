@@ -247,6 +247,8 @@ async function fixture(
       return route.fulfill({
         json: {
           items:
+            new URL(request.url()).searchParams.get('overviewScope') ===
+              'OPEN' ||
             new URL(request.url()).searchParams.get('status') === 'PLANNED'
               ? [plan()]
               : [],

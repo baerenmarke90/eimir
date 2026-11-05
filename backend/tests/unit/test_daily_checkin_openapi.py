@@ -48,6 +48,7 @@ def test_update_contract_exposes_only_the_typed_daily_dimensions() -> None:
 
     vibe = schema["components"]["schemas"]["DailyVibe"]
     assert vibe["enum"] == [
+        "VERY_GOOD",
         "GOOD",
         "OKAY",
         "STRESSED",

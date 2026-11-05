@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import String, cast, select
 from sqlalchemy.orm import Session
 
 from eimir.attachments import service, videos
@@ -17,10 +18,45 @@ from eimir.attachments.models import Attachment, AttachmentPayload, AttachmentSt
 from eimir.attachments.upload_ownership import short_transaction
 from eimir.config import get_settings
 from eimir.core.clock import now
+from eimir.identity import models as _identity_models  # noqa: F401
+from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import registry
 from eimir.media import get_media_store
 from eimir.media.streams import CHUNK_SIZE, BoundedSource, ByteLimitExceededError
+from eimir.relationship import models as _relationship_models  # noqa: F401
 from eimir.security.errors import DecryptionError, PlaintextRejectedError
+
+# The standalone role needs Account and Space metadata for Attachment writes.
+# API imports and integration-fixture bootstrap must not be implicit dependencies.
+
+RECOVERY_BATCH_SIZE = 100
+
+
+def recover_stranded_validations(session: Session, *, limit: int = RECOVERY_BATCH_SIZE) -> int:
+    """Resume only live videos stranded by the former standalone model defect."""
+    jobs = session.scalars(
+        select(Job)
+        .join(Attachment, cast(Attachment.id, String) == Job.payload["attachmentId"].astext)
+        .where(
+            Job.kind == service.ATTACHMENT_VIDEO_VALIDATION,
+            Job.status == JobStatus.FAILED.value,
+            Job.last_error == "NoReferencedTableError",
+            Attachment.status == AttachmentStatus.VALIDATING.value,
+            Attachment.media_type == MediaType.VIDEO.value,
+        )
+        .order_by(Job.created_at, Job.id)
+        .limit(limit)
+        .with_for_update(of=Job, skip_locked=True)
+    ).all()
+    for job in jobs:
+        job.status = JobStatus.PENDING.value
+        job.attempts = 0
+        job.run_after = now()
+        job.finished_at = None
+        job.locked_until = None
+        job.locked_by = None
+        job.last_error = None
+    return len(jobs)
 
 
 def _fail(source: Session, identifier: UUID, version: int, code: str) -> None:

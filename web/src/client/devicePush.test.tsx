@@ -1310,9 +1310,16 @@ it.each([
   },
 );
 
-it.each([1, undefined] as const)(
-  'registers preview keys only with the negotiated FCM server capability %s',
-  async (version) => {
+it.each([
+  [undefined, undefined, undefined],
+  [undefined, 2, undefined],
+  [1, undefined, 1],
+  [1, 2, 1],
+  [2, undefined, 1],
+  [2, 2, 2],
+] as const)(
+  'negotiates FCM preview server max %s and native max %s as %s',
+  async (serverMax, nativeMax, negotiated) => {
     native.state = {
       ...statusFixture({ accountId, enabled: true, permissionGranted: true }),
       providerKey: 'fcm',
@@ -1323,7 +1330,10 @@ it.each([1, undefined] as const)(
         unifiedPush: null,
         fcm: {
           ...fcmConfiguration,
-          ...(version ? { encryptedPreviewVersion: version } : {}),
+          ...(serverMax ? { encryptedPreviewVersion: 1 as const } : {}),
+          ...(serverMax === 2
+            ? { encryptedPreviewMaxVersion: 2 as const }
+            : {}),
         },
       });
     });
@@ -1337,6 +1347,7 @@ it.each([1, undefined] as const)(
         endpointValue: JSON.stringify({
           ...subscription,
           previewVersion: 1,
+          ...(nativeMax ? { previewMaxVersion: nativeMax } : {}),
           previewKey: key,
         }),
       }),
@@ -1348,7 +1359,7 @@ it.each([1, undefined] as const)(
       api.registerOwnPushEndpoint.mock.calls[0][0].pushEndpointRegistration;
     expect(JSON.parse(body.endpointValue)).toEqual(subscription);
     expect(body.encryptedPreview).toEqual(
-      version ? { version: 1, key } : undefined,
+      negotiated ? { version: negotiated, key } : undefined,
     );
     expect([...stored.values()].join('')).not.toContain(key);
   },

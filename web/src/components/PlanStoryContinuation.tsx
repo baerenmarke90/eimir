@@ -65,9 +65,12 @@ export function PlanStoryContinuation({
   }
 
   function dismissContinuation() {
-    const focusTarget = headingRef.current
-      ?.closest('.planning-page')
-      ?.querySelector<HTMLButtonElement | HTMLAnchorElement>('.back-link');
+    const surface =
+      headingRef.current?.closest('.product-main') ??
+      headingRef.current?.closest('.planning-page');
+    const focusTarget = surface?.querySelector<
+      HTMLButtonElement | HTMLAnchorElement
+    >('.back-link');
     focusTarget?.focus();
     setDismissed(true);
   }

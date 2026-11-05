@@ -3,7 +3,6 @@ import { CommentsApi } from '../api/generated/apis/CommentsApi';
 import { HeartMomentsApi } from '../api/generated/apis/HeartMomentsApi';
 import { MemoriesApi } from '../api/generated/apis/MemoriesApi';
 import { MilestonesApi } from '../api/generated/apis/MilestonesApi';
-import { StoryApi } from '../api/generated/apis/StoryApi';
 import type { AttachmentDetail } from '../api/generated/models/AttachmentDetail';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import { MediaType } from '../api/generated/models/MediaType';
@@ -16,7 +15,7 @@ import { UploadDescriptorMethodEnum } from '../api/generated/models/UploadDescri
 import { ResponseError } from '../api/generated/runtime';
 import { i18n } from '../i18n';
 import { Configuration, createSessionFetch } from './apiConfiguration';
-import { AttachmentsApi } from './mediaApis';
+import { AttachmentsApi, StoryApi } from './mediaApis';
 import { loadAuthorizedStoryImage } from './storyMediaLoader';
 import { createBinaryUploadRequest } from './binaryUploadTransport';
 

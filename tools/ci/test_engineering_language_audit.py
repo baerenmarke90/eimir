@@ -82,6 +82,14 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
     ) -> None:
         for suffix, product_copy in (
             (
+                ".json",
+                '"de": "Alex hat „Unser Spaziergang“ kommentiert."',
+            ),
+            (
+                ".xml",
+                '<string name="push_gentle_writing">Wenn du magst: Halte einen Moment fest.</string>',
+            ),
+            (
                 ".xml",
                 '<string name="push_kiss">%1$s hat dir einen Kuss geschickt.</string>',
             ),

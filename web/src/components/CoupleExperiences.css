@@ -28,7 +28,7 @@
   gap: var(--space-3);
   min-height: var(--touch-target-web);
   padding-block: var(--space-4);
-  color: var(--color-text-primary);
+  color: var(--color-text);
   font: var(--font-reading-body);
   overflow-wrap: anywhere;
   text-decoration: none;
@@ -65,8 +65,8 @@
   display: block;
   padding: var(--space-4);
   border-radius: var(--radius-card);
-  background: var(--color-surface-subtle);
-  color: var(--color-text-primary);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
   text-decoration: none;
   overflow-wrap: anywhere;
 }
@@ -99,6 +99,31 @@
 }
 .shared-experience-reveal > p {
   margin: 0;
+}
+.shared-experience-byline,
+.shared-experience-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+.shared-experience-byline p {
+  margin: 0;
+}
+.shared-experience-question {
+  font: var(--font-reading-body);
+  color: var(--color-text);
+  white-space: pre-wrap;
+}
+.shared-experience-footer {
+  justify-content: space-between;
+  inline-size: 100%;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.shared-experience-words[data-long="true"] {
+  font: var(--font-reading-body);
 }
 .shared-experience-symbol {
   color: var(--color-brand-text);
@@ -152,7 +177,7 @@
   border-radius: var(--radius-card);
   background: var(--color-surface-subtle);
   text-decoration: none;
-  color: var(--color-text-primary);
+  color: var(--color-text);
   transition: background var(--duration-transition) var(--easing-standard);
 }
 .couple-experience-links a:hover {

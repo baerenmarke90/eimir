@@ -93,3 +93,7 @@ records the PO follow-up to #1568, generated preflight and exact implementation 
 
 [Independent Wir rediscovery and borderless inputs (#1574)](references/1574-wir-rediscovery/README.md)
 records the follow-up to Android test.37, the generated preflight and validation.
+
+[App continuity and content composition (#1651)](references/app-continuity-polish/README.md)
+records the complete Wish alphabet, one-time current attention, immersive Diary
+month positioning, distinct shared answers and authorized media reuse after restart.

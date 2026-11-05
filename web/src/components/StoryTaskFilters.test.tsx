@@ -35,7 +35,7 @@ function setup() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
-  for (const key of ['timeline:MEMORY:2025:DESC', 'timeline:ALL:ALL:DESC']) {
+  for (const key of ['diary-v2:MEMORY:2025:DESC', 'diary-v2:ALL:ALL:DESC']) {
     queryClient.setQueryData(['story', 'space', key], {
       pages: [{ value: empty, source: 'network' }],
       pageParams: [null],

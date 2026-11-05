@@ -1,4 +1,42 @@
 const de = {
+  appContinuity: {
+    longRetrospective:
+      'Abends sind wir noch einmal zum Strand gegangen und haben ein Wettrennen bis ans Wasser gemacht. Danach saßen wir lange im Sand und haben gelacht, bis die Sonne verschwunden war. Einer dieser kleinen Momente, an die ich immer wieder gerne denke. ❤️',
+  },
+  mediaPlanning: {
+    wish: 'Ein Wochenende zu zweit – gemeinsam Neues entdecken und Zeit füreinander haben',
+    plan: 'Unser gemeinsamer Ausflug',
+    description:
+      'Ein Tag für uns beide. Wir nehmen uns Zeit für einen langen Spaziergang und lassen den Alltag hinter uns.',
+    edit: 'Unsere geänderte Verabredung',
+  },
+  subpageNavigation: {
+    legacyMemoryTitle: 'Erinnerung vom 27.10.2026',
+    approvedDate: '27. Oktober 2026',
+    approvedPlace: 'Beispielort',
+    approvedAddress: 'Musterstraße 1, 12345 Beispielort',
+    title: 'Unser Ausflug',
+    body: 'Ein Nachmittag am Fluss.',
+    place: 'Saarbrücken',
+    address: 'Am Ufer 1, Saarbrücken',
+    heartText: 'Unser gemeinsamer Spaziergang.',
+    prompt: 'Was hat deinen Tag schön beginnen lassen?',
+    answer: 'Neben dir aufzuwachen ❤️',
+  },
+  chapterExperience: {
+    summerTitle: 'Unser Sommer in Belgien',
+    description:
+      'Ein paar Tage am Meer. Nur wir.\nUnd viele kleine Geschichten.',
+    createdTitle: 'Unser gemeinsamer Herbst',
+    createdDescription: 'Ein neuer Abschnitt.',
+    pendingTitle: 'Noch nicht gespeichert',
+    correction: 'Meine Korrektur bleibt hier.',
+    homeTitle:
+      'Zuhause zu zweit – und all die kleinen Dinge, die unseren Alltag besonders machen',
+    homeDescription:
+      'Unser Alltag, unsere kleinen Rituale und ganz viel gemeinsames Ankommen.',
+    section: 'Abschnitt',
+  },
   sharedExperience: {
     question: 'Was hat euren heutigen Tag schön beginnen lassen?',
     ownInitial: 'Unser Kaffee zusammen.',

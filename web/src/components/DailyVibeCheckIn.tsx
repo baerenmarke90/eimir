@@ -26,6 +26,11 @@ import './DailyVibeCheckIn.css';
 
 const VIBE_OPTIONS = [
   {
+    value: DailyVibe.VERY_GOOD,
+    labelKey: 'dailyVibe.values.VERY_GOOD',
+    partnerKey: 'dailyVibe.partnerVisible.VERY_GOOD',
+  },
+  {
     value: DailyVibe.GOOD,
     labelKey: 'dailyVibe.values.GOOD',
     partnerKey: 'dailyVibe.partnerVisible.GOOD',
@@ -558,7 +563,11 @@ export function DailyVibeCheckIn({
             return (
               <button
                 key={option.value}
-                ref={index === 0 ? firstOptionRef : undefined}
+                ref={
+                  selected || (draftVibe === null && index === 0)
+                    ? firstOptionRef
+                    : undefined
+                }
                 type="button"
                 className={`daily-vibe-option${selected ? ' is-selected' : ''}`}
                 aria-pressed={selected}

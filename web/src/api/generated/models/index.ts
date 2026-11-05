@@ -32,6 +32,7 @@ export * from './ChapterCreate';
 export * from './ChapterDetail';
 export * from './ChapterPage';
 export * from './ChapterRelationTargets';
+export * from './ChapterTimelineMarker';
 export * from './ChapterUpdate';
 export * from './CollectionCreate';
 export * from './CollectionDetail';

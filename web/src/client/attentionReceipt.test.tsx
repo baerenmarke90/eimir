@@ -7,7 +7,7 @@ import {
   screen,
 } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { useAttentionReceipt } from './attentionReceipt';
+import { useAttentionReceipt, useAttentionReceipts } from './attentionReceipt';
 
 function Invitation({
   account = 'viewer',
@@ -58,4 +58,47 @@ it('expires an unopened invitation while the app remains visible', async () => {
     await vi.advanceTimersByTimeAsync(1_001);
   });
   expect(screen.queryByRole('button')).toBeNull();
+});
+
+it('hides a three-day-old invitation on its first render', () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date('2026-11-04T10:00:00Z'));
+  const createdAt = Date.parse('2026-11-01T09:00:00Z');
+  render(
+    <Invitation
+      account="already-expired"
+      until={createdAt + 3 * 24 * 60 * 60_000}
+    />,
+  );
+  expect(screen.queryByRole('button')).toBeNull();
+});
+
+it('consumes one event without hiding another and restores the receipts after remount', () => {
+  const expiresAt = Date.now() + 60_000;
+  function Signals() {
+    const receipts = useAttentionReceipts(
+      ['instance', 'signals-account', 'space'],
+      [
+        { id: 'first-comment', expiresAt },
+        { id: 'second-comment', expiresAt },
+      ],
+    );
+    return (
+      <>
+        {[...receipts.pendingIds].map((id) => (
+          <button type="button" key={id} onClick={() => receipts.consume(id)}>
+            {id}
+          </button>
+        ))}
+      </>
+    );
+  }
+  const view = render(<Signals />);
+  fireEvent.click(screen.getByRole('button', { name: 'first-comment' }));
+  expect(screen.queryByRole('button', { name: 'first-comment' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'second-comment' })).toBeTruthy();
+  view.unmount();
+  render(<Signals />);
+  expect(screen.queryByRole('button', { name: 'first-comment' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'second-comment' })).toBeTruthy();
 });

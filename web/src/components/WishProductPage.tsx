@@ -1,3 +1,4 @@
+import { TaskBackButton } from './TaskBackButton';
 import {
   useIsMutating,
   useMutation,
@@ -277,7 +278,7 @@ export function WishProductPage({
       ) : null}
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             ref={backLinkRef}
             className="back-link tertiary"
@@ -290,7 +291,7 @@ export function WishProductPage({
                 ? 'taskBoundary.back'
                 : 'm5s3.common.back',
             )}
-          </button>
+          </TaskBackButton>
         }
         eyebrow={t('m5s3.wish.detailEyebrow')}
         title={wish.title}

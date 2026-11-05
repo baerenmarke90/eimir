@@ -1,3 +1,4 @@
+import { TaskBackButton, TaskBackLink } from './TaskBackButton';
 import {
   useIsMutating,
   useMutation,
@@ -47,7 +48,6 @@ import {
   StoryEditorPageShell,
 } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
-import { TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 
 export type MilestoneProductMode = 'create' | 'detail' | 'edit';
@@ -377,13 +377,12 @@ export function MilestoneProductPage({
         <div className="page page-reading">
           <PageHeader
             before={
-              <Link
-                className="back-link"
+              <TaskBackLink
                 to={milestoneDetailPath(milestone.id)}
                 state={{ taskOriginKey: originKey }}
               >
                 {t('milestoneProduct.backToMilestone')}
-              </Link>
+              </TaskBackLink>
             }
             title={t('milestoneProduct.editHeading')}
           />
@@ -427,13 +426,12 @@ export function MilestoneProductPage({
     return (
       <StoryEditorPageShell
         before={
-          <Link
-            className="back-link"
+          <TaskBackLink
             to={milestoneDetailPath(milestone.id)}
             state={{ taskOriginKey: originKey }}
           >
             {t('milestoneProduct.backToMilestone')}
-          </Link>
+          </TaskBackLink>
         }
         title={t('milestoneProduct.editHeading')}
         sectionLabelledBy="milestone-edit-heading"

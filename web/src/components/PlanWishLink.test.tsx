@@ -29,7 +29,7 @@ beforeAll(() => {
 });
 afterEach(cleanup);
 
-function setup() {
+function setup(editing = true) {
   const initial = {
     id: 'plan-1',
     spaceId: 'space-1',
@@ -81,6 +81,7 @@ function setup() {
         spaceId="space-1"
         plan={plan}
         disabled={false}
+        editing={editing}
         onLinked={async (value) => {
           linked(value);
           client.setQueryData(key, value);
@@ -109,6 +110,14 @@ function setup() {
     listWishes,
   };
 }
+
+it('keeps association mutations behind the parent Edit mode', () => {
+  const { linkWishToPlan } = setup(false);
+  expect(
+    screen.queryByRole('button', { name: i18n.t('m5s3.plan.linkWish') }),
+  ).toBeNull();
+  expect(linkWishToPlan).not.toHaveBeenCalled();
+});
 
 async function selectWish() {
   fireEvent.click(

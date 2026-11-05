@@ -6,9 +6,19 @@ import type { ReactNode } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { AccountApi } from '../api/generated/apis/AccountApi';
 import { useSystemTimeZone } from './useSystemTimeZone';
-
-afterEach(() => {
+import { dashboardQueryKey } from './dashboardQueries';
+import { useWarmOverviewQuery } from './useWarmOverviewQuery';
+import {
+  __resetProductReadCacheStateForTests,
+  __setProductReadCacheStorageForTests,
+  __waitForProductReadCacheMutationsForTests,
+  readWarmOverviewCache,
+  loadProductWithReadCache,
+} from './productReadCache';
+afterEach(async () => {
   cleanup();
+  await __waitForProductReadCacheMutationsForTests();
+  __resetProductReadCacheStateForTests();
   vi.restoreAllMocks();
   vi.useRealTimers();
 });
@@ -78,4 +88,72 @@ it('coalesces resume reads, syncs the current system zone and aborts retired own
   view.unmount();
   expect(calls.at(-1)?.signal?.aborted).toBe(true);
   client.clear();
+});
+
+it('retains an authorized warm Dashboard while the confirmed device context refreshes it', async () => {
+  localStorage.clear();
+  __resetProductReadCacheStateForTests();
+  const rows = new Map<string, unknown>();
+  __setProductReadCacheStorageForTests({
+    read: async (key) => rows.get(key),
+    write: async (record) => {
+      rows.set((record as { key: string }).key, structuredClone(record));
+    },
+    remove: async (key) => {
+      rows.delete(key);
+    },
+    clear: async () => rows.clear(),
+  });
+  const write = vi
+    .spyOn(AccountApi.prototype, 'updateOwnDeviceContext')
+    .mockResolvedValue({ timezone: 'Europe/Berlin', sharedDayPending: false });
+  const context = {
+    accountId: 'warm-viewer',
+    spaceId: 'warm-space',
+    kind: 'dashboard-overview' as const,
+    resourceId: 'https://instance.test/',
+    serialize: (value: { label: string }) => value,
+    deserialize: (value: unknown) => value as { label: string },
+  };
+  await loadProductWithReadCache({
+    ...context,
+    load: async () => ({ label: 'Saved afternoon together' }),
+  });
+  let finish!: (value: { label: string }) => void;
+  const pending = new Promise<{ label: string }>((resolve) => {
+    finish = resolve;
+  });
+  const client = new QueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const view = renderHook(
+    () => {
+      const overview = useWarmOverviewQuery({
+        ...context,
+        apiBaseUrl: 'https://instance.test',
+        queryKey: dashboardQueryKey(context.spaceId),
+        load: () => pending,
+      });
+      useSystemTimeZone(
+        'https://instance.test',
+        'test-token',
+        context.accountId,
+        context.spaceId,
+      );
+      return overview;
+    },
+    { wrapper },
+  );
+  await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+  await waitFor(() =>
+    expect(view.result.current.data?.label).toBe('Saved afternoon together'),
+  );
+  expect((await readWarmOverviewCache(context))?.value.label).toBe(
+    'Saved afternoon together',
+  );
+  await act(async () => finish({ label: 'Fresh afternoon together' }));
+  await waitFor(() =>
+    expect(view.result.current.data?.label).toBe('Fresh afternoon together'),
+  );
 });

@@ -1089,6 +1089,52 @@
         "title": "ChapterRelationTargets",
         "type": "object"
       },
+      "ChapterTimelineMarker": {
+        "description": "A diary-only destination at an authored chapter start, not Story content.",
+        "properties": {
+          "endOn": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endon"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "position": {
+            "exclusiveMaximum": 100.0,
+            "minimum": 0.0,
+            "title": "Position",
+            "type": "integer"
+          },
+          "startOn": {
+            "format": "date",
+            "title": "Starton",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "startOn",
+          "endOn",
+          "position"
+        ],
+        "title": "ChapterTimelineMarker",
+        "type": "object"
+      },
       "ChapterUpdate": {
         "additionalProperties": false,
         "description": "Partial correction of Chapter metadata and its canonical Place reference.",
@@ -2119,6 +2165,7 @@
       "DailyVibe": {
         "description": "Stable V1 daily-state values owned by #429.\n\nThese values describe today's relationship-facing state. They are not\ndiagnoses, scores, or HeartMoment emotions; localized UI copy remains a\npresentation concern.",
         "enum": [
+          "VERY_GOOD",
           "GOOD",
           "OKAY",
           "STRESSED",
@@ -2202,6 +2249,17 @@
           },
           "kind": {
             "$ref": "#/components/schemas/ExperienceKind"
+          },
+          "prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt"
           },
           "text": {
             "title": "Text",
@@ -2923,6 +2981,12 @@
             "title": "Androidpackage",
             "type": "string"
           },
+          "encryptedPreviewMaxVersion": {
+            "const": 2,
+            "default": 2,
+            "title": "Encryptedpreviewmaxversion",
+            "type": "integer"
+          },
           "encryptedPreviewVersion": {
             "const": 1,
             "default": 1,
@@ -2956,7 +3020,10 @@
             "type": "string"
           },
           "version": {
-            "const": 1,
+            "enum": [
+              1,
+              2
+            ],
             "title": "Version",
             "type": "integer"
           }
@@ -11994,6 +12061,13 @@
               "type": "integer"
             },
             "title": "Availableyears",
+            "type": "array"
+          },
+          "chapterMarkers": {
+            "items": {
+              "$ref": "#/components/schemas/ChapterTimelineMarker"
+            },
+            "title": "Chaptermarkers",
             "type": "array"
           },
           "hasMore": {
@@ -30057,6 +30131,26 @@
               ],
               "title": "Status"
             }
+          },
+          {
+            "in": "query",
+            "name": "overviewScope",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "OPEN",
+                    "COMPLETED"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Overviewscope"
+            }
           }
         ],
         "responses": {
@@ -36275,6 +36369,16 @@
               "minimum": 1,
               "title": "Limit",
               "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeChapters",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Includechapters",
+              "type": "boolean"
             }
           }
         ],

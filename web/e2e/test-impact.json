@@ -1,6 +1,19 @@
 {
   "version": 1,
   "specs": {
+    "app-continuity-polish.spec.ts": {
+      "roots": [
+        "web/src/client/referenceFlow.ts",
+        "web/src/client/storyMediaLoader.ts",
+        "web/src/client/sessionPersistence.ts",
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/CoupleExperiencePage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/client/attentionReceipt.ts"
+      ]
+    },
     "android-push-onboarding.spec.ts": {
       "roots": [
         "web/src/components/DevicePushOnboarding.tsx",
@@ -197,7 +210,10 @@
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/StoryProductPage.tsx",
-        "web/src/components/MemoryCreatePage.tsx"
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/MemoryPreview.tsx",
+        "web/src/components/SensitiveMedia.tsx"
       ]
     },
     "memory-create-defaults.spec.ts": {
@@ -703,7 +719,11 @@
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/StoryProductPage.tsx",
-        "web/src/components/MemoryCreatePage.tsx"
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/MediaGallery.tsx",
+        "web/src/components/MediaGallery.css",
+        "web/src/components/SensitiveMedia.tsx",
+        "web/src/components/SensitiveMedia.css"
       ]
     },
     "wir-design-selection.spec.ts": {
@@ -722,12 +742,49 @@
         "web/src/components/GamesProductArea.tsx"
       ]
     },
+    "chapter-experience.spec.ts": {
+      "roots": [
+        "web/src/components/ChaptersOverviewPage.tsx",
+        "web/src/components/ChapterCreatePage.tsx",
+        "web/src/components/ChapterProductPage.tsx",
+        "web/src/components/PlanningRelationManager.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/StoryYearsPage.tsx",
+        "web/src/components/MemoryProductPage.tsx"
+      ]
+    },
     "device-review.spec.ts": {
       "roots": [
         "web/src/components/MemoryPlanningLinks.tsx",
         "web/src/components/CommentsPanel.tsx",
         "web/src/components/ContextTagEditor.tsx",
         "web/src/components/HeartMomentProductPage.tsx"
+      ]
+    },
+    "subpage-navigation-context.spec.ts": {
+      "roots": [
+        "web/src/components/AppShell.tsx",
+        "web/src/components/SubpageNavigation.tsx",
+        "web/src/components/TaskBackButton.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/HeartMomentProductPage.tsx",
+        "web/src/components/MomentPlaces.tsx",
+        "web/src/components/SharedExperienceReveal.tsx",
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "media-planning-corrections.spec.ts": {
+      "roots": [
+        "web/src/components/SharedPlanningOverviewPage.tsx",
+        "web/src/components/WishProductPage.tsx",
+        "web/src/components/PlanProductPage.tsx",
+        "web/src/components/MemoryProductPage.tsx",
+        "web/src/components/MediaDropZone.tsx",
+        "web/src/components/AutoLoadMore.tsx",
+        "web/src/client/videoCompression.ts",
+        "web/src/client/videoCompression.worker.ts",
+        "web/src/client/compressVideo.ts"
       ]
     }
   }

@@ -65,6 +65,55 @@ function plan(overrides: {
 afterEach(() => vi.useRealTimers());
 
 describe('SharedPlanningOverviewPage', () => {
+  it('sorts deduplicated wishes across pages by localized title without overview bylines', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(['m5-s3', 'wishes', 'space-1'], {
+      pages: [
+        {
+          items: [
+            wish({ id: 'z', title: 'Zoo', status: 'OPEN' }),
+            wish({ id: 'o', title: 'Österreich', status: 'OPEN' }),
+          ],
+          nextCursor: 'next',
+        },
+        {
+          items: [
+            wish({ id: 'a', title: 'Ägypten', status: 'OPEN' }),
+            wish({ id: 'o', title: 'Österreich', status: 'OPEN' }),
+            wish({ id: 'b10', title: 'Berg 10', status: 'OPEN' }),
+            wish({ id: 'b2', title: 'berg 2', status: 'OPEN' }),
+          ],
+          nextCursor: null,
+        },
+      ],
+      pageParams: [null, 'next'],
+    });
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/plan#wishes']}>
+          <SharedPlanningOverviewPage
+            apis={{} as SharedPlanningApis}
+            spaceId="space-1"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const titles = [...html.matchAll(/<strong>([^<]+)<\/strong>/g)].map(
+      (match) => match[1],
+    );
+    expect(titles).toEqual([
+      'Ägypten',
+      'berg 2',
+      'Berg 10',
+      'Österreich',
+      'Zoo',
+    ]);
+    expect(html).not.toContain(
+      i18n.t('m5s3.overview.createdBy', { name: 'Lea' }),
+    );
+  });
   it('renders only the shared M3 planning product areas', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -169,7 +218,7 @@ describe('SharedPlanningOverviewPage', () => {
       defaultOptions: { queries: { retry: false } },
     });
     planningClient.setQueryData(
-      ['m5-s3', 'plans', 'space-1'],
+      ['m5-s3', 'plans', 'space-1', 'overview', 'OPEN'],
       emptyInfinitePage(),
     );
     planningClient.setQueryData(
@@ -193,7 +242,7 @@ describe('SharedPlanningOverviewPage', () => {
     );
 
     expect(planningHtml).toContain(i18n.t('m5s3.overview.wishesEmpty'));
-    expect(planningHtml).toContain(i18n.t('m5s3.overview.plansEmpty'));
+    expect(planningHtml).toContain(i18n.t('m5s3.overview.openPlansEmpty'));
     expect(planningHtml).not.toContain(i18n.t('m5s3.wish.createIntro'));
 
     const collectionsClient = new QueryClient({
@@ -262,7 +311,7 @@ describe('SharedPlanningOverviewPage', () => {
       ]),
     );
     queryClient.setQueryData(
-      ['m5-s3', 'plans', 'space-1'],
+      ['m5-s3', 'plans', 'space-1', 'overview', 'OPEN'],
       infinitePage([
         plan({ id: 'plan-idea', title: 'Try a new recipe', status: 'IDEA' }),
         // Completed Plans remain discoverable only in the receded history.
@@ -328,7 +377,9 @@ describe('SharedPlanningOverviewPage', () => {
     );
     expect(plansPanelHtml).toContain('planen-agenda-copy');
 
-    // Creator attribution is real domain data, not a hardcoded name.
-    expect(html).toContain(i18n.t('m5s3.overview.createdBy', { name: 'Lea' }));
+    // Wishes lead with the shared intention; detail still owns attribution.
+    expect(wishesPanelHtml).not.toContain(
+      i18n.t('m5s3.overview.createdBy', { name: 'Lea' }),
+    );
   });
 });

@@ -117,6 +117,7 @@ export interface ListPlansRequest {
     cursor?: string | null;
     limit?: number;
     status?: PlanStatus | null;
+    overviewScope?: ListPlansOverviewScopeEnum;
 }
 
 export interface ReturnPlanToWishRequest {
@@ -572,6 +573,10 @@ export class PlansApi extends runtime.BaseAPI {
             queryParameters['status'] = requestParameters['status'];
         }
 
+        if (requestParameters['overviewScope'] != null) {
+            queryParameters['overviewScope'] = requestParameters['overviewScope'];
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
 
@@ -881,3 +886,12 @@ export class PlansApi extends runtime.BaseAPI {
     }
 
 }
+
+/**
+ * @export
+ */
+export const ListPlansOverviewScopeEnum = {
+    OPEN: 'OPEN',
+    COMPLETED: 'COMPLETED'
+} as const;
+export type ListPlansOverviewScopeEnum = typeof ListPlansOverviewScopeEnum[keyof typeof ListPlansOverviewScopeEnum];

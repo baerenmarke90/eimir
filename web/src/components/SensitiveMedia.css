@@ -51,12 +51,13 @@
 }
 .sensitive-media-preview > .sensitive-media-preview-control {
   position: absolute;
-  inset: var(--space-3) var(--space-3) auto auto;
+  inset: var(--space-2) var(--space-2) auto auto;
   z-index: 1;
-  width: var(--touch-target-web);
-  height: var(--touch-target-web);
+  width: auto;
+  max-width: calc(100% - var(--space-4));
+  min-height: var(--touch-target-web);
   margin: 0;
-  padding: 0;
+  padding: var(--space-1);
   border: 0;
 }
 .sensitive-media-preview > .sensitive-media-preview-control:hover,
@@ -72,14 +73,20 @@
   padding: var(--space-2);
   border-radius: var(--radius-pill);
 }
-.sensitive-media-label .eimir-icon,
-.sensitive-media-control .eimir-icon {
-  width: var(--space-5);
-  height: var(--space-5);
+.sensitive-media-control-copy {
+  display: grid;
+  min-inline-size: 0;
+  place-items: center;
 }
-.sensitive-media-preview > .sensitive-media-preview-control .eimir-icon {
-  width: calc(var(--touch-target-web) / 2);
-  height: calc(var(--touch-target-web) / 2);
+.sensitive-media-control-copy > span,
+.sensitive-media-control-copy::after {
+  grid-area: 1 / 1;
+  overflow-wrap: anywhere;
+}
+/* Reserve both localized labels so reveal/conceal never moves its touch target. */
+.sensitive-media-control-copy::after {
+  content: attr(data-reserve-label);
+  visibility: hidden;
 }
 .media-lightbox-stage > .sensitive-media-control {
   position: absolute;

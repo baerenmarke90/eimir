@@ -6,17 +6,35 @@ here does not belong in the project.
 
 As of: 2026-10-20
 
-## Optional video processor (2026-11-02)
+## Optional video processor (2026-11-05)
 
 FFmpeg 9.0.2, upstream commit `946fcce07b6dcd0331c8cc609192aeff5e1924f8`,
 is built from the checksum-pinned official archive only in `backend/Dockerfile.media`.
 License: LGPL-2.1-or-later for this restricted build; GPL, nonfree, autodetected
 libraries and network protocols are disabled. Corresponding source, license,
-configuration and the local MOV encryption rejection patch ship with the image.
-No new Python/npm/native dependency or external media provider is introduced.
+configuration and the local MOV, codec-context and HDR serialization hardening
+patches ship with the image. No external media provider or new Python/npm
+dependency is introduced. The optional role statically links these source-built
+normalization dependencies (no GPL/nonfree components):
+
+| Component | Source/version | License |
+| --- | --- | --- |
+| OpenH264 encoder | [Cisco 2.7.0](https://github.com/cisco/openh264/tree/1bca62311e447fd9c39fc93de2c4b96cd5ce971c), archive SHA-256 `2238d3e5956ef0d288dd43842a0220015cf72c4327d98684e8bc47ffa7cf5308` | BSD-2-Clause |
+| zimg color conversion | [3.0.6](https://github.com/sekrit-twc/zimg/tree/f819b14e8f39d1282400b0d9543e8ef73c1b2bbd), archive SHA-256 `4dc9faba466bce429226f0f5454cb7948ec2b70f6b5b6de383898227b38e51da` | WTFPL-2.0 |
+
+`tools/media/build-video-dependencies.sh` verifies both archives; complete
+corresponding source, licenses and shared build helpers ship under
+`/opt/eimir-media/share/ffmpeg`. FFmpeg does not enable the OpenH264 decoder.
+OpenH264 source builds are not covered by an assumed Cisco binary patent grant;
+OSS source/attribution obligations and codec-patent distribution/operation review
+are distinct. The build never fetches a Cisco binary or adds a user/provider
+account. Both hosting modes use the same bounded optional role.
 The synthetic blue H.264/AAC fixture in `backend/tests/fixtures/media/` was
 created for #88 using FFmpeg color/anullsrc generators; it contains no third-party
-imagery, personal data or audio recording. Its deliberately synthetic metadata
+imagery, personal data or audio recording. The additional #1649 fixtures use
+FFmpeg-generated test colors and a 440 Hz tone, reproduced by
+`tools/media/generate-video-fixtures.sh`; they cover HEVC SDR/Main10/HLG/PQ,
+rotation, silence, H.264 High10/PCM and H.264/MP3. Their deliberately synthetic metadata
 is only a stripping-test input. See [operations and security review](operations/video-uploads.md)
 and `tools/media/advisory-review.json`; unresolved evidence is not a blanket waiver.
 
@@ -194,6 +212,17 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | react-dom | 19.2.8 | npm | MIT |
 | react-router-dom | 7.18.2 | npm | MIT |
 | leaflet | 1.9.4 | npm / Leaflet | BSD-2-Clause |
+| mediabunny | 1.65.2 | npm / [upstream](https://github.com/Vanilagy/mediabunny/tree/v1.65.2) | MPL-2.0 |
+
+Mediabunny is used unmodified in a lazy, same-origin Web Worker for optional
+on-device MP4/MOV optimization (#1647). It supplies container handling around
+native WebCodecs; no software codec, WASM runtime, remote converter or provider
+is added. Its two transitive dependencies are Web API type declarations, recorded
+with integrity hashes in the npm lock. The MPL notice and source location ship
+in `web/public/licenses/mediabunny-NOTICE.txt`; the complete license ships beside
+it. Cloud and Self-Hosted use the same bundled code without provider fees or
+additional user setup. Unsupported, failed, oversized or uneconomical local
+conversion retains the original and existing server-side validation.
 
 ## Web — M2-S8 Development
 

@@ -1,3 +1,4 @@
+import { TaskBackButton } from './TaskBackButton';
 import { AutoLoadMore } from './AutoLoadMore';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
@@ -250,14 +251,14 @@ export function PrivateCollectionCreatePage({
     <>
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             className="back-link tertiary"
             onClick={requestClose}
             aria-disabled={mutation.isPending}
           >
             {t('privateArea.collections.detailBack')}
-          </button>
+          </TaskBackButton>
         }
         title={t('privateArea.collections.createTitle')}
         description={t('privateArea.collections.intro')}
@@ -1016,7 +1017,7 @@ export function PrivateCollectionDetailPage({
         className="page-heading-collection"
         before={
           isEditing ? (
-            <button
+            <TaskBackButton
               type="button"
               className="back-link tertiary"
               onClick={requestCollectionEditClose}
@@ -1027,7 +1028,7 @@ export function PrivateCollectionDetailPage({
               }
             >
               {t('common.cancel')}
-            </button>
+            </TaskBackButton>
           ) : (
             <PrivateAreaDetailBack
               fallbackPath={PRIVATE_COLLECTIONS_PATH}
@@ -1325,14 +1326,14 @@ export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
     <>
       <PageHeader
         before={
-          <button
+          <TaskBackButton
             type="button"
             className="back-link tertiary"
             onClick={requestClose}
             aria-disabled={mutation.isPending}
           >
             {t('privateArea.collections.detailBack')}
-          </button>
+          </TaskBackButton>
         }
         title={t('privateArea.collections.editTitle')}
         description={t('privateArea.collections.intro')}

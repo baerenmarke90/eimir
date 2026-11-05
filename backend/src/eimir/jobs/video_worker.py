@@ -42,7 +42,7 @@ def main() -> None:
     while not _shutdown:
         try:
             completed = run_once(
-                name, limit=1, kinds=[ATTACHMENT_VIDEO_VALIDATION], lease=timedelta(minutes=20)
+                name, limit=1, kinds=[ATTACHMENT_VIDEO_VALIDATION], lease=timedelta(minutes=30)
             )
         except Exception:
             log.exception("video worker round failed")

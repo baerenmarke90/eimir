@@ -1,8 +1,8 @@
 {
-  "reviewedAt": "2026-11-02",
+  "reviewedAt": "2026-11-05",
   "source": "https://security-tracker.debian.org/tracker/data/json",
   "upstreamCommit": "946fcce07b6dcd0331c8cc609192aeff5e1924f8",
-  "securityAcceptance": "Source/build-surface review completed for the bounded restricted worker on 2026-11-02. The private test rollout requires all Media Video checks. General production activation remains an explicit operator rollout, default off.",
+  "securityAcceptance": "Source/build-surface review for #1649 adds HEVC/HDR normalization, explicitly pinned OpenH264 encoder and zimg color conversion. The existing optional role remains bounded/default-off outside authorized operator rollout. Source hardening regressions execute in every restricted build.",
   "findings": {
     "CVE-2025-52290": {
       "evidenceSha256": "6255457e75295640aa218888bde1b121facc321e59c28522a75866dc880639da",
@@ -10,15 +10,15 @@
     },
     "CVE-2026-107675": {
       "evidenceSha256": "9cb38b6578043c80b7a3560eed44cd768cfc9ff09f09a8ffc99903ff6bf0ad3c",
-      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only H.264/AAC decoding and file/pipe protocols enabled. See original advisory description and build configuration."
+      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only the explicitly reviewed H.264/HEVC and AAC/MP3/PCM audio decoding surface and file/pipe protocols are enabled. See original advisory description and build configuration."
     },
     "CVE-2026-107676": {
       "evidenceSha256": "b97b4169dd69ab29146e1ab2517886f34e9a3472f61ed11e805386802ac2f019",
-      "review": "Matroska demuxer, HEVC and AV1 decoders are absent. SDR H.264 only; SEI stripped before publication. No dynamic HDR metadata accepted."
+      "review": "HEVC decoding makes this applicable. initialize-hdr-payload.patch initializes every serialized HDR10+ byte and writes color-saturation flags outside the optional tone-mapping branch, matching the parser and size calculation. Every build executes test-hdr-payload.c with one/three windows, no tone mapping, saturation flags, oppositely poisoned caller buffers, round-trip parsing and guard bytes. Only selected media are normalized; frame side data and H.264 SEI are removed and output is revalidated. Matroska/AV1 stay absent. This is a reviewed local defense, not an upstream closure claim."
     },
     "CVE-2026-107677": {
       "evidenceSha256": "2541a3b8dbb45dea0a3888eea7481665ac1afc45f3889a499cb72fe35f049380",
-      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only H.264/AAC decoding and file/pipe protocols enabled. See original advisory description and build configuration."
+      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only the explicitly reviewed H.264/HEVC and AAC/MP3/PCM audio decoding surface and file/pipe protocols are enabled. See original advisory description and build configuration."
     },
     "CVE-2026-107678": {
       "evidenceSha256": "81d598fdf07c87eca22b2ceabaa5b056d801dd319b9121fe22be319ce231cbfe",
@@ -26,35 +26,51 @@
     },
     "CVE-2026-107696": {
       "evidenceSha256": "a87463410a41032d8af7ba52ef52c072619164ab8400dc2762131e7d13890ca3",
-      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only H.264/AAC decoding and file/pipe protocols enabled. See original advisory description and build configuration."
+      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only the explicitly reviewed H.264/HEVC and AAC/MP3/PCM audio decoding surface and file/pipe protocols are enabled. See original advisory description and build configuration."
     },
     "CVE-2026-120210": {
       "evidenceSha256": "fcaf66cee2a76eb1c9b6cfe99e1d09f9c2a71e8062c155a3808a1695b7e215e5",
-      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only H.264/AAC decoding and file/pipe protocols enabled. See original advisory description and build configuration."
+      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only the explicitly reviewed H.264/HEVC and AAC/MP3/PCM audio decoding surface and file/pipe protocols are enabled. See original advisory description and build configuration."
     },
     "CVE-2026-120243": {
       "evidenceSha256": "df2ef77b1bc495d99991e3b62c24c64f2960d58ab9aac2727ca8ce9f11cbe415",
-      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only H.264/AAC decoding and file/pipe protocols enabled. See original advisory description and build configuration."
+      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only the explicitly reviewed H.264/HEVC and AAC/MP3/PCM audio decoding surface and file/pipe protocols are enabled. See original advisory description and build configuration."
     },
     "CVE-2026-120244": {
       "evidenceSha256": "f65e04f748c2727c5af51110c9296c2e4049ea3ed9e43149869f8697909f89b7",
-      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only H.264/AAC decoding and file/pipe protocols enabled. See original advisory description and build configuration."
+      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only the explicitly reviewed H.264/HEVC and AAC/MP3/PCM audio decoding surface and file/pipe protocols are enabled. See original advisory description and build configuration."
     },
     "CVE-2026-120245": {
       "evidenceSha256": "fadcb444122b3fffbebd59d50229757be1f1ec6639ea93dfcdf97080fc9e5ea1",
-      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only H.264/AAC decoding and file/pipe protocols enabled. See original advisory description and build configuration."
+      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only the explicitly reviewed H.264/HEVC and AAC/MP3/PCM audio decoding surface and file/pipe protocols are enabled. See original advisory description and build configuration."
     },
     "CVE-2026-120246": {
       "evidenceSha256": "fb41b0d61744b9b8ad912f7d936dc6dd5814c9f35dba238bb2a768536f7b42c9",
-      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only H.264/AAC decoding and file/pipe protocols enabled. See original advisory description and build configuration."
+      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only the explicitly reviewed H.264/HEVC and AAC/MP3/PCM audio decoding surface and file/pipe protocols are enabled. See original advisory description and build configuration."
     },
     "CVE-2026-120247": {
       "evidenceSha256": "1dba6398642ed626fbbfe80a857ea8496f09aa6eccf68fc86c785753ca9132c5",
-      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only H.264/AAC decoding and file/pipe protocols enabled. See original advisory description and build configuration."
+      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only the explicitly reviewed H.264/HEVC and AAC/MP3/PCM audio decoding surface and file/pipe protocols are enabled. See original advisory description and build configuration."
     },
     "CVE-2026-6385": {
       "evidenceSha256": "68993bb79516284e8d4709da374bbb45525cc91922dec1666ffe8e29be48c38e",
-      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only H.264/AAC decoding and file/pipe protocols enabled. See original advisory description and build configuration."
+      "review": "Affected protocol, demuxer or decoder is not compiled in the restricted build. Input format forced MOV; only the explicitly reviewed H.264/HEVC and AAC/MP3/PCM audio decoding surface and file/pipe protocols are enabled. See original advisory description and build configuration."
+    }
+  },
+  "dependencies": {
+    "openh264": {
+      "upstreamCommit": "1bca62311e447fd9c39fc93de2c4b96cd5ce971c",
+      "version": "2.7.0",
+      "license": "BSD-2-Clause",
+      "findings": {},
+      "review": "Pinned upstream 2.7.0 encoder; Debian records no unresolved sid finding. Earlier decoding issues, including CVE-2025-27091, are fixed by this version. FFmpeg does not enable the OpenH264 decoder. Native untrusted decoding stays in its explicitly enabled FFmpeg decoders. Cisco binary-license/patent coverage is not claimed for source builds."
+    },
+    "zimg": {
+      "upstreamCommit": "f819b14e8f39d1282400b0d9543e8ef73c1b2bbd",
+      "version": "3.0.6",
+      "license": "WTFPL-2.0",
+      "findings": {},
+      "review": "Pinned upstream source, static color-conversion filters. Debian currently records no zimg advisories; absence from that feed is not vulnerability-free certification. No new input format/network parser or remote content flow."
     }
   }
 }

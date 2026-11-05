@@ -76,7 +76,7 @@ function VibeNoteMarker() {
       className="daily-vibe-note-marker"
       title={t('dailyVibe.noteAvailable')}
     >
-      <EimirIcon name="nachrichten" />
+      <EimirIcon name="notes" />
       <span className="sr-only">{t('dailyVibe.noteAvailable')}</span>
     </span>
   );

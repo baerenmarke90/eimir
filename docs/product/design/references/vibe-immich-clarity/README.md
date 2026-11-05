@@ -2,7 +2,7 @@
 
 Main baseline: `88004f8147fa2cf6d65364d06443805859011fc3`.
 Dependency: #1656, reviewed at `86b1e0ae4574dcee91e697ee9612090bc2f2f7cf`;
-its concurrent CI correction is included at `1ec5a516b4b21477388e9200b40a4877f19b6237`.
+its final CI corrections are included at `2c8fc132fcabe355591f623a8787c2b900d3e477`.
 The new PR owns this preflight and the requested follow-up.
 
 ![Generated integrated Compact reference](compact-reference.png)
@@ -30,7 +30,7 @@ Wishes for closeness or quiet can use the optional authored note.
 
 Compact uses roomy full-width choices: emotion icon, label and a separate check.
 Keep one Save, optional note, Remove, Back/Escape and focus restoration. Add a
-speech bubble for nonblank own/visible partner notes; never signal hidden note
+note icon for nonblank own/visible partner notes; never signal hidden note
 existence. The partner card opens the existing note sheet. No note preview or
 permanent helper paragraph. One person can finish their check-in or capture
 alone; dimension-specific mutual reveal and voluntary participation stay intact.
@@ -71,3 +71,7 @@ component retry/note/legacy-value cases and complete affected browser journeys.
 Cover 360/390/430, Expanded, Light/Dark, 320px/200% text, reduced motion, focus,
 axe and open → select → save/import → observe → return. Final head CI must pass.
 Synthetic evidence cannot certify a personal live library or physical device.
+
+The implementation uses the shared lined-note icon rather than the generated
+speech bubble, preserving the established icon grammar and the note meaning.
+See [runtime evidence and acceptance](evidence/README.md).

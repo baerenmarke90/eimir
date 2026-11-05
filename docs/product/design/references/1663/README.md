@@ -39,9 +39,10 @@ sheet and reachable actions instead of inferring reachability from one image.
 
 ## Behavioral acceptance
 
-- 27 distinct local browser journeys pass: 16 initial WIR/incoming/quote
+- 34 distinct local browser journeys pass: 16 initial WIR/incoming/quote
   journeys, nine quote/feeling journeys, and two independent Pro/Core statistics
-  journeys. Final targeted recapture also reruns the Settings visibility flow,
+  journeys, plus six original-context/return scenarios and one Timeline reflow
+  case from the CI correction batch below. Targeted recapture also reruns the Settings visibility flow,
   Compact Light/Dark composition, Expanded and layout-zoom journeys successfully.
 - Shared invitations cover both content kinds at 320/360/390/430/1280,
   author-to-partner sharing, original words/context, explicit Save, canonical
@@ -56,6 +57,16 @@ sheet and reachable actions instead of inferring reachability from one image.
 - Full local Web tests: 2,694 pass, two existing skips. The final Settings copy
   adjustment is additionally covered by 41 passing targeted component tests and
   a fresh Settings browser journey. Hosted final-head results belong in the PR.
+
+The first hosted pass found six instances of one stale assertion that still
+looked for the sender in the old byline. The corrected journey checks the exact
+localized sender heading and separate content type while retaining prompt,
+answer, date, accessibility, detail and Back assertions. It also exposed one
+pre-existing Timeline measurement race: a translated 44px control produced a
+43.9999847px DOMRect mid-reveal. That test now uses the existing filter-refresh
+journey's condition that the month heading transform has reached `none` before
+measurement. The exact 44px minimum, normal motion, timeouts and retry policy
+remain. All seven corrected cases passed three local repetitions (21 runs).
 
 Local browser: temporary Chromium 153.0.8010.0 using the repository's Playwright
 tests. No repository dependency version changed. Hosted checks use the locked

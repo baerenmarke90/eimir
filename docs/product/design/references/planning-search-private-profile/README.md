@@ -196,4 +196,3 @@ Current main was refreshed after validation and remains the baseline above.
 CI, Product Owner acceptance, merge and publication remain separate delivery
 states; this work does not publish an Android build. Shared tags and an optional
 ongoing-Chapter range indicator remain recommendations rather than schema changes.
-

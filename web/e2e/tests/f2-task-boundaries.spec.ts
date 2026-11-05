@@ -1,10 +1,10 @@
-import photoSources from '../../src/i18n/locales/photoSources';
 import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import navigation from '../../src/i18n/locales/navigation';
+import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
@@ -485,6 +485,13 @@ test('Quick Create native modality prevents background focus and activation', as
   await testInfo.attach('modal-focus-checkpoints', {
     body: JSON.stringify(checkpoints, null, 2),
     contentType: 'application/json',
+  });
+  await dialog.evaluate(async (element) => {
+    await Promise.all(
+      element
+        .getAnimations({ subtree: true })
+        .map((animation) => animation.finished),
+    );
   });
   const backgroundBounds = await backgroundMore.boundingBox();
   const dialogBounds = await dialog.boundingBox();

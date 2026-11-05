@@ -292,6 +292,8 @@ ALLOWED_LEGACY_INPUT = "Aktueller `main`"
 # domain-content fixtures. Keeping the exception value-based rather than
 # excluding whole test files still audits their engineering prose.
 ALLOWED_LOCALIZED_TEXTS = (
+    # Exact #1655 native outcome copy and its bilingual encrypted fixtures.
+    "Dein Video konnte nicht verarbeitet werden.",
     # Exact #1590 native recovery copy; resource localization, never diagnostics.
     "eimir. wurde unterbrochen",
     "Die App-Ansicht konnte nicht weiter ausgeführt werden. Du kannst eimir. erneut öffnen. Bereits gespeicherte Inhalte bleiben erhalten. Nicht gespeicherte Eingaben können verloren sein.",
@@ -344,8 +346,6 @@ ALLOWED_LOCALIZED_TEXTS = (
     "Dein Datentransfer ist bereit.",
     "Dein Datentransfer ist abgeschlossen.",
     "Dein Datentransfer konnte nicht abgeschlossen werden.",
-    # Exact #1656 native video outcome copy and bilingual interoperability fixtures.
-    "Dein Video konnte nicht verarbeitet werden.",
     "Einkaufen für unser gemeinsames Wochenende",
     "Frisches Obst, gutes Brot und etwas für unseren gemeinsamen Kochabend.",
     "Von Alex",

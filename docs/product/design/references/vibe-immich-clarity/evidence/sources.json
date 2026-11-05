@@ -58,5 +58,12 @@
       "path": "web/e2e/tests/memory-create-defaults.spec.ts",
       "sha256": "2ffe908ff1e48f7bd10e18f04bcad8aa0dfdb4b52b82aecd98f032b203124dbd"
     }
-  ]
+  ],
+  "integration": {
+    "baseCommit": "7ccc4dea5db511bf7e35f8e53e854e29604ce198",
+    "preservedCheckpoint": "5bf505b5e4c7e6c38fb893f88695140ae38fa448",
+    "validationRecord": "https://github.com/baerenmarke90/eimir/pull/1659",
+    "runtimeFingerprintsUnchanged": true,
+    "nativeVideoFailureVectors": 8
+  }
 }

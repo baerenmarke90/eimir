@@ -44,7 +44,7 @@ Memory/Plan/HeartMoment save behavior remain intact.
 | Five feeling choices and optional note | [360 Light](vibe-feelings-360-light.png), [390 Dark](vibe-feelings-390-dark.png), [430 Light](vibe-feelings-430-light.png) | [1280 Dark](vibe-feelings-1280-dark.png), [320 Dark / 200%](vibe-feelings-320-dark.png) |
 | Immich import recovery | [Partial failure](immich-import-recovery-1-390-light.png), [Full failure](immich-import-recovery-2-390-light.png) | Complete capture suite also covers 320/360/390/430/1280, themes, offline and large text |
 
-## Behavior and validation
+## Checkpoint behavior and validation
 
 - 78/78 cases pass across both complete affected browser specifications. They
   cover open, feeling selection, note save/reveal, actual result, route return,
@@ -86,12 +86,34 @@ The first complete hosted run also found the old feeling label in an Insights
 text expectation, canonical endpoint-matrix ownership still assigned to POST,
 and the inherited video-failure kind absent from the installed native preview
 catalog. The label and GET matrix ownership are corrected. Native video-failure
-copy now stays generic even when a title/content is present; four synthetic
-vectors cover both preview versions and title states. App and instrumentation
+copy now stays generic even when a title/content is present; the merged #1656 catalogue supplies eight synthetic
+vectors covering both preview versions, Memory/HeartMoment targets and title states. App and instrumentation
 Java/resource compilation and Capacitor foundation checks pass. The snapshot
 hashes are represented as typed path/digest records so public API-file SHA-256
 values cannot be mistaken for API credentials. The complete-history secret
 scan remains unchanged, with no new exclusions or ignored findings.
+
+## Integrated revision validation
+
+The continuation integrates main `7ccc4dea5db511bf7e35f8e53e854e29604ce198`,
+including the final #1656 fixes, into the existing #1659 history. Native preview
+implementation, localized resources and the complete eight-vector video-failure
+catalogue are preserved byte-for-byte from main. Both preview versions, both
+Memory/HeartMoment targets and empty/present titles remain covered.
+
+All 13 captured runtime/test fingerprints in `sources.json` match the integrated
+source. The screenshots above remain evidence for that unchanged UI; the counts
+in the checkpoint section are historical results, not new-revision successes.
+The integrated source passes the 84 language, identity, migration and design-guard
+regressions; every synthetic encrypted catalogue vector authenticates and decodes.
+The [PR validation record](https://github.com/baerenmarke90/eimir/pull/1659)
+binds fresh hosted checks, merge context and any remaining acceptance to the
+final head SHA. No gate, assertion, retry or scan exclusion is changed.
+
+Local review uses exact GitHub blob content because this session has no
+working Git transport or full dependency/service checkout. Complete backend,
+PostgreSQL, generated-client, production Web and browser checks run through the
+existing GitHub Actions gates; their results are required before readiness.
 
 ## Compatibility and remaining acceptance boundary
 

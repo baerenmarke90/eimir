@@ -265,3 +265,23 @@ All 43 cases in both complete affected browser specifications pass with these
 helper corrections. All 23 identity-classifier and migration regressions pass;
 the full identity scan reports no active rename findings. Application runtime
 source remains identical to the validated implementation at `86b1e0ae4`.
+
+The merge-readiness run passed all four backend integration shards, generated
+clients, Web build, media/codec lifecycle and recovery checks. Its non-integration
+backend lane exposed missing native coverage for the new video outcome. The
+existing Android presenter now maps that kind to a neutral localized summary and
+its canonical Moment action. Eight additional Python-sender JWE fixtures cover
+both envelope versions, Memory/HeartMoment parents and empty/nonempty titles;
+authored names, titles and body content never enter this failure summary. The
+existing unknown-kind fallback and all authorization/encryption limits remain.
+The exact German product value is classified as localization, with regressions
+that still reject surrounding engineering prose. No protocol, dependency, tier
+or native layout changed; the existing native CI owns emulator acceptance.
+
+Two primary-swipe cases failed only in the hosted browser matrix. The native
+touch helper now synchronizes input start/end with browser frames; its separate
+paused-first-frame interaction assertion is retained. A flaky modal geometry
+assertion now measures after the actual opening animation. Both complete
+specifications pass all 54 cases locally. Local Android compilation, lint and
+all nine unit cases pass; ten affected sender/catalog-policy cases and all
+27 language-guard regressions pass. No assertion, retry or timeout was weakened.

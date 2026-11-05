@@ -1102,7 +1102,7 @@
       }
     },
     {
-      "id": "VIDEO_PROCESSING_FAILED-v1-empty",
+      "id": "VIDEO_PROCESSING_FAILED-v1-MEMORY-empty",
       "payload": {
         "v": 1,
         "notificationId": "01a19706-45b8-741d-a0d2-3687565a702e",
@@ -1114,7 +1114,7 @@
         "issuedAt": 1000,
         "expiresAt": 1300
       },
-      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..58TRlGxVR2H3Gniv.JaRPYNtxTOzm_3YrN8vlJnXgrgcNOGWxlp95w7ivzPbHSTWEeZdqZBzV-pzvch_97rpA-ssvJb-zLJe1qax3jmYgp7GVWrZbGGurKDHHLVy-zR7d535kX-8eHVkVte0MpncohbfWbrRD9QAs6JafSTpPPAShuGUS_x3Wha3rL-niRSsyccSYWHyLu75g4MTX7GbrBrmRLcQwFRQ61Ukr-jjZdih8EKwynlcQEqUoLFZrPktoai3BLEsaUlKU-QU.KRvnQBZZ4cM75eRpBqlfoQ",
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..Seh0iu-DqWIQeqr1.hzE7Bnz9UylrW083lopUt2FEcV1tka9xJJ4yvzb2mgas5GjDd3tn5LY8i5qV7zfgwuPmkAVM7cXIX4WZCG1DxoxskIQxqhuRVaxsQLK5tdLdKJwRcoA1Y78L1JTfnMYepnkPDZMii8OJotOtL2ZOEV8ZzZdMJhBL2x0BVN0J8xuzs-Ytu9ZgVYmFFYtkMsWmCF0upM32e42ZZbrhwmS0tx5nqfibKwlUz17Nc_wtpERsYdyr7MQimeVF1XzmOqU.eOaC8WjVj478rXzBO3d5SA",
       "expectedBody": {
         "de": "Dein Video konnte nicht verarbeitet werden.",
         "en": "Your video could not be processed."
@@ -1125,7 +1125,7 @@
       }
     },
     {
-      "id": "VIDEO_PROCESSING_FAILED-v1-title",
+      "id": "VIDEO_PROCESSING_FAILED-v1-MEMORY-title",
       "payload": {
         "v": 1,
         "notificationId": "01a19706-45b8-741d-a0d2-3687565a702f",
@@ -1137,7 +1137,7 @@
         "issuedAt": 1000,
         "expiresAt": 1300
       },
-      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..YCdyvgf76WOw9lxu.UjaVvZHJUr19V5OyFwzxN1Hg8DiqL7WmnF4nl_RUbFuPll7o_eXjuDOBIRmFcNJCDiEeEEKVYEVdAWPtGgXWLS36T4MDIjLQCPedYDxbEwe_PDFLu-4yJldPlBYHV0tGMXDWzFIfFBADU9RlmwUjUKUdGjjEfEoAsBI7lyW1cJYjhhUyuraVIRn0grJ3uaNBdxtEZ5Mz66La-dFJJDNJA2xIcVC5O3L0H3g7-BqlbdX7reg95HRjgDYR1cP3M8IVsM230TbJ5r2IdhYFbxxukg.FBd7Cjc4z-pUJLN_msNOhw",
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..OE9dPTeCFPvrK7Da.qC5m0JOZrn90MzE43qK-1bpQEqlD8-22YUEIRUOACEdW-Lg8WpYtnduGy9xkqa686DpBub-7TTiaCtu3bf2v3hkoZOTbo3oz4tqi7KaHYjywDLn_eYoiK0nzwyxEjX2RDoQtAMlkefw7_mzDJvY8VlwgiCQfhoMcKmO3fQaHtO2SFq__XRI_JYIGjNOEvMydts1toNpbzEE5d7_YAwwP3xh8GPQLzvjrzkFvNvoOecE0n0sd_8ahBjfqKTQfXh3hMh_ol3QNoz1UOatpjdY5SQ.iRXA1HxCFYUKkLa9Ey0BEQ",
       "expectedBody": {
         "de": "Dein Video konnte nicht verarbeitet werden.",
         "en": "Your video could not be processed."
@@ -1148,10 +1148,56 @@
       }
     },
     {
-      "id": "VIDEO_PROCESSING_FAILED-v2-empty",
+      "id": "VIDEO_PROCESSING_FAILED-v1-HEART_MOMENT-empty",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7030",
+        "kind": "VIDEO_PROCESSING_FAILED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "HEART_MOMENT",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..9PyLM3TXKfCGb0gl.7nfeVW1Q2hXU22fbvDOdQ7rfI2dTR3rjbG2f-ZOhIof6qo_M209iyMtz4gszBtd3ZzVNnFT6etSx9uc4r3x3CA4e6bMSwSxuat97dNzzX2vKbut1Wss6keoa8Jpvwg8nYFQH6YLLj6NsjFLNxX4SooAznk2vpWtJ-8X-9Mr0j0VtvWooDcg3auHfwmxYqvx-qYhBHjTHLzgPG8lL5QD4ZKSRS8HG5pV-bccRzx7LPFR_eWVRrIZT11nTzEavWrPShPSiwXk.uReNI2Dx-o4dj7ZIhzr3mQ",
+      "expectedBody": {
+        "de": "Dein Video konnte nicht verarbeitet werden.",
+        "en": "Your video could not be processed."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "VIDEO_PROCESSING_FAILED-v1-HEART_MOMENT-title",
+      "payload": {
+        "v": 1,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7031",
+        "kind": "VIDEO_PROCESSING_FAILED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "HEART_MOMENT",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..W5glDvtrqLlxR9q4.p7r4MQiOYv0ucInGL7pB-z1tIP5dDK8gfVjJASGhlhx3kGDFf6pSJwiT862TPWVAV8_lZ3zBPxBMJm0qWuGPL90q1TSA2FTVHz0hPljJTNy4p0QABNtZrEv0KoxDVTqmi5Vi9Fs1prezPnMn0pjMpHvyVODqqJyeMOJcU68G0yGPHMwPPFAqnKwQCsmpsUGMs68H3hVntWyQAtd4-vd7OGXWzNpvtiIPmgtYeb0HmQ88-nOe3cVLUrUTSjuzKgsJpJSJHq2OGesjXmFl9KWNbDsrlzP62A.lgd2VBsIsI2ouBFYPcPi4g",
+      "expectedBody": {
+        "de": "Dein Video konnte nicht verarbeitet werden.",
+        "en": "Your video could not be processed."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "VIDEO_PROCESSING_FAILED-v2-MEMORY-empty",
       "payload": {
         "v": 2,
-        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7030",
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7032",
         "kind": "VIDEO_PROCESSING_FAILED",
         "name": "Alex",
         "title": "",
@@ -1159,9 +1205,9 @@
         "digest": false,
         "issuedAt": 1000,
         "expiresAt": 1300,
-        "body": "Synthetic ignored content"
+        "body": "Do not display video content or filenames"
       },
-      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..mIb4fUDnfxNonl2n.fwARN0pKs6IsQIylgjWAEFA0ZljP-3NHnDrpIg6S0rAuwyrYue7P2lPeLpoflRL1a5EEjmVSFdjgU-xRcrki85LJwNEXIi7oMWLq8Z1gNb6kp6WHzAy5cvDmIrob3u5OfaiskeQary1cZPtLt1lyDnfdQXiMXCZQXT1mnQVqZyG3OmOf9bEc3WfQid9q-bI-lBk1utEyAryN8RUFg3F95EM5ZO0aGJ43ukNbNTaDe2RjRrEaxJ5oErnKGHchn-6rhdgaQ591JYS-6e1DAXX2mBMVEqAZDIcCBO8yw0n9WWA-3g.hFxESTUijSk2atkbIu5Tcg",
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..73Dhmginx7tBTn8d.AZm5nQmySeJBJnrQ1_Td4DOm6OLIsP_GgLU0uWSzmIZVlgHBuDiRSnNHQsA0iUcyh2HOcqeg7yniJZZJH8Yq84GcyaT7gx1lWRmmIceqbGxT1mkI60KafOfuFLXhGB66z8UkUfGbJITuqZoiZ272dlRyZgrtP_EZJN2Oi5_i3dHkj2Jz7A7J1xOX3fdRr6puU5hYnblBsN_9x9imGH9wF0KE4EdebrnPzRhXBzzIGUbf9sNvW7DWQCZ72PVDa4nr03TsBLFlOqQZcPKJoI678oZGJY9p552nv-VwFTZCZogDjrUU0h2SI4wWqyQ-WuBeaRE.oBe9H5qLFgHGTJ_x1BXTBg",
       "expectedBody": {
         "de": "Dein Video konnte nicht verarbeitet werden.",
         "en": "Your video could not be processed."
@@ -1172,10 +1218,10 @@
       }
     },
     {
-      "id": "VIDEO_PROCESSING_FAILED-v2-title",
+      "id": "VIDEO_PROCESSING_FAILED-v2-MEMORY-title",
       "payload": {
         "v": 2,
-        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7031",
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7033",
         "kind": "VIDEO_PROCESSING_FAILED",
         "name": "Alex",
         "title": "Unser Spaziergang",
@@ -1183,9 +1229,57 @@
         "digest": false,
         "issuedAt": 1000,
         "expiresAt": 1300,
-        "body": "Synthetic ignored content"
+        "body": "Do not display video content or filenames"
       },
-      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..mMBxdoIYMARgSYuf.IPsEi82O8Iu9FLdCPU5YDHtqxQzhHrNIRvjsFubMja9s501cP_Aq_kfLPXlJzHtZo_iWiQ-8vYtS-yehV0GQqFDSp45Pj3YoxuEk1D4RJ2Y4Vedll6tWmPAFrCiv-_cfXzSmQFs7haHUUe32uwyOZccofJq7LdcLto4LtF-I2WqnlTgu9r3SW0r7ftx_Gc7R4X6IJBMXoE58vg5Gct3Kz3NTRDLrym8mLIioQqlmMPSf5vxztk9FTStmgdgGhfHCnw90OkTSlK8ph9g4RKi9pp8SOr3vB8tpVT8PQVQV-GK0_FS6BYYytwT4yYrsczDeK4QD.YomhNy4eu23xtwRvWz6ABw",
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..W3hYX9MmhCTRAkbw.qyRVhaAqhk7jynSXGWGAmP99N_HO1ip6TfjJYvuu5G9Kt_dKMueVX0rN7FvBLk9PbnYHdcFgALCL8e5nTyt8cUjOBGy0RU7wvmdM55b3T5NtxTPiykq_MuO_GIfwNuka1xbnMJrFwpgzYvm56qLfplm20Jrf2MBUu6wq_G-jqDPKCPnZhQo7Q8qUQm7oDEsUvoBG1yBaKWPVO1W0XBS2MKEupKFuDvSsrIyFKaHAX5WWX5c1AgZd8bX0GkaZLhsL5iAbxDA-CU0d4E9hhm8LrqZ3wdOYmL89JRmRETikMEoNkCfBLzPXvNzu4PARtiQ90RCTrGaQH8vGnCPwWlSLEQ4HOA.zX6l3YQKPHfRZeGTr4HiAw",
+      "expectedBody": {
+        "de": "Dein Video konnte nicht verarbeitet werden.",
+        "en": "Your video could not be processed."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "VIDEO_PROCESSING_FAILED-v2-HEART_MOMENT-empty",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7034",
+        "kind": "VIDEO_PROCESSING_FAILED",
+        "name": "Alex",
+        "title": "",
+        "targetType": "HEART_MOMENT",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Do not display video content or filenames"
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..vJmBAPIt2HZ6U9LG.dQyiAid8SaI3_WBNddUDzX9katO98aGUQ3rReu85N7bohcD5OxAEho458QRP25akQG1o3dCVejPCaSAHnTBKi-7nHao9HC4uvFCe8XGm75aMN-O51VAYuTKEkKKx7GRfZkfcfPw3mLb_vi-51LyXZZLVZP4mkMhIktDfxWv0ZNaMm7IZ5G0wehpNq0Q9LdvYHDBYwG0l5plp-WEqOwi-ybdvoTMRfkyxq-IwAXLiNhIjVSeXDaDuHnvdUmvptwr3nZSFIbWzZY_XkhRBd2j9ZVK_XVX-8NlX3TfHoxAGMRhi-3aRaDg5HxdtXinCZOqA0xO3L-8T50s._65uGtJQPFuJY1YObN1yoQ",
+      "expectedBody": {
+        "de": "Dein Video konnte nicht verarbeitet werden.",
+        "en": "Your video could not be processed."
+      },
+      "expectedAction": {
+        "de": "Moment ansehen",
+        "en": "View moment"
+      }
+    },
+    {
+      "id": "VIDEO_PROCESSING_FAILED-v2-HEART_MOMENT-title",
+      "payload": {
+        "v": 2,
+        "notificationId": "01a19706-45b8-741d-a0d2-3687565a7035",
+        "kind": "VIDEO_PROCESSING_FAILED",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "HEART_MOMENT",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "Do not display video content or filenames"
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..FHhVihXNiLSeKFSY.iM0wSkbcoHK3bWDUca4JzMTYuYemQm3sKJ1Vahr6rRpnorx1zZh4yXW0sAx_yDalIuTL0IbZOmw_VrAktcDXh6TyFxkswkDyHCFfwDHbNW_mPh_EMVjyM4BkqU8amMXkPoAxtvtZLwdHaqYf239kOZXE6IkDRVO1_Gvzle2op7yTFVcD0jHeKVZ-vamMGt-U_o9zJ_tcFF8Nm3nS1SASVMUtzHBRFpeoOGTBe9V4BwQdt3HskDxlvLBKXtL1HYurVVu4_d1K8D9BImPEWNS5twIjFcK9m95eYKrr6rQ2oZpX7-mk-EjZSoaIdNBFaUuSRNRtoK74oYaZaIq39vGsLJySFe13U5CMqQ.NrUMHeqZrqWjWR1JmzZd3Q",
       "expectedBody": {
         "de": "Dein Video konnte nicht verarbeitet werden.",
         "en": "Your video could not be processed."

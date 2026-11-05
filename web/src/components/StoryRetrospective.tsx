@@ -38,6 +38,7 @@ export function StoryRetrospective({
   return (
     <section
       className={`momente-retrospective${compact ? ' momente-retrospective-compact' : ''}`}
+      data-discover-wide={compact || undefined}
       aria-labelledby={compact ? undefined : 'momente-retrospective-heading'}
       aria-label={compact ? t('story.retrospectiveHeading') : undefined}
     >
@@ -63,6 +64,7 @@ export function StoryRetrospective({
             <MemoryPreview
               memoryId={item.id}
               attachmentId={attachmentId}
+              hasThumbnail={item.previewHasThumbnail}
               isSensitive={item.previewIsSensitive}
               loadImage={loadMemoryImage}
               loadingMode="near-viewport"
@@ -73,7 +75,12 @@ export function StoryRetrospective({
           <span className="momente-retrospective-kicker">
             {t('m5s5.today.living.retrospectiveLabel')}
           </span>
-          <span className="momente-retrospective-title">{title}</span>
+          <span
+            className="momente-retrospective-title"
+            data-long={title.length > 180 || undefined}
+          >
+            {title}
+          </span>
           {date && !titleIsDate ? (
             <time
               className="momente-retrospective-date"

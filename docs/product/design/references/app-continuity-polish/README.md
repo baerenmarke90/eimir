@@ -4,12 +4,18 @@
 
 Product Owner follow-up, 2026-11-05. The implementation branch starts at PR
 [#1650](https://github.com/baerenmarke90/eimir/pull/1650),
-`9170579b532f5df0cd80758d0b97c606a4576494`. Current `main`,
+`9170579b532f5df0cd80758d0b97c606a4576494`. The initial local main tracking reference,
 `57cd3b928b774b4a9e526f931be5d195776a1550`, is already an ancestor.
+The final verified remote main after #1650 merged is
+`0a65ac8f83384285b855c440280201dc398e23b7`; its complete tree equals #1650 head
+`6f95173f7bfc5d41280de3ec12ef3ba31ad20db4`. The initial tracking
+reference was stale; the difference to the verified remote main contains no Web
+source changes, so the reviewed composition baseline remains valid.
 
 The six requested outcomes are:
 
-1. Wishes appear in locale-aware alphabetical order, across loaded pages.
+1. Wishes appear in locale-aware alphabetical order across the complete metadata
+   snapshot, including wishes returned on later API pages.
    The overview omits the creator byline; the detail retains authorship.
 2. Sticky Diary month headings stop below the real system top inset. The
    existing transparent, edge-to-edge system bar and ambient canvas remain.
@@ -109,6 +115,17 @@ content, and parent deletion/denial. Test durable reuse through the real loader
 and restarted runtime, not only a raw store unit test. Content-based layout must
 preserve DOM/focus order and readable untruncated canonical content.
 
+The first browser and synthetic-native cold-start regressions confirm that the
+existing store preserves bytes. A separate per-image read-access request still
+blocks every cached preview. Reuse a fresh successful Story projection as a
+single-use, memory-only authorization for exactly its ready attachment thumbnail.
+Mint it inside the session-bound generated-client adapter, never from a restored
+query/disk snapshot. A miss still obtains the normal descriptor before downloading;
+originals keep their normal descriptor path. Bound and expire these proofs,
+invalidate them on parent denial/classification/context changes, fence late
+projection responses, and keep sensitive reveal independent. This removes the
+redundant network round trip without persisting a grant or signed URL.
+
 ## Validation plan
 
 Run targeted component/cache/session regressions, TypeScript, formatting/lint,
@@ -116,3 +133,26 @@ token/PWA guards and production build. Reuse the mandatory browser selection
 inventory, retain relevant ownership, and run affected real-browser journeys
 with screenshots plus download/authorization counts across reload. Record actual
 results and limitations in the PR and this evidence directory before final review.
+
+### Alphabetical ordering and pagination
+
+The protected-title API deliberately pages by creation date. Sorting only the
+currently loaded pages cannot produce a stable complete alphabet: an older wish
+beginning with A would arrive after Z and jump above the reader. Drain the existing
+bounded cursor pages for the active Wish status before displaying its sorted
+metadata, retaining the existing warm list cache. The server never needs a
+plaintext title index. Plans still paginate on scroll. A page failure retains
+the sorted available wishes with the existing error and deliberate retry. Update
+the former progressive-Wish browser expectation to this explicitly requested
+alphabetical contract; retain all viewport, reflow, accessibility, retry and
+detail-return assertions.
+
+Dependency refresh: PR #1650 advanced to
+`6f95173f7bfc5d41280de3ec12ef3ba31ad20db4` during validation. Merge that revision
+into this branch; its six workflow/backend-test/operations paths do not change
+the Web implementation or the generated composition baseline.
+
+Final baseline verification: #1650 merged during delivery. The actual fetched
+main `0a65ac8f83384285b855c440280201dc398e23b7` and #1650 head have the same
+tree `8ba8162883240f0fa29416d87188b7e2e00d2a3a`. No further source merge is
+needed. The PR targets main and its diff contains the client corrections.

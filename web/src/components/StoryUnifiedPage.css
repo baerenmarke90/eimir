@@ -479,7 +479,8 @@
   font: var(--font-content-heading);
 }
 
-/* Paired cards share row bounds; photographs and words fill their own surface. */
+/* Paired cards share row bounds; photos retain their own aspect ratio while
+   text can use the remaining reading space. */
 .story-page-unified .momente-tapestry-media,
 .story-page-unified .momente-tapestry-note,
 .story-page-unified .momente-tapestry-text {
@@ -487,7 +488,7 @@
   flex-direction: column;
 }
 .story-page-unified .momente-tapestry-media-frame {
-  flex: 1 0 auto;
+  flex: 0 0 auto;
 }
 .story-page-unified .momente-tapestry-note .momente-tapestry-body,
 .story-page-unified .momente-tapestry-text .momente-tapestry-body {

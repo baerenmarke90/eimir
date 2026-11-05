@@ -923,7 +923,7 @@ export function StoryProductPage({
               aria-labelledby="momente-tapestry-heading"
             >
               <div className="momente-tapestry-bands" ref={discoverTapestryRef}>
-                {curatedBands.map((band) => (
+                {curatedBands.map((band, bandIndex) => (
                   <section
                     className="momente-tapestry-band"
                     key={band.key}
@@ -938,7 +938,7 @@ export function StoryProductPage({
                       </h4>
                     ) : null}
                     <div className="momente-tapestry">
-                      {visibleRetrospective ? (
+                      {visibleRetrospective && bandIndex === 0 ? (
                         <StoryRetrospective
                           compact
                           item={visibleRetrospective}

@@ -521,6 +521,73 @@ test('Momente Discover keeps a text-only retrospective readable at 320px in dark
   });
 });
 
+for (const [width, theme] of [
+  [390, 'light'],
+  [1280, 'dark'],
+] as const) {
+  test(`long retrospective uses one full reading row without stretching its neighboring photo at ${width} ${theme}`, async ({
+    page,
+  }, info) => {
+    const longText = localizedFixture.appContinuity.longRetrospective;
+    const unknown = await installDiscoverApiMocks(page, {
+      retrospective: {
+        id: 'long-text-retrospective',
+        type: 'MEMORY',
+        titleOrText: longText,
+        occurredOn: '2023-09-17',
+        createdAt: null,
+        scheduledAt: null,
+        previewAttachmentId: null,
+        previewIsSensitive: false,
+      },
+    });
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await page.goto('/story?tab=discover');
+    await signIn(page);
+    await page.goto('/story?tab=discover');
+    const retrospective = page.locator('.momente-retrospective-compact');
+    await expect(retrospective).toHaveCount(1);
+    await retrospective.scrollIntoViewIfNeeded();
+    const grid = page.locator('.momente-tapestry').first();
+    const geometry = await retrospective.evaluate((node) => ({
+      width: node.getBoundingClientRect().width,
+      gridWidth: node.parentElement!.getBoundingClientRect().width,
+      right: node.getBoundingClientRect().right,
+    }));
+    expect(geometry.width).toBeCloseTo(geometry.gridWidth, 0);
+    const photo = grid.locator('.momente-tapestry-media').first();
+    const bounds = await retrospective.boundingBox();
+    const photoBounds = await photo.boundingBox();
+    expect(photoBounds!.y).toBeGreaterThanOrEqual(
+      bounds!.y + bounds!.height - 1,
+    );
+    const frame = photo.locator('.momente-tapestry-media-frame');
+    const shape = await frame.evaluate((node) => ({
+      width: node.getBoundingClientRect().width,
+      height: node.getBoundingClientRect().height,
+      ratio: getComputedStyle(node).aspectRatio,
+    }));
+    const [numerator, denominator] = shape.ratio.split('/').map(Number);
+    expect(shape.width / shape.height).toBeCloseTo(numerator / denominator, 1);
+    await retrospective.evaluate((node) =>
+      window.scrollTo(
+        0,
+        window.scrollY + node.getBoundingClientRect().top - 24,
+      ),
+    );
+    await expect(photo.locator('img').first()).toBeVisible();
+    await page.screenshot({
+      path: info.outputPath(
+        `story-retrospective-full-row-${width}-${theme}.png`,
+      ),
+      fullPage: false,
+    });
+    await expectNoWcagViolations(page);
+    expect(unknown).toEqual([]);
+  });
+}
+
 test('Momente Discover preserves canonical backend order in its desktop CSS grid and stays axe-clean', async ({
   page,
 }, testInfo) => {

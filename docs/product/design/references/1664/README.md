@@ -112,7 +112,9 @@ Actual runtime evidence and final tested revision are recorded in the PR.
 The implementation incorporates dependent #1668 head
 `29a276a422aa421fa617ac8742294e49148f9fbc` (including the per-image sensitivity
 correction) at integrated revision `4528e0d074193e867fc4c895faaf67cb32de9877`.
-Its merge into actual main remains a mandatory prerequisite for merging #1664.
+The dependency was verified merged into actual main as
+`75048b597c2646d9c8c9c2e617c19c30d173da33` on 2026-11-05 23:42:57 UTC.
+That main is integrated before final CI and the authorized #1664 merge.
 `source-files.sha256` fingerprints the tested product sources.
 
 The classified multilingual browser journey passed **12/12** on that revision:

@@ -597,6 +597,17 @@
             ],
             "title": "Durationseconds"
           },
+          "failureCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failurecode"
+          },
           "hasThumbnail": {
             "title": "Hasthumbnail",
             "type": "boolean"
@@ -1070,6 +1081,45 @@
           "hasMore"
         ],
         "title": "ChapterPage",
+        "type": "object"
+      },
+      "ChapterPeriodSummary": {
+        "description": "Calendar context, separate from chronological start markers and counts.",
+        "properties": {
+          "endOn": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endon"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "startOn": {
+            "format": "date",
+            "title": "Starton",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "startOn",
+          "endOn"
+        ],
+        "title": "ChapterPeriodSummary",
         "type": "object"
       },
       "ChapterRelationTargets": {
@@ -4365,6 +4415,17 @@
             ],
             "title": "Durationseconds"
           },
+          "failureCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failurecode"
+          },
           "hasThumbnail": {
             "title": "Hasthumbnail",
             "type": "boolean"
@@ -4922,6 +4983,13 @@
             "title": "Id",
             "type": "string"
           },
+          "places": {
+            "items": {
+              "$ref": "#/components/schemas/StoryPlaceSummary"
+            },
+            "title": "Places",
+            "type": "array"
+          },
           "selectedCoverAttachmentId": {
             "anyOf": [
               {
@@ -5207,6 +5275,13 @@
             "title": "Id",
             "type": "string"
           },
+          "places": {
+            "items": {
+              "$ref": "#/components/schemas/StoryPlaceSummary"
+            },
+            "title": "Places",
+            "type": "array"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -5428,6 +5503,7 @@
           "TRANSFER_READY",
           "TRANSFER_COMPLETED",
           "TRANSFER_FAILED",
+          "VIDEO_PROCESSING_FAILED",
           "PLAN_CREATED",
           "PLAN_CHANGED",
           "PLAN_CANCELLED",
@@ -5683,6 +5759,17 @@
               }
             ],
             "title": "Durationseconds"
+          },
+          "failureCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failurecode"
           },
           "hasThumbnail": {
             "title": "Hasthumbnail",
@@ -6912,6 +6999,16 @@
             ],
             "title": "Selectedcoverattachmentid"
           },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -7070,6 +7167,16 @@
           },
           "status": {
             "$ref": "#/components/schemas/PlanStatus"
+          },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
           },
           "title": {
             "title": "Title",
@@ -7271,6 +7378,16 @@
               }
             ],
             "title": "Selectedcoverattachmentid"
+          },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
           },
           "title": {
             "title": "Title",
@@ -11329,6 +11446,13 @@
             "title": "Id",
             "type": "string"
           },
+          "places": {
+            "items": {
+              "$ref": "#/components/schemas/StoryPlaceSummary"
+            },
+            "title": "Places",
+            "type": "array"
+          },
           "selectedCoverAttachmentId": {
             "anyOf": [
               {
@@ -12070,6 +12194,13 @@
             "title": "Chaptermarkers",
             "type": "array"
           },
+          "chapterPeriods": {
+            "items": {
+              "$ref": "#/components/schemas/ChapterPeriodSummary"
+            },
+            "title": "Chapterperiods",
+            "type": "array"
+          },
           "hasMore": {
             "title": "Hasmore",
             "type": "boolean"
@@ -12099,6 +12230,25 @@
           "hasMore"
         ],
         "title": "StoryPage",
+        "type": "object"
+      },
+      "StoryPlaceSummary": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "StoryPlaceSummary",
         "type": "object"
       },
       "StoryViewReceipt": {
@@ -12769,8 +12919,18 @@
       },
       "WishCreate": {
         "additionalProperties": false,
-        "description": "A wish is created from exactly one client field.\n\n``extra=\"forbid\"`` is more than hygiene here: M3-D01/D02 make\n``status``, ``createdBy``, ``spaceId``, and ``version`` server-controlled.\nA request supplying those fields is rejected rather than silently stripped,\nso the client cannot believe it successfully set them.",
+        "description": "A wish is created from authored title and optional shared context labels.\n\n``extra=\"forbid\"`` is more than hygiene here: M3-D01/D02 make\n``status``, ``createdBy``, ``spaceId``, and ``version`` server-controlled.\nA request supplying those fields is rejected rather than silently stripped,\nso the client cannot believe it successfully set them.",
         "properties": {
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -12812,6 +12972,16 @@
           },
           "status": {
             "$ref": "#/components/schemas/WishStatus"
+          },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
           },
           "title": {
             "title": "Title",
@@ -13143,6 +13313,16 @@
         "additionalProperties": false,
         "description": "Wish title correction.\n\nThere is deliberately no ``status`` field. Wish status is controlled only\nby explicit lifecycle commands; an arbitrary status PATCH would provide a\nway around those transitions.",
         "properties": {
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -21701,7 +21881,9 @@
                 {
                   "enum": [
                     "MEMORY",
-                    "HEART_MOMENT"
+                    "HEART_MOMENT",
+                    "PLAN",
+                    "WISH"
                   ],
                   "type": "string"
                 },
@@ -21727,6 +21909,16 @@
                 }
               ],
               "title": "Parentid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sharedOnly",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Sharedonly",
+              "type": "boolean"
             }
           }
         ],
@@ -28396,7 +28588,7 @@
       }
     },
     "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}": {
-      "post": {
+      "get": {
         "operationId": "readSelectedPhoto",
         "parameters": [
           {

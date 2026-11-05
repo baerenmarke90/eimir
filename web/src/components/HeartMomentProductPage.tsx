@@ -224,6 +224,13 @@ export function HeartMomentProductPage({
       });
     },
     enabled: mode !== 'create' && Boolean(heartMomentId),
+    refetchInterval: (query) =>
+      !query.state.error &&
+      (query.state.data?.value.attachments ?? []).some(
+        (item) => item.status === 'PROCESSING',
+      )
+        ? 2500
+        : false,
     retry: false,
   });
 
@@ -1098,6 +1105,7 @@ export function HeartMomentProductPage({
                 : []
             ).map((item) => ({
               id: item.id,
+              status: item.status,
               mediaType: item.mediaType,
               hasThumbnail: item.hasThumbnail,
               durationSeconds: item.durationSeconds,

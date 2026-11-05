@@ -635,3 +635,61 @@ it('does not report a completed bind when its classification differs after a los
   ).rejects.toMatchObject({ cause: { kind: 'conflict' } });
   expect(apis.memories.replaceMemoryAttachments).not.toHaveBeenCalled();
 });
+
+it('uploads the selected video directly and returns after finalize without readiness polling', async () => {
+  vi.stubGlobal('XMLHttpRequest', undefined);
+  try {
+    const attachment = { ...uploadingAttachment(), mediaType: 'VIDEO' };
+    const createAttachmentUpload = vi.fn(async () => ({
+      attachment,
+      method: UploadDescriptorMethodEnum.STREAM,
+      requiredHeaders: {},
+      uploadUrl: '/upload',
+    }));
+    const getAttachment = vi.fn();
+    const apis = {
+      attachments: {
+        createAttachmentUpload,
+        finalizeAttachmentUpload: vi.fn(async () => ({
+          ...attachment,
+          status: 'PROCESSING',
+        })),
+        getAttachment,
+      },
+    } as unknown as ReferenceApis;
+    const phases: string[] = [];
+    const file = new File(['selected-original'], 'holiday.mov', {
+      type: 'video/quicktime',
+    });
+    const fetchApi = vi.fn(async () => new Response(null, { status: 204 }));
+    const result = await uploadMemoryDraftAttachment(
+      apis,
+      'https://api.example.invalid',
+      'token',
+      'space',
+      file,
+      (phase) => phases.push(phase),
+      fetchApi,
+    );
+    expect(result).toMatchObject({
+      attachmentId: 'attachment-1',
+      processing: true,
+      hasThumbnail: false,
+    });
+    expect(phases).toEqual(['uploading', 'validating']);
+    expect(getAttachment).not.toHaveBeenCalled();
+    expect(createAttachmentUpload).toHaveBeenCalledWith({
+      spaceId: 'space',
+      attachmentUploadCreate: expect.objectContaining({
+        expectedSize: file.size,
+        expectedMimeType: file.type,
+      }),
+    });
+    expect(fetchApi).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ body: file }),
+    );
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

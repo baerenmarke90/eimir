@@ -147,6 +147,7 @@ describe('PlanProductPage editor request serialization', () => {
           description: 'Updated note',
           placeId: null,
           title: 'Evening together',
+          tags: [],
           anticipationEnabled: false,
           schedule:
             status === 'PLANNED'
@@ -171,6 +172,7 @@ describe('PlanProductPage editor request serialization', () => {
         experiencedOn: '2026-10-18',
         placeId: null,
         title: 'Evening together',
+        tags: [],
         anticipationEnabled: false,
       },
     ]);

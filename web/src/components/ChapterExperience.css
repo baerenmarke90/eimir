@@ -6,6 +6,38 @@
   gap: var(--space-5);
   overflow-wrap: anywhere;
 }
+
+.diary-chapter-periods {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.diary-chapter-periods a {
+  display: flex;
+  align-items: start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.diary-chapter-periods a > span {
+  display: grid;
+  gap: var(--space-1);
+}
+.diary-chapter-periods .eimir-icon {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  flex: 0 0 var(--space-5);
+}
+.diary-chapter-periods a > span > span {
+  font: var(--font-supporting-copy);
+}
+.diary-chapter-periods strong {
+  color: var(--color-text);
+}
 .chapter-page > * {
   min-width: 0;
 }

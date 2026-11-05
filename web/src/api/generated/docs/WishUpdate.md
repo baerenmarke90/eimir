@@ -7,6 +7,7 @@ Wish title correction.  There is deliberately no ``status`` field. Wish status i
 
 Name | Type
 ------------ | -------------
+`tags` | Array&lt;string&gt;
 `title` | string
 
 ## Example
@@ -16,6 +17,7 @@ import type { WishUpdate } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "tags": null,
   "title": null,
 } satisfies WishUpdate
 

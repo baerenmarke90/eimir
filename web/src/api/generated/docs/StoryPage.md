@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `availableYears` | Array&lt;number&gt;
 `chapterMarkers` | [Array&lt;ChapterTimelineMarker&gt;](ChapterTimelineMarker.md)
+`chapterPeriods` | [Array&lt;ChapterPeriodSummary&gt;](ChapterPeriodSummary.md)
 `hasMore` | boolean
 `items` | [Array&lt;StoryItem&gt;](StoryItem.md)
 `nextCursor` | string
@@ -21,6 +22,7 @@ import type { StoryPage } from ''
 const example = {
   "availableYears": null,
   "chapterMarkers": null,
+  "chapterPeriods": null,
   "hasMore": null,
   "items": null,
   "nextCursor": null,

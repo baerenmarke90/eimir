@@ -452,6 +452,7 @@
 .planen-agenda-link:focus-visible,
 .planen-undated-link:focus-visible,
 .planen-wish-link:focus-visible,
+.planen-schedule-place:focus-visible,
 .planen-history a:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;
@@ -512,16 +513,13 @@
     box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
-.planen-preview-has-cover {
-  display: flex;
-  flex-wrap: wrap;
+.planen-agenda-link.planen-preview-has-cover {
+  grid-template-columns: auto minmax(0, 1fr);
 }
 
-.planen-preview-has-cover .plan-cover--preview {
-  flex: 1 1 100%;
-  aspect-ratio: 4 / 3;
+.planen-next-link .plan-cover--preview {
+  aspect-ratio: 16 / 10;
   width: 100%;
-  margin: 0;
 }
 
 .planen-next-link {
@@ -545,11 +543,6 @@
   display: grid;
   min-width: 0;
   gap: var(--space-2);
-}
-
-.planen-preview-has-cover > .planen-next-copy,
-.planen-preview-has-cover > .planen-agenda-copy {
-  flex: 1 1 12rem;
 }
 
 .planen-next-copy > strong {
@@ -630,32 +623,25 @@
 .planen-wish-list {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0;
-  margin-top: var(--space-4);
+  gap: var(--space-3);
 }
 
 .planen-wish-link {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
-  gap: var(--space-3);
   min-height: var(--space-16);
-  border-bottom: var(--border-surface-width) solid var(--color-border-subtle);
-  padding: var(--space-4) var(--space-1);
+  padding: var(--space-5);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
   color: inherit;
   text-decoration: none;
+  transition: background var(--duration-feedback) var(--easing-standard);
 }
 
 .planen-wish-link strong {
-  font: var(--font-reading-body);
-  font-weight: 600;
+  font: var(--font-section-heading);
   color: var(--color-text);
   overflow-wrap: anywhere;
-}
-
-.planen-wish-link span {
-  color: var(--color-text-secondary);
-  font-size: 0.9rem;
 }
 
 .planen-wish-copy {
@@ -665,8 +651,96 @@
   overflow-wrap: anywhere;
 }
 
-.planen-wish-chevron {
+.planen-wish-groups {
+  display: grid;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+.planen-wish-group {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.planen-wish-group > h2 {
+  margin: 0;
+  padding-inline: var(--space-1);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+  font-weight: 700;
+}
+.planen-search {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: var(--space-4);
+}
+.planen-search > label {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+}
+.planen-search-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-raised);
+}
+.planen-search-field > .eimir-icon {
+  flex: 0 0 var(--space-5);
+  color: var(--color-text-secondary);
+}
+.planen-search-field > input {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  padding-inline: 0;
+}
+.planen-search-field > input::-webkit-search-cancel-button {
+  display: none;
+}
+.planen-search-field > button {
+  flex: 0 0 auto;
+  min-width: var(--touch-target-web);
+  padding: var(--space-2);
   font-size: var(--space-6);
+}
+.planen-search-result {
+  margin-block: var(--space-3);
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+.planen-detail-when-where {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  min-width: 0;
+}
+.planen-schedule-place {
+  padding-inline: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target-web);
+  min-width: 0;
+  color: var(--color-brand-text);
+  text-decoration: none;
+}
+.planen-schedule-place > .eimir-icon {
+  flex: 0 0 var(--space-5);
+}
+@media (hover: hover) and (pointer: fine) {
+  .planen-wish-link:hover {
+    background: var(--color-surface-raised);
+  }
+  .planen-schedule-place:hover strong {
+    text-decoration: underline;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .planen-wish-link {
+    transition: none;
+  }
 }
 
 .planen-history {

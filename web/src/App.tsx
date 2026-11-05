@@ -547,6 +547,7 @@ function AuthenticatedApp({
               path={appRoutePath('plan')}
               element={
                 <SharedPlanningOverviewPage
+                  key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
                   {...planningProductProps}
                   accountId={account.id}
                   apiBaseUrl={apiBaseUrl}
@@ -843,6 +844,8 @@ function AuthenticatedApp({
               element={
                 <PrivateAreaProductPage
                   api={privateAreaApi}
+                  profilesApi={profilesApi}
+                  spacesApi={spacesApi}
                   accountId={account.id}
                   spaceId={spaceId}
                 />
@@ -1071,7 +1074,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
         storeSession({
           account: verifiedAccount,
           tokens: currentTokens,
-          spaceId: activeSession.spaceId ?? null,
+          // Membership resolution may have selected a Space while /me was pending.
+          spaceId: loadStoredSession()?.spaceId ?? null,
         });
       } catch (error) {
         if (cancelled) return;
@@ -1408,6 +1412,12 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
         <SpaceContextGate loading error={null} onRetry={() => undefined} />
       </>
     );
+  }
+
+  // Publish the selected Space before mounting its draft/media owners. The
+  // membership effect rotates their local leases when selection changes.
+  if (activeSpaceId !== spaceId) {
+    return <BrandedStartup label={t('states.loading.title')} />;
   }
 
   return (

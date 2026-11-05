@@ -15,7 +15,7 @@ from uuid import UUID
 
 from eimir.engagement.models import NotificationKind
 
-POLICY_VERSION = 7
+POLICY_VERSION = 8
 GENERIC_PRESENTATION_KEY = "notification.generic"
 DIGEST_WINDOW = timedelta(hours=1)
 
@@ -84,6 +84,9 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.TRANSFER_FAILED: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        NotificationKind.VIDEO_PROCESSING_FAILED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
         NotificationKind.PLAN_CREATED: NotificationPolicy(

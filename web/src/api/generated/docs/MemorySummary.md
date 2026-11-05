@@ -16,6 +16,7 @@ Name | Type
 `happenedOn` | Date
 `happenedUntil` | Date
 `id` | string
+`places` | [Array&lt;StoryPlaceSummary&gt;](StoryPlaceSummary.md)
 `selectedCoverAttachmentId` | string
 `title` | string
 
@@ -35,6 +36,7 @@ const example = {
   "happenedOn": null,
   "happenedUntil": null,
   "id": null,
+  "places": null,
   "selectedCoverAttachmentId": null,
   "title": null,
 } satisfies MemorySummary

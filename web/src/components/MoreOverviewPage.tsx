@@ -46,49 +46,44 @@ const PERSONAL_DESTINATIONS: readonly MoreDestination[] = [
   },
 ];
 
-const SHARED_DESTINATIONS: readonly MoreDestination[] = [
-  {
-    path: STORY_YEARS_ROUTE,
-    icon: 'plan',
-    titleKey: 'more.yearsTitle',
-  },
+const MOMENT_DESTINATIONS: readonly MoreDestination[] = [
   {
     path: STORY_PHOTOS_ROUTE,
     icon: 'story',
-    titleKey: 'sharedPhotos.browse',
+    titleKey: 'more.destinations.photos',
   },
   {
     path: STORY_CHAPTERS_ROUTE,
     icon: 'chapter',
-    titleKey: 'story.browseChapters',
+    titleKey: 'more.destinations.chapters',
+  },
+  {
+    path: STORY_YEARS_ROUTE,
+    icon: 'plan',
+    titleKey: 'more.destinations.years',
   },
   {
     path: MORE_PASSPORT_ROUTE,
     icon: 'chapter',
-    titleKey: 'recaps.shortTitle',
+    titleKey: 'more.destinations.recaps',
     badgeKey: 'recaps.pro',
   },
   {
     path: MORE_INSIGHTS_ROUTE,
     icon: 'activity',
-    titleKey: 'dailyInsights.week.title',
+    titleKey: 'more.destinations.insights',
     badgeKey: 'dailyInsights.pro',
   },
-  {
-    path: MORE_PEOPLE_ROUTE,
-    icon: 'people',
-    titleKey: 'more.people.title',
-  },
-  {
-    path: MORE_PLACES_ROUTE,
-    icon: 'places',
-    titleKey: 'more.places.title',
-  },
+];
+
+const SHARED_DESTINATIONS: readonly MoreDestination[] = [
   {
     path: MORE_COLLECTIONS_ROUTE,
     icon: 'collections',
-    titleKey: 'more.collections.title',
+    titleKey: 'more.destinations.lists',
   },
+  { path: MORE_PLACES_ROUTE, icon: 'places', titleKey: 'more.places.title' },
+  { path: MORE_PEOPLE_ROUTE, icon: 'people', titleKey: 'more.people.title' },
   {
     path: appRoutePath('games'),
     icon: 'games',
@@ -128,7 +123,7 @@ function MoreDestinationRow({
   return (
     <li>
       <Link
-        className="more-destination"
+        className={`more-destination${leading ? ' more-profile-destination' : ''}`}
         to={destination.path}
         aria-label={
           (unreadCount ?? 0) > 0
@@ -136,7 +131,10 @@ function MoreDestinationRow({
             : undefined
         }
       >
-        <span className="more-destination-icon" aria-hidden="true">
+        <span
+          className={leading ? 'more-profile-avatar' : 'more-destination-icon'}
+          aria-hidden="true"
+        >
           {leading ?? <DestinationIcon icon={destination.icon} />}
         </span>
         <span className="more-destination-copy">
@@ -229,7 +227,7 @@ export function MoreOverviewPage({
               <PersonIdentity
                 displayName={displayName}
                 imageUrl={avatarUrl}
-                size="small"
+                size="medium"
                 showName={false}
                 imageAlt={t('profileIdentity.imageAlt', { name: displayName })}
                 fallbackAlt={t('profileIdentity.fallbackAlt', {
@@ -247,6 +245,15 @@ export function MoreOverviewPage({
             unreadCount={unreadCount}
           />
           {PERSONAL_DESTINATIONS.map((destination) => (
+            <MoreDestinationRow
+              key={destination.path}
+              destination={destination}
+            />
+          ))}
+        </MoreDestinationGroup>
+
+        <MoreDestinationGroup title={t('more.groups.moments')}>
+          {MOMENT_DESTINATIONS.map((destination) => (
             <MoreDestinationRow
               key={destination.path}
               destination={destination}

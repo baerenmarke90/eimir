@@ -193,6 +193,37 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
             "the exact reference prompt describes three adjacent screens, not a project name",
         )
 
+    if (
+        path == Path("docs/product/design/references/vibe-immich-clarity/reference-prompt.txt")
+        and match == "side-by-side"
+        and "two small side-by-side people cards:" in normalized
+        and normalized.count("side-by-side") == 1
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact Vibe reference prompt describes adjacent person cards, not a project name",
+        )
+
+    planning_prompt_phrases = {
+        Path("docs/product/design/references/planning-search-private-profile/prompt.txt"): (
+            "four complete flat smartphone screen compositions, each 390 css pixels wide, "
+            "side by side",
+        ),
+        Path("docs/product/design/references/planning-search-private-profile/follow-up-prompts.txt"): (
+            "three complete smartphone app screens side by side",
+            "three complete smartphone screens side by side",
+        ),
+    }
+    if (
+        match == "side by side"
+        and normalized.count("side by side") == 1
+        and any(phrase in normalized for phrase in planning_prompt_phrases.get(path, ()))
+    ):
+        return (
+            Classification.FALSE_POSITIVE,
+            "the exact planning reference prompt describes adjacent screens, not a project name",
+        )
+
     if match == "side by side" and (
         (
             path == Path("docs/product/design/references/1477/image-prompt.txt")

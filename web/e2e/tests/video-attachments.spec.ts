@@ -80,10 +80,13 @@ async function setup(
     enabled?: boolean;
     retained?: boolean;
     sensitive?: boolean;
+    processing?: boolean;
   } = {},
 ) {
   const unknown = await installMocks(page, { strict: true });
   const state = {
+    videoStatus:
+      options.processing || !options.retained ? 'PROCESSING' : 'READY',
     bound: [] as string[],
     grants: 0,
     ranges: 0,
@@ -207,9 +210,10 @@ async function setup(
         (a: { attachmentId: string }) => a.attachmentId,
       );
       state.saved = memory(
-        state.bound.map((id) =>
-          attachment(id, id === VIDEO ? 'VIDEO' : 'IMAGE'),
-        ),
+        state.bound.map((id) => ({
+          ...attachment(id, id === VIDEO ? 'VIDEO' : 'IMAGE'),
+          status: id === VIDEO ? state.videoStatus : 'READY',
+        })),
         state.saved?.body,
       );
       return json(state.saved);
@@ -224,7 +228,13 @@ async function setup(
       method === 'GET' &&
       state.saved
     )
-      return json(state.saved);
+      return json({
+        ...state.saved,
+        attachments: state.saved.attachments.map((item) => ({
+          ...item,
+          status: item.id === VIDEO ? state.videoStatus : item.status,
+        })),
+      });
     return route.fallback();
   });
   return { state, unknown };
@@ -323,7 +333,10 @@ for (const [width, colorScheme] of [
     await expect(page.locator('.photo-draft-tile')).toHaveCount(2);
     await expect(
       page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
-    ).toHaveCount(2);
+    ).toHaveCount(1);
+    await expect(
+      page.getByRole('button', { name: new RegExp(videoCopy.processing) }),
+    ).toHaveCount(1);
     await expect(page.locator('video')).toHaveCount(0);
     await page.screenshot({
       path: info.outputPath(`video-capture-${width}-${colorScheme}.png`),
@@ -336,6 +349,12 @@ for (const [width, colorScheme] of [
       .click();
     await expect(page).toHaveURL(new RegExp('/memories/' + MEMORY + '$'));
     expect(state.bound).toEqual([PHOTO, VIDEO]);
+    await expect(
+      page.locator(
+        '.media-gallery-carousel-slide:not(.is-clone) .media-processing-state',
+      ),
+    ).toContainText(videoCopy.processing);
+    expect(state.grants).toBe(0);
     await page
       .locator('.media-gallery-carousel-track')
       .scrollIntoViewIfNeeded();
@@ -344,6 +363,32 @@ for (const [width, colorScheme] of [
       await page
         .getByRole('button', { name: storyCopy.gallery.next, exact: true })
         .click();
+    await expect(
+      page.locator(
+        '.media-gallery-carousel-slide.is-active .media-processing-state',
+      ),
+    ).toContainText(videoCopy.processing);
+    await expect(
+      page.getByRole('button', { name: videoCopy.play, exact: true }),
+    ).toHaveCount(0);
+    await expect
+      .poll(() =>
+        page.locator('.media-gallery-carousel-track').evaluate((track) => {
+          const selected = track.querySelector<HTMLElement>(
+            '[data-carousel-index="1"]:not(.is-clone)',
+          );
+          return selected
+            ? Math.abs(track.scrollLeft - selected.offsetLeft)
+            : Infinity;
+        }),
+      )
+      .toBeLessThanOrEqual(1);
+    await page.screenshot({
+      path: info.outputPath(`video-processing-${width}-${colorScheme}.png`),
+      fullPage: false,
+    });
+    state.videoStatus = 'READY';
+    await expect(page.locator('.media-processing-state')).toHaveCount(0);
     await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
       storyCopy.gallery.counter
         .replace('{{index}}', '2')
@@ -449,9 +494,6 @@ test('source selection waits for video eligibility and preserves photo fallback 
   await page.goto('/story/memories/new');
   const body = page.getByLabel(de.memory.bodyLabel, { exact: true });
   await body.fill(momentBody);
-  await page
-    .getByRole('button', { name: photoSources.addMedia, exact: true })
-    .click();
   const input = page.locator('#memory-create-images');
   await expect(input).toBeDisabled();
   release();
@@ -466,11 +508,7 @@ test('source selection waits for video eligibility and preserves photo fallback 
     .click();
   await expect(input).toHaveAttribute('accept', /image\/jpeg.*video\/mp4/);
   expect(requests).toBe(2);
-  await page
-    .getByRole('dialog', { name: photoSources.addMedia })
-    .locator('.photo-source-footer')
-    .getByRole('button', { name: taskSheets.close, exact: true })
-    .click();
+  await expect(page.locator('.photo-source-sheet')).toHaveCount(0);
   await expect(body).toHaveValue(momentBody);
   expect(unknown).toEqual([]);
 });
@@ -507,5 +545,45 @@ test('retained video still plays when operator intake is disabled and Space is F
   await page.getByRole('button', { name: videoCopy.play, exact: true }).click();
   await expect(page.getByRole('dialog').locator('video')).toHaveCount(1);
   expect(state.grants).toBe(1);
+  expect(unknown).toEqual([]);
+});
+
+test('saved processing survives reload and a later failure remains replaceable without playable bytes', async ({
+  page,
+}, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  const { state, unknown } = await setup(page, {
+    retained: true,
+    processing: true,
+  });
+  await signIn(page);
+  await page.goto('/story/memories/' + MEMORY);
+  await expect(page.locator('.media-processing-state')).toContainText(
+    videoCopy.processing,
+  );
+  await page.reload();
+  await expect(page.locator('.media-processing-state')).toContainText(
+    videoCopy.processing,
+  );
+  expect(state.grants).toBe(0);
+  state.videoStatus = 'FAILED';
+  await expect(page.locator('.media-processing-state')).toContainText(
+    videoCopy.savedFailed,
+  );
+  await page.goto('/story/memories/' + MEMORY + '/edit');
+  await expect(
+    page.getByRole('button', { name: new RegExp(videoCopy.savedFailed) }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: new RegExp(videoCopy.savedFailed) })
+    .click();
+  await expect(page.getByRole('dialog')).toContainText(videoCopy.savedFailed);
+  await page.screenshot({
+    path: info.outputPath('followup-video-failed-recovery.png'),
+    fullPage: false,
+  });
+  expect(state.grants).toBe(0);
+  expect(state.originalVideoReads).toBe(0);
   expect(unknown).toEqual([]);
 });

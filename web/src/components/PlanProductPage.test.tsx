@@ -73,6 +73,13 @@ describe('PlanProductPage', () => {
     expect(html).toContain('planen-detail-schedule');
     expect(html).not.toContain('planen-pill-scheduled');
     expect(html).toContain('Volkspark');
+    const facts = html.slice(
+      html.indexOf('planning-facts'),
+      html.indexOf('</section>', html.indexOf('planning-facts')),
+    );
+    expect(facts).toContain('planen-detail-schedule');
+    expect(facts).toContain('href="/plan/places/place-berlin"');
+    expect(facts).toContain('Volkspark');
     expect(html).not.toContain(
       i18n.t('m5s3.overview.createdBy', { name: 'Ben' }),
     );

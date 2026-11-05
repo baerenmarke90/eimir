@@ -14,6 +14,7 @@ Name | Type
 `placeId` | string
 `schedule` | [PlanSchedule](PlanSchedule.md)
 `selectedCoverAttachmentId` | string
+`tags` | Array&lt;string&gt;
 `title` | string
 
 ## Example
@@ -30,6 +31,7 @@ const example = {
   "placeId": null,
   "schedule": null,
   "selectedCoverAttachmentId": null,
+  "tags": null,
   "title": null,
 } satisfies PlanCreate
 

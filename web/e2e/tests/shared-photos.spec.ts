@@ -232,11 +232,13 @@ test('shared photos: lazy variants, viewer Back, bounded originals and canonical
     .poll(() => reads.filter((read) => read.variant === 'original').length)
     .toBe(3);
   await screenshot(page, testInfo, 'story-photos-viewer-390.png');
-  await page
+  const next = page
     .getByRole('dialog')
     .locator('.media-lightbox-footer-nav')
-    .getByRole('button', { name: storyProducts.gallery.next })
-    .click();
+    .getByRole('button', { name: storyProducts.gallery.next });
+  await next.focus();
+  await expect(next).toBeFocused();
+  await page.keyboard.press('Enter');
   await expect(page.locator('.media-lightbox-counter')).toHaveText(
     storyProducts.gallery.counter
       .replace('{{index}}', '3')
@@ -394,13 +396,13 @@ test('shared photos: Compact/Expanded themes, 320px, 200% text and accessible ga
     .getByRole('button', { name: productTour.later, exact: true })
     .click();
   await page
-    .getByRole('link', { name: sharedPhotos.browse, exact: true })
+    .getByRole('link', { name: de.more.destinations.photos, exact: true })
     .click();
   await expect(page).toHaveURL(/\/story\/photos$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/more$/);
   await expect(
-    page.getByRole('link', { name: sharedPhotos.browse, exact: true }),
+    page.getByRole('link', { name: de.more.destinations.photos, exact: true }),
   ).toBeVisible();
   await page.getByRole('link', { name: navigation.story, exact: true }).click();
   await page

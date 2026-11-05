@@ -18,7 +18,7 @@ from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, UniqueConstr
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from eimir.attachments.models import Attachment, AttachmentStatus
+from eimir.attachments.models import Attachment, AttachmentStatus, MediaType
 from eimir.attachments.service import binding_window_expired
 from eimir.core.errors import ConflictError, ErrorCode, ForbiddenError
 from eimir.db.base import Base
@@ -176,6 +176,7 @@ def ensure_bindable(
     space_id: UUID,
     account_id: UUID,
     already_bound: bool = False,
+    allow_submitted_video: bool = False,
 ) -> Attachment:
     """Validate whether this attachment may be bound now.
 
@@ -188,9 +189,21 @@ def ensure_bindable(
         raise Attachment.privacy_absence.error()
     if attachment.owner_id != account_id:
         raise Attachment.privacy_absence.error()
-    if attachment.status != AttachmentStatus.READY.value:
+    submitted_video = (
+        allow_submitted_video
+        and attachment.media_type == MediaType.VIDEO.value
+        and attachment.status in {AttachmentStatus.VALIDATING.value, AttachmentStatus.FAILED.value}
+        and attachment.uploaded_at is not None
+        and (already_bound or attachment.failed_media_purged_at is None)
+    )
+    if attachment.status != AttachmentStatus.READY.value and not submitted_video:
         raise _conflict("The attachment is not ready.", ErrorCode.ATTACHMENT_NOT_READY)
-    if binding_window_expired(attachment) and not already_bound:
+    if submitted_video and not already_bound:
+        from eimir.attachments.service import BINDING_WINDOW, expired
+
+        if expired(attachment.uploaded_at, BINDING_WINDOW):
+            raise _conflict("The attachment is not ready.", ErrorCode.ATTACHMENT_NOT_READY)
+    elif binding_window_expired(attachment) and not already_bound:
         raise _conflict("The attachment is not ready.", ErrorCode.ATTACHMENT_NOT_READY)
     return attachment
 
@@ -283,12 +296,44 @@ def ensure_within_limits(attachments: list[Attachment]) -> None:
             "The parent exceeds its attachment limit.",
             ErrorCode.ATTACHMENT_LIMIT_EXCEEDED,
         )
-    total = sum(attachment.size or 0 for attachment in attachments)
+    total = sum(reserved_size(attachment) for attachment in attachments)
     if total > MAX_GALLERY_TOTAL_SIZE:
         raise _conflict(
             "The parent exceeds its attachment limit.",
             ErrorCode.ATTACHMENT_LIMIT_EXCEEDED,
         )
+
+
+def reserved_size(attachment: Attachment) -> int:
+    """Reserve declared bytes until the worker establishes the actual size."""
+    if attachment.failed_media_purged_at is not None:
+        return 0
+    return attachment.size if attachment.size is not None else attachment.declared_size
+
+
+def notify_video_failure(session: Session, attachment: Attachment) -> None:
+    """Caller owns the attachment lock and its first failure/binding transition."""
+    if (
+        attachment.status != AttachmentStatus.FAILED.value
+        or attachment.media_type != MediaType.VIDEO.value
+        or attachment.space_id is None
+        or parent_of(session, attachment.id) is None
+    ):
+        return
+    from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
+    from eimir.outbox import service as outbox
+
+    outbox.record(
+        session,
+        DomainEvent(
+            type=EventType.VIDEO_PROCESSING_FAILED,
+            space_id=attachment.space_id,
+            actor_id=attachment.owner_id,
+            subject_type="attachment",
+            subject_id=attachment.id,
+            payload=PublicEventPayload(recipient_id=attachment.owner_id),
+        ),
+    )
 
 
 def attachments_of_memories(

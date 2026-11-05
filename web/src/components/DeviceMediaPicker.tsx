@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useRef } from 'react';
 import { VideoProcessingContext } from '../client/video';
 import { useTranslation } from '../i18n';
 import { EimirIcon } from './EimirIcon';
@@ -75,9 +75,12 @@ function DeviceInput({
   onFiles,
 }: Props & { videos: boolean }) {
   const { t } = useTranslation();
+  const input = useRef<HTMLInputElement>(null);
   return (
     <div className="media-device-choice">
       <input
+        ref={input}
+        tabIndex={-1}
         id={id}
         name={id}
         className="visually-hidden-input"
@@ -94,12 +97,17 @@ function DeviceInput({
           event.currentTarget.value = '';
         }}
       />
-      <label className="file-picker" htmlFor={id}>
+      <button
+        type="button"
+        className="file-picker secondary photo-source-trigger"
+        disabled={disabled}
+        onClick={() => input.current?.click()}
+      >
         <EimirIcon name="foto" />
         <span>
-          <strong>{t('photoSources.device')}</strong>
+          <strong>{t('photoSources.addMedia')}</strong>
         </span>
-      </label>
+      </button>
     </div>
   );
 }

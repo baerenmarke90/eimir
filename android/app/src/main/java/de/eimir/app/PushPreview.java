@@ -108,6 +108,7 @@ public final class PushPreview {
             case "TRANSFER_READY": return R.string.push_transfer_ready;
             case "TRANSFER_COMPLETED": return R.string.push_transfer_completed;
             case "TRANSFER_FAILED": return R.string.push_transfer_failed;
+            case "VIDEO_PROCESSING_FAILED": return R.string.push_video_processing_failed;
             default: return 0;
         }
     }

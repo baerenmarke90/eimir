@@ -333,6 +333,7 @@ def create_plan(
     cover_is_sensitive: bool | None = None,
     photos: PhotoSelection | None = None,
     selected_cover_attachment_id: UUID | None = None,
+    tags: list[str] | None = None,
 ) -> Plan:
     """Create a direct unscheduled, date-only, or timed Plan atomically."""
     status = _initial_schedule_status(planned_on, planned_start, planned_end)
@@ -346,7 +347,9 @@ def create_plan(
         planned_on=planned_on,
         planned_start=planned_start,
         planned_end=planned_end,
-        payload=PlanPayload(title=_normalize_title(title), description=description),
+        payload=PlanPayload(
+            title=_normalize_title(title), description=description, tags=tags or []
+        ),
     )
     session.add(plan)
     _flush(session)
@@ -378,6 +381,7 @@ def create_plan_once(
     cover_is_sensitive: bool | None = None,
     photos: PhotoSelection | None = None,
     selected_cover_attachment_id: UUID | None = None,
+    tags: list[str] | None = None,
 ) -> PlanCreateResult:
     """Create a direct Plan, or return the one an earlier request with this identity created.
 
@@ -391,6 +395,7 @@ def create_plan_once(
             session,
             context,
             title=title,
+            tags=tags,
             description=description,
             place_id=place_id,
             planned_on=planned_on,
@@ -408,6 +413,7 @@ def create_plan_once(
         _RECEIPT_RESOURCE_TYPE,
         {
             "title": normalized_title,
+            **({"tags": tags} if tags else {}),
             **(
                 {"selected_cover_attachment_id": str(selected_cover_attachment_id)}
                 if selected_cover_attachment_id
@@ -459,6 +465,7 @@ def create_plan_once(
         session,
         context,
         title=normalized_title,
+        tags=tags,
         description=description,
         place_id=place_id,
         planned_on=planned_on,
@@ -540,6 +547,7 @@ def update_plan(
     photos: PhotoSelection | None = None,
     selected_cover_attachment_id: UUID | None = None,
     schedule_values: tuple[date | None, datetime | None, datetime | None] | None = None,
+    tags: list[str] | None = None,
 ) -> Plan:
     """Correct content, cover and schedule atomically; completion stays explicit."""
     next_place_id = (
@@ -601,9 +609,15 @@ def update_plan(
             )
         plan.experienced_on = _validate_experienced_on(session, context, experienced_on)
 
-    if "title" in changed_fields or "description" in changed_fields:
+    if "title" in changed_fields or "description" in changed_fields or "tags" in changed_fields:
         plan.payload = plan.payload.model_copy(
-            update={"title": next_title, "description": next_description}
+            update={
+                "title": next_title,
+                "description": next_description,
+                "tags": tags
+                if "tags" in changed_fields and tags is not None
+                else plan.payload.tags,
+            }
         )
 
     _flush(session)
@@ -894,6 +908,7 @@ def convert_wish_to_plan(
         payload=PlanPayload(
             title=_normalize_title(title if title is not None else wish.payload.title),
             description=description,
+            tags=wish.payload.tags,
         ),
     )
     session.add(plan)

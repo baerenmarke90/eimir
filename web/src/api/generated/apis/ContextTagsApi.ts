@@ -28,6 +28,7 @@ export interface GetContextTagSuggestionsRequest {
     spaceId: string;
     parentType?: GetContextTagSuggestionsParentTypeEnum;
     parentId?: string | null;
+    sharedOnly?: boolean;
 }
 
 /**
@@ -54,6 +55,10 @@ export class ContextTagsApi extends runtime.BaseAPI {
 
         if (requestParameters['parentId'] != null) {
             queryParameters['parentId'] = requestParameters['parentId'];
+        }
+
+        if (requestParameters['sharedOnly'] != null) {
+            queryParameters['sharedOnly'] = requestParameters['sharedOnly'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -95,6 +100,8 @@ export class ContextTagsApi extends runtime.BaseAPI {
  */
 export const GetContextTagSuggestionsParentTypeEnum = {
     MEMORY: 'MEMORY',
-    HEART_MOMENT: 'HEART_MOMENT'
+    HEART_MOMENT: 'HEART_MOMENT',
+    PLAN: 'PLAN',
+    WISH: 'WISH'
 } as const;
 export type GetContextTagSuggestionsParentTypeEnum = typeof GetContextTagSuggestionsParentTypeEnum[keyof typeof GetContextTagSuggestionsParentTypeEnum];

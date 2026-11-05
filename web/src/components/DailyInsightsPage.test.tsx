@@ -365,7 +365,7 @@ describe('Pro insights: data states', () => {
     const detail = screen
       .getAllByText(/Montag, 21\. September:/)
       .find((node) => node.className === 'insight-chart-detail');
-    expect(detail?.textContent).toContain('Lea: Gut & entspannt');
+    expect(detail?.textContent).toContain('Lea: Entspannt');
     expect(monday.getAttribute('aria-pressed')).toBe('true');
   });
 

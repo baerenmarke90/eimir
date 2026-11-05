@@ -9,6 +9,7 @@ import storyProducts from '../../src/i18n/locales/storyProducts';
 import fixtureCopy from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { nextFrame, swipeCarousel } from '../support/mediaCarouselGesture';
+import { closeDraftActions, openDraftActions } from '../support/mediaDraft';
 import {
   installMediaOwnershipMetrics,
   mediaOwnershipMetrics,
@@ -558,7 +559,9 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.email).fill('lea@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await expect(page).toHaveURL(/\/today$/);
+  await expect(page.locator('.today-content')).toBeVisible();
 }
 
 async function installApprovedMemoryDetail(page: Page) {
@@ -1363,7 +1366,10 @@ for (const width of [320, 390] as const) {
       await positionGalleryForReading(page);
 
       const next = page.locator('.media-gallery-carousel-next');
-      await expect(next).toBeHidden();
+      await expect(next).toHaveCSS('clip-path', 'inset(50%)');
+      expect(
+        await next.evaluate((node) => node.getBoundingClientRect().width),
+      ).toBeLessThanOrEqual(1);
 
       const interaction = await carouselInteractionContract(page);
       expect(interaction.usesSharedTrack).toBe(true);
@@ -1685,7 +1691,11 @@ test('photo overlay controls remain separate, readable and operable in fullscree
   if (!largePrivacy || !largeClose || !largeStage)
     throw new Error('Missing scaled fullscreen controls.');
   expect(largePrivacy.x).toBeGreaterThanOrEqual(largeStage.x);
-  expect(largePrivacy.x + largePrivacy.width).toBeLessThan(largeClose.x);
+  expect(
+    largePrivacy.x + largePrivacy.width < largeClose.x ||
+      largePrivacy.y >= largeClose.y + largeClose.height,
+  ).toBe(true);
+  expect(largePrivacy.width).toBeGreaterThan(largePrivacy.height);
   expect(largePrivacy.y + largePrivacy.height).toBeLessThanOrEqual(
     largeStage.y + largeStage.height,
   );
@@ -1901,6 +1911,7 @@ test('sensitive photo editing retains a failed classification draft and saves on
   await page.goto('/');
   await signIn(page);
   await page.goto(`/story/memories/${MEMORY_ID}/edit`);
+  await openDraftActions(page);
   const mark = page
     .getByRole('checkbox', { name: sensitiveMedia.mark, exact: true })
     .first();
@@ -1910,6 +1921,7 @@ test('sensitive photo editing retains a failed classification draft and saves on
     path: '../../docs/product/design/references/1477/runtime-edit-390.png',
     fullPage: true,
   });
+  await closeDraftActions(page);
   let rejectNext = true;
   await page.route(
     `**/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}/attachments`,
@@ -1934,8 +1946,10 @@ test('sensitive photo editing retains a failed classification draft and saves on
       exact: true,
     })
     .click();
-  await expect(mark).not.toBeChecked();
   await expect(page).toHaveURL(/edit$/);
+  await openDraftActions(page);
+  await expect(mark).not.toBeChecked();
+  await closeDraftActions(page);
   await page
     .getByRole('button', {
       name: memoryProduct.save,

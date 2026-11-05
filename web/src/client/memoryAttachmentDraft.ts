@@ -10,11 +10,12 @@ import {
   waitUntilAttachmentReady,
 } from './referenceFlow';
 import { selectedPhotoUnavailable } from './selectedMediaRetention';
-import { compressVideoForUpload } from './videoCompression';
 
 export type DraftUploadPhase = 'preparing' | 'uploading' | 'validating';
 
+/** Uploaded and bindable; submitted video output is still server-owned. */
 export interface ReadyDraftAttachment {
+  processing?: boolean;
   attachmentId: string;
   hasThumbnail?: boolean;
   durationSeconds?: number | null;
@@ -61,16 +62,7 @@ export async function uploadMemoryDraftAttachment(
   let createdAttachment: { id: string; version: number } | null = null;
   try {
     throwIfAborted(options.signal);
-    let uploadFile = file;
-    if (video) {
-      onPhase?.('preparing');
-      uploadFile = await compressVideoForUpload(
-        file,
-        options.signal,
-        options.onProgress,
-      );
-      throwIfAborted(options.signal);
-    }
+    const uploadFile = file;
     onPhase?.('uploading');
     const upload = await apis.attachments.createAttachmentUpload({
       spaceId,
@@ -97,25 +89,26 @@ export async function uploadMemoryDraftAttachment(
     );
     throwIfAborted(options.signal);
     onPhase?.('validating');
-    await apis.attachments.finalizeAttachmentUpload({
+    const finalized = await apis.attachments.finalizeAttachmentUpload({
       spaceId,
       attachmentId: upload.attachment.id,
       body: {},
     });
-    const ready = await waitUntilAttachmentReady(
+    if (video)
+      return {
+        attachmentId: upload.attachment.id,
+        processing: finalized.status !== 'READY',
+        hasThumbnail: finalized.status === 'READY' && finalized.hasThumbnail,
+        durationSeconds: finalized.durationSeconds,
+      };
+    await waitUntilAttachmentReady(
       apis,
       spaceId,
       upload.attachment.id,
       options.signal,
     );
 
-    return video
-      ? {
-          attachmentId: upload.attachment.id,
-          hasThumbnail: ready.hasThumbnail,
-          durationSeconds: ready.durationSeconds,
-        }
-      : { attachmentId: upload.attachment.id };
+    return { attachmentId: upload.attachment.id };
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       if (createdAttachment) {

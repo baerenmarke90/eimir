@@ -35,6 +35,12 @@ export interface OrderedAttachmentSummary {
     durationSeconds?: number | null;
     /**
      * 
+     * @type {string}
+     * @memberof OrderedAttachmentSummary
+     */
+    failureCode?: string | null;
+    /**
+     * 
      * @type {boolean}
      * @memberof OrderedAttachmentSummary
      */
@@ -124,6 +130,7 @@ export function OrderedAttachmentSummaryFromJSONTyped(json: any, ignoreDiscrimin
     return {
         
         'durationSeconds': json['durationSeconds'] === undefined ? undefined : json['durationSeconds'] === null ? null : json['durationSeconds'],
+        'failureCode': json['failureCode'] === undefined ? undefined : json['failureCode'] === null ? null : json['failureCode'],
         'hasThumbnail': json['hasThumbnail'],
         'height': json['height'],
         'id': json['id'],
@@ -149,6 +156,7 @@ export function OrderedAttachmentSummaryToJSONTyped(value?: OrderedAttachmentSum
     return {
         
         'durationSeconds': value['durationSeconds'],
+        'failureCode': value['failureCode'],
         'hasThumbnail': value['hasThumbnail'],
         'height': value['height'],
         'id': value['id'],

@@ -7,7 +7,6 @@ import navigation from '../../src/i18n/locales/navigation';
 import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import {
   fulfillEmptyMomentPlaces,
@@ -704,12 +703,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       const note = page.locator('.heart-moment-create-note');
       const visibility = page.locator('.heart-moment-create-visibility');
       const actions = page.locator('.heart-moment-create-actions');
-      const photoInput = page
-        .getByRole('dialog', {
-          name: photoSources.addMedia,
-          exact: true,
-        })
-        .getByLabel(de.memory.photoLabel, { exact: true });
+      const photoInput = page.getByLabel(de.memory.photoLabel, { exact: true });
       const sharedRadio = page.locator(
         '#heart-moment-create-visibility-shared',
       );
@@ -731,20 +725,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
         name: photoSources.addMedia,
         exact: true,
       });
+      const nativeChooser = page.waitForEvent('filechooser');
       await mediaTrigger.click();
-      const mediaSheet = page.getByRole('dialog', {
-        name: photoSources.addMedia,
-        exact: true,
-      });
-      await expect(mediaSheet).toBeVisible();
+      await (await nativeChooser).setFiles([]);
+      await expect(page.locator('.photo-source-sheet')).toHaveCount(0);
       await expect(photoInput).toBeAttached();
       await expect(photoInput).not.toHaveAttribute('required', '');
-      await mediaSheet
-        .locator('.photo-source-footer')
-        .getByRole('button', { name: taskSheets.close, exact: true })
-        .click();
-      await expect(mediaSheet).not.toBeVisible();
-      await expect(mediaTrigger).toBeFocused();
 
       // Preserve the existing product default while making the choice explicit.
       await expect(sharedRadio).toBeChecked();
@@ -1088,18 +1074,14 @@ test('photo-only Heart Moment saves without text and opens its photo (#509)', as
   await page
     .getByRole('button', { name: photoSources.addMedia, exact: true })
     .click();
-  await page
-    .getByRole('dialog', {
-      name: photoSources.addMedia,
-      exact: true,
-    })
-    .getByLabel(de.memory.photoLabel, { exact: true })
-    .setInputFiles({
-      name: 'cabin-lake.jpg',
-      mimeType: 'image/jpeg',
-      buffer: await readFile(PHOTO),
-    });
-  await expect(page.getByText(de.memory.photoReady)).toBeVisible();
+  await page.getByLabel(de.memory.photoLabel, { exact: true }).setInputFiles({
+    name: 'cabin-lake.jpg',
+    mimeType: 'image/jpeg',
+    buffer: await readFile(PHOTO),
+  });
+  await expect(
+    page.getByRole('button', { name: new RegExp(de.memory.photoReady) }),
+  ).toBeVisible();
   await expect(page.locator('#heart-moment-text')).toHaveValue('');
 
   const createRequest = page.waitForRequest(

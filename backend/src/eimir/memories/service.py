@@ -670,6 +670,7 @@ def replace_attachments(
                 else context.account_id
             ),
             already_bound=attachment_id in previous,
+            allow_submitted_video=True,
         )
         binding.ensure_unlinked(session, attachment_id, allow=("MEMORY", memory.id))
         attachments.append(attachment)
@@ -719,6 +720,9 @@ def replace_attachments(
 
     memory.updated_at = now()
     _flush(session)
+    for attachment in attachments:
+        if attachment.id not in previous:
+            binding.notify_video_failure(session, attachment)
     _record(session, memory, context.account_id, EventType.MEMORY_UPDATED)
     _flush(session)
     return memory

@@ -334,6 +334,7 @@ export function MemoryCreatePage({
       return;
     sourceApplied.current = true;
     setTitle(source.title);
+    setTags(source.tags ?? []);
     setBody(source.description ?? '');
     if (source.experiencedOn)
       setHappenedOn(source.experiencedOn.toISOString().slice(0, 10));
@@ -695,7 +696,12 @@ export function MemoryCreatePage({
           spaceId,
           attachmentId: ids[index],
         });
-        if (metadata.status === 'READY') continue;
+        if (
+          metadata.status === 'READY' ||
+          (metadata.mediaType === 'VIDEO' &&
+            ['PROCESSING', 'FAILED'].includes(metadata.status))
+        )
+          continue;
       } catch (error) {
         if ((await normalizeClientError(error)).kind !== 'notFound')
           throw error;

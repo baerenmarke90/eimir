@@ -297,7 +297,9 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   await expect(page.getByText(demo.nextPlan, { exact: true })).toBeVisible();
   await expect(page.getByText(demo.undatedPlan, { exact: true })).toBeVisible();
   await capture(page, info, 'hub-390-light');
-  await page.getByRole('link', { name: copy.entryAction, exact: true }).click();
+  await page
+    .getByRole('link', { name: copy.compactEntryAction, exact: true })
+    .click();
   await expect(page.locator('.product-shell')).toHaveAttribute(
     'data-focused-task',
     'true',

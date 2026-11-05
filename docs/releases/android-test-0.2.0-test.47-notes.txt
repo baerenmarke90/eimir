@@ -1,0 +1,11 @@
+eimir. Android 0.2.0-test.47
+
+- Daily Vibe offers five clear feelings with accessible wrapping and a shared note icon for authorized written context. Existing saved values remain readable.
+- Immich thumbnails and selected original photos transfer as authenticated binary GET responses through the native bridge. Import failures retain selections and authored content for a safe retry.
+- Memories, Plans and Wishes share authored tags, suggestions and tag search. Chapter periods remain visible across the months and years they cover, with linked Places beside Diary dates.
+- Local media opens the native picker directly. Photos enlarge on tap, swipe and close through Done/Back; media drafts retain direct ordering and contextual editing actions.
+- Finalized videos can save while the shared worker prepares playback. Failed processing sends one private outcome to the currently authorized uploader.
+- Planning searches, shared Place selection and private partner-note navigation include the latest main corrections.
+- Includes freshly merged main 91a12b2e (#1656 and #1659) and the existing removable test updater.
+
+Same package de.eimir.app, canonical signing certificate, eimir-production Firebase client and persistent test origin as test.46; increasing versionCode 47. Publication verifies exact-candidate source checks, protected signing, predecessor compatibility and anonymous public assets. Physical-device installation and session/data continuity remain separate acceptance.

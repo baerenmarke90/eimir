@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import ClassVar
 from uuid import UUID
 
+from pydantic import Field
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -29,6 +30,7 @@ from eimir.authorization import (
     ResourceAbsence,
     SharedWrite,
 )
+from eimir.core.context_tags import ContextTags
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
 from eimir.db.protected_payload import ProtectedPayloadJSON
@@ -76,6 +78,7 @@ class PlanPayload(ProtectedPayload):
     title: str
     selected_cover_attachment_id: UUID | None = None
     description: str | None = None
+    tags: ContextTags = Field(default_factory=list)
 
 
 class Plan(

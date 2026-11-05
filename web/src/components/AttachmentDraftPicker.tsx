@@ -101,10 +101,15 @@ export function AttachmentDraftPicker({
         )}
 
         {showItems && attachments.items.length > 0 ? (
-          <p className="field-help">{t('sensitiveMedia.help')}</p>
-        ) : null}
-        {showItems && attachments.items.length > 0 ? (
           <PhotoDraftGallery
+            key={JSON.stringify([
+              id,
+              sourceContext?.apiBaseUrl,
+              sourceContext?.accountId,
+              sourceContext?.spaceId,
+              videoContext?.accountId,
+              videoContext?.spaceId,
+            ])}
             disabled={disabled}
             items={attachments.items.map((attachment) => ({
               key: attachment.id,

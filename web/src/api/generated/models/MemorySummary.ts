@@ -20,6 +20,13 @@ import {
     ResourceCapabilitiesToJSON,
     ResourceCapabilitiesToJSONTyped,
 } from './ResourceCapabilities';
+import type { StoryPlaceSummary } from './StoryPlaceSummary';
+import {
+    StoryPlaceSummaryFromJSON,
+    StoryPlaceSummaryFromJSONTyped,
+    StoryPlaceSummaryToJSON,
+    StoryPlaceSummaryToJSONTyped,
+} from './StoryPlaceSummary';
 import type { AuthorSummary } from './AuthorSummary';
 import {
     AuthorSummaryFromJSON,
@@ -115,6 +122,12 @@ export interface MemorySummary {
     id: string;
     /**
      * 
+     * @type {Array<StoryPlaceSummary>}
+     * @memberof MemorySummary
+     */
+    places?: Array<StoryPlaceSummary>;
+    /**
+     * 
      * @type {string}
      * @memberof MemorySummary
      */
@@ -162,6 +175,7 @@ export function MemorySummaryFromJSONTyped(json: any, ignoreDiscriminator: boole
         'happenedOn': (json['happenedOn'] == null ? null : new Date(json['happenedOn'])),
         'happenedUntil': json['happenedUntil'] === undefined ? undefined : json['happenedUntil'] === null ? null : (new Date(json['happenedUntil'])),
         'id': json['id'],
+        'places': json['places'] == null ? undefined : ((json['places'] as Array<any>).map(StoryPlaceSummaryFromJSON)),
         'selectedCoverAttachmentId': json['selectedCoverAttachmentId'] === undefined ? undefined : json['selectedCoverAttachmentId'] === null ? null : json['selectedCoverAttachmentId'],
         'title': json['title'],
     };
@@ -187,6 +201,7 @@ export function MemorySummaryToJSONTyped(value?: MemorySummary | null, ignoreDis
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
         'happenedUntil': value['happenedUntil'] == null ? value['happenedUntil'] : value['happenedUntil'].toISOString().substring(0,10),
         'id': value['id'],
+        'places': value['places'] == null ? undefined : ((value['places'] as Array<any>).map(StoryPlaceSummaryToJSON)),
         'selectedCoverAttachmentId': value['selectedCoverAttachmentId'],
         'title': value['title'],
     };

@@ -19,6 +19,7 @@ INHERITED_KINDS = {
     NotificationKind.TRANSFER_READY: NotificationKind.REMINDER_DUE,
     NotificationKind.TRANSFER_COMPLETED: NotificationKind.REMINDER_DUE,
     NotificationKind.TRANSFER_FAILED: NotificationKind.REMINDER_DUE,
+    NotificationKind.VIDEO_PROCESSING_FAILED: NotificationKind.REMINDER_DUE,
     NotificationKind.COUPLE_EXPERIENCE_SHARED: NotificationKind.THINKING_OF_YOU,
     NotificationKind.WISH_SELECTION_SHARED: NotificationKind.THINKING_OF_YOU,
     NotificationKind.WISH_SELECTION_READY: NotificationKind.THINKING_OF_YOU,

@@ -10,7 +10,7 @@ All URIs are relative to *http://localhost*
 
 ## getContextTagSuggestions
 
-> ContextTagSuggestionsView getContextTagSuggestions(spaceId, parentType, parentId)
+> ContextTagSuggestionsView getContextTagSuggestions(spaceId, parentType, parentId, sharedOnly)
 
 Get Context Tag Suggestions
 
@@ -30,10 +30,12 @@ async function example() {
   const body = {
     // string
     spaceId: spaceId_example,
-    // 'MEMORY' | 'HEART_MOMENT' (optional)
+    // 'MEMORY' | 'HEART_MOMENT' | 'PLAN' | 'WISH' (optional)
     parentType: parentType_example,
     // string (optional)
     parentId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
+    // boolean (optional)
+    sharedOnly: true,
   } satisfies GetContextTagSuggestionsRequest;
 
   try {
@@ -54,8 +56,9 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
-| **parentType** | `MEMORY`, `HEART_MOMENT` |  | [Optional] [Defaults to `undefined`] [Enum: MEMORY, HEART_MOMENT] |
+| **parentType** | `MEMORY`, `HEART_MOMENT`, `PLAN`, `WISH` |  | [Optional] [Defaults to `undefined`] [Enum: MEMORY, HEART_MOMENT, PLAN, WISH] |
 | **parentId** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **sharedOnly** | `boolean` |  | [Optional] [Defaults to `false`] |
 
 ### Return type
 

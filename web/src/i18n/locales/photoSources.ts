@@ -6,7 +6,7 @@ const photoSources = {
   addMedia: 'Medien hinzufügen',
   device: 'Vom Gerät auswählen',
   deviceMedia: 'Fotos und Videos gemeinsam auswählen',
-  previewFailed: 'Vorschau nicht verfügbar',
+  previewFailed: 'Vorschau fehlt',
   videoAvailabilityUnavailable:
     'Videos sind gerade nicht verfügbar. Du kannst Fotos auswählen oder es erneut versuchen.',
   more: 'Andere Fotoquelle',
@@ -26,7 +26,9 @@ const photoSources = {
     'Wähle deine Fotos im geöffneten Fenster. Kehre anschließend hierher zurück.',
   progress: 'Fotos werden übernommen …',
   selected: '{{count}} ausgewählt',
-  import: 'Ausgewählte Fotos übernehmen',
+  import: 'Fotos übernehmen',
+  importFailed:
+    'Fotos konnten nicht geladen werden. Deine Auswahl bleibt erhalten. Versuche es erneut.',
   limit: 'Du kannst noch {{count}} Fotos hinzufügen.',
   empty:
     'Hier sind noch keine passenden Fotos. Du kannst weitere Fotos laden oder auf deinem Gerät auswählen.',

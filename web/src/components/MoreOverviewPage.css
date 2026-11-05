@@ -252,6 +252,20 @@
   width: 1.35rem;
   height: 1.35rem;
 }
+.more-legal {
+  display: flex;
+  justify-content: center;
+  padding-block: var(--space-2);
+  font: var(--font-supporting-copy);
+}
+
+.more-legal a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+}
+
 .more-brand-signature {
   display: flex;
   align-items: center;

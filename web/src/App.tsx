@@ -30,14 +30,13 @@ import {
   stopNativePushForSignedOutAccount,
   useDevicePush,
 } from './client/devicePush';
+import { enableGentlePrompts, useGentleUse } from './client/gentlePrompts';
 import {
   ActiveAccountMismatchError,
   revokeUnacceptedSession,
 } from './client/identityFlow';
 import { loadInstanceAccessStatus } from './client/instanceStatus';
 import { createM4ProductApis } from './client/m4Product';
-import { enableGentlePrompts, useGentleUse } from './client/gentlePrompts';
-import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { ProfilesApi } from './client/mediaApis';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { createPeopleApi } from './client/peopleApi';
@@ -63,6 +62,7 @@ import {
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
   HEART_MOMENT_EDIT_ROUTE_PATTERN,
   LEGACY_ROUTE_REWRITES,
+  LEGAL_TERMS_ROUTE,
   MEMORY_CREATE_ROUTE,
   MEMORY_DETAIL_ROUTE_PATTERN,
   MEMORY_EDIT_ROUTE_PATTERN,
@@ -117,6 +117,7 @@ import {
 import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
 import { useIdentityEntry } from './client/useIdentityEntry';
 import { useSessionRefresh } from './client/useSessionRefresh';
+import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { VideoProcessingContext } from './client/video';
 import { WirDesignProvider } from './client/wirDesign';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
@@ -136,6 +137,7 @@ import { FirstSpaceGate } from './components/FirstSpaceGate';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
+import { LegalTermsPage } from './components/LegalTermsPage';
 import {
   ActivityProductPage,
   NotificationsProductPage,
@@ -1240,6 +1242,16 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
       !membershipsQuery.error &&
       resolveActiveSpaceId(membershipsQuery.data, spaceId),
   );
+  // Public legal text needs no session; it must stay readable while signed out.
+  if (location.pathname === LEGAL_TERMS_ROUTE && !entryToken) {
+    return (
+      <>
+        <ThemeControl />
+        <LegalTermsPage />
+      </>
+    );
+  }
+
   if ((isRestoring && !restoredSpaceAuthorized) || isSigningOut) {
     return (
       <BrandedStartup

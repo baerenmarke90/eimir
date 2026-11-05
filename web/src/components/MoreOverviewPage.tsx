@@ -1,32 +1,35 @@
+import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { AccountView } from '../api/generated/models/AccountView';
+import { loadInstanceAccessStatus } from '../client/instanceStatus';
 import { PRIVATE_AREA_ROOT_PATH } from '../client/privateArea';
+import { useProductTour } from '../client/productTour';
 import {
   ACTIVITY_ROUTE,
+  type AppRouteIcon,
   appRoutePath,
+  LEGAL_TERMS_ROUTE,
   MORE_COLLECTIONS_ROUTE,
   MORE_INSIGHTS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
-  MORE_PEOPLE_ROUTE,
   MORE_PASSPORT_ROUTE,
+  MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_ROUTE,
   SEARCH_ROUTE,
+  SERVER_ADMIN_ROUTE,
   STORY_CHAPTERS_ROUTE,
   STORY_PHOTOS_ROUTE,
   STORY_YEARS_ROUTE,
-  SERVER_ADMIN_ROUTE,
-  type AppRouteIcon,
 } from '../client/routes';
-import { useCurrentProfileIdentity } from '../client/useCurrentProfileIdentity';
-import { useProductTour } from '../client/productTour';
-import { resolvedLocale, useTranslation } from '../i18n';
 import { useShellUtilities } from '../client/shellUtilities';
+import { useCurrentProfileIdentity } from '../client/useCurrentProfileIdentity';
+import { resolvedLocale, useTranslation } from '../i18n';
 import { Brand } from './Brand';
-import { EimirIcon } from './EimirIcon';
 import { DestinationIcon } from './DestinationIcon';
+import { EimirIcon } from './EimirIcon';
 import { PageHeader } from './PageHeader';
 import { PersonIdentity } from './PersonIdentity';
 import './MoreOverviewPage.css';
@@ -195,6 +198,12 @@ export function MoreOverviewPage({
   const { t } = useTranslation();
   const { replay } = useProductTour();
   const { unreadCount, serverAdmin, onLogout } = useShellUtilities();
+  // Shares App's cached public instance status; Self-Hosted publishes no terms.
+  const instanceStatus = useQuery({
+    queryKey: ['instance-status', apiBaseUrl],
+    queryFn: () => loadInstanceAccessStatus(apiBaseUrl),
+    staleTime: 60_000,
+  });
   const { displayName, avatarUrl } = useCurrentProfileIdentity({
     apiBaseUrl,
     accessToken,
@@ -303,6 +312,11 @@ export function MoreOverviewPage({
             <EimirIcon name="logout" />
             <span>{t('header.logout')}</span>
           </button>
+        ) : null}
+        {instanceStatus.data?.termsOfUseVersion ? (
+          <nav className="more-legal" aria-label={t('legal.eyebrow')}>
+            <Link to={LEGAL_TERMS_ROUTE}>{t('legal.termsLink')}</Link>
+          </nav>
         ) : null}
         <div className="more-brand-signature">
           <Brand />

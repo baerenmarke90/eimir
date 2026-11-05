@@ -15,12 +15,13 @@ import experiences from './locales/experiences';
 import games from './locales/games';
 import gentlePrompts from './locales/gentlePrompts';
 import importantDates from './locales/importantDates';
+import legal from './locales/legal';
 import m5s3 from './locales/m5s3';
 import m5s5 from './locales/m5s5';
 import m5s6 from './locales/m5s6';
+import mediaDrop from './locales/mediaDrop';
 import memoryMap from './locales/memoryMap';
 import memoryProduct from './locales/memoryProduct';
-import mediaDrop from './locales/mediaDrop';
 import navigation from './locales/navigation';
 import notificationSettings from './locales/notificationSettings';
 import partnerConnection from './locales/partnerConnection';
@@ -88,6 +89,7 @@ if (!i18n.isInitialized) {
           games,
           experiences,
           importantDates,
+          legal,
           m5s3,
           m5s5,
           ...m5s6,
@@ -139,5 +141,5 @@ if (!i18n.isInitialized) {
 syncDocumentLanguage();
 i18n.on('languageChanged', syncDocumentLanguage);
 
-export { useTranslation } from 'react-i18next';
+export { Trans, useTranslation } from 'react-i18next';
 export { i18n };

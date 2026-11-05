@@ -14,8 +14,8 @@ candidates, not engineering identifiers.
 Use short, recognizable headings that describe what the couple finds there.
 Warmth comes from their content and a personal address, without slogans or
 relationship judgments. Use **euer/eure** for shared content, **dein/deine** for
-personal input and **für dich** only for something actually addressed to that
-person. Avoid mixing English feature slang, internal module names and German
+personal input and the equivalent of **for you** only for something actually
+addressed to that person. Avoid mixing English feature slang, internal module names and German
 editorial headings on the same screen.
 
 The WIR heading and its Settings module label should use the same name. A short

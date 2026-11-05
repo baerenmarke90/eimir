@@ -49,6 +49,12 @@ does not remove swipe/arrow-key navigation or the source-Moment action.
   retains its one source action, without a second previous/next pair.
 - The shared-Wish journey starts from Wishes and returns to that selected tab
   after private selection, shared intersection, Plan save and result return.
+- The retained upcoming-Plan reference checks agenda-before-undated order and
+  Wishes-only selection placement. The existing erase/reload diary test checks
+  actual IndexedDB creation/deletion before reload: disappearance of its
+  dirty-only status is not a durable-clear acknowledgement. Both corrected
+  journeys passed three local repetitions without increasing test retries or
+  changing production persistence behavior.
 
 ## Scope and limits
 

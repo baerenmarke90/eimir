@@ -603,10 +603,12 @@ test('Plans leads with the nearest intention, then later and undated Plans, whil
   );
   await expect(later.locator('.planen-agenda-schedule')).toContainText('Uhr');
   const agendaBox = await plansPanel.locator('.planen-agenda').boundingBox();
-  const selectionBox = await plansPanel
-    .locator('.wish-selection-entry')
+  const undatedBox = await plansPanel
+    .locator('.planen-undated-link')
+    .first()
     .boundingBox();
-  expect(agendaBox?.y).toBeLessThan(selectionBox?.y ?? 0);
+  expect(agendaBox?.y).toBeLessThan(undatedBox?.y ?? 0);
+  await expect(plansPanel.locator('.wish-selection-entry')).toHaveCount(0);
   await expect(plansPanel.locator('.planen-undated-link')).toContainText(
     IDEA_TITLE,
   );
@@ -630,6 +632,7 @@ test('Plans leads with the nearest intention, then later and undated Plans, whil
   const wishesPanel = page.getByRole('tabpanel', {
     name: m5s3.overview.segmentWishes,
   });
+  await expect(wishesPanel.locator('.wish-selection-entry')).toBeVisible();
   await expect(
     wishesPanel.getByText(EARLY_TITLE, { exact: true }),
   ).toBeVisible();

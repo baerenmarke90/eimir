@@ -266,9 +266,9 @@ Rechecked main `91a12b2eb87d9e95c9a7f4ff57bc7cb410ea4714`:
    and choose **„Google Fotos“**. The device/system picker remains directly
    usable. No technical Google setup belongs in the consumer flow.
 2. Explain selected copying, temporary transfer and the destination before
-   authorization. Candidate de-DE copy: **„Wähle bei Google Fotos aus, was du
-   hinzufügen möchtest. eimir. übernimmt nur deine Auswahl. Geteilt wird sie
-   erst, wenn du diesen Eintrag speicherst.“** A private HeartMoment instead
+   authorization. Candidate de-DE copy:
+   **„Wähle bei Google Fotos aus, was du hinzufügen möchtest. eimir. übernimmt nur deine Auswahl. Geteilt wird sie erst, wenn du diesen Eintrag speicherst.“**
+   A private HeartMoment instead
    explains that saved copies stay private until explicitly shared.
 3. Open Google authorization and the official Photos Picker in the supported
    browser. On return, show selected media in the existing draft, preserving

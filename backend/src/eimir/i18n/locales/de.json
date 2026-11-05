@@ -1,0 +1,12 @@
+{
+  "notification.subject": "Neues bei eimir.",
+  "notification.body": "Bei euch gibt es etwas Neues.\n\nIn eimir. öffnen: {url}",
+  "auth.magic.subject": "Dein Anmeldelink für eimir.",
+  "auth.magic.body": "Hier ist dein Anmeldelink:\n\n{url}\n\nEr gilt 15 Minuten und genau einmal.\n\nWenn du ihn nicht angefordert hast, kannst du diese Nachricht ignorieren.",
+  "auth.signup.subject": "Dein Link für eimir.",
+  "auth.signup.body": "Mit diesem Link geht es bei eimir. weiter:\n\n{url}\n\nEr gilt 15 Minuten und genau einmal.\n\nWenn du ihn nicht angefordert hast, kannst du diese Nachricht ignorieren. Ohne den Link passiert nichts.",
+  "auth.verification.subject": "Bestätige deine E-Mail-Adresse",
+  "auth.verification.body": "Bitte bestätige deine Adresse:\n\n{url}\n\nDer Link gilt 24 Stunden und genau einmal.",
+  "auth.recovery.subject": "Passwort zurücksetzen",
+  "auth.recovery.body": "Mit diesem Link kannst du ein neues Passwort setzen:\n\n{url}\n\nEr gilt 30 Minuten und genau einmal. Danach sind alle angemeldeten Geräte abgemeldet.\n\nWenn du ihn nicht angefordert hast, ändert sich nichts."
+}

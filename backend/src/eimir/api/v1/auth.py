@@ -20,6 +20,7 @@ from eimir.auth import cloud, local, oidc, passkey_abuse, passkeys, sessions
 from eimir.auth.local import SignedIn
 from eimir.auth.policy import AuthPolicy
 from eimir.config import get_settings
+from eimir.i18n import request_locale
 from eimir.mail import MailSender, sender
 
 router = APIRouter(tags=["auth"])
@@ -138,6 +139,9 @@ class AccountView(ApiModel):
     id: UUID
     display_name: str
     gentle_prompts_enabled: bool = False
+    language_preference: str = "auto"
+    locale: str = "de"
+    language_version: int = 0
 
 
 class TokenView(ApiModel):
@@ -170,6 +174,9 @@ def _view(result: SignedIn | cloud.SignedIn | oidc.SignedIn | passkeys.SignedIn)
             id=result.account.id,
             display_name=result.account.display_name,
             gentle_prompts_enabled=result.account.gentle_prompts_enabled,
+            language_preference=result.account.language_preference,
+            locale=result.account.locale,
+            language_version=result.account.language_version,
         ),
         tokens=TokenView(
             access_token=result.tokens.access_token,
@@ -281,6 +288,9 @@ def me(account: CurrentAccount) -> AccountView:
         id=account.id,
         display_name=account.display_name,
         gentle_prompts_enabled=account.gentle_prompts_enabled,
+        language_preference=account.language_preference,
+        locale=account.locale,
+        language_version=account.language_version,
     )
 
 
@@ -300,7 +310,13 @@ def request_magic_link(
     sign-in. The response never discloses whether the address has an Account.
     """
     client_host = request.client.host if request.client is not None else None
-    cloud.request_magic_link(session, email=body.email, mail=mail, client_host=client_host)
+    cloud.request_magic_link(
+        session,
+        email=body.email,
+        mail=mail,
+        client_host=client_host,
+        requested_locale=request_locale(request.headers.get("accept-language")),
+    )
     return Response(status_code=status.HTTP_202_ACCEPTED)
 
 
@@ -345,6 +361,7 @@ def request_signup(
         mail=mail,
         client_host=client_host,
         invitation_token=body.invitation_token,
+        requested_locale=request_locale(request.headers.get("accept-language")),
     )
     return Response(status_code=status.HTTP_202_ACCEPTED)
 

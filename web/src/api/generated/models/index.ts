@@ -123,6 +123,8 @@ export * from './ImportantDateView';
 export * from './InstanceAccessStatus';
 export * from './InvitationView';
 export * from './IssuedInvitationView';
+export * from './LanguagePreferenceUpdate';
+export * from './LanguagePreferenceView';
 export * from './LinkPreviewRequest';
 export * from './LinkPreviewResult';
 export * from './MagicLinkConsumeRequest';

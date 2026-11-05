@@ -1,6 +1,7 @@
 import { parseSync } from 'rolldown/utils';
 import { DEFAULT_LOCALE, i18n, resolvedLocale } from './index';
 import de from './locales/de';
+import { localeRegistry, supportedLocales } from './resources';
 
 const sourceFiles = import.meta.glob(
   [
@@ -10,6 +11,16 @@ const sourceFiles = import.meta.glob(
     '!../**/*.test.tsx',
     '!../api/generated/**',
   ],
+  { eager: true, import: 'default', query: '?raw' },
+) as Record<string, string>;
+
+const recipientPacks = import.meta.glob(
+  '../../../backend/src/eimir/i18n/locales/*.json',
+  { eager: true, import: 'default', query: '?raw' },
+);
+
+const nativePacks = import.meta.glob(
+  '../../../android/app/src/main/res/values*/strings.xml',
   { eager: true, import: 'default', query: '?raw' },
 ) as Record<string, string>;
 
@@ -117,7 +128,153 @@ function flattenResourceKeys(
   return keys;
 }
 
+function resourceEntries(
+  value: unknown,
+  prefix = '',
+  result = new Map<string, string>(),
+) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    for (const [key, child] of Object.entries(value)) {
+      resourceEntries(child, prefix ? `${prefix}.${key}` : key, result);
+    }
+  } else if (typeof value === 'string') result.set(prefix, value);
+  return result;
+}
+
+const pluralSuffix = /_(zero|one|two|few|many|other)$/u;
+function placeholders(value: string) {
+  return [...value.matchAll(/\{\{\s*([^{}]+?)\s*\}\}/gu)]
+    .map((match) => match[1])
+    .sort();
+}
+
 describe('web i18n', () => {
+  it('registers the same product languages for Web, recipient delivery and native fallback', () => {
+    const recipientLocales = Object.keys(recipientPacks)
+      .map((file) =>
+        file
+          .split('/')
+          .at(-1)
+          ?.replace(/\.json$/u, ''),
+      )
+      .sort();
+    const nativeLocales = Object.values(nativePacks)
+      .map(
+        (xml) =>
+          xml.match(/<string name="product_locale">([^<]+)<\/string>/u)?.[1],
+      )
+      .filter(Boolean)
+      .sort();
+    expect(recipientLocales).toEqual([...supportedLocales].sort());
+    expect(nativeLocales).toEqual([...supportedLocales].sort());
+  });
+
+  it('bundles complete packs with matching interpolation and native plural categories', () => {
+    const baseline = resourceEntries(localeRegistry.de.translation);
+    const expected = new Set(
+      [...baseline.keys()].map((key) => key.replace(pluralSuffix, '')),
+    );
+    for (const locale of supportedLocales) {
+      const entries = resourceEntries(localeRegistry[locale].translation);
+      const actual = new Set(
+        [...entries.keys()].map((key) => key.replace(pluralSuffix, '')),
+      );
+      expect([...actual].sort(), locale).toEqual([...expected].sort());
+      const categories = new Intl.PluralRules(locale).resolvedOptions()
+        .pluralCategories;
+      const groups = new Set(
+        [...baseline.keys()]
+          .filter((key) => pluralSuffix.test(key))
+          .map((key) => key.replace(pluralSuffix, '')),
+      );
+      for (const group of groups) {
+        for (const category of categories) {
+          expect(
+            entries.has(`${group}_${category}`),
+            `${locale}:${group}_${category}`,
+          ).toBe(true);
+        }
+      }
+      for (const [key, value] of entries) {
+        expect(value.trim(), `${locale}:${key}`).not.toBe('');
+        const original =
+          baseline.get(key) ??
+          baseline.get(key.replace(pluralSuffix, '_other'));
+        expect(original, `${locale}:${key}`).toBeDefined();
+        expect(placeholders(value), `${locale}:${key}`).toEqual(
+          placeholders(original ?? ''),
+        );
+        expect(
+          value.replace(/\{\{[^{}]+\}\}/gu, ''),
+          `${locale}:${key}`,
+        ).not.toMatch(/\{\{|\}\}/u);
+        if (
+          locale === 'en' &&
+          [
+            'common.cancel',
+            'common.saving',
+            'common.edit',
+            'navigation.settings',
+            'navigation.story',
+            'languageSettings.personal',
+          ].includes(key)
+        )
+          expect(value, key).not.toBe(original);
+      }
+    }
+  });
+
+  it('keeps visible JSX text and accessible names in language resources', () => {
+    const exceptions = new Set(['eimir', '© OpenStreetMap']);
+    const findings: string[] = [];
+    for (const [fileName, source] of Object.entries(sourceFiles)) {
+      if (!fileName.endsWith('.tsx')) continue;
+      const { program } = parseSync(fileName, source);
+      function visit(node: unknown): void {
+        if (Array.isArray(node)) {
+          node.forEach(visit);
+          return;
+        }
+        if (!isAstNode(node)) return;
+        let copy: unknown;
+        if (node.type === 'JSXText') copy = node.value;
+        if (node.type === 'JSXAttribute') {
+          const name = (node.name as AstNode).name;
+          const value = node.value as AstNode | undefined;
+          if (
+            ['aria-label', 'title', 'placeholder', 'alt'].includes(String(name))
+          ) {
+            copy = value?.type === 'Literal' ? value.value : undefined;
+          }
+        }
+        if (
+          typeof copy === 'string' &&
+          /[A-Za-z]{2}/u.test(copy) &&
+          !exceptions.has(copy.trim())
+        ) {
+          findings.push(
+            `${fileName}:${source.slice(0, node.start).split('\n').length}: ${copy.trim()}`,
+          );
+        }
+        for (const child of Object.values(node))
+          if (typeof child === 'object' && child !== null) visit(child);
+      }
+      visit(program);
+    }
+    expect(findings).toEqual([]);
+  });
+
+  it('renders English and changes document language without restarting i18next', async () => {
+    await i18n.changeLanguage('en-US');
+    expect(resolvedLocale()).toBe('en');
+    expect(i18n.t('story.kind.memory')).toBe('Memory');
+    expect(i18n.t('story.photos', { count: 1 })).toBe('1 photo');
+    expect(i18n.t('story.photos', { count: 2 })).toBe('2 photos');
+    expect(i18n.t('photoSources.limit', { count: 1 })).toBe(
+      'You can add 1 more photo.',
+    );
+    await i18n.changeLanguage('de');
+  });
   it('starts with German as the default locale', () => {
     expect(DEFAULT_LOCALE).toBe('de');
     expect(resolvedLocale()).toBe('de');
@@ -165,7 +322,7 @@ describe('web i18n', () => {
   });
 
   it('falls back to German resources for an unsupported language request', async () => {
-    await i18n.changeLanguage('en');
+    await i18n.changeLanguage('fr');
     expect(i18n.t('story.kind.memory')).toBe('Erinnerung');
     await i18n.changeLanguage(DEFAULT_LOCALE);
   });

@@ -24,6 +24,7 @@ export default {
   pause: 'Pause',
   replay: 'Nochmal ansehen',
   aiDraft: 'KI-Entwurf · aus euren gemeinsamen Inhalten',
+  originalLanguage: 'Originalsprache: {{language}}',
   create: 'Zusammenstellen',
   more: 'Weitere Rückblicke',
   available: 'Weitere Zeiträume',

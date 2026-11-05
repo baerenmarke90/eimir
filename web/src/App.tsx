@@ -30,14 +30,13 @@ import {
   stopNativePushForSignedOutAccount,
   useDevicePush,
 } from './client/devicePush';
+import { enableGentlePrompts, useGentleUse } from './client/gentlePrompts';
 import {
   ActiveAccountMismatchError,
   revokeUnacceptedSession,
 } from './client/identityFlow';
 import { loadInstanceAccessStatus } from './client/instanceStatus';
 import { createM4ProductApis } from './client/m4Product';
-import { enableGentlePrompts, useGentleUse } from './client/gentlePrompts';
-import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { ProfilesApi } from './client/mediaApis';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { createPeopleApi } from './client/peopleApi';
@@ -115,8 +114,10 @@ import {
   resolveActiveSpaceId,
 } from './client/spaceContext';
 import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
+import { useAccountLanguage } from './client/useAccountLanguage';
 import { useIdentityEntry } from './client/useIdentityEntry';
 import { useSessionRefresh } from './client/useSessionRefresh';
+import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { VideoProcessingContext } from './client/video';
 import { WirDesignProvider } from './client/wirDesign';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
@@ -998,6 +999,12 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   );
   const [account, setAccount] = useState<AccountView | null>(
     () => initialStoredSession?.account ?? null,
+  );
+  useAccountLanguage(
+    config.apiBaseUrl,
+    tokens?.accessToken,
+    account,
+    setAccount,
   );
   const [isRestoring, setIsRestoring] = useState(() =>
     Boolean(initialStoredSession),

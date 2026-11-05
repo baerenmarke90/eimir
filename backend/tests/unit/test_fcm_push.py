@@ -115,6 +115,29 @@ def test_identity_includes_activation_and_survives_json_key_order(
     )
 
 
+@pytest.mark.parametrize("version", [0, 1])
+def test_recipient_language_requires_negotiation_without_changing_activation_identity(
+    provider: fcm_push.FcmPushProvider, version: int
+) -> None:
+    raw = json.loads(endpoint())
+    if version:
+        raw["localeVersion"] = version
+    registered = json.dumps(raw, separators=(",", ":"))
+    parsed = fcm_push._parse(registered)
+    assert parsed is not None
+    assert provider.registration_identity(registered) == provider.registration_identity(endpoint())
+    wake = fcm_push._wake(parsed, {"locale": "en-US", "body": "private authored prose"})
+    assert wake == {
+        "type": "wake",
+        "activationId": ACTIVATION,
+        **({"locale": "en"} if version else {}),
+    }
+    raw["localeVersion"] = True
+    assert not provider.accepts_endpoint(json.dumps(raw, separators=(",", ":")))
+    raw["localeVersion"] = 2
+    assert not provider.accepts_endpoint(json.dumps(raw, separators=(",", ":")))
+
+
 @pytest.mark.parametrize(
     "value",
     [

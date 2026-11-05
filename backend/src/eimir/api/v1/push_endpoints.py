@@ -74,12 +74,14 @@ class PushEndpointRegistrationResult(ApiModel):
 
 
 class UnifiedPushConfiguration(ApiModel):
+    locale_version: Literal[1] = 1
     notification_reference_version: Literal[1] = 1
     provider_key: str
     vapid_public_key: str
 
 
 class FcmConfiguration(ApiModel):
+    locale_version: Literal[1] = 1
     encrypted_preview_version: Literal[1] = 1
     encrypted_preview_max_version: Literal[2] = 2
     provider_key: str

@@ -835,6 +835,14 @@
         "web/src/components/AppSurfacePullToRefresh.tsx",
         "web/src/components/usePullToRefresh.ts"
       ]
+    },
+    "multilingual-product.spec.ts": {
+      "roots": [
+        "web/src/components/LanguageSettings.tsx",
+        "web/src/client/useAccountLanguage.ts",
+        "web/src/i18n/index.ts",
+        "web/src/client/sessionPersistence.ts"
+      ]
     }
   }
 }

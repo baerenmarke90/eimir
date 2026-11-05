@@ -1452,7 +1452,7 @@ test('diary draft storage isolates account, instance and Space; invalidates old 
 }) => {
   await page.goto('/');
   const result = await page.evaluate(async () => {
-    const modulePath = '/src/client/memoryDiaryDraft.ts';
+    const modulePath = '/e2e/modules/memoryDiaryDraft.js';
     const { MemoryDiaryDraftStore, MEMORY_DRAFT_MAX_AGE_MS } = await import(
       modulePath
     );
@@ -1510,7 +1510,7 @@ test('diary draft storage isolates account, instance and Space; invalidates old 
     Date.now = originalNow;
     await replacement.load();
     await replacement.save(value);
-    const sessionPath = '/src/client/sessionPersistence.ts';
+    const sessionPath = '/e2e/modules/sessionPersistence.js';
     const { clearStoredSession } = await import(sessionPath);
     await clearStoredSession();
     let revokedDenied = false;
@@ -1700,8 +1700,8 @@ async function stageRecoveryPhotos(page: Page, photos: PhotoBatchScenario) {
   );
   await page.evaluate(
     async ([account, space]) => {
-      const draftPath = '/src/client/memoryDiaryDraft.ts';
-      const retentionPath = '/src/client/selectedMediaRetention.ts';
+      const draftPath = '/e2e/modules/memoryDiaryDraft.js';
+      const retentionPath = '/e2e/modules/selectedMediaRetention.js';
       const { MemoryDiaryDraftStore } = await import(draftPath);
       const { retainPhotoInMemory } = await import(retentionPath);
       const store = new MemoryDiaryDraftStore(location.origin, account, space);

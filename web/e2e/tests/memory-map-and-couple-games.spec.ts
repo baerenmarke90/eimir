@@ -710,7 +710,9 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
       await installMocks(page);
       await installExperienceRoutes(page);
       await signIn(page);
-      const partnerContext = await browser.newContext();
+      const partnerContext = await browser.newContext({
+        serviceWorkers: 'block',
+      });
       const partnerPage = await partnerContext.newPage();
       await partnerPage.clock.install({
         time: new Date('2026-11-01T10:00:00Z'),

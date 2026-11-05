@@ -2,8 +2,8 @@
 
 The Product Owner requested a new test release from the latest main through the
 usual channel on 2026-11-05 (Europe/Berlin). The inspected baseline is
-`426f6ef4f23aee9e633cbfaaf336c4fe31f5f1fb`, including merged #1646, #1650,
-#1652 and #1654. Normally merge this baseline into the existing temporary updater
+`88004f8147fa2cf6d65364d06443805859011fc3`, including merged #1646, #1650,
+#1652, #1654 and #1642. Normally merge this baseline into the existing temporary updater
 foundation. The standing draft #1443 remains against its release base; never merge
 the temporary updater foundation into main.
 
@@ -51,6 +51,14 @@ assembly/lint/unit tests, canonical signing, actual APK identity and predecessor
 compatibility. It stages all four assets as a draft, uploads the marker last,
 publishes the complete immutable prerelease and verifies all anonymous bytes.
 Report publication only after that workflow and an independent public read pass.
+
+Main advanced from `426f6ef4` to `88004f81` during candidate validation. The old
+main browser run was superseded by the new push, so its cancellation is not
+release acceptance. Integrate #1642's bundled browser runtime and preserve the
+release-only updater proof HTML as an additional E2E entry in that same bundle
+graph. No fixture enters the normal release build. Existing updater assertions,
+test ownership, sharding, timeouts, retries and diagnostic names remain intact.
+Repeat all required acceptance against the refreshed immutable candidate.
 
 The separate private runtime channel advances main only through its own exact
 source gates. Git publication alone does not prove Arcane deployment. Observe

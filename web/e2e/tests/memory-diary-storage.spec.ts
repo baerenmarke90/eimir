@@ -105,7 +105,7 @@ test('legacy diary upgrade preserves photos and reads only the requested draft p
   await legacy.evaluate((db) => db.close());
   const trace = await tracePayloadReads(page);
   const result = await page.evaluate(async (currentScope) => {
-    const modulePath = '/src/client/memoryDiaryDraft.ts';
+    const modulePath = '/e2e/modules/memoryDiaryDraft.js';
     const { MemoryDiaryDraftStore } = await import(modulePath);
     const draft = await new MemoryDiaryDraftStore(...currentScope).load();
     const request = indexedDB.open('eimir-memory-drafts-v1');
@@ -179,7 +179,7 @@ test('logout cleans metadata without loading photos and preserves a later login'
   await legacy.evaluate((db) => db.close());
   const trace = await tracePayloadReads(page);
   const result = await page.evaluate(async (currentScope) => {
-    const modulePath = '/src/client/memoryDiaryDraft.ts';
+    const modulePath = '/e2e/modules/memoryDiaryDraft.js';
     const { MemoryDiaryDraftStore, clearMemoryDiaryDrafts } = await import(
       modulePath
     );
@@ -246,8 +246,8 @@ test('memory-only photos checkpoint no bytes and preserve ordering and uncertain
 }) => {
   await page.goto('/');
   const result = await page.evaluate(async (currentScope) => {
-    const draftPath = '/src/client/memoryDiaryDraft.ts';
-    const retentionPath = '/src/client/selectedMediaRetention.ts';
+    const draftPath = '/e2e/modules/memoryDiaryDraft.js';
+    const retentionPath = '/e2e/modules/selectedMediaRetention.js';
     const { MemoryDiaryDraftStore } = await import(draftPath);
     const { retainPhotoInMemory, selectedPhotoUnavailable } = await import(
       retentionPath
@@ -338,7 +338,7 @@ test('legacy photo bytes remain until explicit resume migrates without losing au
   const legacy = await seedLegacyDatabase(page);
   await legacy.evaluate((db) => db.close());
   const result = await page.evaluate(async (currentScope) => {
-    const path = '/src/client/memoryDiaryDraft.ts';
+    const path = '/e2e/modules/memoryDiaryDraft.js';
     const { MemoryDiaryDraftStore } = await import(path);
     const store = new MemoryDiaryDraftStore(...currentScope);
     const draft = await store.load();
@@ -373,7 +373,7 @@ test('a blocked draft upgrade closes its rejected late connection', async ({
   const legacy = await seedLegacyDatabase(page);
   const result = await page.evaluate(
     async ({ blocker, currentScope }) => {
-      const modulePath = '/src/client/memoryDiaryDraft.ts';
+      const modulePath = '/e2e/modules/memoryDiaryDraft.js';
       const { MemoryDiaryDraftStore } = await import(modulePath);
       const open = indexedDB.open;
       let lateClosed = false;
@@ -435,7 +435,7 @@ test('a login generation change during cleanup aborts before reading content', a
   await legacy.evaluate((db) => db.close());
   const trace = await tracePayloadReads(page);
   const result = await page.evaluate(async (currentScope) => {
-    const modulePath = '/src/client/memoryDiaryDraft.ts';
+    const modulePath = '/e2e/modules/memoryDiaryDraft.js';
     const { MemoryDiaryDraftStore } = await import(modulePath);
     const original = IDBIndex.prototype.openKeyCursor;
     let intercepted = false;

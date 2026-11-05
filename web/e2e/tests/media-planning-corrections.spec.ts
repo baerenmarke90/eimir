@@ -11,8 +11,8 @@ import {
   captureScreenshot,
   installMocks,
   ME,
-  signIn,
   SPACE_ID,
+  signIn,
 } from '../support/storyTimelineFixture';
 
 const copy = fixtureCopy.mediaPlanning;
@@ -437,15 +437,15 @@ test('real local codec worker reduces transfer bytes without dropping the audio 
   page,
 }, testInfo) => {
   test.setTimeout(150_000);
-  // Resolve the fixture's development dependencies before opening the application.
-  await page.request.get('/e2e/fixtures/mediaCompression.tsx');
+  // Preload the bundled fixture before opening the application.
+  await page.request.get('/e2e/modules/mediaCompression.js');
   await setup(page);
   await page.route('**/synthetic-compression-recording.mp4', (route) =>
     route.fulfill({ body: movie, contentType: 'video/mp4' }),
   );
   await signIn(page);
   const result = await page.evaluate(async () => {
-    const moduleUrl = '/e2e/fixtures/mediaCompression.tsx';
+    const moduleUrl = '/e2e/modules/mediaCompression.js';
     const fixture = await import(moduleUrl);
     return fixture.verifyLocalCompression();
   });

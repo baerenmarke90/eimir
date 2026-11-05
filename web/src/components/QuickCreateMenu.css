@@ -425,6 +425,8 @@
   .mobile-quick-create
     .quick-create-trigger:is(:active, [data-control-pressed]) {
     transform: translateY(-4px);
-    scale: none;
+    /* Keep this independent reset through Lightning CSS transform folding:
+       https://github.com/parcel-bundler/lightningcss/issues/426 */
+    scale: none !important;
   }
 }

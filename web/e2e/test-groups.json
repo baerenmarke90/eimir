@@ -109,12 +109,12 @@
     "memory-create-defaults.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 30,
-      "reason": "Also protects bounded dense photo selection, exact persisted order and saved/new interleaving."
+      "reason": "Also protects bounded dense photo selection, exact persisted order and saved/new interleaving. Browser module probes share the application bundle graph and production singleton state."
     },
     "memory-diary-storage.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 4,
-      "reason": "Real IndexedDB/File upgrade, scoped payload reads, metadata-only expiry/logout and rejected late-open connection ownership."
+      "reason": "Real IndexedDB/File upgrade, scoped payload reads, metadata-only expiry/logout and rejected late-open connection ownership. Browser module probes share the application bundle graph and production singleton state."
     },
     "memory-delete-ownership.spec.ts": {
       "disposition": "PR_CRITICAL",

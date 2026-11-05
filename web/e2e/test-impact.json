@@ -232,7 +232,10 @@
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/PlanningCreatePage.tsx",
-        "web/src/components/PhotoSourceSettingsPanel.tsx"
+        "web/src/components/PhotoSourceSettingsPanel.tsx",
+        "web/src/client/memoryDiaryDraft.ts",
+        "web/src/client/selectedMediaRetention.ts",
+        "web/src/client/sessionPersistence.ts"
       ]
     },
     "memory-delete-ownership.spec.ts": {
@@ -250,7 +253,9 @@
         "web/src/components/MemoryProductPage.tsx",
         "web/src/components/HeartMomentProductPage.tsx",
         "web/src/components/PlanningCreatePage.tsx",
-        "web/src/components/PhotoSourceSettingsPanel.tsx"
+        "web/src/components/PhotoSourceSettingsPanel.tsx",
+        "web/src/client/memoryDiaryDraft.ts",
+        "web/src/client/selectedMediaRetention.ts"
       ]
     },
     "memory-experiences.spec.ts": {

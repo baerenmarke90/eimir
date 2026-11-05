@@ -83,6 +83,19 @@ def _guard_recovery_policy(row: PhotoSelection) -> None:
         )
 
 
+def _google_client(row: PhotoSelection) -> google_photos.GooglePhotosClient:
+    with transfer_slot():
+        client = google_photos.client_configuration()
+    if not row.payload.google_client_binding or not tokens_equal(
+        row.payload.google_client_binding, client.binding
+    ):
+        raise ServiceUnavailableError(
+            "This photo source configuration changed. Start a new selection.",
+            "PHOTO_SOURCE_CONFIGURATION_CHANGED",
+        )
+    return client
+
+
 def _guard(session: Session, auth: AuthorizationContext, *, lock: bool = True) -> None:
     if not enabled():
         raise ServiceUnavailableError(
@@ -244,13 +257,15 @@ def start(
     url: str | None = None
     with transfer_slot():
         if provider == "google":
-            url, state, verifier = google_photos.authorization()
+            client = google_photos.client_configuration()
+            url, state, verifier = google_photos.authorization(client=client)
             row.state_hash = hash_token(state)
             row.payload = row.payload.model_copy(
                 update={
                     "oauth_state": state,
                     "code_verifier": verifier,
                     "browser_binding_hash": hash_token(browser_binding or ""),
+                    "google_client_binding": client.binding,
                 }
             )
         else:
@@ -300,6 +315,8 @@ def owned(
     if commercial:
         _guard_google_import(row.provider)
         _guard_recovery_policy(row)
+        if row.provider == "google":
+            _google_client(row)
     return row
 
 
@@ -320,6 +337,8 @@ def _load_immich_page(session: Session, row: PhotoSelection, page: int) -> None:
 def advance(session: Session, row: PhotoSelection, *, more: bool = False) -> None:
     _guard_google_import(row.provider)
     _guard_recovery_policy(row)
+    if row.provider == "google":
+        _google_client(row)
     rate_limit.check(
         session,
         "photo-source-poll",
@@ -330,6 +349,13 @@ def advance(session: Session, row: PhotoSelection, *, more: bool = False) -> Non
         if row.provider == "immich":
             if more and row.payload.next_page:
                 _load_immich_page(session, row, row.payload.next_page)
+            return
+        if (
+            row.status == "PICKING"
+            and row.payload.google_poll_deadline is not None
+            and row.payload.google_poll_deadline <= now()
+        ):
+            _finish_expired_google(session, row)
             return
         if row.status != "PICKING" or row.next_poll_at > now():
             return
@@ -352,13 +378,40 @@ def advance(session: Session, row: PhotoSelection, *, more: bool = False) -> Non
             )
             row.status = "READY"
         else:
-            config = state.get("pollingConfig", {})
-            interval = config.get("pollInterval", "5s") if isinstance(config, dict) else "5s"
-            try:
-                seconds = float(str(interval).removesuffix("s"))
-            except ValueError:
-                seconds = 5
-            row.next_poll_at = now() + timedelta(seconds=min(60, max(3, seconds)))
+            timing = google_photos.session_timing(
+                state,
+                at=now(),
+                expires_at=row.expires_at,
+                poll_deadline=data.google_poll_deadline,
+            )
+            previous_deadline = min(data.google_poll_deadline or row.expires_at, row.expires_at)
+            row.expires_at = timing.expires_at
+            row.payload = data.model_copy(update={"google_poll_deadline": timing.poll_deadline})
+            if timing.poll_deadline <= now():
+                _finish_expired_google(session, row)
+                return
+            row.next_poll_at = min(now() + timing.interval, timing.poll_deadline)
+            if timing.poll_deadline < previous_deadline:
+                queue.enqueue(
+                    session,
+                    EXPIRE_JOB,
+                    {"selection_id": str(row.id), "polling_timeout": True},
+                    delay=timing.poll_deadline - now(),
+                )
+
+
+def _finish_expired_google(session: Session, row: PhotoSelection) -> None:
+    data = row.payload
+    # Called inside the existing bounded transfer slot. Remote cleanup must not
+    # prevent immediate local credential erasure on a timeout.
+    if data.access_token and data.provider_session_id:
+        with suppress(PhotoSourceError):
+            google_photos.GooglePhotoPicker(data.access_token).delete(data.provider_session_id)
+    row.status = "EXPIRED"
+    row.payload = data.model_copy(
+        update={"access_token": None, "provider_session_id": None, "picker_uri": None}
+    )
+    session.flush()
 
 
 def callback(
@@ -439,9 +492,14 @@ def callback(
             raise PhotoSourceError("PHOTO_SOURCE_AUTHORIZATION_FAILED")
         if not code or not data.code_verifier or not data.oauth_state:
             raise PhotoSourceError("PHOTO_SOURCE_AUTHORIZATION_FAILED")
+        client = _google_client(row)
         with transfer_slot():
-            token = google_photos.exchange(code, data.oauth_state, data.code_verifier)
+            token = google_photos.exchange(
+                code, data.oauth_state, data.code_verifier, client=client
+            )
             created = google_photos.GooglePhotoPicker(token).create(data.max_items)
+            # Persist the new session before validating its deadlines so failure
+            # cleanup can delete it using the token that created it.
             row.payload = data.model_copy(
                 update={
                     "access_token": token,
@@ -453,9 +511,29 @@ def callback(
                 }
             )
             row.status = "PICKING"
+            timing = google_photos.session_timing(created, at=now(), expires_at=row.expires_at)
+            row.expires_at = timing.expires_at
+            row.next_poll_at = min(now() + timing.interval, timing.poll_deadline)
+            row.payload = row.payload.model_copy(
+                update={"google_poll_deadline": timing.poll_deadline}
+            )
+            if timing.poll_deadline <= now():
+                _finish_expired_google(session, row)
+                return None
+            queue.enqueue(
+                session,
+                EXPIRE_JOB,
+                {"selection_id": str(row.id), "polling_timeout": True},
+                delay=max(timedelta(), timing.poll_deadline - now()),
+            )
             session.flush()
             return row.payload.picker_uri
     except (PhotoSourceError, DomainError):
+        if row.payload.access_token and row.payload.provider_session_id:
+            with suppress(PhotoSourceError, DomainError), transfer_slot():
+                google_photos.GooglePhotoPicker(row.payload.access_token).delete(
+                    row.payload.provider_session_id
+                )
         row.status = "FAILED"
         row.payload = data.model_copy(
             update={
@@ -463,6 +541,8 @@ def callback(
                 "code_verifier": None,
                 "browser_binding_hash": None,
                 "access_token": None,
+                "provider_session_id": None,
+                "picker_uri": None,
             }
         )
         session.flush()
@@ -474,6 +554,8 @@ def read_item(
 ) -> SelectedPhoto:
     _guard_google_import(row.provider)
     _guard_recovery_policy(row)
+    if row.provider == "google":
+        _google_client(row)
     rate_limit.check(
         session,
         "photo-source-read",
@@ -515,4 +597,10 @@ def expire(session: Session, payload: dict[str, object]) -> None:
         select(PhotoSelection).where(PhotoSelection.id == identifier).with_for_update()
     ).scalar_one_or_none()
     if row:
-        remove(session, row)
+        deadline = row.payload.google_poll_deadline
+        if (
+            payload.get("polling_timeout") is not True
+            or row.expires_at <= now()
+            or (row.status == "PICKING" and deadline is not None and deadline <= now())
+        ):
+            remove(session, row)

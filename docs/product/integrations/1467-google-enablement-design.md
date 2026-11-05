@@ -1,6 +1,11 @@
 # Google import: browser proof and device-recovery decision
 
 Owner: [#1467](https://github.com/baerenmarke90/eimir/issues/1467).
+
+The [operator project-migration preparation](1467-google-project-migration.md)
+adds account-independent Web-client configuration, transaction rotation binding,
+provider deadline handling and secret-free setup diagnostics. It does not enable
+Google or satisfy the installed-app/video and real-provider acceptance below.
 Baseline: `main@ee6064fda6466258636e1e0446539336edb06a86` (2026-10-28).
 
 ## Delivery boundary

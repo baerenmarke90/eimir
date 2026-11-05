@@ -77,6 +77,7 @@ def render(
     *profiles: str,
     env_file: Path = RELEASE_ENV_EXAMPLE,
     overrides: dict[str, str] | None = None,
+    extra_files: tuple[Path, ...] = (),
 ) -> dict:
     """Return ``docker compose config`` as JSON for the given profiles."""
 
@@ -99,10 +100,10 @@ def render(
             str(rendered_env),
             "--file",
             str(COMPOSE),
-            "config",
-            "--format",
-            "json",
         ]
+        for path in extra_files:
+            command += ["--file", str(path)]
+        command += ["config", "--format", "json"]
         result = subprocess.run(
             command,
             cwd=ROOT,
@@ -332,6 +333,50 @@ class DemoInitializationContractTest(unittest.TestCase):
 
     def test_cloud_profile_never_carries_demo_initialization(self) -> None:
         self.assertNotIn("demo-init", render("cloud")["services"])
+
+
+@unittest.skipUnless(shutil.which("docker"), "docker is required to resolve compose config")
+class GooglePhotosSecretOverlayTest(unittest.TestCase):
+    """Render the actual optional overlay without weakening the runtime topology."""
+
+    def test_google_secret_is_a_file_and_preserves_each_profile_environment(
+        self,
+    ) -> None:
+        overlay = ROOT / "compose.google-photos.yaml"
+        with tempfile.TemporaryDirectory() as directory:
+            private_file = Path(directory) / "web-client.json"
+            private_file.write_text('{"web":{"client_secret":"synthetic-private-value"}}')
+            overrides = {"EIMIR_GOOGLE_PHOTOS_WEB_CLIENT_HOST_FILE": str(private_file)}
+            for profile, roles in (
+                ("self-hosted", ("api", "worker")),
+                ("cloud", ("cloud-api", "cloud-worker")),
+            ):
+                with self.subTest(profile=profile):
+                    baseline = render(profile)
+                    configured = render(profile, overrides=overrides, extra_files=(overlay,))
+                    self.assertEqual(set(baseline["services"]), set(configured["services"]))
+                    for name in roles:
+                        service = configured["services"][name]
+                        original = baseline["services"][name]
+                        expected_environment = {
+                            **original["environment"],
+                            "EIMIR_GOOGLE_PHOTOS_WEB_CLIENT_FILE": "/run/secrets/google-photos-web-client.json",
+                        }
+                        self.assertEqual(service["environment"], expected_environment)
+                        for key in ("image", "depends_on", "volumes", "command"):
+                            self.assertEqual(service.get(key), original.get(key), (name, key))
+                        self.assertIn(
+                            {
+                                "source": "google_photos_web_client",
+                                "target": "google-photos-web-client.json",
+                            },
+                            service["secrets"],
+                        )
+                    self.assertEqual(
+                        configured["secrets"]["google_photos_web_client"]["file"],
+                        str(private_file),
+                    )
+                    self.assertNotIn("synthetic-private-value", json.dumps(configured))
 
 
 class DocumentedDecisionTest(unittest.TestCase):

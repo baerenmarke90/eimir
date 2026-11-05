@@ -38,6 +38,8 @@ from eimir.identity.models import (
     Account,
     AccountEmail,
 )
+from eimir.legal import terms
+from eimir.legal.models import TermsAcceptanceOrigin
 from eimir.mail import MailMessage, MailSender, MailTransportError
 from eimir.relationship import invitations
 
@@ -188,6 +190,7 @@ def request_signup(
     mail: MailSender,
     client_host: str | None,
     invitation_token: str | None = None,
+    accepted_terms_version: str | None = None,
 ) -> None:
     """Start Cloud self-service onboarding by mailing a one-time proof.
 
@@ -201,9 +204,14 @@ def request_signup(
     either: rejecting unknown addresses while registration is disabled would
     reintroduce exactly the difference this request must not have. Clients read
     the public instance status instead of offering a dead entry point.
+
+    A terms acceptance given in the signup form travels with the proof. It is
+    validated against the current version here, independently of Account
+    state, and recorded only if redeeming the proof creates an Account.
     """
     ensure_self_service_signup_supported()
     address = accounts.validate_email(email)
+    accepted_terms_version = terms.ensure_current_version(accepted_terms_version)
 
     network = passkey_abuse.network_key(client_host)
     rate_limit.check(session, ACTION_SIGNUP_NETWORK, network, SIGNUP_NETWORK)
@@ -215,6 +223,7 @@ def request_signup(
         session,
         address,
         invitation_token_hash=hash_token(invitation_token) if invitation_token else None,
+        accepted_terms_version=accepted_terms_version,
     )
     link = _link("auth/signup", issued.token)
     _deliver(
@@ -250,8 +259,30 @@ def _owner_signing_in(session: Session, email_record: AccountEmail) -> Account:
     return account
 
 
+def _signup_acceptance(
+    proof_version: str | None, redemption_version: str | None
+) -> tuple[str, TermsAcceptanceOrigin]:
+    """Resolve the acceptance a new Account is created with, or refuse creation.
+
+    An acceptance given while redeeming takes precedence because it is the
+    most recent statement. A proof's acceptance counts only while it still
+    names the current version; otherwise the person is asked again.
+    """
+    required = terms.required_terms_version()
+    if required is not None and redemption_version == required:
+        return required, TermsAcceptanceOrigin.SIGNUP_REDEMPTION
+    if required is not None and proof_version == required:
+        return required, TermsAcceptanceOrigin.SIGNUP_REQUEST
+    raise terms.acceptance_required_error()
+
+
 def _signup_account(
-    session: Session, address: str, display_name: str | None
+    session: Session,
+    address: str,
+    display_name: str | None,
+    *,
+    proof_terms_version: str | None = None,
+    redemption_terms_version: str | None = None,
 ) -> tuple[Account, bool]:
     """Decide between signing in and creating, for an address just proven.
 
@@ -267,8 +298,9 @@ def _signup_account(
     if existing is not None:
         return _owner_signing_in(session, existing), False
 
-    # Existing Accounts are not blocked by this check above; only creation is.
+    # Existing Accounts are not blocked by these checks above; only creation is.
     administration.ensure_new_account_registration_allowed(session)
+    accepted_version, origin = _signup_acceptance(proof_terms_version, redemption_terms_version)
     try:
         with session.begin_nested():
             account = accounts.create_verified_email_account(
@@ -279,6 +311,7 @@ def _signup_account(
         if converged is None:
             raise
         return _owner_signing_in(session, converged), False
+    terms.record_acceptance(session, account_id=account.id, version=accepted_version, origin=origin)
     return account, True
 
 
@@ -290,6 +323,7 @@ def consume_signup(
     display_name: str | None = None,
     device_name: str = "",
     platform: str = "",
+    accepted_terms_version: str | None = None,
 ) -> SignupCompleted:
     """Redeem a signup proof into a normal session.
 
@@ -301,6 +335,10 @@ def consume_signup(
       authoritative administration error and create nothing. The transaction
       rolls back, so the proof stays redeemable once onboarding reopens within
       its lifetime.
+    - No Account and no current terms acceptance, either bound to the proof or
+      given with this redemption: fail with ``TERMS_ACCEPTANCE_REQUIRED`` and
+      create nothing. The proof stays redeemable, so the client can ask for the
+      acceptance and redeem it again.
 
     A consumed, superseded, expired, or unknown proof fails with the ordinary
     invalid-token response. A proof bound to an invitation accepts it in this
@@ -313,8 +351,15 @@ def consume_signup(
     rate_limit.check(session, ACTION_SIGNUP_NETWORK, network, SIGNUP_NETWORK)
     rate_limit.record_attempt(session, ACTION_SIGNUP_NETWORK, network)
 
+    accepted_terms_version = terms.ensure_current_version(accepted_terms_version)
     proof = action_tokens.consume_signup_proof(session, token)
-    account, created = _signup_account(session, proof.email, display_name)
+    account, created = _signup_account(
+        session,
+        proof.email,
+        display_name,
+        proof_terms_version=proof.accepted_terms_version,
+        redemption_terms_version=accepted_terms_version,
+    )
     space_id = None
     if proof.invitation_token_hash is not None:
         membership = invitations.accept_by_hash(session, proof.invitation_token_hash, account)

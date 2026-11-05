@@ -52,5 +52,6 @@ def test_signup_mail_binds_only_the_invitation_hash_to_the_proof(
         session,
         "partner@example.invalid",
         invitation_token_hash=hash_token(invitation) if invitation is not None else None,
+        accepted_terms_version=None,
     )
     assert session.mock_calls == []
